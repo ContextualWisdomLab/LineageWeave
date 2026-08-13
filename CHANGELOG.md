@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0] - 2026-08-13
+
+### Added
+
+- The post-detail Event Lineage panel now draws the same git-branch SVG
+  as the home page, scoped to that post's reconstruct group
+  (`subgraphForPost`). Opening an A-100 post shows the `rec-002` fork
+  and keeps B-200 out; the direct/indirect lists stay as the
+  why-linked distinction. Tests drive `subgraphForPost` on the
+  designed A-100 fixture.
+
 ## [0.19.0] - 2026-08-13
 
 ### Added

@@ -38,6 +38,7 @@ import {
   type VocEvidence,
 } from "./api";
 import { LineageDag } from "./LineageDag";
+import { subgraphForPost } from "./lineageLayout";
 import "./App.css";
 
 // This popup's layout follows the textual product brief (Korean summary,
@@ -149,15 +150,17 @@ function ChatPanel({ postId, accessToken }: { postId: string; accessToken: strin
 
 function EventLineageSection({
   lineage,
+  graph,
+  postId,
   onSelectPost,
 }: {
   lineage: PostLineage | null;
+  graph: LineageGraph | null;
+  postId: string;
   onSelectPost?: (postId: string) => void;
 }) {
   if (!lineage) return <p>Loading lineage...</p>;
-  if (lineage.direct.length === 0 && lineage.indirect.length === 0) {
-    return <p className="lineage-empty">No linked posts yet.</p>;
-  }
+  const scoped = graph ? subgraphForPost(graph, postId) : { nodes: [], edges: [] };
   const renderLink = (post: LinkedPostRef, kind: "direct" | "indirect") => (
     <li key={post.post_id} className={`lineage-link lineage-link-${kind}`}>
       <span className="lineage-badge">{kind === "direct" ? "직접" : "간접"}</span>
@@ -170,11 +173,22 @@ function EventLineageSection({
       )}
     </li>
   );
+  const hasLinks = lineage.direct.length > 0 || lineage.indirect.length > 0;
+  if (scoped.nodes.length === 0 && !hasLinks) {
+    return <p className="lineage-empty">No linked posts yet.</p>;
+  }
   return (
-    <ul className="lineage-list">
-      {lineage.direct.map((post) => renderLink(post, "direct"))}
-      {lineage.indirect.map((post) => renderLink(post, "indirect"))}
-    </ul>
+    <>
+      {scoped.nodes.length > 0 && onSelectPost && (
+        <LineageDag graph={scoped} onSelectPost={onSelectPost} />
+      )}
+      {hasLinks && (
+        <ul className="lineage-list">
+          {lineage.direct.map((post) => renderLink(post, "direct"))}
+          {lineage.indirect.map((post) => renderLink(post, "indirect"))}
+        </ul>
+      )}
+    </>
   );
 }
 
@@ -509,12 +523,14 @@ function PostDetailPopup({
   postId,
   accessToken,
   canExtract,
+  graph,
   onClose,
   onSelectPost,
 }: {
   postId: string;
   accessToken: string;
   canExtract: boolean;
+  graph: LineageGraph | null;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
 }) {
@@ -611,7 +627,12 @@ function PostDetailPopup({
 
             <section className="popup-section">
               <h3>Event Lineage</h3>
-              <EventLineageSection lineage={lineage} onSelectPost={onSelectPost} />
+              <EventLineageSection
+                lineage={lineage}
+                graph={graph}
+                postId={postId}
+                onSelectPost={onSelectPost}
+              />
             </section>
 
             <section className="popup-section">
@@ -776,6 +797,7 @@ function PostList({ accessToken }: { accessToken: string }) {
           postId={selectedPostId}
           accessToken={accessToken}
           canExtract={canRebuild}
+          graph={graph}
           onClose={() => setSelectedPostId(null)}
           onSelectPost={setSelectedPostId}
         />

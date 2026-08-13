@@ -81,6 +81,20 @@ function layoutGroup(nodes: LineageGraphNode[], edges: LineageGraphEdge[]): {
   };
 }
 
+/** Reconstruct group that contains `postId` -- the popup DAG must not mix A-100 with B-200. */
+export function subgraphForPost(graph: LineageGraph, postId: string): LineageGraph {
+  const focus = graph.nodes.find((node) => node.id === postId);
+  if (!focus) {
+    return { nodes: [], edges: [] };
+  }
+  const nodes = graph.nodes.filter((node) => node.group === focus.group);
+  const ids = new Set(nodes.map((node) => node.id));
+  return {
+    nodes,
+    edges: graph.edges.filter((edge) => ids.has(edge.source) && ids.has(edge.target)),
+  };
+}
+
 export function layoutLineageDag(graph: LineageGraph): LaidOutGroup[] {
   const buckets = new Map<string, { nodes: LineageGraphNode[]; edges: LineageGraphEdge[] }>();
   for (const node of graph.nodes) {
