@@ -1890,6 +1890,49 @@ def test_seed_fixture_tickets_surface_on_get_tickets(client, demo_analyst_token,
     assert due == "2026-01-12"
 
 
+def test_seed_fixture_tickets_surface_on_get_activity(client, demo_analyst_token, seeded_db) -> None:
+    """The same helper `make seed` calls must XADD ticket_created so
+    GET /api/posts/{id}/activity is not empty after a report-member click.
+    """
+    from lineageweave.fixtures import sample_records
+    from scripts.seed_demo_data import _seed_fixture_ticket_activity, _seed_fixture_tickets
+
+    fixture_title = sample_records()[1].label  # Pricing renegotiation follow-up
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_id, corp_id = cur.fetchone()
+            cur.execute(
+                "insert into source_post "
+                "(author_account_id, corporate_entity_id, post_title, post_body, "
+                " voc_type_code, visibility_code) "
+                "values (%s, %s, %s, %s, 'voc', 'public') returning post_id",
+                (author_id, corp_id, fixture_title, fixture_title),
+            )
+            post_id = str(cur.fetchone()[0])
+            _seed_fixture_tickets(cur)
+            _seed_fixture_ticket_activity(cur, author_id, _VALKEY_URL)
+            _seed_fixture_ticket_activity(cur, author_id, _VALKEY_URL)
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/posts/{post_id}/activity",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    events = response.json()["events"]
+    assert len(events) == 1
+    assert events[0]["event_type"] == "ticket_created"
+    assert "Send Northridge Grid the revised quote" in events[0]["summary"]
+    assert events[0]["actor_account_id"] == str(author_id)
+
+
 def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, seeded_db) -> None:
     """The same helper `make seed` calls must produce a 2026-W02 report
     GET /api/reports returns -- high-band posts outrank low-band posts
