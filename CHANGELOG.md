@@ -4,6 +4,29 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-08-13
+
+### Added
+
+- `docker-compose.yml`: PostgreSQL, Valkey, and a real Keycloak OIDC
+  provider, genuinely functional (not a stub/mocked adapter). `make up`
+  brings up all three from a clean checkout; `make smoke` runs
+  `scripts/smoke_test_oidc.py`, which logs in as a synthetic demo user
+  seeded by `docker/keycloak/realm-export.json`, fetches Keycloak's live
+  JWKS, and cryptographically verifies the returned JWT's RS256 signature,
+  issuer, and `corp_code`/`pu_code` custom claims -- a real round-trip
+  proof, not a "the container started" check.
+- `docker/postgres-init/` and `docker/keycloak/`: both services are `build:`
+  targets (Dockerfiles that `COPY` in the keycloak-db init script and the
+  realm seed) rather than bind mounts, so the images are self-contained and
+  reproducible on any Docker host or CI runner.
+- Keycloak stores its own state in a second database (`keycloak`) on the
+  same PostgreSQL instance -- one running database service for the whole
+  stack, no second file-backed store.
+- `.env.example` documents the (already-defaulted) compose variables,
+  including how to remap host ports if 5432/6379/8080 are already taken
+  locally.
+
 ## [0.4.0] - 2026-08-13
 
 ### Added

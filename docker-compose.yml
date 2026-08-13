@@ -1,0 +1,58 @@
+services:
+  postgres:
+    # Built (not bind-mounted) so the keycloak-db init script ships inside
+    # the image itself -- portable across hosts/CI runners that don't share
+    # a filesystem with the Docker daemon.
+    build: ./docker/postgres-init
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lineageweave}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lineageweave_dev_only}
+      POSTGRES_DB: ${POSTGRES_DB:-lineageweave}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lineageweave} -d ${POSTGRES_DB:-lineageweave}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    ports:
+      - "${VALKEY_PORT:-6379}:6379"
+    volumes:
+      - valkey_data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    # Built (not bind-mounted) so the realm-export.json seed ships inside
+    # the image itself -- portable across hosts/CI runners that don't share
+    # a filesystem with the Docker daemon.
+    build: ./docker/keycloak
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin_dev_only}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER:-lineageweave}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-lineageweave_dev_only}
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "${KEYCLOAK_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  valkey_data:
