@@ -872,6 +872,19 @@ def test_seed_fixture_keymen_and_voc_surface_on_get(client, demo_analyst_token, 
                 (author_id, corp_id, fixture_title, fixture_title),
             )
             post_id = str(cur.fetchone()[0])
+            cur.execute(
+                "insert into source_post "
+                "(author_account_id, corporate_entity_id, post_title, post_body, "
+                " voc_type_code, visibility_code) "
+                "values (%s, %s, %s, %s, 'voc', 'public') returning post_id",
+                (
+                    author_id,
+                    corp_id,
+                    "Technical specification review meeting",
+                    "Technical specification review meeting",
+                ),
+            )
+            beta_id = str(cur.fetchone()[0])
             _seed_fixture_keymen_and_voc(cur, corp_id)
     finally:
         admin_conn.close()
@@ -900,6 +913,13 @@ def test_seed_fixture_keymen_and_voc_surface_on_get(client, demo_analyst_token, 
     assert any("Northridge Grid" in excerpt for excerpt in body["excerpts"])
     counterparties = {row["counterparty_entity_name"] for row in body["counterparties"]}
     assert "Northridge Grid" in counterparties
+
+    beta = client.get(f"/api/posts/{beta_id}/keymen", headers=headers)
+    assert beta.status_code == 200, beta.text
+    assert {person["person_name"] for person in beta.json()["keymen"]} == {"Jordan Hale"}
+    beta_voc = client.get(f"/api/posts/{beta_id}/voc-evidence", headers=headers)
+    assert beta_voc.status_code == 200, beta_voc.text
+    assert any("Westfield Power" in excerpt for excerpt in beta_voc.json()["excerpts"])
 
 
 def test_evaluation_is_empty_before_a_judge_run(client, demo_analyst_token, seeded_db) -> None:

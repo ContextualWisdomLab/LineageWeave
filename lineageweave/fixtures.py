@@ -75,6 +75,14 @@ def fixture_thread_cast(title: str) -> FixtureThreadCast | None:
                 f"{title}. Ada West followed up with Priya Nair at Northridge Grid."
             ),
         )
+    beta = {rec.label for rec in sample_records() if rec.secondary_key == "proj-beta"}
+    if title in beta:
+        return FixtureThreadCast(
+            organization_name="Westfield Power",
+            relationship_type_code="rel_vom",
+            person_names=("Jordan Hale",),
+            body=f"{title}. Jordan Hale reviewed the Westfield Power specification.",
+        )
     return None
 
 

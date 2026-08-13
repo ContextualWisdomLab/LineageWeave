@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.38.0] - 2026-08-14
+
+### Added
+
+- Seeded Keyman and VOC counterparty for B-200 Event Lineage fixtures
+  (Jordan Hale / Westfield Power, Voice of Market). Clicking a B-200
+  DAG node is no longer an empty Keyman or VOC panel. A-100 and
+  rec-006 casts are unchanged.
+
 ## [0.37.0] - 2026-08-14
 
 ### Added

@@ -457,7 +457,11 @@ def _seed_fixture_evaluations(cur) -> None:
 def _ensure_demo_people(cur, corporate_entity_id) -> dict[str, str]:
     """Ada West / Priya Nair plus their affiliations. Idempotent."""
     people: dict[str, str] = {}
-    for name, side in (("Ada West", "our_side"), ("Priya Nair", "counterparty")):
+    for name, side in (
+        ("Ada West", "our_side"),
+        ("Priya Nair", "counterparty"),
+        ("Jordan Hale", "our_side"),
+    ):
         cur.execute("select person_id from cataloged_person where person_name = %s", (name,))
         row = cur.fetchone()
         if row is None:
@@ -484,6 +488,12 @@ def _ensure_demo_people(cur, corporate_entity_id) -> dict[str, str]:
         "insert into person_affiliation (person_id, affiliated_organization_name) "
         "values (%s, 'Northridge Holdings') on conflict do nothing",
         (people["Priya Nair"],),
+    )
+    cur.execute(
+        "insert into person_affiliation "
+        "(person_id, affiliated_organization_name, affiliated_corporate_entity_id) "
+        "values (%s, 'Demo Corp', %s) on conflict do nothing",
+        (people["Jordan Hale"], corporate_entity_id),
     )
     return people
 
@@ -529,7 +539,11 @@ def _seed_fixture_keymen_and_voc(cur, corporate_entity_id) -> None:
             )
             mentioned.append(person_id)
         if mentioned:
-            affiliations = [(people["Ada West"], str(corporate_entity_id))]
+            affiliations = [
+                (people[name], str(corporate_entity_id))
+                for name in cast.person_names
+                if name in people and name != "Priya Nair"
+            ]
             for edge in knowledge_graph_edges_for_post(post_id, mentioned, affiliations):
                 cur.execute(
                     "select 1 from knowledge_graph_edge where "

@@ -52,7 +52,12 @@ def test_proj_alpha_cast_names_northridge_and_uncast_stays_empty() -> None:
     assert fork.body is not None
     assert sentence_excerpts(fork.body, (fork.organization_name,))
     assert fixture_thread_cast("Unrelated: annual account review") is None
-    assert fixture_thread_cast("Technical specification review meeting") is None
+    spec = fixture_thread_cast("Technical specification review meeting")
+    assert spec is not None
+    assert spec.organization_name == "Westfield Power"
+    assert "Jordan Hale" in spec.person_names
+    assert spec.body is not None
+    assert sentence_excerpts(spec.body, (spec.organization_name,))
     calendar = fixture_thread_cast("Follow-up on the Riverbend order confirmation")
     assert calendar is not None
     assert calendar.organization_name == "Riverbend"
