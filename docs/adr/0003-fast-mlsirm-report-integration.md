@@ -80,11 +80,16 @@ than one large PR:
    (`post_evaluation_response`, one row per post per criterion,
    `common_lookup_value`-backed criterion codes).
 3. **Calibration/report slice** (shipped in 0.28.0): `fixed_item_calibration_diagnostics()`
-   run per PU/team/project grouping to produce linked, comparable
-   scores across periods, persisted to a `report_period_score` table,
-   and a `GET /api/reports/{grouping}/{period}` endpoint + frontend
-   view that renders the actual computed numbers -- never a
-   placeholder or invented figure.
+   run per PU/team/project grouping to produce a fitted period score,
+   persisted to a `report_period_score` table, and a
+   `GET /api/reports/{grouping}/{period}` endpoint + frontend view
+   that renders the actual computed numbers -- never a placeholder
+   or invented figure.
+4. **Cross-period FIPC slice** (shipped in 0.29.0): persist the
+   free-calibrated item bank (`report_item_parameter`) and EAP-score
+   later weeks on those fixed parameters so thetas are comparable
+   across weeks. Independent per-week refits stay available only as
+   the first-period reference.
 
 **TEPP boundary.** [ARCHITECTURE.md](../../ARCHITECTURE.md) already
 assigns calibrated temporal/event measurement to

@@ -19,6 +19,7 @@ import {
   fetchPostSummary,
   fetchPostTickets,
   fetchPostVocEvidence,
+  fetchPeriodReportIndex,
   fetchPeriodReports,
   fetchPosts,
   fetchRelatedKeymen,
@@ -38,6 +39,7 @@ import {
   type LinkedPostRef,
   type PostAiSummary,
   type PostDetail,
+  type PeriodReportIndex,
   type PeriodReports,
   type PostLineage,
   type PostSummary,
@@ -936,13 +938,20 @@ function ReportsPanel({
   const [grouping, setGrouping] = useState("process_unit");
   const [period, setPeriod] = useState("2026-W02");
   const [payload, setPayload] = useState<PeriodReports | null>(null);
+  const [index, setIndex] = useState<PeriodReportIndex | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rebuilding, setRebuilding] = useState(false);
 
   useEffect(() => {
     setError(null);
-    fetchPeriodReports(accessToken, grouping, period)
-      .then(setPayload)
+    Promise.all([
+      fetchPeriodReports(accessToken, grouping, period),
+      fetchPeriodReportIndex(accessToken, grouping),
+    ])
+      .then(([reports, periods]) => {
+        setPayload(reports);
+        setIndex(periods);
+      })
       .catch((err) => setError(String(err)));
   }, [accessToken, grouping, period]);
 
@@ -951,7 +960,12 @@ function ReportsPanel({
     setError(null);
     try {
       await rebuildPeriodReports(accessToken, grouping, period);
-      setPayload(await fetchPeriodReports(accessToken, grouping, period));
+      const [reports, periods] = await Promise.all([
+        fetchPeriodReports(accessToken, grouping, period),
+        fetchPeriodReportIndex(accessToken, grouping),
+      ]);
+      setPayload(reports);
+      setIndex(periods);
     } catch (err) {
       setError(String(err));
     } finally {
@@ -987,6 +1001,28 @@ function ReportsPanel({
           />
         </label>
       </div>
+      {index && index.periods.length > 0 && (
+        <ul className="ticket-list">
+          {index.periods.map((row) => (
+            <li key={`${row.period_code}:${row.grouping_key}`} className="ticket-list-item">
+              <button
+                className="post-list-item"
+                aria-label={`Open report period ${row.period_code}`}
+                onClick={() => setPeriod(row.period_code)}
+              >
+                <span className="ticket-title">
+                  {row.period_code}: mean θ {row.mean_theta.toFixed(2)}
+                </span>
+                <span className="post-badge">
+                  {row.link_method === "fipc" && row.anchor_period_code && row.delta_mean_theta != null
+                    ? `vs ${row.anchor_period_code}: ${row.delta_mean_theta >= 0 ? "+" : ""}${row.delta_mean_theta.toFixed(2)}`
+                    : "reference"}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       {error && <p className="error">{error}</p>}
       {payload === null && !error && <p>Loading reports...</p>}
       {payload && payload.reports.length === 0 && (
@@ -1003,6 +1039,12 @@ function ReportsPanel({
                 {report.fit_converged ? ", converged" : ", not converged"})
               </span>
               <span className="post-badge">{report.post_count} posts</span>
+              {report.link_method === "fipc" && report.anchor_period_code && report.delta_mean_theta != null && (
+                <span className="post-badge">
+                  vs {report.anchor_period_code}: {report.delta_mean_theta >= 0 ? "+" : ""}
+                  {report.delta_mean_theta.toFixed(2)}
+                </span>
+              )}
               {report.members.length > 0 && (
                 <ul className="ticket-list">
                   {report.members.map((member) => (

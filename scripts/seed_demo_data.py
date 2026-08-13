@@ -74,6 +74,7 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
             cur.execute((migrations / "0004_relation_verification.sql").read_text())
             cur.execute((migrations / "0005_post_evaluation.sql").read_text())
             cur.execute((migrations / "0006_report_period_score.sql").read_text())
+            cur.execute((migrations / "0007_report_fipc_linking.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -401,69 +402,66 @@ def _seed_demo_calendar_commitment(cur, author_account_id, corporate_entity_id, 
     )
 
 
-def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:
-    """Insert constructed high/low IRT rows and persist a real FIPC report.
+def _ensure_eval_posts(
+    cur,
+    author_account_id,
+    corporate_entity_id,
+    process_unit_id,
+    title_prefix: str,
+    category: int,
+    created,
+    count: int = 4,
+) -> tuple[list[str], list[tuple[str, str, int]]]:
+    """Insert constructed evaluation posts if missing; always return cells."""
+    from lineageweave.post_evaluation import CRITERION_CODES, RUBRIC_VERSION
 
-    Without this, GET /api/reports/process_unit/2026-W02 is empty after
-    ``make seed`` -- the Period reports panel has nothing to show until
-    someone evaluates eight posts and clicks Rebuild. Categories are
-    constructed (high = 4, low = 0); thetas come only from
-    ``calibrate_period_report``.
-    """
-    from datetime import datetime, timezone
-
-    from lineageweave.period_report import calibrate_period_report
-    from lineageweave.post_evaluation import CRITERION_CODES, IRT_CATEGORY_COUNT, RUBRIC_VERSION
-
-    period_code = "2026-W02"
-    created = datetime(2026, 1, 5, tzinfo=timezone.utc)
     post_ids: list[str] = []
     cells: list[tuple[str, str, int]] = []
-
-    for band, category in (("High-band", IRT_CATEGORY_COUNT - 1), ("Low-band", 0)):
-        for idx in range(4):
-            title = f"{band} period report post {idx}"
-            cur.execute("select post_id from source_post where post_title = %s", (title,))
-            row = cur.fetchone()
-            if row is None:
-                cur.execute(
-                    "insert into source_post "
-                    "(author_account_id, corporate_entity_id, process_unit_id, "
-                    " post_title, post_body, voc_type_code, visibility_code, created_at) "
-                    "values (%s, %s, %s, %s, 'body', 'voc', 'public', %s) returning post_id",
-                    (author_account_id, corporate_entity_id, process_unit_id, title, created),
-                )
-                post_id = str(cur.fetchone()[0])
-                for code in CRITERION_CODES:
-                    cur.execute(
-                        "insert into post_evaluation_response "
-                        "(post_id, criterion_code, rubric_version, response_category) "
-                        "values (%s, %s, %s, %s)",
-                        (post_id, code, RUBRIC_VERSION, category),
-                    )
-            else:
-                post_id = str(row[0])
-            post_ids.append(post_id)
+    for idx in range(count):
+        title = f"{title_prefix} {idx}"
+        cur.execute("select post_id from source_post where post_title = %s", (title,))
+        row = cur.fetchone()
+        if row is None:
+            cur.execute(
+                "insert into source_post "
+                "(author_account_id, corporate_entity_id, process_unit_id, "
+                " post_title, post_body, voc_type_code, visibility_code, created_at) "
+                "values (%s, %s, %s, %s, 'body', 'voc', 'public', %s) returning post_id",
+                (author_account_id, corporate_entity_id, process_unit_id, title, created),
+            )
+            post_id = str(cur.fetchone()[0])
             for code in CRITERION_CODES:
-                cells.append((post_id, code, category))
+                cur.execute(
+                    "insert into post_evaluation_response "
+                    "(post_id, criterion_code, rubric_version, response_category) "
+                    "values (%s, %s, %s, %s)",
+                    (post_id, code, RUBRIC_VERSION, category),
+                )
+        else:
+            post_id = str(row[0])
+        post_ids.append(post_id)
+        for code in CRITERION_CODES:
+            cells.append((post_id, code, category))
+    return post_ids, cells
 
-    grouping_key = str(process_unit_id)
+
+def _persist_seed_period_report(cur, grouping_key: str, period_code: str, report) -> None:
+    """Write one seeded report plus its item bank (idempotent replace)."""
+    from lineageweave.post_evaluation import RUBRIC_VERSION
+
     cur.execute(
-        "select 1 from report_period_score "
+        "delete from report_period_score "
         "where grouping_kind = 'process_unit' and grouping_key = %s "
         "and period_code = %s and rubric_version = %s",
         (grouping_key, period_code, RUBRIC_VERSION),
     )
-    if cur.fetchone() is not None:
-        return
-
-    report = calibrate_period_report(post_ids, cells)
     cur.execute(
         "insert into report_period_score ("
         "grouping_kind, grouping_key, period_code, rubric_version, "
         "selected_model, mean_theta, mean_theta_sd, post_count, item_count, "
-        "fit_loglik, fit_converged, calibration_score"
-        ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        "fit_loglik, fit_converged, calibration_score, "
+        "link_method, anchor_period_code, delta_mean_theta"
+        ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (
             "process_unit",
             grouping_key,
@@ -477,6 +475,9 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
             report.fit_loglik,
             report.fit_converged,
             report.calibration_score,
+            report.link_method,
+            report.anchor_period_code,
+            report.delta_mean_theta,
         ),
     )
     for member in report.member_scores:
@@ -495,6 +496,98 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
                 member.theta_sd,
             ),
         )
+    bank = report.item_bank
+    for index, item_code in enumerate(bank.item_codes):
+        cur.execute(
+            "insert into report_item_parameter ("
+            "grouping_kind, grouping_key, period_code, rubric_version, "
+            "item_code, item_index, slope, cat_params"
+            ") values (%s,%s,%s,%s,%s,%s,%s,%s)",
+            (
+                "process_unit",
+                grouping_key,
+                period_code,
+                RUBRIC_VERSION,
+                item_code,
+                index,
+                bank.slope[index],
+                list(bank.cat_params[index]),
+            ),
+        )
+
+
+def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:
+    """Insert constructed IRT rows and persist a linked W02→W03 FIPC pair.
+
+    W02 is mixed high/low and free-calibrated (the item bank). W03 is
+    all-high and scored on that bank so the Period reports trend shows
+    a real week-over-week θ change -- not two independently re-centered
+    means. Categories are constructed; thetas come only from
+    ``link_or_calibrate_period_report``.
+    """
+    from datetime import datetime, timezone
+
+    from lineageweave.period_report import link_or_calibrate_period_report
+    from lineageweave.post_evaluation import IRT_CATEGORY_COUNT, RUBRIC_VERSION
+
+    grouping_key = str(process_unit_id)
+    w02 = "2026-W02"
+    w03 = "2026-W03"
+    high = IRT_CATEGORY_COUNT - 1
+
+    w02_high_ids, w02_high_cells = _ensure_eval_posts(
+        cur,
+        author_account_id,
+        corporate_entity_id,
+        process_unit_id,
+        "High-band period report post",
+        high,
+        datetime(2026, 1, 5, tzinfo=timezone.utc),
+    )
+    w02_low_ids, w02_low_cells = _ensure_eval_posts(
+        cur,
+        author_account_id,
+        corporate_entity_id,
+        process_unit_id,
+        "Low-band period report post",
+        0,
+        datetime(2026, 1, 5, tzinfo=timezone.utc),
+    )
+    w03_ids, w03_cells = _ensure_eval_posts(
+        cur,
+        author_account_id,
+        corporate_entity_id,
+        process_unit_id,
+        "High-band week-3 period report post",
+        high,
+        datetime(2026, 1, 12, tzinfo=timezone.utc),
+        count=6,
+    )
+
+    cur.execute(
+        "select link_method from report_period_score "
+        "where grouping_kind = 'process_unit' and grouping_key = %s "
+        "and period_code = %s and rubric_version = %s",
+        (grouping_key, w03, RUBRIC_VERSION),
+    )
+    existing = cur.fetchone()
+    if existing is not None and existing[0] == "fipc":
+        return
+
+    reference = link_or_calibrate_period_report(
+        w02_high_ids + w02_low_ids,
+        w02_high_cells + w02_low_cells,
+        source_period_code=w02,
+    )
+    _persist_seed_period_report(cur, grouping_key, w02, reference)
+    linked = link_or_calibrate_period_report(
+        w03_ids,
+        w03_cells,
+        item_bank=reference.item_bank,
+        previous_mean_theta=reference.mean_theta,
+        source_period_code=w03,
+    )
+    _persist_seed_period_report(cur, grouping_key, w03, linked)
 
 
 def main() -> None:

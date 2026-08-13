@@ -4,6 +4,19 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.29.0] - 2026-08-13
+
+### Added
+
+- True cross-period FIPC linking: the first week for a grouping
+  free-calibrates and persists `report_item_parameter`; later weeks
+  EAP-score on those fixed item parameters so mean θ is comparable
+  across weeks (Kim, 2006). An independent all-high week would
+  re-center near 0; the linked week stays high on the reference
+  metric. `GET /api/reports/{grouping}` lists the trend; the Period
+  reports panel shows `vs 2026-W02: +0.92`. Seed writes a constructed
+  2026-W02 reference and 2026-W03 all-high follow-up.
+
 ## [0.28.2] - 2026-08-13
 
 ### Added
