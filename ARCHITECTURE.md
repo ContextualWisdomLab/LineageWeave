@@ -308,9 +308,10 @@ instead of raw codes.
 sentences in the post body that name a counterparty or affiliated
 organization (`lineageweave/voc_evidence.py`). A name that does not
 appear yields no excerpt. `make seed` writes Ada West / Priya Nair /
-Northridge Grid onto A-100 proj-alpha Event Lineage posts (and
-Riverbend onto the calendar commitment) so those panels are not empty
-without a live extractor. rec-006 stays uncast. The popup also wires
+Northridge Grid onto A-100 proj-alpha Event Lineage posts, Jordan Hale
+/ Westfield Power onto B-200, and Riverbend onto the calendar
+commitment so those panels are not empty without a live extractor.
+rec-006 stays uncast. The popup also wires
 the already-shipped `GET /api/keymen/{person_id}/related` (click a
 Keyman) and `POST /api/posts/{post_id}/extract-keymen` (`post_admin`).
 
