@@ -58,6 +58,29 @@ describe("App, authenticated", () => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
+      if (url.endsWith("/api/lineage")) {
+        return Promise.resolve(
+          jsonResponse({
+            nodes: [
+              {
+                id: "post-1",
+                label: "Public post",
+                occurred_at: "2026-01-01T00:00:00Z",
+                is_root: true,
+                is_branch_point: false,
+              },
+              {
+                id: "post-2",
+                label: "Linked post",
+                occurred_at: "2026-01-02T00:00:00Z",
+                is_root: false,
+                is_branch_point: false,
+              },
+            ],
+            edges: [{ source: "post-1", target: "post-2", fused_score: 0.8 }],
+          }),
+        );
+      }
       if (url.endsWith("/api/posts")) {
         return Promise.resolve(
           jsonResponse([
@@ -135,6 +158,12 @@ describe("App, authenticated", () => {
     vi.stubGlobal("fetch", fetchMock);
     return fetchMock;
   }
+
+  it("renders reconstructed lineage edges on the home page", async () => {
+    stubBackend();
+    render(<App />);
+    expect(await screen.findByText("Public post → Linked post")).toBeInTheDocument();
+  });
 
   it("fetches and renders the post list, then opens a detail popup on click", async () => {
     const fetchMock = stubBackend();
