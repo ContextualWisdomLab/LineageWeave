@@ -84,12 +84,17 @@ async def load_anchor_item_bank(
     period_code: str,
 ) -> tuple[ItemBank, float] | None:
     """Latest earlier period's item bank and mean θ, if one exists."""
+    kind, _, _ = parse_period_code(period_code)
+    kind_filter = (
+        "and period_code like '%-W%'" if kind == "week" else "and period_code not like '%-W%'"
+    )
     header = await conn.fetchrow(
-        """
+        f"""
         select period_code, selected_model, mean_theta
         from report_period_score
         where grouping_kind = $1 and grouping_key = $2
           and rubric_version = $3 and period_code < $4
+          {kind_filter}
         order by period_code desc
         limit 1
         """,
