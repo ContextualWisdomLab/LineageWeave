@@ -189,7 +189,9 @@ contextual-orchestrator; persist is `backend/app/keyman_ingestion.py`.
 `GET /api/lineage` returns the ABAC-filtered reconstruct graph
 (`{nodes, edges}`) from persisted `post_lineage_edge` rows.
 `POST /api/lineage/rebuild` (`post_admin`) re-runs `reconstruct()` over
-every `source_post` and rewrites those edges.
+every `source_post` and rewrites those edges. Reconstruct grouping is
+stored on the post as `thread_group_key` / `secondary_grouping_key`
+(not derived from process unit or voc type).
 
 Phase 3 adds `GET /api/posts/{post_id}/counterparties` (same RBAC+ABAC
 gate) and extends `POST /api/posts/{post_id}/extract-keymen` to also
