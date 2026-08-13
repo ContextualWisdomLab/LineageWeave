@@ -374,3 +374,24 @@ calendar `date`, not a `timestamptz`: a "by Friday" commitment is a
 day, and binding a Python `date` into timestamptz midnight is an
 off-by-one in any session whose TZ is not UTC. A malformed
 `YYYY-MM-DD` is a 422, not a 500.
+
+## Phase 6a: fast-mlsirm dependency + Rust toolchain (infra only)
+
+First of three staged slices toward the brief's weekly/monthly
+PU/team/project reports (see
+[ADR 0003](docs/adr/0003-fast-mlsirm-report-integration.md) for the
+full reasoning). `fast-mlsirm` already implements the LLM-as-a-Judge
+-> IRT-row -> Fixed-Item Parameter Calibration pipeline the brief asks
+for, provider-neutrally against contextual-orchestrator -- this slice
+makes it buildable and importable in this repo, with zero product
+behavior change yet.
+
+Pinned as a git dependency (`pyproject.toml`, same commit-pin pattern
+as `rankweave`). It ships a PyO3/maturin Rust core with no PyPI wheel,
+so `requires-python` moved from `>=3.10` to `>=3.12` (its own floor)
+and `backend/Dockerfile`'s build stage gained a pinned, non-interactive
+`rustup` install (`build-essential` for the C linker maturin needs,
+`--profile minimal` since the build image needs `rustc`/`cargo` only,
+not docs or clippy). Verified both locally (`import fast_mlsirm._core`
+resolves to the compiled extension, not the NumPy parity fallback) and
+against a freshly built `backend` Docker image.

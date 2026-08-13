@@ -1,10 +1,13 @@
 [project]
 name = "lineageweave"
-version = "0.18.0"
+version = "0.19.0"
 description = "Reconstructs git-branch-style lineage DAGs from scattered short records using multi-channel score fusion and LLM adjudication."
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.10"
+# Was >=3.10; fast-mlsirm (see [project.optional-dependencies].backend)
+# declares >=3.12 itself, so this floor must match or `uv`'s resolver
+# reports the whole project unsatisfiable.
+requires-python = ">=3.12"
 dependencies = [
   "threadweave>=0.1.0",
   # RankWeave has no PyPI release yet; pinned to a specific commit (not a
@@ -31,6 +34,12 @@ backend = [
   # Speaks RESP; works against Valkey (a Redis-protocol-compatible fork)
   # as well as real Redis. Used for the post-activity event stream.
   "redis>=5.0.0",
+  # LLM-as-a-Judge -> IRT -> Fixed-Item Parameter Calibration for the
+  # weekly/monthly PU/team/project reports (ADR 0003). No PyPI release
+  # yet; pinned to a specific commit, same pattern as rankweave. Ships a
+  # PyO3/maturin Rust core with no fallback wheel, so building this from
+  # source needs a Rust toolchain -- see backend/Dockerfile.
+  "fast-mlsirm @ git+https://github.com/ContextualWisdomLab/fast-mlsirm.git@5006c38286a4fa1d81bcf57eeed5ce27ae743f50",
 ]
 
 [tool.setuptools.packages.find]

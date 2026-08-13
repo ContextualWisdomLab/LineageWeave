@@ -4,6 +4,25 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2026-08-13
+
+### Added
+
+- `fast-mlsirm` as a pinned git dependency (`pyproject.toml`) -- the
+  first of three staged slices toward weekly/monthly PU/team/project
+  reports (see [ADR 0003](docs/adr/0003-fast-mlsirm-report-integration.md)).
+  It already implements the brief's LLM-as-a-Judge -> IRT-row ->
+  Fixed-Item Parameter Calibration pipeline, provider-neutrally against
+  contextual-orchestrator; reused rather than reimplemented. No
+  product behavior change in this slice -- infra only.
+- `requires-python` moved from `>=3.10` to `>=3.12` to match
+  `fast-mlsirm`'s own floor. `backend/Dockerfile`'s build stage gained
+  a pinned, non-interactive `rustup` install (`build-essential` for
+  the linker), since `fast-mlsirm` ships a PyO3/maturin Rust core with
+  no fallback wheel. Verified the compiled extension actually loads
+  (not the NumPy parity fallback) both locally and in a freshly built
+  `backend` Docker image.
+
 ## [0.18.0] - 2026-08-13
 
 ### Added
