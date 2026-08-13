@@ -60,16 +60,12 @@ def _serialize_ticket(row: asyncpg.Record) -> dict[str, Any]:
     }
 
 
-_TICKET_COLUMNS = (
-    "issue_ticket_id, post_id, ticket_status_code, ticket_title, assigned_account_id, "
-    "due_date, commitment_summary, created_at, updated_at"
-)
-
-
 async def list_tickets_for_post(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
     """Every ticket on `post_id`, newest first."""
     rows = await conn.fetch(
-        f"select {_TICKET_COLUMNS} from issue_ticket where post_id = $1 order by created_at desc",
+        "select issue_ticket_id, post_id, ticket_status_code, ticket_title, "
+        "assigned_account_id, due_date, commitment_summary, created_at, updated_at "
+        "from issue_ticket where post_id = $1 order by created_at desc",
         post_id,
     )
     return [_serialize_ticket(row) for row in rows]
@@ -96,7 +92,8 @@ async def create_ticket(
         "insert into issue_ticket "
         "(post_id, ticket_status_code, ticket_title, assigned_account_id, due_date, commitment_summary) "
         "values ($1, $2, $3, $4, $5, $6) "
-        f"returning {_TICKET_COLUMNS}",
+        "returning issue_ticket_id, post_id, ticket_status_code, ticket_title, "
+        "assigned_account_id, due_date, commitment_summary, created_at, updated_at",
         post_id,
         ticket_status_code,
         ticket_title,
@@ -115,9 +112,12 @@ async def fetch_upcoming_commitments(conn: asyncpg.Connection) -> list[dict[str,
     filter every other cross-post endpoint uses; this function does not
     itself filter by account, since it has no account to check against.
     """
-    qualified_columns = ", ".join(f"issue_ticket.{column}" for column in _TICKET_COLUMNS.split(", "))
     rows = await conn.fetch(
-        f"select {qualified_columns}, "
+        "select issue_ticket.issue_ticket_id, issue_ticket.post_id, "
+        "issue_ticket.ticket_status_code, issue_ticket.ticket_title, "
+        "issue_ticket.assigned_account_id, issue_ticket.due_date, "
+        "issue_ticket.commitment_summary, issue_ticket.created_at, "
+        "issue_ticket.updated_at, "
         "p.post_title, p.visibility_code, p.corporate_entity_id "
         "from issue_ticket "
         "join source_post p on p.post_id = issue_ticket.post_id "
@@ -168,14 +168,15 @@ async def upsert_commitment_ticket(
             commitment_summary=commitment_summary,
         )
     row = await conn.fetchrow(
-        f"""
+        """
         update issue_ticket
         set ticket_title = $2,
             due_date = $3,
             commitment_summary = $4,
             updated_at = now()
         where issue_ticket_id = $1
-        returning {_TICKET_COLUMNS}
+        returning issue_ticket_id, post_id, ticket_status_code, ticket_title,
+                  assigned_account_id, due_date, commitment_summary, created_at, updated_at
         """,
         existing["issue_ticket_id"],
         ticket_title,
@@ -210,13 +211,14 @@ async def update_ticket(
     to nothing" as different, expressible outcomes.
     """
     row = await conn.fetchrow(
-        f"""
+        """
         update issue_ticket
         set ticket_status_code = coalesce($2, ticket_status_code),
             assigned_account_id = case when $3 then null else coalesce($4, assigned_account_id) end,
             updated_at = now()
         where issue_ticket_id = $1
-        returning {_TICKET_COLUMNS}
+        returning issue_ticket_id, post_id, ticket_status_code, ticket_title,
+                  assigned_account_id, due_date, commitment_summary, created_at, updated_at
         """,
         issue_ticket_id,
         ticket_status_code,

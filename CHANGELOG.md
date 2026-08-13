@@ -58,6 +58,9 @@ All notable changes to this project are documented here. Format follows
 - The "Derive commitment" button was shown to accounts without
   `post_admin` and then 403'd. It is now gated the same way as Extract
   Keymen. Calendar rows also show the source post title.
+- Ticket SQL stopped interpolating a column-list constant via f-string
+  (`asyncpg-sqli` Semgrep). The column list is a static literal in
+  each query; values stay parameterized.
 
 ## [0.17.0] - 2026-08-13
 
