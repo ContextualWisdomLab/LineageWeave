@@ -219,9 +219,60 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
                         ),
                     )
 
+            _seed_reconstructed_lineage(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+                process_units["DEMO-PU-A"],
+            )
+
         conn.commit()
     finally:
         conn.close()
+
+
+def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:
+    """Persist fixtures.sample_records() as source_posts plus reconstruct edges.
+
+    Without this, GET /api/posts/{id}/lineage is empty on a freshly seeded
+    demo: the Event Lineage panel has nothing to show even though
+    reconstruct() already knows the A-100 fork.
+    """
+    from lineageweave.fixtures import sample_records
+    from lineageweave.lineage_persistence import lineage_edge_specs
+    from lineageweave.models import Record
+
+    records = sample_records()
+    cur.execute("select 1 from source_post where post_title = %s", (records[0].label,))
+    if cur.fetchone() is not None:
+        return
+
+    persisted: list[Record] = []
+    for rec in records:
+        cur.execute(
+            "insert into source_post "
+            "(author_account_id, corporate_entity_id, process_unit_id, "
+            " post_title, post_body, voc_type_code, visibility_code) "
+            "values (%s, %s, %s, %s, %s, 'voc', 'public') returning post_id",
+            (
+                author_account_id,
+                corporate_entity_id,
+                process_unit_id,
+                rec.label,
+                rec.label,
+            ),
+        )
+        post_id = str(cur.fetchone()[0])
+        persisted.append(
+            Record(post_id, rec.group_key, rec.label, rec.occurred_at, rec.secondary_key)
+        )
+
+    for edge in lineage_edge_specs(persisted):
+        cur.execute(
+            "insert into post_lineage_edge (parent_post_id, child_post_id, fused_score) "
+            "values (%s, %s, %s) on conflict do nothing",
+            (edge.parent_id, edge.child_id, edge.fused_score),
+        )
 
 
 def main() -> None:

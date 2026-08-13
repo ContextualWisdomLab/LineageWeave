@@ -4,6 +4,20 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-08-13
+
+### Added
+
+- `lineageweave/lineage_persistence.py`: flattens `reconstruct()` trees
+  into the `(parent, child, fused_score)` rows `post_lineage_edge`
+  stores. `tests/test_lineage_persistence.py` proves the designed A-100
+  fork (`rec-002` → `rec-003` and `rec-004`) is in that contract, and
+  that unrelated `rec-006` is not forced onto a parent.
+- `scripts/seed_demo_data.py` now inserts the synthetic A-100 / B-200
+  fixture posts and persists those reconstruct edges, so
+  `GET /api/posts/{id}/lineage` (the Event Lineage panel) is not empty
+  on a freshly seeded demo stack.
+
 ## [0.11.0] - 2026-08-13
 
 ### Added

@@ -10,6 +10,7 @@ for the literature this design is grounded in.
 from .corporate_hierarchy_resolution import resolve_corporate_entity
 from .entity_relationship_classification import OrganizationRelationship
 from .knowledge_graph import random_walk_with_restart, select_related_nodes
+from .lineage_persistence import lineage_edge_specs
 from .models import Edge, Record, Tree
 from .post_chat import ChatAnswer
 from .post_summary import PostSummary
@@ -22,10 +23,11 @@ __all__ = [
     "PostSummary",
     "Record",
     "Tree",
+    "lineage_edge_specs",
     "random_walk_with_restart",
     "reconstruct",
     "resolve_corporate_entity",
     "select_related_nodes",
 ]
 
-__version__ = "0.11.0"
+__version__ = "0.12.0"
