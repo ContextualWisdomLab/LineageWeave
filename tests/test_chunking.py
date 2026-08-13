@@ -74,6 +74,29 @@ def test_chunk_by_dom_empty_html_yields_no_chunks() -> None:
     assert chunk_by_dom("") == []
 
 
+def test_chunk_by_dom_interleaves_images_with_text_in_document_order() -> None:
+    tiny_png_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    html = (
+        f"<p>Before the picture.</p>"
+        f'<img src="data:image/png;base64,{tiny_png_b64}">'
+        f"<p>After the picture.</p>"
+    )
+    chunks = chunk_by_dom(html)
+
+    assert [c.unit_type for c in chunks] == ["dom", "image", "dom"]
+    assert [c.index for c in chunks] == [0, 1, 2]
+    assert chunks[0].text == "Before the picture."
+    assert chunks[1].label == "image/png"
+    assert chunks[1].image_data is not None
+    assert chunks[2].text == "After the picture."
+
+
+def test_chunk_by_dom_skips_malformed_image_data() -> None:
+    html = '<p>Text.</p><img src="data:image/png;base64,not-valid!!!">'
+    chunks = chunk_by_dom(html)
+    assert [c.unit_type for c in chunks] == ["dom"]
+
+
 def test_chunk_by_conversation_turn_labels_each_chunk_with_its_sender() -> None:
     turns = [
         ConversationTurn(sender="alice@example.com", text="Can we move the meeting?"),

@@ -122,6 +122,34 @@ project's real dataset, not fetchable from this repository) are HTML
 documents with real DOM and sender/receiver structure, which is exactly
 the shape `chunk_by_dom` and `chunk_by_conversation_turn` are for.
 
+## Embedded images: OCR and object recognition, position-preserved
+
+The same DOM content that motivates `chunk_by_dom` can carry embedded
+base64 images -- `chunk_by_dom` extracts these as `"image"` chunks
+interleaved with the surrounding text chunks in true document order (see
+`Chunk.index`), and `lineageweave.image_content` turns image bytes into
+searchable content via a pluggable vision-capable client, following the
+same never-fake-a-missing-channel discipline as the embedding and
+adjudication clients:
+
+- **OCR (text recognition)**: grounded in Li et al. (2023) -- TrOCR, the
+  transformer encoder-decoder architecture family modern OCR (including
+  vision-capable chat models) descends from.
+- **Object recognition / captioning / tagging**: grounded in Radford et
+  al. (2021) -- CLIP, contrastive language-image pretraining, the basis
+  most current zero-shot image tagging and captioning builds on.
+
+Proven for real during development: a real PNG generated with real
+rendered text (`draw.text(...)`, not a canned fixture file) was sent
+through `OpenAiCompatibleVisionClient` against the live gateway, and the
+text was read back correctly -- genuine OCR, not a mocked response.
+
+`docs/image-content-schema.md` proposes the DB design for storing and
+searching this content so a match on extracted text or a tag can still be
+traced back to which document, and which position in that document, the
+picture came from -- an extracted caption is not useful for review if
+nobody can tell which paragraph it illustrated.
+
 ## Channels and their grounding
 
 | Channel | What it does | Grounded in |
@@ -188,6 +216,10 @@ Doddington, G., Mitchell, A., Przybocki, M., Ramshaw, L., Strassel, S., & Weisch
 Fellegi, I. P., & Sunter, A. B. (1969). A theory for record linkage. *Journal of the American Statistical Association*, *64*(328), 1183-1210. https://doi.org/10.2307/2286061
 
 Hearst, M. A. (1997). TextTiling: Segmenting text into multi-paragraph subtopic passages. *Computational Linguistics*, *23*(1), 33-64.
+
+Li, M., Lv, T., Chen, J., Cui, L., Lu, Y., Florencio, D., Zhang, C., Li, Z., & Wei, F. (2023). TrOCR: Transformer-based optical character recognition with pre-trained models. *Proceedings of the AAAI Conference on Artificial Intelligence*, *37*(11), 13094-13102. https://doi.org/10.1609/aaai.v37i11.26538
+
+Radford, A., Kim, J. W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., Sastry, G., Askell, A., Mishkin, P., Clark, J., Krueger, G., & Sutskever, I. (2021). Learning transferable visual models from natural language supervision. *Proceedings of the 38th International Conference on Machine Learning*, *139*, 8748-8763.
 
 Raudenbush, S. W., & Bryk, A. S. (2002). *Hierarchical linear models: Applications and data analysis methods* (2nd ed.). Sage Publications.
 

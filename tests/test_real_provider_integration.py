@@ -21,6 +21,7 @@ from lineageweave.embedding_client import (
     chunked_max_similarity,
     cosine_similarity,
 )
+from lineageweave.image_content import OpenAiCompatibleVisionClient
 
 _EMBEDDING_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_EMBEDDING_BASE_URL")
 _EMBEDDING_API_KEY = os.environ.get("LINEAGEWEAVE_TEST_EMBEDDING_API_KEY")
@@ -28,6 +29,10 @@ _EMBEDDING_MODEL = os.environ.get("LINEAGEWEAVE_TEST_EMBEDDING_MODEL", "text-emb
 
 _ORCHESTRATOR_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL")
 _ORCHESTRATOR_API_KEY = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY")
+
+_VISION_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_VISION_BASE_URL")
+_VISION_API_KEY = os.environ.get("LINEAGEWEAVE_TEST_VISION_API_KEY")
+_VISION_MODEL = os.environ.get("LINEAGEWEAVE_TEST_VISION_MODEL", "gpt-4.1-mini")
 
 
 @pytest.mark.skipif(
@@ -83,6 +88,35 @@ def test_chunked_embedding_finds_a_relevant_unit_buried_in_a_longer_document() -
 
     assert "Budget review" in best_b.text
     assert chunked_score > whole_document_score
+
+
+@pytest.mark.skipif(
+    not (_VISION_BASE_URL and _VISION_API_KEY),
+    reason="set LINEAGEWEAVE_TEST_VISION_BASE_URL and LINEAGEWEAVE_TEST_VISION_API_KEY to run",
+)
+def test_vision_client_performs_real_ocr_on_a_generated_image() -> None:
+    """Generate a real PNG with real rendered text (Pillow, not a fixture
+    file) and prove the vision client actually reads it back -- real OCR,
+    not a mocked response.
+    """
+    from io import BytesIO
+
+    from PIL import Image, ImageDraw
+
+    image = Image.new("RGB", (400, 100), color="white")
+    draw = ImageDraw.Draw(image)
+    draw.text((10, 40), "INVOICE 48213", fill="black")
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+
+    client = OpenAiCompatibleVisionClient(
+        base_url=_VISION_BASE_URL, api_key=_VISION_API_KEY, model=_VISION_MODEL
+    )
+    description = client.describe(buffer.getvalue(), "image/png")
+
+    assert "48213" in description.extracted_text
+    assert description.caption
+    assert len(description.tags) > 0
 
 
 @pytest.mark.skipif(

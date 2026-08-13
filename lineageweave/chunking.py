@@ -33,8 +33,10 @@ character-count split:
 
 from __future__ import annotations
 
+import base64
+import binascii
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from html.parser import HTMLParser
 
 # WHATWG HTML Living Standard / W3C HTML5 sectioning-content and common
@@ -62,19 +64,30 @@ class Chunk:
     """One semantic unit ready to be embedded independently.
 
     Attributes:
-        text: the unit's text content.
+        text: the unit's text content (empty for an ``"image"`` chunk
+            until a vision client fills in OCR/caption text separately --
+            see ``lineageweave.image_content``).
         unit_type: which chunker produced this (``"paragraph"``,
-            ``"sentence"``, ``"dom"``, or ``"conversation_turn"``).
-        index: position among this document's chunks (0-based).
-        label: optional unit-specific context (a DOM tag name, or a
-            sender/receiver identifier) -- not embedded, useful for
-            attributing which chunk matched in a result.
+            ``"sentence"``, ``"dom"``, ``"image"``, or
+            ``"conversation_turn"``).
+        index: position among this document's chunks (0-based) -- for an
+            ``"image"`` chunk produced by :func:`chunk_by_dom`, this is
+            the image's position among ALL sibling chunks (text and
+            image together, true document order), which is what makes the
+            image's original location in the document reconstructable.
+        label: optional unit-specific context (a DOM tag name, a
+            sender/receiver identifier, or an image MIME type) -- not
+            embedded, useful for attributing which chunk matched in a
+            result.
+        image_data: raw decoded image bytes, only set for ``"image"``
+            chunks.
     """
 
     text: str
     unit_type: str
     index: int
     label: str = ""
+    image_data: bytes | None = field(default=None, compare=True)
 
 
 def chunk_by_paragraph(text: str) -> list[Chunk]:
@@ -112,8 +125,24 @@ def chunk_by_sentence(text: str) -> list[Chunk]:
     return [Chunk(text=s, unit_type="sentence", index=i) for i, s in enumerate(sentences)]
 
 
+def _decode_data_uri_image(src: str) -> tuple[str, bytes] | None:
+    """Parse a ``data:image/<mime>;base64,<data>`` src attribute value."""
+    if not src.lower().startswith("data:image/"):
+        return None
+    header, _, encoded = src.partition(",")
+    if ";base64" not in header:
+        return None
+    mime_type = header[len("data:") : header.index(";")]
+    try:
+        return mime_type, base64.b64decode(re.sub(r"\s+", "", encoded), validate=True)
+    except (binascii.Error, ValueError):
+        return None
+
+
 class _BlockTextExtractor(HTMLParser):
-    """Attributes each piece of text to its innermost enclosing block tag.
+    """Attributes each piece of text to its innermost enclosing block tag,
+    and records ``<img>`` data-URI occurrences in the same document-order
+    sequence as the surrounding text blocks.
 
     A stack of buffers, one per currently-open block element: text is
     appended only to the top (innermost) buffer, so
@@ -127,9 +156,19 @@ class _BlockTextExtractor(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
         self._stack: list[list[str]] = []
-        self._finished_blocks: list[str] = []
+        # Each entry is ("text", str) or ("image", (mime_type, bytes)) --
+        # a single sequence in true document order, so an image's index
+        # among its siblings reflects where it actually sat.
+        self._finished: list[tuple[str, object]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "img":
+            src = next((value for name, value in attrs if name == "src" and value), None)
+            if src:
+                decoded = _decode_data_uri_image(src)
+                if decoded is not None:
+                    self._finished.append(("image", decoded))
+            return
         if tag in _DOM_BLOCK_TAGS:
             self._stack.append([])
 
@@ -138,31 +177,44 @@ class _BlockTextExtractor(HTMLParser):
             buffer = self._stack.pop()
             text = " ".join(buffer).strip()
             if text:
-                self._finished_blocks.append(text)
+                self._finished.append(("text", text))
 
     def handle_data(self, data: str) -> None:
         text = data.strip()
         if text and self._stack:
             self._stack[-1].append(text)
 
-    def blocks(self) -> list[str]:
-        return self._finished_blocks
+    def finished(self) -> list[tuple[str, object]]:
+        return self._finished
 
 
 def chunk_by_dom(html: str) -> list[Chunk]:
-    """Split HTML/MHTML content at sectioning/flow block-element boundaries.
+    """Split HTML/MHTML content at sectioning/flow block-element boundaries,
+    plus one ``"image"`` chunk per embedded base64 ``<img>``, all in a
+    single document-order sequence.
 
     Nested block tags do not create nested chunks (the outermost block a
     piece of text sits in owns it) -- a ``<div><p>...</p></div>`` yields
     one chunk for the ``div``, not one for the ``div`` and a duplicate for
-    the ``p``.
+    the ``p``. An ``"image"`` chunk's ``text`` starts empty (OCR/caption
+    text is filled in separately by a vision client -- see
+    ``lineageweave.image_content``); its ``index`` among the full sequence
+    is what lets the image be placed back where it actually was relative
+    to the surrounding text chunks.
     """
     parser = _BlockTextExtractor()
     parser.feed(html)
-    blocks = parser.blocks()
-    if not blocks:
-        return []
-    return [Chunk(text=b, unit_type="dom", index=i) for i, b in enumerate(blocks)]
+    entries = parser.finished()
+    chunks: list[Chunk] = []
+    for index, (kind, value) in enumerate(entries):
+        if kind == "text":
+            chunks.append(Chunk(text=value, unit_type="dom", index=index))
+        else:
+            mime_type, image_bytes = value
+            chunks.append(
+                Chunk(text="", unit_type="image", index=index, label=mime_type, image_data=image_bytes)
+            )
+    return chunks
 
 
 @dataclass(frozen=True)

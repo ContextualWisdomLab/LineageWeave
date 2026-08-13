@@ -61,8 +61,10 @@ flowchart LR
 |---|---|
 | `models.py` | `Record`, `Edge`, `Tree` -- source-agnostic data shapes |
 | `channels.py` | Independent `[0, 1]` scoring functions |
-| `embedding_client.py` | Pluggable text-embedding channel (`Null` default, `OpenAiCompatible` real impl) |
+| `chunking.py` | Splits a document into meaning-identifiable units (paragraph, sentence, DOM, conversation-turn) plus embedded-image extraction, in document order |
+| `embedding_client.py` | Pluggable text-embedding channel (`Null` default, `OpenAiCompatible` real impl) + `chunked_max_similarity` |
 | `adjudication_client.py` | Pluggable LLM-judgment channel (`Null` default, `ContextualOrchestrator` real impl) |
+| `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl) |
 | `tepp_client.py` | TEPP's published `AnalysisRunRequest` wire contract, pluggable transport |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |

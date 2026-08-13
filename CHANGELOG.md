@@ -29,6 +29,23 @@ All notable changes to this project are documented here. Format follows
   real dataset's only free-text field is too short to need chunking in
   practice -- the module exists for richer content sources (e.g. the raw
   MHTML artifacts that dataset's records were derived from).
+- `lineageweave/image_content.py`: pluggable vision channel for base64
+  images embedded in DOM content -- real OCR (Li et al., 2023, TrOCR) and
+  object recognition/tagging (Radford et al., 2021, CLIP) via
+  `OpenAiCompatibleVisionClient`, same never-fake-a-missing-channel
+  discipline as the embedding/adjudication clients. `chunk_by_dom` now
+  extracts embedded images as `"image"` chunks interleaved with text
+  chunks in true document order, so an image's position relative to its
+  surrounding text is preserved and reconstructable.
+- Real-provider test proving OCR works, not just that it type-checks: a
+  real PNG generated with real rendered text (not a fixture file) was
+  read back correctly by `OpenAiCompatibleVisionClient` against the live
+  vision-capable model.
+- `docs/image-content-schema.md`: proposed DB schema (snake_case, 2+ word
+  object names) for persisting and searching extracted image content,
+  designed so a text/tag search hit stays traceable to which document and
+  which position produced it, and so the same image (by content hash) is
+  never reprocessed twice.
 
 ## [0.2.0] - 2026-08-13
 
