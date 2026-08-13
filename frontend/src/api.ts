@@ -110,6 +110,13 @@ export interface IssueTicket {
   updated_at: string;
 }
 
+export interface ActivityEvent {
+  event_id: string;
+  event_type: string;
+  actor_account_id: string;
+  summary: string;
+}
+
 async function backendFetch<T>(
   path: string,
   accessToken: string,
@@ -251,4 +258,11 @@ export function updateTicketStatus(
     method: "PATCH",
     body: JSON.stringify({ ticket_status_code: ticketStatusCode }),
   });
+}
+
+export function fetchPostActivity(
+  accessToken: string,
+  postId: string,
+): Promise<{ events: ActivityEvent[] }> {
+  return backendFetch(`/api/posts/${postId}/activity`, accessToken);
 }

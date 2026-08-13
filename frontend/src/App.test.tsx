@@ -64,6 +64,8 @@ describe("App, authenticated", () => {
       updated_at: string;
     }[] = [];
     let nextTicketId = 1;
+    const events: { event_id: string; event_type: string; actor_account_id: string; summary: string }[] = [];
+    let nextEventId = 1;
 
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -96,6 +98,12 @@ describe("App, authenticated", () => {
           updated_at: "2026-01-01T00:00:00Z",
         };
         tickets.unshift(ticket);
+        events.unshift({
+          event_id: `event-${nextEventId++}`,
+          event_type: "ticket_created",
+          actor_account_id: "acct-admin",
+          summary: `Ticket created: ${ticket.ticket_title}`,
+        });
         return Promise.resolve(new Response(JSON.stringify(ticket), { status: 201 }));
       }
       if (url.match(/\/api\/tickets\/ticket-\d+$/) && method === "PATCH") {
@@ -104,7 +112,16 @@ describe("App, authenticated", () => {
         const ticket = tickets.find((t) => t.issue_ticket_id === ticketId);
         if (!ticket) return Promise.resolve(new Response(null, { status: 404 }));
         ticket.ticket_status_code = body.ticket_status_code;
+        events.unshift({
+          event_id: `event-${nextEventId++}`,
+          event_type: "ticket_status_changed",
+          actor_account_id: "acct-admin",
+          summary: `Ticket status changed to ${body.ticket_status_code}`,
+        });
         return Promise.resolve(jsonResponse(ticket));
+      }
+      if (url.endsWith("/api/posts/post-1/activity") && method === "GET") {
+        return Promise.resolve(jsonResponse({ events }));
       }
       if (url.endsWith("/api/lineage")) {
         return Promise.resolve(
@@ -471,5 +488,24 @@ describe("App, authenticated", () => {
     await userEvent.selectOptions(statusSelect, "closed");
 
     await waitFor(() => expect(statusSelect).toHaveValue("closed"));
+  });
+
+  it("shows real ticket mutations on the activity feed after a refresh", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("No activity yet.")).toBeInTheDocument());
+
+    await userEvent.type(screen.getByPlaceholderText(/new ticket title/i), "Confirm freight terms");
+    await userEvent.click(screen.getByRole("button", { name: /create ticket/i }));
+    await waitFor(() => expect(screen.getByText("Confirm freight terms")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /^refresh$/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText("Ticket created: Confirm freight terms")).toBeInTheDocument(),
+    );
+    expect(screen.getByText("ticket_created")).toBeInTheDocument();
   });
 });

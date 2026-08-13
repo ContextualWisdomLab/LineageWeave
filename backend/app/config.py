@@ -33,6 +33,9 @@ class Settings:
     # a fabricated default, when unconfigured (see keyman_ingestion.py).
     orchestrator_base_url: str
     orchestrator_api_key: str
+    # Event queue for post/ticket activity (XADD/XRANGE), per the brief's
+    # "Event Queue, not MQ" requirement -- see backend/app/activity_stream.py.
+    valkey_url: str
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -62,4 +65,5 @@ def load_settings() -> Settings:
         ],
         orchestrator_base_url=os.environ.get("ORCHESTRATOR_BASE_URL", ""),
         orchestrator_api_key=os.environ.get("ORCHESTRATOR_API_KEY", ""),
+        valkey_url=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
     )

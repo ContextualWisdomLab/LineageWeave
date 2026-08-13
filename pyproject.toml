@@ -1,6 +1,6 @@
 [project]
 name = "lineageweave"
-version = "0.16.0"
+version = "0.17.0"
 description = "Reconstructs git-branch-style lineage DAGs from scattered short records using multi-channel score fusion and LLM adjudication."
 readme = "README.md"
 license = { text = "MIT" }
@@ -28,6 +28,9 @@ backend = [
   "uvicorn[standard]>=0.30.0",
   "asyncpg>=0.29.0",
   "pyjwt[crypto]>=2.8.0",
+  # Speaks RESP; works against Valkey (a Redis-protocol-compatible fork)
+  # as well as real Redis. Used for the post-activity event stream.
+  "redis>=5.0.0",
 ]
 
 [tool.setuptools.packages.find]

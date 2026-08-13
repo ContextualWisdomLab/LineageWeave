@@ -4,6 +4,28 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2026-08-13
+
+### Added
+
+- Valkey as a real event queue -- not a cache, not a second database. It
+  had been running in `docker-compose.yml` since Phase 1 with nothing in
+  the codebase ever publishing or reading from it (the brief's "Event
+  Queue, not MQ" requirement was unfulfilled infrastructure).
+  `backend/app/activity_stream.py`: ticket create/status-change
+  mutations `XADD` an event onto a per-post stream
+  (`activity:{post_id}`, approximately trimmed to the most recent 1000
+  entries); `GET /api/posts/{post_id}/activity` reads it straight back
+  with `XREVRANGE` -- no consumer group, no background worker, the
+  smallest slice where Valkey is actually load-bearing.
+- Frontend: an Activity panel in the popup (list + manual Refresh),
+  genuinely wired to the new endpoint.
+- Verified through the real Docker Compose network end to end (not just
+  `pytest`): created and patched a ticket via the actual backend
+  container, confirmed the events on `GET .../activity`, and confirmed
+  directly with `valkey-cli XLEN` against the actual `valkey` container
+  that the stream is real.
+
 ## [0.16.0] - 2026-08-13
 
 ### Added

@@ -19,6 +19,7 @@ from pathlib import Path
 import jwt
 import psycopg2
 import pytest
+import redis
 
 from lineageweave.http_client import HttpClientError, get_json, post_form
 
@@ -26,6 +27,7 @@ _POSTGRES_ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
 )
 _KEYCLOAK_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL", "http://localhost:18080")
+_VALKEY_URL = os.environ.get("LINEAGEWEAVE_TEST_VALKEY_URL", "redis://localhost:16379/0")
 _REALM = "lineageweave-demo"
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
 
@@ -51,9 +53,21 @@ def _keycloak_available() -> bool:
         return False
 
 
+def _valkey_available() -> bool:
+    """True when the Valkey instance at ``_VALKEY_URL`` responds to PING."""
+    try:
+        client = redis.from_url(_VALKEY_URL, socket_connect_timeout=2)
+        try:
+            return client.ping()
+        finally:
+            client.close()
+    except redis.RedisError:
+        return False
+
+
 pytestmark = pytest.mark.skipif(
-    not (_postgres_available() and _keycloak_available()),
-    reason="requires both a reachable local PostgreSQL and Keycloak -- run `make up` first",
+    not (_postgres_available() and _keycloak_available() and _valkey_available()),
+    reason="requires a reachable local PostgreSQL, Keycloak, and Valkey -- run `make up` first",
 )
 
 
@@ -958,6 +972,63 @@ def test_patch_ticket_on_other_corp_private_post_is_forbidden(client, demo_analy
     response = client.patch(
         f"/api/tickets/{ticket_id}",
         json={"ticket_status_code": "closed"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_post_activity_is_empty_before_any_mutation(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/activity",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["events"] == []
+
+
+def test_ticket_mutations_publish_real_events_to_the_activity_feed(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Proves Valkey is genuinely load-bearing: a ticket create/patch
+    through the real HTTP API is independently observable afterward on
+    ``GET /api/posts/{post_id}/activity``, which reads straight off the
+    live Valkey stream (no DB involvement in the read path).
+    """
+    _grant_post_admin(seeded_db["dsn"])
+
+    create_response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/tickets",
+        json={"ticket_title": "Confirm freight terms", "ticket_status_code": "open"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    ticket_id = create_response.json()["issue_ticket_id"]
+
+    client.patch(
+        f"/api/tickets/{ticket_id}",
+        json={"ticket_status_code": "in_progress"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    activity_response = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/activity",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert activity_response.status_code == 200
+    events = activity_response.json()["events"]
+    assert len(events) == 2
+    # XREVRANGE returns newest first: the status change comes before the
+    # creation event.
+    assert events[0]["event_type"] == "ticket_status_changed"
+    assert "in_progress" in events[0]["summary"]
+    assert events[1]["event_type"] == "ticket_created"
+    assert "Confirm freight terms" in events[1]["summary"]
+
+
+def test_post_activity_on_other_corp_private_post_is_forbidden(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['other_private_post_id']}/activity",
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert response.status_code == 403

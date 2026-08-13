@@ -307,3 +307,31 @@ container never actually started. `pytest` alone would never have
 caught this, since nothing in the Python test suite exercises the built
 Docker image; this is why this project's discipline of also curling the
 real Docker-built stack, not just running tests, keeps mattering.
+
+## Phase 5b: Valkey as a real event queue
+
+`docker-compose.yml` has run a `valkey` service since Phase 1 -- the
+brief explicitly asked for an event queue on Valkey rather than a
+traditional MQ -- but nothing in the codebase ever published or
+consumed an event through it; it was dead infrastructure until this
+phase. `backend/app/activity_stream.py` closes that gap with the
+smallest slice that makes Valkey load-bearing: `publish_activity_event`
+`XADD`s onto a per-post stream key (`activity:{post_id}`, approximately
+trimmed to the most recent 1000 entries so one very active post can't
+grow the stream without bound), and `read_activity_events` reads it
+straight back with `XREVRANGE`. Deliberately no consumer group and no
+background worker -- the read path (`GET /api/posts/{post_id}/activity`)
+queries the stream directly, which is the smaller real design for a
+single reader; a consumer group is the natural next step if a second,
+independent reader (e.g. a notification worker) is ever needed.
+
+Wired into the two ticket-mutation endpoints (`ticket_created` on
+create, `ticket_status_changed` on a status-changing `PATCH`) as the
+first real producer, and surfaced in the popup as an `ActivityPanel`
+(list + manual refresh) as the first real consumer. Verified against
+the actual Docker Compose network, not just `pytest`: created and
+patched a ticket through the real `backend` container talking to the
+real `valkey` container over the internal `redis://valkey:6379/0` DNS
+name, confirmed the events on the activity endpoint, and independently
+confirmed the stream's existence and length with `valkey-cli` directly
+against the `valkey` container.
