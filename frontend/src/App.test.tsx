@@ -404,6 +404,25 @@ describe("App, authenticated", () => {
       if (url.endsWith("/api/posts/post-1/extract-keymen") && method === "POST") {
         return Promise.resolve(jsonResponse({ extracted_count: 1 }));
       }
+      if (url.endsWith("/api/keymen/person-priya/related")) {
+        return Promise.resolve(
+          jsonResponse({
+            person_id: "person-priya",
+            person_name: "Priya Nair",
+            person_side_code: "counterparty",
+            related: [
+              {
+                node_id: "person-ada",
+                node_type_code: "node_person",
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
+                ontology_label: "Person",
+                label: "Ada West",
+                relevance: 0.4,
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/keymen/person-ada/related")) {
         return Promise.resolve(
           jsonResponse({
@@ -652,7 +671,7 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("Demo Group")).toBeInTheDocument());
     expect(screen.getByText("Demo Corp")).toBeInTheDocument();
     expect(screen.getByText("(Company)")).toBeInTheDocument();
-    expect(screen.getByText(/Ada West \(Our side\)/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Ada West \(Our side\)/).length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText(/our_side/)).not.toBeInTheDocument();
     expect(screen.getByText("unresolved")).toBeInTheDocument();
     expect(screen.getByText(/Voice of Customer\s*\(voc\)/)).toBeInTheDocument();
@@ -669,6 +688,15 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
+  });
+
+  it("opens related Keyman nodes from an affiliate-tree person", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Affiliate Keyman: Priya Nair" }));
+    await waitFor(() => expect(screen.getByText("Related to Priya Nair")).toBeInTheDocument());
+    expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
   });
 
   it("lets post_admin verify pending counterparties against web search", async () => {

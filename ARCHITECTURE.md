@@ -290,7 +290,9 @@ test file surfaced (stale DOM from one test bleeding into the next).
 Keymen are affiliated with (`lineageweave/affiliate_tree.py`, loaded by
 `backend/app/affiliate_tree_ingestion.py`). The forest is the ancestor
 set of those leaves, not the whole company directory -- a sibling the
-post never mentions is omitted. An affiliation that did not resolve to
+post never mentions is omitted. People on the tree are buttons that
+reuse `GET /api/keymen/{person_id}/related` so the popup Keyman walk
+starts from the affiliation the buyer clicked. An affiliation that did not resolve to
 a `corporate_entity` row stays as its own root (`resolved=false`); that
 is the same never-guess-a-parent rule
 `corporate_hierarchy_resolution` already applies. Entity levels and
