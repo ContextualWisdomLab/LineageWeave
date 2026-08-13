@@ -76,6 +76,7 @@ flowchart LR
 | `voc_evidence.py` | Extractive VOC excerpts: sentences that name a classified organization, or empty |
 | `post_summary.py` | Pluggable LLM Korean summary + key events + R&R derivation for a post |
 | `post_chat.py` | Pluggable in-popup chat's reason-and-cite step (retrieve step lives in `backend/app/post_chat_ingestion.py`) |
+| `commitment_extraction.py` | Pluggable LLM derivation of a customer commitment (promise + deadline) from a post; `Null` default, `ContextualOrchestrator` real impl |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
 | `server.py` | Stdlib HTTP server: `GET /api/lineage` (JSON graph) + static viewer |
 | `web/index.html` | Self-contained SVG DAG viewer, no build step, no external script dependency |
@@ -335,3 +336,41 @@ real `valkey` container over the internal `redis://valkey:6379/0` DNS
 name, confirmed the events on the activity endpoint, and independently
 confirmed the stream's existence and length with `valkey-cli` directly
 against the `valkey` container.
+
+## Phase 5c: customer commitment derivation and the calendar
+
+The brief asked for two separate-sounding things: issues auto-registered
+as a to-do/calendar entry with LLM-authored content, and an LLM that
+derives customer commitments from a post's text. Treated as one design,
+not two: a derived commitment *is* the ticket that appears on the
+calendar (`issue_ticket.due_date` + `commitment_summary`), reusing the
+Phase 5 ticket infrastructure rather than inventing a parallel "to-do"
+concept (ponytail: extend, don't duplicate).
+
+`lineageweave/commitment_extraction.py` is the pluggable channel --
+same discipline as `keyman_extraction.py`/`post_summary.py`:
+`NullCommitmentExtractionClient` makes the channel unavailable, never
+invents a commitment. A commitment specifically needs a resolved
+deadline, so the prompt is given a reference date and asked to resolve
+relative phrases ("by next Friday") against it -- closer to
+temporal-expression normalization (Chambers & Jurafsky, 2008) than to
+ACE-style key-event extraction (Doddington et al., 2004), which is why
+it is its own client rather than a field bolted onto `post_summary`'s
+key events. `has_commitment: false` is a legitimate result, not a parse
+failure, the same missing-vs-empty discipline every parser in this repo
+already keeps.
+
+`POST /api/posts/{post_id}/derive-commitment` (`post_admin`, a real
+LLM-call write action) persists the result as an `issue_ticket`. The
+reference date handed to the client is the post's `created_at` (TimeML
+document creation time), not wall-clock now -- otherwise a January
+post's "by next Friday" lands on the Friday after the operator clicked
+Derive. Re-deriving the same post updates the existing open commitment
+ticket instead of stacking a duplicate calendar row. `GET /api/calendar`
+lists every dated, not-closed ticket the account may see across all
+posts, soonest first, ABAC-filtered per row the same way
+`read_post_lineage` filters cross-post candidates. `due_date` is a
+calendar `date`, not a `timestamptz`: a "by Friday" commitment is a
+day, and binding a Python `date` into timestamptz midnight is an
+off-by-one in any session whose TZ is not UTC. A malformed
+`YYYY-MM-DD` is a 422, not a 500.

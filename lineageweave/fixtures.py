@@ -84,3 +84,23 @@ def ambiguous_entity_relationship_post() -> tuple[str, str, list[str]]:
         "this year, though no specific buyer named that directly."
     )
     return title, body, ["Meridian Utilities", "Colby Insulation"]
+
+
+def ambiguous_commitment_post() -> tuple[str, str]:
+    """A synthetic post with a genuine customer commitment whose deadline
+    is stated relative to the post date ("by next Friday"), not as an
+    absolute date -- exercising the reference-date resolution that makes
+    commitment extraction harder than a plain keyword match. Also
+    contains a second sentence that looks date-like but is NOT a
+    commitment (a past event, not a promise), so a naive "does this post
+    mention a date" heuristic would get it wrong.
+    """
+    title = "Follow-up on the Riverbend order confirmation"
+    body = (
+        "Thanks for confirming the order last Tuesday -- that part is "
+        "already done. One open item: we still owe Riverbend the revised "
+        "delivery schedule, and I told their buyer we'd have it to them by "
+        "next Friday. Please make sure procurement has final numbers "
+        "before then."
+    )
+    return title, body

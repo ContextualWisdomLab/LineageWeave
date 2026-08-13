@@ -4,6 +4,64 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2026-08-13
+
+### Added
+
+- Customer commitment derivation and a calendar/to-do surface -- the
+  brief's "이슈 관리는 To Do 와 캘린더로 자동 등록" and "고객과의
+  약속에 관해서 LLM 자동 도출" items, unified into one design: a
+  derived commitment *is* the ticket that shows up on the calendar,
+  not a separate concept. `lineageweave/commitment_extraction.py`:
+  pluggable LLM client that decides whether a post contains a genuine
+  customer commitment (a promise with a deadline, not just any event)
+  and resolves relative phrases ("by next Friday") against a supplied
+  reference date. `POST /api/posts/{post_id}/derive-commitment`
+  (`post_admin`) runs it and, when found, persists an `issue_ticket`
+  with `due_date`/`commitment_summary` set; `has_commitment: false` is
+  a normal 200, not an error, since most posts have no commitment.
+  `GET /api/calendar` lists every dated ticket the account may see,
+  soonest first, ABAC-filtered per row like every other cross-post
+  endpoint.
+- `issue_ticket` gained `due_date` and `commitment_summary` columns
+  (folded into `migrations/0001_initial_schema.sql`, plus
+  `migrations/0003_ticket_commitment_calendar.sql` for upgrading an
+  existing volume, matching the `0002` precedent).
+- Frontend: a "Derive commitment" action in the ticket panel, due
+  dates shown on ticket rows, and a Calendar panel on the product home
+  page listing upcoming commitments across every visible post,
+  clickable through to the source post.
+- Verified with a real LLM call through a locally-launched
+  contextual-orchestrator instance: `ambiguous_commitment_post`'s
+  relative "by next Friday" deadline resolved to the correct absolute
+  date against a supplied reference date, and a second sentence that
+  merely *looks* date-adjacent (a past event) was correctly not
+  treated as a commitment.
+
+### Fixed
+
+- `due_date` was a `timestamptz`. Binding a Python `date` becomes
+  midnight in the session timezone, then `.date()` on the UTC
+  (or local) datetime shifts the calendar day -- "2026-01-09"
+  came back as "2026-01-08". The column is now a `date`, matching
+  the LLM's YYYY-MM-DD. A malformed string still surfaces as 422.
+- Derive used wall-clock `now()` as the reference date. Relative
+  phrases in a historical post ("by next Friday") must resolve against
+  the post's `created_at` (TimeML document creation time), or the
+  calendar entry lands on the Friday after the click, not the Friday
+  the commitment was made.
+- Re-deriving the same post stacked a second open ticket. The persist
+  path now upserts the existing open commitment ticket.
+- `GET /api/calendar` included closed tickets, so finished work still
+  looked upcoming. Closed rows are excluded; a dated ticket created
+  through the regular ticket API still appears while it is open.
+- The "Derive commitment" button was shown to accounts without
+  `post_admin` and then 403'd. It is now gated the same way as Extract
+  Keymen. Calendar rows also show the source post title.
+- Ticket SQL stopped interpolating a column-list constant via f-string
+  (`asyncpg-sqli` Semgrep). The column list is a static literal in
+  each query; values stay parameterized.
+
 ## [0.17.0] - 2026-08-13
 
 ### Added

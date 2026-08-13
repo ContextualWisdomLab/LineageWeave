@@ -12,9 +12,20 @@ that doesn't have one.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from typing import Any
 
 import asyncpg
+
+
+def _parse_due_date(due_date: str | None) -> date | None:
+    """``YYYY-MM-DD`` -> `date`, or `None` through unchanged. The column
+    is a calendar `date`, not timestamptz -- a due day has no timezone,
+    and midnight-in-session-TZ was an off-by-one. Raises `ValueError`
+    for a malformed string, which callers surface as a 422, not a
+    silent no-op or a 500.
+    """
+    return date.fromisoformat(due_date) if due_date is not None else None
 
 
 @dataclass(frozen=True)
@@ -26,6 +37,8 @@ class IssueTicket:
     ticket_status_code: str
     ticket_title: str
     assigned_account_id: str | None
+    due_date: str | None
+    commitment_summary: str | None
     created_at: str
     updated_at: str
 
@@ -40,6 +53,8 @@ def _serialize_ticket(row: asyncpg.Record) -> dict[str, Any]:
         "assigned_account_id": (
             str(row["assigned_account_id"]) if row["assigned_account_id"] is not None else None
         ),
+        "due_date": row["due_date"].isoformat() if row["due_date"] is not None else None,
+        "commitment_summary": row["commitment_summary"],
         "created_at": row["created_at"].isoformat(),
         "updated_at": row["updated_at"].isoformat(),
     }
@@ -49,7 +64,7 @@ async def list_tickets_for_post(conn: asyncpg.Connection, post_id: str) -> list[
     """Every ticket on `post_id`, newest first."""
     rows = await conn.fetch(
         "select issue_ticket_id, post_id, ticket_status_code, ticket_title, "
-        "assigned_account_id, created_at, updated_at "
+        "assigned_account_id, due_date, commitment_summary, created_at, updated_at "
         "from issue_ticket where post_id = $1 order by created_at desc",
         post_id,
     )
@@ -62,21 +77,111 @@ async def create_ticket(
     ticket_title: str,
     ticket_status_code: str,
     assigned_account_id: str | None,
+    due_date: str | None = None,
+    commitment_summary: str | None = None,
 ) -> dict[str, Any]:
     """Insert one ticket. Raises `asyncpg.ForeignKeyViolationError` if
     `ticket_status_code` is not a real `common_lookup_value` row -- the
     database enforces the closed enum, this function does not re-validate
-    it.
+    it. Raises `ValueError` if `due_date` is not a well-formed
+    `YYYY-MM-DD` string. `due_date`/`commitment_summary` are set when
+    this ticket also registers as a calendar/to-do entry (see
+    `POST /api/posts/{post_id}/derive-commitment`).
     """
     row = await conn.fetchrow(
-        "insert into issue_ticket (post_id, ticket_status_code, ticket_title, assigned_account_id) "
-        "values ($1, $2, $3, $4) "
+        "insert into issue_ticket "
+        "(post_id, ticket_status_code, ticket_title, assigned_account_id, due_date, commitment_summary) "
+        "values ($1, $2, $3, $4, $5, $6) "
         "returning issue_ticket_id, post_id, ticket_status_code, ticket_title, "
-        "assigned_account_id, created_at, updated_at",
+        "assigned_account_id, due_date, commitment_summary, created_at, updated_at",
         post_id,
         ticket_status_code,
         ticket_title,
         assigned_account_id,
+        _parse_due_date(due_date),
+        commitment_summary,
+    )
+    return _serialize_ticket(row)
+
+
+async def fetch_upcoming_commitments(conn: asyncpg.Connection) -> list[dict[str, Any]]:
+    """Every not-closed ticket with a `due_date`, across all posts,
+    soonest first -- the calendar/to-do surface (`GET /api/calendar`).
+    Closed tickets are finished work, not upcoming. Joins in the post's
+    visibility fields so the caller can apply the same per-row ABAC
+    filter every other cross-post endpoint uses; this function does not
+    itself filter by account, since it has no account to check against.
+    """
+    rows = await conn.fetch(
+        "select issue_ticket.issue_ticket_id, issue_ticket.post_id, "
+        "issue_ticket.ticket_status_code, issue_ticket.ticket_title, "
+        "issue_ticket.assigned_account_id, issue_ticket.due_date, "
+        "issue_ticket.commitment_summary, issue_ticket.created_at, "
+        "issue_ticket.updated_at, "
+        "p.post_title, p.visibility_code, p.corporate_entity_id "
+        "from issue_ticket "
+        "join source_post p on p.post_id = issue_ticket.post_id "
+        "where issue_ticket.due_date is not null "
+        "and issue_ticket.ticket_status_code <> 'closed' "
+        "order by issue_ticket.due_date asc"
+    )
+    return [
+        {
+            **_serialize_ticket(row),
+            "post_title": row["post_title"],
+            "visibility_code": row["visibility_code"],
+            "corporate_entity_id": str(row["corporate_entity_id"]),
+        }
+        for row in rows
+    ]
+
+
+async def upsert_commitment_ticket(
+    conn: asyncpg.Connection,
+    post_id: str,
+    ticket_title: str,
+    due_date: str | None,
+    commitment_summary: str,
+) -> dict[str, Any]:
+    """Create or refresh the open LLM-derived commitment ticket on a post.
+
+    Re-deriving the same post must not stack duplicate calendar rows --
+    an existing open ticket with a commitment_summary is updated in place.
+    A closed ticket is left alone so the buyer can keep the historical
+    record and still derive a fresh open one.
+    """
+    existing = await conn.fetchrow(
+        "select issue_ticket_id from issue_ticket "
+        "where post_id = $1 and commitment_summary is not null "
+        "and ticket_status_code <> 'closed' "
+        "order by created_at desc limit 1",
+        post_id,
+    )
+    if existing is None:
+        return await create_ticket(
+            conn,
+            post_id,
+            ticket_title,
+            "open",
+            None,
+            due_date=due_date,
+            commitment_summary=commitment_summary,
+        )
+    row = await conn.fetchrow(
+        """
+        update issue_ticket
+        set ticket_title = $2,
+            due_date = $3,
+            commitment_summary = $4,
+            updated_at = now()
+        where issue_ticket_id = $1
+        returning issue_ticket_id, post_id, ticket_status_code, ticket_title,
+                  assigned_account_id, due_date, commitment_summary, created_at, updated_at
+        """,
+        existing["issue_ticket_id"],
+        ticket_title,
+        _parse_due_date(due_date),
+        commitment_summary,
     )
     return _serialize_ticket(row)
 
@@ -113,7 +218,7 @@ async def update_ticket(
             updated_at = now()
         where issue_ticket_id = $1
         returning issue_ticket_id, post_id, ticket_status_code, ticket_title,
-                  assigned_account_id, created_at, updated_at
+                  assigned_account_id, due_date, commitment_summary, created_at, updated_at
         """,
         issue_ticket_id,
         ticket_status_code,

@@ -28,6 +28,10 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from lineageweave.commitment_extraction import (
+    ContextualOrchestratorCommitmentExtractionClient,
+    NullCommitmentExtractionClient,
+)
 from lineageweave.entity_relationship_classification import (
     ContextualOrchestratorEntityRelationshipClient,
     NullEntityRelationshipClient,
@@ -53,8 +57,10 @@ from backend.app.entity_relationship_ingestion import ingest_post_entity_relatio
 from backend.app.issue_ticket_ingestion import (
     create_ticket,
     fetch_ticket_post_id,
+    fetch_upcoming_commitments,
     list_tickets_for_post,
     update_ticket,
+    upsert_commitment_ticket,
 )
 from backend.app.keyman_ingestion import ingest_post_keymen
 from backend.app.knowledge_graph import (
@@ -141,6 +147,16 @@ def _post_chat_client():
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullPostChatClient()
     return ContextualOrchestratorPostChatClient(
+        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+    )
+
+
+def _commitment_extraction_client():
+    """Live orchestrator client when configured; otherwise the unavailable null."""
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
+        return NullCommitmentExtractionClient()
+    return ContextualOrchestratorCommitmentExtractionClient(
         base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
     )
 
@@ -543,6 +559,10 @@ class CreateTicketRequest(BaseModel):
     ticket_title: str
     ticket_status_code: str
     assigned_account_id: str | None = None
+    # Manual calendar/to-do date, e.g. YYYY-MM-DD. Set automatically instead
+    # by POST /api/posts/{post_id}/derive-commitment when the LLM should
+    # decide it.
+    due_date: str | None = None
 
 
 @app.post("/api/posts/{post_id}/tickets", status_code=status.HTTP_201_CREATED)
@@ -561,12 +581,22 @@ async def create_post_ticket(
     async with pool.acquire() as conn:
         try:
             ticket = await create_ticket(
-                conn, post_id, request.ticket_title, request.ticket_status_code, request.assigned_account_id
+                conn,
+                post_id,
+                request.ticket_title,
+                request.ticket_status_code,
+                request.assigned_account_id,
+                due_date=request.due_date,
             )
         except asyncpg.ForeignKeyViolationError as exc:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,
                 f"ticket_status_code {request.ticket_status_code!r} is not a valid ticket_status lookup code",
+            ) from exc
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                f"due_date {request.due_date!r} is not a valid YYYY-MM-DD date",
             ) from exc
     await publish_activity_event(
         valkey, post_id, "ticket_created", account.user_account_id, f"Ticket created: {request.ticket_title}"
@@ -645,3 +675,77 @@ async def read_post_activity(
     await _load_visible_post(post_id, account, pool)
     events = await read_activity_events(valkey, post_id)
     return {"post_id": post_id, "events": events}
+
+
+@app.post("/api/posts/{post_id}/derive-commitment")
+async def derive_post_commitment(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
+) -> dict[str, Any]:
+    """LLM-derive a customer commitment (if any) from a post's own text,
+    and -- when found -- register it as an issue_ticket with a due_date,
+    which is what makes it show up on GET /api/calendar. post_admin-gated:
+    a real LLM-call write action, same discipline as extract-keymen.
+    `has_commitment: false` is a normal 200 response, not an error --
+    most posts genuinely have no commitment in them.
+    """
+    _require_post_admin(account)
+    post = await _load_visible_post(post_id, account, pool)
+    client = _commitment_extraction_client()
+    if not client.available:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Commitment derivation is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+        )
+    async with pool.acquire() as conn:
+        body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
+    # TimeML/TempEval document creation time, not wall-clock now: "by next
+    # Friday" in a January post must resolve to that January, not to the
+    # Friday after the operator clicked Derive.
+    reference_date = post["created_at"].date().isoformat()
+    commitment = client.extract(post["post_title"], body_row["post_body"], reference_date)
+    if not commitment.has_commitment:
+        return {"post_id": str(post["post_id"]), "has_commitment": False, "ticket": None}
+    async with pool.acquire() as conn:
+        try:
+            ticket = await upsert_commitment_ticket(
+                conn,
+                post_id,
+                commitment.commitment_summary,
+                commitment.due_date,
+                commitment.commitment_summary,
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                f"due_date {commitment.due_date!r} is not a valid YYYY-MM-DD date",
+            ) from exc
+    await publish_activity_event(
+        valkey,
+        post_id,
+        "commitment_derived",
+        account.user_account_id,
+        f"Commitment derived: {commitment.commitment_summary}",
+    )
+    return {"post_id": str(post["post_id"]), "has_commitment": True, "ticket": ticket}
+
+
+@app.get("/api/calendar")
+async def read_calendar(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Every dated, not-closed commitment/ticket the account may see,
+    soonest first -- the to-do/calendar surface (no Outlook sync yet;
+    this is the internal data model that a future Outlook connector
+    would read from).
+    """
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        commitments = await fetch_upcoming_commitments(conn)
+    visible = [c for c in commitments if _can_see_post(account, c)]
+    for c in visible:
+        del c["visibility_code"], c["corporate_entity_id"]
+    return {"commitments": visible}
