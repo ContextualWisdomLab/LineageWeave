@@ -267,6 +267,12 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
                 corporate_entity_id,
                 process_units["DEMO-PU-LINEAGE"],
             )
+            _seed_demo_period_report(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+                process_units["DEMO-PU-LINEAGE"],
+            )
 
         conn.commit()
     finally:
@@ -393,6 +399,102 @@ def _seed_demo_calendar_commitment(cur, author_account_id, corporate_entity_id, 
             "Send Riverbend the revised delivery schedule.",
         ),
     )
+
+
+def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:
+    """Insert constructed high/low IRT rows and persist a real FIPC report.
+
+    Without this, GET /api/reports/process_unit/2026-W02 is empty after
+    ``make seed`` -- the Period reports panel has nothing to show until
+    someone evaluates eight posts and clicks Rebuild. Categories are
+    constructed (high = 4, low = 0); thetas come only from
+    ``calibrate_period_report``.
+    """
+    from datetime import datetime, timezone
+
+    from lineageweave.period_report import calibrate_period_report
+    from lineageweave.post_evaluation import CRITERION_CODES, IRT_CATEGORY_COUNT, RUBRIC_VERSION
+
+    period_code = "2026-W02"
+    created = datetime(2026, 1, 5, tzinfo=timezone.utc)
+    post_ids: list[str] = []
+    cells: list[tuple[str, str, int]] = []
+
+    for band, category in (("High-band", IRT_CATEGORY_COUNT - 1), ("Low-band", 0)):
+        for idx in range(4):
+            title = f"{band} period report post {idx}"
+            cur.execute("select post_id from source_post where post_title = %s", (title,))
+            row = cur.fetchone()
+            if row is None:
+                cur.execute(
+                    "insert into source_post "
+                    "(author_account_id, corporate_entity_id, process_unit_id, "
+                    " post_title, post_body, voc_type_code, visibility_code, created_at) "
+                    "values (%s, %s, %s, %s, 'body', 'voc', 'public', %s) returning post_id",
+                    (author_account_id, corporate_entity_id, process_unit_id, title, created),
+                )
+                post_id = str(cur.fetchone()[0])
+                for code in CRITERION_CODES:
+                    cur.execute(
+                        "insert into post_evaluation_response "
+                        "(post_id, criterion_code, rubric_version, response_category) "
+                        "values (%s, %s, %s, %s)",
+                        (post_id, code, RUBRIC_VERSION, category),
+                    )
+            else:
+                post_id = str(row[0])
+            post_ids.append(post_id)
+            for code in CRITERION_CODES:
+                cells.append((post_id, code, category))
+
+    grouping_key = str(process_unit_id)
+    cur.execute(
+        "select 1 from report_period_score "
+        "where grouping_kind = 'process_unit' and grouping_key = %s "
+        "and period_code = %s and rubric_version = %s",
+        (grouping_key, period_code, RUBRIC_VERSION),
+    )
+    if cur.fetchone() is not None:
+        return
+
+    report = calibrate_period_report(post_ids, cells)
+    cur.execute(
+        "insert into report_period_score ("
+        "grouping_kind, grouping_key, period_code, rubric_version, "
+        "selected_model, mean_theta, mean_theta_sd, post_count, item_count, "
+        "fit_loglik, fit_converged, calibration_score"
+        ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        (
+            "process_unit",
+            grouping_key,
+            period_code,
+            RUBRIC_VERSION,
+            report.selected_model,
+            report.mean_theta,
+            report.mean_theta_sd,
+            report.post_count,
+            report.item_count,
+            report.fit_loglik,
+            report.fit_converged,
+            report.calibration_score,
+        ),
+    )
+    for member in report.member_scores:
+        cur.execute(
+            "insert into report_member_score ("
+            "grouping_kind, grouping_key, period_code, rubric_version, "
+            "post_id, theta_eap, theta_sd"
+            ") values (%s,%s,%s,%s,%s,%s,%s)",
+            (
+                "process_unit",
+                grouping_key,
+                period_code,
+                RUBRIC_VERSION,
+                member.post_id,
+                member.theta_eap,
+                member.theta_sd,
+            ),
+        )
 
 
 def main() -> None:

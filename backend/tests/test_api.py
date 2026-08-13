@@ -1540,6 +1540,48 @@ def test_seed_calendar_commitment_surfaces_on_get_calendar(client, demo_analyst_
     assert expected_title in titles
 
 
+def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, seeded_db) -> None:
+    """The same helper `make seed` calls must produce a 2026-W02 report
+    GET /api/reports returns -- high-band posts outrank low-band posts
+    on the fitted EAP metric.
+    """
+    from scripts.seed_demo_data import _seed_demo_period_report
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
+                "select corporate_entity_id, 'TEST-PU-SEED-REPORT', 'Report seed unit' "
+                "from source_post where post_id = %s returning process_unit_id",
+                (seeded_db["own_private_post_id"],),
+            )
+            process_unit_id = cur.fetchone()[0]
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_id, corp_id = cur.fetchone()
+            _seed_demo_period_report(cur, author_id, corp_id, process_unit_id)
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        "/api/reports/process_unit/2026-W02",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    reports = response.json()["reports"]
+    assert reports
+    members = {member["post_title"]: member["theta_eap"] for member in reports[0]["members"]}
+    high_mean = sum(theta for title, theta in members.items() if title.startswith("High-band")) / 4
+    low_mean = sum(theta for title, theta in members.items() if title.startswith("Low-band")) / 4
+    assert high_mean > low_mean
+    assert reports[0]["post_count"] == 8
+    assert reports[0]["selected_model"] in {"grm", "gpcm"}
+
+
 def test_rebuild_reports_requires_post_admin(client, demo_analyst_token) -> None:
     response = client.post(
         "/api/reports/process_unit/2026-W02/rebuild",
