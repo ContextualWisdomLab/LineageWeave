@@ -424,6 +424,20 @@ Verified both locally (`import fast_mlsirm._core` resolves to the
 compiled extension, not the NumPy parity fallback) and against a
 freshly built `backend` Docker image.
 
+## Phase 6d: post evaluation IRT row (ADR 0003 slice 2)
+
+Slice 2 of the report pipeline: a pluggable `PostEvaluationClient`
+(`Null` / `ContextualOrchestrator` wrapping
+`fast_mlsirm.ContextualOrchestratorJudge`) scores a post against a
+versioned three-criterion rubric (constructive stance, negative
+stance, sales-lead specificity). The only persist path is
+`LLMJudgeResult.to_irt_row()` into `post_evaluation_response` (one
+row per post per criterion, `common_lookup_value`-backed codes).
+`POST /api/posts/{id}/evaluate` is an explicit post_admin action;
+`GET /api/posts/{id}/evaluation` is the read. The post popup shows
+the persisted categories and an "Evaluate post" button. Calibration
+and `GET /api/reports/...` remain slice 3. TEPP is unchanged.
+
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer
 
 The brief's latest revision marks every Knowledge Graph use (Keyman

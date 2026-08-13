@@ -4,6 +4,7 @@ import {
   askPostChat,
   createPostTicket,
   deriveCommitment,
+  evaluatePost,
   extractPostKeymen,
   fetchCalendar,
   fetchLineageGraph,
@@ -12,6 +13,7 @@ import {
   fetchPostActivity,
   fetchPostAffiliateTree,
   fetchPostCounterparties,
+  fetchPostEvaluation,
   fetchPostKeymen,
   fetchPostLineage,
   fetchPostSummary,
@@ -27,6 +29,7 @@ import {
   type CalendarEntry,
   type ChatAnswer,
   type Counterparty,
+  type EvaluationResponse,
   type IssueTicket,
   type LineageGraph,
   type Keyman,
@@ -383,6 +386,63 @@ function KeymanPanel({
   );
 }
 
+function EvaluationPanel({
+  postId,
+  accessToken,
+  responses,
+  canExtract,
+  onEvaluated,
+}: {
+  postId: string;
+  accessToken: string;
+  responses: EvaluationResponse[] | null;
+  canExtract: boolean;
+  onEvaluated: (rows: EvaluationResponse[]) => void;
+}) {
+  const [evaluating, setEvaluating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleEvaluate() {
+    setEvaluating(true);
+    setError(null);
+    try {
+      const result = await evaluatePost(accessToken, postId);
+      onEvaluated(result.responses);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setEvaluating(false);
+    }
+  }
+
+  return (
+    <section className="popup-section">
+      <div className="lineage-home-header">
+        <h3>Post quality (IRT)</h3>
+        {canExtract && (
+          <button onClick={handleEvaluate} disabled={evaluating}>
+            {evaluating ? "Evaluating..." : "Evaluate post"}
+          </button>
+        )}
+      </div>
+      {error && <p className="error">{error}</p>}
+      {responses === null ? (
+        <p>Loading evaluation...</p>
+      ) : responses.length === 0 ? (
+        <p className="popup-placeholder">Not yet evaluated.</p>
+      ) : (
+        <ul>
+          {responses.map((row) => (
+            <li key={row.criterion_code}>
+              {row.criterion_label ?? row.criterion_code}: {row.response_category}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 const VERIFICATION_BADGE: Record<string, string> = {
   verify_pending: "Not yet checked",
   verify_corroborated: "Corroborated",
@@ -655,6 +715,7 @@ function PostDetailPopup({
   const [lineage, setLineage] = useState<PostLineage | null>(null);
   const [affiliateTrees, setAffiliateTrees] = useState<AffiliateNode[] | null>(null);
   const [vocEvidence, setVocEvidence] = useState<VocEvidence | null>(null);
+  const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
 
   function reloadKeymen() {
     fetchPostKeymen(accessToken, postId).then((r) => setKeymen(r.keymen)).catch(() => setKeymen([]));
@@ -680,7 +741,11 @@ function PostDetailPopup({
     setLineage(null);
     setAffiliateTrees(null);
     setVocEvidence(null);
+    setEvaluation(null);
     fetchPost(accessToken, postId).then(setPost).catch((err) => setError(String(err)));
+    fetchPostEvaluation(accessToken, postId)
+      .then((r) => setEvaluation(r.responses))
+      .catch(() => setEvaluation([]));
     fetchPostSummary(accessToken, postId).then(setSummary).catch(() => setSummary(null));
     fetchPostKeymen(accessToken, postId).then((r) => setKeymen(r.keymen)).catch(() => setKeymen([]));
     fetchPostCounterparties(accessToken, postId)
@@ -742,6 +807,14 @@ function PostDetailPopup({
                 <p className="popup-placeholder">Summary unavailable (LLM orchestrator not configured).</p>
               )}
             </section>
+
+            <EvaluationPanel
+              postId={postId}
+              accessToken={accessToken}
+              responses={evaluation}
+              canExtract={canExtract}
+              onEvaluated={(rows) => setEvaluation(rows)}
+            />
 
             <VocEvidenceSection evidence={vocEvidence} />
 

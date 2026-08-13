@@ -43,7 +43,7 @@ comment on table common_lookup_value is
     'Every ENUM-like value in this schema (voc_type, post_visibility, '
     'entity_relationship_type, person_side, edge_type, node_type, '
     'ticket_status, permission, corporate_entity_level, '
-    'relation_verification_status) lives here once. '
+    'relation_verification_status, evaluation_criterion) lives here once. '
     'lookup_code is unique across all categories -- see the unique(lookup_code) comment.';
 
 -- ---------------------------------------------------------------------
@@ -182,6 +182,19 @@ create table post_counterparty_entity (
     verification_checked_at timestamptz,
     primary key (post_id, counterparty_entity_name)
 );
+
+-- One IRT response-matrix cell per post per rubric criterion. Written
+-- only from fast_mlsirm.LLMJudgeResult.to_irt_row() (ADR 0003 slice 2).
+create table post_evaluation_response (
+    post_id uuid not null references source_post (post_id),
+    criterion_code text not null references common_lookup_value (lookup_code),
+    rubric_version text not null,
+    response_category integer not null,
+    judged_at timestamptz not null default now(),
+    primary key (post_id, criterion_code, rubric_version)
+);
+
+create index post_evaluation_response_post_idx on post_evaluation_response (post_id);
 
 -- ---------------------------------------------------------------------
 -- Keyman: real (or, in this repo's default synthetic configuration,

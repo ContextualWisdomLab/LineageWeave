@@ -91,6 +91,7 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "knowledge_graph_edge",
         "issue_ticket",
         "post_lineage_edge",
+        "post_evaluation_response",
     }
     assert expected <= tables
 
