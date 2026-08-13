@@ -275,6 +275,7 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
             _seed_fixture_summaries(cur)
             _seed_fixture_evaluations(cur)
             _seed_fixture_keymen_and_voc(cur, corporate_entity_id)
+            _seed_fixture_tickets(cur)
             _seed_demo_period_report(
                 cur,
                 account_ids["demo.analyst"],
@@ -645,6 +646,45 @@ def _seed_demo_calendar_commitment(cur, author_account_id, corporate_entity_id, 
             "Send Riverbend the revised delivery schedule.",
         ),
     )
+
+
+def _seed_fixture_tickets(cur) -> None:
+    """Open tickets on Event Lineage posts a report-member click opens.
+
+    Without this, GET /api/posts/{id}/tickets is empty after ``make seed``
+    even though the post already has lineage, Keyman, and evaluation.
+    Idempotent: a matching ticket title on that post is left alone.
+    """
+    specs = (
+        (
+            "Pricing renegotiation follow-up",
+            "Send Northridge Grid the revised quote",
+            "2026-01-12",
+        ),
+        (
+            "Delivery schedule question raised",
+            "Confirm the delivery window with logistics",
+            "2026-01-16",
+        ),
+    )
+    for post_title, ticket_title, due_date in specs:
+        cur.execute("select post_id from source_post where post_title = %s", (post_title,))
+        row = cur.fetchone()
+        if row is None:
+            continue
+        post_id = row[0]
+        cur.execute(
+            "select 1 from issue_ticket where post_id = %s and ticket_title = %s",
+            (post_id, ticket_title),
+        )
+        if cur.fetchone() is not None:
+            continue
+        cur.execute(
+            "insert into issue_ticket "
+            "(post_id, ticket_status_code, ticket_title, due_date) "
+            "values (%s, 'open', %s, %s)",
+            (post_id, ticket_title, due_date),
+        )
 
 
 def _fixture_eval_members(
