@@ -12,8 +12,19 @@ from __future__ import annotations
 
 import json
 import math
+import ssl
 import urllib.request
 from typing import Protocol
+
+import certifi
+
+# Some interpreter distributions (notably standalone uv/pyenv-managed
+# builds on macOS) don't reliably inherit the OS trust store the way a
+# browser or curl does, so the stdlib ssl module's default context can
+# reject a perfectly valid, publicly-trusted certificate. Pointing
+# explicitly at certifi's maintained bundle keeps full chain validation
+# (nothing is weakened) while working the same way on every platform.
+_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 
 class EmbeddingClient(Protocol):
@@ -52,7 +63,7 @@ class OpenAiCompatibleEmbeddingClient:
             headers={"authorization": f"Bearer {self._api_key}", "content-type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(request, timeout=self._timeout) as response:  # nosec B310 -- base_url is operator-configured, not request-controlled.
+        with urllib.request.urlopen(request, timeout=self._timeout, context=_SSL_CONTEXT) as response:  # nosec B310 -- base_url is operator-configured, not request-controlled.
             body = json.loads(response.read().decode("utf-8"))
         return body["data"][0]["embedding"]
 

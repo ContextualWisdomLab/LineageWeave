@@ -14,8 +14,17 @@ from __future__ import annotations
 
 import json
 import re
+import ssl
 import urllib.request
 from typing import Protocol
+
+import certifi
+
+# See lineageweave.embedding_client for why this is needed: some
+# interpreter distributions don't reliably inherit the OS trust store, so
+# point explicitly at certifi's maintained CA bundle (full validation still
+# applies -- nothing here is weakened).
+_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 
 class AdjudicationClient(Protocol):
@@ -77,7 +86,7 @@ class ContextualOrchestratorAdjudicationClient:
             headers={"authorization": f"Bearer {self._api_key}", "content-type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(request, timeout=self._timeout) as response:  # nosec B310 -- base_url is operator-configured, not request-controlled.
+        with urllib.request.urlopen(request, timeout=self._timeout, context=_SSL_CONTEXT) as response:  # nosec B310 -- base_url is operator-configured, not request-controlled.
             body = json.loads(response.read().decode("utf-8"))
         content = body["choices"][0]["message"]["content"]
         match = _CONFIDENCE_PATTERN.search(content)

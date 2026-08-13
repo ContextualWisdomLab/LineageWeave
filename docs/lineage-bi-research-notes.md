@@ -52,6 +52,43 @@ score per candidate edge, with a minimum-score floor below which a record
 is left as its own root rather than force-attached to the least-bad
 available candidate (`reconstruct.DEFAULT_MIN_FUSED_SCORE`).
 
+## The ADR-0016 three-layer boundary
+
+TEPP's [ADR 0016](https://github.com/ContextualWisdomLab/TEPP/blob/main/docs/adr/0016-tdt-chronos-event-intelligence-boundary.md)
+separates event intelligence into three layers so that a prediction, a
+topical link, and a proven fact never get silently collapsed into one
+undifferentiated "event model." LineageWeave's own pipeline
+(`reconstruct.py`) follows the same three-way separation, at the smaller
+scale of record-to-record lineage rather than event ontology:
+
+1. **Mention/instance separation** (Doddington et al., 2004 -- the ACE
+   program's distinction between a surface detection and a resolved event
+   structure). Every `Record` fed into `reconstruct()` is a fallible
+   mention; an `Edge` is only an accepted lineage *instance* once its fused
+   score clears `DEFAULT_MIN_FUSED_SCORE` -- below that floor, a record
+   stays its own root (`Tree.roots`) rather than being silently attached as
+   if the link were established fact.
+2. **Calibrated detection/tracking** (Allan, 2002 -- TDT). Every `Edge`
+   keeps its `channel_scores` breakdown, win or lose, so a fused decision
+   can be audited and re-evaluated rather than trusted as a bare boolean.
+3. **Temporal-consistency reasoning** (Anagnostopoulos et al., 2013 --
+   CHRONOS; grounded in Allen's, 1983, interval algebra). A candidate
+   parent is only ever drawn from records that occurred at or before the
+   record being linked (`reconstruct.py`'s candidate window is built from
+   `sorted(..., key=lambda r: r.occurred_at)` and only looks backward) --
+   the "before-or-equal" relation is enforced structurally, not just hoped
+   for, so no promoted edge can ever point forward in time.
+
+This is also why LineageWeave never presents its own output as TEPP-grade
+measurement (see "The problem this is answering," above): TEPP's ADR 0016
+requires every event/relation to carry an explicit evidence/inference/
+prediction status, and treats TDT/CHRONOS-style outputs as "probabilistic
+measurement/detection evidence" that "can feed psychometric and
+longitudinal models only through versioned, uncertainty-bearing
+contracts" -- LineageWeave's fused scores are exactly that kind of
+uncertainty-bearing, non-authoritative evidence, never promoted to fact
+outside this repo's own DAG view.
+
 ## Channels and their grounding
 
 | Channel | What it does | Grounded in |
@@ -99,6 +136,10 @@ how much judgment it actually needs.
 
 Allan, J. (Ed.). (2002). *Topic detection and tracking: Event-based information organization*. Kluwer Academic Publishers.
 
+Allen, J. F. (1983). Maintaining knowledge about temporal intervals. *Communications of the ACM*, *26*(11), 832-843. https://doi.org/10.1145/182.358434
+
+Anagnostopoulos, E., Batsakis, S., & Petrakis, E. G. M. (2013). CHRONOS: A reasoning engine for qualitative temporal information in OWL. *Procedia Computer Science*, *22*, 70-77. https://doi.org/10.1016/j.procs.2013.09.082
+
 Browne, W. J., Goldstein, H., & Rasbash, J. (2001). Multiple membership multiple classification (MMMC) models. *Statistical Modelling*, *1*(2), 103-124. https://doi.org/10.1177/1471082X0100100202
 
 Chang, J., & Blei, D. M. (2009). Relational topic models for document networks. In D. van Dyk & M. Welling (Eds.), *Proceedings of the 12th International Conference on Artificial Intelligence and Statistics* (pp. 81-88). PMLR.
@@ -108,6 +149,8 @@ Christen, P. (2012). *Data matching: Concepts and techniques for record linkage,
 Cormack, G. V., Clarke, C. L. A., & Buettcher, S. (2009). Reciprocal rank fusion outperforms Condorcet and individual rank learning methods. In *Proceedings of the 32nd International ACM SIGIR Conference on Research and Development in Information Retrieval* (pp. 758-759). ACM. https://doi.org/10.1145/1571941.1572114
 
 Crispin, M., & Murchison, K. (2008). *Internet Message Access Protocol (IMAP) - THREAD and SORT extensions* (RFC 5256). IETF. https://doi.org/10.17487/RFC5256
+
+Doddington, G., Mitchell, A., Przybocki, M., Ramshaw, L., Strassel, S., & Weischedel, R. (2004). The Automatic Content Extraction (ACE) program -- Tasks, data, and evaluation. In *Proceedings of the Fourth International Conference on Language Resources and Evaluation (LREC 2004)* (pp. 837-840). European Language Resources Association.
 
 Fellegi, I. P., & Sunter, A. B. (1969). A theory for record linkage. *Journal of the American Statistical Association*, *64*(328), 1183-1210. https://doi.org/10.2307/2286061
 

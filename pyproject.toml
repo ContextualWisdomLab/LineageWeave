@@ -1,6 +1,6 @@
 [project]
 name = "lineageweave"
-version = "0.1.0"
+version = "0.2.0"
 description = "Reconstructs git-branch-style lineage DAGs from scattered short records using multi-channel score fusion and LLM adjudication."
 readme = "README.md"
 license = { text = "MIT" }
@@ -10,6 +10,9 @@ dependencies = [
   # RankWeave has no PyPI release yet; pinned to a specific commit (not a
   # floating branch ref) for reproducible installs, per org convention.
   "rankweave @ git+https://github.com/ContextualWisdomLab/RankWeave.git@61c49c50d3b4a24fc9bd7c6d3a7f2f4ba19d7be6",
+  # Explicit CA bundle for embedding_client/adjudication_client -- some
+  # interpreter distributions don't reliably inherit the OS trust store.
+  "certifi>=2024.0.0",
 ]
 
 [project.optional-dependencies]

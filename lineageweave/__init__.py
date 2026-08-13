@@ -12,4 +12,4 @@ from .reconstruct import reconstruct
 
 __all__ = ["Edge", "Record", "Tree", "reconstruct"]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
