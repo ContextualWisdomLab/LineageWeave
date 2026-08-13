@@ -60,6 +60,7 @@ from backend.app.activity_stream import (
     get_valkey,
     publish_activity_event,
     read_activity_events,
+    ticket_created_summary,
 )
 from backend.app.affiliate_tree_ingestion import fetch_affiliate_forest, fetch_voc_evidence
 from backend.app.auth import CurrentAccount, get_current_account
@@ -883,7 +884,11 @@ async def create_post_ticket(
                 f"due_date {request.due_date!r} is not a valid YYYY-MM-DD date",
             ) from exc
     await publish_activity_event(
-        valkey, post_id, "ticket_created", account.user_account_id, f"Ticket created: {request.ticket_title}"
+        valkey,
+        post_id,
+        "ticket_created",
+        account.user_account_id,
+        ticket_created_summary(request.ticket_title),
     )
     return ticket
 

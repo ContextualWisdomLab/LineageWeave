@@ -20,6 +20,7 @@ smoke:
 	python3 scripts/smoke_test_oidc.py
 
 # Seeds synthetic corp/account/post rows keyed to the actual Keycloak demo
-# users' real subject ids (see scripts/seed_demo_data.py). Run after `up`.
+# users' real subject ids, plus Valkey ticket_created events so Activity
+# is not empty (see scripts/seed_demo_data.py). Run after `up`.
 seed:
 	python3 scripts/seed_demo_data.py

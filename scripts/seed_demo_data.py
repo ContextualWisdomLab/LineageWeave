@@ -8,11 +8,12 @@ into Keycloak's own admin REST API to fetch the actual `sub` (user id) of
 the two demo accounts seeded by docker/keycloak/realm-export.json, then
 inserts user_account rows in Postgres keyed by those real subject ids --
 the same identity Keycloak issues in an access token's `sub` claim, which
-is exactly what backend.app.auth looks up.
+is exactly what backend.app.auth looks up. Seeded tickets also ``XADD``
+onto Valkey so the Activity panel is not empty after ``make seed``.
 
 HTTP goes through ``lineageweave.http_client`` (http(s) allowlist).
 
-Usage: python3 scripts/seed_demo_data.py [--postgres-dsn ...] [--keycloak-base-url ...]
+Usage: python3 scripts/seed_demo_data.py [--postgres-dsn ...] [--keycloak-base-url ...] [--valkey-url ...]
 """
 
 from __future__ import annotations
@@ -34,6 +35,23 @@ DEFAULT_POSTGRES_DSN = "postgresql://lineageweave:lineageweave_dev_only@localhos
 DEFAULT_KEYCLOAK_BASE_URL = "http://localhost:18080"
 DEFAULT_KEYCLOAK_ADMIN_USER = "admin"
 DEFAULT_KEYCLOAK_ADMIN_PASSWORD = "admin_dev_only"  # nosec B105 -- throwaway local-dev-only Keycloak seed credential
+DEFAULT_VALKEY_URL = "redis://localhost:16379/0"
+
+# (post_title, ticket_title, due_date) -- Event Lineage fixtures a report
+# member click opens. Activity seed uses the same titles so Valkey matches.
+FIXTURE_TICKET_SPECS = (
+    (
+        "Pricing renegotiation follow-up",
+        "Send Northridge Grid the revised quote",
+        "2026-01-12",
+    ),
+    (
+        "Delivery schedule question raised",
+        "Confirm the delivery window with logistics",
+        "2026-01-16",
+    ),
+)
+CALENDAR_TICKET_TITLE = "Send Riverbend the revised delivery schedule."
 
 
 def _fetch_demo_user_subjects(base_url: str, admin_user: str, admin_password: str) -> dict[str, str]:
@@ -63,7 +81,11 @@ def _fetch_demo_user_subjects(base_url: str, admin_user: str, admin_password: st
     return subjects
 
 
-def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
+def seed(
+    postgres_dsn: str,
+    subjects: dict[str, str],
+    valkey_url: str = DEFAULT_VALKEY_URL,
+) -> None:
     """Insert the synthetic corp / role / source_post rows for the demo path."""
     conn = psycopg2.connect(postgres_dsn)
     try:
@@ -276,6 +298,7 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
             _seed_fixture_evaluations(cur)
             _seed_fixture_keymen_and_voc(cur, corporate_entity_id)
             _seed_fixture_tickets(cur)
+            _seed_fixture_ticket_activity(cur, account_ids["demo.analyst"], valkey_url)
             _seed_demo_period_report(
                 cur,
                 account_ids["demo.analyst"],
@@ -641,9 +664,9 @@ def _seed_demo_calendar_commitment(cur, author_account_id, corporate_entity_id, 
         "values (%s, 'open', %s, %s, %s)",
         (
             post_id,
-            "Send Riverbend the revised delivery schedule.",
+            CALENDAR_TICKET_TITLE,
             "2026-01-09",
-            "Send Riverbend the revised delivery schedule.",
+            CALENDAR_TICKET_TITLE,
         ),
     )
 
@@ -655,19 +678,7 @@ def _seed_fixture_tickets(cur) -> None:
     even though the post already has lineage, Keyman, and evaluation.
     Idempotent: a matching ticket title on that post is left alone.
     """
-    specs = (
-        (
-            "Pricing renegotiation follow-up",
-            "Send Northridge Grid the revised quote",
-            "2026-01-12",
-        ),
-        (
-            "Delivery schedule question raised",
-            "Confirm the delivery window with logistics",
-            "2026-01-16",
-        ),
-    )
-    for post_title, ticket_title, due_date in specs:
+    for post_title, ticket_title, due_date in FIXTURE_TICKET_SPECS:
         cur.execute("select post_id from source_post where post_title = %s", (post_title,))
         row = cur.fetchone()
         if row is None:
@@ -685,6 +696,60 @@ def _seed_fixture_tickets(cur) -> None:
             "values (%s, 'open', %s, %s)",
             (post_id, ticket_title, due_date),
         )
+
+
+def _seed_fixture_ticket_activity(cur, actor_account_id, valkey_url: str) -> None:
+    """``XADD`` ticket_created onto each seeded ticket's post stream.
+
+    Without this, GET /api/posts/{id}/activity is empty after ``make seed``
+    even though the ticket row exists -- Activity reads Valkey, not
+    Postgres. Idempotent: a matching summary on that stream is left alone.
+    """
+    try:
+        import redis
+    except ImportError as exc:
+        raise SystemExit(
+            "redis is required to seed activity events; install with pip install -e '.[dev,backend]'"
+        ) from exc
+
+    from backend.app.activity_stream import (
+        publish_activity_event_sync,
+        ticket_created_summary,
+    )
+    from lineageweave.fixtures import ambiguous_commitment_post
+
+    specs = [(title, ticket) for title, ticket, _due in FIXTURE_TICKET_SPECS]
+    specs.append((ambiguous_commitment_post()[0], CALENDAR_TICKET_TITLE))
+
+    client = None
+    try:
+        client = redis.from_url(valkey_url, decode_responses=True, socket_connect_timeout=2)
+        client.ping()
+        for post_title, ticket_title in specs:
+            cur.execute("select post_id from source_post where post_title = %s", (post_title,))
+            row = cur.fetchone()
+            if row is None:
+                continue
+            cur.execute(
+                "select 1 from issue_ticket where post_id = %s and ticket_title = %s",
+                (row[0], ticket_title),
+            )
+            if cur.fetchone() is None:
+                continue
+            publish_activity_event_sync(
+                client,
+                str(row[0]),
+                "ticket_created",
+                str(actor_account_id),
+                ticket_created_summary(ticket_title),
+            )
+    except redis.RedisError as exc:
+        raise SystemExit(
+            f"Valkey at {valkey_url} is unreachable -- did you run `make up`? ({exc})"
+        ) from exc
+    finally:
+        if client is not None:
+            client.close()
 
 
 def _fixture_eval_members(
@@ -1003,10 +1068,11 @@ def main() -> None:
     parser.add_argument("--keycloak-base-url", default=DEFAULT_KEYCLOAK_BASE_URL)
     parser.add_argument("--keycloak-admin-user", default=DEFAULT_KEYCLOAK_ADMIN_USER)
     parser.add_argument("--keycloak-admin-password", default=DEFAULT_KEYCLOAK_ADMIN_PASSWORD)
+    parser.add_argument("--valkey-url", default=DEFAULT_VALKEY_URL)
     args = parser.parse_args()
 
     subjects = _fetch_demo_user_subjects(args.keycloak_base_url, args.keycloak_admin_user, args.keycloak_admin_password)
-    seed(args.postgres_dsn, subjects)
+    seed(args.postgres_dsn, subjects, args.valkey_url)
     print(f"Seeded synthetic demo data for accounts: {subjects}")
 
 

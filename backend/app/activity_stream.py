@@ -29,6 +29,19 @@ def _stream_key(post_id: str) -> str:
     return f"activity:{post_id}"
 
 
+def ticket_created_summary(ticket_title: str) -> str:
+    """The ``summary`` field ``ticket_created`` producers must share."""
+    return f"Ticket created: {ticket_title}"
+
+
+def _activity_fields(event_type: str, actor_account_id: str, summary: str) -> dict[str, str]:
+    return {
+        "event_type": event_type,
+        "actor_account_id": actor_account_id,
+        "summary": summary,
+    }
+
+
 async def publish_activity_event(
     client: redis.Redis,
     post_id: str,
@@ -44,7 +57,27 @@ async def publish_activity_event(
     """
     return await client.xadd(
         _stream_key(post_id),
-        {"event_type": event_type, "actor_account_id": actor_account_id, "summary": summary},
+        _activity_fields(event_type, actor_account_id, summary),
+        maxlen=1000,
+        approximate=True,
+    )
+
+
+def publish_activity_event_sync(
+    client: Any,
+    post_id: str,
+    event_type: str,
+    actor_account_id: str,
+    summary: str,
+) -> str | None:
+    """Sync ``XADD`` for ``make seed``. Returns None if ``summary`` is already on the stream."""
+    key = _stream_key(post_id)
+    existing = client.xrevrange(key, count=50)
+    if any(fields.get("summary") == summary for _entry_id, fields in existing):
+        return None
+    return client.xadd(
+        key,
+        _activity_fields(event_type, str(actor_account_id), summary),
         maxlen=1000,
         approximate=True,
     )
