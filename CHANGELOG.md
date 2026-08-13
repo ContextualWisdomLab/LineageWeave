@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.40.0] - 2026-08-14
+
+### Added
+
+- Seeded period reports fold A-100/B-200 Event Lineage fixtures and
+  the Riverbend calendar post (already carrying IRT cells) into the
+  shared-metric 2026-W02 bank. The comparison strip can open those DAG
+  posts; dummy high/low band posts remain for the PU ranking test.
+
 ## [0.39.0] - 2026-08-14
 
 ### Added

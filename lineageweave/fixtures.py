@@ -133,6 +133,31 @@ def ambiguous_entity_relationship_post() -> tuple[str, str, list[str]]:
     return title, body, ["Meridian Utilities", "Colby Insulation"]
 
 
+def calendar_commitment_occurred_at() -> datetime:
+    """created_at stamped on the seeded Riverbend calendar post (2026-W02)."""
+    return datetime(2026, 1, 5)
+
+
+def fixture_titles_in_iso_week(period_code: str) -> tuple[str, ...]:
+    """Reconstruct and calendar titles whose timeline falls in ``period_code``.
+
+    Used to fold Event Lineage fixtures into the seeded period report so
+    the comparison strip click-through lands on A-100/B-200 posts, not
+    only the dummy high/low band rows. rec-006 is W07 and stays out of
+    2026-W02.
+    """
+    titles: list[str] = []
+    for rec in sample_records():
+        year, week, _ = rec.occurred_at.isocalendar()
+        if f"{year}-W{week:02d}" == period_code:
+            titles.append(rec.label)
+    cal_title, _ = ambiguous_commitment_post()
+    year, week, _ = calendar_commitment_occurred_at().isocalendar()
+    if f"{year}-W{week:02d}" == period_code:
+        titles.append(cal_title)
+    return tuple(titles)
+
+
 def ambiguous_commitment_post() -> tuple[str, str]:
     """A synthetic post with a genuine customer commitment whose deadline
     is stated relative to the post date ("by next Friday"), not as an

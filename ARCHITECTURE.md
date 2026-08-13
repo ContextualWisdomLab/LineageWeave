@@ -472,10 +472,13 @@ persist to `report_item_information`. Results persist to
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
 `GET /api/reports/compare/{period}` is the home-page grouping strip;
-`POST .../rebuild` scores every grouping kind (post_admin). The home
-page renders the actual mean θ, the FIPC delta, the CAT-selected
-item, and the PU / corp / thread comparison -- never a placeholder.
-TEPP is unchanged.
+`POST .../rebuild` scores every grouping kind (post_admin). `make seed`
+folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
+post) that already have constructed IRT cells into the same shared
+bank as the dummy high/low band rows, so comparison-strip click
+through opens those DAG posts. The home page renders the actual mean
+θ, the FIPC delta, the CAT-selected item, and the PU / corp / thread
+comparison -- never a placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer
 
