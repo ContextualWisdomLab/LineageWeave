@@ -465,6 +465,8 @@ def test_seed_fixture_summaries_surface_on_get_summary(client, demo_analyst_toke
     assert fork.status_code == 200, fork.text
     assert "재협상" in fork.json()["korean_summary"]
     assert fork.json()["key_events"]
+    fork_roles = {role["person_name"] for role in fork.json()["roles_and_responsibilities"]}
+    assert fork_roles == {"Ada West", "Priya Nair"}
 
     calendar = client.get(
         f"/api/posts/{calendar_id}/summary",
@@ -472,6 +474,7 @@ def test_seed_fixture_summaries_surface_on_get_summary(client, demo_analyst_toke
     )
     assert calendar.status_code == 200, calendar.text
     assert "리버벤드" in calendar.json()["korean_summary"]
+    assert calendar.json()["roles_and_responsibilities"] == []
 
     missing = client.get(
         f"/api/posts/{seeded_db['own_private_post_id']}/summary",

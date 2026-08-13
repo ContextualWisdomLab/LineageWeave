@@ -230,7 +230,9 @@ links and indirect Knowledge-Graph links, kept as two separate lists --
 `GET /api/posts/{post_id}/summary` (`lineageweave/post_summary.py`,
 persisted in `post_summary_result` so a seeded demo -- including
 A-100/B-200 Event Lineage nodes and the calendar commitment -- is
-not empty without a live LLM), and
+not empty without a live LLM; A-100/B-200 casts also persist R&R so
+the popup list is not empty, and a matching Keyman name starts the
+same related-node walk), and
 `GET`/`POST /api/posts/{post_id}/chat` (`lineageweave/post_chat.py`'s
 reason-and-cite step over `gather_chat_sources`' retrieve step -- both
 Event-Lineage link kinds feed the chat's context, ABAC-rechecked per

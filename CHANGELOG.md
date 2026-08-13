@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.50.0] - 2026-08-14
+
+### Added
+
+- Seeded fixture summaries include R&R from the Event Lineage cast.
+  An A-100 DAG click now shows Ada West / Priya Nair, and a B-200
+  click shows Jordan Hale -- not an empty R&R list. rec-006 and the
+  calendar commitment stay empty because they have no cast people.
+  An R&R name that matches a Keyman opens the same related-node walk
+  as the Keyman and affiliate-tree buttons.
+
 ## [0.49.0] - 2026-08-14
 
 ### Added
