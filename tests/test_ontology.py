@@ -12,6 +12,14 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from lineageweave.knowledge_graph import (
+    EDGE_AFFILIATION,
+    EDGE_CO_MENTION,
+    EDGE_MENTION,
+    NODE_CORPORATE_ENTITY,
+    NODE_PERSON,
+    NODE_POST,
+)
 from lineageweave.ontology import LW, all_declared_lookup_codes, iri_for_lookup_code, load_ontology
 from rdflib.namespace import RDFS, SKOS
 
@@ -66,6 +74,22 @@ def test_ontology_declares_no_lookup_code_the_seed_script_does_not_use() -> None
     )
 
 
+def test_knowledge_graph_lookup_constants_are_declared_in_the_ontology() -> None:
+    """The codes knowledge_graph.py actually writes must stay in the
+    ontology -- seed-script drift is not the only way the two can part.
+    """
+    declared = all_declared_lookup_codes()
+    for code in (
+        NODE_PERSON,
+        NODE_CORPORATE_ENTITY,
+        NODE_POST,
+        EDGE_MENTION,
+        EDGE_AFFILIATION,
+        EDGE_CO_MENTION,
+    ):
+        assert code in declared, f"{code} is written by knowledge_graph.py but missing from lineageweave-kg.ttl"
+
+
 def test_iri_for_lookup_code_resolves_a_real_term() -> None:
     assert iri_for_lookup_code("edge_mention") == str(LW.mentions)
     assert iri_for_lookup_code("rel_voc") == str(LW.hasVocRelationship)
@@ -85,7 +109,7 @@ def test_mentions_property_domain_and_range_match_the_schema() -> None:
 
 def test_corporate_entity_level_hierarchy_is_broadest_first() -> None:
     """Group is broader than Company is broader than Plant -- the
-    Samsung -> Samsung Electronics Korea -> ... -> plant direction the
+    Acme Group -> Acme Electronics Korea -> plant direction the
     product brief describes."""
     graph = load_ontology()
     assert (LW.CompanyLevel, SKOS.broader, LW.GroupLevel) in graph

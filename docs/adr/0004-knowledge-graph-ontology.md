@@ -33,8 +33,8 @@ What already exists (`migrations/0001_initial_schema.sql`):
   properties, and no artifact any other system (or a future reasoner)
   could actually load and validate against.
 - `corporate_entity`'s self-referencing `parent_entity_id` is a real
-  broader/narrower hierarchy (Samsung -> Samsung Electronics Korea ->
-  ... -> the Gwangju plant) but, again, undocumented as a formal
+  broader/narrower hierarchy (Acme Group -> Acme Electronics Korea ->
+  Acme Electronics Gwangju Plant) but, again, undocumented as a formal
   taxonomy relation.
 
 So the gap is not "there is no graph" -- the gap is that the graph's
@@ -52,9 +52,10 @@ vocabulary must match -- checked by a real, running test, not just
 prose:
 
 - **Classes** (`owl:Class`): `Post`, `Person`, `CorporateEntity`,
-  `IssueTicket`, plus `Person` split into `OurSidePerson` /
+  plus `Person` split into `OurSidePerson` /
   `CounterpartyPerson` subclasses (`rdfs:subClassOf`) matching
-  `person_side_code`.
+  `person_side_code`. Issue tickets stay a separate table
+  (`issue_ticket`), not a knowledge-graph node type.
 - **Object properties** (`owl:ObjectProperty`, each with
   `rdfs:domain`/`rdfs:range`): `mentions` (Post -> Person, from
   `edge_mention`), `affiliatedWith` (Person -> CorporateEntity, from

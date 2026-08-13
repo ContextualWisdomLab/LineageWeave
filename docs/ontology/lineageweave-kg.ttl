@@ -131,7 +131,7 @@
 
 :corporateEntityLevelScheme a skos:ConceptScheme ;
     rdfs:label "Corporate entity level scheme" ;
-    rdfs:comment "The Samsung -> Samsung Electronics Korea -> ... -> plant kind of level, ordered broadest first." .
+    rdfs:comment "The Acme Group -> Acme Electronics Korea -> Acme Electronics Gwangju Plant kind of level, ordered broadest first." .
 
 :GroupLevel a skos:Concept ;
     skos:inScheme :corporateEntityLevelScheme ;
