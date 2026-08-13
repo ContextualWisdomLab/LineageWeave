@@ -196,6 +196,42 @@ create table post_evaluation_response (
 
 create index post_evaluation_response_post_idx on post_evaluation_response (post_id);
 
+-- Calibrated period scores (ADR 0003 slice 3). Written only by
+-- lineageweave.period_report.calibrate_period_report.
+create table report_period_score (
+    grouping_kind text not null,
+    grouping_key text not null,
+    period_code text not null,
+    rubric_version text not null,
+    selected_model text not null,
+    mean_theta numeric not null,
+    mean_theta_sd numeric not null,
+    post_count integer not null,
+    item_count integer not null,
+    fit_loglik numeric not null,
+    fit_converged boolean not null,
+    calibration_score numeric not null,
+    computed_at timestamptz not null default now(),
+    primary key (grouping_kind, grouping_key, period_code, rubric_version),
+    check (grouping_kind in ('process_unit', 'corporate_entity', 'thread_group'))
+);
+
+create table report_member_score (
+    grouping_kind text not null,
+    grouping_key text not null,
+    period_code text not null,
+    rubric_version text not null,
+    post_id uuid not null references source_post (post_id),
+    theta_eap numeric not null,
+    theta_sd numeric not null,
+    primary key (grouping_kind, grouping_key, period_code, rubric_version, post_id),
+    foreign key (grouping_kind, grouping_key, period_code, rubric_version)
+        references report_period_score (grouping_kind, grouping_key, period_code, rubric_version)
+        on delete cascade
+);
+
+create index report_member_score_post_idx on report_member_score (post_id);
+
 -- ---------------------------------------------------------------------
 -- Keyman: real (or, in this repo's default synthetic configuration,
 -- fabricated -- see ADR 0001) people mentioned in posts. A person may

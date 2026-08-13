@@ -19,9 +19,11 @@ import {
   fetchPostSummary,
   fetchPostTickets,
   fetchPostVocEvidence,
+  fetchPeriodReports,
   fetchPosts,
   fetchRelatedKeymen,
   rebuildLineage,
+  rebuildPeriodReports,
   updateTicketStatus,
   verifyPostRelations,
   type ActivityEvent,
@@ -36,6 +38,7 @@ import {
   type LinkedPostRef,
   type PostAiSummary,
   type PostDetail,
+  type PeriodReports,
   type PostLineage,
   type PostSummary,
   type RelatedNode,
@@ -921,6 +924,91 @@ function CalendarPanel({
   );
 }
 
+function ReportsPanel({
+  accessToken,
+  canRebuild,
+}: {
+  accessToken: string;
+  canRebuild: boolean;
+}) {
+  const [grouping, setGrouping] = useState("process_unit");
+  const [period, setPeriod] = useState("2026-W02");
+  const [payload, setPayload] = useState<PeriodReports | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [rebuilding, setRebuilding] = useState(false);
+
+  useEffect(() => {
+    setError(null);
+    fetchPeriodReports(accessToken, grouping, period)
+      .then(setPayload)
+      .catch((err) => setError(String(err)));
+  }, [accessToken, grouping, period]);
+
+  async function handleRebuild() {
+    setRebuilding(true);
+    setError(null);
+    try {
+      await rebuildPeriodReports(accessToken, grouping, period);
+      setPayload(await fetchPeriodReports(accessToken, grouping, period));
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setRebuilding(false);
+    }
+  }
+
+  return (
+    <section className="popup-section lineage-home">
+      <div className="lineage-home-header">
+        <h2>Period reports</h2>
+        {canRebuild && (
+          <button onClick={handleRebuild} disabled={rebuilding}>
+            {rebuilding ? "Calibrating..." : "Rebuild report"}
+          </button>
+        )}
+      </div>
+      <div className="chat-input-row">
+        <label>
+          Grouping
+          <select aria-label="Report grouping" value={grouping} onChange={(event) => setGrouping(event.target.value)}>
+            <option value="process_unit">Process unit</option>
+            <option value="corporate_entity">Corporate entity</option>
+            <option value="thread_group">Thread group</option>
+          </select>
+        </label>
+        <label>
+          Period
+          <input
+            aria-label="Report period"
+            value={period}
+            onChange={(event) => setPeriod(event.target.value)}
+          />
+        </label>
+      </div>
+      {error && <p className="error">{error}</p>}
+      {payload === null && !error && <p>Loading reports...</p>}
+      {payload && payload.reports.length === 0 && (
+        <p className="popup-placeholder">
+          No calibrated report for this grouping and period. Evaluate posts, then rebuild.
+        </p>
+      )}
+      {payload && payload.reports.length > 0 && (
+        <ul className="ticket-list">
+          {payload.reports.map((report) => (
+            <li key={report.grouping_key} className="ticket-list-item">
+              <span className="ticket-title">
+                {report.grouping_key}: mean θ {report.mean_theta.toFixed(2)} ({report.selected_model}
+                {report.fit_converged ? ", converged" : ", not converged"})
+              </span>
+              <span className="post-badge">{report.post_count} posts</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function PostList({ accessToken }: { accessToken: string }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
@@ -958,6 +1046,7 @@ function PostList({ accessToken }: { accessToken: string }) {
   return (
     <>
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
+      <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
           <h2>Event Lineage</h2>

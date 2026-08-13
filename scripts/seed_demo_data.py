@@ -73,6 +73,7 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
             cur.execute((migrations / "0003_ticket_commitment_calendar.sql").read_text())
             cur.execute((migrations / "0004_relation_verification.sql").read_text())
             cur.execute((migrations / "0005_post_evaluation.sql").read_text())
+            cur.execute((migrations / "0006_report_period_score.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values

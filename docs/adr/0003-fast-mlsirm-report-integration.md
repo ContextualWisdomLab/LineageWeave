@@ -79,7 +79,7 @@ than one large PR:
    `LLMJudgeResult.to_irt_row()` into a new 3NF table
    (`post_evaluation_response`, one row per post per criterion,
    `common_lookup_value`-backed criterion codes).
-3. **Calibration/report slice**: `fixed_item_calibration_diagnostics()`
+3. **Calibration/report slice** (shipped in 0.28.0): `fixed_item_calibration_diagnostics()`
    run per PU/team/project grouping to produce linked, comparable
    scores across periods, persisted to a `report_period_score` table,
    and a `GET /api/reports/{grouping}/{period}` endpoint + frontend
@@ -145,3 +145,22 @@ this repo's existing pluggable-client discipline
 (`lineageweave/post_summary.py`, `lineageweave/keyman_extraction.py`),
 and `lineageweave/tepp_client.py` (TEPP's published wire contract --
 wire TEPP, do not fork it).
+
+## References
+
+Bock, R. D., & Mislevy, R. J. (1982). Adaptive EAP estimation of
+ability in a microcomputer environment. *Applied Psychological
+Measurement, 6*(4), 431–444. https://doi.org/10.1177/014662168200600405
+
+Dempster, A. P., Laird, N. M., & Rubin, D. B. (1977). Maximum
+likelihood from incomplete data via the EM algorithm. *Journal of the
+Royal Statistical Society: Series B (Methodological), 39*(1), 1–22.
+https://doi.org/10.1111/j.2517-6161.1977.tb01600.x
+
+Muraki, E. (1992). A generalized partial credit model: Application of
+an EM algorithm. *Applied Psychological Measurement, 16*(2), 159–176.
+https://doi.org/10.1177/014662169201600206
+
+Samejima, F. (1969). Estimation of latent ability using a response
+pattern of graded scores. *Psychometrika, 34*(S1), 1–97.
+https://doi.org/10.1007/BF03372160

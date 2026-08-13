@@ -435,8 +435,18 @@ stance, sales-lead specificity). The only persist path is
 row per post per criterion, `common_lookup_value`-backed codes).
 `POST /api/posts/{id}/evaluate` is an explicit post_admin action;
 `GET /api/posts/{id}/evaluation` is the read. The post popup shows
-the persisted categories and an "Evaluate post" button. Calibration
-and `GET /api/reports/...` remain slice 3. TEPP is unchanged.
+the persisted categories and an "Evaluate post" button.
+
+## Phase 6e: calibrated period reports (ADR 0003 slice 3)
+
+`lineageweave/period_report.py` assembles the stored IRT matrix,
+fits GRM and GPCM via `fast_mlsirm.fit_polytomous` (Rust EM),
+EAP-scores with `score_polytomous` (Bock & Mislevy, 1982), and
+selects the model with `fixed_item_calibration_diagnostics`.
+Results persist to `report_period_score` / `report_member_score`.
+`GET /api/reports/{grouping}/{period}` is ABAC-filtered;
+`POST .../rebuild` is post_admin. The home page renders the actual
+mean θ -- never a placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer
 

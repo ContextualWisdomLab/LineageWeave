@@ -4,6 +4,19 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.28.0] - 2026-08-13
+
+### Added
+
+- ADR 0003 slice 3: `lineageweave/period_report.py` fits GRM and GPCM
+  with `fast_mlsirm.fit_polytomous`, EAP-scores posts, and picks the
+  model via `fixed_item_calibration_diagnostics`. Scores persist to
+  `report_period_score` / `report_member_score`.
+  `GET /api/reports/{grouping}/{period}` and `POST .../rebuild`
+  (`post_admin`) plus a home-page Period reports panel. The accuracy
+  test constructs high vs low category groups and asserts the fitted
+  mean θ ranks them correctly -- no hardcoded score.
+
 ## [0.27.0] - 2026-08-13
 
 ### Added

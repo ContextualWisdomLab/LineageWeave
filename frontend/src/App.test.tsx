@@ -147,6 +147,29 @@ describe("App, authenticated", () => {
       if (url.endsWith("/api/calendar")) {
         return Promise.resolve(jsonResponse({ commitments: options?.calendarCommitments ?? [] }));
       }
+      if (url.includes("/api/reports/") && method === "GET") {
+        return Promise.resolve(
+          jsonResponse({
+            grouping_kind: "process_unit",
+            period_code: "2026-W02",
+            reports: [
+              {
+                grouping_key: "TEST-PU-REPORT",
+                selected_model: "grm",
+                mean_theta: 0.42,
+                mean_theta_sd: 0.1,
+                post_count: 8,
+                item_count: 3,
+                fit_converged: true,
+                members: [],
+              },
+            ],
+          }),
+        );
+      }
+      if (url.includes("/api/reports/") && method === "POST") {
+        return Promise.resolve(jsonResponse({ group_count: 1 }));
+      }
       if (url.endsWith("/api/lineage")) {
         return Promise.resolve(
           jsonResponse({
@@ -687,5 +710,28 @@ describe("App, authenticated", () => {
     await userEvent.click(calendarButton);
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
+  it("shows the calibrated period-report mean theta on the home page", async () => {
+    stubBackend();
+    render(<App />);
+
+    expect(await screen.findByText(/mean θ 0.42/)).toBeInTheDocument();
+    expect(screen.getByText(/8 posts/)).toBeInTheDocument();
+    expect(screen.getByText(/TEST-PU-REPORT/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /rebuild report/i })).not.toBeInTheDocument();
+  });
+
+  it("lets post_admin rebuild the period report", async () => {
+    const fetchMock = stubBackend({ admin: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /rebuild report/i }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/reports/process_unit/2026-W02/rebuild"),
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
   });
 });
