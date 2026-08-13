@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.37.0] - 2026-08-14
+
+### Added
+
+- Seeded Keymen, affiliate-tree leaves, and VOC counterparties for
+  every A-100 proj-alpha Event Lineage fixture and the calendar
+  Riverbend post. Clicking a DAG node now shows Ada West / Priya Nair,
+  Northridge Grid, and an extractive excerpt without a live
+  orchestrator. rec-006 stays uncast so it remains its own root. A
+  post with no named org still has empty VOC excerpts -- never a
+  fabricated quote.
+
 ## [0.36.0] - 2026-08-14
 
 ### Added

@@ -274,6 +274,7 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
             )
             _seed_fixture_summaries(cur)
             _seed_fixture_evaluations(cur)
+            _seed_fixture_keymen_and_voc(cur, corporate_entity_id)
             _seed_demo_period_report(
                 cur,
                 account_ids["demo.analyst"],
@@ -451,6 +452,120 @@ def _seed_fixture_evaluations(cur) -> None:
                 "values (%s, %s, %s, %s) on conflict do nothing",
                 (post_id, code, RUBRIC_VERSION, category),
             )
+
+
+def _ensure_demo_people(cur, corporate_entity_id) -> dict[str, str]:
+    """Ada West / Priya Nair plus their affiliations. Idempotent."""
+    people: dict[str, str] = {}
+    for name, side in (("Ada West", "our_side"), ("Priya Nair", "counterparty")):
+        cur.execute("select person_id from cataloged_person where person_name = %s", (name,))
+        row = cur.fetchone()
+        if row is None:
+            cur.execute(
+                "insert into cataloged_person (person_name, person_side_code) "
+                "values (%s, %s) returning person_id",
+                (name, side),
+            )
+            people[name] = str(cur.fetchone()[0])
+        else:
+            people[name] = str(row[0])
+    cur.execute(
+        "insert into person_affiliation "
+        "(person_id, affiliated_organization_name, affiliated_corporate_entity_id) "
+        "values (%s, 'Demo Corp', %s) on conflict do nothing",
+        (people["Ada West"], corporate_entity_id),
+    )
+    cur.execute(
+        "insert into person_affiliation (person_id, affiliated_organization_name) "
+        "values (%s, 'Northridge Grid') on conflict do nothing",
+        (people["Priya Nair"],),
+    )
+    cur.execute(
+        "insert into person_affiliation (person_id, affiliated_organization_name) "
+        "values (%s, 'Northridge Holdings') on conflict do nothing",
+        (people["Priya Nair"],),
+    )
+    return people
+
+
+def _seed_fixture_keymen_and_voc(cur, corporate_entity_id) -> None:
+    """Attach Keymen, affiliate orgs, and VOC counterparties to fixture posts.
+
+    Event Lineage click-through otherwise shows empty Keyman / affiliate
+    / VOC panels: sample_records bodies are the English title only.
+    Idempotent -- mentions and counterparties use ON CONFLICT DO NOTHING.
+    """
+    from lineageweave.fixtures import (
+        ambiguous_commitment_post,
+        fixture_thread_cast,
+        sample_records,
+    )
+    from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
+
+    people = _ensure_demo_people(cur, corporate_entity_id)
+    titles = [rec.label for rec in sample_records()]
+    titles.append(ambiguous_commitment_post()[0])
+    for title in titles:
+        cast = fixture_thread_cast(title)
+        if cast is None:
+            continue
+        cur.execute("select post_id from source_post where post_title = %s", (title,))
+        row = cur.fetchone()
+        if row is None:
+            continue
+        post_id = str(row[0])
+        if cast.body is not None:
+            cur.execute(
+                "update source_post set post_body = %s where post_id = %s",
+                (cast.body, post_id),
+            )
+        mentioned: list[str] = []
+        for name in cast.person_names:
+            person_id = people[name]
+            cur.execute(
+                "insert into post_person_mention (post_id, person_id) "
+                "values (%s, %s) on conflict do nothing",
+                (post_id, person_id),
+            )
+            mentioned.append(person_id)
+        if mentioned:
+            affiliations = [(people["Ada West"], str(corporate_entity_id))]
+            for edge in knowledge_graph_edges_for_post(post_id, mentioned, affiliations):
+                cur.execute(
+                    "select 1 from knowledge_graph_edge where "
+                    "source_node_type_code = %s and source_node_id = %s "
+                    "and target_node_type_code = %s and target_node_id = %s "
+                    "and edge_type_code = %s",
+                    (
+                        edge.source_node_type_code,
+                        edge.source_node_id,
+                        edge.target_node_type_code,
+                        edge.target_node_id,
+                        edge.edge_type_code,
+                    ),
+                )
+                if cur.fetchone() is not None:
+                    continue
+                cur.execute(
+                    "insert into knowledge_graph_edge ("
+                    "source_node_type_code, source_node_id, target_node_type_code, "
+                    "target_node_id, edge_type_code, edge_weight"
+                    ") values (%s, %s, %s, %s, %s, %s)",
+                    (
+                        edge.source_node_type_code,
+                        edge.source_node_id,
+                        edge.target_node_type_code,
+                        edge.target_node_id,
+                        edge.edge_type_code,
+                        edge.edge_weight,
+                    ),
+                )
+        cur.execute(
+            "insert into post_counterparty_entity "
+            "(post_id, counterparty_entity_name, relationship_type_code) "
+            "values (%s, %s, %s) on conflict do nothing",
+            (post_id, cast.organization_name, cast.relationship_type_code),
+        )
 
 
 def _seed_demo_calendar_commitment(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:

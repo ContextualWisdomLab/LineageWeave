@@ -4,6 +4,7 @@ every id, label, and date below is fabricated for demonstration purposes.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from .models import Record
@@ -38,6 +39,43 @@ def sample_records() -> list[Record]:
         Record("rec-102", "B-200", "Specification revision requested", _day(8), "proj-beta"),
         Record("rec-103", "B-200", "Revised specification approved", _day(15), "proj-beta"),
     ]
+
+
+@dataclass(frozen=True)
+class FixtureThreadCast:
+    """Synthetic people/org named on an Event Lineage fixture -- not LLM."""
+
+    organization_name: str
+    relationship_type_code: str
+    person_names: tuple[str, ...]
+    body: str | None = None
+
+
+def fixture_thread_cast(title: str) -> FixtureThreadCast | None:
+    """Return the Keyman/VOC cast for a reconstruct or calendar fixture.
+
+    A-100 proj-alpha posts share Ada West / Priya Nair / Northridge Grid
+    so DAG click-through is not an empty Keyman or VOC panel. rec-006
+    stays uncast so it remains its own root. Calendar names Riverbend,
+    already in the commitment body. Unknown titles return None.
+    """
+    if title == "Follow-up on the Riverbend order confirmation":
+        return FixtureThreadCast(
+            organization_name="Riverbend",
+            relationship_type_code="rel_voc",
+            person_names=(),
+        )
+    alpha = {rec.label for rec in sample_records() if rec.secondary_key == "proj-alpha"}
+    if title in alpha:
+        return FixtureThreadCast(
+            organization_name="Northridge Grid",
+            relationship_type_code="rel_voc",
+            person_names=("Ada West", "Priya Nair"),
+            body=(
+                f"{title}. Ada West followed up with Priya Nair at Northridge Grid."
+            ),
+        )
+    return None
 
 
 def ambiguous_keyman_post() -> tuple[str, str]:
