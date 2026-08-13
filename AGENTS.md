@@ -53,13 +53,16 @@ different things.
 ## Tests
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev,backend]"
 pytest
 ```
 
 Every new channel, fusion rule, or threshold needs a test against
 `lineageweave/fixtures.py`'s synthetic dataset (or a new synthetic fixture
 in the same spirit) -- never against real data, per the hard rule above.
+`backend/tests/` and `tests/test_schema.py` are real-integration tests
+against a live local stack (`make up`) and self-skip without one -- see
+[README.md](README.md#local-product-stack-docker-compose).
 
 ## CI gates
 

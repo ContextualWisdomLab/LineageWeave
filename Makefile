@@ -1,4 +1,4 @@
-.PHONY: up down logs smoke ps
+.PHONY: up down logs smoke seed ps
 
 up:
 	docker compose up -d
@@ -18,3 +18,8 @@ ps:
 # scripts/smoke_test_oidc.py.
 smoke:
 	python3 scripts/smoke_test_oidc.py
+
+# Seeds synthetic corp/account/post rows keyed to the actual Keycloak demo
+# users' real subject ids (see scripts/seed_demo_data.py). Run after `up`.
+seed:
+	python3 scripts/seed_demo_data.py

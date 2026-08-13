@@ -72,13 +72,24 @@ def _request(
         connection.close()
 
 
-def _decode_json_object(raw: bytes, hostname: str) -> dict:
+def _decode_json(raw: bytes, hostname: str) -> object:
     try:
-        decoded = json.loads(raw.decode("utf-8"))
+        return json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise HttpClientError(f"non-JSON response from {hostname}") from exc
+
+
+def _decode_json_object(raw: bytes, hostname: str) -> dict:
+    decoded = _decode_json(raw, hostname)
     if not isinstance(decoded, dict):
         raise HttpClientError(f"JSON object expected from {hostname}")
+    return decoded
+
+
+def _decode_json_list(raw: bytes, hostname: str) -> list:
+    decoded = _decode_json(raw, hostname)
+    if not isinstance(decoded, list):
+        raise HttpClientError(f"JSON array expected from {hostname}")
     return decoded
 
 
@@ -133,15 +144,42 @@ def post_form(
     return _decode_json_object(raw, hostname)
 
 
-def get_json(url: str, *, timeout: float) -> dict:
+def get_json(
+    url: str,
+    *,
+    headers: dict[str, str] | None = None,
+    timeout: float,
+) -> dict:
     """GET ``url`` and return the decoded JSON object.
 
     Raises:
         ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
         HttpClientError: the server responded with HTTP >= 400 or non-JSON.
     """
-    status, raw = _request("GET", url, body=None, headers={}, timeout=timeout)
+    status, raw = _request("GET", url, body=None, headers=headers or {}, timeout=timeout)
     hostname = urlparse(url).hostname or url
     if status >= 400:
         raise HttpClientError(f"HTTP {status} from {hostname}")
     return _decode_json_object(raw, hostname)
+
+
+def get_json_list(
+    url: str,
+    *,
+    headers: dict[str, str] | None = None,
+    timeout: float,
+) -> list:
+    """GET ``url`` and return the decoded JSON array.
+
+    Used by the demo seeder to read Keycloak's admin users list (a JSON
+    array, not an object). Same scheme allowlist as ``get_json``.
+
+    Raises:
+        ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
+        HttpClientError: the server responded with HTTP >= 400 or non-array JSON.
+    """
+    status, raw = _request("GET", url, body=None, headers=headers or {}, timeout=timeout)
+    hostname = urlparse(url).hostname or url
+    if status >= 400:
+        raise HttpClientError(f"HTTP {status} from {hostname}")
+    return _decode_json_list(raw, hostname)

@@ -1,15 +1,24 @@
 services:
   postgres:
-    # Built (not bind-mounted) so the keycloak-db init script ships inside
-    # the image itself -- portable across hosts/CI runners that don't share
-    # a filesystem with the Docker daemon.
-    build: ./docker/postgres-init
+    # Built (not bind-mounted) so the keycloak-db init script and the
+    # product schema migration ship inside the image itself -- portable
+    # across hosts/CI runners that don't share a filesystem with the
+    # Docker daemon. Context is the repo root so the Dockerfile can COPY
+    # migrations/0001_initial_schema.sql (single source of truth --
+    # tests/test_schema.py applies this exact same file).
+    build:
+      context: .
+      dockerfile: docker/postgres-init/Dockerfile
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-lineageweave}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lineageweave_dev_only}
       POSTGRES_DB: ${POSTGRES_DB:-lineageweave}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      # Deliberately not the Postgres default (5432): a developer's machine
+      # commonly already runs its own PostgreSQL server on 5432, and this
+      # project in particular must never be ambiguous about which Postgres
+      # a connection lands on (see ADR 0001 -- real infra, synthetic data).
+      - "${POSTGRES_PORT:-15432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,7 +30,9 @@ services:
   valkey:
     image: valkey/valkey:8-alpine@sha256:a038175878d66b9d274fbf8be73c0305e93798b83917647f167e18cef3c71eec
     ports:
-      - "${VALKEY_PORT:-6379}:6379"
+      # Not Redis/Valkey's default (6379) for the same collision-avoidance
+      # reason as POSTGRES_PORT above.
+      - "${VALKEY_PORT:-16379}:6379"
     volumes:
       - valkey_data:/data
     healthcheck:
@@ -48,10 +59,32 @@ services:
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
     ports:
-      - "${KEYCLOAK_PORT:-8080}:8080"
+      # Not the common local-dev default (8080) for the same reason.
+      - "${KEYCLOAK_PORT:-18080}:8080"
     depends_on:
       postgres:
         condition: service_healthy
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lineageweave}:${POSTGRES_PASSWORD:-lineageweave_dev_only}@postgres:5432/${POSTGRES_DB:-lineageweave}
+      # Internal DNS name for JWKS fetches (always reachable from inside the
+      # compose network); KEYCLOAK_ISSUER is the *external*, host-published
+      # URL a browser/token actually carries -- see backend/app/config.py.
+      KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_ISSUER: http://localhost:${KEYCLOAK_PORT:-18080}/realms/lineageweave-demo
+      KEYCLOAK_REALM: lineageweave-demo
+      KEYCLOAK_CLIENT_ID: lineageweave-frontend
+    ports:
+      - "${BACKEND_PORT:-18420}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
 
 volumes:
   postgres_data:

@@ -7,15 +7,23 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 
-from lineageweave.http_client import HttpClientError, get_json, post_form, post_json
+from lineageweave.http_client import HttpClientError, get_json, get_json_list, post_form, post_json
 
 
 class _JsonHandler(BaseHTTPRequestHandler):
     received: dict = {}
 
     def do_GET(self) -> None:  # noqa: N802 -- BaseHTTPRequestHandler API
-        type(self).received = {"path": self.path, "method": "GET"}
-        body = json.dumps({"ok": True, "path": self.path}).encode("utf-8")
+        type(self).received = {
+            "path": self.path,
+            "method": "GET",
+            "authorization": self.headers.get("authorization"),
+        }
+        if "/users" in self.path:
+            payload: object = [{"id": "sub-1", "username": "demo.analyst"}]
+        else:
+            payload = {"ok": True, "path": self.path}
+        body = json.dumps(payload).encode("utf-8")
         self.send_response(200)
         self.send_header("content-type", "application/json")
         self.send_header("content-length", str(len(body)))
@@ -97,11 +105,16 @@ def test_get_json_fetches_json_from_http_endpoint() -> None:
     _JsonHandler.received = {}
     server, base = _serve(_JsonHandler)
     try:
-        body = get_json(f"{base}/.well-known/openid-configuration", timeout=2.0)
+        body = get_json(
+            f"{base}/.well-known/openid-configuration",
+            headers={"authorization": "Bearer test-token"},
+            timeout=2.0,
+        )
     finally:
         server.shutdown()
 
     assert body == {"ok": True, "path": "/.well-known/openid-configuration"}
+    assert _JsonHandler.received["authorization"] == "Bearer test-token"
 
 
 def test_post_form_posts_urlencoded_fields() -> None:
@@ -126,20 +139,36 @@ def test_get_json_refuses_file_scheme() -> None:
         get_json("file:///etc/passwd", timeout=1.0)
 
 
-def test_oidc_smoke_script_does_not_import_urllib_request() -> None:
+def test_oidc_scripts_do_not_import_urllib_request() -> None:
     from pathlib import Path
 
-    source = Path(__file__).resolve().parents[1] / "scripts" / "smoke_test_oidc.py"
-    text = source.read_text()
-    assert "urllib.request" not in text
-    assert "urlopen" not in text
+    root = Path(__file__).resolve().parents[1]
+    for relative in (
+        "scripts/smoke_test_oidc.py",
+        "scripts/seed_demo_data.py",
+        "backend/app/auth.py",
+        "backend/tests/test_api.py",
+    ):
+        text = (root / relative).read_text()
+        import_lines = [
+            line
+            for line in text.splitlines()
+            if line.lstrip().startswith(("import ", "from "))
+        ]
+        joined = "\n".join(import_lines)
+        assert "urllib.request" not in joined, relative
+        assert "urlopen" not in joined, relative
 
 
 def test_dockerfiles_pin_digest_and_declare_non_root_user() -> None:
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[1]
-    for relative in ("docker/postgres-init/Dockerfile", "docker/keycloak/Dockerfile"):
+    for relative in (
+        "docker/postgres-init/Dockerfile",
+        "docker/keycloak/Dockerfile",
+        "backend/Dockerfile",
+    ):
         text = (root / relative).read_text()
         assert "@sha256:" in text, f"{relative} must pin the base image by digest"
         assert "USER " in text, f"{relative} must declare a non-root USER"
