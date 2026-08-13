@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.30.0] - 2026-08-13
+
+### Added
+
+- Persisted Korean summaries (`post_summary_result` /
+  `post_summary_event` / `post_summary_role`). `GET /api/posts/{id}/summary`
+  returns a stored row first so a seeded demo popup is not empty when
+  the LLM orchestrator is off. Live derivation still writes through
+  the same tables. Seed writes a synthetic summary for the demo public
+  post. A missing stored row and a missing LLM stay 503 -- never a
+  fabricated summary.
+
 ## [0.29.0] - 2026-08-13
 
 ### Added

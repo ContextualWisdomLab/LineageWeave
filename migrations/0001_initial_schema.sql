@@ -196,6 +196,28 @@ create table post_evaluation_response (
 
 create index post_evaluation_response_post_idx on post_evaluation_response (post_id);
 
+-- Persisted popup summary. Seed writes a synthetic row so GET
+-- /api/posts/{id}/summary is not empty without a live LLM.
+create table post_summary_result (
+    post_id uuid primary key references source_post (post_id) on delete cascade,
+    korean_summary text not null,
+    computed_at timestamptz not null default now()
+);
+
+create table post_summary_event (
+    post_id uuid not null references post_summary_result (post_id) on delete cascade,
+    event_ordinal integer not null,
+    event_text text not null,
+    primary key (post_id, event_ordinal)
+);
+
+create table post_summary_role (
+    post_id uuid not null references post_summary_result (post_id) on delete cascade,
+    person_name text not null,
+    responsibility text not null,
+    primary key (post_id, person_name)
+);
+
 -- Calibrated period scores (ADR 0003 slice 3/4). Written only by
 -- lineageweave.period_report.link_or_calibrate_period_report.
 -- link_method = free on the first period; fipc on later periods scored
