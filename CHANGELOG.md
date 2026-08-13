@@ -4,6 +4,39 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-08-13
+
+### Added
+
+- `frontend/`: React + Vite + TypeScript, pinned Node via `mise.toml`,
+  pnpm via Corepack -- a real client, not mocked and not static HTML.
+  `react-oidc-context` drives an actual Authorization Code redirect
+  through Keycloak; the post list and detail popup call the FastAPI
+  backend over real `fetch()` with the token Keycloak issued.
+  `src/App.test.tsx` covers the login-redirect and fetch-then-render
+  paths (`useAuth` mocked -- the real OIDC round-trip is proven
+  elsewhere, by `scripts/smoke_test_oidc.py` and `backend/tests/test_api.py`).
+- `frontend/Dockerfile` + `nginx.conf`: two-stage build (`pnpm run build`
+  then nginx serving the static bundle) added as docker-compose's fourth
+  service, `VITE_*` config baked in at build time from the same `.env`
+  ports every other service uses. Both stages pin the base image by
+  digest; the runtime stage declares `USER nginx` and listens on 8080
+  so the master process does not need root to bind a port.
+- `backend/app/main.py`: `CORSMiddleware`, scoped to exactly the
+  frontend's origin(s) (`FRONTEND_ORIGINS`), `GET` only, `Authorization`
+  header only -- verified with a real cross-origin preflight + GET against
+  the live stack, not just unit-tested in isolation.
+- `.github/workflows/tests.yml`: added a `frontend` job (lint, test,
+  build) alongside the existing Python `pytest` job.
+
+### Fixed
+
+- Keycloak's `lineageweave-frontend` client (`docker/keycloak/realm-export.json`)
+  now allows both the Vite dev-server origin (`:5173`) and the
+  docker-compose-served frontend's origin (`:15173`) as redirect URIs and
+  web origins -- the login redirect only worked from one of the two
+  before this.
+
 ## [0.6.0] - 2026-08-13
 
 ### Added

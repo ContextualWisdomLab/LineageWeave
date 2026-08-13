@@ -78,6 +78,7 @@ services:
       KEYCLOAK_ISSUER: http://localhost:${KEYCLOAK_PORT:-18080}/realms/lineageweave-demo
       KEYCLOAK_REALM: lineageweave-demo
       KEYCLOAK_CLIENT_ID: lineageweave-frontend
+      FRONTEND_ORIGINS: http://localhost:${FRONTEND_PORT:-15173}
     ports:
       - "${BACKEND_PORT:-18420}:8000"
     depends_on:
@@ -85,6 +86,18 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_KEYCLOAK_ISSUER: http://localhost:${KEYCLOAK_PORT:-18080}/realms/lineageweave-demo
+        VITE_KEYCLOAK_CLIENT_ID: lineageweave-frontend
+        VITE_BACKEND_BASE_URL: http://localhost:${BACKEND_PORT:-18420}
+    ports:
+      - "${FRONTEND_PORT:-15173}:8080"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
