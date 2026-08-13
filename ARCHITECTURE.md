@@ -327,7 +327,9 @@ pluggable-LLM channel like `keyman_ingestion.py` -- ticket status is a
 closed enum in `common_lookup_value`, and opening or updating a ticket
 is a direct user action, not something extracted from text.
 `frontend/src/App.tsx`'s `IssueTicketPanel` is the popup's real
-list/create/status-update UI for it.
+list/create/status-update UI for it. `make seed` opens tickets on the
+A-100 follow-up and delivery fixtures so a report-member click is not
+"No tickets yet."
 
 Found and fixed a real deployment bug while verifying this end to end
 against the actual Docker-built stack: `frontend/Dockerfile`'s earlier

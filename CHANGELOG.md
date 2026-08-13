@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.42.0] - 2026-08-14
+
+### Added
+
+- `make seed` opens tickets on the A-100 pricing follow-up and
+  delivery-schedule fixtures. A report-member click now shows
+  "Send Northridge Grid the revised quote" (due 2026-01-12) instead
+  of "No tickets yet."
+
 ## [0.41.0] - 2026-08-14
 
 ### Changed
