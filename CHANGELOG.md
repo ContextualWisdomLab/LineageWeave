@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.28.1] - 2026-08-13
+
+### Added
+
+- `make seed` inserts constructed high/low IRT rows for 2026-W02 and
+  persists a real FIPC report, so the Period reports panel is not empty
+  after a fresh stack. Thetas still come only from
+  `calibrate_period_report`.
+
 ## [0.28.0] - 2026-08-13
 
 ### Added
