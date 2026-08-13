@@ -142,9 +142,8 @@ def fixture_titles_in_iso_week(period_code: str) -> tuple[str, ...]:
     """Reconstruct and calendar titles whose timeline falls in ``period_code``.
 
     Used to fold Event Lineage fixtures into the seeded period report so
-    the comparison strip click-through lands on A-100/B-200 posts, not
-    only the dummy high/low band rows. rec-006 is W07 and stays out of
-    2026-W02.
+    a member click lands on A-100/B-200 posts, not only dummy high/low
+    band rows. rec-006 is W07 and stays out of 2026-W02.
     """
     titles: list[str] = []
     for rec in sample_records():

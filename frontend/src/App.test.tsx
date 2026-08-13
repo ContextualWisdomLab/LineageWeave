@@ -892,12 +892,15 @@ describe("App, authenticated", () => {
     expect(periodInput).toHaveValue("2026-W03");
   });
 
-  it("opens a post from a period-report member click", async () => {
+  it("opens Event Lineage, Keyman, and evaluation from a report member click", async () => {
     stubBackend();
     render(<App />);
 
     await userEvent.click(await screen.findByRole("button", { name: /open report post: public post/i }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(screen.getByText("Constructive stance: 2")).toBeInTheDocument();
+    expect(screen.getAllByText(/Ada West/).length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText("A-100 lineage").length).toBeGreaterThanOrEqual(2);
   });
 
   it("lets post_admin rebuild the period report", async () => {

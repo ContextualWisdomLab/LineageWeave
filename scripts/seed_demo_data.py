@@ -841,10 +841,11 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
     pooled free-calibrate writes the shared bank; each unit is then
     FIPC-scored so the buyer can compare them. W03 is all-high on the
     high unit. Categories are constructed; thetas come only from
-    ``score_groups_on_shared_metric``. A-100/B-200 Event Lineage
-    fixtures (and the Riverbend calendar post) that already have IRT
-    cells are folded into the same bank so comparison-strip click
-    through is not only dummy band rows.
+    ``score_groups_on_shared_metric``. A-100 fixtures (and the
+    Riverbend calendar post) fold into the high unit; B-200 fixtures
+    fold into the low unit. Report members with Event Lineage +
+    Keyman + evaluation sort first so a member click is not a dummy
+    band row.
     """
     from datetime import datetime, timezone
 
@@ -912,8 +913,8 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
 
     bank_report, scored = score_groups_on_shared_metric(
         {
-            high_key: (w02_high_ids + fixture_ids, w02_high_cells + fixture_cells),
-            low_key: (w02_low_ids, w02_low_cells),
+            high_key: (w02_high_ids + a100_ids, w02_high_cells + a100_cells),
+            low_key: (w02_low_ids + b200_ids, w02_low_cells + b200_cells),
         },
         source_period_code=w02,
     )
