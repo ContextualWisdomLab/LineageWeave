@@ -80,6 +80,29 @@ async function backendFetch<T>(
   return response.json() as Promise<T>;
 }
 
+export interface LineageGraphNode {
+  id: string;
+  label: string;
+  occurred_at: string;
+  is_root: boolean;
+  is_branch_point: boolean;
+}
+
+export interface LineageGraphEdge {
+  source: string;
+  target: string;
+  fused_score: number;
+}
+
+export interface LineageGraph {
+  nodes: LineageGraphNode[];
+  edges: LineageGraphEdge[];
+}
+
+export function fetchLineageGraph(accessToken: string): Promise<LineageGraph> {
+  return backendFetch<LineageGraph>("/api/lineage", accessToken);
+}
+
 export function fetchPosts(accessToken: string): Promise<PostSummary[]> {
   return backendFetch<PostSummary[]>("/api/posts", accessToken);
 }

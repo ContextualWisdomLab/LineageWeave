@@ -107,10 +107,11 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
 
             cur.execute(
                 "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) values "
-                "(%s, 'DEMO-PU-A', 'Demo Sales Unit A'), (%s, 'DEMO-PU-HQ', 'Demo Headquarters') "
+                "(%s, 'DEMO-PU-A', 'Demo Sales Unit A'), (%s, 'DEMO-PU-HQ', 'Demo Headquarters'), "
+                "(%s, 'DEMO-PU-LINEAGE', 'Demo Lineage Thread') "
                 "on conflict (process_unit_code) do update set process_unit_name = excluded.process_unit_name "
                 "returning process_unit_code, process_unit_id",
-                (corporate_entity_id, corporate_entity_id),
+                (corporate_entity_id, corporate_entity_id, corporate_entity_id),
             )
             process_units = dict(cur.fetchall())  # {code: id}
 
@@ -223,7 +224,7 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
                 cur,
                 account_ids["demo.analyst"],
                 corporate_entity_id,
-                process_units["DEMO-PU-A"],
+                process_units["DEMO-PU-LINEAGE"],
             )
 
         conn.commit()
@@ -249,17 +250,19 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
 
     persisted: list[Record] = []
     for rec in records:
+        voc_type = "voc" if rec.secondary_key else "vom"
         cur.execute(
             "insert into source_post "
             "(author_account_id, corporate_entity_id, process_unit_id, "
             " post_title, post_body, voc_type_code, visibility_code) "
-            "values (%s, %s, %s, %s, %s, 'voc', 'public') returning post_id",
+            "values (%s, %s, %s, %s, %s, %s, 'public') returning post_id",
             (
                 author_account_id,
                 corporate_entity_id,
                 process_unit_id,
                 rec.label,
                 rec.label,
+                voc_type,
             ),
         )
         post_id = str(cur.fetchone()[0])

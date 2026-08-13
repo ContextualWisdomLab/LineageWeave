@@ -49,6 +49,7 @@ from backend.app.knowledge_graph import (
     related_for_person,
     visible_mention_post_ids,
 )
+from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
 from backend.app.post_chat_ingestion import find_linked_post_ids, gather_chat_sources
 
 _POST_READ = "post_read"
@@ -159,6 +160,33 @@ async def read_me(account: CurrentAccount = Depends(get_current_account)) -> dic
         "display_name": account.display_name,
         "permission_codes": sorted(account.permission_codes),
     }
+
+
+@app.get("/api/lineage")
+async def read_lineage_graph(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """ABAC-filtered reconstruct graph for the product UI (same shape as the demo server)."""
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        return await visible_lineage_graph(conn, lambda row: _can_see_post(account, row))
+
+
+@app.post("/api/lineage/rebuild")
+async def rebuild_lineage_graph(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Run reconstruct over every source_post and persist post_lineage_edge.
+
+    post_admin only: this is a corpus-wide write. Reads stay ABAC-gated.
+    """
+    _require_post_admin(account)
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            edges = await rebuild_lineage(conn)
+    return {"edge_count": len(edges)}
 
 
 @app.get("/api/posts")

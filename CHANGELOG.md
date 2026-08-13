@@ -4,6 +4,21 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-08-13
+
+### Added
+
+- `POST /api/lineage/rebuild` (`post_admin`): runs `reconstruct()` over
+  every `source_post` and writes `post_lineage_edge`. Grouping is by
+  process unit (else corporate entity) so unrelated org units stay out of
+  each other's candidate window.
+- `GET /api/lineage`: ABAC-filtered `{nodes, edges}` in the same shape as
+  the stdlib demo server, so the product UI can show the reconstructed
+  DAG. The React home page now lists those parent→child edges.
+- `backend/tests/test_api.py::test_rebuild_lineage_recovers_the_a100_fork`
+  inserts the designed A-100 fixture as real `source_post` rows, rebuilds,
+  and asserts the fork is visible on both the graph and per-post lineage.
+
 ## [0.12.0] - 2026-08-13
 
 ### Added

@@ -186,6 +186,11 @@ account cannot see is 403, matching the post deny path. Extraction
 lives in `lineageweave/keyman_extraction.py` and talks to
 contextual-orchestrator; persist is `backend/app/keyman_ingestion.py`.
 
+`GET /api/lineage` returns the ABAC-filtered reconstruct graph
+(`{nodes, edges}`) from persisted `post_lineage_edge` rows.
+`POST /api/lineage/rebuild` (`post_admin`) re-runs `reconstruct()` over
+every `source_post` and rewrites those edges.
+
 Phase 3 adds `GET /api/posts/{post_id}/counterparties` (same RBAC+ABAC
 gate) and extends `POST /api/posts/{post_id}/extract-keymen` to also
 classify each extracted Keyman's affiliated organizations' relationship

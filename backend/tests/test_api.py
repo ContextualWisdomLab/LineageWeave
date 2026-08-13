@@ -628,3 +628,98 @@ def test_post_chat_cites_a_post_linked_only_via_a_shared_keyman(client, demo_ana
     body_json = response.json()
     assert set(body_json["source_post_ids"]) == {post_a, post_b}
     assert post_b in body_json["cited_post_ids"]
+
+
+def test_rebuild_lineage_requires_post_admin(client, demo_analyst_token) -> None:
+    response = client.post("/api/lineage/rebuild", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 403
+
+
+def test_rebuild_lineage_recovers_the_a100_fork(client, demo_analyst_token, seeded_db) -> None:
+    """Insert the designed A-100 fixture as source_post rows, rebuild, and
+    read the product graph -- the fork must appear as persisted edges, not
+    only as in-memory reconstruct output.
+    """
+    from lineageweave.fixtures import sample_records
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('permission', 'post_admin', 'Administer posts'), "
+                "('voc_type', 'vom', 'Voice of Market') "
+                "on conflict (lookup_code) do nothing"
+            )
+            cur.execute("select access_role_id from account_role_assignment limit 1")
+            role_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into role_permission (access_role_id, permission_code) values (%s, 'post_admin') "
+                "on conflict do nothing",
+                (role_id,),
+            )
+            cur.execute(
+                "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
+                "select corporate_entity_id, 'TEST-PU-LINEAGE', 'Lineage thread' "
+                "from source_post where post_id = %s returning process_unit_id",
+                (seeded_db["own_private_post_id"],),
+            )
+            process_unit_id = cur.fetchone()[0]
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_id, corp_id = cur.fetchone()
+            title_to_id: dict[str, str] = {}
+            for rec in sample_records():
+                if rec.group_key != "A-100":
+                    continue
+                voc_type = "voc" if rec.secondary_key else "vom"
+                cur.execute(
+                    "insert into source_post "
+                    "(author_account_id, corporate_entity_id, process_unit_id, "
+                    " post_title, post_body, voc_type_code, visibility_code, created_at) "
+                    "values (%s, %s, %s, %s, %s, %s, 'public', %s) returning post_id",
+                    (author_id, corp_id, process_unit_id, rec.label, rec.label, voc_type, rec.occurred_at),
+                )
+                title_to_id[rec.label] = str(cur.fetchone()[0])
+    finally:
+        admin_conn.close()
+
+    rebuild = client.post("/api/lineage/rebuild", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert rebuild.status_code == 200, rebuild.text
+    assert rebuild.json()["edge_count"] >= 2
+
+    graph = client.get("/api/lineage", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert graph.status_code == 200
+    body = graph.json()
+    nodes = {node["label"]: node for node in body["nodes"]}
+    fork = nodes["Pricing renegotiation follow-up"]
+    assert fork["is_branch_point"] is True
+    children = {
+        next(node["label"] for node in body["nodes"] if node["id"] == edge["target"])
+        for edge in body["edges"]
+        if edge["source"] == fork["id"]
+    }
+    assert "Pricing renegotiation: revised quote sent" in children
+    assert "Delivery schedule question raised" in children
+    assert nodes["Unrelated: annual account review"]["is_root"] is True
+
+    per_post = client.get(
+        f"/api/posts/{fork['id']}/lineage",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert per_post.status_code == 200
+    direct_titles = {post["post_title"] for post in per_post.json()["direct"]}
+    assert "Pricing renegotiation: revised quote sent" in direct_titles
+    assert "Delivery schedule question raised" in direct_titles
+
+
+def test_lineage_graph_hides_other_corp_private_posts(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get("/api/lineage", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 200
+    ids = {node["id"] for node in response.json()["nodes"]}
+    assert seeded_db["public_post_id"] in ids
+    assert seeded_db["own_private_post_id"] in ids
+    assert seeded_db["other_private_post_id"] not in ids

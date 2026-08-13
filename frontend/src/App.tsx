@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
+  fetchLineageGraph,
   fetchPost,
   fetchPostCounterparties,
   fetchPostKeymen,
@@ -10,6 +11,7 @@ import {
   fetchPosts,
   type ChatAnswer,
   type Counterparty,
+  type LineageGraph,
   type Keyman,
   type LinkedPostRef,
   type PostAiSummary,
@@ -274,13 +276,32 @@ function PostDetailPopup({
   );
 }
 
+function LineageGraphSection({ graph }: { graph: LineageGraph | null }) {
+  if (!graph) return <p>Loading lineage graph...</p>;
+  if (graph.edges.length === 0) {
+    return <p className="lineage-empty">No reconstructed lineage yet. Rebuild after seeding posts.</p>;
+  }
+  const labels = Object.fromEntries(graph.nodes.map((node) => [node.id, node.label]));
+  return (
+    <ul className="lineage-graph-list" aria-label="Reconstructed lineage">
+      {graph.edges.map((edge) => (
+        <li key={`${edge.source}-${edge.target}`}>
+          {labels[edge.source] ?? edge.source} → {labels[edge.target] ?? edge.target}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function PostList({ accessToken }: { accessToken: string }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
+  const [graph, setGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPosts(accessToken).then(setPosts).catch((err) => setError(String(err)));
+    fetchLineageGraph(accessToken).then(setGraph).catch(() => setGraph({ nodes: [], edges: [] }));
   }, [accessToken]);
 
   if (error) return <p className="error">{error}</p>;
@@ -289,6 +310,10 @@ function PostList({ accessToken }: { accessToken: string }) {
 
   return (
     <>
+      <section className="popup-section">
+        <h2>Event Lineage</h2>
+        <LineageGraphSection graph={graph} />
+      </section>
       <ul className="post-list">
         {posts.map((post) => (
           <li key={post.post_id}>
