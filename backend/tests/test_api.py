@@ -804,6 +804,49 @@ def test_verify_relations_persists_real_search_outcomes(client, demo_analyst_tok
     assert second_response.json()["verified"] == []
 
 
+def test_seed_fixture_evaluations_surface_on_get_evaluation(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """The same helper `make seed` calls must fill GET /evaluation for an
+    A-100 fixture post -- otherwise the popup stays Not yet evaluated.
+    """
+    from lineageweave.fixtures import sample_records
+    from scripts.seed_demo_data import _seed_fixture_evaluations
+
+    fixture_title = sample_records()[1].label  # Pricing renegotiation follow-up
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_id, corp_id = cur.fetchone()
+            cur.execute(
+                "insert into source_post "
+                "(author_account_id, corporate_entity_id, post_title, post_body, "
+                " voc_type_code, visibility_code) "
+                "values (%s, %s, %s, %s, 'voc', 'public') returning post_id",
+                (author_id, corp_id, fixture_title, fixture_title),
+            )
+            post_id = str(cur.fetchone()[0])
+            _seed_fixture_evaluations(cur)
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/posts/{post_id}/evaluation",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert len(body["responses"]) == 3
+    by_code = {row["criterion_code"]: row for row in body["responses"]}
+    assert by_code["sales_lead_specificity"]["response_category"] == 3
+    assert by_code["general_sentiment_positive"]["criterion_label"] == "Constructive stance"
+
+
 def test_evaluation_is_empty_before_a_judge_run(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         f"/api/posts/{seeded_db['public_post_id']}/evaluation",

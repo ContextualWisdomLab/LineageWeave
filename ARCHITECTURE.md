@@ -443,7 +443,10 @@ stance, sales-lead specificity). The only persist path is
 row per post per criterion, `common_lookup_value`-backed codes).
 `POST /api/posts/{id}/evaluate` is an explicit post_admin action;
 `GET /api/posts/{id}/evaluation` is the read. The post popup shows
-the persisted categories and an "Evaluate post" button.
+the persisted categories and an "Evaluate post" button. `make seed`
+writes constructed (not judged) rubric cells for the demo public
+post and A-100/B-200 fixtures so the panel is not empty without an
+LLM. Thetas still come only from `calibrate_period_report`.
 
 ## Phase 6e: calibrated period reports (ADR 0003 slice 3)
 

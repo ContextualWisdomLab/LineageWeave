@@ -273,6 +273,7 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
                 process_units["DEMO-PU-LINEAGE"],
             )
             _seed_fixture_summaries(cur)
+            _seed_fixture_evaluations(cur)
             _seed_demo_period_report(
                 cur,
                 account_ids["demo.analyst"],
@@ -403,6 +404,53 @@ def _seed_fixture_summaries(cur) -> None:
         if row is None:
             continue
         _write_post_summary(cur, row[0], summary)
+
+
+def constructed_evaluation_categories(title: str) -> dict[str, int]:
+    """Deterministic rubric cells from a synthetic title -- not an LLM judge.
+
+    Thetas still come only from ``calibrate_period_report``. These cells
+    exist so GET /api/posts/{id}/evaluation is not empty after ``make seed``.
+    """
+    from lineageweave.post_evaluation import CRITERION_CODES
+
+    lower = title.lower()
+    if "unrelated" in lower or "annual account" in lower:
+        cats = (1, 2, 0)
+    elif "quote" in lower or "approved" in lower or "confirmed" in lower:
+        cats = (4, 0, 4)
+    elif "delayed" in lower or "shipment" in lower or "follow-up" in lower:
+        cats = (2, 3, 3)
+    else:
+        cats = (2, 1, 2)
+    return dict(zip(CRITERION_CODES, cats, strict=True))
+
+
+def _seed_fixture_evaluations(cur) -> None:
+    """Write constructed IRT categories for demo + A-100/B-200 + calendar posts.
+
+    Without this, the Post quality panel is ``Not yet evaluated`` after
+    ``make seed`` -- only the dedicated report-band posts have cells.
+    Idempotent: existing (post, criterion, rubric) rows are left alone.
+    """
+    from lineageweave.fixtures import ambiguous_commitment_post, sample_records
+    from lineageweave.post_evaluation import RUBRIC_VERSION
+
+    titles = ["Demo public post", ambiguous_commitment_post()[0]]
+    titles.extend(rec.label for rec in sample_records())
+    for title in titles:
+        cur.execute("select post_id from source_post where post_title = %s", (title,))
+        row = cur.fetchone()
+        if row is None:
+            continue
+        post_id = row[0]
+        for code, category in constructed_evaluation_categories(title).items():
+            cur.execute(
+                "insert into post_evaluation_response "
+                "(post_id, criterion_code, rubric_version, response_category) "
+                "values (%s, %s, %s, %s) on conflict do nothing",
+                (post_id, code, RUBRIC_VERSION, category),
+            )
 
 
 def _seed_demo_calendar_commitment(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:

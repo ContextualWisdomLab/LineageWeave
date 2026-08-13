@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.36.0] - 2026-08-14
+
+### Added
+
+- `make seed` writes constructed IRT rubric cells for the demo public
+  post, A-100/B-200 Event Lineage fixtures, and the calendar
+  commitment. The Post quality panel shows those categories after a
+  fresh stack -- not "Not yet evaluated." Cells are title-derived, not
+  an LLM judge; thetas still come only from `calibrate_period_report`.
+
 ## [0.35.0] - 2026-08-13
 
 ### Added
