@@ -7,9 +7,17 @@ See ARCHITECTURE.md for the design and docs/lineage-bi-research-notes.md
 for the literature this design is grounded in.
 """
 
+from .knowledge_graph import random_walk_with_restart, select_related_nodes
 from .models import Edge, Record, Tree
 from .reconstruct import reconstruct
 
-__all__ = ["Edge", "Record", "Tree", "reconstruct"]
+__all__ = [
+    "Edge",
+    "Record",
+    "Tree",
+    "random_walk_with_restart",
+    "reconstruct",
+    "select_related_nodes",
+]
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
