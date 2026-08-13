@@ -950,11 +950,30 @@ function PostDetailPopup({
                     <>
                       <h4>R&amp;R</h4>
                       <ul>
-                        {summary.roles_and_responsibilities.map((rr, i) => (
-                          <li key={i}>
-                            <strong>{rr.person_name}</strong>: {rr.responsibility}
-                          </li>
-                        ))}
+                        {summary.roles_and_responsibilities.map((rr, i) => {
+                          const person = keymen?.find((row) => row.person_name === rr.person_name);
+                          return (
+                            <li key={i}>
+                              {person ? (
+                                <button
+                                  className="keyman-select"
+                                  aria-label={`R&R Keyman: ${rr.person_name}`}
+                                  onClick={() =>
+                                    setFocusPerson({
+                                      personId: person.person_id,
+                                      personName: person.person_name,
+                                    })
+                                  }
+                                >
+                                  <strong>{rr.person_name}</strong>
+                                </button>
+                              ) : (
+                                <strong>{rr.person_name}</strong>
+                              )}
+                              : {rr.responsibility}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </>
                   )}

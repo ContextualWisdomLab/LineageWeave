@@ -15,7 +15,12 @@ import os
 import pytest
 
 from backend.app.post_summary_ingestion import seeded_fixture_summary
-from lineageweave.fixtures import ambiguous_commitment_post, ambiguous_keyman_post, sample_records
+from lineageweave.fixtures import (
+    ambiguous_commitment_post,
+    ambiguous_keyman_post,
+    fixture_thread_cast,
+    sample_records,
+)
 from lineageweave.post_summary import (
     ContextualOrchestratorPostSummaryClient,
     NullPostSummaryClient,
@@ -69,10 +74,17 @@ def test_every_sample_record_has_a_seeded_korean_summary() -> None:
         assert summary.key_events
         assert summary.korean_summary not in seen
         seen.add(summary.korean_summary)
+        cast = fixture_thread_cast(rec.label)
+        names = {role.person_name for role in summary.roles_and_responsibilities}
+        if cast is not None and cast.person_names:
+            assert set(cast.person_names) <= names
+        else:
+            assert names == set()
     calendar_title, _ = ambiguous_commitment_post()
     calendar = seeded_fixture_summary(calendar_title)
     assert calendar is not None
     assert "리버벤드" in calendar.korean_summary
+    assert calendar.roles_and_responsibilities == ()
     assert seeded_fixture_summary("not a fixture title") is None
 
 

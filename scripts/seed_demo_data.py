@@ -494,8 +494,10 @@ def _seed_fixture_summaries(cur) -> None:
     Event Lineage click-through and the calendar commitment stay empty
     without this: those posts have only their English title as body, and
     GET /api/posts/{id}/summary 503s when the orchestrator is off.
-    Idempotent -- finds existing titles so a re-seed after the lineage
-    insert's early-return still fills the popup.
+    A-100/B-200 casts also get R&R (Ada West / Priya Nair / Jordan Hale)
+    so the popup R&R list is not empty. rec-006 and Calendar stay
+    role-less. Idempotent -- finds existing titles so a re-seed after
+    the lineage insert's early-return still fills the popup.
     """
     from lineageweave.fixtures import ambiguous_commitment_post, sample_records
     from backend.app.post_summary_ingestion import seeded_fixture_summary

@@ -6,6 +6,7 @@ from typing import Any
 
 import asyncpg
 
+from lineageweave.fixtures import fixture_thread_cast
 from lineageweave.post_summary import PostSummary, RoleResponsibility
 
 
@@ -85,8 +86,39 @@ def seeded_fixture_summary(post_title: str) -> PostSummary | None:
 
     Not an LLM result. Returns None when the title is not a known seed
     fixture so a missing row still 503s instead of inventing prose.
+    R&R names come from ``fixture_thread_cast`` -- rec-006 and the
+    calendar commitment stay empty because they have no cast people.
     """
-    return _FIXTURE_SUMMARIES.get(post_title)
+    summary = _FIXTURE_SUMMARIES.get(post_title)
+    if summary is None:
+        return None
+    roles = _roles_for_fixture(post_title)
+    if not roles:
+        return summary
+    return PostSummary(
+        korean_summary=summary.korean_summary,
+        key_events=summary.key_events,
+        roles_and_responsibilities=roles,
+    )
+
+
+def _roles_for_fixture(post_title: str) -> tuple[RoleResponsibility, ...]:
+    """Title-derived R&R for the fixture cast -- not an LLM judge."""
+    cast = fixture_thread_cast(post_title)
+    if cast is None or not cast.person_names:
+        return ()
+    return tuple(
+        RoleResponsibility(person_name=name, responsibility=responsibility)
+        for name in cast.person_names
+        if (responsibility := _FIXTURE_ROLE_RESPONSIBILITY.get(name))
+    )
+
+
+_FIXTURE_ROLE_RESPONSIBILITY = {
+    "Ada West": "우리 측 후속",
+    "Priya Nair": "고객 측 수신",
+    "Jordan Hale": "사양 검토",
+}
 
 
 def _summary(korean: str, *events: str) -> PostSummary:

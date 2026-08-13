@@ -398,7 +398,10 @@ describe("App, authenticated", () => {
             post_id: "post-1",
             korean_summary: "이것은 요약입니다.",
             key_events: ["첫 번째 이벤트"],
-            roles_and_responsibilities: [{ person_name: "Jordan", responsibility: "일정 안내" }],
+            roles_and_responsibilities: [
+              { person_name: "Ada West", responsibility: "우리 측 후속" },
+              { person_name: "Priya Nair", responsibility: "고객 측 수신" },
+            ],
           }),
         );
       }
@@ -704,7 +707,8 @@ describe("App, authenticated", () => {
 
     await waitFor(() => expect(screen.getByText("이것은 요약입니다.")).toBeInTheDocument());
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
-    expect(screen.getByText(/일정 안내/)).toBeInTheDocument();
+    expect(screen.getByText(/우리 측 후속/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "R&R Keyman: Ada West" })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText("간접")).toBeInTheDocument());
     expect(screen.getByText("간접").closest("li")).toHaveTextContent("Linked post");
     // The popup Event Lineage is the same A-100 reconstruct DAG as the home
@@ -845,6 +849,15 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
+  });
+
+  it("opens related Keyman nodes from an R&R person", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "R&R Keyman: Ada West" }));
+    await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
+    expect(screen.getByText("Priya Nair (Person)")).toBeInTheDocument();
   });
 
   it("opens related Keyman nodes from an affiliate-tree person", async () => {
