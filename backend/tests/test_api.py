@@ -118,7 +118,10 @@ def seeded_db(demo_analyst_token):
                 "('entity_relationship_type', 'rel_vop', 'Voice of Partner'), "
                 "('entity_relationship_type', 'rel_vocc', 'Voice of Customer''s Customer'), "
                 "('entity_relationship_type', 'rel_voco', 'Voice of Competitor'), "
-                "('entity_relationship_type', 'rel_vos', 'Voice of Supplier')"
+                "('entity_relationship_type', 'rel_vos', 'Voice of Supplier'), "
+                "('ticket_status', 'open', 'Open'), "
+                "('ticket_status', 'in_progress', 'In progress'), "
+                "('ticket_status', 'closed', 'Closed')"
             )
             cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
@@ -713,3 +716,181 @@ def test_lineage_graph_hides_other_corp_private_posts(client, demo_analyst_token
     assert seeded_db["public_post_id"] in ids
     assert seeded_db["own_private_post_id"] in ids
     assert seeded_db["other_private_post_id"] not in ids
+
+
+def _grant_post_admin(dsn: str) -> None:
+    """Same ad-hoc grant every post_admin-gated test in this file uses:
+    the base fixture only seeds `post_read`.
+    """
+    admin_conn = psycopg2.connect(dsn)
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('permission', 'post_admin', 'Administer posts') on conflict (lookup_code) do nothing"
+            )
+            cur.execute("select access_role_id from account_role_assignment limit 1")
+            role_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into role_permission (access_role_id, permission_code) values (%s, 'post_admin') "
+                "on conflict do nothing",
+                (role_id,),
+            )
+    finally:
+        admin_conn.close()
+
+
+def test_tickets_list_is_empty_before_any_created(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/tickets",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["tickets"] == []
+
+
+def test_create_ticket_requires_post_admin(client, demo_analyst_token, seeded_db) -> None:
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/tickets",
+        json={"ticket_title": "Follow up on pricing", "ticket_status_code": "open"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_other_corp_private_post_tickets_are_forbidden(client, demo_analyst_token, seeded_db) -> None:
+    list_response = client.get(
+        f"/api/posts/{seeded_db['other_private_post_id']}/tickets",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert list_response.status_code == 403
+
+    _grant_post_admin(seeded_db["dsn"])
+    create_response = client.post(
+        f"/api/posts/{seeded_db['other_private_post_id']}/tickets",
+        json={"ticket_title": "Should not be creatable", "ticket_status_code": "open"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert create_response.status_code == 403
+
+
+def test_create_ticket_with_invalid_status_code_is_422(client, demo_analyst_token, seeded_db) -> None:
+    _grant_post_admin(seeded_db["dsn"])
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/tickets",
+        json={"ticket_title": "Bad status", "ticket_status_code": "not_a_real_status"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 422
+
+
+def test_create_list_and_patch_ticket_end_to_end(client, demo_analyst_token, seeded_db) -> None:
+    """The full CRUD path against a live Postgres: create a ticket on a
+    visible post, confirm it's listed, PATCH its status and assignee, and
+    confirm the change is reflected on the next GET.
+    """
+    _grant_post_admin(seeded_db["dsn"])
+
+    create_response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/tickets",
+        json={"ticket_title": "Confirm delivery window", "ticket_status_code": "open"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert create_response.status_code == 201, create_response.text
+    created = create_response.json()
+    assert created["ticket_status_code"] == "open"
+    assert created["ticket_title"] == "Confirm delivery window"
+    assert created["assigned_account_id"] is None
+    ticket_id = created["issue_ticket_id"]
+
+    list_response = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/tickets",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert list_response.status_code == 200
+    listed_ids = {ticket["issue_ticket_id"] for ticket in list_response.json()["tickets"]}
+    assert ticket_id in listed_ids
+
+    patch_response = client.patch(
+        f"/api/tickets/{ticket_id}",
+        json={"ticket_status_code": "closed"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert patch_response.status_code == 200
+    assert patch_response.json()["ticket_status_code"] == "closed"
+
+    reread_response = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/tickets",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    reread_ticket = next(t for t in reread_response.json()["tickets"] if t["issue_ticket_id"] == ticket_id)
+    assert reread_ticket["ticket_status_code"] == "closed"
+
+
+def test_patch_ticket_requires_post_admin(client, demo_analyst_token, seeded_db) -> None:
+    _grant_post_admin(seeded_db["dsn"])
+    create_response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/tickets",
+        json={"ticket_title": "Needs admin to edit", "ticket_status_code": "open"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    ticket_id = create_response.json()["issue_ticket_id"]
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute("select access_role_id from account_role_assignment limit 1")
+            role_id = cur.fetchone()[0]
+            cur.execute(
+                "delete from role_permission where access_role_id = %s and permission_code = 'post_admin'",
+                (role_id,),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.patch(
+        f"/api/tickets/{ticket_id}",
+        json={"ticket_status_code": "closed"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_patch_unknown_ticket_is_not_found(client, demo_analyst_token, seeded_db) -> None:
+    _grant_post_admin(seeded_db["dsn"])
+    response = client.patch(
+        f"/api/tickets/{uuid.uuid4()}",
+        json={"ticket_status_code": "closed"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 404
+
+
+def test_patch_ticket_on_other_corp_private_post_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
+    """A ticket has no visibility_code of its own -- ABAC must resolve to
+    the ticket's OWNING post before deciding, not skip the check because
+    the ticket row itself has no corporate_entity_id.
+    """
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into issue_ticket (post_id, ticket_status_code, ticket_title) "
+                "values (%s, 'open', 'Ticket on a post this account cannot see') "
+                "returning issue_ticket_id",
+                (seeded_db["other_private_post_id"],),
+            )
+            ticket_id = str(cur.fetchone()[0])
+    finally:
+        admin_conn.close()
+
+    _grant_post_admin(seeded_db["dsn"])
+    response = client.patch(
+        f"/api/tickets/{ticket_id}",
+        json={"ticket_status_code": "closed"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403

@@ -239,6 +239,37 @@
   font-size: 0.85rem;
 }
 
+.ticket-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ticket-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0;
+  gap: 0.5rem;
+}
+
+.ticket-title {
+  flex: 1;
+}
+
+.ticket-create-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.ticket-create-row input {
+  flex: 1;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #3335;
+}
+
 .chat-section {
   display: flex;
   flex-direction: column;

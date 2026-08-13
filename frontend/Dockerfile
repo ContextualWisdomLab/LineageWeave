@@ -17,10 +17,13 @@ RUN pnpm run build
 FROM nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-# Official nginx binds :80 as root and writes /var/run/nginx.pid. Move
-# both so the declared non-root USER can actually start the master
+# Official nginx binds :80 as root and writes its pid file to /run/nginx.pid
+# (nginx.conf's real path -- NOT /var/run/nginx.pid, which does not
+# appear in this image's config and made an earlier sed here a silent
+# no-op, leaving the master process unable to start as non-root at all).
+# Move both so the declared non-root USER can actually start the master
 # process (DS-0002). Compose publishes this 8080, not 80.
-RUN sed -i 's,/var/run/nginx.pid,/tmp/nginx.pid,' /etc/nginx/nginx.conf \
+RUN sed -i 's,/run/nginx.pid,/tmp/nginx.pid,' /etc/nginx/nginx.conf \
     && sed -i '/^user /d' /etc/nginx/nginx.conf \
     && chown -R nginx:nginx /usr/share/nginx/html /var/cache/nginx /var/log/nginx
 USER nginx

@@ -262,3 +262,25 @@ deliberately runs without `test.globals`, which is also why RTL's own
 auto-cleanup (which only self-registers when `afterEach` is already a
 global) silently never ran before this; a real bug this phase's larger
 test file surfaced (stale DOM from one test bleeding into the next).
+
+## Phase 5: issue ticket management
+
+`backend/app/issue_ticket_ingestion.py` + three endpoints
+(`GET`/`POST /api/posts/{post_id}/tickets`, `PATCH /api/tickets/{id}`)
+close the one product-brief item with a schema table (`issue_ticket`)
+but no implementation through Phase 4. Deliberately plain CRUD, not a
+pluggable-LLM channel like `keyman_ingestion.py` -- ticket status is a
+closed enum in `common_lookup_value`, and opening or updating a ticket
+is a direct user action, not something extracted from text.
+`frontend/src/App.tsx`'s `IssueTicketPanel` is the popup's real
+list/create/status-update UI for it.
+
+Found and fixed a real deployment bug while verifying this end to end
+against the actual Docker-built stack: `frontend/Dockerfile`'s earlier
+non-root-`USER` hardening sed-replaced `/var/run/nginx.pid`, but the
+real `nginx:1.27-alpine` base image's config uses `/run/nginx.pid` (no
+`/var` prefix) -- the sed silently matched nothing, so the frontend
+container never actually started. `pytest` alone would never have
+caught this, since nothing in the Python test suite exercises the built
+Docker image; this is why this project's discipline of also curling the
+real Docker-built stack, not just running tests, keeps mattering.

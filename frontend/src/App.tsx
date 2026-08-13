@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
+  createPostTicket,
   fetchLineageGraph,
   fetchMe,
   fetchPost,
@@ -9,10 +10,13 @@ import {
   fetchPostKeymen,
   fetchPostLineage,
   fetchPostSummary,
+  fetchPostTickets,
   fetchPosts,
   rebuildLineage,
+  updateTicketStatus,
   type ChatAnswer,
   type Counterparty,
+  type IssueTicket,
   type LineageGraph,
   type Keyman,
   type LinkedPostRef,
@@ -150,6 +154,95 @@ function EventLineageSection({ lineage }: { lineage: PostLineage | null }) {
   );
 }
 
+const TICKET_STATUS_OPTIONS = ["open", "in_progress", "closed"];
+
+function IssueTicketPanel({ postId, accessToken }: { postId: string; accessToken: string }) {
+  const [tickets, setTickets] = useState<IssueTicket[] | null>(null);
+  const [newTitle, setNewTitle] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  function reload() {
+    fetchPostTickets(accessToken, postId)
+      .then((r) => setTickets(r.tickets))
+      .catch(() => setTickets([]));
+  }
+
+  useEffect(() => {
+    setTickets(null);
+    fetchPostTickets(accessToken, postId)
+      .then((r) => setTickets(r.tickets))
+      .catch(() => setTickets([]));
+  }, [postId, accessToken]);
+
+  async function handleCreate() {
+    if (!newTitle.trim()) return;
+    setCreating(true);
+    setError(null);
+    try {
+      await createPostTicket(accessToken, postId, newTitle, "open");
+      setNewTitle("");
+      reload();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleStatusChange(ticket: IssueTicket, nextStatus: string) {
+    try {
+      await updateTicketStatus(accessToken, ticket.issue_ticket_id, nextStatus);
+      reload();
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
+  return (
+    <section className="popup-section">
+      <h3>이슈 티켓 (Issue tickets)</h3>
+      {error && <p className="error">{error}</p>}
+      {tickets === null ? (
+        <p>Loading tickets...</p>
+      ) : tickets.length === 0 ? (
+        <p className="popup-placeholder">No tickets yet.</p>
+      ) : (
+        <ul className="ticket-list">
+          {tickets.map((ticket) => (
+            <li key={ticket.issue_ticket_id} className="ticket-list-item">
+              <span className="ticket-title">{ticket.ticket_title}</span>
+              <select
+                value={ticket.ticket_status_code}
+                onChange={(event) => handleStatusChange(ticket, event.target.value)}
+                aria-label={`Status for ${ticket.ticket_title}`}
+              >
+                {TICKET_STATUS_OPTIONS.map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+              </select>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="ticket-create-row">
+        <input
+          type="text"
+          value={newTitle}
+          onChange={(event) => setNewTitle(event.target.value)}
+          onKeyDown={(event) => event.key === "Enter" && handleCreate()}
+          placeholder="New ticket title"
+        />
+        <button onClick={handleCreate} disabled={creating || !newTitle.trim()}>
+          {creating ? "Creating..." : "Create ticket"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function PostDetailPopup({
   postId,
   accessToken,
@@ -270,6 +363,8 @@ function PostDetailPopup({
                 </ul>
               </section>
             )}
+
+            <IssueTicketPanel postId={postId} accessToken={accessToken} />
 
             <ChatPanel postId={postId} accessToken={accessToken} />
           </>
