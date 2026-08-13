@@ -1,0 +1,24 @@
+[project]
+name = "lineageweave"
+version = "0.1.0"
+description = "Reconstructs git-branch-style lineage DAGs from scattered short records using multi-channel score fusion and LLM adjudication."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+  "threadweave>=0.1.0",
+  # RankWeave has no PyPI release yet; pinned to a specific commit (not a
+  # floating branch ref) for reproducible installs, per org convention.
+  "rankweave @ git+https://github.com/ContextualWisdomLab/RankWeave.git@61c49c50d3b4a24fc9bd7c6d3a7f2f4ba19d7be6",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["lineageweave*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
