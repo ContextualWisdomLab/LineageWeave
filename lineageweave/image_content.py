@@ -32,6 +32,7 @@ import ssl
 import urllib.request
 from dataclasses import dataclass
 from typing import Protocol
+from urllib.parse import urlparse
 
 import certifi
 
@@ -148,6 +149,11 @@ class OpenAiCompatibleVisionClient:
     available = True
 
     def __init__(self, base_url: str, api_key: str, model: str, *, timeout: float = 60.0) -> None:
+        parsed = urlparse(base_url)
+        if parsed.scheme not in {"http", "https"}:
+            raise ValueError(
+                f"unsupported vision client URL scheme: {parsed.scheme or 'missing'}"
+            )
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
         self._model = model
@@ -177,6 +183,7 @@ class OpenAiCompatibleVisionClient:
             headers={"authorization": f"Bearer {self._api_key}", "content-type": "application/json"},
             method="POST",
         )
+        # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected -- scheme is allow-listed to {http,https} in __init__; base_url is operator-configured, not request-controlled
         with urllib.request.urlopen(request, timeout=self._timeout, context=_SSL_CONTEXT) as response:  # nosec B310 -- base_url is operator-configured, not request-controlled.
             body = json.loads(response.read().decode("utf-8"))
         content = body["choices"][0]["message"]["content"]

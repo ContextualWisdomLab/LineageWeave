@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import base64
 
-from lineageweave.image_content import _parse_description, extract_base64_images
+import pytest
+
+from lineageweave.image_content import (
+    OpenAiCompatibleVisionClient,
+    _parse_description,
+    extract_base64_images,
+)
 
 # A 1x1 transparent PNG, valid base64 -- enough to exercise real decoding
 # without needing an image library for pure extraction/parsing tests.
@@ -57,3 +63,27 @@ def test_parse_description_missing_lines_default_to_empty() -> None:
     assert description.extracted_text == ""
     assert description.caption == ""
     assert description.tags == ()
+
+
+def test_vision_client_rejects_non_http_url_schemes() -> None:
+    with pytest.raises(ValueError, match="unsupported vision client URL scheme: file"):
+        OpenAiCompatibleVisionClient(
+            base_url="file:///etc/passwd",
+            api_key="unused",
+            model="unused",
+        )
+
+
+def test_vision_client_accepts_http_and_https_urls() -> None:
+    http_client = OpenAiCompatibleVisionClient(
+        base_url="http://127.0.0.1:8000/v1",
+        api_key="unused",
+        model="unused",
+    )
+    https_client = OpenAiCompatibleVisionClient(
+        base_url="https://gateway.example/v1",
+        api_key="unused",
+        model="unused",
+    )
+    assert http_client._base_url == "http://127.0.0.1:8000/v1"
+    assert https_client._base_url == "https://gateway.example/v1"
