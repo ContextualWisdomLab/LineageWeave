@@ -54,6 +54,17 @@ describe("App, authenticated", () => {
   });
 
   function stubBackend(options?: { admin?: boolean }) {
+    const tickets: {
+      issue_ticket_id: string;
+      post_id: string;
+      ticket_status_code: string;
+      ticket_title: string;
+      assigned_account_id: null;
+      created_at: string;
+      updated_at: string;
+    }[] = [];
+    let nextTicketId = 1;
+
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       const method = init?.method ?? "GET";
@@ -69,6 +80,31 @@ describe("App, authenticated", () => {
       }
       if (url.endsWith("/api/lineage/rebuild") && method === "POST") {
         return Promise.resolve(jsonResponse({ edge_count: 4 }));
+      }
+      if (url.endsWith("/api/posts/post-1/tickets") && method === "GET") {
+        return Promise.resolve(jsonResponse({ tickets }));
+      }
+      if (url.endsWith("/api/posts/post-1/tickets") && method === "POST") {
+        const body = JSON.parse(String(init?.body));
+        const ticket = {
+          issue_ticket_id: `ticket-${nextTicketId++}`,
+          post_id: "post-1",
+          ticket_status_code: body.ticket_status_code,
+          ticket_title: body.ticket_title,
+          assigned_account_id: null,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        };
+        tickets.unshift(ticket);
+        return Promise.resolve(new Response(JSON.stringify(ticket), { status: 201 }));
+      }
+      if (url.match(/\/api\/tickets\/ticket-\d+$/) && method === "PATCH") {
+        const ticketId = url.split("/").pop();
+        const body = JSON.parse(String(init?.body));
+        const ticket = tickets.find((t) => t.issue_ticket_id === ticketId);
+        if (!ticket) return Promise.resolve(new Response(null, { status: 404 }));
+        ticket.ticket_status_code = body.ticket_status_code;
+        return Promise.resolve(jsonResponse(ticket));
       }
       if (url.endsWith("/api/lineage")) {
         return Promise.resolve(
@@ -293,5 +329,25 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
+  });
+
+  it("creates an issue ticket and updates its status via the real endpoints", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("No tickets yet.")).toBeInTheDocument());
+
+    await userEvent.type(screen.getByPlaceholderText(/new ticket title/i), "Confirm delivery window");
+    await userEvent.click(screen.getByRole("button", { name: /create ticket/i }));
+
+    await waitFor(() => expect(screen.getByText("Confirm delivery window")).toBeInTheDocument());
+
+    const statusSelect = screen.getByLabelText(/status for confirm delivery window/i);
+    expect(statusSelect).toHaveValue("open");
+
+    await userEvent.selectOptions(statusSelect, "closed");
+
+    await waitFor(() => expect(statusSelect).toHaveValue("closed"));
   });
 });

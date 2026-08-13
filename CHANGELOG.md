@@ -4,6 +4,29 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-08-13
+
+### Added
+
+- Milestone 4, Phase 5: issue ticket management -- the one explicit
+  product-brief item with a schema table (`issue_ticket`) but no
+  implementation until now. `backend/app/issue_ticket_ingestion.py`:
+  CRUD helpers, deliberately not a pluggable-LLM channel -- ticket
+  status is a closed enum in `common_lookup_value`.
+  `GET`/`POST /api/posts/{post_id}/tickets`,
+  `PATCH /api/tickets/{issue_ticket_id}` -- same RBAC (`post_read` for
+  reads, `post_admin` for writes) + ABAC as every other post-scoped
+  endpoint. `PATCH` resolves the ticket's owning post first and
+  ABAC-checks that. An invalid `ticket_status_code` hits the real FK
+  and surfaces as 422.
+- Frontend: `IssueTicketPanel` in the popup -- list, create, and inline
+  status-update.
+
+### Fixed
+
+- `frontend/Dockerfile`: pid-file sed now matches `/run/nginx.pid`
+  (the alpine image's real path), so non-root `USER nginx` can start.
+
 ## [0.14.0] - 2026-08-13
 
 ### Added

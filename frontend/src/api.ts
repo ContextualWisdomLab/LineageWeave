@@ -61,6 +61,16 @@ export interface ChatAnswer {
   source_post_ids: string[];
 }
 
+export interface IssueTicket {
+  issue_ticket_id: string;
+  post_id: string;
+  ticket_status_code: string;
+  ticket_title: string;
+  assigned_account_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 async function backendFetch<T>(
   path: string,
   accessToken: string,
@@ -149,5 +159,32 @@ export function askPostChat(accessToken: string, postId: string, question: strin
   return backendFetch(`/api/posts/${postId}/chat`, accessToken, {
     method: "POST",
     body: JSON.stringify({ question }),
+  });
+}
+
+export function fetchPostTickets(accessToken: string, postId: string): Promise<{ tickets: IssueTicket[] }> {
+  return backendFetch(`/api/posts/${postId}/tickets`, accessToken);
+}
+
+export function createPostTicket(
+  accessToken: string,
+  postId: string,
+  ticketTitle: string,
+  ticketStatusCode: string,
+): Promise<IssueTicket> {
+  return backendFetch(`/api/posts/${postId}/tickets`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({ ticket_title: ticketTitle, ticket_status_code: ticketStatusCode }),
+  });
+}
+
+export function updateTicketStatus(
+  accessToken: string,
+  issueTicketId: string,
+  ticketStatusCode: string,
+): Promise<IssueTicket> {
+  return backendFetch(`/api/tickets/${issueTicketId}`, accessToken, {
+    method: "PATCH",
+    body: JSON.stringify({ ticket_status_code: ticketStatusCode }),
   });
 }

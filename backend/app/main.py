@@ -42,6 +42,12 @@ from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
 from backend.app.db import create_pool, get_pool
 from backend.app.entity_relationship_ingestion import ingest_post_entity_relationships
+from backend.app.issue_ticket_ingestion import (
+    create_ticket,
+    fetch_ticket_post_id,
+    list_tickets_for_post,
+    update_ticket,
+)
 from backend.app.keyman_ingestion import ingest_post_keymen
 from backend.app.knowledge_graph import (
     fetch_post_keymen,
@@ -71,7 +77,7 @@ app = FastAPI(title="LineageWeave API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=load_settings().frontend_origins,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PATCH"],
     allow_headers=["Authorization"],
 )
 
@@ -468,3 +474,100 @@ async def chat_about_post(
         "cited_post_ids": list(answer.cited_post_ids),
         "source_post_ids": [source.post_id for source in sources],
     }
+
+
+@app.get("/api/posts/{post_id}/tickets")
+async def read_post_tickets(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """List issue tickets on one visible post. Read-only, so post_read
+    is enough -- same gate as every other post-scoped GET here.
+    """
+    await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        tickets = await list_tickets_for_post(conn, post_id)
+    return {"post_id": post_id, "tickets": tickets}
+
+
+class CreateTicketRequest(BaseModel):
+    """JSON body for ``POST /api/posts/{post_id}/tickets``."""
+
+    ticket_title: str
+    ticket_status_code: str
+    assigned_account_id: str | None = None
+
+
+@app.post("/api/posts/{post_id}/tickets", status_code=status.HTTP_201_CREATED)
+async def create_post_ticket(
+    post_id: str,
+    request: CreateTicketRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Create an issue ticket on a visible post. post_admin-gated: opening
+    a ticket is a write action, same discipline as extract-keymen.
+    """
+    _require_post_admin(account)
+    await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        try:
+            ticket = await create_ticket(
+                conn, post_id, request.ticket_title, request.ticket_status_code, request.assigned_account_id
+            )
+        except asyncpg.ForeignKeyViolationError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                f"ticket_status_code {request.ticket_status_code!r} is not a valid ticket_status lookup code",
+            ) from exc
+    return ticket
+
+
+class UpdateTicketRequest(BaseModel):
+    """JSON body for ``PATCH /api/tickets/{issue_ticket_id}``.
+
+    ``assigned_account_id`` left unset means "don't touch it";
+    ``clear_assignment=True`` explicitly unassigns. Both are distinct,
+    expressible outcomes a partial-update endpoint needs.
+    """
+
+    ticket_status_code: str | None = None
+    assigned_account_id: str | None = None
+    clear_assignment: bool = False
+
+
+@app.patch("/api/tickets/{issue_ticket_id}")
+async def patch_ticket(
+    issue_ticket_id: str,
+    request: UpdateTicketRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Update a ticket's status and/or assignee. post_admin-gated. The
+    ABAC check runs against the ticket's OWNING post, resolved first --
+    a ticket has no visibility_code of its own, it inherits its post's.
+    """
+    _require_post_admin(account)
+    async with pool.acquire() as conn:
+        post_id = await fetch_ticket_post_id(conn, issue_ticket_id)
+        if post_id is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "ticket not found")
+    await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        try:
+            ticket = await update_ticket(
+                conn,
+                issue_ticket_id,
+                request.ticket_status_code,
+                request.assigned_account_id,
+                request.clear_assignment,
+            )
+        except asyncpg.ForeignKeyViolationError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                f"ticket_status_code {request.ticket_status_code!r} is not a valid ticket_status lookup code",
+            ) from exc
+    if ticket is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "ticket not found")
+    return ticket
