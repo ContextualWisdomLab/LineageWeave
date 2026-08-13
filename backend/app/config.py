@@ -26,6 +26,11 @@ class Settings:
     # host-published port a browser actually hits).
     keycloak_issuer: str
     frontend_origins: list[str]
+    # Keyman extraction is a hard dependency of POST /api/posts/{id}/extract-keymen
+    # only -- every other endpoint works with these unset. Empty string, not
+    # a fabricated default, when unconfigured (see keyman_ingestion.py).
+    orchestrator_base_url: str
+    orchestrator_api_key: str
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -51,4 +56,6 @@ def load_settings() -> Settings:
             for origin in os.environ.get("FRONTEND_ORIGINS", "http://localhost:5173").split(",")
             if origin.strip()
         ],
+        orchestrator_base_url=os.environ.get("ORCHESTRATOR_BASE_URL", ""),
+        orchestrator_api_key=os.environ.get("ORCHESTRATOR_API_KEY", ""),
     )

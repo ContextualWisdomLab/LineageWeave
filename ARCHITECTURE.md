@@ -168,6 +168,17 @@ stack itself with the same shape of synthetic data for manual/frontend use.
 `CORSMiddleware` (`backend/app/main.py`) allows exactly the frontend's
 origin(s) (`FRONTEND_ORIGINS`), `GET` only, `Authorization` header only.
 
+Phase 2 adds two more GET endpoints on the same RBAC+ABAC gate plus one
+write: `GET /api/posts/{post_id}/keymen` (people extracted or seeded for
+that post, with N:N affiliations), `GET /api/keymen/{person_id}/related`
+(RWR from that person over `knowledge_graph_edge` rows, adaptive
+relevance cutoff, never a fixed hop count), and
+`POST /api/posts/{post_id}/extract-keymen` (`post_admin` only -- a write
+with a real LLM-call cost). A Keyman who is only mentioned on a post the
+account cannot see is 403, matching the post deny path. Extraction
+lives in `lineageweave/keyman_extraction.py` and talks to
+contextual-orchestrator; persist is `backend/app/keyman_ingestion.py`.
+
 ### Frontend (`frontend/`)
 
 React + Vite + TypeScript, pinned Node via `mise.toml`, pnpm via Corepack.

@@ -21,7 +21,13 @@ from lineageweave.embedding_client import (
     chunked_max_similarity,
     cosine_similarity,
 )
+from lineageweave.fixtures import ambiguous_keyman_post
 from lineageweave.image_content import OpenAiCompatibleVisionClient
+from lineageweave.keyman_extraction import (
+    COUNTERPARTY,
+    OUR_SIDE,
+    ContextualOrchestratorKeymanExtractionClient,
+)
 
 _EMBEDDING_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_EMBEDDING_BASE_URL")
 _EMBEDDING_API_KEY = os.environ.get("LINEAGEWEAVE_TEST_EMBEDDING_API_KEY")
@@ -139,3 +145,40 @@ def test_contextual_orchestrator_adjudication_client_returns_a_real_confidence()
     )
 
     assert 0.0 <= confidence <= 1.0
+
+
+@pytest.mark.skipif(
+    not (_ORCHESTRATOR_BASE_URL and _ORCHESTRATOR_API_KEY),
+    reason=(
+        "set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and "
+        "LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run against a live "
+        "contextual-orchestrator instance"
+    ),
+)
+def test_contextual_orchestrator_extracts_two_sided_keymen_from_ambiguous_prose() -> None:
+    """A real orchestrator call against a genuinely LLM-ambiguous synthetic
+    post: one dual-hatted counterparty, two of our people, and an
+    organization that sent nobody. The assertion is on structure (both
+    sides present, N affiliations on the counterparty, no invented
+    Westfield person) rather than exact string spelling.
+    """
+    title, body = ambiguous_keyman_post()
+    client = ContextualOrchestratorKeymanExtractionClient(
+        base_url=_ORCHESTRATOR_BASE_URL, api_key=_ORCHESTRATOR_API_KEY
+    )
+    mentions = client.extract(title, body)
+
+    names = " ".join(mention.person_name.lower() for mention in mentions)
+    assert "priya" in names
+    assert "jordan" in names or "sam" in names
+    assert "westfield" not in names
+
+    sides = {mention.person_side_code for mention in mentions}
+    assert OUR_SIDE in sides
+    assert COUNTERPARTY in sides
+
+    priya = next(mention for mention in mentions if "priya" in mention.person_name.lower())
+    assert priya.person_side_code == COUNTERPARTY
+    affiliation_blob = " ".join(priya.affiliated_organization_names).lower()
+    assert "northridge" in affiliation_blob
+    assert len(priya.affiliated_organization_names) >= 2

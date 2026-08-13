@@ -9,14 +9,19 @@ pulls in more than one at a two-person shell entity), and a hardcoded
 `depth=2` BFS cannot express that; a relevance-score cutoff can, because it
 adapts to each node's own local graph structure.
 
-This module is pure graph math -- no Postgres, no knowledge_graph_edge
-schema awareness. See backend/app/knowledge_graph.py for the part that
-loads a Postgres subgraph into the adjacency shape this module expects.
+This module is pure graph math plus the typed edge-spec builder that
+turns persons/affiliations/posts into ``knowledge_graph_edge`` rows.
+It does not talk to Postgres. See backend/app/knowledge_graph.py for
+the part that loads a Postgres subgraph into the adjacency shape this
+module expects.
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import dataclass
+from itertools import combinations
+from typing import Sequence
 
 Adjacency = dict[str, dict[str, float]]
 
@@ -99,3 +104,116 @@ def select_related_nodes(
         return []
     threshold = top_score * min_relevance_ratio
     return [(node, score) for node, score in candidates if score >= threshold][:max_nodes]
+
+
+# Lookup codes written into knowledge_graph_edge / common_lookup_value.
+# Prefixed so they stay unique across every lookup_category (the schema
+# enforces unique(lookup_code) globally -- see migrations/0001).
+NODE_PERSON = "node_person"
+NODE_CORPORATE_ENTITY = "node_corporate_entity"
+NODE_POST = "node_post"
+EDGE_MENTION = "edge_mention"
+EDGE_AFFILIATION = "edge_affiliation"
+EDGE_CO_MENTION = "edge_co_mention"
+
+
+@dataclass(frozen=True)
+class KnowledgeGraphEdgeSpec:
+    """One typed edge the application layer persists to knowledge_graph_edge.
+
+    Node ids are opaque strings (UUIDs in the product schema). The
+    polymorphic id columns have no FK -- this spec is the application-layer
+    contract that a writer must have already confirmed the endpoints exist.
+    """
+
+    source_node_type_code: str
+    source_node_id: str
+    target_node_type_code: str
+    target_node_id: str
+    edge_type_code: str
+    edge_weight: float = 1.0
+
+
+def node_key(node_type_code: str, node_id: str) -> str:
+    return f"{node_type_code}:{node_id}"
+
+
+def parse_node_key(key: str) -> tuple[str, str]:
+    node_type_code, node_id = key.split(":", 1)
+    return node_type_code, node_id
+
+
+def knowledge_graph_edges_for_post(
+    post_id: str,
+    person_ids: Sequence[str],
+    person_corporate_entity_ids: Sequence[tuple[str, str]] = (),
+) -> list[KnowledgeGraphEdgeSpec]:
+    """Populate the three Phase 2 edge kinds for one post.
+
+    - person <-> post (``edge_mention``) for every mentioned person
+    - person <-> corporate_entity (``edge_affiliation``) for every
+      affiliation that resolved to a real ``corporate_entity`` row
+    - person <-> person (``edge_co_mention``) for every unordered pair of
+      people named in the same post
+
+    Affiliation names that did not resolve to a ``corporate_entity`` are
+    stored on ``person_affiliation`` but do not become graph edges -- a
+    free-text org with no node id cannot be a knowledge_graph_edge
+    endpoint. Directed storage is canonical (person -> post/org, and
+    lexicographic person-id order for co-mentions); loaders treat the
+    graph as undirected.
+    """
+    unique_person_ids = list(dict.fromkeys(person_ids))
+    edges: list[KnowledgeGraphEdgeSpec] = []
+
+    for person_id in unique_person_ids:
+        edges.append(
+            KnowledgeGraphEdgeSpec(
+                source_node_type_code=NODE_PERSON,
+                source_node_id=person_id,
+                target_node_type_code=NODE_POST,
+                target_node_id=post_id,
+                edge_type_code=EDGE_MENTION,
+            )
+        )
+
+    seen_affiliations: set[tuple[str, str]] = set()
+    for person_id, corporate_entity_id in person_corporate_entity_ids:
+        pair = (person_id, corporate_entity_id)
+        if pair in seen_affiliations:
+            continue
+        seen_affiliations.add(pair)
+        edges.append(
+            KnowledgeGraphEdgeSpec(
+                source_node_type_code=NODE_PERSON,
+                source_node_id=person_id,
+                target_node_type_code=NODE_CORPORATE_ENTITY,
+                target_node_id=corporate_entity_id,
+                edge_type_code=EDGE_AFFILIATION,
+            )
+        )
+
+    for left, right in combinations(unique_person_ids, 2):
+        source_id, target_id = (left, right) if left < right else (right, left)
+        edges.append(
+            KnowledgeGraphEdgeSpec(
+                source_node_type_code=NODE_PERSON,
+                source_node_id=source_id,
+                target_node_type_code=NODE_PERSON,
+                target_node_id=target_id,
+                edge_type_code=EDGE_CO_MENTION,
+            )
+        )
+
+    return edges
+
+
+def adjacency_from_edges(edges: Sequence[KnowledgeGraphEdgeSpec]) -> Adjacency:
+    """Undirected weighted adjacency for RWR, keyed as ``type:id``."""
+    adjacency: Adjacency = {}
+    for edge in edges:
+        source = node_key(edge.source_node_type_code, edge.source_node_id)
+        target = node_key(edge.target_node_type_code, edge.target_node_id)
+        adjacency.setdefault(source, {})[target] = float(edge.edge_weight)
+        adjacency.setdefault(target, {})[source] = float(edge.edge_weight)
+    return adjacency

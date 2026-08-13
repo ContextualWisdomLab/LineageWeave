@@ -38,3 +38,24 @@ def sample_records() -> list[Record]:
         Record("rec-102", "B-200", "Specification revision requested", _day(8), "proj-beta"),
         Record("rec-103", "B-200", "Revised specification approved", _day(15), "proj-beta"),
     ]
+
+
+def ambiguous_keyman_post() -> tuple[str, str]:
+    """A synthetic post that is not a trivially-templated 'Alice of Acme'
+    list. Side and affiliation have to be read out of running prose:
+    one of our people, one dual-hatted counterparty, one internal
+    counsel mentioned only by role, and an organization that sent
+    nobody (so it must not be invented as a person).
+    """
+    title = "Follow-up after the Northridge transformer bid workshop"
+    body = (
+        "Jordan Hale walked our sales team through the revised bid timeline "
+        "and asked Priya Nair (who sits on both Northridge Grid and its "
+        "parent, Northridge Holdings) to confirm the inspection window. "
+        "Jordan also looped in our legal counsel, Sam Okonkwo, because "
+        "Priya's dual role at the holding company is what made the "
+        "warranty language messy last quarter. No one from Westfield "
+        "Power attended -- they sent a note saying they would review the "
+        "minutes later."
+    )
+    return title, body

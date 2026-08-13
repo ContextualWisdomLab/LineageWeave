@@ -79,7 +79,15 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
                     ('voc_type', 'voc', 'Voice of Customer', 0),
                     ('voc_type', 'vom', 'Voice of Market', 1),
                     ('permission', 'post_read', 'Read posts', 0),
-                    ('permission', 'post_admin', 'Administer posts', 1)
+                    ('permission', 'post_admin', 'Administer posts', 1),
+                    ('person_side', 'our_side', 'Our side', 0),
+                    ('person_side', 'counterparty', 'Counterparty', 1),
+                    ('node_type', 'node_person', 'Person', 0),
+                    ('node_type', 'node_corporate_entity', 'Corporate entity', 1),
+                    ('node_type', 'node_post', 'Post', 2),
+                    ('edge_type', 'edge_mention', 'Mentioned in', 0),
+                    ('edge_type', 'edge_affiliation', 'Affiliated with', 1),
+                    ('edge_type', 'edge_co_mention', 'Co-mentioned', 2)
                 on conflict (lookup_code) do nothing
                 """
             )
@@ -159,6 +167,52 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
                     "values (%s, %s, %s, 'Demo private post', 'A synthetic private post scoped to Demo Corp accounts.', 'vom', 'private')",
                     (account_ids["demo.admin"], corporate_entity_id, process_units["DEMO-PU-HQ"]),
                 )
+
+            cur.execute("select post_id from post where post_title = 'Demo public post'")
+            demo_public_post_id = cur.fetchone()[0]
+            cur.execute("select person_id from person where person_name = 'Ada West'")
+            if cur.fetchone() is None:
+                from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
+
+                cur.execute(
+                    "insert into person (person_name, person_side_code) values "
+                    "('Ada West', 'our_side'), ('Priya Nair', 'counterparty') "
+                    "returning person_name, person_id"
+                )
+                people = dict(cur.fetchall())
+                cur.execute(
+                    "insert into person_affiliation (person_id, affiliated_organization_name, affiliated_corporate_entity_id) "
+                    "values (%s, 'Demo Corp', %s)",
+                    (people["Ada West"], corporate_entity_id),
+                )
+                cur.execute(
+                    "insert into person_affiliation (person_id, affiliated_organization_name) values "
+                    "(%s, 'Northridge Grid'), (%s, 'Northridge Holdings')",
+                    (people["Priya Nair"], people["Priya Nair"]),
+                )
+                cur.execute(
+                    "insert into post_person_mention (post_id, person_id) values (%s, %s), (%s, %s)",
+                    (demo_public_post_id, people["Ada West"], demo_public_post_id, people["Priya Nair"]),
+                )
+                for edge in knowledge_graph_edges_for_post(
+                    str(demo_public_post_id),
+                    [str(people["Ada West"]), str(people["Priya Nair"])],
+                    [(str(people["Ada West"]), str(corporate_entity_id))],
+                ):
+                    cur.execute(
+                        "insert into knowledge_graph_edge ("
+                        "source_node_type_code, source_node_id, target_node_type_code, "
+                        "target_node_id, edge_type_code, edge_weight"
+                        ") values (%s, %s, %s, %s, %s, %s)",
+                        (
+                            edge.source_node_type_code,
+                            edge.source_node_id,
+                            edge.target_node_type_code,
+                            edge.target_node_id,
+                            edge.edge_type_code,
+                            edge.edge_weight,
+                        ),
+                    )
 
         conn.commit()
     finally:

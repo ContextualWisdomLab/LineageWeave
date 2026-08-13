@@ -237,6 +237,21 @@ Additional context on the Fugu / Conductor / TRINITY test-time-compute-allocatio
 [contextual-orchestrator's own literature register](https://github.com/ContextualWisdomLab/contextual-orchestrator/blob/main/docs/architecture.md)
 rather than duplicated here, so the two repos do not drift out of sync.
 
+## Keyman extraction (Phase 2)
+
+`lineageweave/keyman_extraction.py` treats a named person in a post as an
+ACE-style entity mention (Doddington et al., 2004): the surface string is
+not yet a resolved person node, and a mention whose side cannot be
+classified into the closed `{our_side, counterparty}` set is dropped
+rather than guessed. N:N organization attachments are slot-filling on
+that mention (a person may have zero, one, or several affiliations in
+the same post), not a second independent NER pass. The live client
+calls contextual-orchestrator (`mode="route"`) rather than a raw LLM
+API so reasoning-effort allocation stays centralized with the
+adjudication channel. Proven for real during development against
+`fixtures.ambiguous_keyman_post` when orchestrator credentials are set;
+the default suite asserts the parser and the never-fake null client.
+
 ## Knowledge Graph traversal (Phase 2)
 
 `lineageweave/knowledge_graph.py`'s `random_walk_with_restart` implements

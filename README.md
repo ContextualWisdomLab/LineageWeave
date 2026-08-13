@@ -141,13 +141,17 @@ make seed   # scripts/seed_demo_data.py: inserts synthetic corp/account/post
 curl http://localhost:18420/healthz
 ```
 
-`GET /api/posts` and `GET /api/posts/{post_id}` require a real bearer token
-(RBAC: the account's role must grant `post_read`; ABAC: a private post is
-only visible to accounts affiliated with its owning corporate entity --
-`backend/app/main.py`). `backend/tests/test_api.py` proves both the allow
-and the deny path against a live Keycloak + throwaway Postgres database,
-including that a private post scoped to a *different* corporate entity is
-excluded from the list and 403s on direct fetch.
+`GET /api/posts`, `GET /api/posts/{post_id}`,
+`GET /api/posts/{post_id}/keymen`, `GET /api/keymen/{person_id}/related`,
+and `POST /api/posts/{post_id}/extract-keymen`
+require a real bearer token (RBAC: the account's role must grant
+`post_read`; ABAC: a private post is only visible to accounts affiliated
+with its owning corporate entity -- `backend/app/main.py`). A Keyman who
+is only mentioned on a post the account cannot see is 403, same deny
+path. `backend/tests/test_api.py` proves both the allow and the deny
+path against a live Keycloak + throwaway Postgres database, including
+that a private post scoped to a *different* corporate entity is excluded
+from the list and 403s on direct fetch.
 
 `frontend/` (React + Vite + TypeScript, `docker compose`'s fourth service)
 is a real client, not mocked or static: `react-oidc-context` drives an

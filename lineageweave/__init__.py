@@ -20,4 +20,4 @@ __all__ = [
     "select_related_nodes",
 ]
 
-__version__ = "0.8.0"
+__version__ = "0.9.0"
