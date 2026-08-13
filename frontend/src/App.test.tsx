@@ -57,6 +57,7 @@ describe("App, authenticated", () => {
     admin?: boolean;
     calendarCommitments?: unknown[];
     chatUnavailable?: boolean;
+    searchUnavailable?: boolean;
   }) {
     const tickets: {
       issue_ticket_id: string;
@@ -132,6 +133,16 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ events }));
       }
       if (url.endsWith("/api/posts/post-1/derive-commitment") && method === "POST") {
+        if (options?.chatUnavailable) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                detail: "Commitment extraction is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+              }),
+              { status: 503, headers: { "Content-Type": "application/json" } },
+            ),
+          );
+        }
         const ticket = {
           issue_ticket_id: `ticket-${nextTicketId++}`,
           post_id: "post-1",
@@ -406,7 +417,30 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/extract-keymen") && method === "POST") {
+        if (options?.chatUnavailable) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                detail: "Keyman extraction is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+              }),
+              { status: 503, headers: { "Content-Type": "application/json" } },
+            ),
+          );
+        }
         return Promise.resolve(jsonResponse({ extracted_count: 1 }));
+      }
+      if (url.endsWith("/api/posts/post-1/evaluate") && method === "POST") {
+        if (options?.chatUnavailable) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                detail: "Post evaluation is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+              }),
+              { status: 503, headers: { "Content-Type": "application/json" } },
+            ),
+          );
+        }
+        return Promise.resolve(jsonResponse({ post_id: "post-1", rubric_version: "2026-08-13", responses: [] }));
       }
       if (url.endsWith("/api/keymen/person-priya/related")) {
         return Promise.resolve(
@@ -542,6 +576,14 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/verify-relations") && method === "POST") {
+        if (options?.searchUnavailable) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({ detail: "Relation verification is unavailable: set SEARXNG_BASE_URL" }),
+              { status: 503, headers: { "Content-Type": "application/json" } },
+            ),
+          );
+        }
         return Promise.resolve(jsonResponse({ verified: [] }));
       }
       if (url.endsWith("/api/posts/post-1/lineage")) {
@@ -687,6 +729,60 @@ describe("App, authenticated", () => {
 
     await waitFor(() =>
       expect(screen.getByText("Chat unavailable (LLM orchestrator not configured).")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
+  });
+
+  it("shows a clear empty state when evaluate is 503 without an orchestrator", async () => {
+    stubBackend({ admin: true, chatUnavailable: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: /evaluate post/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText("Evaluation unavailable (LLM orchestrator not configured).")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
+  });
+
+  it("shows a clear empty state when extract Keymen is 503 without an orchestrator", async () => {
+    stubBackend({ admin: true, chatUnavailable: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: /extract keymen/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText("Keyman extraction unavailable (LLM orchestrator not configured).")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
+  });
+
+  it("shows a clear empty state when derive commitment is 503 without an orchestrator", async () => {
+    stubBackend({ admin: true, chatUnavailable: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: /derive commitment/i }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("Commitment derivation unavailable (LLM orchestrator not configured)."),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
+  });
+
+  it("shows a clear empty state when verify is 503 without search", async () => {
+    stubBackend({ admin: true, searchUnavailable: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: /verify against web search/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText("Verification unavailable (search is not configured).")).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
   });

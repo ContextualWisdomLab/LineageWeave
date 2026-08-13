@@ -53,6 +53,20 @@ import { LineageDag } from "./LineageDag";
 import { subgraphForPost } from "./lineageLayout";
 import "./App.css";
 
+function orchestratorUnavailableMessage(err: unknown, action: string): string {
+  if (err instanceof BackendError && err.status === 503) {
+    return `${action} unavailable (LLM orchestrator not configured).`;
+  }
+  return String(err);
+}
+
+function searchUnavailableMessage(err: unknown): string {
+  if (err instanceof BackendError && err.status === 503) {
+    return "Verification unavailable (search is not configured).";
+  }
+  return String(err);
+}
+
 const CRITERION_SHORT_LABEL: Record<string, string> = {
   general_sentiment_positive: "constructive",
   general_sentiment_negative: "negative",
@@ -118,11 +132,7 @@ function ChatPanel({ postId, accessToken }: { postId: string; accessToken: strin
       const result = await askPostChat(accessToken, postId, question);
       setAnswer(result);
     } catch (err) {
-      if (err instanceof BackendError && err.status === 503) {
-        setError("Chat unavailable (LLM orchestrator not configured).");
-      } else {
-        setError(String(err));
-      }
+      setError(orchestratorUnavailableMessage(err, "Chat"));
     } finally {
       setLoading(false);
     }
@@ -390,7 +400,7 @@ function KeymanPanel({
       await extractPostKeymen(accessToken, postId);
       onExtracted();
     } catch (err) {
-      setError(String(err));
+      setError(orchestratorUnavailableMessage(err, "Keyman extraction"));
     } finally {
       setExtracting(false);
     }
@@ -502,7 +512,7 @@ function EvaluationPanel({
       const result = await evaluatePost(accessToken, postId);
       onEvaluated(result.responses);
     } catch (err) {
-      setError(String(err));
+      setError(orchestratorUnavailableMessage(err, "Evaluation"));
     } finally {
       setEvaluating(false);
     }
@@ -560,7 +570,7 @@ function CounterpartyPanel({
       await verifyPostRelations(accessToken, postId);
       onVerified();
     } catch (err) {
-      setError(String(err));
+      setError(searchUnavailableMessage(err));
     } finally {
       setVerifying(false);
     }
@@ -661,7 +671,7 @@ function IssueTicketPanel({
         setError("No customer commitment found in this post.");
       }
     } catch (err) {
-      setError(String(err));
+      setError(orchestratorUnavailableMessage(err, "Commitment derivation"));
     } finally {
       setDeriving(false);
     }
