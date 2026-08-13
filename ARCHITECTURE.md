@@ -77,6 +77,7 @@ flowchart LR
 | `post_summary.py` | Pluggable LLM Korean summary + key events + R&R derivation for a post |
 | `post_chat.py` | Pluggable in-popup chat's reason-and-cite step (retrieve step lives in `backend/app/post_chat_ingestion.py`) |
 | `commitment_extraction.py` | Pluggable LLM derivation of a customer commitment (promise + deadline) from a post; `Null` default, `ContextualOrchestrator` real impl |
+| `ontology.py` | Loads `docs/ontology/lineageweave-kg.ttl`, the formal OWL 2/RDFS/SKOS vocabulary for the Knowledge Graph's node/edge types (ADR 0004) |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
 | `server.py` | Stdlib HTTP server: `GET /api/lineage` (JSON graph) + static viewer |
 | `web/index.html` | Self-contained SVG DAG viewer, no build step, no external script dependency |
@@ -407,3 +408,46 @@ not a fork of TEPP's temporal engine (`tepp_client.py` is unchanged).
 Verified both locally (`import fast_mlsirm._core` resolves to the
 compiled extension, not the NumPy parity fallback) and against a
 freshly built `backend` Docker image.
+
+## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer
+
+The brief's latest revision marks every Knowledge Graph use (Keyman
+traversal, the customer/corporate hierarchy tree, entity-relationship
+classification, indirect lineage linking, in-popup chat evidence) as
+requiring a real Ontology and Semantic Layer, "FULL 표준." See
+[ADR 0004](docs/adr/0004-knowledge-graph-ontology.md) for the full
+reasoning; in short: `knowledge_graph_edge` was already, structurally,
+an RDF triple (subject/predicate/object) -- the gap was that its
+vocabulary had never been published as a real, machine-checkable
+ontology, so nothing could verify the relational schema's controlled
+vocabulary (`node_type`, `edge_type`, `entity_relationship_type`,
+`person_side`, `corporate_entity_level`) actually matches what the
+Ontology/Semantic-Layer claim implies.
+
+`docs/ontology/lineageweave-kg.ttl` is a real OWL 2 / RDFS / SKOS
+ontology in Turtle syntax: classes for `Post`/`Person`/`CorporateEntity`
+(with `OurSidePerson`/`CounterpartyPerson` subclasses), object
+properties for each `edge_type_code` and `entity_relationship_type`
+code with declared `rdfs:domain`/`rdfs:range`, and the corporate
+hierarchy level ladder (Group -> Company -> Plant) as a proper SKOS
+concept scheme with `skos:broader`/`skos:narrower` -- SKOS being the
+W3C standard specifically for organizational/concept hierarchies, as
+distinct from OWL class subsumption. PostgreSQL stays the source of
+record for actual graph data; the ontology is the published semantic
+specification over it, in the same sense W3C's own stack uses "semantic
+layer" (RDFS/OWL as the governed conceptual layer over raw data), not a
+separate BI-metrics product and not a parallel triple store.
+
+`lineageweave/ontology.py` parses the Turtle file once with `rdflib`
+(pure Python, no Rust toolchain, unlike `fast-mlsirm`) and exposes the
+vocabulary as importable IRI constants, so application code has one
+canonical name per class/property instead of re-typing lookup codes as
+bare strings. `tests/test_ontology.py` is the real correctness check --
+not just "does the file parse," but a round-trip against
+`scripts/seed_demo_data.py`'s own committed SQL, in both directions:
+every lookup code the seed script inserts (for the categories this
+ontology covers) must have a matching ontology term, and the ontology
+must not declare a term for a code nothing actually seeds. This is the
+enforcement mechanism: a future PR that adds a new `edge_type` or
+`entity_relationship_type` code without updating the ontology fails
+this test, not just a docstring's word.
