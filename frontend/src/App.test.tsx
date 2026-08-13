@@ -256,6 +256,8 @@ describe("App, authenticated", () => {
                     post_title: "Public post",
                     theta_eap: 0.91,
                     theta_sd: 0.2,
+                    ticket_due_date: "2026-01-12",
+                    ticket_title: "Send Northridge Grid the revised quote",
                   },
                 ],
               },
@@ -1024,6 +1026,7 @@ describe("App, authenticated", () => {
     );
     expect(screen.queryByRole("button", { name: /rebuild report/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("θ 0.91");
+    expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
   });
 
   it("shows the grouping comparison strip and switches grouping on click", async () => {

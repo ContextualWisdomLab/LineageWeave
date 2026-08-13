@@ -431,9 +431,19 @@ async def fetch_period_reports(
     members = await conn.fetch(
         """
         select m.grouping_key, m.post_id, m.theta_eap, m.theta_sd, p.post_title,
-               p.visibility_code, p.corporate_entity_id
+               p.visibility_code, p.corporate_entity_id,
+               t.due_date as ticket_due_date, t.ticket_title
         from report_member_score m
         join source_post p on p.post_id = m.post_id
+        left join lateral (
+            select issue_ticket.due_date, issue_ticket.ticket_title
+            from issue_ticket
+            where issue_ticket.post_id = m.post_id
+              and issue_ticket.due_date is not null
+              and issue_ticket.ticket_status_code <> 'closed'
+            order by issue_ticket.due_date
+            limit 1
+        ) t on true
         where m.grouping_kind = $1 and m.period_code = $2 and m.rubric_version = $3
         order by
           exists (
@@ -503,6 +513,12 @@ async def fetch_period_reports(
                         "theta_sd": float(row["theta_sd"]),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),
+                        "ticket_due_date": (
+                            None
+                            if row["ticket_due_date"] is None
+                            else row["ticket_due_date"].isoformat()
+                        ),
+                        "ticket_title": row["ticket_title"],
                     }
                     for row in members_by_group.get(header["grouping_key"], [])
                 ],

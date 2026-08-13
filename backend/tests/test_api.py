@@ -2189,6 +2189,7 @@ def test_seed_period_report_includes_fixture_event_lineage_posts(
         _seed_demo_calendar_commitment,
         _seed_demo_period_report,
         _seed_fixture_evaluations,
+        _seed_fixture_tickets,
         insert_fixture_source_posts,
     )
 
@@ -2216,6 +2217,7 @@ def test_seed_period_report_includes_fixture_event_lineage_posts(
             insert_fixture_source_posts(cur, author_id, corp_id, process_unit_id)
             _seed_demo_calendar_commitment(cur, author_id, corp_id, process_unit_id)
             _seed_fixture_evaluations(cur)
+            _seed_fixture_tickets(cur)
             _seed_demo_period_report(cur, author_id, corp_id, process_unit_id)
     finally:
         admin_conn.close()
@@ -2232,6 +2234,9 @@ def test_seed_period_report_includes_fixture_event_lineage_posts(
     assert "Follow-up on the Riverbend order confirmation" in a100_titles
     assert "Specification revision requested" in b200_titles
     assert a100["mean_theta"] > b200["mean_theta"]
+    follow_up = next(m for m in a100["members"] if m["post_title"] == "Pricing renegotiation follow-up")
+    assert follow_up["ticket_due_date"] == "2026-01-12"
+    assert follow_up["ticket_title"] == "Send Northridge Grid the revised quote"
 
     compare = client.get("/api/reports/compare/2026-W02", headers=headers)
     assert compare.status_code == 200, compare.text
