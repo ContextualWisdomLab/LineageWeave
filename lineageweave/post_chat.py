@@ -46,6 +46,23 @@ class ChatAnswer:
     cited_post_ids: tuple[str, ...] = field(default_factory=tuple)
 
 
+def cited_post_summaries(
+    sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
+    cited_post_ids: tuple[str, ...] | list[str],
+) -> list[dict[str, str]]:
+    """Titles for cited ids, in citation order. Unknown ids are dropped.
+
+    The sliding evidence chip must show the source post's title, not a
+    truncated UUID -- a missing title is omitted, never invented.
+    """
+    titles = {source.post_id: source.post_title for source in sources}
+    return [
+        {"post_id": post_id, "post_title": titles[post_id]}
+        for post_id in cited_post_ids
+        if post_id in titles
+    ]
+
+
 class PostChatClient(Protocol):
     """Answers a question using only the given numbered source documents."""
 

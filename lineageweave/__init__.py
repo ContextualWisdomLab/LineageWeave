@@ -13,7 +13,7 @@ from .entity_relationship_classification import OrganizationRelationship
 from .knowledge_graph import random_walk_with_restart, select_related_nodes
 from .lineage_persistence import lineage_edge_specs
 from .models import Edge, Record, Tree
-from .post_chat import ChatAnswer
+from .post_chat import ChatAnswer, cited_post_summaries
 from .post_summary import PostSummary
 from .reconstruct import reconstruct
 from .voc_evidence import sentence_excerpts
@@ -26,6 +26,7 @@ __all__ = [
     "Record",
     "Tree",
     "build_affiliate_forest",
+    "cited_post_summaries",
     "lineage_edge_specs",
     "random_walk_with_restart",
     "reconstruct",
@@ -34,4 +35,4 @@ __all__ = [
     "sentence_excerpts",
 ]
 
-__version__ = "0.23.0"
+__version__ = "0.24.0"

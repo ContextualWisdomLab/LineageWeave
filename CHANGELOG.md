@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.24.0] - 2026-08-13
+
+### Added
+
+- Related Keyman nodes are now walkable: a related post opens that
+  post, a related person loads *their* RWR neighbourhood. Dead text
+  next to "Related to Ada West" is no longer a dead end.
+- Chat citation chips show the source post's title
+  (`cited_posts` from `POST /api/posts/{id}/chat`) instead of a
+  truncated UUID. `cited_post_summaries` drops unknown ids rather than
+  inventing a label.
+
 ## [0.23.0] - 2026-08-13
 
 ### Added

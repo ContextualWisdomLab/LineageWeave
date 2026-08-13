@@ -40,7 +40,11 @@ from lineageweave.keyman_extraction import (
     ContextualOrchestratorKeymanExtractionClient,
     NullKeymanExtractionClient,
 )
-from lineageweave.post_chat import ContextualOrchestratorPostChatClient, NullPostChatClient
+from lineageweave.post_chat import (
+    ContextualOrchestratorPostChatClient,
+    NullPostChatClient,
+    cited_post_summaries,
+)
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 
 from backend.app.activity_stream import (
@@ -530,10 +534,12 @@ async def chat_about_post(
     async with pool.acquire() as conn:
         sources = await gather_chat_sources(conn, post_id, lambda row: _can_see_post(account, row))
     answer = client.answer(request.question, sources)
+    cited_ids = list(answer.cited_post_ids)
     return {
         "post_id": post_id,
         "answer_text": answer.answer_text,
-        "cited_post_ids": list(answer.cited_post_ids),
+        "cited_post_ids": cited_ids,
+        "cited_posts": cited_post_summaries(sources, cited_ids),
         "source_post_ids": [source.post_id for source in sources],
     }
 

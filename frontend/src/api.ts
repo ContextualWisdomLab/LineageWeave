@@ -98,10 +98,16 @@ export interface PostLineage {
   indirect: LinkedPostRef[];
 }
 
+export interface CitedPostRef {
+  post_id: string;
+  post_title: string;
+}
+
 export interface ChatAnswer {
   post_id: string;
   answer_text: string;
   cited_post_ids: string[];
+  cited_posts?: CitedPostRef[];
   source_post_ids: string[];
 }
 
