@@ -71,6 +71,7 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
             migrations = Path(__file__).resolve().parents[1] / "migrations"
             cur.execute((migrations / "0002_thread_grouping_keys.sql").read_text())
             cur.execute((migrations / "0003_ticket_commitment_calendar.sql").read_text())
+            cur.execute((migrations / "0004_relation_verification.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values

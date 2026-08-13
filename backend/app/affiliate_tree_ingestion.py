@@ -84,7 +84,8 @@ async def fetch_voc_evidence(conn: asyncpg.Connection, post_id: str, voc_type_co
     post_body = "" if body_row is None else body_row["post_body"]
     counterparties = await conn.fetch(
         """
-        select c.counterparty_entity_name, c.relationship_type_code, v.lookup_label as relationship_label
+        select c.counterparty_entity_name, c.relationship_type_code, v.lookup_label as relationship_label,
+               c.verification_status_code, c.verification_evidence_url
         from post_counterparty_entity c
         join common_lookup_value v on v.lookup_code = c.relationship_type_code
         where c.post_id = $1
@@ -106,6 +107,8 @@ async def fetch_voc_evidence(conn: asyncpg.Connection, post_id: str, voc_type_co
                 "relationship_type_code": row["relationship_type_code"],
                 "relationship_label": row["relationship_label"],
                 "evidence_excerpt": first_excerpt_for(post_body, row["counterparty_entity_name"]),
+                "verification_status_code": row["verification_status_code"],
+                "verification_evidence_url": row["verification_evidence_url"],
             }
             for row in counterparties
         ],

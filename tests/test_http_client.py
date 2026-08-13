@@ -167,6 +167,7 @@ def test_dockerfiles_pin_digest_and_declare_non_root_user() -> None:
     for relative in (
         "docker/postgres-init/Dockerfile",
         "docker/keycloak/Dockerfile",
+        "docker/searxng/Dockerfile",
         "backend/Dockerfile",
         "frontend/Dockerfile",
     ):

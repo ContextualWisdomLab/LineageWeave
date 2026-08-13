@@ -4,6 +4,28 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.26.0] - 2026-08-13
+
+### Added
+
+- External search verification for Knowledge Graph relation inferences:
+  `lineageweave/relation_verification.py`'s `SearxngRelationVerificationClient`
+  checks an LLM-classified counterparty organization/relationship
+  against a self-hosted Searxng instance, catching a hallucinated
+  organization name with zero real-world footprint (FEVER grounding:
+  Thorne, Vlachos, Christodoulopoulos, & Mittal, 2018).
+- New Docker Compose service `searxng` (`docker/searxng/`), wired into
+  the backend via `SEARXNG_BASE_URL`.
+- `post_counterparty_entity` gained `verification_status_code`
+  (`verify_pending` / `verify_corroborated` / `verify_uncorroborated`),
+  `verification_evidence_url`, `verification_checked_at`
+  (`migrations/0004_relation_verification.sql`). A re-classification
+  resets these back to pending.
+- New `POST /api/posts/{id}/verify-relations` endpoint and a
+  `CounterpartyPanel` UI section (status badge, linked to the evidence
+  URL when corroborated, with a "Verify against web search" action).
+- ADR 0005 documents the design decision.
+
 ## [0.25.0] - 2026-08-13
 
 ### Added

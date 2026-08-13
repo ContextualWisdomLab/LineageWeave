@@ -136,7 +136,10 @@ def seeded_db(demo_analyst_token):
                 "('entity_relationship_type', 'rel_vos', 'Voice of Supplier'), "
                 "('ticket_status', 'open', 'Open'), "
                 "('ticket_status', 'in_progress', 'In progress'), "
-                "('ticket_status', 'closed', 'Closed')"
+                "('ticket_status', 'closed', 'Closed'), "
+                "('relation_verification_status', 'verify_pending', 'Not yet checked'), "
+                "('relation_verification_status', 'verify_corroborated', 'Corroborated by external search'), "
+                "('relation_verification_status', 'verify_uncorroborated', 'No corroborating evidence found')"
             )
             cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
@@ -553,6 +556,91 @@ def test_extract_keymen_persists_a_real_llm_extraction(client, demo_analyst_toke
         c["counterparty_entity_name"] for c in counterparties_response.json()["counterparties"]
     }
     assert persisted_counterparty_names == counterparty_names
+
+
+_SEARXNG_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_SEARXNG_BASE_URL", "http://localhost:18888")
+
+
+def _searxng_available() -> bool:
+    """True when a Searxng instance at `_SEARXNG_BASE_URL` answers a JSON
+    search. A generous timeout: a real search round-trips through several
+    real upstream search engines, genuinely slower than a local health
+    check.
+    """
+    try:
+        get_json(f"{_SEARXNG_BASE_URL}/search?q=ping&format=json", timeout=10)
+        return True
+    except (HttpClientError, OSError, ValueError):
+        return False
+
+
+@pytest.mark.skipif(
+    not _searxng_available(),
+    reason="requires a reachable local Searxng -- run `docker compose up searxng` first",
+)
+def test_verify_relations_persists_real_search_outcomes(client, demo_analyst_token, seeded_db) -> None:
+    """A real end-to-end proof of relation_verification.py's search-backed
+    check: a real, well-known organization name gets `verify_corroborated`
+    with a real evidence URL, and a deliberately fabricated organization
+    name gets `verify_uncorroborated` with none -- not a mocked search
+    client, a genuine Searxng round trip through
+    POST /api/posts/{id}/verify-relations.
+    """
+    os.environ["SEARXNG_BASE_URL"] = _SEARXNG_BASE_URL
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('permission', 'post_admin', 'Administer posts') on conflict (lookup_code) do nothing"
+            )
+            cur.execute("select access_role_id from account_role_assignment limit 1")
+            role_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into role_permission (access_role_id, permission_code) values (%s, 'post_admin') "
+                "on conflict do nothing",
+                (role_id,),
+            )
+            cur.execute(
+                "insert into post_counterparty_entity (post_id, counterparty_entity_name, relationship_type_code) "
+                "values (%s, 'Samsung Electronics', 'rel_voc'), "
+                "(%s, 'Zzqxvthorp Fictitious Nonexistent Org 8f3e1c', 'rel_voco')",
+                (seeded_db["public_post_id"], seeded_db["public_post_id"]),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.post(
+        f"/api/posts/{seeded_db['public_post_id']}/verify-relations",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    verified = {row["counterparty_entity_name"]: row for row in response.json()["verified"]}
+
+    real_org = verified["Samsung Electronics"]
+    assert real_org["verification_status_code"] == "verify_corroborated"
+    assert real_org["verification_evidence_url"]
+
+    fake_org = verified["Zzqxvthorp Fictitious Nonexistent Org 8f3e1c"]
+    assert fake_org["verification_status_code"] == "verify_uncorroborated"
+    assert fake_org["verification_evidence_url"] is None
+
+    counterparties_response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}/counterparties",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    persisted = {c["counterparty_entity_name"]: c for c in counterparties_response.json()["counterparties"]}
+    assert persisted["Samsung Electronics"]["verification_status_code"] == "verify_corroborated"
+    assert persisted["Zzqxvthorp Fictitious Nonexistent Org 8f3e1c"]["verification_status_code"] == "verify_uncorroborated"
+
+    # Already-checked rows are left alone on a second call, not re-searched.
+    second_response = client.post(
+        f"/api/posts/{seeded_db['public_post_id']}/verify-relations",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert second_response.json()["verified"] == []
 
 
 @pytest.mark.skipif(

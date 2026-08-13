@@ -21,6 +21,7 @@ import {
   fetchRelatedKeymen,
   rebuildLineage,
   updateTicketStatus,
+  verifyPostRelations,
   type ActivityEvent,
   type AffiliateNode,
   type CalendarEntry,
@@ -382,6 +383,79 @@ function KeymanPanel({
   );
 }
 
+const VERIFICATION_BADGE: Record<string, string> = {
+  verify_pending: "Not yet checked",
+  verify_corroborated: "Corroborated",
+  verify_uncorroborated: "No evidence found",
+};
+
+function CounterpartyPanel({
+  postId,
+  accessToken,
+  counterparties,
+  canExtract,
+  onVerified,
+}: {
+  postId: string;
+  accessToken: string;
+  counterparties: Counterparty[];
+  canExtract: boolean;
+  onVerified: () => void;
+}) {
+  const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const hasPending = counterparties.some((c) => c.verification_status_code === "verify_pending");
+
+  async function handleVerify() {
+    setVerifying(true);
+    setError(null);
+    try {
+      await verifyPostRelations(accessToken, postId);
+      onVerified();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  return (
+    <section className="popup-section">
+      <div className="lineage-home-header">
+        <h3>Counterparties</h3>
+        {canExtract && hasPending && (
+          <button onClick={handleVerify} disabled={verifying}>
+            {verifying ? "Verifying..." : "Verify against web search"}
+          </button>
+        )}
+      </div>
+      {error && <p className="error">{error}</p>}
+      <ul>
+        {counterparties.map((c) => (
+          <li key={c.counterparty_entity_name}>
+            {c.counterparty_entity_name} -- {c.relationship_label ?? c.relationship_type_code}
+            {" -- "}
+            {c.verification_evidence_url ? (
+              <a
+                href={c.verification_evidence_url}
+                target="_blank"
+                rel="noreferrer"
+                className={`verification-badge verification-${c.verification_status_code}`}
+              >
+                {VERIFICATION_BADGE[c.verification_status_code] ?? c.verification_status_code}
+              </a>
+            ) : (
+              <span className={`verification-badge verification-${c.verification_status_code}`}>
+                {VERIFICATION_BADGE[c.verification_status_code] ?? c.verification_status_code}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 const TICKET_STATUS_OPTIONS = ["open", "in_progress", "closed"];
 
 function IssueTicketPanel({
@@ -588,6 +662,13 @@ function PostDetailPopup({
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
     fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+    reloadCounterparties();
+  }
+
+  function reloadCounterparties() {
+    fetchPostCounterparties(accessToken, postId)
+      .then((r) => setCounterparties(r.counterparties))
+      .catch(() => setCounterparties([]));
   }
 
   useEffect(() => {
@@ -699,16 +780,13 @@ function PostDetailPopup({
             />
 
             {counterparties && counterparties.length > 0 && (
-              <section className="popup-section">
-                <h3>Counterparties</h3>
-                <ul>
-                  {counterparties.map((c) => (
-                    <li key={c.counterparty_entity_name}>
-                      {c.counterparty_entity_name} -- {c.relationship_type_code}
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              <CounterpartyPanel
+                postId={postId}
+                accessToken={accessToken}
+                counterparties={counterparties}
+                canExtract={canExtract}
+                onVerified={reloadCounterparties}
+              />
             )}
 
             <IssueTicketPanel postId={postId} accessToken={accessToken} canExtract={canExtract} />

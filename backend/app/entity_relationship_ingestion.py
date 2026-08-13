@@ -39,7 +39,14 @@ async def ingest_post_entity_relationships(
             insert into post_counterparty_entity (post_id, counterparty_entity_name, relationship_type_code)
             values ($1, $2, $3)
             on conflict (post_id, counterparty_entity_name)
-            do update set relationship_type_code = excluded.relationship_type_code
+            do update set
+                relationship_type_code = excluded.relationship_type_code,
+                -- A re-classification invalidates any prior verification --
+                -- that search was run against the OLD relationship_label,
+                -- see relation_verification.py.
+                verification_status_code = 'verify_pending',
+                verification_evidence_url = null,
+                verification_checked_at = null
             """,
             post_id,
             relationship.organization_name,
