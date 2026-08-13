@@ -11,10 +11,7 @@ call site that currently reads ``source_post.post_body`` and hands it
 straight to an LLM: raw HTML tags dilute an embedding or a prompt exactly
 the way :mod:`lineageweave.chunking` was built to avoid, and a base64
 ``<img>`` payload sent as literal text either blows the prompt's token
-budget or is silently ignored by a text-only model -- neither of which
-this repo's real posts can afford, since the source content genuinely
-mixes rich-text formatting and inline images (SAP CRM VOC/consultation
-records commonly do).
+budget or is silently ignored by a text-only model.
 
 Grounded in the same VIPS (Cai, Yu, Wen, & Ma, 2003) and
 TrOCR/CLIP (see ``image_content.py``) literature :mod:`lineageweave.chunking`
@@ -24,10 +21,22 @@ new claim of its own, it only combines the two.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 from .chunking import Chunk, chunk_by_dom
 from .image_content import ImageContentClient, ImageDescription, NullImageContentClient
+
+# Real HTML tags only -- a VOC body like "qty < 50 and price > 10" is
+# still plain text and must pass through unchanged. Listed tags match
+# what chunk_by_dom already splits on, plus the inline/replaced tags
+# that carry images or wrap rich-text fragments.
+_HTML_OPEN_TAG = re.compile(
+    r"<\s*/?\s*(?:article|section|nav|aside|header|footer|div|p|li|td|th|tr|"
+    r"table|blockquote|h[1-6]|img|br|hr|ul|ol|span|strong|em|b|i|u|a|"
+    r"html|body|head|style|script|font|center|pre)\b",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -50,8 +59,8 @@ class NormalizedPostContent:
         text: clean, HTML-tag-free text, safe for an LLM prompt or an
             embedding call. Plain-text input passes through unchanged.
             Each embedded image is replaced with a bracketed placeholder
-            at its original position (``[image: <caption>]`` when a
-            vision client described it, ``[image: content unavailable]``
+            at its original position (``[image: <caption> | text: <ocr>]``
+            when a vision client described it, ``[image: content unavailable]``
             when none was configured or the call failed) -- an image is
             never silently dropped and its raw base64 never appears in
             this string.
@@ -69,9 +78,17 @@ class NormalizedPostContent:
 
 
 def _looks_like_html(body: str) -> bool:
-    """A block-tag opening angle bracket is a strong enough signal --
-    real plain-text business records essentially never contain one."""
-    return "<" in body and ">" in body
+    """True only when a real HTML tag is present, not a comparison operator."""
+    return _HTML_OPEN_TAG.search(body) is not None
+
+
+def _image_placeholder(description: ImageDescription) -> str:
+    """Caption plus OCR text -- both are what the vision call paid for."""
+    caption = description.caption or "no caption available"
+    ocr = description.extracted_text.strip()
+    if ocr:
+        return f"[image: {caption} | text: {ocr}]"
+    return f"[image: {caption}]"
 
 
 def normalize_post_body(
@@ -114,8 +131,7 @@ def normalize_post_body(
                     text_parts.append("[image: content unavailable]")
                 else:
                     image_descriptions.append(description)
-                    caption = description.caption or "no caption available"
-                    text_parts.append(f"[image: {caption}]")
+                    text_parts.append(_image_placeholder(description))
             else:
                 text_parts.append("[image: content unavailable]")
 

@@ -216,3 +216,30 @@ class OpenAiCompatibleVisionClient:
         )
         content = body["choices"][0]["message"]["content"]
         return _parse_description(content)
+
+
+def orchestrator_vision_client(base_url: str, api_key: str, model: str) -> ImageContentClient:
+    """Build a vision client against the same orchestrator root other channels use.
+
+    Other clients POST ``{base_url}/v1/chat/completions``;
+    :class:`OpenAiCompatibleVisionClient` POSTs ``{base_url}/chat/completions``,
+    so this appends ``/v1`` unless already present. An ``http://`` orchestrator
+    (local docker) is allowed because the other channels already talk to the
+    same URL. A construct-time error degrades to the unavailable null rather
+    than crashing the request that asked for a description.
+    """
+    if not (base_url and api_key and model):
+        return NullImageContentClient()
+    parsed = urlparse(base_url)
+    vision_base = base_url.rstrip("/")
+    if not vision_base.endswith("/v1"):
+        vision_base = f"{vision_base}/v1"
+    try:
+        return OpenAiCompatibleVisionClient(
+            base_url=vision_base,
+            api_key=api_key,
+            model=model,
+            allow_insecure_http=parsed.scheme == "http",
+        )
+    except ValueError:
+        return NullImageContentClient()

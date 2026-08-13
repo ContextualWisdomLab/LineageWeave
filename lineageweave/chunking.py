@@ -24,7 +24,7 @@ character-count split:
   ``header``, ``footer``, headings ``h1``-``h6``, and flow-content block
   boundaries ``div``, ``p``, ``li``, ``td``). Relevant once a source
   document is HTML/MHTML rather than plain text (e.g. a raw ingested
-  email or SAP ALV export). Each block's inline ``style`` attribute is
+  email). Each block's inline ``style`` attribute is
   captured on the resulting :class:`Chunk` as separate metadata, never
   concatenated into the embedded text -- raw markup diluting an
   embedding's signal is exactly the failure mode chunking exists to
@@ -222,10 +222,10 @@ def chunk_by_dom(html: str) -> list[Chunk]:
     plus one ``"image"`` chunk per embedded base64 ``<img>``, all in a
     single document-order sequence.
 
-    Nested block tags do not create nested chunks (the outermost block a
+    Nested block tags do not create nested chunks (the innermost block a
     piece of text sits in owns it) -- a ``<div><p>...</p></div>`` yields
-    one chunk for the ``div``, not one for the ``div`` and a duplicate for
-    the ``p``. An ``"image"`` chunk's ``text`` starts empty (OCR/caption
+    one chunk labeled ``p``, not one for the ``div`` and a duplicate for
+    the ``p``. An ``"image"`` chunk's ``text`` starts empty (OCR/caption)
     text is filled in separately by a vision client -- see
     ``lineageweave.image_content``); its ``index`` among the full sequence
     is what lets the image be placed back where it actually was relative

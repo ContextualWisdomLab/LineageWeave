@@ -80,6 +80,13 @@ services:
       KEYCLOAK_CLIENT_ID: lineageweave-frontend
       FRONTEND_ORIGINS: http://localhost:${FRONTEND_PORT:-15173}
       VALKEY_URL: redis://valkey:6379/0
+      # Empty by default: every LLM/vision channel stays the Null client
+      # (dropped, not faked). Set these to a running contextual-orchestrator
+      # to turn the channels on -- NVIDIA_NIM_API_KEY lives on that
+      # orchestrator, never in this compose file.
+      ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-}
+      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}
+      VISION_MODEL: ${VISION_MODEL:-}
     ports:
       - "${BACKEND_PORT:-18420}:8000"
     depends_on:

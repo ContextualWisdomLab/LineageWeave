@@ -36,7 +36,7 @@ from lineageweave.entity_relationship_classification import (
     ContextualOrchestratorEntityRelationshipClient,
     NullEntityRelationshipClient,
 )
-from lineageweave.image_content import NullImageContentClient, OpenAiCompatibleVisionClient
+from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.keyman_extraction import (
     ContextualOrchestratorKeymanExtractionClient,
     NullKeymanExtractionClient,
@@ -177,12 +177,10 @@ def _vision_client():
     to guess.
     """
     settings = load_settings()
-    if not (settings.orchestrator_base_url and settings.orchestrator_api_key and settings.vision_model):
-        return NullImageContentClient()
-    return OpenAiCompatibleVisionClient(
-        base_url=settings.orchestrator_base_url,
-        api_key=settings.orchestrator_api_key,
-        model=settings.vision_model,
+    return orchestrator_vision_client(
+        settings.orchestrator_base_url,
+        settings.orchestrator_api_key,
+        settings.vision_model,
     )
 
 

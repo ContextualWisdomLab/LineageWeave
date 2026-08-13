@@ -71,6 +71,7 @@ def test_image_is_described_and_placed_at_its_document_position_not_dropped() ->
 
     assert "Before the image." in result.text
     assert "a bar chart of quarterly revenue" in result.text
+    assert "Q3 2026" in result.text
     assert "After the image." in result.text
     # Document order is preserved, not just "somewhere in the text."
     before_index = result.text.index("Before the image.")
@@ -78,6 +79,13 @@ def test_image_is_described_and_placed_at_its_document_position_not_dropped() ->
     after_index = result.text.index("After the image.")
     assert before_index < image_index < after_index
     assert result.image_descriptions == (description,)
+
+
+def test_comparison_operators_in_plain_text_are_not_treated_as_html() -> None:
+    body = "Need delivery if qty < 50 and price > 10."
+    result = normalize_post_body(body)
+    assert result.text == body
+    assert result.formatting_hints == ()
 
 
 def test_image_gets_an_explicit_placeholder_when_no_vision_client_is_available() -> None:

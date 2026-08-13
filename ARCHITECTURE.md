@@ -490,16 +490,19 @@ straight to an LLM call, HTML tags, base64 image payloads, and all.
 
 `lineageweave/post_content_normalization.py` closes that gap with one
 function, `normalize_post_body(body, vision_client=None)`. For a body
-that isn't HTML (`_looks_like_html` -- no `<...>` pair), it is returned
+that isn't HTML (`_looks_like_html` -- a real tag such as `<p>`/`<img>`,
+not a comparison like `qty < 50 and price > 10`), it is returned
 unchanged; there is no cost to imposing DOM parsing on a plain-text VOC
 record. For HTML, it reuses `chunk_by_dom` and, per chunk: text
 becomes a `text_parts` entry (with its `style` attribute, if any,
 recorded as a separate `FormattingHint(chunk_index, tag, style)` --
 never appended into the text a model reads); an image chunk is described
 through `vision_client.describe()` and replaced in-place with
-`[image: <caption>]` at its original document position (position
-matters -- an image before or after a given paragraph changes what it is
-evidence for). A vision-provider exception is caught per-image so one bad
+`[image: <caption> | text: <ocr>]` at its original document position
+(OCR text is kept -- it is what the vision call paid for, and a name
+or figure in a screenshot is otherwise lost). Position matters: an
+image before or after a given paragraph changes what it is evidence
+for. A vision-provider exception is caught per-image so one bad
 call degrades to `[image: content unavailable]` instead of losing the
 rest of the post; `vision_client=None` behaves the same way by default
 (`NullImageContentClient`, `available=False`), so the function is always
@@ -517,8 +520,11 @@ Wiring: `backend/app/config.py` gained `Settings.vision_model` (env
 `VISION_MODEL`) -- empty means the vision channel is unavailable, the
 same "no fake channel" discipline as every other pluggable client, not a
 guessed default model. `backend/app/main.py`'s `_vision_client()` factory
-returns a real `OpenAiCompatibleVisionClient` only when base URL, API
-key, and model are all set, else `NullImageContentClient()`; it is
+returns a real `OpenAiCompatibleVisionClient` (via
+`orchestrator_vision_client`, which appends `/v1` so the same
+`ORCHESTRATOR_BASE_URL` other channels use lands on
+`/v1/chat/completions`) only when base URL, API key, and model are all
+set, else `NullImageContentClient()`; it is
 called at all three raw-`post_body`-reading endpoints (`extract-keymen`,
 post summary, commitment derivation) and threaded through
 `post_chat_ingestion.gather_chat_sources()` so every RAG source document

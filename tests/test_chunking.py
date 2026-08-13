@@ -63,10 +63,11 @@ def test_chunk_by_dom_nested_blocks_do_not_duplicate_text() -> None:
     html = "<div><p>Nested paragraph text.</p></div>"
     chunks = chunk_by_dom(html)
 
-    # The outermost block owns the text; there is exactly one chunk, not
+    # The innermost block owns the text; there is exactly one chunk, not
     # one for the div and a duplicate for the p inside it.
     assert len(chunks) == 1
     assert chunks[0].text == "Nested paragraph text."
+    assert chunks[0].label == "p"
 
 
 def test_chunk_by_dom_empty_html_yields_no_chunks() -> None:
