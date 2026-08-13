@@ -93,6 +93,7 @@ from backend.app.knowledge_graph import (
 )
 from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
 from backend.app.post_chat_ingestion import find_linked_post_ids, gather_chat_sources
+from backend.app.post_summary_ingestion import fetch_persisted_summary, persist_post_summary
 
 _POST_READ = "post_read"
 _POST_ADMIN = "post_admin"
@@ -716,30 +717,28 @@ async def read_post_summary(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """A Korean summary, key events, and R&R (roles & responsibilities)
-    for the popup's summary panel. Computed fresh per request (not
-    persisted) -- Phase 4 scope is "return it," not "cache it."
+    """A Korean summary, key events, and R&R for the popup.
+
+    Returns a persisted row when one exists so a seeded demo stack is
+    not empty without a live LLM. Otherwise derives through the
+    orchestrator and stores the result. Missing both is 503 -- never a
+    fabricated summary.
     """
     post = await _load_visible_post(post_id, account, pool)
-    client = _post_summary_client()
-    if not client.available:
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
-        )
     async with pool.acquire() as conn:
+        stored = await fetch_persisted_summary(conn, post_id)
+        if stored is not None:
+            return stored
+        client = _post_summary_client()
+        if not client.available:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+            )
         body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-    normalized_body = normalize_post_body(body_row["post_body"], vision_client=_vision_client()).text
-    summary = client.summarize(post["post_title"], normalized_body)
-    return {
-        "post_id": str(post["post_id"]),
-        "korean_summary": summary.korean_summary,
-        "key_events": list(summary.key_events),
-        "roles_and_responsibilities": [
-            {"person_name": rr.person_name, "responsibility": rr.responsibility}
-            for rr in summary.roles_and_responsibilities
-        ],
-    }
+        normalized_body = normalize_post_body(body_row["post_body"], vision_client=_vision_client()).text
+        summary = client.summarize(post["post_title"], normalized_body)
+        return await persist_post_summary(conn, post_id, summary)
 
 
 class ChatRequest(BaseModel):

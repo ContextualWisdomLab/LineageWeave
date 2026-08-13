@@ -75,6 +75,7 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
             cur.execute((migrations / "0005_post_evaluation.sql").read_text())
             cur.execute((migrations / "0006_report_period_score.sql").read_text())
             cur.execute((migrations / "0007_report_fipc_linking.sql").read_text())
+            cur.execute((migrations / "0008_post_summary_result.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -212,6 +213,7 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
                 "values (%s, 'Northridge Grid', 'rel_voc') on conflict do nothing",
                 (demo_public_post_id,),
             )
+            _seed_demo_public_summary(cur, demo_public_post_id)
             cur.execute("select person_id from cataloged_person where person_name = 'Ada West'")
             if cur.fetchone() is None:
                 from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
@@ -342,6 +344,32 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
             "insert into post_lineage_edge (parent_post_id, child_post_id, fused_score) "
             "values (%s, %s, %s) on conflict do nothing",
             (edge.parent_id, edge.child_id, edge.fused_score),
+        )
+
+
+def _seed_demo_public_summary(cur, post_id) -> None:
+    """Write the popup summary for the demo public post.
+
+    Idempotent: re-seed replaces the same row so GET /api/posts/{id}/summary
+    stays non-empty without a live orchestrator.
+    """
+    from backend.app.post_summary_ingestion import seeded_demo_summary
+
+    summary = seeded_demo_summary()
+    cur.execute("delete from post_summary_result where post_id = %s", (post_id,))
+    cur.execute(
+        "insert into post_summary_result (post_id, korean_summary) values (%s, %s)",
+        (post_id, summary.korean_summary),
+    )
+    for ordinal, event_text in enumerate(summary.key_events):
+        cur.execute(
+            "insert into post_summary_event (post_id, event_ordinal, event_text) values (%s, %s, %s)",
+            (post_id, ordinal, event_text),
+        )
+    for role in summary.roles_and_responsibilities:
+        cur.execute(
+            "insert into post_summary_role (post_id, person_name, responsibility) values (%s, %s, %s)",
+            (post_id, role.person_name, role.responsibility),
         )
 
 
