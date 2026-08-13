@@ -20,7 +20,13 @@ from lineageweave.knowledge_graph import (
     NODE_PERSON,
     NODE_POST,
 )
-from lineageweave.ontology import LW, all_declared_lookup_codes, iri_for_lookup_code, load_ontology
+from lineageweave.ontology import (
+    LW,
+    all_declared_lookup_codes,
+    iri_for_lookup_code,
+    load_ontology,
+    ontology_annotations,
+)
 from rdflib.namespace import RDFS, SKOS
 
 _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo_data.py"
@@ -97,6 +103,22 @@ def test_iri_for_lookup_code_resolves_a_real_term() -> None:
 
 def test_iri_for_lookup_code_returns_none_for_an_undeclared_code() -> None:
     assert iri_for_lookup_code("not_a_real_lookup_code") is None
+
+
+def test_ontology_annotations_carry_iri_and_label_for_a_node_type() -> None:
+    assert ontology_annotations("node_person") == {
+        "ontology_iri": str(LW.Person),
+        "ontology_label": "Person",
+    }
+    assert ontology_annotations("node_post")["ontology_label"] == "Post"
+    assert ontology_annotations("node_corporate_entity")["ontology_label"] == "Corporate entity"
+
+
+def test_ontology_annotations_are_empty_for_an_undeclared_code() -> None:
+    assert ontology_annotations("not_a_real_lookup_code") == {}
+    # `open` is a real ticket_status lookup code this ontology
+    # deliberately does not cover -- missing, not a fake label.
+    assert ontology_annotations("open") == {}
 
 
 def test_mentions_property_domain_and_range_match_the_schema() -> None:

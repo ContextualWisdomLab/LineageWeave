@@ -332,7 +332,7 @@ function KeymanPanel({
             <ul>
               {related.map((node) => (
                 <li key={`${node.node_type_code}:${node.node_id}`}>
-                  {node.label ?? node.node_id} ({node.node_type_code})
+                  {node.label ?? node.node_id} ({node.ontology_label ?? node.node_type_code})
                 </li>
               ))}
             </ul>

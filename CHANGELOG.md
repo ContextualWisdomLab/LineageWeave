@@ -4,6 +4,24 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.22.0] - 2026-08-13
+
+### Added
+
+- Related Keyman nodes now carry the ontology class (`ontology_iri`,
+  `ontology_label`) from `docs/ontology/lineageweave-kg.ttl`, so the
+  popup shows "Priya Nair (Person)" instead of the raw `node_person`
+  lookup code. Missing terms stay unlabeled rather than inventing a
+  string -- same missing-vs-negative rule as every Null channel.
+  `GET /api/keymen/{id}/related` is the wire; the frontend falls back
+  to `node_type_code` only when the ontology has no term.
+
+### Fixed
+
+- `frontend/package.json` was invalid JSON after #24 dropped the
+  comma on the version line, so `pnpm run test` / CI frontend could
+  not even parse the manifest.
+
 ## [0.21.2] - 2026-08-13
 
 ### Added

@@ -442,7 +442,10 @@ separate BI-metrics product and not a parallel triple store.
 (pure Python, no Rust toolchain, unlike `fast-mlsirm`) and exposes the
 vocabulary as importable IRI constants, so application code has one
 canonical name per class/property instead of re-typing lookup codes as
-bare strings. `tests/test_ontology.py` is the real correctness check --
+bare strings. `GET /api/keymen/{id}/related` spreads
+`ontology_annotations(node_type_code)` onto each hydrated node so the
+popup can render the class label (`Person`, `Post`, `Corporate entity`)
+instead of the raw lookup code. `tests/test_ontology.py` is the real correctness check --
 not just "does the file parse," but a round-trip against
 `scripts/seed_demo_data.py`'s own committed SQL, in both directions:
 every lookup code the seed script inserts (for the categories this

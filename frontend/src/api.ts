@@ -68,6 +68,8 @@ export interface RelatedNode {
   relevance: number;
   label?: string;
   person_side_code?: string;
+  ontology_iri?: string;
+  ontology_label?: string;
 }
 
 export interface PostRoleResponsibility {
