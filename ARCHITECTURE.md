@@ -72,6 +72,8 @@ flowchart LR
 | `keyman_extraction.py` | Pluggable LLM extraction of two-sided (our-side/counterparty) person mentions + N:N org affiliations from a post |
 | `entity_relationship_classification.py` | Pluggable LLM classification of a named organization's relationship to the post author (`rel_voc`/`rel_vom`/`rel_vop`/`rel_vocc`/`rel_voco`/`rel_vos`) |
 | `corporate_hierarchy_resolution.py` | Similarity-based resolution of a free-text org name to an existing `corporate_entity` row (Bhattacharya & Getoor, 2007's candidate-generation stage) |
+| `affiliate_tree.py` | Ancestor forest of the organizations a post's Keymen touch -- resolved rows walk `parent_entity_id`, unresolved names stay roots |
+| `voc_evidence.py` | Extractive VOC excerpts: sentences that name a classified organization, or empty |
 | `post_summary.py` | Pluggable LLM Korean summary + key events + R&R derivation for a post |
 | `post_chat.py` | Pluggable in-popup chat's reason-and-cite step (retrieve step lives in `backend/app/post_chat_ingestion.py`) |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
@@ -233,12 +235,13 @@ HTML. `src/api.ts` calls the FastAPI backend directly with the token
 Keycloak issued; `src/App.tsx` renders a git-branch SVG of
 `GET /api/lineage` (click a node to open that post; `post_admin` can
 rebuild), the post list, and a full detail popup: Korean
-summary/key-events/R&R, an Event Lineage panel (direct vs. indirect
-links, visually distinguished per
-`tests/test_indirect_lineage_linking.py`'s distinction), Keyman +
-counterparty panels, and an in-popup chat whose cited sources open a
-sliding evidence panel (`EvidencePanel`, CSS `slide-in-from-right`)
-showing that source post's actual content. Built from the product
+summary/key-events/R&R, VOC evidence excerpts, an Event Lineage panel
+(direct vs. indirect links; a link opens that post), the Keyman
+affiliate tree (resolved ancestors plus unresolved org roots), Keyman +
+counterparty panels (a Keyman click loads RWR related nodes;
+`post_admin` can extract), and an in-popup chat whose cited sources
+open a sliding evidence panel (`EvidencePanel`, CSS
+`slide-in-from-right`) showing that source post's actual content. Built from the product
 brief's text, not the referenced Figma frame's pixel layout -- see
 [ADR 0002](docs/adr/0002-figma-access-boundary.md) for why. Served in
 `docker compose` via a two-stage build (`frontend/Dockerfile`):
@@ -262,6 +265,26 @@ deliberately runs without `test.globals`, which is also why RTL's own
 auto-cleanup (which only self-registers when `afterEach` is already a
 global) silently never ran before this; a real bug this phase's larger
 test file surfaced (stale DOM from one test bleeding into the next).
+
+## Phase 6: affiliate tree and VOC evidence
+
+`GET /api/posts/{post_id}/affiliate-tree` walks
+`corporate_entity.parent_entity_id` for every organization a post's
+Keymen are affiliated with (`lineageweave/affiliate_tree.py`, loaded by
+`backend/app/affiliate_tree_ingestion.py`). The forest is the ancestor
+set of those leaves, not the whole company directory -- a sibling the
+post never mentions is omitted. An affiliation that did not resolve to
+a `corporate_entity` row stays as its own root (`resolved=false`); that
+is the same never-guess-a-parent rule
+`corporate_hierarchy_resolution` already applies.
+
+`GET /api/posts/{post_id}/voc-evidence` returns the
+`common_lookup_value` label for the post's `voc_type_code` plus the
+sentences in the post body that name a counterparty or affiliated
+organization (`lineageweave/voc_evidence.py`). A name that does not
+appear yields no excerpt. The popup also wires the already-shipped
+`GET /api/keymen/{person_id}/related` (click a Keyman) and
+`POST /api/posts/{post_id}/extract-keymen` (`post_admin`).
 
 ## Phase 5: issue ticket management
 

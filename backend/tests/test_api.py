@@ -101,6 +101,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
+                "('corporate_entity_level', 'company', 'Company'), "
                 "('post_visibility', 'public', 'Public'), "
                 "('post_visibility', 'private', 'Private'), "
                 "('voc_type', 'voc', 'Voice of Customer'), "
@@ -125,7 +126,13 @@ def seeded_db(demo_analyst_token):
             )
             cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
-                "values ('TEST-CORP', 'Test Corp', 'group') returning corporate_entity_id"
+                "values ('TEST-GROUP', 'Test Group', 'group') returning corporate_entity_id"
+            )
+            own_group_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into corporate_entity (parent_entity_id, corporate_entity_code, entity_name, entity_level_code) "
+                "values (%s, 'TEST-CORP', 'Test Corp', 'company') returning corporate_entity_id",
+                (own_group_id,),
             )
             own_corp_id = cur.fetchone()[0]
             cur.execute(
@@ -157,16 +164,22 @@ def seeded_db(demo_analyst_token):
                 (account_id, role_id),
             )
 
-            def _insert_post(title: str, corporate_entity_id, visibility_code: str) -> str:
+            def _insert_post(title: str, corporate_entity_id, visibility_code: str, body: str = "body") -> str:
                 cur.execute(
                     "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
-                    "values (%s, %s, %s, 'body', 'voc', %s) returning post_id",
-                    (account_id, corporate_entity_id, title, visibility_code),
+                    "values (%s, %s, %s, %s, 'voc', %s) returning post_id",
+                    (account_id, corporate_entity_id, title, body, visibility_code),
                 )
                 return str(cur.fetchone()[0])
 
             public_post_id = _insert_post("Public post", other_corp_id, "public")
-            own_private_post_id = _insert_post("Own-corp private post", own_corp_id, "private")
+            own_private_post_id = _insert_post(
+                "Own-corp private post",
+                own_corp_id,
+                "private",
+                "Ada West at Test Corp followed up with Priya Nair at Northridge Grid about the delayed shipment. "
+                "The weather in Gwangju was irrelevant.",
+            )
             other_private_post_id = _insert_post("Other-corp private post", other_corp_id, "private")
 
             cur.execute(
@@ -249,6 +262,8 @@ def seeded_db(demo_analyst_token):
         yield {
             "dsn": db_dsn,
             "public_post_id": public_post_id,
+            "own_group_id": str(own_group_id),
+            "own_corp_id": str(own_corp_id),
             "own_private_post_id": own_private_post_id,
             "other_private_post_id": other_private_post_id,
             "our_person_id": our_person_id,
@@ -296,7 +311,7 @@ def test_own_corp_private_post_detail_is_readable(client, demo_analyst_token, se
         f"/api/posts/{seeded_db['own_private_post_id']}", headers={"Authorization": f"Bearer {demo_analyst_token}"}
     )
     assert response.status_code == 200
-    assert response.json()["post_body"] == "body"
+    assert "Test Corp" in response.json()["post_body"]
 
 
 def test_other_corp_private_post_detail_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
@@ -343,6 +358,58 @@ def test_own_corp_post_keymen_are_readable(client, demo_analyst_token, seeded_db
 def test_other_corp_private_post_keymen_are_forbidden(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         f"/api/posts/{seeded_db['other_private_post_id']}/keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_affiliate_tree_walks_ancestors_and_keeps_unresolved_orgs(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/affiliate-tree",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    trees = response.json()["trees"]
+    names = [node["entity_name"] for node in trees]
+    assert names[0] == "Test Group"
+    assert trees[0]["entity_id"] == seeded_db["own_group_id"]
+    assert trees[0]["resolved"] is True
+    children = trees[0]["children"]
+    assert [child["entity_name"] for child in children] == ["Test Corp"]
+    assert children[0]["entity_id"] == seeded_db["own_corp_id"]
+    assert {person["person_name"] for person in children[0]["people"]} == {"Ada West"}
+    unresolved = [node for node in trees if node["resolved"] is False]
+    assert {node["entity_name"] for node in unresolved} == {"Northridge Grid", "Northridge Holdings"}
+    assert all(person["person_name"] == "Priya Nair" for node in unresolved for person in node["people"])
+
+
+def test_other_corp_private_affiliate_tree_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['other_private_post_id']}/affiliate-tree",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_voc_evidence_quotes_the_sentence_that_names_the_org(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/voc-evidence",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["voc_type_code"] == "voc"
+    assert body["voc_type_label"] == "Voice of Customer"
+    assert body["excerpts"] == [
+        "Ada West at Test Corp followed up with Priya Nair at Northridge Grid about the delayed shipment."
+    ]
+    assert "weather" not in " ".join(body["excerpts"]).lower()
+    assert body["counterparties"] == []
+
+
+def test_other_corp_private_voc_evidence_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['other_private_post_id']}/voc-evidence",
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert response.status_code == 403

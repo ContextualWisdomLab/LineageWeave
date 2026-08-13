@@ -302,6 +302,25 @@ jointly. That joint step is a documented upgrade path, not yet needed --
 nothing in this product's real usage so far has shown single-mention
 similarity scoring under- or over-resolving.
 
+## Affiliate tree and VOC evidence (Phase 6)
+
+The affiliate tree is the already-resolved corporate hierarchy (the
+self-referencing `corporate_entity` table, same Bhattacharya & Getoor,
+2007 candidate-generation stage `corporate_hierarchy_resolution`
+implements) rendered as the ancestor forest of the organizations a
+post's Keymen actually name. Walking `parent_entity_id` from those
+leaves is enough: a sibling the post never mentions is not a related
+node, and an unresolved free-text affiliation is left as its own root
+rather than attached to the nearest name.
+
+VOC evidence is extractive, not abstractive. The post already carries a
+closed `voc_type_code`; the buyer-felt gap was the missing span that
+justifies that label. `sentence_excerpts` returns the sentences that
+contain a classified organization name -- the ACE mention extent
+(Doddington et al., 2004) already used for Keyman -- and returns
+nothing when the name is absent. A second LLM pass would be a guessed
+quote, which this channel is not allowed to invent.
+
 ## Post summary, key events, R&R, and the in-popup chat (Phase 4)
 
 `lineageweave/post_summary.py` treats the popup's summary panel as three

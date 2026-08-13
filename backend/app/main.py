@@ -38,6 +38,7 @@ from lineageweave.keyman_extraction import (
 from lineageweave.post_chat import ContextualOrchestratorPostChatClient, NullPostChatClient
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 
+from backend.app.affiliate_tree_ingestion import fetch_affiliate_forest, fetch_voc_evidence
 from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
 from backend.app.db import create_pool, get_pool
@@ -301,14 +302,49 @@ async def read_post_counterparties(
     post = await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            "select counterparty_entity_name, relationship_type_code "
-            "from post_counterparty_entity where post_id = $1 order by counterparty_entity_name",
+            """
+            select c.counterparty_entity_name, c.relationship_type_code, v.lookup_label as relationship_label
+            from post_counterparty_entity c
+            join common_lookup_value v on v.lookup_code = c.relationship_type_code
+            where c.post_id = $1
+            order by c.counterparty_entity_name
+            """,
             post_id,
         )
     return {
         "post_id": str(post["post_id"]),
         "counterparties": [dict(row) for row in rows],
     }
+
+
+@app.get("/api/posts/{post_id}/affiliate-tree")
+async def read_post_affiliate_tree(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Ancestor forest of every organization this post's Keymen touch.
+
+    Resolved affiliations walk ``corporate_entity.parent_entity_id``.
+    Unresolved names stay as their own roots -- a missing hierarchy
+    match is not a guessed parent.
+    """
+    post = await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        trees = await fetch_affiliate_forest(conn, post_id)
+    return {"post_id": str(post["post_id"]), "trees": trees}
+
+
+@app.get("/api/posts/{post_id}/voc-evidence")
+async def read_post_voc_evidence(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """VOC type label plus extractive excerpts that name classified orgs."""
+    post = await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        return await fetch_voc_evidence(conn, post_id, post["voc_type_code"])
 
 
 @app.post("/api/posts/{post_id}/extract-keymen")

@@ -3,17 +3,22 @@ import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
   createPostTicket,
+  extractPostKeymen,
   fetchLineageGraph,
   fetchMe,
   fetchPost,
+  fetchPostAffiliateTree,
   fetchPostCounterparties,
   fetchPostKeymen,
   fetchPostLineage,
   fetchPostSummary,
   fetchPostTickets,
+  fetchPostVocEvidence,
   fetchPosts,
+  fetchRelatedKeymen,
   rebuildLineage,
   updateTicketStatus,
+  type AffiliateNode,
   type ChatAnswer,
   type Counterparty,
   type IssueTicket,
@@ -24,6 +29,8 @@ import {
   type PostDetail,
   type PostLineage,
   type PostSummary,
+  type RelatedNode,
+  type VocEvidence,
 } from "./api";
 import { LineageDag } from "./LineageDag";
 import "./App.css";
@@ -135,7 +142,13 @@ function ChatPanel({ postId, accessToken }: { postId: string; accessToken: strin
   );
 }
 
-function EventLineageSection({ lineage }: { lineage: PostLineage | null }) {
+function EventLineageSection({
+  lineage,
+  onSelectPost,
+}: {
+  lineage: PostLineage | null;
+  onSelectPost?: (postId: string) => void;
+}) {
   if (!lineage) return <p>Loading lineage...</p>;
   if (lineage.direct.length === 0 && lineage.indirect.length === 0) {
     return <p className="lineage-empty">No linked posts yet.</p>;
@@ -143,7 +156,13 @@ function EventLineageSection({ lineage }: { lineage: PostLineage | null }) {
   const renderLink = (post: LinkedPostRef, kind: "direct" | "indirect") => (
     <li key={post.post_id} className={`lineage-link lineage-link-${kind}`}>
       <span className="lineage-badge">{kind === "direct" ? "직접" : "간접"}</span>
-      {post.post_title}
+      {onSelectPost ? (
+        <button className="lineage-link-button" onClick={() => onSelectPost(post.post_id)}>
+          {post.post_title}
+        </button>
+      ) : (
+        post.post_title
+      )}
     </li>
   );
   return (
@@ -151,6 +170,157 @@ function EventLineageSection({ lineage }: { lineage: PostLineage | null }) {
       {lineage.direct.map((post) => renderLink(post, "direct"))}
       {lineage.indirect.map((post) => renderLink(post, "indirect"))}
     </ul>
+  );
+}
+
+function AffiliateTreeNode({ node }: { node: AffiliateNode }) {
+  return (
+    <li>
+      <span className={node.resolved ? "affiliate-resolved" : "affiliate-unresolved"}>
+        {node.entity_name}
+      </span>
+      {node.entity_level_code && <span className="affiliate-level"> ({node.entity_level_code})</span>}
+      {!node.resolved && <span className="affiliate-unresolved-mark"> unresolved</span>}
+      {node.people.length > 0 && (
+        <span className="keyman-affiliations">
+          {" -- "}
+          {node.people.map((person) => `${person.person_name} (${person.person_side_code})`).join(", ")}
+        </span>
+      )}
+      {node.children.length > 0 && (
+        <ul>
+          {node.children.map((child) => (
+            <AffiliateTreeNode key={child.entity_id ?? child.entity_name} node={child} />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
+function VocEvidenceSection({ evidence }: { evidence: VocEvidence | null }) {
+  if (!evidence) return <p>Loading VOC evidence...</p>;
+  return (
+    <section className="popup-section">
+      <h3>VOC evidence</h3>
+      <p className="post-meta">
+        {evidence.voc_type_label} ({evidence.voc_type_code})
+      </p>
+      {evidence.excerpts.length === 0 ? (
+        <p className="popup-placeholder">No extractive excerpt -- no named organization appears in this post.</p>
+      ) : (
+        <ul className="voc-excerpt-list">
+          {evidence.excerpts.map((excerpt) => (
+            <li key={excerpt}>
+              <blockquote>{excerpt}</blockquote>
+            </li>
+          ))}
+        </ul>
+      )}
+      {evidence.counterparties.map((row) => (
+        <p key={row.counterparty_entity_name} className="voc-counterparty">
+          {row.counterparty_entity_name} -- {row.relationship_label}
+        </p>
+      ))}
+    </section>
+  );
+}
+
+function KeymanPanel({
+  postId,
+  accessToken,
+  keymen,
+  canExtract,
+  onExtracted,
+}: {
+  postId: string;
+  accessToken: string;
+  keymen: Keyman[] | null;
+  canExtract: boolean;
+  onExtracted: () => void;
+}) {
+  const [related, setRelated] = useState<RelatedNode[] | null>(null);
+  const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSelect(person: Keyman) {
+    setSelectedName(person.person_name);
+    setRelated(null);
+    try {
+      const result = await fetchRelatedKeymen(accessToken, person.person_id);
+      setRelated(result.related);
+    } catch {
+      setRelated([]);
+    }
+  }
+
+  async function handleExtract() {
+    setExtracting(true);
+    setError(null);
+    try {
+      await extractPostKeymen(accessToken, postId);
+      onExtracted();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setExtracting(false);
+    }
+  }
+
+  return (
+    <section className="popup-section">
+      <div className="lineage-home-header">
+        <h3>Keyman</h3>
+        {canExtract && (
+          <button onClick={handleExtract} disabled={extracting}>
+            {extracting ? "Extracting..." : "Extract Keymen"}
+          </button>
+        )}
+      </div>
+      {error && <p className="error">{error}</p>}
+      {keymen && keymen.length > 0 ? (
+        <ul className="keyman-list">
+          {keymen.map((person) => (
+            <li key={person.person_id}>
+              <button
+                className="keyman-select"
+                aria-label={`Related nodes for ${person.person_name}`}
+                onClick={() => handleSelect(person)}
+              >
+                <strong>{person.person_name}</strong> ({person.person_side_code})
+              </button>
+              {person.affiliations.length > 0 && (
+                <span className="keyman-affiliations">
+                  {" -- "}
+                  {person.affiliations.map((affiliation) => affiliation.organization_name).join(", ")}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="popup-placeholder">No Keyman extracted yet.</p>
+      )}
+      {selectedName && (
+        <div className="related-keymen">
+          <h4>Related to {selectedName}</h4>
+          {related === null ? (
+            <p>Loading related nodes...</p>
+          ) : related.length === 0 ? (
+            <p className="popup-placeholder">No related nodes in the visible graph.</p>
+          ) : (
+            <ul>
+              {related.map((node) => (
+                <li key={`${node.node_type_code}:${node.node_id}`}>
+                  {node.label ?? node.node_id} ({node.node_type_code})
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -246,11 +416,15 @@ function IssueTicketPanel({ postId, accessToken }: { postId: string; accessToken
 function PostDetailPopup({
   postId,
   accessToken,
+  canExtract,
   onClose,
+  onSelectPost,
 }: {
   postId: string;
   accessToken: string;
+  canExtract: boolean;
   onClose: () => void;
+  onSelectPost?: (postId: string) => void;
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -258,6 +432,16 @@ function PostDetailPopup({
   const [keymen, setKeymen] = useState<Keyman[] | null>(null);
   const [counterparties, setCounterparties] = useState<Counterparty[] | null>(null);
   const [lineage, setLineage] = useState<PostLineage | null>(null);
+  const [affiliateTrees, setAffiliateTrees] = useState<AffiliateNode[] | null>(null);
+  const [vocEvidence, setVocEvidence] = useState<VocEvidence | null>(null);
+
+  function reloadKeymen() {
+    fetchPostKeymen(accessToken, postId).then((r) => setKeymen(r.keymen)).catch(() => setKeymen([]));
+    fetchPostAffiliateTree(accessToken, postId)
+      .then((r) => setAffiliateTrees(r.trees))
+      .catch(() => setAffiliateTrees([]));
+    fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+  }
 
   useEffect(() => {
     setPost(null);
@@ -266,6 +450,8 @@ function PostDetailPopup({
     setKeymen(null);
     setCounterparties(null);
     setLineage(null);
+    setAffiliateTrees(null);
+    setVocEvidence(null);
     fetchPost(accessToken, postId).then(setPost).catch((err) => setError(String(err)));
     fetchPostSummary(accessToken, postId).then(setSummary).catch(() => setSummary(null));
     fetchPostKeymen(accessToken, postId).then((r) => setKeymen(r.keymen)).catch(() => setKeymen([]));
@@ -273,6 +459,10 @@ function PostDetailPopup({
       .then((r) => setCounterparties(r.counterparties))
       .catch(() => setCounterparties([]));
     fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
+    fetchPostAffiliateTree(accessToken, postId)
+      .then((r) => setAffiliateTrees(r.trees))
+      .catch(() => setAffiliateTrees([]));
+    fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
   }, [postId, accessToken]);
 
   return (
@@ -325,31 +515,35 @@ function PostDetailPopup({
               )}
             </section>
 
+            <VocEvidenceSection evidence={vocEvidence} />
+
             <section className="popup-section">
               <h3>Event Lineage</h3>
-              <EventLineageSection lineage={lineage} />
+              <EventLineageSection lineage={lineage} onSelectPost={onSelectPost} />
             </section>
 
             <section className="popup-section">
-              <h3>Keyman</h3>
-              {keymen && keymen.length > 0 ? (
-                <ul className="keyman-list">
-                  {keymen.map((person) => (
-                    <li key={person.person_id}>
-                      <strong>{person.person_name}</strong> ({person.person_side_code})
-                      {person.affiliations.length > 0 && (
-                        <span className="keyman-affiliations">
-                          {" -- "}
-                          {person.affiliations.map((a) => a.organization_name).join(", ")}
-                        </span>
-                      )}
-                    </li>
+              <h3>Affiliate tree</h3>
+              {affiliateTrees === null ? (
+                <p>Loading affiliate tree...</p>
+              ) : affiliateTrees.length === 0 ? (
+                <p className="popup-placeholder">No affiliations on this post yet.</p>
+              ) : (
+                <ul className="affiliate-tree">
+                  {affiliateTrees.map((node) => (
+                    <AffiliateTreeNode key={node.entity_id ?? node.entity_name} node={node} />
                   ))}
                 </ul>
-              ) : (
-                <p className="popup-placeholder">No Keyman extracted yet.</p>
               )}
             </section>
+
+            <KeymanPanel
+              postId={postId}
+              accessToken={accessToken}
+              keymen={keymen}
+              canExtract={canExtract}
+              onExtracted={reloadKeymen}
+            />
 
             {counterparties && counterparties.length > 0 && (
               <section className="popup-section">
@@ -441,7 +635,9 @@ function PostList({ accessToken }: { accessToken: string }) {
         <PostDetailPopup
           postId={selectedPostId}
           accessToken={accessToken}
+          canExtract={canRebuild}
           onClose={() => setSelectedPostId(null)}
+          onSelectPost={setSelectedPostId}
         />
       )}
     </>
