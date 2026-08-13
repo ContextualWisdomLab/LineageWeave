@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.34.0] - 2026-08-13
+
+### Added
+
+- Seeded Korean summaries for every A-100/B-200 reconstruct fixture and
+  the calendar commitment post. Clicking an Event Lineage DAG node or a
+  calendar row now serves `GET /api/posts/{id}/summary` from
+  `post_summary_result` without a live orchestrator. A non-fixture post
+  with no stored row still 503s -- never a fabricated summary.
+
 ## [0.33.0] - 2026-08-13
 
 ### Added

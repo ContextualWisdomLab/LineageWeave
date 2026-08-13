@@ -228,8 +228,9 @@ Phase 4 adds `GET /api/posts/{post_id}/lineage` (direct `post_lineage_edge`
 links and indirect Knowledge-Graph links, kept as two separate lists --
 `backend/app/post_chat_ingestion.py::find_linked_post_ids`),
 `GET /api/posts/{post_id}/summary` (`lineageweave/post_summary.py`,
-persisted in `post_summary_result` so a seeded demo is not empty
-without a live LLM), and
+persisted in `post_summary_result` so a seeded demo -- including
+A-100/B-200 Event Lineage nodes and the calendar commitment -- is
+not empty without a live LLM), and
 `POST /api/posts/{post_id}/chat` (`lineageweave/post_chat.py`'s
 reason-and-cite step over `gather_chat_sources`' retrieve step -- both
 Event-Lineage link kinds feed the chat's context, ABAC-rechecked per

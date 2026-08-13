@@ -393,6 +393,77 @@ def test_seed_demo_summary_surfaces_on_get_summary(client, demo_analyst_token, s
     assert any(role["person_name"] == "Ada West" for role in body["roles_and_responsibilities"])
 
 
+def test_seed_fixture_summaries_surface_on_get_summary(client, demo_analyst_token, seeded_db) -> None:
+    """The A-100 fork and calendar commitment `make seed` writes must
+    answer GET /api/posts/{id}/summary without a live orchestrator.
+    """
+    from scripts.seed_demo_data import (
+        _seed_demo_calendar_commitment,
+        _seed_fixture_summaries,
+        insert_fixture_source_posts,
+    )
+
+    os.environ.pop("ORCHESTRATOR_BASE_URL", None)
+    os.environ.pop("ORCHESTRATOR_API_KEY", None)
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('voc_type', 'vom', 'Voice of Market') "
+                "on conflict (lookup_code) do nothing"
+            )
+            cur.execute(
+                "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
+                "select corporate_entity_id, 'TEST-PU-SUMMARY', 'Summary thread' "
+                "from source_post where post_id = %s returning process_unit_id",
+                (seeded_db["own_private_post_id"],),
+            )
+            process_unit_id = cur.fetchone()[0]
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_id, corp_id = cur.fetchone()
+            insert_fixture_source_posts(cur, author_id, corp_id, process_unit_id)
+            _seed_demo_calendar_commitment(cur, author_id, corp_id, process_unit_id)
+            _seed_fixture_summaries(cur)
+            cur.execute(
+                "select post_id from source_post where post_title = %s",
+                ("Pricing renegotiation follow-up",),
+            )
+            fork_id = str(cur.fetchone()[0])
+            cur.execute(
+                "select post_id from source_post where post_title = %s",
+                ("Follow-up on the Riverbend order confirmation",),
+            )
+            calendar_id = str(cur.fetchone()[0])
+    finally:
+        admin_conn.close()
+
+    fork = client.get(
+        f"/api/posts/{fork_id}/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert fork.status_code == 200, fork.text
+    assert "재협상" in fork.json()["korean_summary"]
+    assert fork.json()["key_events"]
+
+    calendar = client.get(
+        f"/api/posts/{calendar_id}/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert calendar.status_code == 200, calendar.text
+    assert "리버벤드" in calendar.json()["korean_summary"]
+
+    missing = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert missing.status_code == 503
+
+
 def test_own_corp_private_post_detail_is_readable(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         f"/api/posts/{seeded_db['own_private_post_id']}", headers={"Authorization": f"Bearer {demo_analyst_token}"}

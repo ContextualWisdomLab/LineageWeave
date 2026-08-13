@@ -14,7 +14,8 @@ import os
 
 import pytest
 
-from lineageweave.fixtures import ambiguous_keyman_post
+from backend.app.post_summary_ingestion import seeded_fixture_summary
+from lineageweave.fixtures import ambiguous_commitment_post, ambiguous_keyman_post, sample_records
 from lineageweave.post_summary import (
     ContextualOrchestratorPostSummaryClient,
     NullPostSummaryClient,
@@ -54,6 +55,25 @@ def test_empty_korean_summary_returns_none() -> None:
 
 def test_invalid_json_returns_none() -> None:
     assert parse_summary_response("not json") is None
+
+
+def test_every_sample_record_has_a_seeded_korean_summary() -> None:
+    """Event Lineage click-through must have a stored Korean summary for
+    every reconstruct fixture -- not a shared placeholder, not English.
+    """
+    seen: set[str] = set()
+    for rec in sample_records():
+        summary = seeded_fixture_summary(rec.label)
+        assert summary is not None, rec.label
+        assert any("가" <= ch <= "힣" for ch in summary.korean_summary)
+        assert summary.key_events
+        assert summary.korean_summary not in seen
+        seen.add(summary.korean_summary)
+    calendar_title, _ = ambiguous_commitment_post()
+    calendar = seeded_fixture_summary(calendar_title)
+    assert calendar is not None
+    assert "리버벤드" in calendar.korean_summary
+    assert seeded_fixture_summary("not a fixture title") is None
 
 
 def test_malformed_roles_entries_are_skipped_not_crashed_on() -> None:
