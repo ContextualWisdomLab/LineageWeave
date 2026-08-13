@@ -68,8 +68,9 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
     conn = psycopg2.connect(postgres_dsn)
     try:
         with conn.cursor() as cur:
-            grouping_sql = Path(__file__).resolve().parents[1] / "migrations" / "0002_thread_grouping_keys.sql"
-            cur.execute(grouping_sql.read_text())
+            migrations = Path(__file__).resolve().parents[1] / "migrations"
+            cur.execute((migrations / "0002_thread_grouping_keys.sql").read_text())
+            cur.execute((migrations / "0003_ticket_commitment_calendar.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
