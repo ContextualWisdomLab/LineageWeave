@@ -146,6 +146,16 @@ export interface ActivityEvent {
   summary: string;
 }
 
+export class BackendError extends Error {
+  readonly status: number;
+
+  constructor(path: string, status: number, detail?: string) {
+    super(detail && detail.trim() ? detail : `${path} -> HTTP ${status}`);
+    this.name = "BackendError";
+    this.status = status;
+  }
+}
+
 async function backendFetch<T>(
   path: string,
   accessToken: string,
@@ -160,7 +170,16 @@ async function backendFetch<T>(
     },
   });
   if (!response.ok) {
-    throw new Error(`${path} -> HTTP ${response.status}`);
+    let detail: string | undefined;
+    try {
+      const body: unknown = await response.json();
+      if (body && typeof body === "object" && "detail" in body && typeof body.detail === "string") {
+        detail = body.detail;
+      }
+    } catch {
+      detail = undefined;
+    }
+    throw new BackendError(path, response.status, detail);
   }
   return response.json() as Promise<T>;
 }

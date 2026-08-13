@@ -53,7 +53,11 @@ describe("App, authenticated", () => {
     };
   });
 
-  function stubBackend(options?: { admin?: boolean; calendarCommitments?: unknown[] }) {
+  function stubBackend(options?: {
+    admin?: boolean;
+    calendarCommitments?: unknown[];
+    chatUnavailable?: boolean;
+  }) {
     const tickets: {
       issue_ticket_id: string;
       post_id: string;
@@ -550,6 +554,16 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/chat") && method === "POST") {
+        if (options?.chatUnavailable) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                detail: "Post chat is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+              }),
+              { status: 503, headers: { "Content-Type": "application/json" } },
+            ),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
@@ -660,6 +674,21 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
+  });
+
+  it("shows a clear empty state when chat is 503 without an orchestrator", async () => {
+    stubBackend({ chatUnavailable: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByPlaceholderText(/what happened/i)).toBeInTheDocument());
+    await userEvent.type(screen.getByPlaceholderText(/what happened/i), "What happened?");
+    await userEvent.click(screen.getByRole("button", { name: /^ask$/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText("Chat unavailable (LLM orchestrator not configured).")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
   });
 
   it("shows the affiliate tree, VOC excerpt, and related Keyman nodes on click", async () => {

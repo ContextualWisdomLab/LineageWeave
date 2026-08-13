@@ -4,6 +4,14 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.45.0] - 2026-08-14
+
+### Changed
+
+- Chat 503 (orchestrator unset) shows
+  `Chat unavailable (LLM orchestrator not configured).` instead of
+  `HTTP 503`. Still never fabricates an answer.
+
 ## [0.44.0] - 2026-08-14
 
 ### Added
