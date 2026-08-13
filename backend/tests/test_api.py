@@ -555,6 +555,78 @@ def test_extract_keymen_persists_a_real_llm_extraction(client, demo_analyst_toke
     assert persisted_counterparty_names == counterparty_names
 
 
+@pytest.mark.skipif(
+    not (_ORCHESTRATOR_BASE_URL and _ORCHESTRATOR_API_KEY),
+    reason="set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run",
+)
+def test_extract_keymen_normalizes_html_and_embedded_image_content(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A real end-to-end proof that HTML/base64-image post bodies are
+    normalized (lineageweave.post_content_normalization) before the LLM
+    ever sees them: the same real people from ambiguous_keyman_post()
+    must still be found even though the post body is wrapped in HTML
+    formatting and carries an embedded image, which a raw-body call
+    would either choke the model's attention on (literal tags) or bloat
+    the prompt with (raw base64) -- see backend/app/main.py's
+    extract-keymen endpoint and ADR-referenced design in
+    lineageweave/post_content_normalization.py.
+    """
+    os.environ["ORCHESTRATOR_BASE_URL"] = _ORCHESTRATOR_BASE_URL
+    os.environ["ORCHESTRATOR_API_KEY"] = _ORCHESTRATOR_API_KEY
+
+    from lineageweave.fixtures import ambiguous_keyman_post
+
+    title, plain_body = ambiguous_keyman_post()
+    # A 1x1 PNG data URI -- real base64 image bytes, not a fake string.
+    tiny_png_b64 = (
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk"
+        "+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    )
+    html_body = (
+        f'<div style="color:red;font-weight:bold"><p>{plain_body}</p>'
+        f'<img src="data:image/png;base64,{tiny_png_b64}"/></div>'
+    )
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('permission', 'post_admin', 'Administer posts') on conflict (lookup_code) do nothing"
+            )
+            cur.execute("select access_role_id from account_role_assignment limit 1")
+            role_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into role_permission (access_role_id, permission_code) values (%s, 'post_admin') "
+                "on conflict do nothing",
+                (role_id,),
+            )
+            cur.execute(
+                "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public' "
+                "from source_post where post_id = %s "
+                "returning post_id",
+                (title, html_body, seeded_db["own_private_post_id"]),
+            )
+            new_post_id = str(cur.fetchone()[0])
+    finally:
+        admin_conn.close()
+
+    response = client.post(
+        f"/api/posts/{new_post_id}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    names = {mention["person_name"] for mention in response.json()["mentions"]}
+    # The real people are still findable through the HTML/image wrapping --
+    # proof the LLM received clean text, not raw markup or base64 noise
+    # drowning out the actual content.
+    assert any("Jordan" in name for name in names)
+    assert any("Priya" in name for name in names)
+
+
 def test_counterparties_endpoint_is_empty_before_extraction(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         f"/api/posts/{seeded_db['own_private_post_id']}/counterparties",

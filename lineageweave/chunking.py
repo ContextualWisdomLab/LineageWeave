@@ -21,9 +21,16 @@ character-count split:
   would still leave the whole record as one unit.
 - **dom**: sectioning-content element boundaries (WHATWG HTML Living
   Standard / W3C HTML5 -- ``article``, ``section``, ``nav``, ``aside``,
-  ``header``, ``footer``, and flow-content block boundaries ``div``,
-  ``p``, ``li``, ``td``). Relevant once a source document is HTML/MHTML
-  rather than plain text (e.g. a raw ingested email or SAP ALV export).
+  ``header``, ``footer``, headings ``h1``-``h6``, and flow-content block
+  boundaries ``div``, ``p``, ``li``, ``td``). Relevant once a source
+  document is HTML/MHTML rather than plain text (e.g. a raw ingested
+  email or SAP ALV export). Each block's inline ``style`` attribute is
+  captured on the resulting :class:`Chunk` as separate metadata, never
+  concatenated into the embedded text -- raw markup diluting an
+  embedding's signal is exactly the failure mode chunking exists to
+  avoid, and a formatting cue (color, alignment, size) is real
+  structural signal worth keeping, not noise to discard (VIPS; Cai,
+  Chen, Wen, & Zhang, 2003).
 - **conversation_turn**: sender/receiver boundaries (RFC 5322 email
   structure -- ``From``/``To`` headers delimit one party's turn from the
   next). Reuses the same "one message, one party" shape ThreadWeave's JWZ
@@ -42,6 +49,9 @@ from html.parser import HTMLParser
 # WHATWG HTML Living Standard / W3C HTML5 sectioning-content and common
 # flow-content block elements -- boundaries a DOM-unit chunker should
 # split on rather than treating the whole document as one text blob.
+# h1-h6 included: a heading's tag name is itself a formatting/importance
+# cue (VIPS, Cai et al., 2003 -- font/size/tag signals distinguish a
+# document's structural blocks), not just a text-boundary marker.
 _DOM_BLOCK_TAGS = frozenset(
     {
         "article",
@@ -55,6 +65,12 @@ _DOM_BLOCK_TAGS = frozenset(
         "li",
         "td",
         "blockquote",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
     }
 )
 
@@ -81,6 +97,16 @@ class Chunk:
             result.
         image_data: raw decoded image bytes, only set for ``"image"``
             chunks.
+        style: the block's raw inline ``style`` attribute (e.g.
+            ``"color:red;text-align:center"``), only set for ``"dom"``
+            chunks that had one. A formatting cue -- font color,
+            alignment, size -- degrades an embedding or an LLM prompt if
+            dumped into the text alongside the content (VIPS; Cai, Chen,
+            Wen, & Zhang, 2003), so it is kept here as separate,
+            addressable metadata instead, never concatenated into
+            ``text``. ``None`` when the element had no ``style``
+            attribute, distinct from an empty string (which would mean
+            "had the attribute, but it was blank").
     """
 
     text: str
@@ -88,6 +114,7 @@ class Chunk:
     index: int
     label: str = ""
     image_data: bytes | None = field(default=None, compare=True)
+    style: str | None = None
 
 
 def chunk_by_paragraph(text: str) -> list[Chunk]:
@@ -155,11 +182,12 @@ class _BlockTextExtractor(HTMLParser):
 
     def __init__(self) -> None:
         super().__init__()
-        self._stack: list[tuple[str, list[str]]] = []
-        # Each entry is ("text", str, tag_name) or ("image", (mime_type, bytes), "") --
-        # a single sequence in true document order, so an image's index
-        # among its siblings reflects where it actually sat.
-        self._finished: list[tuple[str, object, str]] = []
+        self._stack: list[tuple[str, list[str], str | None]] = []
+        # Each entry is ("text", str, tag_name, style) or
+        # ("image", (mime_type, bytes), "", None) -- a single sequence in
+        # true document order, so an image's index among its siblings
+        # reflects where it actually sat.
+        self._finished: list[tuple[str, object, str, str | None]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag == "img":
@@ -167,24 +195,25 @@ class _BlockTextExtractor(HTMLParser):
             if src:
                 decoded = _decode_data_uri_image(src)
                 if decoded is not None:
-                    self._finished.append(("image", decoded, ""))
+                    self._finished.append(("image", decoded, "", None))
             return
         if tag in _DOM_BLOCK_TAGS:
-            self._stack.append((tag, []))
+            style = next((value for name, value in attrs if name == "style" and value), None)
+            self._stack.append((tag, [], style))
 
     def handle_endtag(self, tag: str) -> None:
         if tag in _DOM_BLOCK_TAGS and self._stack:
-            tag_name, buffer = self._stack.pop()
+            tag_name, buffer, style = self._stack.pop()
             text = " ".join(buffer).strip()
             if text:
-                self._finished.append(("text", text, tag_name))
+                self._finished.append(("text", text, tag_name, style))
 
     def handle_data(self, data: str) -> None:
         text = data.strip()
         if text and self._stack:
             self._stack[-1][1].append(text)
 
-    def finished(self) -> list[tuple[str, object, str]]:
+    def finished(self) -> list[tuple[str, object, str, str | None]]:
         return self._finished
 
 
@@ -206,9 +235,9 @@ def chunk_by_dom(html: str) -> list[Chunk]:
     parser.feed(html)
     entries = parser.finished()
     chunks: list[Chunk] = []
-    for index, (kind, value, tag_name) in enumerate(entries):
+    for index, (kind, value, tag_name, style) in enumerate(entries):
         if kind == "text":
-            chunks.append(Chunk(text=value, unit_type="dom", index=index, label=tag_name))
+            chunks.append(Chunk(text=value, unit_type="dom", index=index, label=tag_name, style=style))
         else:
             mime_type, image_bytes = value
             chunks.append(

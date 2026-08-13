@@ -36,6 +36,7 @@ from lineageweave.entity_relationship_classification import (
     ContextualOrchestratorEntityRelationshipClient,
     NullEntityRelationshipClient,
 )
+from lineageweave.image_content import NullImageContentClient, OpenAiCompatibleVisionClient
 from lineageweave.keyman_extraction import (
     ContextualOrchestratorKeymanExtractionClient,
     NullKeymanExtractionClient,
@@ -45,6 +46,7 @@ from lineageweave.post_chat import (
     NullPostChatClient,
     cited_post_summaries,
 )
+from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 
 from backend.app.activity_stream import (
@@ -162,6 +164,25 @@ def _commitment_extraction_client():
         return NullCommitmentExtractionClient()
     return ContextualOrchestratorCommitmentExtractionClient(
         base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+    )
+
+
+def _vision_client():
+    """Live vision client when configured; otherwise the unavailable null.
+
+    Same contextual-orchestrator gateway as every other channel, plus a
+    vision-capable model name (``VISION_MODEL``) -- unlike the other
+    channels, a missing model name alone (base_url/api_key present but no
+    model) also means unavailable, since there is no sane default model
+    to guess.
+    """
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key and settings.vision_model):
+        return NullImageContentClient()
+    return OpenAiCompatibleVisionClient(
+        base_url=settings.orchestrator_base_url,
+        api_key=settings.orchestrator_api_key,
+        model=settings.vision_model,
     )
 
 
@@ -401,7 +422,12 @@ async def extract_post_keymen(
     relationship_client = _entity_relationship_client()
     async with pool.acquire() as conn:
         body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-        post_body = "" if body_row is None else body_row["post_body"]
+        raw_body = "" if body_row is None else body_row["post_body"]
+        # HTML/base64-image content must never reach an LLM prompt raw --
+        # tags dilute the model's attention and a base64 payload sent as
+        # literal text either blows the token budget or is silently
+        # ignored (see lineageweave/post_content_normalization.py).
+        post_body = normalize_post_body(raw_body, vision_client=_vision_client()).text
         async with conn.transaction():
             mentions = await ingest_post_keymen(conn, keyman_client, post_id, post["post_title"], post_body)
             organization_names = sorted(
@@ -492,7 +518,8 @@ async def read_post_summary(
         )
     async with pool.acquire() as conn:
         body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-    summary = client.summarize(post["post_title"], body_row["post_body"])
+    normalized_body = normalize_post_body(body_row["post_body"], vision_client=_vision_client()).text
+    summary = client.summarize(post["post_title"], normalized_body)
     return {
         "post_id": str(post["post_id"]),
         "korean_summary": summary.korean_summary,
@@ -532,7 +559,9 @@ async def chat_about_post(
             "Post chat is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
         )
     async with pool.acquire() as conn:
-        sources = await gather_chat_sources(conn, post_id, lambda row: _can_see_post(account, row))
+        sources = await gather_chat_sources(
+            conn, post_id, lambda row: _can_see_post(account, row), vision_client=_vision_client()
+        )
     answer = client.answer(request.question, sources)
     cited_ids = list(answer.cited_post_ids)
     return {
@@ -707,11 +736,12 @@ async def derive_post_commitment(
         )
     async with pool.acquire() as conn:
         body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
+    normalized_body = normalize_post_body(body_row["post_body"], vision_client=_vision_client()).text
     # TimeML/TempEval document creation time, not wall-clock now: "by next
     # Friday" in a January post must resolve to that January, not to the
     # Friday after the operator clicked Derive.
     reference_date = post["created_at"].date().isoformat()
-    commitment = client.extract(post["post_title"], body_row["post_body"], reference_date)
+    commitment = client.extract(post["post_title"], normalized_body, reference_date)
     if not commitment.has_commitment:
         return {"post_id": str(post["post_id"]), "has_commitment": False, "ticket": None}
     async with pool.acquire() as conn:

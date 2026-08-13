@@ -4,6 +4,26 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.25.0] - 2026-08-13
+
+### Added
+
+- Post bodies are normalized before ever reaching an LLM or embedding
+  call: HTML tags are stripped to clean text, per-block formatting
+  (`style`, heading level) is kept as separate `FormattingHint` metadata
+  instead of being embedded, and base64-embedded images are described
+  by a vision-capable model and placed as `[image: ...]` at their
+  original document position instead of being sent raw or dropped
+  (`lineageweave/post_content_normalization.py`, VIPS grounding: Cai,
+  Chen, Wen, & Zhang, 2003).
+- `chunking.py`'s DOM chunker now captures each block's `style`
+  attribute and splits on `h1`-`h6` heading boundaries.
+- New `VISION_MODEL` setting; `extract-keymen`, post summary, commitment
+  derivation, and chat source retrieval (including linked posts pulled
+  in as RAG context) all normalize `post_body` before the LLM sees it.
+  The raw post-detail read (`GET /api/posts/{id}`) is intentionally
+  left untouched so the frontend still renders the post as-authored.
+
 ## [0.24.0] - 2026-08-13
 
 ### Added

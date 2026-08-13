@@ -33,6 +33,13 @@ class Settings:
     # a fabricated default, when unconfigured (see keyman_ingestion.py).
     orchestrator_base_url: str
     orchestrator_api_key: str
+    # A vision-capable model name on the same contextual-orchestrator gateway
+    # (orchestrator_base_url/_api_key) -- describes embedded post images
+    # before an LLM call or embedding sees the post body (ADR: see
+    # lineageweave/post_content_normalization.py). Empty means the image
+    # channel is unavailable, same "no fake channel" discipline as every
+    # other pluggable client.
+    vision_model: str
     # Event queue for post/ticket activity (XADD/XRANGE), per the brief's
     # "Event Queue, not MQ" requirement -- see backend/app/activity_stream.py.
     valkey_url: str
@@ -65,5 +72,6 @@ def load_settings() -> Settings:
         ],
         orchestrator_base_url=os.environ.get("ORCHESTRATOR_BASE_URL", ""),
         orchestrator_api_key=os.environ.get("ORCHESTRATOR_API_KEY", ""),
+        vision_model=os.environ.get("VISION_MODEL", ""),
         valkey_url=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
     )
