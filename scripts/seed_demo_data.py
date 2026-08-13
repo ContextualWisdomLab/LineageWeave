@@ -455,7 +455,7 @@ def _seed_fixture_evaluations(cur) -> None:
 
 
 def _ensure_demo_people(cur, corporate_entity_id) -> dict[str, str]:
-    """Ada West / Priya Nair plus their affiliations. Idempotent."""
+    """Ada West / Priya Nair / Jordan Hale plus their affiliations. Idempotent."""
     people: dict[str, str] = {}
     for name, side in (
         ("Ada West", "our_side"),

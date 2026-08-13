@@ -55,9 +55,10 @@ def fixture_thread_cast(title: str) -> FixtureThreadCast | None:
     """Return the Keyman/VOC cast for a reconstruct or calendar fixture.
 
     A-100 proj-alpha posts share Ada West / Priya Nair / Northridge Grid
-    so DAG click-through is not an empty Keyman or VOC panel. rec-006
-    stays uncast so it remains its own root. Calendar names Riverbend,
-    already in the commitment body. Unknown titles return None.
+    so DAG click-through is not an empty Keyman or VOC panel. B-200
+    proj-beta posts share Jordan Hale / Westfield Power. rec-006 stays
+    uncast so it remains its own root. Calendar names Riverbend, already
+    in the commitment body. Unknown titles return None.
     """
     if title == "Follow-up on the Riverbend order confirmation":
         return FixtureThreadCast(
