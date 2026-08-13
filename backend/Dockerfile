@@ -23,6 +23,9 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 COPY pyproject.toml ./
 COPY lineageweave ./lineageweave
 COPY backend ./backend
+# lineageweave/ontology.py resolves this path relative to itself
+# (parents[1] = /app) -- ADR 0004.
+COPY docs/ontology ./docs/ontology
 
 RUN pip install --no-cache-dir ".[backend]" \
     && chown -R appuser:appuser /app

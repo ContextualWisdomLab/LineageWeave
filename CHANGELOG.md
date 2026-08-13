@@ -4,6 +4,31 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.2] - 2026-08-13
+
+### Added
+
+- The Knowledge Graph is now grounded in a real, machine-checked
+  Ontology and Semantic Layer (see
+  [ADR 0004](docs/adr/0004-knowledge-graph-ontology.md)) -- the
+  brief's latest revision required this everywhere the KG is used
+  (Keyman traversal, corporate hierarchy tree, entity-relationship
+  classification, indirect lineage linking, in-popup chat evidence).
+  `docs/ontology/lineageweave-kg.ttl`: a real OWL 2 / RDFS / SKOS
+  ontology (Turtle) formalizing `knowledge_graph_edge`'s node/edge
+  vocabulary and the `entity_relationship_type`/`person_side`/
+  `corporate_entity_level` controlled vocabularies -- classes with
+  declared subclass relations, object properties with
+  `rdfs:domain`/`rdfs:range`, and the corporate-level hierarchy
+  (Group -> Company -> Plant) as a proper SKOS concept scheme.
+  `lineageweave/ontology.py` parses it with `rdflib` and exposes the
+  vocabulary as importable IRI constants.
+- `tests/test_ontology.py`: a real round-trip check, not just "does
+  the file parse" -- every lookup code `scripts/seed_demo_data.py`
+  actually seeds (for the categories this ontology covers) must have
+  a matching ontology term, and vice versa, so the ontology cannot
+  silently drift from the relational schema's real vocabulary.
+
 ## [0.21.1] - 2026-08-13
 
 ### Fixed

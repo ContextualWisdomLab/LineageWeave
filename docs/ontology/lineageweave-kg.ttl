@@ -1,0 +1,154 @@
+@prefix : <https://contextualwisdomlab.github.io/lineageweave/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+#################################################################
+# LineageWeave Knowledge Graph Ontology
+#
+# The formal OWL 2 / RDFS / SKOS vocabulary for the
+# `knowledge_graph_edge` table's node/edge types and the
+# `entity_relationship_type` / `person_side` / `corporate_entity_level`
+# controlled vocabularies in migrations/0001_initial_schema.sql.
+#
+# `knowledge_graph_edge` (source_node_type_code, source_node_id) --
+# [edge_type_code] --> (target_node_type_code, target_node_id) is
+# already an RDF triple in shape (Cyganiak, Wood, & Lanthaler, 2014);
+# this file is the formal semantic layer over it -- PostgreSQL stays
+# the source of record. See docs/adr/0004-knowledge-graph-ontology.md
+# for the full design rationale, and tests/test_ontology.py for the
+# round-trip check that every code below actually exists as a
+# common_lookup_value row, and vice versa.
+#
+# Every custom term carries a :lookupCode annotation naming the exact
+# `common_lookup_value.lookup_code` it corresponds to -- that literal
+# string, not the IRI fragment, is what the relational schema stores.
+#################################################################
+
+<https://contextualwisdomlab.github.io/lineageweave/ontology> a owl:Ontology ;
+    rdfs:label "LineageWeave Knowledge Graph Ontology" ;
+    rdfs:comment "Formal OWL 2 / RDFS / SKOS vocabulary for LineageWeave's knowledge_graph_edge node and edge types, entity_relationship_type, person_side, and corporate_entity_level controlled vocabularies." .
+
+:lookupCode a owl:AnnotationProperty ;
+    rdfs:label "lookup code" ;
+    rdfs:comment "The exact common_lookup_value.lookup_code string this ontology term corresponds to." .
+
+#################################################################
+# Classes -- node_type
+#################################################################
+
+:Post a owl:Class ;
+    rdfs:label "Post" ;
+    rdfs:comment "A source_post row: one VOC/VOM/VOP/VOCC/VOCO/VOS record." ;
+    :lookupCode "node_post" .
+
+:Person a owl:Class ;
+    rdfs:label "Person" ;
+    rdfs:comment "A cataloged_person row: a Keyman mentioned in one or more posts." ;
+    :lookupCode "node_person" .
+
+:OurSidePerson a owl:Class ;
+    rdfs:subClassOf :Person ;
+    rdfs:label "Our-side person" ;
+    :lookupCode "our_side" .
+
+:CounterpartyPerson a owl:Class ;
+    rdfs:subClassOf :Person ;
+    rdfs:label "Counterparty person" ;
+    :lookupCode "counterparty" .
+
+:CorporateEntity a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Corporate entity" ;
+    rdfs:comment "A corporate_entity row. Also a skos:Concept so the self-referencing parent_entity_id hierarchy (e.g. Group -> Company -> Plant) is expressible with skos:broader/skos:narrower on instances." ;
+    :lookupCode "node_corporate_entity" .
+
+#################################################################
+# Object properties -- edge_type (knowledge_graph_edge.edge_type_code)
+#################################################################
+
+:mentions a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range :Person ;
+    rdfs:label "mentions" ;
+    rdfs:comment "A post names a person (post_person_mention)." ;
+    :lookupCode "edge_mention" .
+
+:affiliatedWith a owl:ObjectProperty ;
+    rdfs:domain :Person ;
+    rdfs:range :CorporateEntity ;
+    rdfs:label "affiliated with" ;
+    rdfs:comment "A person's N:N organizational affiliation (person_affiliation)." ;
+    :lookupCode "edge_affiliation" .
+
+:coMentionedWith a owl:ObjectProperty, owl:SymmetricProperty ;
+    rdfs:domain :Person ;
+    rdfs:range :Person ;
+    rdfs:label "co-mentioned with" ;
+    rdfs:comment "Two people named in the same post -- symmetric by construction." ;
+    :lookupCode "edge_co_mention" .
+
+#################################################################
+# Object properties -- entity_relationship_type
+# (post_counterparty_entity.relationship_type_code)
+#################################################################
+
+:hasVocRelationship a owl:ObjectProperty ;
+    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
+    rdfs:label "has Voice-of-Customer relationship" ;
+    :lookupCode "rel_voc" .
+
+:hasVomRelationship a owl:ObjectProperty ;
+    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
+    rdfs:label "has Voice-of-Market relationship" ;
+    :lookupCode "rel_vom" .
+
+:hasVopRelationship a owl:ObjectProperty ;
+    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
+    rdfs:label "has Voice-of-Partner relationship" ;
+    :lookupCode "rel_vop" .
+
+:hasVoccRelationship a owl:ObjectProperty ;
+    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
+    rdfs:label "has Voice-of-Customer's-Customer relationship" ;
+    :lookupCode "rel_vocc" .
+
+:hasVocoRelationship a owl:ObjectProperty ;
+    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
+    rdfs:label "has Voice-of-Competitor relationship" ;
+    :lookupCode "rel_voco" .
+
+:hasVosRelationship a owl:ObjectProperty ;
+    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
+    rdfs:label "has Voice-of-Supplier relationship" ;
+    :lookupCode "rel_vos" .
+
+#################################################################
+# SKOS -- corporate_entity_level (Group -> Company -> Plant)
+#################################################################
+
+:corporateEntityLevelScheme a skos:ConceptScheme ;
+    rdfs:label "Corporate entity level scheme" ;
+    rdfs:comment "The Samsung -> Samsung Electronics Korea -> ... -> plant kind of level, ordered broadest first." .
+
+:GroupLevel a skos:Concept ;
+    skos:inScheme :corporateEntityLevelScheme ;
+    skos:prefLabel "Group"@en ;
+    :lookupCode "group" .
+
+:CompanyLevel a skos:Concept ;
+    skos:inScheme :corporateEntityLevelScheme ;
+    skos:broader :GroupLevel ;
+    skos:prefLabel "Company"@en ;
+    :lookupCode "company" .
+
+:PlantLevel a skos:Concept ;
+    skos:inScheme :corporateEntityLevelScheme ;
+    skos:broader :CompanyLevel ;
+    skos:prefLabel "Plant"@en ;
+    :lookupCode "plant" .
+
+:GroupLevel skos:narrower :CompanyLevel .
+:CompanyLevel skos:narrower :PlantLevel .
