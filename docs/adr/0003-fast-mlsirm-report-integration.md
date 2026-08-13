@@ -60,13 +60,16 @@ compile the dependency.
 
 ## Decision
 
-Integrate `fast-mlsirm` as a pinned git dependency (mirroring
-`rankweave`'s existing pattern), and stage the full report pipeline
-across independently-mergeable PRs rather than one large PR:
+This PR is the ADR only -- no dependency, no Dockerfile change, no
+product behavior. Integrate `fast-mlsirm` as a pinned git dependency
+in later slices (mirroring `rankweave`'s existing pattern), and stage
+the full report pipeline across independently-mergeable PRs rather
+than one large PR:
 
-1. **This ADR + infra slice** (this PR): add the dependency, add a Rust
-   toolchain to `backend/Dockerfile`'s build stage, and prove the
-   import actually works in the built image -- no product behavior yet.
+1. **Infra slice** (next PR, not this one): add the pinned git
+   dependency, add a Rust toolchain to `backend/Dockerfile`'s build
+   stage, and prove the import actually works in the built image -- no
+   product behavior yet.
 2. **Evaluation slice**: a pluggable `PostEvaluationClient` (same
    `Null`/`ContextualOrchestrator` discipline as every other channel in
    this repo) that produces a structured judge result per post against
@@ -82,6 +85,17 @@ across independently-mergeable PRs rather than one large PR:
    and a `GET /api/reports/{grouping}/{period}` endpoint + frontend
    view that renders the actual computed numbers -- never a
    placeholder or invented figure.
+
+**TEPP boundary.** [ARCHITECTURE.md](../../ARCHITECTURE.md) already
+assigns calibrated temporal/event measurement to
+[TEPP](https://github.com/ContextualWisdomLab/TEPP); this repo wires
+TEPP's published `AnalysisRunRequest` contract
+(`lineageweave/tepp_client.py`) and must not reimplement TEPP's model.
+`fast-mlsirm` is the IRT compute library the brief names for
+LLM-judge-to-score calibration -- not a second TEPP, and not a fork
+of TEPP's temporal engine. If TEPP later exposes a live report
+endpoint that covers this surface, consume it through `tepp_client`
+rather than growing a parallel measurement engine here.
 
 Each slice ships with the same real-verification discipline already
 established in this repo: real LLM calls through contextual-orchestrator
@@ -117,12 +131,17 @@ where a synthetic ground truth is available for the test itself.
   specific multilevel grouping shape LineageWeave's schema doesn't map
   onto directly), the brief's own instruction is to PR it back into
   `fast-mlsirm` rather than route around it inside LineageWeave.
+- This ADR does not change `tepp_client.py`. Temporal/event
+  measurement stays TEPP's job; IRT calibration of LLM-judge post
+  scores is the only new compute this path adds, and it goes through
+  `fast-mlsirm`.
 
 ## Related
 
 Complements [ADR 0001](0001-demo-identity-and-data-boundary.md) (real
 infrastructure, synthetic content -- report scores are computed from
-real LLM judge calls over synthetic demo posts, never fabricated) and
+real LLM judge calls over synthetic demo posts, never fabricated),
 this repo's existing pluggable-client discipline
-(`lineageweave/post_summary.py`, `lineageweave/keyman_extraction.py`,
-`lineageweave/commitment_extraction.py`).
+(`lineageweave/post_summary.py`, `lineageweave/keyman_extraction.py`),
+and `lineageweave/tepp_client.py` (TEPP's published wire contract --
+wire TEPP, do not fork it).
