@@ -558,10 +558,13 @@ def test_seed_demo_chat_surfaces_on_get_and_post_chat(client, demo_analyst_token
     assert questions == [
         "What happened between these events?",
         "Who is involved?",
+        "What is the next commitment?",
     ]
     assert "Northridge Grid" in history.json()["exchanges"][0]["answer_text"]
     assert "Ada West" in history.json()["exchanges"][1]["answer_text"]
     assert "Priya Nair" in history.json()["exchanges"][1]["answer_text"]
+    assert "Send Northridge Grid the revised quote" in history.json()["exchanges"][2]["answer_text"]
+    assert "2026-01-12" in history.json()["exchanges"][2]["answer_text"]
 
     asked = client.post(
         f"/api/posts/{seeded_db['public_post_id']}/chat",
@@ -579,6 +582,15 @@ def test_seed_demo_chat_surfaces_on_get_and_post_chat(client, demo_analyst_token
     assert involved.status_code == 200, involved.text
     assert "Ada West" in involved.json()["answer_text"]
     assert "Priya Nair" in involved.json()["answer_text"]
+
+    commitment = client.post(
+        f"/api/posts/{seeded_db['public_post_id']}/chat",
+        json={"question": "What's the next commitment?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert commitment.status_code == 200, commitment.text
+    assert "Send Northridge Grid the revised quote" in commitment.json()["answer_text"]
+    assert "2026-01-12" in commitment.json()["answer_text"]
 
 
 def test_seed_fixture_chats_surface_on_post_chat(client, demo_analyst_token, seeded_db) -> None:
@@ -656,7 +668,17 @@ def test_seed_fixture_chats_surface_on_post_chat(client, demo_analyst_token, see
     assert [row["question_text"] for row in fork_history.json()["exchanges"]] == [
         "What happened between these events?",
         "Who is involved?",
+        "What is the next commitment?",
     ]
+
+    fork_commitment = client.post(
+        f"/api/posts/{fork_id}/chat",
+        json={"question": "What is the next commitment?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert fork_commitment.status_code == 200, fork_commitment.text
+    assert "Send Northridge Grid the revised quote" in fork_commitment.json()["answer_text"]
+    assert "2026-01-12" in fork_commitment.json()["answer_text"]
 
     calendar = client.post(
         f"/api/posts/{calendar_id}/chat",
@@ -673,6 +695,15 @@ def test_seed_fixture_chats_surface_on_post_chat(client, demo_analyst_token, see
     )
     assert calendar_involved.status_code == 200, calendar_involved.text
     assert "does not name a Keyman" in calendar_involved.json()["answer_text"]
+
+    calendar_commitment = client.post(
+        f"/api/posts/{calendar_id}/chat",
+        json={"question": "What is the next commitment?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert calendar_commitment.status_code == 200, calendar_commitment.text
+    assert "Send Riverbend the revised delivery schedule" in calendar_commitment.json()["answer_text"]
+    assert "2026-01-09" in calendar_commitment.json()["answer_text"]
 
     missing = client.post(
         f"/api/posts/{seeded_db['own_private_post_id']}/chat",

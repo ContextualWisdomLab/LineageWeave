@@ -26,6 +26,7 @@ from lineageweave.knowledge_graph import (
 )
 from lineageweave.post_chat import (
     CANONICAL_CHAT_QUESTION,
+    CANONICAL_COMMITMENT_QUESTION,
     CANONICAL_INVOLVED_QUESTION,
     ChatSourceDocument,
     normalize_chat_question,
@@ -276,11 +277,23 @@ def seeded_demo_involved_chat() -> SeededChat:
     )
 
 
+def seeded_demo_commitment_chat() -> SeededChat:
+    """Synthetic Calendar answer for the demo public post -- not an LLM result."""
+    return SeededChat(
+        answer_text=(
+            "The next commitment is Send Northridge Grid the revised quote, "
+            "due 2026-01-12."
+        ),
+        cited_titles=("Demo public post",),
+    )
+
+
 def seeded_demo_exchanges() -> list[tuple[str, SeededChat]]:
-    """Both canned Ask Q&As `make seed` writes for the demo public post."""
+    """Canned Ask Q&As `make seed` writes for the demo public post."""
     return [
         (CANONICAL_CHAT_QUESTION, seeded_demo_chat()),
         (CANONICAL_INVOLVED_QUESTION, seeded_demo_involved_chat()),
+        (CANONICAL_COMMITMENT_QUESTION, seeded_demo_commitment_chat()),
     ]
 
 
@@ -302,12 +315,22 @@ def seeded_fixture_involved_chat(post_title: str) -> SeededChat | None:
     return _INVOLVED_CHATS.get(post_title)
 
 
+def seeded_fixture_commitment_chat(post_title: str) -> SeededChat | None:
+    """Synthetic Calendar answer for a reconstruct/calendar fixture title.
+
+    Not an LLM result. Returns None when the title has no seeded
+    commitment answer so an unknown question still 503s instead of
+    inventing a ticket.
+    """
+    return _COMMITMENT_CHATS.get(post_title)
+
+
 def seeded_fixture_exchanges(post_title: str) -> list[tuple[str, SeededChat]]:
     """Every canned Ask Q&A `make seed` writes for ``post_title``.
 
-    Order is what-happened first, then who-is-involved, so GET history
-    and the popup chips stay stable. Empty when the title is not a
-    known seed fixture.
+    Order is what-happened, who-is-involved, then next-commitment, so
+    GET history and the popup chips stay stable. Empty when the title
+    is not a known seed fixture.
     """
     exchanges: list[tuple[str, SeededChat]] = []
     happened = seeded_fixture_chat(post_title)
@@ -316,6 +339,9 @@ def seeded_fixture_exchanges(post_title: str) -> list[tuple[str, SeededChat]]:
     involved = seeded_fixture_involved_chat(post_title)
     if involved is not None:
         exchanges.append((CANONICAL_INVOLVED_QUESTION, involved))
+    commitment = seeded_fixture_commitment_chat(post_title)
+    if commitment is not None:
+        exchanges.append((CANONICAL_COMMITMENT_QUESTION, commitment))
     return exchanges
 
 
@@ -449,6 +475,58 @@ _INVOLVED_CHATS: dict[str, SeededChat] = {
     ),
     "Follow-up on the Riverbend order confirmation": _chat(
         "This Riverbend order follow-up does not name a Keyman.",
+        "Follow-up on the Riverbend order confirmation",
+    ),
+}
+
+_COMMITMENT_CHATS: dict[str, SeededChat] = {
+    "Initial site visit and project scope discussion": _chat(
+        "After the A-100 site visit the next commitment is Send Northridge "
+        "Grid the revised quote, due 2026-01-12.",
+        "Initial site visit and project scope discussion",
+    ),
+    "Pricing renegotiation follow-up": _chat(
+        "The next commitment is Send Northridge Grid the revised quote, "
+        "due 2026-01-12.",
+        "Pricing renegotiation follow-up",
+    ),
+    "Pricing renegotiation: revised quote sent": _chat(
+        "The revised quote is already sent; the next commitment is still "
+        "Send Northridge Grid the revised quote, due 2026-01-12.",
+        "Pricing renegotiation: revised quote sent",
+    ),
+    "Delivery schedule question raised": _chat(
+        "The next commitment on this delivery-schedule branch is Confirm "
+        "the delivery window with logistics, due 2026-01-16.",
+        "Delivery schedule question raised",
+    ),
+    "Delivery schedule confirmed with logistics": _chat(
+        "The delivery window is confirmed; the next open commitment on the "
+        "A-100 thread is Send Northridge Grid the revised quote, due 2026-01-12.",
+        "Delivery schedule confirmed with logistics",
+    ),
+    "Unrelated: annual account review": _chat(
+        "This annual account review does not have an open commitment.",
+        "Unrelated: annual account review",
+    ),
+    "Technical specification review meeting": _chat(
+        "The next commitment after the B-200 review meeting is Send "
+        "Westfield Power the revised specification, due 2026-01-14.",
+        "Technical specification review meeting",
+    ),
+    "Specification revision requested": _chat(
+        "The next commitment is Send Westfield Power the revised "
+        "specification, due 2026-01-14.",
+        "Specification revision requested",
+    ),
+    "Revised specification approved": _chat(
+        "The specification is approved; the next commitment is still Send "
+        "Westfield Power the revised specification, due 2026-01-14.",
+        "Revised specification approved",
+    ),
+    "Follow-up on the Riverbend order confirmation": _chat(
+        "The next commitment is Send Riverbend the revised delivery "
+        "schedule, due 2026-01-09.",
         "Follow-up on the Riverbend order confirmation",
     ),
 }

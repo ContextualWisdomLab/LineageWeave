@@ -14,15 +14,18 @@ import pytest
 
 from backend.app.post_chat_ingestion import (
     seeded_demo_chat,
+    seeded_demo_commitment_chat,
     seeded_demo_exchanges,
     seeded_demo_involved_chat,
     seeded_fixture_chat,
+    seeded_fixture_commitment_chat,
     seeded_fixture_exchanges,
     seeded_fixture_involved_chat,
 )
 from lineageweave.fixtures import ambiguous_commitment_post, fixture_thread_cast, sample_records
 from lineageweave.post_chat import (
     CANONICAL_CHAT_QUESTION,
+    CANONICAL_COMMITMENT_QUESTION,
     CANONICAL_INVOLVED_QUESTION,
     ChatSourceDocument,
     ContextualOrchestratorPostChatClient,
@@ -48,12 +51,20 @@ def test_normalize_chat_question_aliases_who_is_involved() -> None:
     assert normalize_chat_question("  who is involved here?  ") == involved
 
 
+def test_normalize_chat_question_aliases_next_commitment() -> None:
+    commitment = normalize_chat_question(CANONICAL_COMMITMENT_QUESTION)
+    assert commitment == "what is the next commitment"
+    assert normalize_chat_question("What's the next commitment?") == commitment
+    assert normalize_chat_question("  what is the next commitment here?  ") == commitment
+
+
 def test_every_sample_record_has_a_seeded_chat_answer() -> None:
     """Event Lineage click-through must have a stored Ask answer for
     every reconstruct fixture -- not a shared placeholder, not live LLM.
     """
     seen: set[str] = set()
     involved_seen: set[str] = set()
+    commitment_seen: set[str] = set()
     for rec in sample_records():
         chat = seeded_fixture_chat(rec.label)
         assert chat is not None, rec.label
@@ -74,7 +85,28 @@ def test_every_sample_record_has_a_seeded_chat_answer() -> None:
         else:
             assert "does not name a Keyman" in involved.answer_text
         questions = [question for question, _ in seeded_fixture_exchanges(rec.label)]
-        assert questions == [CANONICAL_CHAT_QUESTION, CANONICAL_INVOLVED_QUESTION]
+        assert questions == [
+            CANONICAL_CHAT_QUESTION,
+            CANONICAL_INVOLVED_QUESTION,
+            CANONICAL_COMMITMENT_QUESTION,
+        ]
+        commitment = seeded_fixture_commitment_chat(rec.label)
+        assert commitment is not None, rec.label
+        assert commitment.answer_text.strip()
+        assert rec.label in commitment.cited_titles
+        assert commitment.answer_text not in commitment_seen
+        commitment_seen.add(commitment.answer_text)
+        if rec.label == "Unrelated: annual account review":
+            assert "does not have an open commitment" in commitment.answer_text
+        elif rec.secondary_key == "proj-beta":
+            assert "Send Westfield Power the revised specification" in commitment.answer_text
+            assert "2026-01-14" in commitment.answer_text
+        elif rec.label == "Delivery schedule question raised":
+            assert "Confirm the delivery window with logistics" in commitment.answer_text
+            assert "2026-01-16" in commitment.answer_text
+        else:
+            assert "Send Northridge Grid the revised quote" in commitment.answer_text
+            assert "2026-01-12" in commitment.answer_text
     calendar_title, _ = ambiguous_commitment_post()
     calendar = seeded_fixture_chat(calendar_title)
     assert calendar is not None
@@ -82,17 +114,31 @@ def test_every_sample_record_has_a_seeded_chat_answer() -> None:
     calendar_involved = seeded_fixture_involved_chat(calendar_title)
     assert calendar_involved is not None
     assert "does not name a Keyman" in calendar_involved.answer_text
+    calendar_commitment = seeded_fixture_commitment_chat(calendar_title)
+    assert calendar_commitment is not None
+    assert "Send Riverbend the revised delivery schedule" in calendar_commitment.answer_text
+    assert "2026-01-09" in calendar_commitment.answer_text
+    assert [question for question, _ in seeded_fixture_exchanges(calendar_title)] == [
+        CANONICAL_CHAT_QUESTION,
+        CANONICAL_INVOLVED_QUESTION,
+        CANONICAL_COMMITMENT_QUESTION,
+    ]
     assert seeded_fixture_chat("not a fixture title") is None
     assert seeded_fixture_involved_chat("not a fixture title") is None
+    assert seeded_fixture_commitment_chat("not a fixture title") is None
     assert seeded_fixture_exchanges("not a fixture title") == []
     demo = seeded_demo_chat()
     assert "Northridge Grid" in demo.answer_text
     demo_involved = seeded_demo_involved_chat()
     assert "Ada West" in demo_involved.answer_text
     assert "Priya Nair" in demo_involved.answer_text
+    demo_commitment = seeded_demo_commitment_chat()
+    assert "Send Northridge Grid the revised quote" in demo_commitment.answer_text
+    assert "2026-01-12" in demo_commitment.answer_text
     assert [question for question, _ in seeded_demo_exchanges()] == [
         CANONICAL_CHAT_QUESTION,
         CANONICAL_INVOLVED_QUESTION,
+        CANONICAL_COMMITMENT_QUESTION,
     ]
 
 

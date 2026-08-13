@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.63.0] - 2026-08-14
+
+### Added
+
+- A third seeded Ask question, "What is the next commitment?", on
+  every fixture that already answers the first two chips. A-100
+  names Send Northridge Grid the revised quote due 2026-01-12;
+  B-200 names the Westfield specification due 2026-01-14; Riverbend
+  names its calendar ticket due 2026-01-09; rec-006 says it has no
+  open commitment. After `make seed` the popup chips connect Ask
+  to the same dated tickets home Calendar already lists.
+
 ## [0.62.0] - 2026-08-14
 
 ### Added
