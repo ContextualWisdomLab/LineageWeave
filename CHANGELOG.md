@@ -4,6 +4,63 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-08-13
+
+### Fixed
+
+- Embedding, adjudication, and vision clients now POST through a shared
+  `http_client.post_json` helper that allowlists `http`/`https` and never
+  calls `urllib.request.urlopen`. That closes the `file://` read concern
+  Semgrep's `dynamic-urllib-use-detected` rule was flagging on the
+  operator-configured base URLs. HTTPS posts wrap the connected socket
+  with a certifi-backed `SSLContext` instead of constructing
+  `http.client.HTTPSConnection`, so certificate verification is explicit
+  on the Python 3.10+ runtime this project requires.
+
+### Added
+
+- `lineageweave/chunking.py`: semantic-unit chunking so the embedding
+  channel compares meaning-identifiable units instead of whole flattened
+  documents -- `chunk_by_paragraph` (Hearst, 1997, TextTiling subtopic
+  boundaries), `chunk_by_sentence`, `chunk_by_dom` (WHATWG HTML Living
+  Standard sectioning/flow block elements), and `chunk_by_conversation_turn`
+  (RFC 5322 sender/receiver boundaries).
+- `embedding_client.chunked_max_similarity`: chunks two documents, embeds
+  every chunk, and returns the single highest-scoring pair -- the standard
+  passage-retrieval strategy for "a relevant unit is buried in a longer
+  document." Degrades to plain whole-text embedding for any document that
+  chunks to zero or one piece (this project's real short-title dataset
+  behaves exactly as it did before chunking existed).
+- Real-provider test proving chunking works, not just that it type-checks:
+  a short relevant paragraph buried inside a longer synthetic document
+  scored higher via `chunked_max_similarity` than via whole-document
+  embedding, against the live embedding provider.
+- `docs/lineage-bi-research-notes.md`: new "Chunking" section with the
+  four units' grounding and an explicit, honest note that this project's
+  real dataset's only free-text field is too short to need chunking in
+  practice -- the module exists for richer content sources (e.g. the raw
+  MHTML artifacts that dataset's records were derived from).
+- `lineageweave/image_content.py`: pluggable vision channel for base64
+  images embedded in DOM content -- real OCR (Li et al., 2023, TrOCR) and
+  object recognition/tagging (Radford et al., 2021, CLIP) via
+  `OpenAiCompatibleVisionClient`, same never-fake-a-missing-channel
+  discipline as the embedding/adjudication clients. `chunk_by_dom` now
+  extracts embedded images as `"image"` chunks interleaved with text
+  chunks in true document order, so an image's position relative to its
+  surrounding text is preserved and reconstructable.
+- Real-provider test proving OCR works, not just that it type-checks: a
+  real PNG generated with real rendered text (not a fixture file) was
+  read back correctly by `OpenAiCompatibleVisionClient` against the live
+  vision-capable model.
+- `docs/image-content-schema.md`: proposed DB schema (snake_case, 2+ word
+  object names) for persisting and searching extracted image content,
+  designed so a text/tag search hit stays traceable to which document and
+  which position produced it, and so the same image (by content hash) is
+  never *stored* twice (the primary key guarantees that part). Avoiding a
+  duplicate vision-provider *call* for two concurrent ingests of the same
+  new image is a separate concern the schema documents but does not solve
+  by itself -- a real write path still needs an atomic claim/lease step.
+
 ## [0.2.0] - 2026-08-13
 
 ### Added
