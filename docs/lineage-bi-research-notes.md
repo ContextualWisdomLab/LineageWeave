@@ -233,6 +233,8 @@ WHATWG. (2026). *HTML Living Standard — sections 4.3 (sectioning content) and 
 
 Zawinski, J. (1997). *Message threading* [Design note]. jwz.org. https://www.jwz.org/doc/threading.html
 
+Zelenko, D., Aone, C., & Richardella, A. (2003). Kernel methods for relation extraction. *Journal of Machine Learning Research*, *3*, 1083-1106.
+
 Additional context on the Fugu / Conductor / TRINITY test-time-compute-allocation research the `llm` channel's design follows is maintained in
 [contextual-orchestrator's own literature register](https://github.com/ContextualWisdomLab/contextual-orchestrator/blob/main/docs/architecture.md)
 rather than duplicated here, so the two repos do not drift out of sync.
@@ -265,10 +267,31 @@ threshold yields a five-node related-set from a well-connected "hub" node
 and a one-node related-set from a sparsely-connected node, with no hop-count
 constant anywhere in the algorithm or the test.
 
-## Staged for later phases (cited now so they are not lost)
+## Entity-relationship classification and corporate hierarchy resolution (Phase 3)
 
-- **Bhattacharya & Getoor (2007)** -- collective entity resolution --
-  backs the corporate-hierarchy-tree feature (resolving "Acme Group" /
-  "Acme Electronics Korea" / "Acme Electronics Gwangju Plant" as related
-  entities in one collective inference pass rather than independent
-  string-matching per pair). Staged for Phase 3.
+`lineageweave/entity_relationship_classification.py` treats "is this named
+organization a customer, competitor, partner, ...?" as relation
+extraction (Zelenko, Aone, & Richardella, 2003): the relationship between
+the post author's own organization and each named entity, not a property
+of the string alone -- the same organization can be classified differently
+across two different posts (or, per the fixture used in its real-provider
+test, could plausibly be read either way within one post, e.g. a current
+customer whose new division has started competing). The org's own
+`voc`/`vom`/`vop`/`vocc`/`voco`/`vos` vocabulary maps directly onto this as
+the classifier's closed output set; an unrecognized code from the model is
+dropped rather than guessed, same discipline as Keyman extraction.
+
+`lineageweave/corporate_hierarchy_resolution.py` implements the candidate-
+generation and similarity-scoring stage of collective entity resolution
+(Bhattacharya & Getoor, 2007) -- resolving "Acme Electronics Korea Ltd." or
+"Acme Elec Korea" mentioned in free text to the existing `corporate_entity`
+row a human would recognize it as, via normalized string similarity, with
+an explicit `None` (not a guess) when nothing clears the similarity
+threshold. This is honestly the *first* stage of what Bhattacharya &
+Getoor call collective resolution, not the full joint-inference version:
+a genuinely collective resolver would also weigh which other entities are
+co-mentioned in the same post against each candidate's own known
+affiliates, and could resolve two different ambiguous mentions in one post
+jointly. That joint step is a documented upgrade path, not yet needed --
+nothing in this product's real usage so far has shown single-mention
+similarity scoring under- or over-resolving.

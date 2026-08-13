@@ -7,17 +7,21 @@ See ARCHITECTURE.md for the design and docs/lineage-bi-research-notes.md
 for the literature this design is grounded in.
 """
 
+from .corporate_hierarchy_resolution import resolve_corporate_entity
+from .entity_relationship_classification import OrganizationRelationship
 from .knowledge_graph import random_walk_with_restart, select_related_nodes
 from .models import Edge, Record, Tree
 from .reconstruct import reconstruct
 
 __all__ = [
     "Edge",
+    "OrganizationRelationship",
     "Record",
     "Tree",
     "random_walk_with_restart",
     "reconstruct",
+    "resolve_corporate_entity",
     "select_related_nodes",
 ]
 
-__version__ = "0.9.0"
+__version__ = "0.10.0"

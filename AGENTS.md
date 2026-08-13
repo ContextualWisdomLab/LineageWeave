@@ -44,14 +44,15 @@ does it (`gh repo list ContextualWisdomLab`).
 
 ## Pluggable channels: never fake a missing signal
 
-`NullEmbeddingClient`, `NullAdjudicationClient`, and
-`NullKeymanExtractionClient` (and any new channel client you add) must
-set `available = False` and make their channel dropped + renormalized
-(`reconstruct.active_weights`), never silently return a placeholder
-score or invented Keyman. A missing signal and a confidently-negative
-signal are different things. Keyman extraction goes through
-contextual-orchestrator the same way adjudication does -- never a raw
-LLM API.
+`NullEmbeddingClient`, `NullAdjudicationClient`,
+`NullKeymanExtractionClient`, and `NullEntityRelationshipClient` (and
+any new channel client you add) must set `available = False` and make
+their channel dropped + renormalized (`reconstruct.active_weights`),
+never silently return a placeholder score, invented Keyman, or guessed
+relationship. A missing signal and a confidently-negative signal are
+different things. Keyman extraction and entity-relationship
+classification go through contextual-orchestrator the same way
+adjudication does -- never a raw LLM API.
 
 ## Tests
 

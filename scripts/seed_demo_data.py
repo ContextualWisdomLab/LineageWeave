@@ -86,7 +86,13 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
                     ('node_type', 'node_post', 'Post', 2),
                     ('edge_type', 'edge_mention', 'Mentioned in', 0),
                     ('edge_type', 'edge_affiliation', 'Affiliated with', 1),
-                    ('edge_type', 'edge_co_mention', 'Co-mentioned', 2)
+                    ('edge_type', 'edge_co_mention', 'Co-mentioned', 2),
+                    ('entity_relationship_type', 'rel_voc', 'Voice of Customer', 0),
+                    ('entity_relationship_type', 'rel_vom', 'Voice of Market', 1),
+                    ('entity_relationship_type', 'rel_vop', 'Voice of Partner', 2),
+                    ('entity_relationship_type', 'rel_vocc', 'Voice of Customer''s Customer', 3),
+                    ('entity_relationship_type', 'rel_voco', 'Voice of Competitor', 4),
+                    ('entity_relationship_type', 'rel_vos', 'Voice of Supplier', 5)
                 on conflict (lookup_code) do nothing
                 """
             )

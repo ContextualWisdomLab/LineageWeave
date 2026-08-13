@@ -112,7 +112,13 @@ def seeded_db(demo_analyst_token):
                 "('node_type', 'node_post', 'Post'), "
                 "('edge_type', 'edge_mention', 'Mentioned in'), "
                 "('edge_type', 'edge_affiliation', 'Affiliated with'), "
-                "('edge_type', 'edge_co_mention', 'Co-mentioned')"
+                "('edge_type', 'edge_co_mention', 'Co-mentioned'), "
+                "('entity_relationship_type', 'rel_voc', 'Voice of Customer'), "
+                "('entity_relationship_type', 'rel_vom', 'Voice of Market'), "
+                "('entity_relationship_type', 'rel_vop', 'Voice of Partner'), "
+                "('entity_relationship_type', 'rel_vocc', 'Voice of Customer''s Customer'), "
+                "('entity_relationship_type', 'rel_voco', 'Voice of Competitor'), "
+                "('entity_relationship_type', 'rel_vos', 'Voice of Supplier')"
             )
             cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
@@ -434,6 +440,41 @@ def test_extract_keymen_persists_a_real_llm_extraction(client, demo_analyst_toke
     assert keymen_response.status_code == 200
     persisted_names = {person["person_name"] for person in keymen_response.json()["keymen"]}
     assert persisted_names == names
+
+    # ambiguous_keyman_post's Priya Nair is affiliated with "Northridge
+    # Grid" and "Northridge Holdings" -- extract-keymen should have fed
+    # those into the entity-relationship classifier and persisted a real
+    # classification for each, readable back via the counterparties endpoint.
+    counterparty_names = {c["organization_name"] for c in body_json["counterparties"]}
+    assert counterparty_names == {"Northridge Grid", "Northridge Holdings"}
+    valid_codes = {"rel_voc", "rel_vom", "rel_vop", "rel_vocc", "rel_voco", "rel_vos"}
+    assert all(c["relationship_type_code"] in valid_codes for c in body_json["counterparties"])
+
+    counterparties_response = client.get(
+        f"/api/posts/{new_post_id}/counterparties", headers={"Authorization": f"Bearer {demo_analyst_token}"}
+    )
+    assert counterparties_response.status_code == 200
+    persisted_counterparty_names = {
+        c["counterparty_entity_name"] for c in counterparties_response.json()["counterparties"]
+    }
+    assert persisted_counterparty_names == counterparty_names
+
+
+def test_counterparties_endpoint_is_empty_before_extraction(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/counterparties",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["counterparties"] == []
+
+
+def test_other_corp_private_post_counterparties_are_forbidden(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['other_private_post_id']}/counterparties",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
 
 
 def test_unknown_keyman_is_not_found(client, demo_analyst_token) -> None:

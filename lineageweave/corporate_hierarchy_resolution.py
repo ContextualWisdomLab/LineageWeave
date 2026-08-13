@@ -1,0 +1,86 @@
+"""Resolves a free-text organization name mentioned in a post to an
+existing `corporate_entity` row, even when the string doesn't match
+exactly -- an abbreviation ("Acme Elec Korea"), a trailing legal suffix
+("Acme Electronics Korea Ltd."), or a subsidiary's own trading name should
+still resolve to the same entity a human would recognize.
+
+Grounded in Bhattacharya & Getoor (2007): collective entity resolution
+argues that ambiguous references are best resolved using relational
+context (which other entities/records co-occur with this one), not string
+similarity in isolation. This module implements the practical first stage
+most collective-ER pipelines still need -- candidate generation and
+similarity-based scoring against known entities -- documented honestly as
+that stage, not the full joint/collective inference: a genuinely collective
+resolver would also weigh which OTHER organizations and people are
+co-mentioned in the same post against the target entity's own known
+affiliates, and could resolve two *different* ambiguous mentions in the
+same post jointly rather than independently. That joint step is a real
+upgrade path once real usage shows single-mention similarity scoring
+under- or over-resolving in practice -- it is not implemented here because
+nothing yet demonstrates the need for it over this simpler, cheaper stage.
+"""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Sequence
+from dataclasses import dataclass
+from difflib import SequenceMatcher
+
+DEFAULT_MIN_SIMILARITY = 0.6
+
+# Legal-entity suffixes stripped before comparison so "Acme Electronics
+# Korea Ltd." and "Acme Electronics Korea" don't get penalized for a
+# difference that carries no identifying information.
+_CORPORATE_SUFFIXES = ("inc", "llc", "corp", "co", "ltd", "gmbh", "plc", "kk")
+_SUFFIX_PATTERN = re.compile(r"\b(?:" + "|".join(_CORPORATE_SUFFIXES) + r")\b")
+_PUNCTUATION_PATTERN = re.compile(r"[.,]")
+_WHITESPACE_PATTERN = re.compile(r"\s+")
+
+
+def normalize_organization_name(name: str) -> str:
+    """Lowercases, strips punctuation and common legal-entity suffixes, and
+    collapses whitespace -- the normalization both sides of a similarity
+    comparison go through.
+    """
+    lowered = _PUNCTUATION_PATTERN.sub("", name.strip().lower())
+    lowered = _SUFFIX_PATTERN.sub("", lowered)
+    return _WHITESPACE_PATTERN.sub(" ", lowered).strip()
+
+
+@dataclass(frozen=True)
+class CorporateEntityCandidate:
+    """One existing `corporate_entity` row eligible to resolve against."""
+
+    corporate_entity_id: str
+    entity_name: str
+
+
+def resolve_corporate_entity(
+    mentioned_name: str,
+    candidates: Sequence[CorporateEntityCandidate],
+    min_similarity: float = DEFAULT_MIN_SIMILARITY,
+) -> str | None:
+    """Returns the best-matching candidate's `corporate_entity_id`, or
+    `None` if no candidate clears `min_similarity`.
+
+    Returning `None` for a genuine non-match is the point, not a failure
+    case to work around: a wrong hierarchy link corrupts every downstream
+    Knowledge Graph traversal through it, so "no confident match" must
+    stay a real, distinguishable outcome from "matched entity X."
+    """
+    normalized_mention = normalize_organization_name(mentioned_name)
+    if not normalized_mention:
+        return None
+
+    best_id: str | None = None
+    best_score = 0.0
+    for candidate in candidates:
+        score = SequenceMatcher(
+            None, normalized_mention, normalize_organization_name(candidate.entity_name)
+        ).ratio()
+        if score > best_score:
+            best_score = score
+            best_id = candidate.corporate_entity_id
+
+    return best_id if best_score >= min_similarity else None

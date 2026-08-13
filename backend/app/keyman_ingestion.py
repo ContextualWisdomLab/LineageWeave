@@ -3,29 +3,34 @@
 constraint on person_name alone, since two different real people can
 share a name, but re-running extraction on the same post should not keep
 creating duplicate rows for the same extracted mention),
-`person_affiliation` (N:N, matched to a real `corporate_entity` by exact
-case-insensitive name where possible), and `post_person_mention`.
-Finishes by calling `knowledge_graph.persist_edges_for_post` so the
-Knowledge Graph edges are computed from the same write, not a separate
-manual step.
+`person_affiliation` (N:N, matched to a real `corporate_entity` via
+similarity-based resolution -- see
+`lineageweave.corporate_hierarchy_resolution`, so an abbreviation or
+trailing legal suffix still resolves, not just an exact string match),
+and `post_person_mention`. Finishes by calling
+`knowledge_graph.persist_edges_for_post` so the Knowledge Graph edges are
+computed from the same write, not a separate manual step.
 """
 
 from __future__ import annotations
 
 import asyncpg
 
+from lineageweave.corporate_hierarchy_resolution import (
+    CorporateEntityCandidate,
+    resolve_corporate_entity,
+)
 from lineageweave.keyman_extraction import KeymanExtractionClient, PersonMention
 
 from .knowledge_graph import persist_edges_for_post
 
 
-async def _resolve_corporate_entity_id(conn: asyncpg.Connection, organization_name: str) -> str | None:
-    """Return the matching ``corporate_entity`` id, or None if the name is free text."""
-    row = await conn.fetchrow(
-        "select corporate_entity_id from corporate_entity where lower(entity_name) = lower($1)",
-        organization_name,
-    )
-    return str(row["corporate_entity_id"]) if row is not None else None
+async def _load_corporate_entity_candidates(conn: asyncpg.Connection) -> list[CorporateEntityCandidate]:
+    """All cataloged orgs, so affiliation names can resolve by similarity."""
+    rows = await conn.fetch("select corporate_entity_id, entity_name from corporate_entity")
+    return [
+        CorporateEntityCandidate(str(row["corporate_entity_id"]), row["entity_name"]) for row in rows
+    ]
 
 
 async def _upsert_person(conn: asyncpg.Connection, mention: PersonMention) -> str:
@@ -59,6 +64,7 @@ async def ingest_post_keymen(
     first, same discipline as every other pluggable channel in this repo.
     """
     mentions = client.extract(post_title, post_body)
+    candidates = await _load_corporate_entity_candidates(conn)
 
     for mention in mentions:
         person_id = await _upsert_person(conn, mention)
@@ -68,7 +74,7 @@ async def ingest_post_keymen(
             person_id,
         )
         for organization_name in mention.affiliated_organization_names:
-            corporate_entity_id = await _resolve_corporate_entity_id(conn, organization_name)
+            corporate_entity_id = resolve_corporate_entity(organization_name, candidates)
             await conn.execute(
                 """
                 insert into person_affiliation (person_id, affiliated_organization_name, affiliated_corporate_entity_id)
