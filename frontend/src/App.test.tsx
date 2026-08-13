@@ -675,6 +675,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByText(/our_side/)).not.toBeInTheDocument();
     expect(screen.getByText("unresolved")).toBeInTheDocument();
     expect(screen.getByText(/Voice of Customer\s*\(voc\)/)).toBeInTheDocument();
+    expect(screen.getByLabelText("VOC verification: Northridge Grid")).toHaveTextContent("Not yet checked");
     expect(
       screen.getByText(
         "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
@@ -704,7 +705,12 @@ describe("App, authenticated", () => {
     render(<App />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await waitFor(() => expect(screen.getByText("Not yet checked")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByLabelText("VOC verification: Northridge Grid")).toHaveTextContent("Not yet checked"),
+    );
+    expect(screen.getByLabelText("Counterparty verification: Northridge Grid")).toHaveTextContent(
+      "Not yet checked",
+    );
     await userEvent.click(screen.getByRole("button", { name: /verify against web search/i }));
 
     await waitFor(() =>

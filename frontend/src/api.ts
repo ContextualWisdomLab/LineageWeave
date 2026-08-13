@@ -59,6 +59,8 @@ export interface VocEvidenceCounterparty {
   relationship_type_code: string;
   relationship_label: string;
   evidence_excerpt: string | null;
+  verification_status_code?: string;
+  verification_evidence_url?: string | null;
 }
 
 export interface VocEvidence {

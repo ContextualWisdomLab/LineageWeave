@@ -586,6 +586,36 @@ def test_voc_evidence_quotes_the_sentence_that_names_the_org(client, demo_analys
     assert body["counterparties"] == []
 
 
+def test_voc_evidence_includes_verification_status(client, demo_analyst_token, seeded_db) -> None:
+    """GET /voc-evidence must carry the counterparty verification badge
+    fields -- the VOC panel is not a second unverified claim list.
+    """
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into post_counterparty_entity "
+                "(post_id, counterparty_entity_name, relationship_type_code, "
+                " verification_status_code, verification_evidence_url) "
+                "values (%s, 'Northridge Grid', 'rel_voc', 'verify_pending', null)",
+                (seeded_db["own_private_post_id"],),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/voc-evidence",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    rows = response.json()["counterparties"]
+    assert len(rows) == 1
+    assert rows[0]["counterparty_entity_name"] == "Northridge Grid"
+    assert rows[0]["verification_status_code"] == "verify_pending"
+    assert rows[0]["verification_evidence_url"] is None
+
+
 def test_other_corp_private_voc_evidence_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         f"/api/posts/{seeded_db['other_private_post_id']}/voc-evidence",
