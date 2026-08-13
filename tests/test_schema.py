@@ -108,19 +108,19 @@ def test_corporate_hierarchy_recursive_query_returns_correct_shape(schema_db) ->
             "('corporate_entity_level', 'plant', 'Plant')"
         )
         cur.execute(
-            "insert into corporate_entity (entity_name, entity_level_code) "
-            "values ('Acme Group', 'group') returning corporate_entity_id",
+            "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
+            "values ('ACME-GROUP', 'Acme Group', 'group') returning corporate_entity_id",
         )
         group_id = cur.fetchone()[0]
         cur.execute(
-            "insert into corporate_entity (parent_entity_id, entity_name, entity_level_code) "
-            "values (%s, 'Acme Electronics Korea', 'company') returning corporate_entity_id",
+            "insert into corporate_entity (parent_entity_id, corporate_entity_code, entity_name, entity_level_code) "
+            "values (%s, 'ACME-KOREA', 'Acme Electronics Korea', 'company') returning corporate_entity_id",
             (group_id,),
         )
         company_id = cur.fetchone()[0]
         cur.execute(
-            "insert into corporate_entity (parent_entity_id, entity_name, entity_level_code) "
-            "values (%s, 'Acme Electronics Gwangju Plant', 'plant')",
+            "insert into corporate_entity (parent_entity_id, corporate_entity_code, entity_name, entity_level_code) "
+            "values (%s, 'ACME-GWANGJU', 'Acme Electronics Gwangju Plant', 'plant')",
             (company_id,),
         )
         cur.execute(
@@ -152,7 +152,8 @@ def test_invalid_lookup_code_is_rejected_by_a_real_foreign_key(schema_db) -> Non
     with schema_db.cursor() as cur:
         with pytest.raises(psycopg2.errors.ForeignKeyViolation):
             cur.execute(
-                "insert into corporate_entity (entity_name, entity_level_code) values ('Bad Entity', 'not_a_real_code')"
+                "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
+                "values ('BAD-ENTITY', 'Bad Entity', 'not_a_real_code')"
             )
     schema_db.rollback()
 

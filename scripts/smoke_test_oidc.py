@@ -9,7 +9,7 @@ token's RS256 signature, issuer, and expiry, then asserting the corp_code /
 pu_code custom claims (the attributes the eventual FastAPI backend will read
 for ABAC/RBAC scoping) came through.
 
-Usage: python3 scripts/smoke_test_oidc.py [--base-url http://localhost:8080]
+Usage: python3 scripts/smoke_test_oidc.py [--base-url http://localhost:18080]
 """
 
 from __future__ import annotations
@@ -118,8 +118,9 @@ def run(base_url: str) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--base-url", default="http://localhost:8080")
-    return run(parser.parse_args().base_url)
+    parser.add_argument("--base-url", default="http://localhost:18080")
+    args = parser.parse_args()
+    return run(args.base_url)
 
 
 if __name__ == "__main__":
