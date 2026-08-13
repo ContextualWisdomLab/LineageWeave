@@ -1032,3 +1032,111 @@ def test_post_activity_on_other_corp_private_post_is_forbidden(
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert response.status_code == 403
+
+
+def test_derive_commitment_requires_post_admin(client, demo_analyst_token, seeded_db) -> None:
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/derive-commitment",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_calendar_is_empty_before_any_commitment(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get("/api/calendar", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 200
+    assert response.json()["commitments"] == []
+
+
+def test_calendar_hides_other_corp_private_commitments_and_sorts_by_due_date(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Two dated tickets inserted directly (own-corp private and
+    other-corp private, in reverse due-date order); the calendar must
+    show only the visible one, proving both the ABAC filter and the
+    soonest-first ordering.
+    """
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into issue_ticket (post_id, ticket_status_code, ticket_title, due_date, commitment_summary) "
+                "values (%s, 'open', 'Visible commitment', '2026-03-01', 'Send the revised quote')",
+                (seeded_db["own_private_post_id"],),
+            )
+            cur.execute(
+                "insert into issue_ticket (post_id, ticket_status_code, ticket_title, due_date, commitment_summary) "
+                "values (%s, 'open', 'Hidden commitment', '2026-01-01', 'Should never be visible')",
+                (seeded_db["other_private_post_id"],),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get("/api/calendar", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 200
+    commitments = response.json()["commitments"]
+    assert len(commitments) == 1
+    assert commitments[0]["ticket_title"] == "Visible commitment"
+    assert commitments[0]["due_date"] == "2026-03-01"
+    assert commitments[0]["commitment_summary"] == "Send the revised quote"
+    assert "visibility_code" not in commitments[0]
+    assert "corporate_entity_id" not in commitments[0]
+
+
+@pytest.mark.skipif(
+    not (_ORCHESTRATOR_BASE_URL and _ORCHESTRATOR_API_KEY),
+    reason="set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run",
+)
+def test_derive_commitment_persists_a_real_llm_derivation(client, demo_analyst_token, seeded_db) -> None:
+    """The full write path, end to end: a real LLM call through a live
+    contextual-orchestrator resolves a relative deadline ("by next
+    Friday") against a reference date, persists it as an issue_ticket,
+    and the calendar surfaces it -- not a mocked extraction client.
+    """
+    os.environ["ORCHESTRATOR_BASE_URL"] = _ORCHESTRATOR_BASE_URL
+    os.environ["ORCHESTRATOR_API_KEY"] = _ORCHESTRATOR_API_KEY
+
+    from lineageweave.fixtures import ambiguous_commitment_post
+
+    title, body = ambiguous_commitment_post()
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('permission', 'post_admin', 'Administer posts') on conflict (lookup_code) do nothing"
+            )
+            cur.execute("select access_role_id from account_role_assignment limit 1")
+            role_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into role_permission (access_role_id, permission_code) values (%s, 'post_admin') "
+                "on conflict do nothing",
+                (role_id,),
+            )
+            cur.execute(
+                "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public' "
+                "from source_post where post_id = %s "
+                "returning post_id",
+                (title, body, seeded_db["own_private_post_id"]),
+            )
+            new_post_id = str(cur.fetchone()[0])
+    finally:
+        admin_conn.close()
+
+    response = client.post(
+        f"/api/posts/{new_post_id}/derive-commitment",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    body_json = response.json()
+    assert body_json["has_commitment"] is True
+    assert body_json["ticket"]["due_date"] is not None
+    assert body_json["ticket"]["commitment_summary"]
+
+    calendar_response = client.get("/api/calendar", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    ticket_ids = {c["issue_ticket_id"] for c in calendar_response.json()["commitments"]}
+    assert body_json["ticket"]["issue_ticket_id"] in ticket_ids

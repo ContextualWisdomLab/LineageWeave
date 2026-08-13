@@ -239,11 +239,20 @@ create table issue_ticket (
     ticket_status_code text not null references common_lookup_value (lookup_code),
     ticket_title text not null,
     assigned_account_id uuid references user_account (user_account_id),
+    -- When set, this ticket is also a calendar/to-do entry (GET /api/calendar) --
+    -- e.g. a customer commitment an LLM derived from the post's own text via
+    -- POST /api/posts/{post_id}/derive-commitment. NULL for an ordinary
+    -- ticket with no date attached.
+    due_date timestamptz,
+    -- LLM-authored description of the commitment this ticket represents
+    -- (distinct from ticket_title, which may be a shorter user-facing label).
+    commitment_summary text,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
 
 create index issue_ticket_post_idx on issue_ticket (post_id);
+create index issue_ticket_due_date_idx on issue_ticket (due_date) where due_date is not null;
 
 -- ---------------------------------------------------------------------
 -- Post-to-post lineage: the persisted output of lineageweave.reconstruct

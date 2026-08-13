@@ -3,7 +3,9 @@ import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
   createPostTicket,
+  deriveCommitment,
   extractPostKeymen,
+  fetchCalendar,
   fetchLineageGraph,
   fetchMe,
   fetchPost,
@@ -21,6 +23,7 @@ import {
   updateTicketStatus,
   type ActivityEvent,
   type AffiliateNode,
+  type CalendarEntry,
   type ChatAnswer,
   type Counterparty,
   type IssueTicket,
@@ -333,6 +336,7 @@ function IssueTicketPanel({ postId, accessToken }: { postId: string; accessToken
   const [newTitle, setNewTitle] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [deriving, setDeriving] = useState(false);
 
   function reload() {
     fetchPostTickets(accessToken, postId)
@@ -371,9 +375,31 @@ function IssueTicketPanel({ postId, accessToken }: { postId: string; accessToken
     }
   }
 
+  async function handleDeriveCommitment() {
+    setDeriving(true);
+    setError(null);
+    try {
+      const result = await deriveCommitment(accessToken, postId);
+      if (result.has_commitment) {
+        reload();
+      } else {
+        setError("No customer commitment found in this post.");
+      }
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setDeriving(false);
+    }
+  }
+
   return (
     <section className="popup-section">
-      <h3>이슈 티켓 (Issue tickets)</h3>
+      <div className="lineage-home-header">
+        <h3>이슈 티켓 (Issue tickets)</h3>
+        <button onClick={handleDeriveCommitment} disabled={deriving}>
+          {deriving ? "Deriving..." : "Derive commitment"}
+        </button>
+      </div>
       {error && <p className="error">{error}</p>}
       {tickets === null ? (
         <p>Loading tickets...</p>
@@ -383,7 +409,10 @@ function IssueTicketPanel({ postId, accessToken }: { postId: string; accessToken
         <ul className="ticket-list">
           {tickets.map((ticket) => (
             <li key={ticket.issue_ticket_id} className="ticket-list-item">
-              <span className="ticket-title">{ticket.ticket_title}</span>
+              <span className="ticket-title">
+                {ticket.ticket_title}
+                {ticket.due_date && <span className="post-badge"> due {ticket.due_date}</span>}
+              </span>
               <select
                 value={ticket.ticket_status_code}
                 onChange={(event) => handleStatusChange(ticket, event.target.value)}
@@ -615,6 +644,50 @@ function PostDetailPopup({
   );
 }
 
+function CalendarPanel({
+  accessToken,
+  onSelectPost,
+}: {
+  accessToken: string;
+  onSelectPost: (postId: string) => void;
+}) {
+  const [commitments, setCommitments] = useState<CalendarEntry[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchCalendar(accessToken)
+      .then((r) => setCommitments(r.commitments))
+      .catch((err) => setError(String(err)));
+  }, [accessToken]);
+
+  if (error) return <p className="error">{error}</p>;
+  if (commitments === null) return <p>Loading calendar...</p>;
+
+  return (
+    <section className="popup-section lineage-home">
+      <h2>Calendar</h2>
+      {commitments.length === 0 ? (
+        <p className="popup-placeholder">No upcoming commitments.</p>
+      ) : (
+        <ul className="ticket-list">
+          {commitments.map((entry) => (
+            <li key={entry.issue_ticket_id} className="ticket-list-item">
+              <button
+                className="post-list-item"
+                aria-label={`Open commitment for: ${entry.post_title}`}
+                onClick={() => onSelectPost(entry.post_id)}
+              >
+                <span className="ticket-title">{entry.commitment_summary ?? entry.ticket_title}</span>
+                <span className="post-badge">due {entry.due_date}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function PostList({ accessToken }: { accessToken: string }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
@@ -651,6 +724,7 @@ function PostList({ accessToken }: { accessToken: string }) {
 
   return (
     <>
+      <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
           <h2>Event Lineage</h2>

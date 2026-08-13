@@ -335,3 +335,37 @@ real `valkey` container over the internal `redis://valkey:6379/0` DNS
 name, confirmed the events on the activity endpoint, and independently
 confirmed the stream's existence and length with `valkey-cli` directly
 against the `valkey` container.
+
+## Phase 5c: customer commitment derivation and the calendar
+
+The brief asked for two separate-sounding things: issues auto-registered
+as a to-do/calendar entry with LLM-authored content, and an LLM that
+derives customer commitments from a post's text. Treated as one design,
+not two: a derived commitment *is* the ticket that appears on the
+calendar (`issue_ticket.due_date` + `commitment_summary`), reusing the
+Phase 5 ticket infrastructure rather than inventing a parallel "to-do"
+concept (ponytail: extend, don't duplicate).
+
+`lineageweave/commitment_extraction.py` is the pluggable channel --
+same discipline as `keyman_extraction.py`/`post_summary.py`:
+`NullCommitmentExtractionClient` makes the channel unavailable, never
+invents a commitment. A commitment specifically needs a resolved
+deadline, so the prompt is given a reference date and asked to resolve
+relative phrases ("by next Friday") against it -- closer to
+temporal-expression normalization (Chambers & Jurafsky, 2008) than to
+ACE-style key-event extraction (Doddington et al., 2004), which is why
+it is its own client rather than a field bolted onto `post_summary`'s
+key events. `has_commitment: false` is a legitimate result, not a parse
+failure, the same missing-vs-empty discipline every parser in this repo
+already keeps.
+
+`POST /api/posts/{post_id}/derive-commitment` (`post_admin`, a real
+LLM-call write action) persists the result as an `issue_ticket`;
+`GET /api/calendar` lists every dated ticket the account may see across
+all posts, soonest first, ABAC-filtered per row the same way
+`read_post_lineage` filters cross-post candidates. Caught a real bug
+during the real-LLM verification pass (not the parser unit tests, which
+never touch the database): asyncpg binds a `timestamptz` parameter to a
+`date`/`datetime` instance, not a raw ISO string, and does not
+implicitly cast one -- `create_ticket` now parses `due_date` before
+binding, and a malformed date is a 422, not a 500.

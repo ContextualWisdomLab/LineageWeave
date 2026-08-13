@@ -106,8 +106,20 @@ export interface IssueTicket {
   ticket_status_code: string;
   ticket_title: string;
   assigned_account_id: string | null;
+  due_date: string | null;
+  commitment_summary: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface CalendarEntry extends IssueTicket {
+  post_title: string;
+}
+
+export interface DerivedCommitment {
+  post_id: string;
+  has_commitment: boolean;
+  ticket: IssueTicket | null;
 }
 
 export interface ActivityEvent {
@@ -265,4 +277,12 @@ export function fetchPostActivity(
   postId: string,
 ): Promise<{ events: ActivityEvent[] }> {
   return backendFetch(`/api/posts/${postId}/activity`, accessToken);
+}
+
+export function deriveCommitment(accessToken: string, postId: string): Promise<DerivedCommitment> {
+  return backendFetch(`/api/posts/${postId}/derive-commitment`, accessToken, { method: "POST" });
+}
+
+export function fetchCalendar(accessToken: string): Promise<{ commitments: CalendarEntry[] }> {
+  return backendFetch("/api/calendar", accessToken);
 }
