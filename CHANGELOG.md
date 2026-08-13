@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.39.0] - 2026-08-14
+
+### Added
+
+- Affiliate-tree people are the same Keyman walk as the Keyman panel.
+  Clicking `Ada West` or `Priya Nair` on the tree loads related nodes
+  (`GET /api/keymen/{id}/related`) so the buyer does not have to find
+  the same name again under Keyman.
+
 ## [0.38.0] - 2026-08-14
 
 ### Added

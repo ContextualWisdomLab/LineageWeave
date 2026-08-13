@@ -216,7 +216,13 @@ function EventLineageSection({
   );
 }
 
-function AffiliateTreeNode({ node }: { node: AffiliateNode }) {
+function AffiliateTreeNode({
+  node,
+  onSelectPerson,
+}: {
+  node: AffiliateNode;
+  onSelectPerson?: (personId: string, personName: string) => void;
+}) {
   return (
     <li>
       <span className={node.resolved ? "affiliate-resolved" : "affiliate-unresolved"}>
@@ -229,15 +235,32 @@ function AffiliateTreeNode({ node }: { node: AffiliateNode }) {
       {node.people.length > 0 && (
         <span className="keyman-affiliations">
           {" -- "}
-          {node.people
-            .map((person) => `${person.person_name} (${person.person_side_label ?? person.person_side_code})`)
-            .join(", ")}
+          {node.people.map((person, index) => (
+            <span key={person.person_id}>
+              {index > 0 ? ", " : null}
+              {onSelectPerson ? (
+                <button
+                  className="keyman-select"
+                  aria-label={`Affiliate Keyman: ${person.person_name}`}
+                  onClick={() => onSelectPerson(person.person_id, person.person_name)}
+                >
+                  {person.person_name} ({person.person_side_label ?? person.person_side_code})
+                </button>
+              ) : (
+                `${person.person_name} (${person.person_side_label ?? person.person_side_code})`
+              )}
+            </span>
+          ))}
         </span>
       )}
       {node.children.length > 0 && (
         <ul>
           {node.children.map((child) => (
-            <AffiliateTreeNode key={child.entity_id ?? child.entity_name} node={child} />
+            <AffiliateTreeNode
+              key={child.entity_id ?? child.entity_name}
+              node={child}
+              onSelectPerson={onSelectPerson}
+            />
           ))}
         </ul>
       )}
@@ -283,6 +306,7 @@ function KeymanPanel({
   canExtract,
   onExtracted,
   onSelectPost,
+  focusPerson,
 }: {
   postId: string;
   accessToken: string;
@@ -290,6 +314,7 @@ function KeymanPanel({
   canExtract: boolean;
   onExtracted: () => void;
   onSelectPost?: (postId: string) => void;
+  focusPerson?: { personId: string; personName: string } | null;
 }) {
   const [related, setRelated] = useState<RelatedNode[] | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
@@ -306,6 +331,15 @@ function KeymanPanel({
       setRelated([]);
     }
   }
+
+  useEffect(() => {
+    if (!focusPerson) return;
+    setSelectedName(focusPerson.personName);
+    setRelated(null);
+    fetchRelatedKeymen(accessToken, focusPerson.personId)
+      .then((result) => setRelated(result.related))
+      .catch(() => setRelated([]));
+  }, [accessToken, focusPerson]);
 
   async function handleExtract() {
     setExtracting(true);
@@ -733,6 +767,7 @@ function PostDetailPopup({
   const [affiliateTrees, setAffiliateTrees] = useState<AffiliateNode[] | null>(null);
   const [vocEvidence, setVocEvidence] = useState<VocEvidence | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
+  const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
 
   function reloadKeymen() {
     fetchPostKeymen(accessToken, postId).then((r) => setKeymen(r.keymen)).catch(() => setKeymen([]));
@@ -759,6 +794,7 @@ function PostDetailPopup({
     setAffiliateTrees(null);
     setVocEvidence(null);
     setEvaluation(null);
+    setFocusPerson(null);
     fetchPost(accessToken, postId).then(setPost).catch((err) => setError(String(err)));
     fetchPostEvaluation(accessToken, postId)
       .then((r) => setEvaluation(r.responses))
@@ -855,7 +891,11 @@ function PostDetailPopup({
               ) : (
                 <ul className="affiliate-tree">
                   {affiliateTrees.map((node) => (
-                    <AffiliateTreeNode key={node.entity_id ?? node.entity_name} node={node} />
+                    <AffiliateTreeNode
+                      key={node.entity_id ?? node.entity_name}
+                      node={node}
+                      onSelectPerson={(personId, personName) => setFocusPerson({ personId, personName })}
+                    />
                   ))}
                 </ul>
               )}
@@ -868,6 +908,7 @@ function PostDetailPopup({
               canExtract={canExtract}
               onExtracted={reloadKeymen}
               onSelectPost={onSelectPost}
+              focusPerson={focusPerson}
             />
 
             {counterparties && counterparties.length > 0 && (
