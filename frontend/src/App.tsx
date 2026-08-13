@@ -449,6 +449,12 @@ function KeymanPanel({
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [orchestratorOff, setOrchestratorOff] = useState(false);
+
+  useEffect(() => {
+    setOrchestratorOff(false);
+    setError(null);
+  }, [postId]);
 
   async function handleSelect(personId: string, personName: string) {
     setSelectedName(personName);
@@ -478,6 +484,9 @@ function KeymanPanel({
       onExtracted();
     } catch (err) {
       setError(orchestratorUnavailableMessage(err, "Keyman extraction"));
+      if (err instanceof BackendError && err.status === 503) {
+        setOrchestratorOff(true);
+      }
     } finally {
       setExtracting(false);
     }
@@ -487,7 +496,7 @@ function KeymanPanel({
     <section className="popup-section">
       <div className="lineage-home-header">
         <h3>Keyman</h3>
-        {canExtract && (
+        {canExtract && !orchestratorOff && (
           <button onClick={handleExtract} disabled={extracting}>
             {extracting ? "Extracting..." : "Extract Keymen"}
           </button>
@@ -581,6 +590,12 @@ function EvaluationPanel({
 }) {
   const [evaluating, setEvaluating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [orchestratorOff, setOrchestratorOff] = useState(false);
+
+  useEffect(() => {
+    setOrchestratorOff(false);
+    setError(null);
+  }, [postId]);
 
   async function handleEvaluate() {
     setEvaluating(true);
@@ -590,6 +605,9 @@ function EvaluationPanel({
       onEvaluated(result.responses);
     } catch (err) {
       setError(orchestratorUnavailableMessage(err, "Evaluation"));
+      if (err instanceof BackendError && err.status === 503) {
+        setOrchestratorOff(true);
+      }
     } finally {
       setEvaluating(false);
     }
@@ -599,7 +617,7 @@ function EvaluationPanel({
     <section className="popup-section">
       <div className="lineage-home-header">
         <h3>Post quality (IRT)</h3>
-        {canExtract && (
+        {canExtract && !orchestratorOff && (
           <button onClick={handleEvaluate} disabled={evaluating}>
             {evaluating ? "Evaluating..." : "Evaluate post"}
           </button>
@@ -698,6 +716,7 @@ function IssueTicketPanel({
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [deriving, setDeriving] = useState(false);
+  const [orchestratorOff, setOrchestratorOff] = useState(false);
 
   function reload() {
     fetchPostTickets(accessToken, postId)
@@ -707,6 +726,8 @@ function IssueTicketPanel({
 
   useEffect(() => {
     setTickets(null);
+    setOrchestratorOff(false);
+    setError(null);
     fetchPostTickets(accessToken, postId)
       .then((r) => setTickets(r.tickets))
       .catch(() => setTickets([]));
@@ -749,6 +770,9 @@ function IssueTicketPanel({
       }
     } catch (err) {
       setError(orchestratorUnavailableMessage(err, "Commitment derivation"));
+      if (err instanceof BackendError && err.status === 503) {
+        setOrchestratorOff(true);
+      }
     } finally {
       setDeriving(false);
     }
@@ -758,7 +782,7 @@ function IssueTicketPanel({
     <section className="popup-section">
       <div className="lineage-home-header">
         <h3>이슈 티켓 (Issue tickets)</h3>
-        {canExtract && (
+        {canExtract && !orchestratorOff && (
           <button onClick={handleDeriveCommitment} disabled={deriving}>
             {deriving ? "Deriving..." : "Derive commitment"}
           </button>

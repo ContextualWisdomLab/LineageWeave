@@ -822,6 +822,7 @@ describe("App, authenticated", () => {
       expect(screen.getByText("Evaluation unavailable (LLM orchestrator not configured).")).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /evaluate post/i })).not.toBeInTheDocument();
   });
 
   it("shows a clear empty state when extract Keymen is 503 without an orchestrator", async () => {
@@ -835,6 +836,7 @@ describe("App, authenticated", () => {
       expect(screen.getByText("Keyman extraction unavailable (LLM orchestrator not configured).")).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /extract keymen/i })).not.toBeInTheDocument();
   });
 
   it("shows a clear empty state when derive commitment is 503 without an orchestrator", async () => {
@@ -850,6 +852,7 @@ describe("App, authenticated", () => {
       ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /derive commitment/i })).not.toBeInTheDocument();
   });
 
   it("shows a clear empty state when verify is 503 without search", async () => {
