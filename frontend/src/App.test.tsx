@@ -299,6 +299,8 @@ describe("App, authenticated", () => {
                     theta_sd: 0.2,
                     ticket_due_date: "2026-01-12",
                     ticket_title: "Send Northridge Grid the revised quote",
+                    ticket_status_code: "open",
+                    ticket_status_label: "Open",
                   },
                   {
                     post_id: "post-2",
@@ -307,6 +309,8 @@ describe("App, authenticated", () => {
                     theta_sd: 0.3,
                     ticket_due_date: "2026-01-14",
                     ticket_title: "Send Westfield Power the revised specification",
+                    ticket_status_code: "open",
+                    ticket_status_label: "Open",
                   },
                 ],
               },
@@ -1104,10 +1108,14 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent(
       "Send Northridge Grid the revised quote",
     );
+    expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("Open");
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
     expect(
       screen.getByRole("button", { name: /open report post: specification revision requested/i }),
     ).toHaveTextContent("Send Westfield Power the revised specification");
+    expect(
+      screen.getByRole("button", { name: /open report post: specification revision requested/i }),
+    ).toHaveTextContent("Open");
     expect(
       screen.getByRole("button", { name: /open report post: specification revision requested/i }),
     ).toHaveTextContent("due 2026-01-14");

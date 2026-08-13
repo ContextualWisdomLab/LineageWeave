@@ -16,6 +16,8 @@ from lineageweave.period_report import (
 )
 from lineageweave.post_evaluation import CRITERION_CODES, RUBRIC_VERSION
 
+from .knowledge_graph import labels_for_codes
+
 GROUPING_KINDS = frozenset({"process_unit", "corporate_entity", "thread_group"})
 SHARED_METRIC_KIND = "shared_metric"
 SHARED_METRIC_KEY = "all"
@@ -432,11 +434,12 @@ async def fetch_period_reports(
         """
         select m.grouping_key, m.post_id, m.theta_eap, m.theta_sd, p.post_title,
                p.visibility_code, p.corporate_entity_id,
-               t.due_date as ticket_due_date, t.ticket_title
+               t.due_date as ticket_due_date, t.ticket_title, t.ticket_status_code
         from report_member_score m
         join source_post p on p.post_id = m.post_id
         left join lateral (
-            select issue_ticket.due_date, issue_ticket.ticket_title
+            select issue_ticket.due_date, issue_ticket.ticket_title,
+                   issue_ticket.ticket_status_code
             from issue_ticket
             where issue_ticket.post_id = m.post_id
               and issue_ticket.due_date is not null
@@ -474,6 +477,10 @@ async def fetch_period_reports(
         grouping_kind,
         period_code,
         RUBRIC_VERSION,
+    )
+    status_labels = await labels_for_codes(
+        conn,
+        [row["ticket_status_code"] for row in members if row["ticket_status_code"]],
     )
     members_by_group: dict[str, list[asyncpg.Record]] = defaultdict(list)
     for row in members:
@@ -519,6 +526,14 @@ async def fetch_period_reports(
                             else row["ticket_due_date"].isoformat()
                         ),
                         "ticket_title": row["ticket_title"],
+                        "ticket_status_code": row["ticket_status_code"],
+                        "ticket_status_label": (
+                            None
+                            if row["ticket_status_code"] is None
+                            else status_labels.get(
+                                row["ticket_status_code"], row["ticket_status_code"]
+                            )
+                        ),
                     }
                     for row in members_by_group.get(header["grouping_key"], [])
                 ],
