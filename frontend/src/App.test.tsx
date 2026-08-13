@@ -177,6 +177,7 @@ describe("App, authenticated", () => {
                   issue_ticket_id: "ticket-a100",
                   post_id: "post-1",
                   ticket_status_code: "open",
+                  ticket_status_label: "Open",
                   ticket_title: "Send Northridge Grid the revised quote",
                   assigned_account_id: null,
                   due_date: "2026-01-12",
@@ -189,6 +190,7 @@ describe("App, authenticated", () => {
                   issue_ticket_id: "ticket-b200",
                   post_id: "post-2",
                   ticket_status_code: "open",
+                  ticket_status_label: "Open",
                   ticket_title: "Send Westfield Power the revised specification",
                   assigned_account_id: null,
                   due_date: "2026-01-14",
@@ -1070,11 +1072,13 @@ describe("App, authenticated", () => {
     });
     expect(calendarButton).toHaveTextContent("Send Northridge Grid the revised quote");
     expect(calendarButton).toHaveTextContent("Public post");
+    expect(calendarButton).toHaveTextContent("Open");
     expect(calendarButton).toHaveTextContent("due 2026-01-12");
     const betaCalendar = screen.getByRole("button", {
       name: /open commitment for: specification revision requested/i,
     });
     expect(betaCalendar).toHaveTextContent("Send Westfield Power the revised specification");
+    expect(betaCalendar).toHaveTextContent("Open");
     expect(betaCalendar).toHaveTextContent("due 2026-01-14");
 
     await userEvent.click(calendarButton);

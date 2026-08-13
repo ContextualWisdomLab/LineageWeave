@@ -4,6 +4,14 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.57.0] - 2026-08-14
+
+### Added
+
+- Home Calendar rows show the ticket status lookup label next to the
+  due date. After `make seed` the A-100 pricing ticket reads Open
+  plus `due 2026-01-12`, same label the popup select already uses.
+
 ## [0.56.0] - 2026-08-14
 
 ### Added

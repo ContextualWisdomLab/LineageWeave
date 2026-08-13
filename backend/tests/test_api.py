@@ -2054,6 +2054,8 @@ def test_seed_calendar_commitment_surfaces_on_get_calendar(client, demo_analyst_
     commitments = response.json()["commitments"]
     dues = {c["due_date"] for c in commitments}
     assert "2026-01-09" in dues
+    riverbend = next(c for c in commitments if c["due_date"] == "2026-01-09")
+    assert riverbend["ticket_status_label"] == "Open"
     titles = {c["post_title"] for c in commitments}
     from lineageweave.fixtures import ambiguous_commitment_post
 
@@ -2102,6 +2104,7 @@ def test_seed_fixture_tickets_surface_on_get_calendar(client, demo_analyst_token
     )
     assert pricing["due_date"] == "2026-01-12"
     assert pricing["post_title"] == fixture_title
+    assert pricing["ticket_status_label"] == "Open"
     beta = next(
         row
         for row in response.json()["commitments"]
@@ -2109,6 +2112,7 @@ def test_seed_fixture_tickets_surface_on_get_calendar(client, demo_analyst_token
     )
     assert beta["due_date"] == "2026-01-14"
     assert beta["post_title"] == beta_title
+    assert beta["ticket_status_label"] == "Open"
 
 
 def test_seed_fixture_tickets_surface_on_get_tickets(client, demo_analyst_token, seeded_db) -> None:

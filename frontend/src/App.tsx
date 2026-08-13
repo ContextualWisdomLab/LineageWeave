@@ -1138,6 +1138,9 @@ function CalendarPanel({
               >
                 <span className="ticket-title">{entry.commitment_summary ?? entry.ticket_title}</span>
                 <span className="post-badge">{entry.post_title}</span>
+                <span className="post-badge">
+                  {entry.ticket_status_label ?? entry.ticket_status_code}
+                </span>
                 <span className="post-badge">due {entry.due_date}</span>
               </button>
             </li>
