@@ -4,6 +4,55 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-08-13
+
+### Added
+
+- Milestone 4, Phase 2 continues: `lineageweave/keyman_extraction.py`
+  extracts two-sided Keymen (our-side vs counterparty, 0..N organization
+  affiliations) from a post's title+body. The live client calls
+  contextual-orchestrator with `mode="route"` -- never a raw LLM API.
+  `NullKeymanExtractionClient` stays unavailable rather than inventing
+  mentions.
+- `lineageweave.knowledge_graph.knowledge_graph_edges_for_post` populates
+  the three Phase 2 edge kinds (person<->post mention, person<->corporate
+  entity affiliation, person<->person co-mention) as typed
+  `knowledge_graph_edge` specs. RWR then runs on that graph.
+- Backend endpoints `GET /api/posts/{post_id}/keymen`,
+  `GET /api/keymen/{person_id}/related`, and
+  `POST /api/posts/{post_id}/extract-keymen`, RBAC+ABAC-gated the same
+  way as post detail: a Keyman who is only mentioned on another corp's
+  private post 403s, related-node traversal never returns those hidden
+  posts, and extraction is `post_admin` (a write with a real LLM cost).
+  Persist goes through `backend/app/keyman_ingestion.py` into
+  `cataloged_person` / `person_affiliation` / `post_person_mention` /
+  `knowledge_graph_edge`. Directed RWR sinks teleport remaining walk
+  mass back to the start node so relevance stays a distribution.
+- `fixtures.ambiguous_keyman_post`: a synthetic, non-templated workshop
+  follow-up used by the parser tests and the real-orchestrator Keyman test.
+
+## [0.8.0] - 2026-08-13
+
+### Added
+
+- Milestone 4, Phase 2 begins (Phase 1 complete): `lineageweave/knowledge_graph.py`
+  -- random walk with restart (Tong, Faloutsos, & Pan, 2006) giving every
+  node in a Knowledge Graph a continuous relevance score from a starting
+  node, plus `select_related_nodes`'s per-node adaptive relevance-ratio
+  cutoff. No hop-count constant appears anywhere in the algorithm -- the
+  same ratio threshold naturally yields a larger related-set for a
+  well-connected node than a sparse one, which is the actual product
+  requirement ("각 Node와 Node마다 Depth가 다를 수 있다").
+- `tests/test_knowledge_graph.py`: proves this against a synthetic graph
+  built so the correct answer is known by construction -- a disconnected
+  node scores exactly 0, symmetric spokes score identically, and a
+  well-connected "hub" node's adaptive related-set (5 nodes) is
+  measurably larger than a sparse "loner" node's (1 node) under the same
+  threshold.
+- `docs/lineage-bi-research-notes.md`: Tong et al. (2006) moved from
+  "staged for later phases" into a real "Knowledge Graph traversal"
+  section now that it grounds shipped code.
+
 ## [0.7.0] - 2026-08-13
 
 ### Added

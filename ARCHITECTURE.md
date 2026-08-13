@@ -67,6 +67,7 @@ flowchart LR
 | `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl) |
 | `tepp_client.py` | TEPP's published `AnalysisRunRequest` wire contract, pluggable transport |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
+| `knowledge_graph.py` | Random-walk-with-restart relevance + per-node adaptive related-node cutoff (Tong et al., 2006) -- pure graph math, no Postgres |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
 | `server.py` | Stdlib HTTP server: `GET /api/lineage` (JSON graph) + static viewer |
 | `web/index.html` | Self-contained SVG DAG viewer, no build step, no external script dependency |
@@ -165,7 +166,19 @@ excluded from the list and 403s on direct fetch), and proves a forged
 token is rejected. `scripts/seed_demo_data.py` populates the docker-compose
 stack itself with the same shape of synthetic data for manual/frontend use.
 `CORSMiddleware` (`backend/app/main.py`) allows exactly the frontend's
-origin(s) (`FRONTEND_ORIGINS`), `GET` only, `Authorization` header only.
+origin(s) (`FRONTEND_ORIGINS`), `GET` and `POST` (the extract-keymen
+write), `Authorization` header only.
+
+Phase 2 adds two more GET endpoints on the same RBAC+ABAC gate plus one
+write: `GET /api/posts/{post_id}/keymen` (people extracted or seeded for
+that post, with N:N affiliations), `GET /api/keymen/{person_id}/related`
+(RWR from that person over `knowledge_graph_edge` rows, adaptive
+relevance cutoff, never a fixed hop count), and
+`POST /api/posts/{post_id}/extract-keymen` (`post_admin` only -- a write
+with a real LLM-call cost). A Keyman who is only mentioned on a post the
+account cannot see is 403, matching the post deny path. Extraction
+lives in `lineageweave/keyman_extraction.py` and talks to
+contextual-orchestrator; persist is `backend/app/keyman_ingestion.py`.
 
 ### Frontend (`frontend/`)
 

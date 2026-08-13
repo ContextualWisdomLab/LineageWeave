@@ -104,7 +104,15 @@ def seeded_db(demo_analyst_token):
                 "('post_visibility', 'public', 'Public'), "
                 "('post_visibility', 'private', 'Private'), "
                 "('voc_type', 'voc', 'Voice of Customer'), "
-                "('permission', 'post_read', 'Read posts')"
+                "('permission', 'post_read', 'Read posts'), "
+                "('person_side', 'our_side', 'Our side'), "
+                "('person_side', 'counterparty', 'Counterparty'), "
+                "('node_type', 'node_person', 'Person'), "
+                "('node_type', 'node_corporate_entity', 'Corporate entity'), "
+                "('node_type', 'node_post', 'Post'), "
+                "('edge_type', 'edge_mention', 'Mentioned in'), "
+                "('edge_type', 'edge_affiliation', 'Affiliated with'), "
+                "('edge_type', 'edge_co_mention', 'Co-mentioned')"
             )
             cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
@@ -151,6 +159,82 @@ def seeded_db(demo_analyst_token):
             public_post_id = _insert_post("Public post", other_corp_id, "public")
             own_private_post_id = _insert_post("Own-corp private post", own_corp_id, "private")
             other_private_post_id = _insert_post("Other-corp private post", other_corp_id, "private")
+
+            cur.execute(
+                "insert into cataloged_person (person_name, person_side_code) values "
+                "('Ada West', 'our_side') returning person_id"
+            )
+            our_person_id = str(cur.fetchone()[0])
+            cur.execute(
+                "insert into cataloged_person (person_name, person_side_code) values "
+                "('Priya Nair', 'counterparty') returning person_id"
+            )
+            counterpart_person_id = str(cur.fetchone()[0])
+            cur.execute(
+                "insert into cataloged_person (person_name, person_side_code) values "
+                "('Other Corp Only', 'counterparty') returning person_id"
+            )
+            hidden_person_id = str(cur.fetchone()[0])
+
+            cur.execute(
+                "insert into person_affiliation (person_id, affiliated_organization_name, affiliated_corporate_entity_id) "
+                "values (%s, 'Test Corp', %s)",
+                (our_person_id, own_corp_id),
+            )
+            cur.execute(
+                "insert into person_affiliation (person_id, affiliated_organization_name) "
+                "values (%s, 'Northridge Grid'), (%s, 'Northridge Holdings')",
+                (counterpart_person_id, counterpart_person_id),
+            )
+
+            cur.execute(
+                "insert into post_person_mention (post_id, person_id) values "
+                "(%s, %s), (%s, %s), (%s, %s), (%s, %s)",
+                (
+                    own_private_post_id,
+                    our_person_id,
+                    own_private_post_id,
+                    counterpart_person_id,
+                    public_post_id,
+                    our_person_id,
+                    other_private_post_id,
+                    hidden_person_id,
+                ),
+            )
+
+            from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
+
+            seen_edges: set[tuple[str, str, str, str, str]] = set()
+            for post_id, person_ids, affiliations in (
+                (own_private_post_id, [our_person_id, counterpart_person_id], [(our_person_id, str(own_corp_id))]),
+                (public_post_id, [our_person_id], [(our_person_id, str(own_corp_id))]),
+                (other_private_post_id, [hidden_person_id], []),
+            ):
+                for edge in knowledge_graph_edges_for_post(post_id, person_ids, affiliations):
+                    key = (
+                        edge.source_node_type_code,
+                        edge.source_node_id,
+                        edge.target_node_type_code,
+                        edge.target_node_id,
+                        edge.edge_type_code,
+                    )
+                    if key in seen_edges:
+                        continue
+                    seen_edges.add(key)
+                    cur.execute(
+                        "insert into knowledge_graph_edge ("
+                        "source_node_type_code, source_node_id, target_node_type_code, "
+                        "target_node_id, edge_type_code, edge_weight"
+                        ") values (%s, %s, %s, %s, %s, %s)",
+                        (
+                            edge.source_node_type_code,
+                            edge.source_node_id,
+                            edge.target_node_type_code,
+                            edge.target_node_id,
+                            edge.edge_type_code,
+                            edge.edge_weight,
+                        ),
+                    )
         conn.commit()
 
         yield {
@@ -158,6 +242,9 @@ def seeded_db(demo_analyst_token):
             "public_post_id": public_post_id,
             "own_private_post_id": own_private_post_id,
             "other_private_post_id": other_private_post_id,
+            "our_person_id": our_person_id,
+            "counterpart_person_id": counterpart_person_id,
+            "hidden_person_id": hidden_person_id,
         }
     finally:
         conn.close()
@@ -226,3 +313,132 @@ def test_forged_token_is_rejected(client) -> None:
     forged = jwt.encode({"sub": "not-a-real-subject", "iss": f"{_KEYCLOAK_BASE_URL}/realms/{_REALM}"}, key="wrong-key", algorithm="HS256")
     response = client.get("/api/posts", headers={"Authorization": f"Bearer {forged}"})
     assert response.status_code == 401
+
+
+def test_own_corp_post_keymen_are_readable(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    names = {person["person_name"]: person for person in response.json()["keymen"]}
+    assert set(names) == {"Ada West", "Priya Nair"}
+    assert names["Ada West"]["person_side_code"] == "our_side"
+    assert names["Priya Nair"]["person_side_code"] == "counterparty"
+    assert {aff["organization_name"] for aff in names["Priya Nair"]["affiliations"]} == {
+        "Northridge Grid",
+        "Northridge Holdings",
+    }
+
+
+def test_other_corp_private_post_keymen_are_forbidden(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['other_private_post_id']}/keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_related_keymen_use_rwr_and_hide_invisible_posts(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/keymen/{seeded_db['our_person_id']}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["person_name"] == "Ada West"
+    related_ids = {node["node_id"] for node in body["related"]}
+    assert seeded_db["counterpart_person_id"] in related_ids
+    assert seeded_db["own_private_post_id"] in related_ids
+    assert seeded_db["hidden_person_id"] not in related_ids
+    assert seeded_db["other_private_post_id"] not in related_ids
+    assert all(node["relevance"] > 0 for node in body["related"])
+
+
+def test_keyman_only_on_other_corp_private_post_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/keymen/{seeded_db['hidden_person_id']}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_extract_keymen_requires_post_admin(client, demo_analyst_token, seeded_db) -> None:
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+_ORCHESTRATOR_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL")
+_ORCHESTRATOR_API_KEY = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY")
+
+
+@pytest.mark.skipif(
+    not (_ORCHESTRATOR_BASE_URL and _ORCHESTRATOR_API_KEY),
+    reason="set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run",
+)
+def test_extract_keymen_persists_a_real_llm_extraction(client, demo_analyst_token, seeded_db) -> None:
+    """The full write path, end to end: a real LLM call through a live
+    contextual-orchestrator, persisted to Postgres, then read back through
+    the read endpoints -- not a mocked extraction client.
+    """
+    os.environ["ORCHESTRATOR_BASE_URL"] = _ORCHESTRATOR_BASE_URL
+    os.environ["ORCHESTRATOR_API_KEY"] = _ORCHESTRATOR_API_KEY
+
+    from lineageweave.fixtures import ambiguous_keyman_post
+
+    title, body = ambiguous_keyman_post()
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('permission', 'post_admin', 'Administer posts') on conflict (lookup_code) do nothing"
+            )
+            cur.execute("select access_role_id from account_role_assignment limit 1")
+            role_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into role_permission (access_role_id, permission_code) values (%s, 'post_admin') "
+                "on conflict do nothing",
+                (role_id,),
+            )
+            cur.execute(
+                "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public' "
+                "from source_post where post_id = %s "
+                "returning post_id",
+                (title, body, seeded_db["own_private_post_id"]),
+            )
+            new_post_id = str(cur.fetchone()[0])
+    finally:
+        admin_conn.close()
+
+    response = client.post(
+        f"/api/posts/{new_post_id}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    body_json = response.json()
+    assert body_json["extracted_count"] >= 2
+    names = {mention["person_name"] for mention in body_json["mentions"]}
+    assert any("Jordan" in name for name in names)
+    assert any("Priya" in name for name in names)
+
+    keymen_response = client.get(
+        f"/api/posts/{new_post_id}/keymen", headers={"Authorization": f"Bearer {demo_analyst_token}"}
+    )
+    assert keymen_response.status_code == 200
+    persisted_names = {person["person_name"] for person in keymen_response.json()["keymen"]}
+    assert persisted_names == names
+
+
+def test_unknown_keyman_is_not_found(client, demo_analyst_token) -> None:
+    response = client.get(
+        f"/api/keymen/{uuid.uuid4()}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 404
