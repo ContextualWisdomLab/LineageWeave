@@ -335,7 +335,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
 
-    await userEvent.click(await screen.findByText("Public post"));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("No tickets yet.")).toBeInTheDocument());
 
     await userEvent.type(screen.getByPlaceholderText(/new ticket title/i), "Confirm delivery window");
