@@ -71,6 +71,8 @@ flowchart LR
 | `keyman_extraction.py` | Pluggable LLM extraction of two-sided (our-side/counterparty) person mentions + N:N org affiliations from a post |
 | `entity_relationship_classification.py` | Pluggable LLM classification of a named organization's relationship to the post author (`rel_voc`/`rel_vom`/`rel_vop`/`rel_vocc`/`rel_voco`/`rel_vos`) |
 | `corporate_hierarchy_resolution.py` | Similarity-based resolution of a free-text org name to an existing `corporate_entity` row (Bhattacharya & Getoor, 2007's candidate-generation stage) |
+| `post_summary.py` | Pluggable LLM Korean summary + key events + R&R derivation for a post |
+| `post_chat.py` | Pluggable in-popup chat's reason-and-cite step (retrieve step lives in `backend/app/post_chat_ingestion.py`) |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
 | `server.py` | Stdlib HTTP server: `GET /api/lineage` (JSON graph) + static viewer |
 | `web/index.html` | Self-contained SVG DAG viewer, no build step, no external script dependency |
@@ -195,16 +197,39 @@ relationship classifier's candidates) goes through
 string match, so "Acme Electronics Korea Ltd." still resolves to the
 same entity as "Acme Electronics Korea."
 
+Phase 4 adds `GET /api/posts/{post_id}/lineage` (direct `post_lineage_edge`
+links and indirect Knowledge-Graph links, kept as two separate lists --
+`backend/app/post_chat_ingestion.py::find_linked_post_ids`),
+`GET /api/posts/{post_id}/summary` (`lineageweave/post_summary.py`,
+computed fresh per request, not persisted), and
+`POST /api/posts/{post_id}/chat` (`lineageweave/post_chat.py`'s
+reason-and-cite step over `gather_chat_sources`' retrieve step -- both
+Event-Lineage link kinds feed the chat's context, ABAC-rechecked per
+candidate post). `find_linked_post_ids` first expands to every post
+sharing a mentioned person before calling
+`backend/app/knowledge_graph.py::load_visible_subgraph` -- that function
+only loads edges among an *already-known* post set (its other caller,
+`related_for_person`, pre-resolves the full set itself), it does not
+discover new posts on its own; a real bug from calling it with only the
+single starting post was caught while building this and is now
+regression-tested (`test_post_chat_cites_a_post_linked_only_via_a_shared_keyman`).
+
 ### Frontend (`frontend/`)
 
 React + Vite + TypeScript, pinned Node via `mise.toml`, pnpm via Corepack.
 `react-oidc-context` drives a real Authorization Code redirect through
 Keycloak (`src/main.tsx`'s `AuthProvider`) -- no mocked auth, no static
 HTML. `src/api.ts` calls the FastAPI backend directly with the token
-Keycloak issued; `src/App.tsx` renders the post list and a detail popup
-(the Figma frame `SBpgot7uTvMxEaxUwvoc0S` attachment point -- Event
-Lineage / Keyman / Knowledge Graph / LLM chat panels land in Phase 2-4).
-Served in `docker compose` via a two-stage build (`frontend/Dockerfile`):
+Keycloak issued; `src/App.tsx` renders the post list and a full detail
+popup: Korean summary/key-events/R&R, an Event Lineage panel
+(direct vs. indirect links, visually distinguished per
+`tests/test_indirect_lineage_linking.py`'s distinction), Keyman +
+counterparty panels, and an in-popup chat whose cited sources open a
+sliding evidence panel (`EvidencePanel`, CSS `slide-in-from-right`)
+showing that source post's actual content. Built from the product
+brief's text, not the referenced Figma frame's pixel layout -- see
+[ADR 0002](docs/adr/0002-figma-access-boundary.md) for why. Served in
+`docker compose` via a two-stage build (`frontend/Dockerfile`):
 `pnpm run build` then `nginx` serving the static bundle, with `VITE_*`
 config baked in at build time from the same `.env` ports every other
 service uses (Vite embeds `import.meta.env.VITE_*` at build time, not
@@ -212,7 +237,14 @@ runtime, so these are Docker build args, not container env vars).
 `src/App.test.tsx` mocks `react-oidc-context`'s `useAuth` to test the
 component's own render logic (login button -> `signinRedirect()`; fetch
 posts with the token -> render list -> click -> popup shows the fetched
-body) -- the real OIDC cryptography is proven elsewhere
+body and every panel; ask a chat question -> click a citation -> the
+evidence panel shows exactly that source post's content) -- the real
+OIDC cryptography and the real LLM calls are proven elsewhere
 (`scripts/smoke_test_oidc.py`, `backend/tests/test_api.py`), so this test
 isn't re-proving that, only that the UI wires the pieces together
-correctly.
+correctly. `src/setupTests.ts` registers `@testing-library/react`'s
+`cleanup` explicitly in an `afterEach` -- this project's `vite.config.ts`
+deliberately runs without `test.globals`, which is also why RTL's own
+auto-cleanup (which only self-registers when `afterEach` is already a
+global) silently never ran before this; a real bug this phase's larger
+test file surfaced (stale DOM from one test bleeding into the next).
