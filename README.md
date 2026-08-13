@@ -149,6 +149,28 @@ and the deny path against a live Keycloak + throwaway Postgres database,
 including that a private post scoped to a *different* corporate entity is
 excluded from the list and 403s on direct fetch.
 
+`frontend/` (React + Vite + TypeScript, `docker compose`'s fourth service)
+is a real client, not mocked or static: `react-oidc-context` drives an
+actual Authorization Code redirect through Keycloak, and the post list /
+detail popup call the FastAPI backend over real `fetch()` with the token
+Keycloak issued.
+
+```bash
+make up
+make seed
+cd frontend && cp .env.example .env.local && pnpm install && pnpm run dev
+# -> http://localhost:5173, click "Log in", redirects through the real
+#    Keycloak login page for demo.analyst / lineageweave-demo-only
+```
+
+`docker compose up` also builds and serves the frontend itself (nginx,
+`frontend/Dockerfile`) at `http://localhost:15173` -- the `VITE_*` build
+args are wired from the same `.env` ports as every other service.
+`frontend/src/App.test.tsx` covers the login-redirect and
+fetch-then-render-popup paths (`react-oidc-context`'s `useAuth` mocked --
+the *real* OIDC round-trip is what `scripts/smoke_test_oidc.py` and
+`backend/tests/test_api.py` already prove against a live Keycloak).
+
 ## Modular / standalone
 
 This repo runs standalone (own server, own tests, own CI) and is equally
