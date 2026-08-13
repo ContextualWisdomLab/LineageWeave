@@ -24,7 +24,12 @@ from lineageweave.knowledge_graph import (
     random_walk_with_restart,
     select_related_nodes,
 )
-from lineageweave.post_chat import ChatSourceDocument, normalize_chat_question
+from lineageweave.post_chat import (
+    CANONICAL_CHAT_QUESTION,
+    CANONICAL_INVOLVED_QUESTION,
+    ChatSourceDocument,
+    normalize_chat_question,
+)
 from lineageweave.post_content_normalization import normalize_post_body
 
 from .knowledge_graph import load_visible_subgraph
@@ -260,13 +265,58 @@ def seeded_demo_chat() -> SeededChat:
     )
 
 
+def seeded_demo_involved_chat() -> SeededChat:
+    """Synthetic Keyman answer for the demo public post -- not an LLM result."""
+    return SeededChat(
+        answer_text=(
+            "Ada West at Demo Corp and Priya Nair at Northridge Grid are the "
+            "Keymen named in this post."
+        ),
+        cited_titles=("Demo public post",),
+    )
+
+
+def seeded_demo_exchanges() -> list[tuple[str, SeededChat]]:
+    """Both canned Ask Q&As `make seed` writes for the demo public post."""
+    return [
+        (CANONICAL_CHAT_QUESTION, seeded_demo_chat()),
+        (CANONICAL_INVOLVED_QUESTION, seeded_demo_involved_chat()),
+    ]
+
+
 def seeded_fixture_chat(post_title: str) -> SeededChat | None:
-    """Synthetic Ask answer for a reconstruct/calendar fixture title.
+    """Synthetic what-happened answer for a reconstruct/calendar fixture.
 
     Not an LLM result. Returns None when the title is not a known seed
     fixture so an unknown question still 503s instead of inventing prose.
     """
     return _FIXTURE_CHATS.get(post_title)
+
+
+def seeded_fixture_involved_chat(post_title: str) -> SeededChat | None:
+    """Synthetic Keyman answer for a reconstruct/calendar fixture title.
+
+    Not an LLM result. Returns None when the title has no seeded cast
+    answer so an unknown question still 503s instead of inventing people.
+    """
+    return _INVOLVED_CHATS.get(post_title)
+
+
+def seeded_fixture_exchanges(post_title: str) -> list[tuple[str, SeededChat]]:
+    """Every canned Ask Q&A `make seed` writes for ``post_title``.
+
+    Order is what-happened first, then who-is-involved, so GET history
+    and the popup chips stay stable. Empty when the title is not a
+    known seed fixture.
+    """
+    exchanges: list[tuple[str, SeededChat]] = []
+    happened = seeded_fixture_chat(post_title)
+    if happened is not None:
+        exchanges.append((CANONICAL_CHAT_QUESTION, happened))
+    involved = seeded_fixture_involved_chat(post_title)
+    if involved is not None:
+        exchanges.append((CANONICAL_INVOLVED_QUESTION, involved))
+    return exchanges
 
 
 def _chat(answer: str, *cited: str) -> SeededChat:
@@ -351,6 +401,54 @@ _FIXTURE_CHATS: dict[str, SeededChat] = {
         "The Riverbend order was already confirmed last Tuesday. The remaining "
         "commitment is to send Riverbend the revised delivery schedule by "
         "next Friday.",
+        "Follow-up on the Riverbend order confirmation",
+    ),
+}
+
+_INVOLVED_CHATS: dict[str, SeededChat] = {
+    "Initial site visit and project scope discussion": _chat(
+        "Ada West (our side) and Priya Nair at Northridge Grid (counterparty) "
+        "opened the A-100 site visit.",
+        "Initial site visit and project scope discussion",
+    ),
+    "Pricing renegotiation follow-up": _chat(
+        "Ada West and Priya Nair are the Keymen on the A-100 pricing "
+        "renegotiation follow-up.",
+        "Pricing renegotiation follow-up",
+    ),
+    "Pricing renegotiation: revised quote sent": _chat(
+        "Ada West sent the revised quote; Priya Nair at Northridge Grid is "
+        "the counterparty.",
+        "Pricing renegotiation: revised quote sent",
+    ),
+    "Delivery schedule question raised": _chat(
+        "Ada West raised the delivery-schedule question with Priya Nair at "
+        "Northridge Grid.",
+        "Delivery schedule question raised",
+    ),
+    "Delivery schedule confirmed with logistics": _chat(
+        "Ada West and logistics confirmed the schedule with Priya Nair at "
+        "Northridge Grid.",
+        "Delivery schedule confirmed with logistics",
+    ),
+    "Unrelated: annual account review": _chat(
+        "This annual account review does not name a Keyman.",
+        "Unrelated: annual account review",
+    ),
+    "Technical specification review meeting": _chat(
+        "Jordan Hale is the Keyman on the B-200 technical specification review.",
+        "Technical specification review meeting",
+    ),
+    "Specification revision requested": _chat(
+        "Jordan Hale requested the Westfield Power specification revision.",
+        "Specification revision requested",
+    ),
+    "Revised specification approved": _chat(
+        "Jordan Hale approved the revised Westfield Power specification.",
+        "Revised specification approved",
+    ),
+    "Follow-up on the Riverbend order confirmation": _chat(
+        "This Riverbend order follow-up does not name a Keyman.",
         "Follow-up on the Riverbend order confirmation",
     ),
 }

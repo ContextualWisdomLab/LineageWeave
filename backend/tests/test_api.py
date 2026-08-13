@@ -554,7 +554,14 @@ def test_seed_demo_chat_surfaces_on_get_and_post_chat(client, demo_analyst_token
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert history.status_code == 200, history.text
+    questions = [row["question_text"] for row in history.json()["exchanges"]]
+    assert questions == [
+        "What happened between these events?",
+        "Who is involved?",
+    ]
     assert "Northridge Grid" in history.json()["exchanges"][0]["answer_text"]
+    assert "Ada West" in history.json()["exchanges"][1]["answer_text"]
+    assert "Priya Nair" in history.json()["exchanges"][1]["answer_text"]
 
     asked = client.post(
         f"/api/posts/{seeded_db['public_post_id']}/chat",
@@ -563,6 +570,15 @@ def test_seed_demo_chat_surfaces_on_get_and_post_chat(client, demo_analyst_token
     )
     assert asked.status_code == 200, asked.text
     assert "Northridge Grid" in asked.json()["answer_text"]
+
+    involved = client.post(
+        f"/api/posts/{seeded_db['public_post_id']}/chat",
+        json={"question": "Who's involved?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert involved.status_code == 200, involved.text
+    assert "Ada West" in involved.json()["answer_text"]
+    assert "Priya Nair" in involved.json()["answer_text"]
 
 
 def test_seed_fixture_chats_surface_on_post_chat(client, demo_analyst_token, seeded_db) -> None:
@@ -623,6 +639,25 @@ def test_seed_fixture_chats_surface_on_post_chat(client, demo_analyst_token, see
     assert "pricing renegotiation" in fork.json()["answer_text"].lower()
     assert fork.json()["cited_posts"]
 
+    fork_involved = client.post(
+        f"/api/posts/{fork_id}/chat",
+        json={"question": "Who is involved?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert fork_involved.status_code == 200, fork_involved.text
+    assert "Ada West" in fork_involved.json()["answer_text"]
+    assert "Priya Nair" in fork_involved.json()["answer_text"]
+
+    fork_history = client.get(
+        f"/api/posts/{fork_id}/chat",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert fork_history.status_code == 200, fork_history.text
+    assert [row["question_text"] for row in fork_history.json()["exchanges"]] == [
+        "What happened between these events?",
+        "Who is involved?",
+    ]
+
     calendar = client.post(
         f"/api/posts/{calendar_id}/chat",
         json={"question": "What happened?"},
@@ -630,6 +665,14 @@ def test_seed_fixture_chats_surface_on_post_chat(client, demo_analyst_token, see
     )
     assert calendar.status_code == 200, calendar.text
     assert "Riverbend" in calendar.json()["answer_text"]
+
+    calendar_involved = client.post(
+        f"/api/posts/{calendar_id}/chat",
+        json={"question": "Who is involved?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert calendar_involved.status_code == 200, calendar_involved.text
+    assert "does not name a Keyman" in calendar_involved.json()["answer_text"]
 
     missing = client.post(
         f"/api/posts/{seeded_db['own_private_post_id']}/chat",

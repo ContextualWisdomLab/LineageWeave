@@ -12,10 +12,18 @@ import os
 
 import pytest
 
-from backend.app.post_chat_ingestion import seeded_demo_chat, seeded_fixture_chat
-from lineageweave.fixtures import ambiguous_commitment_post, sample_records
+from backend.app.post_chat_ingestion import (
+    seeded_demo_chat,
+    seeded_demo_exchanges,
+    seeded_demo_involved_chat,
+    seeded_fixture_chat,
+    seeded_fixture_exchanges,
+    seeded_fixture_involved_chat,
+)
+from lineageweave.fixtures import ambiguous_commitment_post, fixture_thread_cast, sample_records
 from lineageweave.post_chat import (
     CANONICAL_CHAT_QUESTION,
+    CANONICAL_INVOLVED_QUESTION,
     ChatSourceDocument,
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
@@ -33,11 +41,19 @@ def test_normalize_chat_question_aliases_the_placeholder() -> None:
     assert normalize_chat_question("When was the bid sent?") == "when was the bid sent"
 
 
+def test_normalize_chat_question_aliases_who_is_involved() -> None:
+    involved = normalize_chat_question(CANONICAL_INVOLVED_QUESTION)
+    assert involved == "who is involved"
+    assert normalize_chat_question("Who's involved?") == involved
+    assert normalize_chat_question("  who is involved here?  ") == involved
+
+
 def test_every_sample_record_has_a_seeded_chat_answer() -> None:
     """Event Lineage click-through must have a stored Ask answer for
     every reconstruct fixture -- not a shared placeholder, not live LLM.
     """
     seen: set[str] = set()
+    involved_seen: set[str] = set()
     for rec in sample_records():
         chat = seeded_fixture_chat(rec.label)
         assert chat is not None, rec.label
@@ -45,13 +61,39 @@ def test_every_sample_record_has_a_seeded_chat_answer() -> None:
         assert rec.label in chat.cited_titles
         assert chat.answer_text not in seen
         seen.add(chat.answer_text)
+        involved = seeded_fixture_involved_chat(rec.label)
+        assert involved is not None, rec.label
+        assert involved.answer_text.strip()
+        assert rec.label in involved.cited_titles
+        assert involved.answer_text not in involved_seen
+        involved_seen.add(involved.answer_text)
+        cast = fixture_thread_cast(rec.label)
+        if cast is not None and cast.person_names:
+            for name in cast.person_names:
+                assert name in involved.answer_text, rec.label
+        else:
+            assert "does not name a Keyman" in involved.answer_text
+        questions = [question for question, _ in seeded_fixture_exchanges(rec.label)]
+        assert questions == [CANONICAL_CHAT_QUESTION, CANONICAL_INVOLVED_QUESTION]
     calendar_title, _ = ambiguous_commitment_post()
     calendar = seeded_fixture_chat(calendar_title)
     assert calendar is not None
     assert "Riverbend" in calendar.answer_text
+    calendar_involved = seeded_fixture_involved_chat(calendar_title)
+    assert calendar_involved is not None
+    assert "does not name a Keyman" in calendar_involved.answer_text
     assert seeded_fixture_chat("not a fixture title") is None
+    assert seeded_fixture_involved_chat("not a fixture title") is None
+    assert seeded_fixture_exchanges("not a fixture title") == []
     demo = seeded_demo_chat()
     assert "Northridge Grid" in demo.answer_text
+    demo_involved = seeded_demo_involved_chat()
+    assert "Ada West" in demo_involved.answer_text
+    assert "Priya Nair" in demo_involved.answer_text
+    assert [question for question, _ in seeded_demo_exchanges()] == [
+        CANONICAL_CHAT_QUESTION,
+        CANONICAL_INVOLVED_QUESTION,
+    ]
 
 
 def test_null_chat_client_is_unavailable_not_empty_answer() -> None:

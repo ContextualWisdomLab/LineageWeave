@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.56.0] - 2026-08-14
+
+### Added
+
+- A second seeded Ask question, "Who is involved?", on every fixture
+  that already answers "What happened between these events?" A-100
+  names Ada West and Priya Nair; B-200 names Jordan Hale; rec-006
+  and Riverbend say they do not name a Keyman. After `make seed`
+  the popup shows two chips instead of one canned prompt.
+
 ## [0.55.0] - 2026-08-14
 
 ### Added

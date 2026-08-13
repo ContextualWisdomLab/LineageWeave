@@ -446,15 +446,16 @@ def _write_post_chat(cur, post_id, question: str, chat) -> None:
 
 
 def _seed_demo_public_chat(cur, post_id) -> None:
-    """Write the popup Ask answer for the demo public post.
+    """Write the popup Ask answers for the demo public post.
 
-    Idempotent: re-seed replaces the same row so GET/POST chat stay
-    non-empty without a live orchestrator.
+    Idempotent: re-seed replaces the same rows so GET/POST chat stay
+    non-empty without a live orchestrator. Writes both canned
+    questions so the chips are not a single prompt.
     """
-    from backend.app.post_chat_ingestion import seeded_demo_chat
-    from lineageweave.post_chat import CANONICAL_CHAT_QUESTION
+    from backend.app.post_chat_ingestion import seeded_demo_exchanges
 
-    _write_post_chat(cur, post_id, CANONICAL_CHAT_QUESTION, seeded_demo_chat())
+    for question, chat in seeded_demo_exchanges():
+        _write_post_chat(cur, post_id, question, chat)
 
 
 def _seed_fixture_chats(cur) -> None:
@@ -463,23 +464,23 @@ def _seed_fixture_chats(cur) -> None:
     Event Lineage click-through stays an empty Ask box without this
     when the orchestrator is off. Idempotent -- finds existing titles
     so a re-seed after the lineage insert's early-return still fills
-    the popup.
+    the popup. Writes both canned questions per fixture.
     """
     from lineageweave.fixtures import ambiguous_commitment_post, sample_records
-    from backend.app.post_chat_ingestion import seeded_fixture_chat
-    from lineageweave.post_chat import CANONICAL_CHAT_QUESTION
+    from backend.app.post_chat_ingestion import seeded_fixture_exchanges
 
     titles = [rec.label for rec in sample_records()]
     titles.append(ambiguous_commitment_post()[0])
     for title in titles:
-        chat = seeded_fixture_chat(title)
-        if chat is None:
+        exchanges = seeded_fixture_exchanges(title)
+        if not exchanges:
             continue
         cur.execute("select post_id from source_post where post_title = %s", (title,))
         row = cur.fetchone()
         if row is None:
             continue
-        _write_post_chat(cur, row[0], CANONICAL_CHAT_QUESTION, chat)
+        for question, chat in exchanges:
+            _write_post_chat(cur, row[0], question, chat)
 
 
 def _seed_demo_public_summary(cur, post_id) -> None:
