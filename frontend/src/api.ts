@@ -329,6 +329,27 @@ export interface PeriodReportIndex {
   periods: PeriodReportSummary[];
 }
 
+export interface GroupingComparisonRow {
+  grouping_kind: string;
+  grouping_key: string;
+  grouping_label: string;
+  mean_theta: number;
+  post_count: number;
+  link_method: string;
+}
+
+export interface PeriodComparison {
+  period_code: string;
+  groupings: GroupingComparisonRow[];
+}
+
+export function fetchPeriodComparison(
+  accessToken: string,
+  periodCode: string,
+): Promise<PeriodComparison> {
+  return backendFetch(`/api/reports/compare/${periodCode}`, accessToken);
+}
+
 export function fetchPeriodReportIndex(
   accessToken: string,
   groupingKind: string,

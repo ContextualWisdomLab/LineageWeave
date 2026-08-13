@@ -312,22 +312,15 @@ async def persist_period_report(
         )
 
 
-async def rebuild_period_reports(
-    conn: asyncpg.Connection,
-    grouping_kind: str,
-    period_code: str,
-) -> list[PeriodReport]:
-    """Calibrate every grouping key that has enough evaluations in the period."""
-    if grouping_kind not in GROUPING_KINDS:
-        raise ValueError(f"unknown grouping_kind {grouping_kind!r}")
-    parse_period_code(period_code)
-    rows = await load_period_evaluation_rows(conn, grouping_kind, period_code)
+def _groups_from_rows(
+    kind: str, rows: list[asyncpg.Record]
+) -> dict[str, tuple[list[str], list[tuple[str, str, int]]]]:
+    """Partition evaluation rows into FIPC groups for one grouping kind."""
     by_group: dict[str, list[asyncpg.Record]] = defaultdict(list)
     for row in rows:
-        key = grouping_value(grouping_kind, row)
+        key = grouping_value(kind, row)
         if key is not None:
             by_group[key].append(row)
-
     groups: dict[str, tuple[list[str], list[tuple[str, str, int]]]] = {}
     for grouping_key, group_rows in by_group.items():
         post_ids = list(dict.fromkeys(str(row["post_id"]) for row in group_rows))
@@ -338,31 +331,49 @@ async def rebuild_period_reports(
             for row in group_rows
         ]
         groups[grouping_key] = (post_ids, cells)
-    if not groups:
-        return []
+    return groups
 
+
+async def rebuild_period_reports(
+    conn: asyncpg.Connection,
+    grouping_kind: str,
+    period_code: str,
+) -> list[PeriodReport]:
+    """Score every grouping kind on the shared bank for this period.
+
+    ``grouping_kind`` is still required by the URL; all three kinds are
+    written so the home-page comparison strip is not empty.
+    """
+    if grouping_kind not in GROUPING_KINDS:
+        raise ValueError(f"unknown grouping_kind {grouping_kind!r}")
+    parse_period_code(period_code)
+    rows = await load_period_evaluation_rows(conn, grouping_kind, period_code)
     item_bank = await load_shared_item_bank(conn, period_code)
-    previous_means: dict[str, float] = {}
-    for grouping_key in groups:
-        previous = await load_previous_group_mean(conn, grouping_kind, grouping_key, period_code)
-        if previous is not None:
-            previous_means[grouping_key] = previous
-
-    bank_report, scored = score_groups_on_shared_metric(
-        groups,
-        item_bank=item_bank,
-        previous_means=previous_means,
-        item_codes=CRITERION_CODES,
-        source_period_code=period_code,
-    )
-    if bank_report is not None:
-        await persist_period_report(
-            conn, SHARED_METRIC_KIND, SHARED_METRIC_KEY, period_code, bank_report
-        )
     reports: list[PeriodReport] = []
-    for grouping_key, report in scored.items():
-        await persist_period_report(conn, grouping_kind, grouping_key, period_code, report)
-        reports.append(report)
+    for kind in ("process_unit", "corporate_entity", "thread_group"):
+        groups = _groups_from_rows(kind, rows)
+        if not groups:
+            continue
+        previous_means: dict[str, float] = {}
+        for grouping_key in groups:
+            previous = await load_previous_group_mean(conn, kind, grouping_key, period_code)
+            if previous is not None:
+                previous_means[grouping_key] = previous
+        bank_report, scored = score_groups_on_shared_metric(
+            groups,
+            item_bank=item_bank,
+            previous_means=previous_means,
+            item_codes=CRITERION_CODES,
+            source_period_code=period_code,
+        )
+        if bank_report is not None:
+            await persist_period_report(
+                conn, SHARED_METRIC_KIND, SHARED_METRIC_KEY, period_code, bank_report
+            )
+            item_bank = bank_report.item_bank
+        for grouping_key, report in scored.items():
+            await persist_period_report(conn, kind, grouping_key, period_code, report)
+            reports.append(report)
     return reports
 
 
@@ -542,6 +553,81 @@ async def list_period_report_summaries(
         }
         for row in rows
     ]
+
+
+async def resolve_grouping_label(conn: asyncpg.Connection, grouping_kind: str, grouping_key: str) -> str:
+    """Human-readable name for a grouping key (process unit / corp / thread)."""
+    if grouping_kind == "process_unit":
+        row = await conn.fetchrow(
+            "select process_unit_name from process_unit where process_unit_id::text = $1",
+            grouping_key,
+        )
+        if row is not None:
+            return str(row["process_unit_name"])
+    elif grouping_kind == "corporate_entity":
+        row = await conn.fetchrow(
+            "select entity_name from corporate_entity where corporate_entity_id::text = $1",
+            grouping_key,
+        )
+        if row is not None:
+            return str(row["entity_name"])
+    return grouping_key
+
+
+async def fetch_period_comparison(
+    conn: asyncpg.Connection,
+    period_code: str,
+) -> list[dict[str, Any]]:
+    """Every PU / corp / thread scored on the shared metric for one period."""
+    parse_period_code(period_code)
+    rows = await conn.fetch(
+        """
+        select grouping_kind, grouping_key, mean_theta, post_count, link_method
+        from report_period_score
+        where period_code = $1 and rubric_version = $2
+          and grouping_kind = any($3::text[])
+        order by grouping_kind, mean_theta desc
+        """,
+        period_code,
+        RUBRIC_VERSION,
+        list(GROUPING_KINDS),
+    )
+    members = await conn.fetch(
+        """
+        select m.grouping_kind, m.grouping_key, p.visibility_code, p.corporate_entity_id
+        from report_member_score m
+        join source_post p on p.post_id = m.post_id
+        where m.period_code = $1 and m.rubric_version = $2
+          and m.grouping_kind = any($3::text[])
+        """,
+        period_code,
+        RUBRIC_VERSION,
+        list(GROUPING_KINDS),
+    )
+    members_by_key: dict[tuple[str, str], list[asyncpg.Record]] = defaultdict(list)
+    for row in members:
+        members_by_key[(row["grouping_kind"], row["grouping_key"])].append(row)
+    payload: list[dict[str, Any]] = []
+    for row in rows:
+        label = await resolve_grouping_label(conn, row["grouping_kind"], row["grouping_key"])
+        payload.append(
+            {
+                "grouping_kind": row["grouping_kind"],
+                "grouping_key": row["grouping_key"],
+                "grouping_label": label,
+                "mean_theta": float(row["mean_theta"]),
+                "post_count": int(row["post_count"]),
+                "link_method": row["link_method"],
+                "members": [
+                    {
+                        "visibility_code": member["visibility_code"],
+                        "corporate_entity_id": str(member["corporate_entity_id"]),
+                    }
+                    for member in members_by_key.get((row["grouping_kind"], row["grouping_key"]), [])
+                ],
+            }
+        )
+    return payload
 
 
 def iso_week_period(when: datetime | None = None) -> str:

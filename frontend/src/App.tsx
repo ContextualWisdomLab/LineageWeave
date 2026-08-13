@@ -19,6 +19,7 @@ import {
   fetchPostSummary,
   fetchPostTickets,
   fetchPostVocEvidence,
+  fetchPeriodComparison,
   fetchPeriodReportIndex,
   fetchPeriodReports,
   fetchPosts,
@@ -39,6 +40,7 @@ import {
   type LinkedPostRef,
   type PostAiSummary,
   type PostDetail,
+  type PeriodComparison,
   type PeriodReportIndex,
   type PeriodReports,
   type PostLineage,
@@ -949,18 +951,27 @@ function ReportsPanel({
   const [period, setPeriod] = useState("2026-W02");
   const [payload, setPayload] = useState<PeriodReports | null>(null);
   const [index, setIndex] = useState<PeriodReportIndex | null>(null);
+  const [comparison, setComparison] = useState<PeriodComparison | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rebuilding, setRebuilding] = useState(false);
+
+  const groupingLabels: Record<string, string> = {
+    process_unit: "Process unit",
+    corporate_entity: "Corporate entity",
+    thread_group: "Thread group",
+  };
 
   useEffect(() => {
     setError(null);
     Promise.all([
       fetchPeriodReports(accessToken, grouping, period),
       fetchPeriodReportIndex(accessToken, grouping),
+      fetchPeriodComparison(accessToken, period),
     ])
-      .then(([reports, periods]) => {
+      .then(([reports, periods, compared]) => {
         setPayload(reports);
         setIndex(periods);
+        setComparison(compared);
       })
       .catch((err) => setError(String(err)));
   }, [accessToken, grouping, period]);
@@ -970,12 +981,14 @@ function ReportsPanel({
     setError(null);
     try {
       await rebuildPeriodReports(accessToken, grouping, period);
-      const [reports, periods] = await Promise.all([
+      const [reports, periods, compared] = await Promise.all([
         fetchPeriodReports(accessToken, grouping, period),
         fetchPeriodReportIndex(accessToken, grouping),
+        fetchPeriodComparison(accessToken, period),
       ]);
       setPayload(reports);
       setIndex(periods);
+      setComparison(compared);
     } catch (err) {
       setError(String(err));
     } finally {
@@ -1011,6 +1024,25 @@ function ReportsPanel({
           />
         </label>
       </div>
+      {comparison && comparison.groupings.length > 0 && (
+        <ul className="ticket-list" aria-label="Grouping comparison">
+          {comparison.groupings.map((row) => (
+            <li key={`${row.grouping_kind}:${row.grouping_key}`} className="ticket-list-item">
+              <button
+                className="post-list-item"
+                aria-label={`Compare ${row.grouping_kind}: ${row.grouping_label}`}
+                onClick={() => setGrouping(row.grouping_kind)}
+              >
+                <span className="ticket-title">
+                  {groupingLabels[row.grouping_kind] ?? row.grouping_kind}: {row.grouping_label}
+                </span>
+                <span className="post-badge">mean θ {row.mean_theta.toFixed(2)}</span>
+                <span className="post-badge">{row.post_count} posts</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       {index && index.periods.length > 0 && (
         <ul className="ticket-list">
           {index.periods.map((row) => (
