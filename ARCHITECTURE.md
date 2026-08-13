@@ -187,7 +187,9 @@ lives in `lineageweave/keyman_extraction.py` and talks to
 contextual-orchestrator; persist is `backend/app/keyman_ingestion.py`.
 
 `GET /api/lineage` returns the ABAC-filtered reconstruct graph
-(`{nodes, edges}`) from persisted `post_lineage_edge` rows.
+(`{nodes, edges}`) from persisted `post_lineage_edge` rows. Each node
+includes `group` from the same `reconstruct_group_key()` rebuild uses
+(persisted `thread_group_key`, else process unit, else corp).
 `POST /api/lineage/rebuild` (`post_admin`) re-runs `reconstruct()` over
 every `source_post` and rewrites those edges. Reconstruct grouping is
 stored on the post as `thread_group_key` / `secondary_grouping_key`
@@ -228,9 +230,11 @@ React + Vite + TypeScript, pinned Node via `mise.toml`, pnpm via Corepack.
 `react-oidc-context` drives a real Authorization Code redirect through
 Keycloak (`src/main.tsx`'s `AuthProvider`) -- no mocked auth, no static
 HTML. `src/api.ts` calls the FastAPI backend directly with the token
-Keycloak issued; `src/App.tsx` renders the post list and a full detail
-popup: Korean summary/key-events/R&R, an Event Lineage panel
-(direct vs. indirect links, visually distinguished per
+Keycloak issued; `src/App.tsx` renders a git-branch SVG of
+`GET /api/lineage` (click a node to open that post; `post_admin` can
+rebuild), the post list, and a full detail popup: Korean
+summary/key-events/R&R, an Event Lineage panel (direct vs. indirect
+links, visually distinguished per
 `tests/test_indirect_lineage_linking.py`'s distinction), Keyman +
 counterparty panels, and an in-popup chat whose cited sources open a
 sliding evidence panel (`EvidencePanel`, CSS `slide-in-from-right`)
@@ -243,10 +247,12 @@ config baked in at build time from the same `.env` ports every other
 service uses (Vite embeds `import.meta.env.VITE_*` at build time, not
 runtime, so these are Docker build args, not container env vars).
 `src/App.test.tsx` mocks `react-oidc-context`'s `useAuth` to test the
-component's own render logic (login button -> `signinRedirect()`; fetch
-posts with the token -> render list -> click -> popup shows the fetched
-body and every panel; ask a chat question -> click a citation -> the
-evidence panel shows exactly that source post's content) -- the real
+component's own render logic (login button -> `signinRedirect()`; the
+A-100 fork DAG shows a branch point and rec-006 as its own root;
+`post_admin` can rebuild; fetch posts with the token -> render list ->
+click -> popup shows the fetched body and every panel; ask a chat
+question -> click a citation -> the evidence panel shows exactly that
+source post's content) -- the real
 OIDC cryptography and the real LLM calls are proven elsewhere
 (`scripts/smoke_test_oidc.py`, `backend/tests/test_api.py`), so this test
 isn't re-proving that, only that the UI wires the pieces together

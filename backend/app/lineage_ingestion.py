@@ -24,6 +24,16 @@ def _occurred_at(value: datetime) -> datetime:
     return value.replace(tzinfo=None) if value.tzinfo is not None else value
 
 
+def reconstruct_group_key(row: Mapping[str, Any]) -> str:
+    """Same grouping rebuild uses: persisted thread key, else PU, else corp.
+
+    Display ``group`` on ``GET /api/lineage`` must use this exact fallback
+    so the DAG cannot split a thread reconstruct would keep together.
+    """
+    stored_group = (row.get("thread_group_key") or "").strip()
+    return stored_group or str(row["process_unit_id"] or row["corporate_entity_id"])
+
+
 def records_from_source_posts(rows: list[Mapping[str, Any]]) -> list[Record]:
     """Map ``source_post`` rows onto reconstruct ``Record``s.
 
@@ -36,12 +46,10 @@ def records_from_source_posts(rows: list[Mapping[str, Any]]) -> list[Record]:
     """
     records: list[Record] = []
     for row in rows:
-        stored_group = (row.get("thread_group_key") or "").strip()
-        group_key = stored_group or str(row["process_unit_id"] or row["corporate_entity_id"])
         records.append(
             Record(
                 str(row["post_id"]),
-                group_key,
+                reconstruct_group_key(row),
                 row["post_title"],
                 _occurred_at(row["created_at"]),
                 row.get("secondary_grouping_key") or "",
@@ -82,7 +90,8 @@ async def visible_lineage_graph(
     """ABAC-filtered ``{nodes, edges}`` matching the stdlib demo graph shape."""
     posts = await conn.fetch(
         "select post_id, post_title, voc_type_code, visibility_code, "
-        "corporate_entity_id, created_at from source_post"
+        "corporate_entity_id, process_unit_id, thread_group_key, created_at "
+        "from source_post"
     )
     visible = [row for row in posts if can_see_post(row)]
     visible_ids = {str(row["post_id"]) for row in visible}
@@ -104,6 +113,7 @@ async def visible_lineage_graph(
         nodes.append(
             {
                 "id": post_id,
+                "group": reconstruct_group_key(row),
                 "label": row["post_title"],
                 "occurred_at": row["created_at"].isoformat(),
                 "is_root": post_id not in child_ids,

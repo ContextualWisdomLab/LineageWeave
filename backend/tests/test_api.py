@@ -684,6 +684,7 @@ def test_rebuild_lineage_recovers_the_a100_fork(client, demo_analyst_token, seed
     nodes = {node["label"]: node for node in body["nodes"]}
     fork = nodes["Pricing renegotiation follow-up"]
     assert fork["is_branch_point"] is True
+    assert fork["group"] == "A-100"
     children = {
         next(node["label"] for node in body["nodes"] if node["id"] == edge["target"])
         for edge in body["edges"]
@@ -692,6 +693,8 @@ def test_rebuild_lineage_recovers_the_a100_fork(client, demo_analyst_token, seed
     assert "Pricing renegotiation: revised quote sent" in children
     assert "Delivery schedule question raised" in children
     assert nodes["Unrelated: annual account review"]["is_root"] is True
+    assert nodes["Unrelated: annual account review"]["group"] == "A-100"
+    assert nodes["Technical specification review meeting"]["group"] == "B-200"
 
     per_post = client.get(
         f"/api/posts/{fork['id']}/lineage",

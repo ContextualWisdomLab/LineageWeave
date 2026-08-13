@@ -82,6 +82,7 @@ async function backendFetch<T>(
 
 export interface LineageGraphNode {
   id: string;
+  group: string;
   label: string;
   occurred_at: string;
   is_root: boolean;
@@ -101,6 +102,20 @@ export interface LineageGraph {
 
 export function fetchLineageGraph(accessToken: string): Promise<LineageGraph> {
   return backendFetch<LineageGraph>("/api/lineage", accessToken);
+}
+
+export interface CurrentUser {
+  user_account_id: string;
+  display_name: string;
+  permission_codes: string[];
+}
+
+export function fetchMe(accessToken: string): Promise<CurrentUser> {
+  return backendFetch<CurrentUser>("/api/me", accessToken);
+}
+
+export function rebuildLineage(accessToken: string): Promise<{ edge_count: number }> {
+  return backendFetch("/api/lineage/rebuild", accessToken, { method: "POST" });
 }
 
 export function fetchPosts(accessToken: string): Promise<PostSummary[]> {

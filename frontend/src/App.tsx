@@ -3,12 +3,14 @@ import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
   fetchLineageGraph,
+  fetchMe,
   fetchPost,
   fetchPostCounterparties,
   fetchPostKeymen,
   fetchPostLineage,
   fetchPostSummary,
   fetchPosts,
+  rebuildLineage,
   type ChatAnswer,
   type Counterparty,
   type LineageGraph,
@@ -19,6 +21,7 @@ import {
   type PostLineage,
   type PostSummary,
 } from "./api";
+import { LineageDag } from "./LineageDag";
 import "./App.css";
 
 // This popup's layout follows the textual product brief (Korean summary,
@@ -276,33 +279,35 @@ function PostDetailPopup({
   );
 }
 
-function LineageGraphSection({ graph }: { graph: LineageGraph | null }) {
-  if (!graph) return <p>Loading lineage graph...</p>;
-  if (graph.edges.length === 0) {
-    return <p className="lineage-empty">No reconstructed lineage yet. Rebuild after seeding posts.</p>;
-  }
-  const labels = Object.fromEntries(graph.nodes.map((node) => [node.id, node.label]));
-  return (
-    <ul className="lineage-graph-list" aria-label="Reconstructed lineage">
-      {graph.edges.map((edge) => (
-        <li key={`${edge.source}-${edge.target}`}>
-          {labels[edge.source] ?? edge.source} → {labels[edge.target] ?? edge.target}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function PostList({ accessToken }: { accessToken: string }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [canRebuild, setCanRebuild] = useState(false);
+  const [rebuilding, setRebuilding] = useState(false);
+  const [rebuildError, setRebuildError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPosts(accessToken).then(setPosts).catch((err) => setError(String(err)));
     fetchLineageGraph(accessToken).then(setGraph).catch(() => setGraph({ nodes: [], edges: [] }));
+    fetchMe(accessToken)
+      .then((me) => setCanRebuild(me.permission_codes.includes("post_admin")))
+      .catch(() => setCanRebuild(false));
   }, [accessToken]);
+
+  async function handleRebuild() {
+    setRebuilding(true);
+    setRebuildError(null);
+    try {
+      await rebuildLineage(accessToken);
+      setGraph(await fetchLineageGraph(accessToken));
+    } catch (err) {
+      setRebuildError(String(err));
+    } finally {
+      setRebuilding(false);
+    }
+  }
 
   if (error) return <p className="error">{error}</p>;
   if (!posts) return <p>Loading posts...</p>;
@@ -310,14 +315,27 @@ function PostList({ accessToken }: { accessToken: string }) {
 
   return (
     <>
-      <section className="popup-section">
-        <h2>Event Lineage</h2>
-        <LineageGraphSection graph={graph} />
+      <section className="popup-section lineage-home">
+        <div className="lineage-home-header">
+          <h2>Event Lineage</h2>
+          {canRebuild && (
+            <button onClick={handleRebuild} disabled={rebuilding}>
+              {rebuilding ? "Rebuilding..." : "Rebuild lineage"}
+            </button>
+          )}
+        </div>
+        {rebuildError && <p className="error">{rebuildError}</p>}
+        {!graph && <p>Loading lineage graph...</p>}
+        {graph && <LineageDag graph={graph} onSelectPost={setSelectedPostId} />}
       </section>
       <ul className="post-list">
         {posts.map((post) => (
           <li key={post.post_id}>
-            <button className="post-list-item" onClick={() => setSelectedPostId(post.post_id)}>
+            <button
+              className="post-list-item"
+              aria-label={`View post: ${post.post_title}`}
+              onClick={() => setSelectedPostId(post.post_id)}
+            >
               <span className="post-title">{post.post_title}</span>
               <span className="post-badge">{post.visibility_code}</span>
             </button>

@@ -155,9 +155,10 @@ from the list and 403s on direct fetch.
 
 `frontend/` (React + Vite + TypeScript, `docker compose`'s fourth service)
 is a real client, not mocked or static: `react-oidc-context` drives an
-actual Authorization Code redirect through Keycloak, and the post list /
-detail popup call the FastAPI backend over real `fetch()` with the token
-Keycloak issued.
+actual Authorization Code redirect through Keycloak, the home page
+draws the reconstructed lineage as a git-branch SVG (`GET /api/lineage`;
+`post_admin` can rebuild), and the post list / detail popup call the
+FastAPI backend over real `fetch()` with the token Keycloak issued.
 
 ```bash
 make up
