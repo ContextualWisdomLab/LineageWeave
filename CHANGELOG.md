@@ -56,7 +56,10 @@ All notable changes to this project are documented here. Format follows
   object names) for persisting and searching extracted image content,
   designed so a text/tag search hit stays traceable to which document and
   which position produced it, and so the same image (by content hash) is
-  never reprocessed twice.
+  never *stored* twice (the primary key guarantees that part). Avoiding a
+  duplicate vision-provider *call* for two concurrent ingests of the same
+  new image is a separate concern the schema documents but does not solve
+  by itself -- a real write path still needs an atomic claim/lease step.
 
 ## [0.2.0] - 2026-08-13
 

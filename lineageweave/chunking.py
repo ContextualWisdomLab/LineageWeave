@@ -155,11 +155,11 @@ class _BlockTextExtractor(HTMLParser):
 
     def __init__(self) -> None:
         super().__init__()
-        self._stack: list[list[str]] = []
-        # Each entry is ("text", str) or ("image", (mime_type, bytes)) --
+        self._stack: list[tuple[str, list[str]]] = []
+        # Each entry is ("text", str, tag_name) or ("image", (mime_type, bytes), "") --
         # a single sequence in true document order, so an image's index
         # among its siblings reflects where it actually sat.
-        self._finished: list[tuple[str, object]] = []
+        self._finished: list[tuple[str, object, str]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag == "img":
@@ -167,24 +167,24 @@ class _BlockTextExtractor(HTMLParser):
             if src:
                 decoded = _decode_data_uri_image(src)
                 if decoded is not None:
-                    self._finished.append(("image", decoded))
+                    self._finished.append(("image", decoded, ""))
             return
         if tag in _DOM_BLOCK_TAGS:
-            self._stack.append([])
+            self._stack.append((tag, []))
 
     def handle_endtag(self, tag: str) -> None:
         if tag in _DOM_BLOCK_TAGS and self._stack:
-            buffer = self._stack.pop()
+            tag_name, buffer = self._stack.pop()
             text = " ".join(buffer).strip()
             if text:
-                self._finished.append(("text", text))
+                self._finished.append(("text", text, tag_name))
 
     def handle_data(self, data: str) -> None:
         text = data.strip()
         if text and self._stack:
-            self._stack[-1].append(text)
+            self._stack[-1][1].append(text)
 
-    def finished(self) -> list[tuple[str, object]]:
+    def finished(self) -> list[tuple[str, object, str]]:
         return self._finished
 
 
@@ -206,9 +206,9 @@ def chunk_by_dom(html: str) -> list[Chunk]:
     parser.feed(html)
     entries = parser.finished()
     chunks: list[Chunk] = []
-    for index, (kind, value) in enumerate(entries):
+    for index, (kind, value, tag_name) in enumerate(entries):
         if kind == "text":
-            chunks.append(Chunk(text=value, unit_type="dom", index=index))
+            chunks.append(Chunk(text=value, unit_type="dom", index=index, label=tag_name))
         else:
             mime_type, image_bytes = value
             chunks.append(
@@ -226,9 +226,14 @@ class ConversationTurn:
 
 
 def chunk_by_conversation_turn(turns: list[ConversationTurn]) -> list[Chunk]:
-    """One chunk per sender turn, labeled with who sent it."""
+    """One chunk per non-empty sender turn, labeled with who sent it.
+
+    Empty turns are filtered out before indexing, not after -- so
+    ``Chunk.index`` is always a contiguous 0-based position among the
+    chunks actually returned, never the filtered-out original turn index.
+    """
+    non_empty_turns = [turn for turn in turns if turn.text.strip()]
     return [
         Chunk(text=turn.text, unit_type="conversation_turn", index=i, label=turn.sender)
-        for i, turn in enumerate(turns)
-        if turn.text.strip()
+        for i, turn in enumerate(non_empty_turns)
     ]

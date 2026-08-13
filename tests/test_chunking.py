@@ -91,6 +91,15 @@ def test_chunk_by_dom_interleaves_images_with_text_in_document_order() -> None:
     assert chunks[2].text == "After the picture."
 
 
+def test_chunk_by_dom_labels_text_chunks_with_their_tag_name() -> None:
+    html = "<article><p>A paragraph.</p></article><aside>Sidebar.</aside>"
+    chunks = chunk_by_dom(html)
+
+    labels = {c.text: c.label for c in chunks}
+    assert labels["A paragraph."] == "p"
+    assert labels["Sidebar."] == "aside"
+
+
 def test_chunk_by_dom_skips_malformed_image_data() -> None:
     html = '<p>Text.</p><img src="data:image/png;base64,not-valid!!!">'
     chunks = chunk_by_dom(html)
@@ -117,3 +126,20 @@ def test_chunk_by_conversation_turn_skips_empty_turns() -> None:
     chunks = chunk_by_conversation_turn(turns)
     assert len(chunks) == 1
     assert chunks[0].label == "alice@example.com"
+
+
+def test_chunk_by_conversation_turn_index_is_contiguous_after_filtering() -> None:
+    """A regression test for a real bug: an empty turn in the MIDDLE of
+    the conversation must not leave a gap in the surviving chunks'
+    `index` values (e.g. [0, 2] instead of [0, 1]) -- `Chunk.index` is a
+    position among the chunks actually returned, not the original turn
+    list's position.
+    """
+    turns = [
+        ConversationTurn(sender="alice@example.com", text="First."),
+        ConversationTurn(sender="bob@example.com", text="   "),
+        ConversationTurn(sender="carol@example.com", text="Third."),
+    ]
+    chunks = chunk_by_conversation_turn(turns)
+    assert [c.index for c in chunks] == [0, 1]
+    assert [c.label for c in chunks] == ["alice@example.com", "carol@example.com"]

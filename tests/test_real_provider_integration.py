@@ -83,7 +83,7 @@ def test_chunked_embedding_finds_a_relevant_unit_buried_in_a_longer_document() -
         "Reminder about the annual fire drill scheduled for next week."
     )
 
-    chunked_score, best_a, best_b = chunked_max_similarity(client, query, long_document)
+    chunked_score, _best_a, best_b = chunked_max_similarity(client, query, long_document)
     whole_document_score = cosine_similarity(client.embed(query), client.embed(long_document))
 
     assert "Budget review" in best_b.text

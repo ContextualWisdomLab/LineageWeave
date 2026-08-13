@@ -5,6 +5,7 @@ import base64
 import pytest
 
 from lineageweave.image_content import (
+    ImageDescriptionParseError,
     OpenAiCompatibleVisionClient,
     _parse_description,
     extract_base64_images,
@@ -24,7 +25,15 @@ def test_extract_base64_images_finds_images_in_document_order() -> None:
     )
     images = extract_base64_images(html)
 
-    assert [img.position for img in images] == [0, 1]
+    # position is a character offset (not an image-only ordinal), so the
+    # second image's position must fall strictly after the first image's
+    # entire <img> tag AND the "Middle text." paragraph between them --
+    # exactly what distinguishes "two images with content between them"
+    # from "two images back to back," which an ordinal cannot.
+    assert images[0].position < images[1].position
+    assert images[1].position >= images[0].position + len(f'<img src="data:image/png;base64,{_TINY_PNG_B64}">') + len(
+        "<p>Middle text.</p>"
+    )
     assert all(img.mime_type == "image/png" for img in images)
     assert all(img.data == base64.b64decode(_TINY_PNG_B64) for img in images)
 
@@ -58,11 +67,16 @@ def test_parse_description_none_text_becomes_empty_string() -> None:
     assert description.extracted_text == ""
 
 
-def test_parse_description_missing_lines_default_to_empty() -> None:
-    description = _parse_description("unexpected format")
-    assert description.extracted_text == ""
-    assert description.caption == ""
-    assert description.tags == ()
+def test_parse_description_unexpected_format_raises_instead_of_losing_content() -> None:
+    with pytest.raises(ImageDescriptionParseError):
+        _parse_description("unexpected format")
+
+
+def test_parse_description_preserves_multiline_ocr_text() -> None:
+    content = "TEXT: Line one\nLine two\nLine three\nCAPTION: A scanned page.\nTAGS: document, scan"
+    description = _parse_description(content)
+    assert description.extracted_text == "Line one\nLine two\nLine three"
+    assert description.caption == "A scanned page."
 
 
 def test_vision_client_rejects_non_http_url_schemes() -> None:
@@ -74,16 +88,32 @@ def test_vision_client_rejects_non_http_url_schemes() -> None:
         )
 
 
-def test_vision_client_accepts_http_and_https_urls() -> None:
-    http_client = OpenAiCompatibleVisionClient(
-        base_url="http://127.0.0.1:8000/v1",
-        api_key="unused",
-        model="unused",
-    )
+def test_vision_client_accepts_https_urls_by_default() -> None:
     https_client = OpenAiCompatibleVisionClient(
         base_url="https://gateway.example/v1",
         api_key="unused",
         model="unused",
     )
-    assert http_client._base_url == "http://127.0.0.1:8000/v1"
     assert https_client._base_url == "https://gateway.example/v1"
+
+
+def test_vision_client_rejects_plain_http_by_default() -> None:
+    """A plain-HTTP endpoint sends the Bearer API key and raw images
+    unencrypted -- secure by default, explicit opt-in only.
+    """
+    with pytest.raises(ValueError, match="requires https://"):
+        OpenAiCompatibleVisionClient(
+            base_url="http://127.0.0.1:8000/v1",
+            api_key="unused",
+            model="unused",
+        )
+
+
+def test_vision_client_allows_http_with_explicit_insecure_opt_in() -> None:
+    http_client = OpenAiCompatibleVisionClient(
+        base_url="http://127.0.0.1:8000/v1",
+        api_key="unused",
+        model="unused",
+        allow_insecure_http=True,
+    )
+    assert http_client._base_url == "http://127.0.0.1:8000/v1"

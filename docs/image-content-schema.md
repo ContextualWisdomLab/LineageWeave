@@ -18,7 +18,12 @@ for review. The design below keeps three things independently true at
 once: (1) the extracted text and tags are searchable on their own terms,
 (2) each image stays traceable to exactly which document and which
 position produced it, and (3) the same image (by content hash) is never
-re-processed or re-stored twice.
+*stored* twice -- `embedded_image_id`'s primary key guarantees that part
+by construction. Avoiding a duplicate *vision-provider call* for two
+concurrent ingests of the same new image is a separate concern this
+schema does not solve on its own (see the query-shapes note below) --
+that needs an atomic claim/lease step in the write path, not just the
+content-hash primary key.
 
 ## Tables
 
@@ -89,8 +94,14 @@ picture sat relative to the surrounding paragraphs."
   them) and `document_image_position` rows for that document, merge-sort
   by `chunk_position` -- text and images interleave back into their
   original order.
-- **"Has this exact image already been processed?"**: `SELECT ... FROM
+- **"Has this exact image already been stored?"**: `SELECT ... FROM
   embedded_image WHERE embedded_image_id = sha256(new_image_bytes)` --
-  idempotent by construction, no duplicate vision-provider calls for a
-  picture that recurs across documents (a common shape for letterhead
-  logos, signature images, etc.).
+  storage is idempotent by construction (the primary key), a genuinely
+  useful guard against re-storing a picture that recurs across documents
+  (a common shape for letterhead logos, signature images, etc.). This
+  check alone does not prevent two concurrent ingests of the same *new*
+  image from both calling the vision provider before either has written
+  its row -- a real write path needs an atomic claim (e.g. `INSERT ...
+  ON CONFLICT DO NOTHING` before the provider call, or a short-lived
+  lease row) to close that race; this schema documents the storage
+  guarantee, not that concurrency control.

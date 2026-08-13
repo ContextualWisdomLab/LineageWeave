@@ -44,9 +44,13 @@ class EmbeddedImage:
     """One base64 image found in DOM content.
 
     Attributes:
-        position: this image's order of appearance in the source document
-            (0-based) -- the anchor that lets extracted content be placed
-            back where the picture actually was.
+        position: this image's character offset in the source HTML
+            (0-based) -- NOT an image-only ordinal. An ordinal (0, 1, 2...)
+            cannot distinguish "two images with a paragraph between them"
+            from "two images back to back," so the original document
+            layout could not be reconstructed from it. A character offset
+            can: it is comparable against any text unit's own position
+            (e.g. a DOM chunk's start offset) to recover relative order.
         mime_type: e.g. ``"image/png"``.
         data: the decoded raw image bytes.
     """
@@ -71,7 +75,7 @@ def extract_base64_images(html: str) -> list[EmbeddedImage]:
             data = base64.b64decode(raw_b64, validate=True)
         except (binascii.Error, ValueError):
             continue
-        images.append(EmbeddedImage(position=len(images), mime_type=mime_type, data=data))
+        images.append(EmbeddedImage(position=match.start(), mime_type=mime_type, data=data))
     return images
 
 
@@ -115,21 +119,34 @@ _RESPONSE_FORMAT = (
     "CAPTION: <one sentence describing what the image shows>\n"
     "TAGS: <comma-separated short tags for the main objects/subjects>"
 )
-_TEXT_LINE = re.compile(r"TEXT:\s*(.*)")
-_CAPTION_LINE = re.compile(r"CAPTION:\s*(.*)")
-_TAGS_LINE = re.compile(r"TAGS:\s*(.*)")
+# DOTALL + non-greedy so TEXT: can legitimately span multiple lines (real
+# OCR output is often multi-line) without losing everything after the
+# first newline, while still stopping at the next expected label.
+_DESCRIPTION_PATTERN = re.compile(
+    r"TEXT:\s*(?P<text>.*?)\s*CAPTION:\s*(?P<caption>.*?)\s*TAGS:\s*(?P<tags>.*)",
+    re.DOTALL,
+)
+
+
+class ImageDescriptionParseError(ValueError):
+    """The vision provider's response didn't match the required
+    TEXT/CAPTION/TAGS format -- raised instead of silently returning an
+    empty ImageDescription, so a provider response-format change is
+    surfaced immediately rather than quietly losing searchable content.
+    """
 
 
 def _parse_description(content: str) -> ImageDescription:
-    text_match = _TEXT_LINE.search(content)
-    caption_match = _CAPTION_LINE.search(content)
-    tags_match = _TAGS_LINE.search(content)
-
-    extracted_text = text_match.group(1).strip() if text_match else ""
+    match = _DESCRIPTION_PATTERN.search(content)
+    if match is None:
+        raise ImageDescriptionParseError(
+            f"vision response did not match the required TEXT/CAPTION/TAGS format: {content!r}"
+        )
+    extracted_text = match.group("text").strip()
     if extracted_text.upper() == "NONE":
         extracted_text = ""
-    caption = caption_match.group(1).strip() if caption_match else ""
-    tags_raw = tags_match.group(1).strip() if tags_match else ""
+    caption = match.group("caption").strip()
+    tags_raw = match.group("tags").strip()
     tags = tuple(tag.strip() for tag in tags_raw.split(",") if tag.strip())
     return ImageDescription(extracted_text=extracted_text, caption=caption, tags=tags)
 
@@ -141,11 +158,28 @@ class OpenAiCompatibleVisionClient:
 
     available = True
 
-    def __init__(self, base_url: str, api_key: str, model: str, *, timeout: float = 60.0) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        api_key: str,
+        model: str,
+        *,
+        timeout: float = 60.0,
+        allow_insecure_http: bool = False,
+    ) -> None:
         parsed = urlparse(base_url)
         if parsed.scheme not in {"http", "https"}:
             raise ValueError(
                 f"unsupported vision client URL scheme: {parsed.scheme or 'missing'}"
+            )
+        if parsed.scheme == "http" and not allow_insecure_http:
+            # A plain-HTTP endpoint sends the Bearer API key and every raw
+            # image over the wire unencrypted. Secure-by-default: require
+            # an explicit opt-in (local dev/tests only) rather than
+            # allowing any remote http:// host silently.
+            raise ValueError(
+                "OpenAiCompatibleVisionClient requires https:// by default; "
+                "pass allow_insecure_http=True for local-dev-only http:// endpoints"
             )
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key

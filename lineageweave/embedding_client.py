@@ -90,8 +90,15 @@ def chunked_max_similarity(
     behave exactly as they did before chunking existed -- one embedding
     call each, same as :meth:`EmbeddingClient.embed`.
     """
-    chunks_a = chunker(text_a) or [Chunk(text=text_a, unit_type="whole", index=0)]
-    chunks_b = chunker(text_b) or [Chunk(text=text_b, unit_type="whole", index=0)]
+    raw_chunks_a = chunker(text_a)
+    raw_chunks_b = chunker(text_b)
+    # Fallback applies for zero OR one chunk, not just zero: a single chunk
+    # still means "nothing to max-pool over," and the chunker's own single
+    # chunk may be normalized (e.g. paragraph-stripped) rather than the
+    # original text, which would silently break the documented "behaves
+    # exactly as it did before chunking existed" whole-text-embedding contract.
+    chunks_a = raw_chunks_a if len(raw_chunks_a) > 1 else [Chunk(text=text_a, unit_type="whole", index=0)]
+    chunks_b = raw_chunks_b if len(raw_chunks_b) > 1 else [Chunk(text=text_b, unit_type="whole", index=0)]
 
     vectors_a = [(chunk, client.embed(chunk.text)) for chunk in chunks_a]
     vectors_b = [(chunk, client.embed(chunk.text)) for chunk in chunks_b]
