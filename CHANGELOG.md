@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.54.0] - 2026-08-14
+
+### Changed
+
+- After an unmatched 503, Evaluate, Extract Keymen, and Derive
+  commitment are hidden the same way as free-text Ask. Seeded
+  evaluation, Keyman, and ticket rows stay; the buttons that can
+  only 503 again do not. Still never fabricates a live LLM result.
+
 ## [0.53.0] - 2026-08-14
 
 ### Added

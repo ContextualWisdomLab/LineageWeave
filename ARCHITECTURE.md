@@ -242,8 +242,9 @@ match is 503; the popup shows
 `Chat unavailable (LLM orchestrator not configured)` rather than a
 raw HTTP status. After that 503 the free-text Ask box is hidden and
 only seeded question chips remain -- never a fabricated answer. Evaluate, Extract
-Keymen, Derive commitment, and Verify use the same 503 empty-state
-pattern for a missing orchestrator or search service. `find_linked_post_ids` first expands to every post
+Keymen, and Derive commitment use the same 503 empty-state
+pattern and then hide the action button so it cannot 503 again.
+Verify still uses the 503 empty-state for a missing search service. `find_linked_post_ids` first expands to every post
 sharing a mentioned person before calling
 `backend/app/knowledge_graph.py::load_visible_subgraph` -- that function
 only loads edges among an *already-known* post set (its other caller,
