@@ -54,29 +54,91 @@ def grouping_value(kind: str, row: asyncpg.Record) -> str | None:
     return text or None
 
 
+_EVAL_ROWS_WEEK = """
+        select e.post_id, e.criterion_code, e.response_category,
+               p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               p.visibility_code, p.post_title
+        from post_evaluation_response e
+        join source_post p on p.post_id = e.post_id
+        where e.rubric_version = $1
+          and to_char(p.created_at at time zone 'UTC', 'IYYY-"W"IW') = $2
+        """
+_EVAL_ROWS_MONTH = """
+        select e.post_id, e.criterion_code, e.response_category,
+               p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               p.visibility_code, p.post_title
+        from post_evaluation_response e
+        join source_post p on p.post_id = e.post_id
+        where e.rubric_version = $1
+          and to_char(p.created_at at time zone 'UTC', 'YYYY-MM') = $2
+        """
+_SHARED_BANK_HEADER_WEEK = """
+        select period_code, selected_model
+        from report_period_score
+        where grouping_kind = $1 and grouping_key = $2
+          and rubric_version = $3
+          and (period_code < $4 or period_code = $4)
+          and period_code like '%-W%'
+        order by case when period_code < $4 then 0 else 1 end, period_code desc
+        limit 1
+        """
+_SHARED_BANK_HEADER_MONTH = """
+        select period_code, selected_model
+        from report_period_score
+        where grouping_kind = $1 and grouping_key = $2
+          and rubric_version = $3
+          and (period_code < $4 or period_code = $4)
+          and period_code not like '%-W%'
+        order by case when period_code < $4 then 0 else 1 end, period_code desc
+        limit 1
+        """
+_PREVIOUS_MEAN_WEEK = """
+        select mean_theta
+        from report_period_score
+        where grouping_kind = $1 and grouping_key = $2
+          and rubric_version = $3 and period_code < $4
+          and period_code like '%-W%'
+        order by period_code desc
+        limit 1
+        """
+_PREVIOUS_MEAN_MONTH = """
+        select mean_theta
+        from report_period_score
+        where grouping_kind = $1 and grouping_key = $2
+          and rubric_version = $3 and period_code < $4
+          and period_code not like '%-W%'
+        order by period_code desc
+        limit 1
+        """
+_ANCHOR_HEADER_WEEK = """
+        select period_code, selected_model, mean_theta
+        from report_period_score
+        where grouping_kind = $1 and grouping_key = $2
+          and rubric_version = $3 and period_code < $4
+          and period_code like '%-W%'
+        order by period_code desc
+        limit 1
+        """
+_ANCHOR_HEADER_MONTH = """
+        select period_code, selected_model, mean_theta
+        from report_period_score
+        where grouping_kind = $1 and grouping_key = $2
+          and rubric_version = $3 and period_code < $4
+          and period_code not like '%-W%'
+        order by period_code desc
+        limit 1
+        """
+
+
 async def load_period_evaluation_rows(
     conn: asyncpg.Connection,
     grouping_kind: str,
     period_code: str,
 ) -> list[asyncpg.Record]:
     """Evaluation cells whose post falls in ``period_code``."""
-    kind, year, number = parse_period_code(period_code)
-    if kind == "week":
-        period_filter = "to_char(p.created_at at time zone 'UTC', 'IYYY-\"W\"IW') = $2"
-    else:
-        period_filter = "to_char(p.created_at at time zone 'UTC', 'YYYY-MM') = $2"
-    return await conn.fetch(
-        f"""
-        select e.post_id, e.criterion_code, e.response_category,
-               p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
-               p.visibility_code, p.post_title
-        from post_evaluation_response e
-        join source_post p on p.post_id = e.post_id
-        where e.rubric_version = $1 and {period_filter}
-        """,
-        RUBRIC_VERSION,
-        period_code,
-    )
+    kind, _, _ = parse_period_code(period_code)
+    query = _EVAL_ROWS_WEEK if kind == "week" else _EVAL_ROWS_MONTH
+    return await conn.fetch(query, RUBRIC_VERSION, period_code)
 
 
 async def load_shared_item_bank(
@@ -85,20 +147,11 @@ async def load_shared_item_bank(
 ) -> ItemBank | None:
     """The shared rubric bank: earlier period first, else this period."""
     kind, _, _ = parse_period_code(period_code)
-    kind_filter = (
-        "and period_code like '%-W%'" if kind == "week" else "and period_code not like '%-W%'"
+    header_sql = (
+        _SHARED_BANK_HEADER_WEEK if kind == "week" else _SHARED_BANK_HEADER_MONTH
     )
     header = await conn.fetchrow(
-        f"""
-        select period_code, selected_model
-        from report_period_score
-        where grouping_kind = $1 and grouping_key = $2
-          and rubric_version = $3
-          and (period_code < $4 or period_code = $4)
-          {kind_filter}
-        order by case when period_code < $4 then 0 else 1 end, period_code desc
-        limit 1
-        """,
+        header_sql,
         SHARED_METRIC_KIND,
         SHARED_METRIC_KEY,
         RUBRIC_VERSION,
@@ -138,19 +191,8 @@ async def load_previous_group_mean(
 ) -> float | None:
     """Mean θ of the latest earlier period for this grouping key."""
     kind, _, _ = parse_period_code(period_code)
-    kind_filter = (
-        "and period_code like '%-W%'" if kind == "week" else "and period_code not like '%-W%'"
-    )
     header = await conn.fetchrow(
-        f"""
-        select mean_theta
-        from report_period_score
-        where grouping_kind = $1 and grouping_key = $2
-          and rubric_version = $3 and period_code < $4
-          {kind_filter}
-        order by period_code desc
-        limit 1
-        """,
+        _PREVIOUS_MEAN_WEEK if kind == "week" else _PREVIOUS_MEAN_MONTH,
         grouping_kind,
         grouping_key,
         RUBRIC_VERSION,
@@ -169,19 +211,8 @@ async def load_anchor_item_bank(
 ) -> tuple[ItemBank, float] | None:
     """Latest earlier period's item bank and mean θ, if one exists."""
     kind, _, _ = parse_period_code(period_code)
-    kind_filter = (
-        "and period_code like '%-W%'" if kind == "week" else "and period_code not like '%-W%'"
-    )
     header = await conn.fetchrow(
-        f"""
-        select period_code, selected_model, mean_theta
-        from report_period_score
-        where grouping_kind = $1 and grouping_key = $2
-          and rubric_version = $3 and period_code < $4
-          {kind_filter}
-        order by period_code desc
-        limit 1
-        """,
+        _ANCHOR_HEADER_WEEK if kind == "week" else _ANCHOR_HEADER_MONTH,
         grouping_kind,
         grouping_key,
         RUBRIC_VERSION,
