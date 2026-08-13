@@ -4,6 +4,13 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.28.2] - 2026-08-13
+
+### Added
+
+- Period reports lists each member post with its fitted EAP θ and
+  opens that post on click -- the same pattern as the calendar.
+
 ## [0.28.1] - 2026-08-13
 
 ### Added
