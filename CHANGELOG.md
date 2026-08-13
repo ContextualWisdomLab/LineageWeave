@@ -4,6 +4,14 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.61.0] - 2026-08-14
+
+### Changed
+
+- Activity event-type badges show Ticket created / Status changed /
+  Commitment derived instead of snake_case codes. Unknown types stay
+  as the raw code; the badge never invents a name.
+
 ## [0.60.0] - 2026-08-14
 
 ### Changed
