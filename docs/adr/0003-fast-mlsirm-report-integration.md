@@ -90,6 +90,11 @@ than one large PR:
    later weeks on those fixed parameters so thetas are comparable
    across weeks. Independent per-week refits stay available only as
    the first-period reference.
+5. **Shared-metric slice** (shipped in 0.31.0): free-calibrate one
+   item bank on the pooled first-period posts (`shared_metric` /
+   `all`) and FIPC-score every process unit, corporate entity, and
+   thread group on that bank so PU/team/project thetas are comparable.
+   Independent per-group refits stay available only as a diagnostic.
 
 **TEPP boundary.** [ARCHITECTURE.md](../../ARCHITECTURE.md) already
 assigns calibrated temporal/event measurement to

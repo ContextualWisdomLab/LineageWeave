@@ -243,7 +243,7 @@ def score_period_on_bank(
     post_ids: list[str],
     rows: list[tuple[str, str, int]],
     item_bank: ItemBank,
-    previous_mean_theta: float,
+    previous_mean_theta: float | None = None,
     n_categories: int = IRT_CATEGORY_COUNT,
 ) -> PeriodReport:
     """EAP-score a new period on fixed item parameters (true FIPC)."""
@@ -276,7 +276,11 @@ def score_period_on_bank(
         item_bank=item_bank,
         link_method=LINK_METHOD_FIPC,
         anchor_period_code=item_bank.source_period_code,
-        delta_mean_theta=float(theta.mean()) - float(previous_mean_theta),
+        delta_mean_theta=(
+            None
+            if previous_mean_theta is None
+            else float(theta.mean()) - float(previous_mean_theta)
+        ),
     )
 
 
@@ -302,6 +306,58 @@ def link_or_calibrate_period_report(
         post_ids,
         rows,
         item_bank,
-        previous_mean_theta=0.0 if previous_mean_theta is None else previous_mean_theta,
+        previous_mean_theta=previous_mean_theta,
         n_categories=n_categories,
     )
+
+
+def score_groups_on_shared_metric(
+    groups: dict[str, tuple[list[str], list[tuple[str, str, int]]]],
+    item_bank: ItemBank | None = None,
+    previous_means: dict[str, float] | None = None,
+    item_codes: tuple[str, ...] = CRITERION_CODES,
+    n_categories: int = IRT_CATEGORY_COUNT,
+    source_period_code: str = "",
+) -> tuple[PeriodReport | None, dict[str, PeriodReport]]:
+    """Fit one item bank on the pooled posts, then FIPC-score each group.
+
+    Independent per-group refits each re-center near 0, so a high process
+    unit and a low process unit look the same. Scoring both on one bank
+    keeps them comparable (the multilevel / multiple-membership rule).
+    """
+    previous_means = previous_means or {}
+    pooled_ids: list[str] = []
+    pooled_rows: list[tuple[str, str, int]] = []
+    seen: set[str] = set()
+    for post_ids, rows in groups.values():
+        for post_id in post_ids:
+            if post_id not in seen:
+                seen.add(post_id)
+                pooled_ids.append(post_id)
+        pooled_rows.extend(rows)
+
+    bank_report: PeriodReport | None = None
+    if item_bank is None:
+        if len(pooled_ids) < 2:
+            raise ValueError("need at least two posts to fit a shared metric")
+        bank_report = calibrate_period_report(
+            pooled_ids,
+            pooled_rows,
+            item_codes=item_codes,
+            n_categories=n_categories,
+            source_period_code=source_period_code,
+        )
+        item_bank = bank_report.item_bank
+
+    scored: dict[str, PeriodReport] = {}
+    for key, (post_ids, rows) in groups.items():
+        if len(post_ids) < 2:
+            continue
+        scored[key] = score_period_on_bank(
+            post_ids,
+            rows,
+            item_bank,
+            previous_mean_theta=previous_means.get(key),
+            n_categories=n_categories,
+        )
+    return bank_report, scored

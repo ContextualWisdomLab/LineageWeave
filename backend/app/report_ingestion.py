@@ -12,11 +12,13 @@ import asyncpg
 from lineageweave.period_report import (
     ItemBank,
     PeriodReport,
-    link_or_calibrate_period_report,
+    score_groups_on_shared_metric,
 )
 from lineageweave.post_evaluation import CRITERION_CODES, RUBRIC_VERSION
 
 GROUPING_KINDS = frozenset({"process_unit", "corporate_entity", "thread_group"})
+SHARED_METRIC_KIND = "shared_metric"
+SHARED_METRIC_KEY = "all"
 _WEEK_PERIOD = re.compile(r"^(\d{4})-W(\d{2})$")
 _MONTH_PERIOD = re.compile(r"^(\d{4})-(\d{2})$")
 
@@ -75,6 +77,88 @@ async def load_period_evaluation_rows(
         RUBRIC_VERSION,
         period_code,
     )
+
+
+async def load_shared_item_bank(
+    conn: asyncpg.Connection,
+    period_code: str,
+) -> ItemBank | None:
+    """The shared rubric bank: earlier period first, else this period."""
+    kind, _, _ = parse_period_code(period_code)
+    kind_filter = (
+        "and period_code like '%-W%'" if kind == "week" else "and period_code not like '%-W%'"
+    )
+    header = await conn.fetchrow(
+        f"""
+        select period_code, selected_model
+        from report_period_score
+        where grouping_kind = $1 and grouping_key = $2
+          and rubric_version = $3
+          and (period_code < $4 or period_code = $4)
+          {kind_filter}
+        order by case when period_code < $4 then 0 else 1 end, period_code desc
+        limit 1
+        """,
+        SHARED_METRIC_KIND,
+        SHARED_METRIC_KEY,
+        RUBRIC_VERSION,
+        period_code,
+    )
+    if header is None:
+        return None
+    items = await conn.fetch(
+        """
+        select item_code, item_index, slope, cat_params
+        from report_item_parameter
+        where grouping_kind = $1 and grouping_key = $2
+          and period_code = $3 and rubric_version = $4
+        order by item_index
+        """,
+        SHARED_METRIC_KIND,
+        SHARED_METRIC_KEY,
+        header["period_code"],
+        RUBRIC_VERSION,
+    )
+    if not items:
+        return None
+    return ItemBank(
+        model=str(header["selected_model"]),
+        item_codes=tuple(str(row["item_code"]) for row in items),
+        slope=tuple(float(row["slope"]) for row in items),
+        cat_params=tuple(tuple(float(value) for value in row["cat_params"]) for row in items),
+        source_period_code=str(header["period_code"]),
+    )
+
+
+async def load_previous_group_mean(
+    conn: asyncpg.Connection,
+    grouping_kind: str,
+    grouping_key: str,
+    period_code: str,
+) -> float | None:
+    """Mean θ of the latest earlier period for this grouping key."""
+    kind, _, _ = parse_period_code(period_code)
+    kind_filter = (
+        "and period_code like '%-W%'" if kind == "week" else "and period_code not like '%-W%'"
+    )
+    header = await conn.fetchrow(
+        f"""
+        select mean_theta
+        from report_period_score
+        where grouping_kind = $1 and grouping_key = $2
+          and rubric_version = $3 and period_code < $4
+          {kind_filter}
+        order by period_code desc
+        limit 1
+        """,
+        grouping_kind,
+        grouping_key,
+        RUBRIC_VERSION,
+        period_code,
+    )
+    if header is None:
+        return None
+    return float(header["mean_theta"])
 
 
 async def load_anchor_item_bank(
@@ -228,7 +312,7 @@ async def rebuild_period_reports(
         if key is not None:
             by_group[key].append(row)
 
-    reports: list[PeriodReport] = []
+    groups: dict[str, tuple[list[str], list[tuple[str, str, int]]]] = {}
     for grouping_key, group_rows in by_group.items():
         post_ids = list(dict.fromkeys(str(row["post_id"]) for row in group_rows))
         if len(post_ids) < 2:
@@ -237,16 +321,30 @@ async def rebuild_period_reports(
             (str(row["post_id"]), row["criterion_code"], int(row["response_category"]))
             for row in group_rows
         ]
-        anchor = await load_anchor_item_bank(conn, grouping_kind, grouping_key, period_code)
-        item_bank, previous_mean = (anchor[0], anchor[1]) if anchor else (None, None)
-        report = link_or_calibrate_period_report(
-            post_ids,
-            cells,
-            item_bank=item_bank,
-            previous_mean_theta=previous_mean,
-            item_codes=CRITERION_CODES,
-            source_period_code=period_code,
+        groups[grouping_key] = (post_ids, cells)
+    if not groups:
+        return []
+
+    item_bank = await load_shared_item_bank(conn, period_code)
+    previous_means: dict[str, float] = {}
+    for grouping_key in groups:
+        previous = await load_previous_group_mean(conn, grouping_kind, grouping_key, period_code)
+        if previous is not None:
+            previous_means[grouping_key] = previous
+
+    bank_report, scored = score_groups_on_shared_metric(
+        groups,
+        item_bank=item_bank,
+        previous_means=previous_means,
+        item_codes=CRITERION_CODES,
+        source_period_code=period_code,
+    )
+    if bank_report is not None:
+        await persist_period_report(
+            conn, SHARED_METRIC_KIND, SHARED_METRIC_KEY, period_code, bank_report
         )
+    reports: list[PeriodReport] = []
+    for grouping_key, report in scored.items():
         await persist_period_report(conn, grouping_kind, grouping_key, period_code, report)
         reports.append(report)
     return reports

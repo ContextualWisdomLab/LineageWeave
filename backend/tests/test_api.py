@@ -1644,14 +1644,17 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     )
     assert response.status_code == 200, response.text
     reports = response.json()["reports"]
-    assert reports
-    members = {member["post_title"]: member["theta_eap"] for member in reports[0]["members"]}
-    high_mean = sum(theta for title, theta in members.items() if title.startswith("High-band")) / 4
-    low_mean = sum(theta for title, theta in members.items() if title.startswith("Low-band")) / 4
-    assert high_mean > low_mean
-    assert reports[0]["post_count"] == 8
-    assert reports[0]["selected_model"] in {"grm", "gpcm"}
-    assert reports[0]["link_method"] == "free"
+    assert len(reports) >= 2
+    high_report = next(
+        report for report in reports if any(m["post_title"].startswith("High-band") for m in report["members"])
+    )
+    low_report = next(
+        report for report in reports if any(m["post_title"].startswith("Low-band") for m in report["members"])
+    )
+    assert high_report["mean_theta"] > low_report["mean_theta"]
+    assert high_report["link_method"] == "fipc"
+    assert high_report["selected_model"] in {"grm", "gpcm"}
+    assert high_report["delta_mean_theta"] is None
 
     week3 = client.get(
         "/api/reports/process_unit/2026-W03",
@@ -1662,7 +1665,7 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert linked
     assert linked[0]["link_method"] == "fipc"
     assert linked[0]["anchor_period_code"] == "2026-W02"
-    assert linked[0]["mean_theta"] > reports[0]["mean_theta"]
+    assert linked[0]["mean_theta"] > low_report["mean_theta"]
 
     index = client.get(
         "/api/reports/process_unit",
@@ -1773,7 +1776,7 @@ def test_period_report_high_posts_outrank_low_posts(client, demo_analyst_token, 
     assert high_mean > low_mean
     assert reports[0]["selected_model"] in {"grm", "gpcm"}
     assert reports[0]["post_count"] == 8
-    assert reports[0]["link_method"] == "free"
+    assert reports[0]["link_method"] == "fipc"
 
     created_w03 = datetime(2026, 1, 12, tzinfo=timezone.utc)
     admin_conn = psycopg2.connect(seeded_db["dsn"])
@@ -1819,3 +1822,85 @@ def test_period_report_high_posts_outrank_low_posts(client, demo_analyst_token, 
     assert linked[0]["link_method"] == "fipc"
     assert linked[0]["anchor_period_code"] == "2026-W02"
     assert linked[0]["mean_theta"] > reports[0]["mean_theta"]
+
+
+def test_shared_metric_ranks_two_process_units(client, demo_analyst_token, seeded_db) -> None:
+    """Two process units in one week must stay comparable on one bank.
+
+    Independent per-unit refits would both recenter near 0. Rebuild
+    scores them on the shared metric so the high unit outranks the low
+    unit.
+    """
+    from datetime import datetime, timezone
+
+    from lineageweave.post_evaluation import CRITERION_CODES, IRT_CATEGORY_COUNT
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
+                "('permission', 'post_admin', 'Administer posts') on conflict (lookup_code) do nothing"
+            )
+            cur.execute("select access_role_id from account_role_assignment limit 1")
+            role_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into role_permission (access_role_id, permission_code) values (%s, 'post_admin') "
+                "on conflict do nothing",
+                (role_id,),
+            )
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_id, corp_id = cur.fetchone()
+            created = datetime(2026, 1, 5, tzinfo=timezone.utc)
+            for band, category in (("high", IRT_CATEGORY_COUNT - 1), ("low", 0)):
+                cur.execute(
+                    "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
+                    "values (%s, %s, %s) returning process_unit_id",
+                    (corp_id, f"TEST-PU-{band.upper()}", f"{band} unit"),
+                )
+                unit_id = cur.fetchone()[0]
+                for idx in range(4):
+                    cur.execute(
+                        "insert into source_post "
+                        "(author_account_id, corporate_entity_id, process_unit_id, "
+                        " post_title, post_body, voc_type_code, visibility_code, created_at) "
+                        "values (%s, %s, %s, %s, 'body', 'voc', 'public', %s) returning post_id",
+                        (author_id, corp_id, unit_id, f"{band} unit post {idx}", created),
+                    )
+                    post_id = cur.fetchone()[0]
+                    for code in CRITERION_CODES:
+                        cur.execute(
+                            "insert into post_evaluation_response "
+                            "(post_id, criterion_code, rubric_version, response_category) "
+                            "values (%s, %s, '2026-08-13', %s)",
+                            (post_id, code, category),
+                        )
+    finally:
+        admin_conn.close()
+
+    rebuild = client.post(
+        "/api/reports/process_unit/2026-W02/rebuild",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert rebuild.status_code == 200, rebuild.text
+    assert rebuild.json()["group_count"] >= 2
+
+    response = client.get(
+        "/api/reports/process_unit/2026-W02",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    reports = response.json()["reports"]
+    high_report = next(
+        report for report in reports if any(m["post_title"].startswith("high unit") for m in report["members"])
+    )
+    low_report = next(
+        report for report in reports if any(m["post_title"].startswith("low unit") for m in report["members"])
+    )
+    assert high_report["mean_theta"] > low_report["mean_theta"]
+    assert high_report["link_method"] == "fipc"
+    assert low_report["link_method"] == "fipc"

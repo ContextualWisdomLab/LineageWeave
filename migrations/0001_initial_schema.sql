@@ -240,7 +240,7 @@ create table report_period_score (
     delta_mean_theta numeric,
     computed_at timestamptz not null default now(),
     primary key (grouping_kind, grouping_key, period_code, rubric_version),
-    check (grouping_kind in ('process_unit', 'corporate_entity', 'thread_group')),
+    check (grouping_kind in ('process_unit', 'corporate_entity', 'thread_group', 'shared_metric')),
     check (link_method in ('free', 'fipc'))
 );
 

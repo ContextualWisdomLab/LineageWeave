@@ -1016,7 +1016,9 @@ function ReportsPanel({
                 <span className="post-badge">
                   {row.link_method === "fipc" && row.anchor_period_code && row.delta_mean_theta != null
                     ? `vs ${row.anchor_period_code}: ${row.delta_mean_theta >= 0 ? "+" : ""}${row.delta_mean_theta.toFixed(2)}`
-                    : "reference"}
+                    : row.link_method === "fipc"
+                      ? "shared metric"
+                      : "reference"}
                 </span>
               </button>
             </li>
@@ -1044,6 +1046,9 @@ function ReportsPanel({
                   vs {report.anchor_period_code}: {report.delta_mean_theta >= 0 ? "+" : ""}
                   {report.delta_mean_theta.toFixed(2)}
                 </span>
+              )}
+              {report.link_method === "fipc" && report.delta_mean_theta == null && (
+                <span className="post-badge">shared metric</span>
               )}
               {report.members.length > 0 && (
                 <ul className="ticket-list">

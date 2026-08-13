@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.31.0] - 2026-08-13
+
+### Added
+
+- Shared-metric FIPC: the first period free-calibrates one item bank
+  on the pooled posts; every process unit (and other grouping) is
+  then scored on that bank so a high PU and a low PU stay comparable.
+  Independent per-group refits would each re-center near 0. The
+  Period reports panel labels first-period groups `shared metric`.
+
 ## [0.30.0] - 2026-08-13
 
 ### Added

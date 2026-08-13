@@ -158,8 +158,8 @@ describe("App, authenticated", () => {
                 selected_model: "grm",
                 mean_theta: 0.0,
                 post_count: 8,
-                link_method: "free",
-                anchor_period_code: null,
+                link_method: "fipc",
+                anchor_period_code: "2026-W02",
                 delta_mean_theta: null,
               },
               {
@@ -190,8 +190,8 @@ describe("App, authenticated", () => {
                 post_count: 8,
                 item_count: 3,
                 fit_converged: true,
-                link_method: "free",
-                anchor_period_code: null,
+                link_method: "fipc",
+                anchor_period_code: "2026-W02",
                 delta_mean_theta: null,
                 members: [
                   {
@@ -758,6 +758,7 @@ describe("App, authenticated", () => {
     expect(await screen.findByText(/mean θ 0.42/)).toBeInTheDocument();
     expect(screen.getByText(/8 posts/)).toBeInTheDocument();
     expect(screen.getByText(/TEST-PU-REPORT/)).toBeInTheDocument();
+    expect(screen.getAllByText("shared metric").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /open report period 2026-W03/i })).toHaveTextContent(
       "vs 2026-W02: +0.92",
     );

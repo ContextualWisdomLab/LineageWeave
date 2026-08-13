@@ -16,6 +16,7 @@ from lineageweave.period_report import (
     assemble_response_matrix,
     calibrate_period_report,
     link_or_calibrate_period_report,
+    score_groups_on_shared_metric,
     score_period_on_bank,
     gpcm_category_probabilities,
     grm_category_probabilities,
@@ -114,6 +115,36 @@ def test_link_or_calibrate_uses_bank_when_present() -> None:
     )
     assert linked.link_method == LINK_METHOD_FIPC
     assert linked.item_bank.slope == reference.item_bank.slope
+
+
+def test_shared_metric_ranks_high_group_above_low_group() -> None:
+    """Two process units in the same week: all-high vs all-low.
+
+    Independent refits each re-center near 0, so the gap collapses.
+    Scoring both on one pooled bank must keep the high unit above the
+    low unit -- that is the buyer-visible multilevel signal.
+    """
+    items = CRITERION_CODES
+    high_ids = [f"high-{idx}" for idx in range(4)]
+    low_ids = [f"low-{idx}" for idx in range(4)]
+    high_rows = [(post_id, item, IRT_CATEGORY_COUNT - 1) for post_id in high_ids for item in items]
+    low_rows = [(post_id, item, 0) for post_id in low_ids for item in items]
+
+    high_alone = calibrate_period_report(high_ids, high_rows)
+    low_alone = calibrate_period_report(low_ids, low_rows)
+    bank_report, scored = score_groups_on_shared_metric(
+        {"high": (high_ids, high_rows), "low": (low_ids, low_rows)},
+        source_period_code="2026-W02",
+    )
+    assert bank_report is not None
+    assert bank_report.link_method == LINK_METHOD_FREE
+    assert scored["high"].link_method == LINK_METHOD_FIPC
+    assert scored["high"].anchor_period_code == "2026-W02"
+    assert scored["high"].delta_mean_theta is None
+    assert scored["high"].mean_theta > scored["low"].mean_theta
+    shared_gap = scored["high"].mean_theta - scored["low"].mean_theta
+    alone_gap = high_alone.mean_theta - low_alone.mean_theta
+    assert shared_gap > alone_gap
 
 
 def test_assemble_response_matrix_leaves_unknown_items_missing() -> None:
