@@ -4,6 +4,14 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.52.0] - 2026-08-14
+
+### Changed
+
+- After an unmatched Ask 503, the free-text input is hidden. Seeded
+  answers stay on screen with "Only seeded questions can be answered
+  without an orchestrator." Still never fabricates a live reply.
+
 ## [0.51.0] - 2026-08-14
 
 ### Added

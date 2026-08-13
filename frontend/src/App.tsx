@@ -155,11 +155,13 @@ function ChatPanel({ postId, accessToken }: { postId: string; accessToken: strin
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [evidencePostId, setEvidencePostId] = useState<string | null>(null);
+  const [seededOnly, setSeededOnly] = useState(false);
 
   useEffect(() => {
     setExchanges([]);
     setAnswer(null);
     setError(null);
+    setSeededOnly(false);
     fetchPostChat(accessToken, postId)
       .then((history) => setExchanges(history.exchanges))
       .catch(() => setExchanges([]));
@@ -183,6 +185,9 @@ function ChatPanel({ postId, accessToken }: { postId: string; accessToken: strin
       });
     } catch (err) {
       setError(orchestratorUnavailableMessage(err, "Chat"));
+      if (err instanceof BackendError && err.status === 503) {
+        setSeededOnly(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -191,25 +196,32 @@ function ChatPanel({ postId, accessToken }: { postId: string; accessToken: strin
   return (
     <section className="popup-section chat-section">
       <h3>Ask about this lineage</h3>
-      <div className="chat-input-row">
-        <input
-          type="text"
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          onKeyDown={(event) => event.key === "Enter" && handleAsk()}
-          placeholder="What happened between these events?"
-        />
-        <button onClick={() => handleAsk()} disabled={loading || !question.trim()}>
-          {loading ? "Asking..." : "Ask"}
-        </button>
-      </div>
+      {!seededOnly && (
+        <div className="chat-input-row">
+          <input
+            type="text"
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            onKeyDown={(event) => event.key === "Enter" && handleAsk()}
+            placeholder="What happened between these events?"
+          />
+          <button onClick={() => handleAsk()} disabled={loading || !question.trim()}>
+            {loading ? "Asking..." : "Ask"}
+          </button>
+        </div>
+      )}
+      {seededOnly && exchanges.length > 0 && (
+        <p className="popup-placeholder">Only seeded questions can be answered without an orchestrator.</p>
+      )}
       {exchanges.length > 0 && (
         <div className="chat-suggestions">
           {exchanges.map((exchange) => (
             <button
               key={exchange.question_text}
               className="chat-suggestion-chip"
+              aria-label={`Ask seeded question: ${exchange.question_text}`}
               onClick={() => {
+                if (seededOnly) return;
                 setQuestion(exchange.question_text);
                 void handleAsk(exchange.question_text);
               }}

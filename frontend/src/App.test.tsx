@@ -622,16 +622,14 @@ describe("App, authenticated", () => {
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
-            exchanges: options?.chatUnavailable
-              ? []
-              : [
-                  {
-                    question_text: "What happened between these events?",
-                    answer_text: "The seeded follow-up after the site visit.",
-                    cited_post_ids: ["post-2"],
-                    cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
-                  },
-                ],
+            exchanges: [
+              {
+                question_text: "What happened between these events?",
+                answer_text: "The seeded follow-up after the site visit.",
+                cited_post_ids: ["post-2"],
+                cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
+              },
+            ],
           }),
         );
       }
@@ -743,7 +741,7 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument(),
     );
-    expect(screen.getByRole("button", { name: "What happened between these events?" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /ask seeded question: what happened between these events/i })).toBeInTheDocument();
   });
 
   it("asks a chat question and slides in the evidence panel for a cited source on click", async () => {
@@ -784,6 +782,13 @@ describe("App, authenticated", () => {
       expect(screen.getByText("Chat unavailable (LLM orchestrator not configured).")).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/what happened/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^ask$/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Only seeded questions can be answered without an orchestrator."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /ask seeded question/i })).toBeInTheDocument();
+    expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument();
   });
 
   it("shows a clear empty state when evaluate is 503 without an orchestrator", async () => {

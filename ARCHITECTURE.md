@@ -240,7 +240,8 @@ candidate post). Seeded fixture answers live in `post_chat_result` so
 Ask is useful without a live LLM; a missing orchestrator and no stored
 match is 503; the popup shows
 `Chat unavailable (LLM orchestrator not configured)` rather than a
-raw HTTP status -- never a fabricated answer. Evaluate, Extract
+raw HTTP status. After that 503 the free-text Ask box is hidden and
+only seeded question chips remain -- never a fabricated answer. Evaluate, Extract
 Keymen, Derive commitment, and Verify use the same 503 empty-state
 pattern for a missing orchestrator or search service. `find_linked_post_ids` first expands to every post
 sharing a mentioned person before calling
