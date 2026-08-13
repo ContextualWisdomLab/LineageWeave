@@ -20,6 +20,7 @@ from typing import Any
 
 import asyncpg
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
@@ -39,6 +40,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="LineageWeave API", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=load_settings().frontend_origins,
+    allow_methods=["GET"],
+    allow_headers=["Authorization"],
+)
 
 
 def _require_post_read(account: CurrentAccount) -> None:

@@ -64,6 +64,15 @@ in the same spirit) -- never against real data, per the hard rule above.
 against a live local stack (`make up`) and self-skip without one -- see
 [README.md](README.md#local-product-stack-docker-compose).
 
+`frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
+pnpm via Corepack -- do not add a second Node package manager or a
+floating Node version):
+
+```bash
+cd frontend && pnpm install
+pnpm run lint && pnpm run test && pnpm run build
+```
+
 ## CI gates
 
 `.github/workflows/tests.yml` runs the full suite on every PR to `main`.

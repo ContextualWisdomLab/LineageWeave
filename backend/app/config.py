@@ -25,6 +25,7 @@ class Settings:
     # docker-compose the two differ (internal DNS name vs. the
     # host-published port a browser actually hits).
     keycloak_issuer: str
+    frontend_origins: list[str]
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -45,4 +46,9 @@ def load_settings() -> Settings:
         keycloak_issuer=os.environ.get(
             "KEYCLOAK_ISSUER", f"{keycloak_base_url}/realms/{keycloak_realm}"
         ),
+        frontend_origins=[
+            origin.strip()
+            for origin in os.environ.get("FRONTEND_ORIGINS", "http://localhost:5173").split(",")
+            if origin.strip()
+        ],
     )

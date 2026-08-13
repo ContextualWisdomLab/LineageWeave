@@ -164,3 +164,27 @@ allow/deny ABAC boundary against a throwaway migrated Postgres database
 excluded from the list and 403s on direct fetch), and proves a forged
 token is rejected. `scripts/seed_demo_data.py` populates the docker-compose
 stack itself with the same shape of synthetic data for manual/frontend use.
+`CORSMiddleware` (`backend/app/main.py`) allows exactly the frontend's
+origin(s) (`FRONTEND_ORIGINS`), `GET` only, `Authorization` header only.
+
+### Frontend (`frontend/`)
+
+React + Vite + TypeScript, pinned Node via `mise.toml`, pnpm via Corepack.
+`react-oidc-context` drives a real Authorization Code redirect through
+Keycloak (`src/main.tsx`'s `AuthProvider`) -- no mocked auth, no static
+HTML. `src/api.ts` calls the FastAPI backend directly with the token
+Keycloak issued; `src/App.tsx` renders the post list and a detail popup
+(the Figma frame `SBpgot7uTvMxEaxUwvoc0S` attachment point -- Event
+Lineage / Keyman / Knowledge Graph / LLM chat panels land in Phase 2-4).
+Served in `docker compose` via a two-stage build (`frontend/Dockerfile`):
+`pnpm run build` then `nginx` serving the static bundle, with `VITE_*`
+config baked in at build time from the same `.env` ports every other
+service uses (Vite embeds `import.meta.env.VITE_*` at build time, not
+runtime, so these are Docker build args, not container env vars).
+`src/App.test.tsx` mocks `react-oidc-context`'s `useAuth` to test the
+component's own render logic (login button -> `signinRedirect()`; fetch
+posts with the token -> render list -> click -> popup shows the fetched
+body) -- the real OIDC cryptography is proven elsewhere
+(`scripts/smoke_test_oidc.py`, `backend/tests/test_api.py`), so this test
+isn't re-proving that, only that the UI wires the pieces together
+correctly.
