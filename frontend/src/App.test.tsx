@@ -133,7 +133,7 @@ describe("App, authenticated", () => {
           event_id: `event-${nextEventId++}`,
           event_type: "ticket_status_changed",
           actor_account_id: "acct-admin",
-          summary: `Ticket status changed to ${body.ticket_status_code}`,
+          summary: `Ticket status changed to ${statusLabel[body.ticket_status_code] ?? body.ticket_status_code}`,
         });
         return Promise.resolve(jsonResponse(ticket));
       }
@@ -1031,6 +1031,16 @@ describe("App, authenticated", () => {
       expect(screen.getByText("Ticket created: Confirm freight terms")).toBeInTheDocument(),
     );
     expect(screen.getByText("ticket_created")).toBeInTheDocument();
+
+    await userEvent.selectOptions(
+      screen.getByLabelText(/status for confirm freight terms/i),
+      "closed",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^refresh$/i }));
+    await waitFor(() =>
+      expect(screen.getByText("Ticket status changed to Closed")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("Ticket status changed to closed")).not.toBeInTheDocument();
   });
 
   it("hides derive commitment for accounts without post_admin", async () => {

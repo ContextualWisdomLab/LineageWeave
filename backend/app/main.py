@@ -61,6 +61,7 @@ from backend.app.activity_stream import (
     publish_activity_event,
     read_activity_events,
     ticket_created_summary,
+    ticket_status_changed_summary,
 )
 from backend.app.affiliate_tree_ingestion import fetch_affiliate_forest, fetch_voc_evidence
 from backend.app.auth import CurrentAccount, get_current_account
@@ -989,7 +990,9 @@ async def patch_ticket(
             post_id,
             "ticket_status_changed",
             account.user_account_id,
-            f"Ticket status changed to {request.ticket_status_code}",
+            ticket_status_changed_summary(
+                ticket.get("ticket_status_label") or request.ticket_status_code
+            ),
         )
     return ticket
 

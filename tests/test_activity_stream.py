@@ -10,6 +10,7 @@ from __future__ import annotations
 from backend.app.activity_stream import (
     publish_activity_event_sync,
     ticket_created_summary,
+    ticket_status_changed_summary,
 )
 
 
@@ -32,6 +33,13 @@ def test_ticket_created_summary_matches_the_live_api_wording() -> None:
     assert ticket_created_summary("Send Northridge Grid the revised quote") == (
         "Ticket created: Send Northridge Grid the revised quote"
     )
+
+
+def test_ticket_status_changed_summary_uses_the_lookup_label() -> None:
+    assert ticket_status_changed_summary("In progress") == (
+        "Ticket status changed to In progress"
+    )
+    assert "in_progress" not in ticket_status_changed_summary("In progress")
 
 
 def test_publish_activity_event_sync_skips_a_matching_summary() -> None:
