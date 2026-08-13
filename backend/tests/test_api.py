@@ -1568,6 +1568,7 @@ def test_create_list_and_patch_ticket_end_to_end(client, demo_analyst_token, see
     assert create_response.status_code == 201, create_response.text
     created = create_response.json()
     assert created["ticket_status_code"] == "open"
+    assert created["ticket_status_label"] == "Open"
     assert created["ticket_title"] == "Confirm delivery window"
     assert created["assigned_account_id"] is None
     ticket_id = created["issue_ticket_id"]
@@ -1587,6 +1588,7 @@ def test_create_list_and_patch_ticket_end_to_end(client, demo_analyst_token, see
     )
     assert patch_response.status_code == 200
     assert patch_response.json()["ticket_status_code"] == "closed"
+    assert patch_response.json()["ticket_status_label"] == "Closed"
 
     reread_response = client.get(
         f"/api/posts/{seeded_db['own_private_post_id']}/tickets",
@@ -1594,6 +1596,7 @@ def test_create_list_and_patch_ticket_end_to_end(client, demo_analyst_token, see
     )
     reread_ticket = next(t for t in reread_response.json()["tickets"] if t["issue_ticket_id"] == ticket_id)
     assert reread_ticket["ticket_status_code"] == "closed"
+    assert reread_ticket["ticket_status_label"] == "Closed"
 
 
 def test_patch_ticket_requires_post_admin(client, demo_analyst_token, seeded_db) -> None:
@@ -2109,6 +2112,12 @@ def test_seed_fixture_tickets_surface_on_get_tickets(client, demo_analyst_token,
         if ticket["ticket_title"] == "Send Northridge Grid the revised quote"
     )
     assert due == "2026-01-12"
+    pricing = next(
+        ticket
+        for ticket in response.json()["tickets"]
+        if ticket["ticket_title"] == "Send Northridge Grid the revised quote"
+    )
+    assert pricing["ticket_status_label"] == "Open"
 
     beta = client.get(f"/api/posts/{ids[beta_title]}/tickets", headers=headers)
     assert beta.status_code == 200, beta.text

@@ -17,6 +17,8 @@ from typing import Any
 
 import asyncpg
 
+from .knowledge_graph import labels_for_codes
+
 
 def _parse_due_date(due_date: str | None) -> date | None:
     """``YYYY-MM-DD`` -> `date`, or `None` through unchanged. The column
@@ -60,6 +62,20 @@ def _serialize_ticket(row: asyncpg.Record) -> dict[str, Any]:
     }
 
 
+async def _attach_status_labels(
+    conn: asyncpg.Connection, tickets: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Hydrate ``ticket_status_label`` from ``common_lookup_value``.
+
+    A missing lookup falls back to the raw code -- never a guessed name.
+    """
+    labels = await labels_for_codes(conn, [row["ticket_status_code"] for row in tickets])
+    for ticket in tickets:
+        code = ticket["ticket_status_code"]
+        ticket["ticket_status_label"] = labels.get(code, code)
+    return tickets
+
+
 async def list_tickets_for_post(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
     """Every ticket on `post_id`, newest first."""
     rows = await conn.fetch(
@@ -68,7 +84,7 @@ async def list_tickets_for_post(conn: asyncpg.Connection, post_id: str) -> list[
         "from issue_ticket where post_id = $1 order by created_at desc",
         post_id,
     )
-    return [_serialize_ticket(row) for row in rows]
+    return await _attach_status_labels(conn, [_serialize_ticket(row) for row in rows])
 
 
 async def create_ticket(
@@ -101,7 +117,8 @@ async def create_ticket(
         _parse_due_date(due_date),
         commitment_summary,
     )
-    return _serialize_ticket(row)
+    labeled = await _attach_status_labels(conn, [_serialize_ticket(row)])
+    return labeled[0]
 
 
 async def fetch_upcoming_commitments(conn: asyncpg.Connection) -> list[dict[str, Any]]:
@@ -125,15 +142,19 @@ async def fetch_upcoming_commitments(conn: asyncpg.Connection) -> list[dict[str,
         "and issue_ticket.ticket_status_code <> 'closed' "
         "order by issue_ticket.due_date asc"
     )
-    return [
-        {
-            **_serialize_ticket(row),
-            "post_title": row["post_title"],
-            "visibility_code": row["visibility_code"],
-            "corporate_entity_id": str(row["corporate_entity_id"]),
-        }
-        for row in rows
-    ]
+    tickets = await _attach_status_labels(
+        conn,
+        [
+            {
+                **_serialize_ticket(row),
+                "post_title": row["post_title"],
+                "visibility_code": row["visibility_code"],
+                "corporate_entity_id": str(row["corporate_entity_id"]),
+            }
+            for row in rows
+        ],
+    )
+    return tickets
 
 
 async def upsert_commitment_ticket(
@@ -183,7 +204,8 @@ async def upsert_commitment_ticket(
         _parse_due_date(due_date),
         commitment_summary,
     )
-    return _serialize_ticket(row)
+    labeled = await _attach_status_labels(conn, [_serialize_ticket(row)])
+    return labeled[0]
 
 
 async def fetch_ticket_post_id(conn: asyncpg.Connection, issue_ticket_id: str) -> str | None:
@@ -225,4 +247,7 @@ async def update_ticket(
         clear_assignment,
         assigned_account_id,
     )
-    return _serialize_ticket(row) if row is not None else None
+    if row is None:
+        return None
+    labeled = await _attach_status_labels(conn, [_serialize_ticket(row)])
+    return labeled[0]
