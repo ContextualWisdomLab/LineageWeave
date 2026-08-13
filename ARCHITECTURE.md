@@ -234,7 +234,9 @@ not empty without a live LLM), and
 `POST /api/posts/{post_id}/chat` (`lineageweave/post_chat.py`'s
 reason-and-cite step over `gather_chat_sources`' retrieve step -- both
 Event-Lineage link kinds feed the chat's context, ABAC-rechecked per
-candidate post). `find_linked_post_ids` first expands to every post
+candidate post). A missing orchestrator is 503; the popup shows
+`Chat unavailable (LLM orchestrator not configured)` rather than a
+raw HTTP status -- never a fabricated answer. `find_linked_post_ids` first expands to every post
 sharing a mentioned person before calling
 `backend/app/knowledge_graph.py::load_visible_subgraph` -- that function
 only loads edges among an *already-known* post set (its other caller,

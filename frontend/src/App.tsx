@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
+  BackendError,
   createPostTicket,
   deriveCommitment,
   evaluatePost,
@@ -117,7 +118,11 @@ function ChatPanel({ postId, accessToken }: { postId: string; accessToken: strin
       const result = await askPostChat(accessToken, postId, question);
       setAnswer(result);
     } catch (err) {
-      setError(String(err));
+      if (err instanceof BackendError && err.status === 503) {
+        setError("Chat unavailable (LLM orchestrator not configured).");
+      } else {
+        setError(String(err));
+      }
     } finally {
       setLoading(false);
     }
