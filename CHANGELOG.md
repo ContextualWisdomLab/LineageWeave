@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.33.0] - 2026-08-13
+
+### Added
+
+- Home-page grouping comparison strip: `GET /api/reports/compare/{period}`
+  returns every process unit, corporate entity, and thread group scored
+  on the shared FIPC metric. Rebuild now writes all three kinds.
+  Clicking a row switches the Period reports grouping. Seed assigns
+  high posts to thread A-100 and low posts to B-200 so the strip is
+  not empty after `make seed`.
+
 ## [0.32.0] - 2026-08-13
 
 ### Added

@@ -456,9 +456,11 @@ persist to `report_item_information`. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
-`POST .../rebuild` is post_admin. The home page renders the actual
-mean θ, the FIPC delta, and the CAT-selected item -- never a
-placeholder. TEPP is unchanged.
+`GET /api/reports/compare/{period}` is the home-page grouping strip;
+`POST .../rebuild` scores every grouping kind (post_admin). The home
+page renders the actual mean θ, the FIPC delta, the CAT-selected
+item, and the PU / corp / thread comparison -- never a placeholder.
+TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer
 

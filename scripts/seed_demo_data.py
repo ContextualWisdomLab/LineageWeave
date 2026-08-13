@@ -441,6 +441,7 @@ def _ensure_eval_posts(
     category: int,
     created,
     count: int = 4,
+    thread_group_key: str | None = None,
 ) -> tuple[list[str], list[tuple[str, str, int]]]:
     """Insert constructed evaluation posts if missing; always return cells."""
     from lineageweave.post_evaluation import CRITERION_CODES, RUBRIC_VERSION
@@ -455,9 +456,17 @@ def _ensure_eval_posts(
             cur.execute(
                 "insert into source_post "
                 "(author_account_id, corporate_entity_id, process_unit_id, "
-                " post_title, post_body, voc_type_code, visibility_code, created_at) "
-                "values (%s, %s, %s, %s, 'body', 'voc', 'public', %s) returning post_id",
-                (author_account_id, corporate_entity_id, process_unit_id, title, created),
+                " post_title, post_body, voc_type_code, visibility_code, "
+                " thread_group_key, created_at) "
+                "values (%s, %s, %s, %s, 'body', 'voc', 'public', %s, %s) returning post_id",
+                (
+                    author_account_id,
+                    corporate_entity_id,
+                    process_unit_id,
+                    title,
+                    thread_group_key,
+                    created,
+                ),
             )
             post_id = str(cur.fetchone()[0])
             for code in CRITERION_CODES:
@@ -469,6 +478,12 @@ def _ensure_eval_posts(
                 )
         else:
             post_id = str(row[0])
+            if thread_group_key is not None:
+                cur.execute(
+                    "update source_post set thread_group_key = %s "
+                    "where post_id = %s and thread_group_key is null",
+                    (thread_group_key, post_id),
+                )
         post_ids.append(post_id)
         for code in CRITERION_CODES:
             cells.append((post_id, code, category))
@@ -601,6 +616,7 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
         "High-band period report post",
         high,
         datetime(2026, 1, 5, tzinfo=timezone.utc),
+        thread_group_key="A-100",
     )
     w02_low_ids, w02_low_cells = _ensure_eval_posts(
         cur,
@@ -610,6 +626,7 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
         "Low-band period report post",
         0,
         datetime(2026, 1, 5, tzinfo=timezone.utc),
+        thread_group_key="B-200",
     )
     w03_ids, w03_cells = _ensure_eval_posts(
         cur,
@@ -620,6 +637,7 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
         high,
         datetime(2026, 1, 12, tzinfo=timezone.utc),
         count=6,
+        thread_group_key="A-100",
     )
 
     cur.execute(
@@ -643,6 +661,30 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
         _persist_seed_period_report(cur, "shared_metric", "all", w02, bank_report)
     for grouping_key, report in scored.items():
         _persist_seed_period_report(cur, "process_unit", grouping_key, w02, report)
+
+    bank = (bank_report or next(iter(scored.values()))).item_bank
+    _, corp_scored = score_groups_on_shared_metric(
+        {
+            str(corporate_entity_id): (
+                w02_high_ids + w02_low_ids,
+                w02_high_cells + w02_low_cells,
+            )
+        },
+        item_bank=bank,
+        source_period_code=w02,
+    )
+    for grouping_key, report in corp_scored.items():
+        _persist_seed_period_report(cur, "corporate_entity", grouping_key, w02, report)
+    _, thread_scored = score_groups_on_shared_metric(
+        {
+            "A-100": (w02_high_ids, w02_high_cells),
+            "B-200": (w02_low_ids, w02_low_cells),
+        },
+        item_bank=bank,
+        source_period_code=w02,
+    )
+    for grouping_key, report in thread_scored.items():
+        _persist_seed_period_report(cur, "thread_group", grouping_key, w02, report)
 
     high_w02 = scored[high_key]
     _, week3 = score_groups_on_shared_metric(

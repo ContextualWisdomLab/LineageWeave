@@ -147,6 +147,39 @@ describe("App, authenticated", () => {
       if (url.endsWith("/api/calendar")) {
         return Promise.resolve(jsonResponse({ commitments: options?.calendarCommitments ?? [] }));
       }
+      if (url.includes("/api/reports/compare/") && method === "GET") {
+        return Promise.resolve(
+          jsonResponse({
+            period_code: "2026-W02",
+            groupings: [
+              {
+                grouping_kind: "process_unit",
+                grouping_key: "pu-high",
+                grouping_label: "Demo Report High",
+                mean_theta: 0.81,
+                post_count: 4,
+                link_method: "fipc",
+              },
+              {
+                grouping_kind: "corporate_entity",
+                grouping_key: "corp-1",
+                grouping_label: "Test Corp",
+                mean_theta: 0.01,
+                post_count: 8,
+                link_method: "fipc",
+              },
+              {
+                grouping_kind: "thread_group",
+                grouping_key: "A-100",
+                grouping_label: "A-100",
+                mean_theta: 0.81,
+                post_count: 4,
+                link_method: "fipc",
+              },
+            ],
+          }),
+        );
+      }
       if (/\/api\/reports\/[^/]+$/.test(url) && method === "GET") {
         return Promise.resolve(
           jsonResponse({
@@ -765,7 +798,7 @@ describe("App, authenticated", () => {
     render(<App />);
 
     expect(await screen.findByText(/mean θ 0.42/)).toBeInTheDocument();
-    expect(screen.getByText(/8 posts/)).toBeInTheDocument();
+    expect(screen.getAllByText(/8 posts/).length).toBeGreaterThan(0);
     expect(screen.getByText(/TEST-PU-REPORT/)).toBeInTheDocument();
     expect(screen.getAllByText("shared metric").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/CAT: sales-lead I=0\.70/).length).toBeGreaterThan(0);
@@ -774,6 +807,23 @@ describe("App, authenticated", () => {
     );
     expect(screen.queryByRole("button", { name: /rebuild report/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("θ 0.91");
+  });
+
+  it("shows the grouping comparison strip and switches grouping on click", async () => {
+    const fetchMock = stubBackend();
+    render(<App />);
+
+    expect(await screen.findByLabelText("Grouping comparison")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /compare process_unit: demo report high/i })).toHaveTextContent(
+      "mean θ 0.81",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /compare thread_group: a-100/i }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/reports/thread_group/2026-W02"),
+        expect.anything(),
+      ),
+    );
   });
 
   it("selects a linked week from the FIPC trend strip", async () => {

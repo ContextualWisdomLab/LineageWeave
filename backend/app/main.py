@@ -69,6 +69,7 @@ from backend.app.entity_relationship_ingestion import ingest_post_entity_relatio
 from backend.app.post_evaluation_ingestion import fetch_post_evaluation, ingest_post_evaluation
 from backend.app.report_ingestion import (
     GROUPING_KINDS,
+    fetch_period_comparison,
     fetch_period_reports,
     iso_week_period,
     list_period_report_summaries,
@@ -636,6 +637,29 @@ async def evaluate_post(
             for row in rows
         ],
     }
+
+
+@app.get("/api/reports/compare/{period_code}")
+async def compare_period_groupings(
+    period_code: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """PU / corp / thread scores for one period on the shared metric."""
+    _require_post_read(account)
+    try:
+        parse_period_code(period_code)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    async with pool.acquire() as conn:
+        rows = await fetch_period_comparison(conn, period_code)
+    visible: list[dict[str, Any]] = []
+    for row in rows:
+        members = [member for member in row["members"] if _can_see_post(account, member)]
+        if not members:
+            continue
+        visible.append({**row, "members": [], "post_count": len(members)})
+    return {"period_code": period_code, "groupings": visible}
 
 
 @app.get("/api/reports/{grouping_kind}")

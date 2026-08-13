@@ -1675,6 +1675,20 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     periods = {row["period_code"] for row in index.json()["periods"]}
     assert {"2026-W02", "2026-W03"} <= periods
 
+    compare = client.get(
+        "/api/reports/compare/2026-W02",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert compare.status_code == 200, compare.text
+    kinds = {row["grouping_kind"] for row in compare.json()["groupings"]}
+    assert {"process_unit", "corporate_entity", "thread_group"} <= kinds
+    threads = {
+        row["grouping_label"]: row["mean_theta"]
+        for row in compare.json()["groupings"]
+        if row["grouping_kind"] == "thread_group"
+    }
+    assert threads["A-100"] > threads["B-200"]
+
 
 def test_rebuild_reports_requires_post_admin(client, demo_analyst_token) -> None:
     response = client.post(
