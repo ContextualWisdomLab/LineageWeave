@@ -21,8 +21,16 @@ from lineageweave.keyman_extraction import (
     COUNTERPARTY,
     OUR_SIDE,
     ContextualOrchestratorKeymanExtractionClient,
+    NullKeymanExtractionClient,
     parse_keyman_response,
 )
+
+
+def test_null_keyman_client_is_unavailable_not_empty_mentions() -> None:
+    client = NullKeymanExtractionClient()
+    assert client.available is False
+    with pytest.raises(RuntimeError):
+        client.extract("any title", "any body")
 
 
 def test_parses_a_well_formed_json_array() -> None:

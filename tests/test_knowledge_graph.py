@@ -77,6 +77,29 @@ def test_start_node_absent_from_graph_returns_only_itself() -> None:
     assert scores == {"nowhere": 1.0}
 
 
+def test_directed_terminal_node_teleports_and_keeps_positive_score() -> None:
+    """A sink with no outbound edges still scores, and total mass stays 1.
+
+    The documented directed-graph policy is Personalized-PageRank
+    teleport: remaining walk mass at the terminal returns to the start
+    rather than being dropped (which would make scores no longer a
+    distribution). The start node stays the most relevant node.
+    """
+    graph = {"start": {"terminal": 1.0}}
+    scores = random_walk_with_restart(graph, start_node="start")
+    assert scores["terminal"] > 0
+    assert scores["start"] > scores["terminal"]
+    assert sum(scores.values()) == pytest.approx(1.0, abs=1e-6)
+
+
+def test_non_positive_edge_weights_are_ignored_as_missing_transitions() -> None:
+    graph = {"start": {"keep": 1.0, "zero": 0.0, "neg": -2.0}}
+    scores = random_walk_with_restart(graph, start_node="start")
+    assert scores["keep"] > 0
+    assert scores["zero"] == 0.0
+    assert scores["neg"] == 0.0
+
+
 def test_select_related_nodes_empty_graph_returns_empty_list() -> None:
     assert select_related_nodes({"only": 1.0}, start_node="only") == []
 

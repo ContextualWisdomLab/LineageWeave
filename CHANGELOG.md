@@ -25,8 +25,9 @@ All notable changes to this project are documented here. Format follows
   private post 403s, related-node traversal never returns those hidden
   posts, and extraction is `post_admin` (a write with a real LLM cost).
   Persist goes through `backend/app/keyman_ingestion.py` into
-  `person` / `person_affiliation` / `post_person_mention` /
-  `knowledge_graph_edge`.
+  `cataloged_person` / `person_affiliation` / `post_person_mention` /
+  `knowledge_graph_edge`. Directed RWR sinks teleport remaining walk
+  mass back to the start node so relevance stays a distribution.
 - `fixtures.ambiguous_keyman_post`: a synthetic, non-templated workshop
   follow-up used by the parser tests and the real-orchestrator Keyman test.
 

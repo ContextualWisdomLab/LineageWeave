@@ -166,7 +166,8 @@ excluded from the list and 403s on direct fetch), and proves a forged
 token is rejected. `scripts/seed_demo_data.py` populates the docker-compose
 stack itself with the same shape of synthetic data for manual/frontend use.
 `CORSMiddleware` (`backend/app/main.py`) allows exactly the frontend's
-origin(s) (`FRONTEND_ORIGINS`), `GET` only, `Authorization` header only.
+origin(s) (`FRONTEND_ORIGINS`), `GET` and `POST` (the extract-keymen
+write), `Authorization` header only.
 
 Phase 2 adds two more GET endpoints on the same RBAC+ABAC gate plus one
 write: `GET /api/posts/{post_id}/keymen` (people extracted or seeded for

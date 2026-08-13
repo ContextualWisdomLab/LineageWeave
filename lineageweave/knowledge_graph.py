@@ -46,6 +46,14 @@ def random_walk_with_restart(
     and W is the column-normalized transition matrix. Converges quickly
     for the small (single-post-scoped) subgraphs this is used against;
     a closed-form solve isn't worth the added complexity at that scale.
+
+    Directed sinks (nodes with no positive outbound weight, including
+    neighbors that appear only as targets) teleport their remaining walk
+    mass back to ``start_node``. That is the standard Personalized
+    PageRank treatment of a dangling column so W stays column-stochastic
+    and total relevance is conserved; dropping the mass would silently
+    shrink every score. Non-positive and NaN weights are ignored -- they
+    are not a transition.
     """
     if start_node not in adjacency:
         return {start_node: 1.0}
@@ -54,7 +62,13 @@ def random_walk_with_restart(
     for neighbors in adjacency.values():
         nodes.update(neighbors.keys())
 
-    out_weight_totals = {node: sum(adjacency.get(node, {}).values()) for node in nodes}
+    outgoing: dict[str, dict[str, float]] = {}
+    for node in nodes:
+        outgoing[node] = {
+            neighbor: weight
+            for neighbor, weight in adjacency.get(node, {}).items()
+            if weight > 0 and weight == weight
+        }
 
     scores = {node: 0.0 for node in nodes}
     scores[start_node] = 1.0
@@ -63,11 +77,14 @@ def random_walk_with_restart(
         next_scores: dict[str, float] = defaultdict(float)
         next_scores[start_node] += restart_probability
 
-        for node, neighbors in adjacency.items():
-            total = out_weight_totals[node]
+        for node in nodes:
+            neighbors = outgoing[node]
+            total = sum(neighbors.values())
+            walk_mass = (1 - restart_probability) * scores[node]
             if total == 0:
+                next_scores[start_node] += walk_mass
                 continue
-            share = (1 - restart_probability) * scores[node] / total
+            share = walk_mass / total
             for neighbor, weight in neighbors.items():
                 next_scores[neighbor] += share * weight
 
@@ -135,10 +152,12 @@ class KnowledgeGraphEdgeSpec:
 
 
 def node_key(node_type_code: str, node_id: str) -> str:
+    """Stable adjacency key: ``node_type_code:node_id``."""
     return f"{node_type_code}:{node_id}"
 
 
 def parse_node_key(key: str) -> tuple[str, str]:
+    """Split a ``node_key`` back into type code and id."""
     node_type_code, node_id = key.split(":", 1)
     return node_type_code, node_id
 

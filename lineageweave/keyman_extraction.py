@@ -50,7 +50,14 @@ class KeymanExtractionClient(Protocol):
 
     available: bool
 
-    def extract(self, post_title: str, post_body: str) -> list[PersonMention]: ...
+    def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
+        """Return the people a post's title and body mention.
+
+        Implementations must raise if they cannot extract. Protocol stubs
+        raise ``NotImplementedError`` so a no-op body is never treated as
+        a successful empty result (a missing signal is not zero mentions).
+        """
+        raise NotImplementedError
 
 
 class NullKeymanExtractionClient:

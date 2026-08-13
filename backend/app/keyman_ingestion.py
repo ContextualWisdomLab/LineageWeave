@@ -1,12 +1,13 @@
 """Runs a `KeymanExtractionClient` over a post and persists the result:
-`person` (upserted by name + side -- the schema has no unique constraint
-on person_name alone, since two different real people can share a name,
-but re-running extraction on the same post should not keep creating
-duplicate rows for the same extracted mention), `person_affiliation`
-(N:N, matched to a real `corporate_entity` by exact case-insensitive name
-where possible), and `post_person_mention`. Finishes by calling
-`knowledge_graph.persist_edges_for_post` so the Knowledge Graph edges are
-computed from the same write, not a separate manual step.
+`cataloged_person` (upserted by name + side -- the schema has no unique
+constraint on person_name alone, since two different real people can
+share a name, but re-running extraction on the same post should not keep
+creating duplicate rows for the same extracted mention),
+`person_affiliation` (N:N, matched to a real `corporate_entity` by exact
+case-insensitive name where possible), and `post_person_mention`.
+Finishes by calling `knowledge_graph.persist_edges_for_post` so the
+Knowledge Graph edges are computed from the same write, not a separate
+manual step.
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ from .knowledge_graph import persist_edges_for_post
 
 
 async def _resolve_corporate_entity_id(conn: asyncpg.Connection, organization_name: str) -> str | None:
+    """Return the matching ``corporate_entity`` id, or None if the name is free text."""
     row = await conn.fetchrow(
         "select corporate_entity_id from corporate_entity where lower(entity_name) = lower($1)",
         organization_name,
@@ -27,6 +29,7 @@ async def _resolve_corporate_entity_id(conn: asyncpg.Connection, organization_na
 
 
 async def _upsert_person(conn: asyncpg.Connection, mention: PersonMention) -> str:
+    """Reuse a same-name, same-side row so re-extraction does not duplicate."""
     row = await conn.fetchrow(
         "select person_id from cataloged_person where person_name = $1 and person_side_code = $2",
         mention.person_name,

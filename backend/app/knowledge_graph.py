@@ -31,6 +31,7 @@ from lineageweave.knowledge_graph import (
 
 
 def edge_spec_from_row(row: asyncpg.Record) -> KnowledgeGraphEdgeSpec:
+    """Map one ``knowledge_graph_edge`` row onto the library spec."""
     return KnowledgeGraphEdgeSpec(
         source_node_type_code=row["source_node_type_code"],
         source_node_id=str(row["source_node_id"]),
@@ -42,6 +43,7 @@ def edge_spec_from_row(row: asyncpg.Record) -> KnowledgeGraphEdgeSpec:
 
 
 async def fetch_post_keymen(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
+    """Load mentioned people and their affiliations for one post."""
     person_rows = await conn.fetch(
         """
         select p.person_id, p.person_name, p.person_side_code, ppm.mention_context
@@ -91,6 +93,7 @@ async def fetch_post_keymen(conn: asyncpg.Connection, post_id: str) -> list[dict
 
 
 async def persist_edges_for_post(conn: asyncpg.Connection, post_id: str) -> list[KnowledgeGraphEdgeSpec]:
+    """Insert mention, affiliation, and co-mention edges for one post."""
     mention_rows = await conn.fetch(
         "select person_id from post_person_mention where post_id = $1",
         post_id,
@@ -141,6 +144,7 @@ async def persist_edges_for_post(conn: asyncpg.Connection, post_id: str) -> list
 
 
 async def person_exists(conn: asyncpg.Connection, person_id: str) -> bool:
+    """True when ``person_id`` is a UUID that exists in ``cataloged_person``."""
     try:
         UUID(person_id)
     except ValueError:
@@ -154,6 +158,7 @@ async def visible_mention_post_ids(
     person_id: str,
     can_see_post,
 ) -> list[str]:
+    """Post ids that mention ``person_id`` and pass the caller's ABAC check."""
     rows = await conn.fetch(
         """
         select p.post_id, p.visibility_code, p.corporate_entity_id
@@ -170,6 +175,7 @@ async def load_visible_subgraph(
     conn: asyncpg.Connection,
     visible_post_ids: list[str],
 ) -> list[KnowledgeGraphEdgeSpec]:
+    """Edges whose endpoints the account can already see via those posts."""
     if not visible_post_ids:
         return []
     person_rows = await conn.fetch(
@@ -223,6 +229,7 @@ async def hydrate_related_nodes(
     conn: asyncpg.Connection,
     related: list[tuple[str, float]],
 ) -> list[dict[str, Any]]:
+    """Attach display labels to scored ``type:id`` keys; drop unknown ids."""
     person_ids: list[str] = []
     post_ids: list[str] = []
     corp_ids: list[str] = []
@@ -284,6 +291,7 @@ async def related_for_person(
     person_id: str,
     visible_post_ids: list[str],
 ) -> list[dict[str, Any]]:
+    """Run RWR from ``person_id`` over the account's visible subgraph."""
     edges = await load_visible_subgraph(conn, visible_post_ids)
     start = node_key(NODE_PERSON, person_id)
     scores = random_walk_with_restart(adjacency_from_edges(edges), start_node=start)

@@ -73,11 +73,13 @@ def _require_post_read(account: CurrentAccount) -> None:
 
 
 def _require_post_admin(account: CurrentAccount) -> None:
+    """Raise 403 when the account has no ``post_admin`` permission at all."""
     if not account.has_permission(_POST_ADMIN):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "account lacks the post_admin permission")
 
 
 def _keyman_extraction_client():
+    """Live orchestrator client when configured; otherwise the unavailable null."""
     settings = load_settings()
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullKeymanExtractionClient()
@@ -161,6 +163,7 @@ async def _load_visible_post(
     account: CurrentAccount,
     pool: asyncpg.Pool,
 ) -> asyncpg.Record:
+    """Load one post the account may see, or raise 404 / 403."""
     _require_post_read(account)
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -181,6 +184,7 @@ async def read_post_keymen(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
+    """People mentioned on one visible post, with their N:N affiliations."""
     post = await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
         keymen = await fetch_post_keymen(conn, post_id)
@@ -193,6 +197,7 @@ async def read_related_keymen(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
+    """RWR-ranked related nodes from one person, hiding unseen posts."""
     _require_post_read(account)
     async with pool.acquire() as conn:
         if not await person_exists(conn, person_id):
@@ -220,7 +225,7 @@ async def extract_post_keymen(
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
     """Runs Keyman extraction over a post's own title+body and persists the
-    result (person / person_affiliation / post_person_mention /
+    result (cataloged_person / person_affiliation / post_person_mention /
     knowledge_graph_edge). Gated by post_admin, not post_read: this is a
     write action with a real LLM-call cost, not a read.
     """
