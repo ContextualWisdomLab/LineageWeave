@@ -4,6 +4,21 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.62.0] - 2026-08-14
+
+### Added
+
+- VOC evidence counterparties that already appear on the affiliate
+  tree are the same Keyman walk. Clicking `Northridge Grid` loads
+  related nodes for Priya Nair so the buyer does not have to find
+  the same org again under Affiliate tree.
+
+### Security
+
+- Verification badges only become links for `http:` / `https:`
+  evidence URLs. A `javascript:` or `data:` value stays a non-link
+  badge.
+
 ## [0.61.0] - 2026-08-14
 
 ### Changed

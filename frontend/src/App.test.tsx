@@ -58,6 +58,7 @@ describe("App, authenticated", () => {
     calendarCommitments?: unknown[];
     chatUnavailable?: boolean;
     searchUnavailable?: boolean;
+    verificationEvidenceUrl?: string | null;
   }) {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -612,7 +613,7 @@ describe("App, authenticated", () => {
                 evidence_excerpt:
                   "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
                 verification_status_code: "verify_pending",
-                verification_evidence_url: null,
+                verification_evidence_url: options?.verificationEvidenceUrl ?? null,
               },
             ],
           }),
@@ -627,7 +628,7 @@ describe("App, authenticated", () => {
                 relationship_type_code: "rel_voc",
                 relationship_label: "Voice of Customer",
                 verification_status_code: "verify_pending",
-                verification_evidence_url: null,
+                verification_evidence_url: options?.verificationEvidenceUrl ?? null,
               },
             ],
           }),
@@ -906,6 +907,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByText(/our_side/)).not.toBeInTheDocument();
     expect(screen.getByText("unresolved")).toBeInTheDocument();
     expect(screen.getByText(/Voice of Customer\s*\(voc\)/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "VOC Keyman: Northridge Grid" })).toBeInTheDocument();
     expect(screen.getByLabelText("VOC verification: Northridge Grid")).toHaveTextContent("Not yet checked");
     expect(
       screen.getByText(
@@ -931,6 +933,15 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Priya Nair (Person)")).toBeInTheDocument();
   });
 
+  it("opens related Keyman nodes from a VOC counterparty organization", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "VOC Keyman: Northridge Grid" }));
+    await waitFor(() => expect(screen.getByText("Related to Priya Nair")).toBeInTheDocument());
+    expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
+  });
+
   it("opens related Keyman nodes from an affiliate-tree person", async () => {
     stubBackend();
     render(<App />);
@@ -938,6 +949,25 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Affiliate Keyman: Priya Nair" }));
     await waitFor(() => expect(screen.getByText("Related to Priya Nair")).toBeInTheDocument());
     expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
+  });
+
+  it("links a verification badge only for http(s) evidence URLs", async () => {
+    stubBackend({ verificationEvidenceUrl: "https://example.test/searxng?q=Northridge" });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const badge = await screen.findByRole("link", { name: "VOC verification: Northridge Grid" });
+    expect(badge).toHaveAttribute("href", "https://example.test/searxng?q=Northridge");
+  });
+
+  it("does not turn a javascript: evidence URL into a verification link", async () => {
+    stubBackend({ verificationEvidenceUrl: "javascript:alert(1)" });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() =>
+      expect(screen.getByLabelText("VOC verification: Northridge Grid")).toBeInTheDocument(),
+    );
+    expect(screen.queryByRole("link", { name: "VOC verification: Northridge Grid" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("VOC verification: Northridge Grid").tagName).toBe("SPAN");
   });
 
   it("lets post_admin verify pending counterparties against web search", async () => {
