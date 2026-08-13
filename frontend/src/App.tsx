@@ -446,6 +446,19 @@ const VERIFICATION_BADGE: Record<string, string> = {
   verify_uncorroborated: "No evidence found",
 };
 
+function safeHttpUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.href;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 function VerificationBadge({
   statusCode,
   evidenceUrl,
@@ -457,9 +470,10 @@ function VerificationBadge({
 }) {
   const label = VERIFICATION_BADGE[statusCode] ?? statusCode;
   const className = `verification-badge verification-${statusCode}`;
-  if (evidenceUrl) {
+  const href = safeHttpUrl(evidenceUrl);
+  if (href) {
     return (
-      <a href={evidenceUrl} target="_blank" rel="noreferrer" className={className} aria-label={ariaLabel}>
+      <a href={href} target="_blank" rel="noreferrer" className={className} aria-label={ariaLabel}>
         {label}
       </a>
     );
