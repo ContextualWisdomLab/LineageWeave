@@ -290,6 +290,12 @@ function VocEvidenceSection({ evidence }: { evidence: VocEvidence | null }) {
       {evidence.counterparties.map((row) => (
         <p key={row.counterparty_entity_name} className="voc-counterparty">
           {row.counterparty_entity_name} -- {row.relationship_label}
+          {" -- "}
+          <VerificationBadge
+            statusCode={row.verification_status_code ?? "verify_pending"}
+            evidenceUrl={row.verification_evidence_url}
+            ariaLabel={`VOC verification: ${row.counterparty_entity_name}`}
+          />
         </p>
       ))}
     </section>
@@ -298,6 +304,37 @@ function VocEvidenceSection({ evidence }: { evidence: VocEvidence | null }) {
 
 const NODE_PERSON = "node_person";
 const NODE_POST = "node_post";
+
+const VERIFICATION_BADGE: Record<string, string> = {
+  verify_pending: "Not yet checked",
+  verify_corroborated: "Corroborated",
+  verify_uncorroborated: "No evidence found",
+};
+
+function VerificationBadge({
+  statusCode,
+  evidenceUrl,
+  ariaLabel,
+}: {
+  statusCode: string;
+  evidenceUrl?: string | null;
+  ariaLabel: string;
+}) {
+  const label = VERIFICATION_BADGE[statusCode] ?? statusCode;
+  const className = `verification-badge verification-${statusCode}`;
+  if (evidenceUrl) {
+    return (
+      <a href={evidenceUrl} target="_blank" rel="noreferrer" className={className} aria-label={ariaLabel}>
+        {label}
+      </a>
+    );
+  }
+  return (
+    <span className={className} aria-label={ariaLabel}>
+      {label}
+    </span>
+  );
+}
 
 function KeymanPanel({
   postId,
@@ -494,12 +531,6 @@ function EvaluationPanel({
   );
 }
 
-const VERIFICATION_BADGE: Record<string, string> = {
-  verify_pending: "Not yet checked",
-  verify_corroborated: "Corroborated",
-  verify_uncorroborated: "No evidence found",
-};
-
 function CounterpartyPanel({
   postId,
   accessToken,
@@ -546,20 +577,11 @@ function CounterpartyPanel({
           <li key={c.counterparty_entity_name}>
             {c.counterparty_entity_name} -- {c.relationship_label ?? c.relationship_type_code}
             {" -- "}
-            {c.verification_evidence_url ? (
-              <a
-                href={c.verification_evidence_url}
-                target="_blank"
-                rel="noreferrer"
-                className={`verification-badge verification-${c.verification_status_code}`}
-              >
-                {VERIFICATION_BADGE[c.verification_status_code] ?? c.verification_status_code}
-              </a>
-            ) : (
-              <span className={`verification-badge verification-${c.verification_status_code}`}>
-                {VERIFICATION_BADGE[c.verification_status_code] ?? c.verification_status_code}
-              </span>
-            )}
+            <VerificationBadge
+              statusCode={c.verification_status_code}
+              evidenceUrl={c.verification_evidence_url}
+              ariaLabel={`Counterparty verification: ${c.counterparty_entity_name}`}
+            />
           </li>
         ))}
       </ul>

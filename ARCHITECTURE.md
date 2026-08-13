@@ -309,7 +309,9 @@ instead of raw codes.
 `common_lookup_value` label for the post's `voc_type_code` plus the
 sentences in the post body that name a counterparty or affiliated
 organization (`lineageweave/voc_evidence.py`). A name that does not
-appear yields no excerpt. `make seed` writes Ada West / Priya Nair /
+appear yields no excerpt. Each counterparty also carries
+`verification_status_code` / `verification_evidence_url` so the VOC
+panel shows the same Searxng badge as Counterparties. `make seed` writes Ada West / Priya Nair /
 Northridge Grid onto A-100 proj-alpha Event Lineage posts, Jordan Hale
 / Westfield Power onto B-200, and Riverbend onto the calendar
 commitment so those panels are not empty without a live extractor.
