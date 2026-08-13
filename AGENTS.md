@@ -60,6 +60,8 @@ adjudication does -- never a raw LLM API.
 ## Tests
 
 ```bash
+# backend extra compiles fast-mlsirm's PyO3 core -- needs rustc 1.97.1
+# (see backend/Dockerfile). Without it, pip falls over at build time.
 pip install -e ".[dev,backend]"
 pytest
 ```

@@ -392,6 +392,10 @@ so `requires-python` moved from `>=3.10` to `>=3.12` (its own floor)
 and `backend/Dockerfile`'s build stage gained a pinned, non-interactive
 `rustup` install (`build-essential` for the C linker maturin needs,
 `--profile minimal` since the build image needs `rustc`/`cargo` only,
-not docs or clippy). Verified both locally (`import fast_mlsirm._core`
-resolves to the compiled extension, not the NumPy parity fallback) and
-against a freshly built `backend` Docker image.
+not docs or clippy). The same pin is installed in the pytest CI job,
+or `pip install -e ".[backend]"` cannot compile the extension. This
+is the IRT compute library the brief names -- not a second TEPP, and
+not a fork of TEPP's temporal engine (`tepp_client.py` is unchanged).
+Verified both locally (`import fast_mlsirm._core` resolves to the
+compiled extension, not the NumPy parity fallback) and against a
+freshly built `backend` Docker image.

@@ -30,9 +30,12 @@ All notable changes to this project are documented here. Format follows
   `fast-mlsirm`'s own floor. `backend/Dockerfile`'s build stage gained
   a pinned, non-interactive `rustup` install (`build-essential` for
   the linker), since `fast-mlsirm` ships a PyO3/maturin Rust core with
-  no fallback wheel. Verified the compiled extension actually loads
-  (not the NumPy parity fallback) both locally and in a freshly built
-  `backend` Docker image.
+  no fallback wheel. The pytest CI job installs the same toolchain
+  before `pip install -e ".[backend]"`. Verified the compiled
+  extension actually loads (not the NumPy parity fallback) both
+  locally and in a freshly built `backend` Docker image. TEPP stays
+  the temporal/event measurement platform -- this pin is the IRT
+  compute library, not a fork of TEPP.
 
 ## [0.18.0] - 2026-08-13
 

@@ -28,6 +28,14 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install pinned Rust toolchain
+        run: |
+          # Same pin as backend/Dockerfile: fast-mlsirm's PyO3/maturin
+          # core has no wheel, so pip install -e ".[backend]" compiles it.
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+            sh -s -- -y --profile minimal --default-toolchain 1.97.1
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
       - name: Install package and test dependencies
         run: python -m pip install -e ".[dev,backend]"
 
