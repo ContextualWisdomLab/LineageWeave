@@ -23,6 +23,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import asyncpg
+import redis.asyncio as redis
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -38,6 +39,12 @@ from lineageweave.keyman_extraction import (
 from lineageweave.post_chat import ContextualOrchestratorPostChatClient, NullPostChatClient
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 
+from backend.app.activity_stream import (
+    create_valkey_client,
+    get_valkey,
+    publish_activity_event,
+    read_activity_events,
+)
 from backend.app.affiliate_tree_ingestion import fetch_affiliate_forest, fetch_voc_evidence
 from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
@@ -65,13 +72,16 @@ _POST_ADMIN = "post_admin"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Open one asyncpg pool for the process and close it on shutdown."""
+    """Open one asyncpg pool and one Valkey client for the process, and
+    close both on shutdown."""
     settings = load_settings()
     app.state.pool = await create_pool(settings.database_url)
+    app.state.valkey = create_valkey_client(settings.valkey_url)
     try:
         yield
     finally:
         await app.state.pool.close()
+        await app.state.valkey.aclose()
 
 
 app = FastAPI(title="LineageWeave API", lifespan=lifespan)
@@ -541,6 +551,7 @@ async def create_post_ticket(
     request: CreateTicketRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Create an issue ticket on a visible post. post_admin-gated: opening
     a ticket is a write action, same discipline as extract-keymen.
@@ -557,6 +568,9 @@ async def create_post_ticket(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,
                 f"ticket_status_code {request.ticket_status_code!r} is not a valid ticket_status lookup code",
             ) from exc
+    await publish_activity_event(
+        valkey, post_id, "ticket_created", account.user_account_id, f"Ticket created: {request.ticket_title}"
+    )
     return ticket
 
 
@@ -579,6 +593,7 @@ async def patch_ticket(
     request: UpdateTicketRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Update a ticket's status and/or assignee. post_admin-gated. The
     ABAC check runs against the ticket's OWNING post, resolved first --
@@ -606,4 +621,27 @@ async def patch_ticket(
             ) from exc
     if ticket is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "ticket not found")
+    if request.ticket_status_code is not None:
+        await publish_activity_event(
+            valkey,
+            post_id,
+            "ticket_status_changed",
+            account.user_account_id,
+            f"Ticket status changed to {request.ticket_status_code}",
+        )
     return ticket
+
+
+@app.get("/api/posts/{post_id}/activity")
+async def read_post_activity(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
+) -> dict[str, Any]:
+    """The post's activity feed, read straight off its Valkey stream
+    (``XREVRANGE``) -- newest first. Read-only, so post_read is enough.
+    """
+    await _load_visible_post(post_id, account, pool)
+    events = await read_activity_events(valkey, post_id)
+    return {"post_id": post_id, "events": events}

@@ -7,6 +7,7 @@ import {
   fetchLineageGraph,
   fetchMe,
   fetchPost,
+  fetchPostActivity,
   fetchPostAffiliateTree,
   fetchPostCounterparties,
   fetchPostKeymen,
@@ -18,6 +19,7 @@ import {
   fetchRelatedKeymen,
   rebuildLineage,
   updateTicketStatus,
+  type ActivityEvent,
   type AffiliateNode,
   type ChatAnswer,
   type Counterparty,
@@ -413,6 +415,49 @@ function IssueTicketPanel({ postId, accessToken }: { postId: string; accessToken
   );
 }
 
+function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: string }) {
+  const [events, setEvents] = useState<ActivityEvent[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  function reload() {
+    fetchPostActivity(accessToken, postId)
+      .then((r) => setEvents(r.events))
+      .catch((err) => setError(String(err)));
+  }
+
+  useEffect(() => {
+    setEvents(null);
+    setError(null);
+    fetchPostActivity(accessToken, postId)
+      .then((r) => setEvents(r.events))
+      .catch((err) => setError(String(err)));
+  }, [postId, accessToken]);
+
+  return (
+    <section className="popup-section">
+      <div className="lineage-home-header">
+        <h3>Activity</h3>
+        <button onClick={reload}>Refresh</button>
+      </div>
+      {error && <p className="error">{error}</p>}
+      {events === null ? (
+        <p>Loading activity...</p>
+      ) : events.length === 0 ? (
+        <p className="popup-placeholder">No activity yet.</p>
+      ) : (
+        <ul className="ticket-list">
+          {events.map((event) => (
+            <li key={event.event_id} className="ticket-list-item">
+              <span className="ticket-title">{event.summary}</span>
+              <span className="post-badge">{event.event_type}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function PostDetailPopup({
   postId,
   accessToken,
@@ -559,6 +604,8 @@ function PostDetailPopup({
             )}
 
             <IssueTicketPanel postId={postId} accessToken={accessToken} />
+
+            <ActivityPanel postId={postId} accessToken={accessToken} />
 
             <ChatPanel postId={postId} accessToken={accessToken} />
           </>
