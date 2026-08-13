@@ -11,8 +11,12 @@ import numpy as np
 import pytest
 
 from lineageweave.period_report import (
+    LINK_METHOD_FIPC,
+    LINK_METHOD_FREE,
     assemble_response_matrix,
     calibrate_period_report,
+    link_or_calibrate_period_report,
+    score_period_on_bank,
     gpcm_category_probabilities,
     grm_category_probabilities,
 )
@@ -61,6 +65,55 @@ def test_high_category_posts_outrank_low_category_posts() -> None:
     assert report.item_count == 3
     assert report.selected_model in {"grm", "gpcm"}
     assert report.mean_theta == pytest.approx(float(np.mean(list(by_id.values()))), abs=1e-9)
+
+
+def test_fipc_keeps_all_high_week_above_mixed_reference() -> None:
+    """Independent refit of an all-high week recenters near 0. Scoring
+    the same rows on the mixed week's item bank must keep mean θ above
+    the reference -- that is the buyer-visible week-over-week signal.
+    """
+    items = CRITERION_CODES
+    high_ids = [f"high-{idx}" for idx in range(4)]
+    low_ids = [f"low-{idx}" for idx in range(4)]
+    ref_rows: list[tuple[str, str, int]] = []
+    for post_id in high_ids:
+        for item in items:
+            ref_rows.append((post_id, item, IRT_CATEGORY_COUNT - 1))
+    for post_id in low_ids:
+        for item in items:
+            ref_rows.append((post_id, item, 0))
+
+    reference = calibrate_period_report(high_ids + low_ids, ref_rows, source_period_code="2026-W02")
+    assert reference.link_method == LINK_METHOD_FREE
+    assert reference.item_bank.source_period_code == "2026-W02"
+
+    new_ids = [f"next-{idx}" for idx in range(6)]
+    new_rows = [(post_id, item, IRT_CATEGORY_COUNT - 1) for post_id in new_ids for item in items]
+    linked = score_period_on_bank(new_ids, new_rows, reference.item_bank, reference.mean_theta)
+    independent = calibrate_period_report(new_ids, new_rows)
+
+    assert linked.link_method == LINK_METHOD_FIPC
+    assert linked.anchor_period_code == "2026-W02"
+    assert linked.mean_theta > reference.mean_theta
+    assert linked.delta_mean_theta == pytest.approx(linked.mean_theta - reference.mean_theta, abs=1e-9)
+    assert independent.mean_theta < linked.mean_theta
+
+
+def test_link_or_calibrate_uses_bank_when_present() -> None:
+    items = CRITERION_CODES
+    ref_ids = [f"ref-{idx}" for idx in range(4)]
+    ref_rows = [(post_id, item, (0 if idx < 2 else IRT_CATEGORY_COUNT - 1)) for idx, post_id in enumerate(ref_ids) for item in items]
+    reference = link_or_calibrate_period_report(ref_ids, ref_rows, source_period_code="2026-W02")
+    later_ids = [f"later-{idx}" for idx in range(4)]
+    later_rows = [(post_id, item, IRT_CATEGORY_COUNT - 1) for post_id in later_ids for item in items]
+    linked = link_or_calibrate_period_report(
+        later_ids,
+        later_rows,
+        item_bank=reference.item_bank,
+        previous_mean_theta=reference.mean_theta,
+    )
+    assert linked.link_method == LINK_METHOD_FIPC
+    assert linked.item_bank.slope == reference.item_bank.slope
 
 
 def test_assemble_response_matrix_leaves_unknown_items_missing() -> None:

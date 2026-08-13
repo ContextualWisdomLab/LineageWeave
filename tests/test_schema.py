@@ -94,6 +94,7 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_evaluation_response",
         "report_period_score",
         "report_member_score",
+        "report_item_parameter",
     }
     assert expected <= tables
 

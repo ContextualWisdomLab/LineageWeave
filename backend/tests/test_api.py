@@ -1580,6 +1580,26 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert high_mean > low_mean
     assert reports[0]["post_count"] == 8
     assert reports[0]["selected_model"] in {"grm", "gpcm"}
+    assert reports[0]["link_method"] == "free"
+
+    week3 = client.get(
+        "/api/reports/process_unit/2026-W03",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert week3.status_code == 200, week3.text
+    linked = week3.json()["reports"]
+    assert linked
+    assert linked[0]["link_method"] == "fipc"
+    assert linked[0]["anchor_period_code"] == "2026-W02"
+    assert linked[0]["mean_theta"] > reports[0]["mean_theta"]
+
+    index = client.get(
+        "/api/reports/process_unit",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert index.status_code == 200, index.text
+    periods = {row["period_code"] for row in index.json()["periods"]}
+    assert {"2026-W02", "2026-W03"} <= periods
 
 
 def test_rebuild_reports_requires_post_admin(client, demo_analyst_token) -> None:
@@ -1682,3 +1702,49 @@ def test_period_report_high_posts_outrank_low_posts(client, demo_analyst_token, 
     assert high_mean > low_mean
     assert reports[0]["selected_model"] in {"grm", "gpcm"}
     assert reports[0]["post_count"] == 8
+    assert reports[0]["link_method"] == "free"
+
+    created_w03 = datetime(2026, 1, 12, tzinfo=timezone.utc)
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select author_account_id, corporate_entity_id, process_unit_id "
+                "from source_post where post_title = 'high report post 0'"
+            )
+            author_id, corp_id, process_unit_id = cur.fetchone()
+            for idx in range(6):
+                cur.execute(
+                    "insert into source_post "
+                    "(author_account_id, corporate_entity_id, process_unit_id, "
+                    " post_title, post_body, voc_type_code, visibility_code, created_at) "
+                    "values (%s, %s, %s, %s, 'body', 'voc', 'public', %s) returning post_id",
+                    (author_id, corp_id, process_unit_id, f"high week3 report post {idx}", created_w03),
+                )
+                post_id = cur.fetchone()[0]
+                for code in CRITERION_CODES:
+                    cur.execute(
+                        "insert into post_evaluation_response "
+                        "(post_id, criterion_code, rubric_version, response_category) "
+                        "values (%s, %s, '2026-08-13', %s)",
+                        (post_id, code, IRT_CATEGORY_COUNT - 1),
+                    )
+    finally:
+        admin_conn.close()
+
+    rebuild_w03 = client.post(
+        "/api/reports/process_unit/2026-W03/rebuild",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert rebuild_w03.status_code == 200, rebuild_w03.text
+    week3 = client.get(
+        "/api/reports/process_unit/2026-W03",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert week3.status_code == 200, week3.text
+    linked = week3.json()["reports"]
+    assert linked
+    assert linked[0]["link_method"] == "fipc"
+    assert linked[0]["anchor_period_code"] == "2026-W02"
+    assert linked[0]["mean_theta"] > reports[0]["mean_theta"]

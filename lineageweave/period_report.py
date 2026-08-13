@@ -1,10 +1,15 @@
 """Calibrated period reports from persisted post-evaluation IRT rows.
 
-ADR 0003 slice 3: assemble the judge-to-IRT matrix already stored in
+ADR 0003 slice 3/4: assemble the judge-to-IRT matrix already stored in
 ``post_evaluation_response``, fit GRM and GPCM with
 ``fast_mlsirm.fit_polytomous`` (Rust EM; Dempster et al., 1977), score
 EAP thetas (Bock & Mislevy, 1982), and pick the model with
 ``fixed_item_calibration_diagnostics`` -- never a placeholder number.
+
+The first period for a grouping free-calibrates and persists its item
+bank. Later periods EAP-score on those fixed parameters (Kim, 2006
+FIPC) so weekly thetas stay on one metric. Independent refits would
+re-center each week at 0 and hide real movement.
 
 This module is pure compute. Persistence lives in
 ``backend/app/report_ingestion.py``. TEPP is not used here; temporal
@@ -17,6 +22,7 @@ from dataclasses import dataclass
 
 import numpy as np
 from fast_mlsirm import (
+    PolytomousFit,
     fit_polytomous,
     fixed_item_calibration_diagnostics,
     score_polytomous,
@@ -24,6 +30,9 @@ from fast_mlsirm import (
 )
 
 from .post_evaluation import CRITERION_CODES, IRT_CATEGORY_COUNT
+
+LINK_METHOD_FREE = "free"
+LINK_METHOD_FIPC = "fipc"
 
 
 @dataclass(frozen=True)
@@ -33,6 +42,28 @@ class MemberScore:
     post_id: str
     theta_eap: float
     theta_sd: float
+
+
+@dataclass(frozen=True)
+class ItemBank:
+    """Polytomous item parameters on one metric (the FIPC anchor)."""
+
+    model: str
+    item_codes: tuple[str, ...]
+    slope: tuple[float, ...]
+    cat_params: tuple[tuple[float, ...], ...]
+    source_period_code: str
+
+    def as_fit(self, loglik: float = 0.0, n_iter: int = 0, converged: bool = True) -> PolytomousFit:
+        """Rebuild the ``fast_mlsirm`` fit object used by ``score_polytomous``."""
+        return PolytomousFit(
+            model=self.model,
+            slope=np.asarray(self.slope, dtype=np.float64),
+            cat_params=np.asarray(self.cat_params, dtype=np.float64),
+            loglik=loglik,
+            n_iter=n_iter,
+            converged=converged,
+        )
 
 
 @dataclass(frozen=True)
@@ -48,6 +79,10 @@ class PeriodReport:
     fit_converged: bool
     calibration_score: float
     member_scores: tuple[MemberScore, ...]
+    item_bank: ItemBank
+    link_method: str = LINK_METHOD_FREE
+    anchor_period_code: str | None = None
+    delta_mean_theta: float | None = None
 
 
 def _sigmoid(value: np.ndarray) -> np.ndarray:
@@ -118,11 +153,53 @@ def assemble_response_matrix(
     return matrix
 
 
+def item_bank_from_fit(fit: PolytomousFit, item_codes: tuple[str, ...], source_period_code: str) -> ItemBank:
+    """Copy fitted slopes and category parameters into a persistable bank."""
+    cat = np.asarray(fit.cat_params, dtype=np.float64)
+    return ItemBank(
+        model=str(fit.model),
+        item_codes=tuple(item_codes),
+        slope=tuple(float(value) for value in np.asarray(fit.slope, dtype=np.float64)),
+        cat_params=tuple(tuple(float(value) for value in row) for row in cat),
+        source_period_code=source_period_code,
+    )
+
+
+def observed_response_loglik(matrix: np.ndarray, probs: np.ndarray) -> float:
+    """Sum log P(y_ij) over observed cells; missing cells are skipped."""
+    loglik = 0.0
+    n_persons, n_items = matrix.shape
+    for person in range(n_persons):
+        for item in range(n_items):
+            category = matrix[person, item]
+            if np.isnan(category):
+                continue
+            index = int(category)
+            loglik += float(np.log(max(probs[person, item, index], 1e-12)))
+    return loglik
+
+
+def _member_scores(post_ids: list[str], scores: dict[str, np.ndarray]) -> tuple[MemberScore, ...]:
+    theta = np.asarray(scores["theta_eap"], dtype=np.float64)
+    theta_sd = np.asarray(scores["theta_sd"], dtype=np.float64)
+    return tuple(
+        MemberScore(post_id=post_id, theta_eap=float(theta[idx]), theta_sd=float(theta_sd[idx]))
+        for idx, post_id in enumerate(post_ids)
+    )
+
+
+def _category_probabilities(model: str, theta: np.ndarray, fit: PolytomousFit) -> np.ndarray:
+    if model == "grm":
+        return grm_category_probabilities(theta, fit.slope, fit.cat_params)
+    return gpcm_category_probabilities(theta, fit.slope, fit.cat_params)
+
+
 def calibrate_period_report(
     post_ids: list[str],
     rows: list[tuple[str, str, int]],
     item_codes: tuple[str, ...] = CRITERION_CODES,
     n_categories: int = IRT_CATEGORY_COUNT,
+    source_period_code: str = "",
 ) -> PeriodReport:
     """Fit GRM and GPCM, FIPC-select, EAP-score. Raises if the matrix is unusable."""
     if len(post_ids) < 2:
@@ -135,10 +212,7 @@ def calibrate_period_report(
         fit = fit_polytomous(matrix, n_cat=n_categories, model=model, max_iter=80)
         scores = score_polytomous(matrix, fit)
         theta = np.asarray(scores["theta_eap"], dtype=np.float64)
-        if model == "grm":
-            probs = grm_category_probabilities(theta, fit.slope, fit.cat_params)
-        else:
-            probs = gpcm_category_probabilities(theta, fit.slope, fit.cat_params)
+        probs = _category_probabilities(model, theta, fit)
         fits[model] = (fit, scores, probs)
 
     diagnostics = fixed_item_calibration_diagnostics(
@@ -150,11 +224,6 @@ def calibrate_period_report(
     selected = str(diagnostics.best["candidate_label"])
     fit, scores, _ = fits[selected]
     theta = np.asarray(scores["theta_eap"], dtype=np.float64)
-    theta_sd = np.asarray(scores["theta_sd"], dtype=np.float64)
-    members = tuple(
-        MemberScore(post_id=post_id, theta_eap=float(theta[idx]), theta_sd=float(theta_sd[idx]))
-        for idx, post_id in enumerate(post_ids)
-    )
     return PeriodReport(
         selected_model=selected,
         mean_theta=float(theta.mean()),
@@ -164,5 +233,75 @@ def calibrate_period_report(
         fit_loglik=float(fit.loglik),
         fit_converged=bool(fit.converged),
         calibration_score=float(diagnostics.best["calibration_score"]),
-        member_scores=members,
+        member_scores=_member_scores(post_ids, scores),
+        item_bank=item_bank_from_fit(fit, item_codes, source_period_code),
+        link_method=LINK_METHOD_FREE,
+    )
+
+
+def score_period_on_bank(
+    post_ids: list[str],
+    rows: list[tuple[str, str, int]],
+    item_bank: ItemBank,
+    previous_mean_theta: float,
+    n_categories: int = IRT_CATEGORY_COUNT,
+) -> PeriodReport:
+    """EAP-score a new period on fixed item parameters (true FIPC)."""
+    if len(post_ids) < 2:
+        raise ValueError("need at least two posts with evaluations to score a period")
+    if item_bank.model not in {"grm", "gpcm"}:
+        raise ValueError(f"unsupported item-bank model {item_bank.model!r}")
+    matrix = assemble_response_matrix(post_ids, rows, item_bank.item_codes)
+    validate_irt_response_matrix(matrix, item_type="polytomous", n_categories=n_categories)
+    fit = item_bank.as_fit()
+    scores = score_polytomous(matrix, fit)
+    theta = np.asarray(scores["theta_eap"], dtype=np.float64)
+    probs = _category_probabilities(item_bank.model, theta, fit)
+    diagnostics = fixed_item_calibration_diagnostics(
+        matrix,
+        {LINK_METHOD_FIPC: probs},
+        item_type="polytomous",
+        response_process="cumulative",
+    )
+    return PeriodReport(
+        selected_model=item_bank.model,
+        mean_theta=float(theta.mean()),
+        mean_theta_sd=float(theta.std(ddof=0)),
+        post_count=len(post_ids),
+        item_count=len(item_bank.item_codes),
+        fit_loglik=observed_response_loglik(matrix, probs),
+        fit_converged=True,
+        calibration_score=float(diagnostics.best["calibration_score"]),
+        member_scores=_member_scores(post_ids, scores),
+        item_bank=item_bank,
+        link_method=LINK_METHOD_FIPC,
+        anchor_period_code=item_bank.source_period_code,
+        delta_mean_theta=float(theta.mean()) - float(previous_mean_theta),
+    )
+
+
+def link_or_calibrate_period_report(
+    post_ids: list[str],
+    rows: list[tuple[str, str, int]],
+    item_bank: ItemBank | None = None,
+    previous_mean_theta: float | None = None,
+    item_codes: tuple[str, ...] = CRITERION_CODES,
+    n_categories: int = IRT_CATEGORY_COUNT,
+    source_period_code: str = "",
+) -> PeriodReport:
+    """Free-calibrate the first period; FIPC-score later periods on that bank."""
+    if item_bank is None:
+        return calibrate_period_report(
+            post_ids,
+            rows,
+            item_codes=item_codes,
+            n_categories=n_categories,
+            source_period_code=source_period_code,
+        )
+    return score_period_on_bank(
+        post_ids,
+        rows,
+        item_bank,
+        previous_mean_theta=0.0 if previous_mean_theta is None else previous_mean_theta,
+        n_categories=n_categories,
     )

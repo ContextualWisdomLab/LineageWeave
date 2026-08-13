@@ -9,8 +9,12 @@ from typing import Any
 
 import asyncpg
 
-from lineageweave.period_report import PeriodReport, calibrate_period_report
-from lineageweave.post_evaluation import RUBRIC_VERSION
+from lineageweave.period_report import (
+    ItemBank,
+    PeriodReport,
+    link_or_calibrate_period_report,
+)
+from lineageweave.post_evaluation import CRITERION_CODES, RUBRIC_VERSION
 
 GROUPING_KINDS = frozenset({"process_unit", "corporate_entity", "thread_group"})
 _WEEK_PERIOD = re.compile(r"^(\d{4})-W(\d{2})$")
@@ -73,6 +77,61 @@ async def load_period_evaluation_rows(
     )
 
 
+async def load_anchor_item_bank(
+    conn: asyncpg.Connection,
+    grouping_kind: str,
+    grouping_key: str,
+    period_code: str,
+) -> tuple[ItemBank, float] | None:
+    """Latest earlier period's item bank and mean θ, if one exists."""
+    kind, _, _ = parse_period_code(period_code)
+    kind_filter = (
+        "and period_code like '%-W%'" if kind == "week" else "and period_code not like '%-W%'"
+    )
+    header = await conn.fetchrow(
+        f"""
+        select period_code, selected_model, mean_theta
+        from report_period_score
+        where grouping_kind = $1 and grouping_key = $2
+          and rubric_version = $3 and period_code < $4
+          {kind_filter}
+        order by period_code desc
+        limit 1
+        """,
+        grouping_kind,
+        grouping_key,
+        RUBRIC_VERSION,
+        period_code,
+    )
+    if header is None:
+        return None
+    items = await conn.fetch(
+        """
+        select item_code, item_index, slope, cat_params
+        from report_item_parameter
+        where grouping_kind = $1 and grouping_key = $2
+          and period_code = $3 and rubric_version = $4
+        order by item_index
+        """,
+        grouping_kind,
+        grouping_key,
+        header["period_code"],
+        RUBRIC_VERSION,
+    )
+    if not items:
+        return None
+    return (
+        ItemBank(
+            model=str(header["selected_model"]),
+            item_codes=tuple(str(row["item_code"]) for row in items),
+            slope=tuple(float(row["slope"]) for row in items),
+            cat_params=tuple(tuple(float(value) for value in row["cat_params"]) for row in items),
+            source_period_code=str(header["period_code"]),
+        ),
+        float(header["mean_theta"]),
+    )
+
+
 async def persist_period_report(
     conn: asyncpg.Connection,
     grouping_kind: str,
@@ -80,7 +139,7 @@ async def persist_period_report(
     period_code: str,
     report: PeriodReport,
 ) -> None:
-    """Replace the stored report for this grouping and period."""
+    """Replace the stored report, member scores, and item bank."""
     await conn.execute(
         """
         delete from report_period_score
@@ -97,8 +156,9 @@ async def persist_period_report(
         insert into report_period_score (
             grouping_kind, grouping_key, period_code, rubric_version,
             selected_model, mean_theta, mean_theta_sd, post_count, item_count,
-            fit_loglik, fit_converged, calibration_score
-        ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+            fit_loglik, fit_converged, calibration_score,
+            link_method, anchor_period_code, delta_mean_theta
+        ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
         """,
         grouping_kind,
         grouping_key,
@@ -112,6 +172,9 @@ async def persist_period_report(
         report.fit_loglik,
         report.fit_converged,
         report.calibration_score,
+        report.link_method,
+        report.anchor_period_code,
+        report.delta_mean_theta,
     )
     for member in report.member_scores:
         await conn.execute(
@@ -128,6 +191,24 @@ async def persist_period_report(
             member.post_id,
             member.theta_eap,
             member.theta_sd,
+        )
+    bank = report.item_bank
+    for index, item_code in enumerate(bank.item_codes):
+        await conn.execute(
+            """
+            insert into report_item_parameter (
+                grouping_kind, grouping_key, period_code, rubric_version,
+                item_code, item_index, slope, cat_params
+            ) values ($1,$2,$3,$4,$5,$6,$7,$8)
+            """,
+            grouping_kind,
+            grouping_key,
+            period_code,
+            RUBRIC_VERSION,
+            item_code,
+            index,
+            bank.slope[index],
+            list(bank.cat_params[index]),
         )
 
 
@@ -156,7 +237,16 @@ async def rebuild_period_reports(
             (str(row["post_id"]), row["criterion_code"], int(row["response_category"]))
             for row in group_rows
         ]
-        report = calibrate_period_report(post_ids, cells)
+        anchor = await load_anchor_item_bank(conn, grouping_kind, grouping_key, period_code)
+        item_bank, previous_mean = (anchor[0], anchor[1]) if anchor else (None, None)
+        report = link_or_calibrate_period_report(
+            post_ids,
+            cells,
+            item_bank=item_bank,
+            previous_mean_theta=previous_mean,
+            item_codes=CRITERION_CODES,
+            source_period_code=period_code,
+        )
         await persist_period_report(conn, grouping_kind, grouping_key, period_code, report)
         reports.append(report)
     return reports
@@ -172,7 +262,8 @@ async def fetch_period_reports(
         """
         select grouping_kind, grouping_key, period_code, rubric_version,
                selected_model, mean_theta, mean_theta_sd, post_count, item_count,
-               fit_loglik, fit_converged, calibration_score, computed_at
+               fit_loglik, fit_converged, calibration_score, computed_at,
+               link_method, anchor_period_code, delta_mean_theta
         from report_period_score
         where grouping_kind = $1 and period_code = $2 and rubric_version = $3
         order by grouping_key
@@ -214,6 +305,13 @@ async def fetch_period_reports(
                 "fit_converged": bool(header["fit_converged"]),
                 "calibration_score": float(header["calibration_score"]),
                 "computed_at": header["computed_at"].isoformat(),
+                "link_method": header["link_method"],
+                "anchor_period_code": header["anchor_period_code"],
+                "delta_mean_theta": (
+                    None
+                    if header["delta_mean_theta"] is None
+                    else float(header["delta_mean_theta"])
+                ),
                 "members": [
                     {
                         "post_id": str(row["post_id"]),
@@ -228,6 +326,64 @@ async def fetch_period_reports(
             }
         )
     return payload
+
+
+async def list_period_report_summaries(
+    conn: asyncpg.Connection,
+    grouping_kind: str,
+) -> list[dict[str, Any]]:
+    """One row per stored grouping/period, newest last, for the trend strip."""
+    if grouping_kind not in GROUPING_KINDS:
+        raise ValueError(f"unknown grouping_kind {grouping_kind!r}")
+    rows = await conn.fetch(
+        """
+        select grouping_kind, grouping_key, period_code, selected_model,
+               mean_theta, post_count, link_method, anchor_period_code,
+               delta_mean_theta, fit_converged
+        from report_period_score
+        where grouping_kind = $1 and rubric_version = $2
+        order by period_code, grouping_key
+        """,
+        grouping_kind,
+        RUBRIC_VERSION,
+    )
+    members = await conn.fetch(
+        """
+        select m.grouping_key, m.period_code, p.visibility_code, p.corporate_entity_id
+        from report_member_score m
+        join source_post p on p.post_id = m.post_id
+        where m.grouping_kind = $1 and m.rubric_version = $2
+        """,
+        grouping_kind,
+        RUBRIC_VERSION,
+    )
+    members_by_key: dict[tuple[str, str], list[asyncpg.Record]] = defaultdict(list)
+    for row in members:
+        members_by_key[(row["grouping_key"], row["period_code"])].append(row)
+    return [
+        {
+            "grouping_kind": row["grouping_kind"],
+            "grouping_key": row["grouping_key"],
+            "period_code": row["period_code"],
+            "selected_model": row["selected_model"],
+            "mean_theta": float(row["mean_theta"]),
+            "post_count": int(row["post_count"]),
+            "link_method": row["link_method"],
+            "anchor_period_code": row["anchor_period_code"],
+            "delta_mean_theta": (
+                None if row["delta_mean_theta"] is None else float(row["delta_mean_theta"])
+            ),
+            "fit_converged": bool(row["fit_converged"]),
+            "members": [
+                {
+                    "visibility_code": member["visibility_code"],
+                    "corporate_entity_id": str(member["corporate_entity_id"]),
+                }
+                for member in members_by_key.get((row["grouping_key"], row["period_code"]), [])
+            ],
+        }
+        for row in rows
+    ]
 
 
 def iso_week_period(when: datetime | None = None) -> str:

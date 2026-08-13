@@ -292,6 +292,9 @@ export interface PeriodGroupReport {
   post_count: number;
   item_count: number;
   fit_converged: boolean;
+  link_method: string;
+  anchor_period_code: string | null;
+  delta_mean_theta: number | null;
   members: ReportMember[];
 }
 
@@ -299,6 +302,29 @@ export interface PeriodReports {
   grouping_kind: string;
   period_code: string;
   reports: PeriodGroupReport[];
+}
+
+export interface PeriodReportSummary {
+  grouping_key: string;
+  period_code: string;
+  selected_model: string;
+  mean_theta: number;
+  post_count: number;
+  link_method: string;
+  anchor_period_code: string | null;
+  delta_mean_theta: number | null;
+}
+
+export interface PeriodReportIndex {
+  grouping_kind: string;
+  periods: PeriodReportSummary[];
+}
+
+export function fetchPeriodReportIndex(
+  accessToken: string,
+  groupingKind: string,
+): Promise<PeriodReportIndex> {
+  return backendFetch(`/api/reports/${groupingKind}`, accessToken);
 }
 
 export function fetchPeriodReports(

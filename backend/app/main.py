@@ -71,6 +71,7 @@ from backend.app.report_ingestion import (
     GROUPING_KINDS,
     fetch_period_reports,
     iso_week_period,
+    list_period_report_summaries,
     parse_period_code,
     rebuild_period_reports,
 )
@@ -636,6 +637,27 @@ async def evaluate_post(
     }
 
 
+@app.get("/api/reports/{grouping_kind}")
+async def list_period_reports(
+    grouping_kind: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Available calibrated periods for one grouping kind (FIPC trend)."""
+    _require_post_read(account)
+    if grouping_kind not in GROUPING_KINDS:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "unknown grouping_kind")
+    async with pool.acquire() as conn:
+        summaries = await list_period_report_summaries(conn, grouping_kind)
+    visible: list[dict[str, Any]] = []
+    for summary in summaries:
+        members = [member for member in summary["members"] if _can_see_post(account, member)]
+        if not members:
+            continue
+        visible.append({**summary, "members": [], "post_count": len(members)})
+    return {"grouping_kind": grouping_kind, "periods": visible}
+
+
 @app.get("/api/reports/{grouping_kind}/{period_code}")
 async def read_period_reports(
     grouping_kind: str,
@@ -669,7 +691,7 @@ async def rebuild_period_report_endpoint(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Refit GRM/GPCM + FIPC for every group in the period. post_admin only."""
+    """Refit or FIPC-score every group in the period. post_admin only."""
     _require_post_admin(account)
     if grouping_kind not in GROUPING_KINDS:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "unknown grouping_kind")

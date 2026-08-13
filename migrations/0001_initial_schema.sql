@@ -196,8 +196,10 @@ create table post_evaluation_response (
 
 create index post_evaluation_response_post_idx on post_evaluation_response (post_id);
 
--- Calibrated period scores (ADR 0003 slice 3). Written only by
--- lineageweave.period_report.calibrate_period_report.
+-- Calibrated period scores (ADR 0003 slice 3/4). Written only by
+-- lineageweave.period_report.link_or_calibrate_period_report.
+-- link_method = free on the first period; fipc on later periods scored
+-- against report_item_parameter from the anchor period.
 create table report_period_score (
     grouping_kind text not null,
     grouping_key text not null,
@@ -211,9 +213,13 @@ create table report_period_score (
     fit_loglik numeric not null,
     fit_converged boolean not null,
     calibration_score numeric not null,
+    link_method text not null default 'free',
+    anchor_period_code text,
+    delta_mean_theta numeric,
     computed_at timestamptz not null default now(),
     primary key (grouping_kind, grouping_key, period_code, rubric_version),
-    check (grouping_kind in ('process_unit', 'corporate_entity', 'thread_group'))
+    check (grouping_kind in ('process_unit', 'corporate_entity', 'thread_group')),
+    check (link_method in ('free', 'fipc'))
 );
 
 create table report_member_score (
@@ -231,6 +237,23 @@ create table report_member_score (
 );
 
 create index report_member_score_post_idx on report_member_score (post_id);
+
+-- Fixed item parameters for the period's metric. Later weeks copy the
+-- earliest free-calibrated bank so EAP thetas stay comparable.
+create table report_item_parameter (
+    grouping_kind text not null,
+    grouping_key text not null,
+    period_code text not null,
+    rubric_version text not null,
+    item_code text not null,
+    item_index integer not null,
+    slope numeric not null,
+    cat_params numeric[] not null,
+    primary key (grouping_kind, grouping_key, period_code, rubric_version, item_code),
+    foreign key (grouping_kind, grouping_key, period_code, rubric_version)
+        references report_period_score (grouping_kind, grouping_key, period_code, rubric_version)
+        on delete cascade
+);
 
 -- ---------------------------------------------------------------------
 -- Keyman: real (or, in this repo's default synthetic configuration,

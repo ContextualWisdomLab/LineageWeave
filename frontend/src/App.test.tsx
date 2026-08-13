@@ -147,6 +147,35 @@ describe("App, authenticated", () => {
       if (url.endsWith("/api/calendar")) {
         return Promise.resolve(jsonResponse({ commitments: options?.calendarCommitments ?? [] }));
       }
+      if (/\/api\/reports\/[^/]+$/.test(url) && method === "GET") {
+        return Promise.resolve(
+          jsonResponse({
+            grouping_kind: "process_unit",
+            periods: [
+              {
+                grouping_key: "TEST-PU-REPORT",
+                period_code: "2026-W02",
+                selected_model: "grm",
+                mean_theta: 0.0,
+                post_count: 8,
+                link_method: "free",
+                anchor_period_code: null,
+                delta_mean_theta: null,
+              },
+              {
+                grouping_key: "TEST-PU-REPORT",
+                period_code: "2026-W03",
+                selected_model: "grm",
+                mean_theta: 0.92,
+                post_count: 6,
+                link_method: "fipc",
+                anchor_period_code: "2026-W02",
+                delta_mean_theta: 0.92,
+              },
+            ],
+          }),
+        );
+      }
       if (url.includes("/api/reports/") && method === "GET") {
         return Promise.resolve(
           jsonResponse({
@@ -161,6 +190,9 @@ describe("App, authenticated", () => {
                 post_count: 8,
                 item_count: 3,
                 fit_converged: true,
+                link_method: "free",
+                anchor_period_code: null,
+                delta_mean_theta: null,
                 members: [
                   {
                     post_id: "post-1",
@@ -726,8 +758,20 @@ describe("App, authenticated", () => {
     expect(await screen.findByText(/mean θ 0.42/)).toBeInTheDocument();
     expect(screen.getByText(/8 posts/)).toBeInTheDocument();
     expect(screen.getByText(/TEST-PU-REPORT/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /open report period 2026-W03/i })).toHaveTextContent(
+      "vs 2026-W02: +0.92",
+    );
     expect(screen.queryByRole("button", { name: /rebuild report/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("θ 0.91");
+  });
+
+  it("selects a linked week from the FIPC trend strip", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /open report period 2026-W03/i }));
+    const periodInput = screen.getByLabelText("Report period");
+    expect(periodInput).toHaveValue("2026-W03");
   });
 
   it("opens a post from a period-report member click", async () => {
