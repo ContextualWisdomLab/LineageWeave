@@ -576,6 +576,17 @@ describe("App, authenticated", () => {
     expect(screen.getByText("due 2026-01-09")).toBeInTheDocument();
   });
 
+  it("tells the buyer how to populate an empty calendar", async () => {
+    stubBackend();
+    render(<App />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/no upcoming commitments\. derive one from a post/i),
+      ).toBeInTheDocument(),
+    );
+  });
+
   it("shows upcoming commitments on the home page calendar and opens the post on click", async () => {
     stubBackend({
       calendarCommitments: [

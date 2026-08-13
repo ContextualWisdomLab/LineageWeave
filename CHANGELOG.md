@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0] - 2026-08-13
+
+### Added
+
+- `make seed` now inserts the synthetic Riverbend commitment post
+  (`fixtures.ambiguous_commitment_post`, created_at 2026-01-05) plus
+  one open dated ticket (due 2026-01-09). Fresh stacks show a row on
+  the home-page Calendar instead of an empty panel that made 0.18.0's
+  surface look unfinished. Re-seed is idempotent. The empty-state copy
+  tells the buyer how to populate the calendar (Derive, or a ticket
+  with a due date) when there really are none.
+
 ## [0.20.0] - 2026-08-13
 
 ### Added
