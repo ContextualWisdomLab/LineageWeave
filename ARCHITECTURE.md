@@ -449,12 +449,16 @@ The first period free-calibrates a **shared** item bank
 (`shared_metric` / `all`) on the pooled posts; every process unit,
 corporate entity, and thread group is then FIPC-scored on that bank
 so PU/team/project thetas stay on one metric. Later periods EAP-score
-on those same fixed parameters (Kim, 2006 FIPC). Results persist to
+on those same fixed parameters (Kim, 2006 FIPC). After scoring,
+`information_polytomous` ranks the shared-bank items by Fisher
+information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
+persist to `report_item_information`. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
 `POST .../rebuild` is post_admin. The home page renders the actual
-mean θ and the FIPC delta -- never a placeholder. TEPP is unchanged.
+mean θ, the FIPC delta, and the CAT-selected item -- never a
+placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer
 

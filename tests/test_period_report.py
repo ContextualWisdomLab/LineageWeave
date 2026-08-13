@@ -13,9 +13,11 @@ import pytest
 from lineageweave.period_report import (
     LINK_METHOD_FIPC,
     LINK_METHOD_FREE,
+    ItemBank,
     assemble_response_matrix,
     calibrate_period_report,
     link_or_calibrate_period_report,
+    rank_items_by_information,
     score_groups_on_shared_metric,
     score_period_on_bank,
     gpcm_category_probabilities,
@@ -145,6 +147,57 @@ def test_shared_metric_ranks_high_group_above_low_group() -> None:
     shared_gap = scored["high"].mean_theta - scored["low"].mean_theta
     alone_gap = high_alone.mean_theta - low_alone.mean_theta
     assert shared_gap > alone_gap
+
+
+def _location_shifted_bank() -> ItemBank:
+    """GRM bank whose items peak at different θ (strictly decreasing thresholds)."""
+    return ItemBank(
+        model="grm",
+        item_codes=CRITERION_CODES,
+        slope=(1.6, 1.6, 1.6),
+        cat_params=(
+            (1.5, 0.5, -0.5, -1.5),
+            (3.0, 2.0, 1.0, 0.0),
+            (0.0, -1.0, -2.0, -3.0),
+        ),
+        source_period_code="2026-W02",
+    )
+
+
+def test_cat_selects_hard_item_at_high_theta() -> None:
+    """Lord max-info: a high-θ group is measured by the high-location item.
+
+    Threshold layouts are constructed so ``sales_lead_specificity`` peaks
+    at +θ and ``general_sentiment_negative`` peaks at −θ. Information
+    itself comes from ``information_polytomous``, not a hand-rolled I(θ).
+    """
+    bank = _location_shifted_bank()
+    high = rank_items_by_information(bank, 2.0)
+    low = rank_items_by_information(bank, -2.0)
+    assert [item.rank for item in high] == [1, 2, 3]
+    assert high[0].item_code == "sales_lead_specificity"
+    assert low[0].item_code == "general_sentiment_negative"
+    assert high[0].information > high[1].information
+    assert low[0].information > low[1].information
+    assert high[0].item_code != low[0].item_code
+
+
+def test_shared_metric_attaches_cat_ranking() -> None:
+    """Scoring a group on the shared bank must persist a CAT ranking."""
+    items = CRITERION_CODES
+    high_ids = [f"high-{idx}" for idx in range(4)]
+    low_ids = [f"low-{idx}" for idx in range(4)]
+    high_rows = [(post_id, item, IRT_CATEGORY_COUNT - 1) for post_id in high_ids for item in items]
+    low_rows = [(post_id, item, 0) for post_id in low_ids for item in items]
+    _, scored = score_groups_on_shared_metric(
+        {"high": (high_ids, high_rows), "low": (low_ids, low_rows)},
+        source_period_code="2026-W02",
+    )
+    for report in scored.values():
+        assert len(report.selected_items) == 3
+        assert [item.rank for item in report.selected_items] == [1, 2, 3]
+        assert all(item.information > 0.0 for item in report.selected_items)
+        assert {item.item_code for item in report.selected_items} == set(CRITERION_CODES)
 
 
 def test_assemble_response_matrix_leaves_unknown_items_missing() -> None:

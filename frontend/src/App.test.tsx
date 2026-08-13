@@ -161,6 +161,8 @@ describe("App, authenticated", () => {
                 link_method: "fipc",
                 anchor_period_code: "2026-W02",
                 delta_mean_theta: null,
+                selected_item_code: "sales_lead_specificity",
+                selected_item_information: 0.7,
               },
               {
                 grouping_key: "TEST-PU-REPORT",
@@ -171,6 +173,8 @@ describe("App, authenticated", () => {
                 link_method: "fipc",
                 anchor_period_code: "2026-W02",
                 delta_mean_theta: 0.92,
+                selected_item_code: "sales_lead_specificity",
+                selected_item_information: 0.65,
               },
             ],
           }),
@@ -193,6 +197,11 @@ describe("App, authenticated", () => {
                 link_method: "fipc",
                 anchor_period_code: "2026-W02",
                 delta_mean_theta: null,
+                selected_items: [
+                  { item_code: "sales_lead_specificity", rank: 1, information: 0.7 },
+                  { item_code: "general_sentiment_positive", rank: 2, information: 0.4 },
+                  { item_code: "general_sentiment_negative", rank: 3, information: 0.2 },
+                ],
                 members: [
                   {
                     post_id: "post-1",
@@ -759,6 +768,7 @@ describe("App, authenticated", () => {
     expect(screen.getByText(/8 posts/)).toBeInTheDocument();
     expect(screen.getByText(/TEST-PU-REPORT/)).toBeInTheDocument();
     expect(screen.getAllByText("shared metric").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/CAT: sales-lead I=0\.70/).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /open report period 2026-W03/i })).toHaveTextContent(
       "vs 2026-W02: +0.92",
     );

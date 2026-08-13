@@ -284,6 +284,12 @@ export interface ReportMember {
   theta_sd: number;
 }
 
+export interface SelectedReportItem {
+  item_code: string;
+  rank: number;
+  information: number;
+}
+
 export interface PeriodGroupReport {
   grouping_key: string;
   selected_model: string;
@@ -296,6 +302,7 @@ export interface PeriodGroupReport {
   anchor_period_code: string | null;
   delta_mean_theta: number | null;
   members: ReportMember[];
+  selected_items: SelectedReportItem[];
 }
 
 export interface PeriodReports {
@@ -313,6 +320,8 @@ export interface PeriodReportSummary {
   link_method: string;
   anchor_period_code: string | null;
   delta_mean_theta: number | null;
+  selected_item_code: string | null;
+  selected_item_information: number | null;
 }
 
 export interface PeriodReportIndex {
