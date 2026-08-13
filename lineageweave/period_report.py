@@ -11,6 +11,11 @@ bank. Later periods EAP-score on those fixed parameters (Kim, 2006
 FIPC) so weekly thetas stay on one metric. Independent refits would
 re-center each week at 0 and hide real movement.
 
+After scoring, items on that shared bank are ranked by Fisher
+information at the group's mean θ (Lord, 1980 max-info CAT rule) via
+``fast_mlsirm.information_polytomous`` -- Samejima (1969) GRM /
+Muraki (1993) GPCM, computed in Rust. A missing bank is not invented.
+
 This module is pure compute. Persistence lives in
 ``backend/app/report_ingestion.py``. TEPP is not used here; temporal
 event measurement stays on ``tepp_client``.
@@ -25,6 +30,7 @@ from fast_mlsirm import (
     PolytomousFit,
     fit_polytomous,
     fixed_item_calibration_diagnostics,
+    information_polytomous,
     score_polytomous,
     validate_irt_response_matrix,
 )
@@ -42,6 +48,15 @@ class MemberScore:
     post_id: str
     theta_eap: float
     theta_sd: float
+
+
+@dataclass(frozen=True)
+class SelectedItem:
+    """One shared-bank item ranked by Fisher information at a group's θ."""
+
+    item_code: str
+    information: float
+    rank: int
 
 
 @dataclass(frozen=True)
@@ -83,6 +98,7 @@ class PeriodReport:
     link_method: str = LINK_METHOD_FREE
     anchor_period_code: str | None = None
     delta_mean_theta: float | None = None
+    selected_items: tuple[SelectedItem, ...] = ()
 
 
 def _sigmoid(value: np.ndarray) -> np.ndarray:
@@ -151,6 +167,34 @@ def assemble_response_matrix(
             continue
         matrix[person_index[post_id], item_index[criterion_code]] = float(category)
     return matrix
+
+
+def rank_items_by_information(item_bank: ItemBank, theta: float) -> tuple[SelectedItem, ...]:
+    """Rank shared-bank items by Fisher information at ``theta``.
+
+    Reuses ``fast_mlsirm.information_polytomous`` (Rust; Samejima 1969,
+    Muraki 1993). The rank-1 item is the Lord (1980) max-info CAT pick
+    at this group's location on the shared metric.
+    """
+    if item_bank.model not in {"grm", "gpcm"}:
+        raise ValueError(f"unsupported item-bank model {item_bank.model!r}")
+    if not np.isfinite(theta):
+        raise ValueError("theta must be finite")
+    curves = information_polytomous(item_bank.as_fit(), np.asarray([theta], dtype=np.float64))
+    item_info = np.asarray(curves["item_info"], dtype=np.float64)
+    n_items = len(item_bank.item_codes)
+    if item_info.shape != (1, n_items):
+        raise ValueError(f"information_polytomous returned shape {item_info.shape}, expected (1, {n_items})")
+    infos = item_info[0]
+    order = np.argsort(-infos, kind="stable")
+    return tuple(
+        SelectedItem(
+            item_code=item_bank.item_codes[int(index)],
+            information=float(infos[int(index)]),
+            rank=rank,
+        )
+        for rank, index in enumerate(order, start=1)
+    )
 
 
 def item_bank_from_fit(fit: PolytomousFit, item_codes: tuple[str, ...], source_period_code: str) -> ItemBank:
@@ -224,9 +268,11 @@ def calibrate_period_report(
     selected = str(diagnostics.best["candidate_label"])
     fit, scores, _ = fits[selected]
     theta = np.asarray(scores["theta_eap"], dtype=np.float64)
+    mean_theta = float(theta.mean())
+    item_bank = item_bank_from_fit(fit, item_codes, source_period_code)
     return PeriodReport(
         selected_model=selected,
-        mean_theta=float(theta.mean()),
+        mean_theta=mean_theta,
         mean_theta_sd=float(theta.std(ddof=0)),
         post_count=len(post_ids),
         item_count=len(item_codes),
@@ -234,8 +280,9 @@ def calibrate_period_report(
         fit_converged=bool(fit.converged),
         calibration_score=float(diagnostics.best["calibration_score"]),
         member_scores=_member_scores(post_ids, scores),
-        item_bank=item_bank_from_fit(fit, item_codes, source_period_code),
+        item_bank=item_bank,
         link_method=LINK_METHOD_FREE,
+        selected_items=rank_items_by_information(item_bank, mean_theta),
     )
 
 
@@ -256,6 +303,7 @@ def score_period_on_bank(
     fit = item_bank.as_fit()
     scores = score_polytomous(matrix, fit)
     theta = np.asarray(scores["theta_eap"], dtype=np.float64)
+    mean_theta = float(theta.mean())
     probs = _category_probabilities(item_bank.model, theta, fit)
     diagnostics = fixed_item_calibration_diagnostics(
         matrix,
@@ -265,7 +313,7 @@ def score_period_on_bank(
     )
     return PeriodReport(
         selected_model=item_bank.model,
-        mean_theta=float(theta.mean()),
+        mean_theta=mean_theta,
         mean_theta_sd=float(theta.std(ddof=0)),
         post_count=len(post_ids),
         item_count=len(item_bank.item_codes),
@@ -279,8 +327,9 @@ def score_period_on_bank(
         delta_mean_theta=(
             None
             if previous_mean_theta is None
-            else float(theta.mean()) - float(previous_mean_theta)
+            else mean_theta - float(previous_mean_theta)
         ),
+        selected_items=rank_items_by_information(item_bank, mean_theta),
     )
 
 

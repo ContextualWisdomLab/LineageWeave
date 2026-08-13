@@ -294,6 +294,22 @@ async def persist_period_report(
             bank.slope[index],
             list(bank.cat_params[index]),
         )
+    for item in report.selected_items:
+        await conn.execute(
+            """
+            insert into report_item_information (
+                grouping_kind, grouping_key, period_code, rubric_version,
+                item_code, item_rank, information
+            ) values ($1,$2,$3,$4,$5,$6,$7)
+            """,
+            grouping_kind,
+            grouping_key,
+            period_code,
+            RUBRIC_VERSION,
+            item.item_code,
+            item.rank,
+            item.information,
+        )
 
 
 async def rebuild_period_reports(
@@ -383,9 +399,23 @@ async def fetch_period_reports(
         period_code,
         RUBRIC_VERSION,
     )
+    selected = await conn.fetch(
+        """
+        select grouping_key, item_code, item_rank, information
+        from report_item_information
+        where grouping_kind = $1 and period_code = $2 and rubric_version = $3
+        order by grouping_key, item_rank
+        """,
+        grouping_kind,
+        period_code,
+        RUBRIC_VERSION,
+    )
     members_by_group: dict[str, list[asyncpg.Record]] = defaultdict(list)
     for row in members:
         members_by_group[row["grouping_key"]].append(row)
+    selected_by_group: dict[str, list[asyncpg.Record]] = defaultdict(list)
+    for row in selected:
+        selected_by_group[row["grouping_key"]].append(row)
     payload: list[dict[str, Any]] = []
     for header in headers:
         payload.append(
@@ -421,6 +451,14 @@ async def fetch_period_reports(
                     }
                     for row in members_by_group.get(header["grouping_key"], [])
                 ],
+                "selected_items": [
+                    {
+                        "item_code": str(row["item_code"]),
+                        "rank": int(row["item_rank"]),
+                        "information": float(row["information"]),
+                    }
+                    for row in selected_by_group.get(header["grouping_key"], [])
+                ],
             }
         )
     return payload
@@ -455,9 +493,21 @@ async def list_period_report_summaries(
         grouping_kind,
         RUBRIC_VERSION,
     )
+    top_items = await conn.fetch(
+        """
+        select grouping_key, period_code, item_code, information
+        from report_item_information
+        where grouping_kind = $1 and rubric_version = $2 and item_rank = 1
+        """,
+        grouping_kind,
+        RUBRIC_VERSION,
+    )
     members_by_key: dict[tuple[str, str], list[asyncpg.Record]] = defaultdict(list)
     for row in members:
         members_by_key[(row["grouping_key"], row["period_code"])].append(row)
+    top_by_key = {
+        (row["grouping_key"], row["period_code"]): row for row in top_items
+    }
     return [
         {
             "grouping_kind": row["grouping_kind"],
@@ -472,6 +522,16 @@ async def list_period_report_summaries(
                 None if row["delta_mean_theta"] is None else float(row["delta_mean_theta"])
             ),
             "fit_converged": bool(row["fit_converged"]),
+            "selected_item_code": (
+                None
+                if top_by_key.get((row["grouping_key"], row["period_code"])) is None
+                else str(top_by_key[(row["grouping_key"], row["period_code"])]["item_code"])
+            ),
+            "selected_item_information": (
+                None
+                if top_by_key.get((row["grouping_key"], row["period_code"])) is None
+                else float(top_by_key[(row["grouping_key"], row["period_code"])]["information"])
+            ),
             "members": [
                 {
                     "visibility_code": member["visibility_code"],

@@ -50,6 +50,16 @@ import { LineageDag } from "./LineageDag";
 import { subgraphForPost } from "./lineageLayout";
 import "./App.css";
 
+const CRITERION_SHORT_LABEL: Record<string, string> = {
+  general_sentiment_positive: "constructive",
+  general_sentiment_negative: "negative",
+  sales_lead_specificity: "sales-lead",
+};
+
+function criterionShortLabel(itemCode: string): string {
+  return CRITERION_SHORT_LABEL[itemCode] ?? itemCode;
+}
+
 // This popup's layout follows the textual product brief (Korean summary,
 // key events, R&R, Event Lineage, Keyman, in-popup chat with a sliding
 // evidence panel) rather than the referenced Figma frame's actual pixel
@@ -1020,6 +1030,12 @@ function ReportsPanel({
                       ? "shared metric"
                       : "reference"}
                 </span>
+                {row.selected_item_code && row.selected_item_information != null && (
+                  <span className="post-badge">
+                    CAT: {criterionShortLabel(row.selected_item_code)} I=
+                    {row.selected_item_information.toFixed(2)}
+                  </span>
+                )}
               </button>
             </li>
           ))}
@@ -1049,6 +1065,12 @@ function ReportsPanel({
               )}
               {report.link_method === "fipc" && report.delta_mean_theta == null && (
                 <span className="post-badge">shared metric</span>
+              )}
+              {report.selected_items?.[0] && (
+                <span className="post-badge">
+                  CAT: {criterionShortLabel(report.selected_items[0].item_code)} I=
+                  {report.selected_items[0].information.toFixed(2)}
+                </span>
               )}
               {report.members.length > 0 && (
                 <ul className="ticket-list">

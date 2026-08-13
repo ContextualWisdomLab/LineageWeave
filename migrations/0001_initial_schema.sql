@@ -277,6 +277,23 @@ create table report_item_parameter (
         on delete cascade
 );
 
+-- CAT item-information ranking on the shared bank (ADR 0003 slice 6).
+-- Rank 1 is the Lord (1980) max-info pick at the group's mean θ.
+create table report_item_information (
+    grouping_kind text not null,
+    grouping_key text not null,
+    period_code text not null,
+    rubric_version text not null,
+    item_code text not null,
+    item_rank integer not null,
+    information numeric not null,
+    primary key (grouping_kind, grouping_key, period_code, rubric_version, item_code),
+    foreign key (grouping_kind, grouping_key, period_code, rubric_version)
+        references report_period_score (grouping_kind, grouping_key, period_code, rubric_version)
+        on delete cascade,
+    check (item_rank >= 1)
+);
+
 -- ---------------------------------------------------------------------
 -- Keyman: real (or, in this repo's default synthetic configuration,
 -- fabricated -- see ADR 0001) people mentioned in posts. A person may

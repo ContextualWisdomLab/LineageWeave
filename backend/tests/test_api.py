@@ -1904,3 +1904,8 @@ def test_shared_metric_ranks_two_process_units(client, demo_analyst_token, seede
     assert high_report["mean_theta"] > low_report["mean_theta"]
     assert high_report["link_method"] == "fipc"
     assert low_report["link_method"] == "fipc"
+    for report in (high_report, low_report):
+        selected = report["selected_items"]
+        assert [item["rank"] for item in selected] == [1, 2, 3]
+        assert all(item["information"] > 0.0 for item in selected)
+        assert {item["item_code"] for item in selected} == set(CRITERION_CODES)

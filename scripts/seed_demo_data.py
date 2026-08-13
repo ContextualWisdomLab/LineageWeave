@@ -77,6 +77,7 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
             cur.execute((migrations / "0007_report_fipc_linking.sql").read_text())
             cur.execute((migrations / "0008_post_summary_result.sql").read_text())
             cur.execute((migrations / "0009_shared_metric_bank.sql").read_text())
+            cur.execute((migrations / "0010_report_item_information.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -543,6 +544,22 @@ def _persist_seed_period_report(
                 index,
                 bank.slope[index],
                 list(bank.cat_params[index]),
+            ),
+        )
+    for item in report.selected_items:
+        cur.execute(
+            "insert into report_item_information ("
+            "grouping_kind, grouping_key, period_code, rubric_version, "
+            "item_code, item_rank, information"
+            ") values (%s,%s,%s,%s,%s,%s,%s)",
+            (
+                grouping_kind,
+                grouping_key,
+                period_code,
+                RUBRIC_VERSION,
+                item.item_code,
+                item.rank,
+                item.information,
             ),
         )
 

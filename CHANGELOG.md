@@ -4,6 +4,19 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.32.0] - 2026-08-13
+
+### Added
+
+- CAT item-information selection on the shared FIPC bank: after a
+  group is scored, `information_polytomous` ranks rubric items by
+  Fisher information at that group's mean θ (Lord, 1980). Rank 1 is
+  the max-info pick -- a high PU and a low PU can be measured by
+  different items on the same bank. Rankings persist to
+  `report_item_information` and the Period reports panel labels
+  `CAT: sales-lead I=0.70`. Information comes from fast-mlsirm's
+  Rust GRM/GPCM curves, never a hand-rolled I(θ).
+
 ## [0.31.0] - 2026-08-13
 
 ### Added

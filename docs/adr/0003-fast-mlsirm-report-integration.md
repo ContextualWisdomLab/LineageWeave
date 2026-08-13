@@ -95,6 +95,11 @@ than one large PR:
    `all`) and FIPC-score every process unit, corporate entity, and
    thread group on that bank so PU/team/project thetas are comparable.
    Independent per-group refits stay available only as a diagnostic.
+6. **CAT item-information slice** (shipped in 0.32.0): rank the shared
+   bank's items by Fisher information at each group's mean θ via
+   `information_polytomous` (Lord, 1980 max-info). Persist the ranking
+   (`report_item_information`) and show the rank-1 item on the Period
+   reports panel. Do not reimplement an information function here.
 
 **TEPP boundary.** [ARCHITECTURE.md](../../ARCHITECTURE.md) already
 assigns calibrated temporal/event measurement to
@@ -157,6 +162,13 @@ and `lineageweave/tepp_client.py` (TEPP's published wire contract --
 wire TEPP, do not fork it).
 
 ## References
+
+Lord, F. M. (1980). *Applications of item response theory to practical
+testing problems*. Erlbaum.
+
+Muraki, E. (1993). Information functions of the generalized partial
+credit model. *Applied Psychological Measurement, 17*(4), 351–363.
+https://doi.org/10.1177/014662169301700403
 
 Bock, R. D., & Mislevy, R. J. (1982). Adaptive EAP estimation of
 ability in a microcomputer environment. *Applied Psychological
