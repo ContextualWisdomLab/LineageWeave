@@ -658,6 +658,12 @@ describe("App, authenticated", () => {
                 cited_post_ids: ["post-2"],
                 cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
               },
+              {
+                question_text: "Who is involved?",
+                answer_text: "Ada West and Priya Nair are the Keymen on this thread.",
+                cited_post_ids: ["post-1"],
+                cited_posts: [{ post_id: "post-1", post_title: "Public post" }],
+              },
             ],
           }),
         );
@@ -770,7 +776,9 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument(),
     );
+    expect(screen.getByText("Ada West and Priya Nair are the Keymen on this thread.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /ask seeded question: what happened between these events/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /ask seeded question: who is involved/i })).toBeInTheDocument();
   });
 
   it("asks a chat question and slides in the evidence panel for a cited source on click", async () => {
@@ -816,8 +824,9 @@ describe("App, authenticated", () => {
     expect(
       screen.getByText("Only seeded questions can be answered without an orchestrator."),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /ask seeded question/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /ask seeded question/i })).toHaveLength(2);
     expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument();
+    expect(screen.getByText("Ada West and Priya Nair are the Keymen on this thread.")).toBeInTheDocument();
   });
 
   it("shows a clear empty state when evaluate is 503 without an orchestrator", async () => {
