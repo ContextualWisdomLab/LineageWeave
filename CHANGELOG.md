@@ -6,6 +6,14 @@ All notable changes to this project are documented here. Format follows
 
 ## [0.3.0] - 2026-08-13
 
+### Fixed
+
+- Embedding, adjudication, and vision clients now POST through a shared
+  `http_client.post_json` helper that allowlists `http`/`https` and never
+  calls `urllib.request.urlopen`. That closes the `file://` read concern
+  Semgrep's `dynamic-urllib-use-detected` rule was flagging on the
+  operator-configured base URLs.
+
 ### Added
 
 - `lineageweave/chunking.py`: semantic-unit chunking so the embedding

@@ -10,23 +10,11 @@ a company LLM gateway, or a hosted provider) once a credential is set.
 
 from __future__ import annotations
 
-import json
 import math
-import ssl
-import urllib.request
 from typing import Protocol
 
-import certifi
-
 from .chunking import Chunk, chunk_by_paragraph
-
-# Some interpreter distributions (notably standalone uv/pyenv-managed
-# builds on macOS) don't reliably inherit the OS trust store the way a
-# browser or curl does, so the stdlib ssl module's default context can
-# reject a perfectly valid, publicly-trusted certificate. Pointing
-# explicitly at certifi's maintained bundle keeps full chain validation
-# (nothing is weakened) while working the same way on every platform.
-_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+from .http_client import post_json
 
 
 class EmbeddingClient(Protocol):
@@ -58,15 +46,12 @@ class OpenAiCompatibleEmbeddingClient:
         self._timeout = timeout
 
     def embed(self, text: str) -> list[float]:
-        payload = json.dumps({"model": self._model, "input": text}).encode("utf-8")
-        request = urllib.request.Request(
+        body = post_json(
             f"{self._base_url}/embeddings",
-            data=payload,
-            headers={"authorization": f"Bearer {self._api_key}", "content-type": "application/json"},
-            method="POST",
+            {"model": self._model, "input": text},
+            headers={"authorization": f"Bearer {self._api_key}"},
+            timeout=self._timeout,
         )
-        with urllib.request.urlopen(request, timeout=self._timeout, context=_SSL_CONTEXT) as response:  # nosec B310 -- base_url is operator-configured, not request-controlled.
-            body = json.loads(response.read().decode("utf-8"))
         return body["data"][0]["embedding"]
 
 

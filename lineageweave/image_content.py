@@ -26,19 +26,12 @@ from __future__ import annotations
 
 import base64
 import binascii
-import json
 import re
-import ssl
-import urllib.request
 from dataclasses import dataclass
 from typing import Protocol
 from urllib.parse import urlparse
 
-import certifi
-
-# See lineageweave.embedding_client for why this is needed: some
-# interpreter distributions don't reliably inherit the OS trust store.
-_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+from .http_client import post_json
 
 _DATA_URI_IMG = re.compile(
     r'<img\b[^>]*\bsrc\s*=\s*["\']data:(image/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)["\']',
@@ -161,7 +154,8 @@ class OpenAiCompatibleVisionClient:
 
     def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
         data_uri = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
-        payload = json.dumps(
+        body = post_json(
+            f"{self._base_url}/chat/completions",
             {
                 "model": self._model,
                 "messages": [
@@ -175,16 +169,9 @@ class OpenAiCompatibleVisionClient:
                 ],
                 "max_tokens": 300,
                 "temperature": 0.0,
-            }
-        ).encode("utf-8")
-        request = urllib.request.Request(
-            f"{self._base_url}/chat/completions",
-            data=payload,
-            headers={"authorization": f"Bearer {self._api_key}", "content-type": "application/json"},
-            method="POST",
+            },
+            headers={"authorization": f"Bearer {self._api_key}"},
+            timeout=self._timeout,
         )
-        # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected -- scheme is allow-listed to {http,https} in __init__; base_url is operator-configured, not request-controlled
-        with urllib.request.urlopen(request, timeout=self._timeout, context=_SSL_CONTEXT) as response:  # nosec B310 -- base_url is operator-configured, not request-controlled.
-            body = json.loads(response.read().decode("utf-8"))
         content = body["choices"][0]["message"]["content"]
         return _parse_description(content)

@@ -12,19 +12,10 @@ similarity score, without paying for a full multi-step workflow per pair.
 
 from __future__ import annotations
 
-import json
 import re
-import ssl
-import urllib.request
 from typing import Protocol
 
-import certifi
-
-# See lineageweave.embedding_client for why this is needed: some
-# interpreter distributions don't reliably inherit the OS trust store, so
-# point explicitly at certifi's maintained CA bundle (full validation still
-# applies -- nothing here is weakened).
-_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+from .http_client import post_json
 
 
 class AdjudicationClient(Protocol):
@@ -73,21 +64,16 @@ class ContextualOrchestratorAdjudicationClient:
             "is a direct continuation of record A? Reply with only the number.\n\n"
             f"Record A: {candidate_label}\nRecord B: {record_label}"
         )
-        payload = json.dumps(
+        body = post_json(
+            f"{self._base_url}/v1/chat/completions",
             {
                 "messages": [{"role": "user", "content": prompt}],
                 "mode": "verify",
                 "reasoning_effort": self._reasoning_effort,
-            }
-        ).encode("utf-8")
-        request = urllib.request.Request(
-            f"{self._base_url}/v1/chat/completions",
-            data=payload,
-            headers={"authorization": f"Bearer {self._api_key}", "content-type": "application/json"},
-            method="POST",
+            },
+            headers={"authorization": f"Bearer {self._api_key}"},
+            timeout=self._timeout,
         )
-        with urllib.request.urlopen(request, timeout=self._timeout, context=_SSL_CONTEXT) as response:  # nosec B310 -- base_url is operator-configured, not request-controlled.
-            body = json.loads(response.read().decode("utf-8"))
         content = body["choices"][0]["message"]["content"]
         match = _CONFIDENCE_PATTERN.search(content)
         if match is None:
