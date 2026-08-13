@@ -14,6 +14,19 @@ from lineageweave.post_evaluation import (
 from fast_mlsirm import LLMJudgeResult
 
 
+def test_constructed_seed_categories_are_not_a_judge_and_rank_quote_above_unrelated() -> None:
+    """Seed cells are title-derived, not a fake 0. Quote/confirmed posts
+    get a higher sales-lead category than the unrelated annual review.
+    """
+    from scripts.seed_demo_data import constructed_evaluation_categories
+
+    quote = constructed_evaluation_categories("Pricing renegotiation: revised quote sent")
+    unrelated = constructed_evaluation_categories("Unrelated: annual account review")
+    assert set(quote) == set(CRITERION_CODES)
+    assert quote["sales_lead_specificity"] > unrelated["sales_lead_specificity"]
+    assert all(0 <= value < IRT_CATEGORY_COUNT for value in quote.values())
+
+
 def test_null_client_is_unavailable_not_a_fake_score() -> None:
     client = NullPostEvaluationClient()
     assert client.available is False

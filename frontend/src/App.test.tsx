@@ -354,7 +354,26 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/evaluation")) {
-        return Promise.resolve(jsonResponse({ post_id: "post-1", rubric_version: "2026-08-13", responses: [] }));
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-1",
+            rubric_version: "2026-08-13",
+            responses: [
+              {
+                criterion_code: "general_sentiment_positive",
+                criterion_label: "Constructive stance",
+                response_category: 2,
+                rubric_version: "2026-08-13",
+              },
+              {
+                criterion_code: "sales_lead_specificity",
+                criterion_label: "Sales-lead specificity",
+                response_category: 3,
+                rubric_version: "2026-08-13",
+              },
+            ],
+          }),
+        );
       }
       if (url.endsWith("/api/posts/post-1/summary")) {
         return Promise.resolve(
@@ -566,6 +585,9 @@ describe("App, authenticated", () => {
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(screen.getByText(/Voice of Customer ·/)).toBeInTheDocument();
+    expect(screen.getByText("Constructive stance: 2")).toBeInTheDocument();
+    expect(screen.getByText("Sales-lead specificity: 3")).toBeInTheDocument();
+    expect(screen.queryByText("Not yet evaluated.")).not.toBeInTheDocument();
   });
 
   it("rebuilds lineage when the account has post_admin", async () => {
