@@ -13,7 +13,10 @@ All notable changes to this project are documented here. Format follows
   checks an LLM-classified counterparty organization/relationship
   against a self-hosted Searxng instance, catching a hallucinated
   organization name with zero real-world footprint (FEVER grounding:
-  Thorne, Vlachos, Christodoulopoulos, & Mittal, 2018).
+  Thorne, Vlachos, Christodoulopoulos, & Mittal, 2018). A search hit
+  only corroborates when a distinctive org-name token appears in the
+  result host or snippet and the host is not itself a search page --
+  engines echo any query in the title, so "any result" is not evidence.
 - New Docker Compose service `searxng` (`docker/searxng/`), wired into
   the backend via `SEARXNG_BASE_URL`.
 - `post_counterparty_entity` gained `verification_status_code`

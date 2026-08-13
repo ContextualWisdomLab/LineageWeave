@@ -22,6 +22,7 @@ from lineageweave.relation_verification import (
     STATUS_UNCORROBORATED,
     NullRelationVerificationClient,
     SearxngRelationVerificationClient,
+    corroborating_evidence_url,
 )
 
 
@@ -35,7 +36,13 @@ class _ResultsHandler(BaseHTTPRequestHandler):
         if "Acme" in type(self).received_query:
             payload = {
                 "query": type(self).received_query,
-                "results": [{"url": "https://example.com/acme-corp", "title": "Acme Corp"}],
+                "results": [
+                    {
+                        "url": "https://acme.example.com/about",
+                        "title": "Acme Corp",
+                        "content": "Acme manufactures industrial transformers.",
+                    }
+                ],
             }
         else:
             payload = {"query": type(self).received_query, "results": []}
@@ -74,7 +81,7 @@ def test_searxng_client_reports_corroborated_with_evidence_url() -> None:
         server.shutdown()
 
     assert result.status_code == STATUS_CORROBORATED
-    assert result.evidence_url == "https://example.com/acme-corp"
+    assert result.evidence_url == "https://acme.example.com/about"
     assert "Acme Corp" in _ResultsHandler.received_query
     assert "Voice of Customer" in _ResultsHandler.received_query
 
@@ -89,6 +96,30 @@ def test_searxng_client_reports_uncorroborated_with_no_evidence_url_when_search_
 
     assert result.status_code == STATUS_UNCORROBORATED
     assert result.evidence_url is None
+
+
+def test_query_echo_on_a_search_host_is_not_corroboration() -> None:
+    assert (
+        corroborating_evidence_url(
+            "Zzqxvthorp Fictitious Nonexistent Org",
+            {
+                "url": "https://www.google.com/search?q=Zzqxvthorp",
+                "title": "Zzqxvthorp Fictitious Nonexistent Org - Google Search",
+                "content": "",
+            },
+        )
+        is None
+    )
+
+
+def test_org_token_in_result_host_is_corroboration() -> None:
+    assert (
+        corroborating_evidence_url(
+            "Acme Corp",
+            {"url": "https://www.acme.example/news", "title": "News", "content": ""},
+        )
+        == "https://www.acme.example/news"
+    )
 
 
 def test_searxng_client_refuses_non_http_scheme() -> None:

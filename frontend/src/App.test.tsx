@@ -366,13 +366,30 @@ describe("App, authenticated", () => {
                 relationship_label: "Voice of Customer",
                 evidence_excerpt:
                   "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
+                verification_status_code: "verify_pending",
+                verification_evidence_url: null,
               },
             ],
           }),
         );
       }
       if (url.endsWith("/api/posts/post-1/counterparties")) {
-        return Promise.resolve(jsonResponse({ counterparties: [] }));
+        return Promise.resolve(
+          jsonResponse({
+            counterparties: [
+              {
+                counterparty_entity_name: "Northridge Grid",
+                relationship_type_code: "rel_voc",
+                relationship_label: "Voice of Customer",
+                verification_status_code: "verify_pending",
+                verification_evidence_url: null,
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-1/verify-relations") && method === "POST") {
+        return Promise.resolve(jsonResponse({ verified: [] }));
       }
       if (url.endsWith("/api/posts/post-1/lineage")) {
         return Promise.resolve(
@@ -515,6 +532,22 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Open related post: Linked post" }));
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+  });
+
+  it("lets post_admin verify pending counterparties against web search", async () => {
+    const fetchMock = stubBackend({ admin: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("Not yet checked")).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: /verify against web search/i }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/posts/post-1/verify-relations"),
+        expect.objectContaining({ method: "POST" }),
+      ),
     );
   });
 

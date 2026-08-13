@@ -24,11 +24,23 @@ makes the channel unavailable, never fabricates a verification result.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 from urllib.parse import quote, urlparse
 
 from .http_client import get_json
+
+_SEARCH_HOST_MARKERS = (
+    "google.",
+    "bing.",
+    "yahoo.",
+    "duckduckgo.",
+    "baidu.",
+    "yandex.",
+    "searx",
+)
+_ORG_TOKEN = re.compile(r"[A-Za-z]{4,}")
 
 STATUS_PENDING = "verify_pending"
 STATUS_CORROBORATED = "verify_corroborated"
@@ -112,8 +124,35 @@ class SearxngRelationVerificationClient:
             timeout=self._timeout,
         )
         results = body.get("results")
-        if not isinstance(results, list) or not results:
+        if not isinstance(results, list):
             return RelationVerificationResult(status_code=STATUS_UNCORROBORATED, evidence_url=None)
-        first = results[0]
-        evidence_url = first.get("url") if isinstance(first, dict) else None
-        return RelationVerificationResult(status_code=STATUS_CORROBORATED, evidence_url=evidence_url)
+        for result in results:
+            if not isinstance(result, dict):
+                continue
+            evidence_url = corroborating_evidence_url(organization_name, result)
+            if evidence_url is not None:
+                return RelationVerificationResult(status_code=STATUS_CORROBORATED, evidence_url=evidence_url)
+        return RelationVerificationResult(status_code=STATUS_UNCORROBORATED, evidence_url=None)
+
+
+def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -> str | None:
+    """Return ``result['url']`` when it is a real-world footprint of ``organization_name``.
+
+    Search engines echo the query in result titles, so "any hit" is not
+    corroboration. A result counts only when a distinctive name token
+    appears in the host or snippet, and the host is not itself a search
+    page. Missing or empty URLs are not evidence.
+    """
+    url = result.get("url")
+    if not isinstance(url, str) or not url.strip():
+        return None
+    host = urlparse(url).netloc.lower()
+    if not host or any(marker in host for marker in _SEARCH_HOST_MARKERS):
+        return None
+    tokens = [token.lower() for token in _ORG_TOKEN.findall(organization_name)]
+    if not tokens:
+        return None
+    haystack = f"{host} {result.get('content') or ''}".lower()
+    if any(token in haystack for token in tokens):
+        return url
+    return None
