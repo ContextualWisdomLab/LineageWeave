@@ -98,3 +98,20 @@ flowchart LR
 
 See [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md)
 for the full APA 7th reference list this design is grounded in.
+
+## Product schema (Phase 1 of a larger roadmap)
+
+`lineageweave`'s reconstruction pipeline above is being wrapped in a real
+product: corp/PU-code accounts, ABAC/RBAC, posts, Keyman extraction, a
+Knowledge Graph, corporate hierarchy, and issue tickets. See
+[`docs/adr/0001-demo-identity-and-data-boundary.md`](docs/adr/0001-demo-identity-and-data-boundary.md)
+for the identity/data scope decision (real infrastructure, synthetic
+identities and content) and `migrations/0001_initial_schema.sql` for the
+3NF PostgreSQL schema (`common_lookup_value`, `corporate_entity`,
+`process_unit`, `user_account`, `account_affiliation`, `access_role` /
+`role_permission` / `account_role_assignment`, `abac_policy`, `post` /
+`post_counterparty_entity`, `person` / `person_affiliation` /
+`post_person_mention`, `knowledge_graph_edge`, `issue_ticket`,
+`post_lineage_edge`). Real-database tests: `tests/test_schema.py`
+(skipped without a reachable PostgreSQL server, same pattern as the
+real-provider LLM tests).

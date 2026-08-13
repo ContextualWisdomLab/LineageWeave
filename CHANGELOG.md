@@ -4,6 +4,36 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-08-13
+
+### Added
+
+- Milestone 4, Phase 1 begins: LineageWeave's product schema.
+  `migrations/0001_initial_schema.sql` -- a 3NF PostgreSQL schema
+  (snake_case, 2+ word object names) covering accounts (corp/PU code as
+  attributes, not the login key), a shared `common_lookup_value` ENUM
+  table, posts + visibility, ABAC/RBAC, VOC-type and entity-relationship
+  classification, Keyman (`person` + N:N `person_affiliation`), a
+  `knowledge_graph_edge` table, `issue_ticket`, and a self-referencing
+  `corporate_hierarchy` via `corporate_entity.parent_entity_id`.
+- `docs/adr/0001-demo-identity-and-data-boundary.md`: the identity/data
+  scope decision for this expansion -- real infrastructure (Postgres,
+  Valkey, a real OIDC provider), synthetic identities and content, because
+  Keyman extraction catalogs real named individuals (including
+  non-consenting external counterparties) and a real production identity
+  provider would re-identify the source organization through account/data
+  structure even with zero literal company-name strings in source files.
+- `tests/test_schema.py`: real-database tests (skipped without a
+  reachable PostgreSQL server) proving the migration applies cleanly, a
+  multi-level corporate-hierarchy recursive query returns the right
+  shape, and an invalid lookup code is genuinely rejected by a foreign
+  key -- caught and fixed a real bug in the process (an accidental
+  `deferrable initially deferred` on one FK silently weakened its
+  integrity check within a transaction).
+- New citations staged for Phase 2/3: Tong et al. (2006, random walk with
+  restart -- Knowledge Graph per-node traversal depth) and Bhattacharya &
+  Getoor (2007, collective entity resolution -- corporate hierarchy).
+
 ## [0.3.0] - 2026-08-13
 
 ### Fixed
