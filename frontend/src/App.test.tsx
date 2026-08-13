@@ -160,7 +160,25 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/calendar")) {
-        return Promise.resolve(jsonResponse({ commitments: options?.calendarCommitments ?? [] }));
+        return Promise.resolve(
+          jsonResponse({
+            commitments:
+              options?.calendarCommitments ?? [
+                {
+                  issue_ticket_id: "ticket-a100",
+                  post_id: "post-1",
+                  ticket_status_code: "open",
+                  ticket_title: "Send Northridge Grid the revised quote",
+                  assigned_account_id: null,
+                  due_date: "2026-01-12",
+                  commitment_summary: null,
+                  created_at: "2026-01-01T00:00:00Z",
+                  updated_at: "2026-01-01T00:00:00Z",
+                  post_title: "Public post",
+                },
+              ],
+          }),
+        );
       }
       if (url.includes("/api/reports/compare/") && method === "GET") {
         return Promise.resolve(
@@ -984,7 +1002,7 @@ describe("App, authenticated", () => {
   });
 
   it("tells the buyer how to populate an empty calendar", async () => {
-    stubBackend();
+    stubBackend({ calendarCommitments: [] });
     render(<App />);
 
     await waitFor(() =>
@@ -995,30 +1013,15 @@ describe("App, authenticated", () => {
   });
 
   it("shows upcoming commitments on the home page calendar and opens the post on click", async () => {
-    stubBackend({
-      calendarCommitments: [
-        {
-          issue_ticket_id: "ticket-9",
-          post_id: "post-1",
-          ticket_status_code: "open",
-          ticket_title: "Send the revised delivery schedule",
-          assigned_account_id: null,
-          due_date: "2026-01-09",
-          commitment_summary: "Send the revised delivery schedule",
-          created_at: "2026-01-01T00:00:00Z",
-          updated_at: "2026-01-01T00:00:00Z",
-          post_title: "Public post",
-        },
-      ],
-    });
+    stubBackend();
     render(<App />);
 
-    await waitFor(() =>
-      expect(screen.getByText("Send the revised delivery schedule")).toBeInTheDocument(),
-    );
-    const calendarButton = screen.getByRole("button", { name: /open commitment for: public post/i });
+    const calendarButton = await screen.findByRole("button", {
+      name: /open commitment for: public post/i,
+    });
+    expect(calendarButton).toHaveTextContent("Send Northridge Grid the revised quote");
     expect(calendarButton).toHaveTextContent("Public post");
-    expect(calendarButton).toHaveTextContent("due 2026-01-09");
+    expect(calendarButton).toHaveTextContent("due 2026-01-12");
 
     await userEvent.click(calendarButton);
 
@@ -1043,6 +1046,12 @@ describe("App, authenticated", () => {
       "Send Northridge Grid the revised quote",
     );
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
+    expect(screen.getByRole("button", { name: /open commitment for: public post/i })).toHaveTextContent(
+      "Send Northridge Grid the revised quote",
+    );
+    expect(screen.getByRole("button", { name: /open commitment for: public post/i })).toHaveTextContent(
+      "due 2026-01-12",
+    );
   });
 
   it("shows the grouping comparison strip and switches grouping on click", async () => {
