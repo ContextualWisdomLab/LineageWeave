@@ -95,7 +95,13 @@ from backend.app.knowledge_graph import (
     visible_mention_post_ids,
 )
 from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
-from backend.app.post_chat_ingestion import find_linked_post_ids, gather_chat_sources
+from backend.app.post_chat_ingestion import (
+    fetch_persisted_chat,
+    fetch_persisted_chats,
+    find_linked_post_ids,
+    gather_chat_sources,
+    persist_post_chat,
+)
 from backend.app.post_summary_ingestion import fetch_persisted_summary, persist_post_summary
 
 _POST_READ = "post_read"
@@ -787,6 +793,24 @@ class ChatRequest(BaseModel):
     question: str
 
 
+@app.get("/api/posts/{post_id}/chat")
+async def read_post_chat(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Stored Ask exchanges for this post.
+
+    Seeded fixture answers (and any later live persist) so the popup is
+    not an empty Ask box when the orchestrator is off. Missing rows are
+    an empty list, not a fabricated transcript.
+    """
+    await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        exchanges = await fetch_persisted_chats(conn, post_id)
+    return {"post_id": post_id, "exchanges": exchanges}
+
+
 @app.post("/api/posts/{post_id}/chat")
 async def chat_about_post(
     post_id: str,
@@ -794,26 +818,45 @@ async def chat_about_post(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """In-popup LLM chat: answers `request.question` using this post's own
+    """In-popup chat: answers `request.question` using this post's own
     content plus its Event-Lineage-linked posts (direct and Knowledge-
     Graph-indirect) as context, and returns which source post(s) the
     answer drew from -- the sliding evidence panel's citation data.
-    Two explicit steps (retrieve, then reason-and-cite; see
-    `lineageweave.post_chat`'s module docstring) rather than one prompt.
+
+    A persisted (seeded or previously live) row is returned first so
+    Ask works on the demo stack without an orchestrator. Live
+    reason-and-cite still runs only when no stored match exists and
+    the orchestrator is configured -- never a fabricated reply.
     """
+    question = request.question.strip()
+    if not question:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
     await _load_visible_post(post_id, account, pool)
-    client = _post_chat_client()
-    if not client.available:
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Post chat is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
-        )
     async with pool.acquire() as conn:
+        stored = await fetch_persisted_chat(conn, post_id, question)
+        if stored is not None:
+            source_ids = [post_id]
+            source_ids.extend(cid for cid in stored["cited_post_ids"] if cid != post_id)
+            return {
+                "post_id": post_id,
+                "answer_text": stored["answer_text"],
+                "cited_post_ids": stored["cited_post_ids"],
+                "cited_posts": stored["cited_posts"],
+                "source_post_ids": source_ids,
+            }
+        client = _post_chat_client()
+        if not client.available:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Post chat is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+            )
         sources = await gather_chat_sources(
             conn, post_id, lambda row: _can_see_post(account, row), vision_client=_vision_client()
         )
-    answer = client.answer(request.question, sources)
+    answer = client.answer(question, sources)
     cited_ids = list(answer.cited_post_ids)
+    async with pool.acquire() as conn:
+        await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
     return {
         "post_id": post_id,
         "answer_text": answer.answer_text,

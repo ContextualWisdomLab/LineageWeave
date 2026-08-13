@@ -372,11 +372,33 @@
   border: 1px solid #3335;
 }
 
+.chat-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.chat-suggestion-chip {
+  border: 1px solid #3335;
+  border-radius: 999px;
+  padding: 0.15rem 0.7rem;
+  background: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
 .chat-answer {
   margin-top: 0.75rem;
   padding: 0.75rem;
   border-radius: 8px;
   background: #3331;
+}
+
+.chat-question {
+  margin: 0 0 0.4rem;
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
 .chat-citations {

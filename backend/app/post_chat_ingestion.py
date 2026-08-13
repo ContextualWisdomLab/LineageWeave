@@ -11,7 +11,7 @@ not that the requesting account may see both.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
+from typing import Any, Callable
 
 import asyncpg
 
@@ -24,7 +24,7 @@ from lineageweave.knowledge_graph import (
     random_walk_with_restart,
     select_related_nodes,
 )
-from lineageweave.post_chat import ChatSourceDocument
+from lineageweave.post_chat import ChatSourceDocument, normalize_chat_question
 from lineageweave.post_content_normalization import normalize_post_body
 
 from .knowledge_graph import load_visible_subgraph
@@ -137,3 +137,220 @@ async def gather_chat_sources(
             )
 
     return sources
+
+
+@dataclass(frozen=True)
+class SeededChat:
+    """Synthetic Q&A for a reconstruct/calendar/demo fixture -- not an LLM."""
+
+    answer_text: str
+    cited_titles: tuple[str, ...]
+
+
+async def _serialize_chat(
+    conn: asyncpg.Connection, post_id: str, question_norm: str
+) -> dict[str, Any] | None:
+    """One stored exchange plus citation chips, or None when missing."""
+    header = await conn.fetchrow(
+        "select question_text, answer_text from post_chat_result "
+        "where post_id = $1 and question_norm = $2",
+        post_id,
+        question_norm,
+    )
+    if header is None:
+        return None
+    cites = await conn.fetch(
+        "select c.cited_post_id, p.post_title from post_chat_citation c "
+        "join source_post p on p.post_id = c.cited_post_id "
+        "where c.post_id = $1 and c.question_norm = $2 "
+        "order by c.citation_ordinal",
+        post_id,
+        question_norm,
+    )
+    cited_ids = [str(row["cited_post_id"]) for row in cites]
+    return {
+        "question_text": header["question_text"],
+        "answer_text": header["answer_text"],
+        "cited_post_ids": cited_ids,
+        "cited_posts": [
+            {"post_id": str(row["cited_post_id"]), "post_title": row["post_title"]}
+            for row in cites
+        ],
+    }
+
+
+async def fetch_persisted_chat(
+    conn: asyncpg.Connection, post_id: str, question: str
+) -> dict[str, Any] | None:
+    """Return the stored answer for ``question``, or None when none written."""
+    norm = normalize_chat_question(question)
+    if not norm:
+        return None
+    return await _serialize_chat(conn, post_id, norm)
+
+
+async def fetch_persisted_chats(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
+    """Every stored exchange for ``post_id``, oldest first."""
+    rows = await conn.fetch(
+        "select question_norm from post_chat_result where post_id = $1 order by computed_at, question_norm",
+        post_id,
+    )
+    exchanges: list[dict[str, Any]] = []
+    for row in rows:
+        payload = await _serialize_chat(conn, post_id, row["question_norm"])
+        if payload is not None:
+            exchanges.append(payload)
+    return exchanges
+
+
+async def persist_post_chat(
+    conn: asyncpg.Connection,
+    post_id: str,
+    question: str,
+    answer_text: str,
+    cited_post_ids: list[str] | tuple[str, ...],
+) -> dict[str, Any]:
+    """Replace the stored exchange for ``(post_id, question)`` and return it."""
+    norm = normalize_chat_question(question)
+    if not norm:
+        raise ValueError("question is empty after normalize")
+    await conn.execute(
+        "delete from post_chat_result where post_id = $1 and question_norm = $2",
+        post_id,
+        norm,
+    )
+    await conn.execute(
+        "insert into post_chat_result (post_id, question_norm, question_text, answer_text) "
+        "values ($1, $2, $3, $4)",
+        post_id,
+        norm,
+        question.strip(),
+        answer_text,
+    )
+    seen: set[str] = set()
+    ordinal = 0
+    for cited_id in cited_post_ids:
+        if cited_id in seen:
+            continue
+        seen.add(cited_id)
+        await conn.execute(
+            "insert into post_chat_citation "
+            "(post_id, question_norm, citation_ordinal, cited_post_id) "
+            "values ($1, $2, $3, $4)",
+            post_id,
+            norm,
+            ordinal,
+            cited_id,
+        )
+        ordinal += 1
+    payload = await _serialize_chat(conn, post_id, norm)
+    if payload is None:
+        raise RuntimeError("persist_post_chat wrote no row")
+    return payload
+
+
+def seeded_demo_chat() -> SeededChat:
+    """Synthetic Ask answer for the demo public post -- not an LLM result."""
+    return SeededChat(
+        answer_text=(
+            "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid "
+            "about the delayed shipment."
+        ),
+        cited_titles=("Demo public post",),
+    )
+
+
+def seeded_fixture_chat(post_title: str) -> SeededChat | None:
+    """Synthetic Ask answer for a reconstruct/calendar fixture title.
+
+    Not an LLM result. Returns None when the title is not a known seed
+    fixture so an unknown question still 503s instead of inventing prose.
+    """
+    return _FIXTURE_CHATS.get(post_title)
+
+
+def _chat(answer: str, *cited: str) -> SeededChat:
+    return SeededChat(answer_text=answer, cited_titles=cited)
+
+
+_A100 = (
+    "Initial site visit and project scope discussion",
+    "Pricing renegotiation follow-up",
+    "Pricing renegotiation: revised quote sent",
+    "Delivery schedule question raised",
+    "Delivery schedule confirmed with logistics",
+)
+_B200 = (
+    "Technical specification review meeting",
+    "Specification revision requested",
+    "Revised specification approved",
+)
+
+_FIXTURE_CHATS: dict[str, SeededChat] = {
+    "Initial site visit and project scope discussion": _chat(
+        "The thread starts with an initial site visit and project scope "
+        "discussion. Ada West followed up with Priya Nair at Northridge Grid. "
+        "Later posts cover a pricing renegotiation follow-up that forks into "
+        "a revised quote and a delivery-schedule question.",
+        *_A100,
+    ),
+    "Pricing renegotiation follow-up": _chat(
+        "After the initial site visit, the pricing renegotiation follow-up is "
+        "where the thread forks: a revised quote was sent, and a delivery "
+        "schedule question was raised (later confirmed with logistics). Ada "
+        "West followed up with Priya Nair at Northridge Grid.",
+        *_A100,
+    ),
+    "Pricing renegotiation: revised quote sent": _chat(
+        "The pricing renegotiation produced a revised quote that was sent. "
+        "That quote sits on the pricing branch of the A-100 thread, alongside "
+        "a separate delivery-schedule question. Ada West followed up with "
+        "Priya Nair at Northridge Grid.",
+        "Pricing renegotiation follow-up",
+        "Pricing renegotiation: revised quote sent",
+    ),
+    "Delivery schedule question raised": _chat(
+        "A delivery schedule question was raised after the pricing follow-up, "
+        "separate from the revised-quote branch. Logistics later confirmed "
+        "the schedule. Ada West followed up with Priya Nair at Northridge Grid.",
+        "Pricing renegotiation follow-up",
+        "Delivery schedule question raised",
+        "Delivery schedule confirmed with logistics",
+    ),
+    "Delivery schedule confirmed with logistics": _chat(
+        "The delivery schedule question was confirmed with logistics, closing "
+        "that branch of the A-100 thread. Ada West followed up with Priya "
+        "Nair at Northridge Grid.",
+        "Delivery schedule question raised",
+        "Delivery schedule confirmed with logistics",
+    ),
+    "Unrelated: annual account review": _chat(
+        "This post is an annual account review. It shares the A-100 group "
+        "but is not part of the pricing or delivery sequence.",
+        "Unrelated: annual account review",
+    ),
+    "Technical specification review meeting": _chat(
+        "A technical specification review meeting opened the B-200 thread. "
+        "Jordan Hale reviewed the Westfield Power specification. A revision "
+        "was later requested and then approved.",
+        *_B200,
+    ),
+    "Specification revision requested": _chat(
+        "After the technical specification review meeting, a specification "
+        "revision was requested. Jordan Hale reviewed the Westfield Power "
+        "specification. The revised specification was later approved.",
+        *_B200,
+    ),
+    "Revised specification approved": _chat(
+        "The revised specification was approved after the review meeting and "
+        "revision request. Jordan Hale reviewed the Westfield Power "
+        "specification.",
+        *_B200,
+    ),
+    "Follow-up on the Riverbend order confirmation": _chat(
+        "The Riverbend order was already confirmed last Tuesday. The remaining "
+        "commitment is to send Riverbend the revised delivery schedule by "
+        "next Friday.",
+        "Follow-up on the Riverbend order confirmation",
+    ),
+}

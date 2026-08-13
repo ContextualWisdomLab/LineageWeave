@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.47.0] - 2026-08-14
+
+### Added
+
+- Seeded Ask answers for the demo public post, A-100/B-200 Event
+  Lineage fixtures, and the Riverbend calendar post. `GET`/`POST
+  /api/posts/{id}/chat` read `post_chat_result` first so the popup
+  transcript answers "What happened between these events?" without an
+  orchestrator. An unmatched question still 503s -- never a fabricated
+  live reply.
+
 ## [0.46.0] - 2026-08-14
 
 ### Changed

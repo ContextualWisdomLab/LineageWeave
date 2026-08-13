@@ -595,6 +595,23 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/posts/post-1/chat") && method === "GET") {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-1",
+            exchanges: options?.chatUnavailable
+              ? []
+              : [
+                  {
+                    question_text: "What happened between these events?",
+                    answer_text: "The seeded follow-up after the site visit.",
+                    cited_post_ids: ["post-2"],
+                    cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
+                  },
+                ],
+          }),
+        );
+      }
       if (url.endsWith("/api/posts/post-1/chat") && method === "POST") {
         if (options?.chatUnavailable) {
           return Promise.resolve(
@@ -694,6 +711,17 @@ describe("App, authenticated", () => {
     expect(screen.getAllByLabelText("Open post: Pricing renegotiation follow-up").length).toBeGreaterThanOrEqual(2);
   });
 
+  it("shows a seeded Ask exchange without an orchestrator round-trip", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() =>
+      expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "What happened between these events?" })).toBeInTheDocument();
+  });
+
   it("asks a chat question and slides in the evidence panel for a cited source on click", async () => {
     stubBackend();
     render(<App />);
@@ -711,7 +739,8 @@ describe("App, authenticated", () => {
     // The evidence panel is not shown until a citation is clicked.
     expect(screen.queryByText("The evidence panel should show exactly this text.")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Open evidence: Linked post" }));
+    const evidenceChips = screen.getAllByRole("button", { name: "Open evidence: Linked post" });
+    await userEvent.click(evidenceChips[evidenceChips.length - 1]);
 
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),

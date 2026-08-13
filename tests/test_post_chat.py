@@ -12,13 +12,46 @@ import os
 
 import pytest
 
+from backend.app.post_chat_ingestion import seeded_demo_chat, seeded_fixture_chat
+from lineageweave.fixtures import ambiguous_commitment_post, sample_records
 from lineageweave.post_chat import (
+    CANONICAL_CHAT_QUESTION,
     ChatSourceDocument,
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
     cited_post_summaries,
+    normalize_chat_question,
     parse_chat_response,
 )
+
+
+def test_normalize_chat_question_aliases_the_placeholder() -> None:
+    canonical = normalize_chat_question(CANONICAL_CHAT_QUESTION)
+    assert canonical == "what happened between these events"
+    assert normalize_chat_question("  What happened?  ") == canonical
+    assert normalize_chat_question("What happened between these events") == canonical
+    assert normalize_chat_question("When was the bid sent?") == "when was the bid sent"
+
+
+def test_every_sample_record_has_a_seeded_chat_answer() -> None:
+    """Event Lineage click-through must have a stored Ask answer for
+    every reconstruct fixture -- not a shared placeholder, not live LLM.
+    """
+    seen: set[str] = set()
+    for rec in sample_records():
+        chat = seeded_fixture_chat(rec.label)
+        assert chat is not None, rec.label
+        assert chat.answer_text.strip()
+        assert rec.label in chat.cited_titles
+        assert chat.answer_text not in seen
+        seen.add(chat.answer_text)
+    calendar_title, _ = ambiguous_commitment_post()
+    calendar = seeded_fixture_chat(calendar_title)
+    assert calendar is not None
+    assert "Riverbend" in calendar.answer_text
+    assert seeded_fixture_chat("not a fixture title") is None
+    demo = seeded_demo_chat()
+    assert "Northridge Grid" in demo.answer_text
 
 
 def test_null_chat_client_is_unavailable_not_empty_answer() -> None:

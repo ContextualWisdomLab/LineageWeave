@@ -100,6 +100,7 @@ def seed(
             cur.execute((migrations / "0008_post_summary_result.sql").read_text())
             cur.execute((migrations / "0009_shared_metric_bank.sql").read_text())
             cur.execute((migrations / "0010_report_item_information.sql").read_text())
+            cur.execute((migrations / "0011_post_chat_result.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -238,6 +239,7 @@ def seed(
                 (demo_public_post_id,),
             )
             _seed_demo_public_summary(cur, demo_public_post_id)
+            _seed_demo_public_chat(cur, demo_public_post_id)
             cur.execute("select person_id from cataloged_person where person_name = 'Ada West'")
             if cur.fetchone() is None:
                 from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
@@ -295,6 +297,7 @@ def seed(
                 process_units["DEMO-PU-LINEAGE"],
             )
             _seed_fixture_summaries(cur)
+            _seed_fixture_chats(cur)
             _seed_fixture_evaluations(cur)
             _seed_fixture_keymen_and_voc(cur, corporate_entity_id)
             _seed_fixture_tickets(cur)
@@ -398,6 +401,80 @@ def _write_post_summary(cur, post_id, summary) -> None:
             "insert into post_summary_role (post_id, person_name, responsibility) values (%s, %s, %s)",
             (post_id, role.person_name, role.responsibility),
         )
+
+
+def _write_post_chat(cur, post_id, question: str, chat) -> None:
+    """Replace the stored Ask exchange for ``(post_id, question)``."""
+    from lineageweave.post_chat import normalize_chat_question
+
+    norm = normalize_chat_question(question)
+    cur.execute(
+        "delete from post_chat_result where post_id = %s and question_norm = %s",
+        (post_id, norm),
+    )
+    cur.execute(
+        "insert into post_chat_result (post_id, question_norm, question_text, answer_text) "
+        "values (%s, %s, %s, %s)",
+        (post_id, norm, question, chat.answer_text),
+    )
+    seen: set[str] = set()
+    ordinal = 0
+    for title in chat.cited_titles:
+        if title in seen:
+            continue
+        cur.execute("select post_id from source_post where post_title = %s", (title,))
+        cited = cur.fetchone()
+        if cited is None:
+            continue
+        cited_id = cited[0]
+        if str(cited_id) in seen:
+            continue
+        seen.add(title)
+        seen.add(str(cited_id))
+        cur.execute(
+            "insert into post_chat_citation "
+            "(post_id, question_norm, citation_ordinal, cited_post_id) "
+            "values (%s, %s, %s, %s)",
+            (post_id, norm, ordinal, cited_id),
+        )
+        ordinal += 1
+
+
+def _seed_demo_public_chat(cur, post_id) -> None:
+    """Write the popup Ask answer for the demo public post.
+
+    Idempotent: re-seed replaces the same row so GET/POST chat stay
+    non-empty without a live orchestrator.
+    """
+    from backend.app.post_chat_ingestion import seeded_demo_chat
+    from lineageweave.post_chat import CANONICAL_CHAT_QUESTION
+
+    _write_post_chat(cur, post_id, CANONICAL_CHAT_QUESTION, seeded_demo_chat())
+
+
+def _seed_fixture_chats(cur) -> None:
+    """Write Ask answers for A-100/B-200 reconstruct posts and Calendar.
+
+    Event Lineage click-through stays an empty Ask box without this
+    when the orchestrator is off. Idempotent -- finds existing titles
+    so a re-seed after the lineage insert's early-return still fills
+    the popup.
+    """
+    from lineageweave.fixtures import ambiguous_commitment_post, sample_records
+    from backend.app.post_chat_ingestion import seeded_fixture_chat
+    from lineageweave.post_chat import CANONICAL_CHAT_QUESTION
+
+    titles = [rec.label for rec in sample_records()]
+    titles.append(ambiguous_commitment_post()[0])
+    for title in titles:
+        chat = seeded_fixture_chat(title)
+        if chat is None:
+            continue
+        cur.execute("select post_id from source_post where post_title = %s", (title,))
+        row = cur.fetchone()
+        if row is None:
+            continue
+        _write_post_chat(cur, row[0], CANONICAL_CHAT_QUESTION, chat)
 
 
 def _seed_demo_public_summary(cur, post_id) -> None:
