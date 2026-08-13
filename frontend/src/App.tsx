@@ -699,7 +699,18 @@ function CounterpartyPanel({
   );
 }
 
-const TICKET_STATUS_OPTIONS = ["open", "in_progress", "closed"];
+const TICKET_STATUS_OPTIONS = [
+  { code: "open", fallback: "Open" },
+  { code: "in_progress", fallback: "In progress" },
+  { code: "closed", fallback: "Closed" },
+] as const;
+
+function ticketStatusLabel(code: string, ticket: IssueTicket): string {
+  if (ticket.ticket_status_code === code && ticket.ticket_status_label) {
+    return ticket.ticket_status_label;
+  }
+  return TICKET_STATUS_OPTIONS.find((row) => row.code === code)?.fallback ?? code;
+}
 
 function IssueTicketPanel({
   postId,
@@ -806,9 +817,9 @@ function IssueTicketPanel({
                 onChange={(event) => handleStatusChange(ticket, event.target.value)}
                 aria-label={`Status for ${ticket.ticket_title}`}
               >
-                {TICKET_STATUS_OPTIONS.map((code) => (
-                  <option key={code} value={code}>
-                    {code}
+                {TICKET_STATUS_OPTIONS.map((row) => (
+                  <option key={row.code} value={row.code}>
+                    {ticketStatusLabel(row.code, ticket)}
                   </option>
                 ))}
               </select>

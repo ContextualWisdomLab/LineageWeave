@@ -133,6 +133,7 @@ export interface IssueTicket {
   issue_ticket_id: string;
   post_id: string;
   ticket_status_code: string;
+  ticket_status_label?: string;
   ticket_title: string;
   assigned_account_id: string | null;
   due_date: string | null;

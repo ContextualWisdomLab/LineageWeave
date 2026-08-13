@@ -59,10 +59,16 @@ describe("App, authenticated", () => {
     chatUnavailable?: boolean;
     searchUnavailable?: boolean;
   }) {
+    const statusLabel: Record<string, string> = {
+      open: "Open",
+      in_progress: "In progress",
+      closed: "Closed",
+    };
     const tickets: {
       issue_ticket_id: string;
       post_id: string;
       ticket_status_code: string;
+      ticket_status_label?: string;
       ticket_title: string;
       assigned_account_id: null;
       due_date: string | null;
@@ -99,6 +105,7 @@ describe("App, authenticated", () => {
           issue_ticket_id: `ticket-${nextTicketId++}`,
           post_id: "post-1",
           ticket_status_code: body.ticket_status_code,
+          ticket_status_label: statusLabel[body.ticket_status_code] ?? body.ticket_status_code,
           ticket_title: body.ticket_title,
           assigned_account_id: null,
           due_date: body.due_date ?? null,
@@ -121,6 +128,7 @@ describe("App, authenticated", () => {
         const ticket = tickets.find((t) => t.issue_ticket_id === ticketId);
         if (!ticket) return Promise.resolve(new Response(null, { status: 404 }));
         ticket.ticket_status_code = body.ticket_status_code;
+        ticket.ticket_status_label = statusLabel[body.ticket_status_code] ?? body.ticket_status_code;
         events.unshift({
           event_id: `event-${nextEventId++}`,
           event_type: "ticket_status_changed",
@@ -147,6 +155,7 @@ describe("App, authenticated", () => {
           issue_ticket_id: `ticket-${nextTicketId++}`,
           post_id: "post-1",
           ticket_status_code: "open",
+          ticket_status_label: "Open",
           ticket_title: "Send the revised delivery schedule",
           assigned_account_id: null,
           due_date: "2026-01-09",
@@ -965,10 +974,13 @@ describe("App, authenticated", () => {
 
     const statusSelect = screen.getByLabelText(/status for confirm delivery window/i);
     expect(statusSelect).toHaveValue("open");
+    expect(screen.getByRole("option", { name: "Open" })).toHaveValue("open");
+    expect(screen.queryByRole("option", { name: "open" })).not.toBeInTheDocument();
 
     await userEvent.selectOptions(statusSelect, "closed");
 
     await waitFor(() => expect(statusSelect).toHaveValue("closed"));
+    expect(screen.getByRole("option", { name: "Closed" })).toHaveValue("closed");
   });
 
   it("creates a dated ticket and shows the due date on the ticket list", async () => {

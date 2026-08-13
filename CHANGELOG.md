@@ -4,6 +4,14 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.55.0] - 2026-08-14
+
+### Added
+
+- Ticket status on the popup select shows `common_lookup_value`
+  labels (`Open`, `In progress`, `Closed`) instead of raw codes.
+  Codes stay on the payload. A missing lookup falls back to the code.
+
 ## [0.54.0] - 2026-08-14
 
 ### Changed
