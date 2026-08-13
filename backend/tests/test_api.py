@@ -1084,6 +1084,154 @@ def test_calendar_hides_other_corp_private_commitments_and_sorts_by_due_date(
     assert "corporate_entity_id" not in commitments[0]
 
 
+def test_calendar_excludes_closed_tickets_and_includes_manual_due_dates(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A closed dated ticket is done work, not a calendar item; a
+    still-open ticket created through the regular ticket API with a
+    due_date must still appear -- the calendar is every dated open
+    ticket, not only LLM-derived ones.
+    """
+    _grant_post_admin(seeded_db["dsn"])
+    closed = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/tickets",
+        json={
+            "ticket_title": "Already done",
+            "ticket_status_code": "open",
+            "due_date": "2026-02-01",
+        },
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert closed.status_code == 201, closed.text
+    patch = client.patch(
+        f"/api/tickets/{closed.json()['issue_ticket_id']}",
+        json={"ticket_status_code": "closed"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert patch.status_code == 200
+    opened = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/tickets",
+        json={
+            "ticket_title": "Still open",
+            "ticket_status_code": "open",
+            "due_date": "2026-04-01",
+        },
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert opened.status_code == 201, opened.text
+
+    response = client.get("/api/calendar", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 200
+    titles = [c["ticket_title"] for c in response.json()["commitments"]]
+    assert "Still open" in titles
+    assert "Already done" not in titles
+
+
+def test_create_ticket_with_malformed_due_date_is_422(client, demo_analyst_token, seeded_db) -> None:
+    _grant_post_admin(seeded_db["dsn"])
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/tickets",
+        json={"ticket_title": "Bad date", "ticket_status_code": "open", "due_date": "next Friday"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 422
+
+
+def test_derive_commitment_unavailable_without_orchestrator(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Null client must 503, not invent a commitment."""
+    from lineageweave.commitment_extraction import NullCommitmentExtractionClient
+
+    _grant_post_admin(seeded_db["dsn"])
+    monkeypatch.setattr(
+        "backend.app.main._commitment_extraction_client",
+        lambda: NullCommitmentExtractionClient(),
+    )
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/derive-commitment",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 503
+
+
+def test_derive_commitment_uses_post_created_at_and_does_not_duplicate(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """CI-stable persist path: a fake client still has to receive the
+    post's document-creation date (not wall-clock now) and a second
+    derive must refresh the same ticket instead of stacking another.
+    """
+    from lineageweave.commitment_extraction import CustomerCommitment
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeClient:
+        available = True
+        seen_reference_dates: list[str] = []
+
+        def extract(self, post_title: str, post_body: str, reference_date: str) -> CustomerCommitment:
+            self.seen_reference_dates.append(reference_date)
+            return CustomerCommitment(
+                has_commitment=True,
+                commitment_summary="Send Riverbend the revised delivery schedule.",
+                due_date="2026-01-09",
+            )
+
+    fake = _FakeClient()
+    monkeypatch.setattr("backend.app.main._commitment_extraction_client", lambda: fake)
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into source_post "
+                "(author_account_id, corporate_entity_id, post_title, post_body, "
+                "voc_type_code, visibility_code, created_at) "
+                "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public', %s "
+                "from source_post where post_id = %s "
+                "returning post_id",
+                (
+                    "Follow-up on the Riverbend order confirmation",
+                    "We still owe Riverbend the revised delivery schedule by next Friday.",
+                    "2026-01-05T00:00:00+00",
+                    seeded_db["own_private_post_id"],
+                ),
+            )
+            new_post_id = str(cur.fetchone()[0])
+    finally:
+        admin_conn.close()
+
+    first = client.post(
+        f"/api/posts/{new_post_id}/derive-commitment",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert first.status_code == 200, first.text
+    first_ticket = first.json()["ticket"]
+    assert first.json()["has_commitment"] is True
+    assert first_ticket["due_date"] == "2026-01-09"
+    assert fake.seen_reference_dates == ["2026-01-05"]
+
+    fake.seen_reference_dates.clear()
+    second = client.post(
+        f"/api/posts/{new_post_id}/derive-commitment",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert second.status_code == 200, second.text
+    assert second.json()["ticket"]["issue_ticket_id"] == first_ticket["issue_ticket_id"]
+
+    listed = client.get(
+        f"/api/posts/{new_post_id}/tickets",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert len(listed.json()["tickets"]) == 1
+
+    calendar = client.get("/api/calendar", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    ticket_ids = {c["issue_ticket_id"] for c in calendar.json()["commitments"]}
+    assert first_ticket["issue_ticket_id"] in ticket_ids
+
+
 @pytest.mark.skipif(
     not (_ORCHESTRATOR_BASE_URL and _ORCHESTRATOR_API_KEY),
     reason="set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run",

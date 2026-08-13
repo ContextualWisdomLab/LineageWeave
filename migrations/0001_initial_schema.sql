@@ -243,7 +243,7 @@ create table issue_ticket (
     -- e.g. a customer commitment an LLM derived from the post's own text via
     -- POST /api/posts/{post_id}/derive-commitment. NULL for an ordinary
     -- ticket with no date attached.
-    due_date timestamptz,
+    due_date date,
     -- LLM-authored description of the commitment this ticket represents
     -- (distinct from ticket_title, which may be a shorter user-facing label).
     commitment_summary text,

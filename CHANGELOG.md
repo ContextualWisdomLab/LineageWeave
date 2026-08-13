@@ -40,13 +40,24 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
-- `create_ticket` passed `due_date` to asyncpg as a raw string; asyncpg
-  binds a `timestamptz` parameter to a `date`/`datetime` instance, not
-  text, and does not implicitly cast -- caught by the real-LLM test,
-  not the parser unit tests, since only a genuine end-to-end call
-  actually reaches the database with a real derived date. Fixed by
-  parsing `YYYY-MM-DD` into a `date` before binding; a malformed date
-  now surfaces as 422, not a 500.
+- `due_date` was a `timestamptz`. Binding a Python `date` becomes
+  midnight in the session timezone, then `.date()` on the UTC
+  (or local) datetime shifts the calendar day -- "2026-01-09"
+  came back as "2026-01-08". The column is now a `date`, matching
+  the LLM's YYYY-MM-DD. A malformed string still surfaces as 422.
+- Derive used wall-clock `now()` as the reference date. Relative
+  phrases in a historical post ("by next Friday") must resolve against
+  the post's `created_at` (TimeML document creation time), or the
+  calendar entry lands on the Friday after the click, not the Friday
+  the commitment was made.
+- Re-deriving the same post stacked a second open ticket. The persist
+  path now upserts the existing open commitment ticket.
+- `GET /api/calendar` included closed tickets, so finished work still
+  looked upcoming. Closed rows are excluded; a dated ticket created
+  through the regular ticket API still appears while it is open.
+- The "Derive commitment" button was shown to accounts without
+  `post_admin` and then 403'd. It is now gated the same way as Extract
+  Keymen. Calendar rows also show the source post title.
 
 ## [0.17.0] - 2026-08-13
 

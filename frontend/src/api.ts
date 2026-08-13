@@ -254,10 +254,15 @@ export function createPostTicket(
   postId: string,
   ticketTitle: string,
   ticketStatusCode: string,
+  dueDate?: string,
 ): Promise<IssueTicket> {
   return backendFetch(`/api/posts/${postId}/tickets`, accessToken, {
     method: "POST",
-    body: JSON.stringify({ ticket_title: ticketTitle, ticket_status_code: ticketStatusCode }),
+    body: JSON.stringify({
+      ticket_title: ticketTitle,
+      ticket_status_code: ticketStatusCode,
+      ...(dueDate ? { due_date: dueDate } : {}),
+    }),
   });
 }
 

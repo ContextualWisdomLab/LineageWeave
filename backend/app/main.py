@@ -20,7 +20,6 @@ read is ``source_post`` -- two-or-more-word table names, per AGENTS.md.
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
 from typing import Any
 
 import asyncpg
@@ -61,6 +60,7 @@ from backend.app.issue_ticket_ingestion import (
     fetch_upcoming_commitments,
     list_tickets_for_post,
     update_ticket,
+    upsert_commitment_ticket,
 )
 from backend.app.keyman_ingestion import ingest_post_keymen
 from backend.app.knowledge_graph import (
@@ -701,20 +701,27 @@ async def derive_post_commitment(
         )
     async with pool.acquire() as conn:
         body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-    reference_date = datetime.now(timezone.utc).date().isoformat()
+    # TimeML/TempEval document creation time, not wall-clock now: "by next
+    # Friday" in a January post must resolve to that January, not to the
+    # Friday after the operator clicked Derive.
+    reference_date = post["created_at"].date().isoformat()
     commitment = client.extract(post["post_title"], body_row["post_body"], reference_date)
     if not commitment.has_commitment:
         return {"post_id": str(post["post_id"]), "has_commitment": False, "ticket": None}
     async with pool.acquire() as conn:
-        ticket = await create_ticket(
-            conn,
-            post_id,
-            commitment.commitment_summary,
-            "open",
-            None,
-            due_date=commitment.due_date,
-            commitment_summary=commitment.commitment_summary,
-        )
+        try:
+            ticket = await upsert_commitment_ticket(
+                conn,
+                post_id,
+                commitment.commitment_summary,
+                commitment.due_date,
+                commitment.commitment_summary,
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                f"due_date {commitment.due_date!r} is not a valid YYYY-MM-DD date",
+            ) from exc
     await publish_activity_event(
         valkey,
         post_id,
@@ -730,9 +737,10 @@ async def read_calendar(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Every dated commitment/ticket the account may see, soonest first --
-    the to-do/calendar surface (no Outlook sync yet; this is the internal
-    data model that a future Outlook connector would read from).
+    """Every dated, not-closed commitment/ticket the account may see,
+    soonest first -- the to-do/calendar surface (no Outlook sync yet;
+    this is the internal data model that a future Outlook connector
+    would read from).
     """
     _require_post_read(account)
     async with pool.acquire() as conn:

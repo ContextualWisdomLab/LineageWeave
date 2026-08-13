@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
@@ -96,7 +96,7 @@ describe("App, authenticated", () => {
           ticket_status_code: body.ticket_status_code,
           ticket_title: body.ticket_title,
           assigned_account_id: null,
-          due_date: null,
+          due_date: body.due_date ?? null,
           commitment_summary: null,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
@@ -514,6 +514,21 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(statusSelect).toHaveValue("closed"));
   });
 
+  it("creates a dated ticket and shows the due date on the ticket list", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("No tickets yet.")).toBeInTheDocument());
+
+    await userEvent.type(screen.getByPlaceholderText(/new ticket title/i), "Ship the sample kit");
+    fireEvent.change(screen.getByLabelText(/due date/i), { target: { value: "2026-03-15" } });
+    await userEvent.click(screen.getByRole("button", { name: /create ticket/i }));
+
+    await waitFor(() => expect(screen.getByText("Ship the sample kit")).toBeInTheDocument());
+    expect(screen.getByText("due 2026-03-15")).toBeInTheDocument();
+  });
+
   it("shows real ticket mutations on the activity feed after a refresh", async () => {
     stubBackend();
     render(<App />);
@@ -533,8 +548,17 @@ describe("App, authenticated", () => {
     expect(screen.getByText("ticket_created")).toBeInTheDocument();
   });
 
-  it("derives a customer commitment and shows its due date on the ticket list", async () => {
+  it("hides derive commitment for accounts without post_admin", async () => {
     stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("No tickets yet.")).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: /derive commitment/i })).not.toBeInTheDocument();
+  });
+
+  it("derives a customer commitment and shows its due date on the ticket list", async () => {
+    stubBackend({ admin: true });
     render(<App />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
@@ -570,9 +594,11 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("Send the revised delivery schedule")).toBeInTheDocument(),
     );
-    expect(screen.getByText("due 2026-01-09")).toBeInTheDocument();
+    const calendarButton = screen.getByRole("button", { name: /open commitment for: public post/i });
+    expect(calendarButton).toHaveTextContent("Public post");
+    expect(calendarButton).toHaveTextContent("due 2026-01-09");
 
-    await userEvent.click(screen.getByRole("button", { name: /open commitment for: public post/i }));
+    await userEvent.click(calendarButton);
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });

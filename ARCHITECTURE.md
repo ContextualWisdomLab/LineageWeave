@@ -76,6 +76,7 @@ flowchart LR
 | `voc_evidence.py` | Extractive VOC excerpts: sentences that name a classified organization, or empty |
 | `post_summary.py` | Pluggable LLM Korean summary + key events + R&R derivation for a post |
 | `post_chat.py` | Pluggable in-popup chat's reason-and-cite step (retrieve step lives in `backend/app/post_chat_ingestion.py`) |
+| `commitment_extraction.py` | Pluggable LLM derivation of a customer commitment (promise + deadline) from a post; `Null` default, `ContextualOrchestrator` real impl |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
 | `server.py` | Stdlib HTTP server: `GET /api/lineage` (JSON graph) + static viewer |
 | `web/index.html` | Self-contained SVG DAG viewer, no build step, no external script dependency |
@@ -360,12 +361,16 @@ failure, the same missing-vs-empty discipline every parser in this repo
 already keeps.
 
 `POST /api/posts/{post_id}/derive-commitment` (`post_admin`, a real
-LLM-call write action) persists the result as an `issue_ticket`;
-`GET /api/calendar` lists every dated ticket the account may see across
-all posts, soonest first, ABAC-filtered per row the same way
-`read_post_lineage` filters cross-post candidates. Caught a real bug
-during the real-LLM verification pass (not the parser unit tests, which
-never touch the database): asyncpg binds a `timestamptz` parameter to a
-`date`/`datetime` instance, not a raw ISO string, and does not
-implicitly cast one -- `create_ticket` now parses `due_date` before
-binding, and a malformed date is a 422, not a 500.
+LLM-call write action) persists the result as an `issue_ticket`. The
+reference date handed to the client is the post's `created_at` (TimeML
+document creation time), not wall-clock now -- otherwise a January
+post's "by next Friday" lands on the Friday after the operator clicked
+Derive. Re-deriving the same post updates the existing open commitment
+ticket instead of stacking a duplicate calendar row. `GET /api/calendar`
+lists every dated, not-closed ticket the account may see across all
+posts, soonest first, ABAC-filtered per row the same way
+`read_post_lineage` filters cross-post candidates. `due_date` is a
+calendar `date`, not a `timestamptz`: a "by Friday" commitment is a
+day, and binding a Python `date` into timestamptz midnight is an
+off-by-one in any session whose TZ is not UTC. A malformed
+`YYYY-MM-DD` is a 422, not a 500.

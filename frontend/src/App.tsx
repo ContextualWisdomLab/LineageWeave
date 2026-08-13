@@ -331,9 +331,18 @@ function KeymanPanel({
 
 const TICKET_STATUS_OPTIONS = ["open", "in_progress", "closed"];
 
-function IssueTicketPanel({ postId, accessToken }: { postId: string; accessToken: string }) {
+function IssueTicketPanel({
+  postId,
+  accessToken,
+  canExtract,
+}: {
+  postId: string;
+  accessToken: string;
+  canExtract: boolean;
+}) {
   const [tickets, setTickets] = useState<IssueTicket[] | null>(null);
   const [newTitle, setNewTitle] = useState("");
+  const [newDueDate, setNewDueDate] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [deriving, setDeriving] = useState(false);
@@ -356,8 +365,9 @@ function IssueTicketPanel({ postId, accessToken }: { postId: string; accessToken
     setCreating(true);
     setError(null);
     try {
-      await createPostTicket(accessToken, postId, newTitle, "open");
+      await createPostTicket(accessToken, postId, newTitle, "open", newDueDate || undefined);
       setNewTitle("");
+      setNewDueDate("");
       reload();
     } catch (err) {
       setError(String(err));
@@ -396,9 +406,11 @@ function IssueTicketPanel({ postId, accessToken }: { postId: string; accessToken
     <section className="popup-section">
       <div className="lineage-home-header">
         <h3>이슈 티켓 (Issue tickets)</h3>
-        <button onClick={handleDeriveCommitment} disabled={deriving}>
-          {deriving ? "Deriving..." : "Derive commitment"}
-        </button>
+        {canExtract && (
+          <button onClick={handleDeriveCommitment} disabled={deriving}>
+            {deriving ? "Deriving..." : "Derive commitment"}
+          </button>
+        )}
       </div>
       {error && <p className="error">{error}</p>}
       {tickets === null ? (
@@ -435,6 +447,12 @@ function IssueTicketPanel({ postId, accessToken }: { postId: string; accessToken
           onChange={(event) => setNewTitle(event.target.value)}
           onKeyDown={(event) => event.key === "Enter" && handleCreate()}
           placeholder="New ticket title"
+        />
+        <input
+          type="date"
+          value={newDueDate}
+          onChange={(event) => setNewDueDate(event.target.value)}
+          aria-label="Due date"
         />
         <button onClick={handleCreate} disabled={creating || !newTitle.trim()}>
           {creating ? "Creating..." : "Create ticket"}
@@ -632,7 +650,7 @@ function PostDetailPopup({
               </section>
             )}
 
-            <IssueTicketPanel postId={postId} accessToken={accessToken} />
+            <IssueTicketPanel postId={postId} accessToken={accessToken} canExtract={canExtract} />
 
             <ActivityPanel postId={postId} accessToken={accessToken} />
 
@@ -678,6 +696,7 @@ function CalendarPanel({
                 onClick={() => onSelectPost(entry.post_id)}
               >
                 <span className="ticket-title">{entry.commitment_summary ?? entry.ticket_title}</span>
+                <span className="post-badge">{entry.post_title}</span>
                 <span className="post-badge">due {entry.due_date}</span>
               </button>
             </li>
