@@ -161,7 +161,14 @@ describe("App, authenticated", () => {
                 post_count: 8,
                 item_count: 3,
                 fit_converged: true,
-                members: [],
+                members: [
+                  {
+                    post_id: "post-1",
+                    post_title: "Public post",
+                    theta_eap: 0.91,
+                    theta_sd: 0.2,
+                  },
+                ],
               },
             ],
           }),
@@ -720,6 +727,15 @@ describe("App, authenticated", () => {
     expect(screen.getByText(/8 posts/)).toBeInTheDocument();
     expect(screen.getByText(/TEST-PU-REPORT/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /rebuild report/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("θ 0.91");
+  });
+
+  it("opens a post from a period-report member click", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /open report post: public post/i }));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });
 
   it("lets post_admin rebuild the period report", async () => {

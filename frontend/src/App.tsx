@@ -927,9 +927,11 @@ function CalendarPanel({
 function ReportsPanel({
   accessToken,
   canRebuild,
+  onSelectPost,
 }: {
   accessToken: string;
   canRebuild: boolean;
+  onSelectPost: (postId: string) => void;
 }) {
   const [grouping, setGrouping] = useState("process_unit");
   const [period, setPeriod] = useState("2026-W02");
@@ -1001,6 +1003,22 @@ function ReportsPanel({
                 {report.fit_converged ? ", converged" : ", not converged"})
               </span>
               <span className="post-badge">{report.post_count} posts</span>
+              {report.members.length > 0 && (
+                <ul className="ticket-list">
+                  {report.members.map((member) => (
+                    <li key={member.post_id} className="ticket-list-item">
+                      <button
+                        className="post-list-item"
+                        aria-label={`Open report post: ${member.post_title}`}
+                        onClick={() => onSelectPost(member.post_id)}
+                      >
+                        <span className="ticket-title">{member.post_title}</span>
+                        <span className="post-badge">θ {member.theta_eap.toFixed(2)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
           ))}
         </ul>
@@ -1046,7 +1064,7 @@ function PostList({ accessToken }: { accessToken: string }) {
   return (
     <>
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} />
+      <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
           <h2>Event Lineage</h2>
