@@ -443,6 +443,12 @@ def test_related_keymen_use_rwr_and_hide_invisible_posts(client, demo_analyst_to
     assert seeded_db["hidden_person_id"] not in related_ids
     assert seeded_db["other_private_post_id"] not in related_ids
     assert all(node["relevance"] > 0 for node in body["related"])
+    by_id = {node["node_id"]: node for node in body["related"]}
+    counterpart = by_id[seeded_db["counterpart_person_id"]]
+    assert counterpart["ontology_label"] == "Person"
+    assert counterpart["ontology_iri"].endswith("#Person")
+    own_post = by_id[seeded_db["own_private_post_id"]]
+    assert own_post["ontology_label"] == "Post"
 
 
 def test_keyman_only_on_other_corp_private_post_is_forbidden(client, demo_analyst_token, seeded_db) -> None:

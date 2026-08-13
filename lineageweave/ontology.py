@@ -22,6 +22,7 @@ from pathlib import Path
 
 from rdflib import Graph, Namespace
 from rdflib.namespace import OWL, RDF, RDFS, SKOS
+from rdflib.term import Identifier
 
 #: The ontology's own namespace -- every class/property IRI below is
 #: this prefix plus the term's local name (e.g. LW.Post).
@@ -51,6 +52,13 @@ def load_ontology() -> Graph:
 ONTOLOGY = load_ontology()
 
 
+def _term_subject(lookup_code: str) -> Identifier | None:
+    for subject in ONTOLOGY.subjects(LOOKUP_CODE, None):
+        if str(ONTOLOGY.value(subject, LOOKUP_CODE)) == lookup_code:
+            return subject
+    return None
+
+
 def iri_for_lookup_code(lookup_code: str) -> str | None:
     """The ontology term IRI whose `:lookupCode` annotation equals
     `lookup_code`, or `None` if no term declares that code -- e.g. a
@@ -58,10 +66,25 @@ def iri_for_lookup_code(lookup_code: str) -> str | None:
     (`ticket_status`, `post_visibility`), which is a real, expected gap,
     not a bug.
     """
-    for subject in ONTOLOGY.subjects(LOOKUP_CODE, None):
-        if str(ONTOLOGY.value(subject, LOOKUP_CODE)) == lookup_code:
-            return str(subject)
-    return None
+    subject = _term_subject(lookup_code)
+    return str(subject) if subject is not None else None
+
+
+def ontology_annotations(lookup_code: str) -> dict[str, str]:
+    """IRI + ``rdfs:label`` for a lookup code, or empty if undeclared.
+
+    Empty (not a fabricated label) when the ontology does not cover
+    this code -- the same missing-vs-negative discipline as Null
+    channels. Callers spread this onto an API payload.
+    """
+    subject = _term_subject(lookup_code)
+    if subject is None:
+        return {}
+    fields = {"ontology_iri": str(subject)}
+    label = ONTOLOGY.value(subject, RDFS.label)
+    if label is not None:
+        fields["ontology_label"] = str(label)
+    return fields
 
 
 def all_declared_lookup_codes() -> set[str]:
@@ -83,4 +106,5 @@ __all__ = [
     "all_declared_lookup_codes",
     "iri_for_lookup_code",
     "load_ontology",
+    "ontology_annotations",
 ]

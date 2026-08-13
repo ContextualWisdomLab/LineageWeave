@@ -13,6 +13,7 @@ from uuid import UUID
 
 import asyncpg
 
+from lineageweave.ontology import ontology_annotations
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
     EDGE_CO_MENTION,
@@ -229,7 +230,11 @@ async def hydrate_related_nodes(
     conn: asyncpg.Connection,
     related: list[tuple[str, float]],
 ) -> list[dict[str, Any]]:
-    """Attach display labels to scored ``type:id`` keys; drop unknown ids."""
+    """Attach display labels and ontology class terms to scored keys.
+
+    Unknown ids are dropped. Ontology fields are omitted (not faked)
+    when ``node_type_code`` has no term in lineageweave-kg.ttl.
+    """
     person_ids: list[str] = []
     post_ids: list[str] = []
     corp_ids: list[str] = []
@@ -272,6 +277,7 @@ async def hydrate_related_nodes(
             "node_id": node_id,
             "node_type_code": node_type_code,
             "relevance": score,
+            **ontology_annotations(node_type_code),
         }
         if node_type_code == NODE_PERSON and node_id in people:
             item["label"] = people[node_id]["person_name"]

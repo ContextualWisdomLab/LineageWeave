@@ -283,6 +283,8 @@ describe("App, authenticated", () => {
               {
                 node_id: "person-priya",
                 node_type_code: "node_person",
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
+                ontology_label: "Person",
                 label: "Priya Nair",
                 relevance: 0.4,
               },
@@ -480,7 +482,7 @@ describe("App, authenticated", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
-    expect(screen.getByText("Priya Nair (node_person)")).toBeInTheDocument();
+    expect(screen.getByText("Priya Nair (Person)")).toBeInTheDocument();
   });
 
   it("lets post_admin extract Keymen from the popup", async () => {
