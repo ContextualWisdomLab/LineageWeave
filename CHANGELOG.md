@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.23.0] - 2026-08-13
+
+### Added
+
+- Keyman side and corporate-entity level now carry lookup labels from
+  `common_lookup_value` (`person_side_label`, `entity_level_label`).
+  The popup shows "Ada West (Our side)" and "Demo Corp (Company)"
+  instead of raw `our_side` / `company` / `plant` codes. Missing lookup
+  rows still fall back to the code, never an invented name.
+
 ## [0.22.0] - 2026-08-13
 
 ### Added

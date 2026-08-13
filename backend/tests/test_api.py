@@ -362,7 +362,9 @@ def test_own_corp_post_keymen_are_readable(client, demo_analyst_token, seeded_db
     names = {person["person_name"]: person for person in response.json()["keymen"]}
     assert set(names) == {"Ada West", "Priya Nair"}
     assert names["Ada West"]["person_side_code"] == "our_side"
+    assert names["Ada West"]["person_side_label"] == "Our side"
     assert names["Priya Nair"]["person_side_code"] == "counterparty"
+    assert names["Priya Nair"]["person_side_label"] == "Counterparty"
     assert {aff["organization_name"] for aff in names["Priya Nair"]["affiliations"]} == {
         "Northridge Grid",
         "Northridge Holdings",
@@ -388,10 +390,13 @@ def test_affiliate_tree_walks_ancestors_and_keeps_unresolved_orgs(client, demo_a
     assert names[0] == "Test Group"
     assert trees[0]["entity_id"] == seeded_db["own_group_id"]
     assert trees[0]["resolved"] is True
+    assert trees[0]["entity_level_label"] == "Group"
     children = trees[0]["children"]
     assert [child["entity_name"] for child in children] == ["Test Corp"]
     assert children[0]["entity_id"] == seeded_db["own_corp_id"]
+    assert children[0]["entity_level_label"] == "Company"
     assert {person["person_name"] for person in children[0]["people"]} == {"Ada West"}
+    assert children[0]["people"][0]["person_side_label"] == "Our side"
     unresolved = [node for node in trees if node["resolved"] is False]
     assert {node["entity_name"] for node in unresolved} == {"Northridge Grid", "Northridge Holdings"}
     assert all(person["person_name"] == "Priya Nair" for node in unresolved for person in node["people"])

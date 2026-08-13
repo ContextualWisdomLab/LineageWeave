@@ -278,7 +278,10 @@ set of those leaves, not the whole company directory -- a sibling the
 post never mentions is omitted. An affiliation that did not resolve to
 a `corporate_entity` row stays as its own root (`resolved=false`); that
 is the same never-guess-a-parent rule
-`corporate_hierarchy_resolution` already applies.
+`corporate_hierarchy_resolution` already applies. Entity levels and
+Keyman sides are labeled from `common_lookup_value` (`Our side`,
+`Plant`, `Company`) so the popup never shows raw `our_side` / `plant`
+codes when a label exists.
 
 `GET /api/posts/{post_id}/voc-evidence` returns the
 `common_lookup_value` label for the post's `voc_type_code` plus the

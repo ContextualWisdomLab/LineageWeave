@@ -263,6 +263,7 @@ describe("App, authenticated", () => {
                 person_id: "person-ada",
                 person_name: "Ada West",
                 person_side_code: "our_side",
+                person_side_label: "Our side",
                 mention_context: null,
                 affiliations: [{ organization_name: "Demo Corp", corporate_entity_id: "corp-1", role_title: null }],
               },
@@ -300,6 +301,7 @@ describe("App, authenticated", () => {
                 entity_id: "group-1",
                 entity_name: "Demo Group",
                 entity_level_code: "group",
+                entity_level_label: "Group",
                 resolved: true,
                 people: [],
                 children: [
@@ -307,8 +309,16 @@ describe("App, authenticated", () => {
                     entity_id: "corp-1",
                     entity_name: "Demo Corp",
                     entity_level_code: "company",
+                    entity_level_label: "Company",
                     resolved: true,
-                    people: [{ person_id: "person-ada", person_name: "Ada West", person_side_code: "our_side" }],
+                    people: [
+                      {
+                        person_id: "person-ada",
+                        person_name: "Ada West",
+                        person_side_code: "our_side",
+                        person_side_label: "Our side",
+                      },
+                    ],
                     children: [],
                   },
                 ],
@@ -318,7 +328,14 @@ describe("App, authenticated", () => {
                 entity_name: "Northridge Grid",
                 entity_level_code: null,
                 resolved: false,
-                people: [{ person_id: "person-priya", person_name: "Priya Nair", person_side_code: "counterparty" }],
+                people: [
+                  {
+                    person_id: "person-priya",
+                    person_name: "Priya Nair",
+                    person_side_code: "counterparty",
+                    person_side_label: "Counterparty",
+                  },
+                ],
                 children: [],
               },
             ],
@@ -472,6 +489,9 @@ describe("App, authenticated", () => {
 
     await waitFor(() => expect(screen.getByText("Demo Group")).toBeInTheDocument());
     expect(screen.getByText("Demo Corp")).toBeInTheDocument();
+    expect(screen.getByText("(Company)")).toBeInTheDocument();
+    expect(screen.getByText(/Ada West \(Our side\)/)).toBeInTheDocument();
+    expect(screen.queryByText(/our_side/)).not.toBeInTheDocument();
     expect(screen.getByText("unresolved")).toBeInTheDocument();
     expect(screen.getByText(/Voice of Customer\s*\(voc\)/)).toBeInTheDocument();
     expect(
