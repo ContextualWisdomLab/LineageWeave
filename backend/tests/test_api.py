@@ -371,6 +371,71 @@ def test_extract_keymen_requires_post_admin(client, demo_analyst_token, seeded_d
     assert response.status_code == 403
 
 
+_ORCHESTRATOR_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL")
+_ORCHESTRATOR_API_KEY = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY")
+
+
+@pytest.mark.skipif(
+    not (_ORCHESTRATOR_BASE_URL and _ORCHESTRATOR_API_KEY),
+    reason="set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run",
+)
+def test_extract_keymen_persists_a_real_llm_extraction(client, demo_analyst_token, seeded_db) -> None:
+    """The full write path, end to end: a real LLM call through a live
+    contextual-orchestrator, persisted to Postgres, then read back through
+    the read endpoints -- not a mocked extraction client.
+    """
+    os.environ["ORCHESTRATOR_BASE_URL"] = _ORCHESTRATOR_BASE_URL
+    os.environ["ORCHESTRATOR_API_KEY"] = _ORCHESTRATOR_API_KEY
+
+    from lineageweave.fixtures import ambiguous_keyman_post
+
+    title, body = ambiguous_keyman_post()
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('permission', 'post_admin', 'Administer posts') on conflict (lookup_code) do nothing"
+            )
+            cur.execute("select access_role_id from account_role_assignment limit 1")
+            role_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into role_permission (access_role_id, permission_code) values (%s, 'post_admin') "
+                "on conflict do nothing",
+                (role_id,),
+            )
+            cur.execute(
+                "insert into post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public' "
+                "from post where post_id = %s "
+                "returning post_id",
+                (title, body, seeded_db["own_private_post_id"]),
+            )
+            new_post_id = str(cur.fetchone()[0])
+    finally:
+        admin_conn.close()
+
+    response = client.post(
+        f"/api/posts/{new_post_id}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    body_json = response.json()
+    assert body_json["extracted_count"] >= 2
+    names = {mention["person_name"] for mention in body_json["mentions"]}
+    assert any("Jordan" in name for name in names)
+    assert any("Priya" in name for name in names)
+
+    keymen_response = client.get(
+        f"/api/posts/{new_post_id}/keymen", headers={"Authorization": f"Bearer {demo_analyst_token}"}
+    )
+    assert keymen_response.status_code == 200
+    persisted_names = {person["person_name"] for person in keymen_response.json()["keymen"]}
+    assert persisted_names == names
+
+
 def test_unknown_keyman_is_not_found(client, demo_analyst_token) -> None:
     response = client.get(
         f"/api/keymen/{uuid.uuid4()}/related",
