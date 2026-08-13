@@ -2,9 +2,10 @@
 
 This is the product half of ``lineageweave.lineage_persistence``: the
 library flattens trees; this module is the only writer of
-``post_lineage_edge`` from a live database. Grouping uses
-``process_unit_id`` when present, otherwise ``corporate_entity_id``, so
-two org units do not get forced into one thread.
+``post_lineage_edge`` from a live database. Reconstruct grouping is
+read from ``thread_group_key`` / ``secondary_grouping_key`` -- the
+same keys ``reconstruct()`` was given when the posts were ingested --
+not derived from process unit or voc type.
 """
 
 from __future__ import annotations
@@ -26,24 +27,24 @@ def _occurred_at(value: datetime) -> datetime:
 def records_from_source_posts(rows: list[Mapping[str, Any]]) -> list[Record]:
     """Map ``source_post`` rows onto reconstruct ``Record``s.
 
-    ``group_key`` is the process unit when the post has one, else the
-    owning corporate entity -- the coarsest product grouping that still
-    keeps unrelated org units out of each other's candidate windows.
-    ``secondary_key`` is the post's voc type: matching types are the
-    same-thread signal reconstruct already uses (the A-100 fixture's
-    project code); a different type must stay distinguishable so an
-    unrelated annual review is not forced onto the thread.
+    ``group_key`` and ``secondary_key`` come from the persisted
+    ``thread_group_key`` / ``secondary_grouping_key`` columns. Deriving
+    them from process unit or voc type collapses independent threads
+    (A-100 vs B-200, proj-alpha vs empty) and loses the designed fork.
+    Posts ingested without those keys (empty string) fall back to
+    process unit, then corporate entity, with an empty secondary key.
     """
     records: list[Record] = []
     for row in rows:
-        group_key = str(row["process_unit_id"] or row["corporate_entity_id"])
+        stored_group = (row.get("thread_group_key") or "").strip()
+        group_key = stored_group or str(row["process_unit_id"] or row["corporate_entity_id"])
         records.append(
             Record(
                 str(row["post_id"]),
                 group_key,
                 row["post_title"],
                 _occurred_at(row["created_at"]),
-                row["voc_type_code"] or "",
+                row.get("secondary_grouping_key") or "",
             )
         )
     return records
@@ -65,7 +66,8 @@ async def persist_lineage_edges(conn: asyncpg.Connection, edges: list[Edge]) -> 
 async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
     """Reconstruct lineage for every ``source_post`` and persist the edges."""
     rows = await conn.fetch(
-        "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, process_unit_id "
+        "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
+        "process_unit_id, thread_group_key, secondary_grouping_key "
         "from source_post"
     )
     edges = lineage_edge_specs(records_from_source_posts(rows))

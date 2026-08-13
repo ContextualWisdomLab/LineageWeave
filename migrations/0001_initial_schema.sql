@@ -150,6 +150,11 @@ create table source_post (
     post_body text not null,
     voc_type_code text not null references common_lookup_value (lookup_code),
     visibility_code text not null references common_lookup_value (lookup_code),
+    -- Reconstruct grouping keys persisted as-is. Do not derive these from
+    -- process_unit_id or voc_type_code: those collapse A-100/B-200 and
+    -- proj-alpha/proj-beta and lose the designed fork on rebuild.
+    thread_group_key text not null default '',
+    secondary_grouping_key text not null default '',
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );

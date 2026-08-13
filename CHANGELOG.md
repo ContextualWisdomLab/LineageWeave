@@ -4,14 +4,25 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.1] - 2026-08-13
+
+### Fixed
+
+- Rebuild no longer derives reconstruct `group_key`/`secondary_key` from
+  process unit or voc type. Those collapsed A-100/B-200 and
+  proj-alpha/proj-beta and lost the designed `rec-002` fork.
+  `source_post` now persists `thread_group_key` and
+  `secondary_grouping_key`; seed writes fixture `occurred_at` into
+  `created_at`. `test_rebuild_lineage_recovers_the_a100_fork` drives
+  rebuild on the same A-100+B-200 rows seed inserts.
+
 ## [0.13.0] - 2026-08-13
 
 ### Added
 
 - `POST /api/lineage/rebuild` (`post_admin`): runs `reconstruct()` over
-  every `source_post` and writes `post_lineage_edge`. Grouping is by
-  process unit (else corporate entity) so unrelated org units stay out of
-  each other's candidate window.
+  every `source_post` and writes `post_lineage_edge`. Grouping keys are
+  persisted on the post (`thread_group_key` / `secondary_grouping_key`).
 - `GET /api/lineage`: ABAC-filtered `{nodes, edges}` in the same shape as
   the stdlib demo server, so the product UI can show the reconstructed
   DAG. The React home page now lists those parent→child edges.

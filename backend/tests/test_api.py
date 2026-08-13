@@ -636,11 +636,10 @@ def test_rebuild_lineage_requires_post_admin(client, demo_analyst_token) -> None
 
 
 def test_rebuild_lineage_recovers_the_a100_fork(client, demo_analyst_token, seeded_db) -> None:
-    """Insert the designed A-100 fixture as source_post rows, rebuild, and
-    read the product graph -- the fork must appear as persisted edges, not
-    only as in-memory reconstruct output.
+    """Rebuild on the same A-100+B-200 rows seed writes (grouping keys +
+    occurred_at), not a hand-picked A-100-only insert that hides mapping bugs.
     """
-    from lineageweave.fixtures import sample_records
+    from scripts.seed_demo_data import insert_fixture_source_posts
 
     admin_conn = psycopg2.connect(seeded_db["dsn"])
     admin_conn.autocommit = True
@@ -671,19 +670,7 @@ def test_rebuild_lineage_recovers_the_a100_fork(client, demo_analyst_token, seed
                 (seeded_db["own_private_post_id"],),
             )
             author_id, corp_id = cur.fetchone()
-            title_to_id: dict[str, str] = {}
-            for rec in sample_records():
-                if rec.group_key != "A-100":
-                    continue
-                voc_type = "voc" if rec.secondary_key else "vom"
-                cur.execute(
-                    "insert into source_post "
-                    "(author_account_id, corporate_entity_id, process_unit_id, "
-                    " post_title, post_body, voc_type_code, visibility_code, created_at) "
-                    "values (%s, %s, %s, %s, %s, %s, 'public', %s) returning post_id",
-                    (author_id, corp_id, process_unit_id, rec.label, rec.label, voc_type, rec.occurred_at),
-                )
-                title_to_id[rec.label] = str(cur.fetchone()[0])
+            insert_fixture_source_posts(cur, author_id, corp_id, process_unit_id)
     finally:
         admin_conn.close()
 

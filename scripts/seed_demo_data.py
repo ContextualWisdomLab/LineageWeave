@@ -68,6 +68,8 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
     conn = psycopg2.connect(postgres_dsn)
     try:
         with conn.cursor() as cur:
+            grouping_sql = Path(__file__).resolve().parents[1] / "migrations" / "0002_thread_grouping_keys.sql"
+            cur.execute(grouping_sql.read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -232,6 +234,45 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
         conn.close()
 
 
+def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, process_unit_id):
+    """Insert ``sample_records()`` as ``source_post`` rows seed and rebuild share.
+
+    Writes ``thread_group_key``, ``secondary_grouping_key``, and
+    ``created_at = occurred_at`` so a later ``POST /api/lineage/rebuild``
+    sees the same grouping and timeline reconstruct() was designed on.
+    Returns persisted ``Record``s whose ids are the new post UUIDs.
+    """
+    from lineageweave.fixtures import sample_records
+    from lineageweave.models import Record
+
+    persisted: list[Record] = []
+    for rec in sample_records():
+        voc_type = "voc" if rec.secondary_key else "vom"
+        cur.execute(
+            "insert into source_post "
+            "(author_account_id, corporate_entity_id, process_unit_id, "
+            " post_title, post_body, voc_type_code, visibility_code, "
+            " thread_group_key, secondary_grouping_key, created_at) "
+            "values (%s, %s, %s, %s, %s, %s, 'public', %s, %s, %s) returning post_id",
+            (
+                author_account_id,
+                corporate_entity_id,
+                process_unit_id,
+                rec.label,
+                rec.label,
+                voc_type,
+                rec.group_key,
+                rec.secondary_key,
+                rec.occurred_at,
+            ),
+        )
+        post_id = str(cur.fetchone()[0])
+        persisted.append(
+            Record(post_id, rec.group_key, rec.label, rec.occurred_at, rec.secondary_key)
+        )
+    return persisted
+
+
 def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:
     """Persist fixtures.sample_records() as source_posts plus reconstruct edges.
 
@@ -241,35 +282,15 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
     """
     from lineageweave.fixtures import sample_records
     from lineageweave.lineage_persistence import lineage_edge_specs
-    from lineageweave.models import Record
 
     records = sample_records()
     cur.execute("select 1 from source_post where post_title = %s", (records[0].label,))
     if cur.fetchone() is not None:
         return
 
-    persisted: list[Record] = []
-    for rec in records:
-        voc_type = "voc" if rec.secondary_key else "vom"
-        cur.execute(
-            "insert into source_post "
-            "(author_account_id, corporate_entity_id, process_unit_id, "
-            " post_title, post_body, voc_type_code, visibility_code) "
-            "values (%s, %s, %s, %s, %s, %s, 'public') returning post_id",
-            (
-                author_account_id,
-                corporate_entity_id,
-                process_unit_id,
-                rec.label,
-                rec.label,
-                voc_type,
-            ),
-        )
-        post_id = str(cur.fetchone()[0])
-        persisted.append(
-            Record(post_id, rec.group_key, rec.label, rec.occurred_at, rec.secondary_key)
-        )
-
+    persisted = insert_fixture_source_posts(
+        cur, author_account_id, corporate_entity_id, process_unit_id
+    )
     for edge in lineage_edge_specs(persisted):
         cur.execute(
             "insert into post_lineage_edge (parent_post_id, child_post_id, fused_score) "
