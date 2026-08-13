@@ -26,11 +26,24 @@ import asyncpg
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
+from lineageweave.keyman_extraction import (
+    ContextualOrchestratorKeymanExtractionClient,
+    NullKeymanExtractionClient,
+)
+
 from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
 from backend.app.db import create_pool, get_pool
+from backend.app.keyman_ingestion import ingest_post_keymen
+from backend.app.knowledge_graph import (
+    fetch_post_keymen,
+    person_exists,
+    related_for_person,
+    visible_mention_post_ids,
+)
 
 _POST_READ = "post_read"
+_POST_ADMIN = "post_admin"
 
 
 @asynccontextmanager
@@ -48,7 +61,7 @@ app = FastAPI(title="LineageWeave API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=load_settings().frontend_origins,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["Authorization"],
 )
 
@@ -57,6 +70,20 @@ def _require_post_read(account: CurrentAccount) -> None:
     """Raise 403 when the account has no ``post_read`` permission at all."""
     if not account.has_permission(_POST_READ):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "account lacks the post_read permission")
+
+
+def _require_post_admin(account: CurrentAccount) -> None:
+    if not account.has_permission(_POST_ADMIN):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "account lacks the post_admin permission")
+
+
+def _keyman_extraction_client():
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
+        return NullKeymanExtractionClient()
+    return ContextualOrchestratorKeymanExtractionClient(
+        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+    )
 
 
 def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
@@ -127,3 +154,97 @@ async def read_post(
     if not _can_see_post(account, row):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
     return {**_serialize_post(row), "post_body": row["post_body"]}
+
+
+async def _load_visible_post(
+    post_id: str,
+    account: CurrentAccount,
+    pool: asyncpg.Pool,
+) -> asyncpg.Record:
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "select post_id, post_title, voc_type_code, visibility_code, corporate_entity_id, created_at "
+            "from post where post_id = $1",
+            post_id,
+        )
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "post not found")
+    if not _can_see_post(account, row):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
+    return row
+
+
+@app.get("/api/posts/{post_id}/keymen")
+async def read_post_keymen(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    post = await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        keymen = await fetch_post_keymen(conn, post_id)
+    return {"post_id": str(post["post_id"]), "keymen": keymen}
+
+
+@app.get("/api/keymen/{person_id}/related")
+async def read_related_keymen(
+    person_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        if not await person_exists(conn, person_id):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "person not found")
+        visible_post_ids = await visible_mention_post_ids(conn, person_id, lambda row: _can_see_post(account, row))
+        if not visible_post_ids:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this person")
+        person = await conn.fetchrow(
+            "select person_id, person_name, person_side_code from person where person_id = $1",
+            person_id,
+        )
+        related = await related_for_person(conn, person_id, visible_post_ids)
+    return {
+        "person_id": str(person["person_id"]),
+        "person_name": person["person_name"],
+        "person_side_code": person["person_side_code"],
+        "related": related,
+    }
+
+
+@app.post("/api/posts/{post_id}/extract-keymen")
+async def extract_post_keymen(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Runs Keyman extraction over a post's own title+body and persists the
+    result (person / person_affiliation / post_person_mention /
+    knowledge_graph_edge). Gated by post_admin, not post_read: this is a
+    write action with a real LLM-call cost, not a read.
+    """
+    _require_post_admin(account)
+    post = await _load_visible_post(post_id, account, pool)
+    client = _keyman_extraction_client()
+    if not client.available:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Keyman extraction is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+        )
+    async with pool.acquire() as conn:
+        body_row = await conn.fetchrow("select post_body from post where post_id = $1", post_id)
+        async with conn.transaction():
+            mentions = await ingest_post_keymen(conn, client, post_id, post["post_title"], body_row["post_body"])
+    return {
+        "post_id": str(post["post_id"]),
+        "extracted_count": len(mentions),
+        "mentions": [
+            {
+                "person_name": mention.person_name,
+                "person_side_code": mention.person_side_code,
+                "affiliated_organization_names": list(mention.affiliated_organization_names),
+            }
+            for mention in mentions
+        ],
+    }

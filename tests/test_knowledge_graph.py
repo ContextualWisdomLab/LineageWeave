@@ -18,7 +18,18 @@ from __future__ import annotations
 
 import pytest
 
-from lineageweave.knowledge_graph import random_walk_with_restart, select_related_nodes
+from lineageweave.knowledge_graph import (
+    EDGE_AFFILIATION,
+    EDGE_CO_MENTION,
+    EDGE_MENTION,
+    NODE_CORPORATE_ENTITY,
+    NODE_PERSON,
+    NODE_POST,
+    adjacency_from_edges,
+    knowledge_graph_edges_for_post,
+    random_walk_with_restart,
+    select_related_nodes,
+)
 
 
 @pytest.fixture
@@ -68,3 +79,42 @@ def test_start_node_absent_from_graph_returns_only_itself() -> None:
 
 def test_select_related_nodes_empty_graph_returns_empty_list() -> None:
     assert select_related_nodes({"only": 1.0}, start_node="only") == []
+
+
+def test_knowledge_graph_edges_for_post_covers_mention_affiliation_and_co_mention() -> None:
+    edges = knowledge_graph_edges_for_post(
+        post_id="post-1",
+        person_ids=["person-b", "person-a", "person-b"],
+        person_corporate_entity_ids=[("person-a", "corp-1"), ("person-a", "corp-1")],
+    )
+    kinds = {(edge.edge_type_code, edge.source_node_id, edge.target_node_id) for edge in edges}
+    assert kinds == {
+        (EDGE_MENTION, "person-b", "post-1"),
+        (EDGE_MENTION, "person-a", "post-1"),
+        (EDGE_AFFILIATION, "person-a", "corp-1"),
+        (EDGE_CO_MENTION, "person-a", "person-b"),
+    }
+    assert all(edge.source_node_type_code == NODE_PERSON for edge in edges)
+    assert {edge.target_node_type_code for edge in edges} == {
+        NODE_POST,
+        NODE_CORPORATE_ENTITY,
+        NODE_PERSON,
+    }
+
+
+def test_rwr_from_a_keyman_reaches_co_mentioned_person_and_affiliated_org() -> None:
+    edges = knowledge_graph_edges_for_post(
+        post_id="post-1",
+        person_ids=["person-a", "person-b"],
+        person_corporate_entity_ids=[("person-a", "corp-1")],
+    )
+    scores = random_walk_with_restart(
+        adjacency_from_edges(edges), start_node=f"{NODE_PERSON}:person-a"
+    )
+    related = dict(
+        select_related_nodes(scores, start_node=f"{NODE_PERSON}:person-a", min_relevance_ratio=0.05)
+    )
+    assert f"{NODE_PERSON}:person-b" in related
+    assert f"{NODE_POST}:post-1" in related
+    assert f"{NODE_CORPORATE_ENTITY}:corp-1" in related
+    assert related[f"{NODE_PERSON}:person-b"] > 0
