@@ -847,6 +847,61 @@ def test_seed_fixture_evaluations_surface_on_get_evaluation(
     assert by_code["general_sentiment_positive"]["criterion_label"] == "Constructive stance"
 
 
+def test_seed_fixture_keymen_and_voc_surface_on_get(client, demo_analyst_token, seeded_db) -> None:
+    """The same helper `make seed` calls must fill Keyman, affiliate tree,
+    and VOC evidence for an A-100 fixture post -- otherwise DAG
+    click-through stays empty on those panels.
+    """
+    from scripts.seed_demo_data import _seed_fixture_keymen_and_voc
+
+    fixture_title = "Pricing renegotiation follow-up"
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_id, corp_id = cur.fetchone()
+            cur.execute(
+                "insert into source_post "
+                "(author_account_id, corporate_entity_id, post_title, post_body, "
+                " voc_type_code, visibility_code) "
+                "values (%s, %s, %s, %s, 'voc', 'public') returning post_id",
+                (author_id, corp_id, fixture_title, fixture_title),
+            )
+            post_id = str(cur.fetchone()[0])
+            _seed_fixture_keymen_and_voc(cur, corp_id)
+    finally:
+        admin_conn.close()
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    keymen = client.get(f"/api/posts/{post_id}/keymen", headers=headers)
+    assert keymen.status_code == 200, keymen.text
+    names = {person["person_name"] for person in keymen.json()["keymen"]}
+    assert names == {"Ada West", "Priya Nair"}
+
+    tree = client.get(f"/api/posts/{post_id}/affiliate-tree", headers=headers)
+    assert tree.status_code == 200, tree.text
+
+    def _org_names(nodes):
+        names: set[str] = set()
+        for node in nodes:
+            names.add(node["entity_name"])
+            names.update(_org_names(node.get("children", [])))
+        return names
+
+    assert "Northridge Grid" in _org_names(tree.json()["trees"])
+
+    voc = client.get(f"/api/posts/{post_id}/voc-evidence", headers=headers)
+    assert voc.status_code == 200, voc.text
+    body = voc.json()
+    assert any("Northridge Grid" in excerpt for excerpt in body["excerpts"])
+    counterparties = {row["counterparty_entity_name"] for row in body["counterparties"]}
+    assert "Northridge Grid" in counterparties
+
+
 def test_evaluation_is_empty_before_a_judge_run(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         f"/api/posts/{seeded_db['public_post_id']}/evaluation",

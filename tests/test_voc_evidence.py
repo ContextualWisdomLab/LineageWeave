@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from lineageweave.fixtures import fixture_thread_cast, sample_records
 from lineageweave.voc_evidence import first_excerpt_for, sentence_excerpts
 
 _BODY = (
@@ -40,3 +41,22 @@ def test_first_excerpt_returns_the_matching_sentence() -> None:
         "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid "
         "about the delayed shipment."
     )
+
+
+def test_proj_alpha_cast_names_northridge_and_uncast_stays_empty() -> None:
+    """Event Lineage click-through must have extractable VOC evidence."""
+    fork = fixture_thread_cast("Pricing renegotiation follow-up")
+    assert fork is not None
+    assert fork.organization_name == "Northridge Grid"
+    assert "Ada West" in fork.person_names
+    assert fork.body is not None
+    assert sentence_excerpts(fork.body, (fork.organization_name,))
+    assert fixture_thread_cast("Unrelated: annual account review") is None
+    assert fixture_thread_cast("Technical specification review meeting") is None
+    calendar = fixture_thread_cast("Follow-up on the Riverbend order confirmation")
+    assert calendar is not None
+    assert calendar.organization_name == "Riverbend"
+    assert not calendar.person_names
+    alpha = [rec.label for rec in sample_records() if rec.secondary_key == "proj-alpha"]
+    assert len(alpha) == 5
+    assert all(fixture_thread_cast(title) is not None for title in alpha)
