@@ -43,6 +43,22 @@ def edge_spec_from_row(row: asyncpg.Record) -> KnowledgeGraphEdgeSpec:
     )
 
 
+async def labels_for_codes(conn: asyncpg.Connection, codes: list[str]) -> dict[str, str]:
+    """Map lookup codes to their ``common_lookup_value`` labels.
+
+    Codes with no row keep no entry -- callers fall back to the raw
+    code rather than inventing a label (missing is not a guessed name).
+    """
+    unique = [code for code in dict.fromkeys(codes) if code]
+    if not unique:
+        return {}
+    rows = await conn.fetch(
+        "select lookup_code, lookup_label from common_lookup_value where lookup_code = any($1::text[])",
+        unique,
+    )
+    return {row["lookup_code"]: row["lookup_label"] for row in rows}
+
+
 async def fetch_post_keymen(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
     """Load mentioned people and their affiliations for one post."""
     person_rows = await conn.fetch(
@@ -81,11 +97,13 @@ async def fetch_post_keymen(conn: asyncpg.Connection, post_id: str) -> list[dict
             }
         )
 
+    side_labels = await labels_for_codes(conn, [row["person_side_code"] for row in person_rows])
     return [
         {
             "person_id": str(row["person_id"]),
             "person_name": row["person_name"],
             "person_side_code": row["person_side_code"],
+            "person_side_label": side_labels.get(row["person_side_code"], row["person_side_code"]),
             "mention_context": row["mention_context"],
             "affiliations": affiliations_by_person.get(str(row["person_id"]), []),
         }

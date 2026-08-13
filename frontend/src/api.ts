@@ -22,6 +22,7 @@ export interface Keyman {
   person_id: string;
   person_name: string;
   person_side_code: string;
+  person_side_label?: string;
   mention_context: string | null;
   affiliations: Affiliation[];
 }
@@ -36,12 +37,14 @@ export interface AffiliatePersonRef {
   person_id: string;
   person_name: string;
   person_side_code: string;
+  person_side_label?: string;
 }
 
 export interface AffiliateNode {
   entity_id: string | null;
   entity_name: string;
   entity_level_code: string | null;
+  entity_level_label?: string | null;
   resolved: boolean;
   people: AffiliatePersonRef[];
   children: AffiliateNode[];

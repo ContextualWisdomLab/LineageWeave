@@ -198,12 +198,16 @@ function AffiliateTreeNode({ node }: { node: AffiliateNode }) {
       <span className={node.resolved ? "affiliate-resolved" : "affiliate-unresolved"}>
         {node.entity_name}
       </span>
-      {node.entity_level_code && <span className="affiliate-level"> ({node.entity_level_code})</span>}
+      {(node.entity_level_label || node.entity_level_code) && (
+        <span className="affiliate-level"> ({node.entity_level_label ?? node.entity_level_code})</span>
+      )}
       {!node.resolved && <span className="affiliate-unresolved-mark"> unresolved</span>}
       {node.people.length > 0 && (
         <span className="keyman-affiliations">
           {" -- "}
-          {node.people.map((person) => `${person.person_name} (${person.person_side_code})`).join(", ")}
+          {node.people
+            .map((person) => `${person.person_name} (${person.person_side_label ?? person.person_side_code})`)
+            .join(", ")}
         </span>
       )}
       {node.children.length > 0 && (
@@ -307,7 +311,7 @@ function KeymanPanel({
                 aria-label={`Related nodes for ${person.person_name}`}
                 onClick={() => handleSelect(person)}
               >
-                <strong>{person.person_name}</strong> ({person.person_side_code})
+                <strong>{person.person_name}</strong> ({person.person_side_label ?? person.person_side_code})
               </button>
               {person.affiliations.length > 0 && (
                 <span className="keyman-affiliations">

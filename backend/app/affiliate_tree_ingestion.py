@@ -9,7 +9,7 @@ import asyncpg
 from lineageweave.affiliate_tree import AffiliationLeaf, CorporateEntityRow, build_affiliate_forest
 from lineageweave.voc_evidence import first_excerpt_for, sentence_excerpts
 
-from .knowledge_graph import fetch_post_keymen
+from .knowledge_graph import fetch_post_keymen, labels_for_codes
 
 
 async def fetch_affiliate_forest(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
@@ -41,7 +41,37 @@ async def fetch_affiliate_forest(conn: asyncpg.Connection, post_id: str) -> list
                     corporate_entity_id=affiliation["corporate_entity_id"],
                 )
             )
-    return [node.to_dict() for node in build_affiliate_forest(entities, tuple(leaves))]
+    forest = [node.to_dict() for node in build_affiliate_forest(entities, tuple(leaves))]
+    await _attach_lookup_labels(conn, forest)
+    return forest
+
+
+def _collect_lookup_codes(nodes: list[dict[str, Any]]) -> list[str]:
+    """Every entity-level and person-side code in the forest."""
+    codes: list[str] = []
+    for node in nodes:
+        if node.get("entity_level_code"):
+            codes.append(node["entity_level_code"])
+        for person in node.get("people", []):
+            codes.append(person["person_side_code"])
+        codes.extend(_collect_lookup_codes(node.get("children", [])))
+    return codes
+
+
+def _apply_lookup_labels(nodes: list[dict[str, Any]], labels: dict[str, str]) -> None:
+    """Write display labels onto the JSON forest, falling back to the code."""
+    for node in nodes:
+        level = node.get("entity_level_code")
+        node["entity_level_label"] = labels.get(level, level) if level else None
+        for person in node.get("people", []):
+            side = person["person_side_code"]
+            person["person_side_label"] = labels.get(side, side)
+        _apply_lookup_labels(node.get("children", []), labels)
+
+
+async def _attach_lookup_labels(conn: asyncpg.Connection, forest: list[dict[str, Any]]) -> None:
+    """Hydrate ``entity_level_label`` / ``person_side_label`` from lookup rows."""
+    _apply_lookup_labels(forest, await labels_for_codes(conn, _collect_lookup_codes(forest)))
 
 
 async def fetch_voc_evidence(conn: asyncpg.Connection, post_id: str, voc_type_code: str) -> dict[str, Any]:
