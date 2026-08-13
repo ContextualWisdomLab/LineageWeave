@@ -445,9 +445,11 @@ the persisted categories and an "Evaluate post" button.
 fits GRM and GPCM via `fast_mlsirm.fit_polytomous` (Rust EM),
 EAP-scores with `score_polytomous` (Bock & Mislevy, 1982), and
 selects the model with `fixed_item_calibration_diagnostics`.
-The first period free-calibrates and persists `report_item_parameter`;
-later periods EAP-score on those fixed parameters (Kim, 2006 FIPC)
-so weekly thetas share a metric. Results persist to
+The first period free-calibrates a **shared** item bank
+(`shared_metric` / `all`) on the pooled posts; every process unit,
+corporate entity, and thread group is then FIPC-scored on that bank
+so PU/team/project thetas stay on one metric. Later periods EAP-score
+on those same fixed parameters (Kim, 2006 FIPC). Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
