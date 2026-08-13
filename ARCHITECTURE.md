@@ -231,10 +231,12 @@ links and indirect Knowledge-Graph links, kept as two separate lists --
 persisted in `post_summary_result` so a seeded demo -- including
 A-100/B-200 Event Lineage nodes and the calendar commitment -- is
 not empty without a live LLM), and
-`POST /api/posts/{post_id}/chat` (`lineageweave/post_chat.py`'s
+`GET`/`POST /api/posts/{post_id}/chat` (`lineageweave/post_chat.py`'s
 reason-and-cite step over `gather_chat_sources`' retrieve step -- both
 Event-Lineage link kinds feed the chat's context, ABAC-rechecked per
-candidate post). A missing orchestrator is 503; the popup shows
+candidate post). Seeded fixture answers live in `post_chat_result` so
+Ask is useful without a live LLM; a missing orchestrator and no stored
+match is 503; the popup shows
 `Chat unavailable (LLM orchestrator not configured)` rather than a
 raw HTTP status -- never a fabricated answer. Evaluate, Extract
 Keymen, Derive commitment, and Verify use the same 503 empty-state

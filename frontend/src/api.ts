@@ -117,6 +117,18 @@ export interface ChatAnswer {
   source_post_ids: string[];
 }
 
+export interface ChatExchange {
+  question_text: string;
+  answer_text: string;
+  cited_post_ids: string[];
+  cited_posts?: CitedPostRef[];
+}
+
+export interface ChatHistory {
+  post_id: string;
+  exchanges: ChatExchange[];
+}
+
 export interface IssueTicket {
   issue_ticket_id: string;
   post_id: string;
@@ -404,6 +416,10 @@ export function fetchPostSummary(accessToken: string, postId: string): Promise<P
 
 export function fetchPostLineage(accessToken: string, postId: string): Promise<PostLineage> {
   return backendFetch(`/api/posts/${postId}/lineage`, accessToken);
+}
+
+export function fetchPostChat(accessToken: string, postId: string): Promise<ChatHistory> {
+  return backendFetch(`/api/posts/${postId}/chat`, accessToken);
 }
 
 export function askPostChat(accessToken: string, postId: string, question: string): Promise<ChatAnswer> {

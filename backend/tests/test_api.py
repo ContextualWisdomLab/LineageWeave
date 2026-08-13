@@ -480,6 +480,169 @@ def test_seed_fixture_summaries_surface_on_get_summary(client, demo_analyst_toke
     assert missing.status_code == 503
 
 
+def test_persisted_chat_is_returned_without_an_llm(client, demo_analyst_token, seeded_db) -> None:
+    """POST /api/posts/{id}/chat must serve a stored row even when the
+    orchestrator is off -- otherwise a seeded demo Ask stays empty.
+    """
+    os.environ.pop("ORCHESTRATOR_BASE_URL", None)
+    os.environ.pop("ORCHESTRATOR_API_KEY", None)
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into post_chat_result (post_id, question_norm, question_text, answer_text) "
+                "values (%s, 'what happened between these events', "
+                "'What happened between these events?', 'Stored follow-up after the site visit.')",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "insert into post_chat_citation "
+                "(post_id, question_norm, citation_ordinal, cited_post_id) "
+                "values (%s, 'what happened between these events', 0, %s)",
+                (seeded_db["public_post_id"], seeded_db["public_post_id"]),
+            )
+    finally:
+        admin_conn.close()
+
+    asked = client.post(
+        f"/api/posts/{seeded_db['public_post_id']}/chat",
+        json={"question": "What happened?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert asked.status_code == 200, asked.text
+    body = asked.json()
+    assert body["answer_text"] == "Stored follow-up after the site visit."
+    assert body["cited_post_ids"] == [seeded_db["public_post_id"]]
+    assert body["cited_posts"] == [
+        {"post_id": seeded_db["public_post_id"], "post_title": "Public post"}
+    ]
+
+    history = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}/chat",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert history.status_code == 200, history.text
+    assert history.json()["exchanges"][0]["answer_text"] == "Stored follow-up after the site visit."
+
+
+def test_seed_demo_chat_surfaces_on_get_and_post_chat(client, demo_analyst_token, seeded_db) -> None:
+    """The same helper `make seed` calls must produce a row GET/POST chat
+    return -- even with the orchestrator unset.
+    """
+    os.environ.pop("ORCHESTRATOR_BASE_URL", None)
+    os.environ.pop("ORCHESTRATOR_API_KEY", None)
+    from scripts.seed_demo_data import _seed_demo_public_chat
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "update source_post set post_title = 'Demo public post' where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            _seed_demo_public_chat(cur, seeded_db["public_post_id"])
+    finally:
+        admin_conn.close()
+
+    history = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}/chat",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert history.status_code == 200, history.text
+    assert "Northridge Grid" in history.json()["exchanges"][0]["answer_text"]
+
+    asked = client.post(
+        f"/api/posts/{seeded_db['public_post_id']}/chat",
+        json={"question": "What happened between these events?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert asked.status_code == 200, asked.text
+    assert "Northridge Grid" in asked.json()["answer_text"]
+
+
+def test_seed_fixture_chats_surface_on_post_chat(client, demo_analyst_token, seeded_db) -> None:
+    """The A-100 fork and calendar commitment `make seed` writes must
+    answer POST /api/posts/{id}/chat without a live orchestrator.
+    """
+    from scripts.seed_demo_data import (
+        _seed_demo_calendar_commitment,
+        _seed_fixture_chats,
+        insert_fixture_source_posts,
+    )
+
+    os.environ.pop("ORCHESTRATOR_BASE_URL", None)
+    os.environ.pop("ORCHESTRATOR_API_KEY", None)
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('voc_type', 'vom', 'Voice of Market') "
+                "on conflict (lookup_code) do nothing"
+            )
+            cur.execute(
+                "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
+                "select corporate_entity_id, 'TEST-PU-CHAT', 'Chat thread' "
+                "from source_post where post_id = %s returning process_unit_id",
+                (seeded_db["own_private_post_id"],),
+            )
+            process_unit_id = cur.fetchone()[0]
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_id, corp_id = cur.fetchone()
+            insert_fixture_source_posts(cur, author_id, corp_id, process_unit_id)
+            _seed_demo_calendar_commitment(cur, author_id, corp_id, process_unit_id)
+            _seed_fixture_chats(cur)
+            cur.execute(
+                "select post_id from source_post where post_title = %s",
+                ("Pricing renegotiation follow-up",),
+            )
+            fork_id = str(cur.fetchone()[0])
+            cur.execute(
+                "select post_id from source_post where post_title = %s",
+                ("Follow-up on the Riverbend order confirmation",),
+            )
+            calendar_id = str(cur.fetchone()[0])
+    finally:
+        admin_conn.close()
+
+    fork = client.post(
+        f"/api/posts/{fork_id}/chat",
+        json={"question": "What happened between these events?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert fork.status_code == 200, fork.text
+    assert "pricing renegotiation" in fork.json()["answer_text"].lower()
+    assert fork.json()["cited_posts"]
+
+    calendar = client.post(
+        f"/api/posts/{calendar_id}/chat",
+        json={"question": "What happened?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert calendar.status_code == 200, calendar.text
+    assert "Riverbend" in calendar.json()["answer_text"]
+
+    missing = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/chat",
+        json={"question": "What happened between these events?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert missing.status_code == 503
+
+    unknown = client.post(
+        f"/api/posts/{fork_id}/chat",
+        json={"question": "What is the weather in Gwangju?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert unknown.status_code == 503
+
+
 def test_own_corp_private_post_detail_is_readable(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         f"/api/posts/{seeded_db['own_private_post_id']}", headers={"Authorization": f"Bearer {demo_analyst_token}"}
@@ -1112,12 +1275,15 @@ def test_other_corp_private_post_summary_is_forbidden(client, demo_analyst_token
 
 
 def test_other_corp_private_post_chat_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
-    response = client.post(
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    posted = client.post(
         f"/api/posts/{seeded_db['other_private_post_id']}/chat",
         json={"question": "what happened"},
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        headers=headers,
     )
-    assert response.status_code == 403
+    assert posted.status_code == 403
+    listed = client.get(f"/api/posts/{seeded_db['other_private_post_id']}/chat", headers=headers)
+    assert listed.status_code == 403
 
 
 @pytest.mark.skipif(

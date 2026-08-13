@@ -26,6 +26,24 @@ from typing import Protocol
 
 from .http_client import post_json
 
+CANONICAL_CHAT_QUESTION = "What happened between these events?"
+
+_TRAILING_PUNCT = re.compile(r"[?.!\s]+$")
+_CANONICAL_QUESTION_NORM = "what happened between these events"
+
+
+def normalize_chat_question(question: str) -> str:
+    """Whitespace/case fold plus trailing-punctuation strip.
+
+    Seeded Ask matches this form, never a live paraphrase. ``What
+    happened?`` is an alias of the popup placeholder so a short type-in
+    still hits the stored fixture answer.
+    """
+    folded = _TRAILING_PUNCT.sub("", " ".join(question.strip().lower().split()))
+    if folded == "what happened":
+        return _CANONICAL_QUESTION_NORM
+    return folded
+
 
 @dataclass(frozen=True)
 class ChatSourceDocument:

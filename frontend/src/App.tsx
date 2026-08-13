@@ -12,6 +12,7 @@ import {
   fetchMe,
   fetchPost,
   fetchPostActivity,
+  fetchPostChat,
   fetchPostAffiliateTree,
   fetchPostCounterparties,
   fetchPostEvaluation,
@@ -33,6 +34,7 @@ import {
   type AffiliateNode,
   type CalendarEntry,
   type ChatAnswer,
+  type ChatExchange,
   type Counterparty,
   type EvaluationResponse,
   type IssueTicket,
@@ -117,20 +119,68 @@ function EvidencePanel({
   );
 }
 
+function ChatCitations({
+  citedPosts,
+  citedPostIds,
+  onOpenEvidence,
+}: {
+  citedPosts?: { post_id: string; post_title: string }[];
+  citedPostIds: string[];
+  onOpenEvidence: (postId: string) => void;
+}) {
+  if ((citedPosts?.length ?? citedPostIds.length) === 0) return null;
+  const chips =
+    citedPosts ?? citedPostIds.map((post_id) => ({ post_id, post_title: post_id.slice(0, 8) }));
+  return (
+    <div className="chat-citations">
+      <span>Sources: </span>
+      {chips.map((cited) => (
+        <button
+          key={cited.post_id}
+          className="citation-chip"
+          aria-label={`Open evidence: ${cited.post_title}`}
+          onClick={() => onOpenEvidence(cited.post_id)}
+        >
+          {cited.post_title}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function ChatPanel({ postId, accessToken }: { postId: string; accessToken: string }) {
   const [question, setQuestion] = useState("");
+  const [exchanges, setExchanges] = useState<ChatExchange[]>([]);
   const [answer, setAnswer] = useState<ChatAnswer | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [evidencePostId, setEvidencePostId] = useState<string | null>(null);
 
-  async function handleAsk() {
-    if (!question.trim()) return;
+  useEffect(() => {
+    setExchanges([]);
+    setAnswer(null);
+    setError(null);
+    fetchPostChat(accessToken, postId)
+      .then((history) => setExchanges(history.exchanges))
+      .catch(() => setExchanges([]));
+  }, [postId, accessToken]);
+
+  async function handleAsk(asked = question) {
+    if (!asked.trim()) return;
     setLoading(true);
     setError(null);
     try {
-      const result = await askPostChat(accessToken, postId, question);
+      const result = await askPostChat(accessToken, postId, asked);
       setAnswer(result);
+      setExchanges((prev) => {
+        const next: ChatExchange = {
+          question_text: asked.trim(),
+          answer_text: result.answer_text,
+          cited_post_ids: result.cited_post_ids,
+          cited_posts: result.cited_posts,
+        };
+        return [...prev.filter((row) => row.question_text !== next.question_text), next];
+      });
     } catch (err) {
       setError(orchestratorUnavailableMessage(err, "Chat"));
     } finally {
@@ -149,31 +199,46 @@ function ChatPanel({ postId, accessToken }: { postId: string; accessToken: strin
           onKeyDown={(event) => event.key === "Enter" && handleAsk()}
           placeholder="What happened between these events?"
         />
-        <button onClick={handleAsk} disabled={loading || !question.trim()}>
+        <button onClick={() => handleAsk()} disabled={loading || !question.trim()}>
           {loading ? "Asking..." : "Ask"}
         </button>
       </div>
+      {exchanges.length > 0 && (
+        <div className="chat-suggestions">
+          {exchanges.map((exchange) => (
+            <button
+              key={exchange.question_text}
+              className="chat-suggestion-chip"
+              onClick={() => {
+                setQuestion(exchange.question_text);
+                void handleAsk(exchange.question_text);
+              }}
+            >
+              {exchange.question_text}
+            </button>
+          ))}
+        </div>
+      )}
       {error && <p className="error">{error}</p>}
-      {answer && (
+      {exchanges.map((exchange) => (
+        <div key={`seeded-${exchange.question_text}`} className="chat-answer">
+          <p className="chat-question">{exchange.question_text}</p>
+          <p>{exchange.answer_text}</p>
+          <ChatCitations
+            citedPosts={exchange.cited_posts}
+            citedPostIds={exchange.cited_post_ids}
+            onOpenEvidence={setEvidencePostId}
+          />
+        </div>
+      ))}
+      {answer && !exchanges.some((row) => row.answer_text === answer.answer_text) && (
         <div className="chat-answer">
           <p>{answer.answer_text}</p>
-          {(answer.cited_posts?.length ?? answer.cited_post_ids.length) > 0 && (
-            <div className="chat-citations">
-              <span>Sources: </span>
-              {(answer.cited_posts ?? answer.cited_post_ids.map((post_id) => ({ post_id, post_title: post_id.slice(0, 8) }))).map(
-                (cited) => (
-                  <button
-                    key={cited.post_id}
-                    className="citation-chip"
-                    aria-label={`Open evidence: ${cited.post_title}`}
-                    onClick={() => setEvidencePostId(cited.post_id)}
-                  >
-                    {cited.post_title}
-                  </button>
-                ),
-              )}
-            </div>
-          )}
+          <ChatCitations
+            citedPosts={answer.cited_posts}
+            citedPostIds={answer.cited_post_ids}
+            onOpenEvidence={setEvidencePostId}
+          />
         </div>
       )}
       {evidencePostId && (

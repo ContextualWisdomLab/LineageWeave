@@ -218,6 +218,30 @@ create table post_summary_role (
     primary key (post_id, person_name)
 );
 
+-- Persisted in-popup Q&A. Seed writes a synthetic exchange so
+-- GET/POST /api/posts/{id}/chat is not empty without a live LLM.
+-- Live answers still write through the same tables. Never invent a
+-- reply: a missing (post, question) pair 503s when the orchestrator
+-- is off.
+create table post_chat_result (
+    post_id uuid not null references source_post (post_id) on delete cascade,
+    question_norm text not null,
+    question_text text not null,
+    answer_text text not null,
+    computed_at timestamptz not null default now(),
+    primary key (post_id, question_norm)
+);
+
+create table post_chat_citation (
+    post_id uuid not null,
+    question_norm text not null,
+    citation_ordinal integer not null,
+    cited_post_id uuid not null references source_post (post_id) on delete cascade,
+    primary key (post_id, question_norm, citation_ordinal),
+    foreign key (post_id, question_norm)
+        references post_chat_result (post_id, question_norm) on delete cascade
+);
+
 -- Calibrated period scores (ADR 0003 slice 3/4). Written only by
 -- lineageweave.period_report.link_or_calibrate_period_report.
 -- link_method = free on the first period; fipc on later periods scored

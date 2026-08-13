@@ -16,6 +16,8 @@ COPY migrations/0006_report_period_score.sql /docker-entrypoint-initdb.d/07-repo
 COPY migrations/0007_report_fipc_linking.sql /docker-entrypoint-initdb.d/08-report-fipc-linking.sql
 COPY migrations/0008_post_summary_result.sql /docker-entrypoint-initdb.d/09-post-summary-result.sql
 COPY migrations/0009_shared_metric_bank.sql /docker-entrypoint-initdb.d/10-shared-metric-bank.sql
+COPY migrations/0010_report_item_information.sql /docker-entrypoint-initdb.d/11-report-item-information.sql
+COPY migrations/0011_post_chat_result.sql /docker-entrypoint-initdb.d/12-post-chat-result.sql
 # Official image already drops to this account at runtime; declare it so
 # the Dockerfile itself satisfies DS-0002 (explicit non-root USER).
 USER postgres
