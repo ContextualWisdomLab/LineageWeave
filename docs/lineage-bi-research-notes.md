@@ -217,7 +217,11 @@ Bhattacharya, I., & Getoor, L. (2007). Collective entity resolution in relationa
 
 Fellegi, I. P., & Sunter, A. B. (1969). A theory for record linkage. *Journal of the American Statistical Association*, *64*(328), 1183-1210. https://doi.org/10.2307/2286061
 
+Gildea, D., & Jurafsky, D. (2002). Automatic labeling of semantic roles. *Computational Linguistics*, *28*(3), 245-288. https://doi.org/10.1162/089120102760275983
+
 Hearst, M. A. (1997). TextTiling: Segmenting text into multi-paragraph subtopic passages. *Computational Linguistics*, *23*(1), 33-64.
+
+Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., Küttler, H., Lewis, M., Yih, W., Rocktäschel, T., Riedel, S., & Kiela, D. (2020). Retrieval-augmented generation for knowledge-intensive NLP tasks. In H. Larochelle, M. Ranzato, R. Hadsell, M. F. Balcan, & H. Lin (Eds.), *Advances in Neural Information Processing Systems* (Vol. 33, pp. 9459-9474). Curran Associates.
 
 Li, M., Lv, T., Chen, J., Cui, L., Lu, Y., Florencio, D., Zhang, C., Li, Z., & Wei, F. (2023). TrOCR: Transformer-based optical character recognition with pre-trained models. *Proceedings of the AAAI Conference on Artificial Intelligence*, *37*(11), 13094-13102. https://doi.org/10.1609/aaai.v37i11.26538
 
@@ -226,6 +230,8 @@ Radford, A., Kim, J. W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., Sastry, 
 Raudenbush, S. W., & Bryk, A. S. (2002). *Hierarchical linear models: Applications and data analysis methods* (2nd ed.). Sage Publications.
 
 Resnick, P. (2008). *Internet Message Format* (RFC 5322). IETF. https://doi.org/10.17487/RFC5322
+
+See, A., Liu, P. J., & Manning, C. D. (2017). Get to the point: Summarization with pointer-generator networks. In *Proceedings of the 55th Annual Meeting of the Association for Computational Linguistics* (Vol. 1, pp. 1073-1083). Association for Computational Linguistics. https://doi.org/10.18653/v1/P17-1099
 
 Tong, H., Faloutsos, C., & Pan, J.-Y. (2006). Fast random walk with restart and its applications. *Proceedings of the Sixth International Conference on Data Mining (ICDM'06)*, 613-622. https://doi.org/10.1109/ICDM.2006.70
 
@@ -295,3 +301,23 @@ affiliates, and could resolve two different ambiguous mentions in one post
 jointly. That joint step is a documented upgrade path, not yet needed --
 nothing in this product's real usage so far has shown single-mention
 similarity scoring under- or over-resolving.
+
+## Post summary, key events, R&R, and the in-popup chat (Phase 4)
+
+`lineageweave/post_summary.py` treats the popup's summary panel as three
+distinct extraction tasks rather than one "summarize this" prompt:
+abstractive summarization (See, Liu, & Manning, 2017 -- a summary is a
+genuinely re-generated, condensed account, not an extracted span),
+ACE-style key-event extraction (Doddington et al., 2004, the same
+grounding `keyman_extraction` uses), and semantic role labeling (Gildea &
+Jurafsky, 2002) for R&R -- who did what, per person named in the post.
+
+`lineageweave/post_chat.py` implements the in-popup chat as retrieval-
+augmented generation (Lewis et al., 2020): an explicit *retrieve* step
+(`backend/app/post_chat_ingestion.py` assembles the post's own content
+plus its Event-Lineage-linked posts, direct and Knowledge-Graph-indirect,
+as numbered source documents) followed by a *reason-and-cite* step (the
+model answers using only those sources and reports which ones it actually
+drew from). This is the Agentic retrieve-reason-cite shape the product
+brief asks for without adding a full agent-framework dependency for what
+two functions and a structured prompt already do.

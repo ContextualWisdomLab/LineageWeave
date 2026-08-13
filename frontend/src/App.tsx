@@ -1,7 +1,149 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
-import { fetchPost, fetchPosts, type PostDetail, type PostSummary } from "./api";
+import {
+  askPostChat,
+  fetchPost,
+  fetchPostCounterparties,
+  fetchPostKeymen,
+  fetchPostLineage,
+  fetchPostSummary,
+  fetchPosts,
+  type ChatAnswer,
+  type Counterparty,
+  type Keyman,
+  type LinkedPostRef,
+  type PostAiSummary,
+  type PostDetail,
+  type PostLineage,
+  type PostSummary,
+} from "./api";
 import "./App.css";
+
+// This popup's layout follows the textual product brief (Korean summary,
+// key events, R&R, Event Lineage, Keyman, in-popup chat with a sliding
+// evidence panel) rather than the referenced Figma frame's actual pixel
+// layout -- see ADR 0002 for why (the file's own content is the source
+// organization's confidential material, and does not yet contain a frame
+// for this screen).
+
+function EvidencePanel({
+  postId,
+  accessToken,
+  onClose,
+}: {
+  postId: string;
+  accessToken: string;
+  onClose: () => void;
+}) {
+  const [post, setPost] = useState<PostDetail | null>(null);
+
+  useEffect(() => {
+    setPost(null);
+    fetchPost(accessToken, postId).then(setPost).catch(() => setPost(null));
+  }, [postId, accessToken]);
+
+  return (
+    <div className="evidence-panel" role="complementary" aria-label="Evidence">
+      <button className="popup-close" onClick={onClose} aria-label="Close evidence panel">
+        &times;
+      </button>
+      <h3>Evidence</h3>
+      {!post && <p>Loading source post...</p>}
+      {post && (
+        <>
+          <h4>{post.post_title}</h4>
+          <p className="post-body">{post.post_body}</p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ChatPanel({ postId, accessToken }: { postId: string; accessToken: string }) {
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState<ChatAnswer | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [evidencePostId, setEvidencePostId] = useState<string | null>(null);
+
+  async function handleAsk() {
+    if (!question.trim()) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await askPostChat(accessToken, postId, question);
+      setAnswer(result);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="popup-section chat-section">
+      <h3>Ask about this lineage</h3>
+      <div className="chat-input-row">
+        <input
+          type="text"
+          value={question}
+          onChange={(event) => setQuestion(event.target.value)}
+          onKeyDown={(event) => event.key === "Enter" && handleAsk()}
+          placeholder="What happened between these events?"
+        />
+        <button onClick={handleAsk} disabled={loading || !question.trim()}>
+          {loading ? "Asking..." : "Ask"}
+        </button>
+      </div>
+      {error && <p className="error">{error}</p>}
+      {answer && (
+        <div className="chat-answer">
+          <p>{answer.answer_text}</p>
+          {answer.cited_post_ids.length > 0 && (
+            <div className="chat-citations">
+              <span>Sources: </span>
+              {answer.cited_post_ids.map((citedId) => (
+                <button
+                  key={citedId}
+                  className="citation-chip"
+                  onClick={() => setEvidencePostId(citedId)}
+                >
+                  {citedId.slice(0, 8)}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      {evidencePostId && (
+        <EvidencePanel
+          postId={evidencePostId}
+          accessToken={accessToken}
+          onClose={() => setEvidencePostId(null)}
+        />
+      )}
+    </section>
+  );
+}
+
+function EventLineageSection({ lineage }: { lineage: PostLineage | null }) {
+  if (!lineage) return <p>Loading lineage...</p>;
+  if (lineage.direct.length === 0 && lineage.indirect.length === 0) {
+    return <p className="lineage-empty">No linked posts yet.</p>;
+  }
+  const renderLink = (post: LinkedPostRef, kind: "direct" | "indirect") => (
+    <li key={post.post_id} className={`lineage-link lineage-link-${kind}`}>
+      <span className="lineage-badge">{kind === "direct" ? "직접" : "간접"}</span>
+      {post.post_title}
+    </li>
+  );
+  return (
+    <ul className="lineage-list">
+      {lineage.direct.map((post) => renderLink(post, "direct"))}
+      {lineage.indirect.map((post) => renderLink(post, "indirect"))}
+    </ul>
+  );
+}
 
 function PostDetailPopup({
   postId,
@@ -14,11 +156,25 @@ function PostDetailPopup({
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<PostAiSummary | null>(null);
+  const [keymen, setKeymen] = useState<Keyman[] | null>(null);
+  const [counterparties, setCounterparties] = useState<Counterparty[] | null>(null);
+  const [lineage, setLineage] = useState<PostLineage | null>(null);
 
   useEffect(() => {
     setPost(null);
     setError(null);
+    setSummary(null);
+    setKeymen(null);
+    setCounterparties(null);
+    setLineage(null);
     fetchPost(accessToken, postId).then(setPost).catch((err) => setError(String(err)));
+    fetchPostSummary(accessToken, postId).then(setSummary).catch(() => setSummary(null));
+    fetchPostKeymen(accessToken, postId).then((r) => setKeymen(r.keymen)).catch(() => setKeymen([]));
+    fetchPostCounterparties(accessToken, postId)
+      .then((r) => setCounterparties(r.counterparties))
+      .catch(() => setCounterparties([]));
+    fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
   }, [postId, accessToken]);
 
   return (
@@ -37,13 +193,80 @@ function PostDetailPopup({
               {new Date(post.created_at).toLocaleString()}
             </p>
             <p className="post-body">{post.post_body}</p>
-            {/* Event Lineage / Keyman / Knowledge Graph / LLM chat panels
-                land in Phase 2-4 -- this popup shell is the attachment
-                point (Figma frame SBpgot7uTvMxEaxUwvoc0S). */}
-            <section className="popup-placeholder">
-              Event Lineage, Keyman, and Knowledge Graph views arrive in a
-              later phase.
+
+            <section className="popup-section">
+              <h3>요약 (Summary)</h3>
+              {summary ? (
+                <>
+                  <p>{summary.korean_summary}</p>
+                  {summary.key_events.length > 0 && (
+                    <>
+                      <h4>주요 이벤트 (Key events)</h4>
+                      <ul>
+                        {summary.key_events.map((event, i) => (
+                          <li key={i}>{event}</li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                  {summary.roles_and_responsibilities.length > 0 && (
+                    <>
+                      <h4>R&amp;R</h4>
+                      <ul>
+                        {summary.roles_and_responsibilities.map((rr, i) => (
+                          <li key={i}>
+                            <strong>{rr.person_name}</strong>: {rr.responsibility}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </>
+              ) : (
+                <p className="popup-placeholder">Summary unavailable (LLM orchestrator not configured).</p>
+              )}
             </section>
+
+            <section className="popup-section">
+              <h3>Event Lineage</h3>
+              <EventLineageSection lineage={lineage} />
+            </section>
+
+            <section className="popup-section">
+              <h3>Keyman</h3>
+              {keymen && keymen.length > 0 ? (
+                <ul className="keyman-list">
+                  {keymen.map((person) => (
+                    <li key={person.person_id}>
+                      <strong>{person.person_name}</strong> ({person.person_side_code})
+                      {person.affiliations.length > 0 && (
+                        <span className="keyman-affiliations">
+                          {" -- "}
+                          {person.affiliations.map((a) => a.organization_name).join(", ")}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="popup-placeholder">No Keyman extracted yet.</p>
+              )}
+            </section>
+
+            {counterparties && counterparties.length > 0 && (
+              <section className="popup-section">
+                <h3>Counterparties</h3>
+                <ul>
+                  {counterparties.map((c) => (
+                    <li key={c.counterparty_entity_name}>
+                      {c.counterparty_entity_name} -- {c.relationship_type_code}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            <ChatPanel postId={postId} accessToken={accessToken} />
           </>
         )}
       </div>

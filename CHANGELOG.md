@@ -4,6 +4,53 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-08-13
+
+### Added
+
+- Milestone 4, Phase 4: the post-detail popup's remaining panels.
+  `lineageweave/post_summary.py` -- LLM-derived Korean summary, key
+  events (ACE-style, Doddington et al. 2004), and R&R (semantic role
+  labeling, Gildea & Jurafsky, 2002), via contextual-orchestrator.
+  `lineageweave/post_chat.py` -- in-popup chat as retrieval-augmented
+  generation (Lewis et al., 2020): an explicit retrieve step
+  (`backend/app/post_chat_ingestion.py` assembles a post's own content
+  plus its Event-Lineage-linked posts, direct and Knowledge-Graph-
+  indirect, as numbered sources) then a reason-and-cite step (the model
+  answers using only those sources and reports which it drew from).
+- Backend: `GET /api/posts/{post_id}/lineage` (direct vs. indirect links,
+  kept as two separate lists), `GET /api/posts/{post_id}/summary`,
+  `POST /api/posts/{post_id}/chat` -- all RBAC+ABAC-gated the same way as
+  every other post endpoint, verified end to end against a live
+  Postgres + Keycloak + contextual-orchestrator stack (including through
+  the actual Docker-built images, not just the FastAPI TestClient).
+  Caught and fixed a real bug while building the chat's retrieve step:
+  `backend/app/knowledge_graph.py::load_visible_subgraph` only loads
+  edges among an *already-known* post set -- it does not itself discover
+  sibling posts sharing a mentioned person (its only prior caller,
+  `related_for_person`, pre-resolves that full set itself before calling
+  it). `find_linked_post_ids` now does that expansion first; regression-
+  tested (`test_post_chat_cites_a_post_linked_only_via_a_shared_keyman`).
+- Frontend: `frontend/src/App.tsx`'s popup gained real Summary, Event
+  Lineage (direct/indirect visually distinguished), Keyman, Counterparty,
+  and Chat sections, plus a real sliding evidence panel (`EvidencePanel`,
+  CSS animation, not a mock) that opens the cited source post's actual
+  content when a citation chip is clicked. Fixed a real, pre-existing
+  test-infrastructure bug found while adding more tests to the same file:
+  `@testing-library/react`'s automatic per-test cleanup never actually
+  ran (this project's `vite.config.ts` deliberately doesn't set
+  `test.globals`, which auto-cleanup silently depends on), so DOM from
+  one test was bleeding into the next; `src/setupTests.ts` now registers
+  `cleanup` in an explicit `afterEach`.
+- `docs/adr/0002-figma-access-boundary.md`: the referenced Figma frame is
+  genuinely reachable in this environment, but its own cover page is the
+  source organization's real confidential content (and it does not yet
+  contain a frame for this screen) -- the popup is built from the
+  product brief's text instead, named as an explicit, honest gap rather
+  than either faking a "Figma-matched" claim or stalling on it.
+- New citations: See, Liu, & Manning (2017); Gildea & Jurafsky (2002);
+  Lewis et al. (2020).
+
 ## [0.10.0] - 2026-08-13
 
 ### Added

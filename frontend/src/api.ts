@@ -12,9 +12,67 @@ export interface PostDetail extends PostSummary {
   post_body: string;
 }
 
-async function backendFetch<T>(path: string, accessToken: string): Promise<T> {
+export interface Affiliation {
+  organization_name: string;
+  corporate_entity_id: string | null;
+  role_title: string | null;
+}
+
+export interface Keyman {
+  person_id: string;
+  person_name: string;
+  person_side_code: string;
+  mention_context: string | null;
+  affiliations: Affiliation[];
+}
+
+export interface Counterparty {
+  counterparty_entity_name: string;
+  relationship_type_code: string;
+}
+
+export interface PostRoleResponsibility {
+  person_name: string;
+  responsibility: string;
+}
+
+export interface PostAiSummary {
+  post_id: string;
+  korean_summary: string;
+  key_events: string[];
+  roles_and_responsibilities: PostRoleResponsibility[];
+}
+
+export interface LinkedPostRef {
+  post_id: string;
+  post_title: string;
+}
+
+export interface PostLineage {
+  post_id: string;
+  direct: LinkedPostRef[];
+  indirect: LinkedPostRef[];
+}
+
+export interface ChatAnswer {
+  post_id: string;
+  answer_text: string;
+  cited_post_ids: string[];
+  source_post_ids: string[];
+}
+
+async function backendFetch<T>(
+  path: string,
+  accessToken: string,
+  init?: RequestInit,
+): Promise<T> {
   const response = await fetch(`${config.backendBaseUrl}${path}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    ...init,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...init?.headers,
+    },
   });
   if (!response.ok) {
     throw new Error(`${path} -> HTTP ${response.status}`);
@@ -28,4 +86,30 @@ export function fetchPosts(accessToken: string): Promise<PostSummary[]> {
 
 export function fetchPost(accessToken: string, postId: string): Promise<PostDetail> {
   return backendFetch<PostDetail>(`/api/posts/${postId}`, accessToken);
+}
+
+export function fetchPostKeymen(accessToken: string, postId: string): Promise<{ keymen: Keyman[] }> {
+  return backendFetch(`/api/posts/${postId}/keymen`, accessToken);
+}
+
+export function fetchPostCounterparties(
+  accessToken: string,
+  postId: string,
+): Promise<{ counterparties: Counterparty[] }> {
+  return backendFetch(`/api/posts/${postId}/counterparties`, accessToken);
+}
+
+export function fetchPostSummary(accessToken: string, postId: string): Promise<PostAiSummary> {
+  return backendFetch(`/api/posts/${postId}/summary`, accessToken);
+}
+
+export function fetchPostLineage(accessToken: string, postId: string): Promise<PostLineage> {
+  return backendFetch(`/api/posts/${postId}/lineage`, accessToken);
+}
+
+export function askPostChat(accessToken: string, postId: string, question: string): Promise<ChatAnswer> {
+  return backendFetch(`/api/posts/${postId}/chat`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({ question }),
+  });
 }

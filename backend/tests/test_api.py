@@ -483,3 +483,148 @@ def test_unknown_keyman_is_not_found(client, demo_analyst_token) -> None:
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert response.status_code == 404
+
+
+def test_post_lineage_surfaces_indirect_link_via_shared_keyman(client, demo_analyst_token, seeded_db) -> None:
+    """No live orchestrator needed -- this is pure DB + graph-math, no LLM
+    call. own_private_post_id and public_post_id share no post_lineage_edge
+    but both mention our_person_id (Ada West); the other-corp private
+    post (hidden_person_id, a DIFFERENT person, no shared Keyman with
+    either) must not appear at all.
+    """
+    response = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/lineage",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["direct"] == []
+    indirect_ids = {post["post_id"] for post in body["indirect"]}
+    assert indirect_ids == {seeded_db["public_post_id"]}
+
+
+def test_other_corp_private_post_summary_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['other_private_post_id']}/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_other_corp_private_post_chat_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
+    response = client.post(
+        f"/api/posts/{seeded_db['other_private_post_id']}/chat",
+        json={"question": "what happened"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.skipif(
+    not (_ORCHESTRATOR_BASE_URL and _ORCHESTRATOR_API_KEY),
+    reason="set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run",
+)
+def test_post_summary_returns_a_real_korean_summary(client, demo_analyst_token, seeded_db) -> None:
+    os.environ["ORCHESTRATOR_BASE_URL"] = _ORCHESTRATOR_BASE_URL
+    os.environ["ORCHESTRATOR_API_KEY"] = _ORCHESTRATOR_API_KEY
+
+    from lineageweave.fixtures import ambiguous_keyman_post
+
+    title, body = ambiguous_keyman_post()
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public' "
+                "from source_post where post_id = %s returning post_id",
+                (title, body, seeded_db["own_private_post_id"]),
+            )
+            new_post_id = str(cur.fetchone()[0])
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/posts/{new_post_id}/summary", headers={"Authorization": f"Bearer {demo_analyst_token}"}
+    )
+    assert response.status_code == 200, response.text
+    body_json = response.json()
+    assert any("가" <= ch <= "힣" for ch in body_json["korean_summary"])
+    assert len(body_json["key_events"]) >= 1
+
+
+@pytest.mark.skipif(
+    not (_ORCHESTRATOR_BASE_URL and _ORCHESTRATOR_API_KEY),
+    reason="set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run",
+)
+def test_post_chat_cites_a_post_linked_only_via_a_shared_keyman(client, demo_analyst_token, seeded_db) -> None:
+    """The real end-to-end proof of Phase 4's Event Lineage chat: two
+    posts with no direct lineage edge between them, linked only by a
+    shared Keyman -- the retrieve step must pull the second post in via
+    the Knowledge Graph, and the answer must cite it, because the
+    question can only be answered by combining both.
+    """
+    os.environ["ORCHESTRATOR_BASE_URL"] = _ORCHESTRATOR_BASE_URL
+    os.environ["ORCHESTRATOR_API_KEY"] = _ORCHESTRATOR_API_KEY
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_account_id, corporate_entity_id = cur.fetchone()
+
+            def _insert_post(title, body):
+                cur.execute(
+                    "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                    "values (%s, %s, %s, %s, 'voc', 'public') returning post_id",
+                    (author_account_id, corporate_entity_id, title, body),
+                )
+                return str(cur.fetchone()[0])
+
+            post_a = _insert_post("Kickoff call", "We agreed to submit the transformer bid by March 3.")
+            post_b = _insert_post("Bid follow-up", "The client requested a revised quote, sent March 12.")
+
+            cur.execute(
+                "insert into cataloged_person (person_name, person_side_code) values ('Shared Keyman', 'our_side') "
+                "returning person_id"
+            )
+            shared_person_id = str(cur.fetchone()[0])
+            cur.execute(
+                "insert into post_person_mention (post_id, person_id) values (%s, %s), (%s, %s)",
+                (post_a, shared_person_id, post_b, shared_person_id),
+            )
+
+            from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
+
+            for post_id in (post_a, post_b):
+                for edge in knowledge_graph_edges_for_post(post_id, [shared_person_id]):
+                    cur.execute(
+                        "insert into knowledge_graph_edge (source_node_type_code, source_node_id, "
+                        "target_node_type_code, target_node_id, edge_type_code, edge_weight) "
+                        "values (%s, %s, %s, %s, %s, %s)",
+                        (
+                            edge.source_node_type_code,
+                            edge.source_node_id,
+                            edge.target_node_type_code,
+                            edge.target_node_id,
+                            edge.edge_type_code,
+                            edge.edge_weight,
+                        ),
+                    )
+    finally:
+        admin_conn.close()
+
+    response = client.post(
+        f"/api/posts/{post_a}/chat",
+        json={"question": "What happened with the bid between the kickoff and now?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    body_json = response.json()
+    assert set(body_json["source_post_ids"]) == {post_a, post_b}
+    assert post_b in body_json["cited_post_ids"]

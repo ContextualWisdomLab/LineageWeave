@@ -25,6 +25,7 @@ from typing import Any
 import asyncpg
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from lineageweave.entity_relationship_classification import (
     ContextualOrchestratorEntityRelationshipClient,
@@ -34,6 +35,8 @@ from lineageweave.keyman_extraction import (
     ContextualOrchestratorKeymanExtractionClient,
     NullKeymanExtractionClient,
 )
+from lineageweave.post_chat import ContextualOrchestratorPostChatClient, NullPostChatClient
+from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 
 from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
@@ -46,6 +49,7 @@ from backend.app.knowledge_graph import (
     related_for_person,
     visible_mention_post_ids,
 )
+from backend.app.post_chat_ingestion import find_linked_post_ids, gather_chat_sources
 
 _POST_READ = "post_read"
 _POST_ADMIN = "post_admin"
@@ -99,6 +103,26 @@ def _entity_relationship_client():
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullEntityRelationshipClient()
     return ContextualOrchestratorEntityRelationshipClient(
+        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+    )
+
+
+def _post_summary_client():
+    """Live orchestrator client when configured; otherwise the unavailable null."""
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
+        return NullPostSummaryClient()
+    return ContextualOrchestratorPostSummaryClient(
+        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+    )
+
+
+def _post_chat_client():
+    """Live orchestrator client when configured; otherwise the unavailable null."""
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
+        return NullPostChatClient()
+    return ContextualOrchestratorPostChatClient(
         base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
     )
 
@@ -307,4 +331,112 @@ async def extract_post_keymen(
             }
             for relationship in relationships
         ],
+    }
+
+
+@app.get("/api/posts/{post_id}/lineage")
+async def read_post_lineage(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """The Event Lineage panel's data: this post's directly (thread-)linked
+    posts and its indirectly (shared-Keyman/organization) linked posts,
+    kept as two distinguishable lists -- not merged into one, since they
+    are different claims about *why* two posts are related. ABAC-filtered
+    per candidate the same way every other endpoint here is.
+    """
+    await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        linked = await find_linked_post_ids(conn, post_id)
+        candidate_ids = linked.direct | linked.indirect
+        rows = {}
+        if candidate_ids:
+            fetched = await conn.fetch(
+                "select post_id, post_title, visibility_code, corporate_entity_id "
+                "from source_post where post_id = any($1::uuid[])",
+                list(candidate_ids),
+            )
+            rows = {str(row["post_id"]): row for row in fetched}
+
+    def _visible_summaries(ids: frozenset[str]) -> list[dict[str, Any]]:
+        return [
+            {"post_id": post_id_, "post_title": rows[post_id_]["post_title"]}
+            for post_id_ in ids
+            if post_id_ in rows and _can_see_post(account, rows[post_id_])
+        ]
+
+    return {
+        "post_id": post_id,
+        "direct": _visible_summaries(linked.direct),
+        "indirect": _visible_summaries(linked.indirect),
+    }
+
+
+@app.get("/api/posts/{post_id}/summary")
+async def read_post_summary(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """A Korean summary, key events, and R&R (roles & responsibilities)
+    for the popup's summary panel. Computed fresh per request (not
+    persisted) -- Phase 4 scope is "return it," not "cache it."
+    """
+    post = await _load_visible_post(post_id, account, pool)
+    client = _post_summary_client()
+    if not client.available:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+        )
+    async with pool.acquire() as conn:
+        body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
+    summary = client.summarize(post["post_title"], body_row["post_body"])
+    return {
+        "post_id": str(post["post_id"]),
+        "korean_summary": summary.korean_summary,
+        "key_events": list(summary.key_events),
+        "roles_and_responsibilities": [
+            {"person_name": rr.person_name, "responsibility": rr.responsibility}
+            for rr in summary.roles_and_responsibilities
+        ],
+    }
+
+
+class ChatRequest(BaseModel):
+    """JSON body for ``POST /api/posts/{post_id}/chat``."""
+
+    question: str
+
+
+@app.post("/api/posts/{post_id}/chat")
+async def chat_about_post(
+    post_id: str,
+    request: ChatRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """In-popup LLM chat: answers `request.question` using this post's own
+    content plus its Event-Lineage-linked posts (direct and Knowledge-
+    Graph-indirect) as context, and returns which source post(s) the
+    answer drew from -- the sliding evidence panel's citation data.
+    Two explicit steps (retrieve, then reason-and-cite; see
+    `lineageweave.post_chat`'s module docstring) rather than one prompt.
+    """
+    await _load_visible_post(post_id, account, pool)
+    client = _post_chat_client()
+    if not client.available:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Post chat is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+        )
+    async with pool.acquire() as conn:
+        sources = await gather_chat_sources(conn, post_id, lambda row: _can_see_post(account, row))
+    answer = client.answer(request.question, sources)
+    return {
+        "post_id": post_id,
+        "answer_text": answer.answer_text,
+        "cited_post_ids": list(answer.cited_post_ids),
+        "source_post_ids": [source.post_id for source in sources],
     }

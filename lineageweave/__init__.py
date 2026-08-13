@@ -11,11 +11,15 @@ from .corporate_hierarchy_resolution import resolve_corporate_entity
 from .entity_relationship_classification import OrganizationRelationship
 from .knowledge_graph import random_walk_with_restart, select_related_nodes
 from .models import Edge, Record, Tree
+from .post_chat import ChatAnswer
+from .post_summary import PostSummary
 from .reconstruct import reconstruct
 
 __all__ = [
+    "ChatAnswer",
     "Edge",
     "OrganizationRelationship",
+    "PostSummary",
     "Record",
     "Tree",
     "random_walk_with_restart",
@@ -24,4 +28,4 @@ __all__ = [
     "select_related_nodes",
 ]
 
-__version__ = "0.10.0"
+__version__ = "0.11.0"
