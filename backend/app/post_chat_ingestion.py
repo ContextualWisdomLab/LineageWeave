@@ -15,6 +15,7 @@ from typing import Callable
 
 import asyncpg
 
+from lineageweave.image_content import ImageContentClient, NullImageContentClient
 from lineageweave.knowledge_graph import (
     NODE_POST,
     adjacency_from_edges,
@@ -24,6 +25,7 @@ from lineageweave.knowledge_graph import (
     select_related_nodes,
 )
 from lineageweave.post_chat import ChatSourceDocument
+from lineageweave.post_content_normalization import normalize_post_body
 
 from .knowledge_graph import load_visible_subgraph
 
@@ -86,17 +88,33 @@ async def gather_chat_sources(
     conn: asyncpg.Connection,
     post_id: str,
     can_see_post: Callable[[asyncpg.Record], bool],
+    vision_client: ImageContentClient | None = None,
 ) -> list[ChatSourceDocument]:
     """Post `post_id` itself, plus every linked post the requesting account
     can actually see -- numbered in the order returned, which is the
-    order `post_chat`'s citations refer back to.
+    order `post_chat`'s citations refer back to. Every source's body is
+    normalized (HTML tags/base64 images never reach the reason-and-cite
+    LLM call raw) before becoming a `ChatSourceDocument` -- see
+    `lineageweave.post_content_normalization`. `vision_client` defaults
+    to unavailable (embedded images become an explicit placeholder, not
+    a dropped or raw-base64 source) so this function stays callable
+    without a live provider.
     """
+    if vision_client is None:
+        vision_client = NullImageContentClient()
+
     this_post = await conn.fetchrow(
         "select post_id, post_title, post_body from source_post where post_id = $1", post_id
     )
     if this_post is None:
         return []
-    sources = [ChatSourceDocument(str(this_post["post_id"]), this_post["post_title"], this_post["post_body"])]
+    sources = [
+        ChatSourceDocument(
+            str(this_post["post_id"]),
+            this_post["post_title"],
+            normalize_post_body(this_post["post_body"], vision_client=vision_client).text,
+        )
+    ]
 
     linked = await find_linked_post_ids(conn, post_id)
     candidate_ids = linked.direct | linked.indirect
@@ -110,6 +128,12 @@ async def gather_chat_sources(
     )
     for row in rows:
         if can_see_post(row):
-            sources.append(ChatSourceDocument(str(row["post_id"]), row["post_title"], row["post_body"]))
+            sources.append(
+                ChatSourceDocument(
+                    str(row["post_id"]),
+                    row["post_title"],
+                    normalize_post_body(row["post_body"], vision_client=vision_client).text,
+                )
+            )
 
     return sources

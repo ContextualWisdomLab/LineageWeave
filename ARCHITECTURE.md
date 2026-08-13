@@ -82,6 +82,18 @@ flowchart LR
 | `server.py` | Stdlib HTTP server: `GET /api/lineage` (JSON graph) + static viewer |
 | `web/index.html` | Self-contained SVG DAG viewer, no build step, no external script dependency |
 
+> **Known local-test-environment limitation:** `adjudication_client.py`'s
+> `mode="verify"` call depends on contextual-orchestrator's
+> `TaskOrchestrator.route_and_verify`, which as of this writing is still
+> an open, unmerged upstream PR
+> (`ContextualWisdomLab/contextual-orchestrator#149`). Until it merges,
+> the four adjudication/chat tests that exercise `mode="verify"` against
+> a real orchestrator fail with `invalid_mode` (the deployed `main` only
+> accepts `auto`/`route`/`conduct`) -- confirmed by reproducing the same
+> `400` directly against the orchestrator's own `/v1/chat/completions`,
+> not caused by anything in this repo. `mode="route"` (every other
+> pluggable client) is unaffected.
+
 ## Design decisions worth naming
 
 - **Pluggable, never faked, channels.** `NullEmbeddingClient` and
@@ -457,3 +469,73 @@ must not declare a term for a code nothing actually seeds. This is the
 enforcement mechanism: a future PR that adds a new `edge_type` or
 `entity_relationship_type` code without updating the ontology fails
 this test, not just a docstring's word.
+
+## Phase 6c: post content normalization before any LLM/embedding call
+
+The brief's latest revision calls out, explicitly, that a post body mixing
+HTML tags and base64-embedded images needs care before Knowledge Graph
+derivation: raw tags degrade an embedding model (Cai, Yu, Wen, & Ma,
+2003 -- VIPS's premise that a DOM's visual/structural cues, e.g. a
+block's tag and inline style, carry real segmentation signal and should
+be extracted as *metadata*, not left inline to dilute the text an
+embedding or LLM call actually reads), and font color/alignment/bullet/size
+information needs to be stored separately rather than dropped. Auditing
+every backend endpoint that reads `source_post.post_body` found this gap
+was real, not hypothetical: `chunking.py` (DOM-aware chunking) and
+`image_content.py` (vision-model description of embedded images) already
+existed and were already tested, but no `backend/app/*.py` endpoint
+imported either one -- `extract-keymen`, the summary endpoint, commitment
+derivation, and chat source retrieval all sent the raw `post_body` column
+straight to an LLM call, HTML tags, base64 image payloads, and all.
+
+`lineageweave/post_content_normalization.py` closes that gap with one
+function, `normalize_post_body(body, vision_client=None)`. For a body
+that isn't HTML (`_looks_like_html` -- a real tag such as `<p>`/`<img>`,
+not a comparison like `qty < 50 and price > 10`), it is returned
+unchanged; there is no cost to imposing DOM parsing on a plain-text VOC
+record. For HTML, it reuses `chunk_by_dom` and, per chunk: text
+becomes a `text_parts` entry (with its `style` attribute, if any,
+recorded as a separate `FormattingHint(chunk_index, tag, style)` --
+never appended into the text a model reads); an image chunk is described
+through `vision_client.describe()` and replaced in-place with
+`[image: <caption> | text: <ocr>]` at its original document position
+(OCR text is kept -- it is what the vision call paid for, and a name
+or figure in a screenshot is otherwise lost). Position matters: an
+image before or after a given paragraph changes what it is evidence
+for. A vision-provider exception is caught per-image so one bad
+call degrades to `[image: content unavailable]` instead of losing the
+rest of the post; `vision_client=None` behaves the same way by default
+(`NullImageContentClient`, `available=False`), so the function is always
+safe to call without a live provider configured.
+
+`chunking.py` gained the actual DOM-level capture this depends on:
+`_DOM_BLOCK_TAGS` now includes `h1`-`h6` (a heading's tag name is itself
+a VIPS-style importance cue, not just more paragraph text), and
+`Chunk.style` carries a block's `style` attribute (`None`, not `""`,
+when absent) alongside its text -- `_BlockTextExtractor` tracks it
+through the existing start/end-tag stack rather than adding a second
+pass over the document.
+
+Wiring: `backend/app/config.py` gained `Settings.vision_model` (env
+`VISION_MODEL`) -- empty means the vision channel is unavailable, the
+same "no fake channel" discipline as every other pluggable client, not a
+guessed default model. `backend/app/main.py`'s `_vision_client()` factory
+returns a real `OpenAiCompatibleVisionClient` (via
+`orchestrator_vision_client`, which appends `/v1` so the same
+`ORCHESTRATOR_BASE_URL` other channels use lands on
+`/v1/chat/completions`) only when base URL, API key, and model are all
+set, else `NullImageContentClient()`; it is
+called at all three raw-`post_body`-reading endpoints (`extract-keymen`,
+post summary, commitment derivation) and threaded through
+`post_chat_ingestion.gather_chat_sources()` so every RAG source document
+in a chat answer -- not just the post the popup is currently open on --
+is normalized before the reason-and-cite LLM call sees it.
+`GET /api/posts/{id}` (the plain post-detail read) is deliberately left
+untouched: the frontend renders the post as-authored, and normalizing
+that response would mean users never see their own formatting.
+
+Proven against a real orchestrator instance, not just unit tests: an
+HTML-wrapped, base64-image-embedded version of the existing
+`ambiguous_keyman_post()` fixture still correctly extracts the same real
+people through the live `/extract-keymen` endpoint
+(`test_extract_keymen_normalizes_html_and_embedded_image_content`).

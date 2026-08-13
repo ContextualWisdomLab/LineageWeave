@@ -7,9 +7,11 @@ import pytest
 from lineageweave.image_content import (
     ImageContentClient,
     ImageDescriptionParseError,
+    NullImageContentClient,
     OpenAiCompatibleVisionClient,
     _parse_description,
     extract_base64_images,
+    orchestrator_vision_client,
 )
 
 # A 1x1 transparent PNG, valid base64 -- enough to exercise real decoding
@@ -118,6 +120,24 @@ def test_vision_client_allows_http_with_explicit_insecure_opt_in() -> None:
         allow_insecure_http=True,
     )
     assert http_client._base_url == "http://127.0.0.1:8000/v1"
+
+
+def test_orchestrator_vision_client_appends_v1_and_allows_local_http() -> None:
+    client = orchestrator_vision_client("http://127.0.0.1:8000", "key", "vision-model")
+    assert isinstance(client, OpenAiCompatibleVisionClient)
+    assert client._base_url == "http://127.0.0.1:8000/v1"
+
+
+def test_orchestrator_vision_client_does_not_double_v1() -> None:
+    client = orchestrator_vision_client("https://gateway.example/v1", "key", "vision-model")
+    assert isinstance(client, OpenAiCompatibleVisionClient)
+    assert client._base_url == "https://gateway.example/v1"
+
+
+def test_orchestrator_vision_client_is_null_when_unconfigured() -> None:
+    client = orchestrator_vision_client("", "", "")
+    assert isinstance(client, NullImageContentClient)
+    assert client.available is False
 
 
 def test_image_content_client_protocol_stub_raises() -> None:

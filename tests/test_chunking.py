@@ -63,10 +63,11 @@ def test_chunk_by_dom_nested_blocks_do_not_duplicate_text() -> None:
     html = "<div><p>Nested paragraph text.</p></div>"
     chunks = chunk_by_dom(html)
 
-    # The outermost block owns the text; there is exactly one chunk, not
+    # The innermost block owns the text; there is exactly one chunk, not
     # one for the div and a duplicate for the p inside it.
     assert len(chunks) == 1
     assert chunks[0].text == "Nested paragraph text."
+    assert chunks[0].label == "p"
 
 
 def test_chunk_by_dom_empty_html_yields_no_chunks() -> None:
@@ -143,3 +144,41 @@ def test_chunk_by_conversation_turn_index_is_contiguous_after_filtering() -> Non
     chunks = chunk_by_conversation_turn(turns)
     assert [c.index for c in chunks] == [0, 1]
     assert [c.label for c in chunks] == ["alice@example.com", "carol@example.com"]
+
+
+def test_chunk_by_dom_captures_style_as_separate_metadata_not_embedded_text() -> None:
+    """The formatting cue must be addressable on the Chunk, and must NOT
+    leak into `.text` -- an embedding/LLM call on `.text` should never
+    see the literal style string.
+    """
+    html = '<p style="color:red;text-align:center">Urgent: confirm by Friday.</p>'
+    chunks = chunk_by_dom(html)
+
+    assert len(chunks) == 1
+    assert chunks[0].text == "Urgent: confirm by Friday."
+    assert chunks[0].style == "color:red;text-align:center"
+    assert "style" not in chunks[0].text
+    assert "color:red" not in chunks[0].text
+
+
+def test_chunk_by_dom_style_is_none_when_element_has_no_style_attribute() -> None:
+    chunks = chunk_by_dom("<p>Plain paragraph.</p>")
+    assert chunks[0].style is None
+
+
+def test_chunk_by_dom_splits_on_heading_boundaries_and_labels_the_level() -> None:
+    html = "<h2>Quarterly Review</h2><p>Body text follows.</p>"
+    chunks = chunk_by_dom(html)
+
+    assert [c.label for c in chunks] == ["h2", "p"]
+    assert [c.text for c in chunks] == ["Quarterly Review", "Body text follows."]
+
+
+def test_chunk_by_dom_preserves_style_per_block_independently() -> None:
+    """Two sibling blocks with different formatting must not bleed their
+    style onto each other."""
+    html = '<li style="color:blue">Bullet one</li><li>Bullet two</li>'
+    chunks = chunk_by_dom(html)
+
+    assert chunks[0].style == "color:blue"
+    assert chunks[1].style is None
