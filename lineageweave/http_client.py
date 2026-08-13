@@ -1,4 +1,4 @@
-"""Operator-configured JSON HTTP POST with an http(s)-only scheme allowlist.
+"""Operator-configured HTTP GET/POST with an http(s)-only scheme allowlist.
 
 The embedding, adjudication, and vision clients all talk to an
 operator-configured OpenAI-compatible endpoint. ``urllib.request.urlopen``
@@ -15,7 +15,7 @@ from __future__ import annotations
 import http.client
 import json
 import ssl
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 import certifi
 
@@ -29,27 +29,20 @@ class HttpClientError(RuntimeError):
     """The remote endpoint returned a non-success status or invalid JSON."""
 
 
-def post_json(
+def _request(
+    method: str,
     url: str,
-    payload: dict,
     *,
+    body: bytes | None,
     headers: dict[str, str],
     timeout: float,
-) -> dict:
-    """POST ``payload`` as JSON to ``url`` and return the decoded object.
-
-    Raises:
-        ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
-        HttpClientError: the server responded with HTTP >= 400 or non-JSON.
-    """
+) -> tuple[int, bytes]:
     parsed = urlparse(url)
     if parsed.scheme not in _ALLOWED_SCHEMES:
         raise ValueError(f"refusing non-http(s) URL scheme: {parsed.scheme!r}")
     if not parsed.hostname:
         raise ValueError("URL is missing a hostname")
 
-    body = json.dumps(payload).encode("utf-8")
-    request_headers = {"content-type": "application/json", **headers}
     path = parsed.path or "/"
     if parsed.query:
         path = f"{path}?{parsed.query}"
@@ -70,18 +63,85 @@ def post_json(
             connection.sock = _SSL_CONTEXT.wrap_socket(
                 connection.sock, server_hostname=parsed.hostname
             )
-        connection.request("POST", path, body=body, headers=request_headers)
+        connection.request(method, path, body=body, headers=headers)
         response = connection.getresponse()
         length_header = response.getheader("Content-Length")
         raw = response.read(int(length_header)) if length_header is not None else response.read()
-        if response.status >= 400:
-            raise HttpClientError(f"HTTP {response.status} from {parsed.hostname}")
-        try:
-            decoded = json.loads(raw.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise HttpClientError(f"non-JSON response from {parsed.hostname}") from exc
-        if not isinstance(decoded, dict):
-            raise HttpClientError(f"JSON object expected from {parsed.hostname}")
-        return decoded
+        return response.status, raw
     finally:
         connection.close()
+
+
+def _decode_json_object(raw: bytes, hostname: str) -> dict:
+    try:
+        decoded = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise HttpClientError(f"non-JSON response from {hostname}") from exc
+    if not isinstance(decoded, dict):
+        raise HttpClientError(f"JSON object expected from {hostname}")
+    return decoded
+
+
+def post_json(
+    url: str,
+    payload: dict,
+    *,
+    headers: dict[str, str],
+    timeout: float,
+) -> dict:
+    """POST ``payload`` as JSON to ``url`` and return the decoded object.
+
+    Raises:
+        ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
+        HttpClientError: the server responded with HTTP >= 400 or non-JSON.
+    """
+    status, raw = _request(
+        "POST",
+        url,
+        body=json.dumps(payload).encode("utf-8"),
+        headers={"content-type": "application/json", **headers},
+        timeout=timeout,
+    )
+    hostname = urlparse(url).hostname or url
+    if status >= 400:
+        raise HttpClientError(f"HTTP {status} from {hostname}")
+    return _decode_json_object(raw, hostname)
+
+
+def post_form(
+    url: str,
+    fields: dict[str, str],
+    *,
+    headers: dict[str, str] | None = None,
+    timeout: float,
+) -> dict:
+    """POST ``application/x-www-form-urlencoded`` fields and decode JSON.
+
+    Used by the OIDC smoke test (resource-owner password grant). Same
+    scheme allowlist as ``post_json`` -- never ``urllib.request.urlopen``.
+    """
+    status, raw = _request(
+        "POST",
+        url,
+        body=urlencode(fields).encode("utf-8"),
+        headers={"content-type": "application/x-www-form-urlencoded", **(headers or {})},
+        timeout=timeout,
+    )
+    hostname = urlparse(url).hostname or url
+    if status >= 400:
+        raise HttpClientError(f"HTTP {status} from {hostname}")
+    return _decode_json_object(raw, hostname)
+
+
+def get_json(url: str, *, timeout: float) -> dict:
+    """GET ``url`` and return the decoded JSON object.
+
+    Raises:
+        ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
+        HttpClientError: the server responded with HTTP >= 400 or non-JSON.
+    """
+    status, raw = _request("GET", url, body=None, headers={}, timeout=timeout)
+    hostname = urlparse(url).hostname or url
+    if status >= 400:
+        raise HttpClientError(f"HTTP {status} from {hostname}")
+    return _decode_json_object(raw, hostname)

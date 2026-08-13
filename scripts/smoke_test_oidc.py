@@ -18,12 +18,15 @@ import argparse
 import json
 import sys
 import time
-import urllib.error
-import urllib.parse
-import urllib.request
+from pathlib import Path
+
+# Allow `python3 scripts/smoke_test_oidc.py` from a checkout without install.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import jwt
-from jwt import PyJWKClient
+from jwt.algorithms import RSAAlgorithm
+
+from lineageweave.http_client import HttpClientError, get_json, post_form
 
 REALM = "lineageweave-demo"
 CLIENT_ID = "lineageweave-frontend"
@@ -33,32 +36,29 @@ POLL_ATTEMPTS = 30
 POLL_INTERVAL_SECONDS = 2.0
 
 
-def _post_form(url: str, fields: dict[str, str]) -> dict:
-    data = urllib.parse.urlencode(fields).encode("utf-8")
-    request = urllib.request.Request(
-        url,
-        data=data,
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        method="POST",
-    )
-    with urllib.request.urlopen(request, timeout=10) as response:  # noqa: S310 -- local dev Keycloak, http by design
-        return json.loads(response.read().decode("utf-8"))
-
-
 def _wait_for_realm(issuer: str) -> None:
     discovery_url = f"{issuer}/.well-known/openid-configuration"
     last_error: Exception | None = None
     for _ in range(POLL_ATTEMPTS):
         try:
-            with urllib.request.urlopen(discovery_url, timeout=5) as response:  # noqa: S310
-                if response.status == 200:
-                    return
-        except (urllib.error.URLError, ConnectionError) as exc:
+            get_json(discovery_url, timeout=5)
+            return
+        except (HttpClientError, OSError, ValueError) as exc:
             last_error = exc
         time.sleep(POLL_INTERVAL_SECONDS)
     raise SystemExit(
         f"Keycloak realm '{REALM}' never became reachable at {discovery_url}: {last_error}"
     )
+
+
+def _signing_key_from_jwks(jwks: dict, token: str):
+    """Pick the JWKS RSA key that matches the JWT kid, without urllib."""
+    header = jwt.get_unverified_header(token)
+    kid = header.get("kid")
+    for key in jwks.get("keys", []):
+        if kid is None or key.get("kid") == kid:
+            return RSAAlgorithm.from_jwk(json.dumps(key))
+    raise SystemExit(f"no JWKS key matched kid={kid!r}")
 
 
 def run(base_url: str) -> int:
@@ -70,7 +70,7 @@ def run(base_url: str) -> int:
     _wait_for_realm(issuer)
 
     print(f"Requesting a real token for '{DEMO_USERNAME}' via direct access grant...")
-    token_response = _post_form(
+    token_response = post_form(
         token_endpoint,
         {
             "grant_type": "password",
@@ -78,15 +78,16 @@ def run(base_url: str) -> int:
             "username": DEMO_USERNAME,
             "password": DEMO_PASSWORD,
         },
+        timeout=10,
     )
     access_token = token_response["access_token"]
 
     print(f"Fetching live JWKS from {jwks_uri} and verifying the token's RS256 signature...")
-    jwk_client = PyJWKClient(jwks_uri)
-    signing_key = jwk_client.get_signing_key_from_jwt(access_token)
+    jwks = get_json(jwks_uri, timeout=10)
+    signing_key = _signing_key_from_jwks(jwks, access_token)
     claims = jwt.decode(
         access_token,
-        key=signing_key.key,
+        key=signing_key,
         algorithms=["RS256"],
         issuer=issuer,
         # The eventual FastAPI backend registers itself as an audience once it
@@ -118,8 +119,7 @@ def run(base_url: str) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", default="http://localhost:8080")
-    args = parser.parse_args()
-    return run(args.base_url)
+    return run(parser.parse_args().base_url)
 
 
 if __name__ == "__main__":

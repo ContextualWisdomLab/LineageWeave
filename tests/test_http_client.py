@@ -7,11 +7,20 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 
-from lineageweave.http_client import HttpClientError, post_json
+from lineageweave.http_client import HttpClientError, get_json, post_form, post_json
 
 
 class _JsonHandler(BaseHTTPRequestHandler):
     received: dict = {}
+
+    def do_GET(self) -> None:  # noqa: N802 -- BaseHTTPRequestHandler API
+        type(self).received = {"path": self.path, "method": "GET"}
+        body = json.dumps({"ok": True, "path": self.path}).encode("utf-8")
+        self.send_response(200)
+        self.send_header("content-type", "application/json")
+        self.send_header("content-length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def do_POST(self) -> None:  # noqa: N802 -- BaseHTTPRequestHandler API
         length = int(self.headers.get("content-length", "0"))
@@ -19,9 +28,15 @@ class _JsonHandler(BaseHTTPRequestHandler):
         type(self).received = {
             "path": self.path,
             "authorization": self.headers.get("authorization"),
-            "payload": json.loads(raw.decode("utf-8")),
+            "content_type": self.headers.get("content-type"),
+            "payload": raw.decode("utf-8"),
         }
-        body = json.dumps({"ok": True, "echo": type(self).received["payload"]}).encode("utf-8")
+        echo = raw.decode("utf-8")
+        try:
+            echo_obj: object = json.loads(echo)
+        except json.JSONDecodeError:
+            echo_obj = echo
+        body = json.dumps({"ok": True, "echo": echo_obj}).encode("utf-8")
         self.send_response(200)
         self.send_header("content-type", "application/json")
         self.send_header("content-length", str(len(body)))
@@ -76,6 +91,58 @@ def test_post_json_posts_json_to_http_endpoint() -> None:
     assert body == {"ok": True, "echo": {"model": "demo", "input": "hello"}}
     assert _JsonHandler.received["path"] == "/v1/embeddings"
     assert _JsonHandler.received["authorization"] == "Bearer test-token"
+
+
+def test_get_json_fetches_json_from_http_endpoint() -> None:
+    _JsonHandler.received = {}
+    server, base = _serve(_JsonHandler)
+    try:
+        body = get_json(f"{base}/.well-known/openid-configuration", timeout=2.0)
+    finally:
+        server.shutdown()
+
+    assert body == {"ok": True, "path": "/.well-known/openid-configuration"}
+
+
+def test_post_form_posts_urlencoded_fields() -> None:
+    _JsonHandler.received = {}
+    server, base = _serve(_JsonHandler)
+    try:
+        body = post_form(
+            f"{base}/token",
+            {"grant_type": "password", "username": "demo.analyst"},
+            timeout=2.0,
+        )
+    finally:
+        server.shutdown()
+
+    assert body["ok"] is True
+    assert "grant_type=password" in _JsonHandler.received["payload"]
+    assert _JsonHandler.received["content_type"] == "application/x-www-form-urlencoded"
+
+
+def test_get_json_refuses_file_scheme() -> None:
+    with pytest.raises(ValueError, match="non-http"):
+        get_json("file:///etc/passwd", timeout=1.0)
+
+
+def test_oidc_smoke_script_does_not_import_urllib_request() -> None:
+    from pathlib import Path
+
+    source = Path(__file__).resolve().parents[1] / "scripts" / "smoke_test_oidc.py"
+    text = source.read_text()
+    assert "urllib.request" not in text
+    assert "urlopen" not in text
+
+
+def test_dockerfiles_pin_digest_and_declare_non_root_user() -> None:
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    for relative in ("docker/postgres-init/Dockerfile", "docker/keycloak/Dockerfile"):
+        text = (root / relative).read_text()
+        assert "@sha256:" in text, f"{relative} must pin the base image by digest"
+        assert "USER " in text, f"{relative} must declare a non-root USER"
 
 
 def test_post_json_https_negotiates_tls_instead_of_plaintext() -> None:
