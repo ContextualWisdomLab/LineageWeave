@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.53.0] - 2026-08-14
+
+### Added
+
+- `make seed` opens a ticket on the B-200 specification-revision
+  fixture. A B-200 report-member click now shows "Send Westfield
+  Power the revised specification" (due 2026-01-14) instead of
+  "No tickets yet," and home Calendar lists it next to the A-100
+  pricing ticket.
+
 ## [0.52.0] - 2026-08-14
 
 ### Changed

@@ -50,6 +50,11 @@ FIXTURE_TICKET_SPECS = (
         "Confirm the delivery window with logistics",
         "2026-01-16",
     ),
+    (
+        "Specification revision requested",
+        "Send Westfield Power the revised specification",
+        "2026-01-14",
+    ),
 )
 CALENDAR_TICKET_TITLE = "Send Riverbend the revised delivery schedule."
 
@@ -756,8 +761,9 @@ def _seed_fixture_tickets(cur) -> None:
     Without this, GET /api/posts/{id}/tickets is empty after ``make seed``
     even though the post already has lineage, Keyman, and evaluation.
     Dated rows also appear on GET /api/calendar (A-100 pricing due
-    2026-01-12) so home Calendar is not only the Riverbend commitment.
-    Idempotent: a matching ticket title on that post is left alone.
+    2026-01-12, B-200 revision due 2026-01-14) so home Calendar is
+    not only the Riverbend commitment. Idempotent: a matching ticket
+    title on that post is left alone.
     """
     for post_title, ticket_title, due_date in FIXTURE_TICKET_SPECS:
         cur.execute("select post_id from source_post where post_title = %s", (post_title,))

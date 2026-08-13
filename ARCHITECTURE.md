@@ -339,8 +339,8 @@ closed enum in `common_lookup_value`, and opening or updating a ticket
 is a direct user action, not something extracted from text.
 `frontend/src/App.tsx`'s `IssueTicketPanel` is the popup's real
 list/create/status-update UI for it. `make seed` opens tickets on the
-A-100 follow-up and delivery fixtures so a report-member click is not
-"No tickets yet."
+A-100 follow-up and delivery fixtures and the B-200 specification
+revision so a report-member click is not "No tickets yet."
 
 Found and fixed a real deployment bug while verifying this end to end
 against the actual Docker-built stack: `frontend/Dockerfile`'s earlier
@@ -426,10 +426,11 @@ off-by-one in any session whose TZ is not UTC. A malformed
 (created_at 2026-01-05) and one open `issue_ticket` due 2026-01-09 so
 `GET /api/calendar` is not empty on a freshly seeded stack. The same
 seed writes the A-100 pricing ticket (`Send Northridge Grid the revised
-quote`, due 2026-01-12) so home Calendar lists the same dated ticket
-the period-report member already shows. Re-seed is idempotent. The
-empty-state copy is only for accounts that truly have no dated open
-tickets.
+quote`, due 2026-01-12) and the B-200 revision ticket (`Send Westfield
+Power the revised specification`, due 2026-01-14) so home Calendar
+lists the same dated tickets the period-report members already show.
+Re-seed is idempotent. The empty-state copy is only for accounts that
+truly have no dated open tickets.
 
 ## Phase 6a: fast-mlsirm dependency + Rust toolchain (infra only)
 

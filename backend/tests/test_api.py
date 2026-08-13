@@ -2017,14 +2017,15 @@ def test_seed_calendar_commitment_surfaces_on_get_calendar(client, demo_analyst_
 
 def test_seed_fixture_tickets_surface_on_get_calendar(client, demo_analyst_token, seeded_db) -> None:
     """The same helper `make seed` calls must put the A-100 pricing
-    ticket on GET /api/calendar -- otherwise home Calendar only shows
-    Riverbend and the buyer never sees due 2026-01-12 next to the
-    report-member ticket.
+    and B-200 revision tickets on GET /api/calendar -- otherwise home
+    Calendar only shows Riverbend and a B-200 report-member click
+    never matches a dated ticket.
     """
     from lineageweave.fixtures import sample_records
     from scripts.seed_demo_data import _seed_fixture_tickets
 
     fixture_title = sample_records()[1].label  # Pricing renegotiation follow-up
+    beta_title = sample_records()[7].label  # Specification revision requested
     admin_conn = psycopg2.connect(seeded_db["dsn"])
     admin_conn.autocommit = True
     try:
@@ -2034,13 +2035,14 @@ def test_seed_fixture_tickets_surface_on_get_calendar(client, demo_analyst_token
                 (seeded_db["own_private_post_id"],),
             )
             author_id, corp_id = cur.fetchone()
-            cur.execute(
-                "insert into source_post "
-                "(author_account_id, corporate_entity_id, post_title, post_body, "
-                " voc_type_code, visibility_code) "
-                "values (%s, %s, %s, %s, 'voc', 'public') returning post_id",
-                (author_id, corp_id, fixture_title, fixture_title),
-            )
+            for title in (fixture_title, beta_title):
+                cur.execute(
+                    "insert into source_post "
+                    "(author_account_id, corporate_entity_id, post_title, post_body, "
+                    " voc_type_code, visibility_code) "
+                    "values (%s, %s, %s, %s, 'voc', 'public')",
+                    (author_id, corp_id, title, title),
+                )
             _seed_fixture_tickets(cur)
     finally:
         admin_conn.close()
@@ -2054,16 +2056,25 @@ def test_seed_fixture_tickets_surface_on_get_calendar(client, demo_analyst_token
     )
     assert pricing["due_date"] == "2026-01-12"
     assert pricing["post_title"] == fixture_title
+    beta = next(
+        row
+        for row in response.json()["commitments"]
+        if row["ticket_title"] == "Send Westfield Power the revised specification"
+    )
+    assert beta["due_date"] == "2026-01-14"
+    assert beta["post_title"] == beta_title
 
 
 def test_seed_fixture_tickets_surface_on_get_tickets(client, demo_analyst_token, seeded_db) -> None:
     """The same helper `make seed` calls must put a ticket on the A-100
-    follow-up post -- otherwise a report-member click shows No tickets yet.
+    follow-up and B-200 revision posts -- otherwise a report-member
+    click shows No tickets yet.
     """
     from lineageweave.fixtures import sample_records
     from scripts.seed_demo_data import _seed_fixture_tickets
 
     fixture_title = sample_records()[1].label  # Pricing renegotiation follow-up
+    beta_title = sample_records()[7].label  # Specification revision requested
     admin_conn = psycopg2.connect(seeded_db["dsn"])
     admin_conn.autocommit = True
     try:
@@ -2073,22 +2084,22 @@ def test_seed_fixture_tickets_surface_on_get_tickets(client, demo_analyst_token,
                 (seeded_db["own_private_post_id"],),
             )
             author_id, corp_id = cur.fetchone()
-            cur.execute(
-                "insert into source_post "
-                "(author_account_id, corporate_entity_id, post_title, post_body, "
-                " voc_type_code, visibility_code) "
-                "values (%s, %s, %s, %s, 'voc', 'public') returning post_id",
-                (author_id, corp_id, fixture_title, fixture_title),
-            )
-            post_id = str(cur.fetchone()[0])
+            ids: dict[str, str] = {}
+            for title in (fixture_title, beta_title):
+                cur.execute(
+                    "insert into source_post "
+                    "(author_account_id, corporate_entity_id, post_title, post_body, "
+                    " voc_type_code, visibility_code) "
+                    "values (%s, %s, %s, %s, 'voc', 'public') returning post_id",
+                    (author_id, corp_id, title, title),
+                )
+                ids[title] = str(cur.fetchone()[0])
             _seed_fixture_tickets(cur)
     finally:
         admin_conn.close()
 
-    response = client.get(
-        f"/api/posts/{post_id}/tickets",
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    response = client.get(f"/api/posts/{ids[fixture_title]}/tickets", headers=headers)
     assert response.status_code == 200, response.text
     titles = {ticket["ticket_title"] for ticket in response.json()["tickets"]}
     assert "Send Northridge Grid the revised quote" in titles
@@ -2098,6 +2109,17 @@ def test_seed_fixture_tickets_surface_on_get_tickets(client, demo_analyst_token,
         if ticket["ticket_title"] == "Send Northridge Grid the revised quote"
     )
     assert due == "2026-01-12"
+
+    beta = client.get(f"/api/posts/{ids[beta_title]}/tickets", headers=headers)
+    assert beta.status_code == 200, beta.text
+    beta_titles = {ticket["ticket_title"] for ticket in beta.json()["tickets"]}
+    assert "Send Westfield Power the revised specification" in beta_titles
+    beta_due = next(
+        ticket["due_date"]
+        for ticket in beta.json()["tickets"]
+        if ticket["ticket_title"] == "Send Westfield Power the revised specification"
+    )
+    assert beta_due == "2026-01-14"
 
 
 def test_seed_fixture_tickets_surface_on_get_activity(client, demo_analyst_token, seeded_db) -> None:
@@ -2281,6 +2303,9 @@ def test_seed_period_report_includes_fixture_event_lineage_posts(
     follow_up = next(m for m in a100["members"] if m["post_title"] == "Pricing renegotiation follow-up")
     assert follow_up["ticket_due_date"] == "2026-01-12"
     assert follow_up["ticket_title"] == "Send Northridge Grid the revised quote"
+    revision = next(m for m in b200["members"] if m["post_title"] == "Specification revision requested")
+    assert revision["ticket_due_date"] == "2026-01-14"
+    assert revision["ticket_title"] == "Send Westfield Power the revised specification"
 
     compare = client.get("/api/reports/compare/2026-W02", headers=headers)
     assert compare.status_code == 200, compare.text

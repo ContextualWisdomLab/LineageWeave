@@ -176,6 +176,18 @@ describe("App, authenticated", () => {
                   updated_at: "2026-01-01T00:00:00Z",
                   post_title: "Public post",
                 },
+                {
+                  issue_ticket_id: "ticket-b200",
+                  post_id: "post-2",
+                  ticket_status_code: "open",
+                  ticket_title: "Send Westfield Power the revised specification",
+                  assigned_account_id: null,
+                  due_date: "2026-01-14",
+                  commitment_summary: null,
+                  created_at: "2026-01-02T00:00:00Z",
+                  updated_at: "2026-01-02T00:00:00Z",
+                  post_title: "Specification revision requested",
+                },
               ],
           }),
         );
@@ -276,6 +288,14 @@ describe("App, authenticated", () => {
                     theta_sd: 0.2,
                     ticket_due_date: "2026-01-12",
                     ticket_title: "Send Northridge Grid the revised quote",
+                  },
+                  {
+                    post_id: "post-2",
+                    post_title: "Specification revision requested",
+                    theta_eap: 0.18,
+                    theta_sd: 0.3,
+                    ticket_due_date: "2026-01-14",
+                    ticket_title: "Send Westfield Power the revised specification",
                   },
                 ],
               },
@@ -1027,6 +1047,11 @@ describe("App, authenticated", () => {
     expect(calendarButton).toHaveTextContent("Send Northridge Grid the revised quote");
     expect(calendarButton).toHaveTextContent("Public post");
     expect(calendarButton).toHaveTextContent("due 2026-01-12");
+    const betaCalendar = screen.getByRole("button", {
+      name: /open commitment for: specification revision requested/i,
+    });
+    expect(betaCalendar).toHaveTextContent("Send Westfield Power the revised specification");
+    expect(betaCalendar).toHaveTextContent("due 2026-01-14");
 
     await userEvent.click(calendarButton);
 
@@ -1051,6 +1076,12 @@ describe("App, authenticated", () => {
       "Send Northridge Grid the revised quote",
     );
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
+    expect(
+      screen.getByRole("button", { name: /open report post: specification revision requested/i }),
+    ).toHaveTextContent("Send Westfield Power the revised specification");
+    expect(
+      screen.getByRole("button", { name: /open report post: specification revision requested/i }),
+    ).toHaveTextContent("due 2026-01-14");
     expect(screen.getByRole("button", { name: /open commitment for: public post/i })).toHaveTextContent(
       "Send Northridge Grid the revised quote",
     );
