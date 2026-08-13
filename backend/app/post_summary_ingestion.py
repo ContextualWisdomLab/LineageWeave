@@ -78,3 +78,63 @@ def seeded_demo_summary() -> PostSummary:
             RoleResponsibility(person_name="Priya Nair", responsibility="고객 측 수신"),
         ),
     )
+
+
+def seeded_fixture_summary(post_title: str) -> PostSummary | None:
+    """Synthetic Korean summary for a reconstruct/calendar fixture title.
+
+    Not an LLM result. Returns None when the title is not a known seed
+    fixture so a missing row still 503s instead of inventing prose.
+    """
+    return _FIXTURE_SUMMARIES.get(post_title)
+
+
+def _summary(korean: str, *events: str) -> PostSummary:
+    return PostSummary(korean_summary=korean, key_events=events)
+
+
+_FIXTURE_SUMMARIES: dict[str, PostSummary] = {
+    "Initial site visit and project scope discussion": _summary(
+        "착수 전에 현장을 둘러보고 이번 일의 작업 범위를 맞추는 회의가 열렸다.",
+        "초기 현장 방문",
+        "프로젝트 범위 논의",
+    ),
+    "Pricing renegotiation follow-up": _summary(
+        "초기 방문 이후 가격 재협상을 이어가는 후속 협의가 열렸다.",
+        "가격 재협상 후속",
+    ),
+    "Pricing renegotiation: revised quote sent": _summary(
+        "재협상 결과를 반영한 수정 견적이 상대에게 발송되었다.",
+        "수정 견적 발송",
+    ),
+    "Delivery schedule question raised": _summary(
+        "가격 논의와 별도로 납품 일정에 대한 질문이 올라왔다.",
+        "납품 일정 질의",
+    ),
+    "Delivery schedule confirmed with logistics": _summary(
+        "물류 담당과 확인한 뒤 납품 일정이 확정되었다.",
+        "물류 확인",
+        "납품 일정 확정",
+    ),
+    "Unrelated: annual account review": _summary(
+        "연례 계정 검토가 진행되었다. 가격 재협상이나 납품 일정과는 주제가 다르다.",
+        "연례 계정 검토",
+    ),
+    "Technical specification review meeting": _summary(
+        "기술 사양을 점검하는 검토 회의가 열렸다.",
+        "기술 사양 검토 회의",
+    ),
+    "Specification revision requested": _summary(
+        "검토 결과에 따라 사양 수정이 요청되었다.",
+        "사양 수정 요청",
+    ),
+    "Revised specification approved": _summary(
+        "수정된 기술 사양이 승인되어 후속 작업 기준이 정해졌다.",
+        "수정 사양 승인",
+    ),
+    "Follow-up on the Riverbend order confirmation": _summary(
+        "리버벤드 주문은 이미 확인됐고, 수정 납품 일정을 다음 금요일까지 보내기로 했다.",
+        "주문 확인 완료",
+        "납품 일정 약속",
+    ),
+}

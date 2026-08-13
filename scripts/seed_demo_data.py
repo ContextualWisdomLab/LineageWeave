@@ -272,6 +272,7 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
                 corporate_entity_id,
                 process_units["DEMO-PU-LINEAGE"],
             )
+            _seed_fixture_summaries(cur)
             _seed_demo_period_report(
                 cur,
                 account_ids["demo.analyst"],
@@ -349,15 +350,8 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
         )
 
 
-def _seed_demo_public_summary(cur, post_id) -> None:
-    """Write the popup summary for the demo public post.
-
-    Idempotent: re-seed replaces the same row so GET /api/posts/{id}/summary
-    stays non-empty without a live orchestrator.
-    """
-    from backend.app.post_summary_ingestion import seeded_demo_summary
-
-    summary = seeded_demo_summary()
+def _write_post_summary(cur, post_id, summary) -> None:
+    """Replace the stored summary for ``post_id`` (idempotent re-seed)."""
     cur.execute("delete from post_summary_result where post_id = %s", (post_id,))
     cur.execute(
         "insert into post_summary_result (post_id, korean_summary) values (%s, %s)",
@@ -373,6 +367,42 @@ def _seed_demo_public_summary(cur, post_id) -> None:
             "insert into post_summary_role (post_id, person_name, responsibility) values (%s, %s, %s)",
             (post_id, role.person_name, role.responsibility),
         )
+
+
+def _seed_demo_public_summary(cur, post_id) -> None:
+    """Write the popup summary for the demo public post.
+
+    Idempotent: re-seed replaces the same row so GET /api/posts/{id}/summary
+    stays non-empty without a live orchestrator.
+    """
+    from backend.app.post_summary_ingestion import seeded_demo_summary
+
+    _write_post_summary(cur, post_id, seeded_demo_summary())
+
+
+def _seed_fixture_summaries(cur) -> None:
+    """Write Korean summaries for A-100/B-200 reconstruct posts and Calendar.
+
+    Event Lineage click-through and the calendar commitment stay empty
+    without this: those posts have only their English title as body, and
+    GET /api/posts/{id}/summary 503s when the orchestrator is off.
+    Idempotent -- finds existing titles so a re-seed after the lineage
+    insert's early-return still fills the popup.
+    """
+    from lineageweave.fixtures import ambiguous_commitment_post, sample_records
+    from backend.app.post_summary_ingestion import seeded_fixture_summary
+
+    titles = [rec.label for rec in sample_records()]
+    titles.append(ambiguous_commitment_post()[0])
+    for title in titles:
+        summary = seeded_fixture_summary(title)
+        if summary is None:
+            continue
+        cur.execute("select post_id from source_post where post_title = %s", (title,))
+        row = cur.fetchone()
+        if row is None:
+            continue
+        _write_post_summary(cur, row[0], summary)
 
 
 def _seed_demo_calendar_commitment(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:
