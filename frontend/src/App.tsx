@@ -706,7 +706,9 @@ function CalendarPanel({
     <section className="popup-section lineage-home">
       <h2>Calendar</h2>
       {commitments.length === 0 ? (
-        <p className="popup-placeholder">No upcoming commitments.</p>
+        <p className="popup-placeholder">
+          No upcoming commitments. Derive one from a post, or create a ticket with a due date.
+        </p>
       ) : (
         <ul className="ticket-list">
           {commitments.map((entry) => (

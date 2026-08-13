@@ -375,6 +375,14 @@ day, and binding a Python `date` into timestamptz midnight is an
 off-by-one in any session whose TZ is not UTC. A malformed
 `YYYY-MM-DD` is a 422, not a 500.
 
+## Phase 5c follow-up: seeded calendar row
+
+`scripts/seed_demo_data.py` inserts `fixtures.ambiguous_commitment_post`
+(created_at 2026-01-05) and one open `issue_ticket` due 2026-01-09 so
+`GET /api/calendar` is not empty on a freshly seeded stack. Re-seed
+is idempotent. The empty-state copy is only for accounts that truly
+have no dated open tickets.
+
 ## Phase 6a: fast-mlsirm dependency + Rust toolchain (infra only)
 
 First of three staged slices toward the brief's weekly/monthly

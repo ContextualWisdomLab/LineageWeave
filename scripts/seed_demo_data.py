@@ -258,6 +258,12 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
                 corporate_entity_id,
                 process_units["DEMO-PU-LINEAGE"],
             )
+            _seed_demo_calendar_commitment(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+                process_units["DEMO-PU-LINEAGE"],
+            )
 
         conn.commit()
     finally:
@@ -327,6 +333,63 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
             "values (%s, %s, %s) on conflict do nothing",
             (edge.parent_id, edge.child_id, edge.fused_score),
         )
+
+
+def _seed_demo_calendar_commitment(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:
+    """Put one dated synthetic commitment on the calendar after `make seed`.
+
+    Without this, GET /api/calendar is empty on a freshly seeded stack --
+    the home-page Calendar panel the 0.18.0 work added has nothing to
+    show until someone clicks Derive. The post is
+    fixtures.ambiguous_commitment_post (relative "by next Friday",
+    created_at 2026-01-05) so Derive against DCT still resolves to
+    2026-01-09 if an admin re-runs it.
+    """
+    from datetime import datetime, timezone
+
+    from lineageweave.fixtures import ambiguous_commitment_post
+
+    title, body = ambiguous_commitment_post()
+    cur.execute("select post_id from source_post where post_title = %s", (title,))
+    row = cur.fetchone()
+    if row is None:
+        cur.execute(
+            "insert into source_post "
+            "(author_account_id, corporate_entity_id, process_unit_id, "
+            " post_title, post_body, voc_type_code, visibility_code, "
+            " thread_group_key, created_at) "
+            "values (%s, %s, %s, %s, %s, 'voc', 'public', 'A-100', %s) "
+            "returning post_id",
+            (
+                author_account_id,
+                corporate_entity_id,
+                process_unit_id,
+                title,
+                body,
+                datetime(2026, 1, 5, tzinfo=timezone.utc),
+            ),
+        )
+        post_id = cur.fetchone()[0]
+    else:
+        post_id = row[0]
+
+    cur.execute(
+        "select 1 from issue_ticket where post_id = %s and commitment_summary is not null",
+        (post_id,),
+    )
+    if cur.fetchone() is not None:
+        return
+    cur.execute(
+        "insert into issue_ticket "
+        "(post_id, ticket_status_code, ticket_title, due_date, commitment_summary) "
+        "values (%s, 'open', %s, %s, %s)",
+        (
+            post_id,
+            "Send Riverbend the revised delivery schedule.",
+            "2026-01-09",
+            "Send Riverbend the revised delivery schedule.",
+        ),
+    )
 
 
 def main() -> None:
