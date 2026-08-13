@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.60.0] - 2026-08-14
+
+### Changed
+
+- Activity-feed `ticket_status_changed` summaries use the lookup
+  label (`In progress`, `Closed`) instead of the raw code. Same
+  `common_lookup_value` labels the popup select, Calendar, and
+  period-report members already show.
+
 ## [0.59.0] - 2026-08-14
 
 ### Added

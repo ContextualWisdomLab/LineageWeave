@@ -34,6 +34,17 @@ def ticket_created_summary(ticket_title: str) -> str:
     return f"Ticket created: {ticket_title}"
 
 
+def ticket_status_changed_summary(status_label: str) -> str:
+    """The ``summary`` field ``ticket_status_changed`` producers must share.
+
+    ``status_label`` is the ``common_lookup_value`` label (Open, In
+    progress, Closed), never the raw code. A missing lookup already
+    fell back to the code in ``_attach_status_labels``; this helper
+    does not invent a name.
+    """
+    return f"Ticket status changed to {status_label}"
+
+
 def _activity_fields(event_type: str, actor_account_id: str, summary: str) -> dict[str, str]:
     return {
         "event_type": event_type,

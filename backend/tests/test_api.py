@@ -1752,7 +1752,8 @@ def test_ticket_mutations_publish_real_events_to_the_activity_feed(
     # XREVRANGE returns newest first: the status change comes before the
     # creation event.
     assert events[0]["event_type"] == "ticket_status_changed"
-    assert "in_progress" in events[0]["summary"]
+    assert events[0]["summary"] == "Ticket status changed to In progress"
+    assert "in_progress" not in events[0]["summary"]
     assert events[1]["event_type"] == "ticket_created"
     assert "Confirm freight terms" in events[1]["summary"]
 
