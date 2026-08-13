@@ -29,6 +29,45 @@ export interface Keyman {
 export interface Counterparty {
   counterparty_entity_name: string;
   relationship_type_code: string;
+  relationship_label?: string;
+}
+
+export interface AffiliatePersonRef {
+  person_id: string;
+  person_name: string;
+  person_side_code: string;
+}
+
+export interface AffiliateNode {
+  entity_id: string | null;
+  entity_name: string;
+  entity_level_code: string | null;
+  resolved: boolean;
+  people: AffiliatePersonRef[];
+  children: AffiliateNode[];
+}
+
+export interface VocEvidenceCounterparty {
+  counterparty_entity_name: string;
+  relationship_type_code: string;
+  relationship_label: string;
+  evidence_excerpt: string | null;
+}
+
+export interface VocEvidence {
+  post_id: string;
+  voc_type_code: string;
+  voc_type_label: string;
+  excerpts: string[];
+  counterparties: VocEvidenceCounterparty[];
+}
+
+export interface RelatedNode {
+  node_id: string;
+  node_type_code: string;
+  relevance: number;
+  label?: string;
+  person_side_code?: string;
 }
 
 export interface PostRoleResponsibility {
@@ -145,6 +184,31 @@ export function fetchPostCounterparties(
   postId: string,
 ): Promise<{ counterparties: Counterparty[] }> {
   return backendFetch(`/api/posts/${postId}/counterparties`, accessToken);
+}
+
+export function fetchPostAffiliateTree(
+  accessToken: string,
+  postId: string,
+): Promise<{ trees: AffiliateNode[] }> {
+  return backendFetch(`/api/posts/${postId}/affiliate-tree`, accessToken);
+}
+
+export function fetchPostVocEvidence(accessToken: string, postId: string): Promise<VocEvidence> {
+  return backendFetch(`/api/posts/${postId}/voc-evidence`, accessToken);
+}
+
+export function fetchRelatedKeymen(
+  accessToken: string,
+  personId: string,
+): Promise<{ person_id: string; person_name: string; person_side_code: string; related: RelatedNode[] }> {
+  return backendFetch(`/api/keymen/${personId}/related`, accessToken);
+}
+
+export function extractPostKeymen(
+  accessToken: string,
+  postId: string,
+): Promise<{ extracted_count: number }> {
+  return backendFetch(`/api/posts/${postId}/extract-keymen`, accessToken, { method: "POST" });
 }
 
 export function fetchPostSummary(accessToken: string, postId: string): Promise<PostAiSummary> {

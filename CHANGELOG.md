@@ -4,6 +4,28 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2026-08-13
+
+### Added
+
+- Affiliate tree and VOC evidence on the post-detail popup. The schema
+  already stored a self-referencing `corporate_entity` hierarchy and a
+  `voc_type_code`, but the buyer only saw a raw code and a comma-separated
+  affiliation list.
+  `lineageweave/affiliate_tree.py` builds the ancestor forest of the
+  organizations a post's Keymen actually touch (Bhattacharya & Getoor,
+  2007's candidate-generation stage: an unresolved name is its own root,
+  never a guessed parent). `lineageweave/voc_evidence.py` quotes the
+  sentence that names a classified organization (ACE mention extent;
+  Doddington et al., 2004) and returns nothing when the name is absent.
+- Backend: `GET /api/posts/{post_id}/affiliate-tree` and
+  `GET /api/posts/{post_id}/voc-evidence`, same RBAC+ABAC gate as every
+  other post endpoint. Seed now inserts Demo Group → Demo Corp so the
+  tree is visible on a freshly seeded stack.
+- Frontend: Affiliate tree panel, VOC excerpt block, clickable Keyman
+  (loads `GET /api/keymen/{id}/related`), Event Lineage links that open
+  the linked post, and Extract Keymen for `post_admin`.
+
 ## [0.15.0] - 2026-08-13
 
 ### Added

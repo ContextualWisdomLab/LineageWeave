@@ -143,6 +143,8 @@ curl http://localhost:18420/healthz
 
 `GET /api/posts`, `GET /api/posts/{post_id}`,
 `GET /api/posts/{post_id}/keymen`, `GET /api/keymen/{person_id}/related`,
+`GET /api/posts/{post_id}/affiliate-tree`,
+`GET /api/posts/{post_id}/voc-evidence`,
 and `POST /api/posts/{post_id}/extract-keymen`
 require a real bearer token (RBAC: the account's role must grant
 `post_read`; ABAC: a private post is only visible to accounts affiliated

@@ -215,7 +215,93 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/keymen")) {
-        return Promise.resolve(jsonResponse({ keymen: [] }));
+        return Promise.resolve(
+          jsonResponse({
+            keymen: [
+              {
+                person_id: "person-ada",
+                person_name: "Ada West",
+                person_side_code: "our_side",
+                mention_context: null,
+                affiliations: [{ organization_name: "Demo Corp", corporate_entity_id: "corp-1", role_title: null }],
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-1/extract-keymen") && method === "POST") {
+        return Promise.resolve(jsonResponse({ extracted_count: 1 }));
+      }
+      if (url.endsWith("/api/keymen/person-ada/related")) {
+        return Promise.resolve(
+          jsonResponse({
+            person_id: "person-ada",
+            person_name: "Ada West",
+            person_side_code: "our_side",
+            related: [
+              {
+                node_id: "person-priya",
+                node_type_code: "node_person",
+                label: "Priya Nair",
+                relevance: 0.4,
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-1/affiliate-tree")) {
+        return Promise.resolve(
+          jsonResponse({
+            trees: [
+              {
+                entity_id: "group-1",
+                entity_name: "Demo Group",
+                entity_level_code: "group",
+                resolved: true,
+                people: [],
+                children: [
+                  {
+                    entity_id: "corp-1",
+                    entity_name: "Demo Corp",
+                    entity_level_code: "company",
+                    resolved: true,
+                    people: [{ person_id: "person-ada", person_name: "Ada West", person_side_code: "our_side" }],
+                    children: [],
+                  },
+                ],
+              },
+              {
+                entity_id: null,
+                entity_name: "Northridge Grid",
+                entity_level_code: null,
+                resolved: false,
+                people: [{ person_id: "person-priya", person_name: "Priya Nair", person_side_code: "counterparty" }],
+                children: [],
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-1/voc-evidence")) {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-1",
+            voc_type_code: "voc",
+            voc_type_label: "Voice of Customer",
+            excerpts: [
+              "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
+            ],
+            counterparties: [
+              {
+                counterparty_entity_name: "Northridge Grid",
+                relationship_type_code: "rel_voc",
+                relationship_label: "Voice of Customer",
+                evidence_excerpt:
+                  "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
+              },
+            ],
+          }),
+        );
       }
       if (url.endsWith("/api/posts/post-1/counterparties")) {
         return Promise.resolve(jsonResponse({ counterparties: [] }));
@@ -328,6 +414,42 @@ describe("App, authenticated", () => {
 
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+  });
+
+  it("shows the affiliate tree, VOC excerpt, and related Keyman nodes on click", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    await waitFor(() => expect(screen.getByText("Demo Group")).toBeInTheDocument());
+    expect(screen.getByText("Demo Corp")).toBeInTheDocument();
+    expect(screen.getByText("unresolved")).toBeInTheDocument();
+    expect(screen.getByText(/Voice of Customer\s*\(voc\)/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
+      ),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+    await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
+    expect(screen.getByText("Priya Nair (node_person)")).toBeInTheDocument();
+  });
+
+  it("lets post_admin extract Keymen from the popup", async () => {
+    const fetchMock = stubBackend({ admin: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: /extract keymen/i }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/posts/post-1/extract-keymen"),
+        expect.objectContaining({ method: "POST" }),
+      ),
     );
   });
 

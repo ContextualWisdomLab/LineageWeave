@@ -75,6 +75,7 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
                     ('corporate_entity_level', 'group', 'Group', 0),
                     ('corporate_entity_level', 'company', 'Company', 1),
+                    ('corporate_entity_level', 'plant', 'Plant', 2),
                     ('post_visibility', 'public', 'Public', 0),
                     ('post_visibility', 'private', 'Private', 1),
                     ('voc_type', 'voc', 'Voice of Customer', 0),
@@ -104,9 +105,20 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
 
             cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
-                "values ('DEMO-CORP-01', 'Demo Corp', 'group') "
+                "values ('DEMO-GROUP', 'Demo Group', 'group') "
                 "on conflict (corporate_entity_code) do update set entity_name = excluded.entity_name "
                 "returning corporate_entity_id"
+            )
+            group_entity_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into corporate_entity (parent_entity_id, corporate_entity_code, entity_name, entity_level_code) "
+                "values (%s, 'DEMO-CORP-01', 'Demo Corp', 'company') "
+                "on conflict (corporate_entity_code) do update set "
+                "entity_name = excluded.entity_name, "
+                "entity_level_code = excluded.entity_level_code, "
+                "parent_entity_id = excluded.parent_entity_id "
+                "returning corporate_entity_id",
+                (group_entity_id,),
             )
             corporate_entity_id = cur.fetchone()[0]
 
@@ -170,7 +182,9 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
             if cur.fetchone() is None:
                 cur.execute(
                     "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code) "
-                    "values (%s, %s, %s, 'Demo public post', 'A synthetic public post visible to every demo account.', 'voc', 'public')",
+                    "values (%s, %s, %s, 'Demo public post', "
+                    "'Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.', "
+                    "'voc', 'public')",
                     (account_ids["demo.analyst"], corporate_entity_id, process_units["DEMO-PU-A"]),
                 )
                 cur.execute(
@@ -181,6 +195,18 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
 
             cur.execute("select post_id from source_post where post_title = 'Demo public post'")
             demo_public_post_id = cur.fetchone()[0]
+            cur.execute(
+                "update source_post set post_body = %s where post_id = %s",
+                (
+                    "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
+                    demo_public_post_id,
+                ),
+            )
+            cur.execute(
+                "insert into post_counterparty_entity (post_id, counterparty_entity_name, relationship_type_code) "
+                "values (%s, 'Northridge Grid', 'rel_voc') on conflict do nothing",
+                (demo_public_post_id,),
+            )
             cur.execute("select person_id from cataloged_person where person_name = 'Ada West'")
             if cur.fetchone() is None:
                 from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
