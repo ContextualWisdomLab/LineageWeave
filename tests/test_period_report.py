@@ -23,6 +23,7 @@ from lineageweave.period_report import (
     gpcm_category_probabilities,
     grm_category_probabilities,
 )
+from lineageweave.fixtures import fixture_titles_in_iso_week
 from lineageweave.post_evaluation import CRITERION_CODES, IRT_CATEGORY_COUNT
 
 
@@ -147,6 +148,21 @@ def test_shared_metric_ranks_high_group_above_low_group() -> None:
     shared_gap = scored["high"].mean_theta - scored["low"].mean_theta
     alone_gap = high_alone.mean_theta - low_alone.mean_theta
     assert shared_gap > alone_gap
+
+
+def test_fixture_titles_in_w02_are_event_lineage_not_dummy_bands() -> None:
+    """Period-report fold must pick A-100/B-200 reconstruct titles in W02."""
+    titles = fixture_titles_in_iso_week("2026-W02")
+    assert "Pricing renegotiation follow-up" in titles
+    assert "Specification revision requested" in titles
+    assert "Follow-up on the Riverbend order confirmation" in titles
+    assert "Initial site visit and project scope discussion" not in titles
+    assert "Unrelated: annual account review" not in titles
+    assert "Delivery schedule confirmed with logistics" not in titles
+    assert fixture_titles_in_iso_week("2026-W03") == (
+        "Delivery schedule confirmed with logistics",
+        "Revised specification approved",
+    )
 
 
 def _location_shifted_bank() -> ItemBank:

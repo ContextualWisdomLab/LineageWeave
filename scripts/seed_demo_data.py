@@ -295,12 +295,17 @@ def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, pro
     sees the same grouping and timeline reconstruct() was designed on.
     Returns persisted ``Record``s whose ids are the new post UUIDs.
     """
+    from datetime import timezone
+
     from lineageweave.fixtures import sample_records
     from lineageweave.models import Record
 
     persisted: list[Record] = []
     for rec in sample_records():
         voc_type = "voc" if rec.secondary_key else "vom"
+        occurred = rec.occurred_at
+        if occurred.tzinfo is None:
+            occurred = occurred.replace(tzinfo=timezone.utc)
         cur.execute(
             "insert into source_post "
             "(author_account_id, corporate_entity_id, process_unit_id, "
@@ -316,7 +321,7 @@ def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, pro
                 voc_type,
                 rec.group_key,
                 rec.secondary_key,
-                rec.occurred_at,
+                occurred,
             ),
         )
         post_id = str(cur.fetchone()[0])
@@ -592,9 +597,12 @@ def _seed_demo_calendar_commitment(cur, author_account_id, corporate_entity_id, 
     created_at 2026-01-05) so Derive against DCT still resolves to
     2026-01-09 if an admin re-runs it.
     """
-    from datetime import datetime, timezone
+    from datetime import timezone
 
-    from lineageweave.fixtures import ambiguous_commitment_post
+    from lineageweave.fixtures import (
+        ambiguous_commitment_post,
+        calendar_commitment_occurred_at,
+    )
 
     title, body = ambiguous_commitment_post()
     cur.execute("select post_id from source_post where post_title = %s", (title,))
@@ -613,7 +621,7 @@ def _seed_demo_calendar_commitment(cur, author_account_id, corporate_entity_id, 
                 process_unit_id,
                 title,
                 body,
-                datetime(2026, 1, 5, tzinfo=timezone.utc),
+                calendar_commitment_occurred_at().replace(tzinfo=timezone.utc),
             ),
         )
         post_id = cur.fetchone()[0]
@@ -637,6 +645,46 @@ def _seed_demo_calendar_commitment(cur, author_account_id, corporate_entity_id, 
             "Send Riverbend the revised delivery schedule.",
         ),
     )
+
+
+def _fixture_eval_members(
+    cur, period_code: str
+) -> dict[str, tuple[list[str], list[tuple[str, str, int]]]]:
+    """IRT cells for Event Lineage / calendar fixtures in ``period_code``.
+
+    Dummy high/low band posts stay in ``_ensure_eval_posts``. This only
+    returns reconstruct and calendar titles so the seeded report can
+    click through to A-100/B-200 DAG posts.
+    """
+    from lineageweave.fixtures import fixture_titles_in_iso_week
+    from lineageweave.post_evaluation import RUBRIC_VERSION
+
+    titles = list(fixture_titles_in_iso_week(period_code))
+    if not titles:
+        return {}
+    cur.execute(
+        "select post_id, thread_group_key from source_post "
+        "where post_title = any(%s) "
+        "and to_char(created_at at time zone 'UTC', 'IYYY-\"W\"IW') = %s",
+        (titles, period_code),
+    )
+    grouped: dict[str, tuple[list[str], list[tuple[str, str, int]]]] = {}
+    for post_id, thread_group_key in cur.fetchall():
+        key = (thread_group_key or "").strip()
+        if not key:
+            continue
+        cur.execute(
+            "select criterion_code, response_category from post_evaluation_response "
+            "where post_id = %s and rubric_version = %s",
+            (post_id, RUBRIC_VERSION),
+        )
+        cells = [(str(post_id), code, category) for code, category in cur.fetchall()]
+        if not cells:
+            continue
+        ids, rows = grouped.setdefault(key, ([], []))
+        ids.append(str(post_id))
+        rows.extend(cells)
+    return grouped
 
 
 def _ensure_eval_posts(
@@ -793,12 +841,15 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
     pooled free-calibrate writes the shared bank; each unit is then
     FIPC-scored so the buyer can compare them. W03 is all-high on the
     high unit. Categories are constructed; thetas come only from
-    ``score_groups_on_shared_metric``.
+    ``score_groups_on_shared_metric``. A-100/B-200 Event Lineage
+    fixtures (and the Riverbend calendar post) that already have IRT
+    cells are folded into the same bank so comparison-strip click
+    through is not only dummy band rows.
     """
     from datetime import datetime, timezone
 
     from lineageweave.period_report import score_groups_on_shared_metric
-    from lineageweave.post_evaluation import IRT_CATEGORY_COUNT, RUBRIC_VERSION
+    from lineageweave.post_evaluation import IRT_CATEGORY_COUNT
 
     w02 = "2026-W02"
     w03 = "2026-W03"
@@ -847,19 +898,21 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
         thread_group_key="A-100",
     )
 
-    cur.execute(
-        "select link_method from report_period_score "
-        "where grouping_kind = 'process_unit' and grouping_key = %s "
-        "and period_code = %s and rubric_version = %s",
-        (high_key, w03, RUBRIC_VERSION),
-    )
-    existing = cur.fetchone()
-    if existing is not None and existing[0] == "fipc":
-        return
+    w02_fixtures = _fixture_eval_members(cur, w02)
+    w03_fixtures = _fixture_eval_members(cur, w03)
+    a100_ids, a100_cells = w02_fixtures.get("A-100", ([], []))
+    b200_ids, b200_cells = w02_fixtures.get("B-200", ([], []))
+    fixture_ids = a100_ids + b200_ids
+    fixture_cells = a100_cells + b200_cells
+    w03_fixture_ids: list[str] = []
+    w03_fixture_cells: list[tuple[str, str, int]] = []
+    for extra_ids, extra_cells in w03_fixtures.values():
+        w03_fixture_ids.extend(extra_ids)
+        w03_fixture_cells.extend(extra_cells)
 
     bank_report, scored = score_groups_on_shared_metric(
         {
-            high_key: (w02_high_ids, w02_high_cells),
+            high_key: (w02_high_ids + fixture_ids, w02_high_cells + fixture_cells),
             low_key: (w02_low_ids, w02_low_cells),
         },
         source_period_code=w02,
@@ -873,8 +926,8 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
     _, corp_scored = score_groups_on_shared_metric(
         {
             str(corporate_entity_id): (
-                w02_high_ids + w02_low_ids,
-                w02_high_cells + w02_low_cells,
+                w02_high_ids + w02_low_ids + fixture_ids,
+                w02_high_cells + w02_low_cells + fixture_cells,
             )
         },
         item_bank=bank,
@@ -884,8 +937,8 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
         _persist_seed_period_report(cur, "corporate_entity", grouping_key, w02, report)
     _, thread_scored = score_groups_on_shared_metric(
         {
-            "A-100": (w02_high_ids, w02_high_cells),
-            "B-200": (w02_low_ids, w02_low_cells),
+            "A-100": (w02_high_ids + a100_ids, w02_high_cells + a100_cells),
+            "B-200": (w02_low_ids + b200_ids, w02_low_cells + b200_cells),
         },
         item_bank=bank,
         source_period_code=w02,
@@ -895,7 +948,7 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
 
     high_w02 = scored[high_key]
     _, week3 = score_groups_on_shared_metric(
-        {high_key: (w03_ids, w03_cells)},
+        {high_key: (w03_ids + w03_fixture_ids, w03_cells + w03_fixture_cells)},
         item_bank=high_w02.item_bank,
         previous_means={high_key: high_w02.mean_theta},
         source_period_code=w03,

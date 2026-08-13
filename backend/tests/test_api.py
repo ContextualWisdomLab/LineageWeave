@@ -1895,6 +1895,72 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert threads["A-100"] > threads["B-200"]
 
 
+def test_seed_period_report_includes_fixture_event_lineage_posts(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A-100/B-200 reconstruct posts with IRT cells must appear on the
+    seeded W02 report and comparison strip -- otherwise click-through
+    only opens dummy high/low band rows.
+    """
+    from scripts.seed_demo_data import (
+        _seed_demo_calendar_commitment,
+        _seed_demo_period_report,
+        _seed_fixture_evaluations,
+        insert_fixture_source_posts,
+    )
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('voc_type', 'vom', 'Voice of Market') "
+                "on conflict (lookup_code) do nothing"
+            )
+            cur.execute(
+                "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
+                "select corporate_entity_id, 'TEST-PU-FIXTURE-REPORT', 'Fixture report unit' "
+                "from source_post where post_id = %s returning process_unit_id",
+                (seeded_db["own_private_post_id"],),
+            )
+            process_unit_id = cur.fetchone()[0]
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_id, corp_id = cur.fetchone()
+            insert_fixture_source_posts(cur, author_id, corp_id, process_unit_id)
+            _seed_demo_calendar_commitment(cur, author_id, corp_id, process_unit_id)
+            _seed_fixture_evaluations(cur)
+            _seed_demo_period_report(cur, author_id, corp_id, process_unit_id)
+    finally:
+        admin_conn.close()
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    threads = client.get("/api/reports/thread_group/2026-W02", headers=headers)
+    assert threads.status_code == 200, threads.text
+    reports = threads.json()["reports"]
+    a100 = next(report for report in reports if report["grouping_key"] == "A-100")
+    b200 = next(report for report in reports if report["grouping_key"] == "B-200")
+    a100_titles = {member["post_title"] for member in a100["members"]}
+    b200_titles = {member["post_title"] for member in b200["members"]}
+    assert "Pricing renegotiation follow-up" in a100_titles
+    assert "Follow-up on the Riverbend order confirmation" in a100_titles
+    assert "Specification revision requested" in b200_titles
+    assert a100["mean_theta"] > b200["mean_theta"]
+
+    compare = client.get("/api/reports/compare/2026-W02", headers=headers)
+    assert compare.status_code == 200, compare.text
+    thread_counts = {
+        row["grouping_label"]: row["post_count"]
+        for row in compare.json()["groupings"]
+        if row["grouping_kind"] == "thread_group"
+    }
+    assert thread_counts["A-100"] > 4
+    assert thread_counts["B-200"] > 4
+
+
 def test_rebuild_reports_requires_post_admin(client, demo_analyst_token) -> None:
     response = client.post(
         "/api/reports/process_unit/2026-W02/rebuild",
