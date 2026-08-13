@@ -1030,7 +1030,8 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("Ticket created: Confirm freight terms")).toBeInTheDocument(),
     );
-    expect(screen.getByText("ticket_created")).toBeInTheDocument();
+    expect(screen.getByText("Ticket created")).toBeInTheDocument();
+    expect(screen.queryByText("ticket_created")).not.toBeInTheDocument();
 
     await userEvent.selectOptions(
       screen.getByLabelText(/status for confirm freight terms/i),
@@ -1041,6 +1042,8 @@ describe("App, authenticated", () => {
       expect(screen.getByText("Ticket status changed to Closed")).toBeInTheDocument(),
     );
     expect(screen.queryByText("Ticket status changed to closed")).not.toBeInTheDocument();
+    expect(screen.getByText("Status changed")).toBeInTheDocument();
+    expect(screen.queryByText("ticket_status_changed")).not.toBeInTheDocument();
   });
 
   it("hides derive commitment for accounts without post_admin", async () => {

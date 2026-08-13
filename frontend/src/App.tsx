@@ -858,6 +858,16 @@ function IssueTicketPanel({
   );
 }
 
+const ACTIVITY_TYPE_LABELS: Record<string, string> = {
+  ticket_created: "Ticket created",
+  ticket_status_changed: "Status changed",
+  commitment_derived: "Commitment derived",
+};
+
+function activityTypeLabel(eventType: string): string {
+  return ACTIVITY_TYPE_LABELS[eventType] ?? eventType;
+}
+
 function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: string }) {
   const [events, setEvents] = useState<ActivityEvent[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -892,7 +902,7 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
           {events.map((event) => (
             <li key={event.event_id} className="ticket-list-item">
               <span className="ticket-title">{event.summary}</span>
-              <span className="post-badge">{event.event_type}</span>
+              <span className="post-badge">{activityTypeLabel(event.event_type)}</span>
             </li>
           ))}
         </ul>
