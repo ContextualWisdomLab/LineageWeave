@@ -256,6 +256,27 @@ export function verifyPostRelations(
   return backendFetch(`/api/posts/${postId}/verify-relations`, accessToken, { method: "POST" });
 }
 
+export interface EvaluationResponse {
+  criterion_code: string;
+  criterion_label: string | null;
+  response_category: number;
+  rubric_version: string;
+}
+
+export interface PostEvaluation {
+  post_id: string;
+  rubric_version: string;
+  responses: EvaluationResponse[];
+}
+
+export function fetchPostEvaluation(accessToken: string, postId: string): Promise<PostEvaluation> {
+  return backendFetch(`/api/posts/${postId}/evaluation`, accessToken);
+}
+
+export function evaluatePost(accessToken: string, postId: string): Promise<PostEvaluation> {
+  return backendFetch(`/api/posts/${postId}/evaluate`, accessToken, { method: "POST" });
+}
+
 export function fetchPostSummary(accessToken: string, postId: string): Promise<PostAiSummary> {
   return backendFetch(`/api/posts/${postId}/summary`, accessToken);
 }

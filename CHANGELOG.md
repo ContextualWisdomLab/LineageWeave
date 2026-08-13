@@ -4,6 +4,20 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.27.0] - 2026-08-13
+
+### Added
+
+- ADR 0003 slice 2: a post can be LLM-as-a-Judge evaluated through
+  `fast-mlsirm`'s `ContextualOrchestratorJudge`. Scores persist only
+  via `LLMJudgeResult.to_irt_row()` into `post_evaluation_response`
+  (one row per post per rubric criterion). Null client is unavailable,
+  never a fabricated score.
+- Versioned rubric: constructive stance, negative stance, sales-lead
+  specificity. `POST /api/posts/{id}/evaluate` +
+  `GET /api/posts/{id}/evaluation`, and an "Evaluate post" panel on
+  the post popup.
+
 ## [0.26.0] - 2026-08-13
 
 ### Added

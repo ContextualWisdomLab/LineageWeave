@@ -47,6 +47,11 @@ from lineageweave.post_chat import (
     cited_post_summaries,
 )
 from lineageweave.post_content_normalization import normalize_post_body
+from lineageweave.post_evaluation import (
+    ContextualOrchestratorPostEvaluationClient,
+    NullPostEvaluationClient,
+    RUBRIC_VERSION,
+)
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
 
@@ -61,6 +66,7 @@ from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
 from backend.app.db import create_pool, get_pool
 from backend.app.entity_relationship_ingestion import ingest_post_entity_relationships
+from backend.app.post_evaluation_ingestion import fetch_post_evaluation, ingest_post_evaluation
 from backend.app.relation_verification_ingestion import verify_post_relations
 from backend.app.issue_ticket_ingestion import (
     create_ticket,
@@ -191,6 +197,16 @@ def _vision_client():
         settings.orchestrator_base_url,
         settings.orchestrator_api_key,
         settings.vision_model,
+    )
+
+
+def _post_evaluation_client():
+    """Live judge client when configured; otherwise the unavailable null."""
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
+        return NullPostEvaluationClient()
+    return ContextualOrchestratorPostEvaluationClient(
+        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
     )
 
 
@@ -542,6 +558,74 @@ async def read_post_lineage(
         "post_id": post_id,
         "direct": _visible_summaries(linked.direct),
         "indirect": _visible_summaries(linked.indirect),
+    }
+
+
+@app.get("/api/posts/{post_id}/evaluation")
+async def read_post_evaluation(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Persisted IRT responses for this post (ADR 0003 slice 2)."""
+    await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        rows = await fetch_post_evaluation(conn, post_id)
+    return {
+        "post_id": post_id,
+        "rubric_version": RUBRIC_VERSION,
+        "responses": [
+            {
+                "criterion_code": row.criterion_code,
+                "criterion_label": row.criterion_label,
+                "response_category": row.response_category,
+                "rubric_version": row.rubric_version,
+            }
+            for row in rows
+        ],
+    }
+
+
+@app.post("/api/posts/{post_id}/evaluate")
+async def evaluate_post(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """LLM-as-a-Judge a post through fast-mlsirm and persist the IRT row.
+
+    Gated by post_admin: a real LLM-call write, same discipline as
+    extract-keymen. Null channel is 503, never a fabricated score.
+    """
+    _require_post_admin(account)
+    post = await _load_visible_post(post_id, account, pool)
+    client = _post_evaluation_client()
+    if not client.available:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Post evaluation is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+        )
+    async with pool.acquire() as conn:
+        body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
+    normalized_body = normalize_post_body(
+        "" if body_row is None else body_row["post_body"], vision_client=_vision_client()
+    ).text
+    async with pool.acquire() as conn:
+        rows = await ingest_post_evaluation(
+            conn, client, post_id, post["post_title"], normalized_body
+        )
+    return {
+        "post_id": str(post["post_id"]),
+        "rubric_version": RUBRIC_VERSION,
+        "responses": [
+            {
+                "criterion_code": row.criterion_code,
+                "criterion_label": row.criterion_label,
+                "response_category": row.response_category,
+                "rubric_version": row.rubric_version,
+            }
+            for row in rows
+        ],
     }
 
 

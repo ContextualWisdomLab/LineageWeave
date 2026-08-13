@@ -245,6 +245,9 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/posts/post-1/evaluation")) {
+        return Promise.resolve(jsonResponse({ post_id: "post-1", rubric_version: "2026-08-13", responses: [] }));
+      }
       if (url.endsWith("/api/posts/post-1/summary")) {
         return Promise.resolve(
           jsonResponse({

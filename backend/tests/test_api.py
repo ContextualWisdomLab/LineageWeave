@@ -139,7 +139,10 @@ def seeded_db(demo_analyst_token):
                 "('ticket_status', 'closed', 'Closed'), "
                 "('relation_verification_status', 'verify_pending', 'Not yet checked'), "
                 "('relation_verification_status', 'verify_corroborated', 'Corroborated by external search'), "
-                "('relation_verification_status', 'verify_uncorroborated', 'No corroborating evidence found')"
+                "('relation_verification_status', 'verify_uncorroborated', 'No corroborating evidence found'), "
+                "('evaluation_criterion', 'general_sentiment_positive', 'Constructive stance'), "
+                "('evaluation_criterion', 'general_sentiment_negative', 'Negative stance'), "
+                "('evaluation_criterion', 'sales_lead_specificity', 'Sales-lead specificity')"
             )
             cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
@@ -641,6 +644,42 @@ def test_verify_relations_persists_real_search_outcomes(client, demo_analyst_tok
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert second_response.json()["verified"] == []
+
+
+def test_evaluation_is_empty_before_a_judge_run(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}/evaluation",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["responses"] == []
+
+
+def test_evaluate_is_unavailable_without_orchestrator(client, demo_analyst_token, seeded_db) -> None:
+    os.environ.pop("ORCHESTRATOR_BASE_URL", None)
+    os.environ.pop("ORCHESTRATOR_API_KEY", None)
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('permission', 'post_admin', 'Administer posts') on conflict (lookup_code) do nothing"
+            )
+            cur.execute("select access_role_id from account_role_assignment limit 1")
+            role_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into role_permission (access_role_id, permission_code) values (%s, 'post_admin') "
+                "on conflict do nothing",
+                (role_id,),
+            )
+    finally:
+        admin_conn.close()
+    response = client.post(
+        f"/api/posts/{seeded_db['public_post_id']}/evaluate",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 503
 
 
 @pytest.mark.skipif(
