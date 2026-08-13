@@ -133,10 +133,11 @@ create table abac_policy (
 );
 
 -- ---------------------------------------------------------------------
--- Posts (the "글" -- the scattered records this whole project reconstructs
--- lineage between).
+-- Source posts (the scattered records this whole project reconstructs
+-- lineage between). Named source_post, not post, so every table name
+-- is two or more snake_case words.
 -- ---------------------------------------------------------------------
-create table post (
+create table source_post (
     post_id uuid primary key default uuid_generate_v4(),
     author_account_id uuid not null references user_account (user_account_id),
     corporate_entity_id uuid not null references corporate_entity (corporate_entity_id),
@@ -149,15 +150,15 @@ create table post (
     updated_at timestamptz not null default now()
 );
 
-create index post_corporate_entity_idx on post (corporate_entity_id);
-create index post_author_idx on post (author_account_id);
+create index post_corporate_entity_idx on source_post (corporate_entity_id);
+create index post_author_idx on source_post (author_account_id);
 
 -- Counterparty entities named IN a post's content, classified by
 -- relationship type (partner / competitor / customer / customer's
 -- customer / market / ...). Free-text name because a counterparty is
 -- rarely already a row in corporate_entity.
 create table post_counterparty_entity (
-    post_id uuid not null references post (post_id),
+    post_id uuid not null references source_post (post_id),
     counterparty_entity_name text not null,
     relationship_type_code text not null references common_lookup_value (lookup_code),
     primary key (post_id, counterparty_entity_name)
@@ -169,7 +170,9 @@ create table post_counterparty_entity (
 -- have N affiliations (an internal Keyman can span multiple group
 -- companies; a counterparty Keyman can span multiple external orgs).
 -- ---------------------------------------------------------------------
-create table person (
+-- Cataloged people mentioned in posts (Keyman). Named cataloged_person,
+-- not person, so every table name is two or more snake_case words.
+create table cataloged_person (
     person_id uuid primary key default uuid_generate_v4(),
     person_name text not null,
     person_side_code text not null references common_lookup_value (lookup_code),
@@ -178,7 +181,7 @@ create table person (
 
 create table person_affiliation (
     person_affiliation_id uuid primary key default uuid_generate_v4(),
-    person_id uuid not null references person (person_id),
+    person_id uuid not null references cataloged_person (person_id),
     affiliated_organization_name text not null,
     affiliated_corporate_entity_id uuid references corporate_entity (corporate_entity_id),
     role_title text,
@@ -188,8 +191,8 @@ create table person_affiliation (
 create index person_affiliation_person_idx on person_affiliation (person_id);
 
 create table post_person_mention (
-    post_id uuid not null references post (post_id),
-    person_id uuid not null references person (person_id),
+    post_id uuid not null references source_post (post_id),
+    person_id uuid not null references cataloged_person (person_id),
     mention_context text,
     primary key (post_id, person_id)
 );
@@ -223,7 +226,7 @@ create index knowledge_graph_edge_target_idx on knowledge_graph_edge (target_nod
 -- ---------------------------------------------------------------------
 create table issue_ticket (
     issue_ticket_id uuid primary key default uuid_generate_v4(),
-    post_id uuid not null references post (post_id),
+    post_id uuid not null references source_post (post_id),
     ticket_status_code text not null references common_lookup_value (lookup_code),
     ticket_title text not null,
     assigned_account_id uuid references user_account (user_account_id),
@@ -239,8 +242,8 @@ create index issue_ticket_post_idx on issue_ticket (post_id);
 -- deployment would persist an Edge).
 -- ---------------------------------------------------------------------
 create table post_lineage_edge (
-    parent_post_id uuid not null references post (post_id),
-    child_post_id uuid not null references post (post_id),
+    parent_post_id uuid not null references source_post (post_id),
+    child_post_id uuid not null references source_post (post_id),
     fused_score numeric not null,
     created_at timestamptz not null default now(),
     primary key (parent_post_id, child_post_id)

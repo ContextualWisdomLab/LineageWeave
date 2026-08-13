@@ -13,7 +13,7 @@ All notable changes to this project are documented here. Format follows
   (snake_case, 2+ word object names) covering accounts (corp/PU code as
   attributes, not the login key), a shared `common_lookup_value` ENUM
   table, posts + visibility, ABAC/RBAC, VOC-type and entity-relationship
-  classification, Keyman (`person` + N:N `person_affiliation`), a
+  classification, Keyman (`cataloged_person` + N:N `person_affiliation`), a
   `knowledge_graph_edge` table, `issue_ticket`, and a self-referencing
   `corporate_hierarchy` via `corporate_entity.parent_entity_id`.
 - `docs/adr/0001-demo-identity-and-data-boundary.md`: the identity/data

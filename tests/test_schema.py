@@ -83,9 +83,9 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "role_permission",
         "account_role_assignment",
         "abac_policy",
-        "post",
+        "source_post",
         "post_counterparty_entity",
-        "person",
+        "cataloged_person",
         "person_affiliation",
         "post_person_mention",
         "knowledge_graph_edge",
@@ -173,3 +173,17 @@ def test_lookup_code_is_unique_across_categories(schema_db) -> None:
                 "values ('ticket_status', 'draft', 'Draft')"
             )
     schema_db.rollback()
+
+
+def test_every_created_table_name_has_at_least_two_words() -> None:
+    """The project naming rule is enforced on the shipped migration, not
+    only on tables that happen to be created in a live-Postgres run.
+    """
+    import re
+
+    sql = _MIGRATION_PATH.read_text()
+    names = re.findall(r"create table (\w+)", sql)
+    assert names, "migration must create at least one table"
+    for name in names:
+        words = name.split("_")
+        assert len(words) >= 2, f"table {name!r} must be two or more snake_case words"
