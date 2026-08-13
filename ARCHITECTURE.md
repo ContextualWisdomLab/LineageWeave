@@ -236,7 +236,9 @@ reason-and-cite step over `gather_chat_sources`' retrieve step -- both
 Event-Lineage link kinds feed the chat's context, ABAC-rechecked per
 candidate post). A missing orchestrator is 503; the popup shows
 `Chat unavailable (LLM orchestrator not configured)` rather than a
-raw HTTP status -- never a fabricated answer. `find_linked_post_ids` first expands to every post
+raw HTTP status -- never a fabricated answer. Evaluate, Extract
+Keymen, Derive commitment, and Verify use the same 503 empty-state
+pattern for a missing orchestrator or search service. `find_linked_post_ids` first expands to every post
 sharing a mentioned person before calling
 `backend/app/knowledge_graph.py::load_visible_subgraph` -- that function
 only loads edges among an *already-known* post set (its other caller,
