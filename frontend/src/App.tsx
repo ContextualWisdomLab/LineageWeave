@@ -360,7 +360,35 @@ function AffiliateTreeNode({
   );
 }
 
-function VocEvidenceSection({ evidence }: { evidence: VocEvidence | null }) {
+function peopleOnAffiliateOrg(
+  trees: AffiliateNode[] | null,
+  organizationName: string,
+): { personId: string; personName: string }[] {
+  if (!trees) return [];
+  const found: { personId: string; personName: string }[] = [];
+  const walk = (nodes: AffiliateNode[]) => {
+    for (const node of nodes) {
+      if (node.entity_name === organizationName) {
+        for (const person of node.people) {
+          found.push({ personId: person.person_id, personName: person.person_name });
+        }
+      }
+      walk(node.children);
+    }
+  };
+  walk(trees);
+  return found;
+}
+
+function VocEvidenceSection({
+  evidence,
+  affiliateTrees,
+  onSelectPerson,
+}: {
+  evidence: VocEvidence | null;
+  affiliateTrees: AffiliateNode[] | null;
+  onSelectPerson: (personId: string, personName: string) => void;
+}) {
   if (!evidence) return <p>Loading VOC evidence...</p>;
   return (
     <section className="popup-section">
@@ -379,17 +407,32 @@ function VocEvidenceSection({ evidence }: { evidence: VocEvidence | null }) {
           ))}
         </ul>
       )}
-      {evidence.counterparties.map((row) => (
-        <p key={row.counterparty_entity_name} className="voc-counterparty">
-          {row.counterparty_entity_name} -- {row.relationship_label}
-          {" -- "}
-          <VerificationBadge
-            statusCode={row.verification_status_code ?? "verify_pending"}
-            evidenceUrl={row.verification_evidence_url}
-            ariaLabel={`VOC verification: ${row.counterparty_entity_name}`}
-          />
-        </p>
-      ))}
+      {evidence.counterparties.map((row) => {
+        const people = peopleOnAffiliateOrg(affiliateTrees, row.counterparty_entity_name);
+        const person = people[0];
+        return (
+          <p key={row.counterparty_entity_name} className="voc-counterparty">
+            {person ? (
+              <button
+                className="keyman-select"
+                aria-label={`VOC Keyman: ${row.counterparty_entity_name}`}
+                onClick={() => onSelectPerson(person.personId, person.personName)}
+              >
+                {row.counterparty_entity_name}
+              </button>
+            ) : (
+              row.counterparty_entity_name
+            )}{" "}
+            -- {row.relationship_label}
+            {" -- "}
+            <VerificationBadge
+              statusCode={row.verification_status_code ?? "verify_pending"}
+              evidenceUrl={row.verification_evidence_url}
+              ariaLabel={`VOC verification: ${row.counterparty_entity_name}`}
+            />
+          </p>
+        );
+      })}
     </section>
   );
 }
@@ -1057,7 +1100,11 @@ function PostDetailPopup({
               onEvaluated={(rows) => setEvaluation(rows)}
             />
 
-            <VocEvidenceSection evidence={vocEvidence} />
+            <VocEvidenceSection
+              evidence={vocEvidence}
+              affiliateTrees={affiliateTrees}
+              onSelectPerson={(personId, personName) => setFocusPerson({ personId, personName })}
+            />
 
             <section className="popup-section">
               <h3>Event Lineage</h3>

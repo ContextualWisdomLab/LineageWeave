@@ -906,6 +906,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByText(/our_side/)).not.toBeInTheDocument();
     expect(screen.getByText("unresolved")).toBeInTheDocument();
     expect(screen.getByText(/Voice of Customer\s*\(voc\)/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "VOC Keyman: Northridge Grid" })).toBeInTheDocument();
     expect(screen.getByLabelText("VOC verification: Northridge Grid")).toHaveTextContent("Not yet checked");
     expect(
       screen.getByText(
@@ -929,6 +930,15 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "R&R Keyman: Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     expect(screen.getByText("Priya Nair (Person)")).toBeInTheDocument();
+  });
+
+  it("opens related Keyman nodes from a VOC counterparty organization", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "VOC Keyman: Northridge Grid" }));
+    await waitFor(() => expect(screen.getByText("Related to Priya Nair")).toBeInTheDocument());
+    expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
   });
 
   it("opens related Keyman nodes from an affiliate-tree person", async () => {
