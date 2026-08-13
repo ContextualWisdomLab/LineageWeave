@@ -17,8 +17,16 @@ import pytest
 from lineageweave.fixtures import ambiguous_keyman_post
 from lineageweave.post_summary import (
     ContextualOrchestratorPostSummaryClient,
+    NullPostSummaryClient,
     parse_summary_response,
 )
+
+
+def test_null_summary_client_is_unavailable_not_empty_summary() -> None:
+    client = NullPostSummaryClient()
+    assert client.available is False
+    with pytest.raises(RuntimeError):
+        client.summarize("any title", "any body")
 
 
 def test_parses_a_well_formed_json_object() -> None:

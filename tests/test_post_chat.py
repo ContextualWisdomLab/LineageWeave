@@ -15,8 +15,16 @@ import pytest
 from lineageweave.post_chat import (
     ChatSourceDocument,
     ContextualOrchestratorPostChatClient,
+    NullPostChatClient,
     parse_chat_response,
 )
+
+
+def test_null_chat_client_is_unavailable_not_empty_answer() -> None:
+    client = NullPostChatClient()
+    assert client.available is False
+    with pytest.raises(RuntimeError):
+        client.answer("any question", [])
 
 _SOURCES = [
     ChatSourceDocument("post-1", "Bid workshop", "We submitted the initial transformer bid on March 3."),

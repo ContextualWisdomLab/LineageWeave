@@ -53,7 +53,14 @@ class PostSummaryClient(Protocol):
 
     available: bool
 
-    def summarize(self, post_title: str, post_body: str) -> PostSummary: ...
+    def summarize(self, post_title: str, post_body: str) -> PostSummary:
+        """Return a Korean summary, key events, and R&R for one post.
+
+        Implementations must raise if they cannot summarize. Protocol
+        stubs raise ``NotImplementedError`` so a no-op body is never
+        treated as a successful empty result.
+        """
+        raise NotImplementedError
 
 
 class NullPostSummaryClient:
@@ -61,7 +68,7 @@ class NullPostSummaryClient:
 
     available = False
 
-    def summarize(self, post_title: str, post_body: str) -> PostSummary:  # pragma: no cover
+    def summarize(self, post_title: str, post_body: str) -> PostSummary:
         raise RuntimeError("NullPostSummaryClient cannot summarize; check .available first")
 
 

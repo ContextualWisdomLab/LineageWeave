@@ -51,7 +51,14 @@ class PostChatClient(Protocol):
 
     available: bool
 
-    def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer: ...
+    def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:
+        """Answer ``question`` using only ``sources``, with citations.
+
+        Implementations must raise if they cannot answer. Protocol stubs
+        raise ``NotImplementedError`` so a no-op body is never treated as
+        a successful empty result.
+        """
+        raise NotImplementedError
 
 
 class NullPostChatClient:
@@ -59,7 +66,7 @@ class NullPostChatClient:
 
     available = False
 
-    def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:  # pragma: no cover
+    def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:
         raise RuntimeError("NullPostChatClient cannot answer; check .available first")
 
 

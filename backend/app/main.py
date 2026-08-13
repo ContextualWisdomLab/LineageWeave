@@ -108,6 +108,7 @@ def _entity_relationship_client():
 
 
 def _post_summary_client():
+    """Live orchestrator client when configured; otherwise the unavailable null."""
     settings = load_settings()
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullPostSummaryClient()
@@ -117,6 +118,7 @@ def _post_summary_client():
 
 
 def _post_chat_client():
+    """Live orchestrator client when configured; otherwise the unavailable null."""
     settings = load_settings()
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullPostChatClient()
@@ -403,6 +405,8 @@ async def read_post_summary(
 
 
 class ChatRequest(BaseModel):
+    """JSON body for ``POST /api/posts/{post_id}/chat``."""
+
     question: str
 
 
