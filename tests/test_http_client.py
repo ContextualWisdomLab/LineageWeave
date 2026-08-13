@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import ssl
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -75,6 +76,16 @@ def test_post_json_posts_json_to_http_endpoint() -> None:
     assert body == {"ok": True, "echo": {"model": "demo", "input": "hello"}}
     assert _JsonHandler.received["path"] == "/v1/embeddings"
     assert _JsonHandler.received["authorization"] == "Bearer test-token"
+
+
+def test_post_json_https_negotiates_tls_instead_of_plaintext() -> None:
+    server, base = _serve(_JsonHandler)
+    try:
+        https_url = base.replace("http://", "https://", 1) + "/v1/embeddings"
+        with pytest.raises(ssl.SSLError):
+            post_json(https_url, {"model": "demo"}, headers={}, timeout=2.0)
+    finally:
+        server.shutdown()
 
 
 def test_post_json_raises_on_http_error() -> None:

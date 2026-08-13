@@ -12,7 +12,10 @@ All notable changes to this project are documented here. Format follows
   `http_client.post_json` helper that allowlists `http`/`https` and never
   calls `urllib.request.urlopen`. That closes the `file://` read concern
   Semgrep's `dynamic-urllib-use-detected` rule was flagging on the
-  operator-configured base URLs.
+  operator-configured base URLs. HTTPS posts wrap the connected socket
+  with a certifi-backed `SSLContext` instead of constructing
+  `http.client.HTTPSConnection`, so certificate verification is explicit
+  on the Python 3.10+ runtime this project requires.
 
 ### Added
 
