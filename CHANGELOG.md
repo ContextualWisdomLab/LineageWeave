@@ -4,6 +4,32 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-08-13
+
+### Added
+
+- `lineageweave/chunking.py`: semantic-unit chunking so the embedding
+  channel compares meaning-identifiable units instead of whole flattened
+  documents -- `chunk_by_paragraph` (Hearst, 1997, TextTiling subtopic
+  boundaries), `chunk_by_sentence`, `chunk_by_dom` (WHATWG HTML Living
+  Standard sectioning/flow block elements), and `chunk_by_conversation_turn`
+  (RFC 5322 sender/receiver boundaries).
+- `embedding_client.chunked_max_similarity`: chunks two documents, embeds
+  every chunk, and returns the single highest-scoring pair -- the standard
+  passage-retrieval strategy for "a relevant unit is buried in a longer
+  document." Degrades to plain whole-text embedding for any document that
+  chunks to zero or one piece (this project's real short-title dataset
+  behaves exactly as it did before chunking existed).
+- Real-provider test proving chunking works, not just that it type-checks:
+  a short relevant paragraph buried inside a longer synthetic document
+  scored higher via `chunked_max_similarity` than via whole-document
+  embedding, against the live embedding provider.
+- `docs/lineage-bi-research-notes.md`: new "Chunking" section with the
+  four units' grounding and an explicit, honest note that this project's
+  real dataset's only free-text field is too short to need chunking in
+  practice -- the module exists for richer content sources (e.g. the raw
+  MHTML artifacts that dataset's records were derived from).
+
 ## [0.2.0] - 2026-08-13
 
 ### Added

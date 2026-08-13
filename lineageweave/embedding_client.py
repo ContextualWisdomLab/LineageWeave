@@ -18,6 +18,8 @@ from typing import Protocol
 
 import certifi
 
+from .chunking import Chunk, chunk_by_paragraph
+
 # Some interpreter distributions (notably standalone uv/pyenv-managed
 # builds on macOS) don't reliably inherit the OS trust store the way a
 # browser or curl does, so the stdlib ssl module's default context can
@@ -77,3 +79,44 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
         return 0.0
     cosine = dot / (norm_a * norm_b)
     return (cosine + 1.0) / 2.0
+
+
+def chunked_max_similarity(
+    client: EmbeddingClient,
+    text_a: str,
+    text_b: str,
+    *,
+    chunker=chunk_by_paragraph,
+) -> tuple[float, Chunk, Chunk]:
+    """Chunk both documents, embed every chunk, and return the single
+    highest-scoring chunk pair.
+
+    Embedding a whole document as one vector dilutes a short relevant unit
+    with everything else in the same document. Max-pooling over chunk-pair
+    similarity instead asks the right question for lineage matching: "is
+    there ANY unit in A that plausibly matches ANY unit in B?" -- the
+    standard passage-retrieval strategy for exactly this "relevant content
+    is buried in a longer document" shape (see module docstring in
+    ``chunking.py`` for the per-unit-type grounding).
+
+    Falls back to whole-text embedding (a single implicit chunk) for any
+    document that chunks to zero or one pieces, so short records (this
+    project's real dataset's ``title_field``, ~28 characters on average)
+    behave exactly as they did before chunking existed -- one embedding
+    call each, same as :meth:`EmbeddingClient.embed`.
+    """
+    chunks_a = chunker(text_a) or [Chunk(text=text_a, unit_type="whole", index=0)]
+    chunks_b = chunker(text_b) or [Chunk(text=text_b, unit_type="whole", index=0)]
+
+    vectors_a = [(chunk, client.embed(chunk.text)) for chunk in chunks_a]
+    vectors_b = [(chunk, client.embed(chunk.text)) for chunk in chunks_b]
+
+    best_score = 0.0
+    best_pair: tuple[Chunk, Chunk] = (chunks_a[0], chunks_b[0])
+    for chunk_a, vector_a in vectors_a:
+        for chunk_b, vector_b in vectors_b:
+            score = cosine_similarity(vector_a, vector_b)
+            if score > best_score:
+                best_score = score
+                best_pair = (chunk_a, chunk_b)
+    return best_score, best_pair[0], best_pair[1]

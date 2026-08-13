@@ -16,7 +16,11 @@ import os
 import pytest
 
 from lineageweave.adjudication_client import ContextualOrchestratorAdjudicationClient
-from lineageweave.embedding_client import OpenAiCompatibleEmbeddingClient, cosine_similarity
+from lineageweave.embedding_client import (
+    OpenAiCompatibleEmbeddingClient,
+    chunked_max_similarity,
+    cosine_similarity,
+)
 
 _EMBEDDING_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_EMBEDDING_BASE_URL")
 _EMBEDDING_API_KEY = os.environ.get("LINEAGEWEAVE_TEST_EMBEDDING_API_KEY")
@@ -49,6 +53,36 @@ def test_openai_compatible_embedding_client_scores_similar_text_higher() -> None
     assert 0.0 <= related_score <= 1.0
     assert 0.0 <= unrelated_score <= 1.0
     assert related_score > unrelated_score
+
+
+@pytest.mark.skipif(
+    not (_EMBEDDING_BASE_URL and _EMBEDDING_API_KEY),
+    reason="set LINEAGEWEAVE_TEST_EMBEDDING_BASE_URL and LINEAGEWEAVE_TEST_EMBEDDING_API_KEY to run",
+)
+def test_chunked_embedding_finds_a_relevant_unit_buried_in_a_longer_document() -> None:
+    """The real case chunking exists for: a short relevant passage sitting
+    inside a much longer, mostly-irrelevant document. Whole-document
+    embedding dilutes the relevant passage with everything around it;
+    chunked max-pooled similarity should not.
+    """
+    client = OpenAiCompatibleEmbeddingClient(
+        base_url=_EMBEDDING_BASE_URL, api_key=_EMBEDDING_API_KEY, model=_EMBEDDING_MODEL
+    )
+
+    query = "Quarterly budget review meeting notes"
+    long_document = (
+        "Office parking lot repaving schedule for the north campus.\n\n"
+        "New badge access policy for the west entrance starting next month.\n\n"
+        "Budget review follow-up: revised quarterly numbers and next steps.\n\n"
+        "Cafeteria menu rotation for the coming season.\n\n"
+        "Reminder about the annual fire drill scheduled for next week."
+    )
+
+    chunked_score, best_a, best_b = chunked_max_similarity(client, query, long_document)
+    whole_document_score = cosine_similarity(client.embed(query), client.embed(long_document))
+
+    assert "Budget review" in best_b.text
+    assert chunked_score > whole_document_score
 
 
 @pytest.mark.skipif(
