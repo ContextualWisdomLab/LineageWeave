@@ -435,7 +435,20 @@ async def fetch_period_reports(
         from report_member_score m
         join source_post p on p.post_id = m.post_id
         where m.grouping_kind = $1 and m.period_code = $2 and m.rubric_version = $3
-        order by m.theta_eap desc
+        order by
+          exists (
+            select 1 from post_lineage_edge e
+            where e.parent_post_id = m.post_id or e.child_post_id = m.post_id
+          ) desc,
+          exists (
+            select 1 from post_person_mention k
+            where k.post_id = m.post_id
+          ) desc,
+          exists (
+            select 1 from post_evaluation_response ev
+            where ev.post_id = m.post_id
+          ) desc,
+          m.theta_eap desc
         """,
         grouping_kind,
         period_code,

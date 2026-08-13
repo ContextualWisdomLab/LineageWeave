@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.41.0] - 2026-08-14
+
+### Changed
+
+- Period-report members with Event Lineage, Keyman, and evaluation
+  sort ahead of dummy high/low band rows. A-100 fixtures score on the
+  high process unit and B-200 on the low unit, so a member click opens
+  a reconstruct post that already has those panels.
+
 ## [0.40.0] - 2026-08-14
 
 ### Added

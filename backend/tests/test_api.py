@@ -1961,6 +1961,85 @@ def test_seed_period_report_includes_fixture_event_lineage_posts(
     assert thread_counts["B-200"] > 4
 
 
+def test_seed_period_report_member_click_lands_on_decorated_fixture(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """The first W02 report member must already have Event Lineage,
+    Keyman, and evaluation -- otherwise the buyer click opens a dummy
+    high/low band row.
+    """
+    from lineageweave.fixtures import fixture_thread_cast, fixture_titles_in_iso_week
+    from scripts.seed_demo_data import (
+        _seed_demo_calendar_commitment,
+        _seed_demo_period_report,
+        _seed_fixture_evaluations,
+        _seed_fixture_keymen_and_voc,
+        _seed_reconstructed_lineage,
+    )
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('voc_type', 'vom', 'Voice of Market') "
+                "on conflict (lookup_code) do nothing"
+            )
+            cur.execute(
+                "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
+                "select corporate_entity_id, 'TEST-PU-MEMBER-CLICK', 'Member click unit' "
+                "from source_post where post_id = %s returning process_unit_id",
+                (seeded_db["own_private_post_id"],),
+            )
+            process_unit_id = cur.fetchone()[0]
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_id, corp_id = cur.fetchone()
+            _seed_reconstructed_lineage(cur, author_id, corp_id, process_unit_id)
+            _seed_demo_calendar_commitment(cur, author_id, corp_id, process_unit_id)
+            _seed_fixture_evaluations(cur)
+            _seed_fixture_keymen_and_voc(cur, corp_id)
+            _seed_demo_period_report(cur, author_id, corp_id, process_unit_id)
+    finally:
+        admin_conn.close()
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    decorated = {
+        title
+        for title in fixture_titles_in_iso_week("2026-W02")
+        if (cast := fixture_thread_cast(title)) is not None and cast.person_names
+    }
+    for grouping in ("thread_group", "process_unit"):
+        response = client.get(f"/api/reports/{grouping}/2026-W02", headers=headers)
+        assert response.status_code == 200, response.text
+        for report in response.json()["reports"]:
+            assert report["members"], report["grouping_key"]
+            first = report["members"][0]
+            assert first["post_title"] in decorated, first["post_title"]
+            assert not first["post_title"].startswith(("High-band", "Low-band"))
+
+    threads = client.get("/api/reports/thread_group/2026-W02", headers=headers)
+    a100 = next(report for report in threads.json()["reports"] if report["grouping_key"] == "A-100")
+    post_id = a100["members"][0]["post_id"]
+
+    lineage = client.get(f"/api/posts/{post_id}/lineage", headers=headers)
+    assert lineage.status_code == 200, lineage.text
+    body = lineage.json()
+    assert body["direct"] or body["indirect"]
+
+    keymen = client.get(f"/api/posts/{post_id}/keymen", headers=headers)
+    assert keymen.status_code == 200, keymen.text
+    names = {person["person_name"] for person in keymen.json()["keymen"]}
+    assert names == {"Ada West", "Priya Nair"}
+
+    evaluation = client.get(f"/api/posts/{post_id}/evaluation", headers=headers)
+    assert evaluation.status_code == 200, evaluation.text
+    assert len(evaluation.json()["responses"]) == 3
+
+
 def test_rebuild_reports_requires_post_admin(client, demo_analyst_token) -> None:
     response = client.post(
         "/api/reports/process_unit/2026-W02/rebuild",
