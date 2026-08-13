@@ -1259,6 +1259,9 @@ function ReportsPanel({
                       >
                         <span className="ticket-title">{member.post_title}</span>
                         <span className="post-badge">θ {member.theta_eap.toFixed(2)}</span>
+                        {member.ticket_title && (
+                          <span className="post-badge">{member.ticket_title}</span>
+                        )}
                         {member.ticket_due_date && (
                           <span className="post-badge">due {member.ticket_due_date}</span>
                         )}

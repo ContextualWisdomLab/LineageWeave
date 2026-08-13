@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.49.0] - 2026-08-14
+
+### Added
+
+- Period-report members show the earliest open ticket title next to
+  the due date. The home-page report list now reads "Send Northridge
+  Grid the revised quote" plus `due 2026-01-12` on the A-100 pricing
+  follow-up, so the buyer sees the seeded ticket before opening the
+  post.
+
 ## [0.48.0] - 2026-08-14
 
 ### Added
