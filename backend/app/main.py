@@ -26,6 +26,10 @@ import asyncpg
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
+from lineageweave.entity_relationship_classification import (
+    ContextualOrchestratorEntityRelationshipClient,
+    NullEntityRelationshipClient,
+)
 from lineageweave.keyman_extraction import (
     ContextualOrchestratorKeymanExtractionClient,
     NullKeymanExtractionClient,
@@ -34,6 +38,7 @@ from lineageweave.keyman_extraction import (
 from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
 from backend.app.db import create_pool, get_pool
+from backend.app.entity_relationship_ingestion import ingest_post_entity_relationships
 from backend.app.keyman_ingestion import ingest_post_keymen
 from backend.app.knowledge_graph import (
     fetch_post_keymen,
@@ -84,6 +89,16 @@ def _keyman_extraction_client():
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullKeymanExtractionClient()
     return ContextualOrchestratorKeymanExtractionClient(
+        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+    )
+
+
+def _entity_relationship_client():
+    """Live orchestrator client when configured; otherwise the unavailable null."""
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
+        return NullEntityRelationshipClient()
+    return ContextualOrchestratorEntityRelationshipClient(
         base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
     )
 
@@ -218,6 +233,26 @@ async def read_related_keymen(
     }
 
 
+@app.get("/api/posts/{post_id}/counterparties")
+async def read_post_counterparties(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Classified counterparty orgs for one visible post."""
+    post = await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "select counterparty_entity_name, relationship_type_code "
+            "from post_counterparty_entity where post_id = $1 order by counterparty_entity_name",
+            post_id,
+        )
+    return {
+        "post_id": str(post["post_id"]),
+        "counterparties": [dict(row) for row in rows],
+    }
+
+
 @app.post("/api/posts/{post_id}/extract-keymen")
 async def extract_post_keymen(
     post_id: str,
@@ -226,21 +261,34 @@ async def extract_post_keymen(
 ) -> dict[str, Any]:
     """Runs Keyman extraction over a post's own title+body and persists the
     result (cataloged_person / person_affiliation / post_person_mention /
-    knowledge_graph_edge). Gated by post_admin, not post_read: this is a
-    write action with a real LLM-call cost, not a read.
+    knowledge_graph_edge), then classifies each affiliated organization's
+    relationship to the post author's org (post_counterparty_entity).
+    Gated by post_admin, not post_read: this is a write action with a
+    real LLM-call cost, not a read.
     """
     _require_post_admin(account)
     post = await _load_visible_post(post_id, account, pool)
-    client = _keyman_extraction_client()
-    if not client.available:
+    keyman_client = _keyman_extraction_client()
+    if not keyman_client.available:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Keyman extraction is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
         )
+    relationship_client = _entity_relationship_client()
     async with pool.acquire() as conn:
         body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
+        post_body = "" if body_row is None else body_row["post_body"]
         async with conn.transaction():
-            mentions = await ingest_post_keymen(conn, client, post_id, post["post_title"], body_row["post_body"])
+            mentions = await ingest_post_keymen(conn, keyman_client, post_id, post["post_title"], post_body)
+            organization_names = sorted(
+                {name for mention in mentions for name in mention.affiliated_organization_names}
+            )
+            # relationship_client is gated by the same settings check as
+            # keyman_client above (both read ORCHESTRATOR_BASE_URL/_API_KEY),
+            # so reaching here means it is available too.
+            relationships = await ingest_post_entity_relationships(
+                conn, relationship_client, post_id, post["post_title"], post_body, organization_names
+            )
     return {
         "post_id": str(post["post_id"]),
         "extracted_count": len(mentions),
@@ -251,5 +299,12 @@ async def extract_post_keymen(
                 "affiliated_organization_names": list(mention.affiliated_organization_names),
             }
             for mention in mentions
+        ],
+        "counterparties": [
+            {
+                "organization_name": relationship.organization_name,
+                "relationship_type_code": relationship.relationship_type_code,
+            }
+            for relationship in relationships
         ],
     }

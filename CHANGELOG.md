@@ -4,6 +4,48 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-08-13
+
+### Added
+
+- Milestone 4, Phase 3: `lineageweave/entity_relationship_classification.py`
+  -- LLM classification (via contextual-orchestrator, `mode="route"`) of a
+  named organization's relationship to the post author's org into the
+  product's own six-way vocabulary (`rel_voc`/`rel_vom`/`rel_vop`/
+  `rel_vocc`/`rel_voco`/`rel_vos` -- `rel_`-prefixed because
+  `common_lookup_value.lookup_code` is unique globally across categories
+  and bare `voc`/`vom` were already claimed by `post.voc_type_code`'s own
+  category). Proven with a real LLM call against a genuinely hard fixture
+  (`fixtures.ambiguous_entity_relationship_post`): an organization that is
+  both a repeat customer and a newly-competing division in the same post.
+- `lineageweave/corporate_hierarchy_resolution.py` -- similarity-based
+  resolution of a free-text organization name to an existing
+  `corporate_entity` row (Bhattacharya & Getoor, 2007's candidate-
+  generation/blocking stage of collective entity resolution, honestly
+  documented as that stage and not the full joint-inference version).
+  Wired into `backend/app/keyman_ingestion.py`, replacing the exact-
+  case-insensitive-match lookup it had before. `tests/test_corporate_hierarchy_resolution.py`
+  proves it against the same "Acme Group / Acme Electronics Korea / Acme
+  Electronics Gwangju Plant" hierarchy `tests/test_schema.py` already
+  uses: an abbreviation and a trailing legal suffix still resolve to the
+  right entity (not a sibling with a similar name), and a genuinely
+  unrelated organization resolves to `None`, not a guess.
+- `tests/test_indirect_lineage_linking.py`: demonstrates the Knowledge
+  Graph layer finds a real relation `lineageweave.reconstruct` has no
+  mechanism to find at all -- two posts in different `reconstruct.py`
+  groups (structurally never compared against each other) still surface
+  as related once they share a Keyman, via `random_walk_with_restart`.
+- Backend: `GET /api/posts/{post_id}/counterparties`, and
+  `POST /api/posts/{post_id}/extract-keymen` now also classifies and
+  persists each extracted Keyman's affiliated organizations'
+  relationships (`backend/app/entity_relationship_ingestion.py`), all on
+  the same RBAC+ABAC gate as the post/Keyman endpoints. Proven end to end
+  against a live Postgres + Keycloak + contextual-orchestrator stack.
+- `docs/lineage-bi-research-notes.md`: added Zelenko, Aone, & Richardella
+  (2003) (relation extraction); moved Bhattacharya & Getoor (2007) from
+  "staged for later phases" into a real section now that it grounds
+  shipped code.
+
 ## [0.9.0] - 2026-08-13
 
 ### Added

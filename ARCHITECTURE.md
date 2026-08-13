@@ -68,6 +68,9 @@ flowchart LR
 | `tepp_client.py` | TEPP's published `AnalysisRunRequest` wire contract, pluggable transport |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
 | `knowledge_graph.py` | Random-walk-with-restart relevance + per-node adaptive related-node cutoff (Tong et al., 2006) -- pure graph math, no Postgres |
+| `keyman_extraction.py` | Pluggable LLM extraction of two-sided (our-side/counterparty) person mentions + N:N org affiliations from a post |
+| `entity_relationship_classification.py` | Pluggable LLM classification of a named organization's relationship to the post author (`rel_voc`/`rel_vom`/`rel_vop`/`rel_vocc`/`rel_voco`/`rel_vos`) |
+| `corporate_hierarchy_resolution.py` | Similarity-based resolution of a free-text org name to an existing `corporate_entity` row (Bhattacharya & Getoor, 2007's candidate-generation stage) |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
 | `server.py` | Stdlib HTTP server: `GET /api/lineage` (JSON graph) + static viewer |
 | `web/index.html` | Self-contained SVG DAG viewer, no build step, no external script dependency |
@@ -179,6 +182,18 @@ with a real LLM-call cost). A Keyman who is only mentioned on a post the
 account cannot see is 403, matching the post deny path. Extraction
 lives in `lineageweave/keyman_extraction.py` and talks to
 contextual-orchestrator; persist is `backend/app/keyman_ingestion.py`.
+
+Phase 3 adds `GET /api/posts/{post_id}/counterparties` (same RBAC+ABAC
+gate) and extends `POST /api/posts/{post_id}/extract-keymen` to also
+classify each extracted Keyman's affiliated organizations' relationship
+to the post author's org (`lineageweave/entity_relationship_classification.py`,
+persisted via `backend/app/entity_relationship_ingestion.py` into
+`post_counterparty_entity`). Organization-name resolution into a real
+`corporate_entity` row (both for Keyman affiliations and for the
+relationship classifier's candidates) goes through
+`lineageweave/corporate_hierarchy_resolution.py` instead of an exact
+string match, so "Acme Electronics Korea Ltd." still resolves to the
+same entity as "Acme Electronics Korea."
 
 ### Frontend (`frontend/`)
 

@@ -59,3 +59,28 @@ def ambiguous_keyman_post() -> tuple[str, str]:
         "minutes later."
     )
     return title, body
+
+
+def ambiguous_entity_relationship_post() -> tuple[str, str, list[str]]:
+    """A synthetic post where a keyword-matcher would get the relationship
+    classification wrong: the same organization is both a current customer
+    (in one product line) and a known competitor (in another), described
+    in running prose rather than a labeled list. Also names a supplier
+    (the uncommon "vos" case) and a pure market-signal mention with no
+    single counterparty.
+
+    Returns (title, body, organization_names).
+    """
+    title = "Meridian account review and switchgear market note"
+    body = (
+        "Meridian Utilities placed a repeat order for our transformer line "
+        "this quarter -- their third since the original installation -- but "
+        "their newly-acquired switchgear division has started bidding "
+        "directly against us on two municipal contracts, undercutting our "
+        "quote by double digits. Separately, Colby Insulation shipped the "
+        "replacement gasket stock a week early, which kept the Meridian "
+        "order from slipping. Industry chatter at the regional utilities "
+        "conference suggested overall grid-modernization spending is up "
+        "this year, though no specific buyer named that directly."
+    )
+    return title, body, ["Meridian Utilities", "Colby Insulation"]
