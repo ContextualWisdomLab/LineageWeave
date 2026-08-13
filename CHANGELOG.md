@@ -27,6 +27,16 @@ All notable changes to this project are documented here. Format follows
   including how to remap host ports if 5432/6379/8080 are already taken
   locally.
 
+### Fixed
+
+- Dockerfiles declare an explicit non-root `USER` (DS-0002) and pin
+  `postgres:16-alpine`, `quay.io/keycloak/keycloak:26.0`, and
+  `valkey/valkey:8-alpine` by digest.
+- `scripts/smoke_test_oidc.py` talks to Keycloak through
+  `lineageweave.http_client` (`get_json` / `post_form`) instead of
+  `urllib.request.urlopen`, so the same `file://` allowlist used by the
+  library clients applies to the OIDC smoke path.
+
 ## [0.4.0] - 2026-08-13
 
 ### Added
