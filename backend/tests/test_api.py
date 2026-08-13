@@ -2359,9 +2359,11 @@ def test_seed_period_report_includes_fixture_event_lineage_posts(
     follow_up = next(m for m in a100["members"] if m["post_title"] == "Pricing renegotiation follow-up")
     assert follow_up["ticket_due_date"] == "2026-01-12"
     assert follow_up["ticket_title"] == "Send Northridge Grid the revised quote"
+    assert follow_up["ticket_status_label"] == "Open"
     revision = next(m for m in b200["members"] if m["post_title"] == "Specification revision requested")
     assert revision["ticket_due_date"] == "2026-01-14"
     assert revision["ticket_title"] == "Send Westfield Power the revised specification"
+    assert revision["ticket_status_label"] == "Open"
 
     compare = client.get("/api/reports/compare/2026-W02", headers=headers)
     assert compare.status_code == 200, compare.text

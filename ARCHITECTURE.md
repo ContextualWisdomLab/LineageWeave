@@ -501,7 +501,7 @@ folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared
 bank as the dummy high/low band rows, so comparison-strip click
 through opens those DAG posts. Report members include the earliest
-open ticket title and due date when one exists. The home page renders
+open ticket title, status lookup label, and due date when one exists. The home page renders
 the actual mean θ, the FIPC delta, the CAT-selected item, and the
 PU / corp / thread comparison -- never a placeholder. TEPP is unchanged.
 

@@ -320,6 +320,8 @@ export interface ReportMember {
   theta_sd: number;
   ticket_due_date?: string | null;
   ticket_title?: string | null;
+  ticket_status_code?: string | null;
+  ticket_status_label?: string | null;
 }
 
 export interface SelectedReportItem {

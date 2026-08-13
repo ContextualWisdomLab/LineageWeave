@@ -1340,6 +1340,11 @@ function ReportsPanel({
                         {member.ticket_title && (
                           <span className="post-badge">{member.ticket_title}</span>
                         )}
+                        {(member.ticket_status_label ?? member.ticket_status_code) && (
+                          <span className="post-badge">
+                            {member.ticket_status_label ?? member.ticket_status_code}
+                          </span>
+                        )}
                         {member.ticket_due_date && (
                           <span className="post-badge">due {member.ticket_due_date}</span>
                         )}
