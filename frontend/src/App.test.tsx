@@ -289,6 +289,14 @@ describe("App, authenticated", () => {
                 label: "Priya Nair",
                 relevance: 0.4,
               },
+              {
+                node_id: "post-2",
+                node_type_code: "node_post",
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                ontology_label: "Post",
+                label: "Linked post",
+                relevance: 0.3,
+              },
             ],
           }),
         );
@@ -381,6 +389,7 @@ describe("App, authenticated", () => {
             post_id: "post-1",
             answer_text: "Here is what happened, drawing on the linked post.",
             cited_post_ids: ["post-2"],
+            cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
             source_post_ids: ["post-1", "post-2"],
           }),
         );
@@ -474,7 +483,7 @@ describe("App, authenticated", () => {
     // The evidence panel is not shown until a citation is clicked.
     expect(screen.queryByText("The evidence panel should show exactly this text.")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByText("post-2".slice(0, 8)));
+    await userEvent.click(screen.getByRole("button", { name: "Open evidence: Linked post" }));
 
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
@@ -503,6 +512,10 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     expect(screen.getByText("Priya Nair (Person)")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Open related post: Linked post" }));
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
   });
 
   it("lets post_admin extract Keymen from the popup", async () => {

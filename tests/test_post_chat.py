@@ -16,6 +16,7 @@ from lineageweave.post_chat import (
     ChatSourceDocument,
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
+    cited_post_summaries,
     parse_chat_response,
 )
 
@@ -30,6 +31,14 @@ _SOURCES = [
     ChatSourceDocument("post-1", "Bid workshop", "We submitted the initial transformer bid on March 3."),
     ChatSourceDocument("post-2", "Bid revision", "The client asked for a revised quote on March 10; we sent it March 12."),
 ]
+
+
+def test_cited_post_summaries_keep_citation_order_and_drop_unknown_ids() -> None:
+    chips = cited_post_summaries(_SOURCES, ("post-2", "missing", "post-1"))
+    assert chips == [
+        {"post_id": "post-2", "post_title": "Bid revision"},
+        {"post_id": "post-1", "post_title": "Bid workshop"},
+    ]
 
 
 def test_parses_a_well_formed_json_object() -> None:

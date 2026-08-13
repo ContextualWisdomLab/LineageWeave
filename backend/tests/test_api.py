@@ -723,6 +723,8 @@ def test_post_chat_cites_a_post_linked_only_via_a_shared_keyman(client, demo_ana
     body_json = response.json()
     assert set(body_json["source_post_ids"]) == {post_a, post_b}
     assert post_b in body_json["cited_post_ids"]
+    cited_by_id = {row["post_id"]: row["post_title"] for row in body_json["cited_posts"]}
+    assert cited_by_id[post_b] == "Bid follow-up"
 
 
 def test_rebuild_lineage_requires_post_admin(client, demo_analyst_token) -> None:
