@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupHeading, layoutLineageDag } from "./lineageLayout";
+import { groupHeading, layoutLineageDag, subgraphForPost } from "./lineageLayout";
 
 const a100Graph = {
   nodes: [
@@ -84,6 +84,27 @@ describe("layoutLineageDag", () => {
     expect(quote!.y).not.toBe(delivery!.y);
     expect(isolated?.is_root).toBe(true);
     expect(isolated!.x).toBeLessThan(fork!.x);
+  });
+
+  it("scopes a post's popup DAG to its reconstruct group, including the A-100 fork", () => {
+    const scoped = subgraphForPost(a100Graph, "rec-002");
+    expect(scoped.nodes.map((node) => node.id).sort()).toEqual([
+      "rec-001",
+      "rec-002",
+      "rec-003",
+      "rec-004",
+      "rec-005",
+      "rec-006",
+    ]);
+    expect(scoped.nodes.some((node) => node.group === "B-200")).toBe(false);
+    expect(scoped.edges.filter((edge) => edge.source === "rec-002").map((edge) => edge.target).sort()).toEqual([
+      "rec-003",
+      "rec-004",
+    ]);
+  });
+
+  it("returns an empty graph when the post is not in the reconstruct DAG", () => {
+    expect(subgraphForPost(a100Graph, "missing-post")).toEqual({ nodes: [], edges: [] });
   });
 
   it("labels UUID reconstruct fallbacks as Ungrouped without merging named threads", () => {

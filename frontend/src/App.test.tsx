@@ -432,6 +432,10 @@ describe("App, authenticated", () => {
     expect(screen.getByText(/일정 안내/)).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText("간접")).toBeInTheDocument());
     expect(screen.getByText("간접").closest("li")).toHaveTextContent("Linked post");
+    // The popup Event Lineage is the same A-100 reconstruct DAG as the home
+    // page, not a flat list -- two SVGs (home + popup) share the fork.
+    expect(screen.getAllByLabelText("A-100 lineage").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByLabelText("Open post: Pricing renegotiation follow-up").length).toBeGreaterThanOrEqual(2);
   });
 
   it("asks a chat question and slides in the evidence panel for a cited source on click", async () => {
