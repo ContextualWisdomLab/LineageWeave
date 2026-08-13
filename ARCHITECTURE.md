@@ -423,9 +423,12 @@ off-by-one in any session whose TZ is not UTC. A malformed
 
 `scripts/seed_demo_data.py` inserts `fixtures.ambiguous_commitment_post`
 (created_at 2026-01-05) and one open `issue_ticket` due 2026-01-09 so
-`GET /api/calendar` is not empty on a freshly seeded stack. Re-seed
-is idempotent. The empty-state copy is only for accounts that truly
-have no dated open tickets.
+`GET /api/calendar` is not empty on a freshly seeded stack. The same
+seed writes the A-100 pricing ticket (`Send Northridge Grid the revised
+quote`, due 2026-01-12) so home Calendar lists the same dated ticket
+the period-report member already shows. Re-seed is idempotent. The
+empty-state copy is only for accounts that truly have no dated open
+tickets.
 
 ## Phase 6a: fast-mlsirm dependency + Rust toolchain (infra only)
 

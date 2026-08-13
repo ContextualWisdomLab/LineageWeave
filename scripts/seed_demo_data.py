@@ -755,6 +755,8 @@ def _seed_fixture_tickets(cur) -> None:
 
     Without this, GET /api/posts/{id}/tickets is empty after ``make seed``
     even though the post already has lineage, Keyman, and evaluation.
+    Dated rows also appear on GET /api/calendar (A-100 pricing due
+    2026-01-12) so home Calendar is not only the Riverbend commitment.
     Idempotent: a matching ticket title on that post is left alone.
     """
     for post_title, ticket_title, due_date in FIXTURE_TICKET_SPECS:

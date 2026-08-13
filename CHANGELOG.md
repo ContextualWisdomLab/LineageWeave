@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.51.0] - 2026-08-14
+
+### Added
+
+- Home Calendar lists the seeded A-100 pricing ticket due 2026-01-12.
+  After `make seed`, GET /api/calendar includes "Send Northridge Grid
+  the revised quote" next to the Riverbend commitment, so the buyer
+  sees the same dated ticket already shown on the period-report row.
+
 ## [0.50.0] - 2026-08-14
 
 ### Added

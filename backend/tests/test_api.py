@@ -2015,6 +2015,47 @@ def test_seed_calendar_commitment_surfaces_on_get_calendar(client, demo_analyst_
     assert expected_title in titles
 
 
+def test_seed_fixture_tickets_surface_on_get_calendar(client, demo_analyst_token, seeded_db) -> None:
+    """The same helper `make seed` calls must put the A-100 pricing
+    ticket on GET /api/calendar -- otherwise home Calendar only shows
+    Riverbend and the buyer never sees due 2026-01-12 next to the
+    report-member ticket.
+    """
+    from lineageweave.fixtures import sample_records
+    from scripts.seed_demo_data import _seed_fixture_tickets
+
+    fixture_title = sample_records()[1].label  # Pricing renegotiation follow-up
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_id, corp_id = cur.fetchone()
+            cur.execute(
+                "insert into source_post "
+                "(author_account_id, corporate_entity_id, post_title, post_body, "
+                " voc_type_code, visibility_code) "
+                "values (%s, %s, %s, %s, 'voc', 'public') returning post_id",
+                (author_id, corp_id, fixture_title, fixture_title),
+            )
+            _seed_fixture_tickets(cur)
+    finally:
+        admin_conn.close()
+
+    response = client.get("/api/calendar", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 200, response.text
+    pricing = next(
+        row
+        for row in response.json()["commitments"]
+        if row["ticket_title"] == "Send Northridge Grid the revised quote"
+    )
+    assert pricing["due_date"] == "2026-01-12"
+    assert pricing["post_title"] == fixture_title
+
+
 def test_seed_fixture_tickets_surface_on_get_tickets(client, demo_analyst_token, seeded_db) -> None:
     """The same helper `make seed` calls must put a ticket on the A-100
     follow-up post -- otherwise a report-member click shows No tickets yet.
