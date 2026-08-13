@@ -1026,6 +1026,9 @@ describe("App, authenticated", () => {
     );
     expect(screen.queryByRole("button", { name: /rebuild report/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("θ 0.91");
+    expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent(
+      "Send Northridge Grid the revised quote",
+    );
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
   });
 
