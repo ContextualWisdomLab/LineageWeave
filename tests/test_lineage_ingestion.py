@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from backend.app.lineage_ingestion import records_from_source_posts
+from backend.app.lineage_ingestion import reconstruct_group_key, records_from_source_posts
 from lineageweave.fixtures import sample_records
 from lineageweave.lineage_persistence import lineage_edge_specs
 
@@ -45,6 +45,22 @@ def test_records_fall_back_to_corporate_entity_when_thread_keys_are_empty() -> N
     assert records[0].group_key == "cccccccc-cccc-cccc-cccc-cccccccccccc"
     assert records[0].secondary_key == ""
     assert records[0].label == "Corp-only post"
+
+
+def test_display_group_matches_reconstruct_group_key() -> None:
+    """The DAG's group field is reconstruct's key, not voc type or PU."""
+    a100 = {
+        "process_unit_id": "shared-pu",
+        "corporate_entity_id": "shared-corp",
+        "thread_group_key": "A-100",
+    }
+    ungrouped = {
+        "process_unit_id": "shared-pu",
+        "corporate_entity_id": "shared-corp",
+        "thread_group_key": "",
+    }
+    assert reconstruct_group_key(a100) == "A-100"
+    assert reconstruct_group_key(ungrouped) == "shared-pu"
 
 
 def test_seed_shaped_rows_rebuild_to_the_designed_a100_fork() -> None:

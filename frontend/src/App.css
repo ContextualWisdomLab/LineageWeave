@@ -155,6 +155,75 @@
   font-size: 0.85rem;
 }
 
+.lineage-home {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.lineage-home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.lineage-dag-group {
+  margin: 0 0 1.25rem;
+}
+
+.lineage-dag-group figcaption {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin-bottom: 0.4rem;
+}
+
+.lineage-dag svg {
+  border: 1px solid #3333;
+  border-radius: 8px;
+  background: canvas;
+}
+
+.lineage-dag-edge {
+  stroke: color-mix(in srgb, canvastext 35%, transparent);
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.lineage-dag-node {
+  cursor: pointer;
+}
+
+.lineage-dag-node circle {
+  fill: color-mix(in srgb, canvastext 8%, canvas);
+  stroke: color-mix(in srgb, canvastext 40%, transparent);
+  stroke-width: 1.5;
+}
+
+.lineage-dag-branch circle {
+  fill: color-mix(in srgb, orange 25%, canvas);
+  stroke: orange;
+}
+
+.lineage-dag-root circle {
+  stroke: #2563eb;
+}
+
+.lineage-dag-node text {
+  font-size: 11px;
+  fill: canvastext;
+}
+
+.lineage-dag-node:focus {
+  outline: none;
+}
+
+.lineage-dag-node:focus circle,
+.lineage-dag-node:hover circle {
+  stroke-width: 2.5;
+}
+
 .keyman-list {
   list-style: none;
   padding: 0;

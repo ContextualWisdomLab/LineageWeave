@@ -53,17 +53,30 @@ describe("App, authenticated", () => {
     };
   });
 
-  function stubBackend() {
+  function stubBackend(options?: { admin?: boolean }) {
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
+      if (url.endsWith("/api/me")) {
+        return Promise.resolve(
+          jsonResponse({
+            user_account_id: options?.admin ? "acct-admin" : "acct-1",
+            display_name: options?.admin ? "Demo Admin" : "Demo Analyst",
+            permission_codes: options?.admin ? ["post_read", "post_admin"] : ["post_read"],
+          }),
+        );
+      }
+      if (url.endsWith("/api/lineage/rebuild") && method === "POST") {
+        return Promise.resolve(jsonResponse({ edge_count: 4 }));
+      }
       if (url.endsWith("/api/lineage")) {
         return Promise.resolve(
           jsonResponse({
             nodes: [
               {
                 id: "post-1",
+                group: "A-100",
                 label: "Public post",
                 occurred_at: "2026-01-01T00:00:00Z",
                 is_root: true,
@@ -71,13 +84,50 @@ describe("App, authenticated", () => {
               },
               {
                 id: "post-2",
+                group: "A-100",
                 label: "Linked post",
                 occurred_at: "2026-01-02T00:00:00Z",
                 is_root: false,
                 is_branch_point: false,
               },
+              {
+                id: "rec-002",
+                group: "A-100",
+                label: "Pricing renegotiation follow-up",
+                occurred_at: "2026-01-06T00:00:00Z",
+                is_root: false,
+                is_branch_point: true,
+              },
+              {
+                id: "rec-003",
+                group: "A-100",
+                label: "Pricing renegotiation: revised quote sent",
+                occurred_at: "2026-01-10T00:00:00Z",
+                is_root: false,
+                is_branch_point: false,
+              },
+              {
+                id: "rec-004",
+                group: "A-100",
+                label: "Delivery schedule question raised",
+                occurred_at: "2026-01-07T00:00:00Z",
+                is_root: false,
+                is_branch_point: false,
+              },
+              {
+                id: "rec-006",
+                group: "A-100",
+                label: "Unrelated: annual account review",
+                occurred_at: "2026-02-10T00:00:00Z",
+                is_root: true,
+                is_branch_point: false,
+              },
             ],
-            edges: [{ source: "post-1", target: "post-2", fused_score: 0.8 }],
+            edges: [
+              { source: "post-1", target: "post-2", fused_score: 0.8 },
+              { source: "rec-002", target: "rec-003", fused_score: 0.9 },
+              { source: "rec-002", target: "rec-004", fused_score: 0.85 },
+            ],
           }),
         );
       }
@@ -159,10 +209,25 @@ describe("App, authenticated", () => {
     return fetchMock;
   }
 
-  it("renders reconstructed lineage edges on the home page", async () => {
+  it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
     stubBackend();
     render(<App />);
-    expect(await screen.findByText("Public post → Linked post")).toBeInTheDocument();
+    expect(await screen.findByLabelText("A-100 lineage")).toBeInTheDocument();
+    expect(screen.getByLabelText("Open post: Pricing renegotiation follow-up")).toHaveClass(
+      "lineage-dag-branch",
+    );
+    expect(screen.getByLabelText("Open post: Unrelated: annual account review")).toHaveClass(
+      "lineage-dag-root",
+    );
+    expect(screen.queryByText("Public post → Linked post")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /rebuild lineage/i })).not.toBeInTheDocument();
+  });
+
+  it("opens a post from a DAG node click", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByLabelText("Open post: Public post"));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });
 
   it("fetches and renders the post list, then opens a detail popup on click", async () => {
@@ -170,35 +235,47 @@ describe("App, authenticated", () => {
 
     render(<App />);
 
-    await screen.findByText("Public post");
+    const listButton = await screen.findByRole("button", { name: "View post: Public post" });
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/posts"),
       expect.objectContaining({ headers: expect.objectContaining({ Authorization: "Bearer test-access-token" }) }),
     );
 
-    await userEvent.click(screen.getByText("Public post"));
+    await userEvent.click(listButton);
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
+  it("rebuilds lineage when the account has post_admin", async () => {
+    const fetchMock = stubBackend({ admin: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: /rebuild lineage/i }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/lineage/rebuild"),
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
   });
 
   it("renders the Korean summary, key events, R&R, and Event Lineage panels", async () => {
     stubBackend();
     render(<App />);
 
-    await userEvent.click(await screen.findByText("Public post"));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
     await waitFor(() => expect(screen.getByText("이것은 요약입니다.")).toBeInTheDocument());
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
     expect(screen.getByText(/일정 안내/)).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText("Linked post")).toBeInTheDocument());
-    expect(screen.getByText("간접")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("간접")).toBeInTheDocument());
+    expect(screen.getByText("간접").closest("li")).toHaveTextContent("Linked post");
   });
 
   it("asks a chat question and slides in the evidence panel for a cited source on click", async () => {
     stubBackend();
     render(<App />);
 
-    await userEvent.click(await screen.findByText("Public post"));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByPlaceholderText(/what happened/i)).toBeInTheDocument());
 
     await userEvent.type(screen.getByPlaceholderText(/what happened/i), "What happened?");

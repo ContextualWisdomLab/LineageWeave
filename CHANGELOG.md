@@ -4,6 +4,19 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2026-08-13
+
+### Added
+
+- Product home page renders the reconstruct DAG as a git-branch SVG
+  (same layout language as `web/index.html`), grouped by reconstruct's
+  `thread_group_key`. Branch points are orange, isolated roots stay
+  visible, and a node click opens that post. `GET /api/lineage` now
+  includes `group` from the same `reconstruct_group_key()` rebuild uses,
+  so the UI cannot split A-100 / B-200 differently than reconstruct.
+- `Rebuild lineage` on the home page for `post_admin` accounts
+  (`POST /api/lineage/rebuild`). Viewers still only see the graph.
+
 ## [0.13.1] - 2026-08-13
 
 ### Fixed
