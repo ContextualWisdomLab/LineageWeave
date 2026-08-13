@@ -853,16 +853,17 @@ async def chat_about_post(
         sources = await gather_chat_sources(
             conn, post_id, lambda row: _can_see_post(account, row), vision_client=_vision_client()
         )
-        answer = client.answer(question, sources)
-        cited_ids = list(answer.cited_post_ids)
+    answer = client.answer(question, sources)
+    cited_ids = list(answer.cited_post_ids)
+    async with pool.acquire() as conn:
         await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
-        return {
-            "post_id": post_id,
-            "answer_text": answer.answer_text,
-            "cited_post_ids": cited_ids,
-            "cited_posts": cited_post_summaries(sources, cited_ids),
-            "source_post_ids": [source.post_id for source in sources],
-        }
+    return {
+        "post_id": post_id,
+        "answer_text": answer.answer_text,
+        "cited_post_ids": cited_ids,
+        "cited_posts": cited_post_summaries(sources, cited_ids),
+        "source_post_ids": [source.post_id for source in sources],
+    }
 
 
 @app.get("/api/posts/{post_id}/tickets")
