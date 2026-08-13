@@ -12,6 +12,7 @@ COPY migrations/0002_thread_grouping_keys.sql /docker-entrypoint-initdb.d/03-thr
 COPY migrations/0003_ticket_commitment_calendar.sql /docker-entrypoint-initdb.d/04-ticket-commitment-calendar.sql
 COPY migrations/0004_relation_verification.sql /docker-entrypoint-initdb.d/05-relation-verification.sql
 COPY migrations/0005_post_evaluation.sql /docker-entrypoint-initdb.d/06-post-evaluation.sql
+COPY migrations/0006_report_period_score.sql /docker-entrypoint-initdb.d/07-report-period-score.sql
 # Official image already drops to this account at runtime; declare it so
 # the Dockerfile itself satisfies DS-0002 (explicit non-root USER).
 USER postgres

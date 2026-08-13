@@ -277,6 +277,48 @@ export function evaluatePost(accessToken: string, postId: string): Promise<PostE
   return backendFetch(`/api/posts/${postId}/evaluate`, accessToken, { method: "POST" });
 }
 
+export interface ReportMember {
+  post_id: string;
+  post_title: string;
+  theta_eap: number;
+  theta_sd: number;
+}
+
+export interface PeriodGroupReport {
+  grouping_key: string;
+  selected_model: string;
+  mean_theta: number;
+  mean_theta_sd: number;
+  post_count: number;
+  item_count: number;
+  fit_converged: boolean;
+  members: ReportMember[];
+}
+
+export interface PeriodReports {
+  grouping_kind: string;
+  period_code: string;
+  reports: PeriodGroupReport[];
+}
+
+export function fetchPeriodReports(
+  accessToken: string,
+  groupingKind: string,
+  periodCode: string,
+): Promise<PeriodReports> {
+  return backendFetch(`/api/reports/${groupingKind}/${periodCode}`, accessToken);
+}
+
+export function rebuildPeriodReports(
+  accessToken: string,
+  groupingKind: string,
+  periodCode: string,
+): Promise<{ group_count: number }> {
+  return backendFetch(`/api/reports/${groupingKind}/${periodCode}/rebuild`, accessToken, {
+    method: "POST",
+  });
+}
+
 export function fetchPostSummary(accessToken: string, postId: string): Promise<PostAiSummary> {
   return backendFetch(`/api/posts/${postId}/summary`, accessToken);
 }
