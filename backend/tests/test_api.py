@@ -520,6 +520,10 @@ def test_other_corp_private_post_chat_is_forbidden(client, demo_analyst_token, s
     assert response.status_code == 403
 
 
+@pytest.mark.skipif(
+    not (_ORCHESTRATOR_BASE_URL and _ORCHESTRATOR_API_KEY),
+    reason="set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run",
+)
 def test_post_summary_returns_a_real_korean_summary(client, demo_analyst_token, seeded_db) -> None:
     os.environ["ORCHESTRATOR_BASE_URL"] = _ORCHESTRATOR_BASE_URL
     os.environ["ORCHESTRATOR_API_KEY"] = _ORCHESTRATOR_API_KEY
@@ -532,9 +536,9 @@ def test_post_summary_returns_a_real_korean_summary(client, demo_analyst_token, 
     try:
         with admin_conn.cursor() as cur:
             cur.execute(
-                "insert into post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
                 "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public' "
-                "from post where post_id = %s returning post_id",
+                "from source_post where post_id = %s returning post_id",
                 (title, body, seeded_db["own_private_post_id"]),
             )
             new_post_id = str(cur.fetchone()[0])
@@ -550,6 +554,10 @@ def test_post_summary_returns_a_real_korean_summary(client, demo_analyst_token, 
     assert len(body_json["key_events"]) >= 1
 
 
+@pytest.mark.skipif(
+    not (_ORCHESTRATOR_BASE_URL and _ORCHESTRATOR_API_KEY),
+    reason="set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run",
+)
 def test_post_chat_cites_a_post_linked_only_via_a_shared_keyman(client, demo_analyst_token, seeded_db) -> None:
     """The real end-to-end proof of Phase 4's Event Lineage chat: two
     posts with no direct lineage edge between them, linked only by a
@@ -565,14 +573,14 @@ def test_post_chat_cites_a_post_linked_only_via_a_shared_keyman(client, demo_ana
     try:
         with admin_conn.cursor() as cur:
             cur.execute(
-                "select author_account_id, corporate_entity_id from post where post_id = %s",
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
                 (seeded_db["own_private_post_id"],),
             )
             author_account_id, corporate_entity_id = cur.fetchone()
 
             def _insert_post(title, body):
                 cur.execute(
-                    "insert into post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                    "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
                     "values (%s, %s, %s, %s, 'voc', 'public') returning post_id",
                     (author_account_id, corporate_entity_id, title, body),
                 )
@@ -582,7 +590,7 @@ def test_post_chat_cites_a_post_linked_only_via_a_shared_keyman(client, demo_ana
             post_b = _insert_post("Bid follow-up", "The client requested a revised quote, sent March 12.")
 
             cur.execute(
-                "insert into person (person_name, person_side_code) values ('Shared Keyman', 'our_side') "
+                "insert into cataloged_person (person_name, person_side_code) values ('Shared Keyman', 'our_side') "
                 "returning person_id"
             )
             shared_person_id = str(cur.fetchone()[0])

@@ -352,7 +352,7 @@ async def read_post_lineage(
         if candidate_ids:
             fetched = await conn.fetch(
                 "select post_id, post_title, visibility_code, corporate_entity_id "
-                "from post where post_id = any($1::uuid[])",
+                "from source_post where post_id = any($1::uuid[])",
                 list(candidate_ids),
             )
             rows = {str(row["post_id"]): row for row in fetched}
@@ -389,7 +389,7 @@ async def read_post_summary(
             "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
         )
     async with pool.acquire() as conn:
-        body_row = await conn.fetchrow("select post_body from post where post_id = $1", post_id)
+        body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
     summary = client.summarize(post["post_title"], body_row["post_body"])
     return {
         "post_id": str(post["post_id"]),

@@ -92,7 +92,7 @@ async def gather_chat_sources(
     order `post_chat`'s citations refer back to.
     """
     this_post = await conn.fetchrow(
-        "select post_id, post_title, post_body from post where post_id = $1", post_id
+        "select post_id, post_title, post_body from source_post where post_id = $1", post_id
     )
     if this_post is None:
         return []
@@ -105,7 +105,7 @@ async def gather_chat_sources(
 
     rows = await conn.fetch(
         "select post_id, post_title, post_body, visibility_code, corporate_entity_id "
-        "from post where post_id = any($1::uuid[])",
+        "from source_post where post_id = any($1::uuid[])",
         list(candidate_ids),
     )
     for row in rows:
