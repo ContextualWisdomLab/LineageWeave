@@ -92,6 +92,38 @@ pip install -e ".[dev]"
 pytest
 ```
 
+## Local product stack (Docker Compose)
+
+The reconstruction library above is being wrapped in a real product (see
+[ARCHITECTURE.md](ARCHITECTURE.md#product-schema-phase-1-of-a-larger-roadmap)
+and [ADR 0001](docs/adr/0001-demo-identity-and-data-boundary.md)). Phase 1's
+infrastructure -- PostgreSQL, Valkey, and a real Keycloak OIDC realm seeded
+with synthetic demo accounts -- runs via Docker Compose:
+
+```bash
+make up      # docker compose up -d: postgres, valkey, keycloak
+make smoke   # real login as the synthetic demo user + JWT signature
+             # verification against Keycloak's live JWKS -- proves the
+             # OIDC round-trip actually works, not just that containers
+             # started
+make down
+```
+
+Postgres and Keycloak are built (`docker/postgres-init/`, `docker/keycloak/`)
+rather than bind-mounted, so the keycloak database's init script and the
+realm seed ship inside the images themselves -- portable to any Docker host
+or CI runner, no assumption about a shared local filesystem layout.
+
+Demo accounts (`docker/keycloak/realm-export.json`) are synthetic:
+`demo.analyst` / `demo.admin`, password `lineageweave-demo-only`, each
+carrying `corp_code` / `pu_code` as token claims -- these are throwaway
+local-dev credentials in a locally-run realm, never the org's real Keyverse
+tenant (see ADR 0001 for why).
+
+If a port in `docker-compose.yml` (5432, 6379, 8080) is already taken
+locally, override it via `.env` (copy `.env.example`) or inline, e.g.
+`KEYCLOAK_PORT=18080 make up`.
+
 ## Modular / standalone
 
 This repo runs standalone (own server, own tests, own CI) and is equally
