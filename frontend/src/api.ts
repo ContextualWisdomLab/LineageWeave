@@ -317,6 +317,8 @@ export interface ReportMember {
   post_title: string;
   theta_eap: number;
   theta_sd: number;
+  ticket_due_date?: string | null;
+  ticket_title?: string | null;
 }
 
 export interface SelectedReportItem {
