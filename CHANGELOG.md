@@ -4,6 +4,40 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-08-13
+
+### Added
+
+- `backend/`: a FastAPI app connecting directly to PostgreSQL (`asyncpg`,
+  no ORM, no file-backed DB). OIDC bearer-token login verified against a
+  live Keycloak JWKS (`backend/app/auth.py`); RBAC (`post_read` permission
+  via role membership) plus row-level ABAC (private posts scoped to the
+  requesting account's affiliated corporate entity) enforced on
+  `GET /api/posts` and `GET /api/posts/{post_id}` (`backend/app/main.py`).
+- `backend/tests/test_api.py`: real-integration tests -- a genuine access
+  token from a live Keycloak, verified against a throwaway migrated
+  Postgres database. Proves both the allow and the deny path: a private
+  post scoped to a *different* corporate entity is excluded from the list
+  and 403s on direct fetch; a forged token is rejected; a missing token is
+  401. Skipped unless both a local PostgreSQL and Keycloak are reachable.
+- `scripts/seed_demo_data.py` (`make seed`): seeds synthetic corp/PU/
+  account/post rows keyed to the *real* subject ids Keycloak's admin REST
+  API reports for the two demo users -- not a locally-fabricated guess at
+  what those ids might be.
+- `migrations/0001_initial_schema.sql`: added `corporate_entity.
+  corporate_entity_code` (unique short code, e.g. `DEMO-CORP-01`) -- the
+  column the login-time `corp_code` claim actually maps to; the original
+  Phase 1 migration (still unmerged) only had the human-readable
+  `entity_name`. Postgres's app database is now auto-migrated with this
+  exact file on first `docker compose up` (`docker/postgres-init/Dockerfile`),
+  so what's tested and what ships never drift apart.
+- docker-compose.yml's default host ports moved off Postgres/Redis/common
+  local-dev ports entirely (15432, 16379, 18080, 18420) -- found during
+  this work that a colliding already-running service on a container's
+  published port can silently answer curl/psql requests instead of the
+  container, with no error; picking non-default ports avoids that
+  ambiguity outright rather than relying on operators noticing.
+
 ## [0.5.0] - 2026-08-13
 
 ### Added

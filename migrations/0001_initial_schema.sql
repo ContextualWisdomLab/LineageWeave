@@ -53,6 +53,10 @@ comment on table common_lookup_value is
 create table corporate_entity (
     corporate_entity_id uuid primary key default uuid_generate_v4(),
     parent_entity_id uuid references corporate_entity (corporate_entity_id),
+    -- The short code carried as the "corp code" attribute at login time
+    -- (see docker/keycloak/realm-export.json's corp_code claim) -- distinct
+    -- from entity_name, which is the human-readable hierarchy label.
+    corporate_entity_code text not null unique,
     entity_name text not null,
     entity_level_code text not null references common_lookup_value (lookup_code),
     created_at timestamptz not null default now()

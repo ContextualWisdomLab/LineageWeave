@@ -131,4 +131,36 @@ not bind mounts -- self-contained images that don't depend on any particular
 host filesystem layout being reachable from the Docker daemon, which also
 makes them reproducible in CI. Valkey is the Phase 2+ event queue (not a
 traditional MQ) for asynchronous work like Keyman/Knowledge-Graph
-recomputation once posts change.
+recomputation once posts change. Postgres's app database is auto-migrated
+on first boot from the same `migrations/0001_initial_schema.sql` file
+`tests/test_schema.py` applies -- one schema file, no drift between what's
+tested and what ships.
+
+### Backend (`backend/`)
+
+A FastAPI app (`backend/app/main.py`) over a direct `asyncpg` connection
+pool (`backend/app/db.py`) -- no ORM, no file-backed database. Login is
+OIDC bearer-token verification against Keycloak's live JWKS
+(`backend/app/auth.py`): the token's `sub` resolves to a `user_account`
+row, and `corp_code`/`pu_code` are read back from that account's
+`account_affiliation` rows in Postgres, never trusted directly off the
+token, matching the schema's design intent. Two authorization layers
+compose per request:
+
+- **RBAC** (coarse): the account's roles must grant the `post_read`
+  permission at all, via `account_role_assignment` -> `role_permission`.
+- **ABAC** (row-level, on top of RBAC): a post is visible if it is public,
+  or if it is private and the account is affiliated with the post's
+  `corporate_entity_id`. `abac_policy.condition_expression` is reserved for
+  a richer per-policy DSL later; Phase 1 implements exactly this one fixed
+  rule directly in Python (`backend/app/main.py::_can_see_post`) since it
+  is the only rule the product currently needs -- documented there rather
+  than over-built as a generic evaluator nothing yet exercises differently.
+
+`backend/tests/test_api.py` is a real-integration test, not a mocked one:
+it fetches a genuine access token from a live Keycloak, verifies the
+allow/deny ABAC boundary against a throwaway migrated Postgres database
+(a private post scoped to a *different* corporate entity is proven
+excluded from the list and 403s on direct fetch), and proves a forged
+token is rejected. `scripts/seed_demo_data.py` populates the docker-compose
+stack itself with the same shape of synthetic data for manual/frontend use.

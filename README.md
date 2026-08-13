@@ -120,9 +120,34 @@ carrying `corp_code` / `pu_code` as token claims -- these are throwaway
 local-dev credentials in a locally-run realm, never the org's real Keyverse
 tenant (see ADR 0001 for why).
 
-If a port in `docker-compose.yml` (5432, 6379, 8080) is already taken
-locally, override it via `.env` (copy `.env.example`) or inline, e.g.
-`KEYCLOAK_PORT=18080 make up`.
+Host ports (15432, 16379, 18080, 18420) deliberately avoid each service's
+own default -- a dev machine commonly already runs its own
+Postgres/Redis/local server on those. Override via `.env` (copy
+`.env.example`) or inline if even those collide, e.g.
+`KEYCLOAK_PORT=28080 make up`.
+
+Postgres's `POSTGRES_DB` (the "app" database) is migrated automatically on
+first boot -- `docker/postgres-init/Dockerfile` bakes in the exact same
+`migrations/0001_initial_schema.sql` file `tests/test_schema.py` applies,
+no re-typed copy.
+
+`backend/` is a FastAPI app talking directly to that database (`asyncpg`,
+no ORM, no file DB) and to Keycloak's live JWKS for OIDC verification:
+
+```bash
+make up
+make seed   # scripts/seed_demo_data.py: inserts synthetic corp/account/post
+            # rows keyed to the *real* Keycloak demo users' subject ids
+curl http://localhost:18420/healthz
+```
+
+`GET /api/posts` and `GET /api/posts/{post_id}` require a real bearer token
+(RBAC: the account's role must grant `post_read`; ABAC: a private post is
+only visible to accounts affiliated with its owning corporate entity --
+`backend/app/main.py`). `backend/tests/test_api.py` proves both the allow
+and the deny path against a live Keycloak + throwaway Postgres database,
+including that a private post scoped to a *different* corporate entity is
+excluded from the list and 403s on direct fetch.
 
 ## Modular / standalone
 

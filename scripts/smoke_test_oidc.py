@@ -117,7 +117,7 @@ def run(base_url: str) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--base-url", default="http://localhost:8080")
+    parser.add_argument("--base-url", default="http://localhost:18080")
     args = parser.parse_args()
     return run(args.base_url)
 
