@@ -584,7 +584,7 @@ web search" action while any row is still pending.
 
 Proven against a real, self-hosted Searxng instance, not a mocked
 search client: `test_verify_relations_persists_real_search_outcomes`
-checks a well-known real organization name ("Samsung Electronics")
+checks a well-known public foundation name ("Mozilla Foundation")
 against a deliberately fabricated one in the same request, asserting
 the former comes back `verify_corroborated` with a real evidence URL
 and the latter `verify_uncorroborated` with none.
