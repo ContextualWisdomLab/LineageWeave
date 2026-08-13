@@ -31,6 +31,8 @@ export interface Counterparty {
   counterparty_entity_name: string;
   relationship_type_code: string;
   relationship_label?: string;
+  verification_status_code: string;
+  verification_evidence_url: string | null;
 }
 
 export interface AffiliatePersonRef {
@@ -239,6 +241,19 @@ export function extractPostKeymen(
   postId: string,
 ): Promise<{ extracted_count: number }> {
   return backendFetch(`/api/posts/${postId}/extract-keymen`, accessToken, { method: "POST" });
+}
+
+export interface VerifiedRelation {
+  counterparty_entity_name: string;
+  verification_status_code: string;
+  verification_evidence_url: string | null;
+}
+
+export function verifyPostRelations(
+  accessToken: string,
+  postId: string,
+): Promise<{ verified: VerifiedRelation[] }> {
+  return backendFetch(`/api/posts/${postId}/verify-relations`, accessToken, { method: "POST" });
 }
 
 export function fetchPostSummary(accessToken: string, postId: string): Promise<PostAiSummary> {

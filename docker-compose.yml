@@ -41,6 +41,23 @@ services:
       timeout: 5s
       retries: 10
 
+  searxng:
+    # Self-hosted metasearch, never a hosted third-party search API key --
+    # relation_verification.py's SearxngRelationVerificationClient checks a
+    # Knowledge Graph relation inference against real external evidence
+    # (see ADR 0005). Published to a host port (not the default 8080, same
+    # collision-avoidance reasoning as every other service here) so
+    # backend/tests/test_api.py's real-integration tests -- running as a
+    # host process, not inside the compose network -- can reach it too.
+    build: ./docker/searxng
+    ports:
+      - "${SEARXNG_PORT:-18888}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   keycloak:
     # Built (not bind-mounted) so the realm-export.json seed ships inside
     # the image itself -- portable across hosts/CI runners that don't share
@@ -87,6 +104,7 @@ services:
       ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-}
       ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}
       VISION_MODEL: ${VISION_MODEL:-}
+      SEARXNG_BASE_URL: http://searxng:8080
     ports:
       - "${BACKEND_PORT:-18420}:8000"
     depends_on:
@@ -95,6 +113,8 @@ services:
       keycloak:
         condition: service_started
       valkey:
+        condition: service_healthy
+      searxng:
         condition: service_healthy
 
   frontend:

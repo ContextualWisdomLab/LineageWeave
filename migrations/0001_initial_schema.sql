@@ -42,7 +42,8 @@ create table common_lookup_value (
 comment on table common_lookup_value is
     'Every ENUM-like value in this schema (voc_type, post_visibility, '
     'entity_relationship_type, person_side, edge_type, node_type, '
-    'ticket_status, permission, corporate_entity_level) lives here once. '
+    'ticket_status, permission, corporate_entity_level, '
+    'relation_verification_status) lives here once. '
     'lookup_code is unique across all categories -- see the unique(lookup_code) comment.';
 
 -- ---------------------------------------------------------------------
@@ -166,10 +167,19 @@ create index post_author_idx on source_post (author_account_id);
 -- relationship type (partner / competitor / customer / customer's
 -- customer / market / ...). Free-text name because a counterparty is
 -- rarely already a row in corporate_entity.
+-- verification_* columns: relation_verification.py's external search
+-- agent (Searxng) checks this LLM-inferred relationship against the web
+-- and records the outcome, so a hallucinated organization/relationship
+-- doesn't sit indistinguishable from a corroborated one. See
+-- migrations/0004_relation_verification.sql / ADR 0005.
 create table post_counterparty_entity (
     post_id uuid not null references source_post (post_id),
     counterparty_entity_name text not null,
     relationship_type_code text not null references common_lookup_value (lookup_code),
+    verification_status_code text not null default 'verify_pending'
+        references common_lookup_value (lookup_code),
+    verification_evidence_url text,
+    verification_checked_at timestamptz,
     primary key (post_id, counterparty_entity_name)
 );
 

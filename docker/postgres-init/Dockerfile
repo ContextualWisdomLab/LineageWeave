@@ -10,6 +10,7 @@ COPY docker/postgres-init/01-create-keycloak-db.sql /docker-entrypoint-initdb.d/
 COPY migrations/0001_initial_schema.sql /docker-entrypoint-initdb.d/02-app-schema.sql
 COPY migrations/0002_thread_grouping_keys.sql /docker-entrypoint-initdb.d/03-thread-grouping-keys.sql
 COPY migrations/0003_ticket_commitment_calendar.sql /docker-entrypoint-initdb.d/04-ticket-commitment-calendar.sql
+COPY migrations/0004_relation_verification.sql /docker-entrypoint-initdb.d/05-relation-verification.sql
 # Official image already drops to this account at runtime; declare it so
 # the Dockerfile itself satisfies DS-0002 (explicit non-root USER).
 USER postgres

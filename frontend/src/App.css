@@ -239,6 +239,27 @@
   font-size: 0.85rem;
 }
 
+.verification-badge {
+  font-size: 0.8rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 1rem;
+}
+
+.verification-verify_pending {
+  background: #e0e0e0;
+  color: #444;
+}
+
+.verification-verify_corroborated {
+  background: #d4edda;
+  color: #155724;
+}
+
+.verification-verify_uncorroborated {
+  background: #f8d7da;
+  color: #721c24;
+}
+
 .keyman-select {
   background: none;
   border: none;

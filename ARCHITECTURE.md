@@ -539,3 +539,52 @@ HTML-wrapped, base64-image-embedded version of the existing
 `ambiguous_keyman_post()` fixture still correctly extracts the same real
 people through the live `/extract-keymen` endpoint
 (`test_extract_keymen_normalizes_html_and_embedded_image_content`).
+
+## Phase 6d: external search verification for Ontology relation inferences
+
+The brief requires an external web/internal search agent to check the
+truthfulness of Knowledge Graph relation inferences (Searxng named as an
+acceptable implementation) -- see
+[ADR 0005](docs/adr/0005-relation-verification-agent.md) for the full
+reasoning. `entity_relationship_classification.py`'s LLM output (an
+organization name plus a VOC/VOM/VOP/VOCC/VOCO/VOS relationship) is the
+concrete target: both the organization and the relationship are the
+model's inference, and nothing previously checked whether the named
+organization has any real-world footprint at all.
+
+`lineageweave/relation_verification.py` is grounded in FEVER-style
+open-domain claim verification (Thorne, Vlachos, Christodoulopoulos, &
+Mittal, 2018): retrieve external evidence, then classify the claim
+against it. The implemented subset is deliberately coarse --
+presence/absence of any search result (`verify_corroborated` /
+`verify_uncorroborated`), catching the failure mode actually observed
+(a hallucinated organization with zero web footprint), not full
+NLI-based entailment scoring against retrieved passages. The real
+client, `SearxngRelationVerificationClient`, queries a **self-hosted**
+Searxng instance (`docker/searxng/`, a new Docker Compose service on a
+non-default host port like every other service here) -- never a
+third-party hosted search API requiring its own key, and never a
+"channel unavailable" report where Docker Compose can instead genuinely
+run the dependency.
+
+`post_counterparty_entity` gained `verification_status_code`
+(`common_lookup_value` category `relation_verification_status`),
+`verification_evidence_url`, and `verification_checked_at`
+(`migrations/0001_initial_schema.sql`, with `0004_relation_verification.sql`
+as the idempotent upgrade path). A re-classification resets these back
+to `verify_pending` -- a prior verification was checked against the OLD
+relationship label. Trigger: a separate, explicitly-invoked
+`POST /api/posts/{id}/verify-relations`, matching this repo's existing
+pattern for real-cost actions (summary, commitment derivation) that the
+user triggers rather than a hidden side effect of extraction. The
+post-detail popup's Counterparties section (new `CounterpartyPanel`
+component, `frontend/src/App.tsx`) renders a status badge per row --
+linked to the evidence URL when corroborated -- with a "Verify against
+web search" action while any row is still pending.
+
+Proven against a real, self-hosted Searxng instance, not a mocked
+search client: `test_verify_relations_persists_real_search_outcomes`
+checks a well-known real organization name ("Samsung Electronics")
+against a deliberately fabricated one in the same request, asserting
+the former comes back `verify_corroborated` with a real evidence URL
+and the latter `verify_uncorroborated` with none.

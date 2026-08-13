@@ -48,6 +48,7 @@ from lineageweave.post_chat import (
 )
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
+from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
 
 from backend.app.activity_stream import (
     create_valkey_client,
@@ -60,6 +61,7 @@ from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
 from backend.app.db import create_pool, get_pool
 from backend.app.entity_relationship_ingestion import ingest_post_entity_relationships
+from backend.app.relation_verification_ingestion import verify_post_relations
 from backend.app.issue_ticket_ingestion import (
     create_ticket,
     fetch_ticket_post_id,
@@ -135,6 +137,14 @@ def _entity_relationship_client():
     return ContextualOrchestratorEntityRelationshipClient(
         base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
     )
+
+
+def _relation_verification_client():
+    """Live Searxng client when configured; otherwise the unavailable null."""
+    settings = load_settings()
+    if not settings.searxng_base_url:
+        return NullRelationVerificationClient()
+    return SearxngRelationVerificationClient(base_url=settings.searxng_base_url)
 
 
 def _post_summary_client():
@@ -352,7 +362,8 @@ async def read_post_counterparties(
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            select c.counterparty_entity_name, c.relationship_type_code, v.lookup_label as relationship_label
+            select c.counterparty_entity_name, c.relationship_type_code, v.lookup_label as relationship_label,
+                   c.verification_status_code, c.verification_evidence_url
             from post_counterparty_entity c
             join common_lookup_value v on v.lookup_code = c.relationship_type_code
             where c.post_id = $1
@@ -394,6 +405,43 @@ async def read_post_voc_evidence(
     post = await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
         return await fetch_voc_evidence(conn, post_id, post["voc_type_code"])
+
+
+@app.post("/api/posts/{post_id}/verify-relations")
+async def verify_post_entity_relationships(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Checks this post's `verify_pending` counterparty relationships
+    (entity_relationship_classification's LLM output) against external
+    web search (relation_verification.py) and persists the outcome, so a
+    hallucinated organization/relationship doesn't sit indistinguishable
+    from a corroborated one -- see ADR 0005. Gated by post_admin, not
+    post_read: a real external-search-call write action, same discipline
+    as extract-keymen.
+    """
+    _require_post_admin(account)
+    post = await _load_visible_post(post_id, account, pool)
+    client = _relation_verification_client()
+    if not client.available:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Relation verification is unavailable: set SEARXNG_BASE_URL",
+        )
+    async with pool.acquire() as conn:
+        verified = await verify_post_relations(conn, client, post_id)
+    return {
+        "post_id": str(post["post_id"]),
+        "verified": [
+            {
+                "counterparty_entity_name": row.counterparty_entity_name,
+                "verification_status_code": row.verification_status_code,
+                "verification_evidence_url": row.verification_evidence_url,
+            }
+            for row in verified
+        ],
+    }
 
 
 @app.post("/api/posts/{post_id}/extract-keymen")
