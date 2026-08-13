@@ -168,6 +168,7 @@ def test_dockerfiles_pin_digest_and_declare_non_root_user() -> None:
         "docker/postgres-init/Dockerfile",
         "docker/keycloak/Dockerfile",
         "backend/Dockerfile",
+        "frontend/Dockerfile",
     ):
         text = (root / relative).read_text()
         assert "@sha256:" in text, f"{relative} must pin the base image by digest"

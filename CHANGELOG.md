@@ -19,7 +19,9 @@ All notable changes to this project are documented here. Format follows
 - `frontend/Dockerfile` + `nginx.conf`: two-stage build (`pnpm run build`
   then nginx serving the static bundle) added as docker-compose's fourth
   service, `VITE_*` config baked in at build time from the same `.env`
-  ports every other service uses.
+  ports every other service uses. Both stages pin the base image by
+  digest; the runtime stage declares `USER nginx` and listens on 8080
+  so the master process does not need root to bind a port.
 - `backend/app/main.py`: `CORSMiddleware`, scoped to exactly the
   frontend's origin(s) (`FRONTEND_ORIGINS`), `GET` only, `Authorization`
   header only -- verified with a real cross-origin preflight + GET against

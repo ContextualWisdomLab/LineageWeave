@@ -25,6 +25,8 @@ class Settings:
     # docker-compose the two differ (internal DNS name vs. the
     # host-published port a browser actually hits).
     keycloak_issuer: str
+    # Exact browser origins allowed by CORS. Comma-separated FRONTEND_ORIGINS;
+    # never a wildcard -- the backend only serves the product UI.
     frontend_origins: list[str]
 
     @property
@@ -34,7 +36,6 @@ class Settings:
 
 
 def load_settings() -> Settings:
-    """Read Settings from the environment, with local-dev defaults only."""
     """Read Settings from the environment, with local-dev defaults only."""
     keycloak_base_url = os.environ.get("KEYCLOAK_BASE_URL", "http://localhost:18080")
     keycloak_realm = os.environ.get("KEYCLOAK_REALM", "lineageweave-demo")
