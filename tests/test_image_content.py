@@ -5,6 +5,7 @@ import base64
 import pytest
 
 from lineageweave.image_content import (
+    ImageContentClient,
     ImageDescriptionParseError,
     OpenAiCompatibleVisionClient,
     _parse_description,
@@ -117,3 +118,11 @@ def test_vision_client_allows_http_with_explicit_insecure_opt_in() -> None:
         allow_insecure_http=True,
     )
     assert http_client._base_url == "http://127.0.0.1:8000/v1"
+
+
+def test_image_content_client_protocol_stub_raises() -> None:
+    """The Protocol method is a real stub, not a no-op ellipsis, so a
+    mistaken call cannot be mistaken for a successful empty description.
+    """
+    with pytest.raises(NotImplementedError):
+        ImageContentClient.describe(None, b"", "image/png")  # type: ignore[arg-type]

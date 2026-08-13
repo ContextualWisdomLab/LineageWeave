@@ -213,6 +213,8 @@ Crispin, M., & Murchison, K. (2008). *Internet Message Access Protocol (IMAP) - 
 
 Doddington, G., Mitchell, A., Przybocki, M., Ramshaw, L., Strassel, S., & Weischedel, R. (2004). The Automatic Content Extraction (ACE) program -- Tasks, data, and evaluation. In *Proceedings of the Fourth International Conference on Language Resources and Evaluation (LREC 2004)* (pp. 837-840). European Language Resources Association.
 
+Bhattacharya, I., & Getoor, L. (2007). Collective entity resolution in relational data. *ACM Transactions on Knowledge Discovery from Data*, *1*(1), 5-es. https://doi.org/10.1145/1217299.1217304
+
 Fellegi, I. P., & Sunter, A. B. (1969). A theory for record linkage. *Journal of the American Statistical Association*, *64*(328), 1183-1210. https://doi.org/10.2307/2286061
 
 Hearst, M. A. (1997). TextTiling: Segmenting text into multi-paragraph subtopic passages. *Computational Linguistics*, *23*(1), 33-64.
@@ -225,6 +227,8 @@ Raudenbush, S. W., & Bryk, A. S. (2002). *Hierarchical linear models: Applicatio
 
 Resnick, P. (2008). *Internet Message Format* (RFC 5322). IETF. https://doi.org/10.17487/RFC5322
 
+Tong, H., Faloutsos, C., & Pan, J.-Y. (2006). Fast random walk with restart and its applications. *Proceedings of the Sixth International Conference on Data Mining (ICDM'06)*, 613-622. https://doi.org/10.1109/ICDM.2006.70
+
 WHATWG. (2026). *HTML Living Standard — sections 4.3 (sectioning content) and 4.4 (grouping content)*. https://html.spec.whatwg.org/
 
 Zawinski, J. (1997). *Message threading* [Design note]. jwz.org. https://www.jwz.org/doc/threading.html
@@ -232,3 +236,20 @@ Zawinski, J. (1997). *Message threading* [Design note]. jwz.org. https://www.jwz
 Additional context on the Fugu / Conductor / TRINITY test-time-compute-allocation research the `llm` channel's design follows is maintained in
 [contextual-orchestrator's own literature register](https://github.com/ContextualWisdomLab/contextual-orchestrator/blob/main/docs/architecture.md)
 rather than duplicated here, so the two repos do not drift out of sync.
+
+## Staged for later phases (cited now so they are not lost)
+
+Two citations above ground work not yet implemented, staged for the
+product roadmap in `docs/adr/0001-demo-identity-and-data-boundary.md`:
+
+- **Tong et al. (2006)** -- random walk with restart -- backs the
+  Knowledge Graph traversal depth question (each Keyman/company/post node
+  in the graph can warrant a different effective traversal depth; RWR's
+  restart probability gives a continuous, per-node relevance weighting
+  rather than a single fixed hop count, which is the shape the product
+  requirement describes).
+- **Bhattacharya & Getoor (2007)** -- collective entity resolution --
+  backs the corporate-hierarchy-tree feature (resolving "Acme Group" /
+  "Acme Electronics Korea" / "Acme Electronics Gwangju Plant" as related
+  entities in one collective inference pass rather than independent
+  string-matching per pair).

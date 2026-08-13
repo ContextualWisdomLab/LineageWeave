@@ -101,7 +101,14 @@ class ImageContentClient(Protocol):
 
     available: bool
 
-    def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription: ...
+    def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
+        """Return OCR text, caption, and tags for one image.
+
+        Implementations must raise if they cannot produce a description.
+        Protocol stubs raise ``NotImplementedError`` so a no-op body is
+        never treated as a successful empty result.
+        """
+        raise NotImplementedError
 
 
 class NullImageContentClient:
