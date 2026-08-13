@@ -1288,3 +1288,41 @@ def test_derive_commitment_persists_a_real_llm_derivation(client, demo_analyst_t
     calendar_response = client.get("/api/calendar", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     ticket_ids = {c["issue_ticket_id"] for c in calendar_response.json()["commitments"]}
     assert body_json["ticket"]["issue_ticket_id"] in ticket_ids
+
+
+def test_seed_calendar_commitment_surfaces_on_get_calendar(client, demo_analyst_token, seeded_db) -> None:
+    """The same helper `make seed` calls must produce a row GET /api/calendar
+    returns -- due 2026-01-09 against the Riverbend fixture created 2026-01-05.
+    """
+    from scripts.seed_demo_data import _seed_demo_calendar_commitment
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
+                "select corporate_entity_id, 'TEST-PU-CAL', 'Calendar seed unit' "
+                "from source_post where post_id = %s returning process_unit_id",
+                (seeded_db["own_private_post_id"],),
+            )
+            process_unit_id = cur.fetchone()[0]
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_id, corp_id = cur.fetchone()
+            _seed_demo_calendar_commitment(cur, author_id, corp_id, process_unit_id)
+    finally:
+        admin_conn.close()
+
+    response = client.get("/api/calendar", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 200, response.text
+    commitments = response.json()["commitments"]
+    dues = {c["due_date"] for c in commitments}
+    assert "2026-01-09" in dues
+    titles = {c["post_title"] for c in commitments}
+    from lineageweave.fixtures import ambiguous_commitment_post
+
+    expected_title, _ = ambiguous_commitment_post()
+    assert expected_title in titles
