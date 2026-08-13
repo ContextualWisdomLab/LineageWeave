@@ -10,7 +10,7 @@ undifferentiated string. This maps onto the product's own six-way
 vocabulary -- ``rel_voc``/``rel_vom``/``rel_vop``/``rel_vocc``/``rel_voco``/
 ``rel_vos`` (``rel_`` prefixed: ``common_lookup_value.lookup_code`` is
 unique GLOBALLY across categories, and bare ``voc``/``vom`` are already
-claimed by ``post.voc_type_code``'s own category) -- which in practice
+claimed by ``source_post.voc_type_code``'s own category) -- which in practice
 collapses to "customer" and "competitor" most of the time; ``rel_vos``
 (supplier) is the unusual case that still needs to classify correctly
 because it is rare, not because it never happens.
@@ -35,7 +35,7 @@ from .http_client import post_json
 # the "edge case some situations present" the product brief calls out.
 # Prefixed "rel_" because common_lookup_value.lookup_code is unique GLOBALLY
 # across every category (documented in migrations/0001_initial_schema.sql),
-# and bare "voc"/"vom" are already claimed by post.voc_type_code's own
+# and bare "voc"/"vom" are already claimed by source_post.voc_type_code's own
 # "voc_type" category -- a post's own type and a specific counterparty's
 # relationship type are different columns that happen to draw on the same
 # VOC/VOM-style abbreviations, so they need distinct literal codes.
@@ -63,7 +63,14 @@ class EntityRelationshipClient(Protocol):
 
     def classify(
         self, post_title: str, post_body: str, organization_names: list[str]
-    ) -> list[OrganizationRelationship]: ...
+    ) -> list[OrganizationRelationship]:
+        """Return one relationship code per named organization.
+
+        Implementations must raise if they cannot classify. Protocol stubs
+        raise ``NotImplementedError`` so a no-op body is never treated as
+        a successful empty result (a missing signal is not zero relations).
+        """
+        raise NotImplementedError
 
 
 class NullEntityRelationshipClient:
@@ -73,7 +80,7 @@ class NullEntityRelationshipClient:
 
     def classify(
         self, post_title: str, post_body: str, organization_names: list[str]
-    ) -> list[OrganizationRelationship]:  # pragma: no cover
+    ) -> list[OrganizationRelationship]:
         raise RuntimeError(
             "NullEntityRelationshipClient cannot classify; check .available first"
         )

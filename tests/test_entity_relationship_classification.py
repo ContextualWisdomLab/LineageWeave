@@ -19,8 +19,16 @@ from lineageweave.entity_relationship_classification import (
     VOCO,
     VOS,
     ContextualOrchestratorEntityRelationshipClient,
+    NullEntityRelationshipClient,
     parse_classification_response,
 )
+
+
+def test_null_relationship_client_is_unavailable_not_empty_relations() -> None:
+    client = NullEntityRelationshipClient()
+    assert client.available is False
+    with pytest.raises(RuntimeError):
+        client.classify("any title", "any body", ["Acme Corp"])
 from lineageweave.fixtures import ambiguous_entity_relationship_post
 
 

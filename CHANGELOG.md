@@ -14,7 +14,7 @@ All notable changes to this project are documented here. Format follows
   product's own six-way vocabulary (`rel_voc`/`rel_vom`/`rel_vop`/
   `rel_vocc`/`rel_voco`/`rel_vos` -- `rel_`-prefixed because
   `common_lookup_value.lookup_code` is unique globally across categories
-  and bare `voc`/`vom` were already claimed by `post.voc_type_code`'s own
+  and bare `voc`/`vom` were already claimed by `source_post.voc_type_code`'s own
   category). Proven with a real LLM call against a genuinely hard fixture
   (`fixtures.ambiguous_entity_relationship_post`): an organization that is
   both a repeat customer and a newly-competing division in the same post.
