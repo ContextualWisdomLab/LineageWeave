@@ -115,3 +115,20 @@ identities and content) and `migrations/0001_initial_schema.sql` for the
 `post_lineage_edge`). Real-database tests: `tests/test_schema.py`
 (skipped without a reachable PostgreSQL server, same pattern as the
 real-provider LLM tests).
+
+### Local infrastructure (Docker Compose)
+
+`docker-compose.yml` runs PostgreSQL, Valkey, and a real Keycloak OIDC
+provider (`docker/keycloak/realm-export.json` seeds a `lineageweave-demo`
+realm with synthetic demo accounts carrying `corp_code` / `pu_code` as
+custom token claims -- see [README](README.md#local-product-stack-docker-compose)).
+`scripts/smoke_test_oidc.py` proves the round-trip is real: it logs in as
+the synthetic demo user, fetches Keycloak's live JWKS, and cryptographically
+verifies the returned JWT's RS256 signature rather than just checking for an
+HTTP 200. Both Postgres (`docker/postgres-init/`) and Keycloak
+(`docker/keycloak/`) are `build:` targets that `COPY` their seed files in,
+not bind mounts -- self-contained images that don't depend on any particular
+host filesystem layout being reachable from the Docker daemon, which also
+makes them reproducible in CI. Valkey is the Phase 2+ event queue (not a
+traditional MQ) for asynchronous work like Keyman/Knowledge-Graph
+recomputation once posts change.
