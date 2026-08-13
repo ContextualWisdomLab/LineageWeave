@@ -4,7 +4,9 @@ export interface PostSummary {
   post_id: string;
   post_title: string;
   voc_type_code: string;
+  voc_type_label?: string;
   visibility_code: string;
+  visibility_label?: string;
   created_at: string;
 }
 

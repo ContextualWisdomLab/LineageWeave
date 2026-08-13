@@ -319,7 +319,9 @@ describe("App, authenticated", () => {
               post_id: "post-1",
               post_title: "Public post",
               voc_type_code: "voc",
+              voc_type_label: "Voice of Customer",
               visibility_code: "public",
+              visibility_label: "Public",
               created_at: "2026-01-01T00:00:00Z",
             },
           ]),
@@ -332,7 +334,9 @@ describe("App, authenticated", () => {
             post_title: "Public post",
             post_body: "The full body text.",
             voc_type_code: "voc",
+            voc_type_label: "Voice of Customer",
             visibility_code: "public",
+            visibility_label: "Public",
             created_at: "2026-01-01T00:00:00Z",
           }),
         );
@@ -555,10 +559,13 @@ describe("App, authenticated", () => {
       expect.stringContaining("/api/posts"),
       expect.objectContaining({ headers: expect.objectContaining({ Authorization: "Bearer test-access-token" }) }),
     );
+    expect(listButton).toHaveTextContent("Voice of Customer");
+    expect(listButton).toHaveTextContent("Public");
 
     await userEvent.click(listButton);
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(screen.getByText(/Voice of Customer ·/)).toBeInTheDocument();
   });
 
   it("rebuilds lineage when the account has post_admin", async () => {

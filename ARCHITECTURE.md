@@ -298,6 +298,11 @@ Keyman sides are labeled from `common_lookup_value` (`Our side`,
 `Plant`, `Company`) so the popup never shows raw `our_side` / `plant`
 codes when a label exists.
 
+`GET /api/posts` and `GET /api/posts/{post_id}` include
+`voc_type_label` / `visibility_label` from `common_lookup_value` so
+the list badge and popup meta show `Voice of Customer` / `Public`
+instead of raw codes.
+
 `GET /api/posts/{post_id}/voc-evidence` returns the
 `common_lookup_value` label for the post's `voc_type_code` plus the
 sentences in the post body that name a counterparty or affiliated
