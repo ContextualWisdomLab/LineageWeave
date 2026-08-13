@@ -46,7 +46,7 @@ async def fetch_post_keymen(conn: asyncpg.Connection, post_id: str) -> list[dict
         """
         select p.person_id, p.person_name, p.person_side_code, ppm.mention_context
         from post_person_mention ppm
-        join person p on p.person_id = ppm.person_id
+        join cataloged_person p on p.person_id = ppm.person_id
         where ppm.post_id = $1
         order by p.person_name
         """,
@@ -145,7 +145,7 @@ async def person_exists(conn: asyncpg.Connection, person_id: str) -> bool:
         UUID(person_id)
     except ValueError:
         return False
-    row = await conn.fetchrow("select 1 from person where person_id = $1", person_id)
+    row = await conn.fetchrow("select 1 from cataloged_person where person_id = $1", person_id)
     return row is not None
 
 
@@ -158,7 +158,7 @@ async def visible_mention_post_ids(
         """
         select p.post_id, p.visibility_code, p.corporate_entity_id
         from post_person_mention ppm
-        join post p on p.post_id = ppm.post_id
+        join source_post p on p.post_id = ppm.post_id
         where ppm.person_id = $1
         """,
         person_id,
@@ -240,14 +240,14 @@ async def hydrate_related_nodes(
     people = {
         str(row["person_id"]): row
         for row in await conn.fetch(
-            "select person_id, person_name, person_side_code from person where person_id = any($1::uuid[])",
+            "select person_id, person_name, person_side_code from cataloged_person where person_id = any($1::uuid[])",
             person_ids,
         )
     } if person_ids else {}
     posts = {
         str(row["post_id"]): row
         for row in await conn.fetch(
-            "select post_id, post_title from post where post_id = any($1::uuid[])",
+            "select post_id, post_title from source_post where post_id = any($1::uuid[])",
             post_ids,
         )
     } if post_ids else {}

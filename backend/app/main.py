@@ -165,7 +165,7 @@ async def _load_visible_post(
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "select post_id, post_title, voc_type_code, visibility_code, corporate_entity_id, created_at "
-            "from post where post_id = $1",
+            "from source_post where post_id = $1",
             post_id,
         )
     if row is None:
@@ -201,7 +201,7 @@ async def read_related_keymen(
         if not visible_post_ids:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this person")
         person = await conn.fetchrow(
-            "select person_id, person_name, person_side_code from person where person_id = $1",
+            "select person_id, person_name, person_side_code from cataloged_person where person_id = $1",
             person_id,
         )
         related = await related_for_person(conn, person_id, visible_post_ids)
@@ -233,7 +233,7 @@ async def extract_post_keymen(
             "Keyman extraction is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
         )
     async with pool.acquire() as conn:
-        body_row = await conn.fetchrow("select post_body from post where post_id = $1", post_id)
+        body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
         async with conn.transaction():
             mentions = await ingest_post_keymen(conn, client, post_id, post["post_title"], body_row["post_body"])
     return {

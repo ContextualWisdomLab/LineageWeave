@@ -161,17 +161,17 @@ def seeded_db(demo_analyst_token):
             other_private_post_id = _insert_post("Other-corp private post", other_corp_id, "private")
 
             cur.execute(
-                "insert into person (person_name, person_side_code) values "
+                "insert into cataloged_person (person_name, person_side_code) values "
                 "('Ada West', 'our_side') returning person_id"
             )
             our_person_id = str(cur.fetchone()[0])
             cur.execute(
-                "insert into person (person_name, person_side_code) values "
+                "insert into cataloged_person (person_name, person_side_code) values "
                 "('Priya Nair', 'counterparty') returning person_id"
             )
             counterpart_person_id = str(cur.fetchone()[0])
             cur.execute(
-                "insert into person (person_name, person_side_code) values "
+                "insert into cataloged_person (person_name, person_side_code) values "
                 "('Other Corp Only', 'counterparty') returning person_id"
             )
             hidden_person_id = str(cur.fetchone()[0])
@@ -407,9 +407,9 @@ def test_extract_keymen_persists_a_real_llm_extraction(client, demo_analyst_toke
                 (role_id,),
             )
             cur.execute(
-                "insert into post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
                 "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public' "
-                "from post where post_id = %s "
+                "from source_post where post_id = %s "
                 "returning post_id",
                 (title, body, seeded_db["own_private_post_id"]),
             )

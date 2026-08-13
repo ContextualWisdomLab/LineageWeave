@@ -28,14 +28,14 @@ async def _resolve_corporate_entity_id(conn: asyncpg.Connection, organization_na
 
 async def _upsert_person(conn: asyncpg.Connection, mention: PersonMention) -> str:
     row = await conn.fetchrow(
-        "select person_id from person where person_name = $1 and person_side_code = $2",
+        "select person_id from cataloged_person where person_name = $1 and person_side_code = $2",
         mention.person_name,
         mention.person_side_code,
     )
     if row is not None:
         return str(row["person_id"])
     row = await conn.fetchrow(
-        "insert into person (person_name, person_side_code) values ($1, $2) returning person_id",
+        "insert into cataloged_person (person_name, person_side_code) values ($1, $2) returning person_id",
         mention.person_name,
         mention.person_side_code,
     )

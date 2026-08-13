@@ -167,14 +167,14 @@ def seed(postgres_dsn: str, subjects: dict[str, str]) -> None:
                     (account_ids["demo.admin"], corporate_entity_id, process_units["DEMO-PU-HQ"]),
                 )
 
-            cur.execute("select post_id from post where post_title = 'Demo public post'")
+            cur.execute("select post_id from source_post where post_title = 'Demo public post'")
             demo_public_post_id = cur.fetchone()[0]
-            cur.execute("select person_id from person where person_name = 'Ada West'")
+            cur.execute("select person_id from cataloged_person where person_name = 'Ada West'")
             if cur.fetchone() is None:
                 from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
 
                 cur.execute(
-                    "insert into person (person_name, person_side_code) values "
+                    "insert into cataloged_person (person_name, person_side_code) values "
                     "('Ada West', 'our_side'), ('Priya Nair', 'counterparty') "
                     "returning person_name, person_id"
                 )
