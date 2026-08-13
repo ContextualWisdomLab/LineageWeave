@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.1] - 2026-08-13
+
+### Fixed
+
+- `test_seed_calendar_commitment_surfaces_on_get_calendar` drives the
+  same `_seed_demo_calendar_commitment` helper `make seed` uses, then
+  `GET /api/calendar`, and asserts the Riverbend ticket is due
+  2026-01-09. Without this, a seed helper that wrote the wrong date
+  would only fail in a live compose stack.
+
 ## [0.21.0] - 2026-08-13
 
 ### Added
