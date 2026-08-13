@@ -40,7 +40,27 @@ _SEARCH_HOST_MARKERS = (
     "yandex.",
     "searx",
 )
-_ORG_TOKEN = re.compile(r"[A-Za-z]{4,}")
+# Distinctive name tokens only. Latin legal suffixes ("Corp", "Ltd") and
+# 1-syllable Hangul particles must not corroborate a random host that
+# happens to contain them.
+_ORG_TOKEN = re.compile(r"[A-Za-z]{4,}|[가-힣]{2,}")
+_ORG_TOKEN_STOPWORDS = frozenset(
+    {
+        "corp",
+        "ltd",
+        "inc",
+        "llc",
+        "gmbh",
+        "plc",
+        "company",
+        "group",
+        "holdings",
+        "limited",
+        "foundation",
+        "the",
+        "and",
+    }
+)
 
 STATUS_PENDING = "verify_pending"
 STATUS_CORROBORATED = "verify_corroborated"
@@ -149,7 +169,11 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
     host = urlparse(url).netloc.lower()
     if not host or any(marker in host for marker in _SEARCH_HOST_MARKERS):
         return None
-    tokens = [token.lower() for token in _ORG_TOKEN.findall(organization_name)]
+    tokens = [
+        token.lower()
+        for token in _ORG_TOKEN.findall(organization_name)
+        if token.lower() not in _ORG_TOKEN_STOPWORDS
+    ]
     if not tokens:
         return None
     haystack = f"{host} {result.get('content') or ''}".lower()

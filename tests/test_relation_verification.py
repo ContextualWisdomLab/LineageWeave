@@ -122,6 +122,31 @@ def test_org_token_in_result_host_is_corroboration() -> None:
     )
 
 
+def test_legal_suffix_alone_is_not_corroboration() -> None:
+    """'Corp' is in almost every corporate host; it is not evidence."""
+    assert (
+        corroborating_evidence_url(
+            "Acme Corp",
+            {"url": "https://randomcorp.example/news", "title": "News", "content": ""},
+        )
+        is None
+    )
+
+
+def test_hangul_org_name_token_is_corroboration() -> None:
+    assert (
+        corroborating_evidence_url(
+            "한빛그리드",
+            {
+                "url": "https://news.example/item",
+                "title": "News",
+                "content": "한빛그리드 announced a delivery window.",
+            },
+        )
+        == "https://news.example/item"
+    )
+
+
 def test_searxng_client_refuses_non_http_scheme() -> None:
     with pytest.raises(ValueError, match="unsupported Searxng base URL scheme"):
         SearxngRelationVerificationClient(base_url="file:///etc/passwd")

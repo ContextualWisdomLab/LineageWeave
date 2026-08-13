@@ -605,7 +605,7 @@ def test_verify_relations_persists_real_search_outcomes(client, demo_analyst_tok
             )
             cur.execute(
                 "insert into post_counterparty_entity (post_id, counterparty_entity_name, relationship_type_code) "
-                "values (%s, 'Samsung Electronics', 'rel_voc'), "
+                "values (%s, 'Mozilla Foundation', 'rel_voc'), "
                 "(%s, 'Zzqxvthorp Fictitious Nonexistent Org 8f3e1c', 'rel_voco')",
                 (seeded_db["public_post_id"], seeded_db["public_post_id"]),
             )
@@ -619,7 +619,7 @@ def test_verify_relations_persists_real_search_outcomes(client, demo_analyst_tok
     assert response.status_code == 200, response.text
     verified = {row["counterparty_entity_name"]: row for row in response.json()["verified"]}
 
-    real_org = verified["Samsung Electronics"]
+    real_org = verified["Mozilla Foundation"]
     assert real_org["verification_status_code"] == "verify_corroborated"
     assert real_org["verification_evidence_url"]
 
@@ -632,7 +632,7 @@ def test_verify_relations_persists_real_search_outcomes(client, demo_analyst_tok
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     persisted = {c["counterparty_entity_name"]: c for c in counterparties_response.json()["counterparties"]}
-    assert persisted["Samsung Electronics"]["verification_status_code"] == "verify_corroborated"
+    assert persisted["Mozilla Foundation"]["verification_status_code"] == "verify_corroborated"
     assert persisted["Zzqxvthorp Fictitious Nonexistent Org 8f3e1c"]["verification_status_code"] == "verify_uncorroborated"
 
     # Already-checked rows are left alone on a second call, not re-searched.
