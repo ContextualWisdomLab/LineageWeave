@@ -656,7 +656,13 @@ function CounterpartyPanel({
 }) {
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchOff, setSearchOff] = useState(false);
   const hasPending = counterparties.some((c) => c.verification_status_code === "verify_pending");
+
+  useEffect(() => {
+    setSearchOff(false);
+    setError(null);
+  }, [postId]);
 
   async function handleVerify() {
     setVerifying(true);
@@ -666,6 +672,9 @@ function CounterpartyPanel({
       onVerified();
     } catch (err) {
       setError(searchUnavailableMessage(err));
+      if (err instanceof BackendError && err.status === 503) {
+        setSearchOff(true);
+      }
     } finally {
       setVerifying(false);
     }
@@ -675,7 +684,7 @@ function CounterpartyPanel({
     <section className="popup-section">
       <div className="lineage-home-header">
         <h3>Counterparties</h3>
-        {canExtract && hasPending && (
+        {canExtract && hasPending && !searchOff && (
           <button onClick={handleVerify} disabled={verifying}>
             {verifying ? "Verifying..." : "Verify against web search"}
           </button>

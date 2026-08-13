@@ -886,6 +886,7 @@ describe("App, authenticated", () => {
       expect(screen.getByText("Verification unavailable (search is not configured).")).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /verify against web search/i })).not.toBeInTheDocument();
   });
 
   it("shows the affiliate tree, VOC excerpt, and related Keyman nodes on click", async () => {

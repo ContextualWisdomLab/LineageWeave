@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.58.0] - 2026-08-14
+
+### Changed
+
+- After an unmatched Verify 503, the Verify against web search
+  button is hidden the same way as Evaluate / Extract / Derive.
+  Seeded counterparty badges stay; the button that can only 503
+  again does not. Still never fabricates a search result.
+
 ## [0.57.0] - 2026-08-14
 
 ### Added
