@@ -324,6 +324,22 @@ def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, 
     assert response.status_code == 200
     titles = {post["post_title"] for post in response.json()}
     assert titles == {"Public post", "Own-corp private post"}
+    public = next(post for post in response.json() if post["post_title"] == "Public post")
+    assert public["voc_type_label"] == "Voice of Customer"
+    assert public["visibility_label"] == "Public"
+
+
+def test_post_detail_uses_lookup_labels_not_raw_codes(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["voc_type_code"] == "voc"
+    assert body["voc_type_label"] == "Voice of Customer"
+    assert body["visibility_code"] == "public"
+    assert body["visibility_label"] == "Public"
 
 
 def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token, seeded_db) -> None:

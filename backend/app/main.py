@@ -88,6 +88,7 @@ from backend.app.issue_ticket_ingestion import (
 from backend.app.keyman_ingestion import ingest_post_keymen
 from backend.app.knowledge_graph import (
     fetch_post_keymen,
+    labels_for_codes,
     person_exists,
     related_for_person,
     visible_mention_post_ids,
@@ -227,15 +228,26 @@ def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
     return str(post["corporate_entity_id"]) in account.corporate_entity_ids
 
 
-def _serialize_post(post: asyncpg.Record) -> dict[str, Any]:
+def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) -> dict[str, Any]:
     """Turn a ``source_post`` row into the public JSON shape."""
+    resolved = labels or {}
+    voc = post["voc_type_code"]
+    visibility = post["visibility_code"]
     return {
         "post_id": str(post["post_id"]),
         "post_title": post["post_title"],
-        "voc_type_code": post["voc_type_code"],
-        "visibility_code": post["visibility_code"],
+        "voc_type_code": voc,
+        "voc_type_label": resolved.get(voc, voc),
+        "visibility_code": visibility,
+        "visibility_label": resolved.get(visibility, visibility),
         "created_at": post["created_at"].isoformat(),
     }
+
+
+async def _lookup_post_labels(conn: asyncpg.Connection, rows: list[asyncpg.Record]) -> dict[str, str]:
+    """Resolve voc_type / visibility codes against common_lookup_value."""
+    codes = [row["voc_type_code"] for row in rows] + [row["visibility_code"] for row in rows]
+    return await labels_for_codes(conn, codes)
 
 
 @app.get("/healthz")
@@ -293,7 +305,9 @@ async def list_posts(
             "select post_id, post_title, voc_type_code, visibility_code, corporate_entity_id, created_at "
             "from source_post order by created_at desc"
         )
-    return [_serialize_post(row) for row in rows if _can_see_post(account, row)]
+        visible = [row for row in rows if _can_see_post(account, row)]
+        labels = await _lookup_post_labels(conn, visible)
+    return [_serialize_post(row, labels) for row in visible]
 
 
 @app.get("/api/posts/{post_id}")
@@ -310,11 +324,12 @@ async def read_post(
             "from source_post where post_id = $1",
             post_id,
         )
-    if row is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "post not found")
-    if not _can_see_post(account, row):
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
-    return {**_serialize_post(row), "post_body": row["post_body"]}
+        if row is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "post not found")
+        if not _can_see_post(account, row):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
+        labels = await _lookup_post_labels(conn, [row])
+    return {**_serialize_post(row, labels), "post_body": row["post_body"]}
 
 
 async def _load_visible_post(

@@ -787,7 +787,8 @@ function PostDetailPopup({
           <>
             <h2>{post.post_title}</h2>
             <p className="post-meta">
-              {post.voc_type_code} &middot; {post.visibility_code} &middot;{" "}
+              {post.voc_type_label ?? post.voc_type_code} &middot;{" "}
+              {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
             <p className="post-body">{post.post_body}</p>
@@ -1188,7 +1189,8 @@ function PostList({ accessToken }: { accessToken: string }) {
               onClick={() => setSelectedPostId(post.post_id)}
             >
               <span className="post-title">{post.post_title}</span>
-              <span className="post-badge">{post.visibility_code}</span>
+              <span className="post-badge">{post.voc_type_label ?? post.voc_type_code}</span>
+              <span className="post-badge">{post.visibility_label ?? post.visibility_code}</span>
             </button>
           </li>
         ))}
