@@ -30,7 +30,7 @@ character-count split:
   embedding's signal is exactly the failure mode chunking exists to
   avoid, and a formatting cue (color, alignment, size) is real
   structural signal worth keeping, not noise to discard (VIPS; Cai,
-  Chen, Wen, & Zhang, 2003).
+  Yu, Wen, & Ma, 2003).
 - **conversation_turn**: sender/receiver boundaries (RFC 5322 email
   structure -- ``From``/``To`` headers delimit one party's turn from the
   next). Reuses the same "one message, one party" shape ThreadWeave's JWZ
@@ -50,7 +50,7 @@ from html.parser import HTMLParser
 # flow-content block elements -- boundaries a DOM-unit chunker should
 # split on rather than treating the whole document as one text blob.
 # h1-h6 included: a heading's tag name is itself a formatting/importance
-# cue (VIPS, Cai et al., 2003 -- font/size/tag signals distinguish a
+# cue (VIPS, Cai, Yu, Wen, & Ma, 2003 -- font/size/tag signals distinguish a
 # document's structural blocks), not just a text-boundary marker.
 _DOM_BLOCK_TAGS = frozenset(
     {
@@ -101,8 +101,8 @@ class Chunk:
             ``"color:red;text-align:center"``), only set for ``"dom"``
             chunks that had one. A formatting cue -- font color,
             alignment, size -- degrades an embedding or an LLM prompt if
-            dumped into the text alongside the content (VIPS; Cai, Chen,
-            Wen, & Zhang, 2003), so it is kept here as separate,
+            dumped into the text alongside the content (VIPS; Cai, Yu,
+            Wen, & Ma, 2003), so it is kept here as separate,
             addressable metadata instead, never concatenated into
             ``text``. ``None`` when the element had no ``style``
             attribute, distinct from an empty string (which would mean

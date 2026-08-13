@@ -15,7 +15,7 @@ All notable changes to this project are documented here. Format follows
   by a vision-capable model and placed as `[image: ...]` at their
   original document position instead of being sent raw or dropped
   (`lineageweave/post_content_normalization.py`, VIPS grounding: Cai,
-  Chen, Wen, & Zhang, 2003).
+  Yu, Wen, & Ma, 2003).
 - `chunking.py`'s DOM chunker now captures each block's `style`
   attribute and splits on `h1`-`h6` heading boundaries.
 - New `VISION_MODEL` setting; `extract-keymen`, post summary, commitment

@@ -474,7 +474,7 @@ this test, not just a docstring's word.
 
 The brief's latest revision calls out, explicitly, that a post body mixing
 HTML tags and base64-embedded images needs care before Knowledge Graph
-derivation: raw tags degrade an embedding model (Cai, Chen, Wen, & Zhang,
+derivation: raw tags degrade an embedding model (Cai, Yu, Wen, & Ma,
 2003 -- VIPS's premise that a DOM's visual/structural cues, e.g. a
 block's tag and inline style, carry real segmentation signal and should
 be extracted as *metadata*, not left inline to dilute the text an

@@ -16,7 +16,7 @@ this repo's real posts can afford, since the source content genuinely
 mixes rich-text formatting and inline images (SAP CRM VOC/consultation
 records commonly do).
 
-Grounded in the same VIPS (Cai, Chen, Wen, & Zhang, 2003) and
+Grounded in the same VIPS (Cai, Yu, Wen, & Ma, 2003) and
 TrOCR/CLIP (see ``image_content.py``) literature :mod:`lineageweave.chunking`
 and :mod:`lineageweave.image_content` already cite -- this module adds no
 new claim of its own, it only combines the two.
