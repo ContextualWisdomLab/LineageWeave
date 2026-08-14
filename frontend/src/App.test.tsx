@@ -671,6 +671,13 @@ describe("App, authenticated", () => {
                 cited_post_ids: ["post-1"],
                 cited_posts: [{ post_id: "post-1", post_title: "Public post" }],
               },
+              {
+                question_text: "What is the next commitment?",
+                answer_text:
+                  "The next commitment is Send Northridge Grid the revised quote, due 2026-01-12.",
+                cited_post_ids: ["post-1"],
+                cited_posts: [{ post_id: "post-1", post_title: "Public post" }],
+              },
             ],
           }),
         );
@@ -784,8 +791,12 @@ describe("App, authenticated", () => {
       expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument(),
     );
     expect(screen.getByText("Ada West and Priya Nair are the Keymen on this thread.")).toBeInTheDocument();
+    expect(
+      screen.getByText("The next commitment is Send Northridge Grid the revised quote, due 2026-01-12."),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /ask seeded question: what happened between these events/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /ask seeded question: who is involved/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /ask seeded question: what is the next commitment/i })).toBeInTheDocument();
   });
 
   it("asks a chat question and slides in the evidence panel for a cited source on click", async () => {
@@ -831,9 +842,12 @@ describe("App, authenticated", () => {
     expect(
       screen.getByText("Only seeded questions can be answered without an orchestrator."),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /ask seeded question/i })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /ask seeded question/i })).toHaveLength(3);
     expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument();
     expect(screen.getByText("Ada West and Priya Nair are the Keymen on this thread.")).toBeInTheDocument();
+    expect(
+      screen.getByText("The next commitment is Send Northridge Grid the revised quote, due 2026-01-12."),
+    ).toBeInTheDocument();
   });
 
   it("shows a clear empty state when evaluate is 503 without an orchestrator", async () => {

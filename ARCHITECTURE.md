@@ -237,9 +237,11 @@ same related-node walk), and
 reason-and-cite step over `gather_chat_sources`' retrieve step -- both
 Event-Lineage link kinds feed the chat's context, ABAC-rechecked per
 candidate post). Seeded fixture answers live in `post_chat_result` so
-Ask is useful without a live LLM -- each fixture stores both "What
-happened between these events?" and "Who is involved?" (Keymen, or
-an explicit no-Keyman sentence). A missing orchestrator and no stored
+Ask is useful without a live LLM -- each fixture stores "What
+happened between these events?", "Who is involved?" (Keymen, or
+an explicit no-Keyman sentence), and "What is the next commitment?"
+(the seeded Calendar ticket title plus due date, or an explicit
+no-commitment sentence on rec-006). A missing orchestrator and no stored
 match is 503; the popup shows
 `Chat unavailable (LLM orchestrator not configured)` rather than a
 raw HTTP status. After that 503 the free-text Ask box is hidden and

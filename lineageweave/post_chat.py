@@ -28,10 +28,12 @@ from .http_client import post_json
 
 CANONICAL_CHAT_QUESTION = "What happened between these events?"
 CANONICAL_INVOLVED_QUESTION = "Who is involved?"
+CANONICAL_COMMITMENT_QUESTION = "What is the next commitment?"
 
 _TRAILING_PUNCT = re.compile(r"[?.!\s]+$")
 _CANONICAL_QUESTION_NORM = "what happened between these events"
 _INVOLVED_QUESTION_NORM = "who is involved"
+_COMMITMENT_QUESTION_NORM = "what is the next commitment"
 
 
 def normalize_chat_question(question: str) -> str:
@@ -40,13 +42,16 @@ def normalize_chat_question(question: str) -> str:
     Seeded Ask matches this form, never a live paraphrase. ``What
     happened?`` is an alias of the popup placeholder so a short type-in
     still hits the stored fixture answer. ``Who's involved?`` aliases
-    the second seeded chip that names Keymen.
+    the second seeded chip that names Keymen. ``What's the next
+    commitment?`` aliases the third chip that names the Calendar ticket.
     """
     folded = _TRAILING_PUNCT.sub("", " ".join(question.strip().lower().split()))
     if folded == "what happened":
         return _CANONICAL_QUESTION_NORM
     if folded in {"who's involved", "who is involved here"}:
         return _INVOLVED_QUESTION_NORM
+    if folded in {"what's the next commitment", "what is the next commitment here"}:
+        return _COMMITMENT_QUESTION_NORM
     return folded
 
 

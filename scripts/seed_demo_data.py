@@ -449,7 +449,7 @@ def _seed_demo_public_chat(cur, post_id) -> None:
     """Write the popup Ask answers for the demo public post.
 
     Idempotent: re-seed replaces the same rows so GET/POST chat stay
-    non-empty without a live orchestrator. Writes both canned
+    non-empty without a live orchestrator. Writes the canned
     questions so the chips are not a single prompt.
     """
     from backend.app.post_chat_ingestion import seeded_demo_exchanges
@@ -464,7 +464,7 @@ def _seed_fixture_chats(cur) -> None:
     Event Lineage click-through stays an empty Ask box without this
     when the orchestrator is off. Idempotent -- finds existing titles
     so a re-seed after the lineage insert's early-return still fills
-    the popup. Writes both canned questions per fixture.
+    the popup. Writes the canned questions per fixture.
     """
     from lineageweave.fixtures import ambiguous_commitment_post, sample_records
     from backend.app.post_chat_ingestion import seeded_fixture_exchanges
