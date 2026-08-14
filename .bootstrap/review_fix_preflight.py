@@ -62,4 +62,36 @@ return_contract = (
 )
 if support_text.count(return_anchor) != 1:
     raise SystemExit("support-script trigger return anchor is missing")
-support_path.write_text(support_text.replace(return_anchor, return_contract, 1))
+support_text = support_text.replace(return_anchor, return_contract, 1)
+
+# A polymorphic trigger record cannot reference a table-specific field even
+# when the other side of an AND is false. JSON extraction keeps the shared
+# trigger fail-closed without touching a field absent from the current table.
+for old, new, expected in (
+    (
+        "old.resource_id",
+        "(to_jsonb(old)->>'resource_id')::uuid",
+        2,
+    ),
+    (
+        "old.literal_id",
+        "(to_jsonb(old)->>'literal_id')::uuid",
+        1,
+    ),
+):
+    if support_text.count(old) != expected:
+        raise SystemExit(f"support-script expected {expected} occurrences of {old}")
+    support_text = support_text.replace(old, new)
+
+# The added regressions use helpers already imported by their target modules.
+support_text = support_text.replace(
+    "parsed = image_content._parse_description(",
+    "parsed = _parse_description(",
+    1,
+)
+support_text = support_text.replace(
+    "graph = _load_graph()",
+    "graph = load_ontology()",
+    1,
+)
+support_path.write_text(support_text)
