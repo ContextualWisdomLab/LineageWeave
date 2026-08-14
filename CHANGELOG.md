@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Made the customer-master projection snapshot-replace on every explicit
+  analysis result, including an LLM empty/abstain result, so stale customer
+  relationships cannot remain visible after reanalysis. Reader surfaces now
+  use business vocabulary for evidence and visibility instead of raw model,
+  heuristic, or storage-code labels.
 - Kept the reader-facing business screens separate from the administrator
   console in the ADR and runtime contract: ordinary users receive `업무 홈`,
   `업무공간`, and evidence-backed `고객 화면`, while policy, review, and
@@ -18,8 +23,8 @@
   projection, while 3,020 current matching pairs per projection remain
   visible as non-temporal relatedness and the 107 observed row-successors are
   the only chronological links.
-- The current source gate passes 350 tests and 100% line-and-branch coverage
-  for 7,569 shipped-runtime statements and 2,954 branches; the React V8 gate
+- The current source gate passes 351 tests and 100% line-and-branch coverage
+  for 7,572 shipped-runtime statements and 2,956 branches; the React V8 gate
   and production build pass as well.
 - Added an isolated PostgreSQL service to the product test workflow and
   non-root users to shipped/test container images; the explicit static-scan

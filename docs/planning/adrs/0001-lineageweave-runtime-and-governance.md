@@ -1047,6 +1047,29 @@ POST. It is reproducible local authorization evidence; a real end-user
 Keyverse credential and matched-viewport Figma acceptance remain external
 release conditions.
 
+## Amendment: customer snapshot replacement and reader vocabulary (2026-08-15)
+
+The customer-master projection is a replaceable semantic snapshot, not an
+append-only cache. When an analysis payload contains the `customer_master`
+boundary, persistence deletes the document-evidence links, affiliate facts,
+and account facts in child-first order before inserting the new snapshot. An
+LLM empty response or explicit abstention therefore produces an empty,
+truthful customer screen instead of exposing relationships from an earlier
+analysis run. Payloads that do not contain that boundary leave the operational
+projection untouched, which preserves narrow issue/work-item persistence
+calls.
+
+The ordinary-user reader does not expose implementation provenance labels such
+as `llm`, `heuristic`, or raw `public`/`private` codes. It presents the same
+authorized facts as business terms (`근거 연결`, `공개`, and `내부`). The
+provenance and semantic source remain available to administrator and audit
+routes, while the customer screen continues to map the normalized facts to
+`schema:Organization`, `schema:subOrganization`, and `schema:about`.
+
+The post-change source gate passed 351 tests with 7,572 statements and 2,956
+branches at 100 percent line-and-branch coverage. The React V8 presentation
+model still passes at 100 percent and the production build succeeds.
+
 ### Amendment: Evidence-bound semantic embeddings (2026-08-14)
 
 LineageWeave now has a bounded semantic-relatedness path that derives vectors

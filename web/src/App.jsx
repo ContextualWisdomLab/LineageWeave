@@ -977,13 +977,13 @@ export default function App() {
             <button className={`doc-node thread-row ${selectedNo === item.document_no ? "selected" : ""}`} key={item.document_no} onClick={() => setSelectedNo(item.document_no)} aria-label={semanticSearch ? `${item.title || item.document_no} 원문과 타임라인 보기` : undefined}>
               <strong>{item.document_no}</strong>
               <span>{item.title || "제목 없음"}</span>
-              <small className={semanticSearch ? "search-result-detail" : ""}>{semanticSearch ? item.relation === "semantic_related" ? `관련도 ${Math.round(Number(item.similarity || 0) * 100)}% · 원문과 타임라인 보기` : "제목·문서 일치 · 원문과 타임라인 보기" : `${item.entity_role || "미분류"} · ${item.visibility || "private"}`}</small>
+            <small className={semanticSearch ? "search-result-detail" : ""}>{semanticSearch ? item.relation === "semantic_related" ? `관련도 ${Math.round(Number(item.similarity || 0) * 100)}% · 원문과 타임라인 보기` : "제목·문서 일치 · 원문과 타임라인 보기" : `${item.entity_role || "미분류"} · ${item.visibility === "public" ? "공개" : "내부"}`}</small>
             </button>
           ))}
           {!documentRows.length ? <p className="empty" role={documentLoadState === "error" ? "alert" : undefined}>{semanticSearch ? "검색 결과가 없습니다." : documentLoadState === "loading" ? "업무 글을 불러오는 중입니다." : documentLoadState === "error" ? "업무 글을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." : "현재 권한 범위에서 확인할 업무 글이 없습니다."}</p> : null}
           {!semanticSearch && documents.length < totalDocuments ? <button className="load-button" onClick={loadMore} disabled={loadingMore}>{loadingMore ? "불러오는 중…" : "더 보기"}</button> : null}
           <div id="affiliateTree" className="sidebar-block">
-            <div className="section-heading"><span>계열 TREE</span><small>{summary?.customer_master?.source || summary?.affiliate_tree?.source || "heuristic"}</small></div>
+            <div className="section-heading"><span>고객 관계 요약</span><small>근거 기반</small></div>
             {(summary?.affiliate_tree?.edges || []).slice(0, 16).map((edge) => <p className="tree-label" key={`${edge.parent}-${edge.child}`}>{edge.parent} → {edge.child}</p>)}
             {!(summary?.affiliate_tree?.edges || []).length ? (summary?.affiliate_tree?.nodes || []).slice(0, 16).map((label) => <p className="tree-label" key={label}>{label}</p>) : null}
           </div>
@@ -1176,8 +1176,8 @@ export default function App() {
       </> : activeView === "customers" ? (
         <section id="customerScreen" className="customer-screen">
           <header className="screen-header">
-            <div><p className="eyebrow">CUSTOMER INTELLIGENCE</p><h2>고객 마스터 · 계열 Tree</h2><p className="meta">LLM이 도출한 고객·계열 관계를 근거 문서와 함께 확인합니다. 근거 없는 관계는 표시하지 않습니다.</p></div>
-            <span className="status-chip">source · {customerSurface?.source || "loading"}</span>
+            <div><p className="eyebrow">CUSTOMER INTELLIGENCE</p><h2>고객 마스터 · 계열 Tree</h2><p className="meta">확인된 고객·계열 관계를 근거 문서와 함께 살펴봅니다. 근거 없는 관계는 표시하지 않습니다.</p></div>
+            <span className="status-chip">근거 연결</span>
           </header>
           <div className="customer-toolbar"><input aria-label="고객 검색" placeholder="고객사·계열·역할 검색" value={customerFilter} onChange={(event) => setCustomerFilter(event.target.value)} /><span className="meta">{displayCustomerTotal}개 고객</span></div>
           <div className="customer-layout">

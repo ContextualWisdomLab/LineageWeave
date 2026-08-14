@@ -1383,7 +1383,29 @@ def test_persist_operational_surfaces_deletes_customer_child_before_parent(monke
     lw.persist_operational_surfaces(connection, payload, [])
     joined = "\n".join(statements)
     assert "DELETE FROM analysis_customer_document_links" in joined
+    assert "DELETE FROM analysis_customer_affiliates" in joined
     assert "DELETE FROM analysis_customer_accounts" in joined
+
+
+def test_persist_operational_surfaces_clears_stale_customer_snapshot_on_llm_abstention(monkeypatch) -> None:
+    """An empty live-model snapshot must not leave the previous customer tree visible."""
+    statements: list[str] = []
+    monkeypatch.setattr(lw, "_ensure_operational_tables", lambda _connection: None)
+    monkeypatch.setattr(
+        lw,
+        "_database_exec",
+        lambda _connection, sql, params=(): statements.append(sql),
+    )
+    lw.persist_operational_surfaces(
+        _RecordingConnection(),
+        {"customer_master": {"source": "empty", "accounts": [], "edges": []}},
+        [],
+    )
+    assert statements[:3] == [
+        "DELETE FROM analysis_customer_document_links",
+        "DELETE FROM analysis_customer_affiliates",
+        "DELETE FROM analysis_customer_accounts",
+    ]
 
 
 def test_persist_operational_surfaces_writes_llm_work_appointments_and_customer_evidence(monkeypatch) -> None:
