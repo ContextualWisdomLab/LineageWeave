@@ -129,31 +129,49 @@ _RESPONSE_FORMAT = (
 # DOTALL + non-greedy so TEXT: can legitimately span multiple lines (real
 # OCR output is often multi-line) without losing everything after the
 # first newline, while still stopping at the next expected label.
-_DESCRIPTION_PATTERN = re.compile(
-    r"TEXT:\s*(?P<text>.*?)\s*CAPTION:\s*(?P<caption>.*?)\s*TAGS:\s*(?P<tags>.*)",
-    re.DOTALL,
-)
+# A label line, tolerant of markdown emphasis around the label
+# (`**TEXT:**`) and reordering -- a strict single-regex match across all
+# three labels in the exact requested order was rejecting real vision
+# responses that got the content right but the formatting only mostly
+# right (observed live against real embedded images: ~1% of calls),
+# which meant real, genuinely-extracted content was being discarded as
+# if the provider had said nothing -- exactly the "[image: content
+# unavailable]" outcome this whole parser exists to avoid when data IS
+# actually available.
+_LABEL_LINE = re.compile(r"^\s*[*_`>#\-\s]*(TEXT|CAPTION|TAGS)\s*:\s*[*_`]*\s*(.*)$", re.IGNORECASE)
 
 
 class ImageDescriptionParseError(ValueError):
-    """The vision provider's response didn't match the required
-    TEXT/CAPTION/TAGS format -- raised instead of silently returning an
-    empty ImageDescription, so a provider response-format change is
-    surfaced immediately rather than quietly losing searchable content.
+    """Neither TEXT nor CAPTION could be found in the vision provider's
+    response -- raised instead of silently returning an empty
+    ImageDescription, so a provider response genuinely unusable end to
+    end is surfaced, not confused with "described nothing."
     """
 
 
 def _parse_description(content: str) -> ImageDescription:
-    match = _DESCRIPTION_PATTERN.search(content)
-    if match is None:
+    fields: dict[str, list[str]] = {"TEXT": [], "CAPTION": [], "TAGS": []}
+    current: str | None = None
+    for line in content.splitlines():
+        match = _LABEL_LINE.match(line)
+        if match:
+            current = match.group(1).upper()
+            remainder = match.group(2).strip()
+            if remainder:
+                fields[current].append(remainder)
+        elif current is not None and line.strip():
+            fields[current].append(line.strip())
+
+    if not fields["TEXT"] and not fields["CAPTION"]:
         raise ImageDescriptionParseError(
-            f"vision response did not match the required TEXT/CAPTION/TAGS format: {content!r}"
+            f"vision response had neither TEXT nor CAPTION content: {content!r}"
         )
-    extracted_text = match.group("text").strip()
+
+    extracted_text = "\n".join(fields["TEXT"]).strip()
     if extracted_text.upper() == "NONE":
         extracted_text = ""
-    caption = match.group("caption").strip()
-    tags_raw = match.group("tags").strip()
+    caption = "\n".join(fields["CAPTION"]).strip()
+    tags_raw = " ".join(fields["TAGS"]).strip()
     tags = tuple(tag.strip() for tag in tags_raw.split(",") if tag.strip())
     return ImageDescription(extracted_text=extracted_text, caption=caption, tags=tags)
 

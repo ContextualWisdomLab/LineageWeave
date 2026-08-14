@@ -4,6 +4,20 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.72.0] - 2026-08-14
+
+### Fixed
+
+- Image OCR/caption parsing no longer discards a real vision response
+  just because its formatting was close but not exact (bolded labels
+  like `**TEXT:**`, reordered labels, or a missing TAGS line) --
+  observed live against real embedded images in the Milestone 2 batch
+  (~1% of calls). Fields are now recovered independently; only a
+  response with neither TEXT nor CAPTION content is treated as
+  unusable. A strict format mismatch was silently producing the same
+  "[image: content unavailable]" placeholder as a genuinely unavailable
+  vision channel, discarding real, already-paid-for content.
+
 ## [0.71.0] - 2026-08-14
 
 ### Added

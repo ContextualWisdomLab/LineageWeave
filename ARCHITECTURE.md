@@ -775,3 +775,12 @@ Grounded in SKOS `skos:altLabel`/`skos:prefLabel` (Miles & Bechhofer,
 and the private real-data batch script's paced re-implementation of it
 (the batch script's own copy was also missing `role_title` persistence
 entirely -- fixed alongside this).
+
+Also fixed while running this against real embedded images:
+`image_content.py`'s `_parse_description` required an exact single-pass
+`TEXT:`/`CAPTION:`/`TAGS:` match, which was rejecting real vision
+responses whose formatting was close but not exact (markdown-bolded
+labels, reordered labels, a missing TAGS line) -- silently producing
+the same "content unavailable" placeholder as a genuinely unconfigured
+vision channel. Fields are now recovered independently per label line;
+only a response with neither TEXT nor CAPTION is treated as unusable.

@@ -82,6 +82,43 @@ def test_parse_description_preserves_multiline_ocr_text() -> None:
     assert description.caption == "A scanned page."
 
 
+def test_parse_description_tolerates_markdown_emphasis_on_labels() -> None:
+    """A real provider drift observed live: bolding the label
+    (`**TEXT:**`) instead of the bare label -- must not discard real,
+    genuinely-extracted content just because the formatting is close
+    but not exact.
+    """
+    content = "**TEXT:** LT7\n**CAPTION:** A close-up of a component.\n**TAGS:** component, close-up"
+    description = _parse_description(content)
+    assert description.extracted_text == "LT7"
+    assert description.caption == "A close-up of a component."
+    assert description.tags == ("component", "close-up")
+
+
+def test_parse_description_tolerates_reordered_labels() -> None:
+    content = "CAPTION: A blue sky.\nTEXT: NONE\nTAGS: sky"
+    description = _parse_description(content)
+    assert description.caption == "A blue sky."
+    assert description.extracted_text == ""
+    assert description.tags == ("sky",)
+
+
+def test_parse_description_missing_tags_still_recovers_text_and_caption() -> None:
+    """TAGS is the least important field -- its absence must not sink
+    real TEXT/CAPTION content the provider did give."""
+    content = "TEXT: Quarterly Budget Report\nCAPTION: A printed report cover page."
+    description = _parse_description(content)
+    assert description.extracted_text == "Quarterly Budget Report"
+    assert description.caption == "A printed report cover page."
+    assert description.tags == ()
+
+
+def test_parse_description_leading_commentary_before_labels_is_ignored() -> None:
+    content = "Sure, here is the analysis:\n\nTEXT: LT7\nCAPTION: A component.\nTAGS: component"
+    description = _parse_description(content)
+    assert description.extracted_text == "LT7"
+
+
 def test_vision_client_rejects_non_http_url_schemes() -> None:
     with pytest.raises(ValueError, match="unsupported vision client URL scheme: file"):
         OpenAiCompatibleVisionClient(
