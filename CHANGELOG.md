@@ -4,6 +4,21 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.77.0] - 2026-08-14
+
+### Fixed
+
+- A real live Milestone 2 batch run surfaced a genuine
+  `DeadlockDetectedError` from concurrent corporate-entity creation:
+  two concurrent transactions each creating a different new entity,
+  mentioned in opposite order across two different posts, took
+  row-level locks in opposite order and deadlocked. Entity *creation*
+  (the rare, first-mention-only branch) now serializes through a
+  single named Postgres advisory transaction lock, taken only right
+  before the write and auto-released at commit/rollback -- the
+  lock-free similarity-matching fast path every already-cataloged
+  entity resolves through is unaffected. See ADR 0012.
+
 ## [0.76.0] - 2026-08-14
 
 ### Added

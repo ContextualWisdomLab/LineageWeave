@@ -842,3 +842,22 @@ boundary only through `provenance_resource_binding`; projection to
 
 See `docs/PROV_O_IMPLEMENTATION.md`, the complete implementation
 matrix, and `docs/adr/0011-prov-o-standard-relations.md`.
+
+## Phase 13: corporate-entity creation is serialized against a real observed deadlock
+
+Phase 12's creation path made real concurrent writes for the first
+time. A real Milestone 2 batch run under real concurrency surfaced a
+genuine `DeadlockDetectedError`: two concurrent transactions each
+creating a different new entity, mentioned in opposite order across
+two different posts, took row-level locks in opposite order and
+deadlocked. See [ADR 0012](docs/adr/0012-corporate-entity-creation-lock.md).
+
+`get_or_create_corporate_entity` now takes a single named Postgres
+advisory transaction lock (`pg_advisory_xact_lock`) immediately before
+the write -- never held across the slow LLM inference/Searxng
+verification calls that precede it -- and re-checks candidates fresh
+under the lock before inserting. The lock key is fixed, not per-name,
+so it also covers the multi-entity opposite-order case a per-name lock
+would still deadlock on. Every already-cataloged entity still resolves
+through the unchanged, lock-free similarity-matching fast path; only
+the rare creation branch serializes.
