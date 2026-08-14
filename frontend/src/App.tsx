@@ -623,6 +623,9 @@ function KeymanPanel({
               >
                 <strong>{person.person_name}</strong> ({person.person_side_label ?? person.person_side_code})
               </button>
+              {person.last_known_job_title && (
+                <span className="keyman-role-title"> {person.last_known_job_title}</span>
+              )}
               {person.affiliations.length > 0 && (
                 <span className="keyman-affiliations">
                   {" -- "}
@@ -644,6 +647,9 @@ function KeymanPanel({
                         </button>
                       ) : (
                         affiliation.organization_name
+                      )}
+                      {affiliation.role_title && (
+                        <span className="keyman-role-title"> ({affiliation.role_title})</span>
                       )}
                     </span>
                   ))}

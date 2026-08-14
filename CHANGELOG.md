@@ -4,6 +4,23 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.69.0] - 2026-08-14
+
+### Added
+
+- Keyman extraction now captures a stated job title/position
+  (`PersonMention.job_title`), since two different real people can
+  share a name and a title is real evidence for telling them apart.
+  Persisted to `person_affiliation.role_title` (an existing schema
+  column, previously never populated) and a new
+  `cataloged_person.last_known_job_title` for a title stated without a
+  named organization to attach it to.
+- `_upsert_person` no longer blindly merges a same-name+side match: a
+  genuinely conflicting stated title creates a fresh person row instead
+  of reusing one, verified by a real test with two posts naming the
+  same name and different titles.
+- Keyman panel shows the person's title next to their name.
+
 ## [0.68.0] - 2026-08-14
 
 ### Changed

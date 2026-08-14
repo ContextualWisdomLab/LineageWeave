@@ -709,3 +709,30 @@ actor is a free-text name with no cataloged identity of its own.
 rows) rather than a drop/recreate. The popup's R&R list shows a
 Person/Organization badge and the inferred affiliation; only a person
 actor still links to the Keyman panel.
+
+## Phase 8: same-name Keymen are not silently merged; titles are captured
+
+Two different real people can share a name -- `keyman_extraction.py`
+never captured a stated job title/position, so nothing distinguished
+"Kim Cheolsu, sales manager" from an unrelated "Kim Cheolsu, purchasing
+lead" beyond the bare name. `PersonMention` gains `job_title: str |
+None`, and the extraction prompt now explicitly asks for one when the
+text states it (never left out as a same-name disambiguation signal).
+
+Persistence, in two places for a reason: `person_affiliation.role_title`
+(a schema column that already existed, previously never populated) for
+a title tied to a specific organization, and a new
+`cataloged_person.last_known_job_title` (`migrations/0013_person_job_title.sql`)
+for a title stated without a named organization to attach it to (e.g.
+"our legal counsel, Sam Okonkwo" -- `fixtures.ambiguous_keyman_post()`'s
+own real example, which has zero affiliated organizations for Sam).
+Both feed `_upsert_person`'s disambiguation check
+(`backend/app/keyman_ingestion.py`): a same person_name+person_side_code
+match is only reused when the new mention's stated title, if any, does
+not conflict with a title already on file -- a genuine stated conflict
+creates a fresh `cataloged_person` row instead of merging two different
+people. A missing title on either side is not treated as a conflict
+(titles legitimately change -- a promotion -- and most mentions state no
+title at all), so this only splits on an actual stated disagreement,
+verified by a real test that two posts naming the same name with
+genuinely different stated titles produce two distinct person rows.

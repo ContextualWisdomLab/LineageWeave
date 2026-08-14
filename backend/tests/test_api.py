@@ -957,6 +957,76 @@ _ORCHESTRATOR_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL
 _ORCHESTRATOR_API_KEY = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY")
 
 
+def test_extract_keymen_does_not_merge_same_name_people_with_conflicting_titles(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Two different real people can share a name -- extracting a second
+    post that names the same person_name+side but a genuinely different
+    stated job_title must NOT reuse the first post's cataloged_person row.
+    A deterministic fake client (not a real orchestrator call) so this
+    is CI-stable: the point under test is `_upsert_person`'s own SQL
+    logic, not LLM extraction quality.
+    """
+    from lineageweave.keyman_extraction import COUNTERPARTY, PersonMention
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeClient:
+        available = True
+
+        def __init__(self, job_title: str) -> None:
+            self._job_title = job_title
+
+        def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
+            return [PersonMention(person_name="Kim Cheolsu", person_side_code=COUNTERPARTY, job_title=self._job_title)]
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            post_ids = []
+            for title in ("Sales follow-up", "Purchasing follow-up"):
+                cur.execute(
+                    "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                    "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public' "
+                    "from source_post where post_id = %s "
+                    "returning post_id",
+                    (title, "placeholder body", seeded_db["own_private_post_id"]),
+                )
+                post_ids.append(str(cur.fetchone()[0]))
+    finally:
+        admin_conn.close()
+
+    monkeypatch.setattr("backend.app.main._entity_relationship_client", lambda: _FakeClient("unused"))
+
+    monkeypatch.setattr("backend.app.main._keyman_extraction_client", lambda: _FakeClient("Sales Manager"))
+    response_a = client.post(
+        f"/api/posts/{post_ids[0]}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response_a.status_code == 200, response_a.text
+
+    monkeypatch.setattr("backend.app.main._keyman_extraction_client", lambda: _FakeClient("Purchasing Lead"))
+    response_b = client.post(
+        f"/api/posts/{post_ids[1]}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response_b.status_code == 200, response_b.text
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select count(distinct person_id) from cataloged_person where person_name = 'Kim Cheolsu'"
+            )
+            distinct_people = cur.fetchone()[0]
+    finally:
+        admin_conn.close()
+
+    assert distinct_people == 2, "conflicting stated job titles for the same name must not be merged into one person"
+
+
 @pytest.mark.skipif(
     not (_ORCHESTRATOR_BASE_URL and _ORCHESTRATOR_API_KEY),
     reason="set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run",

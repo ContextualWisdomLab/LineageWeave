@@ -333,10 +333,16 @@ create table report_item_information (
 -- ---------------------------------------------------------------------
 -- Cataloged people mentioned in posts (Keyman). Named cataloged_person,
 -- not person, so every table name is two or more snake_case words.
+-- last_known_job_title: the disambiguation signal migrations/0013 adds.
+-- Lives here, not only on person_affiliation.role_title, because a
+-- stated title ("our legal counsel, Sam Okonkwo") is real same-name
+-- evidence even when the text names no specific organization to attach
+-- a person_affiliation row to.
 create table cataloged_person (
     person_id uuid primary key default uuid_generate_v4(),
     person_name text not null,
     person_side_code text not null references common_lookup_value (lookup_code),
+    last_known_job_title text,
     created_at timestamptz not null default now()
 );
 

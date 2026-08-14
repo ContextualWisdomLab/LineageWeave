@@ -63,7 +63,7 @@ async def fetch_post_keymen(conn: asyncpg.Connection, post_id: str) -> list[dict
     """Load mentioned people and their affiliations for one post."""
     person_rows = await conn.fetch(
         """
-        select p.person_id, p.person_name, p.person_side_code, ppm.mention_context
+        select p.person_id, p.person_name, p.person_side_code, p.last_known_job_title, ppm.mention_context
         from post_person_mention ppm
         join cataloged_person p on p.person_id = ppm.person_id
         where ppm.post_id = $1
@@ -105,6 +105,7 @@ async def fetch_post_keymen(conn: asyncpg.Connection, post_id: str) -> list[dict
             "person_side_code": row["person_side_code"],
             "person_side_label": side_labels.get(row["person_side_code"], row["person_side_code"]),
             "mention_context": row["mention_context"],
+            "last_known_job_title": row["last_known_job_title"],
             "affiliations": affiliations_by_person.get(str(row["person_id"]), []),
         }
         for row in person_rows

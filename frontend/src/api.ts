@@ -26,6 +26,7 @@ export interface Keyman {
   person_side_code: string;
   person_side_label?: string;
   mention_context: string | null;
+  last_known_job_title: string | null;
   affiliations: Affiliation[];
 }
 
