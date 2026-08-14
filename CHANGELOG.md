@@ -28,8 +28,10 @@
   projection, while 3,020 current matching pairs per projection remain
   visible as non-temporal relatedness and the 107 observed row-successors are
   the only chronological links.
-- The current source gate passes 351 tests and 100% line-and-branch coverage
-  for 7,572 shipped-runtime statements and 2,956 branches; the React V8 gate
+- The current source gate passes 350 tests plus one expected connector skip
+  (351 when the optional fast-mlsirm interpreter is installed) and 100%
+  line-and-branch coverage for 7,587 shipped-runtime statements and 2,964
+  branches; the React V8 gate
   and production build pass as well.
 - Added an isolated PostgreSQL service to the product test workflow and
   non-root users to shipped/test container images; the explicit static-scan
