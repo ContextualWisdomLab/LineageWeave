@@ -23,6 +23,13 @@ All notable changes to this project are documented here. Format follows
   `make seed`, Ada West is "Account manager" and Priya Nair is
   "Procurement lead" so the title is visible without a live LLM.
 
+### Fixed
+
+- `scripts/seed_demo_data.py` no longer embeds the local Keycloak admin
+  password. `make seed` still supplies the compose default via
+  `KEYCLOAK_ADMIN_PASSWORD`; a direct script run requires that env var
+  or `--keycloak-admin-password`.
+
 ## [0.68.0] - 2026-08-14
 
 ### Changed

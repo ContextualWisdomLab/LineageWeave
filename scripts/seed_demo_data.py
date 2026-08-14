@@ -13,12 +13,13 @@ onto Valkey so the Activity panel is not empty after ``make seed``.
 
 HTTP goes through ``lineageweave.http_client`` (http(s) allowlist).
 
-Usage: python3 scripts/seed_demo_data.py [--postgres-dsn ...] [--keycloak-base-url ...] [--valkey-url ...]
+Usage: KEYCLOAK_ADMIN_PASSWORD=... python3 scripts/seed_demo_data.py [--postgres-dsn ...] [--keycloak-base-url ...] [--valkey-url ...]
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 from urllib.parse import urlencode
@@ -33,8 +34,7 @@ from lineageweave.http_client import get_json_list, post_form
 REALM = "lineageweave-demo"
 DEFAULT_POSTGRES_DSN = "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
 DEFAULT_KEYCLOAK_BASE_URL = "http://localhost:18080"
-DEFAULT_KEYCLOAK_ADMIN_USER = "admin"
-DEFAULT_KEYCLOAK_ADMIN_PASSWORD = "admin_dev_only"  # nosec B105 -- throwaway local-dev-only Keycloak seed credential
+DEFAULT_KEYCLOAK_ADMIN_USER = os.environ.get("KEYCLOAK_ADMIN", "admin")
 DEFAULT_VALKEY_URL = "redis://localhost:16379/0"
 
 # (post_title, ticket_title, due_date) -- Event Lineage fixtures a report
@@ -1172,9 +1172,15 @@ def main() -> None:
     parser.add_argument("--postgres-dsn", default=DEFAULT_POSTGRES_DSN)
     parser.add_argument("--keycloak-base-url", default=DEFAULT_KEYCLOAK_BASE_URL)
     parser.add_argument("--keycloak-admin-user", default=DEFAULT_KEYCLOAK_ADMIN_USER)
-    parser.add_argument("--keycloak-admin-password", default=DEFAULT_KEYCLOAK_ADMIN_PASSWORD)
+    parser.add_argument(
+        "--keycloak-admin-password",
+        default=os.environ.get("KEYCLOAK_ADMIN_PASSWORD"),
+        help="Keycloak master admin password (or KEYCLOAK_ADMIN_PASSWORD). Required.",
+    )
     parser.add_argument("--valkey-url", default=DEFAULT_VALKEY_URL)
     args = parser.parse_args()
+    if not args.keycloak_admin_password:
+        parser.error("set KEYCLOAK_ADMIN_PASSWORD or pass --keycloak-admin-password")
 
     subjects = _fetch_demo_user_subjects(args.keycloak_base_url, args.keycloak_admin_user, args.keycloak_admin_password)
     seed(args.postgres_dsn, subjects, args.valkey_url)
