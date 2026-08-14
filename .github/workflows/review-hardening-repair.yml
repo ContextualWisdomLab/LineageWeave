@@ -54,11 +54,12 @@ jobs:
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
       - name: Compile one-shot repair scripts
-        run: python -m py_compile .bootstrap/review_fix_core.py .bootstrap/review_fix_support.py
+        run: python -m py_compile .bootstrap/review_fix_core.py .bootstrap/review_fix_support.py .bootstrap/review_fix_preflight.py
 
       - name: Apply reviewed fixes
         run: |
           python .bootstrap/review_fix_core.py
+          python .bootstrap/review_fix_preflight.py
           python .bootstrap/review_fix_support.py
           rm -rf .bootstrap
 
