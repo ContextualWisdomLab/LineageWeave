@@ -43,7 +43,8 @@ comment on table common_lookup_value is
     'Every ENUM-like value in this schema (voc_type, post_visibility, '
     'entity_relationship_type, person_side, edge_type, node_type, '
     'ticket_status, permission, corporate_entity_level, '
-    'relation_verification_status, evaluation_criterion) lives here once. '
+    'relation_verification_status, evaluation_criterion, prov_agent_type) '
+    'lives here once. '
     'lookup_code is unique across all categories -- see the unique(lookup_code) comment.';
 
 -- ---------------------------------------------------------------------
@@ -211,11 +212,17 @@ create table post_summary_event (
     primary key (post_id, event_ordinal)
 );
 
+-- actor_type_code: R&R Ontology, see migrations/0012_role_responsibility_agent_type.sql
+-- and ADR 0006 -- a named actor is not always a person (an organization
+-- can act in its own name, e.g. "당사," "SEWA"), so this is not folded
+-- into person_name's own meaning.
 create table post_summary_role (
     post_id uuid not null references post_summary_result (post_id) on delete cascade,
-    person_name text not null,
+    actor_name text not null,
     responsibility text not null,
-    primary key (post_id, person_name)
+    actor_type_code text not null default 'prov_person' references common_lookup_value (lookup_code),
+    affiliated_organization_name text,
+    primary key (post_id, actor_name)
 );
 
 -- Persisted in-popup Q&A. Seed writes a synthetic exchange so

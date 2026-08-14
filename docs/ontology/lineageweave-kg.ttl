@@ -4,23 +4,26 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
 
 #################################################################
 # LineageWeave Knowledge Graph Ontology
 #
 # The formal OWL 2 / RDFS / SKOS vocabulary for the
-# `knowledge_graph_edge` table's node/edge types and the
+# `knowledge_graph_edge` table's node/edge types, the
 # `entity_relationship_type` / `person_side` / `corporate_entity_level`
-# controlled vocabularies in migrations/0001_initial_schema.sql.
+# controlled vocabularies in migrations/0001_initial_schema.sql, and
+# `post_summary_role.actor_type_code` (migrations/0012).
 #
 # `knowledge_graph_edge` (source_node_type_code, source_node_id) --
 # [edge_type_code] --> (target_node_type_code, target_node_id) is
 # already an RDF triple in shape (Cyganiak, Wood, & Lanthaler, 2014);
 # this file is the formal semantic layer over it -- PostgreSQL stays
 # the source of record. See docs/adr/0004-knowledge-graph-ontology.md
-# for the full design rationale, and tests/test_ontology.py for the
-# round-trip check that every code below actually exists as a
-# common_lookup_value row, and vice versa.
+# for the KG design rationale, docs/adr/0006-role-responsibility-agent-ontology.md
+# for the R&R actor-type rationale (grounded in W3C PROV-O), and
+# tests/test_ontology.py for the round-trip check that every code below
+# actually exists as a common_lookup_value row, and vice versa.
 #
 # Every custom term carries a :lookupCode annotation naming the exact
 # `common_lookup_value.lookup_code` it corresponds to -- that literal
@@ -29,7 +32,7 @@
 
 <https://contextualwisdomlab.github.io/lineageweave/ontology> a owl:Ontology ;
     rdfs:label "LineageWeave Knowledge Graph Ontology" ;
-    rdfs:comment "Formal OWL 2 / RDFS / SKOS vocabulary for LineageWeave's knowledge_graph_edge node and edge types, entity_relationship_type, person_side, and corporate_entity_level controlled vocabularies." .
+    rdfs:comment "Formal OWL 2 / RDFS / SKOS vocabulary for LineageWeave's knowledge_graph_edge node and edge types, entity_relationship_type, person_side, corporate_entity_level, and post_summary_role.actor_type_code controlled vocabularies." .
 
 :lookupCode a owl:AnnotationProperty ;
     rdfs:label "lookup code" ;
@@ -152,3 +155,30 @@
 
 :GroupLevel skos:narrower :CompanyLevel .
 :CompanyLevel skos:narrower :PlantLevel .
+
+#################################################################
+# Classes -- prov_agent_type (post_summary_role.actor_type_code)
+#
+# A post's R&R (roles & responsibilities) actor is not always a person
+# -- real business correspondence routinely names an organization
+# acting in its own name ("당사" [our company], "SEWA," "Siemens,"
+# "GECO"). Grounded directly in W3C PROV-O (Lebo, Sahoo, & McGuinness,
+# 2013): prov:Agent is the general acting-party class, with prov:Person
+# and prov:Organization its two recognized subclasses. These are
+# distinct from :Person / :OurSidePerson / :CounterpartyPerson above:
+# node_type's :Person is a cataloged_person row with a stable person_id
+# a Keyman panel links to; an R&R actor is a free-text name with no
+# cataloged identity of its own (it may not even resolve to a Keyman).
+#################################################################
+
+:RoleActorPerson a owl:Class ;
+    rdfs:subClassOf prov:Person ;
+    rdfs:label "Role actor (person)" ;
+    rdfs:comment "An R&R actor that is a named individual, per prov:Person." ;
+    :lookupCode "prov_person" .
+
+:RoleActorOrganization a owl:Class ;
+    rdfs:subClassOf prov:Organization ;
+    rdfs:label "Role actor (organization)" ;
+    rdfs:comment "An R&R actor that is an organization acting in its own name, per prov:Organization." ;
+    :lookupCode "prov_organization" .

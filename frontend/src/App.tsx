@@ -1176,13 +1176,19 @@ function PostDetailPopup({
                       <h4>R&amp;R</h4>
                       <ul>
                         {summary.roles_and_responsibilities.map((rr, i) => {
-                          const person = keymen?.find((row) => row.person_name === rr.person_name);
+                          const isPerson = rr.actor_type_code === "prov_person";
+                          const person = isPerson
+                            ? keymen?.find((row) => row.person_name === rr.actor_name)
+                            : undefined;
                           return (
                             <li key={i}>
+                              <span className={`actor-type-badge actor-type-${rr.actor_type_code}`}>
+                                {isPerson ? "Person" : "Organization"}
+                              </span>{" "}
                               {person ? (
                                 <button
                                   className="keyman-select"
-                                  aria-label={`R&R Keyman: ${rr.person_name}`}
+                                  aria-label={`R&R Keyman: ${rr.actor_name}`}
                                   onClick={() => {
                                     setFocusEntity(null);
                                     setFocusPerson({
@@ -1191,10 +1197,13 @@ function PostDetailPopup({
                                     });
                                   }}
                                 >
-                                  <strong>{rr.person_name}</strong>
+                                  <strong>{rr.actor_name}</strong>
                                 </button>
                               ) : (
-                                <strong>{rr.person_name}</strong>
+                                <strong>{rr.actor_name}</strong>
+                              )}
+                              {rr.affiliated_organization_name && (
+                                <span className="rr-affiliation"> ({rr.affiliated_organization_name})</span>
                               )}
                               : {rr.responsibility}
                             </li>

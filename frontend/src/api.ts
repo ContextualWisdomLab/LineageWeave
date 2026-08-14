@@ -83,8 +83,10 @@ export interface RelatedNode {
 }
 
 export interface PostRoleResponsibility {
-  person_name: string;
+  actor_name: string;
   responsibility: string;
+  actor_type_code: string;
+  affiliated_organization_name: string | null;
 }
 
 export interface PostAiSummary {

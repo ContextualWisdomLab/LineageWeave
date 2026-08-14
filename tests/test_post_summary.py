@@ -39,13 +39,47 @@ def test_parses_a_well_formed_json_object() -> None:
     content = (
         '{"korean_summary": "회의 후속 조치에 대한 요약입니다.", '
         '"key_events": ["입찰 워크숍 진행", "검사 일정 확인 요청"], '
-        '"roles_and_responsibilities": [{"person_name": "Jordan Hale", "responsibility": "입찰 일정 안내"}]}'
+        '"roles_and_responsibilities": [{"actor_name": "Jordan Hale", "responsibility": "입찰 일정 안내", '
+        '"actor_type": "person", "affiliated_organization_name": "Westfield Power"}]}'
     )
     summary = parse_summary_response(content)
     assert summary is not None
     assert summary.korean_summary == "회의 후속 조치에 대한 요약입니다."
     assert summary.key_events == ("입찰 워크숍 진행", "검사 일정 확인 요청")
-    assert summary.roles_and_responsibilities[0].person_name == "Jordan Hale"
+    role = summary.roles_and_responsibilities[0]
+    assert role.actor_name == "Jordan Hale"
+    assert role.actor_type_code == "prov_person"
+    assert role.affiliated_organization_name == "Westfield Power"
+
+
+def test_organization_actor_is_not_forced_into_a_person_slot() -> None:
+    """A named actor that is genuinely an organization (e.g. our own
+    company acting in its own name, not a named individual) must parse
+    as ``prov_organization``, not silently default to person -- the
+    default only applies when the model omits ``actor_type`` entirely.
+    """
+    content = (
+        '{"korean_summary": "당사가 요청 사항을 확인했습니다.", "key_events": [], '
+        '"roles_and_responsibilities": [{"actor_name": "당사", "responsibility": "요청 확인", '
+        '"actor_type": "organization", "affiliated_organization_name": null}]}'
+    )
+    summary = parse_summary_response(content)
+    assert summary is not None
+    role = summary.roles_and_responsibilities[0]
+    assert role.actor_name == "당사"
+    assert role.actor_type_code == "prov_organization"
+    assert role.affiliated_organization_name is None
+
+
+def test_missing_actor_type_defaults_to_person() -> None:
+    content = (
+        '{"korean_summary": "요약", "key_events": [], '
+        '"roles_and_responsibilities": [{"actor_name": "Ada West", "responsibility": "후속"}]}'
+    )
+    summary = parse_summary_response(content)
+    assert summary is not None
+    assert summary.roles_and_responsibilities[0].actor_type_code == "prov_person"
+    assert summary.roles_and_responsibilities[0].affiliated_organization_name is None
 
 
 def test_missing_korean_summary_returns_none() -> None:
@@ -75,7 +109,7 @@ def test_every_sample_record_has_a_seeded_korean_summary() -> None:
         assert summary.korean_summary not in seen
         seen.add(summary.korean_summary)
         cast = fixture_thread_cast(rec.label)
-        names = {role.person_name for role in summary.roles_and_responsibilities}
+        names = {role.actor_name for role in summary.roles_and_responsibilities}
         if cast is not None and cast.person_names:
             assert set(cast.person_names) <= names
         else:
@@ -91,7 +125,7 @@ def test_every_sample_record_has_a_seeded_korean_summary() -> None:
 def test_malformed_roles_entries_are_skipped_not_crashed_on() -> None:
     content = (
         '{"korean_summary": "요약", "key_events": [], '
-        '"roles_and_responsibilities": [{"person_name": "Only Name"}, "not an object"]}'
+        '"roles_and_responsibilities": [{"actor_name": "Only Name"}, "not an object"]}'
     )
     summary = parse_summary_response(content)
     assert summary is not None
@@ -119,5 +153,5 @@ def test_contextual_orchestrator_summarizes_a_non_trivial_post() -> None:
     # block -- not just an English sentence handed back unchanged.
     assert any("가" <= ch <= "힣" for ch in summary.korean_summary)
     assert len(summary.key_events) >= 1
-    people_named = {rr.person_name for rr in summary.roles_and_responsibilities}
+    people_named = {rr.actor_name for rr in summary.roles_and_responsibilities}
     assert any("Jordan" in name or "Priya" in name for name in people_named)

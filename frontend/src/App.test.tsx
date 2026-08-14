@@ -453,8 +453,18 @@ describe("App, authenticated", () => {
             korean_summary: "이것은 요약입니다.",
             key_events: ["첫 번째 이벤트"],
             roles_and_responsibilities: [
-              { person_name: "Ada West", responsibility: "우리 측 후속" },
-              { person_name: "Priya Nair", responsibility: "고객 측 수신" },
+              {
+                actor_name: "Ada West",
+                responsibility: "우리 측 후속",
+                actor_type_code: "prov_person",
+                affiliated_organization_name: "Demo Corp",
+              },
+              {
+                actor_name: "Priya Nair",
+                responsibility: "고객 측 수신",
+                actor_type_code: "prov_person",
+                affiliated_organization_name: "Northridge Grid",
+              },
             ],
           }),
         );

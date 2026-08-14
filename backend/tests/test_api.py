@@ -142,7 +142,9 @@ def seeded_db(demo_analyst_token):
                 "('relation_verification_status', 'verify_uncorroborated', 'No corroborating evidence found'), "
                 "('evaluation_criterion', 'general_sentiment_positive', 'Constructive stance'), "
                 "('evaluation_criterion', 'general_sentiment_negative', 'Negative stance'), "
-                "('evaluation_criterion', 'sales_lead_specificity', 'Sales-lead specificity')"
+                "('evaluation_criterion', 'sales_lead_specificity', 'Sales-lead specificity'), "
+                "('prov_agent_type', 'prov_person', 'Person'), "
+                "('prov_agent_type', 'prov_organization', 'Organization')"
             )
             cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
@@ -363,8 +365,9 @@ def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token
                 (seeded_db["public_post_id"],),
             )
             cur.execute(
-                "insert into post_summary_role (post_id, person_name, responsibility) "
-                "values (%s, 'Ada West', '후속 연락')",
+                "insert into post_summary_role "
+                "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name) "
+                "values (%s, 'Ada West', '후속 연락', 'prov_person', 'Demo Corp')",
                 (seeded_db["public_post_id"],),
             )
     finally:
@@ -378,9 +381,13 @@ def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token
     body = response.json()
     assert body["korean_summary"] == "저장된 한국어 요약입니다."
     assert body["key_events"] == ["저장된 이벤트"]
-    assert body["roles_and_responsibilities"] == [
-        {"person_name": "Ada West", "responsibility": "후속 연락"}
-    ]
+    assert len(body["roles_and_responsibilities"]) == 1
+    role = body["roles_and_responsibilities"][0]
+    assert role["actor_name"] == "Ada West"
+    assert role["responsibility"] == "후속 연락"
+    assert role["actor_type_code"] == "prov_person"
+    assert role["affiliated_organization_name"] == "Demo Corp"
+    assert role["ontology_label"] == "Role actor (person)"
 
 
 def test_seed_demo_summary_surfaces_on_get_summary(client, demo_analyst_token, seeded_db) -> None:
@@ -407,7 +414,7 @@ def test_seed_demo_summary_surfaces_on_get_summary(client, demo_analyst_token, s
     body = response.json()
     assert "에이다" in body["korean_summary"]
     assert body["key_events"]
-    assert any(role["person_name"] == "Ada West" for role in body["roles_and_responsibilities"])
+    assert any(role["actor_name"] == "Ada West" for role in body["roles_and_responsibilities"])
 
 
 def test_seed_fixture_summaries_surface_on_get_summary(client, demo_analyst_token, seeded_db) -> None:
@@ -466,7 +473,7 @@ def test_seed_fixture_summaries_surface_on_get_summary(client, demo_analyst_toke
     assert fork.status_code == 200, fork.text
     assert "재협상" in fork.json()["korean_summary"]
     assert fork.json()["key_events"]
-    fork_roles = {role["person_name"] for role in fork.json()["roles_and_responsibilities"]}
+    fork_roles = {role["actor_name"] for role in fork.json()["roles_and_responsibilities"]}
     assert fork_roles == {"Ada West", "Priya Nair"}
 
     calendar = client.get(

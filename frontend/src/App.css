@@ -245,6 +245,29 @@
   border-radius: 1rem;
 }
 
+.actor-type-badge {
+  font-size: 0.7rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 0.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.actor-type-prov_person {
+  background: #e8eaf6;
+  color: #303f9f;
+}
+
+.actor-type-prov_organization {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.rr-affiliation {
+  opacity: 0.7;
+  font-size: 0.9rem;
+}
+
 .verification-verify_pending {
   background: #e0e0e0;
   color: #444;

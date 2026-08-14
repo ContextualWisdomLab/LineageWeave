@@ -7,6 +7,7 @@ from typing import Any
 import asyncpg
 
 from lineageweave.fixtures import fixture_thread_cast
+from lineageweave.ontology import ontology_annotations
 from lineageweave.post_summary import PostSummary, RoleResponsibility
 
 
@@ -23,8 +24,8 @@ async def fetch_persisted_summary(conn: asyncpg.Connection, post_id: str) -> dic
         post_id,
     )
     roles = await conn.fetch(
-        "select person_name, responsibility from post_summary_role "
-        "where post_id = $1 order by person_name",
+        "select actor_name, responsibility, actor_type_code, affiliated_organization_name "
+        "from post_summary_role where post_id = $1 order by actor_name",
         post_id,
     )
     return {
@@ -32,7 +33,13 @@ async def fetch_persisted_summary(conn: asyncpg.Connection, post_id: str) -> dic
         "korean_summary": header["korean_summary"],
         "key_events": [row["event_text"] for row in events],
         "roles_and_responsibilities": [
-            {"person_name": row["person_name"], "responsibility": row["responsibility"]}
+            {
+                "actor_name": row["actor_name"],
+                "responsibility": row["responsibility"],
+                "actor_type_code": row["actor_type_code"],
+                "affiliated_organization_name": row["affiliated_organization_name"],
+                **ontology_annotations(row["actor_type_code"]),
+            }
             for row in roles
         ],
     }
@@ -55,10 +62,14 @@ async def persist_post_summary(conn: asyncpg.Connection, post_id: str, summary: 
         )
     for role in summary.roles_and_responsibilities:
         await conn.execute(
-            "insert into post_summary_role (post_id, person_name, responsibility) values ($1, $2, $3)",
+            "insert into post_summary_role "
+            "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name) "
+            "values ($1, $2, $3, $4, $5)",
             post_id,
-            role.person_name,
+            role.actor_name,
             role.responsibility,
+            role.actor_type_code,
+            role.affiliated_organization_name,
         )
     payload = await fetch_persisted_summary(conn, post_id)
     if payload is None:
@@ -75,8 +86,16 @@ def seeded_demo_summary() -> PostSummary:
         ),
         key_events=("출하 지연 후속 연락",),
         roles_and_responsibilities=(
-            RoleResponsibility(person_name="Ada West", responsibility="일정 확인 후속"),
-            RoleResponsibility(person_name="Priya Nair", responsibility="고객 측 수신"),
+            RoleResponsibility(
+                actor_name="Ada West",
+                responsibility="일정 확인 후속",
+                affiliated_organization_name="Demo Corp",
+            ),
+            RoleResponsibility(
+                actor_name="Priya Nair",
+                responsibility="고객 측 수신",
+                affiliated_organization_name="Northridge Grid",
+            ),
         ),
     )
 
@@ -108,7 +127,11 @@ def _roles_for_fixture(post_title: str) -> tuple[RoleResponsibility, ...]:
     if cast is None or not cast.person_names:
         return ()
     return tuple(
-        RoleResponsibility(person_name=name, responsibility=responsibility)
+        RoleResponsibility(
+            actor_name=name,
+            responsibility=responsibility,
+            affiliated_organization_name=_FIXTURE_ROLE_AFFILIATION.get(name),
+        )
         for name in cast.person_names
         if (responsibility := _FIXTURE_ROLE_RESPONSIBILITY.get(name))
     )
@@ -118,6 +141,12 @@ _FIXTURE_ROLE_RESPONSIBILITY = {
     "Ada West": "우리 측 후속",
     "Priya Nair": "고객 측 수신",
     "Jordan Hale": "사양 검토",
+}
+
+_FIXTURE_ROLE_AFFILIATION = {
+    "Ada West": "Demo Corp",
+    "Priya Nair": "Northridge Grid",
+    "Jordan Hale": "Westfield Power",
 }
 
 

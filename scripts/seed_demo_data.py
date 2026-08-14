@@ -106,6 +106,7 @@ def seed(
             cur.execute((migrations / "0009_shared_metric_bank.sql").read_text())
             cur.execute((migrations / "0010_report_item_information.sql").read_text())
             cur.execute((migrations / "0011_post_chat_result.sql").read_text())
+            cur.execute((migrations / "0012_role_responsibility_agent_type.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -404,8 +405,16 @@ def _write_post_summary(cur, post_id, summary) -> None:
         )
     for role in summary.roles_and_responsibilities:
         cur.execute(
-            "insert into post_summary_role (post_id, person_name, responsibility) values (%s, %s, %s)",
-            (post_id, role.person_name, role.responsibility),
+            "insert into post_summary_role "
+            "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name) "
+            "values (%s, %s, %s, %s, %s)",
+            (
+                post_id,
+                role.actor_name,
+                role.responsibility,
+                role.actor_type_code,
+                role.affiliated_organization_name,
+            ),
         )
 
 

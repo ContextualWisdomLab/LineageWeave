@@ -682,3 +682,31 @@ checks a well-known public foundation name ("Mozilla Foundation")
 against a deliberately fabricated one in the same request, asserting
 the former comes back `verify_corroborated` with a real evidence URL
 and the latter `verify_uncorroborated` with none.
+
+## Phase 7: R&R's named actor is a PROV-O Agent, not always a person
+
+Confirmed against real Milestone 2 SAP CRM VOC data, not a hypothetical:
+`post_summary.py`'s R&R extraction forced every named actor into a
+person slot, but real business correspondence routinely names an
+organization acting in its own name ("당사" [our company], "SEWA,"
+"Siemens," "GECO"), not an individual. See
+[ADR 0006](docs/adr/0006-role-responsibility-agent-ontology.md).
+
+Grounded in W3C PROV-O (Lebo, Sahoo, & McGuinness, 2013):
+`RoleResponsibility` (renamed field `actor_name`, was `person_name` --
+the field can hold an organization's name now, so "person" in the name
+would be wrong) gains `actor_type_code` (`prov_person` /
+`prov_organization`, defaulting to person when the model omits it) and
+`affiliated_organization_name` (an LLM-inferred affiliation for a
+person actor, since a bare name without an employer is hard to place).
+The ontology gains `:RoleActorPerson rdfs:subClassOf prov:Person` and
+`:RoleActorOrganization rdfs:subClassOf prov:Organization` -- genuine
+subclasses of the real external PROV-O classes (imported via the
+`prov:` namespace), kept distinct from the ontology's existing `:Person`
+(node_type's cataloged Keyman with a stable `person_id`) since an R&R
+actor is a free-text name with no cataloged identity of its own.
+`migrations/0012_role_responsibility_agent_type.sql` renames the
+`post_summary_role` column via `RENAME COLUMN` (preserves existing
+rows) rather than a drop/recreate. The popup's R&R list shows a
+Person/Organization badge and the inferred affiliation; only a person
+actor still links to the Keyman panel.

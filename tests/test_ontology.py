@@ -31,12 +31,27 @@ from rdflib.namespace import RDFS, SKOS
 
 _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo_data.py"
 
+# 0012 seeds prov_agent_type via its own migration SQL (ADR 0006), not
+# literally embedded in seed_demo_data.py's own source text the way the
+# other covered categories are -- read alongside it below so the
+# round-trip still sees those two codes.
+_PROV_AGENT_TYPE_MIGRATION_PATH = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0012_role_responsibility_agent_type.sql"
+)
+
 # The categories this ontology covers (ADR 0004's scope). seed_demo_data.py
 # also seeds categories this ontology deliberately does not model yet
 # (post_visibility, voc_type, permission, ticket_status) -- those are
 # real, expected gaps, not a test bug.
 _ONTOLOGY_COVERED_CATEGORIES = frozenset(
-    {"node_type", "edge_type", "entity_relationship_type", "person_side", "corporate_entity_level"}
+    {
+        "node_type",
+        "edge_type",
+        "entity_relationship_type",
+        "person_side",
+        "corporate_entity_level",
+        "prov_agent_type",
+    }
 )
 
 _INSERT_TUPLE_PATTERN = re.compile(r"\('([a-z_]+)',\s*'([a-z_]+)'")
@@ -44,12 +59,12 @@ _INSERT_TUPLE_PATTERN = re.compile(r"\('([a-z_]+)',\s*'([a-z_]+)'")
 
 def _seeded_lookup_codes_for_covered_categories() -> set[str]:
     """Every `(lookup_category, lookup_code)` pair seed_demo_data.py's own
-    SQL literally inserts, filtered to the categories this ontology
-    covers. Parsed from source, not executed -- this is a static
-    consistency check between two committed files, not a live-database
-    test.
+    SQL, plus 0012's migration SQL, literally inserts, filtered to the
+    categories this ontology covers. Parsed from source, not executed --
+    this is a static consistency check between committed files, not a
+    live-database test.
     """
-    source = _SEED_SCRIPT_PATH.read_text()
+    source = _SEED_SCRIPT_PATH.read_text() + _PROV_AGENT_TYPE_MIGRATION_PATH.read_text()
     return {
         code
         for category, code in _INSERT_TUPLE_PATTERN.findall(source)
@@ -127,6 +142,24 @@ def test_mentions_property_domain_and_range_match_the_schema() -> None:
     graph = load_ontology()
     assert (LW.mentions, RDFS.domain, LW.Post) in graph
     assert (LW.mentions, RDFS.range, LW.Person) in graph
+
+
+def test_prov_agent_type_terms_resolve_and_subclass_real_prov_o() -> None:
+    """Beyond the generic round-trip above: the two prov_agent_type terms
+    must actually subclass the real external W3C PROV-O classes, not
+    just carry a matching :lookupCode -- the whole point of grounding
+    this in a standard ontology is that :RoleActorPerson really is a
+    prov:Person, not a same-named local invention.
+    """
+    from rdflib import URIRef
+    from rdflib.namespace import Namespace
+
+    prov = Namespace("http://www.w3.org/ns/prov#")
+    graph = load_ontology()
+    assert iri_for_lookup_code("prov_person") == str(LW.RoleActorPerson)
+    assert iri_for_lookup_code("prov_organization") == str(LW.RoleActorOrganization)
+    assert (LW.RoleActorPerson, RDFS.subClassOf, URIRef(prov.Person)) in graph
+    assert (LW.RoleActorOrganization, RDFS.subClassOf, URIRef(prov.Organization)) in graph
 
 
 def test_corporate_entity_level_hierarchy_is_broadest_first() -> None:

@@ -14,7 +14,20 @@ Grounded in three distinct extraction tasks, not one undifferentiated
   bullet, not a summary sentence.
 - **R&R (roles & responsibilities)**: semantic role labeling (Gildea &
   Jurafsky, 2002) -- who did what, framed as an agent/action/responsibility
-  triple per person named in the post, not prose.
+  triple per named actor in the post, not prose. The actor is not always
+  a person: real business correspondence routinely names an organization
+  as the acting party ("당사" [our company], "SEWA," "Siemens," "GECO"),
+  not an individual. Modeling every actor as a person loses this
+  distinction and makes an organization's affiliation-less name look
+  like an unresolved person. Grounded in W3C PROV-O (Lebo, Sahoo, &
+  McGuinness, 2013): ``prov:Agent`` is the general acting-party class,
+  with ``prov:Person`` and ``prov:Organization`` as its two recognized
+  subclasses -- the same distinction ``keyman_extraction``'s two-sided
+  (our-side/counterparty) person model already keeps for *people*, one
+  level up. A person actor also gets an inferred
+  ``affiliated_organization_name`` where the text supports it: a bare
+  person name without who they work for is hard to place in the same
+  way an unresolved organization name is.
 
 Same pluggable-client, never-fake-a-missing-channel discipline as every
 other Phase 2/3 channel: :class:`NullPostSummaryClient` makes the channel
@@ -30,13 +43,35 @@ from typing import Protocol
 
 from .http_client import post_json
 
+# common_lookup_value category "prov_agent_type" -- PROV-O's prov:Person /
+# prov:Organization, the two subclasses of prov:Agent this repo models.
+ACTOR_TYPE_PERSON = "prov_person"
+ACTOR_TYPE_ORGANIZATION = "prov_organization"
+_VALID_ACTOR_TYPE_CODES = frozenset({ACTOR_TYPE_PERSON, ACTOR_TYPE_ORGANIZATION})
+
 
 @dataclass(frozen=True)
 class RoleResponsibility:
-    """One person's role/responsibility as derived from the post text."""
+    """One actor's role/responsibility as derived from the post text.
 
-    person_name: str
+    Attributes:
+        actor_name: the person's or organization's name as named in the
+            text.
+        responsibility: what they are responsible for or did.
+        actor_type_code: ``ACTOR_TYPE_PERSON`` or ``ACTOR_TYPE_ORGANIZATION``
+            (PROV-O ``prov:Person`` / ``prov:Organization``) -- which this
+            actor actually is, not assumed to be a person.
+        affiliated_organization_name: for a person actor, the
+            organization the text says or implies they work for, when
+            the text supports it; ``None`` when the text gives no
+            affiliation to infer, or for an organization actor (its own
+            name already answers "which organization").
+    """
+
+    actor_name: str
     responsibility: str
+    actor_type_code: str = ACTOR_TYPE_PERSON
+    affiliated_organization_name: str | None = None
 
 
 @dataclass(frozen=True)
@@ -81,16 +116,27 @@ three things:
 2. A list of key events: discrete, datable occurrences mentioned in the
    post (e.g. "a bid was submitted", "a delivery date was confirmed"),
    each as a short phrase.
-3. A list of roles & responsibilities: for each named person in the post,
-   one short phrase describing what they are responsible for or did,
-   according to the text.
+3. A list of roles & responsibilities: for each named actor in the post
+   -- a person OR an organization acting in its own name (e.g. "당사"
+   [our company], "SEWA," "Siemens," "GECO") -- one short phrase
+   describing what they are responsible for or did, according to the
+   text. Do not force an organization's name into a person slot: decide
+   whether each actor is a person or an organization, and say which.
+   When the actor is a person and the text names or clearly implies who
+   they work for, also give that organization's name -- a bare person
+   name without their employer is hard to place.
 
 Reply with ONLY a JSON object (no markdown fences, no prose) with exactly
 these fields:
   "korean_summary": string
   "key_events": array of strings
-  "roles_and_responsibilities": array of objects, each with
-    "person_name" and "responsibility" string fields
+  "roles_and_responsibilities": array of objects, each with:
+    "actor_name": string
+    "responsibility": string
+    "actor_type": exactly "person" or "organization"
+    "affiliated_organization_name": string, or null when the actor is an
+      organization, or when the actor is a person and the text gives no
+      affiliation to infer
 
 Post title: {title}
 Post body: {body}
@@ -134,15 +180,32 @@ def parse_summary_response(content: str) -> PostSummary | None:
         for entry in rr_raw:
             if not isinstance(entry, dict):
                 continue
-            name = entry.get("person_name")
+            name = entry.get("actor_name")
             responsibility = entry.get("responsibility")
+            actor_type_raw = entry.get("actor_type")
+            actor_type_code = (
+                ACTOR_TYPE_ORGANIZATION if actor_type_raw == "organization" else ACTOR_TYPE_PERSON
+            )
+            affiliation_raw = entry.get("affiliated_organization_name")
+            affiliated_organization_name = (
+                affiliation_raw.strip()
+                if isinstance(affiliation_raw, str) and affiliation_raw.strip()
+                else None
+            )
             if (
                 isinstance(name, str)
                 and name.strip()
                 and isinstance(responsibility, str)
                 and responsibility.strip()
             ):
-                roles.append(RoleResponsibility(person_name=name.strip(), responsibility=responsibility.strip()))
+                roles.append(
+                    RoleResponsibility(
+                        actor_name=name.strip(),
+                        responsibility=responsibility.strip(),
+                        actor_type_code=actor_type_code,
+                        affiliated_organization_name=affiliated_organization_name,
+                    )
+                )
 
     return PostSummary(
         korean_summary=korean_summary.strip(),
