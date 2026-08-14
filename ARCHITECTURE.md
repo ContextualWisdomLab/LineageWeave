@@ -270,7 +270,9 @@ summary/key-events/R&R, VOC evidence excerpts, an Event Lineage panel
 (direct vs. indirect links; a link opens that post), the Keyman
 affiliate tree (resolved ancestors plus unresolved org roots), Keyman +
 counterparty panels (a Keyman click loads RWR related nodes;
-`post_admin` can extract), and an in-popup chat whose cited sources
+a related corporate-entity node continues the same walk via
+`GET /api/corporate-entities/{id}/related`; `post_admin` can extract),
+and an in-popup chat whose cited sources
 open a sliding evidence panel (`EvidencePanel`, CSS
 `slide-in-from-right`) showing that source post's actual content. Built from the product
 brief's text, not the referenced Figma frame's pixel layout -- see

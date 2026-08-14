@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.64.0] - 2026-08-14
+
+### Added
+
+- Related corporate-entity nodes in the Keyman walk are the same
+  RWR as a person. Clicking `Demo Corp` / `Test Corp` loads
+  `GET /api/corporate-entities/{id}/related` so the buyer can
+  continue the walk from the org. An entity with no visible
+  affiliation stays 403 -- never a guessed neighborhood.
+
 ## [0.63.0] - 2026-08-14
 
 ### Added

@@ -89,10 +89,13 @@ from backend.app.issue_ticket_ingestion import (
 )
 from backend.app.keyman_ingestion import ingest_post_keymen
 from backend.app.knowledge_graph import (
+    corporate_entity_exists,
     fetch_post_keymen,
     labels_for_codes,
     person_exists,
+    related_for_entity,
     related_for_person,
+    visible_affiliation_post_ids,
     visible_mention_post_ids,
 )
 from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
@@ -396,6 +399,35 @@ async def read_related_keymen(
         "person_id": str(person["person_id"]),
         "person_name": person["person_name"],
         "person_side_code": person["person_side_code"],
+        "related": related,
+    }
+
+
+@app.get("/api/corporate-entities/{entity_id}/related")
+async def read_related_corporate_entity(
+    entity_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """RWR-ranked related nodes from one corporate entity, hiding unseen posts."""
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        if not await corporate_entity_exists(conn, entity_id):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "corporate entity not found")
+        visible_post_ids = await visible_affiliation_post_ids(
+            conn, entity_id, lambda row: _can_see_post(account, row)
+        )
+        if not visible_post_ids:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this entity")
+        entity = await conn.fetchrow(
+            "select corporate_entity_id, entity_name from corporate_entity "
+            "where corporate_entity_id = $1",
+            entity_id,
+        )
+        related = await related_for_entity(conn, entity_id, visible_post_ids)
+    return {
+        "corporate_entity_id": str(entity["corporate_entity_id"]),
+        "entity_name": entity["entity_name"],
         "related": related,
     }
 
