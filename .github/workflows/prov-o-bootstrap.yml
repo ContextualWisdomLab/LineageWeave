@@ -48,6 +48,9 @@ jobs:
           from textwrap import dedent
 
           chunk_paths = sorted(Path(".bootstrap").glob("prov-o-payload-*.b64"))
+          if not chunk_paths:
+              print("PROV-O payload is already materialized; validation-only run.")
+              raise SystemExit(0)
           if len(chunk_paths) != 7:
               raise SystemExit(f"expected 7 payload chunks, found {len(chunk_paths)}")
           encoded = "".join(path.read_text().strip() for path in chunk_paths)
@@ -67,6 +70,13 @@ jobs:
                   if root not in destination.parents and destination != root:
                       raise SystemExit(f"unsafe archive path: {member.name}")
               archive.extractall(root, members=members, filter="data")
+
+          # The workflow-bearing files are installed through the GitHub connector,
+          # whose token has Workflows permission. The branch GITHUB_TOKEN must not
+          # attempt to create or delete workflow files.
+          contract_workflow = Path(".github/workflows/prov-o-contract.yml")
+          if contract_workflow.exists():
+              contract_workflow.unlink()
 
           changelog = Path("CHANGELOG.md")
           changelog_text = changelog.read_text()
@@ -163,7 +173,6 @@ jobs:
           for path in chunk_paths:
               path.unlink()
           Path(".bootstrap").rmdir()
-          Path(".github/workflows/prov-o-bootstrap.yml").unlink()
 
       - name: Install focused validation dependencies
         run: python -m pip install -e ".[dev]" "coverage>=7.6"
@@ -183,10 +192,11 @@ jobs:
       - name: Compile owned Python surface
         run: python -m compileall -q lineageweave/prov_o.py tests/test_prov_o.py tests/test_prov_o_schema.py
 
-      - name: Commit implementation and remove bootstrap material
+      - name: Commit materialized implementation
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .coverage
           python - <<'PY'
           from pathlib import Path
 
@@ -196,6 +206,10 @@ jobs:
                   path.write_text(path.read_text().rstrip() + "\n")
           PY
           git add -A
+          if git diff --cached --quiet; then
+            echo "No implementation changes remain to commit."
+            exit 0
+          fi
           git diff --cached --check
           git commit -m "feat: implement every normative PROV-O relation (v0.76.0)"
           git push origin HEAD:feat/role-responsibility-agent-ontology
