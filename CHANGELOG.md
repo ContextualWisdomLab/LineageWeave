@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.71.0] - 2026-08-14
+
+### Added
+
+- VOC evidence now quotes the extractive excerpt under the counterparty
+  it names. After `make seed`, Northridge Grid in VOC evidence shows
+  the sentence that mentions it, instead of a detached excerpt list
+  above the names. Unassigned excerpts stay in the list; a post with
+  no named organization still says so.
+
 ## [0.67.0] - 2026-08-14
 
 ### Added
