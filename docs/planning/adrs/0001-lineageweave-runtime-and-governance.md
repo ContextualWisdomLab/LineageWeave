@@ -1066,10 +1066,9 @@ provenance and semantic source remain available to administrator and audit
 routes, while the customer screen continues to map the normalized facts to
 `schema:Organization`, `schema:subOrganization`, and `schema:about`.
 
-The post-change source gate passed 350 tests plus one expected connector skip
-with 7,572 statements and 2,956 branches at 100 percent line-and-branch
-coverage. The React V8 presentation model still passes at 100 percent and the
-production build succeeds.
+The post-change source gate passed 351 tests with 7,572 statements and 2,956
+branches at 100 percent line-and-branch coverage. The React V8 presentation
+model still passes at 100 percent and the production build succeeds.
 
 ### Amendment: Evidence-bound semantic embeddings (2026-08-14)
 
@@ -3971,7 +3970,7 @@ frame and a user-chosen-browser capture at the same real Keyverse-authenticated
 document state are both required before parity can be assessed.
 
 Focused HTTP route contracts and the Compose identity-boundary guard passed
-after the alias hardening. The complete current-source gate also passed 349
+after the alias hardening. The complete current-source gate also passed 350
 tests across 7,569 statements and 2,954 branches at 100 percent line-and-
 branch coverage; the React V8 gate (103 statements, 196 branches, 28
 functions, and 88 lines) and production build passed at 100 percent as well.
@@ -4039,3 +4038,63 @@ external relying-party boundary. Manual review of the explicit Semgrep
 exceptions confirms that table identifiers are immutable product constants,
 row values are bound parameters, and every dynamic HTTP request is built only
 after the corresponding HTTPS/loopback allowlist validation.
+
+## Amendment: runtime alias and current-thread recheck (2026-08-15)
+
+A fresh read-only runtime probe found a current-product recurrence: the
+`/oidc/*` issuer-shaped aliases were reaching the single-page-app fallback
+instead of the existing issuer-route rejection guard. The Compose worker was
+already rejecting them. The product guard now covers the same discovery,
+authorization, token, and introspection aliases; both `GET` and `POST` are
+covered by the HTTP contract. After rebuilding the direct-PostgreSQL product,
+all 32 product-and-worker issuer-shaped requests returned `404`; health stayed
+ready and an anonymous session stayed Keyverse-gated. The retained
+issuer-shaped source artifact was neither imported, copied into the product
+image, executed, nor modified.
+
+The direct PostgreSQL aggregate also found one retained historical
+shared-thread audit row in each of the Lineage and KG projections whose current
+endpoints no longer match its stored thread evidence. It remains preserved for
+audit, but the shared response guard returns 3,020 current matching pairs in
+each projection and excludes that historical pair from reader detail,
+administrator review, and KG neighborhoods. The only observed chronological
+edges remain 107 same-document `row_successor` records. No source content,
+document identifiers, account values, or credentials were emitted by this
+check.
+
+The current source gate passed 350 tests and 100 percent line-and-branch
+coverage for the shipped product/runtime sources (7,569 statements and 2,954
+branches); the React V8 model gate and production build also passed. A fresh
+read-only Keyverse PR #100 check remains open, merge-blocked, and
+changes-requested. Its current check rollup is terminal and coverage evidence
+is successful, but an independent review/approval remains required; no retry,
+self-approval, bypass, or merge was performed. Real Keyverse business-account
+login/callback/session/logout, a reproducible Figma target with paired
+user-chosen-browser comparison, operator-owned TEPP acceptance where needed,
+retained-artifact ownership disposition, and independent approval remain
+release conditions.
+
+## Amendment: complete product-task live-model fallback (2026-08-15)
+
+The Compose service is an issuer-free model proxy, not a recorded-response
+adapter. Previously, it could forward Keyman, content inspection, and event
+chat, while the product transport for customer-master, role classification,
+appointments, issue work, ontology verification, factor-item generation, and
+report judging required a direct gateway. That asymmetry made the product
+degrade differently depending on which LLM feature a user entered.
+
+The product transport now follows one boundary: use the direct verified HTTPS
+gateway when configured; otherwise start or reuse the Compose worker and send
+the explicit product task to `/api/v1/product_task`. The worker owns a bounded
+allowlist and task-specific structured-output prompts, then forwards the task
+to the live gateway. A gateway `404` on a task-specific endpoint may fall back
+to the provider-compatible chat endpoint, but a missing or unreachable gateway
+returns an explicit unavailable/503 result. No local issuer, account, token,
+recorded response, or fabricated business result is introduced.
+
+This preserves the Ontology/Semantic Layer and ABAC boundary: the server
+authorizes the actor and constructs the evidence-scoped body before transport;
+the worker cannot widen that scope or authenticate a user. The worker remains
+HTTP-only and independent of TEPP and contextual-orchestrator internals.
+Focused worker and runtime contracts cover direct product forwarding, Compose
+fallback routing, unsupported-task rejection, and Compose failure reporting.

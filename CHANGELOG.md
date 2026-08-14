@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Extended the issuer-free Compose live-model proxy to the full product-task
+  contract used by customer-master, role, appointment, issue-work, ontology,
+  factor-item, and report enrichment. Product transport now prefers the direct
+  gateway and otherwise starts/reuses Compose; missing live model configuration
+  remains an explicit unavailable/503 state and never becomes a recorded answer.
 - Made the customer-master projection snapshot-replace on every explicit
   analysis result, including an LLM empty/abstain result, so stale customer
   relationships cannot remain visible after reanalysis. Reader surfaces now

@@ -113,6 +113,8 @@ def test_worker_falls_back_only_for_incomplete_gateway_results(monkeypatch) -> N
             return {"answer": ""}
         if path == "/api/v1/content_inspection":
             return {"ocr_text": None, "object_labels": None}
+        if path == "/api/v1/product_task":
+            return {}
         return {
             "choices": [{"message": {"content": json.dumps({"answer": "fixture", "evidence_ids": []})}}],
             "model": "fixture-model",
@@ -121,6 +123,7 @@ def test_worker_falls_back_only_for_incomplete_gateway_results(monkeypatch) -> N
     monkeypatch.setattr(worker, "_post_gateway", incomplete)
     assert worker._forward_task({"task": "keyman_extract"})["answer"] == "fixture"
     assert worker._forward_task({"task": "event_lineage_chat"})["answer"] == "fixture"
+    assert worker._forward_task({"task": "customer_master"})["answer"] == "fixture"
     assert worker._forward_task({"task": "content_inspection", "image_data_uri": "data:image/png;base64,Zm9v"})["answer"] == "fixture"
 
     monkeypatch.setattr(
@@ -158,6 +161,8 @@ def test_worker_task_contracts_and_model_json(monkeypatch) -> None:
             return {"answer": "fixture"}
         if path == "/api/v1/content_inspection":
             return None
+        if path == "/api/v1/product_task":
+            return {"accounts": [], "edges": []}
         return {
             "choices": [{"message": {"content": json.dumps({"ocr_text": "fixture", "object_labels": []})}}],
             "model": "fixture-model",
@@ -166,6 +171,7 @@ def test_worker_task_contracts_and_model_json(monkeypatch) -> None:
     monkeypatch.setattr(worker, "_post_gateway", post)
     assert worker._forward_task({"task": "keyman_extract"}) == {"keymen": []}
     assert worker._forward_task({"task": "event_lineage_chat"}) == {"answer": "fixture"}
+    assert worker._forward_task({"task": "customer_master"}) == {"accounts": [], "edges": []}
     result = worker._forward_task({"task": "content_inspection", "image_data_uri": "data:image/png;base64,Zm9v"})
     assert result["ocr_text"] == "fixture"
     model_message = calls[-1][1]["messages"][1]["content"]
@@ -229,6 +235,16 @@ def test_worker_http_routes_and_main(monkeypatch) -> None:
         with urllib.request.urlopen(request, timeout=5) as response:
             assert json.loads(response.read()) == {"answer": "fixture"}
         assert forwarded == {"task": "event_lineage_chat"}
+        forwarded.clear()
+        request = urllib.request.Request(
+            origin + "/api/v1/product_task",
+            data=json.dumps({"task": "customer_master"}).encode("utf-8"),
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(request, timeout=5) as response:
+            assert json.loads(response.read()) == {"answer": "fixture"}
+        assert forwarded == {"task": "customer_master"}
     finally:
         httpd.shutdown()
         httpd.server_close()
