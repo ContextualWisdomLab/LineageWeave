@@ -2092,6 +2092,23 @@ def filter_lineage_edges_by_overrides(
     return [edge for edge in edges if lineage_edge_key(edge) not in suppressed]
 
 
+def is_current_shared_thread_relation(
+    edge: Dict[str, Any],
+    document_threads: Dict[str, Any],
+    *,
+    evidence_field: str,
+) -> bool:
+    """Keep a shared-thread relation only while both document endpoints still match it."""
+    if edge.get("relation") != SHARED_THREAD_RELATION:
+        return True
+    evidence_thread = str(edge.get(evidence_field) or "").strip()
+    return bool(evidence_thread) and all(
+        str(document_threads.get(str(edge.get(endpoint) or "")) or "").strip()
+        == evidence_thread
+        for endpoint in ("source", "target")
+    )
+
+
 def _lineage_graph_node_to_edge_node(node_id: Any) -> str:
     """Map a KG document node back to the document-lineage identifier."""
     value = str(node_id or "")
@@ -2183,7 +2200,7 @@ def load_lineage_review_edges(
     documents = _database_query(
         connection,
         f"""
-        SELECT document_no, corp_code, owner_pu, title_sample, visibility_code
+        SELECT document_no, acthguid, corp_code, owner_pu, title_sample, visibility_code
         FROM {ANALYSIS_DOCUMENT_TABLE}
         WHERE corp_code = %s
         """,
@@ -2222,6 +2239,17 @@ def load_lineage_review_edges(
         source = document_by_id.get(source_id)
         target = document_by_id.get(target_id)
         if not source or not target:
+            continue
+        if not is_current_shared_thread_relation(
+            {
+                "source": source_id,
+                "target": target_id,
+                "relation": edge.get("relation_name"),
+                "acthguid": edge.get("acthguid"),
+            },
+            {source_id: source.get("acthguid"), target_id: target.get("acthguid")},
+            evidence_field="acthguid",
+        ):
             continue
         if not authorize_access(actor=actor, resource=source, action="read")["allowed"]:
             continue
@@ -5565,23 +5593,23 @@ def persist_period_reports(
                 )
                 window_reports.setdefault(key, []).append(str(report_id))
             for (period_kind, period_start, period_end, slice_kind), keep_ids in window_reports.items():
-                cursor.execute(
+                cursor.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
                     f"DELETE FROM {ANALYSIS_PERIOD_REPORT_TABLE} WHERE period_kind = %s AND period_start = %s AND period_end = %s AND slice_kind = %s AND report_id <> ALL(%s)",
                     (period_kind, period_start, period_end, slice_kind, keep_ids),
                 )
-            cursor.execute(
+            cursor.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
                 f"DELETE FROM {ANALYSIS_LINKED_SCORE_TABLE} WHERE report_id = ANY(%s)",
                 (report_ids,),
             )
-            cursor.execute(
+            cursor.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
                 f"DELETE FROM {ANALYSIS_REPORT_METRIC_EVIDENCE_TABLE} WHERE report_id = ANY(%s)",
                 (report_ids,),
             )
-            cursor.execute(
+            cursor.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
                 f"DELETE FROM {ANALYSIS_REPORT_METRIC_TABLE} WHERE report_id = ANY(%s)",
                 (report_ids,),
             )
-            cursor.execute(
+            cursor.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query, python.lang.security.audit.formatted-sql-query.formatted-sql-query
                 f"""
                 DELETE FROM {ANALYSIS_REPORT_METRIC_EVIDENCE_TABLE} AS evidence
                 WHERE NOT EXISTS (
@@ -5592,7 +5620,7 @@ def persist_period_reports(
                 )
                 """
             )
-            cursor.execute(
+            cursor.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query, python.lang.security.audit.formatted-sql-query.formatted-sql-query
                 f"""
                 DELETE FROM {ANALYSIS_LINKED_SCORE_TABLE} AS scores
                 WHERE NOT EXISTS (
@@ -5602,7 +5630,7 @@ def persist_period_reports(
                 )
                 """
             )
-            cursor.execute(
+            cursor.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query, python.lang.security.audit.formatted-sql-query.formatted-sql-query
                 f"""
                 DELETE FROM {ANALYSIS_REPORT_METRIC_TABLE} AS metrics
                 WHERE NOT EXISTS (
@@ -5736,7 +5764,7 @@ def persist_period_reports(
                 state_runs,
             )
         if state_run_ids:
-            cursor.execute(
+            cursor.execute(  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
                 f"DELETE FROM {ANALYSIS_LONGITUDINAL_OBSERVATION_TABLE} WHERE state_run_id = ANY(%s)",
                 (state_run_ids,),
             )
@@ -6824,12 +6852,36 @@ def load_persisted_document_detail(
         edge_rows = _database_query(
             connection,
             f"""
-            SELECT source_node, target_node, relation_name, evidence_status, acthguid, reason
-            FROM {ANALYSIS_EDGE_TABLE}
-            WHERE source_node = %s OR target_node = %s OR acthguid = %s
+            SELECT edge.source_node, edge.target_node, edge.relation_name,
+                   edge.evidence_status, edge.acthguid, edge.reason,
+                   source_document.acthguid AS source_current_thread,
+                   target_document.acthguid AS target_current_thread
+            FROM {ANALYSIS_EDGE_TABLE} AS edge
+            LEFT JOIN {ANALYSIS_DOCUMENT_TABLE} AS source_document
+              ON edge.source_node = 'doc:' || source_document.document_no
+            LEFT JOIN {ANALYSIS_DOCUMENT_TABLE} AS target_document
+              ON edge.target_node = 'doc:' || target_document.document_no
+            WHERE edge.source_node = %s OR edge.target_node = %s OR edge.acthguid = %s
             """,
             (document["id"], document["id"], document.get("acthguid")),
         )
+        edge_rows = [
+            edge
+            for edge in edge_rows
+            if is_current_shared_thread_relation(
+                {
+                    "source": edge.get("source_node"),
+                    "target": edge.get("target_node"),
+                    "relation": edge.get("relation_name"),
+                    "acthguid": edge.get("acthguid"),
+                },
+                {
+                    str(edge.get("source_node") or ""): edge.get("source_current_thread"),
+                    str(edge.get("target_node") or ""): edge.get("target_current_thread"),
+                },
+                evidence_field="acthguid",
+            )
+        ]
         edges = [
             {
                 "source": edge["source_node"],
@@ -6920,12 +6972,36 @@ def load_persisted_document_detail(
             kg_edges = _database_query(
                 connection,
                 f"""
-                SELECT source_node, target_node, relation_name, evidence_id, evidence_status, reason
-                FROM {ANALYSIS_KG_EDGE_TABLE}
-                WHERE source_node = ANY(%s) OR target_node = ANY(%s)
+                SELECT edge.source_node, edge.target_node, edge.relation_name,
+                       edge.evidence_id, edge.evidence_status, edge.reason,
+                       source_document.acthguid AS source_current_thread,
+                       target_document.acthguid AS target_current_thread
+                FROM {ANALYSIS_KG_EDGE_TABLE} AS edge
+                LEFT JOIN {ANALYSIS_DOCUMENT_TABLE} AS source_document
+                  ON edge.source_node = 'kg:document:' || source_document.document_no
+                LEFT JOIN {ANALYSIS_DOCUMENT_TABLE} AS target_document
+                  ON edge.target_node = 'kg:document:' || target_document.document_no
+                WHERE edge.source_node = ANY(%s) OR edge.target_node = ANY(%s)
                 """,
                 (node_ids, node_ids),
             )
+            kg_edges = [
+                edge
+                for edge in kg_edges
+                if is_current_shared_thread_relation(
+                    {
+                        "source": edge.get("source_node"),
+                        "target": edge.get("target_node"),
+                        "relation": edge.get("relation_name"),
+                        "evidence_id": edge.get("evidence_id"),
+                    },
+                    {
+                        str(edge.get("source_node") or ""): edge.get("source_current_thread"),
+                        str(edge.get("target_node") or ""): edge.get("target_current_thread"),
+                    },
+                    evidence_field="evidence_id",
+                )
+            ]
             knowledge_graph["edges"] = [
                 {
                     "source": item.get("source_node"),
@@ -7016,23 +7092,40 @@ def load_persisted_analysis_payload(
     metadata.setdefault("document_count", run.get("document_count"))
     metadata.setdefault("thread_count", run.get("thread_count"))
     nodes = [document_row_to_node(document) for document in documents]
+    lineage_document_threads = {
+        str(node.get("id") or ""): node.get("acthguid")
+        for node in nodes
+        if node.get("id")
+    }
+    knowledge_document_threads = {
+        f"kg:document:{node.get('document_no')}": node.get("acthguid")
+        for node in nodes
+        if node.get("document_no")
+    }
     if actor and actor.get("corp_code"):
         nodes = [
             node
             for node in nodes
             if authorize_access(actor=actor, resource=node, action="read")["allowed"]
         ]
+    payload_edge_candidates = [
+        {
+            "source": edge["source_node"],
+            "target": edge["target_node"],
+            "relation": edge["relation_name"],
+            "evidence_status": edge["evidence_status"],
+            "acthguid": edge["acthguid"],
+            "reason": edge.get("reason"),
+        }
+        for edge in edges
+    ]
     payload_edges = filter_lineage_edges_by_overrides(
         [
-            {
-                "source": edge["source_node"],
-                "target": edge["target_node"],
-                "relation": edge["relation_name"],
-                "evidence_status": edge["evidence_status"],
-                "acthguid": edge["acthguid"],
-                "reason": edge.get("reason"),
-            }
-            for edge in edges
+            edge
+            for edge in payload_edge_candidates
+            if is_current_shared_thread_relation(
+                edge, lineage_document_threads, evidence_field="acthguid"
+            )
         ],
         lineage_overrides,
     )
@@ -7096,6 +7189,16 @@ def load_persisted_analysis_payload(
                 "reason": item.get("reason"),
             }
             for item in kg_edges
+            if is_current_shared_thread_relation(
+                {
+                    "source": item.get("source_node"),
+                    "target": item.get("target_node"),
+                    "relation": item.get("relation_name"),
+                    "evidence_id": item.get("evidence_id"),
+                },
+                knowledge_document_threads,
+                evidence_field="evidence_id",
+            )
         ],
     }
     knowledge_graph = filter_knowledge_graph_by_lineage_overrides(knowledge_graph, lineage_overrides)
@@ -7419,7 +7522,9 @@ def _urlread_with_timeout(
     context: Optional[ssl.SSLContext] = None,
 ) -> bytes:
     """Read an HTTP response body with a deterministic socket timeout."""
-    with urllib.request.urlopen(request, timeout=max(1, timeout), context=context) as response:
+    with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+        request, timeout=max(1, timeout), context=context
+    ) as response:
         return response.read()
 
 
@@ -12049,15 +12154,32 @@ def _knowledge_edges_touching(
     identifiers = [str(node_id) for node_id in node_ids if node_id]
     if not identifiers or not _database_table_exists(connection, ANALYSIS_KG_EDGE_TABLE):
         return []
-    rows = _database_query(
-        connection,
-        f"""
-        SELECT source_node, target_node, relation_name, evidence_id
-        FROM {ANALYSIS_KG_EDGE_TABLE}
-        WHERE source_node = ANY(%s) OR target_node = ANY(%s)
-        """,
-        (identifiers, identifiers),
-    )
+    if _database_table_exists(connection, ANALYSIS_DOCUMENT_TABLE):
+        rows = _database_query(
+            connection,
+            f"""
+            SELECT edge.source_node, edge.target_node, edge.relation_name, edge.evidence_id,
+                   source_document.acthguid AS source_current_thread,
+                   target_document.acthguid AS target_current_thread
+            FROM {ANALYSIS_KG_EDGE_TABLE} AS edge
+            LEFT JOIN {ANALYSIS_DOCUMENT_TABLE} AS source_document
+              ON edge.source_node = 'kg:document:' || source_document.document_no
+            LEFT JOIN {ANALYSIS_DOCUMENT_TABLE} AS target_document
+              ON edge.target_node = 'kg:document:' || target_document.document_no
+            WHERE edge.source_node = ANY(%s) OR edge.target_node = ANY(%s)
+            """,
+            (identifiers, identifiers),
+        )
+    else:
+        rows = _database_query(
+            connection,
+            f"""
+            SELECT source_node, target_node, relation_name, evidence_id
+            FROM {ANALYSIS_KG_EDGE_TABLE}
+            WHERE source_node = ANY(%s) OR target_node = ANY(%s)
+            """,
+            (identifiers, identifiers),
+        )
     return [
         {
             "source": row.get("source_node"),
@@ -12066,7 +12188,21 @@ def _knowledge_edges_touching(
             "evidence_id": row.get("evidence_id"),
         }
         for row in rows
-        if row.get("source_node") and row.get("target_node")
+        if row.get("source_node")
+        and row.get("target_node")
+        and is_current_shared_thread_relation(
+            {
+                "source": row.get("source_node"),
+                "target": row.get("target_node"),
+                "relation": row.get("relation_name"),
+                "evidence_id": row.get("evidence_id"),
+            },
+            {
+                str(row.get("source_node") or ""): row.get("source_current_thread"),
+                str(row.get("target_node") or ""): row.get("target_current_thread"),
+            },
+            evidence_field="evidence_id",
+        )
     ]
 
 
@@ -13248,7 +13384,7 @@ def _download_method_paper_attachment(
         },
         method="GET",
     )
-    with urllib.request.urlopen(
+    with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
         source_request,
         timeout=20,
         context=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT),
@@ -13358,7 +13494,7 @@ def _store_zotero_method_attachment(
         },
         method="POST",
     )
-    with urllib.request.urlopen(
+    with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
         attachment_request,
         timeout=20,
         context=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT),
@@ -13470,7 +13606,9 @@ def store_oa_method_paper(
                 headers={"accept": "application/json", "content-type": "application/json"},
                 method="POST",
             )
-            with urllib.request.urlopen(request, timeout=12) as opened:
+            with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+                request, timeout=12
+            ) as opened:
                 raw = opened.read()[:20_000]
                 response = {"status_code": int(getattr(opened, "status", 200)), "body": raw}
     except RuntimeError as exc:

@@ -302,9 +302,9 @@ def test_lineage_review_overrides_preserve_authorized_kg_projection(monkeypatch)
     def query(_connection, sql: str, _params=()):  # noqa: ANN001
         if lw.ANALYSIS_DOCUMENT_TABLE in sql:
             return [
-                {"document_no": "DOC-1", "corp_code": "CORP-A", "owner_pu": "PU-A", "title_sample": "Alpha", "visibility_code": "private"},
-                {"document_no": "DOC-2", "corp_code": "CORP-A", "owner_pu": "PU-A", "title_sample": "Beta", "visibility_code": "private"},
-                {"document_no": "DOC-3", "corp_code": "CORP-A", "owner_pu": "PU-B", "title_sample": "Hidden", "visibility_code": "private"},
+                {"document_no": "DOC-1", "acthguid": "THREAD-1", "corp_code": "CORP-A", "owner_pu": "PU-A", "title_sample": "Alpha", "visibility_code": "private"},
+                {"document_no": "DOC-2", "acthguid": "THREAD-1", "corp_code": "CORP-A", "owner_pu": "PU-A", "title_sample": "Beta", "visibility_code": "private"},
+                {"document_no": "DOC-3", "acthguid": "THREAD-2", "corp_code": "CORP-A", "owner_pu": "PU-B", "title_sample": "Hidden", "visibility_code": "private"},
             ]
         if lw.ANALYSIS_LINEAGE_OVERRIDE_TABLE in sql:
             return [overrides[0]]
@@ -314,6 +314,7 @@ def test_lineage_review_overrides_preserve_authorized_kg_projection(monkeypatch)
                 {"source_node": "doc:DOC-1", "target_node": "doc:DOC-3", "relation_name": "related", "evidence_status": lw.EVIDENCE_PREDICTED, "acthguid": "thread-2", "reason": "hidden"},
                 {"source_node": "doc:DOC-3", "target_node": "doc:DOC-2", "relation_name": "related", "evidence_status": lw.EVIDENCE_PREDICTED, "acthguid": "thread-2", "reason": "hidden source"},
                 {"source_node": "doc:missing", "target_node": "doc:DOC-2", "relation_name": "related", "evidence_status": lw.EVIDENCE_PREDICTED, "acthguid": "thread-3", "reason": "missing"},
+                {"source_node": "doc:DOC-1", "target_node": "doc:DOC-2", "relation_name": lw.SHARED_THREAD_RELATION, "evidence_status": lw.EVIDENCE_INFERRED, "acthguid": "HISTORICAL-THREAD", "reason": lw.SHARED_THREAD_REASON},
             ]
         raise AssertionError(sql)
 
@@ -1233,17 +1234,28 @@ def test_load_persisted_snapshot_overrides_and_outbox_contract(monkeypatch) -> N
         if lw.ANALYSIS_RUN_TABLE in sql:
             return [{"row_count": 3, "document_count": 1, "thread_count": 1, "metadata_payload": json.dumps({"run": "fixture"})}]
         if lw.ANALYSIS_DOCUMENT_TABLE in sql:
-            return [{
-                "document_no": "DOC-1", "acthguid": "THREAD-1", "title_sample": "Fixture", "corp_code": "CORP_A", "owner_pu": "PU_A", "entity_role": "시장", "visibility_code": "private", "korean_summary": "summary", "keyman_source": "llm", "keyman_status": "ready", "keyman_our_side": json.dumps([{ "person_name": "A" }]), "keyman_counterpart_side": "[]", "first_event": "opened", "first_stage": "open", "first_status": "active", "roles_and_responsibilities": json.dumps([{ "role": "owner" }]), "issue_tickets": "[]", "document_events": json.dumps([{ "guid": "row-1", "event": "opened" }]),
-            }]
+            return [
+                {
+                    "document_no": "DOC-1", "acthguid": "THREAD-1", "title_sample": "Fixture", "corp_code": "CORP_A", "owner_pu": "PU_A", "entity_role": "시장", "visibility_code": "private", "korean_summary": "summary", "keyman_source": "llm", "keyman_status": "ready", "keyman_our_side": json.dumps([{ "person_name": "A" }]), "keyman_counterpart_side": "[]", "first_event": "opened", "first_stage": "open", "first_status": "active", "roles_and_responsibilities": json.dumps([{ "role": "owner" }]), "issue_tickets": "[]", "document_events": json.dumps([{ "guid": "row-1", "event": "opened" }]),
+                },
+                {
+                    "document_no": "DOC-2", "acthguid": "THREAD-2", "title_sample": "Other", "corp_code": "CORP_A", "owner_pu": "PU_A", "entity_role": "시장", "visibility_code": "private", "korean_summary": "summary", "keyman_source": "llm", "keyman_status": "ready", "keyman_our_side": "[]", "keyman_counterpart_side": "[]", "first_event": "opened", "first_stage": "open", "first_status": "active", "roles_and_responsibilities": "[]", "issue_tickets": "[]", "document_events": "[]",
+                },
+            ]
         if lw.ANALYSIS_EDGE_TABLE in sql:
-            return [{"source_node": "doc:DOC-1", "target_node": "row:1", "relation_name": "observed", "evidence_status": lw.EVIDENCE_OBSERVED, "acthguid": "THREAD-1"}]
+            return [
+                {"source_node": "doc:DOC-1", "target_node": "row:1", "relation_name": "observed", "evidence_status": lw.EVIDENCE_OBSERVED, "acthguid": "THREAD-1"},
+                {"source_node": "doc:DOC-1", "target_node": "doc:DOC-2", "relation_name": lw.SHARED_THREAD_RELATION, "evidence_status": lw.EVIDENCE_INFERRED, "acthguid": "HISTORICAL-THREAD"},
+            ]
         if lw.ANALYSIS_AFFILIATE_TABLE in sql:
             return [{"parent_label": "Corp A", "child_label": "Corp A PU A", "relation_name": "corp_pu"}]
         if lw.ANALYSIS_KG_NODE_TABLE in sql:
             return [{"node_id": "kg:document:DOC-1", "node_type": "document", "label": "Fixture", "document_no": "DOC-1", "metadata_payload": json.dumps({"document_nos": ["DOC-1"]})}]
         if lw.ANALYSIS_KG_EDGE_TABLE in sql:
-            return [{"source_node": "kg:document:DOC-1", "target_node": "kg:document:DOC-1", "relation_name": "observed", "evidence_id": "row-1"}]
+            return [
+                {"source_node": "kg:document:DOC-1", "target_node": "kg:document:DOC-1", "relation_name": "observed", "evidence_id": "row-1"},
+                {"source_node": "kg:document:DOC-1", "target_node": "kg:document:DOC-2", "relation_name": lw.SHARED_THREAD_RELATION, "evidence_id": "HISTORICAL-THREAD"},
+            ]
         if lw.ANALYSIS_OVERRIDE_TABLE in sql:
             return [{"document_no": "DOC-1", "visibility_code": "public", "keyman_our_side": json.dumps([{ "person_name": "Override" }]), "keyman_counterpart_side": "[]"}]
         if lw.ANALYSIS_TICKET_TABLE in sql:
@@ -1267,6 +1279,8 @@ def test_load_persisted_snapshot_overrides_and_outbox_contract(monkeypatch) -> N
     assert payload["metadata"]["run"] == "fixture"
     assert payload["nodes"][0]["document_events"][0]["guid"] == "row-1"
     assert payload["knowledge_graph"]["nodes"][0]["document_nos"] == ["DOC-1"]
+    assert all(edge["relation"] != lw.SHARED_THREAD_RELATION for edge in payload["edges"])
+    assert all(edge["relation"] != lw.SHARED_THREAD_RELATION for edge in payload["knowledge_graph"]["edges"])
     updated = lw.load_database_overrides(object(), payload)
     assert updated["nodes"][0]["visibility"] == "public"
     assert updated["nodes"][0]["issue_tickets"][0]["ticket_id"] == "ticket-1"
@@ -1853,6 +1867,145 @@ def test_persisted_document_detail_rehydrates_product_surfaces_and_predicted_kg_
     persisted_predicted.clear()
     lw.load_persisted_document_detail(object(), "DOC-1")
     assert persisted_predicted == []
+
+
+def test_current_shared_thread_relations_require_current_endpoint_threads(monkeypatch) -> None:
+    """Hide historical thread links from detail and KG reads after either endpoint changes."""
+    matching = {"doc:DOC-1": "THREAD-1", "doc:DOC-2": "THREAD-1"}
+    assert lw.is_current_shared_thread_relation(
+        {"source": "doc:DOC-1", "target": "doc:DOC-2", "relation": "row_successor"},
+        matching,
+        evidence_field="acthguid",
+    )
+    assert lw.is_current_shared_thread_relation(
+        {
+            "source": "doc:DOC-1",
+            "target": "doc:DOC-2",
+            "relation": lw.SHARED_THREAD_RELATION,
+            "acthguid": "THREAD-1",
+        },
+        matching,
+        evidence_field="acthguid",
+    )
+    assert not lw.is_current_shared_thread_relation(
+        {
+            "source": "doc:DOC-1",
+            "target": "doc:DOC-2",
+            "relation": lw.SHARED_THREAD_RELATION,
+            "acthguid": "HISTORICAL-THREAD",
+        },
+        matching,
+        evidence_field="acthguid",
+    )
+    assert not lw.is_current_shared_thread_relation(
+        {
+            "source": "doc:DOC-1",
+            "target": "doc:DOC-2",
+            "relation": lw.SHARED_THREAD_RELATION,
+            "acthguid": "",
+        },
+        matching,
+        evidence_field="acthguid",
+    )
+
+    tables = {
+        lw.ANALYSIS_DOCUMENT_TABLE,
+        lw.ANALYSIS_EDGE_TABLE,
+        lw.ANALYSIS_KG_NODE_TABLE,
+        lw.ANALYSIS_KG_EDGE_TABLE,
+    }
+    document = {
+        "document_no": "DOC-1",
+        "acthguid": "THREAD-1",
+        "title_sample": "Fixture",
+        "corp_code": "CORP-A",
+        "owner_pu": "PU-A",
+        "entity_role": "시장",
+        "visibility_code": lw.VISIBILITY_PUBLIC,
+        "korean_summary": "summary",
+        "keyman_source": "none",
+        "keyman_status": "not_requested",
+        "keyman_our_side": [],
+        "keyman_counterpart_side": [],
+        "first_event": "opened",
+        "first_stage": "open",
+        "first_status": "active",
+        "roles_and_responsibilities": [],
+        "issue_tickets": [],
+        "document_events": [],
+    }
+    stale_lineage = {
+        "source_node": "doc:DOC-1",
+        "target_node": "doc:DOC-2",
+        "relation_name": lw.SHARED_THREAD_RELATION,
+        "evidence_status": lw.EVIDENCE_INFERRED,
+        "acthguid": "HISTORICAL-THREAD",
+        "reason": lw.SHARED_THREAD_REASON,
+        "source_current_thread": "THREAD-1",
+        "target_current_thread": "THREAD-2",
+    }
+    retained_lineage = {
+        "source_node": "doc:DOC-1",
+        "target_node": "doc:DOC-2",
+        "relation_name": "row_successor",
+        "evidence_status": lw.EVIDENCE_OBSERVED,
+        "acthguid": "THREAD-1",
+        "reason": "observed",
+        "source_current_thread": "THREAD-1",
+        "target_current_thread": "THREAD-2",
+    }
+    stale_knowledge = {
+        "source_node": "kg:document:DOC-1",
+        "target_node": "kg:document:DOC-2",
+        "relation_name": lw.SHARED_THREAD_RELATION,
+        "evidence_id": "HISTORICAL-THREAD",
+        "evidence_status": lw.EVIDENCE_INFERRED,
+        "reason": lw.SHARED_THREAD_REASON,
+        "source_current_thread": "THREAD-1",
+        "target_current_thread": "THREAD-2",
+    }
+    retained_knowledge = {
+        "source_node": "kg:document:DOC-1",
+        "target_node": "kg:topic:fixture",
+        "relation_name": "about",
+        "evidence_id": "ROW-1",
+        "evidence_status": lw.EVIDENCE_OBSERVED,
+        "reason": "observed",
+    }
+
+    def query(_connection, sql: str, _params=()):  # noqa: ANN001
+        if lw.ANALYSIS_EDGE_TABLE in sql:
+            return [stale_lineage, retained_lineage]
+        if lw.ANALYSIS_KG_NODE_TABLE in sql:
+            return [{
+                "node_id": "kg:document:DOC-1",
+                "node_type": "document",
+                "label": "Fixture",
+                "document_no": "DOC-1",
+                "metadata_payload": {},
+            }]
+        if lw.ANALYSIS_KG_EDGE_TABLE in sql:
+            return [stale_knowledge, retained_knowledge]
+        if lw.ANALYSIS_DOCUMENT_TABLE in sql and "WHERE document_no" in sql:
+            return [document]
+        return []
+
+    monkeypatch.setattr(lw, "_database_table_exists", lambda _connection, table: table in tables)
+    monkeypatch.setattr(lw, "_database_query", query)
+    monkeypatch.setattr(lw, "ensure_lineage_edge_reason_column", lambda _connection: None)
+    monkeypatch.setattr(lw, "ensure_knowledge_graph_edge_evidence_columns", lambda _connection: None)
+    monkeypatch.setattr(lw, "load_lineage_edge_overrides", lambda _connection: [])
+    monkeypatch.setattr(lw, "load_customer_master", lambda _connection: {"accounts": [], "edges": []})
+
+    detail = lw.load_persisted_document_detail(object(), "DOC-1")
+
+    assert detail is not None
+    assert [edge["relation"] for edge in detail["edges"]] == ["row_successor"]
+    assert "about" in {edge["relation"] for edge in detail["knowledge_graph"]["edges"]}
+    assert all(edge["relation"] != lw.SHARED_THREAD_RELATION for edge in detail["knowledge_graph"]["edges"])
+    assert [edge["relation"] for edge in lw._knowledge_edges_touching(object(), ["kg:document:DOC-1"])] == ["about"]
+    tables.remove(lw.ANALYSIS_DOCUMENT_TABLE)
+    assert [edge["relation"] for edge in lw._knowledge_edges_touching(object(), ["kg:document:DOC-1"])] == ["about"]
 
 
 def test_persisted_document_detail_returns_none_without_document_table(monkeypatch) -> None:

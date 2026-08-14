@@ -1,6 +1,29 @@
 # Changelog
 
 ## Unreleased
+- Kept the reader-facing business screens separate from the administrator
+  console in the ADR and runtime contract: ordinary users receive `업무 홈`,
+  `업무공간`, and evidence-backed `고객 화면`, while policy, review, and
+  account-directory controls remain server-gated administrator capabilities.
+- Filtered stale persisted shared-thread edges at response time by checking
+  both current document endpoints, so old relatedness records cannot reappear
+  as false Lineage after a document's thread membership changes.
+- Corrected a current product-runtime issuer-boundary recurrence: the
+  `/oidc/*` discovery, authorization, token, and introspection aliases now
+  reject before the single-page-app fallback, matching the worker's strict
+  boundary. The direct-PostgreSQL rebuild returned `404` for all 32
+  product-and-worker `GET`/`POST` probes without starting or using an issuer.
+- Rechecked the direct-PostgreSQL relationship projections without exposing
+  source content: one stale historical shared-thread row remains in each audit
+  projection, while 3,020 current matching pairs per projection remain
+  visible as non-temporal relatedness and the 107 observed row-successors are
+  the only chronological links.
+- The current source gate passes 350 tests and 100% line-and-branch coverage
+  for 7,569 shipped-runtime statements and 2,954 branches; the React V8 gate
+  and production build pass as well.
+- Added an isolated PostgreSQL service to the product test workflow and
+  non-root users to shipped/test container images; the explicit static-scan
+  exceptions document their validated URL and SQL trust boundaries.
 - Reclassified a common thread identifier from a claimed document revision to
   reviewable inferred relatedness. Only direct same-document row succession
   can now render as chronological Lineage; shared-thread documents are paired
@@ -111,8 +134,8 @@
 - Retired registration URLs now return `404` for both `GET` and `POST` before
   session authorization, so neither route can be mistaken for an authentication
   failure or reintroduced as an enrollment surface.
-- The current complete source gate passes 349 tests with 7,555 statements and
-  2,948 branches at 100 percent line-and-branch coverage.
+- The current complete source gate passes 350 tests with 7,569 statements and
+  2,954 branches at 100 percent line-and-branch coverage.
 - Added a V8-covered React presentation model for email validation, Keyman
   normalization, safe asset previews, semantic values, directed KG
   relationships, and customer trees. Its current 103 statements, 196

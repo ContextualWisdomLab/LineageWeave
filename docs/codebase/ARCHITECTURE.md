@@ -18,6 +18,21 @@ PostgreSQL outbox -> Valkey Stream
 
 The browser never reads the database or a JSON export. Access decisions are made on the server from the verified actor's account, legal-company, PU, and roles. Large source content and image bytes remain behind document-scoped routes. KG neighborhoods are bounded and evidence-filtered; inferred or predicted relations are not chronological transitions.
 
+The ordinary-user entry point is the reader shell (`업무 홈`, `업무공간`,
+`고객 화면`). The administrator shell is a separate, server-authorized
+surface for access policy, Lineage review, enrichment, and external account
+directory operations. The customer screen is not a free-standing label tree:
+`analysis_customer_accounts`, `analysis_customer_affiliates`, and
+`analysis_customer_document_links` project `schema:Organization`,
+`schema:subOrganization`, and `schema:about` facts only after the same actor
+scope predicate used for source documents succeeds. Source-document links in
+the customer detail reopen the authorized evidence route.
+
+At response time, persisted shared-thread edges are rechecked against both
+current document endpoints. A stale edge can remain as audit history but is
+not returned to reader Lineage, administrator review, or a KG neighborhood;
+same-document row succession is the only chronological presentation edge.
+
 The current implementation loads persisted analysis before rebuilding. This makes the product restartable without silently re-running expensive model calls. A missing persisted snapshot triggers the direct source query and live worker path.
 
 Task-aware model calls carry a bounded Fugu/Conductor/TRINITY policy envelope.

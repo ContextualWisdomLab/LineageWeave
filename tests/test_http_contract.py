@@ -317,18 +317,29 @@ def test_http_handler_contract_routes(monkeypatch, tmp_path) -> None:
             "text/html; charset=utf-8",
             b"<main>fixture workspace</main>",
         )
-        for path, method, body in (
-            ("/.well-known/openid-configuration", "GET", None),
-            ("/authorize", "GET", None),
-            ("/token", "POST", {}),
-            ("/introspect", "POST", {}),
-            ("/introspection", "POST", {}),
-            ("/protocol/openid-connect/auth", "GET", None),
-            ("/protocol/openid-connect/token", "POST", {}),
-            ("/protocol/openid-connect/token/introspect", "POST", {}),
+        for path in (
+            "/.well-known/openid-configuration",
+            "/authorize",
+            "/token",
+            "/introspect",
+            "/introspection",
+            "/protocol/openid-connect/auth",
+            "/protocol/openid-connect/token",
+            "/protocol/openid-connect/token/introspect",
+            "/oidc/.well-known/openid-configuration",
+            "/oidc/authorize",
+            "/oidc/token",
+            "/oidc/introspect",
+            "/oidc/introspection",
+            "/oidc/protocol/openid-connect/auth",
+            "/oidc/protocol/openid-connect/token",
+            "/oidc/protocol/openid-connect/token/introspect",
         ):
-            status, _headers, payload = _request(origin, path, method=method, body=body)
-            assert (status, json.loads(payload)) == (HTTPStatus.NOT_FOUND, {"error": "not_found"})
+            for method in ("GET", "POST"):
+                status, _headers, payload = _request(
+                    origin, path, method=method, body={} if method == "POST" else None
+                )
+                assert (status, json.loads(payload)) == (HTTPStatus.NOT_FOUND, {"error": "not_found"})
         connection = http.client.HTTPConnection("127.0.0.1", httpd.server_address[1], timeout=5)
         connection.request("GET", "/../outside.txt")
         response = connection.getresponse()

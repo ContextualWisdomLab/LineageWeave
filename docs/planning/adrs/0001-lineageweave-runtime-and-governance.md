@@ -3947,8 +3947,8 @@ frame and a user-chosen-browser capture at the same real Keyverse-authenticated
 document state are both required before parity can be assessed.
 
 Focused HTTP route contracts and the Compose identity-boundary guard passed
-after the alias hardening. The complete current-source gate also passed 349
-tests across 7,555 statements and 2,948 branches at 100 percent line-and-
+after the alias hardening. The complete current-source gate also passed 350
+tests across 7,569 statements and 2,954 branches at 100 percent line-and-
 branch coverage; the React V8 gate (103 statements, 196 branches, 28
 functions, and 88 lines) and production build passed at 100 percent as well.
 The rebuilt container's direct database health and issuer-route probes passed
@@ -3979,3 +3979,74 @@ coverage evidence, security scans, Noema, OpenCode, and dependency checks all
 passed. Strix remained in progress at this observation, and the PR was not
 merged because an independent approval was absent and the protected branch
 reported `BLOCKED`. No approval, bypass, or synthetic review was used.
+
+## Amendment: reader/customer semantics and stale-thread response filtering (2026-08-15)
+
+The product entry point for an ordinary authenticated user is a business
+surface, not the operator console. The React reader starts at `업무 홈` and
+offers only actor-scoped `업무공간` and `고객 화면`; administrator policy,
+Lineage review, enrichment, TEPP, and Keyverse account-directory controls are
+separate navigation and separately authorized routes. This is a product
+boundary, not a CSS distinction: the server derives every document, customer,
+evidence, KG, report, chat, and mutation result from the verified Keyverse
+actor's corp, PU, visibility, role, and evidence scope.
+
+`고객 화면` is the reader projection of the normalized semantic model. A
+customer account is an `schema:Organization` node, a persisted affiliate
+relation is `schema:subOrganization`, and the account-to-document evidence is
+`schema:about`. The three PostgreSQL relations
+`analysis_customer_accounts`, `analysis_customer_affiliates`, and
+`analysis_customer_document_links` remain separate 3NF facts. A UI label,
+LLM suggestion, or account-tree position cannot make an unsupported customer
+or affiliate relation visible; a visible customer must retain an authorized
+source document that can be reopened from the screen.
+
+The response layer now applies the same temporal truth rule after persistence:
+legacy `shared_thread_identifier` rows are returned only when both current
+document endpoints still carry the stored thread identifier. Stale historical
+rows are therefore excluded from reader Lineage, administrator review, and
+Keyman/KG neighborhoods without deleting source, document, or audit records.
+Only same-document `row_successor` remains a numbered chronological event.
+
+The product test workflow provisions an isolated PostgreSQL service before
+the process-local database fixture runs. Product images and the test-only
+OIDC conformance image declare non-root runtime users; Keyverse remains an
+external relying-party boundary. Manual review of the explicit Semgrep
+exceptions confirms that table identifiers are immutable product constants,
+row values are bound parameters, and every dynamic HTTP request is built only
+after the corresponding HTTPS/loopback allowlist validation.
+
+## Amendment: runtime alias and current-thread recheck (2026-08-15)
+
+A fresh read-only runtime probe found a current-product recurrence: the
+`/oidc/*` issuer-shaped aliases were reaching the single-page-app fallback
+instead of the existing issuer-route rejection guard. The Compose worker was
+already rejecting them. The product guard now covers the same discovery,
+authorization, token, and introspection aliases; both `GET` and `POST` are
+covered by the HTTP contract. After rebuilding the direct-PostgreSQL product,
+all 32 product-and-worker issuer-shaped requests returned `404`; health stayed
+ready and an anonymous session stayed Keyverse-gated. The retained
+issuer-shaped source artifact was neither imported, copied into the product
+image, executed, nor modified.
+
+The direct PostgreSQL aggregate also found one retained historical
+shared-thread audit row in each of the Lineage and KG projections whose current
+endpoints no longer match its stored thread evidence. It remains preserved for
+audit, but the shared response guard returns 3,020 current matching pairs in
+each projection and excludes that historical pair from reader detail,
+administrator review, and KG neighborhoods. The only observed chronological
+edges remain 107 same-document `row_successor` records. No source content,
+document identifiers, account values, or credentials were emitted by this
+check.
+
+The current source gate passed 350 tests and 100 percent line-and-branch
+coverage for the shipped product/runtime sources (7,569 statements and 2,954
+branches); the React V8 model gate and production build also passed. A fresh
+read-only Keyverse PR #100 check remains open, merge-blocked, and
+changes-requested. Its current check rollup is terminal and coverage evidence
+is successful, but an independent review/approval remains required; no retry,
+self-approval, bypass, or merge was performed. Real Keyverse business-account
+login/callback/session/logout, a reproducible Figma target with paired
+user-chosen-browser comparison, operator-owned TEPP acceptance where needed,
+retained-artifact ownership disposition, and independent approval remain
+release conditions.
