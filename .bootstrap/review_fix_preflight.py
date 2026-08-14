@@ -49,3 +49,17 @@ add_dedent_four(
         ),
     },
 )
+
+support_path = Path(".bootstrap/review_fix_support.py")
+support_text = support_path.read_text()
+return_anchor = "        return old;\n    end;\n"
+return_contract = (
+    "        if tg_op = 'UPDATE' then\n"
+    "            return new;\n"
+    "        end if;\n"
+    "        return old;\n"
+    "    end;\n"
+)
+if support_text.count(return_anchor) != 1:
+    raise SystemExit("support-script trigger return anchor is missing")
+support_path.write_text(support_text.replace(return_anchor, return_contract, 1))
