@@ -272,6 +272,13 @@ export function fetchRelatedKeymen(
   return backendFetch(`/api/keymen/${personId}/related`, accessToken);
 }
 
+export function fetchRelatedEntity(
+  accessToken: string,
+  entityId: string,
+): Promise<{ corporate_entity_id: string; entity_name: string; related: RelatedNode[] }> {
+  return backendFetch(`/api/corporate-entities/${entityId}/related`, accessToken);
+}
+
 export function extractPostKeymen(
   accessToken: string,
   postId: string,

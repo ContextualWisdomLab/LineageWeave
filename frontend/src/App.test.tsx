@@ -543,6 +543,32 @@ describe("App, authenticated", () => {
                 label: "Linked post",
                 relevance: 0.3,
               },
+              {
+                node_id: "corp-1",
+                node_type_code: "node_corporate_entity",
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Organization",
+                ontology_label: "Organization",
+                label: "Demo Corp",
+                relevance: 0.2,
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/corporate-entities/corp-1/related")) {
+        return Promise.resolve(
+          jsonResponse({
+            corporate_entity_id: "corp-1",
+            entity_name: "Demo Corp",
+            related: [
+              {
+                node_id: "person-ada",
+                node_type_code: "node_person",
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
+                ontology_label: "Person",
+                label: "Ada West",
+                relevance: 0.5,
+              },
             ],
           }),
         );
@@ -945,6 +971,17 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "R&R Keyman: Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     expect(screen.getByText("Priya Nair (Person)")).toBeInTheDocument();
+  });
+
+  it("opens related nodes from a related corporate entity", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+    await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Demo Corp" }));
+    await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
+    expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
   });
 
   it("opens related Keyman nodes from a VOC counterparty organization", async () => {

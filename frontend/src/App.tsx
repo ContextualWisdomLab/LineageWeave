@@ -25,6 +25,7 @@ import {
   fetchPeriodReportIndex,
   fetchPeriodReports,
   fetchPosts,
+  fetchRelatedEntity,
   fetchRelatedKeymen,
   rebuildLineage,
   rebuildPeriodReports,
@@ -439,6 +440,7 @@ function VocEvidenceSection({
 
 const NODE_PERSON = "node_person";
 const NODE_POST = "node_post";
+const NODE_CORPORATE_ENTITY = "node_corporate_entity";
 
 const VERIFICATION_BADGE: Record<string, string> = {
   verify_pending: "Not yet checked",
@@ -518,6 +520,17 @@ function KeymanPanel({
     setRelated(null);
     try {
       const result = await fetchRelatedKeymen(accessToken, personId);
+      setRelated(result.related);
+    } catch {
+      setRelated([]);
+    }
+  }
+
+  async function handleSelectEntity(entityId: string, entityName: string) {
+    setSelectedName(entityName);
+    setRelated(null);
+    try {
+      const result = await fetchRelatedEntity(accessToken, entityId);
       setRelated(result.related);
     } catch {
       setRelated([]);
@@ -614,6 +627,19 @@ function KeymanPanel({
                         className="keyman-select"
                         aria-label={`Related nodes for ${node.label ?? node.node_id}`}
                         onClick={() => handleSelect(node.node_id, node.label ?? node.node_id)}
+                      >
+                        {caption}
+                      </button>
+                    </li>
+                  );
+                }
+                if (node.node_type_code === NODE_CORPORATE_ENTITY) {
+                  return (
+                    <li key={`${node.node_type_code}:${node.node_id}`}>
+                      <button
+                        className="keyman-select"
+                        aria-label={`Related nodes for ${node.label ?? node.node_id}`}
+                        onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
                       >
                         {caption}
                       </button>

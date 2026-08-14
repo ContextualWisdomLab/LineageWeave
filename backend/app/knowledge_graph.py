@@ -172,6 +172,18 @@ async def person_exists(conn: asyncpg.Connection, person_id: str) -> bool:
     return row is not None
 
 
+async def corporate_entity_exists(conn: asyncpg.Connection, entity_id: str) -> bool:
+    """True when ``entity_id`` is a UUID that exists in ``corporate_entity``."""
+    try:
+        UUID(entity_id)
+    except ValueError:
+        return False
+    row = await conn.fetchrow(
+        "select 1 from corporate_entity where corporate_entity_id = $1", entity_id
+    )
+    return row is not None
+
+
 async def visible_mention_post_ids(
     conn: asyncpg.Connection,
     person_id: str,
@@ -186,6 +198,25 @@ async def visible_mention_post_ids(
         where ppm.person_id = $1
         """,
         person_id,
+    )
+    return [str(row["post_id"]) for row in rows if can_see_post(row)]
+
+
+async def visible_affiliation_post_ids(
+    conn: asyncpg.Connection,
+    entity_id: str,
+    can_see_post,
+) -> list[str]:
+    """Post ids that mention someone affiliated with ``entity_id`` and pass ABAC."""
+    rows = await conn.fetch(
+        """
+        select distinct p.post_id, p.visibility_code, p.corporate_entity_id
+        from person_affiliation pa
+        join post_person_mention ppm on ppm.person_id = pa.person_id
+        join source_post p on p.post_id = ppm.post_id
+        where pa.affiliated_corporate_entity_id = $1
+        """,
+        entity_id,
     )
     return [str(row["post_id"]) for row in rows if can_see_post(row)]
 
@@ -310,14 +341,33 @@ async def hydrate_related_nodes(
     return payload
 
 
+async def related_for_start(
+    conn: asyncpg.Connection,
+    node_type_code: str,
+    node_id: str,
+    visible_post_ids: list[str],
+) -> list[dict[str, Any]]:
+    """Run RWR from one node over the account's visible subgraph."""
+    edges = await load_visible_subgraph(conn, visible_post_ids)
+    start = node_key(node_type_code, node_id)
+    scores = random_walk_with_restart(adjacency_from_edges(edges), start_node=start)
+    related = select_related_nodes(scores, start_node=start)
+    return await hydrate_related_nodes(conn, related)
+
+
 async def related_for_person(
     conn: asyncpg.Connection,
     person_id: str,
     visible_post_ids: list[str],
 ) -> list[dict[str, Any]]:
     """Run RWR from ``person_id`` over the account's visible subgraph."""
-    edges = await load_visible_subgraph(conn, visible_post_ids)
-    start = node_key(NODE_PERSON, person_id)
-    scores = random_walk_with_restart(adjacency_from_edges(edges), start_node=start)
-    related = select_related_nodes(scores, start_node=start)
-    return await hydrate_related_nodes(conn, related)
+    return await related_for_start(conn, NODE_PERSON, person_id, visible_post_ids)
+
+
+async def related_for_entity(
+    conn: asyncpg.Connection,
+    entity_id: str,
+    visible_post_ids: list[str],
+) -> list[dict[str, Any]]:
+    """Run RWR from ``entity_id`` over the account's visible subgraph."""
+    return await related_for_start(conn, NODE_CORPORATE_ENTITY, entity_id, visible_post_ids)

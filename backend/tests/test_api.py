@@ -886,6 +886,35 @@ def test_related_keymen_use_rwr_and_hide_invisible_posts(client, demo_analyst_to
     assert own_post["ontology_label"] == "Post"
 
 
+def test_related_corporate_entity_uses_rwr_and_hides_invisible_posts(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """GET /api/corporate-entities/{id}/related must walk from the org
+    the same way Keyman related walks from a person.
+    """
+    response = client.get(
+        f"/api/corporate-entities/{seeded_db['own_corp_id']}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["entity_name"] == "Test Corp"
+    related_ids = {node["node_id"] for node in body["related"]}
+    assert seeded_db["our_person_id"] in related_ids
+    assert seeded_db["other_private_post_id"] not in related_ids
+    assert seeded_db["hidden_person_id"] not in related_ids
+
+
+def test_corporate_entity_with_no_visible_affiliation_is_forbidden(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    response = client.get(
+        f"/api/corporate-entities/{uuid.uuid4()}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 404
+
+
 def test_keyman_only_on_other_corp_private_post_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         f"/api/keymen/{seeded_db['hidden_person_id']}/related",
