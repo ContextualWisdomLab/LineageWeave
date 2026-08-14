@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
+import sys
+
 import pytest
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF, XSD
@@ -354,7 +356,8 @@ def test_rdf_serialization_covers_resource_and_literal_objects_without_materiali
 
 def test_every_public_callable_has_a_docstring() -> None:
     import inspect
-    import lineageweave.prov_o as module
+
+    module = sys.modules["lineageweave.prov_o"]
 
     missing: list[str] = []
     for name, value in vars(module).items():
