@@ -187,6 +187,14 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python - <<'PY'
+          from pathlib import Path
+
+          for name in ("AGENTS.md", "ARCHITECTURE.md", "CLAUDE.md", "CHANGELOG.md"):
+              path = Path(name)
+              if path.exists():
+                  path.write_text(path.read_text().rstrip() + "\n")
+          PY
           git add -A
           git diff --cached --check
           git commit -m "feat: implement every normative PROV-O relation (v0.76.0)"
