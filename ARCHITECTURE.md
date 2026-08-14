@@ -273,9 +273,9 @@ summary/key-events/R&R, VOC evidence excerpts, an Event Lineage panel
 (direct vs. indirect links; a link opens that post), the Keyman
 affiliate tree (resolved ancestors plus unresolved org roots), Keyman +
 counterparty panels (a Keyman click loads RWR related nodes;
-a related corporate-entity node continues the same walk via
-`GET /api/corporate-entities/{id}/related`; a classified name that
-resolves to a cataloged org is the same walk from Counterparties;
+a related corporate-entity node, a resolved Keyman affiliation,
+or a classified name that resolves to a cataloged org continues
+the same walk via `GET /api/corporate-entities/{id}/related`;
 `post_admin` can extract),
 and an in-popup chat whose cited sources
 open a sliding evidence panel (`EvidencePanel`, CSS
