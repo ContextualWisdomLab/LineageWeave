@@ -137,6 +137,23 @@ def test_red_state_requires_real_failing_tests_and_a_design_supplement() -> None
     assert "AUTOMATION_RED_SHA" in _WORKFLOW
 
 
+def test_virtual_environment_path_is_exported_from_step_scope() -> None:
+    """Runner-scoped paths are expanded in a step before later commands consume them."""
+    develop = _job_text("develop-next-product-gap")
+    env_block = develop.split("    steps:\n", maxsplit=1)[0]
+    assert "runner.temp" not in env_block
+    setup_step = """      - name: Pin the project virtual environment path
+        if: steps.gate.outputs.eligible == 'true'
+        run: |
+          set -euo pipefail
+          echo "UV_PROJECT_ENVIRONMENT=${RUNNER_TEMP}/lineageweave-venv" >>"$GITHUB_ENV"
+"""
+    assert setup_step in develop
+    assert develop.index("Set up locked Python dependency manager") < develop.index(
+        "Pin the project virtual environment path"
+    ) < develop.index("Install the committed dependency locks")
+
+
 def test_implementation_preserves_governance_and_db_grounded_boundaries() -> None:
     """Protected policy files and unsupported product claims remain out of scope."""
     develop = _job_text("develop-next-product-gap")
@@ -174,12 +191,21 @@ def test_untrusted_validation_is_networkless_unprivileged_and_complete() -> None
     assert "env -i" in _WORKFLOW
     for command in (
         "uv run --frozen python -m pytest -q",
-        "python -m compileall -q lineageweave backend tests",
+        "uv run --frozen python -m compileall -q lineageweave backend tests",
         "pnpm --dir frontend run lint",
         "pnpm --dir frontend run test",
         "pnpm --dir frontend run build",
     ):
         assert command in _WORKFLOW
+
+
+def test_networkless_validation_keeps_real_service_evidence_in_exact_head_ci() -> None:
+    """Operations guidance must distinguish sandbox skips from real-service CI."""
+    operations = _OPERATIONS_PATH.read_text(encoding="utf-8")
+    assert "module-level availability probes" in operations
+    assert "pytest.mark.skipif" in operations
+    assert "they skip rather than error" in operations
+    assert "ordinary exact-head pull-request checks" in operations
 
 
 def test_mutation_rechecks_single_writer_and_base_freshness() -> None:
@@ -212,6 +238,10 @@ def test_canonical_product_and_operations_documents_exist() -> None:
     assert _DOCTORING_PATH.is_file()
     assert str(_SPEC_PATH.relative_to(_ROOT)) in _WORKFLOW
     spec = _SPEC_PATH.read_text(encoding="utf-8")
+    operations = _OPERATIONS_PATH.read_text(encoding="utf-8")
     assert "DB cardinality is the interaction contract" in spec
+    assert "process_unit |o--o{ account_affiliation : narrows" in spec
+    assert "process_unit o|--o{ account_affiliation : narrows" not in spec
     assert "Archive — superseded drafts" in spec
     assert "UpjgFQEu4u2Kr2hmyorAqe" in spec
+    assert "uv run --frozen python -m compileall -q lineageweave backend tests" in operations

@@ -147,7 +147,7 @@ removed. Validation runs:
 
 ```text
 uv run --frozen python -m pytest -q
-python -m compileall -q lineageweave backend tests
+uv run --frozen python -m compileall -q lineageweave backend tests
 pnpm --dir frontend run lint
 pnpm --dir frontend run test
 pnpm --dir frontend run build
@@ -162,10 +162,12 @@ network and process namespace with:
 - no Git metadata;
 - no network.
 
-Integration behavior that requires services remains subject to the ordinary
-exact-head pull-request checks after the protected PR is opened. The isolated
-run is an additional pre-publication boundary, not a replacement for required
-CI.
+PostgreSQL, Keycloak, and Valkey integration modules in this repository use
+module-level availability probes and `pytest.mark.skipif`; inside the empty,
+networkless environment they skip rather than error. Their authoritative real-
+service execution remains the ordinary exact-head pull-request checks after
+the protected PR is opened. The isolated run is an additional pre-publication
+boundary, not a replacement for required CI.
 
 ## Single-writer and stale-work protection
 

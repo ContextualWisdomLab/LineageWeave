@@ -115,7 +115,6 @@ jobs:
       MAX_AUTONOMOUS_FILE_BYTES: "524288"
       MAX_AUTONOMOUS_TOTAL_BYTES: "1572864"
       LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
-      UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/lineageweave-venv
 
     steps:
       - name: Determine whether product development may start
@@ -163,6 +162,12 @@ jobs:
         with:
           version: "0.11.28"
           enable-cache: false
+
+      - name: Pin the project virtual environment path
+        if: steps.gate.outputs.eligible == 'true'
+        run: |
+          set -euo pipefail
+          echo "UV_PROJECT_ENVIRONMENT=${RUNNER_TEMP}/lineageweave-venv" >>"$GITHUB_ENV"
 
       - name: Select the repository-pinned Rust toolchain
         if: steps.gate.outputs.eligible == 'true'

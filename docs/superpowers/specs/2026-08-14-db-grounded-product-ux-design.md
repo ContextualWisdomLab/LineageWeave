@@ -32,7 +32,7 @@ The interface must preserve the following independent relationships.
 erDiagram
     user_account ||--o{ account_affiliation : has
     corporate_entity ||--o{ account_affiliation : scopes
-    process_unit o|--o{ account_affiliation : narrows
+    process_unit |o--o{ account_affiliation : narrows
 
     user_account ||--o{ account_role_assignment : receives
     access_role ||--o{ account_role_assignment : assigned
