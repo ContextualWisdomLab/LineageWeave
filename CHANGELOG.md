@@ -6,6 +6,10 @@
   multimodal inspections with non-empty OCR, 3 object labels, and 29 semantic
   chunk embeddings. These counts are runtime evidence, not a promise that an
   unavailable future provider will fabricate image content.
+- Recorded the corresponding normalized Ontology/Semantic Layer aggregate:
+  8 namespaces, 46 ontology terms, 28 relation rules, 264,750 KG nodes,
+  838,550 KG edges, 836,794 semantic edge assertions, and 308,457 semantic
+  node assignments. UI exposure remains actor- and evidence-scoped.
 - Corrected browser evidence labeling: a preauthenticated development actor
   session is now reported as a local session and never as Keyverse authority
   acceptance; Keyverse-required E2E modes reject that shortcut.

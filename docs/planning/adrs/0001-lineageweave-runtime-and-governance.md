@@ -4123,3 +4123,10 @@ Each inspection remains bound to its document, source position, asset digest,
 and authorized evidence route. A missing future multimodal provider is an
 explicit unavailable result; it cannot be replaced by `[image: content
 unavailable]` as a fabricated analysis or by a guessed graph assertion.
+
+The same runtime aggregate contains 8 Ontology namespaces, 46 terms, 28
+relation rules, 264,750 Knowledge Graph nodes, 838,550 Knowledge Graph edges,
+836,794 semantic edge assertions, and 308,457 semantic node assignments.
+These are persisted normalized facts and assertions, not permission to expose
+the whole graph: every reader and agent request still receives only the
+verified actor's authorized evidence-scoped subgraph.
