@@ -53,7 +53,7 @@ A fresh current-tree isolated-PostgreSQL snapshot completed all 350 tests (with
  one expected skip when the sibling `fast-mlsirm` package is not installed) and
 100% line-and-branch coverage for `lineageweave.py`,
 `lineageweave_embeddings.py`, `lineageweave_server.py`, `compose/http_standin.py`,
-and `compose/keyverse_oidc.py` (7,572 statements and 2,956 branches); no
+and `compose/keyverse_oidc.py` (7,587 statements and 2,964 branches); no
 coverage exclusion was added. The sibling `fast-mlsirm` interpreter check passed
 in this workspace.
 Production snapshot writers also release short schema-migration locks before
@@ -116,6 +116,13 @@ The current data-bearing reader run also opened a persisted report detail with
 four RAGAS metric cards and 32 authorized evidence-document links.
 The popup path also selects an available LLM Keyman and verifies the
 actor-authorized Knowledge Graph relationship-direction list.
+
+The fresh post-fix reader run reported `preauthenticated_session: true`,
+`reached_identity_authority: false`, 43,483 visible documents, 24 customer
+accounts, 3 customer-affiliate edges, 4 report metrics, 32 report-evidence
+links, 0 observed chronological edges, and 8 separate relatedness results.
+These are direct-PostgreSQL product-surface results; they are not Keyverse
+login acceptance evidence.
 
 For the administrator LLM-control smoke, start the product against the
 operator's configured direct PostgreSQL source and call the bounded route with
