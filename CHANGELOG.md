@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Recorded the current direct-PostgreSQL content-analysis evidence: 267
+  normalized content blocks, 299 DOM/format hints, 7 asset profiles, 7
+  multimodal inspections with non-empty OCR, 3 object labels, and 29 semantic
+  chunk embeddings. These counts are runtime evidence, not a promise that an
+  unavailable future provider will fabricate image content.
 - Corrected browser evidence labeling: a preauthenticated development actor
   session is now reported as a local session and never as Keyverse authority
   acceptance; Keyverse-required E2E modes reject that shortcut.
