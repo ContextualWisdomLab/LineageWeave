@@ -1,0 +1,25 @@
+{
+  "name": "lineage-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage",
+    "e2e": "node e2e/lineageweave.mjs",
+    "e2e:login-gate": "node e2e/login-gate.mjs",
+    "preview": "vite preview --host 127.0.0.1 --port 5173"
+  },
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.2",
+    "@vitest/coverage-v8": "4.1.10",
+    "playwright": "^1.62.1",
+    "vite": "^7.1.5",
+    "vitest": "4.1.10"
+  }
+}

@@ -1,90 +1,35 @@
-# AGENTS.md
+# Repository working agreement
 
-Cross-agent conventions for `LineageWeave`, readable by any coding agent
-(Claude, Codex, Cursor, opencode, ...). Keep this file tool-agnostic.
-
-## What this repo is
-
-A demo BI prototype that reconstructs git-branch-style lineage between
-scattered short records. See [ARCHITECTURE.md](ARCHITECTURE.md) for the
-design and [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md)
-for the literature it is grounded in.
-
-## Hard rule: no real data, ever
-
-This repo ships **synthetic data only** (`lineageweave/fixtures.py`) and
-must never reference, by name or otherwise identifiably, any real
-organization whose data motivated this design. Never add a fixture, test
-case, screenshot, or example derived from a real organization's records. If you are extending this repo to validate against
-real data, do that validation entirely outside this repository (a private
-scratch script against a local database is fine) and only bring back
-**aggregate, non-identifying findings** -- see how
-`docs/lineage-bi-research-notes.md`'s "2.6%" validation number is phrased:
-a statistic, never a title, name, or id.
-
-## Reuse before you build
-
-This repo depends on real ContextualWisdomLab-org packages rather than
-reimplementing them:
-
-- [ThreadWeave](https://github.com/ContextualWisdomLab/ThreadWeave) for
-  tree assembly (`reconstruct.py`'s `_walk`/`thread_messages` calls).
-- [RankWeave](https://github.com/ContextualWisdomLab/RankWeave) for
-  multi-channel score fusion (`weighted_convex_fuse`).
-- [TEPP](https://github.com/ContextualWisdomLab/TEPP)'s published wire
-  contract for calibrated measurement (`tepp_client.py`) -- never
-  reimplement TEPP's model here.
-- [contextual-orchestrator](https://github.com/ContextualWisdomLab/contextual-orchestrator)
-  for LLM adjudication (`adjudication_client.py`) -- never call a raw LLM
-  API directly from this repo; go through the orchestrator so
-  reasoning-effort allocation and cost attribution stay centralized.
-
-Before adding a new dependency, check whether an existing org repo already
-does it (`gh repo list ContextualWisdomLab`).
-
-## Pluggable channels: never fake a missing signal
-
-`NullEmbeddingClient`, `NullAdjudicationClient`,
-`NullKeymanExtractionClient`, `NullEntityRelationshipClient`,
-`NullPostSummaryClient`, `NullPostChatClient`, and
-`NullCommitmentExtractionClient` (and any new channel client you add)
-must set `available = False` and make their channel dropped +
-renormalized (`reconstruct.active_weights`), never silently return a
-placeholder score, invented Keyman, guessed relationship, fabricated
-summary/chat, or invented commitment. A missing signal and a
-confidently-negative signal are different things. Keyman extraction,
-entity-relationship classification, post summary, in-popup chat, and
-commitment derivation go through contextual-orchestrator the same way
-adjudication does -- never a raw LLM API.
-
-## Tests
-
-```bash
-# backend extra compiles fast-mlsirm's PyO3 core -- needs rustc 1.97.1
-# (see backend/Dockerfile). Without it, pip falls over at build time.
-pip install -e ".[dev,backend]"
-pytest
-```
-
-Every new channel, fusion rule, or threshold needs a test against
-`lineageweave/fixtures.py`'s synthetic dataset (or a new synthetic fixture
-in the same spirit) -- never against real data, per the hard rule above.
-`backend/tests/` and `tests/test_schema.py` are real-integration tests
-against a live local stack (`make up`) and self-skip without one -- see
-[README.md](README.md#local-product-stack-docker-compose).
-
-`frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
-pnpm via Corepack -- do not add a second Node package manager or a
-floating Node version):
-
-```bash
-cd frontend && pnpm install
-pnpm run lint && pnpm run test && pnpm run build
-```
-
-## CI gates
-
-`.github/workflows/tests.yml` runs the full suite on every PR to `main`.
-Do not weaken, skip, or `continue-on-error` a failing check -- fix the
-underlying cause or, for a genuine false positive in a third-party scanner,
-add a narrow, documented suppression referencing the specific finding.
+- Keep TEPP and any contextual orchestrator integration behind HTTP; do not
+  import or copy their internals into this product.
+- PostgreSQL is the system of record. The source table is runtime configuration
+  and must never be committed.
+- React is the product surface. `web/src/App.jsx` must call the server API;
+  `web/lineageweave.html` is only a compatibility redirect.
+- Corp, PU, role, document, evidence, content, KG, chat, and mutation access
+  must be enforced server-side from a verified Keyverse actor.
+- Large or inline content stays out of graph JSON. Keep byte access behind the
+  authorized document asset route.
+- Cross-PU and cross-company KG relations require source document or thread
+  evidence and must not be promoted to chronological transitions.
+- Treat KG semantics as persisted data: classes, predicates, domain/range
+  rules, node types, and evidence assertions belong in the normalized
+  ontology/semantic tables. An agent may read only the post-authorization
+  semantic subgraph; it must fail closed rather than infer from labels alone.
+- Customer-master entities and affiliate relations require explicit
+  account-to-document evidence before they are exposed through KG or analytics.
+- An inferred/predicted ontology relation may be verified only through the
+  authorized evidence-verification Agent: use observed internal evidence and
+  optional organization-only SearXNG evidence, require the live LLM's closed
+  verdict, persist the review separately, and never promote the original edge.
+- If the live worker URL is absent, start the Docker Compose worker contract;
+  do not substitute a recorded response or fake account.
+- The Compose worker is a model proxy only. It must not import, package, or
+  serve a local issuer; discovery, authorization, token, and introspection
+  routes must return `404`. The retained issuer-shaped source artifact is an
+  ADR-tracked audit record: do not delete, move, permission-modify, or stop a
+  process in an attempt to remove it.
+- Use the shared enum table `common_enum_values` and update the ADR,
+  architecture, changelog, and traceability map when a boundary changes.
+- Run `uv run pytest -q`, Python compilation, and `npm run build` before
+  declaring the product runnable.

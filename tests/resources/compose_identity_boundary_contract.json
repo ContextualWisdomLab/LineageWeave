@@ -1,0 +1,69 @@
+{
+  "compose": {
+    "product": {
+      "required_enabled_lines": [
+        "LINEAGEWEAVE_DEV_MODE: \"0\"",
+        "LINEAGEWEAVE_COOKIE_SECURE: \"1\""
+      ],
+      "forbidden_lines": [
+        "LINEAGEWEAVE_DEV_MODE: ${LINEAGEWEAVE_DEV_MODE:-}",
+        "LINEAGEWEAVE_COOKIE_SECURE: ${LINEAGEWEAVE_COOKIE_SECURE:-}"
+      ],
+      "required_absent_lines": [
+        "OIDC_CLIENT_ID: \"disallowed\"",
+        "KEYVERSE_ISSUER: \"\"",
+        "KEYVERSE_BASE_URL: \"\"",
+        "KEYVERSE_CA_BUNDLE: \"\"",
+        "KEYVERSE_ADMIN_TOKEN_URL: \"\"",
+        "KEYVERSE_ADMIN_USERNAME: \"\"",
+        "KEYVERSE_ADMIN_PASSWORD: \"\"",
+        "KEYVERSE_REGISTRATION_URL: \"\"",
+        "KEYVERSE_REGISTRATION_TOKEN: \"\"",
+        "LINEAGEWEAVE_OIDC_CLIENT_ID: \"\"",
+        "LINEAGEWEAVE_OIDC_CLIENT_SECRET: \"\"",
+        "LINEAGEWEAVE_OIDC_REDIRECT_URI: \"\""
+      ],
+      "forbidden_prefixes": [
+        "KEYVERSE_",
+        "LINEAGEWEAVE_OIDC_",
+        "OIDC_"
+      ]
+    },
+    "worker": {
+      "required_lines": [
+        "KEYVERSE_ISSUER: \"\"",
+        "KEYVERSE_BASE_URL: \"\"",
+        "KEYVERSE_CA_BUNDLE: \"\"",
+        "KEYVERSE_ADMIN_TOKEN_URL: \"\"",
+        "KEYVERSE_ADMIN_USERNAME: \"\"",
+        "KEYVERSE_ADMIN_PASSWORD: \"\"",
+        "KEYVERSE_REGISTRATION_URL: \"\"",
+        "KEYVERSE_REGISTRATION_TOKEN: \"\"",
+        "LINEAGEWEAVE_OIDC_CLIENT_ID: \"\"",
+        "LINEAGEWEAVE_OIDC_CLIENT_SECRET: \"\"",
+        "LINEAGEWEAVE_OIDC_REDIRECT_URI: \"\""
+      ],
+      "required_absent_lines": [
+        "keyverse_oidc",
+        "keyverse_oidc.py"
+      ],
+      "forbidden_prefixes": [
+        "KEYVERSE_",
+        "LINEAGEWEAVE_OIDC_",
+        "OIDC_"
+      ]
+    }
+  },
+  "worker_package": {
+    "forbidden_fragments": [
+      "keyverse_oidc.py",
+      "keyverse_oidc"
+    ],
+    "required_identity_keys": [
+      "KEYVERSE_ISSUER",
+      "KEYVERSE_ADMIN_PASSWORD",
+      "LINEAGEWEAVE_OIDC_CLIENT_ID",
+      "OIDC_CLIENT_ID"
+    ]
+  }
+}

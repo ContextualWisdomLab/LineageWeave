@@ -1,1177 +1,837 @@
 # Changelog
 
-All notable changes to this project are documented here. Format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [0.71.0] - 2026-08-14
-
-### Added
-
-- VOC evidence now quotes the extractive excerpt under the counterparty
-  it names. After `make seed`, Northridge Grid in VOC evidence shows
-  the sentence that mentions it, instead of a detached excerpt list
-  above the names. Unassigned excerpts stay in the list; a post with
-  no named organization still says so.
-
-## [0.67.0] - 2026-08-14
-
-### Added
-
-- Keyman affiliation names that resolve to a cataloged org start
-  the same related-node walk as a related-entity click. After
-  `make seed`, Demo Corp next to Ada West opens
-  `GET /api/corporate-entities/{id}/related`. Unresolved affiliation
-  names stay text -- never a guessed neighborhood.
-
-## [0.66.0] - 2026-08-14
-
-### Added
-
-- Classified counterparty names that resolve to a cataloged org start
-  the same related-node walk as an affiliate-tree org click. After
-  `make seed`, Demo Corp in Counterparties opens
-  `GET /api/corporate-entities/{id}/related`. Unresolved names
-  (Northridge Grid) stay text -- never a guessed neighborhood.
-
-## [0.65.0] - 2026-08-14
-
-### Added
-
-- Resolved affiliate-tree organizations start the same related-node
-  walk as a Keyman org click. After `make seed`, Demo Corp / Test
-  Corp in the tree open `GET /api/corporate-entities/{id}/related`.
-  Unresolved names stay text -- never a guessed neighborhood.
-
-## [0.64.0] - 2026-08-14
-
-### Added
-
-- Related corporate-entity nodes in the Keyman walk are the same
-  RWR as a person. Clicking `Demo Corp` / `Test Corp` loads
-  `GET /api/corporate-entities/{id}/related` so the buyer can
-  continue the walk from the org. An entity with no visible
-  affiliation stays 403 -- never a guessed neighborhood.
-
-## [0.63.0] - 2026-08-14
-
-### Added
-
-- A third seeded Ask question, "What is the next commitment?", on
-  every fixture that already answers the first two chips. A-100
-  names Send Northridge Grid the revised quote due 2026-01-12;
-  B-200 names the Westfield specification due 2026-01-14; Riverbend
-  names its calendar ticket due 2026-01-09; rec-006 says it has no
-  open commitment. After `make seed` the popup chips connect Ask
-  to the same dated tickets home Calendar already lists.
-
-## [0.62.0] - 2026-08-14
-
-### Added
-
-- VOC evidence counterparties that already appear on the affiliate
-  tree are the same Keyman walk. Clicking `Northridge Grid` loads
-  related nodes for Priya Nair so the buyer does not have to find
-  the same org again under Affiliate tree.
-
-### Security
-
-- Verification badges only become links for `http:` / `https:`
-  evidence URLs. A `javascript:` or `data:` value stays a non-link
-  badge.
-
-## [0.61.0] - 2026-08-14
-
-### Changed
-
-- Activity event-type badges show Ticket created / Status changed /
-  Commitment derived instead of snake_case codes. Unknown types stay
-  as the raw code; the badge never invents a name.
-
-## [0.60.0] - 2026-08-14
-
-### Changed
-
-- Activity-feed `ticket_status_changed` summaries use the lookup
-  label (`In progress`, `Closed`) instead of the raw code. Same
-  `common_lookup_value` labels the popup select, Calendar, and
-  period-report members already show.
-
-## [0.59.0] - 2026-08-14
-
-### Added
-
-- Period-report members show the ticket status lookup label next to
-  the title and due date. After `make seed` the A-100 pricing
-  follow-up reads Open plus `due 2026-01-12`, same label the
-  Calendar and popup select already use.
-
-## [0.58.0] - 2026-08-14
-
-### Changed
-
-- After an unmatched Verify 503, the Verify against web search
-  button is hidden the same way as Evaluate / Extract / Derive.
-  Seeded counterparty badges stay; the button that can only 503
-  again does not. Still never fabricates a search result.
-
-## [0.57.0] - 2026-08-14
-
-### Added
-
-- Home Calendar rows show the ticket status lookup label next to the
-  due date. After `make seed` the A-100 pricing ticket reads Open
-  plus `due 2026-01-12`, same label the popup select already uses.
-
-## [0.56.0] - 2026-08-14
-
-### Added
-
-- A second seeded Ask question, "Who is involved?", on every fixture
-  that already answers "What happened between these events?" A-100
-  names Ada West and Priya Nair; B-200 names Jordan Hale; rec-006
-  and Riverbend say they do not name a Keyman. After `make seed`
-  the popup shows two chips instead of one canned prompt.
-
-## [0.55.0] - 2026-08-14
-
-### Added
-
-- Ticket status on the popup select shows `common_lookup_value`
-  labels (`Open`, `In progress`, `Closed`) instead of raw codes.
-  Codes stay on the payload. A missing lookup falls back to the code.
-
-## [0.54.0] - 2026-08-14
-
-### Changed
-
-- After an unmatched 503, Evaluate, Extract Keymen, and Derive
-  commitment are hidden the same way as free-text Ask. Seeded
-  evaluation, Keyman, and ticket rows stay; the buttons that can
-  only 503 again do not. Still never fabricates a live LLM result.
-
-## [0.53.0] - 2026-08-14
-
-### Added
-
-- `make seed` opens a ticket on the B-200 specification-revision
-  fixture. A B-200 report-member click now shows "Send Westfield
-  Power the revised specification" (due 2026-01-14) instead of
-  "No tickets yet," and home Calendar lists it next to the A-100
-  pricing ticket.
-
-## [0.52.0] - 2026-08-14
-
-### Changed
-
-- After an unmatched Ask 503, the free-text input is hidden. Seeded
-  answers stay on screen with "Only seeded questions can be answered
-  without an orchestrator." Still never fabricates a live reply.
-
-## [0.51.0] - 2026-08-14
-
-### Added
-
-- Home Calendar lists the seeded A-100 pricing ticket due 2026-01-12.
-  After `make seed`, GET /api/calendar includes "Send Northridge Grid
-  the revised quote" next to the Riverbend commitment, so the buyer
-  sees the same dated ticket already shown on the period-report row.
-
-## [0.50.0] - 2026-08-14
-
-### Added
-
-- Seeded fixture summaries include R&R from the Event Lineage cast.
-  An A-100 DAG click now shows Ada West / Priya Nair, and a B-200
-  click shows Jordan Hale -- not an empty R&R list. rec-006 and the
-  calendar commitment stay empty because they have no cast people.
-  An R&R name that matches a Keyman opens the same related-node walk
-  as the Keyman and affiliate-tree buttons.
-
-## [0.49.0] - 2026-08-14
-
-### Added
-
-- Period-report members show the earliest open ticket title next to
-  the due date. The home-page report list now reads "Send Northridge
-  Grid the revised quote" plus `due 2026-01-12` on the A-100 pricing
-  follow-up, so the buyer sees the seeded ticket before opening the
-  post.
-
-## [0.48.0] - 2026-08-14
-
-### Added
-
-- Period-report members include the earliest open ticket due date.
-  The home-page report list shows `due 2026-01-12` on the A-100
-  pricing follow-up so the buyer sees the seeded ticket before
-  opening the post.
-
-## [0.47.0] - 2026-08-14
-
-### Added
-
-- Seeded Ask answers for the demo public post, A-100/B-200 Event
-  Lineage fixtures, and the Riverbend calendar post. `GET`/`POST
-  /api/posts/{id}/chat` read `post_chat_result` first so the popup
-  transcript answers "What happened between these events?" without an
-  orchestrator. An unmatched question still 503s -- never a fabricated
-  live reply.
-
-## [0.46.0] - 2026-08-14
-
-### Changed
-
-- Evaluate, Extract Keymen, Derive commitment, and Verify show the
-  same kind of empty state as chat when the backing service is 503
-  (`Evaluation unavailable…`, `Keyman extraction unavailable…`,
-  `Commitment derivation unavailable…`, `Verification unavailable…`)
-  instead of `HTTP 503`. Still never fabricates a result.
-
-## [0.45.0] - 2026-08-14
-
-### Changed
-
-- Chat 503 (orchestrator unset) shows
-  `Chat unavailable (LLM orchestrator not configured).` instead of
-  `HTTP 503`. Still never fabricates an answer.
-
-## [0.44.0] - 2026-08-14
-
-### Added
-
-- `make seed` XADDs a `ticket_created` event onto Valkey for the
-  seeded A-100 and calendar tickets. A report-member click now shows
-  "Ticket created: Send Northridge Grid the revised quote" instead of
-  "No activity yet."
-
-## [0.43.0] - 2026-08-14
-
-### Added
-
-- VOC evidence counterparties show the same verification badge as the
-  Counterparties panel (`Not yet checked` / `Corroborated` plus the
-  evidence URL when present). The extractive quote is not an unchecked
-  second claim.
-
-## [0.42.0] - 2026-08-14
-
-### Added
-
-- `make seed` opens tickets on the A-100 pricing follow-up and
-  delivery-schedule fixtures. A report-member click now shows
-  "Send Northridge Grid the revised quote" (due 2026-01-12) instead
-  of "No tickets yet."
-
-## [0.41.0] - 2026-08-14
-
-### Changed
-
-- Period-report members with Event Lineage, Keyman, and evaluation
-  sort ahead of dummy high/low band rows. A-100 fixtures score on the
-  high process unit and B-200 on the low unit, so a member click opens
-  a reconstruct post that already has those panels.
-
-## [0.40.0] - 2026-08-14
-
-### Added
-
-- Seeded period reports fold A-100/B-200 Event Lineage fixtures and
-  the Riverbend calendar post (already carrying IRT cells) into the
-  shared-metric 2026-W02 bank. The comparison strip can open those DAG
-  posts; dummy high/low band posts remain for the PU ranking test.
-
-## [0.39.0] - 2026-08-14
-
-### Added
-
-- Affiliate-tree people are the same Keyman walk as the Keyman panel.
-  Clicking `Ada West` or `Priya Nair` on the tree loads related nodes
-  (`GET /api/keymen/{id}/related`) so the buyer does not have to find
-  the same name again under Keyman.
-
-## [0.38.0] - 2026-08-14
-
-### Added
-
-- Seeded Keyman and VOC counterparty for B-200 Event Lineage fixtures
-  (Jordan Hale / Westfield Power, Voice of Market). Clicking a B-200
-  DAG node is no longer an empty Keyman or VOC panel. A-100 and
-  rec-006 casts are unchanged.
-
-## [0.37.0] - 2026-08-14
-
-### Added
-
-- Seeded Keymen, affiliate-tree leaves, and VOC counterparties for
-  every A-100 proj-alpha Event Lineage fixture and the calendar
-  Riverbend post. Clicking a DAG node now shows Ada West / Priya Nair,
-  Northridge Grid, and an extractive excerpt without a live
-  orchestrator. rec-006 stays uncast so it remains its own root. A
-  post with no named org still has empty VOC excerpts -- never a
-  fabricated quote.
-
-## [0.36.0] - 2026-08-14
-
-### Added
-
-- `make seed` writes constructed IRT rubric cells for the demo public
-  post, A-100/B-200 Event Lineage fixtures, and the calendar
-  commitment. The Post quality panel shows those categories after a
-  fresh stack -- not "Not yet evaluated." Cells are title-derived, not
-  an LLM judge; thetas still come only from `calibrate_period_report`.
-
-## [0.35.0] - 2026-08-13
-
-### Added
-
-- Post list and popup show `common_lookup_value` labels for VOC type
-  and visibility (`Voice of Customer`, `Public`) instead of raw codes.
-  Codes stay on the payload. A missing lookup falls back to the code.
-
-## [0.34.0] - 2026-08-13
-
-### Added
-
-- Seeded Korean summaries for every A-100/B-200 reconstruct fixture and
-  the calendar commitment post. Clicking an Event Lineage DAG node or a
-  calendar row now serves `GET /api/posts/{id}/summary` from
-  `post_summary_result` without a live orchestrator. A non-fixture post
-  with no stored row still 503s -- never a fabricated summary.
-
-## [0.33.0] - 2026-08-13
-
-### Added
-
-- Home-page grouping comparison strip: `GET /api/reports/compare/{period}`
-  returns every process unit, corporate entity, and thread group scored
-  on the shared FIPC metric. Rebuild now writes all three kinds.
-  Clicking a row switches the Period reports grouping. Seed assigns
-  high posts to thread A-100 and low posts to B-200 so the strip is
-  not empty after `make seed`.
-
-## [0.32.0] - 2026-08-13
-
-### Added
-
-- CAT item-information selection on the shared FIPC bank: after a
-  group is scored, `information_polytomous` ranks rubric items by
-  Fisher information at that group's mean θ (Lord, 1980). Rank 1 is
-  the max-info pick -- a high PU and a low PU can be measured by
-  different items on the same bank. Rankings persist to
-  `report_item_information` and the Period reports panel labels
-  `CAT: sales-lead I=0.70`. Information comes from fast-mlsirm's
-  Rust GRM/GPCM curves, never a hand-rolled I(θ).
-
-## [0.31.0] - 2026-08-13
-
-### Added
-
-- Shared-metric FIPC: the first period free-calibrates one item bank
-  on the pooled posts; every process unit (and other grouping) is
-  then scored on that bank so a high PU and a low PU stay comparable.
-  Independent per-group refits would each re-center near 0. The
-  Period reports panel labels first-period groups `shared metric`.
-
-## [0.30.0] - 2026-08-13
-
-### Added
-
-- Persisted Korean summaries (`post_summary_result` /
-  `post_summary_event` / `post_summary_role`). `GET /api/posts/{id}/summary`
-  returns a stored row first so a seeded demo popup is not empty when
-  the LLM orchestrator is off. Live derivation still writes through
-  the same tables. Seed writes a synthetic summary for the demo public
-  post. A missing stored row and a missing LLM stay 503 -- never a
-  fabricated summary.
-
-## [0.29.0] - 2026-08-13
-
-### Added
-
-- True cross-period FIPC linking: the first week for a grouping
-  free-calibrates and persists `report_item_parameter`; later weeks
-  EAP-score on those fixed item parameters so mean θ is comparable
-  across weeks (Kim, 2006). An independent all-high week would
-  re-center near 0; the linked week stays high on the reference
-  metric. `GET /api/reports/{grouping}` lists the trend; the Period
-  reports panel shows `vs 2026-W02: +0.92`. Seed writes a constructed
-  2026-W02 reference and 2026-W03 all-high follow-up.
-
-## [0.28.2] - 2026-08-13
-
-### Added
-
-- Period reports lists each member post with its fitted EAP θ and
-  opens that post on click -- the same pattern as the calendar.
-
-## [0.28.1] - 2026-08-13
-
-### Added
-
-- `make seed` inserts constructed high/low IRT rows for 2026-W02 and
-  persists a real FIPC report, so the Period reports panel is not empty
-  after a fresh stack. Thetas still come only from
-  `calibrate_period_report`.
-
-## [0.28.0] - 2026-08-13
-
-### Added
-
-- ADR 0003 slice 3: `lineageweave/period_report.py` fits GRM and GPCM
-  with `fast_mlsirm.fit_polytomous`, EAP-scores posts, and picks the
-  model via `fixed_item_calibration_diagnostics`. Scores persist to
-  `report_period_score` / `report_member_score`.
-  `GET /api/reports/{grouping}/{period}` and `POST .../rebuild`
-  (`post_admin`) plus a home-page Period reports panel. The accuracy
-  test constructs high vs low category groups and asserts the fitted
-  mean θ ranks them correctly -- no hardcoded score.
-
-## [0.27.0] - 2026-08-13
-
-### Added
-
-- ADR 0003 slice 2: a post can be LLM-as-a-Judge evaluated through
-  `fast-mlsirm`'s `ContextualOrchestratorJudge`. Scores persist only
-  via `LLMJudgeResult.to_irt_row()` into `post_evaluation_response`
-  (one row per post per rubric criterion). Null client is unavailable,
-  never a fabricated score.
-- Versioned rubric: constructive stance, negative stance, sales-lead
-  specificity. `POST /api/posts/{id}/evaluate` +
-  `GET /api/posts/{id}/evaluation`, and an "Evaluate post" panel on
-  the post popup.
-
-## [0.26.0] - 2026-08-13
-
-### Added
-
-- External search verification for Knowledge Graph relation inferences:
-  `lineageweave/relation_verification.py`'s `SearxngRelationVerificationClient`
-  checks an LLM-classified counterparty organization/relationship
-  against a self-hosted Searxng instance, catching a hallucinated
-  organization name with zero real-world footprint (FEVER grounding:
-  Thorne, Vlachos, Christodoulopoulos, & Mittal, 2018). A search hit
-  only corroborates when a distinctive org-name token appears in the
-  result host or snippet and the host is not itself a search page --
-  engines echo any query in the title, so "any result" is not evidence.
-- New Docker Compose service `searxng` (`docker/searxng/`), wired into
-  the backend via `SEARXNG_BASE_URL`.
-- `post_counterparty_entity` gained `verification_status_code`
-  (`verify_pending` / `verify_corroborated` / `verify_uncorroborated`),
-  `verification_evidence_url`, `verification_checked_at`
-  (`migrations/0004_relation_verification.sql`). A re-classification
-  resets these back to pending.
-- New `POST /api/posts/{id}/verify-relations` endpoint and a
-  `CounterpartyPanel` UI section (status badge, linked to the evidence
-  URL when corroborated, with a "Verify against web search" action).
-- ADR 0005 documents the design decision.
-
-## [0.25.0] - 2026-08-13
-
-### Added
-
-- Post bodies are normalized before ever reaching an LLM or embedding
-  call: HTML tags are stripped to clean text, per-block formatting
-  (`style`, heading level) is kept as separate `FormattingHint` metadata
-  instead of being embedded, and base64-embedded images are described
-  by a vision-capable model and placed as `[image: caption | text: ocr]`
-  at their original document position instead of being sent raw or
-  dropped (`lineageweave/post_content_normalization.py`, VIPS grounding:
-  Cai, Yu, Wen, & Ma, 2003). Plain-text comparison operators (`qty < 50`)
-  are not treated as HTML.
-- `chunking.py`'s DOM chunker now captures each block's `style`
-  attribute and splits on `h1`-`h6` heading boundaries.
-- New `VISION_MODEL` setting; `extract-keymen`, post summary, commitment
-  derivation, and chat source retrieval (including linked posts pulled
-  in as RAG context) all normalize `post_body` before the LLM sees it.
-  The raw post-detail read (`GET /api/posts/{id}`) is intentionally
-  left untouched so the frontend still renders the post as-authored.
-
-## [0.24.0] - 2026-08-13
-
-### Added
-
-- Related Keyman nodes are now walkable: a related post opens that
-  post, a related person loads *their* RWR neighbourhood. Dead text
-  next to "Related to Ada West" is no longer a dead end.
-- Chat citation chips show the source post's title
-  (`cited_posts` from `POST /api/posts/{id}/chat`) instead of a
-  truncated UUID. `cited_post_summaries` drops unknown ids rather than
-  inventing a label.
-
-## [0.23.0] - 2026-08-13
-
-### Added
-
-- Keyman side and corporate-entity level now carry lookup labels from
-  `common_lookup_value` (`person_side_label`, `entity_level_label`).
-  The popup shows "Ada West (Our side)" and "Demo Corp (Company)"
-  instead of raw `our_side` / `company` / `plant` codes. Missing lookup
-  rows still fall back to the code, never an invented name.
-
-## [0.22.0] - 2026-08-13
-
-### Added
-
-- Related Keyman nodes now carry the ontology class (`ontology_iri`,
-  `ontology_label`) from `docs/ontology/lineageweave-kg.ttl`, so the
-  popup shows "Priya Nair (Person)" instead of the raw `node_person`
-  lookup code. Missing terms stay unlabeled rather than inventing a
-  string -- same missing-vs-negative rule as every Null channel.
-  `GET /api/keymen/{id}/related` is the wire; the frontend falls back
-  to `node_type_code` only when the ontology has no term.
-
-### Fixed
-
-- `frontend/package.json` was invalid JSON after #24 dropped the
-  comma on the version line, so `pnpm run test` / CI frontend could
-  not even parse the manifest.
-
-## [0.21.2] - 2026-08-13
-
-### Added
-
-- The Knowledge Graph is now grounded in a real, machine-checked
-  Ontology and Semantic Layer (see
-  [ADR 0004](docs/adr/0004-knowledge-graph-ontology.md)) -- the
-  brief's latest revision required this everywhere the KG is used
-  (Keyman traversal, corporate hierarchy tree, entity-relationship
-  classification, indirect lineage linking, in-popup chat evidence).
-  `docs/ontology/lineageweave-kg.ttl`: a real OWL 2 / RDFS / SKOS
-  ontology (Turtle) formalizing `knowledge_graph_edge`'s node/edge
-  vocabulary and the `entity_relationship_type`/`person_side`/
-  `corporate_entity_level` controlled vocabularies -- classes with
-  declared subclass relations, object properties with
-  `rdfs:domain`/`rdfs:range`, and the corporate-level hierarchy
-  (Group -> Company -> Plant) as a proper SKOS concept scheme.
-  `lineageweave/ontology.py` parses it with `rdflib` and exposes the
-  vocabulary as importable IRI constants.
-- `tests/test_ontology.py`: a real round-trip check, not just "does
-  the file parse" -- every lookup code `scripts/seed_demo_data.py`
-  actually seeds (for the categories this ontology covers) must have
-  a matching ontology term, and vice versa, so the ontology cannot
-  silently drift from the relational schema's real vocabulary.
-
-## [0.21.1] - 2026-08-13
-
-### Fixed
-
-- `test_seed_calendar_commitment_surfaces_on_get_calendar` drives the
-  same `_seed_demo_calendar_commitment` helper `make seed` uses, then
-  `GET /api/calendar`, and asserts the Riverbend ticket is due
-  2026-01-09. Without this, a seed helper that wrote the wrong date
-  would only fail in a live compose stack.
-
-## [0.21.0] - 2026-08-13
-
-### Added
-
-- `make seed` now inserts the synthetic Riverbend commitment post
-  (`fixtures.ambiguous_commitment_post`, created_at 2026-01-05) plus
-  one open dated ticket (due 2026-01-09). Fresh stacks show a row on
-  the home-page Calendar instead of an empty panel that made 0.18.0's
-  surface look unfinished. Re-seed is idempotent. The empty-state copy
-  tells the buyer how to populate the calendar (Derive, or a ticket
-  with a due date) when there really are none.
-
-## [0.20.0] - 2026-08-13
-
-### Added
-
-- The post-detail Event Lineage panel now draws the same git-branch SVG
-  as the home page, scoped to that post's reconstruct group
-  (`subgraphForPost`). Opening an A-100 post shows the `rec-002` fork
-  and keeps B-200 out; the direct/indirect lists stay as the
-  why-linked distinction. Tests drive `subgraphForPost` on the
-  designed A-100 fixture.
-
-## [0.19.0] - 2026-08-13
-
-### Added
-
-- `fast-mlsirm` as a pinned git dependency (`pyproject.toml`) -- the
-  first of three staged slices toward weekly/monthly PU/team/project
-  reports (see [ADR 0003](docs/adr/0003-fast-mlsirm-report-integration.md)).
-  It already implements the brief's LLM-as-a-Judge -> IRT-row ->
-  Fixed-Item Parameter Calibration pipeline, provider-neutrally against
-  contextual-orchestrator; reused rather than reimplemented. No
-  product behavior change in this slice -- infra only.
-- `requires-python` moved from `>=3.10` to `>=3.12` to match
-  `fast-mlsirm`'s own floor. `backend/Dockerfile`'s build stage gained
-  a pinned, non-interactive `rustup` install (`build-essential` for
-  the linker), since `fast-mlsirm` ships a PyO3/maturin Rust core with
-  no fallback wheel. The pytest CI job installs the same toolchain
-  before `pip install -e ".[backend]"`. Verified the compiled
-  extension actually loads (not the NumPy parity fallback) both
-  locally and in a freshly built `backend` Docker image. TEPP stays
-  the temporal/event measurement platform -- this pin is the IRT
-  compute library, not a fork of TEPP.
-
-## [0.18.0] - 2026-08-13
-
-### Added
-
-- Customer commitment derivation and a calendar/to-do surface -- the
-  brief's "이슈 관리는 To Do 와 캘린더로 자동 등록" and "고객과의
-  약속에 관해서 LLM 자동 도출" items, unified into one design: a
-  derived commitment *is* the ticket that shows up on the calendar,
-  not a separate concept. `lineageweave/commitment_extraction.py`:
-  pluggable LLM client that decides whether a post contains a genuine
-  customer commitment (a promise with a deadline, not just any event)
-  and resolves relative phrases ("by next Friday") against a supplied
-  reference date. `POST /api/posts/{post_id}/derive-commitment`
-  (`post_admin`) runs it and, when found, persists an `issue_ticket`
-  with `due_date`/`commitment_summary` set; `has_commitment: false` is
-  a normal 200, not an error, since most posts have no commitment.
-  `GET /api/calendar` lists every dated ticket the account may see,
-  soonest first, ABAC-filtered per row like every other cross-post
-  endpoint.
-- `issue_ticket` gained `due_date` and `commitment_summary` columns
-  (folded into `migrations/0001_initial_schema.sql`, plus
-  `migrations/0003_ticket_commitment_calendar.sql` for upgrading an
-  existing volume, matching the `0002` precedent).
-- Frontend: a "Derive commitment" action in the ticket panel, due
-  dates shown on ticket rows, and a Calendar panel on the product home
-  page listing upcoming commitments across every visible post,
-  clickable through to the source post.
-- Verified with a real LLM call through a locally-launched
-  contextual-orchestrator instance: `ambiguous_commitment_post`'s
-  relative "by next Friday" deadline resolved to the correct absolute
-  date against a supplied reference date, and a second sentence that
-  merely *looks* date-adjacent (a past event) was correctly not
-  treated as a commitment.
-
-### Fixed
-
-- `due_date` was a `timestamptz`. Binding a Python `date` becomes
-  midnight in the session timezone, then `.date()` on the UTC
-  (or local) datetime shifts the calendar day -- "2026-01-09"
-  came back as "2026-01-08". The column is now a `date`, matching
-  the LLM's YYYY-MM-DD. A malformed string still surfaces as 422.
-- Derive used wall-clock `now()` as the reference date. Relative
-  phrases in a historical post ("by next Friday") must resolve against
-  the post's `created_at` (TimeML document creation time), or the
-  calendar entry lands on the Friday after the click, not the Friday
-  the commitment was made.
-- Re-deriving the same post stacked a second open ticket. The persist
-  path now upserts the existing open commitment ticket.
-- `GET /api/calendar` included closed tickets, so finished work still
-  looked upcoming. Closed rows are excluded; a dated ticket created
-  through the regular ticket API still appears while it is open.
-- The "Derive commitment" button was shown to accounts without
-  `post_admin` and then 403'd. It is now gated the same way as Extract
-  Keymen. Calendar rows also show the source post title.
-- Ticket SQL stopped interpolating a column-list constant via f-string
-  (`asyncpg-sqli` Semgrep). The column list is a static literal in
-  each query; values stay parameterized.
-
-## [0.17.0] - 2026-08-13
-
-### Added
-
-- Valkey as a real event queue -- not a cache, not a second database. It
-  had been running in `docker-compose.yml` since Phase 1 with nothing in
-  the codebase ever publishing or reading from it (the brief's "Event
-  Queue, not MQ" requirement was unfulfilled infrastructure).
-  `backend/app/activity_stream.py`: ticket create/status-change
-  mutations `XADD` an event onto a per-post stream
-  (`activity:{post_id}`, approximately trimmed to the most recent 1000
-  entries); `GET /api/posts/{post_id}/activity` reads it straight back
-  with `XREVRANGE` -- no consumer group, no background worker, the
-  smallest slice where Valkey is actually load-bearing.
-- Frontend: an Activity panel in the popup (list + manual Refresh),
-  genuinely wired to the new endpoint.
-- Verified through the real Docker Compose network end to end (not just
-  `pytest`): created and patched a ticket via the actual backend
-  container, confirmed the events on `GET .../activity`, and confirmed
-  directly with `valkey-cli XLEN` against the actual `valkey` container
-  that the stream is real.
-
-## [0.16.0] - 2026-08-13
-
-### Added
-
-- Affiliate tree and VOC evidence on the post-detail popup. The schema
-  already stored a self-referencing `corporate_entity` hierarchy and a
-  `voc_type_code`, but the buyer only saw a raw code and a comma-separated
-  affiliation list.
-  `lineageweave/affiliate_tree.py` builds the ancestor forest of the
-  organizations a post's Keymen actually touch (Bhattacharya & Getoor,
-  2007's candidate-generation stage: an unresolved name is its own root,
-  never a guessed parent). `lineageweave/voc_evidence.py` quotes the
-  sentence that names a classified organization (ACE mention extent;
-  Doddington et al., 2004) and returns nothing when the name is absent.
-- Backend: `GET /api/posts/{post_id}/affiliate-tree` and
-  `GET /api/posts/{post_id}/voc-evidence`, same RBAC+ABAC gate as every
-  other post endpoint. Seed now inserts Demo Group → Demo Corp so the
-  tree is visible on a freshly seeded stack.
-- Frontend: Affiliate tree panel, VOC excerpt block, clickable Keyman
-  (loads `GET /api/keymen/{id}/related`), Event Lineage links that open
-  the linked post, and Extract Keymen for `post_admin`.
-
-## [0.15.0] - 2026-08-13
-
-### Added
-
-- Milestone 4, Phase 5: issue ticket management -- the one explicit
-  product-brief item with a schema table (`issue_ticket`) but no
-  implementation until now. `backend/app/issue_ticket_ingestion.py`:
-  CRUD helpers, deliberately not a pluggable-LLM channel -- ticket
-  status is a closed enum in `common_lookup_value`.
-  `GET`/`POST /api/posts/{post_id}/tickets`,
-  `PATCH /api/tickets/{issue_ticket_id}` -- same RBAC (`post_read` for
-  reads, `post_admin` for writes) + ABAC as every other post-scoped
-  endpoint. `PATCH` resolves the ticket's owning post first and
-  ABAC-checks that. An invalid `ticket_status_code` hits the real FK
-  and surfaces as 422.
-- Frontend: `IssueTicketPanel` in the popup -- list, create, and inline
-  status-update.
-
-### Fixed
-
-- `frontend/Dockerfile`: pid-file sed now matches `/run/nginx.pid`
-  (the alpine image's real path), so non-root `USER nginx` can start.
-
-## [0.14.0] - 2026-08-13
-
-### Added
-
-- Product home page renders the reconstruct DAG as a git-branch SVG
-  (same layout language as `web/index.html`), grouped by reconstruct's
-  `thread_group_key`. Branch points are orange, isolated roots stay
-  visible, and a node click opens that post. `GET /api/lineage` now
-  includes `group` from the same `reconstruct_group_key()` rebuild uses,
-  so the UI cannot split A-100 / B-200 differently than reconstruct.
-- `Rebuild lineage` on the home page for `post_admin` accounts
-  (`POST /api/lineage/rebuild`). Viewers still only see the graph.
-
-## [0.13.1] - 2026-08-13
-
-### Fixed
-
-- Rebuild no longer derives reconstruct `group_key`/`secondary_key` from
-  process unit or voc type. Those collapsed A-100/B-200 and
-  proj-alpha/proj-beta and lost the designed `rec-002` fork.
-  `source_post` now persists `thread_group_key` and
-  `secondary_grouping_key`; seed writes fixture `occurred_at` into
-  `created_at`. `test_rebuild_lineage_recovers_the_a100_fork` drives
-  rebuild on the same A-100+B-200 rows seed inserts.
-
-## [0.13.0] - 2026-08-13
-
-### Added
-
-- `POST /api/lineage/rebuild` (`post_admin`): runs `reconstruct()` over
-  every `source_post` and writes `post_lineage_edge`. Grouping keys are
-  persisted on the post (`thread_group_key` / `secondary_grouping_key`).
-- `GET /api/lineage`: ABAC-filtered `{nodes, edges}` in the same shape as
-  the stdlib demo server, so the product UI can show the reconstructed
-  DAG. The React home page now lists those parent→child edges.
-- `backend/tests/test_api.py::test_rebuild_lineage_recovers_the_a100_fork`
-  inserts the designed A-100 fixture as real `source_post` rows, rebuilds,
-  and asserts the fork is visible on both the graph and per-post lineage.
-
-## [0.12.0] - 2026-08-13
-
-### Added
-
-- `lineageweave/lineage_persistence.py`: flattens `reconstruct()` trees
-  into the `(parent, child, fused_score)` rows `post_lineage_edge`
-  stores. `tests/test_lineage_persistence.py` proves the designed A-100
-  fork (`rec-002` → `rec-003` and `rec-004`) is in that contract, and
-  that unrelated `rec-006` is not forced onto a parent.
-- `scripts/seed_demo_data.py` now inserts the synthetic A-100 / B-200
-  fixture posts and persists those reconstruct edges, so
-  `GET /api/posts/{id}/lineage` (the Event Lineage panel) is not empty
-  on a freshly seeded demo stack.
-
-## [0.11.0] - 2026-08-13
-
-### Added
-
-- Milestone 4, Phase 4: the post-detail popup's remaining panels.
-  `lineageweave/post_summary.py` -- LLM-derived Korean summary, key
-  events (ACE-style, Doddington et al. 2004), and R&R (semantic role
-  labeling, Gildea & Jurafsky, 2002), via contextual-orchestrator.
-  `lineageweave/post_chat.py` -- in-popup chat as retrieval-augmented
-  generation (Lewis et al., 2020): an explicit retrieve step
-  (`backend/app/post_chat_ingestion.py` assembles a post's own content
-  plus its Event-Lineage-linked posts, direct and Knowledge-Graph-
-  indirect, as numbered sources) then a reason-and-cite step (the model
-  answers using only those sources and reports which it drew from).
-- Backend: `GET /api/posts/{post_id}/lineage` (direct vs. indirect links,
-  kept as two separate lists), `GET /api/posts/{post_id}/summary`,
-  `POST /api/posts/{post_id}/chat` -- all RBAC+ABAC-gated the same way as
-  every other post endpoint, verified end to end against a live
-  Postgres + Keycloak + contextual-orchestrator stack (including through
-  the actual Docker-built images, not just the FastAPI TestClient).
-  Caught and fixed a real bug while building the chat's retrieve step:
-  `backend/app/knowledge_graph.py::load_visible_subgraph` only loads
-  edges among an *already-known* post set -- it does not itself discover
-  sibling posts sharing a mentioned person (its only prior caller,
-  `related_for_person`, pre-resolves that full set itself before calling
-  it). `find_linked_post_ids` now does that expansion first; regression-
-  tested (`test_post_chat_cites_a_post_linked_only_via_a_shared_keyman`).
-- Frontend: `frontend/src/App.tsx`'s popup gained real Summary, Event
-  Lineage (direct/indirect visually distinguished), Keyman, Counterparty,
-  and Chat sections, plus a real sliding evidence panel (`EvidencePanel`,
-  CSS animation, not a mock) that opens the cited source post's actual
-  content when a citation chip is clicked. Fixed a real, pre-existing
-  test-infrastructure bug found while adding more tests to the same file:
-  `@testing-library/react`'s automatic per-test cleanup never actually
-  ran (this project's `vite.config.ts` deliberately doesn't set
-  `test.globals`, which auto-cleanup silently depends on), so DOM from
-  one test was bleeding into the next; `src/setupTests.ts` now registers
-  `cleanup` in an explicit `afterEach`.
-- `docs/adr/0002-figma-access-boundary.md`: the referenced Figma frame is
-  genuinely reachable in this environment, but its own cover page is the
-  source organization's real confidential content (and it does not yet
-  contain a frame for this screen) -- the popup is built from the
-  product brief's text instead, named as an explicit, honest gap rather
-  than either faking a "Figma-matched" claim or stalling on it.
-- New citations: See, Liu, & Manning (2017); Gildea & Jurafsky (2002);
-  Lewis et al. (2020).
-
-## [0.10.0] - 2026-08-13
-
-### Added
-
-- Milestone 4, Phase 3: `lineageweave/entity_relationship_classification.py`
-  -- LLM classification (via contextual-orchestrator, `mode="route"`) of a
-  named organization's relationship to the post author's org into the
-  product's own six-way vocabulary (`rel_voc`/`rel_vom`/`rel_vop`/
-  `rel_vocc`/`rel_voco`/`rel_vos` -- `rel_`-prefixed because
-  `common_lookup_value.lookup_code` is unique globally across categories
-  and bare `voc`/`vom` were already claimed by `source_post.voc_type_code`'s own
-  category). Proven with a real LLM call against a genuinely hard fixture
-  (`fixtures.ambiguous_entity_relationship_post`): an organization that is
-  both a repeat customer and a newly-competing division in the same post.
-- `lineageweave/corporate_hierarchy_resolution.py` -- similarity-based
-  resolution of a free-text organization name to an existing
-  `corporate_entity` row (Bhattacharya & Getoor, 2007's candidate-
-  generation/blocking stage of collective entity resolution, honestly
-  documented as that stage and not the full joint-inference version).
-  Wired into `backend/app/keyman_ingestion.py`, replacing the exact-
-  case-insensitive-match lookup it had before. `tests/test_corporate_hierarchy_resolution.py`
-  proves it against the same "Acme Group / Acme Electronics Korea / Acme
-  Electronics Gwangju Plant" hierarchy `tests/test_schema.py` already
-  uses: an abbreviation and a trailing legal suffix still resolve to the
-  right entity (not a sibling with a similar name), and a genuinely
-  unrelated organization resolves to `None`, not a guess.
-- `tests/test_indirect_lineage_linking.py`: demonstrates the Knowledge
-  Graph layer finds a real relation `lineageweave.reconstruct` has no
-  mechanism to find at all -- two posts in different `reconstruct.py`
-  groups (structurally never compared against each other) still surface
-  as related once they share a Keyman, via `random_walk_with_restart`.
-- Backend: `GET /api/posts/{post_id}/counterparties`, and
-  `POST /api/posts/{post_id}/extract-keymen` now also classifies and
-  persists each extracted Keyman's affiliated organizations'
-  relationships (`backend/app/entity_relationship_ingestion.py`), all on
-  the same RBAC+ABAC gate as the post/Keyman endpoints. Proven end to end
-  against a live Postgres + Keycloak + contextual-orchestrator stack.
-- `docs/lineage-bi-research-notes.md`: added Zelenko, Aone, & Richardella
-  (2003) (relation extraction); moved Bhattacharya & Getoor (2007) from
-  "staged for later phases" into a real section now that it grounds
-  shipped code.
-
-## [0.9.0] - 2026-08-13
-
-### Added
-
-- Milestone 4, Phase 2 continues: `lineageweave/keyman_extraction.py`
-  extracts two-sided Keymen (our-side vs counterparty, 0..N organization
-  affiliations) from a post's title+body. The live client calls
-  contextual-orchestrator with `mode="route"` -- never a raw LLM API.
-  `NullKeymanExtractionClient` stays unavailable rather than inventing
-  mentions.
-- `lineageweave.knowledge_graph.knowledge_graph_edges_for_post` populates
-  the three Phase 2 edge kinds (person<->post mention, person<->corporate
-  entity affiliation, person<->person co-mention) as typed
-  `knowledge_graph_edge` specs. RWR then runs on that graph.
-- Backend endpoints `GET /api/posts/{post_id}/keymen`,
-  `GET /api/keymen/{person_id}/related`, and
-  `POST /api/posts/{post_id}/extract-keymen`, RBAC+ABAC-gated the same
-  way as post detail: a Keyman who is only mentioned on another corp's
-  private post 403s, related-node traversal never returns those hidden
-  posts, and extraction is `post_admin` (a write with a real LLM cost).
-  Persist goes through `backend/app/keyman_ingestion.py` into
-  `cataloged_person` / `person_affiliation` / `post_person_mention` /
-  `knowledge_graph_edge`. Directed RWR sinks teleport remaining walk
-  mass back to the start node so relevance stays a distribution.
-- `fixtures.ambiguous_keyman_post`: a synthetic, non-templated workshop
-  follow-up used by the parser tests and the real-orchestrator Keyman test.
-
-## [0.8.0] - 2026-08-13
-
-### Added
-
-- Milestone 4, Phase 2 begins (Phase 1 complete): `lineageweave/knowledge_graph.py`
-  -- random walk with restart (Tong, Faloutsos, & Pan, 2006) giving every
-  node in a Knowledge Graph a continuous relevance score from a starting
-  node, plus `select_related_nodes`'s per-node adaptive relevance-ratio
-  cutoff. No hop-count constant appears anywhere in the algorithm -- the
-  same ratio threshold naturally yields a larger related-set for a
-  well-connected node than a sparse one, which is the actual product
-  requirement ("각 Node와 Node마다 Depth가 다를 수 있다").
-- `tests/test_knowledge_graph.py`: proves this against a synthetic graph
-  built so the correct answer is known by construction -- a disconnected
-  node scores exactly 0, symmetric spokes score identically, and a
-  well-connected "hub" node's adaptive related-set (5 nodes) is
-  measurably larger than a sparse "loner" node's (1 node) under the same
-  threshold.
-- `docs/lineage-bi-research-notes.md`: Tong et al. (2006) moved from
-  "staged for later phases" into a real "Knowledge Graph traversal"
-  section now that it grounds shipped code.
-
-## [0.7.0] - 2026-08-13
-
-### Added
-
-- `frontend/`: React + Vite + TypeScript, pinned Node via `mise.toml`,
-  pnpm via Corepack -- a real client, not mocked and not static HTML.
-  `react-oidc-context` drives an actual Authorization Code redirect
-  through Keycloak; the post list and detail popup call the FastAPI
-  backend over real `fetch()` with the token Keycloak issued.
-  `src/App.test.tsx` covers the login-redirect and fetch-then-render
-  paths (`useAuth` mocked -- the real OIDC round-trip is proven
-  elsewhere, by `scripts/smoke_test_oidc.py` and `backend/tests/test_api.py`).
-- `frontend/Dockerfile` + `nginx.conf`: two-stage build (`pnpm run build`
-  then nginx serving the static bundle) added as docker-compose's fourth
-  service, `VITE_*` config baked in at build time from the same `.env`
-  ports every other service uses. Both stages pin the base image by
-  digest; the runtime stage declares `USER nginx` and listens on 8080
-  so the master process does not need root to bind a port.
-- `backend/app/main.py`: `CORSMiddleware`, scoped to exactly the
-  frontend's origin(s) (`FRONTEND_ORIGINS`), `GET` only, `Authorization`
-  header only -- verified with a real cross-origin preflight + GET against
-  the live stack, not just unit-tested in isolation.
-- `.github/workflows/tests.yml`: added a `frontend` job (lint, test,
-  build) alongside the existing Python `pytest` job.
-
-### Fixed
-
-- Keycloak's `lineageweave-frontend` client (`docker/keycloak/realm-export.json`)
-  now allows both the Vite dev-server origin (`:5173`) and the
-  docker-compose-served frontend's origin (`:15173`) as redirect URIs and
-  web origins -- the login redirect only worked from one of the two
-  before this.
-
-## [0.6.0] - 2026-08-13
-
-### Added
-
-- `backend/`: a FastAPI app connecting directly to PostgreSQL (`asyncpg`,
-  no ORM, no file-backed DB). OIDC bearer-token login verified against a
-  live Keycloak JWKS (`backend/app/auth.py`, fetched via
-  `lineageweave.http_client` rather than PyJWKClient/`urllib`); RBAC
-  (`post_read` permission via role membership) plus row-level ABAC
-  (private `source_post` rows scoped to the requesting account's
-  affiliated corporate entity) enforced on `GET /api/posts` and
-  `GET /api/posts/{post_id}` (`backend/app/main.py`).
-- `backend/tests/test_api.py`: real-integration tests -- a genuine access
-  token from a live Keycloak, verified against a throwaway migrated
-  Postgres database. Proves both the allow and the deny path: a private
-  post scoped to a *different* corporate entity is excluded from the list
-  and 403s on direct fetch; a forged token is rejected; a missing token is
-  401. Skipped unless both a local PostgreSQL and Keycloak are reachable.
-- `scripts/seed_demo_data.py` (`make seed`): seeds synthetic corp/PU/
-  account/`source_post` rows keyed to the *real* subject ids Keycloak's
-  admin REST API reports for the two demo users -- not a locally-fabricated
-  guess at what those ids might be. Talks to Keycloak through
-  `lineageweave.http_client` (`post_form` / `get_json_list`), never
-  `urllib.request.urlopen`.
-- `backend/Dockerfile`: `python:3.12-slim` pinned by digest, runtime
-  `USER appuser` (DS-0002).
-- `migrations/0001_initial_schema.sql`: added `corporate_entity.
-  corporate_entity_code` (unique short code, e.g. `DEMO-CORP-01`) -- the
-  column the login-time `corp_code` claim actually maps to; the original
-  Phase 1 migration (still unmerged) only had the human-readable
-  `entity_name`. Postgres's app database is now auto-migrated with this
-  exact file on first `docker compose up` (`docker/postgres-init/Dockerfile`),
-  so what's tested and what ships never drift apart.
-- docker-compose.yml's default host ports moved off Postgres/Redis/common
-  local-dev ports entirely (15432, 16379, 18080, 18420) -- found during
-  this work that a colliding already-running service on a container's
-  published port can silently answer curl/psql requests instead of the
-  container, with no error; picking non-default ports avoids that
-  ambiguity outright rather than relying on operators noticing.
-
-### Fixed
-
-- JWKS fetch and the demo seeder go through `lineageweave.http_client`
-  instead of `PyJWKClient` / `urllib.request.urlopen`.
-
-## [0.5.0] - 2026-08-13
-
-### Added
-
-- `docker-compose.yml`: PostgreSQL, Valkey, and a real Keycloak OIDC
-  provider, genuinely functional (not a stub/mocked adapter). `make up`
-  brings up all three from a clean checkout; `make smoke` runs
-  `scripts/smoke_test_oidc.py`, which logs in as a synthetic demo user
-  seeded by `docker/keycloak/realm-export.json`, fetches Keycloak's live
-  JWKS, and cryptographically verifies the returned JWT's RS256 signature,
-  issuer, and `corp_code`/`pu_code` custom claims -- a real round-trip
-  proof, not a "the container started" check.
-- `docker/postgres-init/` and `docker/keycloak/`: both services are `build:`
-  targets (Dockerfiles that `COPY` in the keycloak-db init script and the
-  realm seed) rather than bind mounts, so the images are self-contained and
-  reproducible on any Docker host or CI runner.
-- Keycloak stores its own state in a second database (`keycloak`) on the
-  same PostgreSQL instance -- one running database service for the whole
-  stack, no second file-backed store.
-- `.env.example` documents the (already-defaulted) compose variables,
-  including how to remap host ports if 5432/6379/8080 are already taken
-  locally.
-
-### Fixed
-
-- Dockerfiles declare an explicit non-root `USER` (DS-0002) and pin
-  `postgres:16-alpine`, `quay.io/keycloak/keycloak:26.0`, and
-  `valkey/valkey:8-alpine` by digest.
-- `scripts/smoke_test_oidc.py` talks to Keycloak through
-  `lineageweave.http_client` (`get_json` / `post_form`) instead of
-  `urllib.request.urlopen`, so the same `file://` allowlist used by the
-  library clients applies to the OIDC smoke path.
-
-## [0.4.0] - 2026-08-13
-
-### Added
-
-- Milestone 4, Phase 1 begins: LineageWeave's product schema.
-  `migrations/0001_initial_schema.sql` -- a 3NF PostgreSQL schema
-  (snake_case, 2+ word object names) covering accounts (corp/PU code as
-  attributes, not the login key), a shared `common_lookup_value` ENUM
-  table, posts + visibility, ABAC/RBAC, VOC-type and entity-relationship
-  classification, Keyman (`cataloged_person` + N:N `person_affiliation`), a
-  `knowledge_graph_edge` table, `issue_ticket`, and a self-referencing
-  `corporate_hierarchy` via `corporate_entity.parent_entity_id`.
-- `docs/adr/0001-demo-identity-and-data-boundary.md`: the identity/data
-  scope decision for this expansion -- real infrastructure (Postgres,
-  Valkey, a real OIDC provider), synthetic identities and content, because
-  Keyman extraction catalogs real named individuals (including
-  non-consenting external counterparties) and a real production identity
-  provider would re-identify the source organization through account/data
-  structure even with zero literal company-name strings in source files.
-- `tests/test_schema.py`: real-database tests (skipped without a
-  reachable PostgreSQL server) proving the migration applies cleanly, a
-  multi-level corporate-hierarchy recursive query returns the right
-  shape, and an invalid lookup code is genuinely rejected by a foreign
-  key -- caught and fixed a real bug in the process (an accidental
-  `deferrable initially deferred` on one FK silently weakened its
-  integrity check within a transaction).
-- New citations staged for Phase 2/3: Tong et al. (2006, random walk with
-  restart -- Knowledge Graph per-node traversal depth) and Bhattacharya &
-  Getoor (2007, collective entity resolution -- corporate hierarchy).
-
-## [0.3.0] - 2026-08-13
-
-### Fixed
-
-- Embedding, adjudication, and vision clients now POST through a shared
-  `http_client.post_json` helper that allowlists `http`/`https` and never
-  calls `urllib.request.urlopen`. That closes the `file://` read concern
-  Semgrep's `dynamic-urllib-use-detected` rule was flagging on the
-  operator-configured base URLs. HTTPS posts wrap the connected socket
-  with a certifi-backed `SSLContext` instead of constructing
-  `http.client.HTTPSConnection`, so certificate verification is explicit
-  on the Python 3.10+ runtime this project requires.
-
-### Added
-
-- `lineageweave/chunking.py`: semantic-unit chunking so the embedding
-  channel compares meaning-identifiable units instead of whole flattened
-  documents -- `chunk_by_paragraph` (Hearst, 1997, TextTiling subtopic
-  boundaries), `chunk_by_sentence`, `chunk_by_dom` (WHATWG HTML Living
-  Standard sectioning/flow block elements), and `chunk_by_conversation_turn`
-  (RFC 5322 sender/receiver boundaries).
-- `embedding_client.chunked_max_similarity`: chunks two documents, embeds
-  every chunk, and returns the single highest-scoring pair -- the standard
-  passage-retrieval strategy for "a relevant unit is buried in a longer
-  document." Degrades to plain whole-text embedding for any document that
-  chunks to zero or one piece (this project's real short-title dataset
-  behaves exactly as it did before chunking existed).
-- Real-provider test proving chunking works, not just that it type-checks:
-  a short relevant paragraph buried inside a longer synthetic document
-  scored higher via `chunked_max_similarity` than via whole-document
-  embedding, against the live embedding provider.
-- `docs/lineage-bi-research-notes.md`: new "Chunking" section with the
-  four units' grounding and an explicit, honest note that this project's
-  real dataset's only free-text field is too short to need chunking in
-  practice -- the module exists for richer content sources (e.g. the raw
-  MHTML artifacts that dataset's records were derived from).
-- `lineageweave/image_content.py`: pluggable vision channel for base64
-  images embedded in DOM content -- real OCR (Li et al., 2023, TrOCR) and
-  object recognition/tagging (Radford et al., 2021, CLIP) via
-  `OpenAiCompatibleVisionClient`, same never-fake-a-missing-channel
-  discipline as the embedding/adjudication clients. `chunk_by_dom` now
-  extracts embedded images as `"image"` chunks interleaved with text
-  chunks in true document order, so an image's position relative to its
-  surrounding text is preserved and reconstructable.
-- Real-provider test proving OCR works, not just that it type-checks: a
-  real PNG generated with real rendered text (not a fixture file) was
-  read back correctly by `OpenAiCompatibleVisionClient` against the live
-  vision-capable model.
-- `docs/image-content-schema.md`: proposed DB schema (snake_case, 2+ word
-  object names) for persisting and searching extracted image content,
-  designed so a text/tag search hit stays traceable to which document and
-  which position produced it, and so the same image (by content hash) is
-  never *stored* twice (the primary key guarantees that part). Avoiding a
-  duplicate vision-provider *call* for two concurrent ingests of the same
-  new image is a separate concern the schema documents but does not solve
-  by itself -- a real write path still needs an atomic claim/lease step.
-
-## [0.2.0] - 2026-08-13
-
-### Added
-
-- ADR-0016 grounding: `docs/lineage-bi-research-notes.md` now cites
-  Doddington et al. (2004, ACE) and Anagnostopoulos et al. (2013, CHRONOS)
-  alongside Allan (2002, TDT), and explains how `reconstruct.py` maps onto
-  TEPP's three-layer event-intelligence separation (mention/instance,
-  calibrated detection, temporal-consistency).
-- `tests/test_real_provider_integration.py`: opt-in (env-var-gated, skipped
-  by default so a credential-free clone stays green) tests proving
-  `OpenAiCompatibleEmbeddingClient` and `ContextualOrchestratorAdjudicationClient`
-  work end-to-end against real providers, not just that their interfaces
-  are satisfiable by a stub.
-
-### Fixed
-
-- `embedding_client.py` / `adjudication_client.py`: both real-provider HTTP
-  clients now build their SSL context from `certifi`'s CA bundle instead of
-  the platform default. Some interpreter distributions (observed: a
-  standalone uv-managed CPython on macOS) don't reliably inherit the OS
-  trust store, which made every real-provider call fail closed with
-  `CERTIFICATE_VERIFY_FAILED` even against a validly, publicly-trusted
-  certificate. Full chain validation still applies -- nothing is weakened,
-  the bundle source just changed.
-
-## [0.1.0] - 2026-08-13
-
-### Added
-
-- Initial prototype: `reconstruct()` pipeline (group → bounded candidate
-  window → multi-channel fusion via RankWeave → tree assembly via
-  ThreadWeave).
-- Four scoring channels: `temporal`, `secondary_key`, `text`
-  (dependency-free stand-in for embedding-cosine similarity), and an
-  optional `llm` channel via a pluggable `AdjudicationClient`.
-- `ContextualOrchestratorAdjudicationClient`, calling
-  [contextual-orchestrator](https://github.com/ContextualWisdomLab/contextual-orchestrator)'s
-  `mode="verify"` with `reasoning_effort="high"`.
-- `OpenAiCompatibleEmbeddingClient` for a real embedding-cosine text
-  channel against any OpenAI-compatible `/v1/embeddings` endpoint.
-- `TeppClient` / `AnalysisRunRequest`: validated wire shape matching
-  [TEPP](https://github.com/ContextualWisdomLab/TEPP)'s published
-  `analysis_run_request_v1.json` schema, pluggable transport (fails closed
-  with `TeppNotAvailable` until TEPP ships a live HTTP endpoint).
-- Minimum fused-score floor so weakly-related records surface as their own
-  root instead of being force-attached to the best of a bad set of
-  candidates.
-- Stdlib HTTP demo server (`lineageweave/server.py`) and a self-contained
-  SVG DAG viewer (`web/index.html`), no build step or external script
-  dependency.
-- Synthetic-only demo dataset (`lineageweave/fixtures.py`).
-- `docs/lineage-bi-research-notes.md`: the literature this design is
-  grounded in, APA 7th.
+## Unreleased
+- Reclassified a common thread identifier from a claimed document revision to
+  reviewable inferred relatedness. Only direct same-document row succession
+  can now render as chronological Lineage; shared-thread documents are paired
+  canonically, labeled as a clue, and never numbered as an event sequence.
+  Startup performs a narrow direct-PostgreSQL correction of matching legacy
+  Lineage and Knowledge Graph edges without deleting documents or source data.
+- Rechecked the supplied Figma file through the current connector session.
+  The available metadata exposes only the cover page, so the previous claim of
+  a readable event-intelligence target is withdrawn pending a reproducible
+  node-specific reference and a paired user-chosen-browser capture.
+- Improved administrator degradation behavior: a missing reviewed Keyverse
+  account-directory configuration now appears as a Korean availability message
+  rather than a raw configuration error or a false zero-account state. Server-
+  enforced 게시글 권한 통제 and Lineage review remain usable, and no local
+  issuer or synthetic account is introduced.
+- Hardened the Keyverse-only relying-party boundary so common bare
+  authorization, token, and introspection aliases are rejected before the
+  single-page-app fallback. The canonical issuer-shaped routes remain
+  rejected by both the product and the Compose model worker; neither process
+  becomes an identity authority.
+- Rebuilt the current `product` Compose profile against direct PostgreSQL with
+  development identity disabled and no Keyverse/OIDC environment interpolation.
+  The fresh container reached database health while anonymous sessions stayed
+  Keyverse-gated and malformed email input failed locally. This is runtime
+  configuration evidence, not real-account acceptance.
+- Tightened organization-alias resolution at the shared inference boundary:
+  an LLM canonical-name candidate is promoted by automatic R&R expansion only
+  when organization-only SearXNG evidence contains both the alias and that
+  canonical name. The administrator alias route now also rejects a `verified`
+  verdict when the same cited evidence text does not contain both the queried
+  alias and the exact proposed canonical organization; unresolved or
+  conflicting labels remain visible as unresolved instead of entering the KG.
+- Issue To Do/calendar enrichment now preserves the distinction between an
+  explicit due date and an unscheduled follow-up. Missing or invalid model
+  dates no longer become today's date; pending rows are migrated to a nullable
+  `occurred_on` value and render as `일정 미정`. A bounded direct-PostgreSQL
+  operator batch sends only title plus a capped Korean summary, persists only
+  complete LLM work pairs, and delivers only its matching Valkey outbox batch.
+  One 8-ticket live-HTTP run completed 3 LLM pairs, retained 5 fallback rows,
+  and delivered all 3 scoped events with none pending.
+- Added a first-class general-user product shell: the default authenticated
+  entry is 업무 홈, with separate 업무공간 and 고객 화면 navigation. Reader
+  actors see business summaries, evidence-backed customer relationships,
+  reports, source drawers, and Knowledge Graph detail without the operator KPI
+  strip, Lineage override controls, LLM queue controls, TEPP controls, or
+  Keyverse account administration. The server remains the authorization
+  boundary; navigation visibility is not treated as access control.
+- Added an evidence-bound factor-item catalog task. The live LLM derived five
+  candidate items from multiple writings, each with persisted report/document
+  evidence. PostgreSQL now keeps ten fixed anchor items, five LLM candidates,
+  ten candidate evidence links, and fifteen Rust fast-mlsirm calibration rows
+  in separate normalized relations. All fifteen items reached `calibrated` in
+  the current run; 58 report slices received five linked scores each and 22
+  slices remain explicitly unlinked because their item responses were
+  insufficient.
+- Issue tickets now use the shared `open`, `in_progress`, and `resolved`
+  lifecycle. An authorized status change updates the direct-PostgreSQL ticket
+  and its linked To Do rows together, then emits the existing Valkey outbox
+  event; readers cannot mutate ticket state.
+- Customer commitments now have a bounded operator-only LLM refresh. Each
+  committed appointment batch carries an internal batch marker, and only its
+  matching committed outbox rows may be delivered to Valkey. A non-LLM or
+  malformed model result leaves existing extracted appointments intact. One
+  16-document live-HTTP batch produced 14 LLM-derived rows, preserved two
+  fallback cases, and delivered its 14 scoped events with zero pending.
+- Customer searches now keep the matching account selected while returning its
+  persisted, authorized ancestors and affiliate edges. A subsidiary search no
+  longer turns an otherwise evidenced customer tree into an unconnected root.
+- Keyman Knowledge Graph popups now show every valid server-bounded node and
+  directed relationship as `source → target`, including entity types,
+  customer-readable relation labels, relation codes, and evidence status.
+  Orphaned or malformed edge endpoints are not rendered as graph links.
+- Clarified the operator environment example as a local product configuration
+  only: it requires an externally operated Keyverse issuer and cannot be used
+  to configure a loopback, Keycloak, or Keyverse imitation.
+- Rechecked the external TEPP gate: the product has no configured TEPP service
+  or credential, and TEPP's current HTTP contract is not a live server. The
+  explicit unavailable state remains; no mock or local substitute is presented
+  as integration or release evidence.
+- Event cards now form only evidence-backed, contiguous numbered Lineage
+  segments. Events outside a direct `row_successor` segment are unnumbered,
+  independent observations with an explicit explanation; search ordering and
+  semantic relatedness cannot create a successor presentation.
+- Corrected historic protocol-fixture wording: retained issuer-shaped material
+  is an unresolved ownership/audit finding, not a supported local login test,
+  Keyverse substitute, or release-evidence source. Product acceptance still
+  requires configured production Keyverse and a real business-account journey.
+- Added four normalized RAGAS-aligned report metrics (faithfulness, answer
+  relevancy, context precision, and context recall). Each report/metric row
+  stores the live Judge source, verdict, score, and rationale; source-evidence
+  references are stored in the separate `analysis_report_metric_evidence`
+  relation, and unsupported metrics abstain without a fabricated numeric value.
+- Re-evaluated all 80 persisted weekly/monthly report slices through the live
+  LLM Judge: 320 metric rows (80 per metric) are now in PostgreSQL, all scores
+  are within `[0, 1]`, and the existing 400 fast-mlsirm linked scores remain.
+- Added parser, persistence, legacy-read, and malformed-model contracts for
+  the normalized evaluation-metric boundary.
+- Exposed persisted RAGAS/LLM-Judge report metrics in the general-user report
+  detail, including pass/fail/abstain state, rationale, score, and bounded
+  evidence-document links. A data-bearing browser run rendered four metrics
+  and 32 authorized evidence links.
+- Extended the data-bearing browser contract to select an actual Keyman in the
+  document popup, open the authorized Knowledge Graph, and verify that typed
+  relationship direction is rendered.
+- Removed the dormant product-side Keyverse enrollment implementation,
+  including account provisioning, local email capture, and browser-passkey
+  challenge/attestation relay. Keyverse alone owns those responsibilities.
+- Retired registration URLs now return `404` for both `GET` and `POST` before
+  session authorization, so neither route can be mistaken for an authentication
+  failure or reintroduced as an enrollment surface.
+- The current complete source gate passes 349 tests with 7,555 statements and
+  2,948 branches at 100 percent line-and-branch coverage.
+- Added a V8-covered React presentation model for email validation, Keyman
+  normalization, safe asset previews, semantic values, directed KG
+  relationships, and customer trees. Its current 103 statements, 196
+  branches, 28 functions, and 88 lines are all covered at 100 percent; the
+  scheduled verifier and container web build run this gate before the React
+  build.
+- Excluded generated React coverage reports and build output from version
+  control and container build context so local absolute paths and transient
+  bundles cannot enter a public repository or image build.
+- Added a reproducible Playwright login-gate E2E that exercises empty,
+  malformed, and unavailable-configuration input without contacting or
+  emulating an identity authority.
+- The no-issuer login gate is explicitly local UX evidence only: it never
+  starts, contacts, or represents Keyverse, and it cannot satisfy the real
+  business-account login/callback/session/logout release acceptance.
+- The currently accessible Figma file contains an event-intelligence target
+  frame, but Product/Figma parity remains blocked until it is compared with a
+  matching user-chosen-browser capture. The synthetic email UX check supplies
+  neither visual nor identity acceptance.
+- Corrected the evidence register: the product has no in-process psychometric
+  fallback, and Figma structural QA is distinct from the still-blocked
+  release-level product/Figma parity acceptance.
+- Unified customer-visible lineage terminology as `글 자체의 Lineage`; the
+  event-lineage API contract and observed-versus-relatedness separation remain
+  unchanged.
+- Optional persisted evaluation-metric reads no longer hide otherwise valid
+  weekly/monthly reports and their linked scores when that separate query is
+  unavailable.
+- Direct-PostgreSQL batch commands now keep JSON, analytics, and DOT exports
+  disabled by default. Operators can still create a detached file only by
+  providing an explicit output path, while the canonical analysis state remains
+  PostgreSQL.
+- Added a minute-17 hourly product-gap proposal workflow. OpenCode receives
+  only NVIDIA_NIM_API_KEY; an immutable patch is independently verified before
+  a separate publisher can open one PR, while review, Checks, approval, merge,
+  release, and deployment remain outside model authority.
+- The product Compose profile now forwards the direct PostgreSQL DSN and source
+  table only from operator-provided environment interpolation. This fixes a
+  product-profile startup failure without committing either runtime value or
+  adding a database proxy or local identity service.
+- Reader detail and KG requests now calculate predicted relatedness without
+  mutating PostgreSQL. Only the bounded administrator enrichment path can
+  materialize that non-transition relatedness for review.
+- Removed the in-process FIPC/CAT/EAP score fallback. Report linking now
+  persists scores only when the separate Rust-backed `fast-mlsirm` HTTP/local
+  connector returns package-produced scores; missing, malformed, diagnostic-
+  only, or recorded-response bodies remain `unavailable` with no score rows.
+- Replayed the persisted Judge item responses through the local package
+  connector and reconciled the derived PostgreSQL report tables: 80 reports
+  now retain 400 package-produced `fast_mlsirm` scores, with zero orphan,
+  missing-score, or legacy fallback payload rows.
+- Corrected an earlier changelog wording that described an isolated external
+  identity run. It is not current identity evidence and must not be run, used,
+  or cited as Keyverse or release acceptance; only a configured production
+  Keyverse journey with a real business account can satisfy that gate.
+
+## 0.2.18 - 2026-08-15
+- HTTP response writes now treat a browser cancellation or connection reset as
+  a normal disconnected client, preventing a second error write and noisy
+  server traceback while large authorized surfaces are being delivered.
+- The current product-runtime gate passes 333 tests with 7,358 statements and
+  2,838 branches at 100 percent line-and-branch coverage.
+- A fresh Edge reader E2E completed the authenticated development-session flow
+  through 업무 홈, 업무공간, 고객 화면, document popup, source drawer, and
+  Knowledge Graph; no administrator navigation or diagnostic KPI was exposed.
+
+## 0.2.17 - 2026-08-15
+- The customer-master screen now renders the evidence-backed affiliate
+  hierarchy as an accessible, selectable tree with depth-aware indentation;
+  selecting a tree node focuses the same customer detail and source documents.
+
+## 0.2.16 - 2026-08-15
+- The general-user customer screen now keeps customer counts, list state,
+  account detail, and affiliate-tree state explicitly pending while its
+  authorized PostgreSQL request is in flight; a settled empty customer master
+  is no longer confused with a loading delay.
+
+## 0.2.15 - 2026-08-15
+- Task-aware LLM calls now allocate simple work to single-model routing and
+  enrichment, multimodal inspection, verification, and report work to bounded
+  deep orchestration through the HTTP-only contextual-orchestrator boundary.
+- Direct model gateways receive only portable prompt metadata; route/conduct
+  controls are sent only to an explicitly configured orchestrator endpoint.
+- Multimodal inspection preserves the image part and its document-scoped
+  semantic context while the upstream multimodal message contract remains an
+  independent review and merge gate.
+- Local validation passed 332 tests and 100 percent line-and-branch coverage
+  for the product runtime.
+
+## 0.2.14 - 2026-08-15
+- Reader-facing home metrics now show an explicit loading state until the
+  authorized PostgreSQL surfaces arrive, so an initial network delay cannot
+  look like an empty workspace.
+- The browser OIDC conformance runner is directly executable and tears down
+  only its separate IdP/RP Compose projects on exit, including assertion
+  failures, without removing volumes or touching the product stack.
+- A real external-IdP browser run completed email login, callback/session
+  establishment, reader-safe home navigation, customer screen, document
+  popup, evidence drawer, and semantic KG checks against the direct database.
+- Re-evaluated all persisted weekly/monthly slices through the live judge
+  gateway in bounded maintenance batches: 80 `llm_judge` reports (`pass=50`,
+  `fail=30`), 400 linked scores, zero missing-score reports, and zero orphan
+  scores remain in PostgreSQL.
+
+## 0.2.13 - 2026-08-15
+- When a direct LLM or orchestrator URL is absent, Keyman extraction now starts
+  and uses the Compose live-model proxy through the same HTTP contract. If the
+  proxy cannot start or its gateway is unavailable, the product reports an
+  explicit unavailable state; it never records a response or creates an actor.
+
+## 0.2.12 - 2026-08-15
+- Confirmed the reader-facing product entry point as `업무 홈`, with separate
+  `업무공간` and evidence-bound `고객 화면` navigation. General users no longer
+  start in operator diagnostics; KPI, queue, access-policy, Lineage-review,
+  enrichment, and TEPP controls remain administrator-only.
+- Recorded the customer-master semantic boundary: normalized customer and
+  affiliate rows are exposed only after actor-scoped account-to-document
+  evidence survives ABAC/RBAC, and the KG uses the persisted
+  `schema:Organization`, `schema:subOrganization`, and `schema:about` terms.
+- Reused the single PostgreSQL TEPP run-table DDL helper in the full snapshot
+  writer so the direct database boundary has one schema definition.
+
+## 0.2.11 - 2026-08-15
+- Added the separate TEPP v1 analysis-run HTTP port. Administrator requests
+  validate contract version, bounded snapshot/cutoff/model/output fields,
+  HTTPS configuration, idempotency, and same-corp authorization before calling
+  `POST /v1/analysis-runs`; missing TEPP service configuration remains an
+  explicit unavailable state with no recorded-result fallback.
+- Added normalized PostgreSQL TEPP run metadata and Valkey outbox events, plus
+  administrator status/refresh endpoints and a real React TEPP request panel.
+- The current complete source gate passes 329 tests, 7,313 statements, and
+  2,838 branches at 100% line-and-branch coverage; React production build
+  remains green.
+
+## 0.2.10 - 2026-08-14
+- Rate-limited live model calls now become explicit abstentions instead of
+  aborting a PostgreSQL analysis run; report judge rows are never persisted
+  with a NULL verdict, and `judge_verdict` is seeded in the shared ENUM table.
+- The complete Python source gate now includes the retained offline OIDC
+  utility: 323 tests, 7,147 statements, and 2,780 branches pass at 100%.
+- The isolated OIDC browser fixture accepts runtime-only corp/PU scope claims
+  and fails data-bearing acceptance when an authenticated scope returns no
+  documents. The real direct-PostgreSQL reader flow completed login, customer
+  screen, popup, evidence drawer, and KG checks.
+- Added the role-separated browser acceptance record: reader navigation hides
+  administrator diagnostics, while an administrator actor reaches access-policy
+  and Lineage review screens and restores a relatedness visibility override
+  after private/public HTTP 200 mutations. Customer-master accounts remain
+  Ontology/Semantic-Layer evidence-bound.
+
+## Unreleased
+- Removed the customer-facing product-side first-use/passkey registration flow.
+  The login gate now has one email-first `계속하기` action; configured Keyverse
+  owns account setup and passkey policy after the redirect.
+- Retired the unauthenticated product registration API: `POST /api/register`
+  and `POST /api/register/complete` now return `404` and cannot provision or
+  relay a passkey ceremony.
+- Raised the authorized inline-image inspection ceiling from 6 MiB to 50 MiB so
+  large source cells that are data-URI images remain OCR/object-analysis
+  candidates without entering the graph or browser payload. Persisted metadata
+  is recalculated on read; unconfigured or rejecting model gateways still fail
+  explicitly and create no synthetic inspection.
+- Automatic issue To Do/calendar rows now upsert their 3NF ticket parent before
+  the work rows. Snapshot reconciliation owns only pipeline-created parents; a
+  metadata-only direct-PostgreSQL repair inserted 28,211 missing parents while
+  preserving two non-automatic tickets.
+- Re-ran the complete product-runtime gate after the boundary change: 332 tests,
+  7,354 statements, and 2,836 branches pass at 100% line-and-branch coverage.
+- Improved unavailable-login guidance: a valid-format address now receives a
+  plain retry-or-contact-administrator message without exposing identity
+  implementation details.
+- Rechecked the rebuilt Compose product boundary. Direct-PostgreSQL runtime
+  inputs remain deployment-supplied and fail closed when absent; the retained
+  issuer-shaped test utility is not a product identity authority or acceptance
+  substitute.
+- Rechecked the active direct-PostgreSQL snapshot and deployed React bundle:
+  all 107 observed row-successor edges join source rows from the same document,
+  while the Event Lineage UI creates a connector only from that explicit marker.
+  Search-result order cannot create a chronological chain.
+- The reader home and document rail now distinguish initial loading, a
+  completed empty authorization scope, and a request failure. A user with no
+  authorized records no longer sees a perpetual loading message.
+- Added a reproducible, separate OIDC conformance fixture for browser
+  acceptance without a business account: a test-only Keycloak realm and Valkey
+  Compose project provision the callback, `org`/`workspace`/`role` claims, and
+  reserved `.test` reader account used by the direct-PostgreSQL relying-party
+  runner. It remains outside the product profile and does not use or emulate a
+  production Keyverse deployment.
+- Added the temporal report-state boundary: weekly/monthly report observations
+  carry stable slice identity and exact period ordering, and a configured
+  fast-mlsirm longitudinal export is persisted into normalized state-spec,
+  state-run, and state-observation tables. Missing connector capabilities stay
+  explicitly unavailable; no Python or recorded psychometric fallback is used.
+- Added `tests/compose.oidc-e2e.yml`, a test-only direct-PostgreSQL OIDC
+  relying-party runner. It consumes a separately provisioned conformance IdP;
+  it neither adds an issuer to the product Compose profile nor makes the worker
+  serve identity routes. A selected-browser run completed email-first sign-in,
+  reader workspace access, and product logout. Temporary test-realm callback
+  and claim mapping changes were restored. This is not production Keyverse,
+  business-account, passkey, or Figma-parity release acceptance.
+- Semantic document search now preserves its relatedness threshold. When no
+  authorized semantic result qualifies, it returns an explicitly labelled
+  `keyword_fallback` from the same direct-PostgreSQL ABAC query instead of an
+  empty list or an invented Lineage relation. The reader sees that the results
+  are title/document matches, not semantic transitions.
+- Product and worker containers now explicitly reject discovery,
+  authorization, token, and introspection-shaped issuer paths with the shared
+  404 JSON contract. This prevents the product's React fallback or generic
+  request authentication from making the relying party look issuer-capable.
+  The product Compose service also preserves operator-supplied direct database
+  settings from its env file instead of overwriting them with empty values.
+- Product Compose preflight now resolves the effective env-file configuration
+  and rejects missing direct PostgreSQL or external OIDC settings before
+  startup, naming missing keys but never their values.
+- Verified the bounded live Event Lineage chat in the selected browser against
+  direct PostgreSQL data. A reader-scoped document returned a non-empty answer
+  with five citations, including one VOC source citation; opening that citation
+  rendered the authenticated source drawer. The temporary isolated-realm scope
+  mapping was restored and the browser session was logged out afterward.
+- Corrected typed Keyman identity handling at the shared normalization boundary:
+  LLM or administrator-supplied institutions remain `organization` actors and
+  meso units remain `team` actors instead of being written as `person_name`.
+  Their affiliation and Node/Entity/Relationship/Direction qualifiers survive
+  PostgreSQL persistence, normalized ontology/semantic indexing, adaptive KG
+  lookup, and the administrator editor. Legacy four-column person input remains
+  compatible. Added organization/team KG regression coverage.
+- Added a real admin browser mutation regression: an explicit organization
+  Keyman can be entered and saved from the React administrator popup, returns
+  HTTP 200 without `person_name` coercion, and the test restores the original
+  persisted state.
+- Completed a selected-browser, direct-PostgreSQL local replay with an
+  isolated reader-only Keyverse test configuration. The workspace exposed 100
+  authorized document choices; one opened nine-bead detail rendered zero
+  observed connectors and zero relatedness entries, so returned-item order did
+  not create a history line. The local session was logged out and the isolated
+  realm's temporary scope mapping was restored. This is not production
+  Keyverse, a business account, passkey, or Figma-parity release acceptance.
+- Corrected the remaining Event Lineage ambiguity: inferred/predicted
+  relatedness is no longer appended to the observed event bead chain. The API
+  exposes it as `event_lineage.relatedness`, and the React popup presents it in
+  a separately labelled panel. A chronological connector now requires an
+  explicit observed `row_successor` marker, never adjacent returned cards.
+- Reconciled the general-user/customer product-surface ADR and design QA with
+  the now-readable Figma MU-02 semantic-search and MU-14 document-detail
+  frames. The live React surface retains authorized API data, customer-master
+  evidence, and Lineage semantics while adopting the target card/canvas/
+  selection language; pixel parity is deliberately not claimed for dynamic
+  data or the required extended detail panels.
+- Extended boundary tests to reuse compose-guard script path constants (`COMPOSE_YAML_PATH`, `WORKER_PATH`, `WORKER_DOCKERFILE_PATH`) so identity checks are robust regardless of pytest working directory.
+
+- Composer identity boundary assertions now load `compose_identity_boundary_contract.json`
+  from repository resources so `compose.yaml` hardening, worker hardening, and
+  contract tests share one source of truth. This keeps forbidden key fragments,
+  boundary key prefixes, and worker hardening lines from drifting between
+  script and test surfaces.
+- Fixed boundary script bug by reading forbidden key prefixes from the product
+  contract section; identity guard now runs cleanly from repository root with the
+  same contract payload.
+- Made compose boundary guard deterministic across working directories by loading
+  `compose.yaml` and worker files from script location (`COMPOSE_ROOT`) rather
+  than process CWD; the guard now passes both `python scripts/check...` and
+  `cd scripts && python check...`.
+- Hardened boundary regression tests to validate the CWD-independent guard path
+  and explicit product-block plain-value boundary failure path by targeting the
+  script's `COMPOSE_YAML_PATH` directly.
+- Fixed the false Lineage projection caused by admitting every inferred or
+  predicted edge into the selected document's bead chain. A relatedness bead
+  now requires the selected document to be an endpoint, while chronological
+  connectors remain limited to adjacent observed events.
+- Fixed full analysis replacement so it merges durable, verified organization
+  aliases before replacing KG and semantic rows. Interactive alias verification
+  now survives both direct KG rebuilds and complete source reanalysis.
+- Added an administrator-only `게시글 권한 통제` screen and a durable
+  `Lineage 검토` screen. Administrators can review same-corp inferred or
+  predicted candidates, exclude or restore a relation, and record a reason;
+  observed transitions remain immutable. Decisions are stored in the
+  normalized `analysis_lineage_edge_overrides` table, applied to both Lineage
+  and document KG responses, and emitted through the PostgreSQL outbox.
+- Added the bounded `entity_role_classification` product task. Selected
+  documents can have their partner/competitor/customer/end-customer/market
+  subject classified by the general LLM contract; only common ENUM roles or
+  allowlisted English aliases are accepted, and model abstention falls back to
+  the observed title classifier without creating Lineage transitions.
+- The current full suite passes 317 tests. The explicitly shipped product
+  source gate is 100% line-and-branch covered (6,986 statements / 2,732
+  branches), while the whole-tree report is 98% because it also counts the
+  retained unshipped issuer-shaped audit artifact, the guard script, and test
+  modules. The browser build is verified from the actual `web/` project with
+  `npm run build`.
+- Added a reader-friendly `업무 홈` as the default authenticated React
+  surface. It summarizes recent work, evidence-backed customer relationships,
+  reports, and the actor's effective scope; operator KPI and event-queue
+  diagnostics are now limited to the administrator workspace.
+- Browser acceptance now captures the authenticated home surface and checks
+  the reader contract explicitly: a non-admin actor sees only 업무 홈,
+  업무공간, and 고객 화면, with no administrator navigation or diagnostic
+  KPI strip. The real-data detail wait was extended to cover slow PostgreSQL
+  responses, so lineage assertions use the response for the selected document
+  rather than an empty timeout fallback.
+- Added the ADR and traceability contract for customer-master semantics:
+  customer accounts, affiliate edges, and account-to-document evidence remain
+  normalized PostgreSQL data, then enter the actor-filtered KG through
+  `schema:Organization`, `schema:subOrganization`, and `schema:about` terms.
+- Document-detail issue work is now queued through the PostgreSQL outbox and
+  enriched off the HTTP response path, so a general user can open a document
+  while LLM-authored To Do and calendar content is still pending.
+- Added administrator-only bounded LLM enrichment controls. The React operator
+  surface can queue `keyman`, product, appointment, or combined work for at
+  most 64 documents; PostgreSQL outbox state and aggregate status make the run
+  auditable. Existing user Keyman overrides are preserved, and an empty live
+  model response is stored as an explicit abstention instead of fabricated
+  people. A direct PostgreSQL one-document smoke completed with zero failures.
+- Added the full TEPP APA 7th research register to `docs/doctoring` and added
+  four open document-understanding papers to the Local Zotero provenance set.
+  The current Connector/PostgreSQL verification stores 12 parents and 12
+  original attachments with digests; the attachment ceiling is 32 MiB so the
+  larger open multimodal paper is retained without disabling bounded transfer.
+- Expanded the TEPP doctoring register with the task-level event/TimeML,
+  temporal-reasoning, cross-classified/multiple-membership, recovery,
+  reproducibility, concurrency, GraphML/API, and privacy/security references
+  cited by the current TEPP research notes, all in APA 7th form. This records
+  the research basis without claiming that LineageWeave owns TEPP's future Rust
+  estimator.
+
+- Added separate authenticated customer and administrator screens to the React
+  product. `/api/customers` filters normalized customer-master accounts and
+  affiliate edges by actor-visible document evidence. The admin mode uses a
+  server-only Keyverse Admin REST adapter to list same-corp/unassigned accounts
+  and update only the verified corp, PU, and `lineageweave-web` client roles;
+  cross-corp targets, missing roles, malformed claims, credentials, and tokens
+  are rejected or withheld.
+- Added the customer/admin HTTP contracts and a fresh source-scoped run passed
+  291 tests with 100% line-and-branch coverage (6,497 statements / 2,522
+  branches). React production build verification remains part of the gate.
+- Production `product` Compose profile now hard-fixes Keyverse OIDC variables to
+  empty strings (`KEYVERSE_ISSUER`, `LINEAGEWEAVE_OIDC_CLIENT_ID`,
+  `LINEAGEWEAVE_OIDC_CLIENT_SECRET`, `LINEAGEWEAVE_OIDC_REDIRECT_URI`,
+  `KEYVERSE_CA_BUNDLE`) and keeps the model proxy 404-ing OIDC discovery,
+  auth, and token routes. New boundary tests assert the compose profile and
+  worker contract remain strict at runtime.
+- Added `scripts/preflight_product_compose.sh` to make product compose startup
+  fail fast when Keyverse identity hardening is not in place and when the
+  compose configuration itself is invalid.
+- Added an explicit integrated semantic-search action for the document list.
+  It derives a bounded live query embedding, ranks only direct-PostgreSQL
+  vectors from documents authorized for the current actor, and never presents
+  lexical fallback results as semantic evidence. The in-process candidate scan
+  reports its ceiling instead of silently claiming corpus completeness.
+- Repeated content reads now compare the normalized DOM/format/asset rows and
+  leave unchanged rows in place, preserving their source-linked embeddings;
+  an actual content change still invalidates stale vectors through the existing
+  foreign-key cascade. Semantic-related retrieval now reads the same bounded,
+  actor-authorized PostgreSQL candidate set as semantic search instead of
+  materializing the full KG. A live content-view round trip retained all 29
+  indexed chunks and returned an inferred neighbor in 0.19 seconds.
+- Full KG replacement now carries forward only persisted, verified
+  `organization_alias` additions and regenerates their semantic assertions.
+  Metadata-only method-paper refreshes also retain a prior Zotero attachment
+  key, status, and digest instead of downgrading a stored original to
+  `not_attempted`.
+- Search results no longer appear as a fabricated Event Lineage. The workspace
+  now renders only the selected document's evidence-bound event beads, and it
+  draws connectors only between consecutive observed events. Inferred and
+  predicted relatedness remains visibly separate rather than becoming a
+  sequence claim. A focused UI contract, browser-script syntax check, and the
+  React production build pass; the managed-browser matched-content flow is
+  accepted with the divergences recorded in `design-qa.md`.
+- The selected-document guard now suppresses stale event beads while a new
+  search result is loading, and persisted predicted neighbors are ranked by
+  title-token overlap before the stable document-number fallback. This keeps
+  list order and coarse entity-role matches from masquerading as chronology;
+  the direct detail path is covered by the same full test gate.
+- The login gate now presents Keyverse-first, organization-policy registration
+  guidance and no longer directs end users to a hard-coded local endpoint. The
+  passwordless registration API remains fail-closed without a configured
+  Keyverse registration service.
+- A fresh current-tree run passed all 287 tests at 100% line-and-branch
+  coverage (6,434 statements and 2,498 branches). When no explicit
+  `LINEAGEWEAVE_TEST_DSN` is supplied, pytest uses a validated
+  process-owned PostgreSQL test database so database-scoped locks and analysis
+  tables cannot contaminate the suite. This is local source evidence, not
+  production or release acceptance.
+- The target-Figma paired managed-browser comparison is accepted with
+  documented divergence. A configured production Keyverse real-account
+  login, callback, session, logout, and matched content parity remain required
+  release gates; `design-qa.md` keeps that distinction explicit.
+- Document search now queries the complete PostgreSQL-backed, ABAC-filtered
+  corpus and keeps pagination server-side instead of filtering only the first
+  100 browser rows.
+- Verified organization aliases now persist through a two-node/one-edge
+  incremental KG transaction mapped to SKOS `exactMatch`; the request no
+  longer loads or rewrites the complete graph. The Compose SearXNG service and
+  live product LLM produced and stored a cited `verified` decision in the
+  normalized inference tables.
+- Historical loopback Keyverse ceremony records are retained as development
+  evidence only. They do not satisfy the current production HTTPS, real-account
+  browser login/callback/session/logout acceptance gate.
+- Live multimodal inspection evidence now contains seven non-empty OCR/model
+  results across three source documents, with no placeholder result; labels
+  remain normalized per asset relation.
+- Report calibration now uses the report ID as the psychometric observation
+  unit, so the same PU/team/project label cannot mix weekly and monthly
+  responses. A live reanalysis of all 80 persisted slices completed all 80
+  LLM-as-a-Judge labels and 400 package-produced fast-mlsirm linked scores;
+  the local connector exercised the installed Rust-backed EAP path.
+- Report judging now retries each slice independently up to three times. A
+  transient gateway failure can no longer trip a global circuit that marks
+  every later report unavailable; the live reanalysis completed 80 of 80
+  Judge decisions after this repair.
+- Report persistence now removes score rows whose report no longer exists,
+  preventing stale FIPC/CAT artifacts from surviving a changed report window.
+  The real PostgreSQL recheck ended with 80 reports, 400 scores across 80
+  report observations, zero orphan scores, and zero reports without scores.
+- Compose now owns its SearXNG settings in a small pinned custom image and
+  seeds the upstream image's declared config volume through an entrypoint;
+  `docker compose up --remove-orphans --wait` passed Valkey, stand-in, and
+  SearXNG health checks without leaving a duplicate project name.
+- The document index now returns authorized corp/PU metadata so the bundled
+  browser acceptance flow selects a manageable document before exercising
+  visibility mutation; the updated click-by-click run restored visibility to
+  public with two HTTP 200 responses.
+- Compose product and worker services now optionally load the operator
+  `${LINEAGEWEAVE_ENV_FILE:-$HOME/.env}` file, preventing a configured live
+  model gateway from appearing unset inside the container while keeping the
+  secret file outside the image and repository.
+- Added bounded DOM-semantic embedding indexing and actor-filtered relatedness.
+  The index uses verified HTTPS, source-linked chunks, normalized PostgreSQL
+  model/vector relations, metadata-only outbox events, and inferred
+  `semantic_related` results that never become document succession. The new
+  module has eight focused contracts and 100% line-and-branch coverage. A
+  bounded direct-PostgreSQL check retained a high known-thread match and now
+  suppresses low-score retrieval with a multilingual-calibrated 0.40 floor, using
+  aggregate-only evidence. The current source-hash runtime coverage run passed;
+  real-Keyverse route acceptance and labeled retrieval evaluation remain
+  release evidence.
+- R&R model output now keeps organizations as PROV agents and represents each
+  document/agent/role direction with PROV qualified attribution. Person
+  affiliations use ORG Membership, while supported organization, rank, and
+  title qualifiers prevent same-name people from collapsing into one KG node.
+- R&R attribution metadata now keeps the model-supplied `node`, `entity`,
+  `relationship`, and `direction` values in persisted KG attribution metadata
+  instead of reducing them to a display label. Cold visibility, Keyman, ticket,
+  and LLM-Keyman mutations also avoid rebuilding the full snapshot before
+  returning.
+- Full snapshot replacement now uses MVCC-friendly transactional `DELETE`
+  ordering, so long analysis writes do not take an `AccessExclusiveLock` that
+  freezes live document reads; a versioned staging table remains the upgrade
+  path if delete/vacuum cost becomes material.
+- Production snapshot writers now release schema-migration locks before the
+  long data transaction, then reacquire the transaction-scoped KG lock. Test
+  and library callers retain their existing transaction ownership.
+- Keyman normalization and its React editor preserve optional rank/title
+  qualifiers (`person | organization | rank | title`) for the same identity
+  boundary.
+- Local Zotero storage reuses an exact title/source parent and verifies its
+  matching attachment URL and SHA-256 before writing, preventing repeated
+  analysis runs from creating another copy of the same method paper.
+- OA downloads now send an identifying User-Agent and the Connector attachment
+  metadata carries its `sessionID`; this preserves NIST-hosted originals that
+  reject Python's default client and completes eight verified parent/original pairs.
+- Historical bundled-browser runs exercised full-corpus search, detail, cited
+  organization-alias verification, evidence drawer, persisted OCR image search,
+  and a WCAG 2 A/AA scan with zero violations and zero incomplete results. The
+  current local run uses an explicit development actor; these artifacts are
+  not user-selected-browser, production-Keyverse, or Figma acceptance evidence.
+- Historical source-hash-guarded release-gate rechecks reached 100% coverage
+  for all four shipped Python modules. The latest independently captured
+  isolated snapshot passed 258 tests and one intentional skip at 100% (5,952
+  statements and 2,316 branches). After the closed-claim and public-origin
+  Keyverse repairs, a new direct-PostgreSQL run waited on a database lock after
+  213 passes and one skip. That interrupted run is now superseded by the fresh
+  263-test source-hash snapshot above. Python compilation and the React build
+  remain required companion checks; this does not claim a real end-user
+  Keyverse login.
+- Document detail uses a native modal dialog, including focus containment,
+  Escape close, backdrop close, and an in-dialog error surface.
+- Earlier release-gate recheck: 235 tests passed, the React production build
+  and Python compilation succeeded, and the prior source-scoped
+  branch-coverage command reported 100% for `lineageweave.py`,
+  `lineageweave_server.py`, and the Compose worker without exclusions.
+  Bundled-browser E2E artifact also exercised the React login redirect,
+  document popup, evidence drawer close, KG lookup, and admin visibility
+  mutation against PostgreSQL. It is historical local evidence only and does
+  not replace current user-selected-browser production acceptance.
+- Made the existing weekly/monthly report API usable as a report drilldown:
+  operators can inspect the bounded judge rationale and linked factor scores,
+  then open one included document. The authenticated workspace also shows the
+  existing Valkey outbox health signal instead of leaving it API-only.
+- The login gate now starts Keyverse passkey enrollment from the product
+  (`POST /api/register`). The IdP has no signup form; the product requests a
+  password-free enrollment challenge and finishes WebAuthn in the LineageWeave
+  page (`POST /api/register/complete`) before Keyverse SSO.
+- Limited CLI persist (`--limit`) upserts the incoming subset and durable
+  Keyman only. It no longer replaces the live document snapshot, so a
+  `--limit 20` smoke writer cannot wipe a prior full-table LLM Keyman.
+- Local Keyverse passkey pages are opened on `localhost`. Browsers reject
+  `127.0.0.1` as a WebAuthn RP ID (`SecurityError: invalid domain`).
+- Local Zotero loopback HTTP is accepted without `LINEAGEWEAVE_DEV_MODE`.
+  CLI persist no longer records every OA paper as `invalid_url`.
+- R&R parse treats meso labels such as 설계팀 as `org:OrganizationalUnit`
+  with `affiliated_organization_name`, expands abbreviated organization
+  names from Searxng evidence, and rejects `[image: content unavailable]`
+  as a vision result.
+- Added durable LLM/user Keyman provenance and a bounded Local Zotero original
+  attachment path. Eight method-paper parents and eight OA originals were stored
+  in the live verification run with SHA-256 digests.
+- Removed the personal local DSN from public defaults and fixtures; source
+  access now uses runtime `LINEAGEWEAVE_DSN`/`LINEAGE_SOURCE_TABLE` settings.
+- Historical runtime verification expanded to 209 collected tests with 100%
+  line and branch coverage across the then-validated shipped Python product and
+  Compose worker modules; the current release-gate recheck above supersedes it
+  for present-tense readiness.
+- Serialized full knowledge-graph replacements with a transaction-scoped
+  PostgreSQL advisory lock, replaced reader-blocking KG truncation with
+  transaction-atomic node-then-edge deletes, and check edge schema columns
+  before issuing a legacy migration DDL statement.
+- Added partial direct-PostgreSQL lineage-edge indexes for inferred/predicted
+  document ordering. A cold, actor-filtered document list no longer performs a
+  full edge scan for every visible document.
+- Hardened Keyverse claim projection so a malformed account-attribute envelope
+  is rejected as unauthenticated rather than reaching attribute parsing.
+- Added a normalized PostgreSQL ontology and semantic layer for KG namespaces,
+  terms, domain/range rules, RDF type assignments, and evidence-preserving
+  predicate assertions. Event chat now reads only the actor-filtered semantic
+  subgraph and fails closed when that grounding is unavailable.
+- Customer-master account-to-document evidence links now scope customer KG
+  nodes, affiliate relations, and browser responses; unscoped model output is
+  retained out of the visible KG.
+- Separated the two-sided Keyman adapter from general product enrichment.
+  Appointment extraction, customer-master updates, issue-work content, and
+  report judgement now use an allowlisted structured Chat Completions contract
+  instead of the Keyman endpoint or prompt.
+- Product login is authorization-code PKCE against the configured Keyverse
+  issuer; corp and PU remain verified session attributes. When live Keyverse
+  is unset, login fails closed; the shipped Compose worker has no issuer
+  contract and returns 404 for identity-shaped routes.
+- CLI persist merges existing predicted `entity_role_affinity` edges back
+  after a structure rebuild so popup-written relatedness is not truncated.
+- Keyman click loads a bounded persisted KG neighborhood (people, companies,
+  events, posts, adaptive per-node depth) instead of the single-document VOC
+  snippet from a cold API start.
+- KG neighborhood `depths` maps stringify node identifiers so HTTP JSON
+  cannot fail on tuple keys.
+- Added a bounded ontology-relation verifier: observed internal KG evidence
+  and optional SearXNG evidence are supplied to the product LLM, which can
+  only return verified, rejected, or insufficient without promoting an
+  inferred relation automatically.
+- Persist now truncates `analysis_customer_document_links` together with
+  `analysis_customer_accounts` so a second analyzer run does not fail the
+  PostgreSQL parent-FK TRUNCATE rule.
+- Meeting titles without an in-text date now take the document-number date
+  (or first event timestamp) as the 고객 약속 date. The document popup
+  overlays persisted appointment rows so the 약속 list is not empty.
+- Two-sided Keyman no longer keeps the same person/org on 사측 and 상대측.
+  Title-bracket organizations stay on the counterpart; the author fills 사측
+  when that split would otherwise leave it empty.
+- Opening a post with pending To Do/calendar stubs asks the product LLM for
+  authored bodies and upserts those rows so the popup is not a template stub.
+- Customer-master persist rejects entity-role labels used as account names and
+  keeps only group/national/HQ/plant organizations with parent-child edges
+  that the semantic layer maps as schema.org/subOrganization lineage clues.
+- `/api/analytics`, `/api/reports`, and the document list/popup no longer
+  rebuild or serialize the full persisted graph on a cold API start. Workspace
+  metrics, period reports, and a single post load from bounded PostgreSQL
+  queries so recapture does not time out.
+- Event Lineage now renders a beads-on-a-string DAG of observed events plus
+  persisted inferred/predicted relatedness. Predicted entity-role affinity is
+  stored as a non-transition. Popup chat cites ontology/semantic-layer URIs
+  and still slides VOC evidence into the source drawer.
+- Weekly/monthly report slices expose FIPC/CAT linked-score families
+  (일반 경영 / 산업별 / 영업 Lead) in the workspace so every emitted slice
+  shows its judged verdict and linked factor coverage.
+- The report judge now receives the slice body and source-document writings.
+  Factor-item responses come from that LLM verdict, not title-token
+  heuristics. Local fast-mlsirm persists package EAP scores only; otherwise
+  the report remains explicitly unlinked.
+- Event-lineage chat citations carry a VOC `evidence_id`. Clicking a
+  non-ontology citation opens the sliding source drawer; the evidence
+  lookup falls back to the document's observed row when the cited handle is
+  not a source guid.
+- Customer-master persist completes a group → national → HQ → plant
+  affiliate ladder. The workspace tree and Keyman KG walk attach those
+  parent/child clues instead of a single parent→plant hop.
+- OA method papers used by mixed-body extract and inferred-relation
+  verification are posted to the operator-managed Local Zotero Connector when
+  that API is reachable; an unreachable or rejected write is persisted as that
+  outcome and is never labeled stored.
+- When `LINEAGEWEAVE_MLSIRM_URL` is unset, report linking uses a sibling
+  ContextualWisdomLab/fast-mlsirm install as an owned local connector if that
+  interpreter is present.
+- Added a milestone-2 real-data execution run: `lineageweave.py --table
+  $LINEAGE_SOURCE_TABLE --write-reports` now builds the configured-source
+  payload with weekly/monthly report slices and persisted linked scores.
+- Added product transport availability mode metadata: when LLM gateways are
+  unavailable, analysis still completes with deterministic fallback and all
+  unfulfilled tasks marked `unavailable` rather than blocking snapshot writes.
+
+## 0.2.9 - 2026-08-13
+
+- Issue tickets persist a To Do and a calendar item with LLM-authored content.
+  Appointment extract, LLM customer-master / affiliate-tree lineage clues, and
+  weekly/monthly PU·팀·프로젝트 reports with dichotomous LLM-as-a-Judge
+  scores plus owned FIPC/CAT linking over 3NF 일반 경영 / 산업별 / 영업 Lead
+  factors are shipped. Inferred edges stay non-transitions.
+- The source line retains no Compose OIDC fallback: the worker is model-task
+  only, while Keyverse remains the sole identity provider for the product.
+
+## 0.2.8 - 2026-08-13
+
+- Removed the mistakenly restored Compose OIDC issuer from the release worker.
+  The worker now exposes only health and live-model task routes; Keyverse is
+  the sole identity provider and the product remains its relying party.
+- Added a direct-PostgreSQL inline-image/markup marker to the bounded source
+  projection. It detects a data URI or SVG even when it appears after the
+  short metadata prefix, while the graph and browser continue to receive only
+  byte length, prefix, and classification metadata.
+- Re-persisted the direct-source snapshot without exporting source content;
+  the release evidence now records the marker-aware classification path.
+
+## 0.2.7 - 2026-08-13
+
+- Removed the invalid local OIDC fallback from the Compose worker. A missing
+  Keyverse issuer now fails the product login start closed; the worker exposes
+  only health and live-model task routes.
+- Worker tests assert that discovery, authorization, token, and introspection
+  return `404` rather than completing a local PKCE exchange.
+
+## 0.2.6 - 2026-08-13
+
+- Added a KG-scope regression that removes hidden evidence and document
+  metadata from shared graph entities.
+- Kept the Keyverse boundary external even in local development: an
+  operator-provisioned development issuer is required for login and is never
+  substituted by the model worker.
+
+## 0.2.5 - 2026-08-13
+
+- The Compose HTTP worker forwards model tasks only. It has no local account,
+  client, token, tenant claim, discovery, authorization, token, or
+  introspection implementation; an unconfigured Keyverse issuer fails closed.
+
+## 0.2.4 - 2026-08-13
+
+- Closed a shared-KG authorization disclosure path: retained shared nodes now
+  expose only actor-visible document scope, and KG relations whose evidence is
+  outside the actor-visible document, row, or thread scope are suppressed.
+- Added direct product-flow, Keyverse relying-party, PostgreSQL persistence,
+  Valkey protocol, worker, and HTTP failure-contract tests. The measured
+  branch-coverage baseline is 90%; this is reported as measured, not rounded
+  up to a 100% claim.
+
+## 0.2.3 - 2026-08-13
+
+- Removed the local OIDC issuer from the Compose worker. It now forwards live
+  model tasks only; it cannot create an account, client, token, or tenant
+  claim. Browser authentication remains with the configured Keyverse issuer.
+- Hardened the explicit local Keyverse HTTP exception: both development
+  switches and an allowlisted loopback or Docker host-bridge origin are
+  required. Production remains HTTPS-only.
+- Added the Docker host-gateway mapping for a direct host-local PostgreSQL
+  connection, a product health check, and loopback-only published service
+  ports by default.
+- Removed the synthesized worker bearer token; an operator-supplied worker
+  token is forwarded only when one is actually configured.
+- Added application-level direct-database and worker HTTP contract tests, plus
+  a rebuilt-container acceptance check for PostgreSQL, authorized inline
+  assets, Valkey, and the worker's no-identity boundary.
+
+## 0.2.2 - 2026-08-13
+
+- Replaced the product password/session relay with Keyverse authorization-code
+  OIDC using S256 PKCE, confidential-client exchange, verified discovery and
+  introspection, exact issuer/audience/client/expiry enforcement, and opaque
+  token-bounded local sessions. `org` and `workspace` now map to corp and PU
+  only after token validation; only an explicitly enabled local development
+  actor can bypass the external identity boundary.
+- Added on-demand, document-authorized inline-image OCR/object inspection with
+  strict raster signatures, base64 validation, and a 6 MiB decoded-size limit.
+  A real direct-PostgreSQL image completed a verified live-model OCR call.
+- Added `truststore` platform TLS verification with an optional
+  `LLM_GATEWAY_CA_BUNDLE`; insecure certificate contexts are removed.
+- Normalized inspection persistence: label names are catalogued once and
+  image-specific descriptions live on the inspection-label relation. Added
+  tenant-scoped OCR/object search and metadata-only outbox events.
+- Added ADR-0002 and ADR-0003, and corrected the worker documentation: Keyman requires the
+  direct gateway, while Compose is a no-identity live-model proxy for supported
+  event-chat and image-inspection paths.
+- Added a multi-stage product container and opt-in Compose profile. The container
+  serves the compiled React app, connects directly to PostgreSQL, and reaches
+  Valkey and the worker through service DNS.
+
+## 0.2.1 - 2026-08-13
+
+- Product API loads the persisted PostgreSQL snapshot before rebuilding so a
+  restart does not wipe LLM Keyman rows. Structure-only CLI rebuilds keep
+  existing LLM/user Keyman instead of truncating them away.
+- React login reads the form fields instead of a shadowed `document`
+  binding, and the Vite proxy targets the product API on port 18082.
+- The document popup loads even when `/content` fails, and the content
+  manifest no longer 500s the whole detail view.
+- Workspace KPIs reuse persisted run counts when row nodes are not in
+  memory. Keyman clicks synthesize a neighborhood when the stored KG has
+  no person node. Event chat uses persisted document events and opens
+  the cited source row.
+- Affiliate clues are company/PU hierarchies persisted in
+  `analysis_affiliate_edges`, not title-split fragments. Structure rebuilds
+  persist the live-row knowledge graph without wiping LLM Keyman.
+
+## 0.2.0 - 2026-08-13
+
+- Replaced the static viewer path with a compiled React workspace served by the
+  direct-PostgreSQL HTTP service.
+- Added Keyverse session gating, document-scoped evidence/content routes,
+  event-lineage chat, ticket/visibility/Keyman mutations, and paged document
+  browsing.
+- Added persisted people/organization/PU/event/document KG nodes and explicit
+  cross-PU, cross-company, and same-PU cross-company relations.
+- Added KG scope filtering, inline-image metadata handling, Compose worker
+  contract, ADR, architecture, and traceability documentation.
+- Added adaptive per-node KG depth, a real model-gateway Compose proxy with no
+  sample identity/recorded answer, and a PostgreSQL outbox to Valkey Stream
+  event queue.

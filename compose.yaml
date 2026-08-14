@@ -1,0 +1,101 @@
+name: lineageweavem2
+services:
+  lineageweave:
+    profiles: ["product"]
+    env_file:
+      - path: ${LINEAGEWEAVE_ENV_FILE:-${HOME}/.env}
+        required: false
+    build:
+      context: .
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${LINEAGEWEAVE_BIND_ADDRESS:-127.0.0.1}:${LINEAGEWEAVE_PORT:-8000}:8000"
+    environment:
+      LINEAGEWEAVE_HOST: 0.0.0.0
+      LINEAGEWEAVE_PORT: 8000
+      LINEAGEWEAVE_DSN: ${LINEAGEWEAVE_DSN:-}
+      LINEAGE_SOURCE_TABLE: ${LINEAGE_SOURCE_TABLE:-}
+      # The product Compose profile never starts an identity authority.
+      LINEAGEWEAVE_DEV_MODE: "0"
+      LINEAGEWEAVE_COOKIE_SECURE: "1"
+      LINEAGEWEAVE_DEV_ACTOR_JSON: ${LINEAGEWEAVE_DEV_ACTOR_JSON:-}
+      LINEAGEWEAVE_VALKEY_URL: redis://valkey:6379/0
+      LINEAGEWEAVE_COMPOSE_STANDIN_URL: http://lineage-http-standin:8080
+      LINEAGEWEAVE_PRODUCT_LLM_TIMEOUT: ${LINEAGEWEAVE_PRODUCT_LLM_TIMEOUT:-120}
+      LINEAGEWEAVE_REPORT_JUDGE_TIMEOUT: ${LINEAGEWEAVE_REPORT_JUDGE_TIMEOUT:-15}
+      LINEAGEWEAVE_REPORT_REFRESH_MAX_SLICES: ${LINEAGEWEAVE_REPORT_REFRESH_MAX_SLICES:-3}
+      LINEAGEWEAVE_REPORT_REFRESH_MAX_ATTEMPTS: ${LINEAGEWEAVE_REPORT_REFRESH_MAX_ATTEMPTS:-1}
+      KEYMAN_MODEL: ${KEYMAN_MODEL:-gpt-4.1-mini}
+      LINEAGEWEAVE_SEARXNG_URL: ${LINEAGEWEAVE_SEARXNG_URL:-http://searxng:8080}
+      SEARXNG_CA_BUNDLE: ${SEARXNG_CA_BUNDLE:-}
+    depends_on:
+      valkey:
+        condition: service_healthy
+      lineage-http-standin:
+        condition: service_healthy
+      searxng:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+  valkey:
+    image: valkey/valkey:8-alpine
+    command: ["valkey-server", "--appendonly", "yes"]
+    volumes:
+      - valkey_data:/data
+    ports:
+      - "${LINEAGEWEAVE_VALKEY_BIND_ADDRESS:-127.0.0.1}:${LINEAGEWEAVE_VALKEY_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  lineage-http-standin:
+    env_file:
+      - path: ${LINEAGEWEAVE_ENV_FILE:-${HOME}/.env}
+        required: false
+    build: ./compose
+    ports:
+      - "${LINEAGEWEAVE_STANDIN_BIND_ADDRESS:-127.0.0.1}:${LINEAGEWEAVE_STANDIN_PORT:-18081}:8080"
+    environment:
+      LINEAGEWEAVE_COMPOSE_STANDIN: "1"
+      KEYMAN_MODEL: ${KEYMAN_MODEL:-gpt-4.1-mini}
+      VALKEY_URL: redis://valkey:6379/0
+      KEYVERSE_ISSUER: ""
+      KEYVERSE_BASE_URL: ""
+      KEYVERSE_CA_BUNDLE: ""
+      KEYVERSE_ADMIN_TOKEN_URL: ""
+      KEYVERSE_ADMIN_USERNAME: ""
+      KEYVERSE_ADMIN_PASSWORD: ""
+      KEYVERSE_REGISTRATION_URL: ""
+      KEYVERSE_REGISTRATION_TOKEN: ""
+      LINEAGEWEAVE_OIDC_CLIENT_ID: ""
+      LINEAGEWEAVE_OIDC_CLIENT_SECRET: ""
+      LINEAGEWEAVE_OIDC_REDIRECT_URI: ""
+    depends_on:
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  searxng:
+    build: ./compose/searxng
+    image: lineageweave-searxng:local
+    ports:
+      - "${LINEAGEWEAVE_SEARXNG_BIND_ADDRESS:-127.0.0.1}:${LINEAGEWEAVE_SEARXNG_PORT:-18888}:8080"
+    environment:
+      SEARXNG_BIND_ADDRESS: 0.0.0.0
+      SEARXNG_PORT: 8080
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  valkey_data:

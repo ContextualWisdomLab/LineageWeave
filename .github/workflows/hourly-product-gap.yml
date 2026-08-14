@@ -1,0 +1,415 @@
+name: Hourly Product Gap Proposal
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Evaluate the queue and task contract without model or PR work
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    - cron: "17 * * * *"
+
+concurrency:
+  group: hourly-product-gap-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  DEFAULT_BRANCH: main
+  OPENCODE_VERSION: "1.17.13"
+  OPENCODE_SHA256: 157afa289d1a8d9372de0ce19ac726119b937a1f6b201808d46f06e4e59bb348
+  OPENCODE_MODEL: nvidia-nim/nvidia/llama-3.3-nemotron-super-49b-v1.5
+  OPENCODE_TIMEOUT_SECONDS: "900"
+  OPENCODE_KILL_GRACE_SECONDS: "30"
+  MAX_CHANGED_FILES: "40"
+  MAX_DIFF_BYTES: "500000"
+  MAX_PR_TITLE_BYTES: "120"
+  MAX_PR_BODY_BYTES: "20000"
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      dispatch: ${{ steps.gate.outputs.dispatch }}
+      reason: ${{ steps.gate.outputs.reason }}
+      has_changes: ${{ steps.proposal.outputs.has_changes }}
+      base_sha: ${{ steps.proposal.outputs.base_sha }}
+      patch_sha256: ${{ steps.proposal.outputs.patch_sha256 }}
+      changed_files: ${{ steps.proposal.outputs.changed_files }}
+      diff_bytes: ${{ steps.proposal.outputs.diff_bytes }}
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+    env:
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+    steps:
+      - name: Enforce one-open-PR gate
+        id: gate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NIM_CONFIGURED: ${{ secrets.NVIDIA_NIM_API_KEY != '' }}
+        run: |
+          set -euo pipefail
+          if ! open_prs="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 1 --json number)"; then
+            echo 'dispatch=false' >>"$GITHUB_OUTPUT"
+            echo 'reason=pull_request_inventory_unavailable' >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$(jq 'length' <<<"$open_prs")" -gt 0 ]; then
+            echo 'dispatch=false' >>"$GITHUB_OUTPUT"
+            echo 'reason=open_pull_request' >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$DRY_RUN" = true ]; then
+            echo 'dispatch=true' >>"$GITHUB_OUTPUT"
+            echo 'reason=dry_run' >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$NIM_CONFIGURED" != true ]; then
+            echo 'dispatch=false' >>"$GITHUB_OUTPUT"
+            echo 'reason=nim_api_key_unavailable' >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo 'dispatch=true' >>"$GITHUB_OUTPUT"
+          echo 'reason=ready' >>"$GITHUB_OUTPUT"
+
+      - name: Prepare bounded product-gap task
+        if: steps.gate.outputs.dispatch == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat >"$RUNNER_TEMP/agent-prompt.md" <<'PROMPT'
+          Continue one bounded commercial-quality increment for this product.
+          Read AGENTS.md, CLAUDE.md, ARCHITECTURE.md, README.md, CHANGELOG.md,
+          TRACEABILITY.md, ADRs, tests, and the current working tree. Do not read
+          operator environment files, a runtime database, or credentials.
+
+          First inspect the current business surfaces and choose exactly one
+          buyer-visible product gap that fits one pull request. Prefer a small
+          root-cause fix or a missing verification over a new framework. Preserve
+          the general-user 업무 홈, 업무공간, 고객 화면, server-side Keyverse
+          ABAC/RBAC, evidence-backed Ontology/Semantic Layer, PostgreSQL system
+          of record, HTTP-only TEPP and contextual-orchestrator boundaries, and
+          observed-versus-relatedness separation.
+
+          For model work, retain the Fugu/Conductor/TRINITY distinction between
+          direct routing and bounded deeper orchestration. Do not broaden access
+          lists, recursion, credentials, or merge authority. Do not use a
+          repository write token or any reviewer credential.
+
+          Make one coherent test-first change. Keep database names descriptive
+          two-word-or-longer snake_case, preserve 3NF, update affected ADR,
+          architecture, traceability, and CHANGELOG files, and add a realistic
+          regression test. Never commit, push, merge, release, deploy, or alter
+          reviewer identity. Do not include runtime source identifiers in public
+          files. Run the smallest relevant checks and write PR_MESSAGE.md:
+          title on the first line, then Gap, design, RED/GREEN evidence,
+          verification, APA 7 sources when research changed, version decision,
+          and residual risk.
+          PROMPT
+
+      - name: Record dry-run contract
+        if: steps.gate.outputs.dispatch == 'true' && env.DRY_RUN == 'true'
+        shell: bash
+        run: |
+          {
+            echo "gate_reason=${{ steps.gate.outputs.reason }}"
+            echo
+            cat "$RUNNER_TEMP/agent-prompt.md"
+          } >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Check out protected default branch
+        if: steps.gate.outputs.dispatch == 'true' && env.DRY_RUN != 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install checksum-pinned OpenCode
+        if: steps.gate.outputs.dispatch == 'true' && env.DRY_RUN != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/opencode-linux-x64.tar.gz"
+          curl --fail --silent --show-error --location --proto '=https' \
+            --connect-timeout 10 --max-time 120 \
+            --output "$archive" \
+            "https://github.com/anomalyco/opencode/releases/download/v$OPENCODE_VERSION/opencode-linux-x64.tar.gz"
+          printf '%s  %s\n' "$OPENCODE_SHA256" "$archive" | sha256sum -c -
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          install -D -m 0755 "$RUNNER_TEMP/opencode" "$RUNNER_TEMP/opencode-bin/opencode"
+          echo "$RUNNER_TEMP/opencode-bin" >>"$GITHUB_PATH"
+
+      - name: Configure OpenCode for NVIDIA NIM only
+        if: steps.gate.outputs.dispatch == 'true' && env.DRY_RUN != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat >"$RUNNER_TEMP/opencode.json" <<'CONFIG'
+          {
+            "$schema": "https://opencode.ai/config.json",
+            "share": "disabled",
+            "autoupdate": false,
+            "lsp": false,
+            "mcp": {},
+            "enabled_providers": ["nvidia-nim"],
+            "permission": {
+              "*": "allow",
+              "external_directory": "deny",
+              "task": "deny",
+              "question": "deny",
+              "webfetch": "deny",
+              "websearch": "deny",
+              "bash": {
+                "*": "allow",
+                "curl *": "deny",
+                "wget *": "deny",
+                "ssh *": "deny",
+                "git clone *": "deny",
+                "git fetch *": "deny",
+                "git pull *": "deny",
+                "git commit *": "deny",
+                "git push *": "deny",
+                "git tag *": "deny",
+                "git remote *": "deny",
+                "gh *": "deny"
+              }
+            },
+            "provider": {
+              "nvidia-nim": {
+                "npm": "@ai-sdk/openai-compatible",
+                "name": "NVIDIA NIM",
+                "options": {
+                  "baseURL": "https://integrate.api.nvidia.com/v1",
+                  "apiKey": "{env:NVIDIA_NIM_API_KEY}"
+                },
+                "models": {
+                  "nvidia/llama-3.3-nemotron-super-49b-v1.5": {"tool_call": true}
+                }
+              }
+            }
+          }
+          CONFIG
+          chmod 0400 "$RUNNER_TEMP/opencode.json"
+
+      - name: Run bounded OpenCode proposal
+        if: steps.gate.outputs.dispatch == 'true' && env.DRY_RUN != 'true'
+        shell: bash
+        env:
+          NVIDIA_NIM_API_KEY: ${{ secrets.NVIDIA_NIM_API_KEY }}
+          OPENCODE_CONFIG: ${{ runner.temp }}/opencode.json
+          OPENCODE_DISABLE_AUTOUPDATE: 'true'
+          XDG_CONFIG_HOME: ${{ runner.temp }}/opencode-config
+          XDG_CACHE_HOME: ${{ runner.temp }}/opencode-cache
+        run: |
+          set -euo pipefail
+          prompt="$(cat "$RUNNER_TEMP/agent-prompt.md")"
+          timeout --kill-after="$OPENCODE_KILL_GRACE_SECONDS"s \
+            "$OPENCODE_TIMEOUT_SECONDS"s \
+            env -u GH_TOKEN -u GITHUB_TOKEN -u ACTIONS_ID_TOKEN_REQUEST_TOKEN \
+            -u ACTIONS_ID_TOKEN_REQUEST_URL -u ACTIONS_RUNTIME_TOKEN \
+            -u ACTIONS_RUNTIME_URL -u ACTIONS_RESULTS_URL -u ACTIONS_CACHE_URL \
+            -u GITHUB_ENV -u GITHUB_OUTPUT -u GITHUB_PATH -u GITHUB_STATE \
+            -u GITHUB_STEP_SUMMARY \
+            opencode run "$prompt" --agent build --model "$OPENCODE_MODEL"
+
+      - name: Bound and export proposal patch
+        id: proposal
+        if: steps.gate.outputs.dispatch == 'true' && env.DRY_RUN != 'true'
+        shell: bash
+        env:
+          NIM_SECRET: ${{ secrets.NVIDIA_NIM_API_KEY }}
+        run: |
+          set -euo pipefail
+          base_sha="$(git rev-parse HEAD)"
+          echo "base_sha=$base_sha" >>"$GITHUB_OUTPUT"
+          if [ -z "$(git status --porcelain)" ]; then
+            echo 'has_changes=false' >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git add -A
+          git diff --cached --check
+          if git diff --cached --raw | grep -Eq '(^| )(120000|160000)( |$)'; then
+            echo '::error::Symlink or gitlink proposals are forbidden'
+            exit 1
+          fi
+          if git diff --cached --name-only | grep -Eq '^\.github/workflows/'; then
+            echo '::error::The hourly scheduler is not self-modifiable'
+            exit 1
+          fi
+          changed_files="$(git diff --cached --name-only -z | python3 -c 'import sys; print(sum(bool(item) for item in sys.stdin.buffer.read().split(b"\0")))')"
+          proposal_dir="$RUNNER_TEMP/lineageweave-hourly-proposal"
+          install -d -m 0700 "$proposal_dir"
+          git diff --cached --binary --full-index >"$proposal_dir/proposal.patch"
+          diff_bytes="$(wc -c <"$proposal_dir/proposal.patch" | tr -d '[:space:]')"
+          if [ -n "$NIM_SECRET" ] && grep -a -F -q -- "$NIM_SECRET" "$proposal_dir/proposal.patch"; then
+            echo '::error::The model credential appears in the proposed patch'
+            exit 1
+          fi
+          [ "$changed_files" -le "$MAX_CHANGED_FILES" ]
+          [ "$diff_bytes" -le "$MAX_DIFF_BYTES" ]
+          patch_sha256="$(sha256sum "$proposal_dir/proposal.patch" | awk '{print $1}')"
+          {
+            echo 'has_changes=true'
+            echo "patch_sha256=$patch_sha256"
+            echo "changed_files=$changed_files"
+            echo "diff_bytes=$diff_bytes"
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Upload immutable proposal
+        id: upload
+        if: steps.proposal.outputs.has_changes == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lineageweave-hourly-proposal-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lineageweave-hourly-proposal/proposal.patch
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+          overwrite: false
+
+  verify:
+    needs: propose
+    if: needs.propose.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Check out exact proposal base
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ needs.propose.outputs.base_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+
+      - name: Install locked-environment runner
+        shell: bash
+        run: python -m pip install --disable-pip-version-check --no-cache-dir 'uv==0.12.0'
+
+      - name: Download immutable proposal
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8092
+        with:
+          artifact-ids: ${{ needs.propose.outputs.artifact_id }}
+          path: ${{ runner.temp }}/lineageweave-hourly-proposal
+
+      - name: Apply and verify immutable proposal
+        shell: bash
+        env:
+          EXPECTED_PATCH: ${{ needs.propose.outputs.patch_sha256 }}
+          EXPECTED_BYTES: ${{ needs.propose.outputs.diff_bytes }}
+          EXPECTED_FILES: ${{ needs.propose.outputs.changed_files }}
+        run: |
+          set -euo pipefail
+          patch="$RUNNER_TEMP/lineageweave-hourly-proposal/proposal.patch"
+          actual_patch="$(sha256sum "$patch" | awk '{print $1}')"
+          actual_bytes="$(wc -c <"$patch" | tr -d '[:space:]')"
+          actual_files="$(git apply --numstat "$patch" | wc -l | tr -d '[:space:]')"
+          [ "$actual_patch" = "$EXPECTED_PATCH" ]
+          [ "$actual_bytes" = "$EXPECTED_BYTES" ]
+          [ "$actual_files" = "$EXPECTED_FILES" ]
+          git apply --index "$patch"
+          git diff --cached --check
+          if git diff --cached --raw | grep -Eq '(^| )(120000|160000)( |$)'; then
+            echo '::error::Symlink or gitlink proposals are forbidden'
+            exit 1
+          fi
+          uv lock --check
+          uv run --frozen pytest -q
+          python -m py_compile lineageweave.py lineageweave_embeddings.py lineageweave_server.py
+          npm ci --prefix web
+          npm run coverage --prefix web
+          npm run build --prefix web
+
+  publish:
+    needs: [propose, verify]
+    if: needs.propose.outputs.has_changes == 'true' && needs.verify.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Check out exact proposal base
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ needs.propose.outputs.base_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Download verified proposal
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8092
+        with:
+          artifact-ids: ${{ needs.propose.outputs.artifact_id }}
+          path: ${{ runner.temp }}/lineageweave-hourly-proposal
+
+      - name: Revalidate queue, base, and publish one PR
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ needs.propose.outputs.base_sha }}
+          EXPECTED_PATCH: ${{ needs.propose.outputs.patch_sha256 }}
+          EXPECTED_BYTES: ${{ needs.propose.outputs.diff_bytes }}
+          EXPECTED_FILES: ${{ needs.propose.outputs.changed_files }}
+        run: |
+          set -euo pipefail
+          patch="$RUNNER_TEMP/lineageweave-hourly-proposal/proposal.patch"
+          actual_patch="$(sha256sum "$patch" | awk '{print $1}')"
+          actual_bytes="$(wc -c <"$patch" | tr -d '[:space:]')"
+          actual_files="$(git apply --numstat "$patch" | wc -l | tr -d '[:space:]')"
+          [ "$actual_patch" = "$EXPECTED_PATCH" ]
+          [ "$actual_bytes" = "$EXPECTED_BYTES" ]
+          [ "$actual_files" = "$EXPECTED_FILES" ]
+          git -c http.extraheader="AUTHORIZATION: bearer $GH_TOKEN" fetch --no-tags --depth=1 origin "$DEFAULT_BRANCH"
+          [ "$(git rev-parse FETCH_HEAD)" = "$BASE_SHA" ]
+          open_prs="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 1 --json number)"
+          [ "$(jq 'length' <<<"$open_prs")" -eq 0 ]
+          git apply --index "$patch"
+          git diff --cached --check
+          if [ ! -s PR_MESSAGE.md ]; then
+            echo '::error::PR_MESSAGE.md is required'
+            exit 1
+          fi
+          title="$(sed -n '1p' PR_MESSAGE.md | tr -d '\r')"
+          body_file="$RUNNER_TEMP/pr-body.md"
+          tail -n +2 PR_MESSAGE.md >"$body_file"
+          title_bytes="$(printf '%s' "$title" | wc -c | tr -d '[:space:]')"
+          body_bytes="$(wc -c <"$body_file" | tr -d '[:space:]')"
+          [ -n "$title" ]
+          [ "$title_bytes" -le "$MAX_PR_TITLE_BYTES" ]
+          [ "$body_bytes" -gt 0 ]
+          [ "$body_bytes" -le "$MAX_PR_BODY_BYTES" ]
+          branch="lineageweave-agent/product-gap-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          published=false
+          cleanup() {
+            if [ "$published" != true ]; then
+              gh api --method DELETE \
+                "repos/$GITHUB_REPOSITORY/git/refs/heads/$branch" >/dev/null 2>&1 || true
+            fi
+          }
+          trap cleanup EXIT
+          git switch -c "$branch"
+          git config user.name "lineageweave-product-agent"
+          git config user.email "lineageweave-product-agent@users.noreply.github.com"
+          git commit -m "$title"
+          git -c http.extraheader="AUTHORIZATION: bearer $GH_TOKEN" \
+            push origin "HEAD:refs/heads/$branch"
+          gh pr create --repo "$GITHUB_REPOSITORY" --base "$DEFAULT_BRANCH" \
+            --head "$branch" --title "$title" --body-file "$body_file"
+          published=true

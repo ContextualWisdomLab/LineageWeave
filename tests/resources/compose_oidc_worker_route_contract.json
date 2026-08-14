@@ -1,0 +1,28 @@
+{
+  "routes": [
+    {
+      "path": "/.well-known/openid-configuration",
+      "method": "GET",
+      "expected_status": 404,
+      "expected_body": {"error": "not_found"}
+    },
+    {
+      "path": "/protocol/openid-connect/auth",
+      "method": "GET",
+      "expected_status": 404,
+      "expected_body": {"error": "not_found"}
+    },
+    {
+      "path": "/protocol/openid-connect/token",
+      "method": "POST",
+      "expected_status": 404,
+      "expected_body": {"error": "not_found"}
+    },
+    {
+      "path": "/protocol/openid-connect/token/introspect",
+      "method": "POST",
+      "expected_status": 404,
+      "expected_body": {"error": "not_found"}
+    }
+  ]
+}
