@@ -130,6 +130,12 @@ embeddings. This confirms that the HTML/image path produced persisted analysis
 artifacts; it does not claim that every future asset will be inspectable when a
 configured multimodal provider is unavailable.
 
+The normalized Ontology/Semantic Layer aggregate contains 8 namespaces, 46
+ontology terms, 28 relation rules, 264,750 Knowledge Graph nodes, 838,550
+Knowledge Graph edges, 836,794 semantic edge assertions, and 308,457 semantic
+node assignments. These counts are database evidence only; the browser still
+receives only the actor-authorized, document-evidence-scoped subgraph.
+
 For the administrator LLM-control smoke, start the product against the
 operator's configured direct PostgreSQL source and call the bounded route with
 `{"task":"keyman","limit":1}`. Verify that the response is `queued`, then
