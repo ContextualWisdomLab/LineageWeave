@@ -123,6 +123,13 @@ links, 0 observed chronological edges, and 8 separate relatedness results.
 These are direct-PostgreSQL product-surface results; they are not Keyverse
 login acceptance evidence.
 
+The same read-only runtime aggregate contains 267 normalized content blocks,
+299 HTML/DOM format hints, 7 asset profiles, 7 multimodal inspections with
+non-empty OCR text, 3 persisted object labels, and 29 semantic chunk
+embeddings. This confirms that the HTML/image path produced persisted analysis
+artifacts; it does not claim that every future asset will be inspectable when a
+configured multimodal provider is unavailable.
+
 For the administrator LLM-control smoke, start the product against the
 operator's configured direct PostgreSQL source and call the bounded route with
 `{"task":"keyman","limit":1}`. Verify that the response is `queued`, then
