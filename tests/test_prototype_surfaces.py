@@ -1194,6 +1194,13 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert ".home-columns" in styles
     assert 'id="customerScreen"' in react
     assert "고객 화면" in react
+    assert "근거 연결" in react
+    assert "공개</option>" in react
+    assert "비공개</option>" in react
+    assert "source ·" not in react
+    assert "heuristic" not in react
+    assert ">public<" not in react
+    assert ">private<" not in react
     assert "displayCustomerTotal}개 고객" in react
     assert "고객 정보를 불러오는 중입니다." in react
     assert "customerTreeRows" in react
