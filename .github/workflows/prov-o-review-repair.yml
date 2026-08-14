@@ -1,0 +1,89 @@
+name: Repair PROV-O review findings
+
+on:
+  push:
+    branches:
+      - feat/role-responsibility-agent-ontology
+
+permissions:
+  contents: read
+
+jobs:
+  repair:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout exact feature head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/role-responsibility-agent-ontology
+          persist-credentials: true
+
+      - name: Set up locked Python dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Apply the focused review repair
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("tests/test_prov_o.py")
+          text = path.read_text()
+          if "from pathlib import Path\n\nimport sys\n" not in text:
+              text = text.replace(
+                  "from pathlib import Path\n\nimport pytest\n",
+                  "from pathlib import Path\n\nimport sys\n\nimport pytest\n",
+                  1,
+              )
+          text = text.replace(
+              "    import inspect\n    import lineageweave.prov_o as module\n\n",
+              "    import inspect\n\n    module = sys.modules[\"lineageweave.prov_o\"]\n\n",
+              1,
+          )
+          path.write_text(text)
+
+      - name: Refresh and verify the committed universal lock
+        run: |
+          uv lock
+          uv sync --frozen --extra dev
+
+      - name: Verify focused behavior and 100 percent branch coverage
+        run: |
+          uv run --frozen python -m coverage run --branch --source=lineageweave.prov_o \
+            -m pytest -q tests/test_prov_o.py
+          uv run --frozen python -m coverage report --fail-under=100 lineageweave/prov_o.py
+
+      - name: Verify the real PostgreSQL contract
+        run: uv run --frozen python -m pytest -q tests/test_prov_o_schema.py
+
+      - name: Commit only the reviewed source and lock repair
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .coverage
+          git add tests/test_prov_o.py uv.lock
+          if git diff --cached --quiet; then
+            echo "Review repair is already materialized."
+            exit 0
+          fi
+          git diff --cached --check
+          git commit -m "test: resolve PROV-O review and refresh uv lock"
+          git push origin HEAD:feat/role-responsibility-agent-ontology
