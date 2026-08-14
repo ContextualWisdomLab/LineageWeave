@@ -4073,3 +4073,28 @@ login/callback/session/logout, a reproducible Figma target with paired
 user-chosen-browser comparison, operator-owned TEPP acceptance where needed,
 retained-artifact ownership disposition, and independent approval remain
 release conditions.
+
+## Amendment: complete product-task live-model fallback (2026-08-15)
+
+The Compose service is an issuer-free model proxy, not a recorded-response
+adapter. Previously, it could forward Keyman, content inspection, and event
+chat, while the product transport for customer-master, role classification,
+appointments, issue work, ontology verification, factor-item generation, and
+report judging required a direct gateway. That asymmetry made the product
+degrade differently depending on which LLM feature a user entered.
+
+The product transport now follows one boundary: use the direct verified HTTPS
+gateway when configured; otherwise start or reuse the Compose worker and send
+the explicit product task to `/api/v1/product_task`. The worker owns a bounded
+allowlist and task-specific structured-output prompts, then forwards the task
+to the live gateway. A gateway `404` on a task-specific endpoint may fall back
+to the provider-compatible chat endpoint, but a missing or unreachable gateway
+returns an explicit unavailable/503 result. No local issuer, account, token,
+recorded response, or fabricated business result is introduced.
+
+This preserves the Ontology/Semantic Layer and ABAC boundary: the server
+authorizes the actor and constructs the evidence-scoped body before transport;
+the worker cannot widen that scope or authenticate a user. The worker remains
+HTTP-only and independent of TEPP and contextual-orchestrator internals.
+Focused worker and runtime contracts cover direct product forwarding, Compose
+fallback routing, unsupported-task rejection, and Compose failure reporting.

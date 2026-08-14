@@ -8118,10 +8118,16 @@ def compose_standin_transport(body: Dict[str, Any]) -> Dict[str, Any]:
     """POST a worker task to the local Compose HTTP stand-in."""
     base_url = (os.environ.get("ORCHESTRATOR_BASE_URL") or compose_standin_url()).rstrip("/")
     token = (os.environ.get("ORCHESTRATOR_TOKEN") or "").strip()
+    task = str(body.get("task") or "")
     path = {
         "event_lineage_chat": "/api/v1/event_lineage_chat",
         "content_inspection": "/api/v1/content_inspection",
-    }.get(str(body.get("task") or ""), "/api/v1/keyman_extract")
+        "keyman_extract": "/api/v1/keyman_extract",
+    }.get(task)
+    if path is None and task in PRODUCT_LLM_SYSTEM_PROMPTS:
+        path = "/api/v1/product_task"
+    if path is None:
+        raise RuntimeError("unsupported_compose_task")
     headers = {"content-type": "application/json"}
     if token:
         headers["authorization"] = f"Bearer {token}"
@@ -8197,15 +8203,19 @@ def resolve_keyman_transport_optional() -> tuple[Callable[[Dict[str, Any]], Dict
 
 
 def resolve_product_transport() -> Tuple[Callable[[Dict[str, Any]], Dict[str, Any]], str]:
-    """Resolve the direct live model gateway required for product task enrichment."""
-    return make_live_product_transport(), "live_http"
+    """Resolve direct product HTTP, then the live-model Compose proxy when needed."""
+    try:
+        return make_live_product_transport(), "live_http"
+    except RuntimeError:
+        ensure_compose_standin()
+        return compose_standin_transport, "compose_live_proxy"
 
 
 def resolve_product_transport_optional() -> tuple[Callable[[Dict[str, Any]], Dict[str, Any]] | None, str]:
     """Resolve product transport, returning an explicit unavailable mode instead of raising."""
     try:
-        return make_live_product_transport(), "live_http"
-    except RuntimeError as exc:
+        return resolve_product_transport()
+    except (OSError, RuntimeError, TimeoutError, urllib.error.URLError) as exc:
         return None, str(exc)
 
 

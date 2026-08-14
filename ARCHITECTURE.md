@@ -441,6 +441,16 @@ provider-compatible direct gateway. Upstream multimodal message support is
 tracked as an independent review/merge gate; a local product test cannot claim
 that unmerged upstream behavior is integrated.
 
+The same product-task transport is available when the direct gateway is not
+configured: the product starts or reuses the issuer-free Compose worker and
+sends the task to `/api/v1/product_task`. The worker forwards it to the live
+model gateway with a task-specific structured-output contract. It does not
+create identity, synthesize a response, or replay a recorded response; a
+missing gateway is returned as an explicit unavailable/503 result. The worker
+route is an operational fallback, not a second authorization boundary, so
+LineageWeave still authenticates the actor and constructs the evidence scope
+before sending any task body.
+
 The HTTP adapter treats `BrokenPipeError` and `ConnectionResetError` while
 writing a response as a disconnected client. It does not attempt a second
 error response after the browser has navigated away, so cancellation of a

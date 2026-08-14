@@ -471,6 +471,9 @@ def test_llm_timeout_and_optional_transport_contracts_fail_closed(monkeypatch) -
     assert lw.resolve_keyman_transport_optional() == (None, "gateway unavailable")
     assert lw.resolve_product_transport_optional() == (None, "gateway unavailable")
 
+    monkeypatch.setattr(lw, "ensure_compose_standin", lambda: "compose_started")
+    assert lw.resolve_product_transport_optional() == (lw.compose_standin_transport, "compose_live_proxy")
+
 
 def test_urlread_timeout_uses_the_request_socket_deadline(monkeypatch) -> None:
     """A timed-out gateway read returns immediately without waiting on an executor thread."""
@@ -2020,6 +2023,7 @@ def test_live_gateway_and_compose_transport_contracts(monkeypatch) -> None:
     monkeypatch.delenv("ORCHESTRATOR_TOKEN", raising=False)
     monkeypatch.setenv("LINEAGEWEAVE_COMPOSE_STANDIN_URL", "http://worker.example")
     assert lw.compose_standin_transport({"task": "event_lineage_chat"}) == {"answer": "ok"}
+    assert lw.compose_standin_transport({"task": "customer_master"}) == {"answer": "ok"}
     assert observed[0].get_header("Authorization") is None
     monkeypatch.setenv("LLM_GATEWAY_URL", "https://gateway.example/")
     monkeypatch.setenv("LLM_GATEWAY_API_KEY", "token")
@@ -2178,6 +2182,8 @@ def test_live_transport_failure_and_bootstrap_contracts(monkeypatch) -> None:
     monkeypatch.setattr(lw.urllib.request, "urlopen", _sequence_urlopen([_Response([])]))
     with pytest.raises(RuntimeError, match="compose stand-in returned a non-object"):
         lw.compose_standin_transport({"task": "keyman_extract"})
+    with pytest.raises(RuntimeError, match="unsupported_compose_task"):
+        lw.compose_standin_transport({"task": "identity"})
     monkeypatch.setattr(lw.urllib.request, "urlopen", _sequence_urlopen([urllib.error.URLError("offline")]))
     with pytest.raises(RuntimeError, match="compose_worker_unavailable"):
         lw.compose_standin_transport({"task": "keyman_extract"})
