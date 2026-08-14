@@ -253,8 +253,9 @@ def seed(
                 from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
 
                 cur.execute(
-                    "insert into cataloged_person (person_name, person_side_code) values "
-                    "('Ada West', 'our_side'), ('Priya Nair', 'counterparty') "
+                    "insert into cataloged_person (person_name, person_side_code, last_known_job_title) values "
+                    "('Ada West', 'our_side', 'Account manager'), "
+                    "('Priya Nair', 'counterparty', 'Procurement lead') "
                     "returning person_name, person_id"
                 )
                 people = dict(cur.fetchall())
@@ -582,22 +583,27 @@ def _seed_fixture_evaluations(cur) -> None:
 def _ensure_demo_people(cur, corporate_entity_id) -> dict[str, str]:
     """Ada West / Priya Nair / Jordan Hale plus their affiliations. Idempotent."""
     people: dict[str, str] = {}
-    for name, side in (
-        ("Ada West", "our_side"),
-        ("Priya Nair", "counterparty"),
-        ("Jordan Hale", "our_side"),
+    for name, side, title in (
+        ("Ada West", "our_side", "Account manager"),
+        ("Priya Nair", "counterparty", "Procurement lead"),
+        ("Jordan Hale", "our_side", "Bid coordinator"),
     ):
         cur.execute("select person_id from cataloged_person where person_name = %s", (name,))
         row = cur.fetchone()
         if row is None:
             cur.execute(
-                "insert into cataloged_person (person_name, person_side_code) "
-                "values (%s, %s) returning person_id",
-                (name, side),
+                "insert into cataloged_person (person_name, person_side_code, last_known_job_title) "
+                "values (%s, %s, %s) returning person_id",
+                (name, side, title),
             )
             people[name] = str(cur.fetchone()[0])
         else:
             people[name] = str(row[0])
+            cur.execute(
+                "update cataloged_person set last_known_job_title = coalesce(last_known_job_title, %s) "
+                "where person_id = %s",
+                (title, people[name]),
+            )
     cur.execute(
         "insert into person_affiliation "
         "(person_id, affiliated_organization_name, affiliated_corporate_entity_id) "

@@ -19,7 +19,9 @@ All notable changes to this project are documented here. Format follows
   genuinely conflicting stated title creates a fresh person row instead
   of reusing one, verified by a real test with two posts naming the
   same name and different titles.
-- Keyman panel shows the person's title next to their name.
+- Keyman panel shows the person's title next to their name. After
+  `make seed`, Ada West is "Account manager" and Priya Nair is
+  "Procurement lead" so the title is visible without a live LLM.
 
 ## [0.68.0] - 2026-08-14
 

@@ -484,6 +484,7 @@ describe("App, authenticated", () => {
                 person_name: "Ada West",
                 person_side_code: "our_side",
                 person_side_label: "Our side",
+                last_known_job_title: "Account manager",
                 mention_context: null,
                 affiliations: [{ organization_name: "Demo Corp", corporate_entity_id: "corp-1", role_title: null }],
               },
@@ -973,6 +974,7 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: "Keyman affiliation: Demo Corp" })).toBeInTheDocument();
     expect(screen.getByText("(Company)")).toBeInTheDocument();
     expect(screen.getAllByText(/Ada West \(Our side\)/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Account manager")).toBeInTheDocument();
     expect(screen.queryByText(/our_side/)).not.toBeInTheDocument();
     expect(screen.getByText("unresolved")).toBeInTheDocument();
     expect(screen.getByText(/Voice of Customer\s*\(voc\)/)).toBeInTheDocument();
