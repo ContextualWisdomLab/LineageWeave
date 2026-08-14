@@ -952,6 +952,7 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("Demo Group")).toBeInTheDocument());
     expect(screen.getByRole("button", { name: "Affiliate org: Demo Corp" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Counterparty org: Demo Corp" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Keyman affiliation: Demo Corp" })).toBeInTheDocument();
     expect(screen.getByText("(Company)")).toBeInTheDocument();
     expect(screen.getAllByText(/Ada West \(Our side\)/).length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText(/our_side/)).not.toBeInTheDocument();
@@ -1009,6 +1010,15 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: "Affiliate Keyman: Priya Nair" }));
     await waitFor(() => expect(screen.getByText("Related to Priya Nair")).toBeInTheDocument());
+    expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
+  });
+
+  it("opens related nodes from a Keyman affiliation organization", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Keyman affiliation: Demo Corp" }));
+    await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
     expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
   });
 

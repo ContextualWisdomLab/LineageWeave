@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.67.0] - 2026-08-14
+
+### Added
+
+- Keyman affiliation names that resolve to a cataloged org start
+  the same related-node walk as a related-entity click. After
+  `make seed`, Demo Corp next to Ada West opens
+  `GET /api/corporate-entities/{id}/related`. Unresolved affiliation
+  names stay text -- never a guessed neighborhood.
+
 ## [0.66.0] - 2026-08-14
 
 ### Added

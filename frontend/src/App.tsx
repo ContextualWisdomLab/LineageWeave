@@ -626,7 +626,27 @@ function KeymanPanel({
               {person.affiliations.length > 0 && (
                 <span className="keyman-affiliations">
                   {" -- "}
-                  {person.affiliations.map((affiliation) => affiliation.organization_name).join(", ")}
+                  {person.affiliations.map((affiliation, index) => (
+                    <span key={`${affiliation.organization_name}:${affiliation.corporate_entity_id ?? index}`}>
+                      {index > 0 ? ", " : null}
+                      {affiliation.corporate_entity_id ? (
+                        <button
+                          className="keyman-select"
+                          aria-label={`Keyman affiliation: ${affiliation.organization_name}`}
+                          onClick={() =>
+                            handleSelectEntity(
+                              affiliation.corporate_entity_id as string,
+                              affiliation.organization_name,
+                            )
+                          }
+                        >
+                          {affiliation.organization_name}
+                        </button>
+                      ) : (
+                        affiliation.organization_name
+                      )}
+                    </span>
+                  ))}
                 </span>
               )}
             </li>
