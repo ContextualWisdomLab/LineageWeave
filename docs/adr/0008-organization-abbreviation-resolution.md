@@ -7,12 +7,12 @@
 
 Real post text names organizations by abbreviated or slang forms a
 human reader immediately recognizes but a string-matching pipeline
-cannot -- e.g. "한수원," a common Korean contraction of "한국수력원자력"
+cannot -- e.g. "AGP," a common Korean contraction of "Aurora Grid Power"
 (Korea Hydro & Nuclear Power). `lineageweave.corporate_hierarchy_resolution`
 already resolves near-matches (a trailing legal suffix, a minor
 abbreviation) via character-sequence similarity
 (`difflib.SequenceMatcher`, grounded in Bhattacharya & Getoor, 2007's
-candidate-generation stage), but an initialism/contraction like "한수원"
+candidate-generation stage), but an initialism/contraction like "AGP"
 shares almost no character substring with its expansion -- no
 similarity threshold recovers it, because the two strings are not
 similar, they are *related by real-world knowledge* the text or an
@@ -40,8 +40,8 @@ integration:
 2. **External search cross-verification**
    (reusing `lineageweave.relation_verification.RelationVerificationClient`
    as-is, not a new client class): the proposed full name plus the raw
-   abbreviation together become the search query (e.g. "한국수력원자력
-   한수원") -- a real page mentioning both together is strong
+   abbreviation together become the search query (e.g. "Aurora Grid Power
+   AGP") -- a real page mentioning both together is strong
    corroboration the specific pairing is correct, not just that the
    full name exists as *some* organization.
 

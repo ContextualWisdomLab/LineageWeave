@@ -183,3 +183,11 @@ def test_image_content_client_protocol_stub_raises() -> None:
     """
     with pytest.raises(NotImplementedError):
         ImageContentClient.describe(None, b"", "image/png")  # type: ignore[arg-type]
+
+
+def test_parse_description_does_not_absorb_unknown_labels_into_tags() -> None:
+    parsed = _parse_description(
+        "TEXT: NONE\nCAPTION: A turbine diagram\n"
+        "TAGS: turbine, diagram\nNOTE: synthetic"
+    )
+    assert parsed.tags == ("turbine", "diagram")

@@ -159,7 +159,12 @@ def _parse_description(content: str) -> ImageDescription:
             remainder = match.group(2).strip()
             if remainder:
                 fields[current].append(remainder)
-        elif current is not None and line.strip():
+            continue
+
+        if re.match(r"^\s*[*_`>#\-\s]*[A-Za-z][A-Za-z0-9 _-]*\s*:", line):
+            current = None
+            continue
+        if current is not None and line.strip():
             fields[current].append(line.strip())
 
     if not fields["TEXT"] and not fields["CAPTION"]:

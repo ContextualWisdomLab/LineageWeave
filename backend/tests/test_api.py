@@ -1037,8 +1037,8 @@ def test_extract_keymen_resolves_and_caches_an_abbreviated_organization_name(
     client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
     """ADR 0008: an affiliated organization named by abbreviation
-    ("한수원") must be resolved to its canonical name
-    ("한국수력원자력") and cross-verified before that name is trusted --
+    ("AGP") must be resolved to its canonical name
+    ("Aurora Grid Power") and cross-verified before that name is trusted --
     deterministic fake resolution/verification clients (not a real LLM
     or Searxng call) so this is CI-stable; the point under test is the
     resolve-then-persist wiring, not model/search quality.
@@ -1056,7 +1056,7 @@ def test_extract_keymen_resolves_and_caches_an_abbreviated_organization_name(
                 PersonMention(
                     person_name="Kim Cheolsu",
                     person_side_code=COUNTERPARTY,
-                    affiliated_organization_names=("한수원",),
+                    affiliated_organization_names=("AGP",),
                 )
             ]
 
@@ -1070,15 +1070,15 @@ def test_extract_keymen_resolves_and_caches_an_abbreviated_organization_name(
         available = True
 
         def resolve(self, raw_name: str, context_text: str) -> str | None:
-            assert raw_name == "한수원"
-            return "한국수력원자력"
+            assert raw_name == "AGP"
+            return "Aurora Grid Power"
 
     class _FakeVerificationClient:
         available = True
 
         def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:
-            assert organization_name == "한국수력원자력"
-            assert relationship_label == "한수원"
+            assert organization_name == "Aurora Grid Power"
+            assert relationship_label == "AGP"
             return RelationVerificationResult(
                 status_code=STATUS_CORROBORATED, evidence_url="https://example.org/khnp"
             )
@@ -1102,7 +1102,7 @@ def test_extract_keymen_resolves_and_caches_an_abbreviated_organization_name(
         with admin_conn.cursor() as cur:
             cur.execute(
                 "select resolved_organization_name, verification_status_code, verification_evidence_url "
-                "from organization_name_resolution where raw_organization_name = '한수원'"
+                "from organization_name_resolution where raw_organization_name = 'AGP'"
             )
             cached = cur.fetchone()
             cur.execute(
@@ -1114,8 +1114,8 @@ def test_extract_keymen_resolves_and_caches_an_abbreviated_organization_name(
     finally:
         admin_conn.close()
 
-    assert cached == ("한국수력원자력", STATUS_CORROBORATED, "https://example.org/khnp")
-    assert affiliation_name == "한국수력원자력", "a corroborated resolution must be the stored affiliation name"
+    assert cached == ("Aurora Grid Power", STATUS_CORROBORATED, "https://example.org/khnp")
+    assert affiliation_name == "Aurora Grid Power", "a corroborated resolution must be the stored affiliation name"
 
 
 def test_same_team_named_in_two_posts_resolves_to_one_cataloged_team(
@@ -1201,7 +1201,7 @@ def test_first_mention_of_a_new_counterparty_creates_a_real_corporate_entity(
     existing corporate_entity candidate must not stay permanently
     unresolved -- an LLM-proposed, search-corroborated hierarchy
     placement creates a real new row, closing the "통합 고객사 계열
-    tree AI" gap real Milestone 2 data confirmed (0 of thousands of
+    tree AI" gap synthetic regression corpus data confirmed (0 of thousands of
     real affiliations ever resolved before this). Deterministic fake
     clients, CI-stable -- the point under test is the create-then-link
     wiring, not model/search quality.

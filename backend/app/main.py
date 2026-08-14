@@ -19,6 +19,7 @@ read is ``source_post`` -- two-or-more-word table names, per AGENTS.md.
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -851,7 +852,9 @@ async def read_post_summary(
             )
         body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
         normalized_body = normalize_post_body(body_row["post_body"], vision_client=_vision_client()).text
-        summary = client.summarize(post["post_title"], normalized_body)
+        summary = await asyncio.to_thread(
+            client.summarize, post["post_title"], normalized_body
+        )
         return await persist_post_summary(
             conn,
             post_id,

@@ -10,7 +10,7 @@ matching only ever locates an *already-cataloged* `corporate_entity`
 row -- it has no path to create one. This was fine while the only
 `corporate_entity` catalog was synthetic demo fixtures with a handful
 of names extraction would naturally already know. Real Milestone 2 data
-exposed the actual gap: `corporate_entity` for the real dataset holds
+exposed the actual gap: `corporate_entity` for the unseen dataset holds
 only the employer's own 2-row hierarchy (its own group/subsidiary
 structure); every counterparty, customer, partner, or competitor
 organization named in real posts is, by definition, something outside

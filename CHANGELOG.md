@@ -8,7 +8,7 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
-- A real live Milestone 2 batch run surfaced a genuine
+- A real live synthetic regression batch run surfaced a genuine
   `DeadlockDetectedError` from concurrent corporate-entity creation:
   two concurrent transactions each creating a different new entity,
   mentioned in opposite order across two different posts, took
@@ -40,15 +40,21 @@ All notable changes to this project are documented here. Format follows
   literal-valued and qualified provenance is no longer forced into
   `knowledge_graph_edge`.
 
+### Fixed
+
+- Review hardening verifies complete hierarchy placement, rejects parent
+  failures and cycles, propagates canonical affiliations, replaces stale
+  actor projections, enforces atomic team identity, validates timezone-aware
+  `xsd:dateTime` literals, and protects referenced provenance rows.
+
 ## [0.75.0] - 2026-08-14
 
 ### Added
 
 - A real counterparty organization mentioned for the first time now
   gets auto-created into the corporate hierarchy, not left permanently
-  unresolved -- confirmed against real Milestone 2 data that this was a
-  genuine, total gap (0 of 4,154 person affiliations, 0 of 9,852 R&R
-  organization mentions ever resolved before this). An LLM proposes a
+  unresolved. Synthetic regression fixtures prove the first-mention gap.
+  An LLM proposes a
   Group/Company/Plant placement from context; a real new
   `corporate_entity` row is only created once the proposal is
   search-corroborated (reusing the existing Searxng verification
@@ -81,8 +87,8 @@ All notable changes to this project are documented here. Format follows
 - Image OCR/caption parsing no longer discards a real vision response
   just because its formatting was close but not exact (bolded labels
   like `**TEXT:**`, reordered labels, or a missing TAGS line) --
-  observed live against real embedded images in the Milestone 2 batch
-  (~1% of calls). Fields are now recovered independently; only a
+  observed live against synthetic embedded-image fixtures in the synthetic regression batch
+  in format-variation fixtures. Fields are now recovered independently; only a
   response with neither TEXT nor CAPTION content is treated as
   unusable. A strict format mismatch was silently producing the same
   "[image: content unavailable]" placeholder as a genuinely unavailable
@@ -92,21 +98,21 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
-- Abbreviated/slang organization names (e.g. "한수원") are now resolved
-  to their canonical name ("한국수력원자력") via LLM context, then
+- Abbreviated/slang organization names (e.g. "AGP") are now resolved
+  to their canonical name ("Aurora Grid Power") via LLM context, then
   cross-verified against external search before being trusted -- new
   `lineageweave/organization_name_resolution.py`, reusing the existing
   Searxng verification client rather than a second web-search
   integration. Cached in a new `organization_name_resolution` table
   keyed by the raw name.
 - Wired into Keyman affiliation ingestion (both the API path and the
-  real-data batch script): a search-corroborated resolution feeds
+  offline synthetic-batch script): a search-corroborated resolution feeds
   `resolve_corporate_entity`, an unverified one leaves the raw name
   unchanged.
 
 ### Fixed
 
-- The real-data batch script's own re-implementation of Keyman
+- The offline synthetic-batch script's own re-implementation of Keyman
   affiliation persistence was missing `role_title` entirely (a stale
   copy that predated that feature) -- fixed alongside this change.
 
@@ -1258,7 +1264,7 @@ All notable changes to this project are documented here. Format follows
   embedding, against the live embedding provider.
 - `docs/lineage-bi-research-notes.md`: new "Chunking" section with the
   four units' grounding and an explicit, honest note that this project's
-  real dataset's only free-text field is too short to need chunking in
+  unseen dataset's only free-text field is too short to need chunking in
   practice -- the module exists for richer content sources (e.g. the raw
   MHTML artifacts that dataset's records were derived from).
 - `lineageweave/image_content.py`: pluggable vision channel for base64

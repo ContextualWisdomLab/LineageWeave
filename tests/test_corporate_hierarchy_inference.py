@@ -16,9 +16,9 @@ from lineageweave.corporate_hierarchy_inference import (
 
 
 def test_parses_a_plant_with_a_parent() -> None:
-    content = '{"level": "plant", "parent_name": "삼성전자"}'
+    content = '{"level": "plant", "parent_name": "Acme Electronics"}'
     assert parse_inference_response(content) == HierarchyProposal(
-        level_code=LEVEL_PLANT, parent_name="삼성전자"
+        level_code=LEVEL_PLANT, parent_name="Acme Electronics"
     )
 
 

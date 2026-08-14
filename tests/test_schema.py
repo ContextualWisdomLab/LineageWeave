@@ -17,6 +17,7 @@ from __future__ import annotations
 import os
 import uuid
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 import psycopg2
 import psycopg2.errors
@@ -52,7 +53,8 @@ def schema_db():
     with admin_conn.cursor() as cur:
         cur.execute(f'create database "{db_name}"')
     try:
-        db_dsn = _ADMIN_DSN.rsplit("/", 1)[0] + f"/{db_name}"
+        parsed_admin_dsn = urlsplit(_ADMIN_DSN)
+        db_dsn = urlunsplit(parsed_admin_dsn._replace(path=f"/{db_name}"))
         conn = psycopg2.connect(db_dsn)
         try:
             with conn.cursor() as cur:
@@ -198,3 +200,25 @@ def test_every_created_table_name_has_at_least_two_words() -> None:
     for name in names:
         words = name.split("_")
         assert len(words) >= 2, f"table {name!r} must be two or more snake_case words"
+
+
+def test_cataloged_team_null_affiliation_is_unique(schema_db) -> None:
+    """Repeated NULL-affiliation upserts return one catalog identity."""
+    with schema_db.cursor() as cursor:
+        ids = []
+        for _ in range(2):
+            cursor.execute(
+                "insert into cataloged_team (team_name, affiliated_organization_name) "
+                "values ('Synthetic Design Team', null) "
+                "on conflict (team_name, affiliated_organization_name) do update "
+                "set team_name = excluded.team_name returning team_id"
+            )
+            ids.append(cursor.fetchone()[0])
+        cursor.execute(
+            "select count(*) from cataloged_team "
+            "where team_name = 'Synthetic Design Team' "
+            "and affiliated_organization_name is null"
+        )
+        count = cursor.fetchone()[0]
+    assert ids[0] == ids[1]
+    assert count == 1

@@ -142,6 +142,8 @@ as $$
 declare
     relation_kind text;
     required_datatype text;
+    literal_datatype text;
+    literal_lexical text;
 begin
     select property_kind_code, datatype_iri
       into relation_kind, required_datatype
@@ -197,14 +199,36 @@ begin
             new.object_resource_id, new.relation_code;
     end if;
 
-    if relation_kind = 'datatype' and required_datatype is not null and not exists (
-        select 1
+    if relation_kind = 'datatype' then
+        select datatype_iri, lexical_value
+          into literal_datatype, literal_lexical
           from provenance_literal_value
-         where literal_id = new.object_literal_id
-           and datatype_iri = required_datatype
-    ) then
-        raise exception 'literal % violates datatype % for %',
-            new.object_literal_id, required_datatype, new.relation_code;
+         where literal_id = new.object_literal_id;
+
+        if required_datatype is not null
+           and literal_datatype is distinct from required_datatype then
+            raise exception 'literal % violates datatype % for %',
+                new.object_literal_id, required_datatype, new.relation_code;
+        end if;
+
+        if required_datatype = 'http://www.w3.org/2001/XMLSchema#dateTime' then
+            if literal_lexical !~ (
+                '^[0-9]{4}-(0[1-9]|1[0-2])-'
+                '(0[1-9]|[12][0-9]|3[01])T'
+                '([01][0-9]|2[0-3]):[0-5][0-9]:'
+                '[0-5][0-9](\.[0-9]+)?'
+                '(Z|[+-](0[0-9]|1[0-4]):[0-5][0-9])$'
+            ) then
+                raise exception 'literal % violates lexical xsd:dateTime for %',
+                    new.object_literal_id, new.relation_code;
+            end if;
+            begin
+                perform literal_lexical::timestamptz;
+            exception when others then
+                raise exception 'literal % violates lexical xsd:dateTime for %',
+                    new.object_literal_id, new.relation_code;
+            end;
+        end if;
     end if;
 
     return new;
@@ -215,6 +239,46 @@ drop trigger if exists provenance_assertion_contract_trigger on provenance_asser
 create trigger provenance_assertion_contract_trigger
 before insert or update on provenance_assertion
 for each row execute function validate_provenance_assertion_contract();
+
+create or replace function protect_provenance_contract_reference()
+returns trigger
+language plpgsql
+as $$
+begin
+    if tg_table_name = 'provenance_resource_type' and exists (
+        select 1
+          from provenance_assertion
+         where subject_resource_id = (to_jsonb(old)->>'resource_id')::uuid
+            or object_resource_id = (to_jsonb(old)->>'resource_id')::uuid
+    ) then
+        raise exception 'referenced provenance resource types are immutable';
+    end if;
+
+    if tg_table_name = 'provenance_literal_value' and exists (
+        select 1
+          from provenance_assertion
+         where object_literal_id = (to_jsonb(old)->>'literal_id')::uuid
+    ) then
+        raise exception 'referenced provenance literal values are immutable';
+    end if;
+    if tg_op = 'UPDATE' then
+        return new;
+    end if;
+    return old;
+end;
+$$;
+
+drop trigger if exists provenance_resource_type_reference_trigger
+    on provenance_resource_type;
+create trigger provenance_resource_type_reference_trigger
+before update or delete on provenance_resource_type
+for each row execute function protect_provenance_contract_reference();
+
+drop trigger if exists provenance_literal_value_reference_trigger
+    on provenance_literal_value;
+create trigger provenance_literal_value_reference_trigger
+before update or delete on provenance_literal_value
+for each row execute function protect_provenance_contract_reference();
 
 insert into provenance_class_definition (class_code, class_iri, class_local_name, class_label) values
     ('prov_entity', 'http://www.w3.org/ns/prov#Entity', 'Entity', 'Entity'),

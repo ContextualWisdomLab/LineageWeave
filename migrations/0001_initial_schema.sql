@@ -356,6 +356,9 @@ create table person_affiliation (
 );
 
 create index person_affiliation_person_idx on person_affiliation (person_id);
+create index person_affiliation_corporate_entity_idx
+    on person_affiliation (affiliated_corporate_entity_id)
+    where affiliated_corporate_entity_id is not null;
 
 create table post_person_mention (
     post_id uuid not null references source_post (post_id),
@@ -376,8 +379,12 @@ create table cataloged_team (
     affiliated_organization_name text,
     affiliated_corporate_entity_id uuid references corporate_entity (corporate_entity_id),
     created_at timestamptz not null default now(),
-    unique (team_name, affiliated_organization_name)
+    unique nulls not distinct (team_name, affiliated_organization_name)
 );
+
+create index cataloged_team_corporate_entity_idx
+    on cataloged_team (affiliated_corporate_entity_id)
+    where affiliated_corporate_entity_id is not null;
 
 create table post_team_mention (
     post_id uuid not null references source_post (post_id),
@@ -455,7 +462,7 @@ create table post_lineage_edge (
 -- ---------------------------------------------------------------------
 -- Caches an abbreviated/slang organization name's LLM-inferred
 -- canonical name plus external search cross-verification (ADR 0008),
--- e.g. "한수원" -> "한국수력원자력" -- keyed by the raw name so the same
+-- e.g. "AGP" -> "Aurora Grid Power" -- keyed by the raw name so the same
 -- abbreviation across many posts is resolved once, not re-queried
 -- every mention. Grounded in SKOS skos:altLabel/skos:prefLabel (see
 -- docs/ontology/lineageweave-kg.ttl); verification_status_code reuses
@@ -472,6 +479,6 @@ create table organization_name_resolution (
 );
 
 comment on table organization_name_resolution is
-    'Caches LLM-proposed canonical names for abbreviated/slang organization mentions (e.g. 한수원 -> 한국수력원자력), cross-verified via external search before being trusted.';
+    'Caches LLM-proposed canonical names for abbreviated/slang organization mentions (e.g. AGP -> Aurora Grid Power), cross-verified via external search before being trusted.';
 
 commit;

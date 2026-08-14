@@ -1,12 +1,12 @@
 """Infers where a newly-mentioned organization sits in a Group -> Company
--> Plant style hierarchy (e.g. "삼성전자 광주공장" -> parent "삼성전자
-한국" -> parent "삼성") when it does not already match an existing
+-> Plant style hierarchy (e.g. "Acme Electronics South Plant" -> parent "Acme Electronics
+한국" -> parent "Acme Group") when it does not already match an existing
 ``corporate_entity`` row -- the standing "통합 고객사 계열 tree AI"
 (integrated customer affiliate tree) requirement this product has
 always named, closing the gap that
 :mod:`lineageweave.corporate_hierarchy_resolution`'s similarity
 matching leaves open: matching only ever finds an ALREADY-cataloged
-entity, it never creates one, so a real dataset's first mention of any
+entity, it never creates one, so a unseen dataset's first mention of any
 new counterparty organization stays permanently unresolved.
 
 Grounded in the same collective-entity-resolution framing
@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Protocol
 
 from .http_client import post_json
@@ -39,6 +40,11 @@ LEVEL_GROUP = "group"
 LEVEL_COMPANY = "company"
 LEVEL_PLANT = "plant"
 _VALID_LEVEL_CODES = frozenset({LEVEL_GROUP, LEVEL_COMPANY, LEVEL_PLANT})
+
+@lru_cache(maxsize=1)
+def required_corporate_level_codes() -> frozenset[str]:
+    """Return the level codes every migrated database registers."""
+    return _VALID_LEVEL_CODES
 
 
 @dataclass(frozen=True)
@@ -97,8 +103,8 @@ for), determine:
    with no parent), "company" (a company, possibly part of a group),
    or "plant" (a specific plant/site/branch/subsidiary of a company).
 2. Its immediate parent organization's name, if the text names or
-   clearly implies one (e.g. "삼성전자 광주공장" implies its parent is
-   "삼성전자"). Use null when the text gives no parent to infer, or
+   clearly implies one (e.g. "Acme Electronics South Plant" implies its parent is
+   "Acme Electronics"). Use null when the text gives no parent to infer, or
    when this organization is itself a top-level group.
 
 Reply with ONLY a JSON object (no markdown fences, no prose):

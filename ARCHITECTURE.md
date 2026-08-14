@@ -754,8 +754,8 @@ adds the lookup row -- purely additive, no schema change, since
 
 ## Phase 10: an abbreviated organization name is resolved and search-verified, not left opaque
 
-Real post text names organizations by abbreviation ("한수원" for
-"한국수력원자력") that character-similarity matching
+Real post text names organizations by abbreviation ("AGP" for
+"Aurora Grid Power") that character-similarity matching
 (`corporate_hierarchy_resolution`) structurally cannot bridge -- an
 initialism shares almost no substring with its expansion. See
 [ADR 0008](docs/adr/0008-organization-abbreviation-resolution.md).
@@ -772,11 +772,11 @@ still flows through unchanged. Cached in a new
 name, so the same abbreviation across many posts is resolved once.
 Grounded in SKOS `skos:altLabel`/`skos:prefLabel` (Miles & Bechhofer,
 2009). Wired into `backend/app/keyman_ingestion.py`'s affiliation loop
-and the private real-data batch script's paced re-implementation of it
+and the offline synthetic-batch script's paced re-implementation of it
 (the batch script's own copy was also missing `role_title` persistence
 entirely -- fixed alongside this).
 
-Also fixed while running this against real embedded images:
+Also fixed while running this against synthetic embedded-image fixtures:
 `image_content.py`'s `_parse_description` required an exact single-pass
 `TEXT:`/`CAPTION:`/`TAGS:` match, which was rejecting real vision
 responses whose formatting was close but not exact (markdown-bolded
@@ -846,7 +846,7 @@ matrix, and `docs/adr/0011-prov-o-standard-relations.md`.
 ## Phase 13: corporate-entity creation is serialized against a real observed deadlock
 
 Phase 12's creation path made real concurrent writes for the first
-time. A real Milestone 2 batch run under real concurrency surfaced a
+time. A synthetic regression corpus batch run under real concurrency surfaced a
 genuine `DeadlockDetectedError`: two concurrent transactions each
 creating a different new entity, mentioned in opposite order across
 two different posts, took row-level locks in opposite order and

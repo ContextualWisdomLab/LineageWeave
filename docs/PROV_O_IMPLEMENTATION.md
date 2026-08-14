@@ -91,3 +91,12 @@ python -m compileall -q lineageweave tests
 ```
 
 Expected focused result: all tests pass and `lineageweave/prov_o.py` reports 100% statements and branches.
+
+## OWL 2 RL compatibility domains are not universal permissions
+
+Appendix A also publishes broad `prov:Influence` domains for
+`prov:hadActivity` and `prov:hadRole` as OWL 2 RL compatibility aids.
+The Recommendation explicitly warns that these broad domains must not be
+read as permission to use either property on every Influence. Runtime and
+database validation therefore enforce the normative union members rather
+than weakening the contract.

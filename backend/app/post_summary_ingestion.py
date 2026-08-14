@@ -101,7 +101,24 @@ async def persist_post_summary(
     """
     hierarchy_inference_client = hierarchy_inference_client or NullCorporateHierarchyInferenceClient()
     verification_client = verification_client or NullRelationVerificationClient()
+
     context_text = post_body if post_body is not None else summary.korean_summary
+    # Summary replacement also replaces its team/organization projections.
+    # Keyman-owned person mentions are intentionally left untouched.
+    await conn.execute(
+        """
+        delete from knowledge_graph_edge
+         where target_node_type_code = 'node_post'
+           and target_node_id = $1::uuid
+           and edge_type_code in (
+               'edge_mention_team',
+               'edge_mention_organization'
+           )
+        """,
+        post_id,
+    )
+    await conn.execute("delete from post_team_mention where post_id = $1", post_id)
+    await conn.execute("delete from post_organization_mention where post_id = $1", post_id)
     await conn.execute("delete from post_summary_result where post_id = $1", post_id)
     await conn.execute(
         "insert into post_summary_result (post_id, korean_summary) values ($1, $2)",

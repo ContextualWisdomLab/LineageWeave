@@ -27,11 +27,11 @@ Abbreviation resolution (ADR 0008): before matching against
 `corporate_entity`, each affiliated organization name is run through
 `organization_name_resolution_ingestion.resolve_organization_name` --
 character-similarity matching alone cannot bridge an initialism like
-"한수원" to its expansion "한국수력원자력". Only a search-corroborated
+"AGP" to its expansion "Aurora Grid Power". Only a search-corroborated
 resolution is substituted in; an unresolved or unverified name still
 flows through unchanged.
 
-Hierarchy auto-creation (ADR 0010): a real dataset's first mention of
+Hierarchy auto-creation (ADR 0010): a unseen dataset's first mention of
 any new counterparty organization has no existing `corporate_entity`
 candidate for similarity matching to find at all -- matching alone can
 only ever locate an already-cataloged entity. `get_or_create_corporate_entity`
@@ -42,6 +42,9 @@ is actually populated from real extraction, not left permanently empty.
 """
 
 from __future__ import annotations
+
+import asyncio
+from dataclasses import replace
 
 import asyncpg
 
@@ -110,6 +113,59 @@ async def _upsert_person(conn: asyncpg.Connection, mention: PersonMention) -> st
     return str(row["person_id"])
 
 
+
+async def _upsert_affiliation(
+    conn: asyncpg.Connection,
+    person_id: str,
+    raw_name: str,
+    resolved_name: str,
+    corporate_entity_id: str | None,
+    role_title: str | None,
+) -> None:
+    """Promote a raw affiliation row into one canonical identity."""
+    await conn.execute(
+        """
+        with legacy_affiliation as (
+            select affiliated_corporate_entity_id, role_title
+              from person_affiliation
+             where person_id = $1
+               and affiliated_organization_name = $2
+        ),
+        canonical_affiliation as (
+            insert into person_affiliation
+                (person_id, affiliated_organization_name,
+                 affiliated_corporate_entity_id, role_title)
+            values (
+                $1,
+                $3,
+                coalesce($4, (select affiliated_corporate_entity_id from legacy_affiliation)),
+                coalesce($5, (select role_title from legacy_affiliation))
+            )
+            on conflict (person_id, affiliated_organization_name)
+            do update set
+                affiliated_corporate_entity_id = coalesce(
+                    excluded.affiliated_corporate_entity_id,
+                    person_affiliation.affiliated_corporate_entity_id
+                ),
+                role_title = coalesce(
+                    excluded.role_title,
+                    person_affiliation.role_title
+                )
+            returning person_affiliation_id
+        )
+        delete from person_affiliation
+         where person_id = $1
+           and affiliated_organization_name = $2
+           and $2 <> $3
+        """,
+        person_id,
+        raw_name,
+        resolved_name,
+        corporate_entity_id,
+        role_title,
+    )
+
+
 async def ingest_post_keymen(
     conn: asyncpg.Connection,
     client: KeymanExtractionClient,
@@ -135,8 +191,9 @@ async def ingest_post_keymen(
     resolution_client = resolution_client or NullOrganizationNameResolutionClient()
     verification_client = verification_client or NullRelationVerificationClient()
     hierarchy_inference_client = hierarchy_inference_client or NullCorporateHierarchyInferenceClient()
-    mentions = client.extract(post_title, post_body)
+    mentions = await asyncio.to_thread(client.extract, post_title, post_body)
     candidates = await _load_corporate_entity_candidates(conn)
+    normalized_mentions: list[PersonMention] = []
 
     for mention in mentions:
         person_id = await _upsert_person(conn, mention)
@@ -145,30 +202,42 @@ async def ingest_post_keymen(
             post_id,
             person_id,
         )
+
+        resolved_names: list[str] = []
         for organization_name in mention.affiliated_organization_names:
             resolved_name = await resolve_organization_name(
-                conn, resolution_client, verification_client, organization_name, post_body
+                conn,
+                resolution_client,
+                verification_client,
+                organization_name,
+                post_body,
             )
             corporate_entity_id = await get_or_create_corporate_entity(
-                conn, resolved_name, post_body, hierarchy_inference_client, verification_client, candidates
+                conn,
+                resolved_name,
+                post_body,
+                hierarchy_inference_client,
+                verification_client,
+                candidates,
             )
-            await conn.execute(
-                """
-                insert into person_affiliation
-                    (person_id, affiliated_organization_name, affiliated_corporate_entity_id, role_title)
-                values ($1, $2, $3, $4)
-                on conflict (person_id, affiliated_organization_name)
-                do update set
-                    affiliated_corporate_entity_id = excluded.affiliated_corporate_entity_id,
-                    role_title = coalesce(excluded.role_title, person_affiliation.role_title)
-                """,
+            await _upsert_affiliation(
+                conn,
                 person_id,
+                organization_name,
                 resolved_name,
                 corporate_entity_id,
                 mention.job_title,
             )
+            if resolved_name not in resolved_names:
+                resolved_names.append(resolved_name)
+        normalized_mentions.append(
+            replace(
+                mention,
+                affiliated_organization_names=tuple(resolved_names),
+            )
+        )
 
-    if mentions:
+    if normalized_mentions:
         await persist_edges_for_post(conn, post_id)
 
-    return mentions
+    return normalized_mentions

@@ -110,10 +110,10 @@
 #################################################################
 
 :mentionsTeam a owl:ObjectProperty ;
-    rdfs:domain :Post ;
-    rdfs:range :Team ;
-    rdfs:label "mentions team" ;
-    rdfs:comment "A post names a cataloged team (post_team_mention)." ;
+    rdfs:domain :Team ;
+    rdfs:range :Post ;
+    rdfs:label "mentioned in post" ;
+    rdfs:comment "A cataloged team is named by a post (post_team_mention)." ;
     :lookupCode "edge_mention_team" .
 
 :teamAffiliatedWith a owl:ObjectProperty ;
@@ -124,10 +124,10 @@
     :lookupCode "edge_team_affiliation" .
 
 :mentionsOrganization a owl:ObjectProperty ;
-    rdfs:domain :Post ;
-    rdfs:range :CorporateEntity ;
-    rdfs:label "mentions organization" ;
-    rdfs:comment "A post names an organization acting in its own name, resolved to a real corporate_entity (post_organization_mention)." ;
+    rdfs:domain :CorporateEntity ;
+    rdfs:range :Post ;
+    rdfs:label "mentioned in post" ;
+    rdfs:comment "A resolved organization is named by a post (post_organization_mention)." ;
     :lookupCode "edge_mention_organization" .
 
 #################################################################

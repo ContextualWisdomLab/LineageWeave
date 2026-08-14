@@ -190,3 +190,12 @@ def test_corporate_entity_level_hierarchy_is_broadest_first() -> None:
     assert (LW.CompanyLevel, SKOS.broader, LW.GroupLevel) in graph
     assert (LW.PlantLevel, SKOS.broader, LW.CompanyLevel) in graph
     assert (LW.GroupLevel, SKOS.broader, LW.CompanyLevel) not in graph
+
+
+def test_actor_mentions_follow_stored_edge_direction() -> None:
+    """Ontology domain/range matches Team/Organization -> Post storage."""
+    graph = load_ontology()
+    assert (LW.mentionsTeam, RDFS.domain, LW.Team) in graph
+    assert (LW.mentionsTeam, RDFS.range, LW.Post) in graph
+    assert (LW.mentionsOrganization, RDFS.domain, LW.CorporateEntity) in graph
+    assert (LW.mentionsOrganization, RDFS.range, LW.Post) in graph

@@ -22,11 +22,13 @@ create table if not exists cataloged_team (
     -- A team name alone rarely uniquely identifies it across a whole
     -- product's real-world scope ("설계팀" exists at many companies);
     -- the (name, org) pair almost always does. NULL org rows are not
-    -- deduplicated by this constraint (standard SQL NULL semantics) --
-    -- the application layer checks for an existing NULL-org row before
-    -- inserting, so this is a backup, not the only guard.
-    unique (team_name, affiliated_organization_name)
+    -- deduplicated by the database itself, including NULL affiliation.
+    unique nulls not distinct (team_name, affiliated_organization_name)
 );
+
+create index if not exists cataloged_team_corporate_entity_idx
+    on cataloged_team (affiliated_corporate_entity_id)
+    where affiliated_corporate_entity_id is not null;
 
 create table if not exists post_team_mention (
     post_id uuid not null references source_post (post_id),
@@ -41,6 +43,9 @@ create table if not exists post_organization_mention (
 );
 
 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
+    ('corporate_entity_level', 'group', 'Group', 0),
+    ('corporate_entity_level', 'company', 'Company', 1),
+    ('corporate_entity_level', 'plant', 'Plant', 2),
     ('node_type', 'node_team', 'Team', 3),
     ('edge_type', 'edge_mention_team', 'Team mentioned in', 3),
     ('edge_type', 'edge_team_affiliation', 'Team affiliated with', 4),

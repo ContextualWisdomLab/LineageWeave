@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import uuid
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 import pytest
 
@@ -50,7 +51,10 @@ def prov_schema_db():
     with admin_connection.cursor() as cursor:
         cursor.execute(f'create database "{database_name}"')
     try:
-        database_dsn = _ADMIN_DSN.rsplit("/", 1)[0] + f"/{database_name}"
+        parsed_admin_dsn = urlsplit(_ADMIN_DSN)
+        database_dsn = urlunsplit(
+            parsed_admin_dsn._replace(path=f"/{database_name}")
+        )
         connection = psycopg2.connect(database_dsn)
         try:
             with connection.cursor() as cursor:
@@ -148,5 +152,97 @@ def test_database_requires_xsd_datetime_for_event_time(prov_schema_db) -> None:
                 "(subject_resource_id, relation_code, object_literal_id) "
                 "values (%s, 'prov_started_at_time', %s)",
                 (activity_id, literal_id),
+            )
+    prov_schema_db.rollback()
+
+
+def _literal(cursor, lexical_value: str, datatype_iri: str | None) -> str:
+    """Insert one RDF literal and return its UUID."""
+    cursor.execute(
+        "insert into provenance_literal_value (lexical_value, datatype_iri) "
+        "values (%s, %s) returning literal_id",
+        (lexical_value, datatype_iri),
+    )
+    return str(cursor.fetchone()[0])
+
+
+@pytest.mark.parametrize(
+    "lexical_value",
+    ("2026-08-14T04:00:00", "not-a-date", "2026-02-31T04:00:00Z"),
+)
+def test_database_rejects_invalid_xsd_datetime(prov_schema_db, lexical_value: str) -> None:
+    """Malformed and timezone-less xsd:dateTime values fail closed."""
+    with prov_schema_db.cursor() as cursor:
+        activity_id = _resource(cursor, "urn:test:strict-time", "prov_activity")
+        literal_id = _literal(
+            cursor,
+            lexical_value,
+            "http://www.w3.org/2001/XMLSchema#dateTime",
+        )
+        with pytest.raises(psycopg2.errors.RaiseException, match="lexical xsd:dateTime"):
+            cursor.execute(
+                "insert into provenance_assertion "
+                "(subject_resource_id, relation_code, object_literal_id) "
+                "values (%s, 'prov_started_at_time', %s)",
+                (activity_id, literal_id),
+            )
+    prov_schema_db.rollback()
+
+
+def test_database_accepts_timezone_aware_xsd_datetime(prov_schema_db) -> None:
+    """A valid timezone-aware dateTime reaches the assertion store."""
+    with prov_schema_db.cursor() as cursor:
+        activity_id = _resource(cursor, "urn:test:valid-time", "prov_activity")
+        literal_id = _literal(
+            cursor,
+            "2026-08-14T04:00:00+09:00",
+            "http://www.w3.org/2001/XMLSchema#dateTime",
+        )
+        cursor.execute(
+            "insert into provenance_assertion "
+            "(subject_resource_id, relation_code, object_literal_id) "
+            "values (%s, 'prov_started_at_time', %s)",
+            (activity_id, literal_id),
+        )
+    prov_schema_db.rollback()
+
+
+def test_referenced_contract_rows_are_immutable(prov_schema_db) -> None:
+    """Reference-table mutation cannot invalidate stored assertions."""
+    with prov_schema_db.cursor() as cursor:
+        entity_id = _resource(cursor, "urn:test:immutable-entity", "prov_entity")
+        activity_id = _resource(cursor, "urn:test:immutable-activity", "prov_activity")
+        cursor.execute(
+            "insert into provenance_assertion "
+            "(subject_resource_id, relation_code, object_resource_id) "
+            "values (%s, 'prov_was_generated_by', %s)",
+            (entity_id, activity_id),
+        )
+        with pytest.raises(psycopg2.errors.RaiseException, match="types are immutable"):
+            cursor.execute(
+                "delete from provenance_resource_type "
+                "where resource_id = %s and class_code = 'prov_activity'",
+                (activity_id,),
+            )
+    prov_schema_db.rollback()
+
+    with prov_schema_db.cursor() as cursor:
+        activity_id = _resource(cursor, "urn:test:immutable-time", "prov_activity")
+        literal_id = _literal(
+            cursor,
+            "2026-08-14T04:00:00Z",
+            "http://www.w3.org/2001/XMLSchema#dateTime",
+        )
+        cursor.execute(
+            "insert into provenance_assertion "
+            "(subject_resource_id, relation_code, object_literal_id) "
+            "values (%s, 'prov_started_at_time', %s)",
+            (activity_id, literal_id),
+        )
+        with pytest.raises(psycopg2.errors.RaiseException, match="literal values are immutable"):
+            cursor.execute(
+                "update provenance_literal_value set datatype_iri = null "
+                "where literal_id = %s",
+                (literal_id,),
             )
     prov_schema_db.rollback()

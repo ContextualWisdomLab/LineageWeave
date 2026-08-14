@@ -23,4 +23,5 @@ smoke:
 # users' real subject ids, plus Valkey ticket_created events so Activity
 # is not empty (see scripts/seed_demo_data.py). Run after `up`.
 seed:
-	KEYCLOAK_ADMIN_PASSWORD=$${KEYCLOAK_ADMIN_PASSWORD:-admin_dev_only} python3 scripts/seed_demo_data.py
+	@test -n "$${KEYCLOAK_ADMIN_PASSWORD:-}" || { echo "KEYCLOAK_ADMIN_PASSWORD is required" >&2; exit 1; }; \
+	python3 scripts/seed_demo_data.py

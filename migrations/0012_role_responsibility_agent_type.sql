@@ -17,7 +17,9 @@ do $$
 begin
     if exists (
         select 1 from information_schema.columns
-        where table_name = 'post_summary_role' and column_name = 'person_name'
+        where table_schema = 'public'
+          and table_name = 'post_summary_role'
+          and column_name = 'person_name'
     ) then
         alter table post_summary_role rename column person_name to actor_name;
     end if;
