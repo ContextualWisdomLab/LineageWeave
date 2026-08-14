@@ -230,7 +230,7 @@ reanalysis.
   80 per metric, all `llm_judge` sourced, evidence-linked, and in range; the
   adaptive item-bank run separately produced 290 fast-mlsirm linked scores
   across 58 slices and 15 finite calibration rows.
-- The current product-runtime gate passes 347 tests with 100% line-and-branch
+- The current product-runtime gate passes 349 tests with 100% line-and-branch
   coverage across the shipped Python runtime modules.
 
 ## References
@@ -279,5 +279,5 @@ catalog and calibration mutation remains outside reader permissions.
 Current evidence: the live gateway catalog call succeeded; the direct
 PostgreSQL write completed for 80 reports, 320 RAGAS metric observations, 290
 linked scores, 15 calibration rows, and zero orphan candidate-evidence rows;
-the current product source gate remains 347 tests with 100% line-and-branch
+the current product source gate remains 349 tests with 100% line-and-branch
 coverage for the shipped runtime modules.

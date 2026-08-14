@@ -3947,8 +3947,8 @@ frame and a user-chosen-browser capture at the same real Keyverse-authenticated
 document state are both required before parity can be assessed.
 
 Focused HTTP route contracts and the Compose identity-boundary guard passed
-after the alias hardening. The complete current-source gate also passed 347
-tests across 7,544 statements and 2,942 branches at 100 percent line-and-
+after the alias hardening. The complete current-source gate also passed 349
+tests across 7,555 statements and 2,948 branches at 100 percent line-and-
 branch coverage; the React V8 gate (103 statements, 196 branches, 28
 functions, and 88 lines) and production build passed at 100 percent as well.
 The rebuilt container's direct database health and issuer-route probes passed

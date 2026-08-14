@@ -2041,6 +2041,49 @@ def test_legacy_shared_thread_edges_are_demoted_in_lineage_and_knowledge_graph(m
     )
 
 
+def test_shared_thread_migration_canonicalizes_and_backfills_document_pairs(monkeypatch) -> None:
+    """Fill only missing undirected thread clues after removing legacy chronology."""
+    calls: list[str] = []
+    query_rows = iter((2, 3, 4, 5, 6, 7))
+
+    def query(_connection, statement, _params=()):  # noqa: ANN001
+        calls.append(statement)
+        return [{"migrated": 1}] * next(query_rows)
+
+    monkeypatch.setattr(
+        lw,
+        "_database_table_exists",
+        lambda _connection, table_name: table_name
+        in {lw.ANALYSIS_DOCUMENT_TABLE, lw.ANALYSIS_EDGE_TABLE, lw.ANALYSIS_KG_EDGE_TABLE},
+    )
+    monkeypatch.setattr(lw, "ensure_lineage_edge_reason_column", lambda _connection: None)
+    monkeypatch.setattr(lw, "ensure_knowledge_graph_edge_evidence_columns", lambda _connection: None)
+    monkeypatch.setattr(lw, "_database_query", query)
+
+    assert lw.demote_legacy_shared_thread_edges(object()) == {
+        "lineage_edges": 11,
+        "knowledge_graph_edges": 16,
+    }
+    assert len(calls) == 6
+    assert sum("LEAST(source_node, target_node)" in statement for statement in calls) == 2
+    assert sum(f"FROM {lw.ANALYSIS_DOCUMENT_TABLE}" in statement for statement in calls) == 2
+    assert sum(f"INSERT INTO {lw.ANALYSIS_EDGE_TABLE}" in statement for statement in calls) == 1
+    assert sum(f"INSERT INTO {lw.ANALYSIS_KG_EDGE_TABLE}" in statement for statement in calls) == 1
+
+
+def test_shared_thread_migration_tolerates_document_nodes_without_edge_projections(monkeypatch) -> None:
+    """A partial bootstrap must not manufacture a table just to backfill relatedness."""
+    monkeypatch.setattr(
+        lw,
+        "_database_table_exists",
+        lambda _connection, table_name: table_name == lw.ANALYSIS_DOCUMENT_TABLE,
+    )
+    assert lw.demote_legacy_shared_thread_edges(object()) == {
+        "lineage_edges": 0,
+        "knowledge_graph_edges": 0,
+    }
+
+
 def test_inference_verification_run_persists_normalized_candidates_and_evidence(monkeypatch) -> None:
     """Store a bounded verifier run in direct-PostgreSQL 3NF relations."""
     statements: list[tuple[str, tuple[object, ...]]] = []

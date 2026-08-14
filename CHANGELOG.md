@@ -111,8 +111,8 @@
 - Retired registration URLs now return `404` for both `GET` and `POST` before
   session authorization, so neither route can be mistaken for an authentication
   failure or reintroduced as an enrollment surface.
-- The current complete source gate passes 347 tests with 7,544 statements and
-  2,942 branches at 100 percent line-and-branch coverage.
+- The current complete source gate passes 349 tests with 7,555 statements and
+  2,948 branches at 100 percent line-and-branch coverage.
 - Added a V8-covered React presentation model for email validation, Keyman
   normalization, safe asset previews, semantic values, directed KG
   relationships, and customer trees. Its current 103 statements, 196

@@ -588,6 +588,6 @@ contain both the source alias and the LLM-proposed canonical name. Conflicting
 or LLM-only candidates remain unresolved and do not create a semantic KG edge
 or a chronological transition.
 
-The current source gate completed 347 tests across 7,544 statements and 2,942
+The current source gate completed 349 tests across 7,555 statements and 2,948
 branches at 100% line-and-branch coverage. The direct PostgreSQL schema
 contract and React production build remained green after the change.
