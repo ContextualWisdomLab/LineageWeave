@@ -312,14 +312,28 @@ function EventLineageSection({
 function AffiliateTreeNode({
   node,
   onSelectPerson,
+  onSelectEntity,
 }: {
   node: AffiliateNode;
   onSelectPerson?: (personId: string, personName: string) => void;
+  onSelectEntity?: (entityId: string, entityName: string) => void;
 }) {
   return (
     <li>
       <span className={node.resolved ? "affiliate-resolved" : "affiliate-unresolved"}>
-        {node.entity_name}
+        {node.resolved && node.entity_id && onSelectEntity ? (
+          <button
+            className="keyman-select"
+            aria-label={`Affiliate org: ${node.entity_name}`}
+            onClick={() => {
+              if (node.entity_id) onSelectEntity(node.entity_id, node.entity_name);
+            }}
+          >
+            {node.entity_name}
+          </button>
+        ) : (
+          node.entity_name
+        )}
       </span>
       {(node.entity_level_label || node.entity_level_code) && (
         <span className="affiliate-level"> ({node.entity_level_label ?? node.entity_level_code})</span>
@@ -353,6 +367,7 @@ function AffiliateTreeNode({
               key={child.entity_id ?? child.entity_name}
               node={child}
               onSelectPerson={onSelectPerson}
+              onSelectEntity={onSelectEntity}
             />
           ))}
         </ul>
@@ -495,6 +510,7 @@ function KeymanPanel({
   onExtracted,
   onSelectPost,
   focusPerson,
+  focusEntity,
 }: {
   postId: string;
   accessToken: string;
@@ -503,6 +519,7 @@ function KeymanPanel({
   onExtracted: () => void;
   onSelectPost?: (postId: string) => void;
   focusPerson?: { personId: string; personName: string } | null;
+  focusEntity?: { entityId: string; entityName: string } | null;
 }) {
   const [related, setRelated] = useState<RelatedNode[] | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
@@ -553,6 +570,20 @@ function KeymanPanel({
         if (requestId === relatedRequest.current) setRelated([]);
       });
   }, [accessToken, focusPerson]);
+
+  useEffect(() => {
+    if (!focusEntity) return;
+    const requestId = ++relatedRequest.current;
+    setSelectedName(focusEntity.entityName);
+    setRelated(null);
+    fetchRelatedEntity(accessToken, focusEntity.entityId)
+      .then((result) => {
+        if (requestId === relatedRequest.current) setRelated(result.related);
+      })
+      .catch(() => {
+        if (requestId === relatedRequest.current) setRelated([]);
+      });
+  }, [accessToken, focusEntity]);
 
   async function handleExtract() {
     setExtracting(true);
@@ -1027,6 +1058,7 @@ function PostDetailPopup({
   const [vocEvidence, setVocEvidence] = useState<VocEvidence | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
+  const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
 
   function reloadKeymen() {
     fetchPostKeymen(accessToken, postId).then((r) => setKeymen(r.keymen)).catch(() => setKeymen([]));
@@ -1054,6 +1086,7 @@ function PostDetailPopup({
     setVocEvidence(null);
     setEvaluation(null);
     setFocusPerson(null);
+    setFocusEntity(null);
     fetchPost(accessToken, postId).then(setPost).catch((err) => setError(String(err)));
     fetchPostEvaluation(accessToken, postId)
       .then((r) => setEvaluation(r.responses))
@@ -1115,12 +1148,13 @@ function PostDetailPopup({
                                 <button
                                   className="keyman-select"
                                   aria-label={`R&R Keyman: ${rr.person_name}`}
-                                  onClick={() =>
+                                  onClick={() => {
+                                    setFocusEntity(null);
                                     setFocusPerson({
                                       personId: person.person_id,
                                       personName: person.person_name,
-                                    })
-                                  }
+                                    });
+                                  }}
                                 >
                                   <strong>{rr.person_name}</strong>
                                 </button>
@@ -1151,7 +1185,10 @@ function PostDetailPopup({
             <VocEvidenceSection
               evidence={vocEvidence}
               affiliateTrees={affiliateTrees}
-              onSelectPerson={(personId, personName) => setFocusPerson({ personId, personName })}
+              onSelectPerson={(personId, personName) => {
+                setFocusEntity(null);
+                setFocusPerson({ personId, personName });
+              }}
             />
 
             <section className="popup-section">
@@ -1176,7 +1213,14 @@ function PostDetailPopup({
                     <AffiliateTreeNode
                       key={node.entity_id ?? node.entity_name}
                       node={node}
-                      onSelectPerson={(personId, personName) => setFocusPerson({ personId, personName })}
+                      onSelectPerson={(personId, personName) => {
+                        setFocusEntity(null);
+                        setFocusPerson({ personId, personName });
+                      }}
+                      onSelectEntity={(entityId, entityName) => {
+                        setFocusPerson(null);
+                        setFocusEntity({ entityId, entityName });
+                      }}
                     />
                   ))}
                 </ul>
@@ -1191,6 +1235,7 @@ function PostDetailPopup({
               onExtracted={reloadKeymen}
               onSelectPost={onSelectPost}
               focusPerson={focusPerson}
+              focusEntity={focusEntity}
             />
 
             {counterparties && counterparties.length > 0 && (
