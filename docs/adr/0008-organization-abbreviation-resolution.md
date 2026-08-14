@@ -73,9 +73,10 @@ exact same way a classified relationship already is.
 
 Wired into `backend/app/keyman_ingestion.py`'s affiliation loop (the
 concrete case real data surfaced): each affiliated organization name is
-resolved before `resolve_corporate_entity` sees it, so a
-search-corroborated resolution gets the character-similarity match its
-raw abbreviated form never could.
+resolved before corporate-entity matching and creation. A corroborated
+canonical name is returned to the caller as part of the normalized
+`PersonMention`, so the same request's relationship classifier uses the
+canonical form too rather than reintroducing the raw abbreviation.
 
 ## Consequences
 
@@ -86,31 +87,21 @@ raw abbreviated form never could.
   which is the authoritative raw-form/canonical-form/evidence record.
   This is 3NF-motivated, not a loss: repeating the raw-to-canonical
   mapping per affiliation row would be the actual redundancy.
-- A person_affiliation row's unique key
-  (`person_id, affiliated_organization_name`) is on the *stored* name.
-  If Searxng availability changes between two extraction runs on the
-  same post (first run: unavailable, raw name stored; later run:
-  available, resolved name stored), the two runs can leave both the raw
-  and resolved variants as separate rows for the same real affiliation,
-  rather than cleanly upgrading one row in place. A real, narrow edge
-  case (only triggers on a mid-flight verification-availability change
-  for the same post+person), not fixed here -- same category of
-  near-duplicate-variant risk `resolve_corporate_entity`'s own
-  candidate matching already accepts for minor raw-string differences.
+- Resolution availability can improve between extraction runs. When a
+  prior raw affiliation later resolves, `_upsert_affiliation` promotes
+  it transactionally: the canonical row is inserted or updated while
+  preserving any previously resolved corporate-entity link and role
+  title, and the obsolete raw-name row is deleted when the two names
+  differ. This avoids leaving duplicate raw and canonical identities for
+  the same person.
+- `ingest_post_keymen` returns the normalized mentions it persisted.
+  `extract_post_keymen` therefore passes canonical organization names to
+  entity-relationship classification and returns those same names on
+  the API response; affiliation persistence, relationship classification,
+  and the caller-visible payload agree within one transaction.
 - Every channel here follows the existing pluggable-client discipline:
   `NullOrganizationNameResolutionClient`/an unavailable verification
   client degrade to "use the raw name," never a fabricated resolution.
-- `extract_post_keymen`'s entity-relationship classification step (the
-  same request, right after Keyman extraction) still builds its
-  `organization_names` list from each `PersonMention`'s own
-  `affiliated_organization_names` -- the raw names the LLM extracted,
-  not the resolved names `ingest_post_keymen` just persisted. A real,
-  known gap: an abbreviation resolved for the Keyman/affiliation side
-  is not yet threaded through to the counterparty-relationship
-  classification side of the same request. Not fixed here (it needs
-  `ingest_post_keymen` to hand resolved names back to its caller, a
-  small but separate change); tracked here rather than silently
-  shipped as if both sides already agreed.
 
 ## Related
 
