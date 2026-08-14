@@ -89,12 +89,13 @@ which is false.
   optionally a title) so R&R could safely originate new person
   identities the same way Keyman does, closing this gap properly rather
   than working around it with a guess.
-- `cataloged_team`'s `unique(team_name, affiliated_organization_name)`
-  constraint does not deduplicate two NULL-org rows for the same name
-  at the SQL level (standard NULL semantics) -- `upsert_team`'s own
-  `IS NOT DISTINCT FROM` lookup is the actual guard for that case, not
-  the constraint alone; documented so a future reader does not assume
-  the constraint is sufficient on its own.
+- `cataloged_team` uses PostgreSQL's
+  `UNIQUE NULLS NOT DISTINCT (team_name, affiliated_organization_name)`.
+  NULL affiliation therefore participates in the identity key: two
+  bare-team rows with the same name conflict and the atomic upsert
+  returns one shared `team_id`. This database constraint, not a
+  read-before-insert application check, closes the concurrent duplicate
+  race for both affiliated and unplaced teams.
 
 ## Related
 

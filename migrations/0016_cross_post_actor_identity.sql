@@ -21,8 +21,9 @@ create table if not exists cataloged_team (
     created_at timestamptz not null default now(),
     -- A team name alone rarely uniquely identifies it across a whole
     -- product's real-world scope ("설계팀" exists at many companies);
-    -- the (name, org) pair almost always does. NULL org rows are not
-    -- deduplicated by the database itself, including NULL affiliation.
+    -- the (name, org) pair almost always does. NULLS NOT DISTINCT makes
+    -- a missing affiliation participate in the same identity key, so
+    -- concurrent upserts of the same unplaced team return one row.
     unique nulls not distinct (team_name, affiliated_organization_name)
 );
 
