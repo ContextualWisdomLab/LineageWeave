@@ -249,6 +249,9 @@ jobs:
                 "backend/tests/**": "allow",
                 "frontend/src/**/*.test.ts": "allow",
                 "frontend/src/**/*.test.tsx": "allow",
+                "frontend/src/**/*.spec.ts": "allow",
+                "frontend/src/**/*.spec.tsx": "allow",
+                "frontend/src/**/__tests__/**": "allow",
                 "docs/superpowers/specs/**": "allow"
               },
               "bash": "deny",
@@ -375,22 +378,31 @@ jobs:
               raise SystemExit("red phase produced no files")
           if len(paths) > max_files or total_bytes > max_total_bytes:
               raise SystemExit("red phase exceeded the autonomous diff budget")
+
+          def is_frontend_test_path(path_text: str) -> bool:
+              """Return whether a frontend path is regression evidence."""
+              path_parts = path_text.split("/")
+              return path_text.startswith("frontend/src/") and (
+                  path_text.endswith(
+                      (".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx")
+                  )
+                  or "__tests__" in path_parts
+              )
+
           def is_allowed_red_path(path_text: str) -> bool:
               """Return whether one red-phase path is test or design evidence."""
               if path_text.startswith(
                   ("tests/", "backend/tests/", "docs/superpowers/specs/")
               ):
                   return True
-              return path_text.startswith("frontend/src/") and path_text.endswith(
-                  (".test.ts", ".test.tsx")
-              )
+              return is_frontend_test_path(path_text)
 
           forbidden = [path for path in paths if not is_allowed_red_path(path)]
           if forbidden:
               raise SystemExit(f"red phase changed files outside its scope: {forbidden!r}")
           if not any(
               path.startswith(("tests/", "backend/tests/"))
-              or path.endswith((".test.ts", ".test.tsx"))
+              or is_frontend_test_path(path)
               for path in paths
           ):
               raise SystemExit("red phase did not add or modify a regression test")
@@ -657,8 +669,12 @@ jobs:
 
           def is_frontend_test_path(path_text: str) -> bool:
               """Return whether a frontend path is regression evidence, not product code."""
-              return path_text.startswith("frontend/src/") and path_text.endswith(
-                  (".test.ts", ".test.tsx")
+              path_parts = path_text.split("/")
+              return path_text.startswith("frontend/src/") and (
+                  path_text.endswith(
+                      (".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx")
+                  )
+                  or "__tests__" in path_parts
               )
 
           def is_test_path(path_text: str) -> bool:

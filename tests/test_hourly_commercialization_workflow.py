@@ -137,11 +137,18 @@ def test_agent_never_receives_github_or_oidc_credentials() -> None:
 
 
 def test_agent_permissions_are_test_first_and_deny_shell_or_web() -> None:
-    """The red phase can author evidence only; neither phase can execute tools."""
+    """The red phase can author all supported tests; neither phase can execute tools."""
     assert '"*": "deny"' in _WORKFLOW
     assert '"tests/**": "allow"' in _WORKFLOW
     assert '"backend/tests/**": "allow"' in _WORKFLOW
-    assert '"frontend/src/**/*.test.tsx": "allow"' in _WORKFLOW
+    for pattern in (
+        '"frontend/src/**/*.test.ts": "allow"',
+        '"frontend/src/**/*.test.tsx": "allow"',
+        '"frontend/src/**/*.spec.ts": "allow"',
+        '"frontend/src/**/*.spec.tsx": "allow"',
+        '"frontend/src/**/__tests__/**": "allow"',
+    ):
+        assert pattern in _WORKFLOW
     assert _WORKFLOW.count('"bash": "deny"') == 2
     assert _WORKFLOW.count('"webfetch": "deny"') == 2
     assert _WORKFLOW.count('"websearch": "deny"') == 2
@@ -203,23 +210,33 @@ def test_every_increment_requires_production_tests_spec_and_changelog() -> None:
 
 
 def test_frontend_test_only_diff_does_not_satisfy_production_gate() -> None:
-    """Regression files count as evidence but never as buyer-visible product code."""
+    """Every supported frontend test convention is evidence, never product code."""
     classifiers = _implementation_path_classifiers()
     is_production_path = classifiers["is_production_path"]
     is_test_path = classifiers["is_test_path"]
     assert callable(is_production_path)
     assert callable(is_test_path)
 
-    assert is_test_path("frontend/src/App.test.tsx") is True
-    assert is_test_path("frontend/src/lineageLayout.test.ts") is True
-    assert is_production_path("frontend/src/App.test.tsx") is False
-    assert is_production_path("frontend/src/lineageLayout.test.ts") is False
+    frontend_test_paths = (
+        "frontend/src/App.test.tsx",
+        "frontend/src/lineageLayout.test.ts",
+        "frontend/src/App.spec.tsx",
+        "frontend/src/lineageLayout.spec.ts",
+        "frontend/src/__tests__/App.tsx",
+        "frontend/src/components/__tests__/LineageCard.tsx",
+    )
+    for path in frontend_test_paths:
+        assert is_test_path(path) is True
+        assert is_production_path(path) is False
 
-    assert is_production_path("frontend/src/App.tsx") is True
-    assert is_production_path("frontend/src/App.css") is True
-    assert is_production_path("backend/app/main.py") is True
-    assert is_production_path("lineageweave/reconstruct.py") is True
-    assert is_production_path("migrations/0001_initial_schema.sql") is True
+    for path in (
+        "frontend/src/App.tsx",
+        "frontend/src/App.css",
+        "backend/app/main.py",
+        "lineageweave/reconstruct.py",
+        "migrations/0001_initial_schema.sql",
+    ):
+        assert is_production_path(path) is True
     assert is_production_path("docs/architecture-note.md") is False
 
 
