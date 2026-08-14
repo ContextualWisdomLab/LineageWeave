@@ -67,7 +67,10 @@ from backend.app.affiliate_tree_ingestion import fetch_affiliate_forest, fetch_v
 from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
 from backend.app.db import create_pool, get_pool
-from backend.app.entity_relationship_ingestion import ingest_post_entity_relationships
+from backend.app.entity_relationship_ingestion import (
+    fetch_post_counterparties,
+    ingest_post_entity_relationships,
+)
 from backend.app.post_evaluation_ingestion import fetch_post_evaluation, ingest_post_evaluation
 from backend.app.report_ingestion import (
     GROUPING_KINDS,
@@ -438,23 +441,18 @@ async def read_post_counterparties(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Classified counterparty orgs for one visible post."""
+    """Classified counterparty orgs for one visible post.
+
+    A name that resolves to a cataloged ``corporate_entity`` carries
+    that id so the popup can start the same related walk as an
+    affiliate-tree org click. Unresolved names stay ``null``.
+    """
     post = await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            """
-            select c.counterparty_entity_name, c.relationship_type_code, v.lookup_label as relationship_label,
-                   c.verification_status_code, c.verification_evidence_url
-            from post_counterparty_entity c
-            join common_lookup_value v on v.lookup_code = c.relationship_type_code
-            where c.post_id = $1
-            order by c.counterparty_entity_name
-            """,
-            post_id,
-        )
+        counterparties = await fetch_post_counterparties(conn, post_id)
     return {
         "post_id": str(post["post_id"]),
-        "counterparties": [dict(row) for row in rows],
+        "counterparties": counterparties,
     }
 
 

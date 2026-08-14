@@ -35,6 +35,7 @@ export interface Counterparty {
   relationship_label?: string;
   verification_status_code: string;
   verification_evidence_url: string | null;
+  corporate_entity_id: string | null;
 }
 
 export interface AffiliatePersonRef {

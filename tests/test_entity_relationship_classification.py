@@ -95,3 +95,25 @@ def test_contextual_orchestrator_classifies_a_dual_role_organization() -> None:
     # describes, not something unrelated.
     assert by_name["Meridian Utilities"] in {VOC, VOCO}
     assert by_name["Colby Insulation"] == VOS
+
+
+def test_classified_names_attach_cataloged_org_ids_or_stay_null() -> None:
+    """A resolved counterparty keeps its cataloged id; an unmatched name
+    stays null -- never a guessed neighborhood for the related walk.
+    """
+    from backend.app.entity_relationship_ingestion import attach_resolved_entity_ids
+    from lineageweave.corporate_hierarchy_resolution import CorporateEntityCandidate
+
+    rows = attach_resolved_entity_ids(
+        [
+            {"counterparty_entity_name": "Demo Corp", "relationship_type_code": "rel_voc"},
+            {"counterparty_entity_name": "Northridge Grid", "relationship_type_code": "rel_voc"},
+        ],
+        [
+            CorporateEntityCandidate("corp-1", "Demo Corp"),
+            CorporateEntityCandidate("corp-2", "Test Corp"),
+        ],
+    )
+    by_name = {row["counterparty_entity_name"]: row["corporate_entity_id"] for row in rows}
+    assert by_name["Demo Corp"] == "corp-1"
+    assert by_name["Northridge Grid"] is None

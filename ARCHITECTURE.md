@@ -222,7 +222,10 @@ persisted via `backend/app/entity_relationship_ingestion.py` into
 relationship classifier's candidates) goes through
 `lineageweave/corporate_hierarchy_resolution.py` instead of an exact
 string match, so "Acme Electronics Korea Ltd." still resolves to the
-same entity as "Acme Electronics Korea."
+same entity as "Acme Electronics Korea." A resolved name on
+`GET /counterparties` carries `corporate_entity_id` so the popup can
+open `GET /api/corporate-entities/{id}/related`; an unresolved name
+stays `null`.
 
 Phase 4 adds `GET /api/posts/{post_id}/lineage` (direct `post_lineage_edge`
 links and indirect Knowledge-Graph links, kept as two separate lists --
@@ -271,7 +274,9 @@ summary/key-events/R&R, VOC evidence excerpts, an Event Lineage panel
 affiliate tree (resolved ancestors plus unresolved org roots), Keyman +
 counterparty panels (a Keyman click loads RWR related nodes;
 a related corporate-entity node continues the same walk via
-`GET /api/corporate-entities/{id}/related`; `post_admin` can extract),
+`GET /api/corporate-entities/{id}/related`; a classified name that
+resolves to a cataloged org is the same walk from Counterparties;
+`post_admin` can extract),
 and an in-popup chat whose cited sources
 open a sliding evidence panel (`EvidencePanel`, CSS
 `slide-in-from-right`) showing that source post's actual content. Built from the product

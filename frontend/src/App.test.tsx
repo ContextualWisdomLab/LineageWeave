@@ -650,11 +650,20 @@ describe("App, authenticated", () => {
           jsonResponse({
             counterparties: [
               {
+                counterparty_entity_name: "Demo Corp",
+                relationship_type_code: "rel_voc",
+                relationship_label: "Voice of Customer",
+                verification_status_code: "verify_pending",
+                verification_evidence_url: null,
+                corporate_entity_id: "corp-1",
+              },
+              {
                 counterparty_entity_name: "Northridge Grid",
                 relationship_type_code: "rel_voc",
                 relationship_label: "Voice of Customer",
                 verification_status_code: "verify_pending",
                 verification_evidence_url: options?.verificationEvidenceUrl ?? null,
+                corporate_entity_id: null,
               },
             ],
           }),
@@ -941,7 +950,8 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
     await waitFor(() => expect(screen.getByText("Demo Group")).toBeInTheDocument());
-    expect(screen.getByText("Demo Corp")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Affiliate org: Demo Corp" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Counterparty org: Demo Corp" })).toBeInTheDocument();
     expect(screen.getByText("(Company)")).toBeInTheDocument();
     expect(screen.getAllByText(/Ada West \(Our side\)/).length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText(/our_side/)).not.toBeInTheDocument();
@@ -1010,6 +1020,16 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
     expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Affiliate org: Northridge Grid" })).not.toBeInTheDocument();
+  });
+
+  it("opens related nodes from a classified counterparty organization", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Counterparty org: Demo Corp" }));
+    await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
+    expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Counterparty org: Northridge Grid" })).not.toBeInTheDocument();
   });
 
   it("links a verification badge only for http(s) evidence URLs", async () => {

@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.66.0] - 2026-08-14
+
+### Added
+
+- Classified counterparty names that resolve to a cataloged org start
+  the same related-node walk as an affiliate-tree org click. After
+  `make seed`, Demo Corp in Counterparties opens
+  `GET /api/corporate-entities/{id}/related`. Unresolved names
+  (Northridge Grid) stay text -- never a guessed neighborhood.
+
 ## [0.65.0] - 2026-08-14
 
 ### Added
