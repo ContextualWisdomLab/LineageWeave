@@ -5,6 +5,7 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix org: <http://www.w3.org/ns/org#> .
 
 #################################################################
 # LineageWeave Knowledge Graph Ontology
@@ -169,6 +170,14 @@
 # node_type's :Person is a cataloged_person row with a stable person_id
 # a Keyman panel links to; an R&R actor is a free-text name with no
 # cataloged identity of its own (it may not even resolve to a Keyman).
+#
+# A third, meso-level case real data surfaced: a named sub-unit of a
+# company ("설계팀" [design team]) is neither prov:Person nor the
+# prov:Organization itself -- it is the company's own internal
+# structure. PROV-O has no such class; the W3C Organization Ontology
+# (Reynolds, 2014) does: org:OrganizationalUnit, "used to represent
+# division of a particular organization into sub-organizational units,"
+# linked to its parent via org:unitOf. See docs/adr/0007-team-actor-type.md.
 #################################################################
 
 :RoleActorPerson a owl:Class ;
@@ -182,3 +191,9 @@
     rdfs:label "Role actor (organization)" ;
     rdfs:comment "An R&R actor that is an organization acting in its own name, per prov:Organization." ;
     :lookupCode "prov_organization" .
+
+:RoleActorTeam a owl:Class ;
+    rdfs:subClassOf org:OrganizationalUnit ;
+    rdfs:label "Role actor (team)" ;
+    rdfs:comment "An R&R actor that is a named sub-unit of a company (e.g. 설계팀), per org:OrganizationalUnit -- not the company itself." ;
+    :lookupCode "prov_team" .

@@ -72,6 +72,26 @@ def test_organization_actor_is_not_forced_into_a_person_slot() -> None:
     assert role.affiliated_organization_name is None
 
 
+def test_team_actor_is_meso_level_not_organization() -> None:
+    """A named sub-unit of a company (e.g. 설계팀, "design team") must
+    parse as ``prov_team``, distinct from both ``prov_person`` and
+    ``prov_organization`` -- it is part of a company, not the company
+    itself (ADR 0007), and its parent company's name must still land in
+    ``affiliated_organization_name``.
+    """
+    content = (
+        '{"korean_summary": "설계팀이 도면을 검토했습니다.", "key_events": [], '
+        '"roles_and_responsibilities": [{"actor_name": "설계팀", "responsibility": "도면 검토", '
+        '"actor_type": "team", "affiliated_organization_name": "Demo Corp"}]}'
+    )
+    summary = parse_summary_response(content)
+    assert summary is not None
+    role = summary.roles_and_responsibilities[0]
+    assert role.actor_name == "설계팀"
+    assert role.actor_type_code == "prov_team"
+    assert role.affiliated_organization_name == "Demo Corp"
+
+
 def test_unknown_actor_type_code_is_rejected() -> None:
     with pytest.raises(ValueError, match="actor_type_code"):
         RoleResponsibility(actor_name="Ada West", responsibility="후속", actor_type_code="person")

@@ -144,7 +144,8 @@ def seeded_db(demo_analyst_token):
                 "('evaluation_criterion', 'general_sentiment_negative', 'Negative stance'), "
                 "('evaluation_criterion', 'sales_lead_specificity', 'Sales-lead specificity'), "
                 "('prov_agent_type', 'prov_person', 'Person'), "
-                "('prov_agent_type', 'prov_organization', 'Organization')"
+                "('prov_agent_type', 'prov_organization', 'Organization'), "
+                "('prov_agent_type', 'prov_team', 'Team')"
             )
             cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "

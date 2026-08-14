@@ -44,10 +44,15 @@ from typing import Protocol
 from .http_client import post_json
 
 # common_lookup_value category "prov_agent_type" -- PROV-O's prov:Person /
-# prov:Organization, the two subclasses of prov:Agent this repo models.
+# prov:Organization for the micro/macro cases, plus a meso-level third
+# case this repo's own real data needed: a named sub-unit of a company
+# ("설계팀" / "design team"), which is neither a person nor the company
+# itself. Grounded in the W3C Organization Ontology's org:OrganizationalUnit
+# (Reynolds, 2014), not invented -- see docs/adr/0007-team-actor-type.md.
 ACTOR_TYPE_PERSON = "prov_person"
 ACTOR_TYPE_ORGANIZATION = "prov_organization"
-_VALID_ACTOR_TYPE_CODES = frozenset({ACTOR_TYPE_PERSON, ACTOR_TYPE_ORGANIZATION})
+ACTOR_TYPE_TEAM = "prov_team"
+_VALID_ACTOR_TYPE_CODES = frozenset({ACTOR_TYPE_PERSON, ACTOR_TYPE_ORGANIZATION, ACTOR_TYPE_TEAM})
 
 
 @dataclass(frozen=True)
@@ -58,14 +63,18 @@ class RoleResponsibility:
         actor_name: the person's or organization's name as named in the
             text.
         responsibility: what they are responsible for or did.
-        actor_type_code: ``ACTOR_TYPE_PERSON`` or ``ACTOR_TYPE_ORGANIZATION``
-            (PROV-O ``prov:Person`` / ``prov:Organization``) -- which this
-            actor actually is, not assumed to be a person.
-        affiliated_organization_name: for a person actor, the
-            organization the text says or implies they work for, when
+        actor_type_code: ``ACTOR_TYPE_PERSON``, ``ACTOR_TYPE_ORGANIZATION``,
+            or ``ACTOR_TYPE_TEAM`` (PROV-O ``prov:Person`` /
+            ``prov:Organization``, or the meso-level
+            ``org:OrganizationalUnit`` for a named sub-unit like "설계팀")
+            -- which this actor actually is, not assumed to be a person.
+        affiliated_organization_name: for a person OR team actor, the
+            organization the text says or implies they belong to, when
             the text supports it; ``None`` when the text gives no
             affiliation to infer, or for an organization actor (its own
-            name already answers "which organization").
+            name already answers "which organization"). A team actor
+            without this is an unplaced team -- the text should usually
+            support it since a team is always someone's team.
     """
 
     actor_name: str
@@ -124,14 +133,21 @@ three things:
    post (e.g. "a bid was submitted", "a delivery date was confirmed"),
    each as a short phrase.
 3. A list of roles & responsibilities: for each named actor in the post
-   -- a person OR an organization acting in its own name (e.g. "당사"
-   [our company], "Demo Corp") -- one short phrase describing what they
-   are responsible for or did, according to the text. Do not force an
-   organization's name into a person slot: decide whether each actor is
-   a person or an organization, and say which.
+   -- a person, an organization acting in its own name (e.g. "당사"
+   [our company], "Demo Corp"), OR a named team/department inside an
+   organization (e.g. "설계팀" [design team], "Sales Team") -- one short
+   phrase describing what they are responsible for or did, according to
+   the text. Do not force an organization's name into a person slot, and
+   do not force a team's name into an organization slot: a team is a
+   sub-unit of a company, not the company itself -- decide which of the
+   three each actor is, and say which.
    When the actor is a person and the text names or clearly implies who
    they work for, also give that organization's name -- a bare person
-   name without their employer is hard to place.
+   name without their employer is hard to place. When the actor is a
+   team, also give the organization it belongs to (a team is always part
+   of some company, even when the text only names the team, e.g. a
+   Korean company's internal 설계팀 -- infer the parent company from
+   context when the text supports it).
 
 Reply with ONLY a JSON object (no markdown fences, no prose) with exactly
 these fields:
@@ -140,10 +156,10 @@ these fields:
   "roles_and_responsibilities": array of objects, each with:
     "actor_name": string
     "responsibility": string
-    "actor_type": exactly "person" or "organization"
+    "actor_type": exactly "person", "organization", or "team"
     "affiliated_organization_name": string, or null when the actor is an
-      organization, or when the actor is a person and the text gives no
-      affiliation to infer
+      organization, or when the text gives no affiliation to infer for a
+      person or team actor
 
 Post title: {title}
 Post body: {body}
@@ -190,9 +206,12 @@ def parse_summary_response(content: str) -> PostSummary | None:
             name = entry.get("actor_name")
             responsibility = entry.get("responsibility")
             actor_type_raw = entry.get("actor_type")
-            actor_type_code = (
-                ACTOR_TYPE_ORGANIZATION if actor_type_raw == "organization" else ACTOR_TYPE_PERSON
-            )
+            if actor_type_raw == "organization":
+                actor_type_code = ACTOR_TYPE_ORGANIZATION
+            elif actor_type_raw == "team":
+                actor_type_code = ACTOR_TYPE_TEAM
+            else:
+                actor_type_code = ACTOR_TYPE_PERSON
             affiliation_raw = entry.get("affiliated_organization_name")
             affiliated_organization_name = (
                 affiliation_raw.strip()

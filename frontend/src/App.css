@@ -269,6 +269,11 @@
   color: #e65100;
 }
 
+.actor-type-prov_team {
+  background: #e0f2f1;
+  color: #00695c;
+}
+
 .rr-affiliation {
   opacity: 0.7;
   font-size: 0.9rem;

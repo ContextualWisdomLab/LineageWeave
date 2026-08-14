@@ -31,12 +31,14 @@ from rdflib.namespace import RDFS, SKOS
 
 _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo_data.py"
 
-# 0012 seeds prov_agent_type via its own migration SQL (ADR 0006), not
-# literally embedded in seed_demo_data.py's own source text the way the
-# other covered categories are -- read alongside it below so the
-# round-trip still sees those two codes.
-_PROV_AGENT_TYPE_MIGRATION_PATH = (
-    Path(__file__).resolve().parents[1] / "migrations" / "0012_role_responsibility_agent_type.sql"
+# 0012 (ADR 0006: person/organization) and 0014 (ADR 0007: team) seed
+# prov_agent_type via their own migration SQL, not literally embedded in
+# seed_demo_data.py's own source text the way the other covered
+# categories are -- read alongside it below so the round-trip still sees
+# all three codes.
+_PROV_AGENT_TYPE_MIGRATION_PATHS = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0012_role_responsibility_agent_type.sql",
+    Path(__file__).resolve().parents[1] / "migrations" / "0014_role_responsibility_team_actor_type.sql",
 )
 
 # The categories this ontology covers (ADR 0004's scope). seed_demo_data.py
@@ -59,12 +61,14 @@ _INSERT_TUPLE_PATTERN = re.compile(r"\('([a-z_]+)',\s*'([a-z_]+)'")
 
 def _seeded_lookup_codes_for_covered_categories() -> set[str]:
     """Every `(lookup_category, lookup_code)` pair seed_demo_data.py's own
-    SQL, plus 0012's migration SQL, literally inserts, filtered to the
-    categories this ontology covers. Parsed from source, not executed --
-    this is a static consistency check between committed files, not a
-    live-database test.
+    SQL, plus 0012/0014's migration SQL, literally inserts, filtered to
+    the categories this ontology covers. Parsed from source, not
+    executed -- this is a static consistency check between committed
+    files, not a live-database test.
     """
-    source = _SEED_SCRIPT_PATH.read_text() + _PROV_AGENT_TYPE_MIGRATION_PATH.read_text()
+    source = _SEED_SCRIPT_PATH.read_text() + "".join(
+        p.read_text() for p in _PROV_AGENT_TYPE_MIGRATION_PATHS
+    )
     return {
         code
         for category, code in _INSERT_TUPLE_PATTERN.findall(source)
@@ -160,6 +164,20 @@ def test_prov_agent_type_terms_resolve_and_subclass_real_prov_o() -> None:
     assert iri_for_lookup_code("prov_organization") == str(LW.RoleActorOrganization)
     assert (LW.RoleActorPerson, RDFS.subClassOf, URIRef(prov.Person)) in graph
     assert (LW.RoleActorOrganization, RDFS.subClassOf, URIRef(prov.Organization)) in graph
+
+
+def test_prov_team_type_resolves_and_subclasses_real_org_ontology() -> None:
+    """ADR 0007: a team actor is grounded in the real external W3C
+    Organization Ontology's org:OrganizationalUnit, the meso-level
+    sub-organization concept PROV-O itself has no equivalent for.
+    """
+    from rdflib import URIRef
+    from rdflib.namespace import Namespace
+
+    org = Namespace("http://www.w3.org/ns/org#")
+    graph = load_ontology()
+    assert iri_for_lookup_code("prov_team") == str(LW.RoleActorTeam)
+    assert (LW.RoleActorTeam, RDFS.subClassOf, URIRef(org.OrganizationalUnit)) in graph
 
 
 def test_corporate_entity_level_hierarchy_is_broadest_first() -> None:

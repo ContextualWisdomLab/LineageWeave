@@ -1183,13 +1183,19 @@ function PostDetailPopup({
                       <ul>
                         {summary.roles_and_responsibilities.map((rr, i) => {
                           const isPerson = rr.actor_type_code === "prov_person";
+                          const actorTypeLabel =
+                            rr.actor_type_code === "prov_team"
+                              ? "Team"
+                              : isPerson
+                                ? "Person"
+                                : "Organization";
                           const person = isPerson
                             ? keymen?.find((row) => row.person_name === rr.actor_name)
                             : undefined;
                           return (
                             <li key={i}>
                               <span className={`actor-type-badge actor-type-${rr.actor_type_code}`}>
-                                {isPerson ? "Person" : "Organization"}
+                                {actorTypeLabel}
                               </span>{" "}
                               {person ? (
                                 <button

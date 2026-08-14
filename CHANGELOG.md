@@ -4,6 +4,21 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.70.0] - 2026-08-14
+
+### Added
+
+- R&R's `actor_type_code` gains `prov_team`, a meso-level actor type for
+  a named sub-unit of a company (e.g. "설계팀"/design team) -- distinct
+  from both a person and the company itself. Grounded in the W3C
+  Organization Ontology's `org:OrganizationalUnit` (Reynolds, 2014).
+- A team actor now requires `affiliated_organization_name` in the same
+  way a person actor does -- a team's own name never answers "which
+  company."
+- R&R badge shows a distinct "Team" label/color, not the prior binary
+  Person/Organization ternary (which would have mislabeled a team as
+  "Organization").
+
 ## [0.69.0] - 2026-08-14
 
 ### Added

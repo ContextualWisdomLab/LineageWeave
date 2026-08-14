@@ -736,3 +736,18 @@ people. A missing title on either side is not treated as a conflict
 title at all), so this only splits on an actual stated disagreement,
 verified by a real test that two posts naming the same name with
 genuinely different stated titles produce two distinct person rows.
+
+## Phase 9: an R&R actor can be a team, meso-level between person and organization
+
+Real post text named "설계팀" (design team) -- neither a person nor the
+company itself, but a sub-unit of one. See
+[ADR 0007](docs/adr/0007-team-actor-type.md). `actor_type_code` gains a
+third value, `prov_team`, grounded in the W3C Organization Ontology's
+`org:OrganizationalUnit` (Reynolds, 2014) -- a different, complementary
+W3C vocabulary from PROV-O (which models "who acted," not "how a
+company is internally structured"). The prompt now offers three actor
+types and requires `affiliated_organization_name` for a team actor too
+(not just a person): a team's own name never answers "which company,"
+unlike an organization actor's. `migrations/0014_role_responsibility_team_actor_type.sql`
+adds the lookup row -- purely additive, no schema change, since
+`actor_type_code` already stores an arbitrary FK'd code.
