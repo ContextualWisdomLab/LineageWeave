@@ -240,8 +240,9 @@ def seed(
             )
             cur.execute(
                 "insert into post_counterparty_entity (post_id, counterparty_entity_name, relationship_type_code) "
-                "values (%s, 'Northridge Grid', 'rel_voc') on conflict do nothing",
-                (demo_public_post_id,),
+                "values (%s, 'Northridge Grid', 'rel_voc'), (%s, 'Demo Corp', 'rel_voc') "
+                "on conflict do nothing",
+                (demo_public_post_id, demo_public_post_id),
             )
             _seed_demo_public_summary(cur, demo_public_post_id)
             _seed_demo_public_chat(cur, demo_public_post_id)

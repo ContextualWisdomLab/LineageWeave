@@ -769,12 +769,14 @@ function CounterpartyPanel({
   counterparties,
   canExtract,
   onVerified,
+  onSelectEntity,
 }: {
   postId: string;
   accessToken: string;
   counterparties: Counterparty[];
   canExtract: boolean;
   onVerified: () => void;
+  onSelectEntity?: (entityId: string, entityName: string) => void;
 }) {
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -816,7 +818,20 @@ function CounterpartyPanel({
       <ul>
         {counterparties.map((c) => (
           <li key={c.counterparty_entity_name}>
-            {c.counterparty_entity_name} -- {c.relationship_label ?? c.relationship_type_code}
+            {c.corporate_entity_id && onSelectEntity ? (
+              <button
+                className="keyman-select"
+                aria-label={`Counterparty org: ${c.counterparty_entity_name}`}
+                onClick={() => {
+                  if (c.corporate_entity_id) onSelectEntity(c.corporate_entity_id, c.counterparty_entity_name);
+                }}
+              >
+                {c.counterparty_entity_name}
+              </button>
+            ) : (
+              c.counterparty_entity_name
+            )}{" "}
+            -- {c.relationship_label ?? c.relationship_type_code}
             {" -- "}
             <VerificationBadge
               statusCode={c.verification_status_code}
@@ -1245,6 +1260,10 @@ function PostDetailPopup({
                 counterparties={counterparties}
                 canExtract={canExtract}
                 onVerified={reloadCounterparties}
+                onSelectEntity={(entityId, entityName) => {
+                  setFocusPerson(null);
+                  setFocusEntity({ entityId, entityName });
+                }}
               />
             )}
 

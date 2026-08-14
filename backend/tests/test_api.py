@@ -1341,6 +1341,33 @@ def test_extract_keymen_normalizes_html_and_embedded_image_content(
     assert any("Priya" in name for name in names)
 
 
+def test_counterparties_resolve_cataloged_org_ids(client, demo_analyst_token, seeded_db) -> None:
+    """GET /counterparties must attach a cataloged entity id when the
+    classified name resolves, and leave unresolved names null.
+    """
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into post_counterparty_entity "
+                "(post_id, counterparty_entity_name, relationship_type_code) "
+                "values (%s, 'Test Corp', 'rel_voc'), (%s, 'Northridge Grid', 'rel_voc')",
+                (seeded_db["own_private_post_id"], seeded_db["own_private_post_id"]),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/counterparties",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    by_name = {row["counterparty_entity_name"]: row for row in response.json()["counterparties"]}
+    assert by_name["Test Corp"]["corporate_entity_id"] == seeded_db["own_corp_id"]
+    assert by_name["Northridge Grid"]["corporate_entity_id"] is None
+
+
 def test_counterparties_endpoint_is_empty_before_extraction(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         f"/api/posts/{seeded_db['own_private_post_id']}/counterparties",
