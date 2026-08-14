@@ -116,6 +116,7 @@ def seeded_db(demo_analyst_token):
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
                 "('corporate_entity_level', 'company', 'Company'), "
+                "('corporate_entity_level', 'plant', 'Plant'), "
                 "('post_visibility', 'public', 'Public'), "
                 "('post_visibility', 'private', 'Private'), "
                 "('voc_type', 'voc', 'Voice of Customer'), "
@@ -1191,6 +1192,107 @@ def test_same_team_named_in_two_posts_resolves_to_one_cataloged_team(
     assert (team_row_count, distinct_team_count) == (1, 1), "the same team+org pair must dedupe to one row"
     assert mentioning_post_count == 2, "both posts must link to the single cataloged team"
     assert team_mention_edge_count == 2, "each post's mention must become a real KG edge"
+
+
+def test_first_mention_of_a_new_counterparty_creates_a_real_corporate_entity(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """ADR 0010: a person's affiliation to an organization with no
+    existing corporate_entity candidate must not stay permanently
+    unresolved -- an LLM-proposed, search-corroborated hierarchy
+    placement creates a real new row, closing the "통합 고객사 계열
+    tree AI" gap real Milestone 2 data confirmed (0 of thousands of
+    real affiliations ever resolved before this). Deterministic fake
+    clients, CI-stable -- the point under test is the create-then-link
+    wiring, not model/search quality.
+    """
+    from lineageweave.corporate_hierarchy_inference import HierarchyProposal
+    from lineageweave.keyman_extraction import COUNTERPARTY, PersonMention
+    from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVerificationResult
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeKeymanClient:
+        available = True
+
+        def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
+            return [
+                PersonMention(
+                    person_name="Priya Sharma",
+                    person_side_code=COUNTERPARTY,
+                    affiliated_organization_names=("Northwind Turbines Gwangju Plant",),
+                )
+            ]
+
+    class _FakeRelationshipClient:
+        available = True
+
+        def classify(self, post_title: str, post_body: str, organization_names: list[str]):
+            return []
+
+    class _FakeHierarchyInferenceClient:
+        available = True
+
+        def infer(self, organization_name: str, context_text: str) -> HierarchyProposal | None:
+            if organization_name == "Northwind Turbines Gwangju Plant":
+                return HierarchyProposal(level_code="plant", parent_name="Northwind Turbines")
+            if organization_name == "Northwind Turbines":
+                return HierarchyProposal(level_code="company", parent_name=None)
+            return None
+
+    class _FakeVerificationClient:
+        available = True
+
+        def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:
+            return RelationVerificationResult(
+                status_code=STATUS_CORROBORATED, evidence_url=f"https://example.org/{organization_name}"
+            )
+
+    monkeypatch.setattr("backend.app.main._keyman_extraction_client", lambda: _FakeKeymanClient())
+    monkeypatch.setattr("backend.app.main._entity_relationship_client", lambda: _FakeRelationshipClient())
+    monkeypatch.setattr(
+        "backend.app.main._corporate_hierarchy_inference_client", lambda: _FakeHierarchyInferenceClient()
+    )
+    monkeypatch.setattr("backend.app.main._relation_verification_client", lambda: _FakeVerificationClient())
+
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select corporate_entity_id, entity_level_code, parent_entity_id, corporate_entity_code "
+                "from corporate_entity where entity_name = 'Northwind Turbines Gwangju Plant'"
+            )
+            plant_row = cur.fetchone()
+            cur.execute(
+                "select corporate_entity_id, entity_level_code "
+                "from corporate_entity where entity_name = 'Northwind Turbines'"
+            )
+            company_row = cur.fetchone()
+            cur.execute(
+                "select pa.affiliated_corporate_entity_id from person_affiliation pa "
+                "join cataloged_person cp on cp.person_id = pa.person_id "
+                "where cp.person_name = 'Priya Sharma'"
+            )
+            affiliation_entity_id = cur.fetchone()[0]
+    finally:
+        admin_conn.close()
+
+    assert plant_row is not None, "the plant-level entity must be created"
+    plant_entity_id, plant_level_code, plant_parent_id, plant_code = plant_row
+    assert plant_level_code == "plant"
+    assert plant_code.startswith("AUTO-"), "an auto-created code must never collide with a real login corp code"
+    assert company_row is not None, "the inferred parent company must also be created, not left dangling"
+    company_entity_id, company_level_code = company_row
+    assert company_level_code == "company"
+    assert str(plant_parent_id) == str(company_entity_id), "the plant's parent must be the real created company"
+    assert str(affiliation_entity_id) == str(plant_entity_id), "the affiliation must link to the real created plant"
 
 
 @pytest.mark.skipif(

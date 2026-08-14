@@ -29,18 +29,27 @@ Abbreviation resolution (ADR 0008): before matching against
 character-similarity matching alone cannot bridge an initialism like
 "한수원" to its expansion "한국수력원자력". Only a search-corroborated
 resolution is substituted in; an unresolved or unverified name still
-flows through unchanged, so `resolve_corporate_entity` never sees an
-unverified guess.
+flows through unchanged.
+
+Hierarchy auto-creation (ADR 0010): a real dataset's first mention of
+any new counterparty organization has no existing `corporate_entity`
+candidate for similarity matching to find at all -- matching alone can
+only ever locate an already-cataloged entity. `get_or_create_corporate_entity`
+tries similarity matching first, then falls back to an LLM-proposed,
+search-corroborated hierarchy placement (level + parent) before
+creating a real new row, so the "통합 고객사 계열 tree AI" requirement
+is actually populated from real extraction, not left permanently empty.
 """
 
 from __future__ import annotations
 
 import asyncpg
 
-from lineageweave.corporate_hierarchy_resolution import (
-    CorporateEntityCandidate,
-    resolve_corporate_entity,
+from lineageweave.corporate_hierarchy_inference import (
+    CorporateHierarchyInferenceClient,
+    NullCorporateHierarchyInferenceClient,
 )
+from lineageweave.corporate_hierarchy_resolution import CorporateEntityCandidate
 from lineageweave.keyman_extraction import KeymanExtractionClient, PersonMention
 from lineageweave.organization_name_resolution import (
     NullOrganizationNameResolutionClient,
@@ -48,6 +57,7 @@ from lineageweave.organization_name_resolution import (
 )
 from lineageweave.relation_verification import NullRelationVerificationClient, RelationVerificationClient
 
+from .corporate_entity_ingestion import get_or_create_corporate_entity
 from .knowledge_graph import persist_edges_for_post
 from .organization_name_resolution_ingestion import resolve_organization_name
 
@@ -109,12 +119,14 @@ async def ingest_post_keymen(
     *,
     resolution_client: OrganizationNameResolutionClient | None = None,
     verification_client: RelationVerificationClient | None = None,
+    hierarchy_inference_client: CorporateHierarchyInferenceClient | None = None,
 ) -> list[PersonMention]:
     """Extracts, persists, and returns the `PersonMention`s found in one post.
 
-    `resolution_client`/`verification_client` default to the unavailable
-    Null clients -- callers that don't pass real ones get the exact same
-    behavior as before ADR 0008 (raw affiliation names, unresolved).
+    `resolution_client`/`verification_client`/`hierarchy_inference_client`
+    default to the unavailable Null clients -- callers that don't pass
+    real ones get the exact same behavior as before ADR 0008/0010 (raw
+    affiliation names, unresolved).
 
     Raises whatever `client.extract` raises (e.g. a `NullKeymanExtractionClient`
     would raise `RuntimeError`) -- callers should check `client.available`
@@ -122,6 +134,7 @@ async def ingest_post_keymen(
     """
     resolution_client = resolution_client or NullOrganizationNameResolutionClient()
     verification_client = verification_client or NullRelationVerificationClient()
+    hierarchy_inference_client = hierarchy_inference_client or NullCorporateHierarchyInferenceClient()
     mentions = client.extract(post_title, post_body)
     candidates = await _load_corporate_entity_candidates(conn)
 
@@ -136,7 +149,9 @@ async def ingest_post_keymen(
             resolved_name = await resolve_organization_name(
                 conn, resolution_client, verification_client, organization_name, post_body
             )
-            corporate_entity_id = resolve_corporate_entity(resolved_name, candidates)
+            corporate_entity_id = await get_or_create_corporate_entity(
+                conn, resolved_name, post_body, hierarchy_inference_client, verification_client, candidates
+            )
             await conn.execute(
                 """
                 insert into person_affiliation

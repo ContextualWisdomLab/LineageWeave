@@ -4,6 +4,23 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.75.0] - 2026-08-14
+
+### Added
+
+- A real counterparty organization mentioned for the first time now
+  gets auto-created into the corporate hierarchy, not left permanently
+  unresolved -- confirmed against real Milestone 2 data that this was a
+  genuine, total gap (0 of 4,154 person affiliations, 0 of 9,852 R&R
+  organization mentions ever resolved before this). An LLM proposes a
+  Group/Company/Plant placement from context; a real new
+  `corporate_entity` row is only created once the proposal is
+  search-corroborated (reusing the existing Searxng verification
+  client, no new search integration). Auto-created rows get a
+  deterministic `AUTO-`-prefixed code, kept structurally separate from
+  the real login corp-code namespace. Wired into both Keyman
+  affiliation resolution and R&R organization-actor resolution.
+
 ## [0.74.0] - 2026-08-14
 
 ### Added

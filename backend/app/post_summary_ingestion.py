@@ -10,6 +10,13 @@ A person actor is opportunistically joined to an *existing*
 cataloged that name -- R&R does not originate new person identities
 itself (it has no reliable ``person_side_code`` to create one with; see
 ADR 0009's documented follow-up).
+
+ADR 0010: an organization actor's name is resolved via
+``get_or_create_corporate_entity`` -- similarity matching first, then
+an LLM-proposed, search-corroborated hierarchy placement before
+creating a real new row, so a real dataset's first mention of a
+counterparty organization actually populates the corporate hierarchy
+tree instead of staying permanently unresolved.
 """
 
 from __future__ import annotations
@@ -18,7 +25,10 @@ from typing import Any
 
 import asyncpg
 
-from lineageweave.corporate_hierarchy_resolution import resolve_corporate_entity
+from lineageweave.corporate_hierarchy_inference import (
+    CorporateHierarchyInferenceClient,
+    NullCorporateHierarchyInferenceClient,
+)
 from lineageweave.fixtures import fixture_thread_cast
 from lineageweave.ontology import ontology_annotations
 from lineageweave.post_summary import (
@@ -28,7 +38,9 @@ from lineageweave.post_summary import (
     PostSummary,
     RoleResponsibility,
 )
+from lineageweave.relation_verification import NullRelationVerificationClient, RelationVerificationClient
 
+from .corporate_entity_ingestion import get_or_create_corporate_entity
 from .keyman_ingestion import _load_corporate_entity_candidates
 from .knowledge_graph import persist_edges_for_post
 from .team_ingestion import upsert_team
@@ -68,8 +80,28 @@ async def fetch_persisted_summary(conn: asyncpg.Connection, post_id: str) -> dic
     }
 
 
-async def persist_post_summary(conn: asyncpg.Connection, post_id: str, summary: PostSummary) -> dict[str, Any]:
-    """Replace the stored summary for ``post_id`` and return the public payload."""
+async def persist_post_summary(
+    conn: asyncpg.Connection,
+    post_id: str,
+    summary: PostSummary,
+    *,
+    post_body: str | None = None,
+    hierarchy_inference_client: CorporateHierarchyInferenceClient | None = None,
+    verification_client: RelationVerificationClient | None = None,
+) -> dict[str, Any]:
+    """Replace the stored summary for ``post_id`` and return the public payload.
+
+    `post_body` is the context an organization-actor hierarchy proposal
+    is inferred from (ADR 0010); falls back to the summary's own Korean
+    text when not given (a real but weaker signal than the raw post).
+    `hierarchy_inference_client`/`verification_client` default to the
+    unavailable Null clients -- an org actor then only ever resolves
+    against an *already*-cataloged `corporate_entity`, the exact
+    pre-ADR-0010 behavior.
+    """
+    hierarchy_inference_client = hierarchy_inference_client or NullCorporateHierarchyInferenceClient()
+    verification_client = verification_client or NullRelationVerificationClient()
+    context_text = post_body if post_body is not None else summary.korean_summary
     await conn.execute("delete from post_summary_result where post_id = $1", post_id)
     await conn.execute(
         "insert into post_summary_result (post_id, korean_summary) values ($1, $2)",
@@ -111,7 +143,14 @@ async def persist_post_summary(conn: asyncpg.Connection, post_id: str, summary: 
                     team_id,
                 )
             elif role.actor_type_code == ACTOR_TYPE_ORGANIZATION:
-                corporate_entity_id = resolve_corporate_entity(role.actor_name, candidates)
+                corporate_entity_id = await get_or_create_corporate_entity(
+                    conn,
+                    role.actor_name,
+                    context_text,
+                    hierarchy_inference_client,
+                    verification_client,
+                    candidates,
+                )
                 if corporate_entity_id is not None:
                     await conn.execute(
                         "insert into post_organization_mention (post_id, corporate_entity_id) "

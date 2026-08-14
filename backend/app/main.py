@@ -37,6 +37,10 @@ from lineageweave.entity_relationship_classification import (
     NullEntityRelationshipClient,
 )
 from lineageweave.image_content import orchestrator_vision_client
+from lineageweave.corporate_hierarchy_inference import (
+    ContextualOrchestratorHierarchyInferenceClient,
+    NullCorporateHierarchyInferenceClient,
+)
 from lineageweave.keyman_extraction import (
     ContextualOrchestratorKeymanExtractionClient,
     NullKeymanExtractionClient,
@@ -188,6 +192,16 @@ def _organization_name_resolution_client():
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullOrganizationNameResolutionClient()
     return ContextualOrchestratorOrganizationNameResolutionClient(
+        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+    )
+
+
+def _corporate_hierarchy_inference_client():
+    """Live orchestrator client when configured; otherwise the unavailable null."""
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
+        return NullCorporateHierarchyInferenceClient()
+    return ContextualOrchestratorHierarchyInferenceClient(
         base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
     )
 
@@ -576,6 +590,7 @@ async def extract_post_keymen(
                 post_body,
                 resolution_client=_organization_name_resolution_client(),
                 verification_client=_relation_verification_client(),
+                hierarchy_inference_client=_corporate_hierarchy_inference_client(),
             )
             organization_names = sorted(
                 {name for mention in mentions for name in mention.affiliated_organization_names}
@@ -837,7 +852,14 @@ async def read_post_summary(
         body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
         normalized_body = normalize_post_body(body_row["post_body"], vision_client=_vision_client()).text
         summary = client.summarize(post["post_title"], normalized_body)
-        return await persist_post_summary(conn, post_id, summary)
+        return await persist_post_summary(
+            conn,
+            post_id,
+            summary,
+            post_body=normalized_body,
+            hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+            verification_client=_relation_verification_client(),
+        )
 
 
 class ChatRequest(BaseModel):

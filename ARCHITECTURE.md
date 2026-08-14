@@ -806,3 +806,24 @@ actor is opportunistically joined to an existing `cataloged_person` row
 by name (never originated by R&R itself -- documented gap in the ADR:
 `cataloged_person` needs `person_side_code`, which R&R's prompt does
 not currently capture).
+
+## Phase 12: a real counterparty organization is auto-created, not left permanently unresolved
+
+`corporate_hierarchy_resolution`'s similarity matching only ever finds
+an ALREADY-cataloged entity. Real Milestone 2 data confirmed the actual
+gap: 0 of 4,154 person affiliations and 0 of 9,852 R&R organization
+mentions ever resolved -- the standing "통합 고객사 계열 tree AI"
+requirement was never actually populated. See
+[ADR 0010](docs/adr/0010-corporate-hierarchy-auto-creation.md).
+
+New `lineageweave/corporate_hierarchy_inference.py` proposes a
+Group/Company/Plant placement from context; new
+`backend/app/corporate_entity_ingestion.py`'s
+`get_or_create_corporate_entity` tries similarity matching first, then
+creates a real new `corporate_entity` row once the proposal is
+Searxng-corroborated (reusing `relation_verification`, no new search
+integration), recursing up a bounded parent chain so the whole
+hierarchy gets real links. Auto-created rows get a deterministic
+`AUTO-`-prefixed code so they can never collide with a real login corp
+code. Wired into both `keyman_ingestion.py`'s affiliation loop and
+`post_summary_ingestion.py`'s R&R organization-actor loop.
