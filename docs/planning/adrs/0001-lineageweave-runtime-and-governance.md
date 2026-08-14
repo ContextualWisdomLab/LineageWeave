@@ -4098,3 +4098,15 @@ the worker cannot widen that scope or authenticate a user. The worker remains
 HTTP-only and independent of TEPP and contextual-orchestrator internals.
 Focused worker and runtime contracts cover direct product forwarding, Compose
 fallback routing, unsupported-task rejection, and Compose failure reporting.
+
+## Amendment: truthful browser identity evidence (2026-08-15)
+
+The browser interaction runner can use an already-authenticated development
+actor to validate reader/admin screens against the direct PostgreSQL product.
+That session is not an identity-authority test. Its result now reports
+`preauthenticated_session: true`, `reached_identity_authority: false`, and
+`identity_form: false`; requesting Keyverse-required or completed-login mode
+with the shortcut fails immediately. Only a real authorization-code callback,
+verified session, and logout can set the Keyverse acceptance result. This keeps
+the general-user/customer/admin browser evidence useful without overstating
+the external Keyverse release gate.

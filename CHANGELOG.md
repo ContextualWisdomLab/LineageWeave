@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Corrected browser evidence labeling: a preauthenticated development actor
+  session is now reported as a local session and never as Keyverse authority
+  acceptance; Keyverse-required E2E modes reject that shortcut.
 - Extended the issuer-free Compose live-model proxy to the full product-task
   contract used by customer-master, role, appointment, issue-work, ontology,
   factor-item, and report enrichment. Product transport now prefers the direct
