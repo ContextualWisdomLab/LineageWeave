@@ -117,6 +117,14 @@ four RAGAS metric cards and 32 authorized evidence-document links.
 The popup path also selects an available LLM Keyman and verifies the
 actor-authorized Knowledge Graph relationship-direction list.
 
+With the configured live gateway, the reader browser run returned a non-empty
+Lineage-chat answer with five citations and successfully opened and closed a
+VOC evidence drawer; its manager-only Keyman derivation state was explicitly
+`not_authorized`. The administrator browser run returned HTTP 200 for live
+Keyman derivation, saved and restored the typed organization actor, and passed
+the same chat citation/source checks. Both runs used development sessions only
+for product-surface authorization and did not prove Keyverse identity login.
+
 The fresh post-fix reader run reported `preauthenticated_session: true`,
 `reached_identity_authority: false`, 43,483 visible documents, 5 actor-scoped
 customer rows and 3 customer-affiliate edges in the bounded `limit=3` probe,

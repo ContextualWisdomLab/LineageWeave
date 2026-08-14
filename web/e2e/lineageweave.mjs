@@ -569,13 +569,17 @@ try {
 
     if (process.env.LINEAGEWEAVE_E2E_LLM === "1") {
       const derive = modal.getByRole("button", { name: "LLM Keyman 재도출", exact: true });
-      await derive.scrollIntoViewIfNeeded();
-      const keymanRequest = page.waitForResponse(
-        (response) => response.url().includes("/keymen/derive") && response.request().method() === "POST",
-        { timeout: 180_000 },
-      );
-      await derive.click();
-      result.keyman_llm_status = (await keymanRequest).status();
+      if (await derive.count() > 0) {
+        await derive.scrollIntoViewIfNeeded();
+        const keymanRequest = page.waitForResponse(
+          (response) => response.url().includes("/keymen/derive") && response.request().method() === "POST",
+          { timeout: 180_000 },
+        );
+        await derive.click();
+        result.keyman_llm_status = (await keymanRequest).status();
+      } else {
+        result.keyman_llm_status = "not_authorized";
+      }
 
       const chat = modal.locator("#chatMessage");
       await chat.scrollIntoViewIfNeeded();
@@ -585,8 +589,32 @@ try {
         { timeout: 180_000 },
       );
       await modal.locator("#chatAskBtn").click();
-      result.chat_status = (await chatRequest).status();
+      const chatResponse = await chatRequest;
+      result.chat_status = chatResponse.status();
       await modal.locator("#chatAnswer").waitFor({ timeout: 180_000 });
+      const chatAnswer = (await modal.locator("#chatAnswer").textContent())?.trim() || "";
+      const chatCitationCount = await modal.locator("#chatCitations .citation").count();
+      result.chat_answer_present = Boolean(chatAnswer);
+      result.chat_citation_count = chatCitationCount;
+      assert.ok(result.chat_answer_present, "the live lineage chat returned no answer text");
+      if (requireData) {
+        assert.ok(chatCitationCount > 0, "the live lineage chat returned no ontology or VOC citations");
+      }
+      const chatSource = modal.locator("#chatCitations .voc-source").first();
+      if (await chatSource.count() > 0) {
+        const chatEvidenceRequest = page.waitForResponse(
+          (response) => response.url().includes("/evidence/") && response.request().method() === "GET",
+          { timeout: 90_000 },
+        );
+        await chatSource.click();
+        const chatEvidenceResponse = await chatEvidenceRequest;
+        await page.locator("#vocDrawer").waitFor({ timeout: 90_000 });
+        result.chat_source = { status: chatEvidenceResponse.status(), opened: true };
+        await page.locator("#vocDrawer .close-button").click();
+        result.chat_source.closed = await page.locator("#vocDrawer").count() === 0;
+      } else {
+        result.chat_source = { opened: false };
+      }
     }
 
     await page.screenshot({ path: `${artifactDir}/popup-restored.png` });
