@@ -995,6 +995,24 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
   });
 
+  it("shows the VOC excerpt under its counterparty, not a detached list", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const name = await screen.findByRole("button", { name: "VOC Keyman: Northridge Grid" });
+    const excerpt = screen.getByText(
+      "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
+    );
+    expect(excerpt.tagName).toBe("BLOCKQUOTE");
+    expect(name.closest(".voc-counterparty")).toContainElement(excerpt);
+    expect(document.querySelector(".voc-excerpt-list")).toBeNull();
+    expect(
+      screen.getAllByText(
+        "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
+      ),
+    ).toHaveLength(1);
+  });
+
   it("opens related Keyman nodes from a VOC counterparty organization", async () => {
     stubBackend();
     render(<App />);

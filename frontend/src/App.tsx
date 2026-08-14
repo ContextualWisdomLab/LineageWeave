@@ -406,47 +406,59 @@ function VocEvidenceSection({
   onSelectPerson: (personId: string, personName: string) => void;
 }) {
   if (!evidence) return <p>Loading VOC evidence...</p>;
+  const assignedExcerpts = new Set(
+    evidence.counterparties
+      .map((row) => row.evidence_excerpt)
+      .filter((excerpt): excerpt is string => Boolean(excerpt)),
+  );
+  const unassignedExcerpts = evidence.excerpts.filter((excerpt) => !assignedExcerpts.has(excerpt));
+  const hasExcerpt = evidence.excerpts.length > 0 || assignedExcerpts.size > 0;
   return (
     <section className="popup-section">
       <h3>VOC evidence</h3>
       <p className="post-meta">
         {evidence.voc_type_label} ({evidence.voc_type_code})
       </p>
-      {evidence.excerpts.length === 0 ? (
+      {!hasExcerpt ? (
         <p className="popup-placeholder">No extractive excerpt -- no named organization appears in this post.</p>
-      ) : (
+      ) : unassignedExcerpts.length > 0 ? (
         <ul className="voc-excerpt-list">
-          {evidence.excerpts.map((excerpt) => (
+          {unassignedExcerpts.map((excerpt) => (
             <li key={excerpt}>
               <blockquote>{excerpt}</blockquote>
             </li>
           ))}
         </ul>
-      )}
+      ) : null}
       {evidence.counterparties.map((row) => {
         const people = peopleOnAffiliateOrg(affiliateTrees, row.counterparty_entity_name);
         const person = people[0];
         return (
-          <p key={row.counterparty_entity_name} className="voc-counterparty">
-            {person ? (
-              <button
-                className="keyman-select"
-                aria-label={`VOC Keyman: ${row.counterparty_entity_name}`}
-                onClick={() => onSelectPerson(person.personId, person.personName)}
-              >
-                {row.counterparty_entity_name}
-              </button>
-            ) : (
-              row.counterparty_entity_name
-            )}{" "}
-            -- {row.relationship_label}
-            {" -- "}
-            <VerificationBadge
-              statusCode={row.verification_status_code ?? "verify_pending"}
-              evidenceUrl={row.verification_evidence_url}
-              ariaLabel={`VOC verification: ${row.counterparty_entity_name}`}
-            />
-          </p>
+          <div key={row.counterparty_entity_name} className="voc-counterparty">
+            <p>
+              {person ? (
+                <button
+                  className="keyman-select"
+                  aria-label={`VOC Keyman: ${row.counterparty_entity_name}`}
+                  onClick={() => onSelectPerson(person.personId, person.personName)}
+                >
+                  {row.counterparty_entity_name}
+                </button>
+              ) : (
+                row.counterparty_entity_name
+              )}{" "}
+              -- {row.relationship_label}
+              {" -- "}
+              <VerificationBadge
+                statusCode={row.verification_status_code ?? "verify_pending"}
+                evidenceUrl={row.verification_evidence_url}
+                ariaLabel={`VOC verification: ${row.counterparty_entity_name}`}
+              />
+            </p>
+            {row.evidence_excerpt ? (
+              <blockquote className="voc-counterparty-excerpt">{row.evidence_excerpt}</blockquote>
+            ) : null}
+          </div>
         );
       })}
     </section>
