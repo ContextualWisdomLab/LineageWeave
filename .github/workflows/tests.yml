@@ -18,6 +18,8 @@ jobs:
     name: Full test suite
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      LINEAGEWEAVE_TEST_DSN: postgresql://postgres@localhost/postgres
     services:
       postgres:
         image: postgres:16
