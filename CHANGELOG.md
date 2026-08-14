@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.65.0] - 2026-08-14
+
+### Added
+
+- Resolved affiliate-tree organizations start the same related-node
+  walk as a Keyman org click. After `make seed`, Demo Corp / Test
+  Corp in the tree open `GET /api/corporate-entities/{id}/related`.
+  Unresolved names stay text -- never a guessed neighborhood.
+
 ## [0.64.0] - 2026-08-14
 
 ### Added

@@ -1002,6 +1002,16 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
   });
 
+  it("opens related nodes from an affiliate-tree organization", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Affiliate org: Demo Corp" }));
+    await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
+    expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Affiliate org: Northridge Grid" })).not.toBeInTheDocument();
+  });
+
   it("links a verification badge only for http(s) evidence URLs", async () => {
     stubBackend({ verificationEvidenceUrl: "https://example.test/searxng?q=Northridge" });
     render(<App />);
