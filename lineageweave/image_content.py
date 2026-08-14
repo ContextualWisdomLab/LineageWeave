@@ -193,7 +193,11 @@ def _parse_description(content: str) -> ImageDescription:
         extracted_text = ""
     caption = "\n".join(fields["CAPTION"]).strip()
     tags_raw = " ".join(fields["TAGS"]).strip()
-    tags = tuple(tag.strip() for tag in tags_raw.split(",") if tag.strip())
+    tags = tuple(
+        cleaned
+        for tag in tags_raw.split(",")
+        if (cleaned := _strip_outer_markdown_emphasis(tag))
+    )
     return ImageDescription(extracted_text=extracted_text, caption=caption, tags=tags)
 
 
