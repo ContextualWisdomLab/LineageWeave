@@ -4,7 +4,7 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.72.0] - 2026-08-14
+## [0.73.0] - 2026-08-14
 
 ### Fixed
 
@@ -18,7 +18,7 @@ All notable changes to this project are documented here. Format follows
   "[image: content unavailable]" placeholder as a genuinely unavailable
   vision channel, discarding real, already-paid-for content.
 
-## [0.71.0] - 2026-08-14
+## [0.72.0] - 2026-08-14
 
 ### Added
 
@@ -39,6 +39,16 @@ All notable changes to this project are documented here. Format follows
 - The real-data batch script's own re-implementation of Keyman
   affiliation persistence was missing `role_title` entirely (a stale
   copy that predated that feature) -- fixed alongside this change.
+
+## [0.71.0] - 2026-08-14
+
+### Added
+
+- VOC evidence now quotes the extractive excerpt under the counterparty
+  it names. After `make seed`, Northridge Grid in VOC evidence shows
+  the sentence that mentions it, instead of a detached excerpt list
+  above the names. Unassigned excerpts stay in the list; a post with
+  no named organization still says so.
 
 ## [0.70.0] - 2026-08-14
 

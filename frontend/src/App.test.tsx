@@ -647,6 +647,7 @@ describe("App, authenticated", () => {
             voc_type_label: "Voice of Customer",
             excerpts: [
               "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
+              "The weekly recap listed the delay against the open ticket.",
             ],
             counterparties: [
               {
@@ -1013,6 +1014,26 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Demo Corp" }));
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
     expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
+  });
+
+  it("shows the VOC excerpt under its counterparty, not a detached list", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const name = await screen.findByRole("button", { name: "VOC Keyman: Northridge Grid" });
+    const excerpt = screen.getByText(
+      "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
+    );
+    expect(excerpt.tagName).toBe("BLOCKQUOTE");
+    expect(name.closest(".voc-counterparty")).toContainElement(excerpt);
+    expect(
+      screen.getAllByText(
+        "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
+      ),
+    ).toHaveLength(1);
+    const unassigned = screen.getByText("The weekly recap listed the delay against the open ticket.");
+    expect(unassigned.closest(".voc-excerpt-list")).not.toBeNull();
+    expect(unassigned.closest(".voc-counterparty")).toBeNull();
   });
 
   it("opens related Keyman nodes from a VOC counterparty organization", async () => {

@@ -347,7 +347,16 @@
   margin: 0;
 }
 
-.voc-excerpt-list blockquote {
+.voc-counterparty {
+  margin: 0.75rem 0 0;
+}
+
+.voc-counterparty p {
+  margin: 0;
+}
+
+.voc-excerpt-list blockquote,
+.voc-counterparty-excerpt {
   margin: 0.4rem 0;
   padding: 0.5rem 0.75rem;
   border-left: 3px solid #c45c26;
