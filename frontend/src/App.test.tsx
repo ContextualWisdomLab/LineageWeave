@@ -465,6 +465,12 @@ describe("App, authenticated", () => {
                 actor_type_code: "prov_person",
                 affiliated_organization_name: "Northridge Grid",
               },
+              {
+                actor_name: "당사",
+                responsibility: "출하 일정 확정",
+                actor_type_code: "prov_organization",
+                affiliated_organization_name: null,
+              },
             ],
           }),
         );
@@ -819,6 +825,8 @@ describe("App, authenticated", () => {
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
     expect(screen.getByText(/우리 측 후속/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "R&R Keyman: Ada West" })).toBeInTheDocument();
+    expect(screen.getByText("당사").closest("li")).toHaveTextContent("Organization");
+    expect(screen.queryByRole("button", { name: "R&R Keyman: 당사" })).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByText("간접")).toBeInTheDocument());
     expect(screen.getByText("간접").closest("li")).toHaveTextContent("Linked post");
     // The popup Event Lineage is the same A-100 reconstruct DAG as the home

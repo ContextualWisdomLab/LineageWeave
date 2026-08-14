@@ -214,7 +214,7 @@ create table post_summary_event (
 
 -- actor_type_code: R&R Ontology, see migrations/0012_role_responsibility_agent_type.sql
 -- and ADR 0006 -- a named actor is not always a person (an organization
--- can act in its own name, e.g. "당사," "SEWA"), so this is not folded
+-- can act in its own name, e.g. "당사," "Demo Corp"), so this is not folded
 -- into person_name's own meaning.
 create table post_summary_role (
     post_id uuid not null references post_summary_result (post_id) on delete cascade,

@@ -8,7 +8,7 @@ import asyncpg
 
 from lineageweave.fixtures import fixture_thread_cast
 from lineageweave.ontology import ontology_annotations
-from lineageweave.post_summary import PostSummary, RoleResponsibility
+from lineageweave.post_summary import ACTOR_TYPE_ORGANIZATION, PostSummary, RoleResponsibility
 
 
 async def fetch_persisted_summary(conn: asyncpg.Connection, post_id: str) -> dict[str, Any] | None:
@@ -95,6 +95,11 @@ def seeded_demo_summary() -> PostSummary:
                 actor_name="Priya Nair",
                 responsibility="고객 측 수신",
                 affiliated_organization_name="Northridge Grid",
+            ),
+            RoleResponsibility(
+                actor_name="당사",
+                responsibility="출하 일정 확정",
+                actor_type_code=ACTOR_TYPE_ORGANIZATION,
             ),
         ),
     )

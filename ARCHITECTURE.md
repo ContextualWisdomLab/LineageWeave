@@ -685,11 +685,10 @@ and the latter `verify_uncorroborated` with none.
 
 ## Phase 7: R&R's named actor is a PROV-O Agent, not always a person
 
-Confirmed against real Milestone 2 SAP CRM VOC data, not a hypothetical:
 `post_summary.py`'s R&R extraction forced every named actor into a
-person slot, but real business correspondence routinely names an
-organization acting in its own name ("당사" [our company], "SEWA,"
-"Siemens," "GECO"), not an individual. See
+person slot, but business correspondence routinely names an
+organization acting in its own name ("당사" [our company],
+"Demo Corp"), not an individual. See
 [ADR 0006](docs/adr/0006-role-responsibility-agent-ontology.md).
 
 Grounded in W3C PROV-O (Lebo, Sahoo, & McGuinness, 2013):

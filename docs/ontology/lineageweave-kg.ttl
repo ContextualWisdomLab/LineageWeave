@@ -160,9 +160,9 @@
 # Classes -- prov_agent_type (post_summary_role.actor_type_code)
 #
 # A post's R&R (roles & responsibilities) actor is not always a person
-# -- real business correspondence routinely names an organization
-# acting in its own name ("당사" [our company], "SEWA," "Siemens,"
-# "GECO"). Grounded directly in W3C PROV-O (Lebo, Sahoo, & McGuinness,
+# -- business correspondence routinely names an organization acting
+# in its own name ("당사" [our company], "Demo Corp"). Grounded
+# directly in W3C PROV-O (Lebo, Sahoo, & McGuinness,
 # 2013): prov:Agent is the general acting-party class, with prov:Person
 # and prov:Organization its two recognized subclasses. These are
 # distinct from :Person / :OurSidePerson / :CounterpartyPerson above:

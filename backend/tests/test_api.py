@@ -414,7 +414,10 @@ def test_seed_demo_summary_surfaces_on_get_summary(client, demo_analyst_token, s
     body = response.json()
     assert "에이다" in body["korean_summary"]
     assert body["key_events"]
-    assert any(role["actor_name"] == "Ada West" for role in body["roles_and_responsibilities"])
+    roles = {role["actor_name"]: role for role in body["roles_and_responsibilities"]}
+    assert roles["Ada West"]["actor_type_code"] == "prov_person"
+    assert roles["당사"]["actor_type_code"] == "prov_organization"
+    assert roles["당사"]["ontology_label"] == "Role actor (organization)"
 
 
 def test_seed_fixture_summaries_surface_on_get_summary(client, demo_analyst_token, seeded_db) -> None:

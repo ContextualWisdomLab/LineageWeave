@@ -8,24 +8,15 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
-- R&R's named actor is no longer forced into a person slot. A real
+- R&R's named actor is no longer forced into a person slot. A
   business post can name an organization acting in its own name
-  ("당사," "SEWA," "Siemens," "GECO"), not an individual --
+  ("당사," "Demo Corp"), not an individual --
   `RoleResponsibility.actor_name` (renamed from `person_name`) now
   carries `actor_type_code` (Person / Organization, W3C PROV-O
   grounded) and an LLM-inferred `affiliated_organization_name` for
   person actors. The popup's R&R list shows a Person/Organization
   badge and the inferred affiliation; only a person actor still links
   to the Keyman panel. See ADR 0006.
-
-### Fixed
-
-- Applied migrations 0005-0011 (post evaluation, period reports, FIPC
-  linking, shared metric bank, report item information, persisted
-  chat) to the long-running demo database -- these had accumulated on
-  `main` without ever being applied to the running demo Postgres
-  volume, surfacing as CORS-looking failures (missing-table 500s
-  without CORS headers) on Evaluate, Reports, Summary, and Chat.
 
 ## [0.67.0] - 2026-08-14
 

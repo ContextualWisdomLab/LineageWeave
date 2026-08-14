@@ -1,6 +1,6 @@
--- Roles & responsibilities' named actor is not always a person -- real
+-- Roles & responsibilities' named actor is not always a person --
 -- business correspondence routinely names an organization acting in its
--- own name ("당사" [our company], "SEWA," "Siemens," "GECO"), not an
+-- own name ("당사" [our company], "Demo Corp"), not an
 -- individual. Adds a PROV-O-grounded person/organization distinction
 -- (see ADR 0006) plus an inferred affiliated-organization name for
 -- person actors. The rename below (person_name -> actor_name) preserves

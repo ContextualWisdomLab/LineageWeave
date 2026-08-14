@@ -15,13 +15,13 @@ Grounded in three distinct extraction tasks, not one undifferentiated
 - **R&R (roles & responsibilities)**: semantic role labeling (Gildea &
   Jurafsky, 2002) -- who did what, framed as an agent/action/responsibility
   triple per named actor in the post, not prose. The actor is not always
-  a person: real business correspondence routinely names an organization
-  as the acting party ("당사" [our company], "SEWA," "Siemens," "GECO"),
-  not an individual. Modeling every actor as a person loses this
-  distinction and makes an organization's affiliation-less name look
-  like an unresolved person. Grounded in W3C PROV-O (Lebo, Sahoo, &
-  McGuinness, 2013): ``prov:Agent`` is the general acting-party class,
-  with ``prov:Person`` and ``prov:Organization`` as its two recognized
+  a person: business correspondence routinely names an organization
+  as the acting party ("당사" [our company], "Demo Corp"), not an
+  individual. Modeling every actor as a person loses this distinction
+  and makes an organization's affiliation-less name look like an
+  unresolved person. Grounded in W3C PROV-O (Lebo, Sahoo, & McGuinness,
+  2013): ``prov:Agent`` is the general acting-party class, with
+  ``prov:Person`` and ``prov:Organization`` as its two recognized
   subclasses -- the same distinction ``keyman_extraction``'s two-sided
   (our-side/counterparty) person model already keeps for *people*, one
   level up. A person actor also gets an inferred
@@ -73,6 +73,13 @@ class RoleResponsibility:
     actor_type_code: str = ACTOR_TYPE_PERSON
     affiliated_organization_name: str | None = None
 
+    def __post_init__(self) -> None:
+        if self.actor_type_code not in _VALID_ACTOR_TYPE_CODES:
+            raise ValueError(
+                f"actor_type_code must be one of {sorted(_VALID_ACTOR_TYPE_CODES)}, "
+                f"got {self.actor_type_code!r}"
+            )
+
 
 @dataclass(frozen=True)
 class PostSummary:
@@ -118,10 +125,10 @@ three things:
    each as a short phrase.
 3. A list of roles & responsibilities: for each named actor in the post
    -- a person OR an organization acting in its own name (e.g. "당사"
-   [our company], "SEWA," "Siemens," "GECO") -- one short phrase
-   describing what they are responsible for or did, according to the
-   text. Do not force an organization's name into a person slot: decide
-   whether each actor is a person or an organization, and say which.
+   [our company], "Demo Corp") -- one short phrase describing what they
+   are responsible for or did, according to the text. Do not force an
+   organization's name into a person slot: decide whether each actor is
+   a person or an organization, and say which.
    When the actor is a person and the text names or clearly implies who
    they work for, also give that organization's name -- a bare person
    name without their employer is hard to place.

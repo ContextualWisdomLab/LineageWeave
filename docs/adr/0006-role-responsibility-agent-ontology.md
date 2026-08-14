@@ -5,18 +5,13 @@
 
 ## Context
 
-The product brief flags a real gap in `post_summary.py`'s R&R (roles &
-responsibilities) extraction, confirmed against real SAP CRM VOC records
-during Milestone 2 analysis: the acting party a post's text names is not
-always a person. Real business correspondence routinely names an
-organization acting in its own name -- "당사" (our company), "SEWA,"
-"Siemens," "GECO" -- not a named individual. The brief's own wording:
-"주체가 사람이 아니라 기관 ... 으로 나타나는 경우도 있으므로 일반적인
-표준 Ontology로 조치할 것" (the acting subject sometimes appears as an
-organization rather than a person, so handle it with a general standard
-Ontology), plus "사람만 넣어서는 소속 기관을 이해하기 어려우므로 소속
-기관 추론까지 포함시킬 것" (a bare person name is hard to place without
-their organization, so infer the affiliation too).
+`post_summary.py`'s R&R (roles & responsibilities) extraction treats
+the acting party a post's text names as if it were always a person.
+Business correspondence routinely names an organization acting in its
+own name -- "당사" (our company), "Demo Corp" -- not a named
+individual. The product requirement is to handle that with a general
+standard ontology, and to infer a person actor's affiliation so a
+bare name is not left unplaced.
 
 Before this change, `RoleResponsibility.person_name` had no way to
 express "this actor is an organization" -- every entry was forced into
@@ -84,9 +79,8 @@ parentheses; only a person actor is still linked to the Keyman panel
 - `RoleResponsibility.person_name` is a breaking rename to `actor_name`
   across the JSON wire contract (`GET /api/posts/{id}/summary`), the
   DB column, and every call site. Accepted because the field's old name
-  was actively misleading once an organization actor is a real,
-  intended value, not a hypothetical edge case -- confirmed against
-  real Milestone 2 SAP CRM VOC data.
+  was actively misleading once an organization actor is an intended
+  value, not a hypothetical edge case.
 - `prov_agent_type` is a `common_lookup_value` category seeded by its
   own migration file (0012), not literally embedded in
   `scripts/seed_demo_data.py`'s SQL string the way ADR 0004's original

@@ -24,6 +24,7 @@ from lineageweave.fixtures import (
 from lineageweave.post_summary import (
     ContextualOrchestratorPostSummaryClient,
     NullPostSummaryClient,
+    RoleResponsibility,
     parse_summary_response,
 )
 
@@ -69,6 +70,11 @@ def test_organization_actor_is_not_forced_into_a_person_slot() -> None:
     assert role.actor_name == "당사"
     assert role.actor_type_code == "prov_organization"
     assert role.affiliated_organization_name is None
+
+
+def test_unknown_actor_type_code_is_rejected() -> None:
+    with pytest.raises(ValueError, match="actor_type_code"):
+        RoleResponsibility(actor_name="Ada West", responsibility="후속", actor_type_code="person")
 
 
 def test_missing_actor_type_defaults_to_person() -> None:
