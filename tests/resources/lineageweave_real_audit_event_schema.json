@@ -1,0 +1,61 @@
+{
+  "events": {
+    "lineageweave_real_run_start": {
+      "required_fields": [
+        "event",
+        "timestamp_utc",
+        "source_dsn",
+        "source_table",
+        "write_reports",
+        "keyman_limit",
+        "limit",
+        "sweep_content_inspections",
+        "inspection_document_limit",
+        "validate_runtime_schema",
+        "json_out",
+        "analytics_out"
+      ]
+    },
+    "lineageweave_real_run_complete": {
+      "required_fields": [
+        "event",
+        "timestamp_utc",
+        "source_dsn",
+        "source_table",
+        "write_reports",
+        "keyman_limit",
+        "limit",
+        "sweep_content_inspections",
+        "inspection_document_limit",
+        "validate_runtime_schema",
+        "runtime_schema_contract_check",
+        "json_out",
+        "analytics_out"
+      ]
+    },
+    "lineageweave_real_run_exit": {
+      "required_fields": [
+        "event",
+        "timestamp_utc",
+        "source_dsn",
+        "source_table",
+        "write_reports",
+        "keyman_limit",
+        "limit",
+        "sweep_content_inspections",
+        "inspection_document_limit",
+        "validate_runtime_schema",
+        "runtime_schema_contract_check",
+        "json_out",
+        "analytics_out",
+        "exit_code"
+      ]
+    }
+  },
+  "field_constraints": {
+    "runtime_schema_contract_check": ["enabled", "disabled"]
+  },
+  "field_types": {
+    "all_required_fields": "str"
+  }
+}
