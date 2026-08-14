@@ -630,6 +630,7 @@ describe("App, authenticated", () => {
             voc_type_label: "Voice of Customer",
             excerpts: [
               "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
+              "The weekly recap listed the delay against the open ticket.",
             ],
             counterparties: [
               {
@@ -1005,12 +1006,14 @@ describe("App, authenticated", () => {
     );
     expect(excerpt.tagName).toBe("BLOCKQUOTE");
     expect(name.closest(".voc-counterparty")).toContainElement(excerpt);
-    expect(document.querySelector(".voc-excerpt-list")).toBeNull();
     expect(
       screen.getAllByText(
         "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
       ),
     ).toHaveLength(1);
+    const unassigned = screen.getByText("The weekly recap listed the delay against the open ticket.");
+    expect(unassigned.closest(".voc-excerpt-list")).not.toBeNull();
+    expect(unassigned.closest(".voc-counterparty")).toBeNull();
   });
 
   it("opens related Keyman nodes from a VOC counterparty organization", async () => {
