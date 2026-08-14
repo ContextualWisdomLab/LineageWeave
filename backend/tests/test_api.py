@@ -1028,6 +1028,91 @@ def test_extract_keymen_does_not_merge_same_name_people_with_conflicting_titles(
     assert distinct_people == 2, "conflicting stated job titles for the same name must not be merged into one person"
 
 
+def test_extract_keymen_resolves_and_caches_an_abbreviated_organization_name(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """ADR 0008: an affiliated organization named by abbreviation
+    ("한수원") must be resolved to its canonical name
+    ("한국수력원자력") and cross-verified before that name is trusted --
+    deterministic fake resolution/verification clients (not a real LLM
+    or Searxng call) so this is CI-stable; the point under test is the
+    resolve-then-persist wiring, not model/search quality.
+    """
+    from lineageweave.keyman_extraction import COUNTERPARTY, PersonMention
+    from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVerificationResult
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeKeymanClient:
+        available = True
+
+        def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
+            return [
+                PersonMention(
+                    person_name="Kim Cheolsu",
+                    person_side_code=COUNTERPARTY,
+                    affiliated_organization_names=("한수원",),
+                )
+            ]
+
+    class _FakeRelationshipClient:
+        available = True
+
+        def classify(self, post_title: str, post_body: str, organization_names: list[str]):
+            return []
+
+    class _FakeResolutionClient:
+        available = True
+
+        def resolve(self, raw_name: str, context_text: str) -> str | None:
+            assert raw_name == "한수원"
+            return "한국수력원자력"
+
+    class _FakeVerificationClient:
+        available = True
+
+        def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:
+            assert organization_name == "한국수력원자력"
+            assert relationship_label == "한수원"
+            return RelationVerificationResult(
+                status_code=STATUS_CORROBORATED, evidence_url="https://example.org/khnp"
+            )
+
+    monkeypatch.setattr("backend.app.main._keyman_extraction_client", lambda: _FakeKeymanClient())
+    monkeypatch.setattr("backend.app.main._entity_relationship_client", lambda: _FakeRelationshipClient())
+    monkeypatch.setattr(
+        "backend.app.main._organization_name_resolution_client", lambda: _FakeResolutionClient()
+    )
+    monkeypatch.setattr("backend.app.main._relation_verification_client", lambda: _FakeVerificationClient())
+
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select resolved_organization_name, verification_status_code, verification_evidence_url "
+                "from organization_name_resolution where raw_organization_name = '한수원'"
+            )
+            cached = cur.fetchone()
+            cur.execute(
+                "select pa.affiliated_organization_name from person_affiliation pa "
+                "join cataloged_person cp on cp.person_id = pa.person_id "
+                "where cp.person_name = 'Kim Cheolsu'"
+            )
+            affiliation_name = cur.fetchone()[0]
+    finally:
+        admin_conn.close()
+
+    assert cached == ("한국수력원자력", STATUS_CORROBORATED, "https://example.org/khnp")
+    assert affiliation_name == "한국수력원자력", "a corroborated resolution must be the stored affiliation name"
+
+
 @pytest.mark.skipif(
     not (_ORCHESTRATOR_BASE_URL and _ORCHESTRATOR_API_KEY),
     reason="set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run",

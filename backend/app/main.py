@@ -41,6 +41,10 @@ from lineageweave.keyman_extraction import (
     ContextualOrchestratorKeymanExtractionClient,
     NullKeymanExtractionClient,
 )
+from lineageweave.organization_name_resolution import (
+    ContextualOrchestratorOrganizationNameResolutionClient,
+    NullOrganizationNameResolutionClient,
+)
 from lineageweave.post_chat import (
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
@@ -176,6 +180,16 @@ def _relation_verification_client():
     if not settings.searxng_base_url:
         return NullRelationVerificationClient()
     return SearxngRelationVerificationClient(base_url=settings.searxng_base_url)
+
+
+def _organization_name_resolution_client():
+    """Live orchestrator client when configured; otherwise the unavailable null."""
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
+        return NullOrganizationNameResolutionClient()
+    return ContextualOrchestratorOrganizationNameResolutionClient(
+        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+    )
 
 
 def _post_summary_client():
@@ -554,7 +568,15 @@ async def extract_post_keymen(
         # ignored (see lineageweave/post_content_normalization.py).
         post_body = normalize_post_body(raw_body, vision_client=_vision_client()).text
         async with conn.transaction():
-            mentions = await ingest_post_keymen(conn, keyman_client, post_id, post["post_title"], post_body)
+            mentions = await ingest_post_keymen(
+                conn,
+                keyman_client,
+                post_id,
+                post["post_title"],
+                post_body,
+                resolution_client=_organization_name_resolution_client(),
+                verification_client=_relation_verification_client(),
+            )
             organization_names = sorted(
                 {name for mention in mentions for name in mention.affiliated_organization_names}
             )

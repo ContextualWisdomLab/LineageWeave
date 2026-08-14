@@ -425,4 +425,26 @@ create table post_lineage_edge (
     primary key (parent_post_id, child_post_id)
 );
 
+-- ---------------------------------------------------------------------
+-- Caches an abbreviated/slang organization name's LLM-inferred
+-- canonical name plus external search cross-verification (ADR 0008),
+-- e.g. "한수원" -> "한국수력원자력" -- keyed by the raw name so the same
+-- abbreviation across many posts is resolved once, not re-queried
+-- every mention. Grounded in SKOS skos:altLabel/skos:prefLabel (see
+-- docs/ontology/lineageweave-kg.ttl); verification_status_code reuses
+-- relation_verification_status (migration 0004) rather than a
+-- near-duplicate category -- a resolved name is corroborated/
+-- uncorroborated the same way a classified relationship is.
+-- ---------------------------------------------------------------------
+create table organization_name_resolution (
+    raw_organization_name text primary key,
+    resolved_organization_name text not null,
+    verification_status_code text not null references common_lookup_value (lookup_code),
+    verification_evidence_url text,
+    resolved_at timestamptz not null default now()
+);
+
+comment on table organization_name_resolution is
+    'Caches LLM-proposed canonical names for abbreviated/slang organization mentions (e.g. 한수원 -> 한국수력원자력), cross-verified via external search before being trusted.';
+
 commit;

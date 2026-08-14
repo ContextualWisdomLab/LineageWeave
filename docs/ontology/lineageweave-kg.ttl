@@ -197,3 +197,20 @@
     rdfs:label "Role actor (team)" ;
     rdfs:comment "An R&R actor that is a named sub-unit of a company (e.g. 설계팀), per org:OrganizationalUnit -- not the company itself." ;
     :lookupCode "prov_team" .
+
+#################################################################
+# organization_name_resolution (raw/canonical organization-name pairs)
+#
+# ADR 0008: an abbreviated/slang organization mention (e.g. "한수원")
+# is resolved to its full canonical name ("한국수력원자력") and
+# cross-verified via external search before being trusted. This is not
+# a new KG node/edge type -- no new :lookupCode term is declared here,
+# since organization_name_resolution's columns are not a
+# common_lookup_value category (there is nothing for
+# tests/test_ontology.py's round-trip check to enforce). Documented
+# here for the Ontology/Semantic-Layer grounding itself:
+# `organization_name_resolution.raw_organization_name` corresponds to
+# SKOS `skos:altLabel` (an alternative label -- an abbreviation is
+# exactly this) and `resolved_organization_name` to `skos:prefLabel`
+# (the single preferred/canonical label), per Miles & Bechhofer (2009).
+#################################################################

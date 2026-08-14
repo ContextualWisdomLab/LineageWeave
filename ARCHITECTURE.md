@@ -751,3 +751,27 @@ types and requires `affiliated_organization_name` for a team actor too
 unlike an organization actor's. `migrations/0014_role_responsibility_team_actor_type.sql`
 adds the lookup row -- purely additive, no schema change, since
 `actor_type_code` already stores an arbitrary FK'd code.
+
+## Phase 10: an abbreviated organization name is resolved and search-verified, not left opaque
+
+Real post text names organizations by abbreviation ("한수원" for
+"한국수력원자력") that character-similarity matching
+(`corporate_hierarchy_resolution`) structurally cannot bridge -- an
+initialism shares almost no substring with its expansion. See
+[ADR 0008](docs/adr/0008-organization-abbreviation-resolution.md).
+
+New module `lineageweave/organization_name_resolution.py`: an LLM
+proposes the full name from context (or declines with `UNKNOWN`), then
+the *existing* `relation_verification` Searxng client cross-verifies
+the specific raw/resolved pairing (no second web-search integration
+built). Only a search-corroborated resolution is ever substituted in
+for `resolve_corporate_entity` -- an unresolved or unverified name
+still flows through unchanged. Cached in a new
+`organization_name_resolution` table
+(`migrations/0015_organization_name_resolution.sql`) keyed by the raw
+name, so the same abbreviation across many posts is resolved once.
+Grounded in SKOS `skos:altLabel`/`skos:prefLabel` (Miles & Bechhofer,
+2009). Wired into `backend/app/keyman_ingestion.py`'s affiliation loop
+and the private real-data batch script's paced re-implementation of it
+(the batch script's own copy was also missing `role_title` persistence
+entirely -- fixed alongside this).

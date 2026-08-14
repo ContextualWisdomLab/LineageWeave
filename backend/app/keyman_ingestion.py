@@ -22,6 +22,15 @@ that name+side (both stated, genuinely different), a fresh
 happen to share a name. A person's title legitimately changes over time
 (a promotion), so this only splits on an actual stated conflict, never
 on a missing title on either side.
+
+Abbreviation resolution (ADR 0008): before matching against
+`corporate_entity`, each affiliated organization name is run through
+`organization_name_resolution_ingestion.resolve_organization_name` --
+character-similarity matching alone cannot bridge an initialism like
+"한수원" to its expansion "한국수력원자력". Only a search-corroborated
+resolution is substituted in; an unresolved or unverified name still
+flows through unchanged, so `resolve_corporate_entity` never sees an
+unverified guess.
 """
 
 from __future__ import annotations
@@ -33,8 +42,14 @@ from lineageweave.corporate_hierarchy_resolution import (
     resolve_corporate_entity,
 )
 from lineageweave.keyman_extraction import KeymanExtractionClient, PersonMention
+from lineageweave.organization_name_resolution import (
+    NullOrganizationNameResolutionClient,
+    OrganizationNameResolutionClient,
+)
+from lineageweave.relation_verification import NullRelationVerificationClient, RelationVerificationClient
 
 from .knowledge_graph import persist_edges_for_post
+from .organization_name_resolution_ingestion import resolve_organization_name
 
 
 async def _load_corporate_entity_candidates(conn: asyncpg.Connection) -> list[CorporateEntityCandidate]:
@@ -91,13 +106,22 @@ async def ingest_post_keymen(
     post_id: str,
     post_title: str,
     post_body: str,
+    *,
+    resolution_client: OrganizationNameResolutionClient | None = None,
+    verification_client: RelationVerificationClient | None = None,
 ) -> list[PersonMention]:
     """Extracts, persists, and returns the `PersonMention`s found in one post.
+
+    `resolution_client`/`verification_client` default to the unavailable
+    Null clients -- callers that don't pass real ones get the exact same
+    behavior as before ADR 0008 (raw affiliation names, unresolved).
 
     Raises whatever `client.extract` raises (e.g. a `NullKeymanExtractionClient`
     would raise `RuntimeError`) -- callers should check `client.available`
     first, same discipline as every other pluggable channel in this repo.
     """
+    resolution_client = resolution_client or NullOrganizationNameResolutionClient()
+    verification_client = verification_client or NullRelationVerificationClient()
     mentions = client.extract(post_title, post_body)
     candidates = await _load_corporate_entity_candidates(conn)
 
@@ -109,7 +133,10 @@ async def ingest_post_keymen(
             person_id,
         )
         for organization_name in mention.affiliated_organization_names:
-            corporate_entity_id = resolve_corporate_entity(organization_name, candidates)
+            resolved_name = await resolve_organization_name(
+                conn, resolution_client, verification_client, organization_name, post_body
+            )
+            corporate_entity_id = resolve_corporate_entity(resolved_name, candidates)
             await conn.execute(
                 """
                 insert into person_affiliation
@@ -121,7 +148,7 @@ async def ingest_post_keymen(
                     role_title = coalesce(excluded.role_title, person_affiliation.role_title)
                 """,
                 person_id,
-                organization_name,
+                resolved_name,
                 corporate_entity_id,
                 mention.job_title,
             )

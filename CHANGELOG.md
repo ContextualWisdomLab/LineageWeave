@@ -4,6 +4,28 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.71.0] - 2026-08-14
+
+### Added
+
+- Abbreviated/slang organization names (e.g. "한수원") are now resolved
+  to their canonical name ("한국수력원자력") via LLM context, then
+  cross-verified against external search before being trusted -- new
+  `lineageweave/organization_name_resolution.py`, reusing the existing
+  Searxng verification client rather than a second web-search
+  integration. Cached in a new `organization_name_resolution` table
+  keyed by the raw name.
+- Wired into Keyman affiliation ingestion (both the API path and the
+  real-data batch script): a search-corroborated resolution feeds
+  `resolve_corporate_entity`, an unverified one leaves the raw name
+  unchanged.
+
+### Fixed
+
+- The real-data batch script's own re-implementation of Keyman
+  affiliation persistence was missing `role_title` entirely (a stale
+  copy that predated that feature) -- fixed alongside this change.
+
 ## [0.70.0] - 2026-08-14
 
 ### Added
