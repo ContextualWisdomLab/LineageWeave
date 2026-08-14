@@ -31,14 +31,16 @@ from rdflib.namespace import RDFS, SKOS
 
 _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo_data.py"
 
-# 0012 (ADR 0006: person/organization) and 0014 (ADR 0007: team) seed
-# prov_agent_type via their own migration SQL, not literally embedded in
-# seed_demo_data.py's own source text the way the other covered
-# categories are -- read alongside it below so the round-trip still sees
-# all three codes.
-_PROV_AGENT_TYPE_MIGRATION_PATHS = (
+# Several covered categories add lookup rows via their own migration
+# SQL rather than literally embedded in seed_demo_data.py's own source
+# text -- read alongside it below so the round-trip still sees them:
+# 0012 (ADR 0006: prov_person/prov_organization), 0014 (ADR 0007:
+# prov_team), 0016 (ADR 0009: node_team/edge_mention_team/
+# edge_team_affiliation/edge_mention_organization).
+_ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
     Path(__file__).resolve().parents[1] / "migrations" / "0012_role_responsibility_agent_type.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0014_role_responsibility_team_actor_type.sql",
+    Path(__file__).resolve().parents[1] / "migrations" / "0016_cross_post_actor_identity.sql",
 )
 
 # The categories this ontology covers (ADR 0004's scope). seed_demo_data.py
@@ -61,13 +63,13 @@ _INSERT_TUPLE_PATTERN = re.compile(r"\('([a-z_]+)',\s*'([a-z_]+)'")
 
 def _seeded_lookup_codes_for_covered_categories() -> set[str]:
     """Every `(lookup_category, lookup_code)` pair seed_demo_data.py's own
-    SQL, plus 0012/0014's migration SQL, literally inserts, filtered to
-    the categories this ontology covers. Parsed from source, not
+    SQL, plus the additional migrations' SQL, literally inserts, filtered
+    to the categories this ontology covers. Parsed from source, not
     executed -- this is a static consistency check between committed
     files, not a live-database test.
     """
     source = _SEED_SCRIPT_PATH.read_text() + "".join(
-        p.read_text() for p in _PROV_AGENT_TYPE_MIGRATION_PATHS
+        p.read_text() for p in _ADDITIONAL_LOOKUP_MIGRATION_PATHS
     )
     return {
         code

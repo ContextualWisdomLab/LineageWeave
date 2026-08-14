@@ -69,6 +69,12 @@
     rdfs:comment "A corporate_entity row. Also a skos:Concept so the self-referencing parent_entity_id hierarchy (e.g. Group -> Company -> Plant) is expressible with skos:broader/skos:narrower on instances." ;
     :lookupCode "node_corporate_entity" .
 
+:Team a owl:Class ;
+    rdfs:subClassOf org:OrganizationalUnit ;
+    rdfs:label "Team" ;
+    rdfs:comment "A cataloged_team row: a named company sub-unit (ADR 0009) with a stable team_id, distinct from :RoleActorTeam (ADR 0007's per-row actor_type_code classification) the same way :Person is distinct from :RoleActorPerson." ;
+    :lookupCode "node_team" .
+
 #################################################################
 # Object properties -- edge_type (knowledge_graph_edge.edge_type_code)
 #################################################################
@@ -93,6 +99,36 @@
     rdfs:label "co-mentioned with" ;
     rdfs:comment "Two people named in the same post -- symmetric by construction." ;
     :lookupCode "edge_co_mention" .
+
+#################################################################
+# Object properties -- ADR 0009 cross-post identity resolution edges.
+# Kept distinct from :mentions/:affiliatedWith (not reused with a
+# broadened domain/range) so an edge_type_code alone always tells you
+# which node types it connects -- stating rdfs:domain for the same
+# property twice (once :Person, once :Team) would make RDFS entail
+# every :mentions subject is BOTH a :Person and a :Team, which is false.
+#################################################################
+
+:mentionsTeam a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range :Team ;
+    rdfs:label "mentions team" ;
+    rdfs:comment "A post names a cataloged team (post_team_mention)." ;
+    :lookupCode "edge_mention_team" .
+
+:teamAffiliatedWith a owl:ObjectProperty ;
+    rdfs:domain :Team ;
+    rdfs:range :CorporateEntity ;
+    rdfs:label "team affiliated with" ;
+    rdfs:comment "The company a cataloged team belongs to (cataloged_team.affiliated_corporate_entity_id)." ;
+    :lookupCode "edge_team_affiliation" .
+
+:mentionsOrganization a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range :CorporateEntity ;
+    rdfs:label "mentions organization" ;
+    rdfs:comment "A post names an organization acting in its own name, resolved to a real corporate_entity (post_organization_mention)." ;
+    :lookupCode "edge_mention_organization" .
 
 #################################################################
 # Object properties -- entity_relationship_type

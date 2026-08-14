@@ -1,4 +1,16 @@
-"""Persist and load the popup's Korean summary / key events / R&R."""
+"""Persist and load the popup's Korean summary / key events / R&R.
+
+ADR 0009: an R&R actor is not just per-post free text -- when it is a
+team or organization, it is resolved to a shared catalog identity
+(``cataloged_team`` / ``corporate_entity``) and a Knowledge Graph
+mention edge is written, so the same "설계팀" or organization named
+across two posts becomes one linkable node, not two unrelated strings.
+A person actor is opportunistically joined to an *existing*
+``cataloged_person`` row by name when Keyman extraction has already
+cataloged that name -- R&R does not originate new person identities
+itself (it has no reliable ``person_side_code`` to create one with; see
+ADR 0009's documented follow-up).
+"""
 
 from __future__ import annotations
 
@@ -6,9 +18,20 @@ from typing import Any
 
 import asyncpg
 
+from lineageweave.corporate_hierarchy_resolution import resolve_corporate_entity
 from lineageweave.fixtures import fixture_thread_cast
 from lineageweave.ontology import ontology_annotations
-from lineageweave.post_summary import ACTOR_TYPE_ORGANIZATION, PostSummary, RoleResponsibility
+from lineageweave.post_summary import (
+    ACTOR_TYPE_ORGANIZATION,
+    ACTOR_TYPE_PERSON,
+    ACTOR_TYPE_TEAM,
+    PostSummary,
+    RoleResponsibility,
+)
+
+from .keyman_ingestion import _load_corporate_entity_candidates
+from .knowledge_graph import persist_edges_for_post
+from .team_ingestion import upsert_team
 
 
 async def fetch_persisted_summary(conn: asyncpg.Connection, post_id: str) -> dict[str, Any] | None:
@@ -71,6 +94,45 @@ async def persist_post_summary(conn: asyncpg.Connection, post_id: str, summary: 
             role.actor_type_code,
             role.affiliated_organization_name,
         )
+
+    # ADR 0009: cross-post identity resolution for team/organization/person
+    # actors -- see module docstring.
+    if summary.roles_and_responsibilities:
+        candidates = await _load_corporate_entity_candidates(conn)
+        for role in summary.roles_and_responsibilities:
+            if role.actor_type_code == ACTOR_TYPE_TEAM:
+                team_id = await upsert_team(
+                    conn, role.actor_name, role.affiliated_organization_name, candidates
+                )
+                await conn.execute(
+                    "insert into post_team_mention (post_id, team_id) values ($1, $2) "
+                    "on conflict do nothing",
+                    post_id,
+                    team_id,
+                )
+            elif role.actor_type_code == ACTOR_TYPE_ORGANIZATION:
+                corporate_entity_id = resolve_corporate_entity(role.actor_name, candidates)
+                if corporate_entity_id is not None:
+                    await conn.execute(
+                        "insert into post_organization_mention (post_id, corporate_entity_id) "
+                        "values ($1, $2) on conflict do nothing",
+                        post_id,
+                        corporate_entity_id,
+                    )
+            elif role.actor_type_code == ACTOR_TYPE_PERSON:
+                person_row = await conn.fetchrow(
+                    "select person_id from cataloged_person where person_name = $1 limit 1",
+                    role.actor_name,
+                )
+                if person_row is not None:
+                    await conn.execute(
+                        "insert into post_person_mention (post_id, person_id) values ($1, $2) "
+                        "on conflict do nothing",
+                        post_id,
+                        str(person_row["person_id"]),
+                    )
+        await persist_edges_for_post(conn, post_id)
+
     payload = await fetch_persisted_summary(conn, post_id)
     if payload is None:
         raise RuntimeError("persist_post_summary wrote no row")

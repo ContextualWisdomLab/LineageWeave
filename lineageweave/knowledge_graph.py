@@ -129,9 +129,19 @@ def select_related_nodes(
 NODE_PERSON = "node_person"
 NODE_CORPORATE_ENTITY = "node_corporate_entity"
 NODE_POST = "node_post"
+NODE_TEAM = "node_team"
 EDGE_MENTION = "edge_mention"
 EDGE_AFFILIATION = "edge_affiliation"
 EDGE_CO_MENTION = "edge_co_mention"
+# ADR 0009: cross-post identity resolution for R&R team/organization
+# actors -- a team is meso-level (ADR 0007), so it gets its own mention
+# edge distinct from a person's, plus its own affiliation edge to the
+# company it belongs to (parallel to edge_affiliation for persons, kept
+# distinct rather than reused so an edge_type_code alone always tells
+# you which node types it connects, without inspecting the row).
+EDGE_MENTION_TEAM = "edge_mention_team"
+EDGE_TEAM_AFFILIATION = "edge_team_affiliation"
+EDGE_MENTION_ORGANIZATION = "edge_mention_organization"
 
 
 @dataclass(frozen=True)
@@ -166,23 +176,36 @@ def knowledge_graph_edges_for_post(
     post_id: str,
     person_ids: Sequence[str],
     person_corporate_entity_ids: Sequence[tuple[str, str]] = (),
+    team_ids: Sequence[str] = (),
+    team_corporate_entity_ids: Sequence[tuple[str, str]] = (),
+    organization_corporate_entity_ids: Sequence[str] = (),
 ) -> list[KnowledgeGraphEdgeSpec]:
-    """Populate the three Phase 2 edge kinds for one post.
+    """Populate this post's Phase 2 + ADR 0009 edge kinds.
 
     - person <-> post (``edge_mention``) for every mentioned person
     - person <-> corporate_entity (``edge_affiliation``) for every
       affiliation that resolved to a real ``corporate_entity`` row
     - person <-> person (``edge_co_mention``) for every unordered pair of
       people named in the same post
+    - team <-> post (``edge_mention_team``) for every mentioned,
+      cataloged team (ADR 0009 -- cross-post team identity)
+    - team <-> corporate_entity (``edge_team_affiliation``) for every
+      team whose parent organization resolved to a real
+      ``corporate_entity`` row
+    - corporate_entity <-> post (``edge_mention_organization``) for
+      every R&R organization actor that resolved to a real
+      ``corporate_entity`` row (ADR 0009)
 
-    Affiliation names that did not resolve to a ``corporate_entity`` are
-    stored on ``person_affiliation`` but do not become graph edges -- a
-    free-text org with no node id cannot be a knowledge_graph_edge
-    endpoint. Directed storage is canonical (person -> post/org, and
-    lexicographic person-id order for co-mentions); loaders treat the
-    graph as undirected.
+    Affiliation/organization names that did not resolve to a
+    ``corporate_entity`` are stored on the relevant table but do not
+    become graph edges -- a free-text org with no node id cannot be a
+    knowledge_graph_edge endpoint. Directed storage is canonical
+    (person/team/org -> post/org, and lexicographic person-id order for
+    co-mentions); loaders treat the graph as undirected.
     """
     unique_person_ids = list(dict.fromkeys(person_ids))
+    unique_team_ids = list(dict.fromkeys(team_ids))
+    unique_organization_ids = list(dict.fromkeys(organization_corporate_entity_ids))
     edges: list[KnowledgeGraphEdgeSpec] = []
 
     for person_id in unique_person_ids:
@@ -221,6 +244,44 @@ def knowledge_graph_edges_for_post(
                 target_node_type_code=NODE_PERSON,
                 target_node_id=target_id,
                 edge_type_code=EDGE_CO_MENTION,
+            )
+        )
+
+    for team_id in unique_team_ids:
+        edges.append(
+            KnowledgeGraphEdgeSpec(
+                source_node_type_code=NODE_TEAM,
+                source_node_id=team_id,
+                target_node_type_code=NODE_POST,
+                target_node_id=post_id,
+                edge_type_code=EDGE_MENTION_TEAM,
+            )
+        )
+
+    seen_team_affiliations: set[tuple[str, str]] = set()
+    for team_id, corporate_entity_id in team_corporate_entity_ids:
+        pair = (team_id, corporate_entity_id)
+        if pair in seen_team_affiliations:
+            continue
+        seen_team_affiliations.add(pair)
+        edges.append(
+            KnowledgeGraphEdgeSpec(
+                source_node_type_code=NODE_TEAM,
+                source_node_id=team_id,
+                target_node_type_code=NODE_CORPORATE_ENTITY,
+                target_node_id=corporate_entity_id,
+                edge_type_code=EDGE_TEAM_AFFILIATION,
+            )
+        )
+
+    for corporate_entity_id in unique_organization_ids:
+        edges.append(
+            KnowledgeGraphEdgeSpec(
+                source_node_type_code=NODE_CORPORATE_ENTITY,
+                source_node_id=corporate_entity_id,
+                target_node_type_code=NODE_POST,
+                target_node_id=post_id,
+                edge_type_code=EDGE_MENTION_ORGANIZATION,
             )
         )
 

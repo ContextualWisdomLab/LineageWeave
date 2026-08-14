@@ -365,6 +365,33 @@ create table post_person_mention (
 );
 
 -- ---------------------------------------------------------------------
+-- Cross-post identity resolution for R&R actors (ADR 0009/0007): a
+-- team named across two posts (e.g. 설계팀) must resolve to the same
+-- row, the same way cataloged_person/corporate_entity already give
+-- persons/organizations a shared identity across posts.
+-- ---------------------------------------------------------------------
+create table cataloged_team (
+    team_id uuid primary key default uuid_generate_v4(),
+    team_name text not null,
+    affiliated_organization_name text,
+    affiliated_corporate_entity_id uuid references corporate_entity (corporate_entity_id),
+    created_at timestamptz not null default now(),
+    unique (team_name, affiliated_organization_name)
+);
+
+create table post_team_mention (
+    post_id uuid not null references source_post (post_id),
+    team_id uuid not null references cataloged_team (team_id),
+    primary key (post_id, team_id)
+);
+
+create table post_organization_mention (
+    post_id uuid not null references source_post (post_id),
+    corporate_entity_id uuid not null references corporate_entity (corporate_entity_id),
+    primary key (post_id, corporate_entity_id)
+);
+
+-- ---------------------------------------------------------------------
 -- Knowledge graph: person/company/post nodes, typed edges. The type
 -- codes (which kind of node, which kind of edge) are real enums and DO
 -- reference common_lookup_value. The *_node_id columns are the

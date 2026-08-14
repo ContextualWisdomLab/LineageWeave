@@ -4,6 +4,23 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.74.0] - 2026-08-14
+
+### Added
+
+- R&R team and organization actors now get a shared identity across
+  posts, not just per-post free text -- the same "설계팀" (design
+  team) named in ten posts resolves to one `cataloged_team` row
+  (identity key: team name + parent org, since a bare team name is not
+  by itself identifying), and an organization actor resolves against
+  the existing `corporate_entity` catalog. Each resolved actor gets a
+  real Knowledge Graph mention edge (`edge_mention_team`,
+  `edge_team_affiliation`, `edge_mention_organization`), so extraction
+  results now genuinely become cross-post lineage clues instead of
+  per-post islands. A person R&R actor is opportunistically joined to
+  an existing Keyman-cataloged person by name (documented gap: R&R does
+  not yet originate new person identities itself -- see ADR 0009).
+
 ## [0.73.0] - 2026-08-14
 
 ### Fixed

@@ -125,9 +125,13 @@ def seeded_db(demo_analyst_token):
                 "('node_type', 'node_person', 'Person'), "
                 "('node_type', 'node_corporate_entity', 'Corporate entity'), "
                 "('node_type', 'node_post', 'Post'), "
+                "('node_type', 'node_team', 'Team'), "
                 "('edge_type', 'edge_mention', 'Mentioned in'), "
                 "('edge_type', 'edge_affiliation', 'Affiliated with'), "
                 "('edge_type', 'edge_co_mention', 'Co-mentioned'), "
+                "('edge_type', 'edge_mention_team', 'Team mentioned in'), "
+                "('edge_type', 'edge_team_affiliation', 'Team affiliated with'), "
+                "('edge_type', 'edge_mention_organization', 'Organization mentioned in'), "
                 "('entity_relationship_type', 'rel_voc', 'Voice of Customer'), "
                 "('entity_relationship_type', 'rel_vom', 'Voice of Market'), "
                 "('entity_relationship_type', 'rel_vop', 'Voice of Partner'), "
@@ -1111,6 +1115,82 @@ def test_extract_keymen_resolves_and_caches_an_abbreviated_organization_name(
 
     assert cached == ("한국수력원자력", STATUS_CORROBORATED, "https://example.org/khnp")
     assert affiliation_name == "한국수력원자력", "a corroborated resolution must be the stored affiliation name"
+
+
+def test_same_team_named_in_two_posts_resolves_to_one_cataloged_team(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """ADR 0009: extraction runs per-post, but "설계팀" (design team) at
+    the same company named in two different posts must resolve to the
+    same cataloged_team row -- otherwise every extraction is an island
+    and can never become a cross-post Knowledge Graph clue. A
+    deterministic fake summary client (not a real LLM call) so this is
+    CI-stable; the point under test is the upsert-then-dedupe wiring.
+    """
+    from lineageweave.post_summary import ACTOR_TYPE_TEAM, PostSummary, RoleResponsibility
+
+    class _FakeSummaryClient:
+        available = True
+
+        def summarize(self, post_title: str, post_body: str) -> PostSummary:
+            return PostSummary(
+                korean_summary="설계팀이 도면을 검토했다.",
+                roles_and_responsibilities=(
+                    RoleResponsibility(
+                        actor_name="설계팀",
+                        responsibility="도면 검토",
+                        actor_type_code=ACTOR_TYPE_TEAM,
+                        affiliated_organization_name="Demo Corp",
+                    ),
+                ),
+            )
+
+    monkeypatch.setattr("backend.app.main._post_summary_client", lambda: _FakeSummaryClient())
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            post_ids = []
+            for title in ("설계 검토 회의 1", "설계 검토 회의 2"):
+                cur.execute(
+                    "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                    "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public' "
+                    "from source_post where post_id = %s returning post_id",
+                    (title, "placeholder body", seeded_db["own_private_post_id"]),
+                )
+                post_ids.append(str(cur.fetchone()[0]))
+    finally:
+        admin_conn.close()
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    for post_id in post_ids:
+        response = client.get(f"/api/posts/{post_id}/summary", headers=headers)
+        assert response.status_code == 200, response.text
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute("select count(*), count(distinct team_id) from cataloged_team where team_name = '설계팀'")
+            team_row_count, distinct_team_count = cur.fetchone()
+            cur.execute(
+                "select count(distinct pt.post_id) from post_team_mention pt "
+                "join cataloged_team ct on ct.team_id = pt.team_id "
+                "where ct.team_name = '설계팀'"
+            )
+            mentioning_post_count = cur.fetchone()[0]
+            cur.execute(
+                "select count(*) from knowledge_graph_edge "
+                "where source_node_type_code = 'node_team' and edge_type_code = 'edge_mention_team'"
+            )
+            team_mention_edge_count = cur.fetchone()[0]
+    finally:
+        admin_conn.close()
+
+    assert (team_row_count, distinct_team_count) == (1, 1), "the same team+org pair must dedupe to one row"
+    assert mentioning_post_count == 2, "both posts must link to the single cataloged team"
+    assert team_mention_edge_count == 2, "each post's mention must become a real KG edge"
 
 
 @pytest.mark.skipif(

@@ -109,6 +109,8 @@ def seed(
             cur.execute((migrations / "0012_role_responsibility_agent_type.sql").read_text())
             cur.execute((migrations / "0013_person_job_title.sql").read_text())
             cur.execute((migrations / "0014_role_responsibility_team_actor_type.sql").read_text())
+            cur.execute((migrations / "0015_organization_name_resolution.sql").read_text())
+            cur.execute((migrations / "0016_cross_post_actor_identity.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values

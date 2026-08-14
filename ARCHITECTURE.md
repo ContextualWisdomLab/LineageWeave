@@ -784,3 +784,25 @@ labels, reordered labels, a missing TAGS line) -- silently producing
 the same "content unavailable" placeholder as a genuinely unconfigured
 vision channel. Fields are now recovered independently per label line;
 only a response with neither TEXT nor CAPTION is treated as unusable.
+
+## Phase 11: R&R team/organization actors get a shared cross-post identity
+
+Extraction runs per-post; a team's or organization's identity did not
+survive across posts the way a Keyman's already did via
+`cataloged_person`. See
+[ADR 0009](docs/adr/0009-cross-post-actor-identity.md). New
+`cataloged_team` catalog (`migrations/0016_cross_post_actor_identity.sql`,
+identity key `(team_name, affiliated_organization_name)` -- a bare team
+name like "설계팀" is not by itself identifying) plus two mention join
+tables (`post_team_mention`, `post_organization_mention`); an
+organization actor reuses the existing `corporate_entity` catalog, no
+new table needed. `lineageweave/knowledge_graph.py`'s
+`knowledge_graph_edges_for_post` extended with three new edge kinds
+(`edge_mention_team`, `edge_team_affiliation`, `edge_mention_organization`);
+`backend/app/post_summary_ingestion.py`'s `persist_post_summary` now
+resolves each R&R actor's identity and calls the same
+`persist_edges_for_post` Keyman ingestion already uses. A person R&R
+actor is opportunistically joined to an existing `cataloged_person` row
+by name (never originated by R&R itself -- documented gap in the ADR:
+`cataloged_person` needs `person_side_code`, which R&R's prompt does
+not currently capture).

@@ -113,7 +113,15 @@ async def fetch_post_keymen(conn: asyncpg.Connection, post_id: str) -> list[dict
 
 
 async def persist_edges_for_post(conn: asyncpg.Connection, post_id: str) -> list[KnowledgeGraphEdgeSpec]:
-    """Insert mention, affiliation, and co-mention edges for one post."""
+    """Insert mention, affiliation, and co-mention edges for one post.
+
+    Also derives ADR 0009's team/organization mention edges from
+    ``post_team_mention``/``post_organization_mention`` when present --
+    a no-op for posts with none of either, so this stays the single
+    "compute this post's edges" entry point Keyman ingestion and R&R
+    persistence both call, rather than each needing their own partial
+    edge-writing logic.
+    """
     mention_rows = await conn.fetch(
         "select person_id from post_person_mention where post_id = $1",
         post_id,
@@ -127,6 +135,23 @@ async def persist_edges_for_post(conn: asyncpg.Connection, post_id: str) -> list
         """,
         [row["person_id"] for row in mention_rows],
     )
+    team_mention_rows = await conn.fetch(
+        "select team_id from post_team_mention where post_id = $1",
+        post_id,
+    )
+    team_affiliation_rows = await conn.fetch(
+        """
+        select team_id, affiliated_corporate_entity_id
+        from cataloged_team
+        where team_id = any($1::uuid[])
+          and affiliated_corporate_entity_id is not null
+        """,
+        [row["team_id"] for row in team_mention_rows],
+    )
+    organization_mention_rows = await conn.fetch(
+        "select corporate_entity_id from post_organization_mention where post_id = $1",
+        post_id,
+    )
     edges = knowledge_graph_edges_for_post(
         post_id,
         [str(row["person_id"]) for row in mention_rows],
@@ -134,6 +159,12 @@ async def persist_edges_for_post(conn: asyncpg.Connection, post_id: str) -> list
             (str(row["person_id"]), str(row["affiliated_corporate_entity_id"]))
             for row in affiliation_rows
         ],
+        [str(row["team_id"]) for row in team_mention_rows],
+        [
+            (str(row["team_id"]), str(row["affiliated_corporate_entity_id"]))
+            for row in team_affiliation_rows
+        ],
+        [str(row["corporate_entity_id"]) for row in organization_mention_rows],
     )
     for edge in edges:
         await conn.execute(
