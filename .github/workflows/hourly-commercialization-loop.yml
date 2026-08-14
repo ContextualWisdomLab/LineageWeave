@@ -655,6 +655,26 @@ jobs:
               ".yml",
           }
 
+          def is_frontend_test_path(path_text: str) -> bool:
+              """Return whether a frontend path is regression evidence, not product code."""
+              return path_text.startswith("frontend/src/") and path_text.endswith(
+                  (".test.ts", ".test.tsx")
+              )
+
+          def is_test_path(path_text: str) -> bool:
+              """Return whether a path contributes regression evidence."""
+              return path_text.startswith(("tests/", "backend/tests/")) or (
+                  is_frontend_test_path(path_text)
+              )
+
+          def is_production_path(path_text: str) -> bool:
+              """Return whether a path changes product code or database schema."""
+              if path_text.startswith(("lineageweave/", "backend/app/", "migrations/")):
+                  return True
+              return path_text.startswith("frontend/src/") and not is_frontend_test_path(
+                  path_text
+              )
+
           total_bytes = 0
           production_changed = False
           test_changed = False
@@ -675,13 +695,9 @@ jobs:
                   raise SystemExit(f"path is outside autonomous scope: {path_text}")
               if path_text != "PR_MESSAGE.md" and path.suffix not in allowed_suffixes:
                   raise SystemExit(f"unsupported path changed: {path_text}")
-              if path_text.startswith(
-                  ("lineageweave/", "backend/app/", "frontend/src/", "migrations/")
-              ):
+              if is_production_path(path_text):
                   production_changed = True
-              if path_text.startswith(("tests/", "backend/tests/")) or path_text.endswith(
-                  (".test.ts", ".test.tsx")
-              ):
+              if is_test_path(path_text):
                   test_changed = True
 
               info = path.lstat()

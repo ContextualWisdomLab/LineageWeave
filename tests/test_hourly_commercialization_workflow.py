@@ -9,6 +9,7 @@ review instead of relying on prose.
 from __future__ import annotations
 
 import re
+import textwrap
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -33,6 +34,26 @@ def _job_text(job_name: str) -> str:
     if match is None:
         return _WORKFLOW[start:]
     return _WORKFLOW[start : start + len(marker) + match.start()]
+
+
+def _implementation_path_classifiers() -> dict[str, object]:
+    """Load the pure path classifiers from the workflow's boundary script."""
+    develop = _job_text("develop-next-product-gap")
+    boundary = develop.split(
+        "      - name: Enforce the autonomous implementation boundary\n", maxsplit=1
+    )[1].split(
+        "      - name: Validate the proposal in an isolated copy without network\n",
+        maxsplit=1,
+    )[0]
+    match = re.search(
+        r"^          def is_frontend_test_path\(.*?(?=^          total_bytes = 0$)",
+        boundary,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    assert match is not None, "workflow path classifiers were not found"
+    namespace: dict[str, object] = {}
+    exec(textwrap.dedent(match.group(0)), namespace)
+    return namespace
 
 
 def test_schedule_runs_hourly_without_cancelling_long_accuracy_work() -> None:
@@ -179,6 +200,27 @@ def test_every_increment_requires_production_tests_spec_and_changelog() -> None:
     assert "autonomous increment must include a design supplement" in _WORKFLOW
     assert "autonomous increment must include a changelog fragment" in _WORKFLOW
     assert "implementation must write PR_MESSAGE.md" in _WORKFLOW
+
+
+def test_frontend_test_only_diff_does_not_satisfy_production_gate() -> None:
+    """Regression files count as evidence but never as buyer-visible product code."""
+    classifiers = _implementation_path_classifiers()
+    is_production_path = classifiers["is_production_path"]
+    is_test_path = classifiers["is_test_path"]
+    assert callable(is_production_path)
+    assert callable(is_test_path)
+
+    assert is_test_path("frontend/src/App.test.tsx") is True
+    assert is_test_path("frontend/src/lineageLayout.test.ts") is True
+    assert is_production_path("frontend/src/App.test.tsx") is False
+    assert is_production_path("frontend/src/lineageLayout.test.ts") is False
+
+    assert is_production_path("frontend/src/App.tsx") is True
+    assert is_production_path("frontend/src/App.css") is True
+    assert is_production_path("backend/app/main.py") is True
+    assert is_production_path("lineageweave/reconstruct.py") is True
+    assert is_production_path("migrations/0001_initial_schema.sql") is True
+    assert is_production_path("docs/architecture-note.md") is False
 
 
 def test_untrusted_validation_is_networkless_unprivileged_and_complete() -> None:
