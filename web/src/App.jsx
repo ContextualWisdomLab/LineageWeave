@@ -1148,7 +1148,7 @@ export default function App() {
 
               <section className="detail-card modal-visibility">
                 <h3>공개 / 비공개</h3>
-                <select aria-label="게시글 공개 범위" value={visibility} onChange={(event) => setVisibility(event.target.value)} disabled={!canManage}><option value="public">public</option><option value="private">private</option></select>
+                <select aria-label="게시글 공개 범위" value={visibility} onChange={(event) => setVisibility(event.target.value)} disabled={!canManage}><option value="public">공개</option><option value="private">비공개</option></select>
                 {canManage ? <button className="secondary-button" disabled={busy} onClick={saveVisibility}>저장</button> : <p className="meta">읽기 전용 세션</p>}
               </section>
               <section className="detail-card modal-tickets">
