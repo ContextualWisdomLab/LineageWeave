@@ -86,6 +86,14 @@ must contain both the source alias and that canonical name before the inferred
 SKOS exact-match assertion can enter the normalized KG. A mismatch remains a
 reviewable unresolved result and cannot alter chronological Lineage.
 
+Customer-master persistence is snapshot-replacement semantics. A payload that
+contains `customer_master` clears document links, affiliate facts, and account
+facts in that order before inserting the new normalized projection, including
+when the live LLM abstains. A payload without that boundary does not alter the
+customer projection. Reader vocabulary hides raw implementation provenance and
+uses business terms for evidence and visibility; administrator/audit routes
+retain source fields for operational diagnosis.
+
 ## Evidence
 
 - `lineageweave.py`

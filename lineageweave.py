@@ -5816,7 +5816,11 @@ def persist_operational_surfaces(
         for item in node.get("appointments") or []
         if item.get("appointment_id")
     ]
-    customer_master = payload.get("customer_master") or (payload.get("affiliate_tree") or {}).get(
+    affiliate_tree = payload.get("affiliate_tree")
+    customer_master_snapshot = "customer_master" in payload or (
+        isinstance(affiliate_tree, dict) and "customer_master" in affiliate_tree
+    )
+    customer_master = payload.get("customer_master") or (affiliate_tree or {}).get(
         "customer_master"
     ) or {}
     ticket_rows = sorted(
@@ -5950,33 +5954,38 @@ def persist_operational_surfaces(
             for document_no in normalize_document_references(account.get("document_nos"))
         }
     )
-    if accounts:
-        # Delete children first so the parent FK remains valid without taking an
-        # AccessExclusiveLock on the live customer master.
+    if customer_master_snapshot:
+        # A full snapshot replaces the previous semantic projection even when
+        # the live model abstains. Otherwise an empty response would leave
+        # stale customer relationships visible to the next reader session.
+        # Delete children first so the parent FK remains valid without taking
+        # an AccessExclusiveLock on the live customer master.
         _database_exec(
             connection,
             f"DELETE FROM {ANALYSIS_CUSTOMER_DOCUMENT_TABLE}",
         )
+        _database_exec(connection, f"DELETE FROM {ANALYSIS_CUSTOMER_AFFILIATE_TABLE}")
         _database_exec(connection, f"DELETE FROM {ANALYSIS_CUSTOMER_TABLE}")
         with connection.cursor() as cursor:
-            cursor.executemany(
-                f"""
-                INSERT INTO {ANALYSIS_CUSTOMER_TABLE}
-                    (account_name, parent_name, tier_name, entity_role, content_source)
-                VALUES (%s, %s, %s, %s, %s)
-                """,
-                [
-                    (
-                        account.get("account_name"),
-                        account.get("parent_name") or None,
-                        account.get("tier") or "hq",
-                        account.get("entity_role") or "고객",
-                        customer_master.get("source") or "llm",
-                    )
-                    for account in accounts
-                    if account.get("account_name")
-                ],
-            )
+            if accounts:
+                cursor.executemany(
+                    f"""
+                    INSERT INTO {ANALYSIS_CUSTOMER_TABLE}
+                        (account_name, parent_name, tier_name, entity_role, content_source)
+                    VALUES (%s, %s, %s, %s, %s)
+                    """,
+                    [
+                        (
+                            account.get("account_name"),
+                            account.get("parent_name") or None,
+                            account.get("tier") or "hq",
+                            account.get("entity_role") or "고객",
+                            customer_master.get("source") or "llm",
+                        )
+                        for account in accounts
+                        if account.get("account_name")
+                    ],
+                )
             if customer_document_rows:
                 cursor.executemany(
                     f"""
@@ -5986,8 +5995,7 @@ def persist_operational_surfaces(
                     """,
                     customer_document_rows,
                 )
-    if master_edges:
-        _database_exec(connection, f"DELETE FROM {ANALYSIS_CUSTOMER_AFFILIATE_TABLE}")
+    if customer_master_snapshot and master_edges:
         with connection.cursor() as cursor:
             cursor.executemany(
                 f"""
