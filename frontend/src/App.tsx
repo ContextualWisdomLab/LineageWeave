@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
@@ -509,6 +509,7 @@ function KeymanPanel({
   const [extracting, setExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orchestratorOff, setOrchestratorOff] = useState(false);
+  const relatedRequest = useRef(0);
 
   useEffect(() => {
     setOrchestratorOff(false);
@@ -516,34 +517,41 @@ function KeymanPanel({
   }, [postId]);
 
   async function handleSelect(personId: string, personName: string) {
+    const requestId = ++relatedRequest.current;
     setSelectedName(personName);
     setRelated(null);
     try {
       const result = await fetchRelatedKeymen(accessToken, personId);
-      setRelated(result.related);
+      if (requestId === relatedRequest.current) setRelated(result.related);
     } catch {
-      setRelated([]);
+      if (requestId === relatedRequest.current) setRelated([]);
     }
   }
 
   async function handleSelectEntity(entityId: string, entityName: string) {
+    const requestId = ++relatedRequest.current;
     setSelectedName(entityName);
     setRelated(null);
     try {
       const result = await fetchRelatedEntity(accessToken, entityId);
-      setRelated(result.related);
+      if (requestId === relatedRequest.current) setRelated(result.related);
     } catch {
-      setRelated([]);
+      if (requestId === relatedRequest.current) setRelated([]);
     }
   }
 
   useEffect(() => {
     if (!focusPerson) return;
+    const requestId = ++relatedRequest.current;
     setSelectedName(focusPerson.personName);
     setRelated(null);
     fetchRelatedKeymen(accessToken, focusPerson.personId)
-      .then((result) => setRelated(result.related))
-      .catch(() => setRelated([]));
+      .then((result) => {
+        if (requestId === relatedRequest.current) setRelated(result.related);
+      })
+      .catch(() => {
+        if (requestId === relatedRequest.current) setRelated([]);
+      });
   }, [accessToken, focusPerson]);
 
   async function handleExtract() {

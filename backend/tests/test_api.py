@@ -284,6 +284,7 @@ def seeded_db(demo_analyst_token):
             "public_post_id": public_post_id,
             "own_group_id": str(own_group_id),
             "own_corp_id": str(own_corp_id),
+            "other_corp_id": str(other_corp_id),
             "own_private_post_id": own_private_post_id,
             "other_private_post_id": other_private_post_id,
             "our_person_id": our_person_id,
@@ -906,6 +907,17 @@ def test_related_corporate_entity_uses_rwr_and_hides_invisible_posts(
 
 
 def test_corporate_entity_with_no_visible_affiliation_is_forbidden(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Other Corp exists but no visible person is affiliated with it."""
+    response = client.get(
+        f"/api/corporate-entities/{seeded_db['other_corp_id']}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_unknown_corporate_entity_related_is_not_found(
     client, demo_analyst_token, seeded_db
 ) -> None:
     response = client.get(
