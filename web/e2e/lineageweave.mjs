@@ -61,8 +61,18 @@ try {
   trace("product login page ready");
   const existingSession = await readSession(loginPage);
   if (skipLogin && existingSession?.authenticated) {
+    assert.equal(
+      requireKeyverseLogin || completeLogin,
+      false,
+      "a preauthenticated development session cannot prove Keyverse login acceptance",
+    );
     result.login_screen = false;
-    result.keyverse_login = { reached_identity_authority: true, identity_form: true, landed_url: loginPage.url() };
+    result.keyverse_login = {
+      reached_identity_authority: false,
+      identity_form: false,
+      preauthenticated_session: true,
+      landed_url: loginPage.url(),
+    };
   } else {
     const loginButton = loginPage.locator("#loginBtn");
     if (await loginButton.count() > 0) {
