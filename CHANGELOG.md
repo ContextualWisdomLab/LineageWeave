@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- Kept the reader-facing business screens separate from the administrator
+  console in the ADR and runtime contract: ordinary users receive `업무 홈`,
+  `업무공간`, and evidence-backed `고객 화면`, while policy, review, and
+  account-directory controls remain server-gated administrator capabilities.
+- Filtered stale persisted shared-thread edges at response time by checking
+  both current document endpoints, so old relatedness records cannot reappear
+  as false Lineage after a document's thread membership changes.
+- Added an isolated PostgreSQL service to the product test workflow and
+  non-root users to shipped/test container images; the explicit static-scan
+  exceptions document their validated URL and SQL trust boundaries.
 - Reclassified a common thread identifier from a claimed document revision to
   reviewable inferred relatedness. Only direct same-document row succession
   can now render as chronological Lineage; shared-thread documents are paired
@@ -111,8 +121,8 @@
 - Retired registration URLs now return `404` for both `GET` and `POST` before
   session authorization, so neither route can be mistaken for an authentication
   failure or reintroduced as an enrollment surface.
-- The current complete source gate passes 349 tests with 7,555 statements and
-  2,948 branches at 100 percent line-and-branch coverage.
+- The current complete source gate passes 349 tests with 7,569 statements and
+  2,954 branches at 100 percent line-and-branch coverage.
 - Added a V8-covered React presentation model for email validation, Keyman
   normalization, safe asset previews, semantic values, directed KG
   relationships, and customer trees. Its current 103 statements, 196

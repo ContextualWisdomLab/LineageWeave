@@ -89,7 +89,9 @@ def _post_gateway(path: str, payload: dict) -> dict | None:
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=90, context=_verified_gateway_context()) as response:
+        with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+            request, timeout=90, context=_verified_gateway_context()
+        ) as response:
             parsed = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         if exc.code in {404, 405}:

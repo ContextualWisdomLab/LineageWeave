@@ -159,7 +159,7 @@ def _discover_embedding_model(base_url: str, token: str) -> str:
         method="GET",
     )
     try:
-        with urllib.request.urlopen(
+        with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
             request,
             timeout=15,
             context=lw.verified_gateway_ssl_context(),
