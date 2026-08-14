@@ -15,6 +15,7 @@ from urllib.parse import urlsplit, urlunsplit
 import pytest
 
 psycopg2 = pytest.importorskip("psycopg2")
+sql = pytest.importorskip("psycopg2.sql")
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -36,6 +37,12 @@ def _postgres_available() -> bool:
         return False
 
 
+def _dsn_for_database(admin_dsn: str, database_name: str) -> str:
+    """Replace only the database path while preserving DSN query options."""
+    parsed_admin_dsn = urlsplit(admin_dsn)
+    return urlunsplit(parsed_admin_dsn._replace(path=f"/{database_name}"))
+
+
 pytestmark = pytest.mark.skipif(
     not _postgres_available(),
     reason=f"no reachable PostgreSQL server at {_ADMIN_DSN}",
@@ -49,12 +56,11 @@ def prov_schema_db():
     admin_connection = psycopg2.connect(_ADMIN_DSN)
     admin_connection.autocommit = True
     with admin_connection.cursor() as cursor:
-        cursor.execute(f'create database "{database_name}"')
-    try:
-        parsed_admin_dsn = urlsplit(_ADMIN_DSN)
-        database_dsn = urlunsplit(
-            parsed_admin_dsn._replace(path=f"/{database_name}")
+        cursor.execute(
+            sql.SQL("create database {}").format(sql.Identifier(database_name))
         )
+    try:
+        database_dsn = _dsn_for_database(_ADMIN_DSN, database_name)
         connection = psycopg2.connect(database_dsn)
         try:
             with connection.cursor() as cursor:
@@ -66,7 +72,9 @@ def prov_schema_db():
             connection.close()
     finally:
         with admin_connection.cursor() as cursor:
-            cursor.execute(f'drop database "{database_name}"')
+            cursor.execute(
+                sql.SQL("drop database {}").format(sql.Identifier(database_name))
+            )
         admin_connection.close()
 
 

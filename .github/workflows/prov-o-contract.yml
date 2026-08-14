@@ -75,6 +75,18 @@ jobs:
             -m pytest -q tests/test_prov_o.py
           uv run --frozen python -m coverage report --fail-under=100 lineageweave/prov_o.py
 
+      - name: Require a reachable PostgreSQL service
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 30); do
+            if pg_isready -h localhost -p 5432 -U postgres; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "PostgreSQL service is unreachable; the schema contract would silently skip." >&2
+          exit 1
+
       - name: Verify normalized PostgreSQL contracts
         run: uv run --frozen python -m pytest -q tests/test_prov_o_schema.py
 

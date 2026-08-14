@@ -126,19 +126,16 @@ _RESPONSE_FORMAT = (
     "CAPTION: <one sentence describing what the image shows>\n"
     "TAGS: <comma-separated short tags for the main objects/subjects>"
 )
-# DOTALL + non-greedy so TEXT: can legitimately span multiple lines (real
-# OCR output is often multi-line) without losing everything after the
-# first newline, while still stopping at the next expected label.
-# A label line, tolerant of markdown emphasis around the label
-# (`**TEXT:**`) and reordering -- a strict single-regex match across all
-# three labels in the exact requested order was rejecting real vision
-# responses that got the content right but the formatting only mostly
-# right (observed live against real embedded images: ~1% of calls),
-# which meant real, genuinely-extracted content was being discarded as
-# if the provider had said nothing -- exactly the "[image: content
-# unavailable]" outcome this whole parser exists to avoid when data IS
-# actually available.
-_LABEL_LINE = re.compile(r"^\s*[*_`>#\-\s]*(TEXT|CAPTION|TAGS)\s*:\s*[*_`]*\s*(.*)$", re.IGNORECASE)
+# TEXT may legitimately span multiple lines because OCR output is often
+# multi-line. CAPTION and TAGS are explicitly single-line fields. Synthetic
+# format-variation fixtures cover common provider drift such as bolded or
+# reordered labels without allowing trailing commentary to contaminate the
+# searchable caption or tag values.
+_LABEL_LINE = re.compile(
+    r"^\s*[*_`>#\-\s]*(TEXT|CAPTION|TAGS)\s*:\s*[*_`]*\s*(.*)$",
+    re.IGNORECASE,
+)
+_MARKDOWN_EMPHASIS_MARKERS = ("**", "__", "`", "*", "_")
 
 
 class ImageDescriptionParseError(ValueError):
@@ -149,23 +146,42 @@ class ImageDescriptionParseError(ValueError):
     """
 
 
+def _strip_outer_markdown_emphasis(value: str) -> str:
+    """Remove balanced outer Markdown emphasis without changing inner text."""
+    cleaned = value.strip()
+    changed = True
+    while changed:
+        changed = False
+        for marker in _MARKDOWN_EMPHASIS_MARKERS:
+            if (
+                cleaned.startswith(marker)
+                and cleaned.endswith(marker)
+                and len(cleaned) > 2 * len(marker)
+            ):
+                cleaned = cleaned[len(marker) : -len(marker)].strip()
+                changed = True
+                break
+    return cleaned
+
+
 def _parse_description(content: str) -> ImageDescription:
     fields: dict[str, list[str]] = {"TEXT": [], "CAPTION": [], "TAGS": []}
-    current: str | None = None
+    multiline_field: str | None = None
     for line in content.splitlines():
         match = _LABEL_LINE.match(line)
         if match:
-            current = match.group(1).upper()
-            remainder = match.group(2).strip()
+            label = match.group(1).upper()
+            remainder = _strip_outer_markdown_emphasis(match.group(2))
             if remainder:
-                fields[current].append(remainder)
+                fields[label].append(remainder)
+            multiline_field = "TEXT" if label == "TEXT" else None
             continue
 
         if re.match(r"^\s*[*_`>#\-\s]*[A-Za-z][A-Za-z0-9 _-]*\s*:", line):
-            current = None
+            multiline_field = None
             continue
-        if current is not None and line.strip():
-            fields[current].append(line.strip())
+        if multiline_field == "TEXT" and line.strip():
+            fields["TEXT"].append(_strip_outer_markdown_emphasis(line))
 
     if not fields["TEXT"] and not fields["CAPTION"]:
         raise ImageDescriptionParseError(

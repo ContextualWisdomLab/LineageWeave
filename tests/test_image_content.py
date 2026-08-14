@@ -83,15 +83,19 @@ def test_parse_description_preserves_multiline_ocr_text() -> None:
 
 
 def test_parse_description_tolerates_markdown_emphasis_on_labels() -> None:
-    """A real provider drift observed live: bolding the label
-    (`**TEXT:**`) instead of the bare label -- must not discard real,
-    genuinely-extracted content just because the formatting is close
-    but not exact.
-    """
+    """Synthetic provider drift may bold labels without changing content."""
     content = "**TEXT:** LT7\n**CAPTION:** A close-up of a component.\n**TAGS:** component, close-up"
     description = _parse_description(content)
     assert description.extracted_text == "LT7"
     assert description.caption == "A close-up of a component."
+    assert description.tags == ("component", "close-up")
+
+
+def test_parse_description_strips_balanced_markdown_emphasis_from_values() -> None:
+    content = "TEXT: **LT7**\nCAPTION: _A synthetic component._\nTAGS: `component`, close-up"
+    description = _parse_description(content)
+    assert description.extracted_text == "LT7"
+    assert description.caption == "A synthetic component."
     assert description.tags == ("component", "close-up")
 
 
@@ -104,8 +108,7 @@ def test_parse_description_tolerates_reordered_labels() -> None:
 
 
 def test_parse_description_missing_tags_still_recovers_text_and_caption() -> None:
-    """TAGS is the least important field -- its absence must not sink
-    real TEXT/CAPTION content the provider did give."""
+    """Missing optional tags must not discard provided TEXT/CAPTION fields."""
     content = "TEXT: Quarterly Budget Report\nCAPTION: A printed report cover page."
     description = _parse_description(content)
     assert description.extracted_text == "Quarterly Budget Report"
@@ -117,6 +120,16 @@ def test_parse_description_leading_commentary_before_labels_is_ignored() -> None
     content = "Sure, here is the analysis:\n\nTEXT: LT7\nCAPTION: A component.\nTAGS: component"
     description = _parse_description(content)
     assert description.extracted_text == "LT7"
+
+
+def test_parse_description_does_not_absorb_trailing_commentary() -> None:
+    content = (
+        "TEXT: NONE\nCAPTION: A turbine diagram.\nTAGS: turbine, diagram\n"
+        "Let me know if you need more detail."
+    )
+    description = _parse_description(content)
+    assert description.caption == "A turbine diagram."
+    assert description.tags == ("turbine", "diagram")
 
 
 def test_vision_client_rejects_non_http_url_schemes() -> None:

@@ -1,13 +1,18 @@
 # PROV-O implementation matrix
+
 LineageWeave implements the W3C PROV-O Recommendation as a separate standards-complete provenance layer. The product-specific `knowledge_graph_edge` remains a compact navigation projection; it is not used to flatten literal-valued or qualified PROV-O assertions.
+
 ## Coverage contract
+
 - 30 normative classes.
 - 50 normative properties: 44 object properties and 6 datatype properties.
 - 14 qualified influence mappings from Tables 2 and 3.
 - Qualified forms imply their unqualified forms.
 - Transitive subproperty closure, defined inverses, `alternateOf` symmetry, and qualified event-time shortcuts are materialized deterministically.
 - All 44 Appendix B inverse names are cataloged; non-canonical reserved names are accepted by reversing into the preferred PROV-O direction.
+
 ## Property matrix
+
 | PROV-O property | Kind | Domain | Range / datatype | Superproperty | Qualification | Appendix B inverse |
 |---|---|---|---|---|---|---|
 | `prov:wasGeneratedBy` | object | Entity | Activity | wasInfluencedBy | qualifiedGeneration → Generation.activity | `prov:generated` |
