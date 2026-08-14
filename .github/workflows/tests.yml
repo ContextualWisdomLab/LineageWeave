@@ -42,7 +42,7 @@ jobs:
         run: python -m py_compile lineageweave.py lineageweave_embeddings.py lineageweave_server.py
 
   frontend:
-    name: Frontend lint, test, build
+    name: Frontend test, coverage, build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
