@@ -8,6 +8,9 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Vision-response parsing now preserves Markdown emphasis in field values
+  while still accepting emphasized field labels, so OCR such as
+  ``TEXT: **LT7**`` is not truncated.
 - A real live synthetic regression batch run surfaced a genuine
   `DeadlockDetectedError` from concurrent corporate-entity creation:
   two concurrent transactions each creating a different new entity,

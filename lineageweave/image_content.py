@@ -132,7 +132,8 @@ _RESPONSE_FORMAT = (
 # reordered labels without allowing trailing commentary to contaminate the
 # searchable caption or tag values.
 _LABEL_LINE = re.compile(
-    r"^\s*[*_`>#\-\s]*(TEXT|CAPTION|TAGS)\s*:\s*[*_`]*\s*(.*)$",
+    r"^\s*(?:[*_`>#\-]\s*)*(TEXT|CAPTION|TAGS)(?:\s*[*_`]+)?\s*:\s*"
+    r"(?:(?:[*_`]+)(?=\s|$)\s*)?(.*)$",
     re.IGNORECASE,
 )
 _MARKDOWN_EMPHASIS_MARKERS = ("**", "__", "`", "*", "_")
