@@ -4110,3 +4110,16 @@ with the shortcut fails immediately. Only a real authorization-code callback,
 verified session, and logout can set the Keyverse acceptance result. This keeps
 the general-user/customer/admin browser evidence useful without overstating
 the external Keyverse release gate.
+
+## Amendment: persisted HTML and inline-image analysis evidence (2026-08-15)
+
+The direct PostgreSQL runtime now has a read-only aggregate proving that the
+content path was exercised on real source data: 267 normalized content blocks,
+299 DOM/format hints, 7 asset profiles, 7 multimodal inspections with
+non-empty OCR text, 3 persisted object labels, and 29 semantic chunk
+embeddings. Format hints remain separate from embedding text so tags, color,
+alignment, bullets, and font-size signals do not pollute the semantic vector.
+Each inspection remains bound to its document, source position, asset digest,
+and authorized evidence route. A missing future multimodal provider is an
+explicit unavailable result; it cannot be replaced by `[image: content
+unavailable]` as a fabricated analysis or by a guessed graph assertion.
