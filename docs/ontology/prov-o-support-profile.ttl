@@ -1,0 +1,18 @@
+@prefix : <https://contextualwisdomlab.github.io/LineageWeave/ontology#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix org: <http://www.w3.org/ns/org#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+<https://contextualwisdomlab.github.io/LineageWeave/prov-o-support>
+    a owl:Ontology ;
+    dcterms:title "LineageWeave PROV-O support profile"@en ;
+    dcterms:conformsTo <http://www.w3.org/TR/2013/REC-prov-o-20130430/> ;
+    owl:imports <http://www.w3.org/ns/prov-o#> ;
+    rdfs:comment "The runtime supports all 30 PROV-O classes, all 50 normative properties, both qualification tables, and Appendix B inverse names without redefining the W3C vocabulary."@en .
+
+:Post rdfs:subClassOf prov:Entity .
+:Person rdfs:subClassOf prov:Person .
+:CorporateEntity rdfs:subClassOf prov:Organization .
+:Team rdfs:subClassOf prov:Organization, org:OrganizationalUnit .

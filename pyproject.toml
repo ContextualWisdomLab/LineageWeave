@@ -1,6 +1,6 @@
 [project]
 name = "lineageweave"
-version = "0.75.0"
+version = "0.76.0"
 description = "Reconstructs git-branch-style lineage DAGs from scattered short records using multi-channel score fusion and LLM adjudication."
 readme = "README.md"
 license = { text = "MIT" }
@@ -17,8 +17,8 @@ dependencies = [
   # distributions don't reliably inherit the OS trust store.
   "certifi>=2024.0.0",
   # The standard Python RDF/OWL library -- parses and validates
-  # docs/ontology/lineageweave-kg.ttl (ADR 0004). Pure Python, no
-  # Rust/C toolchain, unlike fast-mlsirm.
+  # docs/ontology/lineageweave-kg.ttl and the standards-complete PROV-O
+  # support profile (ADR 0011). Pure Python, no Rust/C toolchain.
   "rdflib>=7.0.0",
 ]
 

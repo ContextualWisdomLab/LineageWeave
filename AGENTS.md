@@ -88,3 +88,13 @@ pnpm run lint && pnpm run test && pnpm run build
 Do not weaken, skip, or `continue-on-error` a failing check -- fix the
 underlying cause or, for a genuine false positive in a third-party scanner,
 add a narrow, documented suppression referencing the specific finding.
+## W3C PROV-O boundary
+
+- Add standard provenance through `lineageweave.prov_o` and the
+  normalized `provenance_*` schema, never by inventing another
+  `edge_type` alias for a W3C property.
+- Qualified relations retain their Influence resource and imply the
+  corresponding unqualified relation.
+- Appendix B inverse names normalize to the preferred W3C direction;
+  do not proliferate private inverse vocabulary.
+- Keep `knowledge_graph_edge` an explicit navigation projection.

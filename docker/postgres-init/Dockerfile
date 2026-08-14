@@ -3,7 +3,7 @@ FROM postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f5
 # Keycloak-database bootstrap and the product schema can be copied from
 # their single sources of truth.
 COPY docker/postgres-init/01-create-keycloak-db.sql /docker-entrypoint-initdb.d/01-create-keycloak-db.sql
-# The exact same migration file tests/test_schema.py applies -- single
+# The exact same migration files tests/test_schema.py applies -- single
 # source of truth, no re-typed copy. Runs against POSTGRES_DB (the "app"
 # database) because docker-entrypoint-initdb.d executes each *.sql file
 # with that database already selected.
@@ -18,6 +18,12 @@ COPY migrations/0008_post_summary_result.sql /docker-entrypoint-initdb.d/09-post
 COPY migrations/0009_shared_metric_bank.sql /docker-entrypoint-initdb.d/10-shared-metric-bank.sql
 COPY migrations/0010_report_item_information.sql /docker-entrypoint-initdb.d/11-report-item-information.sql
 COPY migrations/0011_post_chat_result.sql /docker-entrypoint-initdb.d/12-post-chat-result.sql
+COPY migrations/0012_role_responsibility_agent_type.sql /docker-entrypoint-initdb.d/13-role-responsibility-agent-type.sql
+COPY migrations/0013_person_job_title.sql /docker-entrypoint-initdb.d/14-person-job-title.sql
+COPY migrations/0014_role_responsibility_team_actor_type.sql /docker-entrypoint-initdb.d/15-role-responsibility-team-actor-type.sql
+COPY migrations/0015_organization_name_resolution.sql /docker-entrypoint-initdb.d/16-organization-name-resolution.sql
+COPY migrations/0016_cross_post_actor_identity.sql /docker-entrypoint-initdb.d/17-cross-post-actor-identity.sql
+COPY migrations/0017_prov_o_standard_relations.sql /docker-entrypoint-initdb.d/18-prov-o-standard-relations.sql
 # Official image already drops to this account at runtime; declare it so
 # the Dockerfile itself satisfies DS-0002 (explicit non-root USER).
 USER postgres

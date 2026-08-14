@@ -827,3 +827,18 @@ hierarchy gets real links. Auto-created rows get a deterministic
 `AUTO-`-prefixed code so they can never collide with a real login corp
 code. Wired into both `keyman_ingestion.py`'s affiliation loop and
 `post_summary_ingestion.py`'s R&R organization-actor loop.
+## Standards-complete W3C PROV-O provenance layer
+
+ADR 0011 separates standards-complete provenance from the compact
+buyer-facing navigation graph. `lineageweave/prov_o.py` validates
+and materializes all 50 normative PROV-O properties, including
+literal-valued times/values and qualified Influence resources.
+`migrations/0017_prov_o_standard_relations.sql` stores definitions,
+class/property hierarchies, domains, ranges, qualification maps,
+inverse names, typed resources, literals, assertions, and inference
+premises in third normal form. Existing product nodes cross the
+boundary only through `provenance_resource_binding`; projection to
+`knowledge_graph_edge` is explicit and reversible.
+
+See `docs/PROV_O_IMPLEMENTATION.md`, the complete implementation
+matrix, and `docs/adr/0011-prov-o-standard-relations.md`.

@@ -4,6 +4,27 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.76.0] - 2026-08-14
+
+### Added
+
+- Standards-complete W3C PROV-O support: all 30 classes, all 50
+  normative properties, both qualification tables, qualified-to-
+  unqualified implication, property hierarchy, defined inverses,
+  Appendix B inverse-name normalization, RDF serialization, and a
+  normalized PostgreSQL assertion store with fail-closed domain,
+  range, object-kind, and datatype enforcement (ADR 0011).
+- A dedicated exact-head PROV-O contract workflow runs the complete
+  registry/inference suite, real PostgreSQL migration tests, public
+  docstring checks, and 100% statement/branch coverage for the owned
+  runtime module.
+
+### Changed
+
+- The product navigation graph remains an explicit projection;
+  literal-valued and qualified provenance is no longer forced into
+  `knowledge_graph_edge`.
+
 ## [0.75.0] - 2026-08-14
 
 ### Added
