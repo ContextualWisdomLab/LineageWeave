@@ -10,6 +10,10 @@
   8 namespaces, 46 ontology terms, 28 relation rules, 264,750 KG nodes,
   838,550 KG edges, 836,794 semantic edge assertions, and 308,457 semantic
   node assignments. UI exposure remains actor- and evidence-scoped.
+- Added permission-aware live-gateway browser coverage: a reader skips the
+  manager-only Keyman derivation control but receives a grounded chat answer
+  with five citations and a working VOC drawer; an administrator receives a
+  successful live Keyman derivation and the same citation/source behavior.
 - Corrected browser evidence labeling: a preauthenticated development actor
   session is now reported as a local session and never as Keyverse authority
   acceptance; Keyverse-required E2E modes reject that shortcut.

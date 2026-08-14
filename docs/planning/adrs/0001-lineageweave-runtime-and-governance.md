@@ -4130,3 +4130,16 @@ relation rules, 264,750 Knowledge Graph nodes, 838,550 Knowledge Graph edges,
 These are persisted normalized facts and assertions, not permission to expose
 the whole graph: every reader and agent request still receives only the
 verified actor's authorized evidence-scoped subgraph.
+
+## Amendment: permission-aware live LLM browser evidence (2026-08-15)
+
+The browser workflow now distinguishes product permissions before exercising
+LLM controls. A reader cannot see or invoke the manager-only Keyman derivation
+button, but can ask the document-scoped Event Lineage chat. Against the
+configured live gateway, the reader run returned a non-empty answer with five
+citations and a VOC citation opened and closed the authorized source drawer.
+An administrator run returned HTTP 200 for live Keyman derivation, preserved a
+typed organization actor without coercing it into a person, and passed the same
+chat citation/source checks. These development sessions validate product
+authorization and workflow behavior only; they are not Keyverse login
+acceptance evidence.

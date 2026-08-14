@@ -1132,6 +1132,11 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert 'reached_identity_authority: false' in browser_check
     assert 'preauthenticated_session: true' in browser_check
     assert "a preauthenticated development session cannot prove Keyverse login acceptance" in browser_check
+    assert 'result.keyman_llm_status = "not_authorized"' in browser_check
+    assert 'if (await derive.count() > 0)' in browser_check
+    assert 'chat_citation_count' in browser_check
+    assert 'the live lineage chat returned no answer text' in browser_check
+    assert 'chat_source' in browser_check
     assert 'fetch("/api/admin/lineage/edges?limit=3"' in browser_check
     assert "payload?.items?.length || 0" in browser_check
     assert '계정별 권한 편집' in browser_check
