@@ -49,11 +49,10 @@ jobs:
           version: "0.11.28"
           enable-cache: false
 
-      - name: Install pinned Rust toolchain
+      - name: Select pinned Rust toolchain
         run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
-            sh -s -- -y --profile minimal --default-toolchain 1.97.1
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
 
       - name: Compile one-shot repair scripts
         run: python -m py_compile .bootstrap/review_fix_core.py .bootstrap/review_fix_support.py .bootstrap/review_fix_preflight.py
