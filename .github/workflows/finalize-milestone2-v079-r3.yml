@@ -1,0 +1,175 @@
+name: Finalize validated Milestone 2 v0.79 head
+
+on:
+  push:
+    branches:
+      - automation/scrub-milestone2-v079
+    paths:
+      - .github/workflows/finalize-milestone2-v079-r3.yml
+
+permissions:
+  contents: write
+  statuses: write
+
+concurrency:
+  group: finalize-milestone2-v079-r3
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TARGET_BRANCH: feat/milestone2-analysis-run-contract-v079
+      EXPECTED_BASE_SHA: c7bb517803e7781f4ababaff2ab383093b5c5782
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout repository history
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Wait for complete normalized contract and checkout exact head
+        run: |
+          set -euo pipefail
+          ready=0
+          for attempt in $(seq 1 45); do
+            git fetch --no-tags origin "$TARGET_BRANCH"
+            if git show "origin/${TARGET_BRANCH}:lineageweave/analysis_run.py" \
+                | grep -q '_ALLOWED_OUTPUT_PROFILE_CODES' \
+              && git show "origin/${TARGET_BRANCH}:migrations/0018_analysis_run_provenance.sql" \
+                | grep -q 'analysis_output_aggregate_product'; then
+              ready=1
+              break
+            fi
+            sleep 60
+          done
+          test "$ready" = 1
+          old_head="$(git rev-parse "origin/${TARGET_BRANCH}")"
+          git checkout --detach "$old_head"
+          git merge-base --is-ancestor "$EXPECTED_BASE_SHA" "$old_head"
+          printf '%s' "$old_head" > /tmp/expected-target-head
+          rm -f \
+            .github/workflows/prepare-milestone2-analysis-run-v079.yml \
+            .github/workflows/verify-milestone2-analysis-run-v079.yml
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Select Rust toolchain
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Verify focused 100 percent coverage and full PostgreSQL/Python product
+        run: |
+          set -euo pipefail
+          uv sync --frozen --extra dev --extra backend
+          uv run --frozen coverage erase
+          uv run --frozen coverage run --branch \
+            --source=lineageweave.analysis_run,backend.app.analysis_run_ingestion \
+            -m pytest -q \
+            tests/test_analysis_run.py \
+            tests/test_analysis_run_coverage.py \
+            backend/tests/test_analysis_run_ingestion.py
+          uv run --frozen coverage report --show-missing --fail-under=100
+          uv run --frozen python -m pytest -q tests/test_analysis_run_schema.py
+          uv run --frozen python -m pytest -q
+          uv run --frozen python -m compileall -q backend lineageweave tests
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Verify complete React product
+        run: |
+          set -euo pipefail
+          corepack enable
+          cd frontend
+          pnpm install --frozen-lockfile
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+
+      - name: Build and push one clean source-safe commit
+        id: clean
+        run: |
+          set -euo pipefail
+          expected_head="$(cat /tmp/expected-target-head)"
+          git reset --soft "$EXPECTED_BASE_SHA"
+          git add -A
+          git diff --cached --check
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+
+          patterns = (
+              re.compile(r"postgresql://[^\s/]+@localhost/postgres", re.IGNORECASE),
+              re.compile(r"\b[a-z0-9]+_export_rows\b", re.IGNORECASE),
+          )
+          names = subprocess.check_output(
+              ["git", "diff", "--cached", "--name-only"], text=True
+          ).splitlines()
+          for name in names:
+              path = Path(name)
+              if not path.is_file():
+                  continue
+              text = path.read_text(encoding="utf-8", errors="ignore")
+              if any(pattern.search(text) for pattern in patterns):
+                  raise SystemExit(f"source-specific content found in {name}")
+
+          required = {
+              "lineageweave/analysis_run.py",
+              "backend/app/analysis_run_ingestion.py",
+              "migrations/0018_analysis_run_provenance.sql",
+              "docs/adr/0013-analysis-run-provenance-boundary.md",
+              "tests/test_analysis_run_schema.py",
+          }
+          missing = sorted(required - set(names))
+          if missing:
+              raise SystemExit(f"missing required product files: {missing}")
+          PY
+          test ! -e compose/keyverse_oidc.py
+          git config user.name "opencode-agent[bot]"
+          git config user.email "1549082+opencode-agent[bot]@users.noreply.github.com"
+          git commit -m "feat: establish Milestone 2 analysis-run provenance (v0.79.0)"
+          new_head="$(git rev-parse HEAD)"
+          git push \
+            --force-with-lease="refs/heads/${TARGET_BRANCH}:${expected_head}" \
+            origin "HEAD:refs/heads/${TARGET_BRANCH}"
+          echo "new_head=$new_head" >> "$GITHUB_OUTPUT"
+
+      - name: Mark exact clean head successful
+        run: |
+          set -euo pipefail
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/statuses/${{ steps.clean.outputs.new_head }}" \
+            -f state=success \
+            -f context='Milestone 2 Clean Verification' \
+            -f description='Source-safe normalized analysis provenance verified'
