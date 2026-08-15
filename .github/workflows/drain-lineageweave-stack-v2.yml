@@ -1,0 +1,275 @@
+name: Drain LineageWeave protected stack v2
+
+on:
+  push:
+    branches:
+      - automation/scrub-milestone2-v079
+    paths:
+      - .github/workflows/drain-lineageweave-stack-v2.yml
+
+permissions:
+  contents: write
+  pull-requests: write
+  statuses: read
+  checks: read
+
+concurrency:
+  group: drain-lineageweave-stack-v2
+  cancel-in-progress: false
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+      PR80_BRANCH: feat/related-node-person-side-labels-v078
+      PR80_STACK_BASE: 2ace79ea90a82d61f8467bbe644dd23b0deaa8b6
+      PR83_BRANCH: feat/milestone2-analysis-run-contract-v079
+      PR83_STACK_BASE: c7bb517803e7781f4ababaff2ab383093b5c5782
+    steps:
+      - name: Checkout helper ref with guarded write credentials
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Select Rust toolchain
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Drain stack with exact-head rebuilds and protected auto-merge
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          pr_merged() {
+            [[ "$(gh api "repos/${GITHUB_REPOSITORY}/pulls/$1" --jq '.merged')" == "true" ]]
+          }
+
+          pr_base() {
+            gh api "repos/${GITHUB_REPOSITORY}/pulls/$1" --jq '.base.ref'
+          }
+
+          unresolved_count() {
+            gh api graphql \
+              -f owner="${GITHUB_REPOSITORY%%/*}" \
+              -f name="${GITHUB_REPOSITORY##*/}" \
+              -F number="$1" \
+              -f query='query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){reviewThreads(first:100){nodes{isResolved}}}}}' \
+              --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)] | length'
+          }
+
+          has_failing_checks() {
+            gh pr view "$1" --repo "$GITHUB_REPOSITORY" --json statusCheckRollup \
+              | python -c '
+          import json, sys
+          bad={"FAILURE","ERROR","CANCELLED","TIMED_OUT","ACTION_REQUIRED","STARTUP_FAILURE","STALE"}
+          checks=json.load(sys.stdin).get("statusCheckRollup") or []
+          states=[(c.get("conclusion") or c.get("state") or "").upper() for c in checks]
+          raise SystemExit(0 if any(s in bad for s in states) else 1)
+          '
+          }
+
+          mark_ready_and_auto() {
+            local number="$1"
+            local draft
+            draft="$(gh pr view "$number" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft')"
+            if [[ "$draft" == "true" ]]; then
+              gh pr ready "$number" --repo "$GITHUB_REPOSITORY"
+            fi
+            if [[ "$(unresolved_count "$number")" == "0" ]] && ! has_failing_checks "$number"; then
+              gh pr merge "$number" --repo "$GITHUB_REPOSITORY" --auto --squash || true
+            fi
+          }
+
+          verify_product_tree() {
+            local worktree="$1"
+            (
+              cd "$worktree"
+              uv sync --frozen --extra dev --extra backend
+              uv run --frozen python -m pytest -q
+              uv run --frozen python -m compileall -q backend lineageweave tests
+              cd frontend
+              pnpm install --frozen-lockfile
+              pnpm run lint
+              pnpm run test
+              pnpm run build
+            )
+          }
+
+          verify_milestone_tree() {
+            local worktree="$1"
+            (
+              cd "$worktree"
+              uv sync --frozen --extra dev --extra backend
+              uv run --frozen coverage erase
+              uv run --frozen coverage run --branch \
+                --source=lineageweave.analysis_run,backend.app.analysis_run_ingestion \
+                -m pytest -q \
+                tests/test_analysis_run.py \
+                tests/test_analysis_run_coverage.py \
+                backend/tests/test_analysis_run_ingestion.py
+              uv run --frozen coverage report --show-missing --fail-under=100
+              uv run --frozen python -m pytest -q tests/test_analysis_run_schema.py
+              uv run --frozen python -m pytest -q
+              uv run --frozen python -m compileall -q backend lineageweave tests
+              cd frontend
+              pnpm install --frozen-lockfile
+              pnpm run lint
+              pnpm run test
+              pnpm run build
+            )
+          }
+
+          restack80() {
+            git fetch --no-tags origin main "$PR80_BRANCH"
+            local old_head
+            old_head="$(git rev-parse "origin/${PR80_BRANCH}")"
+            git merge-base --is-ancestor "$PR80_STACK_BASE" "$old_head"
+            git diff --binary "$PR80_STACK_BASE" "$old_head" > /tmp/pr80.patch
+            test -s /tmp/pr80.patch
+            rm -rf /tmp/restack80
+            git worktree add --detach /tmp/restack80 origin/main
+            (
+              cd /tmp/restack80
+              git apply --3way /tmp/pr80.patch
+              git add -A
+              git diff --cached --check
+            )
+            verify_product_tree /tmp/restack80
+            (
+              cd /tmp/restack80
+              git config user.name "opencode-agent[bot]"
+              git config user.email "1549082+opencode-agent[bot]@users.noreply.github.com"
+              git commit -m "feat: show related-person business-side labels (v0.78.0)"
+              git push \
+                --force-with-lease="refs/heads/${PR80_BRANCH}:${old_head}" \
+                origin "HEAD:refs/heads/${PR80_BRANCH}"
+            )
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/pulls/80" -f base=main >/dev/null
+            git worktree remove /tmp/restack80 --force
+          }
+
+          milestone_clean() {
+            git fetch --no-tags origin "$PR83_BRANCH"
+            local head
+            head="$(git rev-parse "origin/${PR83_BRANCH}")"
+            local state
+            state="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${head}/status" \
+              --jq '[.statuses[] | select(.context == "Milestone 2 Clean Verification" and .state == "success")] | length')"
+            [[ "$state" != "0" ]]
+          }
+
+          restack83() {
+            git fetch --no-tags origin main "$PR83_BRANCH"
+            local old_head
+            old_head="$(git rev-parse "origin/${PR83_BRANCH}")"
+            git merge-base --is-ancestor "$PR83_STACK_BASE" "$old_head"
+            git diff --binary "$PR83_STACK_BASE" "$old_head" > /tmp/pr83.patch
+            test -s /tmp/pr83.patch
+            rm -rf /tmp/restack83
+            git worktree add --detach /tmp/restack83 origin/main
+            (
+              cd /tmp/restack83
+              git apply --3way /tmp/pr83.patch
+              rm -f \
+                .github/workflows/prepare-milestone2-analysis-run-v079.yml \
+                .github/workflows/verify-milestone2-analysis-run-v079.yml
+              git add -A
+              git diff --cached --check
+              test ! -e compose/keyverse_oidc.py
+              ! grep -R -n --exclude-dir=.git 'output_profile_code_code' .
+            )
+            verify_milestone_tree /tmp/restack83
+            (
+              cd /tmp/restack83
+              git config user.name "opencode-agent[bot]"
+              git config user.email "1549082+opencode-agent[bot]@users.noreply.github.com"
+              git commit -m "feat: establish Milestone 2 analysis-run provenance (v0.79.0)"
+              git push \
+                --force-with-lease="refs/heads/${PR83_BRANCH}:${old_head}" \
+                origin "HEAD:refs/heads/${PR83_BRANCH}"
+            )
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/pulls/83" -f base=main >/dev/null
+            git worktree remove /tmp/restack83 --force
+          }
+
+          restacked80=0
+          restacked83=0
+          for attempt in $(seq 1 225); do
+            if ! pr_merged 74; then
+              if [[ "$(unresolved_count 74)" == "0" ]] && ! has_failing_checks 74; then
+                gh pr merge 74 --repo "$GITHUB_REPOSITORY" --auto --squash || true
+              fi
+              sleep 60
+              continue
+            fi
+
+            if ! pr_merged 80; then
+              if [[ "$(pr_base 80)" != "main" && "$restacked80" == "0" ]]; then
+                restack80
+                restacked80=1
+              fi
+              if [[ "$(pr_base 80)" == "main" ]]; then
+                mark_ready_and_auto 80
+              fi
+              sleep 60
+              continue
+            fi
+
+            if ! pr_merged 83; then
+              if [[ "$(pr_base 83)" != "main" && "$restacked83" == "0" ]]; then
+                if milestone_clean; then
+                  restack83
+                  restacked83=1
+                else
+                  sleep 60
+                  continue
+                fi
+              fi
+              if [[ "$(pr_base 83)" == "main" ]]; then
+                mark_ready_and_auto 83
+              fi
+              sleep 60
+              continue
+            fi
+
+            exit 0
+          done
+
+          exit 0
