@@ -78,6 +78,12 @@ def _assert_timestamp_utc(event: dict) -> None:
     assert parsed.tzinfo == timezone.utc
 
 
+def _assert_upstream_pr_audit_fields(event: dict) -> None:
+    """Validate new upstream-PR audit fields are always present."""
+    assert event["tepp_open_pull_requests"] != ""
+    assert event["contextual_orchestrator_open_pull_requests"] != ""
+
+
 def _load_audit_event_schema() -> dict:
     """Load event contract requirements from JSON resources."""
     return load_contract(_SCHEMA_NAME)
@@ -103,6 +109,7 @@ def test_run_real_script_emits_audit_events_for_successful_smoke(tmp_path: Path)
     exit_event = events[2]
     for event in events:
         _assert_audit_event_schema(event)
+        _assert_upstream_pr_audit_fields(event)
     assert start_event["source_dsn"] == "postgresql://***:***@localhost/postgres"
     assert start_event["source_table"] == "public.customer_engagement_rows"
     assert start_event["write_reports"] == "0"
@@ -146,6 +153,7 @@ def test_run_real_script_passes_only_explicit_export_paths(tmp_path: Path) -> No
     for event in _collect_audit_events(completed.stdout):
         assert event["json_out"] == str(json_out)
         assert event["analytics_out"] == str(analytics_out)
+        _assert_upstream_pr_audit_fields(event)
 
 
 def test_run_real_script_emits_failure_exit_code_in_audit_event(tmp_path: Path) -> None:
@@ -155,7 +163,9 @@ def test_run_real_script_emits_failure_exit_code_in_audit_event(tmp_path: Path) 
     events = _collect_audit_events(completed.stdout)
     assert events[-1]["event"] == "lineageweave_real_run_exit"
     assert events[-1]["exit_code"] == "42"
-    _assert_audit_event_schema(events[-1])
+    for event in events:
+        _assert_audit_event_schema(event)
+        _assert_upstream_pr_audit_fields(event)
     _assert_timestamp_utc(events[-1])
 
 
@@ -175,6 +185,7 @@ def test_run_real_script_emits_exit_audit_event_on_validation_error(tmp_path: Pa
     ]
     for event in events:
         _assert_audit_event_schema(event)
+        _assert_upstream_pr_audit_fields(event)
     assert events[-1]["exit_code"] == "1"
     assert "invalid LINEAGEWEAVE_LIMIT" in completed.stdout
     _assert_timestamp_utc(events[0])

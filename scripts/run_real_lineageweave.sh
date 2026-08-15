@@ -25,6 +25,20 @@ print("lineageweave_audit_log=" + json.dumps(payload, ensure_ascii=False))
 PY
 }
 
+query_open_pull_requests() {
+  local repo="$1"
+  if ! command -v gh >/dev/null 2>&1; then
+    echo "gh_unavailable"
+    return 0
+  fi
+  local count
+  if ! count="$(gh pr list -R "$repo" --state open --json number --limit 200 --jq 'length' 2>/dev/null)"; then
+    echo "gh_api_error"
+    return 0
+  fi
+  printf '%s\n' "${count:-0}"
+}
+
 audit_exit_code=0
 
 JSON_OUT=${LINEAGEWEAVE_JSON_OUT:-}
@@ -42,9 +56,11 @@ SWEEP_CONTENT_INSPECTIONS="${LINEAGEWEAVE_SWEEP_CONTENT_INSPECTIONS:-0}"
 INSPECTION_DOCUMENT_LIMIT="${LINEAGEWEAVE_INSPECTION_DOCUMENT_LIMIT:-0}"
 VALIDATE_RUNTIME_SCHEMA="${LINEAGEWEAVE_VALIDATE_RUNTIME_SCHEMA:-1}"
 runtime_schema_contract_check="disabled"
+TEPP_OPEN_PULL_REQUESTS="$(query_open_pull_requests "ContextualWisdomLab/TEPP")"
+ORCHESTRATOR_OPEN_PULL_REQUESTS="$(query_open_pull_requests "ContextualWisdomLab/contextual-orchestrator")"
 
 redacted_dsn="$(python -c "import os, re; dsn = os.environ.get('LINEAGEWEAVE_DSN', ''); print(re.sub(r'//([^/]+)@', '//***:***@', dsn))")"
-trap 'audit_exit_code=$?; emit_audit_json_line "lineageweave_real_run_exit" "source_dsn=$redacted_dsn" "source_table=$LINEAGE_SOURCE_TABLE" "write_reports=$WRITE_REPORTS" "keyman_limit=$KEYMAN_LIMIT" "limit=$LIMIT" "sweep_content_inspections=$SWEEP_CONTENT_INSPECTIONS" "inspection_document_limit=$INSPECTION_DOCUMENT_LIMIT" "validate_runtime_schema=$VALIDATE_RUNTIME_SCHEMA" "runtime_schema_contract_check=$runtime_schema_contract_check" "json_out=$json_out_audit" "analytics_out=$analytics_out_audit" "exit_code=$audit_exit_code" || true; exit "$audit_exit_code"' EXIT
+trap 'audit_exit_code=$?; emit_audit_json_line "lineageweave_real_run_exit" "source_dsn=$redacted_dsn" "source_table=$LINEAGE_SOURCE_TABLE" "write_reports=$WRITE_REPORTS" "keyman_limit=$KEYMAN_LIMIT" "limit=$LIMIT" "sweep_content_inspections=$SWEEP_CONTENT_INSPECTIONS" "inspection_document_limit=$INSPECTION_DOCUMENT_LIMIT" "validate_runtime_schema=$VALIDATE_RUNTIME_SCHEMA" "runtime_schema_contract_check=$runtime_schema_contract_check" "tepp_open_pull_requests=$TEPP_OPEN_PULL_REQUESTS" "contextual_orchestrator_open_pull_requests=$ORCHESTRATOR_OPEN_PULL_REQUESTS" "json_out=$json_out_audit" "analytics_out=$analytics_out_audit" "exit_code=$audit_exit_code" || true; exit "$audit_exit_code"' EXIT
 echo "lineageweave_real_run_start=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 emit_audit_json_line "lineageweave_real_run_start" \
   "source_dsn=$redacted_dsn" \
@@ -55,6 +71,8 @@ emit_audit_json_line "lineageweave_real_run_start" \
   "sweep_content_inspections=$SWEEP_CONTENT_INSPECTIONS" \
   "inspection_document_limit=$INSPECTION_DOCUMENT_LIMIT" \
   "validate_runtime_schema=$VALIDATE_RUNTIME_SCHEMA" \
+  "tepp_open_pull_requests=$TEPP_OPEN_PULL_REQUESTS" \
+  "contextual_orchestrator_open_pull_requests=$ORCHESTRATOR_OPEN_PULL_REQUESTS" \
   "json_out=$json_out_audit" \
   "analytics_out=$analytics_out_audit"
 echo "source_dsn=$redacted_dsn"
@@ -65,6 +83,8 @@ echo "limit=$LIMIT"
 echo "sweep_content_inspections=$SWEEP_CONTENT_INSPECTIONS"
 echo "inspection_document_limit=$INSPECTION_DOCUMENT_LIMIT"
 echo "validate_runtime_schema=$VALIDATE_RUNTIME_SCHEMA"
+echo "tepp_open_pull_requests=$TEPP_OPEN_PULL_REQUESTS"
+echo "contextual_orchestrator_open_pull_requests=$ORCHESTRATOR_OPEN_PULL_REQUESTS"
 echo "json_out=$json_out_audit"
 echo "analytics_out=$analytics_out_audit"
 
@@ -140,5 +160,7 @@ emit_audit_json_line "lineageweave_real_run_complete" \
   "inspection_document_limit=$INSPECTION_DOCUMENT_LIMIT" \
   "validate_runtime_schema=$VALIDATE_RUNTIME_SCHEMA" \
   "runtime_schema_contract_check=$runtime_schema_contract_check" \
+  "tepp_open_pull_requests=$TEPP_OPEN_PULL_REQUESTS" \
+  "contextual_orchestrator_open_pull_requests=$ORCHESTRATOR_OPEN_PULL_REQUESTS" \
   "json_out=$json_out_audit" \
   "analytics_out=$analytics_out_audit"

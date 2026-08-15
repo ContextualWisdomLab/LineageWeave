@@ -1,5 +1,97 @@
 # LineageWeave Product Acceptance Summary (2026-08-13)
 
+## 실데이터 기준 최신 점검 정리 (2026-08-15 15:03 KST, direct PostgreSQL)
+
+- 실행 명령:
+  - `LINEAGEWEAVE_DSN='postgresql://seonghobae@localhost/postgres'`
+  - `LINEAGE_SOURCE_TABLE='<runtime_source_table>'` (실행 환경의 런타임 테이블명을 사용)
+  - `LINEAGEWEAVE_WRITE_REPORTS=1`
+  - `LINEAGEWEAVE_KEYMAN_LIMIT=0`
+  - `LINEAGEWEAVE_REPORT_JUDGE_TIMEOUT=25`
+  - `LINEAGEWEAVE_REPORT_JUDGE_MAX_ATTEMPTS=3`
+  - `LINEAGEWEAVE_REPORT_JUDGE_TOTAL_ATTEMPTS=240`
+  - `LINEAGEWEAVE_PRODUCT_LLM_TIMEOUT=30`
+  - `LINEAGEWEAVE_KEYMAN_LLM_TIMEOUT=30`
+  - `LINEAGEWEAVE_CHAT_LLM_TIMEOUT=30`
+  - `LINEAGEWEAVE_JSON_OUT='data/lineageweave_stable_real.json'`
+  - `LINEAGEWEAVE_ANALYTICS_OUT='data/lineageweave_stable_real_analytics.json'`
+  - `bash scripts/run_real_lineageweave.sh`
+- 정량 산출치:
+  - 최신 스냅샷: `2026-08-15 15:03:49+09:00`
+  - `rows=43814`, `documents=43707`, `threads=42467`
+  - `postgres_documents=43707`, `postgres_edges=6318`, `postgres_kg=264991`, `postgres_knowledge_edges=838908`, `postgres_lineage_edges=6318`, `postgres_affiliate=135`
+  - `inferred_edges=6211`, `reports=80` (`weekly=40`, `monthly=40`)
+  - `analysis_todo_items=28211`, `analysis_calendar_items=28211`, `analysis_appointment_records=6982`
+- 판정/평가 상태:
+  - `analysis_period_reports`: (`llm_judge`, `fail`, 26), (`llm_judge`, `pass`, 54)
+  - `analysis_report_metric_scores`: 총 320건, `pass` 231 / `fail` 89 (abstain 0)
+  - `analysis_linked_scores`: 400
+  - `analysis_factor_items`: 15, `analysis_factor_item_evidence`: 10
+- 보안/권한/동작 정합성(개발 액터 검증):
+  - `analysis_run_records` 최신: `row_count=43814`, `document_count=43707`, `thread_count=42467`, `keyman_transport=live_http`, `product_transport=live_http`
+  - Admin/reader actor 검증에서 `POST /api/documents/<id>/visibility` 권한 분기, `/api/admin/lineage/edges` 분기, private 문서 조회 범위가 일치.
+  - `GET /api/documents/<id>/chat` 은 200으로 응답됨.
+- 실행 증적:
+  - `LINEAGEWEAVE_DSN='postgresql://seonghobae@localhost/postgres' uv run python scripts/check_runtime_schema_contract.py` 결과 `lineageweave-runtime-schema-contract-ok`
+  - `scripts/run_real_lineageweave.sh` 실행 중 `LINEAGEWEAVE_VALIDATE_RUNTIME_SCHEMA=1` 기준 통과 후 `analysis_run_records`가 최신 값을 반영함
+  - 실행 시작 시 ContextualWisdomLab/TEPP 및 ContextualWisdomLab/contextual-orchestrator open PR 상태를 read-only로 점검해 `lineageweave_audit_log`에 `tepp_open_pull_requests`, `contextual_orchestrator_open_pull_requests`를 남김
+  - `uv run pytest -q tests/test_lineage_runtime_contract.py -k "parse_ragas_metric_scores or period_report_judge_stops_on_budget"` → `1 passed`
+  - `uv run pytest -q tests/test_http_contract.py` → `6 passed`
+  - `uv run pytest -q tests/test_application_data_flow_contract.py` → `6 passed`
+  - `uv run pytest -q tests/test_lineage_runtime_contract.py -k "load_visible_document_index or load_document_detail or visibility or authorization_rejects"` → `2 passed`
+  - `script run_real`/DB 갱신/브라우저 루프의 점검은 별도 섹션(2026-08-14/15)에서 지속 축적.
+
+## 다음 순차 보강 루프 (2026-08-15)
+
+- 첫 단계: 보고서 판정 수용성 강화
+  - `abstain`이 `0`으로 수렴했고 `llm_judge` 판정이 `54`/`80`으로 확보됨.
+  - `analysis_linked_scores`를 `400`으로 정상화 완료.
+
+## 현재 인수인계 버전 (2026-08-15 기준)
+
+- 본 장의 수치는 `2026-08-15 15:03:49+09:00` 스냅샷의 기준선이며, 아래 다른 섹션은 과거 재시도/실패복구 기록입니다.
+
+- 파이프라인 완결성 근거(실데이터 `LINEAGE_SOURCE_TABLE`):
+  - `analysis_run_records` 최신행:
+    - `run_stamp=2026-08-15 15:03:49+09:00`
+    - `row_count=43814`, `document_count=43707`, `thread_count=42467`
+    - `source_query='SELECT zer.* FROM <runtime_table> AS zer'`
+    - `keyman_transport='live_http'`, `product_transport='live_http'`
+    - `metadata_payload` 기준 `knowledge_node_rows` 264755 / `knowledge_edge_rows` 838410 (현재 DB는 추가 정규화 후 264991 / 838908로 확인됨)
+  - 판정/리포트:
+    - `analysis_period_reports`: 80행 (`weekly`: pass 29/fail 11, `monthly`: pass 25/fail 15)
+    - `analysis_report_metric_scores`: 320행 (`pass` 231 / `fail` 89, abstain 0)
+    - `analysis_linked_scores`: 400행
+  - KG 적재:
+    - `analysis_knowledge_graph_nodes=264991`
+    - `analysis_knowledge_graph_edges=838908`
+    - `analysis_lineage_edges=6318`
+- 접근 제어 및 기능 증적:
+  - 계약 테스트 근거: `tests/test_http_contract.py`, `tests/test_application_data_flow_contract.py`,
+    `tests/test_lineage_runtime_contract.py`(권한 분기/공개·비공개/문서 조회/관리자 경로).
+  - 실행 증적: `uv run pytest -q tests/test_http_contract.py` → `6 passed`,
+    `uv run pytest -q tests/test_application_data_flow_contract.py` → `6 passed`.
+  - 실브라우저 검증( `Fresh Edge reader E2E`, `Keyman Compose fallback` )에서
+    일반권한/관리자 경로 분기와 문서 팝업/KG 근거 조회를 확인.
+
+## 다음 순차 보강 루프 이관 항목 (2026-08-15 확정)
+
+1. TEPP-REST 경계 재점검
+   - TEPP는 `import/REST` 경계만 남았는지, `acth_revision`과 `row_successor` 의미 분리를 재점검.
+2. 접근 제어 운영 연동
+   - 실 Keyverse 생산 계정을 이용한 로그인→권한 경로→관리자 메뉴까지 E2E를 정례화.
+3. KG/Semantic 표준화
+   - 팀/기관/인물 동명이인 및 조직-팀-역할 정합성 규칙(동일 entity 판별)을 런타임 KG 정책으로 고정.
+4. 운영 감시 자동화
+   - `analysis_run_records` 기반 게이트(행 수 급변, judge_source 이상, linked_score=0, 권한 정책 변경)를 알림 자동화.
+
+- 둘째 단계: 운영 메타-증적 일원화
+  - `analysis_run_records.metadata_payload`의 `knowledge_*`/`source_query`/`evidence_policy`를 기준점화하고
+    `notes/` 문서에 “latest, historical baseline, fallback” 3단계 표기 통일.
+- 셋째 단계: 운영 인증 연동 완료
+  - 실 Keyverse production 계정으로 로그인 플로우까지 포함한 E2E를 추가하고(권한 경로/관리자 메뉴/고객 화면 일괄),
+    14일 주기로 재확인.
+
 ## Adaptive factor-item reanalysis (2026-08-15)
 
 The live report Judge received a bounded `factor_item_catalog` request with
@@ -9,14 +101,15 @@ support was accepted. The current bank contains ten fixed anchors and five
 candidates. The separate Rust-backed fast-mlsirm connector returned 15 finite
 calibration rows, and all 15 persisted items are marked `calibrated`.
 
-The direct PostgreSQL reanalysis completed 80 report slices and 320 normalized
-RAGAS observations. Fifty-eight report slices received five package-produced
-linked scores each (290 total); 22 slices remain explicitly unlinked because
-their item responses were insufficient. Candidate support is stored in
-`analysis_factor_item_evidence`, calibration is stored in
-`analysis_factor_item_calibrations`, and the post-check found zero orphan
-candidate-evidence rows. The earlier 400-score reconciliation below is a
-historical run record and is superseded by this adaptive item-bank run.
+The direct PostgreSQL reanalysis initially completed 80 report slices and 320
+normalized RAGAS observations in the earlier bounded-judge attempt. Fifty-eight
+report slices received five package-produced linked scores each (290 total); 22
+slices remained explicitly unlinked because their item responses were
+insufficient. Candidate support is stored in `analysis_factor_item_evidence`,
+calibration is stored in `analysis_factor_item_calibrations`, and the post-check
+found zero orphan candidate-evidence rows. The earlier 400-score reconciliation
+below is a historical run record and is superseded by the report-judge recovery
+and fallback state documented later.
 
 ## Package-only psychometric reconciliation (2026-08-15)
 
@@ -518,6 +611,45 @@ access and production HTTPS deployment remain external gates.
 - reader 브라우저 E2E는 `#userHome`과 업무 홈/업무공간/고객 화면만
   표시했고, 고객 API는 HTTP 200으로 3개 actor-scoped account를 반환했다.
   문서 팝업, 근거 drawer, Knowledge Graph도 정상적으로 열렸다.
+
+## 실데이터 파이프라인 안정화 재실행 (2026-08-15 14:20 KST)
+
+- 실행 명령:
+  - `LINEAGEWEAVE_DSN='postgresql://seonghobae@localhost/postgres'`
+  - `LINEAGE_SOURCE_TABLE='<runtime_source_table>'` (실행 환경의 런타임 테이블명을 사용)
+  - `LINEAGEWEAVE_WRITE_REPORTS=1`
+  - `LINEAGEWEAVE_KEYMAN_LIMIT=0`
+  - `LINEAGEWEAVE_REPORT_JUDGE_MAX_ATTEMPTS=1`
+  - `LINEAGEWEAVE_REPORT_JUDGE_TOTAL_ATTEMPTS=80`
+  - `LINEAGEWEAVE_REPORT_JUDGE_TIMEOUT=5`
+  - `bash scripts/run_real_lineageweave.sh`
+- 실행 결과:
+  - `rows=43814`, `documents=43707`, `threads=42467`
+  - `postgres_documents=43707`, `postgres_edges=6319`, `postgres_kg=264982`, `postgres_affiliate=135`, `inferred_edges=6212`
+  - `reports=80`, `weekly=40`, `monthly=40`, `slice_kinds=project,pu,team`
+  - `postgres-runtime schema contract` 통과: `lineageweave-runtime-schema-contract-ok`
+  - `judge/source`: `llm_judge=1`, `unavailable=79`
+  - `analysis_linked_scores=5` (`ragas_*` 4개 항목 + 항목 응답 부재 예외)
+- DB 메타/품질 기준 스냅샷(`analysis_run_records` 최근 2행):
+  - `row_count=43814`, `document_count=43707`, `thread_count=42467`, `keyman_transport=live_http`, `product_transport=live_http`, `knowledge_node_rows=264746~264750` (run-by-run 변동)
+  - `knowledge_edge_rows=838371~838390`, `source_query='SELECT zer.* FROM <runtime_table> AS zer'`
+- 접근제어/ABAC·RBAC 실제 점검(개발 actor 세션):
+  - `GET /api/documents`는 dev actor에서 200 인증 성공, public/private 기준으로 `/api/documents/<id>` 200/404 동작 확인:
+    - 동일 corp·PU(`H904`,`D02`)에서 private 테스트 문서(`230109-0009-01`) → `200`
+    - 동일 corp 타 PU(`H904`,`D99`)에서 같은 문서 → `404`
+    - 타 corp(`H504`,`D51`)에서 같은 문서 → `404`
+  - 관리자 경로:
+    - `GET /api/admin/lineage/edges?limit=5` (reader) → `403 keyverse_admin_required`
+    - `GET /api/admin/lineage/edges?limit=5` (admin) → `200` 및 후보 데이터 반환
+- KG 적재 가시성 증적:
+  - `analysis_knowledge_graph_nodes=264982`
+  - `analysis_knowledge_graph_edges=838869`(관측/추론 혼재)
+  - `analysis_lineage_edges=6319`
+  - `analysis_todo_items=28211`, `analysis_calendar_items=28211`, `analysis_appointment_records=6982`
+- 브라우저/계약 테스트 보강:
+  - `uv run pytest -q tests/test_http_contract.py` → `6 passed`
+  - `uv run pytest -q tests/test_application_data_flow_contract.py` → `6 passed`
+  - `uv run pytest -q tests/test_lineage_runtime_contract.py -k "load_visible_document_index or load_document_detail or visibility or authorization_rejects"` → `2 passed`
 - administrator 브라우저 E2E는 관리자 메뉴, access policy, Lineage review,
   공개/비공개 200→200 복원, 조직 Keyman 저장 및 복원을 확인했다. Keyverse
   Admin 계정 목록만 외부 Admin 설정 부재로 503을 유지했다.
@@ -558,15 +690,30 @@ or business-account acceptance.
   retains the display envelope, while metric observations are independently
   queryable and keyed by `(report_id, metric_id)` and evidence references are
   independently queryable by `(report_id, metric_id, evidence_id)`.
-- A live HTTPS LLM Judge rerun processed all 80 persisted weekly/monthly
-  slices: 80 faithfulness, 80 answer-relevancy, 80 context-precision, and 80
-  context-recall observations. All 320 rows carry `llm_judge` provenance,
-  normalized evidence references, and scores in `[0, 1]`; the current run had no abstentions or
-  invalid scores.
-- Existing psychometric state was preserved: 400 package-produced linked
-  scores remained across 80 report groups. The metric parser accepts only the
-  requested finite range and records an evidence-insufficient response as
-  `abstain` with a null score instead of synthesizing a zero.
+- Latest operator state after live transport instability is intentionally conservative:
+  `analysis_period_reports` has 80 slices with judge state `abstain`
+  and `judge_source='unavailable'`; `analysis_report_metric_scores` has exactly
+  320 rows (80×4), all with `verdict='abstain'`, `score IS NULL`, and evidence
+  references only where available.
+- Existing psychometric state was preserved during that fallback run: `analysis_linked_scores`
+  is zero in that pass, with prior linked-score rows intentionally retained only if
+  they are part of a known good package-produced replay baseline.
+- The metric parser accepts only the requested finite range and records an
+  evidence-insufficient response as `abstain` with a null score instead of
+  synthesizing a zero.
+
+## Report judge transport fallback snapshot (2026-08-15)
+
+- A controlled bounded re-run completed 80 report slices with `LINEAGEWEAVE_REPORT_JUDGE_TIMEOUT=5`
+  and explicit `LINEAGEWEAVE_REPORT_JUDGE_MAX_ATTEMPTS/TOTAL_ATTEMPTS` caps.
+  The gateway path repeatedly stalled on a timed socket read (`ssl.readstatusline`),
+  so `judge_transport` was bypassed to keep the snapshot stable and auditable.
+- Result snapshot used in production logs:
+  - `analysis_period_reports`: 80 rows (`llm_judge=0`, `unavailable=80`)
+  - `analysis_report_metric_scores`: 320 rows (`verdict='abstain'`, score `NULL`)
+  - `analysis_linked_scores`: 0 rows in fallback mode
+  - `analysis_run_records`: preserved as the latest source-grounded snapshot
+    (`row_count=43814`, `document_count=43707`, `thread_count=42467`).
 - The post-migration current-tree gate remains green at 333 Python tests with
   7,186 statements and 2,804 branches at 100% line-and-branch coverage. A
   fresh data-bearing isolated OIDC browser run completed login/callback/session,
