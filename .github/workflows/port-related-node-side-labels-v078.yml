@@ -33,7 +33,7 @@ jobs:
           --health-retries 5
     env:
       LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
-      EXPECTED_PARENT_SHA: b65cc4b01a254fbb2d3c6670dbf8c0bf100d786d
+      EXPECTED_PARENT_SHA: 8cdd693e0ecca64ce782a847ca70d4abd96413d2
       SOURCE_COMMIT_SHA: 7d4324aee4d2d18334bae42e497b5f96e79a0dee
     steps:
       - name: Checkout stacked product branch
@@ -112,6 +112,7 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
+          import re
           from pathlib import Path
 
           replacements = {
@@ -139,7 +140,11 @@ jobs:
 
           changelog = Path("CHANGELOG.md")
           text = changelog.read_text(encoding="utf-8")
-          marker = "## [0.77.0] - 2026-08-15\n"
+          version_pattern = re.compile(
+              r"^## \[0\.77\.0\] - \d{4}-\d{2}-\d{2}\n",
+              flags=re.MULTILINE,
+          )
+          marker = version_pattern.search(text)
           entry = (
               "## [0.78.0] - 2026-08-15\n\n"
               "### Changed\n\n"
@@ -148,10 +153,13 @@ jobs:
               "  `Our side` or `Counterparty`, while ontology class metadata remains available\n"
               "  separately for semantic processing and provenance.\n\n"
           )
-          if marker not in text:
-              raise SystemExit("missing 0.77.0 changelog anchor")
+          if marker is None:
+              raise SystemExit("missing 0.77.0 changelog heading")
           if "## [0.78.0]" not in text:
-              changelog.write_text(text.replace(marker, entry + marker, 1), encoding="utf-8")
+              changelog.write_text(
+                  text[: marker.start()] + entry + text[marker.start() :],
+                  encoding="utf-8",
+              )
           PY
           uv lock --offline
 
