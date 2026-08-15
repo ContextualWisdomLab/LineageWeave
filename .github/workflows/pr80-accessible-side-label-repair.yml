@@ -29,7 +29,7 @@ jobs:
 
       - name: Reject stale or reordered execution
         env:
-          EXPECTED_PARENT_SHA: 29fb9f0a8a55176e3b387bef8819740101a5539b
+          EXPECTED_PARENT_SHA: 9c99b81029c9e3ea1d288ba32dd025801686b4ec
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT_SHA"
@@ -50,6 +50,7 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
+          import re
 
           path = Path("frontend/src/App.test.tsx")
           text = path.read_text(encoding="utf-8")
@@ -57,19 +58,22 @@ jobs:
           scenario_start = text.index(scenario)
           scenario_end = text.index('  it("opens related Keyman nodes from an R&R person", async () => {', scenario_start)
           block = text[scenario_start:scenario_end]
-          needle = '''    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).not.toHaveTextContent(
-              "Priya Nair (Person)",
-            );
-          '''
+          pattern = re.compile(
+              r'    expect\(screen\.getByText\("Related to Ada West"\)'
+              r'\.closest\("\.related-keymen"\)\)\.not\.toHaveTextContent\('
+              r'\s*"Priya Nair \(Person\)",\s*\);\n'
+          )
+          matches = list(pattern.finditer(block))
+          if len(matches) != 1:
+              raise SystemExit("expected one Priya non-person assertion in the target scenario")
           addition = '''    expect(
               screen.getByRole("button", {
                 name: "Related nodes for Priya Nair (Counterparty)",
               }),
             ).toBeInTheDocument();
           '''
-          if block.count(needle) != 1:
-              raise SystemExit("expected one Priya non-person assertion in the target scenario")
-          block = block.replace(needle, needle + addition, 1)
+          match = matches[0]
+          block = block[: match.end()] + addition + block[match.end() :]
           path.write_text(text[:scenario_start] + block + text[scenario_end:], encoding="utf-8")
           PY
 
