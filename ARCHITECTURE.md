@@ -204,6 +204,14 @@ flowchart LR
     project label rather than exposing the opaque project key. This is a
     presentation projection only: it is not a new Ontology class, semantic
     predicate, lineage transition, or persisted project fact.
+17b. Administrator 게시글 권한 통제 uses the existing actor-authorized
+    `/api/documents` index as its source, with a bounded 20-document page,
+    server-side document/title/PU search, and an explicit total. The React
+    administrator list can load more pages without exposing a full graph or
+    bypassing the corp/PU ABAC predicate. Visibility mutations update both the
+    reader index and the administrator list only after the authorized
+    PostgreSQL mutation succeeds; this is a control-surface pagination rule,
+    not a second permission model.
 18. An administrator may start a bounded LLM enrichment batch through
     `POST /api/admin/enrichment/run` for `keyman`, `product`, `appointments`,
     or `all`, with a hard maximum of 64 documents. Candidate selection uses

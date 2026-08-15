@@ -4264,3 +4264,30 @@ PostgreSQL authorization contracts, `reportBusinessTitle`, the React surface
 contract, the direct-PostgreSQL browser run, and the 2026-08-15 full Python
 line-and-branch coverage run (354 tests plus one expected optional skip, 7,627
 statements, and 2,984 branches; 100% with no coverage exclusion).
+
+## Amendment: administrator policy-list pagination and search (2026-08-15)
+
+The administrator 게시글 권한 통제 surface previously rendered the first 20
+entries from the workspace's already-loaded document page. That made the
+control technically present but operationally incomplete for a large corpus:
+an administrator could not locate a later document or distinguish “not in the
+first page” from “not in the authorized scope.”
+
+The policy panel now calls the existing actor-authorized `/api/documents`
+index with a bounded page size of 20, server-side document/title/PU search,
+and an explicit total. A `게시글 더 보기` action requests the next offset and
+the React state retains only the returned document summaries. No full graph,
+source body, or new permission path is exposed. The server's existing corp/PU
+ABAC decision remains authoritative for every page and every visibility
+mutation.
+
+After a successful visibility mutation, the reader index and the administrator
+policy list update together from the server response. A failed mutation leaves
+both views unchanged and reports the error. This is a user-interface
+operability improvement only: it does not add an Ontology/Semantic Layer fact,
+alter customer-master evidence, or change chronological Lineage semantics.
+
+Evidence: `adminDocuments`, `adminDocumentFilter`, and
+`loadMoreAdminDocuments` in `web/src/App.jsx`; the React surface contract;
+the administrator browser contract in `web/e2e/lineageweave.mjs`; and the
+direct `/api/documents` authorization boundary.

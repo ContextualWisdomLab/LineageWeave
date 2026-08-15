@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Improved administrator 게시글 권한 통제 for large corpora: the policy list
+  now searches the actor-authorized document index and loads bounded additional
+  pages instead of showing only the first loaded workspace page. Visibility
+  changes keep the reader and administrator projections in sync after the
+  server mutation succeeds.
 - Added evidence-backed reader labels for report scopes. PU/team labels use
   their business attributes, while project labels use the first actor-authorized
   document title or Korean summary; opaque project storage keys remain API and

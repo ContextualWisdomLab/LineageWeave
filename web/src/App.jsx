@@ -145,6 +145,10 @@ export default function App() {
   const [adminForm, setAdminForm] = useState({ org: "", workspace: "", roles: [] });
   const [adminStatus, setAdminStatus] = useState("");
   const [adminBusy, setAdminBusy] = useState(false);
+  const [adminDocuments, setAdminDocuments] = useState([]);
+  const [adminDocumentTotal, setAdminDocumentTotal] = useState(0);
+  const [adminDocumentLoadState, setAdminDocumentLoadState] = useState("idle");
+  const [adminDocumentFilter, setAdminDocumentFilter] = useState("");
   const [lineageReviewEdges, setLineageReviewEdges] = useState([]);
   const [lineageFilter, setLineageFilter] = useState("");
   const [lineageReviewStatus, setLineageReviewStatus] = useState("");
@@ -256,6 +260,39 @@ export default function App() {
       window.clearTimeout(timer);
     };
   }, [session, canAdmin, adminFilter]);
+
+  useEffect(() => {
+    if (!session || !canAdmin || activeView !== "admin") {
+      setAdminDocuments([]);
+      setAdminDocumentTotal(0);
+      setAdminDocumentLoadState("idle");
+      return undefined;
+    }
+    let current = true;
+    setAdminDocumentLoadState("loading");
+    const timer = window.setTimeout(() => {
+      const query = adminDocumentFilter.trim() ? `&q=${encodeURIComponent(adminDocumentFilter.trim())}` : "";
+      api(`/api/documents?limit=20&offset=0${query}`)
+        .then((value) => {
+          if (!current) return;
+          setAdminDocuments(value.items || []);
+          setAdminDocumentTotal(value.total || 0);
+          setAdminDocumentLoadState("ready");
+        })
+        .catch((caught) => {
+          if (current) {
+            setAdminDocuments([]);
+            setAdminDocumentTotal(0);
+            setAdminDocumentLoadState("error");
+            setAdminStatus(`게시글 권한 목록을 불러오지 못했습니다: ${caught.message}`);
+          }
+        });
+    }, 250);
+    return () => {
+      current = false;
+      window.clearTimeout(timer);
+    };
+  }, [session, canAdmin, activeView, adminDocumentFilter]);
 
   useEffect(() => {
     if (!session || !canAdmin) {
@@ -458,6 +495,9 @@ export default function App() {
       setDocuments((current) => current.map((item) => item.document_no === documentNo
         ? { ...item, visibility: result.document.visibility }
         : item));
+      setAdminDocuments((current) => current.map((item) => item.document_no === documentNo
+        ? { ...item, visibility: result.document.visibility }
+        : item));
       setAdminStatus(`${documentNo} 게시글 공개 정책이 저장되었습니다.`);
     } catch (caught) {
       setAdminStatus(`게시글 공개 정책을 저장하지 못했습니다: ${caught.message}`);
@@ -648,6 +688,21 @@ export default function App() {
       setError(caught.message);
     } finally {
       setLoadingMore(false);
+    }
+  }
+
+  async function loadMoreAdminDocuments() {
+    if (adminDocumentLoadState === "loading_more" || adminDocuments.length >= adminDocumentTotal) return;
+    setAdminDocumentLoadState("loading_more");
+    try {
+      const query = adminDocumentFilter.trim() ? `&q=${encodeURIComponent(adminDocumentFilter.trim())}` : "";
+      const index = await api(`/api/documents?limit=20&offset=${adminDocuments.length}${query}`);
+      setAdminDocuments((current) => [...current, ...(index.items || [])]);
+      setAdminDocumentTotal(index.total || adminDocumentTotal);
+      setAdminDocumentLoadState("ready");
+    } catch (caught) {
+      setAdminDocumentLoadState("error");
+      setAdminStatus(`게시글 권한 목록을 더 불러오지 못했습니다: ${caught.message}`);
     }
   }
 
@@ -1299,13 +1354,16 @@ export default function App() {
               <article className="policy-rule"><strong>게시글 공개 정책</strong><span>공개·비공개 변경은 이 화면과 문서 팝업에서 가능하고, 모든 변경은 PostgreSQL outbox에 기록됩니다.</span></article>
             </div>
             <div className="admin-document-policy-list">
-              <div className="admin-section-heading"><h4>현재 법인 게시글 정책</h4><span className="meta">{formatNumber(documents.length)}건 로드</span></div>
-              {documents.slice(0, 20).map((item) => <div className="admin-document-policy" key={item.document_no}>
+              <div className="admin-section-heading"><h4>현재 법인 게시글 정책</h4><span className="meta">{adminDocumentLoadState === "loading" ? "불러오는 중…" : `${formatNumber(adminDocuments.length)} / ${formatNumber(adminDocumentTotal)}건`}</span></div>
+              <input aria-label="게시글 권한 검색" placeholder="문서·제목·PU 검색" value={adminDocumentFilter} onChange={(event) => setAdminDocumentFilter(event.target.value)} />
+              {adminDocuments.map((item) => <div className="admin-document-policy" key={item.document_no}>
                 <button type="button" className="admin-document-link" onClick={() => { setSelectedNo(item.document_no); setActiveView("workspace"); }}><strong>{item.document_no}</strong><span>{item.title || "제목 없음"}</span></button>
                 <span className="policy-scope">법인 {item.corp_code || session.corp_code} · PU {item.owner_pu || "미지정"}</span>
                 <select aria-label={`${item.document_no} 공개 정책`} value={item.visibility || "private"} disabled={adminBusy} onChange={(event) => void saveDocumentVisibilityFor(item.document_no, event.target.value)}><option value="public">공개</option><option value="private">비공개</option></select>
               </div>)}
-              {!documents.length ? <p className="empty">권한 범위의 게시글이 없습니다.</p> : null}
+              {adminDocumentLoadState === "error" ? <p className="empty" role="alert">게시글 권한 목록을 불러오지 못했습니다.</p> : null}
+              {adminDocumentLoadState !== "loading" && !adminDocuments.length ? <p className="empty">검색 조건에 맞는 권한 범위의 게시글이 없습니다.</p> : null}
+              {adminDocuments.length < adminDocumentTotal ? <button className="load-button" type="button" onClick={() => void loadMoreAdminDocuments()} disabled={adminDocumentLoadState === "loading_more"}>{adminDocumentLoadState === "loading_more" ? "더 불러오는 중…" : "게시글 더 보기"}</button> : null}
             </div>
           </section>
           <section id="lineageReviewScreen" className="admin-policy-panel" aria-labelledby="lineageReviewTitle">

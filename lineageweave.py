@@ -6363,9 +6363,10 @@ def load_visible_document_index(
             f"({where_sql}) AND (document_no ILIKE %s "
             "OR COALESCE(title_sample, '') ILIKE %s "
             "OR COALESCE(acthguid, '') ILIKE %s "
-            "OR COALESCE(entity_role, '') ILIKE %s)"
+            "OR COALESCE(entity_role, '') ILIKE %s "
+            "OR COALESCE(owner_pu, '') ILIKE %s)"
         )
-        where_params += (search_pattern,) * 4
+        where_params += (search_pattern,) * 5
     totals = _database_query(
         connection,
         f"SELECT COUNT(*) AS total FROM {ANALYSIS_DOCUMENT_TABLE} WHERE {where_sql}",

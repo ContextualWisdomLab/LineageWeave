@@ -103,6 +103,13 @@ back to a generic scope label rather than revealing an opaque project key.
 This label is not an Ontology class, Semantic Layer predicate, Lineage edge,
 or persisted project assertion.
 
+The administrator 게시글 권한 통제 list reuses the actor-authorized document
+index with a 20-document page, server-side document/title/PU search, and an
+explicit total. It can load additional pages without materializing the full
+graph. A visibility update changes the list only after the authorized
+PostgreSQL mutation returns successfully; no browser-side permission model is
+introduced.
+
 ## Container and workflow supply-chain boundary
 
 All shipped product, Compose worker, SearXNG, and isolated OIDC-conformance

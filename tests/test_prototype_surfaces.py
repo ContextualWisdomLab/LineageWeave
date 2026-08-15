@@ -1252,6 +1252,12 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert "계정 원장이 연결되지 않아 계정별 권한 편집을 사용할 수 없습니다" in react
     assert "게시글 권한 통제와 Lineage 검토는 계속 사용할 수 있습니다" in react
     assert 'id="accessPolicyScreen"' in react
+    assert 'const [adminDocuments, setAdminDocuments] = useState([])' in react
+    assert 'api(`/api/documents?limit=20&offset=0${query}`)' in react
+    assert 'aria-label="게시글 권한 검색"' in react
+    assert 'loadMoreAdminDocuments' in react
+    assert 'adminDocumentTotal' in react
+    assert '.admin-document-policy-list > input' in styles
     assert 'id="lineageReviewScreen"' in react
     assert 'id="enrichmentScreen"' in react
     assert 'api("/api/admin/enrichment/status")' in react

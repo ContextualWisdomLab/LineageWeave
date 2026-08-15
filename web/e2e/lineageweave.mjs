@@ -319,6 +319,56 @@ try {
     await page.locator("#adminMode").waitFor({ timeout: 30_000 });
     await page.locator("#accessPolicyScreen").waitFor({ timeout: 30_000 });
     await page.locator("#lineageReviewScreen").waitFor({ timeout: 30_000 });
+    const policyResponse = await page.evaluate(async () => {
+      const response = await fetch("/api/documents?limit=20&offset=0", { credentials: "include" });
+      const payload = response.ok ? await response.json() : null;
+      return {
+        status: response.status,
+        items: payload?.items?.length || 0,
+        total: payload?.total || 0,
+        first_owner_pu: payload?.items?.[0]?.owner_pu || "",
+      };
+    });
+    const policySearch = page.locator('input[aria-label="게시글 권한 검색"]');
+    const policyList = page.locator(".admin-document-policy");
+    if (policyResponse.status === 200 && policyResponse.total > 0) {
+      await policyList.first().waitFor({ state: "visible", timeout: 30_000 });
+    }
+    const initialPolicyItems = await policyList.count();
+    const morePolicyButton = page.getByRole("button", { name: "게시글 더 보기", exact: true });
+    if (policyResponse.total > initialPolicyItems && await morePolicyButton.count() === 1) {
+      await morePolicyButton.click();
+      await page.waitForFunction(
+        (minimum) => document.querySelectorAll(".admin-document-policy").length > minimum,
+        initialPolicyItems,
+        { timeout: 30_000 },
+      );
+    }
+    const policySearchTerm = String(policyResponse.first_owner_pu || "").trim();
+    let policySearchItems = 0;
+    let policySearchStatus = 0;
+    if (policySearchTerm) {
+      const policySearchRequest = page.waitForResponse(
+        (response) => {
+          const url = new URL(response.url());
+          return url.pathname === "/api/documents"
+            && url.searchParams.get("q") === policySearchTerm
+            && response.request().method() === "GET";
+        },
+        { timeout: 30_000 },
+      );
+      await policySearch.fill(policySearchTerm);
+      policySearchStatus = (await policySearchRequest).status();
+      await page.waitForFunction(
+        (term) => {
+          const rows = [...document.querySelectorAll(".admin-document-policy")];
+          return rows.length > 0 && rows.every((row) => row.textContent.includes(term));
+        },
+        policySearchTerm,
+        { timeout: 30_000 },
+      );
+      policySearchItems = await policyList.count();
+    }
     const adminResponse = await page.evaluate(async () => {
       const response = await fetch("/api/admin/keyverse/accounts?limit=3", { credentials: "include" });
       const payload = response.ok ? await response.json() : null;
@@ -352,6 +402,13 @@ try {
       lineage_review_screen: await page.locator("#lineageReviewScreen").isVisible(),
       lineage_review_status: lineageReviewResponse.status,
       lineage_review_edges: lineageReviewResponse.edges,
+      policy_list_status: policyResponse.status,
+      policy_list_items: await policyList.count(),
+      policy_total: policyResponse.total,
+      policy_search_visible: await policySearch.count() === 1,
+      policy_search_term: policySearchTerm,
+      policy_search_items: policySearchItems,
+      policy_search_status: policySearchStatus,
       report_refresh_screen: reportRefreshAvailable,
       report_refresh_status: reportRefreshResponse?.status() || 0,
     };
@@ -366,8 +423,15 @@ try {
     }
     if (process.env.LINEAGEWEAVE_E2E_ADMIN_REQUIRED === "1" || requireAdminPolicy) {
       assert.equal(result.admin.lineage_review_status, 200);
+      assert.equal(result.admin.policy_list_status, 200);
       assert.equal(result.admin.screen, true);
       assert.equal(result.admin.access_policy_screen, true);
+      assert.equal(result.admin.policy_search_visible, true);
+      assert.ok(result.admin.policy_list_items > 0);
+      if (result.admin.policy_search_term) {
+        assert.equal(result.admin.policy_search_status, 200);
+        assert.ok(result.admin.policy_search_items > 0);
+      }
       assert.equal(result.admin.lineage_review_screen, true);
       assert.equal(result.admin.report_refresh_screen, true);
       assert.equal(result.admin.report_refresh_status, 200);

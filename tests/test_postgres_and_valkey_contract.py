@@ -2181,10 +2181,12 @@ def test_visible_document_index_enforces_postgres_abac_and_pagination_bounds(mon
     calls.clear()
     lw.load_visible_document_index(object(), actor, 10, 0, "  fixture  ")
     assert all("document_no ILIKE %s" in sql for sql, _ in calls)
+    assert all("COALESCE(owner_pu, '') ILIKE %s" in sql for sql, _ in calls)
     assert calls[0][1] == (
         "CORP-1",
         lw.VISIBILITY_PUBLIC,
         "PU-1",
+        "%fixture%",
         "%fixture%",
         "%fixture%",
         "%fixture%",
