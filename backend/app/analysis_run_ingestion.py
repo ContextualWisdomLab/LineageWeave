@@ -13,6 +13,7 @@ from datetime import datetime
 from typing import Any, Mapping, Protocol, Sequence
 
 from lineageweave.analysis_run import (
+    AnalysisRunCompletion,
     AnalysisRunConfiguration,
     AnalysisRunRegistration,
     AnalysisRunSummary,
@@ -197,10 +198,20 @@ async def complete_analysis_run(
 ) -> None:
     """Complete a running record exactly once and append its audit event."""
 
-    status_code = "analysis_run_succeeded" if succeeded else "analysis_run_failed"
+    completion = AnalysisRunCompletion(
+        analysis_run_id=analysis_run_id,
+        actor_account_id=actor_account_id,
+        succeeded=succeeded,
+        completed_at=completed_at,
+    )
+    status_code = (
+        "analysis_run_succeeded"
+        if completion.succeeded
+        else "analysis_run_failed"
+    )
     event_type_code = (
         "analysis_run_completed_event"
-        if succeeded
+        if completion.succeeded
         else "analysis_run_failed_event"
     )
     async with conn.transaction():
@@ -213,9 +224,9 @@ async def complete_analysis_run(
               and completed_at is null
             returning request_digest_sha256
             """,
-            analysis_run_id,
+            completion.analysis_run_id,
             status_code,
-            completed_at,
+            completion.completed_at,
         )
         if run_row is None:
             raise AnalysisRunConflict("analysis run is missing or already completed")
@@ -226,10 +237,10 @@ async def complete_analysis_run(
                 occurred_at, payload_digest_sha256
             ) values ($1::uuid, $2, $3::uuid, $4, $5)
             """,
-            analysis_run_id,
+            completion.analysis_run_id,
             event_type_code,
-            actor_account_id,
-            completed_at,
+            completion.actor_account_id,
+            completion.completed_at,
             run_row["request_digest_sha256"],
         )
 
