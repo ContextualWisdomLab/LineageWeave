@@ -18,3 +18,8 @@
   Catalog, Calendar, Reports, Accounts, Roles, and read-only system-policy
   interactions, with APA 7th references for WCAG 2.2, WAI-ARIA 1.2,
   ISO/IEC 25010:2023, ISO/IEC 40500:2025, and NIST zero-trust controls.
+- The accepted Figma baseline is now bound to canonical and archive page IDs.
+  Unsupported graph history, buyer-facing provenance, and access-audit claims
+  remain archived, while helper copy directs customers to evidence-backed next
+  actions and synthetic report labels remain consistent with their grouping
+  kind.
