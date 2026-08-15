@@ -40,6 +40,24 @@ async function api(path, options = {}) {
   return value;
 }
 
+function keymanSourceLabel(source) {
+  return {
+    llm: "자동 도출",
+    user_override: "사용자 관리",
+    unavailable: "도출 보류",
+    pending: "도출 대기",
+  }[source] || "확인 필요";
+}
+
+function keymanStatusLabel(status) {
+  return {
+    orchestrator: "자동 분석 완료",
+    managed: "사용자 관리 완료",
+    unavailable: "도출 보류",
+    not_run: "아직 분석하지 않음",
+  }[status] || "확인 필요";
+}
+
 export default function App() {
   const documentDialog = useRef(null);
   const emailInput = useRef(null);
@@ -1112,14 +1130,14 @@ export default function App() {
               </section>
 
               <section className="detail-card modal-keyman-our">
-                <h3>LLM Keyman · 사측</h3>
+                <h3>Keyman · 사측</h3>
                 <ul id="popupKeymanOur">{sideRows(selectedDocument.keyman_our_side).map((item, index) => { const label = item.actor_name || item.person_name || item.org_name; const node = sourcePersons.find((candidate) => candidate.label === label || candidate.label === item.organization_name || candidate.label === item.org_name); return <li key={`${label}-${item.org_name}-${index}`}><button className="keyman-link" onClick={() => openKnowledge(node || { person: label })}>{sideLabel(item)}</button></li>; })}</ul>
-                <p className="meta">source: {selectedDocument.keyman_source || "pending"}</p>
+                <p className="meta">분석 상태: {keymanSourceLabel(selectedDocument.keyman_source || "pending")}</p>
               </section>
               <section className="detail-card modal-keyman-counterpart">
-                <h3>LLM Keyman · 상대측</h3>
+                <h3>Keyman · 상대측</h3>
                 <ul id="popupKeymanCounterpart">{sideRows(selectedDocument.keyman_counterpart_side).map((item, index) => { const label = item.actor_name || item.person_name || item.org_name; const node = sourcePersons.find((candidate) => candidate.label === label || candidate.label === item.organization_name || candidate.label === item.org_name); return <li key={`${label}-${item.org_name}-${index}`}><button className="keyman-link" onClick={() => openKnowledge(node || { person: label })}>{sideLabel(item)}</button></li>; })}</ul>
-                <p className="meta">status: {selectedDocument.keyman_status || "not_run"}</p>
+                <p className="meta">관리 상태: {keymanStatusLabel(selectedDocument.keyman_status || "not_run")}</p>
               </section>
               <section className="detail-card wide modal-knowledge">
                 <h3>Keyman Knowledge Graph</h3>

@@ -4162,3 +4162,26 @@ statements and 2,966 branches at 100%, and the administrator browser workflow
 received HTTP 200 from the refresh action against the direct PostgreSQL data
 path. This is product behavior evidence; it does not waive the independent
 review, real-Keyverse, or Figma selection gates.
+
+## Amendment: reader Keyman vocabulary boundary (2026-08-15)
+
+A visual review of the direct-PostgreSQL general-user browser flow found that
+the document popup still exposed the implementation labels `source` and
+`status`, including the internal LLM/orchestrator values. The server and
+administrator audit payloads retain those provenance fields, but the reader
+surface now renders only business terms: `분석 상태: 자동 도출`,
+`분석 상태: 사용자 관리`, and the corresponding management-state labels.
+The popup headings also use `Keyman · 사측` and `Keyman · 상대측` rather than
+an implementation name. This keeps the ordinary-user screen a business
+workspace while preserving technical provenance for authorized review.
+
+This presentation rule does not change the Ontology/Semantic Layer boundary:
+Keyman nodes and their related organizations, people, events, and documents
+continue to come from the actor-filtered, evidence-backed semantic graph. It
+also does not change the general-user/admin split: readers can select a
+Keyman and inspect authorized relationships, while derivation and mutation
+remain server-gated management actions.
+
+Evidence: `test_web_page_uses_verified_session_and_real_api`, the React
+production build, and the visual reader browser capture reviewed on
+2026-08-15.

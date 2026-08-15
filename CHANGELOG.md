@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Removed raw `source`/`status` provenance labels from the general-user
+  Keyman popup. Reader screens now show business vocabulary for automatic
+  derivation and management state while authorized audit payloads retain the
+  original provenance values.
 - Added an administrator-only report-quality action that retries stale
   weekly/monthly Judge and fast-mlsirm results through the existing bounded
   PostgreSQL maintenance path, refreshes the reader report surface, and emits
