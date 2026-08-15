@@ -645,6 +645,13 @@ try {
     result.visibility_public_status = visibilityPublicStatus;
 
     const keymanEditor = modal.locator(".modal-keyman-editor");
+    const keymanEditorVisible = (await keymanEditor.count()) > 0
+      && await keymanEditor.first().isVisible();
+    result.keyman_editor_visible = keymanEditorVisible;
+    if (!canManageVisibility) {
+      assert.equal(keymanEditorVisible, false);
+      assert.equal(await keymanEditor.getByRole("button", { name: "Keyman 저장", exact: true }).count(), 0);
+    }
     if (canManageVisibility && (await keymanEditor.count()) > 0) {
       const keymanFields = keymanEditor.locator("textarea");
       const originalOurSide = await keymanFields.nth(0).inputValue();

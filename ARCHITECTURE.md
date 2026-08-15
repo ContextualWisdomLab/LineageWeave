@@ -559,3 +559,9 @@ audit; the reader does not need to understand persistence codes.
 The unauthenticated gate explains the same identity rule: the authenticated
 Keyverse account supplies corporation and PU attributes, while the browser
 does not accept either value as a permission input.
+
+Reader document popups are inspection-only. Keyman editing and other content
+mutations are rendered only for verified `author`, `editor`, or `admin`
+actors, and the server checks the same capability at the mutation boundary.
+The reader E2E explicitly fails if `.modal-keyman-editor` or its save button
+appears for a reader session.

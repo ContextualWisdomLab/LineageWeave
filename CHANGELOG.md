@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Added a browser acceptance guard for the general-user document popup: a
+  reader can inspect Keyman and Knowledge Graph context but cannot see or use
+  the Keyman editor/save control. Management remains restricted to verified
+  author/editor/admin roles and the server mutation boundary.
 - Clarified the login gate: corporation and PU are applied from verified
   Keyverse account attributes rather than user-entered authorization fields.
 - Removed raw `public`/`private` visibility codes from the general-user home

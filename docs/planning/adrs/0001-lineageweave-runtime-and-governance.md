@@ -4415,3 +4415,25 @@ scope from verified claims before any document or customer request.
 
 Evidence: the login-gate React surface, the browser login-gate contract, and
 the Keyverse claim-to-actor authorization boundary.
+
+## Amendment: reader mutation-control separation (2026-08-15)
+
+The general-user document popup is an exploration surface, not an operator
+console. A verified reader may inspect Keyman values, Knowledge Graph
+neighborhoods, evidence, tickets, To Do items, calendar items, appointments,
+and report context, but the popup must not render the Keyman editor or any
+button that mutates Keyman data. Keyman editing remains available only to the
+server-authorized `author`, `editor`, or `admin` roles; administrator-only
+controls remain separately gated by `admin`.
+
+This is enforced twice: React uses the verified actor role only for
+presentation, while the server independently authorizes the mutation route.
+The browser contract now asserts that a reader popup contains no Keyman save
+control and records the visible editor state for both reader and manager
+runs. This prevents a developer-looking management panel from leaking into
+the requested general-user product surface without weakening the API
+boundary.
+
+Evidence: `canManage`, `.modal-keyman-editor`, the reader/admin browser E2E,
+the server-side Keyman mutation authorization, and the direct PostgreSQL
+reader capture.

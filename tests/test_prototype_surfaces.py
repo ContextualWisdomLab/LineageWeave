@@ -1077,12 +1077,17 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     react = Path("web/src/App.jsx").read_text(encoding="utf-8")
     ui_model = Path("web/src/ui-model.js").read_text(encoding="utf-8")
     login_e2e = Path("web/e2e/login-gate.mjs").read_text(encoding="utf-8")
+    browser_e2e = Path("web/e2e/lineageweave.mjs").read_text(encoding="utf-8")
     styles = Path("web/src/styles.css").read_text(encoding="utf-8")
     server_source = Path("lineageweave_server.py").read_text(encoding="utf-8")
     assert 'id="popupKeymanOur"' in react
     assert 'id="popupKeymanCounterpart"' in react
     assert "분석 상태" in react
     assert "관리 상태" in react
+    assert 'const canManage = (session?.roles || []).some((role) => ["author", "editor", "admin"].includes(role));' in react
+    assert 'const keymanEditor = modal.locator(".modal-keyman-editor");' in browser_e2e
+    assert "if (!canManageVisibility)" in browser_e2e
+    assert "keyman_editor_visible" in browser_e2e
     assert "자동 도출" in react
     assert "사용자 관리" in react
     assert "source: {selectedDocument.keyman_source" not in react
