@@ -1,0 +1,75 @@
+name: Scrub Milestone 2 v0.79 branch history
+
+on:
+  push:
+    branches:
+      - automation/scrub-milestone2-v079
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scrub-milestone2-v079
+  cancel-in-progress: false
+
+jobs:
+  squash-and-scrub:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TARGET_BRANCH: feat/milestone2-analysis-run-contract-v079
+      EXPECTED_BASE_SHA: c7bb517803e7781f4ababaff2ab383093b5c5782
+    steps:
+      - name: Checkout target branch with guarded write credentials
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Replace branch history with one source-safe additive commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_head="$(git rev-parse HEAD)"
+          git merge-base --is-ancestor "$EXPECTED_BASE_SHA" "$expected_head"
+
+          # Temporary verification workflows are execution scaffolding, not
+          # product source. Remove them before constructing the clean commit.
+          rm -f .github/workflows/verify-milestone2-analysis-run-v079.yml
+
+          git reset --soft "$EXPECTED_BASE_SHA"
+          git add -A
+          git diff --cached --check
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+
+          blocked_patterns = (
+              re.compile(r"postgresql://[^\s/]+@localhost/postgres", re.IGNORECASE),
+              re.compile(r"\b[a-z0-9]+_export_rows\b", re.IGNORECASE),
+          )
+          paths = [
+              Path(line)
+              for line in subprocess.check_output(
+                  ["git", "diff", "--cached", "--name-only"], text=True
+              ).splitlines()
+              if line
+          ]
+          for path in paths:
+              if not path.is_file():
+                  continue
+              text = path.read_text(encoding="utf-8", errors="ignore")
+              if any(pattern.search(text) for pattern in blocked_patterns):
+                  raise SystemExit(f"source-specific content found in {path}")
+          PY
+
+          test -n "$(git diff --cached --name-only)"
+          git config user.name "opencode-agent[bot]"
+          git config user.email "1549082+opencode-agent[bot]@users.noreply.github.com"
+          git commit -m "feat: establish Milestone 2 analysis-run provenance"
+          git push \
+            --force-with-lease="refs/heads/${TARGET_BRANCH}:${expected_head}" \
+            origin "HEAD:refs/heads/${TARGET_BRANCH}"
