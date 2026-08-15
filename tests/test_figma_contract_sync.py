@@ -26,8 +26,17 @@ def test_figma_contract_archives_unsupported_product_claims() -> None:
     """Attractive unmodeled screens stay archived rather than becoming claims."""
     content = _SPEC.read_text(encoding="utf-8")
     for statement in (
-        "Graph change history, the PROV-O product explorer, and access audit remain archived",
-        "The canonical role vocabulary is `viewer` and `admin`; Figma does not fabricate an `Analyst` role.",
-        "Direct lineage remains a plausible parent-child reconstruction, never a causal claim.",
+        (
+            "Graph change history, the PROV-O product explorer, and access audit "
+            "remain archived"
+        ),
+        (
+            "The canonical role vocabulary is `viewer` and `admin`; Figma does "
+            "not fabricate an `Analyst` role."
+        ),
+        (
+            "Direct lineage remains a plausible parent-child reconstruction, "
+            "never a causal claim."
+        ),
     ):
         assert statement in content
