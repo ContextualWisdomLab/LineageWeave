@@ -1131,6 +1131,22 @@ class LineageApplication:
             "runs": runs,
         }
 
+    def refresh_reports(self, actor: dict[str, Any]) -> dict[str, Any]:
+        """Retry stale report judging/linking for an administrator without inventing scores."""
+        self._require_keyverse_admin(actor)
+        refreshed = self.refresh_persisted_reports()
+        with psycopg.connect(self.dsn) as connection:
+            lw.enqueue_event_outbox(
+                connection,
+                "period_report_refresh_completed",
+                "reports",
+                actor["account_id"],
+                {"refreshed": refreshed},
+            )
+            connection.commit()
+        self._flush_event_outbox()
+        return {"status": "refreshed" if refreshed else "unchanged", "refreshed": refreshed}
+
     def submit_tepp_analysis(self, actor: dict[str, Any], body: dict[str, Any]) -> dict[str, Any]:
         """Submit an idempotent TEPP analysis request through the external HTTP boundary."""
         self._require_keyverse_admin(actor)
@@ -3406,6 +3422,9 @@ class LineageHandler(BaseHTTPRequestHandler):
                     HTTPStatus.ACCEPTED,
                     self.application.run_enrichment(actor, body),
                 )
+                return
+            if parts == ["api", "admin", "reports", "refresh"]:
+                self._send(HTTPStatus.OK, self.application.refresh_reports(actor))
                 return
             if parts == ["api", "admin", "tepp", "analysis-runs"]:
                 self._send(

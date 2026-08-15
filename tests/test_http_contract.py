@@ -86,6 +86,10 @@ class _Application:
         """Return one queued bounded enrichment run for the administrator route."""
         return {"status": "queued", "run_id": "enrichment-1", "task": body["task"], "requested": body["limit"]}
 
+    def refresh_reports(self, _actor):
+        """Return one bounded report refresh result for the administrator route."""
+        return {"status": "refreshed", "refreshed": 1}
+
     def lineage_review_edges(self, _actor, *, query, limit):
         """Return one safe inferred-edge review candidate."""
         assert (query, limit) == ("fixture", 3)
@@ -436,6 +440,7 @@ def test_http_handler_contract_routes(monkeypatch, tmp_path) -> None:
             ("/api/admin/lineage/edges/override", {"source_node": "doc:DOC-1", "target_node": "doc:DOC-2", "relation": "topic_affinity", "override_status": "suppressed"}, HTTPStatus.OK),
             ("/api/admin/lineage/edges/override", {"source_node": "doc:DOC-1", "target_node": "doc:DOC-2", "relation": "similar", "override_status": "suppressed"}, HTTPStatus.OK),
             ("/api/admin/enrichment/run", {"task": "keyman", "limit": 2}, HTTPStatus.ACCEPTED),
+            ("/api/admin/reports/refresh", {}, HTTPStatus.OK),
         )
         for path, body, expected in writes:
             status, _headers, _payload = _request(origin, path, method="POST", body=body)

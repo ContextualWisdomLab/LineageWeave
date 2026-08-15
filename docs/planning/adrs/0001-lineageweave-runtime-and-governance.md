@@ -4143,3 +4143,23 @@ typed organization actor without coercing it into a person, and passed the same
 chat citation/source checks. These development sessions validate product
 authorization and workflow behavior only; they are not Keyverse login
 acceptance evidence.
+
+## Amendment: administrator report-quality retry (2026-08-15)
+
+The administrator console now exposes a report-quality action at
+`POST /api/admin/reports/refresh`. It reuses the existing PostgreSQL advisory
+lock and bounded stale-slice maintenance path, so a temporary Judge or
+fast-mlsirm outage can be retried after the live provider returns without
+rebuilding valid report rows or fabricating a score. The server requires the
+verified administrator role and emits `period_report_refresh_completed` through
+the transactional event outbox; the browser then reloads the actor-filtered
+report surface. An unchanged result remains an explicit no-op/abstention, not a
+successful measurement.
+
+The implementation was rechecked against the current source tree: 351 Python
+tests passed with one expected skip because the optional fast-mlsirm interpreter
+is not installed, the five measured runtime modules covered 7,598
+statements and 2,966 branches at 100%, and the administrator browser workflow
+received HTTP 200 from the refresh action against the direct PostgreSQL data
+path. This is product behavior evidence; it does not waive the independent
+review, real-Keyverse, or Figma selection gates.

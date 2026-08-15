@@ -49,13 +49,13 @@ export LINEAGEWEAVE_INSPECTION_DOCUMENT_LIMIT=2
 
 ## Current evidence
 
-A fresh current-tree isolated-PostgreSQL snapshot completed all 350 tests (with
- one expected skip when the sibling `fast-mlsirm` package is not installed) and
+A fresh current-tree isolated-PostgreSQL snapshot completed 351 tests with one
+expected skip because the sibling `fast-mlsirm` interpreter is not installed and
 100% line-and-branch coverage for `lineageweave.py`,
 `lineageweave_embeddings.py`, `lineageweave_server.py`, `compose/http_standin.py`,
-and `compose/keyverse_oidc.py` (7,587 statements and 2,964 branches); no
-coverage exclusion was added. The sibling `fast-mlsirm` interpreter check passed
-in this workspace.
+and `compose/keyverse_oidc.py` (7,598 statements and 2,966 branches); no
+coverage exclusion was added. The optional interpreter-backed contract is
+covered when that sibling package is installed.
 Production snapshot writers also release short schema-migration locks before
 the long data transaction. The React production build and Python compilation
 remain companion gates. Unless `LINEAGEWEAVE_TEST_DSN` is explicit, pytest
@@ -164,6 +164,14 @@ invent a completed run. The current TEPP protected main still labels its HTTP
 service as an accepted target contract, so the passing loopback `accepted` →
 `completed` wire smoke proves only request/response compatibility and is not
 TEPP scientific-runtime evidence.
+
+The administrator report-quality control calls `POST
+/api/admin/reports/refresh`. It uses the same advisory-locked stale-slice
+maintenance path as startup, reloads `/api/reports`, and emits
+`period_report_refresh_completed` through the PostgreSQL outbox. A direct HTTP
+contract and the data-bearing administrator browser workflow cover the button;
+an unavailable Judge or fast-mlsirm provider still returns an unchanged result
+and never creates a synthetic score.
 
 ## Real-world cases covered
 

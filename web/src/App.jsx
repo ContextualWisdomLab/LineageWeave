@@ -95,6 +95,8 @@ export default function App() {
   const [enrichmentLimit, setEnrichmentLimit] = useState("16");
   const [enrichmentStatusMessage, setEnrichmentStatusMessage] = useState("");
   const [enrichmentBusy, setEnrichmentBusy] = useState(false);
+  const [reportRefreshStatus, setReportRefreshStatus] = useState("");
+  const [reportRefreshBusy, setReportRefreshBusy] = useState(false);
   const [teppStatus, setTeppStatus] = useState(null);
   const [teppSnapshotId, setTeppSnapshotId] = useState("");
   const [teppKnowledgeCutoff, setTeppKnowledgeCutoff] = useState("");
@@ -450,6 +452,27 @@ export default function App() {
       setEnrichmentStatusMessage(`분석 작업을 시작하지 못했습니다: ${caught.message}`);
     } finally {
       setEnrichmentBusy(false);
+    }
+  }
+
+  async function refreshReports() {
+    setReportRefreshBusy(true);
+    setReportRefreshStatus("");
+    try {
+      const result = await api("/api/admin/reports/refresh", { method: "POST", body: "{}" });
+      const reports = await api("/api/reports");
+      setSummary((current) => ({
+        ...(current || {}),
+        period_reports: reports.reports || current?.period_reports || [],
+        factor_definitions: reports.factor_definitions || current?.factor_definitions || [],
+      }));
+      setReportRefreshStatus(result.refreshed
+        ? `보고서 ${result.refreshed}건을 재평가했습니다.`
+        : "현재 재평가가 필요한 보고서가 없습니다.");
+    } catch (caught) {
+      setReportRefreshStatus(`보고서를 재평가하지 못했습니다: ${caught.message}`);
+    } finally {
+      setReportRefreshBusy(false);
     }
   }
 
@@ -1252,6 +1275,12 @@ export default function App() {
               {[["Keyman 대기", enrichmentStatus?.pending?.keyman], ["R&R·이슈 대기", enrichmentStatus?.pending?.product], ["고객 약속 대기", enrichmentStatus?.pending?.appointments]].map(([label, value]) => <article className="policy-rule" key={label}><strong>{label}</strong><span>{enrichmentStatus ? `${formatNumber(value)}개 문서` : "상태 확인 중"}</span></article>)}
             </div>
             {(enrichmentStatus?.active_runs || []).length ? <p className="meta">실행 중: {(enrichmentStatus.active_runs || []).map((run) => `${run.task} ${run.requested}건`).join(" · ")}</p> : null}
+          </section>
+          <section id="reportQualityScreen" className="admin-policy-panel" aria-labelledby="reportQualityTitle">
+            <div className="admin-section-heading"><div><p className="eyebrow">REPORT QUALITY</p><h3 id="reportQualityTitle">보고서 평가 품질</h3></div><span className="status-chip">LLM · fast-mlsirm</span></div>
+            <p className="meta">일시적인 모델·연계 장애로 평가되지 않은 주간·월간 보고서만 다시 평가합니다. 점수를 만들 수 없으면 abstention으로 보존하며 임의의 점수를 채우지 않습니다.</p>
+            <button id="refreshReportsBtn" className="primary-button" type="button" onClick={() => void refreshReports()} disabled={reportRefreshBusy}>{reportRefreshBusy ? "재평가 중…" : "보고서 재평가"}</button>
+            {reportRefreshStatus ? <p className="admin-status" role="status">{reportRefreshStatus}</p> : null}
           </section>
           <section id="teppScreen" className="admin-policy-panel" aria-labelledby="teppTitle">
             <div className="admin-section-heading"><div><p className="eyebrow">TEPP HTTP PORT</p><h3 id="teppTitle">TEPP 분석 요청</h3></div><span className="status-chip">contract · v1</span></div>
