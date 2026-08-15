@@ -180,6 +180,75 @@ def test_profile_revision_and_digest_contracts_are_database_enforced(analysis_db
     analysis_db.rollback()
 
 
+def test_run_status_rejects_an_unrelated_common_lookup_code(analysis_db) -> None:
+    account_id = _seed_account(analysis_db)
+    with analysis_db.cursor() as cursor:
+        cursor.execute(
+            "insert into common_lookup_value "
+            "(lookup_category, lookup_code, lookup_label) "
+            "values ('permission', 'analysis_unrelated_lookup', 'Unrelated')"
+        )
+        cursor.execute(
+            "insert into analysis_source_profile ("
+            "source_profile_key, profile_revision, source_kind_code, query_digest_sha256"
+            ") values ('configured-status', 1, 'postgresql_query_profile', %s) "
+            "returning source_profile_id",
+            ("a" * 64,),
+        )
+        profile_id = cursor.fetchone()[0]
+        cursor.execute(
+            "insert into analysis_source_snapshot ("
+            "source_profile_id, source_digest_sha256, knowledge_cutoff, "
+            "maximum_available_time, row_count, document_count, thread_count"
+            ") values (%s, %s, '2026-08-15T00:00:00Z', "
+            "'2026-08-14T23:59:00Z', 1, 1, 1) returning source_snapshot_id",
+            (profile_id, "b" * 64),
+        )
+        snapshot_id = cursor.fetchone()[0]
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            cursor.execute(
+                "insert into analysis_run_record ("
+                "source_snapshot_id, requested_by_account_id, run_status_code, "
+                "idempotency_key, request_digest_sha256, started_at"
+                ") values (%s, %s, 'analysis_unrelated_lookup', "
+                "'bad-status-key', %s, now())",
+                (snapshot_id, account_id, "c" * 64),
+            )
+    analysis_db.rollback()
+
+
+def test_terminal_run_requires_a_completion_timestamp(analysis_db) -> None:
+    account_id = _seed_account(analysis_db)
+    with analysis_db.cursor() as cursor:
+        cursor.execute(
+            "insert into analysis_source_profile ("
+            "source_profile_key, profile_revision, source_kind_code, query_digest_sha256"
+            ") values ('configured-terminal', 1, 'postgresql_query_profile', %s) "
+            "returning source_profile_id",
+            ("a" * 64,),
+        )
+        profile_id = cursor.fetchone()[0]
+        cursor.execute(
+            "insert into analysis_source_snapshot ("
+            "source_profile_id, source_digest_sha256, knowledge_cutoff, "
+            "maximum_available_time, row_count, document_count, thread_count"
+            ") values (%s, %s, '2026-08-15T00:00:00Z', "
+            "'2026-08-14T23:59:00Z', 1, 1, 1) returning source_snapshot_id",
+            (profile_id, "b" * 64),
+        )
+        snapshot_id = cursor.fetchone()[0]
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            cursor.execute(
+                "insert into analysis_run_record ("
+                "source_snapshot_id, requested_by_account_id, run_status_code, "
+                "idempotency_key, request_digest_sha256, started_at"
+                ") values (%s, %s, 'analysis_run_succeeded', "
+                "'terminal-key', %s, now())",
+                (snapshot_id, account_id, "c" * 64),
+            )
+    analysis_db.rollback()
+
+
 def test_new_database_object_names_follow_two_word_snake_case_rule() -> None:
     sql = _MIGRATION.read_text(encoding="utf-8")
     names = re.findall(r"create table (\w+)", sql)
