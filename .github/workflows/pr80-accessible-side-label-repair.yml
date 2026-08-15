@@ -1,0 +1,119 @@
+name: PR 80 accessible side-label repair
+
+on:
+  push:
+    branches:
+      - feat/related-node-person-side-labels-v078
+    paths:
+      - .github/workflows/pr80-accessible-side-label-repair.yml
+
+permissions: {}
+
+concurrency:
+  group: pr80-accessible-side-label-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout exact stacked branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/related-node-person-side-labels-v078
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Reject stale or reordered execution
+        env:
+          EXPECTED_PARENT_SHA: c7bb517803e7781f4ababaff2ab383093b5c5782
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT_SHA"
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install locked frontend dependencies
+        run: |
+          set -euo pipefail
+          corepack enable
+          pnpm --dir frontend install --frozen-lockfile
+
+      - name: Add the regression before production code
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("frontend/src/App.test.tsx")
+          text = path.read_text(encoding="utf-8")
+          anchor = '''    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).toHaveTextContent(
+              "Priya Nair (Counterparty)",
+            );
+          '''
+          replacement = anchor + '''    expect(
+              screen.getByRole("button", {
+                name: "Related nodes for Priya Nair (Counterparty)",
+              }),
+            ).toBeInTheDocument();
+          '''
+          if text.count(anchor) != 1:
+              raise SystemExit("expected one Priya related-node assertion anchor")
+          path.write_text(text.replace(anchor, replacement, 1), encoding="utf-8")
+          PY
+
+      - name: Prove the accessible-name regression is red
+        run: |
+          set -euo pipefail
+          set +e
+          pnpm --dir frontend exec vitest run src/App.test.tsx \
+            > /tmp/pr80-red.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/pr80-red.log
+          test "$status" -ne 0
+          grep -F "Related nodes for Priya Nair (Counterparty)" /tmp/pr80-red.log
+
+      - name: Preserve the computed person caption in the accessible name
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("frontend/src/App.tsx")
+          text = path.read_text(encoding="utf-8")
+          block_start = text.index('                if (node.node_type_code === NODE_PERSON) {')
+          block_end = text.index('                if (node.node_type_code === NODE_CORPORATE_ENTITY) {', block_start)
+          block = text[block_start:block_end]
+          old = 'aria-label={`Related nodes for ${node.label ?? node.node_id}`}'
+          new = 'aria-label={`Related nodes for ${caption}`}'
+          if block.count(old) != 1:
+              raise SystemExit("expected one person related-node aria-label")
+          block = block.replace(old, new, 1)
+          path.write_text(text[:block_start] + block + text[block_end:], encoding="utf-8")
+          PY
+
+      - name: Verify the complete frontend contract
+        run: |
+          set -euo pipefail
+          pnpm --dir frontend run lint
+          pnpm --dir frontend run test
+          pnpm --dir frontend run build
+          git diff --check
+
+      - name: Commit the verified repair and remove this workflow
+        run: |
+          set -euo pipefail
+          rm .github/workflows/pr80-accessible-side-label-repair.yml
+          git add -A
+          git diff --cached --check
+          git config user.name "opencode-agent[bot]"
+          git config user.email "1549082+opencode-agent[bot]@users.noreply.github.com"
+          git commit -m "fix(a11y): expose related-person side labels"
+          git push origin HEAD:feat/related-node-person-side-labels-v078
