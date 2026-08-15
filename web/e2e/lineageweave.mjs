@@ -565,11 +565,22 @@ try {
       selected_keyman: keymanSelectionAvailable,
       relationship_direction_visible: await modal.locator("#popupKnowledgeEdges").count() > 0,
     };
+    const knowledgeNodeLink = modal.locator(".knowledge-node-link").filter({ hasText: /person|organization/ }).first();
+    if (await knowledgeNodeLink.count() > 0) {
+      const nodeRequest = page.waitForResponse(
+        (response) => response.url().includes("/knowledge") && response.request().method() === "GET",
+        { timeout: 90_000 },
+      );
+      await knowledgeNodeLink.click();
+      result.knowledge.node_link_status = (await nodeRequest).status();
+    }
+    result.knowledge.node_link_count = await modal.locator(".knowledge-node-link").count();
     if (requireData) {
       assert.equal(result.knowledge.status, 200);
       if (keymanSelectionAvailable) {
         assert.equal(result.knowledge.selected_keyman, true);
       }
+      if (result.knowledge.node_link_count > 0) assert.equal(result.knowledge.node_link_status, 200);
     }
 
     const visibility = modal.locator("section").filter({ hasText: "공개 / 비공개" }).locator("select");

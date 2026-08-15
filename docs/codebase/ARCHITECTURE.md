@@ -110,6 +110,12 @@ graph. A visibility update changes the list only after the authorized
 PostgreSQL mutation returns successfully; no browser-side permission model is
 introduced.
 
+Knowledge-neighborhood nodes in the document popup are actionable without
+turning the graph into a client-side source of truth. Person/organization
+nodes request a new authorized neighborhood, event/content nodes open their
+authorized evidence drawer, and document nodes reopen the actor-filtered
+document detail. Missing node identifiers or evidence IDs remain inert.
+
 ## Container and workflow supply-chain boundary
 
 All shipped product, Compose worker, SearXNG, and isolated OIDC-conformance

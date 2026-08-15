@@ -745,6 +745,21 @@ export default function App() {
     }
   }
 
+  function openKnowledgeNode(node) {
+    if (!node) return;
+    const documentNo = String(node.document_no || "").trim();
+    if (node.type === "document" && documentNo && documentNo !== selectedNo) {
+      setSelectedNo(documentNo);
+      return;
+    }
+    const evidenceId = String(node.source_evidence_id || node.evidence_id || "").trim();
+    if ((node.type === "event" || node.type === "content_block") && evidenceId && !evidenceId.includes(":")) {
+      void openEvidence(evidenceId);
+      return;
+    }
+    void openKnowledge(node);
+  }
+
   async function loadSemanticRelated() {
     if (!selectedNo) return;
     setBusy(true);
@@ -1240,7 +1255,7 @@ export default function App() {
                 <p className="meta">사람·조직·이벤트·글을 사전 계산한 KG에서 선택합니다. 노드 유형별 적응형 depth를 기본 적용하고, 필요하면 상한을 좁힐 수 있습니다.</p>
                 <label className="depth-control">탐색 상한 <select value={knowledgeDepth} onChange={(event) => setKnowledgeDepth(event.target.value)}><option value="">적응형</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label>
                 <div className="knowledge-summary">{graph.nodes.filter((node) => ["person", "organization", "organization_alias", "pu", "event", "document"].includes(node.type)).slice(0, 20).map((node) => <button className="knowledge-chip" key={node.id} onClick={() => openKnowledge(node)}><strong>{node.type}</strong><span>{node.label}</span></button>)}</div>
-                {knowledge ? <div id="popupKnowledge" className="knowledge-result"><p className="meta">{knowledge.person_name || "선택한 KG 노드"} · {knowledge.nodes?.length || 0} nodes · {knowledge.edges?.length || 0} edges · depth {knowledgeDepth || "adaptive"}</p><ul className="event-list">{(knowledge.nodes || []).map((node) => <li key={node.id}><strong>{node.type}</strong><span>{node.label} · d{node.traversal_depth ?? "?"}</span></li>)}</ul><h4>연결 관계와 방향</h4>{knowledgeEdges.length ? <ul id="popupKnowledgeEdges" className="event-list" aria-label="Keyman Knowledge Graph 연결 관계와 방향">{knowledgeEdges.map((edge) => <li key={`${edge.sourceLabel}-${edge.relation}-${edge.targetLabel}`}><strong>{edge.sourceLabel} → {edge.targetLabel}</strong><span>{edge.sourceTypeLabel} → {edge.relationLabel} → {edge.targetTypeLabel}</span><small>관계 유형: {edge.relation} · {edge.evidenceLabel}</small></li>)}</ul> : <p className="meta">선택 범위에서 표시할 근거 기반 관계가 없습니다.</p>}</div> : null}
+                {knowledge ? <div id="popupKnowledge" className="knowledge-result"><p className="meta">{knowledge.person_name || "선택한 KG 노드"} · {knowledge.nodes?.length || 0} nodes · {knowledge.edges?.length || 0} edges · depth {knowledgeDepth || "adaptive"}</p><ul className="event-list knowledge-node-list">{(knowledge.nodes || []).map((node) => <li key={node.id}><button type="button" className="knowledge-node-link" onClick={() => openKnowledgeNode(node)}><strong>{node.type}</strong><span>{node.label} · d{node.traversal_depth ?? "?"}</span></button></li>)}</ul><h4>연결 관계와 방향</h4>{knowledgeEdges.length ? <ul id="popupKnowledgeEdges" className="event-list" aria-label="Keyman Knowledge Graph 연결 관계와 방향">{knowledgeEdges.map((edge) => <li key={`${edge.sourceLabel}-${edge.relation}-${edge.targetLabel}`}><strong>{edge.sourceLabel} → {edge.targetLabel}</strong><span>{edge.sourceTypeLabel} → {edge.relationLabel} → {edge.targetTypeLabel}</span><small>관계 유형: {edge.relation} · {edge.evidenceLabel}</small></li>)}</ul> : <p className="meta">선택 범위에서 표시할 근거 기반 관계가 없습니다.</p>}</div> : null}
                 <div className="inline-actions"><button className="secondary-button" disabled={busy} onClick={loadSemanticRelated}>의미 관련 글 보기</button>{canManage ? <button className="secondary-button" disabled={busy} onClick={indexSemanticContent}>이 글 임베딩 색인</button> : null}</div>
                 {semanticRelated ? <div id="popupSemanticRelated" className="knowledge-result"><p className="meta">{semanticRelated.status === "index_required" ? "먼저 관리 권한으로 이 글의 DOM 의미 단위를 색인하세요." : "유사도 0.40 이상만 보이며, 결과는 문서 전이가 아닌 추론된 관련성입니다."}</p><ul className="event-list">{(semanticRelated.items || []).map((item) => <li key={item.document_no}><button className="keyman-link" onClick={() => setSelectedNo(item.document_no)}><strong>{item.title || item.document_no}</strong><span>{Number(item.similarity || 0).toFixed(3)} · {item.evidence_status}</span></button></li>)}</ul></div> : null}
                 {canManage ? <form className="alias-resolution" onSubmit={resolveOrganizationAlias}><label htmlFor="organizationAlias">기관 약칭 검증</label><div className="inline-actions"><input id="organizationAlias" value={organizationAlias} onChange={(event) => setOrganizationAlias(event.target.value)} placeholder="본문의 기관 약칭" /><button className="secondary-button" type="submit" disabled={busy || organizationAlias.trim().length < 2}>LLM·SearXNG 검증</button></div></form> : null}

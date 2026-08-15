@@ -212,6 +212,12 @@ flowchart LR
     reader index and the administrator list only after the authorized
     PostgreSQL mutation succeeds; this is a control-surface pagination rule,
     not a second permission model.
+17c. A Keyman-centered KG neighborhood is an actionable reader surface. A
+    related person or organization reopens its authorized neighborhood, an
+    event/content node opens its authorized source evidence, and a related
+    document opens the same actor-filtered document detail. The browser never
+    invents a relationship or bypasses the server's persisted semantic
+    subgraph; each action remains bounded by the selected node's evidence.
 18. An administrator may start a bounded LLM enrichment batch through
     `POST /api/admin/enrichment/run` for `keyman`, `product`, `appointments`,
     or `all`, with a hard maximum of 64 documents. Candidate selection uses

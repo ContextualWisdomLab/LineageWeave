@@ -6,6 +6,10 @@
   pages instead of showing only the first loaded workspace page. Visibility
   changes keep the reader and administrator projections in sync after the
   server mutation succeeds.
+- Made Keyman Knowledge Graph neighborhoods actionable: related people and
+  organizations can be explored at the selected depth, event/content nodes
+  open authorized evidence, and related documents reopen the authorized
+  document detail without creating client-side graph facts.
 - Added evidence-backed reader labels for report scopes. PU/team labels use
   their business attributes, while project labels use the first actor-authorized
   document title or Korean summary; opaque project storage keys remain API and

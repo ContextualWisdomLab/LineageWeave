@@ -1173,6 +1173,9 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert 'id="popupChat"' in react
     assert 'id="popupKnowledge"' in react
     assert 'id="popupKnowledgeEdges"' in react
+    assert "function openKnowledgeNode" in react
+    assert "knowledge-node-link" in react
+    assert ".knowledge-node-link" in styles
     assert "knowledgeEdgeRows" in react
     assert "function knowledgeEdgeRows" in ui_model
     assert "연결 관계와 방향" in react

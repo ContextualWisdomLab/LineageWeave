@@ -4265,6 +4265,26 @@ contract, the direct-PostgreSQL browser run, and the 2026-08-15 full Python
 line-and-branch coverage run (354 tests plus one expected optional skip, 7,627
 statements, and 2,984 branches; 100% with no coverage exclusion).
 
+## Amendment: actionable Keyman Knowledge Graph nodes (2026-08-15)
+
+The reader could previously inspect a Keyman neighborhood only as a static
+list. That made the precomputed KG useful for explanation but weak for the
+requested “select a Keyman and follow related people, companies, events, and
+posts” workflow.
+
+Each returned, server-authorized KG node is now an explicit action: person and
+organization nodes request another bounded neighborhood using the existing
+adaptive depth policy; event and content nodes open their authorized source
+evidence drawer; and related document nodes reopen the actor-filtered document
+detail. Nodes without a safe document/evidence identifier remain non-navigating
+and the browser never creates or promotes an edge. Ontology classes, semantic
+predicates, evidence assertions, and Lineage transitions remain PostgreSQL
+facts and are not changed by a click.
+
+Evidence: `openKnowledgeNode`, the `knowledge-node-link` React contract, the
+authorized `/knowledge`/evidence/document routes, and the direct PostgreSQL
+browser workflow.
+
 ## Amendment: administrator policy-list pagination and search (2026-08-15)
 
 The administrator 게시글 권한 통제 surface previously rendered the first 20
