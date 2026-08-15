@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.78.0] - 2026-08-15
+
+### Changed
+
+- Related-node person chips now use the localized `person_side` lookup label
+  supplied by the authorized API payload. Users see business context such as
+  `Our side` or `Counterparty`, while ontology class metadata remains available
+  separately for semantic processing and provenance.
+
 ## [0.77.0] - 2026-08-14
 
 ### Fixed
