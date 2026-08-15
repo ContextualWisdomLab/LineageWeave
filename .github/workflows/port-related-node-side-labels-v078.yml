@@ -33,7 +33,7 @@ jobs:
           --health-retries 5
     env:
       LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
-      EXPECTED_PARENT_SHA: 2ace79ea90a82d61f8467bbe644dd23b0deaa8b6
+      EXPECTED_PARENT_SHA: efe71620c6f5d3423c581bafa90cd0218eaa106a
       SOURCE_COMMIT_SHA: 7d4324aee4d2d18334bae42e497b5f96e79a0dee
     steps:
       - name: Checkout stacked product branch
@@ -126,9 +126,7 @@ jobs:
 
           architecture = Path("ARCHITECTURE.md")
           text = architecture.read_text(encoding="utf-8")
-          old = (
-              "codes when a label exists.\n"
-          )
+          old = "codes when a label exists.\n"
           new = (
               "codes when a label exists. Related-node person chips use the same\n"
               "side lookup label (for example, `Our side` or `Counterparty`) rather\n"
@@ -141,16 +139,14 @@ jobs:
           changelog = Path("CHANGELOG.md")
           text = changelog.read_text(encoding="utf-8")
           marker = "## [0.77.0] - 2026-08-15\n"
-          entry = """## [0.78.0] - 2026-08-15
-
-### Changed
-
-- Related-node person chips now use the localized `person_side` lookup label
-  supplied by the authorized API payload. Users see business context such as
-  `Our side` or `Counterparty`, while ontology class metadata remains available
-  separately for semantic processing and provenance.
-
-"""
+          entry = (
+              "## [0.78.0] - 2026-08-15\n\n"
+              "### Changed\n\n"
+              "- Related-node person chips now use the localized `person_side` lookup label\n"
+              "  supplied by the authorized API payload. Users see business context such as\n"
+              "  `Our side` or `Counterparty`, while ontology class metadata remains available\n"
+              "  separately for semantic processing and provenance.\n\n"
+          )
           if marker not in text:
               raise SystemExit("missing 0.77.0 changelog anchor")
           if "## [0.78.0]" not in text:
