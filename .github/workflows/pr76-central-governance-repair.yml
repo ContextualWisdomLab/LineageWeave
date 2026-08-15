@@ -20,7 +20,7 @@ jobs:
     permissions:
       contents: write
     env:
-      EXPECTED_PARENT_SHA: 45459a3c8b845a3033ef94ebfe94b3b7b77856a5
+      EXPECTED_PARENT_SHA: ca24ba4e8ac38f30b25064e89eb2c713330cd5c0
     steps:
       - name: Check out the exact PR branch
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
@@ -55,6 +55,7 @@ jobs:
           set -euo pipefail
           uv sync --frozen --extra dev --extra backend
           corepack enable
+          corepack install --global pnpm@9.15.9
           pnpm --dir frontend install --frozen-lockfile
 
       - name: Prove the central-governance contract is red
