@@ -40,3 +40,17 @@ def test_figma_contract_archives_unsupported_product_claims() -> None:
         ),
     ):
         assert statement in content
+
+
+def test_figma_helper_copy_is_actionable_and_semantically_consistent() -> None:
+    """Customer copy and synthetic examples must preserve the product contract."""
+    content = _SPEC.read_text(encoding="utf-8")
+    assert (
+        "Canonical helper copy directs customers to open evidence, records, "
+        "actors, tickets, or reports."
+        in content
+    )
+    assert (
+        "Synthetic report grouping labels must match the persisted grouping kind."
+        in content
+    )
