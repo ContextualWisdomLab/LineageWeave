@@ -24,6 +24,7 @@ COPY migrations/0014_role_responsibility_team_actor_type.sql /docker-entrypoint-
 COPY migrations/0015_organization_name_resolution.sql /docker-entrypoint-initdb.d/16-organization-name-resolution.sql
 COPY migrations/0016_cross_post_actor_identity.sql /docker-entrypoint-initdb.d/17-cross-post-actor-identity.sql
 COPY migrations/0017_prov_o_standard_relations.sql /docker-entrypoint-initdb.d/18-prov-o-standard-relations.sql
+COPY migrations/0018_analysis_run_provenance.sql /docker-entrypoint-initdb.d/19-analysis-run-provenance.sql
 # Official image already drops to this account at runtime; declare it so
 # the Dockerfile itself satisfies DS-0002 (explicit non-root USER).
 USER postgres
