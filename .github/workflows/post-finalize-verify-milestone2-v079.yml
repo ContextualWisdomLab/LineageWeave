@@ -1,0 +1,181 @@
+name: Post-finalize verify Milestone 2 v0.79
+
+on:
+  push:
+    branches:
+      - automation/scrub-milestone2-v079
+    paths:
+      - .github/workflows/post-finalize-verify-milestone2-v079.yml
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: post-finalize-verify-milestone2-v079
+  cancel-in-progress: false
+
+jobs:
+  clean-head-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TARGET_BRANCH: feat/milestone2-analysis-run-contract-v079
+      EXPECTED_BASE_SHA: c7bb517803e7781f4ababaff2ab383093b5c5782
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout clean target branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Mark exact head pending
+        run: |
+          set -euo pipefail
+          head_sha="$(git rev-parse HEAD)"
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/statuses/${head_sha}" \
+            -f state=pending \
+            -f context='Milestone 2 Clean Verification' \
+            -f description='Verifying clean source-safe analysis provenance head'
+
+      - name: Verify clean history and public-content boundary
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$EXPECTED_BASE_SHA" HEAD
+          test "$(git rev-list --count "${EXPECTED_BASE_SHA}..HEAD")" = 1
+          test ! -e .github/workflows/prepare-milestone2-analysis-run-v079.yml
+          test ! -e .github/workflows/verify-milestone2-analysis-run-v079.yml
+          test ! -e compose/keyverse_oidc.py
+          git diff --check "$EXPECTED_BASE_SHA" HEAD
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+
+          blocked_patterns = (
+              re.compile(r"postgresql://[^\s/]+@localhost/postgres", re.IGNORECASE),
+              re.compile(r"\b[a-z0-9]+_export_rows\b", re.IGNORECASE),
+          )
+          paths = [
+              Path(line)
+              for line in subprocess.check_output(
+                  ["git", "diff", "--name-only", "c7bb517803e7781f4ababaff2ab383093b5c5782", "HEAD"],
+                  text=True,
+              ).splitlines()
+              if line
+          ]
+          for path in paths:
+              if not path.is_file():
+                  continue
+              text = path.read_text(encoding="utf-8", errors="ignore")
+              if any(pattern.search(text) for pattern in blocked_patterns):
+                  raise SystemExit(f"source-specific content found in {path}")
+
+          expected = {
+              "lineageweave/analysis_run.py",
+              "backend/app/analysis_run_ingestion.py",
+              "migrations/0018_analysis_run_provenance.sql",
+              "docs/adr/0013-analysis-run-provenance-boundary.md",
+              "docs/doctoring/ANALYSIS_RUN_PROVENANCE_REFERENCES.md",
+              "tests/test_analysis_run.py",
+              "tests/test_analysis_run_coverage.py",
+              "tests/test_analysis_run_schema.py",
+              "backend/tests/test_analysis_run_ingestion.py",
+          }
+          names = {str(path) for path in paths}
+          missing = sorted(expected - names)
+          if missing:
+              raise SystemExit(f"missing required contract files: {missing}")
+          PY
+
+      - name: Verify version and architecture consistency
+        run: |
+          set -euo pipefail
+          grep -F 'version = "0.79.0"' pyproject.toml
+          grep -F '__version__ = "0.79.0"' lineageweave/__init__.py
+          grep -F '"version": "0.79.0"' frontend/package.json
+          grep -F '## [0.79.0]' CHANGELOG.md
+          grep -F '## Milestone 2 analysis-run provenance boundary' ARCHITECTURE.md
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Select repository Rust toolchain
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Install committed Python dependencies
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Require focused 100 percent statement and branch coverage
+        run: |
+          set -euo pipefail
+          uv run --frozen coverage erase
+          uv run --frozen coverage run --branch \
+            --source=lineageweave.analysis_run,backend.app.analysis_run_ingestion \
+            -m pytest -q \
+            tests/test_analysis_run.py \
+            tests/test_analysis_run_coverage.py \
+            backend/tests/test_analysis_run_ingestion.py
+          uv run --frozen coverage report --show-missing --fail-under=100
+
+      - name: Verify PostgreSQL and complete Python product
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m pytest -q tests/test_analysis_run_schema.py
+          uv run --frozen python -m pytest -q
+          uv run --frozen python -m compileall -q backend lineageweave tests
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Verify complete React product
+        run: |
+          set -euo pipefail
+          corepack enable
+          cd frontend
+          pnpm install --frozen-lockfile
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+
+      - name: Mark exact head successful
+        if: success()
+        run: |
+          set -euo pipefail
+          head_sha="$(git rev-parse HEAD)"
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/statuses/${head_sha}" \
+            -f state=success \
+            -f context='Milestone 2 Clean Verification' \
+            -f description='Clean source-safe analysis provenance head verified'
