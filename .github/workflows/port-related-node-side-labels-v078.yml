@@ -33,7 +33,7 @@ jobs:
           --health-retries 5
     env:
       LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
-      EXPECTED_PARENT_SHA: efe71620c6f5d3423c581bafa90cd0218eaa106a
+      EXPECTED_PARENT_SHA: b65cc4b01a254fbb2d3c6670dbf8c0bf100d786d
       SOURCE_COMMIT_SHA: 7d4324aee4d2d18334bae42e497b5f96e79a0dee
     steps:
       - name: Checkout stacked product branch
@@ -77,7 +77,8 @@ jobs:
           set -euo pipefail
           uv sync --frozen --extra dev --extra backend
           corepack enable
-          pnpm --dir frontend install --frozen-lockfile
+          cd frontend
+          pnpm install --frozen-lockfile
 
       - name: Apply regression tests before production code
         run: |
@@ -91,7 +92,7 @@ jobs:
         run: |
           set -euo pipefail
           set +e
-          pnpm --dir frontend exec vitest run src/App.test.tsx > /tmp/side-label-red.log 2>&1
+          (cd frontend && pnpm exec vitest run src/App.test.tsx) > /tmp/side-label-red.log 2>&1
           status=$?
           set -e
           cat /tmp/side-label-red.log
@@ -158,16 +159,19 @@ jobs:
         run: |
           set -euo pipefail
           uv run --frozen python -m pytest -q backend/tests/test_api.py -k 'related_keymen_use_rwr or related_corporate_entity_uses_rwr'
-          pnpm --dir frontend exec vitest run src/App.test.tsx
+          cd frontend
+          pnpm exec vitest run src/App.test.tsx
 
       - name: Verify complete product contracts
         run: |
           set -euo pipefail
           uv run --frozen python -m pytest -q
           uv run --frozen python -m compileall -q backend lineageweave tests
-          pnpm --dir frontend run lint
-          pnpm --dir frontend run test
-          pnpm --dir frontend run build
+          cd frontend
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          cd ..
           git diff --check
 
       - name: Commit verified additive port
