@@ -4404,3 +4404,14 @@ ABAC decision and visibility mutation semantics are unchanged.
 
 Evidence: `visibilityLabel`, the reader home/document-popup React surface
 contract, React V8 100% coverage, and the production build.
+
+## Amendment: login scope disclosure (2026-08-15)
+
+The login gate now states that corporation and PU are applied from the
+authenticated Keyverse account attributes and are not entered in the browser.
+This makes the requested business-scope behavior visible without creating a
+client-controlled authorization field. The server still derives the actor
+scope from verified claims before any document or customer request.
+
+Evidence: the login-gate React surface, the browser login-gate contract, and
+the Keyverse claim-to-actor authorization boundary.

@@ -1117,6 +1117,7 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert 'id="registerBtn"' not in react
     assert "글 자체의 Lineage" in react
     assert "업무 이메일을 입력하고 계속하세요." in react
+    assert "법인·PU는 인증된 Keyverse 계정 속성으로 적용됩니다. 이 화면에서 직접 입력하지 않습니다." in react
     assert ">Keyverse로 계속<" not in react
     assert ">패스키 등록 요청<" not in react
     assert ">계속하기<" in react

@@ -15,6 +15,7 @@ try {
   }
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   assert.equal(await page.getByText("글 자체의 Lineage", { exact: true }).count(), 1);
+  assert.equal(await page.getByText("법인·PU는 인증된 Keyverse 계정 속성으로 적용됩니다. 이 화면에서 직접 입력하지 않습니다.", { exact: true }).count(), 1);
   const email = page.getByLabel("업무 이메일");
   const submit = page.getByRole("button", { name: "계속하기" });
 

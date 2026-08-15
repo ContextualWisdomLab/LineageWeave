@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Clarified the login gate: corporation and PU are applied from verified
+  Keyverse account attributes rather than user-entered authorization fields.
 - Removed raw `public`/`private` visibility codes from the general-user home
   and document popup. Readers now see `공개`/`내부`, with an explicit unknown
   state when the storage value is not recognized.

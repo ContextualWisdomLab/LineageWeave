@@ -1012,6 +1012,7 @@ export default function App() {
           <p className="eyebrow product-lineage">글 자체의 Lineage</p>
           <h1>LineageWeave</h1>
           <p className="meta login-intro">업무 이메일을 입력하고 계속하세요.</p>
+          <p className="meta login-scope-note">법인·PU는 인증된 Keyverse 계정 속성으로 적용됩니다. 이 화면에서 직접 입력하지 않습니다.</p>
           <form id="loginForm" className="login-form" noValidate onSubmit={startKeyverseLogin}>
             <label htmlFor="loginEmail">업무 이메일</label>
             <input

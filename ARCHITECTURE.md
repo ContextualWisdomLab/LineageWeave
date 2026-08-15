@@ -555,3 +555,7 @@ Reader-facing visibility is likewise a vocabulary projection: storage values
 are rendered as `공개`, `내부`, or an explicit unknown-state label. API and
 administrator boundaries retain the original value for authorization and
 audit; the reader does not need to understand persistence codes.
+
+The unauthenticated gate explains the same identity rule: the authenticated
+Keyverse account supplies corporation and PU attributes, while the browser
+does not accept either value as a permission input.
