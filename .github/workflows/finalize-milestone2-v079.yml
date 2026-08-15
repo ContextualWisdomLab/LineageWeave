@@ -1,0 +1,306 @@
+name: Finalize Milestone 2 v0.79 branch
+
+on:
+  push:
+    branches:
+      - automation/scrub-milestone2-v079
+    paths:
+      - .github/workflows/finalize-milestone2-v079.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finalize-milestone2-v079
+  cancel-in-progress: false
+
+jobs:
+  verify-squash-and-scrub:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TARGET_BRANCH: feat/milestone2-analysis-run-contract-v079
+      EXPECTED_BASE_SHA: c7bb517803e7781f4ababaff2ab383093b5c5782
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout exact target branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Guard ancestry and capture exact head
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$EXPECTED_BASE_SHA" HEAD
+          git rev-parse HEAD > /tmp/expected-target-head
+
+      - name: Reconcile idempotent product metadata and lifecycle contract
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              Path("pyproject.toml"): ('version = "0.78.0"', 'version = "0.79.0"'),
+              Path("frontend/package.json"): ('"version": "0.78.0"', '"version": "0.79.0"'),
+              Path("lineageweave/__init__.py"): ('__version__ = "0.78.0"', '__version__ = "0.79.0"'),
+          }
+          for path, (old, new) in replacements.items():
+              text = path.read_text(encoding="utf-8")
+              if new not in text:
+                  if text.count(old) != 1:
+                      raise SystemExit(f"expected one version anchor in {path}")
+                  path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          lock = Path("uv.lock")
+          text = lock.read_text(encoding="utf-8")
+          old = '[[package]]\nname = "lineageweave"\nversion = "0.78.0"\n'
+          new = '[[package]]\nname = "lineageweave"\nversion = "0.79.0"\n'
+          if new not in text:
+              if text.count(old) != 1:
+                  raise SystemExit("expected one lineageweave lock entry")
+              lock.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          init_path = Path("lineageweave/__init__.py")
+          init_text = init_path.read_text(encoding="utf-8")
+          imports = (
+              "from .analysis_run import (\n"
+              "    AnalysisRunConfiguration,\n"
+              "    AnalysisRunContractError,\n"
+              "    AnalysisRunRegistration,\n"
+              "    AnalysisRunSummary,\n"
+              "    SourceProfileReference,\n"
+              "    SourceSnapshotEvidence,\n"
+              "    canonical_json_sha256,\n"
+              "    exact_text_sha256,\n"
+              ")\n"
+          )
+          if "from .analysis_run import" not in init_text:
+              anchor = "from .affiliate_tree import build_affiliate_forest\n"
+              if anchor not in init_text:
+                  raise SystemExit("missing package import anchor")
+              init_text = init_text.replace(anchor, imports + anchor, 1)
+          exports = (
+              "AnalysisRunConfiguration",
+              "AnalysisRunContractError",
+              "AnalysisRunRegistration",
+              "AnalysisRunSummary",
+              "SourceProfileReference",
+              "SourceSnapshotEvidence",
+              "canonical_json_sha256",
+              "exact_text_sha256",
+          )
+          all_anchor = "__all__ = [\n"
+          if all_anchor not in init_text:
+              raise SystemExit("missing package export anchor")
+          missing = [name for name in exports if f'    "{name}",\n' not in init_text]
+          if missing:
+              prefix = "".join(f'    "{name}",\n' for name in missing)
+              init_text = init_text.replace(all_anchor, all_anchor + prefix, 1)
+          init_path.write_text(init_text, encoding="utf-8")
+
+          module_path = Path("lineageweave/analysis_run.py")
+          module = module_path.read_text(encoding="utf-8")
+          if "_ALLOWED_RUN_STATUS_CODES" not in module:
+              anchor = '_PROFILE_KEY_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]{0,127}$")\n'
+              addition = (
+                  "_ALLOWED_RUN_STATUS_CODES = frozenset(\n"
+                  "    {\n"
+                  '        "analysis_run_running",\n'
+                  '        "analysis_run_succeeded",\n'
+                  '        "analysis_run_failed",\n'
+                  "    }\n"
+                  ")\n"
+              )
+              if anchor not in module:
+                  raise SystemExit("missing run-status constant anchor")
+              module = module.replace(anchor, anchor + addition, 1)
+          if "run_status_code is not recognized" not in module:
+              anchor = '        _require_nonempty("run_status_code", self.run_status_code, maximum=64)\n'
+              addition = (
+                  "        if self.run_status_code not in _ALLOWED_RUN_STATUS_CODES:\n"
+                  '            raise AnalysisRunContractError("run_status_code is not recognized")\n'
+              )
+              if anchor not in module:
+                  raise SystemExit("missing run-status validation anchor")
+              module = module.replace(anchor, anchor + addition, 1)
+          if "a terminal analysis run requires completed_at" not in module:
+              anchor = (
+                  "        if self.completed_at is not None:\n"
+                  '            _require_aware("completed_at", self.completed_at)\n'
+                  "            if self.completed_at < self.started_at:\n"
+                  "                raise AnalysisRunContractError(\n"
+                  '                    "completed_at must not precede started_at"\n'
+                  "                )\n"
+              )
+              addition = (
+                  '        if self.run_status_code == "analysis_run_running":\n'
+                  "            if self.completed_at is not None:\n"
+                  "                raise AnalysisRunContractError(\n"
+                  '                    "a running analysis run must not have completed_at"\n'
+                  "                )\n"
+                  "        elif self.completed_at is None:\n"
+                  "            raise AnalysisRunContractError(\n"
+                  '                "a terminal analysis run requires completed_at"\n'
+                  "            )\n"
+              )
+              if anchor not in module:
+                  raise SystemExit("missing completion lifecycle anchor")
+              module = module.replace(anchor, anchor + addition, 1)
+          module_path.write_text(module, encoding="utf-8")
+
+          architecture_path = Path("ARCHITECTURE.md")
+          architecture = architecture_path.read_text(encoding="utf-8")
+          if "## Milestone 2 analysis-run provenance boundary" not in architecture:
+              architecture += (
+                  "\n\n## Milestone 2 analysis-run provenance boundary\n\n"
+                  "Migration 0018 adds a normalized product acceptance root through "
+                  "`analysis_source_profile`, `analysis_source_snapshot`, "
+                  "`analysis_run_record`, `analysis_run_configuration`, "
+                  "`analysis_run_event`, `analysis_service_run`, and "
+                  "`analysis_artifact_record`. Source SQL, DSNs, source table names, "
+                  "raw records, image bytes, credentials, and private source "
+                  "identifiers remain outside the product schema.\n\n"
+                  "`maximum_available_time <= knowledge_cutoff` is enforced in "
+                  "Python and PostgreSQL. TEPP retains exact evidence spans and the "
+                  "richer event/assertion/document/system/availability/cutoff clock "
+                  "model. LineageWeave stores the product-level acceptance root and "
+                  "references TEPP, contextual-orchestrator, and fast-mlsirm through "
+                  "normalized service runs. See ADR 0013 and the analysis-run "
+                  "doctoring note.\n"
+              )
+              architecture_path.write_text(architecture, encoding="utf-8")
+
+          changelog_path = Path("CHANGELOG.md")
+          changelog = changelog_path.read_text(encoding="utf-8")
+          if "## [0.79.0]" not in changelog:
+              anchor = "## [0.78.0]"
+              if anchor not in changelog:
+                  raise SystemExit("missing 0.78.0 changelog anchor")
+              entry = (
+                  "## [0.79.0] - 2026-08-15\n\n"
+                  "### Added\n\n"
+                  "- Added a normalized, source-redacting analysis-run provenance "
+                  "root for Milestone 2. It records immutable source-profile and "
+                  "snapshot digests, temporal cutoff evidence, bounded configuration, "
+                  "lifecycle events, downstream service runs, and private artifact "
+                  "references without storing source SQL, DSNs, raw content, image "
+                  "bytes, credentials, or private source identifiers.\n\n"
+              )
+              changelog_path.write_text(
+                  changelog.replace(anchor, entry + anchor, 1), encoding="utf-8"
+              )
+          PY
+
+          rm -f \
+            .github/workflows/prepare-milestone2-analysis-run-v079.yml \
+            .github/workflows/verify-milestone2-analysis-run-v079.yml
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Select repository Rust toolchain
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Install committed Python dependencies
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Require focused 100 percent statement and branch coverage
+        run: |
+          set -euo pipefail
+          uv run --frozen coverage erase
+          uv run --frozen coverage run --branch \
+            --source=lineageweave.analysis_run,backend.app.analysis_run_ingestion \
+            -m pytest -q \
+            tests/test_analysis_run.py \
+            tests/test_analysis_run_coverage.py \
+            backend/tests/test_analysis_run_ingestion.py
+          uv run --frozen coverage report --show-missing --fail-under=100
+
+      - name: Verify real PostgreSQL schema and complete Python product
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m pytest -q tests/test_analysis_run_schema.py
+          uv run --frozen python -m pytest -q
+          uv run --frozen python -m compileall -q backend lineageweave tests
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Verify complete React product
+        run: |
+          set -euo pipefail
+          corepack enable
+          cd frontend
+          pnpm install --frozen-lockfile
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+
+      - name: Build one source-safe product commit
+        run: |
+          set -euo pipefail
+          expected_head="$(cat /tmp/expected-target-head)"
+          git reset --soft "$EXPECTED_BASE_SHA"
+          git add -A
+          git diff --cached --check
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+
+          blocked_patterns = (
+              re.compile(r"postgresql://[^\s/]+@localhost/postgres", re.IGNORECASE),
+              re.compile(r"\b[a-z0-9]+_export_rows\b", re.IGNORECASE),
+          )
+          paths = [
+              Path(line)
+              for line in subprocess.check_output(
+                  ["git", "diff", "--cached", "--name-only"], text=True
+              ).splitlines()
+              if line
+          ]
+          for path in paths:
+              if not path.is_file():
+                  continue
+              text = path.read_text(encoding="utf-8", errors="ignore")
+              if any(pattern.search(text) for pattern in blocked_patterns):
+                  raise SystemExit(f"source-specific content found in {path}")
+          PY
+
+          test ! -e compose/keyverse_oidc.py
+          test -n "$(git diff --cached --name-only)"
+          git config user.name "opencode-agent[bot]"
+          git config user.email "1549082+opencode-agent[bot]@users.noreply.github.com"
+          git commit -m "feat: establish Milestone 2 analysis-run provenance"
+          git push \
+            --force-with-lease="refs/heads/${TARGET_BRANCH}:${expected_head}" \
+            origin "HEAD:refs/heads/${TARGET_BRANCH}"
