@@ -1,0 +1,171 @@
+name: Enforce analysis output profile contract v0.79
+
+on:
+  push:
+    branches:
+      - automation/scrub-milestone2-v079
+    paths:
+      - .github/workflows/enforce-analysis-output-profile-v079.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: enforce-analysis-output-profile-v079
+  cancel-in-progress: false
+
+jobs:
+  enforce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TARGET_BRANCH: feat/milestone2-analysis-run-contract-v079
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout repository history
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Wait for normalized profile code and checkout exact head
+        run: |
+          set -euo pipefail
+          ready=0
+          for attempt in $(seq 1 30); do
+            git fetch --no-tags origin "$TARGET_BRANCH"
+            if git show "origin/${TARGET_BRANCH}:lineageweave/analysis_run.py" \
+                | grep -q 'output_profile_code'; then
+              ready=1
+              break
+            fi
+            sleep 60
+          done
+          test "$ready" = 1
+          old_head="$(git rev-parse "origin/${TARGET_BRANCH}")"
+          git checkout --detach "$old_head"
+          printf '%s' "$old_head" > /tmp/expected-target-head
+
+      - name: Add fail-fast Python vocabulary validation and regression
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          module_path = Path("lineageweave/analysis_run.py")
+          module = module_path.read_text(encoding="utf-8")
+          if "_ALLOWED_OUTPUT_PROFILE_CODES" not in module:
+              anchor = (
+                  "_ALLOWED_RUN_STATUS_CODES = frozenset(\n"
+                  "    {\n"
+                  '        "analysis_run_running",\n'
+                  '        "analysis_run_succeeded",\n'
+                  '        "analysis_run_failed",\n'
+                  "    }\n"
+                  ")\n"
+              )
+              addition = (
+                  "_ALLOWED_OUTPUT_PROFILE_CODES = frozenset(\n"
+                  "    {\n"
+                  '        "analysis_output_aggregate",\n'
+                  '        "analysis_output_aggregate_product",\n'
+                  "    }\n"
+                  ")\n"
+              )
+              if anchor not in module:
+                  raise SystemExit("missing allowed-run-status anchor")
+              module = module.replace(anchor, anchor + addition, 1)
+          if "output_profile_code is not recognized" not in module:
+              anchor = (
+                  '        _require_nonempty("output_profile_code", '
+                  "self.output_profile_code, maximum=128)\n"
+              )
+              addition = (
+                  "        if self.output_profile_code not in "
+                  "_ALLOWED_OUTPUT_PROFILE_CODES:\n"
+                  "            raise AnalysisRunContractError(\n"
+                  '                "output_profile_code is not recognized"\n'
+                  "            )\n"
+              )
+              if anchor not in module:
+                  raise SystemExit("missing output-profile validation anchor")
+              module = module.replace(anchor, anchor + addition, 1)
+          module_path.write_text(module, encoding="utf-8")
+
+          test_path = Path("tests/test_analysis_run_coverage.py")
+          tests = test_path.read_text(encoding="utf-8")
+          regression = '''
+
+          def test_configuration_rejects_unknown_output_profile_code() -> None:
+              with pytest.raises(AnalysisRunContractError, match="not recognized"):
+                  AnalysisRunConfiguration(
+                      0,
+                      True,
+                      True,
+                      True,
+                      "tepp-v1",
+                      "analysis_output_unknown",
+                  )
+          '''.replace("          ", "")
+          if "test_configuration_rejects_unknown_output_profile_code" not in tests:
+              test_path.write_text(tests + regression, encoding="utf-8")
+          PY
+          git diff --check
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Select Rust toolchain
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Verify focused coverage and complete Python/PostgreSQL product
+        run: |
+          set -euo pipefail
+          uv sync --frozen --extra dev --extra backend
+          uv run --frozen coverage erase
+          uv run --frozen coverage run --branch \
+            --source=lineageweave.analysis_run,backend.app.analysis_run_ingestion \
+            -m pytest -q \
+            tests/test_analysis_run.py \
+            tests/test_analysis_run_coverage.py \
+            backend/tests/test_analysis_run_ingestion.py
+          uv run --frozen coverage report --show-missing --fail-under=100
+          uv run --frozen python -m pytest -q tests/test_analysis_run_schema.py
+          uv run --frozen python -m pytest -q
+          uv run --frozen python -m compileall -q backend lineageweave tests
+
+      - name: Commit verified vocabulary guard
+        run: |
+          set -euo pipefail
+          old_head="$(cat /tmp/expected-target-head)"
+          git add -A
+          git diff --cached --check
+          git config user.name "opencode-agent[bot]"
+          git config user.email "1549082+opencode-agent[bot]@users.noreply.github.com"
+          git commit -m "fix(contract): reject unknown analysis output profiles"
+          git push \
+            --force-with-lease="refs/heads/${TARGET_BRANCH}:${old_head}" \
+            origin "HEAD:refs/heads/${TARGET_BRANCH}"
