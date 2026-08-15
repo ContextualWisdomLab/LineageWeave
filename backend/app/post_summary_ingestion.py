@@ -105,6 +105,31 @@ async def persist_post_summary(
     context_text = post_body if post_body is not None else summary.korean_summary
     # Summary replacement also replaces its team/organization projections.
     # Keyman-owned person mentions are intentionally left untouched.
+    async with conn.transaction():
+        await _replace_summary_projection(
+            conn,
+            post_id,
+            summary,
+            context_text,
+            hierarchy_inference_client,
+            verification_client,
+        )
+
+    payload = await fetch_persisted_summary(conn, post_id)
+    if payload is None:
+        raise RuntimeError("persist_post_summary wrote no row")
+    return payload
+
+
+async def _replace_summary_projection(
+    conn: asyncpg.Connection,
+    post_id: str,
+    summary: PostSummary,
+    context_text: str,
+    hierarchy_inference_client: CorporateHierarchyInferenceClient,
+    verification_client: RelationVerificationClient,
+) -> None:
+    """Write one atomic replacement of the stored summary and its mentions."""
     await conn.execute(
         """
         delete from knowledge_graph_edge
@@ -188,11 +213,6 @@ async def persist_post_summary(
                         str(person_row["person_id"]),
                     )
         await persist_edges_for_post(conn, post_id)
-
-    payload = await fetch_persisted_summary(conn, post_id)
-    if payload is None:
-        raise RuntimeError("persist_post_summary wrote no row")
-    return payload
 
 
 def seeded_demo_summary() -> PostSummary:

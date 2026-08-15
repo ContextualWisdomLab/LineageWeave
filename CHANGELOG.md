@@ -8,7 +8,7 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
-- Vision-response parsing now preserves Markdown emphasis in field values
+- Vision-response parsing now strips balanced outer Markdown emphasis from field values
   while still accepting emphasized field labels, so OCR such as
   ``TEXT: **LT7**`` is not truncated.
 - A real live synthetic regression batch run surfaced a genuine
@@ -48,7 +48,8 @@ All notable changes to this project are documented here. Format follows
 - Review hardening verifies complete hierarchy placement, rejects parent
   failures and cycles, propagates canonical affiliations, replaces stale
   actor projections, enforces atomic team identity, validates timezone-aware
-  `xsd:dateTime` literals, and protects referenced provenance rows.
+  `xsd:dateTime` literals (including the XSD `±14:00` offset bound), and
+  protects referenced provenance rows.
 
 ## [0.75.0] - 2026-08-14
 

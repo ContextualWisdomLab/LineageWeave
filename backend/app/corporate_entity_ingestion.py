@@ -5,6 +5,10 @@ Existing similarity matches are reused.  A previously unseen entity is
 created only after inference proposes its complete hierarchy placement
 and external verification corroborates that placement.  Parent failure,
 cycles, and excessive depth all fail closed.  See ADR 0010.
+
+Creation writes take one named Postgres advisory transaction lock
+(``pg_advisory_xact_lock``) after network inference/verification, then
+reload catalog candidates before inserting.  See ADR 0012.
 """
 
 from __future__ import annotations
@@ -29,6 +33,7 @@ from lineageweave.relation_verification import (
 
 _AUTO_CODE_PREFIX = "AUTO-"
 _MAX_HIERARCHY_DEPTH = 4
+_CREATION_LOCK_KEY = "lineageweave:corporate_entity_creation"
 
 
 def _auto_entity_code(organization_name: str) -> str:
@@ -67,6 +72,31 @@ async def _create_entity(
         level_code,
     )
     return str(row["corporate_entity_id"])
+
+
+async def _reload_candidates(conn: asyncpg.Connection) -> list[CorporateEntityCandidate]:
+    """Read every cataloged entity after the creation lock is held."""
+    rows = await conn.fetch("select corporate_entity_id, entity_name from corporate_entity")
+    return [
+        CorporateEntityCandidate(str(row["corporate_entity_id"]), row["entity_name"])
+        for row in rows
+    ]
+
+
+def _remember_candidate(
+    candidates: list[CorporateEntityCandidate],
+    corporate_entity_id: str,
+    entity_name: str,
+) -> None:
+    """Keep the caller's in-memory snapshot aligned with a resolved id."""
+    if any(candidate.corporate_entity_id == corporate_entity_id for candidate in candidates):
+        return
+    candidates.append(
+        CorporateEntityCandidate(
+            corporate_entity_id=corporate_entity_id,
+            entity_name=entity_name,
+        )
+    )
 
 
 async def get_or_create_corporate_entity(
@@ -141,16 +171,23 @@ async def get_or_create_corporate_entity(
         if parent_entity_id is None:
             return None
 
-    new_id = await _create_entity(
-        conn,
-        normalized_name,
-        proposal.level_code,
-        parent_entity_id,
-    )
-    candidates.append(
-        CorporateEntityCandidate(
-            corporate_entity_id=new_id,
-            entity_name=normalized_name,
+    async with conn.transaction():
+        await conn.execute(
+            "select pg_advisory_xact_lock(hashtext($1))",
+            _CREATION_LOCK_KEY,
         )
-    )
-    return new_id
+        fresh_existing_id = resolve_corporate_entity(
+            normalized_name,
+            await _reload_candidates(conn),
+        )
+        if fresh_existing_id is not None:
+            _remember_candidate(candidates, fresh_existing_id, normalized_name)
+            return fresh_existing_id
+        new_id = await _create_entity(
+            conn,
+            normalized_name,
+            proposal.level_code,
+            parent_entity_id,
+        )
+        _remember_candidate(candidates, new_id, normalized_name)
+        return new_id

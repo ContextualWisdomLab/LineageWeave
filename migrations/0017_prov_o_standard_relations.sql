@@ -212,12 +212,13 @@ begin
         end if;
 
         if required_datatype = 'http://www.w3.org/2001/XMLSchema#dateTime' then
+            -- XSD dateTime offsets are Z or ±hh:mm with a maximum of ±14:00.
             if literal_lexical !~ (
                 '^[0-9]{4}-(0[1-9]|1[0-2])-'
                 '(0[1-9]|[12][0-9]|3[01])T'
                 '([01][0-9]|2[0-3]):[0-5][0-9]:'
                 '[0-5][0-9](\.[0-9]+)?'
-                '(Z|[+-](0[0-9]|1[0-4]):[0-5][0-9])$'
+                '(Z|[+-]((0[0-9]|1[0-3]):[0-5][0-9]|14:00))$'
             ) then
                 raise exception 'literal % violates lexical xsd:dateTime for %',
                     new.object_literal_id, new.relation_code;
