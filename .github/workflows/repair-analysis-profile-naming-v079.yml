@@ -1,0 +1,281 @@
+name: Repair analysis profile naming v0.79
+
+on:
+  push:
+    branches:
+      - automation/scrub-milestone2-v079
+    paths:
+      - .github/workflows/repair-analysis-profile-naming-v079.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-analysis-profile-naming-v079
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TARGET_BRANCH: feat/milestone2-analysis-run-contract-v079
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout exact target branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Capture lease and canonicalize field names idempotently
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD > /tmp/expected-target-head
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          paths = [
+              Path("lineageweave/analysis_run.py"),
+              Path("backend/app/analysis_run_ingestion.py"),
+              Path("tests/test_analysis_run.py"),
+              Path("tests/test_analysis_run_coverage.py"),
+              Path("backend/tests/test_analysis_run_ingestion.py"),
+              Path("tests/test_analysis_run_schema.py"),
+              Path("docs/adr/0013-analysis-run-provenance-boundary.md"),
+              Path("docs/superpowers/specs/2026-08-15-milestone2-analysis-run-contract-design.md"),
+              Path("docs/superpowers/plans/2026-08-15-milestone2-analysis-run-contract.md"),
+          ]
+          for path in paths:
+              text = path.read_text(encoding="utf-8")
+              text = re.sub(
+                  r"\boutput_profile(?:_code)+\b",
+                  "output_profile_code",
+                  text,
+              )
+              text = re.sub(
+                  r"\boutput_profile\b",
+                  "output_profile_code",
+                  text,
+              )
+              text = text.replace(
+                  '"aggregate-and-product"',
+                  '"analysis_output_aggregate_product"',
+              )
+              text = text.replace('"aggregate"', '"analysis_output_aggregate"')
+              text = text.replace(
+                  "'aggregate-and-product'",
+                  "'analysis_output_aggregate_product'",
+              )
+              text = text.replace("'aggregate'", "'analysis_output_aggregate'")
+              path.write_text(text, encoding="utf-8")
+
+          module_path = Path("lineageweave/analysis_run.py")
+          module = module_path.read_text(encoding="utf-8")
+          profile_anchor = '_PROFILE_KEY_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]{0,127}$")\n'
+          status_block = (
+              "_ALLOWED_RUN_STATUS_CODES = frozenset(\n"
+              "    {\n"
+              '        "analysis_run_running",\n'
+              '        "analysis_run_succeeded",\n'
+              '        "analysis_run_failed",\n'
+              "    }\n"
+              ")\n"
+          )
+          output_block = (
+              "_ALLOWED_OUTPUT_PROFILE_CODES = frozenset(\n"
+              "    {\n"
+              '        "analysis_output_aggregate",\n'
+              '        "analysis_output_aggregate_product",\n'
+              "    }\n"
+              ")\n"
+          )
+          if "_ALLOWED_RUN_STATUS_CODES" not in module:
+              if profile_anchor not in module:
+                  raise SystemExit("missing profile validation anchor")
+              module = module.replace(profile_anchor, profile_anchor + status_block, 1)
+          if "_ALLOWED_OUTPUT_PROFILE_CODES" not in module:
+              if status_block not in module:
+                  raise SystemExit("missing allowed status block")
+              module = module.replace(status_block, status_block + output_block, 1)
+          if "run_status_code is not recognized" not in module:
+              anchor = '        _require_nonempty("run_status_code", self.run_status_code, maximum=64)\n'
+              if anchor not in module:
+                  raise SystemExit("missing run status anchor")
+              module = module.replace(
+                  anchor,
+                  anchor
+                  + "        if self.run_status_code not in _ALLOWED_RUN_STATUS_CODES:\n"
+                  + '            raise AnalysisRunContractError("run_status_code is not recognized")\n',
+                  1,
+              )
+          if "output_profile_code is not recognized" not in module:
+              anchor = (
+                  '        _require_nonempty("output_profile_code", '
+                  "self.output_profile_code, maximum=128)\n"
+              )
+              if anchor not in module:
+                  raise SystemExit("missing output profile anchor")
+              module = module.replace(
+                  anchor,
+                  anchor
+                  + "        if self.output_profile_code not in _ALLOWED_OUTPUT_PROFILE_CODES:\n"
+                  + "            raise AnalysisRunContractError(\n"
+                  + '                "output_profile_code is not recognized"\n'
+                  + "            )\n",
+                  1,
+              )
+          if "a terminal analysis run requires completed_at" not in module:
+              anchor = (
+                  "        if self.completed_at is not None:\n"
+                  '            _require_aware("completed_at", self.completed_at)\n'
+                  "            if self.completed_at < self.started_at:\n"
+                  "                raise AnalysisRunContractError(\n"
+                  '                    "completed_at must not precede started_at"\n'
+                  "                )\n"
+              )
+              if anchor not in module:
+                  raise SystemExit("missing lifecycle anchor")
+              module = module.replace(
+                  anchor,
+                  anchor
+                  + '        if self.run_status_code == "analysis_run_running":\n'
+                  + "            if self.completed_at is not None:\n"
+                  + "                raise AnalysisRunContractError(\n"
+                  + '                    "a running analysis run must not have completed_at"\n'
+                  + "                )\n"
+                  + "        elif self.completed_at is None:\n"
+                  + "            raise AnalysisRunContractError(\n"
+                  + '                "a terminal analysis run requires completed_at"\n'
+                  + "            )\n",
+                  1,
+              )
+          module_path.write_text(module, encoding="utf-8")
+
+          migration_path = Path("migrations/0018_analysis_run_provenance.sql")
+          migration = migration_path.read_text(encoding="utf-8")
+          migration = re.sub(
+              r"\boutput_profile(?:_code)+\b",
+              "output_profile_code",
+              migration,
+          )
+          migration = re.sub(r"\boutput_profile\b", "output_profile_code", migration)
+          if "analysis_output_aggregate" not in migration:
+              anchor = (
+                  "    ('analysis_artifact_kind', 'analysis_browser_evidence', "
+                  "'Browser acceptance evidence', 30);"
+              )
+              replacement = (
+                  "    ('analysis_artifact_kind', 'analysis_browser_evidence', "
+                  "'Browser acceptance evidence', 30),\n"
+                  "    ('analysis_output_profile', 'analysis_output_aggregate', "
+                  "'Aggregate evidence only', 10),\n"
+                  "    ('analysis_output_profile', "
+                  "'analysis_output_aggregate_product', "
+                  "'Aggregate evidence and product persistence', 20);"
+              )
+              if anchor not in migration:
+                  raise SystemExit("missing migration lookup anchor")
+              migration = migration.replace(anchor, replacement, 1)
+          if "output_profile_code text not null" in migration and "analysis_output_aggregate_product" not in migration.split("output_profile_code text not null", 1)[1]:
+              migration = migration.replace(
+                  "    output_profile_code text not null,\n",
+                  "    output_profile_code text not null\n"
+                  "        references common_lookup_value (lookup_code)\n"
+                  "        check (output_profile_code in (\n"
+                  "            'analysis_output_aggregate',\n"
+                  "            'analysis_output_aggregate_product'\n"
+                  "        )),\n",
+                  1,
+              )
+          migration = migration.replace(
+              "    check (length(btrim(output_profile_code)) between 1 and 128)\n",
+              "",
+          )
+          migration_path.write_text(migration, encoding="utf-8")
+
+          tests_path = Path("tests/test_analysis_run_coverage.py")
+          tests = tests_path.read_text(encoding="utf-8")
+          regression = '''
+
+          def test_configuration_rejects_unknown_output_profile_code() -> None:
+              with pytest.raises(AnalysisRunContractError, match="not recognized"):
+                  AnalysisRunConfiguration(
+                      0,
+                      True,
+                      True,
+                      True,
+                      "tepp-v1",
+                      "analysis_output_unknown",
+                  )
+          '''.replace("          ", "")
+          if "test_configuration_rejects_unknown_output_profile_code" not in tests:
+              tests_path.write_text(tests + regression, encoding="utf-8")
+          PY
+          rm -f \
+            .github/workflows/prepare-milestone2-analysis-run-v079.yml \
+            .github/workflows/verify-milestone2-analysis-run-v079.yml
+          git diff --check
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Select Rust toolchain
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Verify focused coverage and complete Python/PostgreSQL product
+        run: |
+          set -euo pipefail
+          uv sync --frozen --extra dev --extra backend
+          uv run --frozen coverage erase
+          uv run --frozen coverage run --branch \
+            --source=lineageweave.analysis_run,backend.app.analysis_run_ingestion \
+            -m pytest -q \
+            tests/test_analysis_run.py \
+            tests/test_analysis_run_coverage.py \
+            backend/tests/test_analysis_run_ingestion.py
+          uv run --frozen coverage report --show-missing --fail-under=100
+          uv run --frozen python -m pytest -q tests/test_analysis_run_schema.py
+          uv run --frozen python -m pytest -q
+          uv run --frozen python -m compileall -q backend lineageweave tests
+
+      - name: Commit repaired contract with lease protection
+        run: |
+          set -euo pipefail
+          old_head="$(cat /tmp/expected-target-head)"
+          git add -A
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git config user.name "opencode-agent[bot]"
+          git config user.email "1549082+opencode-agent[bot]@users.noreply.github.com"
+          git commit -m "fix(contract): canonicalize analysis profile naming"
+          git push \
+            --force-with-lease="refs/heads/${TARGET_BRANCH}:${old_head}" \
+            origin "HEAD:refs/heads/${TARGET_BRANCH}"
