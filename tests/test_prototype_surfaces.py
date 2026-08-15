@@ -1183,6 +1183,14 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert 'id="popupAppointments"' in react
     assert 'id="periodReports"' in react
     assert 'id="reportDetail"' in react
+    assert "function reportBusinessTitle" in react
+    assert "function reportVerdictLabel" in react
+    assert "function customerTierLabel" in react
+    assert "reportBusinessTitle(report)" in react
+    assert "reportVerdictLabel(report.judge?.verdict)" in react
+    assert "customerTierLabel(account.tier)" in react
+    assert "report.period_kind} · {report.slice_key" not in react
+    assert 'account.tier || "hq"' not in react
     assert 'className="report-document-link"' in react
     assert 'aria-label="RAGAS 평가 지표"' in react
     assert "LLM Judge · RAGAS 지표" in react
@@ -1195,6 +1203,12 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert 'id="metricQueue"' in react
     assert 'id="userHome"' in react
     assert "업무 홈" in react
+    assert "WORKSPACE HOME" not in react
+    assert "RECENT WORK" not in react
+    assert "CUSTOMER MASTER" not in react
+    assert "SOURCE EVIDENCE" not in react
+    assert "CUSTOMER INTELLIGENCE" not in react
+    assert "CUSTOMER ACCOUNT" not in react
     assert "오늘의 고객·업무 인사이트" in react
     assert 'useState("home")' in react
     assert 'const [documentLoadState, setDocumentLoadState] = useState("loading")' in react

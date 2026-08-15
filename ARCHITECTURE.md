@@ -191,6 +191,13 @@ flowchart LR
     lineage-review controls are absent from that session and remain denied by
     the server. Detail assertions wait for the selected document response so
     a slow PostgreSQL read cannot be mistaken for an empty Lineage.
+17a. General-user report cards and customer-tree labels are a presentation
+    boundary, not a data rewrite. The reader maps `weekly`/`monthly`,
+    `pu`/`team`/`project`, Judge verdicts, and customer hierarchy tiers to
+    Korean business vocabulary and hides generated slice identifiers. The
+    raw values remain in the actor-filtered API contract and administrator
+    audit path for traceability; they are not rendered as reader-facing
+    implementation labels.
 18. An administrator may start a bounded LLM enrichment batch through
     `POST /api/admin/enrichment/run` for `keyman`, `product`, `appointments`,
     or `all`, with a hard maximum of 64 documents. Candidate selection uses

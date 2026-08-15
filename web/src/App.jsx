@@ -58,6 +58,33 @@ function keymanStatusLabel(status) {
   }[status] || "확인 필요";
 }
 
+function reportPeriodLabel(periodKind) {
+  return { weekly: "주간", monthly: "월간" }[periodKind] || "기간";
+}
+
+function reportSliceLabel(sliceKind) {
+  return { pu: "PU", team: "팀", project: "프로젝트" }[sliceKind] || "업무 범위";
+}
+
+function reportVerdictLabel(verdict) {
+  return {
+    pass: "검토 완료",
+    fail: "추가 확인",
+    abstain: "판정 보류",
+    unavailable: "평가 대기",
+  }[verdict] || "평가 대기";
+}
+
+function reportBusinessTitle(report) {
+  const title = String(report?.title || "").trim();
+  if (title && !/^(weekly|monthly)\s+(pu|team|project)\b/i.test(title)) return title;
+  return `${reportPeriodLabel(report?.period_kind)} ${reportSliceLabel(report?.slice_kind)} 보고서`;
+}
+
+function customerTierLabel(tier) {
+  return { group: "그룹", national: "법인", hq: "본사", plant: "사업장", team: "팀" }[tier] || "조직";
+}
+
 export default function App() {
   const documentDialog = useRef(null);
   const emailInput = useRef(null);
@@ -964,7 +991,7 @@ export default function App() {
         <section id="userHome" className="user-home">
           <header className="screen-header home-header">
             <div>
-              <p className="eyebrow">WORKSPACE HOME</p>
+              <p className="eyebrow">업무 홈</p>
               <h2>오늘의 고객·업무 인사이트</h2>
               <p className="meta">글의 순서가 아니라 확인된 사건, 고객 관계, 약속과 후속 조치를 중심으로 업무를 시작하세요.</p>
             </div>
@@ -981,23 +1008,23 @@ export default function App() {
           </section>
           <div className="home-columns">
             <section className="home-card" aria-labelledby="homeDocumentsTitle">
-              <div className="home-card-header"><div><p className="eyebrow">RECENT WORK</p><h3 id="homeDocumentsTitle">최근 확인할 글</h3></div><button className="source-button" type="button" onClick={() => setActiveView("workspace")}>전체 보기</button></div>
+              <div className="home-card-header"><div><p className="eyebrow">최근 업무</p><h3 id="homeDocumentsTitle">최근 확인할 글</h3></div><button className="source-button" type="button" onClick={() => setActiveView("workspace")}>전체 보기</button></div>
               <div className="home-list">
                 {documents.slice(0, 6).map((item) => <button className="home-list-item" type="button" key={item.document_no} onClick={() => { setSelectedNo(item.document_no); setActiveView("workspace"); }}><strong>{item.title || item.document_no}</strong><span>{item.document_no} · {item.entity_role || "업무 글"}</span><small>{item.visibility === "public" ? "공개" : "내부"}</small></button>)}
                 {!documents.length ? <p className="empty" role={documentLoadState === "error" ? "alert" : undefined}>{documentLoadState === "loading" ? "업무 글을 불러오는 중입니다." : documentLoadState === "error" ? "업무 글을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." : "현재 권한 범위에서 확인할 업무 글이 없습니다."}</p> : null}
               </div>
             </section>
             <section className="home-card" aria-labelledby="homeCustomersTitle">
-              <div className="home-card-header"><div><p className="eyebrow">CUSTOMER MASTER</p><h3 id="homeCustomersTitle">고객 관계</h3></div><button className="source-button" type="button" onClick={() => setActiveView("customers")}>고객 화면</button></div>
+              <div className="home-card-header"><div><p className="eyebrow">고객 마스터</p><h3 id="homeCustomersTitle">고객 관계</h3></div><button className="source-button" type="button" onClick={() => setActiveView("customers")}>고객 화면</button></div>
               <div className="home-list">
                 {(customerSurface?.accounts || []).slice(0, 6).map((account) => <button className="home-list-item" type="button" key={account.account_name} onClick={() => { setSelectedCustomer(account.account_name); setActiveView("customers"); }}><strong>{account.account_name}</strong><span>{account.parent_name ? `상위 · ${account.parent_name}` : account.entity_role || "고객"}</span><small>근거 {formatNumber(account.document_nos?.length || 0)}건</small></button>)}
                 {!customerSurface?.accounts?.length ? <p className="empty" role={customerLoadState === "error" ? "alert" : undefined}>{customerLoadState === "loading" ? "연결된 고객 정보를 불러오는 중입니다." : customerLoadState === "error" ? "고객 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." : "현재 권한 범위에서 연결된 고객 마스터가 없습니다."}</p> : null}
               </div>
             </section>
             <section className="home-card" aria-labelledby="homeReportsTitle">
-              <div className="home-card-header"><div><p className="eyebrow">REPORTS</p><h3 id="homeReportsTitle">최근 리포트</h3></div><button className="source-button" type="button" onClick={() => setActiveView("workspace")}>리포트 열기</button></div>
+              <div className="home-card-header"><div><p className="eyebrow">업무 리포트</p><h3 id="homeReportsTitle">최근 리포트</h3></div><button className="source-button" type="button" onClick={() => setActiveView("workspace")}>리포트 열기</button></div>
               <div className="home-list">
-                {periodReports.slice(0, 6).map((report) => <button className="home-list-item" type="button" key={report.report_id} onClick={() => { setSelectedReportId(report.report_id); setActiveView("workspace"); }}><strong>{report.title || `${report.period_kind} · ${report.slice_key}`}</strong><span>{report.period_start} ~ {report.period_end}</span><small>{report.judge?.verdict || "평가 대기"} · {formatNumber(report.document_count)}건</small></button>)}
+                {periodReports.slice(0, 6).map((report) => <button className="home-list-item" type="button" key={report.report_id} onClick={() => { setSelectedReportId(report.report_id); setActiveView("workspace"); }}><strong>{reportBusinessTitle(report)}</strong><span>{report.period_start} ~ {report.period_end}</span><small>{reportVerdictLabel(report.judge?.verdict)} · {formatNumber(report.document_count)}건</small></button>)}
                 {!periodReports.length ? <p className="empty">{summary ? "발행된 리포트가 없습니다." : "리포트를 불러오는 중입니다."}</p> : null}
               </div>
             </section>
@@ -1043,16 +1070,16 @@ export default function App() {
               ].filter(Boolean);
               return (
                 <button className={`tree-label report-slice report-button ${selectedReportId === report.report_id ? "selected" : ""}`} data-report-id={report.report_id} key={report.report_id} type="button" aria-pressed={selectedReportId === report.report_id} onClick={() => setSelectedReportId(report.report_id)}>
-                  <strong>{report.period_kind} · {report.slice_kind} {report.slice_key}</strong>
-                  <span>{report.judge?.verdict || "미채점"} · {formatNumber(report.document_count)}건</span>
+                  <strong>{reportBusinessTitle(report)}</strong>
+                  <span>{reportVerdictLabel(report.judge?.verdict)} · {formatNumber(report.document_count)}건</span>
                   {labels.length ? <small className="report-factors"> · {labels.join(" / ")}</small> : null}
                 </button>
               );
             })}
             {!periodReports.length ? <p className="tree-label">리포트 없음</p> : null}
             {selectedReport ? <section id="reportDetail" className="report-detail" aria-live="polite">
-              <div className="report-detail-head"><strong>{selectedReport.title || `${selectedReport.period_kind} ${selectedReport.slice_kind} ${selectedReport.slice_key}`}</strong><button className="close-button" type="button" onClick={() => setSelectedReportId("")} aria-label="리포트 닫기">×</button></div>
-              <p className="meta">{selectedReport.period_start} ~ {selectedReport.period_end} · {selectedReport.slice_kind} · {formatNumber(selectedReport.document_count)}건</p>
+              <div className="report-detail-head"><strong>{reportBusinessTitle(selectedReport)}</strong><button className="close-button" type="button" onClick={() => setSelectedReportId("")} aria-label="리포트 닫기">×</button></div>
+              <p className="meta">{reportPeriodLabel(selectedReport.period_kind)} {reportSliceLabel(selectedReport.slice_kind)} · {selectedReport.period_start} ~ {selectedReport.period_end} · {formatNumber(selectedReport.document_count)}건</p>
               {selectedReport.judge?.rationale ? <p className="report-rationale">{selectedReport.judge.rationale}</p> : null}
               <div className="report-score-list">
                 {(selectedReport.linked_scores || []).map((score) => <p key={score.score_id || `${score.factor_id}-${score.linking_method}`}><strong>{reportFactorLabel(score.factor_id)}</strong><span>θ {Number(score.theta || 0).toFixed(2)} · SE {Number(score.standard_error || 0).toFixed(2)} · {score.linking_method || "linked"}</span></p>)}
@@ -1089,7 +1116,7 @@ export default function App() {
         <dialog id="postPopup" ref={documentDialog} className="document-modal" aria-labelledby="popupTitle" onClose={closeDocument} onMouseDown={(event) => { if (event.target === event.currentTarget) event.currentTarget.close(); }}>
             <header className="modal-header">
               <div>
-                <p className="eyebrow">DOCUMENT DETAIL / {selectedDocument.entity_role || "미분류"}</p>
+                <p className="eyebrow">글 상세 · {selectedDocument.entity_role || "미분류"}</p>
                 <h2 id="popupTitle">{selectedDocument.title_sample || selectedDocument.document_no}</h2>
                 <p className="meta">{selectedDocument.document_no} · {selectedDocument.visibility} · {selectedDocument.corp_code}/{selectedDocument.owner_pu}</p>
               </div>
@@ -1210,20 +1237,20 @@ export default function App() {
                 <ul id="popupAppointments">{(selectedDocument.appointments || []).map((item) => <li className="ticket" key={item.appointment_id}><strong>{item.occurred_on}</strong><span>{item.excerpt || item.label}</span></li>)}</ul>
               </section>
               {canManage ? <section className="detail-card wide modal-keyman-editor"><h3>Keyman 관리</h3><p className="meta">사람은 <code>이름 | 조직 | 직급 | 직책</code>, 기관·팀은 <code>organization | 이름 | 소속 | 직급 | 직책</code> 형식입니다. 기관을 사람 이름으로 입력하지 않으며, 뒤 항목은 생략할 수 있습니다.</p><div className="two-column"><label>사측<textarea value={keymanForm.our} onChange={(event) => setKeymanForm({ ...keymanForm, our: event.target.value })} /></label><label>상대측<textarea value={keymanForm.counterpart} onChange={(event) => setKeymanForm({ ...keymanForm, counterpart: event.target.value })} /></label></div><button className="secondary-button" disabled={busy} onClick={saveKeymen}>Keyman 저장</button></section> : null}
-              {evidence ? <aside id="vocDrawer" className="source-drawer" aria-label="원문 출처"><button className="close-button" onClick={() => setEvidence(null)} aria-label="출처 닫기">×</button><p className="eyebrow">SOURCE EVIDENCE</p><h2>{evidence.title || evidence.evidence_id}</h2><p className="meta">{evidence.event} · {evidence.stage} · {evidence.created_at}</p><dl><dt>법인 / PU</dt><dd>{evidence.corp_code} / {evidence.pu_code}</dd><dt>바이트</dt><dd>{formatNumber(evidence.content_bytes)}</dd><dt>본문 미리보기</dt><dd className="source-preview">{evidence.content_preview || "내용 없음"}</dd></dl></aside> : null}
+              {evidence ? <aside id="vocDrawer" className="source-drawer" aria-label="원문 출처"><button className="close-button" onClick={() => setEvidence(null)} aria-label="출처 닫기">×</button><p className="eyebrow">원문 근거</p><h2>{evidence.title || evidence.evidence_id}</h2><p className="meta">{evidence.event} · {evidence.stage} · {evidence.created_at}</p><dl><dt>법인 / PU</dt><dd>{evidence.corp_code} / {evidence.pu_code}</dd><dt>바이트</dt><dd>{formatNumber(evidence.content_bytes)}</dd><dt>본문 미리보기</dt><dd className="source-preview">{evidence.content_preview || "내용 없음"}</dd></dl></aside> : null}
             </div>
         </dialog>
       ) : null}
       </> : activeView === "customers" ? (
         <section id="customerScreen" className="customer-screen">
           <header className="screen-header">
-            <div><p className="eyebrow">CUSTOMER INTELLIGENCE</p><h2>고객 마스터 · 계열 Tree</h2><p className="meta">확인된 고객·계열 관계를 근거 문서와 함께 살펴봅니다. 근거 없는 관계는 표시하지 않습니다.</p></div>
+            <div><p className="eyebrow">고객 관계 분석</p><h2>고객 마스터 · 계열 Tree</h2><p className="meta">확인된 고객·계열 관계를 근거 문서와 함께 살펴봅니다. 근거 없는 관계는 표시하지 않습니다.</p></div>
             <span className="status-chip">근거 연결</span>
           </header>
           <div className="customer-toolbar"><input aria-label="고객 검색" placeholder="고객사·계열·역할 검색" value={customerFilter} onChange={(event) => setCustomerFilter(event.target.value)} /><span className="meta">{displayCustomerTotal}개 고객</span></div>
           <div className="customer-layout">
             <aside className="customer-list" aria-label="고객 목록">
-              {(customerSurface?.accounts || []).map((account) => <button type="button" className={`customer-item ${selectedCustomer === account.account_name ? "selected" : ""}`} key={account.account_name} onClick={() => setSelectedCustomer(account.account_name)}><strong>{account.account_name}</strong><span>{account.entity_role || "고객"} · {account.tier || "hq"}</span><small>근거 {formatNumber(account.document_nos?.length || 0)}건</small></button>)}
+              {(customerSurface?.accounts || []).map((account) => <button type="button" className={`customer-item ${selectedCustomer === account.account_name ? "selected" : ""}`} key={account.account_name} onClick={() => setSelectedCustomer(account.account_name)}><strong>{account.account_name}</strong><span>{account.entity_role || "고객"} · {customerTierLabel(account.tier)}</span><small>근거 {formatNumber(account.document_nos?.length || 0)}건</small></button>)}
               {!(customerSurface?.accounts || []).length ? <p className="empty">{customerLoadState === "loading" ? "고객 정보를 불러오는 중입니다." : customerLoadState === "error" ? "고객 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." : "인증된 문서에 연결된 고객이 없습니다."}</p> : null}
             </aside>
             <article className="customer-detail">
@@ -1231,8 +1258,8 @@ export default function App() {
                 const account = (customerSurface?.accounts || []).find((item) => item.account_name === selectedCustomer);
                 const children = (customerSurface?.edges || []).filter((edge) => edge.parent === selectedCustomer).map((edge) => edge.child);
                 return account ? <>
-                  <p className="eyebrow">CUSTOMER ACCOUNT</p><h3>{account.account_name}</h3>
-                  <div className="tag-row"><span>{account.entity_role || "고객"}</span><span>{account.tier || "hq"}</span>{account.parent_name ? <span>상위 · {account.parent_name}</span> : null}</div>
+                  <p className="eyebrow">고객 계정</p><h3>{account.account_name}</h3>
+                  <div className="tag-row"><span>{account.entity_role || "고객"}</span><span>{customerTierLabel(account.tier)}</span>{account.parent_name ? <span>상위 · {account.parent_name}</span> : null}</div>
                   <h4>연결 계열</h4><div className="tree-list">{children.length ? children.map((child) => <p key={child}>{account.account_name} → {child}</p>) : <p className="meta">직접 확인된 하위 계열이 없습니다.</p>}</div>
                   <h4>근거 문서</h4><div className="evidence-links">{(account.document_nos || []).map((documentNo) => <button type="button" className="report-document-link" key={documentNo} onClick={() => { setSelectedNo(documentNo); setActiveView("workspace"); }}>{documentNo}</button>)}</div>
                 </> : <p className="empty">{customerLoadState === "loading" ? "고객 상세 정보를 불러오는 중입니다." : customerLoadState === "error" ? "고객 상세 정보를 불러오지 못했습니다." : "왼쪽 고객 목록에서 고객을 선택하세요."}</p>;
@@ -1240,7 +1267,7 @@ export default function App() {
             </article>
             <aside className="customer-tree" role="tree" aria-label="고객 계열 관계">
               <h3>통합 계열 Tree</h3>
-              {customerTreeRows(customerSurface?.accounts, customerSurface?.edges).map(({ account, depth }) => <button type="button" role="treeitem" className={`tree-label customer-tree-node ${selectedCustomer === account.account_name ? "selected" : ""}`} style={{ paddingLeft: `${12 + depth * 16}px` }} aria-level={depth + 1} aria-selected={selectedCustomer === account.account_name} key={account.account_name} onClick={() => setSelectedCustomer(account.account_name)}><strong>{account.account_name}</strong><small>{account.parent_name ? `상위 · ${account.parent_name}` : account.entity_role || "고객"} · {account.tier || "hq"}</small></button>)}
+              {customerTreeRows(customerSurface?.accounts, customerSurface?.edges).map(({ account, depth }) => <button type="button" role="treeitem" className={`tree-label customer-tree-node ${selectedCustomer === account.account_name ? "selected" : ""}`} style={{ paddingLeft: `${12 + depth * 16}px` }} aria-level={depth + 1} aria-selected={selectedCustomer === account.account_name} key={account.account_name} onClick={() => setSelectedCustomer(account.account_name)}><strong>{account.account_name}</strong><small>{account.parent_name ? `상위 · ${account.parent_name}` : account.entity_role || "고객"} · {customerTierLabel(account.tier)}</small></button>)}
               {!(customerSurface?.accounts || []).length ? <p className="meta">{customerLoadState === "loading" ? "계열 관계를 불러오는 중입니다." : "관찰된 계열 관계가 없습니다."}</p> : null}
             </aside>
           </div>
