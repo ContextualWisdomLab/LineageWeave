@@ -1,0 +1,102 @@
+name: PR 74 cleanup and verify
+
+on:
+  push:
+    branches:
+      - feat/role-responsibility-agent-ontology
+    paths:
+      - .github/workflows/pr74-cleanup-and-verify.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr74-cleanup-and-verify
+  cancel-in-progress: false
+
+jobs:
+  verify-and-clean:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout current PR branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/role-responsibility-agent-ontology
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Install locked Python and Rust dependencies
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Verify complete Python and PostgreSQL behavior
+        run: uv run --frozen python -m pytest -q
+
+      - name: Verify Python source integrity
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m compileall -q backend lineageweave tests
+          git diff --check
+
+      - name: Verify frontend lint, tests, and production build
+        working-directory: frontend
+        run: |
+          set -euo pipefail
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+
+      - name: Remove temporary repair workflows and commit
+        run: |
+          set -euo pipefail
+          rm -f \
+            .github/workflows/pr74-final-review-repair.yml \
+            .github/workflows/pr74-final-review-repair-v2.yml \
+            .github/workflows/pr74-final-review-repair-v3.yml \
+            .github/workflows/pr74-cleanup-and-verify.yml
+          git add -A
+          git diff --cached --check
+          git config user.name "opencode-agent[bot]"
+          git config user.email "1549082+opencode-agent[bot]@users.noreply.github.com"
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "ci: remove temporary PR 74 repair workflows"
+          git push origin HEAD:feat/role-responsibility-agent-ontology
