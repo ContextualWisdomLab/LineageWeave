@@ -1,0 +1,441 @@
+name: PR 83 analysis-run registry repair
+
+on:
+  push:
+    branches:
+      - feat/analysis-run-registry-v079
+    paths:
+      - .github/workflows/pr83-analysis-run-registry-repair.yml
+
+permissions: {}
+
+concurrency:
+  group: pr83-analysis-run-registry-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout exact stacked branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/analysis-run-registry-v079
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Reject stale or reordered execution
+        env:
+          EXPECTED_PARENT_SHA: 3906d765b3f782c7cbb7c42b8f94aef56bf5597e
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT_SHA"
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked Python dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Install the committed development environment
+        run: uv sync --frozen --extra dev
+
+      - name: Require a reachable PostgreSQL service
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 30); do
+            pg_isready -h localhost -p 5432 -U postgres && exit 0
+            sleep 2
+          done
+          echo "PostgreSQL is unreachable; the registry contract must not skip." >&2
+          exit 1
+
+      - name: Add temporal and immutability regressions before implementation
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("tests/test_analysis_run_registry_schema.py")
+          text = path.read_text(encoding="utf-8")
+
+          fixture_start = text.index("@pytest.fixture\ndef registry_db():")
+          connection_start = text.index(
+              "        connection = psycopg2.connect(_database_dsn(database_name))",
+              fixture_start,
+          )
+          connection_close = text.index("        connection.close()", connection_start)
+          connection_end = connection_close + len("        connection.close()")
+          connection_block = '''        connection = psycopg2.connect(_database_dsn(database_name))
+          try:
+              connection.autocommit = True
+              with connection.cursor() as cursor:
+                  cursor.execute(_INITIAL_MIGRATION.read_text(encoding="utf-8"))
+                  cursor.execute(_REGISTRY_MIGRATION.read_text(encoding="utf-8"))
+              yield connection
+          finally:
+              connection.close()'''
+          text = text[:connection_start] + connection_block + text[connection_end:]
+
+          helper_start = text.index("def _insert_snapshot(cursor) -> str:")
+          helper_end = text.index(
+              "\n\ndef test_registry_persists_normalized_snapshot_scope_and_status",
+              helper_start,
+          )
+          helper = '''def _insert_snapshot(cursor) -> str:
+              """Insert one synthetic immutable snapshot and return its identifier."""
+              cursor.execute(
+                  """
+                  insert into analysis_source_snapshot
+                      (snapshot_sha256, source_contract_version, knowledge_cutoff,
+                       maximum_available_time, captured_at)
+                  values (%s, %s, %s, %s, %s)
+                  returning analysis_source_snapshot_id
+                  """,
+                  (
+                      "a" * 64,
+                      "source-contract-v1",
+                      "2026-08-15T00:00:00Z",
+                      "2026-08-14T23:59:00Z",
+                      "2026-08-15T01:00:00Z",
+                  ),
+              )
+              return str(cursor.fetchone()[0])'''
+          text = text[:helper_start] + helper + text[helper_end:]
+
+          marker = "def test_registry_persists_normalized_snapshot_scope_and_status(registry_db) -> None:\n"
+          if text.count(marker) != 1:
+              raise SystemExit("expected one registry persistence test marker")
+          regressions = '''def test_snapshot_temporal_boundary_blocks_future_information(registry_db) -> None:
+              """Availability, not capture order, is the historical leakage boundary."""
+              assert psycopg2 is not None
+              with registry_db.cursor() as cursor:
+                  with pytest.raises(psycopg2.errors.CheckViolation):
+                      cursor.execute(
+                          """
+                          insert into analysis_source_snapshot
+                              (snapshot_sha256, source_contract_version, knowledge_cutoff,
+                               maximum_available_time, captured_at)
+                          values (%s, 'source-contract-v1',
+                                  '2026-08-15T00:00:00Z',
+                                  '2026-08-15T00:00:01Z',
+                                  '2026-08-15T01:00:00Z')
+                          """,
+                          ("b" * 64,),
+                      )
+                  with pytest.raises(psycopg2.errors.CheckViolation):
+                      cursor.execute(
+                          """
+                          insert into analysis_source_snapshot
+                              (snapshot_sha256, source_contract_version, knowledge_cutoff,
+                               maximum_available_time, captured_at)
+                          values (%s, 'source-contract-v1',
+                                  '2026-08-15T02:00:00Z',
+                                  '2026-08-15T01:00:00Z',
+                                  '2026-08-15T00:59:59Z')
+                          """,
+                          ("c" * 64,),
+                      )
+                  cursor.execute(
+                      """
+                      insert into analysis_source_snapshot
+                          (snapshot_sha256, source_contract_version, knowledge_cutoff,
+                           maximum_available_time, captured_at)
+                      values (%s, 'source-contract-v1',
+                              '2026-08-15T02:00:00Z',
+                              '2026-08-15T00:30:00Z',
+                              '2026-08-15T01:00:00Z')
+                      returning analysis_source_snapshot_id
+                      """,
+                      ("d" * 64,),
+                  )
+                  assert cursor.fetchone()[0] is not None
+
+
+          def test_snapshot_counts_freeze_when_a_run_references_them(registry_db) -> None:
+              """Immutable evidence cannot be rewritten after or during derivation."""
+              assert psycopg2 is not None
+              with registry_db.cursor() as cursor:
+                  snapshot_id = _insert_snapshot(cursor)
+                  cursor.execute(
+                      """
+                      insert into analysis_source_count
+                          (analysis_source_snapshot_id, count_type_code, count_value)
+                      values (%s, 'analysis_count_document', 12)
+                      """,
+                      (snapshot_id,),
+                  )
+                  with pytest.raises(psycopg2.errors.RaiseException):
+                      cursor.execute(
+                          """
+                          update analysis_source_snapshot
+                             set source_contract_version = 'rewritten'
+                           where analysis_source_snapshot_id = %s
+                          """,
+                          (snapshot_id,),
+                      )
+                  with pytest.raises(psycopg2.errors.RaiseException):
+                      cursor.execute(
+                          """
+                          update analysis_source_count
+                             set count_value = 13
+                           where analysis_source_snapshot_id = %s
+                          """,
+                          (snapshot_id,),
+                      )
+                  cursor.execute(
+                      """
+                      insert into analysis_run
+                          (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                           configuration_schema_version, configuration_sha256,
+                           code_revision_sha)
+                      values (%s, 'analysis_run_lineage', 'freeze-evidence',
+                              'lineage-run-v1', %s, %s)
+                      """,
+                      (snapshot_id, "e" * 64, "f" * 40),
+                  )
+                  with pytest.raises(psycopg2.errors.RaiseException):
+                      cursor.execute(
+                          """
+                          insert into analysis_source_count
+                              (analysis_source_snapshot_id, count_type_code, count_value)
+                          values (%s, 'analysis_count_thread', 8)
+                          """,
+                          (snapshot_id,),
+                      )
+                  with pytest.raises(psycopg2.errors.RaiseException):
+                      cursor.execute(
+                          """
+                          delete from analysis_source_count
+                           where analysis_source_snapshot_id = %s
+                             and count_type_code = 'analysis_count_document'
+                          """,
+                          (snapshot_id,),
+                      )
+
+
+          '''
+          text = text.replace(marker, regressions + marker, 1)
+          path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Prove the missing temporal contract is red
+        run: |
+          set -euo pipefail
+          set +e
+          uv run --frozen python -m pytest -q \
+            tests/test_analysis_run_registry_schema.py \
+            -k 'snapshot_temporal_boundary_blocks_future_information or snapshot_counts_freeze_when_a_run_references_them' \
+            > /tmp/pr83-red.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/pr83-red.log
+          test "$status" -ne 0
+          grep -Eq 'maximum_available_time|UndefinedColumn|does not exist' /tmp/pr83-red.log
+
+      - name: Implement temporal eligibility and immutable snapshot evidence
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          migration_path = Path("migrations/0018_analysis_run_registry.sql")
+          migration = migration_path.read_text(encoding="utf-8")
+          table_start = migration.index("create table if not exists analysis_source_snapshot (")
+          table_end = migration.index("\n\ncomment on table analysis_source_snapshot", table_start)
+          snapshot_table = '''create table if not exists analysis_source_snapshot (
+              analysis_source_snapshot_id uuid primary key default uuid_generate_v4(),
+              snapshot_sha256 text not null unique,
+              source_contract_version text not null,
+              knowledge_cutoff timestamptz not null,
+              maximum_available_time timestamptz not null,
+              captured_at timestamptz not null,
+              created_at timestamptz not null default now(),
+              constraint analysis_source_snapshot_digest_check
+                  check (snapshot_sha256 ~ '^[0-9a-f]{64}$'),
+              constraint analysis_source_snapshot_contract_check
+                  check (length(btrim(source_contract_version)) between 1 and 128),
+              constraint analysis_source_snapshot_leakage_check
+                  check (maximum_available_time <= knowledge_cutoff),
+              constraint analysis_source_snapshot_capture_check
+                  check (maximum_available_time <= captured_at)
+          );'''
+          migration = migration[:table_start] + snapshot_table + migration[table_end:]
+
+          snapshot_comment = """comment on table analysis_source_snapshot is
+              'Immutable identity and temporal eligibility boundary for one source snapshot; no source text or source-table name is stored.';"""
+          snapshot_guard = snapshot_comment + '''
+
+          create or replace function reject_analysis_source_snapshot_update()
+          returns trigger
+          language plpgsql
+          as $$
+          begin
+              raise exception 'analysis_source_snapshot_is_immutable';
+          end
+          $$;
+
+          drop trigger if exists analysis_source_snapshot_update_reject
+              on analysis_source_snapshot;
+          create trigger analysis_source_snapshot_update_reject
+          before update on analysis_source_snapshot
+          for each row execute function reject_analysis_source_snapshot_update();'''
+          if migration.count(snapshot_comment) != 1:
+              raise SystemExit("expected one source snapshot comment")
+          migration = migration.replace(snapshot_comment, snapshot_guard, 1)
+
+          count_comment = """comment on table analysis_source_count is
+              'One normalized aggregate count per snapshot and count vocabulary; values are aggregate acceptance evidence, not source records.';"""
+          count_guard = count_comment + '''
+
+          create or replace function reject_analysis_source_count_update()
+          returns trigger
+          language plpgsql
+          as $$
+          begin
+              raise exception 'analysis_source_count_is_immutable';
+          end
+          $$;
+
+          drop trigger if exists analysis_source_count_update_reject
+              on analysis_source_count;
+          create trigger analysis_source_count_update_reject
+          before update on analysis_source_count
+          for each row execute function reject_analysis_source_count_update();'''
+          if migration.count(count_comment) != 1:
+              raise SystemExit("expected one source count comment")
+          migration = migration.replace(count_comment, count_guard, 1)
+
+          run_comment = """comment on table analysis_run is
+              'One idempotent analysis request bound to a source snapshot and reproducibility digests; current state is derived from status events.';"""
+          freeze_guard = run_comment + '''
+
+          create or replace function enforce_analysis_source_count_freeze()
+          returns trigger
+          language plpgsql
+          as $$
+          declare
+              affected_snapshot_id uuid;
+          begin
+              if tg_op = 'DELETE' then
+                  affected_snapshot_id := old.analysis_source_snapshot_id;
+              else
+                  affected_snapshot_id := new.analysis_source_snapshot_id;
+              end if;
+
+              if exists (
+                  select 1
+                    from analysis_run
+                   where analysis_source_snapshot_id = affected_snapshot_id
+              ) then
+                  raise exception 'analysis_source_count_frozen_after_run';
+              end if;
+
+              if tg_op = 'DELETE' then
+                  return old;
+              end if;
+              return new;
+          end
+          $$;
+
+          drop trigger if exists analysis_source_count_freeze_guard
+              on analysis_source_count;
+          create trigger analysis_source_count_freeze_guard
+          before insert or delete on analysis_source_count
+          for each row execute function enforce_analysis_source_count_freeze();'''
+          if migration.count(run_comment) != 1:
+              raise SystemExit("expected one analysis run comment")
+          migration = migration.replace(run_comment, freeze_guard, 1)
+          migration_path.write_text(migration, encoding="utf-8")
+
+          rollback_path = Path("migrations/rollback/0018_analysis_run_registry.sql")
+          rollback = rollback_path.read_text(encoding="utf-8")
+          anchor = "drop function if exists reject_analysis_run_status_mutation();"
+          replacement = """drop function if exists reject_analysis_run_status_mutation();
+          drop function if exists enforce_analysis_source_count_freeze();
+          drop function if exists reject_analysis_source_count_update();
+          drop function if exists reject_analysis_source_snapshot_update();"""
+          if rollback.count(anchor) != 1:
+              raise SystemExit("expected one rollback function anchor")
+          rollback_path.write_text(rollback.replace(anchor, replacement, 1), encoding="utf-8")
+
+          adr_path = Path("docs/adr/0013-normalized-analysis-run-registry.md")
+          adr = adr_path.read_text(encoding="utf-8")
+          adr = adr.replace(
+              "        timestamptz knowledge_cutoff\n        timestamptz captured_at",
+              "        timestamptz knowledge_cutoff\n        timestamptz maximum_available_time\n        timestamptz captured_at",
+              1,
+          )
+          old_decision = "1. `analysis_source_snapshot` identifies one immutable source snapshot by SHA-256 and separates `knowledge_cutoff` from later capture time. The constraint `knowledge_cutoff <= captured_at` prevents a snapshot from claiming evidence was captured before the analysis was allowed to know it."
+          new_decision = "1. `analysis_source_snapshot` identifies one immutable source snapshot by SHA-256 and separates `maximum_available_time`, `knowledge_cutoff`, and capture time. `maximum_available_time <= knowledge_cutoff` prevents future-information leakage, while `maximum_available_time <= captured_at` proves that every admitted fact could have existed in the captured snapshot. Capture may legitimately precede a later analysis cutoff."
+          if adr.count(old_decision) != 1:
+              raise SystemExit("expected one temporal decision paragraph")
+          adr = adr.replace(old_decision, new_decision, 1)
+          old_count = "2. `analysis_source_count` stores one non-negative aggregate per count vocabulary. Counts are not repeated in a run row or metadata JSON."
+          new_count = "2. `analysis_source_count` stores one non-negative aggregate per count vocabulary. Snapshot rows and existing counts reject updates, and the complete count set freezes when the first `analysis_run` references the snapshot. Counts are not repeated in a run row or metadata JSON."
+          if adr.count(old_count) != 1:
+              raise SystemExit("expected one count decision paragraph")
+          adr = adr.replace(old_count, new_count, 1)
+          old_verify = "- Real PostgreSQL tests apply the current product schema plus migration 0018, replay the migration, exercise valid snapshot/run/scope/status writes, and reject malformed digests, negative counts, duplicate idempotency, incoherent scopes, incomplete failure events, and status mutation."
+          new_verify = "- Real PostgreSQL tests apply the current product schema plus migration 0018, replay the migration, exercise valid snapshot/run/scope/status writes, and reject future-information leakage, post-derivation snapshot/count mutation, malformed digests, negative counts, duplicate idempotency, incoherent scopes, incomplete failure events, and status mutation."
+          if adr.count(old_verify) != 1:
+              raise SystemExit("expected one verification paragraph")
+          adr_path.write_text(adr.replace(old_verify, new_verify, 1), encoding="utf-8")
+
+          old_changelog = Path("CHANGELOG.d/0.78.0-analysis-run-registry.md")
+          new_changelog = Path("CHANGELOG.d/0.79.0-analysis-run-registry.md")
+          changelog = old_changelog.read_text(encoding="utf-8")
+          changelog = changelog.replace(
+              "# 0.78.0 — Normalized analysis-run registry",
+              "# 0.79.0 — Normalized analysis-run registry",
+              1,
+          )
+          changelog = changelog.replace(
+              "- Adds database constraints for hash shape, temporal cutoff, supported lookup\n  codes, non-negative counts, mutually exclusive scopes, bounded failure codes,\n  and status immutability.\n",
+              "- Adds database constraints for hash shape, evidence availability at the\n  knowledge cutoff, capture eligibility, supported lookup codes, non-negative\n  counts, mutually exclusive scopes, bounded failure codes, snapshot/count\n  immutability, and post-derivation count-set freezing.\n",
+              1,
+          )
+          new_changelog.write_text(changelog, encoding="utf-8")
+          old_changelog.unlink()
+          PY
+
+      - name: Verify the exact PostgreSQL and documentation contracts
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m pytest -q tests/test_analysis_run_registry_schema.py
+          uv run --frozen python -m pytest -q tests/test_documentation_hygiene.py
+          uv run --frozen python -m compileall -q lineageweave backend tests
+          git diff --check
+
+      - name: Commit the verified repair and remove this workflow
+        run: |
+          set -euo pipefail
+          rm .github/workflows/pr83-analysis-run-registry-repair.yml
+          git add -A
+          git diff --cached --check
+          git config user.name "opencode-agent[bot]"
+          git config user.email "1549082+opencode-agent[bot]@users.noreply.github.com"
+          git commit -m "fix(db): freeze temporal analysis evidence (v0.79.0)"
+          git push origin HEAD:feat/analysis-run-registry-v079
