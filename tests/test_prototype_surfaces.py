@@ -1185,15 +1185,22 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert 'id="reportDetail"' in react
     assert "function reportBusinessTitle" in react
     assert "function reportVerdictLabel" in react
+    assert "function reportLinkingLabel" in react
+    assert "function reportJudgeSourceLabel" in react
     assert "function customerTierLabel" in react
     assert "reportBusinessTitle(report)" in react
     assert "reportVerdictLabel(report.judge?.verdict)" in react
+    assert "reportLinkingLabel(score.linking_method)" in react
+    assert "reportJudgeSourceLabel(selectedReport.judge?.source)" in react
     assert "customerTierLabel(account.tier)" in react
     assert "report.period_kind} · {report.slice_key" not in react
     assert 'account.tier || "hq"' not in react
     assert 'className="report-document-link"' in react
-    assert 'aria-label="RAGAS 평가 지표"' in react
-    assert "LLM Judge · RAGAS 지표" in react
+    assert 'aria-label="리포트 품질 평가 지표"' in react
+    assert "품질 평가 지표" in react
+    assert "LLM Judge · RAGAS 지표" not in react
+    assert "selectedReport.judge?.source ||" not in react
+    assert 'score.linking_method || "linked"' not in react
     assert "reportMetricLabels" in react
     assert 'className="report-metric"' in react
     assert 'className="report-metric-evidence"' in react

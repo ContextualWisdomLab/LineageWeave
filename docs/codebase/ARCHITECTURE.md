@@ -92,10 +92,10 @@ facts in that order before inserting the new normalized projection, including
 when the live LLM abstains. A payload without that boundary does not alter the
 customer projection. Reader vocabulary hides raw implementation provenance and
 uses business terms for evidence, visibility, report periods, Judge verdicts,
-and customer hierarchy tiers; administrator/audit routes retain source fields
-for operational diagnosis. Generated report slice identifiers are not shown
-in the reader title, while the normalized report/API values remain available
-for traceability.
+score-linking/source codes, and customer hierarchy tiers; administrator/audit
+routes retain source fields for operational diagnosis. Generated report slice
+identifiers are not shown in the reader title, while the normalized
+report/API values remain available for traceability.
 
 ## Container and workflow supply-chain boundary
 

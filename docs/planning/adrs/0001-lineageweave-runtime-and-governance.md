@@ -4210,12 +4210,15 @@ and the post-change Scorecard, Trivy, and Semgrep checks.
 The direct-PostgreSQL browser review found that a reader could see generated
 report titles such as `weekly project <identifier>`, Judge verdict codes such
 as `pass`/`fail`, and customer hierarchy storage tiers such as `group`, `hq`,
-and `plant`. Those are useful persistence and audit values, but they are not
-an appropriate product language for a general user. The React reader now maps
-period and scope to `주간`/`월간` and `PU`/`팀`/`프로젝트`, maps Judge outcomes
-to `검토 완료`/`추가 확인`/`판정 보류`/`평가 대기`, and maps hierarchy to
-`그룹`/`법인`/`본사`/`사업장`/`팀`. Generated slice identifiers are omitted
-from reader titles.
+and `plant`. A report detail also exposed score-linking/source codes and
+technical `θ`/`SE` notation. Those are useful persistence and audit values,
+but they are not an appropriate product language for a general user. The
+React reader now maps period and scope to `주간`/`월간` and
+`PU`/`팀`/`프로젝트`, maps Judge outcomes to `검토 완료`/`추가 확인`/
+`판정 보류`/`평가 대기`, translates score-linking/source codes to business
+labels, and maps hierarchy to `그룹`/`법인`/`본사`/`사업장`/`팀`.
+Generated slice identifiers are omitted from reader titles, and report detail
+uses Korean score/오차 labels rather than implementation notation.
 
 This is presentation-only: PostgreSQL normalization, actor-filtered API
 payloads, report identifiers, and administrator audit data remain unchanged.
