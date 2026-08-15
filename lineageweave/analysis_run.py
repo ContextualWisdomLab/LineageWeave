@@ -26,9 +26,6 @@ _RUN_STATUS_CODES = frozenset(
         "analysis_run_failed",
     }
 )
-_TERMINAL_RUN_STATUS_CODES = frozenset(
-    {"analysis_run_succeeded", "analysis_run_failed"}
-)
 
 
 class AnalysisRunContractError(ValueError):
@@ -342,7 +339,7 @@ class AnalysisRunSummary:
                 raise AnalysisRunContractError(
                     "a running run cannot have completed_at"
                 )
-        elif self.run_status_code in _TERMINAL_RUN_STATUS_CODES:
+        else:
             if self.completed_at is None:
                 raise AnalysisRunContractError(
                     "a terminal run requires completed_at"
