@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Removed raw `public`/`private` visibility codes from the general-user home
+  and document popup. Readers now see `공개`/`내부`, with an explicit unknown
+  state when the storage value is not recognized.
 - Corrected the reader Lineage empty-transition state: a document with no
   observed event transition is now labeled `독립 관측` and shows no connector,
   so an unrelated search result cannot appear to be chronologically linked.

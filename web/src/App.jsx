@@ -13,6 +13,7 @@ import {
   sideLabel,
   sideRows,
   sideText,
+  visibilityLabel,
 } from "./ui-model.js";
 
 async function api(path, options = {}) {
@@ -1113,7 +1114,7 @@ export default function App() {
             <section className="home-card" aria-labelledby="homeDocumentsTitle">
               <div className="home-card-header"><div><p className="eyebrow">최근 업무</p><h3 id="homeDocumentsTitle">최근 확인할 글</h3></div><button className="source-button" type="button" onClick={() => setActiveView("workspace")}>전체 보기</button></div>
               <div className="home-list">
-                {documents.slice(0, 6).map((item) => <button className="home-list-item" type="button" key={item.document_no} onClick={() => { setSelectedNo(item.document_no); setActiveView("workspace"); }}><strong>{item.title || item.document_no}</strong><span>{item.document_no} · {item.entity_role || "업무 글"}</span><small>{item.visibility === "public" ? "공개" : "내부"}</small></button>)}
+                {documents.slice(0, 6).map((item) => <button className="home-list-item" type="button" key={item.document_no} onClick={() => { setSelectedNo(item.document_no); setActiveView("workspace"); }}><strong>{item.title || item.document_no}</strong><span>{item.document_no} · {item.entity_role || "업무 글"}</span><small>{visibilityLabel(item.visibility)}</small></button>)}
                 {!documents.length ? <p className="empty" role={documentLoadState === "error" ? "alert" : undefined}>{documentLoadState === "loading" ? "업무 글을 불러오는 중입니다." : documentLoadState === "error" ? "업무 글을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." : "현재 권한 범위에서 확인할 업무 글이 없습니다."}</p> : null}
               </div>
             </section>
@@ -1221,7 +1222,7 @@ export default function App() {
               <div>
                 <p className="eyebrow">글 상세 · {selectedDocument.entity_role || "미분류"}</p>
                 <h2 id="popupTitle">{selectedDocument.title_sample || selectedDocument.document_no}</h2>
-                <p className="meta">{selectedDocument.document_no} · {selectedDocument.visibility} · {selectedDocument.corp_code}/{selectedDocument.owner_pu}</p>
+                <p className="meta">{selectedDocument.document_no} · {visibilityLabel(selectedDocument.visibility)} · {selectedDocument.corp_code}/{selectedDocument.owner_pu}</p>
               </div>
               <button className="close-button" onClick={() => documentDialog.current?.close()} aria-label="닫기">×</button>
             </header>

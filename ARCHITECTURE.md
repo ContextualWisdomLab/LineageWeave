@@ -550,3 +550,8 @@ reader detail uses an explicit independent-observation state and renders no
 chronological connector. Inferred or predicted relatedness remains a separate
 panel. This keeps the visual DAG faithful to evidence instead of using the
 selected document itself as implicit proof of a transition.
+
+Reader-facing visibility is likewise a vocabulary projection: storage values
+are rendered as `공개`, `내부`, or an explicit unknown-state label. API and
+administrator boundaries retain the original value for authorization and
+audit; the reader does not need to understand persistence codes.

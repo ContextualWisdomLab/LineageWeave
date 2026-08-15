@@ -4392,3 +4392,15 @@ alter the observed `row_successor` facts. The direct-data browser acceptance
 confirmed a one-node/no-observed-edge result for the affected state, while the
 React static contract and production build cover the explicit no-transition
 copy.
+
+## Amendment: reader visibility vocabulary (2026-08-15)
+
+The document popup header and reader home now translate persisted visibility
+codes through one presentation helper: `public` becomes `공개`, `private`
+becomes `내부`, and an unknown value becomes `공개 범위 확인`. Raw storage
+codes remain available to the authorized API and administrator mutation
+surface, but do not leak into the business reader experience. The underlying
+ABAC decision and visibility mutation semantics are unchanged.
+
+Evidence: `visibilityLabel`, the reader home/document-popup React surface
+contract, React V8 100% coverage, and the production build.

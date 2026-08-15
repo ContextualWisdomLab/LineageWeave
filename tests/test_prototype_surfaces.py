@@ -702,6 +702,7 @@ def test_event_lineage_separates_observed_order_from_relatedness() -> None:
     assert "산업별" in react
     assert "영업 Lead" in react
     assert "report-factors" in react
+    assert "visibilityLabel(selectedDocument.visibility)" in react
 
 
 def test_event_chat_cites_ontology_or_semantic_layer_identifier() -> None:

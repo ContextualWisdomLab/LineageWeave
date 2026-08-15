@@ -79,6 +79,10 @@ export function formatNumber(value) {
   return Number(value || 0).toLocaleString("ko-KR");
 }
 
+export function visibilityLabel(value) {
+  return { public: "공개", private: "내부" }[String(value || "").trim().toLowerCase()] || "공개 범위 확인";
+}
+
 export function lineageRelationLabel(value) {
   const relation = String(value || "").trim();
   return relation === "shared_thread_identifier" ? "같은 스레드 단서" : relation || "관련성";

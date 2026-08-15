@@ -16,6 +16,7 @@ import {
   sideLabel,
   sideRows,
   sideText,
+  visibilityLabel,
 } from "./ui-model.js";
 
 describe("emailValidationMessage", () => {
@@ -70,6 +71,10 @@ describe("safe view values", () => {
   it("formats values and restricts previewable assets", () => {
     expect(formatNumber()).toBe("0");
     expect(formatNumber(12345)).toBe("12,345");
+    expect(visibilityLabel("public")).toBe("공개");
+    expect(visibilityLabel("PRIVATE")).toBe("내부");
+    expect(visibilityLabel("unknown")).toBe("공개 범위 확인");
+    expect(visibilityLabel()).toBe("공개 범위 확인");
     expect(isInspectableAsset()).toBe(false);
     expect(isInspectableAsset({ inspection_eligible: 1 })).toBe(true);
     expect(canPreviewAsset()).toBe(false);

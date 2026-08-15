@@ -522,6 +522,12 @@ try {
     );
     const modal = page.locator(".document-modal");
     await modal.waitFor({ timeout: 180_000 });
+    const popupVisibilityMeta = await modal.locator(".modal-header .meta").textContent();
+    const rawVisibility = String(detailPayload.document?.visibility || "").trim().toLowerCase();
+    const expectedVisibilityLabel = ({ public: "공개", private: "내부" })[rawVisibility] || "공개 범위 확인";
+    assert.ok(popupVisibilityMeta?.includes(expectedVisibilityLabel));
+    assert.ok(!popupVisibilityMeta?.includes(`· ${detailPayload.document?.visibility} ·`));
+    result.popup_visibility = expectedVisibilityLabel;
     const expectedLineageNodes = Math.max(1, detailPayload.event_lineage?.beads?.length || 0);
     const expectedRelatedness = detailPayload.event_lineage?.relatedness || [];
     const expectedObservedEdges = (detailPayload.event_lineage?.beads || []).filter(
