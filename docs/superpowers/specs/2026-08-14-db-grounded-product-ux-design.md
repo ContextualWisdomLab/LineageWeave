@@ -4,7 +4,10 @@
 **Date:** 2026-08-14  
 **Figma:** `https://www.figma.com/design/UpjgFQEu4u2Kr2hmyorAqe`  
 **Canonical Figma page:** `DB-grounded UX`  
-**Superseded concepts:** `Archive — superseded drafts`
+**Canonical Figma page node:** `9:2`  
+**Superseded concepts:** `Archive — superseded drafts`  
+**Archive Figma page node:** `0:1`  
+**Last contract synchronization:** `2026-08-15`
 
 ## Goal
 
@@ -23,6 +26,25 @@ The approved product has two clearly separated surfaces:
 The design does not make the relational schema visible merely for debugging.
 It uses the schema to determine which nouns, actions, cardinalities, and
 explanations are truthful.
+
+## Figma synchronization contract
+
+The six-screen `DB-grounded UX` page is the only implementation baseline. The
+older three-screen concept and every deferred surface remain on
+`Archive — superseded drafts` so a visually persuasive mockup cannot silently
+become a product claim.
+
+- Graph change history, the PROV-O product explorer, and access audit remain archived
+  until normalized persistence, authorized APIs, and regression contracts make
+  each surface truthful.
+- The canonical role vocabulary is `viewer` and `admin`; Figma does not fabricate an `Analyst` role.
+- Direct lineage remains a plausible parent-child reconstruction, never a causal claim.
+- The Records, Record Detail, Entity Catalog, Calendar and Reports, Accounts and
+  Access, and Roles and read-only System Policy screens stay synchronized with
+  the cardinality, authorization, evidence, and accessibility requirements in
+  this document.
+- Any Figma change that alters a noun, action, relation, role, or state must
+  update this specification and its contract tests in the same pull request.
 
 ## Primary invariant: DB cardinality is the interaction contract
 
