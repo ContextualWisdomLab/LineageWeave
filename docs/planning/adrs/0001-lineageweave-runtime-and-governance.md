@@ -4311,3 +4311,32 @@ Evidence: `adminDocuments`, `adminDocumentFilter`, and
 `loadMoreAdminDocuments` in `web/src/App.jsx`; the React surface contract;
 the administrator browser contract in `web/e2e/lineageweave.mjs`; and the
 direct `/api/documents` authorization boundary.
+
+## Amendment: customer relationship evidence display (2026-08-15)
+
+The customer screen previously showed a persisted parent-child affiliate edge
+as a plain name pair. Although the server had already required an authorized
+account-to-document intersection before returning that edge, the UI did not
+make the evidence visible to the business user. This weakened trust in the
+customer master and made an LLM-derived hierarchy look like an unexplained
+label mapping.
+
+The customer detail now renders each returned edge with three bounded facts:
+the normalized semantic relation, a business-readable derivation label, and
+the count plus identifiers of its authorized source documents. Each source
+identifier is an existing document action and re-enters the actor-scoped
+workspace; it does not read raw content in the customer screen. The API's
+account-to-document intersection remains the only eligibility rule, and the
+browser does not infer descendants, create ontology assertions, or promote a
+customer edge to an observed event transition.
+
+This is a presentation improvement over the existing normalized
+`analysis_customer_accounts`, `analysis_customer_affiliates`, and
+`analysis_customer_document_links` relations. The semantic mapping remains
+`schema:Organization` for the entity, `schema:subOrganization` for the
+affiliate relation, and `schema:about` for document evidence. The source label
+is not a new ontology predicate and cannot override an evidence assertion.
+
+Evidence: `customerRelationSourceLabel`, the customer-detail relation cards,
+the `edge.document_nos` source actions, `TRACEABILITY.md`, and the direct
+PostgreSQL browser/React verification on 2026-08-15.

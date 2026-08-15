@@ -1145,6 +1145,9 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert 'chat_source' in browser_check
     assert 'fetch("/api/admin/lineage/edges?limit=3"' in browser_check
     assert "payload?.items?.length || 0" in browser_check
+    assert "edge_parent" in browser_check
+    assert "customerRelationEvidenceLinkCount" in browser_check
+    assert "the customer relation rendered no source-document link" in browser_check
     assert '계정별 권한 편집' in browser_check
     assert "navigator.credentials.create" not in react
     assert "window.PublicKeyCredential" not in react
@@ -1191,12 +1194,16 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert "function reportLinkingLabel" in react
     assert "function reportJudgeSourceLabel" in react
     assert "function customerTierLabel" in react
+    assert "function customerRelationSourceLabel" in react
     assert "report?.slice_label" in react
     assert "reportBusinessTitle(report)" in react
     assert "reportVerdictLabel(report.judge?.verdict)" in react
     assert "reportLinkingLabel(score.linking_method)" in react
     assert "reportJudgeSourceLabel(selectedReport.judge?.source)" in react
     assert "customerTierLabel(account.tier)" in react
+    assert "customerRelationSourceLabel(edge.source)" in react
+    assert "edge.document_nos.map" in react
+    assert "의미 관계:" in react
     assert "report.period_kind} · {report.slice_key" not in react
     assert 'account.tier || "hq"' not in react
     assert 'className="report-document-link"' in react

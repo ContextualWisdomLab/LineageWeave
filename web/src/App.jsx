@@ -99,6 +99,14 @@ function customerTierLabel(tier) {
   return { group: "그룹", national: "법인", hq: "본사", plant: "사업장", team: "팀" }[tier] || "조직";
 }
 
+function customerRelationSourceLabel(source) {
+  return {
+    llm: "자동 분석",
+    observed: "관측 근거",
+    user_override: "관리자 확인",
+  }[String(source || "").toLowerCase()] || "근거 연결";
+}
+
 export default function App() {
   const documentDialog = useRef(null);
   const emailInput = useRef(null);
@@ -1340,11 +1348,11 @@ export default function App() {
             <article className="customer-detail">
               {(() => {
                 const account = (customerSurface?.accounts || []).find((item) => item.account_name === selectedCustomer);
-                const children = (customerSurface?.edges || []).filter((edge) => edge.parent === selectedCustomer).map((edge) => edge.child);
+                const childEdges = (customerSurface?.edges || []).filter((edge) => edge.parent === selectedCustomer);
                 return account ? <>
                   <p className="eyebrow">고객 계정</p><h3>{account.account_name}</h3>
                   <div className="tag-row"><span>{account.entity_role || "고객"}</span><span>{customerTierLabel(account.tier)}</span>{account.parent_name ? <span>상위 · {account.parent_name}</span> : null}</div>
-                  <h4>연결 계열</h4><div className="tree-list">{children.length ? children.map((child) => <p key={child}>{account.account_name} → {child}</p>) : <p className="meta">직접 확인된 하위 계열이 없습니다.</p>}</div>
+                  <h4>연결 계열</h4><div className="tree-list">{childEdges.length ? childEdges.map((edge) => <div className="customer-relation" key={`${edge.parent}-${edge.child}-${edge.relation}`}><p>{account.account_name} → {edge.child}</p><small>{customerRelationSourceLabel(edge.source)} · 의미 관계: {edge.relation || "계열 관계"} · 근거 {formatNumber(edge.document_nos?.length || 0)}건</small>{(edge.document_nos || []).length ? <div className="evidence-links">{edge.document_nos.map((documentNo) => <button type="button" className="report-document-link" key={documentNo} onClick={() => { setSelectedNo(documentNo); setActiveView("workspace"); }}>{documentNo}</button>)}</div> : null}</div>) : <p className="meta">직접 확인된 하위 계열이 없습니다.</p>}</div>
                   <h4>근거 문서</h4><div className="evidence-links">{(account.document_nos || []).map((documentNo) => <button type="button" className="report-document-link" key={documentNo} onClick={() => { setSelectedNo(documentNo); setActiveView("workspace"); }}>{documentNo}</button>)}</div>
                 </> : <p className="empty">{customerLoadState === "loading" ? "고객 상세 정보를 불러오는 중입니다." : customerLoadState === "error" ? "고객 상세 정보를 불러오지 못했습니다." : "왼쪽 고객 목록에서 고객을 선택하세요."}</p>;
               })()}

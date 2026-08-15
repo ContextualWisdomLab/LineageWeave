@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Made customer-master affiliate relationships auditable in the general-user
+  screen: each displayed parent-child edge now shows its semantic relation,
+  derivation label, evidence count, and authorized source-document links. The
+  browser still cannot create or promote a customer relation.
 - Improved administrator 게시글 권한 통제 for large corpora: the policy list
   now searches the actor-authorized document index and loads bounded additional
   pages instead of showing only the first loaded workspace page. Visibility

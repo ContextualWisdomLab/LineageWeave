@@ -280,15 +280,32 @@ try {
       status: response.status,
       accounts: payload?.accounts?.length || 0,
       edges: payload?.edges?.length || 0,
+      edge_parent: payload?.edges?.[0]?.parent || "",
+      edge_evidence: payload?.edges?.[0]?.document_nos?.length || 0,
     };
   });
+  if (customerResponse.edge_parent) {
+    const edgeParent = page.locator(".customer-tree-node").filter({ hasText: customerResponse.edge_parent }).first();
+    if (await edgeParent.count()) await edgeParent.click();
+  }
+  const customerRelationCount = await page.locator(".customer-relation").count();
+  const customerRelationEvidenceLinkCount = await page.locator(".customer-relation .report-document-link").count();
   result.customer = {
     status: customerResponse.status,
     screen: await page.locator("#customerScreen").isVisible(),
     accounts: customerResponse.accounts,
     edges: customerResponse.edges,
+    relation_count: customerRelationCount,
+    relation_evidence_link_count: customerRelationEvidenceLinkCount,
   };
   assert.equal(result.customer.status, 200);
+  if (requireData) {
+    assert.ok(result.customer.accounts > 0, "the authenticated customer surface returned no accounts");
+    assert.ok(result.customer.edges > 0, "the authenticated customer surface returned no affiliate edges");
+    assert.ok(result.customer.relation_count > 0, "the customer detail rendered no affiliate relation");
+    assert.ok(customerResponse.edge_evidence > 0, "the customer API returned an affiliate edge without source evidence");
+    assert.ok(result.customer.relation_evidence_link_count > 0, "the customer relation rendered no source-document link");
+  }
   await page.screenshot({ path: `${artifactDir}/customers.png` });
 
   await viewNav.getByRole("button", { name: "업무공간", exact: true }).click();

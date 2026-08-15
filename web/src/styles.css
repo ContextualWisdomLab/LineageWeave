@@ -304,7 +304,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .customer-detail h4 { margin: 20px 0 8px; color: var(--muted); font-size: .76rem; letter-spacing: .04em; }
 .tag-row, .evidence-links { display: flex; flex-wrap: wrap; gap: 6px; }
 .tree-list { display: grid; gap: 6px; }
-.tree-list p { margin: 0; padding: 8px 10px; border-left: 2px solid var(--blue); background: var(--soft); font-size: .78rem; }
+.customer-relation { display: grid; gap: 5px; padding: 8px 10px; border-left: 2px solid var(--blue); background: var(--soft); font-size: .78rem; }
+.customer-relation p { margin: 0; }
+.customer-relation small { color: var(--muted); font-size: .68rem; }
 .customer-tree h3 { color: var(--blue); }
 .customer-tree .tree-label { margin: 8px 0; font-size: .78rem; }
 .customer-tree-node { display: block; width: 100%; border: 0; border-left: 2px solid var(--blue); background: var(--soft); color: var(--ink); text-align: left; cursor: pointer; }
