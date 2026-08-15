@@ -1,0 +1,164 @@
+name: Normalize analysis output profile v0.79
+
+on:
+  push:
+    branches:
+      - automation/scrub-milestone2-v079
+    paths:
+      - .github/workflows/normalize-analysis-output-profile-v079.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: normalize-analysis-output-profile-v079
+  cancel-in-progress: false
+
+jobs:
+  normalize-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TARGET_BRANCH: feat/milestone2-analysis-run-contract-v079
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout exact target branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Normalize configuration vocabulary through common lookup values
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          paths = [
+              Path("lineageweave/analysis_run.py"),
+              Path("backend/app/analysis_run_ingestion.py"),
+              Path("tests/test_analysis_run.py"),
+              Path("tests/test_analysis_run_coverage.py"),
+              Path("backend/tests/test_analysis_run_ingestion.py"),
+              Path("tests/test_analysis_run_schema.py"),
+              Path("docs/adr/0013-analysis-run-provenance-boundary.md"),
+              Path("docs/superpowers/specs/2026-08-15-milestone2-analysis-run-contract-design.md"),
+              Path("docs/superpowers/plans/2026-08-15-milestone2-analysis-run-contract.md"),
+          ]
+          for path in paths:
+              text = path.read_text(encoding="utf-8")
+              text = text.replace("output_profile", "output_profile_code")
+              text = text.replace('"aggregate-and-product"', '"analysis_output_aggregate_product"')
+              text = text.replace('"aggregate"', '"analysis_output_aggregate"')
+              text = text.replace("'aggregate-and-product'", "'analysis_output_aggregate_product'")
+              text = text.replace("'aggregate'", "'analysis_output_aggregate'")
+              path.write_text(text, encoding="utf-8")
+
+          migration_path = Path("migrations/0018_analysis_run_provenance.sql")
+          migration = migration_path.read_text(encoding="utf-8")
+          if "analysis_output_aggregate" not in migration:
+              anchor = (
+                  "    ('analysis_artifact_kind', 'analysis_browser_evidence', "
+                  "'Browser acceptance evidence', 30);"
+              )
+              replacement = (
+                  "    ('analysis_artifact_kind', 'analysis_browser_evidence', "
+                  "'Browser acceptance evidence', 30),\n"
+                  "    ('analysis_output_profile', 'analysis_output_aggregate', "
+                  "'Aggregate evidence only', 10),\n"
+                  "    ('analysis_output_profile', "
+                  "'analysis_output_aggregate_product', "
+                  "'Aggregate evidence and product persistence', 20);"
+              )
+              if anchor not in migration:
+                  raise SystemExit("missing lookup insertion anchor")
+              migration = migration.replace(anchor, replacement, 1)
+          old_column = "    output_profile text not null,\n"
+          new_column = (
+              "    output_profile_code text not null\n"
+              "        references common_lookup_value (lookup_code)\n"
+              "        check (output_profile_code in (\n"
+              "            'analysis_output_aggregate',\n"
+              "            'analysis_output_aggregate_product'\n"
+              "        )),\n"
+          )
+          if old_column in migration:
+              migration = migration.replace(old_column, new_column, 1)
+          migration = migration.replace(
+              "    check (length(btrim(output_profile)) between 1 and 128)\n",
+              "",
+          )
+          migration_path.write_text(migration, encoding="utf-8")
+          PY
+          git diff --check
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Select Rust toolchain
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Verify focused coverage and complete Python/PostgreSQL product
+        run: |
+          set -euo pipefail
+          uv sync --frozen --extra dev --extra backend
+          uv run --frozen coverage erase
+          uv run --frozen coverage run --branch \
+            --source=lineageweave.analysis_run,backend.app.analysis_run_ingestion \
+            -m pytest -q \
+            tests/test_analysis_run.py \
+            tests/test_analysis_run_coverage.py \
+            backend/tests/test_analysis_run_ingestion.py
+          uv run --frozen coverage report --show-missing --fail-under=100
+          uv run --frozen python -m pytest -q tests/test_analysis_run_schema.py
+          uv run --frozen python -m pytest -q
+          uv run --frozen python -m compileall -q backend lineageweave tests
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Verify React product
+        run: |
+          set -euo pipefail
+          corepack enable
+          cd frontend
+          pnpm install --frozen-lockfile
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+
+      - name: Commit verified normalization
+        run: |
+          set -euo pipefail
+          git add -A
+          git diff --cached --check
+          git config user.name "opencode-agent[bot]"
+          git config user.email "1549082+opencode-agent[bot]@users.noreply.github.com"
+          git commit -m "refactor(db): normalize analysis output profiles"
+          git push origin "HEAD:${TARGET_BRANCH}"
