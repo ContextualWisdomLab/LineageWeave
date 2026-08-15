@@ -29,7 +29,7 @@ jobs:
 
       - name: Reject stale or reordered execution
         env:
-          EXPECTED_PARENT_SHA: c7bb517803e7781f4ababaff2ab383093b5c5782
+          EXPECTED_PARENT_SHA: 29fb9f0a8a55176e3b387bef8819740101a5539b
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT_SHA"
@@ -53,19 +53,24 @@ jobs:
 
           path = Path("frontend/src/App.test.tsx")
           text = path.read_text(encoding="utf-8")
-          anchor = '''    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).toHaveTextContent(
-              "Priya Nair (Counterparty)",
+          scenario = '  it("shows the affiliate tree, VOC excerpt, and related Keyman nodes on click", async () => {'
+          scenario_start = text.index(scenario)
+          scenario_end = text.index('  it("opens related Keyman nodes from an R&R person", async () => {', scenario_start)
+          block = text[scenario_start:scenario_end]
+          needle = '''    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).not.toHaveTextContent(
+              "Priya Nair (Person)",
             );
           '''
-          replacement = anchor + '''    expect(
+          addition = '''    expect(
               screen.getByRole("button", {
                 name: "Related nodes for Priya Nair (Counterparty)",
               }),
             ).toBeInTheDocument();
           '''
-          if text.count(anchor) != 1:
-              raise SystemExit("expected one Priya related-node assertion anchor")
-          path.write_text(text.replace(anchor, replacement, 1), encoding="utf-8")
+          if block.count(needle) != 1:
+              raise SystemExit("expected one Priya non-person assertion in the target scenario")
+          block = block.replace(needle, needle + addition, 1)
+          path.write_text(text[:scenario_start] + block + text[scenario_end:], encoding="utf-8")
           PY
 
       - name: Prove the accessible-name regression is red
