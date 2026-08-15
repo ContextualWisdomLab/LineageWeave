@@ -251,3 +251,24 @@ a reproducibly readable Figma target are both still required before visual QA
 can proceed.
 
 final result: blocked
+
+## Amendment: reader-role implementation capture in Figma (2026-08-15)
+
+The current React product was captured into the supplied Figma file while the
+server used a reader-only actor. The resulting implementation frame is
+[LineageWeave reader home · node 304:2](https://www.figma.com/design/SBpgot7uTvMxEaxUwvoc0S?node-id=304%3A2).
+Its metadata contains `업무 홈`, `업무공간`, `고객 화면`, and `내 업무공간`,
+with the permission label `열람`; it contains no `관리자 모드` navigation or
+diagnostic operator KPI. The frame also includes the evidence-backed customer
+master and report entry points requested by the product brief.
+
+This closes the earlier availability finding that no product-aligned Figma
+frame existed and gives future visual QA a reproducible implementation
+baseline. It is a reverse capture of the running product, not an independent
+design target, so it does not by itself prove pixel parity or production
+Keyverse acceptance. The separate production identity and independent design
+review gates remain open.
+
+Evidence: Figma metadata and screenshot for node `304:2`, the reader-only
+direct-PostgreSQL server run, and the browser data-bearing acceptance that
+confirmed administrator controls were absent from the reader surface.

@@ -4341,3 +4341,36 @@ is not a new ontology predicate and cannot override an evidence assertion.
 Evidence: `customerRelationSourceLabel`, the customer-detail relation cards,
 the `edge.document_nos` source actions, `TRACEABILITY.md`, and the direct
 PostgreSQL browser/React verification on 2026-08-15.
+
+## Amendment: reader-role product surface and Figma implementation baseline (2026-08-15)
+
+The general-user requirement is now a first-class product boundary rather than
+an administrator console with hidden controls. A verified reader receives
+`업무 홈`, `업무공간`, `고객 화면`, and report entry points. The header exposes
+the actor's business scope and the Korean permission label `열람`; it does not
+expose administrator navigation, queue diagnostics, policy mutation, Lineage
+override, enrichment, or account-directory controls. The server remains the
+source of authorization, and React visibility is only a supplementary
+presentation boundary.
+
+The customer screen is an Ontology/Semantic Layer consumer, not a free-form
+name tree. Persisted customer entities use `schema:Organization`, hierarchy
+edges use `schema:subOrganization`, and document support uses `schema:about`.
+The reader sees only account and affiliate rows that have an actor-authorized
+account-to-document intersection. Each visible edge supplies a business
+relation label, derivation label, evidence count, and authorized source
+document actions. The browser cannot infer a descendant, create an ontology
+assertion, or convert a customer edge into chronological Event Lineage.
+
+For design traceability, the running reader-only React surface was captured in
+the supplied Figma file at
+[node 304:2](https://www.figma.com/design/SBpgot7uTvMxEaxUwvoc0S?node-id=304%3A2).
+The captured metadata verifies the reader navigation and absence of
+`관리자 모드`. This is an implementation baseline generated from the actual
+product, not an independent design-target parity result; production Keyverse
+login and independent visual review remain external release gates.
+
+Evidence: Figma node `304:2`, `#userHome`/`#customerScreen`, the authorized
+customer API and normalized semantic relations, the reader-only direct-data
+browser run, the React production build, and the full Python line-and-branch
+coverage run.

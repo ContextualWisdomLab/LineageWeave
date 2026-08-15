@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Added a reader-only implementation baseline to the supplied Figma file at
+  node `304:2`. The captured screen shows business-home, workspace, customer,
+  and report entry points with `열람` permission and no administrator
+  navigation. This records the actual React surface without treating the
+  reverse capture as independent pixel-parity or production-Keyverse evidence.
 - Made customer-master affiliate relationships auditable in the general-user
   screen: each displayed parent-child edge now shows its semantic relation,
   derivation label, evidence count, and authorized source-document links. The

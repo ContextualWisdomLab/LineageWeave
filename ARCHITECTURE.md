@@ -520,3 +520,27 @@ verification for the pinned Linux `uv` wheel in both the scheduled verifier
 and the normal test workflow. These controls make image and CI dependency
 replacement detectable without changing the PostgreSQL, Keyverse, Valkey, or
 HTTP-only integration boundaries.
+
+## Reader and administrator product surfaces
+
+The browser has two deliberate experiences. A verified reader starts at a
+business home with work, customer-master, and report entry points; a verified
+administrator enters a separate server-authorized console for policy, Lineage
+review, enrichment, and account-directory operations. Reader navigation does
+not merely hide a debug panel: the API payloads and route handlers enforce the
+same actor scope before React renders a surface.
+
+The customer master is a semantic projection. `schema:Organization` identifies
+customer entities, `schema:subOrganization` identifies hierarchy relations, and
+`schema:about` links those entities to source-document evidence. The UI
+translates storage predicates into business vocabulary and provides only
+authorized evidence links. Ontology classes, semantic predicates, and
+evidence assertions remain normalized PostgreSQL facts; clicks cannot create
+or reorder them.
+
+The reader-only implementation baseline is captured in the supplied Figma
+file at [node 304:2](https://www.figma.com/design/SBpgot7uTvMxEaxUwvoc0S?node-id=304%3A2).
+It was generated from the running direct-PostgreSQL product with an actor
+whose permission is `열람`; the captured navigation has no administrator mode.
+This capture is traceability evidence, not a replacement for independent
+Figma parity review or production Keyverse acceptance.
