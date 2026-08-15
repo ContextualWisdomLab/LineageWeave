@@ -1195,6 +1195,7 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert "function reportJudgeSourceLabel" in react
     assert "function customerTierLabel" in react
     assert "function customerRelationSourceLabel" in react
+    assert "function customerRelationLabel" in react
     assert "report?.slice_label" in react
     assert "reportBusinessTitle(report)" in react
     assert "reportVerdictLabel(report.judge?.verdict)" in react
@@ -1202,6 +1203,7 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert "reportJudgeSourceLabel(selectedReport.judge?.source)" in react
     assert "customerTierLabel(account.tier)" in react
     assert "customerRelationSourceLabel(edge.source)" in react
+    assert "customerRelationLabel(edge.relation)" in react
     assert "edge.document_nos.map" in react
     assert "의미 관계:" in react
     assert "report.period_kind} · {report.slice_key" not in react

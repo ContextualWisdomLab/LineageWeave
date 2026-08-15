@@ -485,14 +485,15 @@ large authorized payload cannot create misleading operator failures.
 
 ## Evidence-backed customer relationship display
 
-The general-user customer screen renders each returned affiliate edge with its
-normalized relation, derivation label, evidence count, and actor-authorized
-source-document links. These links reuse the workspace document route; the
-browser does not reconstruct a relationship from names, add a customer node,
-or turn the affiliate edge into chronological Lineage. The PostgreSQL
-Ontology/Semantic Layer and account-to-document evidence boundary therefore
-remain authoritative while the UI makes the customer-master reasoning
-auditable to a business user.
+The general-user customer screen renders each returned affiliate edge with a
+business relation label, derivation label, evidence count, and
+actor-authorized source-document links. Storage relation codes remain in the
+authorized API/admin audit boundary. The source links reuse the workspace
+document route; the browser does not reconstruct a relationship from names,
+add a customer node, or turn the affiliate edge into chronological Lineage.
+The PostgreSQL Ontology/Semantic Layer and account-to-document evidence
+boundary therefore remain authoritative while the UI makes customer-master
+reasoning auditable to a business user.
 
 ## Hourly product-gap loop
 

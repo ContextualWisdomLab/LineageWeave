@@ -117,9 +117,10 @@ authorized evidence drawer, and document nodes reopen the actor-filtered
 document detail. Missing node identifiers or evidence IDs remain inert.
 
 The customer screen applies the same evidence rule at relationship level. A
-parent-child affiliate edge is displayed with its semantic relation, bounded
-source label, and the source-document buttons returned by the actor-scoped
-API. Selecting a source re-enters the authorized workspace. React never
+parent-child affiliate edge is displayed with a business relation label,
+bounded source label, and the source-document buttons returned by the
+actor-scoped API; storage relation codes remain an API/audit concern.
+Selecting a source re-enters the authorized workspace. React never
 creates a customer relation, promotes an LLM suggestion, or changes an event
 transition; those facts remain in normalized PostgreSQL Ontology/Semantic
 Layer tables and their evidence assertions.

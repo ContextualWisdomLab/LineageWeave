@@ -4322,8 +4322,9 @@ customer master and made an LLM-derived hierarchy look like an unexplained
 label mapping.
 
 The customer detail now renders each returned edge with three bounded facts:
-the normalized semantic relation, a business-readable derivation label, and
-the count plus identifiers of its authorized source documents. Each source
+a business-readable semantic relation, a business-readable derivation label,
+and the count plus identifiers of its authorized source documents. Storage
+relation codes remain available only in the authorized API/audit boundary. Each source
 identifier is an existing document action and re-enters the actor-scoped
 workspace; it does not read raw content in the customer screen. The API's
 account-to-document intersection remains the only eligibility rule, and the
