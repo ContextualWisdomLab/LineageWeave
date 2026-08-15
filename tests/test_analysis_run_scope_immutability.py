@@ -61,6 +61,7 @@ def test_scope_hardening_migration_is_wired_and_reversible() -> None:
     assert "before update or delete on analysis_run_scope" in migration.casefold()
     assert "analysis_run_scope_is_immutable" in migration
     assert "reject_analysis_run_scope_mutation" in migration
+    assert "drop trigger if exists analysis_run_scope_update_reject" in rollback
     assert "reject_analysis_run_scope_update" in rollback
     assert "0019_analysis_run_scope_immutability.sql" in dockerfile
 
@@ -164,3 +165,22 @@ def test_scope_cannot_be_updated_or_deleted_after_registration(scope_database) -
             (run_id,),
         )
         assert cursor.fetchone() == ("analysis_scope_all_visible",)
+
+
+def test_scope_hardening_rollback_is_replay_safe(scope_database) -> None:
+    """Repeated downgrade attempts restore exactly one update-only guard."""
+
+    rollback = _SCOPE_ROLLBACK.read_text(encoding="utf-8")
+    with scope_database.cursor() as cursor:
+        cursor.execute(rollback)
+        cursor.execute(rollback)
+        cursor.execute(
+            """
+            select tgname
+              from pg_trigger
+             where tgrelid = 'analysis_run_scope'::regclass
+               and not tgisinternal
+             order by tgname
+            """
+        )
+        assert cursor.fetchall() == [("analysis_run_scope_update_reject",)]
