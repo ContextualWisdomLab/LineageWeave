@@ -11,22 +11,33 @@ from typing import Any
 from backend.app import corporate_entity_ingestion as corporate_ingestion
 from backend.app import post_summary_ingestion as summary_ingestion
 from lineageweave.corporate_hierarchy_inference import HierarchyProposal
-from lineageweave.post_summary import ACTOR_TYPE_TEAM, PostSummary, RoleResponsibility
+from lineageweave.post_summary import (
+    ACTOR_TYPE_ORGANIZATION,
+    ACTOR_TYPE_TEAM,
+    PostSummary,
+    RoleResponsibility,
+)
 from lineageweave.relation_verification import STATUS_CORROBORATED
 
 
 class _RecordedTransaction:
     """Record transaction entry and exit for one fake asyncpg connection."""
 
-    def __init__(self, events: list[Any]) -> None:
+    def __init__(self, events: list[Any], owner: Any | None = None) -> None:
         self._events = events
+        self._owner = owner
 
     async def __aenter__(self) -> "_RecordedTransaction":
+        if self._owner is not None:
+            assert not self._owner.in_transaction
+            self._owner.in_transaction = True
         self._events.append("transaction:enter")
         return self
 
     async def __aexit__(self, exc_type, exc, traceback) -> bool:
         self._events.append("transaction:exit")
+        if self._owner is not None:
+            self._owner.in_transaction = False
         return False
 
 
@@ -166,12 +177,14 @@ class _SummaryConnection:
 
     def __init__(self, events: list[Any]) -> None:
         self._events = events
+        self.in_transaction = False
 
     def transaction(self) -> _RecordedTransaction:
         self._events.append("transaction:open")
-        return _RecordedTransaction(self._events)
+        return _RecordedTransaction(self._events, self)
 
     async def execute(self, query: str, *args: Any) -> str:
+        assert self.in_transaction
         compact = " ".join(query.split())
         self._events.append(("execute", compact))
         return "OK"
@@ -180,14 +193,17 @@ class _SummaryConnection:
         compact = " ".join(query.split())
         self._events.append(("fetchrow", compact))
         if compact.startswith("select korean_summary from post_summary_result"):
+            assert not self.in_transaction
             return {"korean_summary": "합성 요약"}
         if compact.startswith("select person_id from cataloged_person"):
+            assert self.in_transaction
             return None
         raise AssertionError(f"unexpected fetchrow query: {compact}")
 
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
         compact = " ".join(query.split())
         self._events.append(("fetch", compact))
+        assert not self.in_transaction
         if "from post_summary_event" in compact:
             return [{"event_text": "검토 완료"}]
         if "from post_summary_role" in compact:
@@ -213,10 +229,12 @@ def test_post_summary_replacement_mentions_and_edges_share_one_transaction(monke
         return []
 
     async def upsert_team(conn, team_name, organization_name, candidates) -> str:
+        assert conn.in_transaction
         events.append("team_upsert")
         return team_id
 
     async def persist_edges(conn, post_id) -> list[Any]:
+        assert conn.in_transaction
         events.append("edge_persist")
         return []
 
@@ -266,9 +284,75 @@ def test_post_summary_replacement_mentions_and_edges_share_one_transaction(monke
             and fragment in event[1]
         )
         assert enter_index < operation_index < exit_index
+    assert events.index("candidate_load") < enter_index
     assert enter_index < events.index("team_upsert") < exit_index
     assert enter_index < events.index("edge_persist") < exit_index
     assert payload["korean_summary"] == "합성 요약"
+
+
+def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch) -> None:
+    """LLM verification and the advisory-lock transaction precede summary writes."""
+    events: list[Any] = []
+    connection = _SummaryConnection(events)
+    corporate_entity_id = str(uuid.uuid4())
+
+    async def load_candidates(conn) -> list[Any]:
+        events.append(("candidate_load", conn.in_transaction))
+        return []
+
+    async def resolve_organization(
+        conn,
+        organization_name,
+        context_text,
+        inference_client,
+        verification_client,
+        candidates,
+    ) -> str:
+        events.append(("organization_resolve", conn.in_transaction))
+        assert not conn.in_transaction
+        return corporate_entity_id
+
+    async def persist_edges(conn, post_id) -> list[Any]:
+        assert conn.in_transaction
+        events.append("edge_persist")
+        return []
+
+    monkeypatch.setattr(summary_ingestion, "_load_corporate_entity_candidates", load_candidates)
+    monkeypatch.setattr(summary_ingestion, "get_or_create_corporate_entity", resolve_organization)
+    monkeypatch.setattr(summary_ingestion, "persist_edges_for_post", persist_edges)
+
+    summary = PostSummary(
+        korean_summary="합성 요약",
+        roles_and_responsibilities=(
+            RoleResponsibility(
+                actor_name="Synthetic Energy",
+                responsibility="납품 일정 확정",
+                actor_type_code=ACTOR_TYPE_ORGANIZATION,
+            ),
+        ),
+    )
+
+    asyncio.run(
+        summary_ingestion.persist_post_summary(
+            connection,
+            str(uuid.uuid4()),
+            summary,
+        )
+    )
+
+    assert ("candidate_load", False) in events
+    assert ("organization_resolve", False) in events
+    resolve_index = events.index(("organization_resolve", False))
+    enter_index = events.index("transaction:enter")
+    exit_index = events.index("transaction:exit")
+    mention_index = next(
+        index
+        for index, event in enumerate(events)
+        if isinstance(event, tuple)
+        and event[0] == "execute"
+        and "insert into post_organization_mention" in event[1]
+    )
+    assert resolve_index < enter_index < mention_index < exit_index
 
 
 def test_release_notes_describe_balanced_outer_emphasis_stripping() -> None:
