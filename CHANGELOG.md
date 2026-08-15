@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Replaced raw report period/slice IDs, Judge verdict codes, and customer
+  hierarchy tiers on general-user screens with Korean business labels. Raw
+  values remain available only in the authorized API/admin audit boundary.
 - Hardened the container and CI supply-chain boundary: product, worker,
   SearXNG, and OIDC-conformance base images are digest-pinned, the React
   builder runs as `node`, and both workflow `uv` bootstraps require the pinned

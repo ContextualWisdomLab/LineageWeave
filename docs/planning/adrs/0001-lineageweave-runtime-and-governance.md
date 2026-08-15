@@ -4204,3 +4204,24 @@ Valkey/HTTP integration boundaries.
 Evidence: `test_container_images_pin_base_digests_and_run_non_root`,
 `test_workflow_python_bootstrap_is_hash_pinned`, the OIDC conformance contract,
 and the post-change Scorecard, Trivy, and Semgrep checks.
+
+## Amendment: general-user report and customer vocabulary (2026-08-15)
+
+The direct-PostgreSQL browser review found that a reader could see generated
+report titles such as `weekly project <identifier>`, Judge verdict codes such
+as `pass`/`fail`, and customer hierarchy storage tiers such as `group`, `hq`,
+and `plant`. Those are useful persistence and audit values, but they are not
+an appropriate product language for a general user. The React reader now maps
+period and scope to `주간`/`월간` and `PU`/`팀`/`프로젝트`, maps Judge outcomes
+to `검토 완료`/`추가 확인`/`판정 보류`/`평가 대기`, and maps hierarchy to
+`그룹`/`법인`/`본사`/`사업장`/`팀`. Generated slice identifiers are omitted
+from reader titles.
+
+This is presentation-only: PostgreSQL normalization, actor-filtered API
+payloads, report identifiers, and administrator audit data remain unchanged.
+The customer screen continues to expose only account facts and hierarchy
+edges supported by authorized document evidence; Ontology classes, semantic
+predicates, and evidence assertions are not inferred from the display label.
+
+Evidence: `test_web_page_uses_verified_session_and_real_api`, the direct
+reader browser capture, and the React production build on 2026-08-15.
