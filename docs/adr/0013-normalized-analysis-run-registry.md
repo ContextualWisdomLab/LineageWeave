@@ -20,16 +20,17 @@ raw exceptions, or cross-service application tables.
 The existing product owns authenticated accounts, corporate entities, process
 units, source posts, compact lineage edges, report scores, and PROV-O
 persistence. TEPP owns temporal and psychometric estimation.
-contextual-orchestrator owns model routing and provider execution. The registry
-records that a product analysis was requested and which immutable evidence and
-configuration it used; it does not become either service's internal database.
+`contextual-orchestrator` owns model routing and provider execution. The
+registry records that a product analysis was requested and which immutable
+evidence, scope, and configuration it used; it does not become either service's
+internal database.
 
 ## Alternatives considered
 
 ### Copy the experiment tables unchanged
 
-Rejected. Repeated counts and unstructured metadata create competing
-sources of truth, weaken relational constraints, and reopen a parallel product.
+Rejected. Repeated counts and unstructured metadata create competing sources of
+truth, weaken relational constraints, and reopen a parallel product.
 
 ### Store one JSON document per run
 
@@ -40,8 +41,8 @@ independently queryable and enforceable in PostgreSQL.
 ### Put durable state only in Valkey
 
 Rejected. Valkey remains the event queue. Durable audit identity,
-idempotency, and reproducibility evidence require PostgreSQL; queue state must
-be reconstructable from durable product state.
+idempotency, scope, and reproducibility evidence require PostgreSQL; queue state
+must be reconstructable from durable product state.
 
 ### Use a normalized additive registry
 
@@ -51,7 +52,9 @@ existing bounded contexts and migration lineage.
 ## Decision
 
 Migration `0018_analysis_run_registry.sql` introduces five third-normalized
-relations and one read projection:
+relations and one read projection. Migration
+`0019_analysis_run_scope_immutability.sql` hardens the authorization boundary
+without redefining the schema:
 
 ```mermaid
 erDiagram
@@ -141,14 +144,24 @@ race-safe:
 idempotency key is unique within that requesting account rather than globally.
 Independent authenticated users may therefore choose the same opaque key
 without colliding, while one user cannot reuse a key for a second request.
+Request updates and deletes fail closed after registration.
 
-### Scope and lifecycle
+### Immutable authorization scope
 
 `analysis_run_scope` stores at most one authorization-relevant product scope.
 Corporate-entity, process-unit, thread-group, and all-visible scopes use
 mutually exclusive columns. Process-unit ownership remains derivable from
 `process_unit` rather than being duplicated. The later creation repository must
 insert the required scope in the same transaction as the run.
+
+Migration 0018 originally rejected scope updates but still allowed a direct
+scope deletion. That would leave a durable run and lifecycle history after its
+recorded authorization boundary had disappeared. Migration 0019 therefore
+replaces the update-only guard with an update-or-delete guard. Its replay-safe
+rollback restores the migration-0018 update-only policy without deleting run or
+scope data.
+
+### Ordered lifecycle
 
 `analysis_run_status_event` is an append-only state machine rather than an
 unordered event bag. PostgreSQL serializes status appends per run and enforces:
@@ -169,18 +182,19 @@ metadata. `recorded_at` separately preserves the database system clock.
 `analysis_run_current_status` derives the highest ordinal event. It is a view,
 not a second mutable state authority.
 
-### Lookup, rollback, and ownership
+### Lookup, migration, rollback, and ownership
 
 All enum-like values remain in `common_lookup_value`. Column checks additionally
 restrict each field to its own allowed code family because the repository's
 shared lookup foreign key targets globally unique codes.
 
-The migration is replay-safe. Its rollback refuses to drop non-empty registry
-relations, so downgrade cannot silently destroy audit evidence. Any approved
-retention/export process that empties append-only evidence must be explicit and
-audited before rollback.
+Migration 0018 is replay-safe. Its rollback refuses to drop non-empty registry
+relations, so downgrade cannot silently destroy audit evidence. Migration 0019
+is also replay-safe; its rollback changes only the scope mutation policy. Any
+approved retention/export process that empties append-only evidence must be
+explicit and audited before the registry rollback.
 
-The PostgreSQL image applies migration 0018 after the reviewed PROV-O
+The PostgreSQL image applies migrations 0018 and 0019 after the reviewed PROV-O
 migration. This PR adds no second web application, Keyverse imitation, TEPP
 arithmetic, contextual-orchestrator database dependency, API, or UI.
 
@@ -198,26 +212,30 @@ arithmetic, contextual-orchestrator database dependency, API, or UI.
 - RLS is not enabled here because the current FastAPI application authorizes
   through a pooled service identity and application-level RBAC/ABAC. A future
   RLS design requires a separate ADR and transaction-scoped actor context.
-- Append-only evidence and immutable requests increase operational safety but
-  require explicit retention/export tooling before destructive cleanup.
+- Append-only evidence, immutable requests, and immutable scopes increase
+  operational safety but require explicit retention/export tooling before
+  destructive cleanup.
 
 ## Verification
 
 - Static contracts reject the legacy denormalized table, JSON metadata,
   temporary repair artifacts, ambiguous clock ownership, optional requester,
-  and globally scoped idempotency.
-- Real PostgreSQL tests apply migration 0018, replay it, and exercise valid
+  globally scoped idempotency, and missing 0019 fresh-install wiring.
+- Real PostgreSQL tests apply migrations 0018 and 0019 and exercise valid
   snapshot/run/scope/status writes.
 - Database regressions reject evidence later than the run cutoff, snapshot and
   count mutation, post-run count-set changes, missing actors, same-account
   idempotency reuse, malformed digests, negative counts, incoherent scopes,
-  incomplete failure events, noncontiguous or time-reversing histories,
-  illegal transitions, terminal-state reuse, and status mutation.
-- Rollback refuses non-empty evidence and removes an explicitly emptied
+  scope update/delete, incomplete failure events, noncontiguous or
+  time-reversing histories, illegal transitions, terminal-state reuse, and
+  status mutation.
+- The 0019 downgrade is replay-safe and restores exactly one update-only scope
+  trigger.
+- The 0018 rollback refuses non-empty evidence and removes an explicitly emptied
   registry.
 - Generated database identifiers use `psycopg2.sql.Identifier`, DSN query
-  parameters survive throwaway-database creation, and the connection closes in
-  a fixture `finally` block.
+  parameters survive throwaway-database creation, and every disposable database
+  connection closes in a fixture `finally` block.
 
 ## Follow-up sequence
 
@@ -243,6 +261,9 @@ https://www.iso.org/standard/70907.html
 
 PostgreSQL Global Development Group. (2026). *PostgreSQL 18 documentation: 5.5.
 Constraints*. https://www.postgresql.org/docs/current/ddl-constraints.html
+
+PostgreSQL Global Development Group. (2026). *PostgreSQL 18 documentation: 37.
+Triggers*. https://www.postgresql.org/docs/current/triggers.html
 
 World Wide Web Consortium. (2013). *PROV-O: The PROV ontology* (W3C
 Recommendation). https://www.w3.org/TR/prov-o/
