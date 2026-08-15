@@ -1,0 +1,137 @@
+name: Drain LineageWeave protected stack through v0.79
+
+on:
+  push:
+    branches:
+      - automation/scrub-milestone2-v079
+    paths:
+      - .github/workflows/drain-lineageweave-stack-v079.yml
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+  statuses: read
+  checks: read
+
+concurrency:
+  group: drain-lineageweave-stack-v079
+  cancel-in-progress: false
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      GH_TOKEN: ${{ github.token }}
+      HELPER_REF: automation/scrub-milestone2-v079
+    steps:
+      - name: Checkout helper ref
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: ${{ env.HELPER_REF }}
+          persist-credentials: false
+
+      - name: Drain review-first stack without bypassing protection
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          pr_json() {
+            gh pr view "$1" --repo "$GITHUB_REPOSITORY" \
+              --json number,state,isDraft,baseRefName,headRefName,headRefOid,mergeStateStatus,reviewDecision,statusCheckRollup
+          }
+
+          pr_merged() {
+            [[ "$(gh api "repos/${GITHUB_REPOSITORY}/pulls/$1" --jq '.merged')" == "true" ]]
+          }
+
+          has_unresolved_threads() {
+            local number="$1"
+            local count
+            count="$(gh api graphql \
+              -f owner="${GITHUB_REPOSITORY%%/*}" \
+              -f name="${GITHUB_REPOSITORY##*/}" \
+              -F number="$number" \
+              -f query='query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){reviewThreads(first:100){nodes{isResolved}}}}}' \
+              --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)] | length')"
+            [[ "$count" != "0" ]]
+          }
+
+          has_failing_checks() {
+            pr_json "$1" | python -c '
+          import json, sys
+          data=json.load(sys.stdin)
+          bad={"FAILURE","ERROR","CANCELLED","TIMED_OUT","ACTION_REQUIRED","STARTUP_FAILURE","STALE"}
+          checks=data.get("statusCheckRollup") or []
+          states=[]
+          for check in checks:
+              states.append((check.get("conclusion") or check.get("state") or "").upper())
+          raise SystemExit(0 if any(state in bad for state in states) else 1)
+          '
+          }
+
+          mark_ready_and_auto_merge() {
+            local number="$1"
+            local payload
+            payload="$(pr_json "$number")"
+            if [[ "$(python -c 'import json,sys; print(str(json.load(sys.stdin)["isDraft"]).lower())' <<<"$payload")" == "true" ]]; then
+              gh pr ready "$number" --repo "$GITHUB_REPOSITORY"
+            fi
+            if ! has_unresolved_threads "$number" && ! has_failing_checks "$number"; then
+              gh pr merge "$number" --repo "$GITHUB_REPOSITORY" --auto --squash || true
+            fi
+          }
+
+          restack80_dispatched=0
+          restack83_dispatched=0
+
+          for attempt in $(seq 1 165); do
+            if ! pr_merged 74; then
+              if ! has_unresolved_threads 74 && ! has_failing_checks 74; then
+                gh pr merge 74 --repo "$GITHUB_REPOSITORY" --auto --squash || true
+              fi
+              sleep 60
+              continue
+            fi
+
+            if [[ "$restack80_dispatched" == "0" ]]; then
+              gh workflow run restack-related-side-labels-v078.yml \
+                --repo "$GITHUB_REPOSITORY" --ref "$HELPER_REF"
+              restack80_dispatched=1
+            fi
+
+            if ! pr_merged 80; then
+              payload80="$(pr_json 80)"
+              base80="$(python -c 'import json,sys; print(json.load(sys.stdin)["baseRefName"])' <<<"$payload80")"
+              if [[ "$base80" == "main" ]]; then
+                mark_ready_and_auto_merge 80
+              fi
+              sleep 60
+              continue
+            fi
+
+            if [[ "$restack83_dispatched" == "0" ]]; then
+              gh workflow run restack-milestone2-v079.yml \
+                --repo "$GITHUB_REPOSITORY" --ref "$HELPER_REF"
+              restack83_dispatched=1
+            fi
+
+            if ! pr_merged 83; then
+              payload83="$(pr_json 83)"
+              base83="$(python -c 'import json,sys; print(json.load(sys.stdin)["baseRefName"])' <<<"$payload83")"
+              if [[ "$base83" == "main" ]]; then
+                mark_ready_and_auto_merge 83
+              fi
+              sleep 60
+              continue
+            fi
+
+            exit 0
+          done
+
+          # Exhausting the bounded monitor is not permission to bypass review.
+          # Leave auto-merge armed and exit successfully; the hourly maintainer
+          # can resume from live GitHub state.
+          exit 0
