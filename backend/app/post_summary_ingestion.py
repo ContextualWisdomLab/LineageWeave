@@ -16,7 +16,10 @@ ADR 0010: an organization actor's name is resolved via
 an LLM-proposed, search-corroborated hierarchy placement before
 creating a real new row, so a real dataset's first mention of a
 counterparty organization actually populates the corporate hierarchy
-tree instead of staying permanently unresolved.
+tree instead of staying permanently unresolved.  Inference,
+verification, and the short advisory-lock creation transaction finish
+before the summary-replacement transaction begins; slow external work
+therefore cannot extend the lock or the atomic replacement window.
 """
 
 from __future__ import annotations
@@ -38,7 +41,10 @@ from lineageweave.post_summary import (
     PostSummary,
     RoleResponsibility,
 )
-from lineageweave.relation_verification import NullRelationVerificationClient, RelationVerificationClient
+from lineageweave.relation_verification import (
+    NullRelationVerificationClient,
+    RelationVerificationClient,
+)
 
 from .corporate_entity_ingestion import get_or_create_corporate_entity
 from .keyman_ingestion import _load_corporate_entity_candidates
@@ -46,7 +52,9 @@ from .knowledge_graph import persist_edges_for_post
 from .team_ingestion import upsert_team
 
 
-async def fetch_persisted_summary(conn: asyncpg.Connection, post_id: str) -> dict[str, Any] | None:
+async def fetch_persisted_summary(
+    conn: asyncpg.Connection, post_id: str
+) -> dict[str, Any] | None:
     """Return the stored summary payload, or None when none has been written."""
     header = await conn.fetchrow(
         "select korean_summary from post_summary_result where post_id = $1",
@@ -91,28 +99,52 @@ async def persist_post_summary(
 ) -> dict[str, Any]:
     """Replace the stored summary for ``post_id`` and return the public payload.
 
-    `post_body` is the context an organization-actor hierarchy proposal
-    is inferred from (ADR 0010); falls back to the summary's own Korean
-    text when not given (a real but weaker signal than the raw post).
-    `hierarchy_inference_client`/`verification_client` default to the
-    unavailable Null clients -- an org actor then only ever resolves
-    against an *already*-cataloged `corporate_entity`, the exact
-    pre-ADR-0010 behavior.
+    ``post_body`` is the context an organization-actor hierarchy proposal
+    is inferred from (ADR 0010); it falls back to the summary's own Korean
+    text when not given.  The pluggable clients default to unavailable Null
+    clients, so an organization actor then only resolves against an existing
+    ``corporate_entity``.
+
+    Organization inference, verification, and any lock-protected catalog
+    creation complete before the atomic summary transaction.  The catalog is
+    an idempotent shared identity registry; keeping that enrichment separate
+    prevents network latency and ``pg_advisory_xact_lock`` from extending the
+    summary replacement transaction while all post-owned rows still commit or
+    roll back together.
     """
-    hierarchy_inference_client = hierarchy_inference_client or NullCorporateHierarchyInferenceClient()
+    hierarchy_inference_client = (
+        hierarchy_inference_client or NullCorporateHierarchyInferenceClient()
+    )
     verification_client = verification_client or NullRelationVerificationClient()
 
     context_text = post_body if post_body is not None else summary.korean_summary
-    # Summary replacement also replaces its team/organization projections.
-    # Keyman-owned person mentions are intentionally left untouched.
+    candidates = (
+        await _load_corporate_entity_candidates(conn)
+        if summary.roles_and_responsibilities
+        else []
+    )
+    resolved_organization_ids: dict[int, str] = {}
+    for role_index, role in enumerate(summary.roles_and_responsibilities):
+        if role.actor_type_code != ACTOR_TYPE_ORGANIZATION:
+            continue
+        corporate_entity_id = await get_or_create_corporate_entity(
+            conn,
+            role.actor_name,
+            context_text,
+            hierarchy_inference_client,
+            verification_client,
+            candidates,
+        )
+        if corporate_entity_id is not None:
+            resolved_organization_ids[role_index] = corporate_entity_id
+
     async with conn.transaction():
         await _replace_summary_projection(
             conn,
             post_id,
             summary,
-            context_text,
-            hierarchy_inference_client,
-            verification_client,
+            candidates,
+            resolved_organization_ids,
         )
 
     payload = await fetch_persisted_summary(conn, post_id)
@@ -125,11 +157,12 @@ async def _replace_summary_projection(
     conn: asyncpg.Connection,
     post_id: str,
     summary: PostSummary,
-    context_text: str,
-    hierarchy_inference_client: CorporateHierarchyInferenceClient,
-    verification_client: RelationVerificationClient,
+    candidates: list[Any],
+    resolved_organization_ids: dict[int, str],
 ) -> None:
-    """Write one atomic replacement of the stored summary and its mentions."""
+    """Write one atomic replacement using pre-resolved shared identities."""
+    # Summary replacement also replaces its team/organization projections.
+    # Keyman-owned person mentions are intentionally left untouched.
     await conn.execute(
         """
         delete from knowledge_graph_edge
@@ -152,7 +185,8 @@ async def _replace_summary_projection(
     )
     for ordinal, event_text in enumerate(summary.key_events):
         await conn.execute(
-            "insert into post_summary_event (post_id, event_ordinal, event_text) values ($1, $2, $3)",
+            "insert into post_summary_event (post_id, event_ordinal, event_text) "
+            "values ($1, $2, $3)",
             post_id,
             ordinal,
             event_text,
@@ -160,8 +194,8 @@ async def _replace_summary_projection(
     for role in summary.roles_and_responsibilities:
         await conn.execute(
             "insert into post_summary_role "
-            "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name) "
-            "values ($1, $2, $3, $4, $5)",
+            "(post_id, actor_name, responsibility, actor_type_code, "
+            "affiliated_organization_name) values ($1, $2, $3, $4, $5)",
             post_id,
             role.actor_name,
             role.responsibility,
@@ -171,47 +205,43 @@ async def _replace_summary_projection(
 
     # ADR 0009: cross-post identity resolution for team/organization/person
     # actors -- see module docstring.
-    if summary.roles_and_responsibilities:
-        candidates = await _load_corporate_entity_candidates(conn)
-        for role in summary.roles_and_responsibilities:
-            if role.actor_type_code == ACTOR_TYPE_TEAM:
-                team_id = await upsert_team(
-                    conn, role.actor_name, role.affiliated_organization_name, candidates
-                )
+    for role_index, role in enumerate(summary.roles_and_responsibilities):
+        if role.actor_type_code == ACTOR_TYPE_TEAM:
+            team_id = await upsert_team(
+                conn,
+                role.actor_name,
+                role.affiliated_organization_name,
+                candidates,
+            )
+            await conn.execute(
+                "insert into post_team_mention (post_id, team_id) values ($1, $2) "
+                "on conflict do nothing",
+                post_id,
+                team_id,
+            )
+        elif role.actor_type_code == ACTOR_TYPE_ORGANIZATION:
+            corporate_entity_id = resolved_organization_ids.get(role_index)
+            if corporate_entity_id is not None:
                 await conn.execute(
-                    "insert into post_team_mention (post_id, team_id) values ($1, $2) "
+                    "insert into post_organization_mention "
+                    "(post_id, corporate_entity_id) values ($1, $2) "
                     "on conflict do nothing",
                     post_id,
-                    team_id,
+                    corporate_entity_id,
                 )
-            elif role.actor_type_code == ACTOR_TYPE_ORGANIZATION:
-                corporate_entity_id = await get_or_create_corporate_entity(
-                    conn,
-                    role.actor_name,
-                    context_text,
-                    hierarchy_inference_client,
-                    verification_client,
-                    candidates,
+        elif role.actor_type_code == ACTOR_TYPE_PERSON:
+            person_row = await conn.fetchrow(
+                "select person_id from cataloged_person where person_name = $1 limit 1",
+                role.actor_name,
+            )
+            if person_row is not None:
+                await conn.execute(
+                    "insert into post_person_mention (post_id, person_id) "
+                    "values ($1, $2) on conflict do nothing",
+                    post_id,
+                    str(person_row["person_id"]),
                 )
-                if corporate_entity_id is not None:
-                    await conn.execute(
-                        "insert into post_organization_mention (post_id, corporate_entity_id) "
-                        "values ($1, $2) on conflict do nothing",
-                        post_id,
-                        corporate_entity_id,
-                    )
-            elif role.actor_type_code == ACTOR_TYPE_PERSON:
-                person_row = await conn.fetchrow(
-                    "select person_id from cataloged_person where person_name = $1 limit 1",
-                    role.actor_name,
-                )
-                if person_row is not None:
-                    await conn.execute(
-                        "insert into post_person_mention (post_id, person_id) values ($1, $2) "
-                        "on conflict do nothing",
-                        post_id,
-                        str(person_row["person_id"]),
-                    )
+    if summary.roles_and_responsibilities:
         await persist_edges_for_post(conn, post_id)
 
 
@@ -294,6 +324,7 @@ _FIXTURE_ROLE_AFFILIATION = {
 
 
 def _summary(korean: str, *events: str) -> PostSummary:
+    """Create one compact synthetic fixture summary."""
     return PostSummary(korean_summary=korean, key_events=events)
 
 
