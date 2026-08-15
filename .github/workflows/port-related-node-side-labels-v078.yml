@@ -1,0 +1,186 @@
+name: Port related-node side labels v0.78
+
+on:
+  push:
+    branches:
+      - feat/related-node-person-side-labels-v078
+    paths:
+      - .github/workflows/port-related-node-side-labels-v078.yml
+
+permissions: {}
+
+concurrency:
+  group: port-related-node-side-labels-v078
+  cancel-in-progress: false
+
+jobs:
+  port-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+      EXPECTED_PARENT_SHA: 2ace79ea90a82d61f8467bbe644dd23b0deaa8b6
+      SOURCE_COMMIT_SHA: 7d4324aee4d2d18334bae42e497b5f96e79a0dee
+    steps:
+      - name: Checkout stacked product branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/related-node-person-side-labels-v078
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Reject stale or reordered execution
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT_SHA"
+          git fetch --no-tags origin "$SOURCE_COMMIT_SHA"
+          test "$(git rev-parse FETCH_HEAD)" = "$SOURCE_COMMIT_SHA"
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Select repository Rust toolchain
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Set up locked Python dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Install committed dependencies
+        run: |
+          set -euo pipefail
+          uv sync --frozen --extra dev --extra backend
+          corepack enable
+          pnpm --dir frontend install --frozen-lockfile
+
+      - name: Apply regression tests before production code
+        run: |
+          set -euo pipefail
+          git diff "$SOURCE_COMMIT_SHA^" "$SOURCE_COMMIT_SHA" -- \
+            backend/tests/test_api.py \
+            frontend/src/App.test.tsx \
+            | git apply --3way
+
+      - name: Prove the buyer-visible regression is red
+        run: |
+          set -euo pipefail
+          set +e
+          pnpm --dir frontend exec vitest run src/App.test.tsx > /tmp/side-label-red.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/side-label-red.log
+          test "$status" -ne 0
+          grep -Eq "Counterparty|Our side" /tmp/side-label-red.log
+
+      - name: Apply the focused API and UI implementation
+        run: |
+          set -euo pipefail
+          git diff "$SOURCE_COMMIT_SHA^" "$SOURCE_COMMIT_SHA" -- \
+            backend/app/knowledge_graph.py \
+            frontend/src/App.tsx \
+            frontend/src/api.ts \
+            | git apply --3way
+
+      - name: Advance the monotonic release and documentation
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              Path("pyproject.toml"): ('version = "0.77.0"', 'version = "0.78.0"'),
+              Path("frontend/package.json"): ('"version": "0.77.0"', '"version": "0.78.0"'),
+              Path("lineageweave/__init__.py"): ('__version__ = "0.77.0"', '__version__ = "0.78.0"'),
+          }
+          for path, (old, new) in replacements.items():
+              text = path.read_text(encoding="utf-8")
+              if old not in text:
+                  raise SystemExit(f"missing version anchor in {path}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          architecture = Path("ARCHITECTURE.md")
+          text = architecture.read_text(encoding="utf-8")
+          old = (
+              "codes when a label exists.\n"
+          )
+          new = (
+              "codes when a label exists. Related-node person chips use the same\n"
+              "side lookup label (for example, `Our side` or `Counterparty`) rather\n"
+              "than exposing the generic PROV-O `Person` class as business context.\n"
+          )
+          if old not in text:
+              raise SystemExit("missing architecture side-label anchor")
+          architecture.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          changelog = Path("CHANGELOG.md")
+          text = changelog.read_text(encoding="utf-8")
+          marker = "## [0.77.0] - 2026-08-15\n"
+          entry = """## [0.78.0] - 2026-08-15
+
+### Changed
+
+- Related-node person chips now use the localized `person_side` lookup label
+  supplied by the authorized API payload. Users see business context such as
+  `Our side` or `Counterparty`, while ontology class metadata remains available
+  separately for semantic processing and provenance.
+
+"""
+          if marker not in text:
+              raise SystemExit("missing 0.77.0 changelog anchor")
+          if "## [0.78.0]" not in text:
+              changelog.write_text(text.replace(marker, entry + marker, 1), encoding="utf-8")
+          PY
+          uv lock --offline
+
+      - name: Verify focused backend and frontend behavior
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m pytest -q backend/tests/test_api.py -k 'related_keymen_use_rwr or related_corporate_entity_uses_rwr'
+          pnpm --dir frontend exec vitest run src/App.test.tsx
+
+      - name: Verify complete product contracts
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m pytest -q
+          uv run --frozen python -m compileall -q backend lineageweave tests
+          pnpm --dir frontend run lint
+          pnpm --dir frontend run test
+          pnpm --dir frontend run build
+          git diff --check
+
+      - name: Commit verified additive port
+        run: |
+          set -euo pipefail
+          rm .github/workflows/port-related-node-side-labels-v078.yml
+          git add -A
+          git diff --cached --check
+          git config user.name "opencode-agent[bot]"
+          git config user.email "1549082+opencode-agent[bot]@users.noreply.github.com"
+          git commit -m "feat: show related-person business-side labels (v0.78.0)"
+          git push origin HEAD:feat/related-node-person-side-labels-v078
