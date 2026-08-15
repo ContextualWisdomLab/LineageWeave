@@ -20,7 +20,7 @@ jobs:
     permissions:
       contents: write
     env:
-      EXPECTED_PARENT_SHA: a6ab57ffcbd8143ad74f9027ea7827e555ac8cf5
+      EXPECTED_PARENT_SHA: 45459a3c8b845a3033ef94ebfe94b3b7b77856a5
     steps:
       - name: Check out the exact PR branch
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
@@ -71,164 +71,10 @@ jobs:
           grep -Eq "central_governance|read_only_live_queue|schedule_runs_hourly" \
             /tmp/pr76-central-governance-red.log
 
-      - name: Remove the competing PR writer and align operations evidence
+      - name: Apply the deterministic central-governance repair
         run: |
           set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-
-          workflow_path = Path(".github/workflows/hourly-commercialization-loop.yml")
-          workflow = workflow_path.read_text(encoding="utf-8")
-          workflow = workflow.replace(
-              "name: Hourly LineageWeave Commercialization Loop",
-              "name: Hourly LineageWeave Product Gap Loop",
-              1,
-          ).replace(
-              "group: lineageweave-hourly-commercialization-loop",
-              "group: lineageweave-hourly-product-gap-loop",
-              1,
-          )
-          jobs_start = workflow.index("jobs:\n  inspect-pr-queue:")
-          product_start = workflow.index("  develop-next-product-gap:", jobs_start)
-          workflow = workflow[:jobs_start] + "jobs:\n" + workflow[product_start:]
-          product_start = workflow.index("  develop-next-product-gap:")
-          runs_on_start = workflow.index("    runs-on: ubuntu-24.04", product_start)
-          workflow = (
-              workflow[:product_start]
-              + "  develop-next-product-gap:\n"
-              + workflow[runs_on_start:]
-          )
-          old_message = (
-              "An open pull request owns the queue; review, repair, checks, "
-              "and merge stay ahead of new development."
-          )
-          new_message = (
-              "Central governance owns every open pull request; product "
-              "development remains read-only and waits for the queue to reach zero."
-          )
-          if old_message not in workflow:
-              raise SystemExit("missing queue-owner message")
-          workflow = workflow.replace(old_message, new_message, 1)
-          workflow = workflow.replace(
-              "python -m compileall -q lineageweave backend tests",
-              "uv run --frozen python -m compileall -q lineageweave backend tests",
-              1,
-          )
-          forbidden = (
-              "pr-review-merge-scheduler.yml",
-              "pr-review-fix-scheduler.yml",
-              "pull-requests: write",
-              "actions: write",
-              "merge_mode:",
-              "enable_auto_merge:",
-          )
-          for marker in forbidden:
-              if marker in workflow:
-                  raise SystemExit(f"competing PR-governance marker remains: {marker}")
-          workflow_path.write_text(workflow, encoding="utf-8")
-
-          operations_path = Path("docs/operations/hourly-commercialization-loop.md")
-          operations = operations_path.read_text(encoding="utf-8")
-          queue_start = operations.index("## Purpose\n")
-          cadence_start = operations.index("## Accuracy-first cadence\n")
-          replacement = """## Purpose
-
-The hourly repository workflow turns the approved DB-grounded Figma design into
-one protected product increment only when the live LineageWeave pull-request
-queue is empty. It never reviews, repairs, updates, approves, or merges an
-existing pull request.
-
-The workflow file is
-`.github/workflows/hourly-commercialization-loop.yml`. It runs at minute 23 of
-every hour and can also be invoked manually.
-
-## Central governance and queue policy
-
-The central `.github` scheduler is the only PR review, repair, branch-update, and merge writer.
-It runs the organization-wide sweep every 15 minutes and reacts to PR, review,
-and required-workflow events. LineageWeave does not install a second merger or
-call the central reusable writer from its own schedule.
-
-```mermaid
-flowchart TD
-    A[Hourly product trigger] --> B[Read live open-PR count]
-    B --> C{Any open PR?}
-    C -->|yes| D[Exit without mutating the queue]
-    C -->|no| E[Select one buyer-visible DB-grounded gap]
-    E --> F[Write design supplement and failing test]
-    F --> G[Implement one vertical slice]
-    G --> H[Validate in isolated copy without network]
-    H --> I{Queue and main unchanged?}
-    I -->|no| J[Discard stale proposal]
-    I -->|yes| K[Open exactly one PR]
-    K --> L[Central governance reviews and merges]
-```
-
-The repository workflow receives only read access to pull-request inventory.
-After validation and repeated queue/base checks, it may exchange the existing
-OIDC credential for a short-lived app token that pushes one generated branch
-and opens one PR. It cannot approve, update, or merge that PR.
-
-"""
-          operations = operations[:queue_start] + replacement + operations[cadence_start:]
-          operations = operations.replace(
-              "The product job has a 180-minute budget. It starts only after all three queue\n"
-              "jobs succeed and no open pull request remains.",
-              "The product job has a 180-minute budget. It starts only when read-only live\n"
-              "inspection finds no open pull request; central governance continues independently.",
-              1,
-          )
-          operations = operations.replace(
-              "Review wait time is not a blocker. Subsequent hourly invocations continue\n"
-              "repairing and revalidating the queue but do not create another product PR.",
-              "Review wait time is not a blocker. The central scheduler continues reviewing,\n"
-              "repairing, and revalidating the queue; the repository heartbeat exits without\n"
-              "creating another product PR while any pull request remains open.",
-              1,
-          )
-          operations = operations.replace(
-              "The permanent contract tests in\n"
-              "`tests/test_hourly_commercialization_workflow.py` verify the schedule,\n"
-              "governance pins, NVIDIA-only model path, credential removal, red/green\n"
-              "discipline, protected paths, isolated validation, stale-work checks, and\n"
-              "one-PR/no-self-merge boundary.\n\n"
-              "The central scheduler remains independently active. This repository workflow\n"
-              "adds a LineageWeave-specific hourly heartbeat and product-gap generator; it\n"
-              "does not duplicate the central scheduler's implementation.",
-              "The permanent contract tests in\n"
-              "`tests/test_hourly_commercialization_workflow.py` verify the schedule, central\n"
-              "single-writer boundary, read-only live queue gate, NVIDIA-only model path,\n"
-              "credential removal, red/green discipline, protected paths, isolated\n"
-              "validation, stale-work checks, and one-PR/no-self-merge boundary.\n\n"
-              "The central scheduler remains independently active every 15 minutes. This\n"
-              "repository workflow contributes only the LineageWeave product-gap heartbeat.",
-              1,
-          )
-          operations_path.write_text(operations, encoding="utf-8")
-
-          changelog_path = Path("CHANGELOG.d/hourly-db-grounded-commercialization-loop.md")
-          changelog = changelog_path.read_text(encoding="utf-8")
-          changelog = changelog.replace(
-              "- An hourly, review-first commercialization workflow now drains open pull\n"
-              "  requests through current-head review, feedback repair, check revalidation,\n"
-              "  branch refresh, and protected merge before creating more work.",
-              "- An hourly product-gap workflow now reads the live pull-request queue and\n"
-              "  exits without mutation whenever an open PR exists. The organization-central\n"
-              "  scheduler remains the only review, repair, branch-update, and merge writer.",
-              1,
-          )
-          changelog = changelog.replace(
-              "- Permanent workflow-contract tests bind the schedule, immutable central\n"
-              "  governance references, credential removal, no-Copilot rule, test-first\n"
-              "  evidence, protected paths, stale-work checks, and no-self-merge boundary.",
-              "- Permanent workflow-contract tests bind the hourly schedule, central\n"
-              "  single-writer boundary, read-only queue gate, credential removal,\n"
-              "  no-Copilot rule, test-first evidence, protected paths, stale-work checks,\n"
-              "  and no-self-merge boundary.",
-              1,
-          )
-          changelog_path.write_text(changelog, encoding="utf-8")
-          PY
+          python .github/scripts/pr76_central_governance_repair.py
 
       - name: Verify the repaired governance and product contracts
         run: |
@@ -246,6 +92,7 @@ and opens one PR. It cannot approve, update, or merge that PR.
       - name: Commit the reviewed central-governance repair
         run: |
           set -euo pipefail
+          rm .github/scripts/pr76_central_governance_repair.py
           rm .github/workflows/pr76-central-governance-repair.yml
           git add -A
           git diff --cached --check
