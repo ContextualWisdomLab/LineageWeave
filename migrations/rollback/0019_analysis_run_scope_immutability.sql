@@ -5,6 +5,8 @@ begin;
 
 drop trigger if exists analysis_run_scope_mutation_reject
     on analysis_run_scope;
+drop trigger if exists analysis_run_scope_update_reject
+    on analysis_run_scope;
 drop function if exists reject_analysis_run_scope_mutation();
 
 create or replace function reject_analysis_run_scope_update()
