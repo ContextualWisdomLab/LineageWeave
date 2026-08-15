@@ -8,9 +8,9 @@
 - PostgreSQL is the system of record. Valkey Streams carry committed outbox events.
 - Compose supplies the product container, Valkey, and a model-task HTTP stand-in.
 - Tests use pytest and coverage; the current complete source gate passed all
-  323 tests at 100% line-and-branch coverage across four product-runtime
-  modules plus one retained test-boundary utility (7,147 statements and 2,780
-  branches). The shipped product-runtime subset is 6,993 statements and 2,736
+  354 tests at 100% line-and-branch coverage across four product-runtime
+  modules plus one retained test-boundary utility (7,627 statements and 2,984
+  branches). The shipped product-runtime subset is 7,473 statements and 2,940
   branches. A process-owned PostgreSQL test database keeps runtime advisory
   locks and analysis writes isolated.
 - Report psychometrics stays behind the separate fast-mlsirm HTTP/local

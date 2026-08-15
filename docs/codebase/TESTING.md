@@ -49,11 +49,11 @@ export LINEAGEWEAVE_INSPECTION_DOCUMENT_LIMIT=2
 
 ## Current evidence
 
-A fresh current-tree isolated-PostgreSQL snapshot completed 351 tests with one
+A fresh current-tree isolated-PostgreSQL snapshot completed 354 tests with one
 expected skip because the sibling `fast-mlsirm` interpreter is not installed and
 100% line-and-branch coverage for `lineageweave.py`,
 `lineageweave_embeddings.py`, `lineageweave_server.py`, `compose/http_standin.py`,
-and `compose/keyverse_oidc.py` (7,598 statements and 2,966 branches); no
+and `compose/keyverse_oidc.py` (7,627 statements and 2,984 branches); no
 coverage exclusion was added. The optional interpreter-backed contract is
 covered when that sibling package is installed.
 Production snapshot writers also release short schema-migration locks before

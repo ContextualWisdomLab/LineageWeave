@@ -95,7 +95,13 @@ uses business terms for evidence, visibility, report periods, Judge verdicts,
 score-linking/source codes, and customer hierarchy tiers; administrator/audit
 routes retain source fields for operational diagnosis. Generated report slice
 identifiers are not shown in the reader title, while the normalized
-report/API values remain available for traceability.
+report/API values remain available for traceability. A project report's
+response-only `slice_label` is derived from the first title or Korean summary
+in its actor-authorized evidence documents; PU/team labels use business
+attribute codes. If evidence has no human-readable label, the reader falls
+back to a generic scope label rather than revealing an opaque project key.
+This label is not an Ontology class, Semantic Layer predicate, Lineage edge,
+or persisted project assertion.
 
 ## Container and workflow supply-chain boundary
 

@@ -1672,16 +1672,25 @@ class LineageApplication:
         """Return analytics, reports, and affiliate clues without the full graph."""
         with psycopg.connect(self.dsn) as connection:
             surface = lw.load_workspace_surface(connection, actor=actor)
-            visible_document_numbers = lw.load_authorized_report_document_numbers(connection, actor)
+            report_documents = lw.load_report_document_nodes(connection)
+            visible_document_numbers = lw.load_authorized_report_document_numbers(
+                connection, actor, report_documents
+            )
+        authorized_report_documents = [
+            document
+            for document in report_documents
+            if str(document.get("document_no") or "").strip() in visible_document_numbers
+        ]
+        period_reports = lw.filter_period_reports_for_actor(
+            surface.get("period_reports") or [],
+            actor,
+            visible_document_numbers=visible_document_numbers,
+        )
         return {
             "metadata": surface.get("metadata") or {},
             "analytics": surface.get("analytics") or {},
             "affiliate_tree": surface.get("affiliate_tree") or {"nodes": [], "edges": [], "parent_of": {}},
-            "period_reports": lw.filter_period_reports_for_actor(
-                surface.get("period_reports") or [],
-                actor,
-                visible_document_numbers=visible_document_numbers,
-            ),
+            "period_reports": lw.attach_report_display_labels(period_reports, authorized_report_documents),
             "customer_master": surface.get("customer_master") or {},
             "factor_definitions": surface.get("factor_definitions")
             or lw.default_factor_definitions(),
@@ -3018,7 +3027,15 @@ class LineageApplication:
         """Return persisted weekly/monthly slices, building them once when empty."""
         with psycopg.connect(self.dsn) as connection:
             persisted = lw.load_period_reports(connection)
-            visible_document_numbers = lw.load_authorized_report_document_numbers(connection, actor)
+            report_documents = lw.load_report_document_nodes(connection)
+            visible_document_numbers = lw.load_authorized_report_document_numbers(
+                connection, actor, report_documents
+            )
+        authorized_report_documents = [
+            document
+            for document in report_documents
+            if str(document.get("document_no") or "").strip() in visible_document_numbers
+        ]
         reports = lw.filter_period_reports_for_actor(
             persisted,
             actor,
@@ -3026,7 +3043,7 @@ class LineageApplication:
         )
         if persisted:
             return {
-                "reports": reports,
+                "reports": lw.attach_report_display_labels(reports, authorized_report_documents),
                 "factor_definitions": lw.default_factor_definitions(),
                 "source": "persisted",
             }
@@ -3051,7 +3068,7 @@ class LineageApplication:
                 self._payload["period_reports"] = scored
                 self._payload["factor_definitions"] = lw.default_factor_definitions()
         return {
-            "reports": scored,
+            "reports": lw.attach_report_display_labels(scored, authorized_report_documents),
             "factor_definitions": lw.default_factor_definitions(),
             "source": "built",
             "judge_transport": judge_mode,

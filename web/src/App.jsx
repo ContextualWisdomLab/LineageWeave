@@ -88,6 +88,8 @@ function reportJudgeSourceLabel(source) {
 }
 
 function reportBusinessTitle(report) {
+  const sliceLabel = String(report?.slice_label || "").trim();
+  if (sliceLabel) return `${reportPeriodLabel(report?.period_kind)} ${reportSliceLabel(report?.slice_kind)} · ${sliceLabel}`;
   const title = String(report?.title || "").trim();
   if (title && !/^(weekly|monthly)\s+(pu|team|project)\b/i.test(title)) return title;
   return `${reportPeriodLabel(report?.period_kind)} ${reportSliceLabel(report?.slice_kind)} 보고서`;

@@ -4229,3 +4229,38 @@ predicates, and evidence assertions are not inferred from the display label.
 
 Evidence: `test_web_page_uses_verified_session_and_real_api`, the direct
 reader browser capture, and the React production build on 2026-08-15.
+
+## Amendment: evidence-backed reader report scope labels (2026-08-15)
+
+The preceding vocabulary boundary removed opaque generated project identifiers
+from the general-user report title, but that left multiple project reports with
+the indistinguishable label `주간 프로젝트 보고서` or `월간 프로젝트 보고서`.
+That is a real product failure: a reader cannot select the correct business
+scope even though the report already has authorized source documents.
+
+The response path now loads the bounded persisted report-document fields once,
+applies the same document ABAC predicate used by report filtering, and passes
+only those authorized documents to `attach_report_display_labels`. PU and team
+reports receive their business attribute code as `slice_label`. A project
+report receives the first non-empty, whitespace-normalized `title_sample`, or
+its Korean summary when the title is absent, from a document listed in that
+report's evidence set. If no authorized document supplies a label, the UI
+keeps the generic scope label; it never falls back to the opaque project
+`slice_key`.
+
+This is deliberately a response-time presentation projection. The normalized
+report row, opaque slice key, report identifier, document evidence set, and
+administrator/audit payload are unchanged. `slice_label` is not inserted into
+the Ontology or Semantic Layer, does not create a customer/account assertion,
+and cannot create or reorder a chronological Lineage transition. The
+Ontology/Semantic Layer remains the source of persisted classes, predicates,
+and evidence assertions; the reader label only names an already-authorized
+report scope. Regression coverage verifies title, summary, PU/team, missing
+evidence, and no-mutation cases, while the direct PostgreSQL report endpoint
+continues to retain its traceable storage fields.
+
+Evidence: `attach_report_display_labels`, the application-method and
+PostgreSQL authorization contracts, `reportBusinessTitle`, the React surface
+contract, the direct-PostgreSQL browser run, and the 2026-08-15 full Python
+line-and-branch coverage run (354 tests plus one expected optional skip, 7,627
+statements, and 2,984 branches; 100% with no coverage exclusion).

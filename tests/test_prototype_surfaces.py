@@ -1188,6 +1188,7 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert "function reportLinkingLabel" in react
     assert "function reportJudgeSourceLabel" in react
     assert "function customerTierLabel" in react
+    assert "report?.slice_label" in react
     assert "reportBusinessTitle(report)" in react
     assert "reportVerdictLabel(report.judge?.verdict)" in react
     assert "reportLinkingLabel(score.linking_method)" in react

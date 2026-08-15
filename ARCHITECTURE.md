@@ -197,7 +197,13 @@ flowchart LR
     customer hierarchy tiers to Korean business vocabulary and hides generated
     slice identifiers. The raw values remain in the actor-filtered API
     contract and administrator audit path for traceability; they are not
-    rendered as reader-facing implementation labels.
+    rendered as reader-facing implementation labels. For project reports,
+    `slice_label` is computed at response time from the first title or Korean
+    summary in the report's actor-authorized evidence documents. PU and team
+    labels use their business attribute codes. Missing evidence produces no
+    project label rather than exposing the opaque project key. This is a
+    presentation projection only: it is not a new Ontology class, semantic
+    predicate, lineage transition, or persisted project fact.
 18. An administrator may start a bounded LLM enrichment batch through
     `POST /api/admin/enrichment/run` for `keyman`, `product`, `appointments`,
     or `all`, with a hard maximum of 64 documents. Candidate selection uses
