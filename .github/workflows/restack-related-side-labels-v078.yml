@@ -1,0 +1,132 @@
+name: Restack related-side labels v0.78 after PR 74
+
+on:
+  push:
+    branches:
+      - automation/scrub-milestone2-v079
+    paths:
+      - .github/workflows/restack-related-side-labels-v078.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: restack-related-side-labels-v078
+  cancel-in-progress: false
+
+jobs:
+  restack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TARGET_BRANCH: feat/related-node-person-side-labels-v078
+      STACK_BASE_SHA: 2ace79ea90a82d61f8467bbe644dd23b0deaa8b6
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout helper repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Stop cleanly until protected ancestor is merged
+        id: readiness
+        run: |
+          set -euo pipefail
+          merged="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/74" --jq '.merged')"
+          if [[ "$merged" != "true" ]]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - name: Build unique v0.78 delta on current protected main
+        if: steps.readiness.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main "$TARGET_BRANCH"
+          old_head="$(git rev-parse "origin/${TARGET_BRANCH}")"
+          git merge-base --is-ancestor "$STACK_BASE_SHA" "$old_head"
+          git diff --binary "$STACK_BASE_SHA" "$old_head" > /tmp/v078.patch
+          test -s /tmp/v078.patch
+          git checkout --detach origin/main
+          git apply --3way /tmp/v078.patch
+          git add -A
+          git diff --cached --check
+          printf '%s' "$old_head" > /tmp/old-target-head
+
+      - name: Set up Python
+        if: steps.readiness.outputs.ready == 'true'
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Select Rust toolchain
+        if: steps.readiness.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Set up uv
+        if: steps.readiness.outputs.ready == 'true'
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Verify Python and PostgreSQL product
+        if: steps.readiness.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          uv sync --frozen --extra dev --extra backend
+          uv run --frozen python -m pytest -q
+          uv run --frozen python -m compileall -q backend lineageweave tests
+
+      - name: Set up Node
+        if: steps.readiness.outputs.ready == 'true'
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Verify React product
+        if: steps.readiness.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          corepack enable
+          cd frontend
+          pnpm install --frozen-lockfile
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+
+      - name: Replace stacked branch and retarget Draft PR
+        if: steps.readiness.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          old_head="$(cat /tmp/old-target-head)"
+          git config user.name "opencode-agent[bot]"
+          git config user.email "1549082+opencode-agent[bot]@users.noreply.github.com"
+          git commit -m "feat: show related-person business-side labels (v0.78.0)"
+          git push \
+            --force-with-lease="refs/heads/${TARGET_BRANCH}:${old_head}" \
+            origin "HEAD:refs/heads/${TARGET_BRANCH}"
+          gh api \
+            --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/pulls/80" \
+            -f base=main >/dev/null
