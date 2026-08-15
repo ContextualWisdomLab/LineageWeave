@@ -2494,6 +2494,18 @@ def test_ragas_metric_parser_is_bounded_and_preserves_abstentions() -> None:
         {"ragas_metrics": {"ragas_faithfulness": {"score": "pass"}, "ragas_answer_relevancy": 0.7}}
     )[1]["score"] == 0.7
     assert lw.parse_ragas_metric_scores({"ragas_metrics": "invalid"}) == []
+    parsed_missing = lw.parse_ragas_metric_scores(
+        {"verdict": "unavailable", "rationale": "mock timeout", "source": "llm_judge"},
+        emit_missing_as_abstain=True,
+    )
+    assert len(parsed_missing) == 4
+    assert {metric["metric_id"] for metric in parsed_missing} == {
+        "ragas_faithfulness",
+        "ragas_answer_relevancy",
+        "ragas_context_precision",
+        "ragas_context_recall",
+    }
+    assert all(metric["verdict"] == "abstain" for metric in parsed_missing)
 
 
 def test_period_report_judge_stops_on_budget_and_fatal_transport(monkeypatch) -> None:

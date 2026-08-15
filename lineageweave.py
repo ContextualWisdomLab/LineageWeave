@@ -5489,6 +5489,7 @@ def persist_period_reports(
     if not reports:
         return 0
     with connection.cursor() as cursor:
+        metric_specs = default_evaluation_metrics()
         cursor.executemany(
             f"""
             INSERT INTO {ANALYSIS_PERIOD_REPORT_TABLE}
@@ -5552,7 +5553,9 @@ def persist_period_reports(
             (report.get("report_id"), metric)
             for report in reports
             for metric in parse_ragas_metric_scores(
-                {"ragas_metrics": (report.get("judge") or {}).get("ragas_metrics") or []}
+                {"ragas_metrics": (report.get("judge") or {}).get("ragas_metrics") or []},
+                metrics=metric_specs,
+                emit_missing_as_abstain=isinstance(report.get("judge"), dict),
             )
             if report.get("report_id")
         ]
@@ -7592,10 +7595,16 @@ def _urlread_with_timeout(
     context: Optional[ssl.SSLContext] = None,
 ) -> bytes:
     """Read an HTTP response body with a deterministic socket timeout."""
-    with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
-        request, timeout=max(1, timeout), context=context
-    ) as response:
-        return response.read()
+    resolved_timeout = max(1, timeout)
+    prior_timeout = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(resolved_timeout)
+    try:
+        with urllib.request.urlopen(  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+            request, timeout=resolved_timeout, context=context
+        ) as response:
+            return response.read()
+    finally:
+        socket.setdefaulttimeout(prior_timeout)
 
 
 def _post_json_from_request(
@@ -9816,14 +9825,14 @@ def normalize_customer_tier(value: Optional[str]) -> str:
 
 def _customer_name_uses_hangul(name: str) -> bool:
     """True when an organization label is written with Hangul syllables."""
-    return any("가" <= char <= "힣" for char in name)
+    return any("가" <= char <= "힣" for char in str(name or ""))
 
 
 def _looks_like_customer_plant(name: str) -> bool:
     """True when a label is a plant / site / factory rather than a group or HQ."""
-    lowered = name.casefold()
+    lowered = str(name or "").casefold()
     return any(
-        token in name or token in lowered
+        token in lowered
         for token in ("공장", "사업장", "plant", "factory", "site", "works")
     )
 
@@ -10576,8 +10585,10 @@ def parse_factor_item_responses(
 def parse_ragas_metric_scores(
     response: Dict[str, Any],
     metrics: Sequence[Dict[str, Any]] = (),
+    *,
+    emit_missing_as_abstain: bool = False,
 ) -> List[Dict[str, Any]]:
-    """Normalize evidence-scoped RAGAS metric scores without inventing missing values."""
+    """Normalize evidence-scoped RAGAS metric scores, optionally filling missing rows as abstain."""
     payload = _unwrap_structured_llm_object(response if isinstance(response, dict) else {})
     specifications = list(metrics or default_evaluation_metrics())
     allowed = {str(metric.get("metric_id") or "") for metric in specifications}
@@ -10625,6 +10636,29 @@ def parse_ragas_metric_scores(
             "rationale": str(row.get("rationale") or row.get("reason") or "")[:1_000],
             "evidence_ids": evidence_ids,
         }
+    if emit_missing_as_abstain:
+        default_rationale = str(
+            payload.get("rationale")
+            or payload.get("abstention")
+            or payload.get("reason")
+            or ""
+        ).strip()
+        if not default_rationale:
+            default_rationale = "metric payload unavailable"
+        metric_source = str(payload.get("source") or payload.get("metric_source") or "llm_judge")[:80]
+        for metric in specifications:
+            metric_id = str(metric.get("metric_id") or "").strip()
+            if not metric_id or metric_id in parsed_by_id:
+                continue
+            parsed_by_id[metric_id] = {
+                "metric_id": metric_id,
+                "score": None,
+                "verdict": "abstain",
+                "metric_source": metric_source,
+                "rationale": default_rationale,
+                "evidence_ids": [],
+            }
+
     return [
         parsed_by_id[metric_id]
         for metric_id in (str(metric.get("metric_id") or "") for metric in specifications)

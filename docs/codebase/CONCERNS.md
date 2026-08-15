@@ -55,6 +55,7 @@
   has a failing Strix check. No self-approval, retry, bypass, or merge was
   performed. LineageWeave continues to use the separate HTTP/local connector
   boundary and does not copy upstream internals.
+- `[DONE]` `scripts/run_real_lineageweave.sh` now performs read-only upstream PR status recheck for ContextualWisdomLab/TEPP and ContextualWisdomLab/contextual-orchestrator on every run and records both counts/state values in the real-run audit events.
 
 These are deliberate boundaries, not hidden fallbacks. Each needs a reproducible fixture, provenance, and acceptance metric before implementation is promoted.
 
