@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- Rechecked the data-bearing Milestone 2 projection after a bounded live HTTPS
+  Keyman batch: 64 document payloads were LLM-derived without recorded
+  fallback, while 43,642 of 43,707 documents remain explicitly `not_run`.
+  Updated current report/psychometric counts to 320 Judge metrics, 400 linked
+  scores, and 105 finite calibrations, and recorded the still-pending issue and
+  calendar work in the ADR and traceability map. A subsequent live batch
+  completed 57 appointment rows and 20 To Do/calendar pairs, with fallback
+  rows retained and 77 scoped Valkey events acknowledged.
 - Added a browser acceptance guard for the general-user document popup: a
   reader can inspect Keyman and Knowledge Graph context but cannot see or use
   the Keyman editor/save control. Management remains restricted to verified

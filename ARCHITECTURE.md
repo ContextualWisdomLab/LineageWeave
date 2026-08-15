@@ -565,3 +565,27 @@ mutations are rendered only for verified `author`, `editor`, or `admin`
 actors, and the server checks the same capability at the mutation boundary.
 The reader E2E explicitly fails if `.modal-keyman-editor` or its save button
 appears for a reader session.
+
+## Current data-bearing evidence boundary
+
+The product's direct PostgreSQL recheck on 2026-08-15 recorded 43,814 source
+rows, 43,707 document nodes, 6,385 persisted Lineage edges, 264,897 Knowledge
+Graph nodes, and 838,760 Knowledge Graph edges. Only 107 Lineage edges are
+observed same-document temporal transitions; all remaining relations are
+returned as non-temporal relatedness or reviewable hypotheses. A bounded live
+HTTPS Keyman batch produced 64 LLM-derived document payloads while 43,642
+documents remain `not_run`. This distinction is intentional: the UI and ADR
+must show the live path and its remaining coverage rather than imply a complete
+corpus enrichment.
+
+The current normalized customer projection contains 22 accounts, 9 affiliate
+relations, and 23 evidence links. Its reader surface is derived from the
+Ontology/Semantic Layer (`schema:Organization`, `schema:subOrganization`, and
+`schema:about`) after document ABAC; it is not a client-side customer tree.
+Reports currently contain 80 LLM-judged reports, 320 metric observations, 400
+linked psychometric scores, and 105 finite calibration rows. Pending issue-work
+and calendar rows remain visible to authorized operators as pending work, never
+as completed LLM output: the current projection has 37 LLM rows and 28,174
+pending rows in each relation. Appointment projection evidence currently has
+6,991 rows, of which 71 are LLM-derived and 6,920 are extracted; the latest
+bounded live appointment batch published 57 scoped events with none pending.

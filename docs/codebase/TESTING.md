@@ -74,20 +74,20 @@ authorization or production delivery path.
 
 The real-data report reanalysis used a live factor-item catalog task, called the
 local Rust-backed fast-mlsirm connector, and wrote 80 report slices. The current
-bank has ten fixed anchor items and five evidence-bound LLM candidates; all
-fifteen items have finite calibration rows. Fifty-eight slices received five
-package-produced linked scores each (290 total); 22 slices remain explicitly
-unlinked because their item responses were insufficient. The connector smoke
-confirmed the Rust-backed path, and a missing connector remains an explicit
-degraded mode rather than a false score.
+bank has ten fixed anchor items and five evidence-bound LLM candidates; the
+current PostgreSQL projection contains 105 finite calibration rows and 400
+package-produced linked scores across 80 report groups. Twenty-two score slices
+remain explicitly unavailable because their item responses were insufficient.
+The connector smoke confirmed the Rust-backed path, and a missing connector
+remains an explicit degraded mode rather than a false score.
 
 After the RAGAS-aligned metric schema was added, a separate live report-judge
 rerun completed all 80 persisted slices without failure. PostgreSQL now holds
 320 report-metric observations (80 each for faithfulness, answer relevancy,
 context precision, and context recall), all with `llm_judge` provenance and
 scores within `[0, 1]`; their source-evidence references are persisted in the
-normalized `analysis_report_metric_evidence` child relation; the 290 linked psychometric
-scores and 15 calibration rows were persisted. A metric that lacks adequate evidence is designed to be
+normalized `analysis_report_metric_evidence` child relation; the current 400 linked
+psychometric scores and 105 calibration rows were persisted. A metric that lacks adequate evidence is designed to be
 stored as `abstain` with a NULL score rather than a made-up zero.
 
 `cd web && npm run e2e` runs bundled-browser interaction checks for product

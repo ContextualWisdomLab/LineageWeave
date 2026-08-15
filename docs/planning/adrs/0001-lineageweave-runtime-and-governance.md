@@ -4437,3 +4437,104 @@ boundary.
 Evidence: `canManage`, `.modal-keyman-editor`, the reader/admin browser E2E,
 the server-side Keyman mutation authorization, and the direct PostgreSQL
 reader capture.
+
+## Amendment: current live enrichment and psychometric projection recheck (2026-08-15)
+
+A fresh aggregate-only read followed the bounded Keyman batch executed through
+the configured live HTTPS gateway. The batch reported `live_http` transport and
+persisted 64 document payloads with LLM-derived Keyman values. It did not use a
+recorded response or a synthetic actor. The corpus contains 43,814 source rows,
+43,707 document nodes, and 42,467 thread groups; 43,642 document nodes remain
+`not_run` for Keyman, so this run is evidence of the live enrichment path and
+not a claim that every document has been LLM-enriched.
+
+The current PostgreSQL projection contains 6,385 Lineage edges: 107 observed
+same-document temporal transitions and 6,278 non-temporal clues/hypotheses.
+The latter remain outside chronological Event Lineage, including 3,021
+shared-thread clues, 3,017 title-affinity clues, 166 entity-role hypotheses,
+55 affiliate-tree clues, and 19 Keyman clues. The Knowledge Graph contains
+264,897 nodes and 838,760 edges. These counts are operational evidence only;
+they do not promote relatedness into a historical transition.
+
+The customer-master projection currently contains 22 account entities, 9
+affiliate relations, and 23 account-to-document evidence links. Its normalized
+semantic assignments continue to use `schema:Organization`,
+`schema:subOrganization`, and `schema:about`; the reader can expose only the
+actor-authorized evidence intersection. The change in affiliate-row count is a
+snapshot replacement result, not a browser-side filter or an inferred
+customer relation.
+
+The current report projection contains 80 LLM-judged reports, 320 normalized
+Judge metric rows, 400 package-produced linked scores, and 105 finite factor
+calibration rows. Twenty-two score slices remain explicitly unavailable. The
+Rust longitudinal state projection contains 80 observations across 40
+respondent groups and 80 occasions, with `rust_cpu_multithreaded` and an RMSE
+of approximately zero; its zero transition count is not evidence of a
+detected business trend. The full joint multilevel/multiple-membership
+estimator and recovery validation remain an upstream `fast-mlsirm` release
+gate.
+
+The same reanalysis left 28,194 pending LLM To Do rows and 28,194 pending LLM
+calendar rows beside 17 live LLM rows in each projection. Issue and calendar
+enrichment therefore remains an explicit pending work surface rather than a
+fabricated “complete” actor result.
+
+Evidence: the direct PostgreSQL aggregate queries recorded in the Milestone 2
+operator log, `analysis_document_nodes.keyman_source`, the live transport
+output, `analysis_lineage_edges`, `analysis_knowledge_graph_edges`, the
+normalized customer/semantic relations, and the report/longitudinal tables.
+
+## Amendment: live appointment and issue-work enrichment recheck (2026-08-15)
+
+Two additional operator-bounded batches used the configured live HTTPS product
+transport. The appointment batch requested 64 pending documents and completed
+57 LLM-derived appointment rows; seven incomplete responses retained their
+existing extracted values. All 57 matching transactional events were
+acknowledged by Valkey, with zero scoped events pending. The current appointment
+projection contains 6,991 rows: 71 with `content_source=llm` and 6,920 with
+`content_source=extract`.
+
+The issue-work batch requested 64 pending tickets and completed 20 complete
+LLM To Do/calendar pairs. Forty-four incomplete responses stayed pending, so
+they cannot appear as completed work in the reader surface. All 20 matching
+events were acknowledged by Valkey. The current normalized work projections
+contain 37 LLM rows and 28,174 `pending_llm` rows in each To Do/calendar
+relation. A missing or invalid due date remains `NULL` and is rendered as
+`일정 미정`; no calendar commitment is inferred from the batch size or the
+current date.
+
+These runs confirm the required consumer-actor behavior for the bounded live
+path while preserving the explicit incomplete-corpus state. They do not claim
+that all pending documents have been enriched, and they do not change the
+reader/admin authorization boundary, Ontology/Semantic Layer facts, or
+chronological Event Lineage.
+
+Evidence: the live CLI completion records, aggregate-only PostgreSQL counts in
+`analysis_appointment_records`, `analysis_todo_items`, and
+`analysis_calendar_items`, and the zero-pending scoped Valkey delivery results.
+
+## Amendment: post-enrichment reader and administrator browser recheck (2026-08-15)
+
+The fresh reader-only browser run used a development actor whose verified test
+attributes matched a populated corporation/PU scope. It reached `업무 홈`,
+`업무공간`, `고객 화면`, report detail, source evidence, and the Knowledge
+Graph against the direct PostgreSQL server. The reader saw 43,483 authorized
+document actions, 22 customer accounts on the home projection, four report
+metrics, and one selected document with zero observed chronological edges plus
+11 separate relatedness clues. The reader had no administrator navigation,
+technical KPI strip, Keyman editor, or Keyman save action.
+
+The administrator-role run reached the policy and Lineage-review screens and
+returned HTTP 200 for visibility private/public restoration and organization
+Keyman save/restore. It returned HTTP 503 for the external Keyverse Admin
+directory because no operator directory credentials were configured, and the
+React screen showed the corresponding availability notice. This is an
+intentional external integration boundary, not a local account substitute.
+
+This browser recheck confirms that the customer master is a reader business
+surface and that admin mutation controls are separated by server-verified role;
+it does not claim production Keyverse login or Keyverse Admin acceptance.
+
+Evidence: the reader and administrator Playwright runs, direct PostgreSQL
+session/payload responses, React screenshots retained outside the repository,
+and the server-side capability checks.
