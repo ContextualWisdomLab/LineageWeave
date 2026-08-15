@@ -33,7 +33,7 @@ jobs:
           --health-retries 5
     env:
       LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
-      EXPECTED_PARENT_SHA: 8cdd693e0ecca64ce782a847ca70d4abd96413d2
+      EXPECTED_PARENT_SHA: ca9b9cdb8d82e45306cbe357b2851cb3245bf338
       SOURCE_COMMIT_SHA: 7d4324aee4d2d18334bae42e497b5f96e79a0dee
     steps:
       - name: Checkout stacked product branch
@@ -126,6 +126,22 @@ jobs:
                   raise SystemExit(f"missing version anchor in {path}")
               path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
+          lock_path = Path("uv.lock")
+          lock_text = lock_path.read_text(encoding="utf-8")
+          old_lock = (
+              '[[package]]\n'
+              'name = "lineageweave"\n'
+              'version = "0.77.0"\n'
+          )
+          new_lock = (
+              '[[package]]\n'
+              'name = "lineageweave"\n'
+              'version = "0.78.0"\n'
+          )
+          if lock_text.count(old_lock) != 1:
+              raise SystemExit("expected exactly one lineageweave 0.77.0 lock entry")
+          lock_path.write_text(lock_text.replace(old_lock, new_lock, 1), encoding="utf-8")
+
           architecture = Path("ARCHITECTURE.md")
           text = architecture.read_text(encoding="utf-8")
           old = "codes when a label exists.\n"
@@ -161,7 +177,7 @@ jobs:
                   encoding="utf-8",
               )
           PY
-          uv lock --offline
+          uv sync --frozen --extra dev --extra backend
 
       - name: Verify focused backend and frontend behavior
         run: |
