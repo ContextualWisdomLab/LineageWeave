@@ -20,7 +20,7 @@ jobs:
     permissions:
       contents: write
     env:
-      EXPECTED_PARENT_SHA: ef4def1144e8937308dd2bc931c158dc38bf64ec
+      EXPECTED_PARENT_SHA: a6ab57ffcbd8143ad74f9027ea7827e555ac8cf5
     steps:
       - name: Check out the exact PR branch
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
@@ -91,23 +91,13 @@ jobs:
           jobs_start = workflow.index("jobs:\n  inspect-pr-queue:")
           product_start = workflow.index("  develop-next-product-gap:", jobs_start)
           workflow = workflow[:jobs_start] + "jobs:\n" + workflow[product_start:]
-          old_header = """  develop-next-product-gap:
-    needs: [inspect-pr-queue, repair-review-feedback, revalidate-pr-queue]
-    if: >-
-      ${{
-        always() &&
-        needs.inspect-pr-queue.result == 'success' &&
-        needs.repair-review-feedback.result == 'success' &&
-        needs.revalidate-pr-queue.result == 'success'
-      }}
-    runs-on: ubuntu-24.04
-"""
-          new_header = """  develop-next-product-gap:
-    runs-on: ubuntu-24.04
-"""
-          if old_header not in workflow:
-              raise SystemExit("missing competing-writer job dependency header")
-          workflow = workflow.replace(old_header, new_header, 1)
+          product_start = workflow.index("  develop-next-product-gap:")
+          runs_on_start = workflow.index("    runs-on: ubuntu-24.04", product_start)
+          workflow = (
+              workflow[:product_start]
+              + "  develop-next-product-gap:\n"
+              + workflow[runs_on_start:]
+          )
           old_message = (
               "An open pull request owns the queue; review, repair, checks, "
               "and merge stay ahead of new development."
