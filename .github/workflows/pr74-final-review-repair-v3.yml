@@ -1,0 +1,416 @@
+name: PR 74 final review repair v3
+
+on:
+  push:
+    branches:
+      - feat/role-responsibility-agent-ontology
+    paths:
+      - .github/workflows/pr74-final-review-repair-v3.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pr74-final-review-repair-v3
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout repair branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/role-responsibility-agent-ontology
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@56f84321dbccf38fb67ce29ab63e4754056677e0 # stable
+        with:
+          toolchain: stable
+
+      - name: Set up locked Python dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Install the committed universal lock
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Require PostgreSQL
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 30); do
+            pg_isready -h localhost -p 5432 -U postgres && exit 0
+            sleep 2
+          done
+          exit 1
+
+      - name: Write transaction regressions first
+        run: |
+          set -euo pipefail
+          cat > tests/test_review_transaction_boundaries.py <<'PY'
+          """Regressions for the final transaction-boundary review findings."""
+
+          from __future__ import annotations
+
+          import asyncio
+          from collections.abc import Sequence
+          from typing import Any
+
+          from backend.app import corporate_entity_ingestion, post_summary_ingestion
+          from lineageweave.post_summary import PostSummary
+
+
+          class _TransactionContext:
+              """Minimal async transaction context that records its lifetime."""
+
+              def __init__(self, connection: Any) -> None:
+                  self._connection = connection
+
+              async def __aenter__(self) -> None:
+                  assert not self._connection.in_transaction
+                  self._connection.in_transaction = True
+                  self._connection.events.append("transaction_enter")
+
+              async def __aexit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
+                  self._connection.events.append("transaction_exit")
+                  self._connection.in_transaction = False
+
+
+          class _CreationConnection:
+              """Asyncpg-shaped connection for the serialized creation boundary."""
+
+              def __init__(self, existing_rows: Sequence[dict[str, str]] = ()) -> None:
+                  self.existing_rows = list(existing_rows)
+                  self.events: list[str] = []
+                  self.in_transaction = False
+                  self.lock_acquired = False
+
+              def transaction(self) -> _TransactionContext:
+                  return _TransactionContext(self)
+
+              async def execute(self, query: str, *args: object) -> str:
+                  assert self.in_transaction
+                  assert "pg_advisory_xact_lock" in query
+                  assert args == ("lineageweave:corporate_entity_creation",)
+                  self.lock_acquired = True
+                  self.events.append("advisory_lock")
+                  return "SELECT 1"
+
+              async def fetch(self, query: str, *args: object) -> list[dict[str, str]]:
+                  assert self.in_transaction and self.lock_acquired
+                  assert "from corporate_entity" in query
+                  assert not args
+                  self.events.append("candidate_requery")
+                  return self.existing_rows
+
+              async def fetchrow(self, query: str, *args: object) -> dict[str, str]:
+                  assert self.in_transaction and self.lock_acquired
+                  assert "insert into corporate_entity" in query
+                  self.events.append("entity_insert")
+                  return {"corporate_entity_id": "created-entity"}
+
+
+          def test_corporate_entity_creation_locks_rechecks_and_inserts_in_one_transaction() -> None:
+              """The uncommon creation write is serialized inside its transaction."""
+              connection = _CreationConnection()
+
+              entity_id = asyncio.run(
+                  corporate_entity_ingestion._create_entity(
+                      connection,
+                      "Northwind Turbines",
+                      "company",
+                      None,
+                  )
+              )
+
+              assert entity_id == "created-entity"
+              assert connection.events == [
+                  "transaction_enter",
+                  "advisory_lock",
+                  "candidate_requery",
+                  "entity_insert",
+                  "transaction_exit",
+              ]
+
+
+          def test_corporate_entity_creation_reuses_a_candidate_found_under_the_lock() -> None:
+              """A concurrent winner is reused after the lock-bound similarity recheck."""
+              connection = _CreationConnection(
+                  ({"corporate_entity_id": "existing-entity", "entity_name": "Northwind Turbines"},)
+              )
+
+              entity_id = asyncio.run(
+                  corporate_entity_ingestion._create_entity(
+                      connection,
+                      "Northwind Turbines",
+                      "company",
+                      None,
+                  )
+              )
+
+              assert entity_id == "existing-entity"
+              assert connection.events == [
+                  "transaction_enter",
+                  "advisory_lock",
+                  "candidate_requery",
+                  "transaction_exit",
+              ]
+
+
+          class _SummaryConnection:
+              """Connection that rejects every summary write outside a transaction."""
+
+              def __init__(self) -> None:
+                  self.events: list[str] = []
+                  self.in_transaction = False
+
+              def transaction(self) -> _TransactionContext:
+                  return _TransactionContext(self)
+
+              async def execute(self, query: str, *args: object) -> str:
+                  assert self.in_transaction, query
+                  self.events.append("write")
+                  return "OK"
+
+
+          def test_post_summary_replacement_is_one_atomic_transaction(monkeypatch: Any) -> None:
+              """Deletes and replacement inserts commit or roll back as one unit."""
+              connection = _SummaryConnection()
+              expected_payload = {
+                  "post_id": "00000000-0000-0000-0000-000000000001",
+                  "korean_summary": "요약",
+                  "key_events": [],
+                  "roles_and_responsibilities": [],
+              }
+
+              async def _fetch_after_commit(conn: Any, post_id: str) -> dict[str, Any]:
+                  assert conn is connection
+                  assert post_id == expected_payload["post_id"]
+                  assert not connection.in_transaction
+                  connection.events.append("read_after_commit")
+                  return expected_payload
+
+              monkeypatch.setattr(
+                  post_summary_ingestion,
+                  "fetch_persisted_summary",
+                  _fetch_after_commit,
+              )
+
+              payload = asyncio.run(
+                  post_summary_ingestion.persist_post_summary(
+                      connection,
+                      expected_payload["post_id"],
+                      PostSummary(korean_summary="요약"),
+                  )
+              )
+
+              assert payload == expected_payload
+              assert connection.events[0] == "transaction_enter"
+              assert connection.events[-2:] == ["transaction_exit", "read_after_commit"]
+              assert connection.events.count("transaction_enter") == 1
+              assert connection.events.count("transaction_exit") == 1
+          PY
+
+          grep -Fq '"2026-08-14T04:00:00+14:01"' tests/test_prov_o_schema.py
+
+      - name: Prove the reviewed defects are reproduced
+        run: |
+          set -euo pipefail
+          set +e
+          uv run --frozen python -m pytest -vv tests/test_review_transaction_boundaries.py \
+            > /tmp/transaction-red.log 2>&1
+          transaction_status=$?
+          set -e
+          cat /tmp/transaction-red.log
+          test "$transaction_status" -ne 0
+          grep -q "test_corporate_entity_creation_locks_rechecks_and_inserts_in_one_transaction FAILED" /tmp/transaction-red.log
+          grep -q "test_post_summary_replacement_is_one_atomic_transaction FAILED" /tmp/transaction-red.log
+
+          set +e
+          uv run --frozen python -m pytest -vv tests/test_prov_o_schema.py \
+            -k rejects_invalid_xsd_datetime > /tmp/datetime-red.log 2>&1
+          datetime_status=$?
+          set -e
+          cat /tmp/datetime-red.log
+          test "$datetime_status" -ne 0
+          grep -Fq "14:01" /tmp/datetime-red.log
+
+      - name: Implement the verified root-cause fixes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from textwrap import dedent
+
+          corporate_path = Path("backend/app/corporate_entity_ingestion.py")
+          corporate_text = corporate_path.read_text()
+          constant_anchor = '_MAX_HIERARCHY_DEPTH = 4\n'
+          if constant_anchor not in corporate_text:
+              raise SystemExit("corporate lock constant anchor not found")
+          corporate_text = corporate_text.replace(
+              constant_anchor,
+              constant_anchor + '_CORPORATE_ENTITY_CREATION_LOCK = "lineageweave:corporate_entity_creation"\n',
+              1,
+          )
+          function_start = corporate_text.index("async def _create_entity(")
+          function_end = corporate_text.index(
+              "\n\nasync def get_or_create_corporate_entity",
+              function_start,
+          )
+          replacement = dedent(
+              '''
+              async def _create_entity(
+                  conn: asyncpg.Connection,
+                  organization_name: str,
+                  level_code: str,
+                  parent_entity_id: str | None,
+              ) -> str:
+                  """Serialize, recheck, and insert one previously unseen entity.
+
+                  Network inference and verification finish before this function is
+                  called. The fixed transaction-scoped advisory lock establishes one
+                  cluster-wide creation order; candidates are then reloaded and
+                  similarity matching is repeated before any insert is attempted.
+                  """
+                  async with conn.transaction():
+                      await conn.execute(
+                          "select pg_advisory_xact_lock(hashtext($1))",
+                          _CORPORATE_ENTITY_CREATION_LOCK,
+                      )
+                      current_rows = await conn.fetch(
+                          "select corporate_entity_id, entity_name from corporate_entity"
+                      )
+                      current_candidates = [
+                          CorporateEntityCandidate(
+                              corporate_entity_id=str(row["corporate_entity_id"]),
+                              entity_name=row["entity_name"],
+                          )
+                          for row in current_rows
+                      ]
+                      existing_id = resolve_corporate_entity(
+                          organization_name,
+                          current_candidates,
+                      )
+                      if existing_id is not None:
+                          return existing_id
+
+                      row = await conn.fetchrow(
+                          """
+                          insert into corporate_entity
+                              (parent_entity_id, corporate_entity_code, entity_name, entity_level_code)
+                          values ($1, $2, $3, $4)
+                          on conflict (corporate_entity_code) do update set
+                              entity_name = excluded.entity_name,
+                              entity_level_code = excluded.entity_level_code,
+                              parent_entity_id = excluded.parent_entity_id
+                          returning corporate_entity_id
+                          """,
+                          parent_entity_id,
+                          _auto_entity_code(organization_name),
+                          organization_name,
+                          level_code,
+                      )
+                      return str(row["corporate_entity_id"])
+              '''
+          ).lstrip()
+          corporate_path.write_text(
+              corporate_text[:function_start] + replacement + corporate_text[function_end:]
+          )
+
+          summary_path = Path("backend/app/post_summary_ingestion.py")
+          summary_text = summary_path.read_text()
+          start_marker = "    # Summary replacement also replaces its team/organization projections.\n"
+          end_marker = "\n    payload = await fetch_persisted_summary(conn, post_id)"
+          body_start = summary_text.index(start_marker)
+          body_end = summary_text.index(end_marker, body_start)
+          body = summary_text[body_start:body_end]
+          indented_body = "".join(
+              "    " + line if line.strip() else line
+              for line in body.splitlines(keepends=True)
+          )
+          summary_path.write_text(
+              summary_text[:body_start]
+              + "    async with conn.transaction():\n"
+              + indented_body
+              + summary_text[body_end:]
+          )
+
+          migration_path = Path("migrations/0017_prov_o_standard_relations.sql")
+          migration_text = migration_path.read_text()
+          old_regex = "'(Z|[+-](0[0-9]|1[0-4]):[0-5][0-9])$'"
+          new_regex = "'(Z|[+-]((0[0-9]|1[0-3]):[0-5][0-9]|14:00))$'"
+          if old_regex not in migration_text:
+              raise SystemExit("xsd:dateTime timezone regex not found")
+          migration_path.write_text(migration_text.replace(old_regex, new_regex, 1))
+
+          changelog_path = Path("CHANGELOG.md")
+          changelog_text = changelog_path.read_text()
+          old_changelog = (
+              "- Vision-response parsing now preserves Markdown emphasis in field values\n"
+              "  while still accepting emphasized field labels, so OCR such as\n"
+              "  ``TEXT: **LT7**`` is not truncated."
+          )
+          new_changelog = (
+              "- Vision-response parsing now strips balanced outer Markdown emphasis from field values\n"
+              "  while still accepting emphasized field labels, so OCR such as\n"
+              "  ``TEXT: **LT7**`` is stored as ``LT7`` without truncation."
+          )
+          if old_changelog not in changelog_text:
+              raise SystemExit("changelog review text not found")
+          changelog_path.write_text(changelog_text.replace(old_changelog, new_changelog, 1))
+          PY
+
+      - name: Verify focused transaction and PROV-O behavior
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m pytest -q tests/test_review_transaction_boundaries.py
+          uv run --frozen python -m pytest -q tests/test_prov_o_schema.py
+          uv run --frozen python -m pytest -q \
+            tests/test_corporate_hierarchy_inference.py \
+            tests/test_post_summary.py \
+            backend/tests/test_api.py
+
+      - name: Verify the complete Python suite
+        run: uv run --frozen python -m pytest -q
+
+      - name: Verify source integrity
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m compileall -q backend lineageweave tests
+          git diff --check
+
+      - name: Commit and push the verified repair
+        run: |
+          set -euo pipefail
+          rm .github/workflows/pr74-final-review-repair.yml
+          rm .github/workflows/pr74-final-review-repair-v2.yml
+          rm .github/workflows/pr74-final-review-repair-v3.yml
+          git add -A
+          git diff --cached --check
+          git config user.name "opencode-agent[bot]"
+          git config user.email "1549082+opencode-agent[bot]@users.noreply.github.com"
+          git commit -m "fix: resolve final PROV-O review blockers"
+          git push origin HEAD:feat/role-responsibility-agent-ontology
