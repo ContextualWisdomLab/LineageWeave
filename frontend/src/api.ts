@@ -79,6 +79,7 @@ export interface RelatedNode {
   relevance: number;
   label?: string;
   person_side_code?: string;
+  person_side_label?: string;
   ontology_iri?: string;
   ontology_label?: string;
 }
