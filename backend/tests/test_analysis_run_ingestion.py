@@ -101,7 +101,7 @@ def test_register_analysis_run_is_one_idempotent_transaction() -> None:
         fetchrows=[
             {"source_profile_id": "profile-id"},
             {"source_snapshot_id": "snapshot-id"},
-            {"analysis_run_id": "run-id"},
+            {"analysis_run_id": "run-id", "started_at": started},
         ]
     )
     result = asyncio.run(
@@ -126,6 +126,31 @@ def test_register_analysis_run_is_one_idempotent_transaction() -> None:
     all_sql = "\n".join(call[1] for call in conn.calls).lower()
     assert "source sql" not in all_sql
     assert "dsn" not in all_sql
+
+
+def test_idempotent_retry_reuses_the_persisted_start_event_time() -> None:
+    profile, snapshot, configuration, started = _inputs()
+    persisted_started = started - timedelta(minutes=5)
+    conn = FakeConnection(
+        fetchrows=[
+            {"source_profile_id": "profile-id"},
+            {"source_snapshot_id": "snapshot-id"},
+            {"analysis_run_id": "run-id", "started_at": persisted_started},
+        ]
+    )
+    result = asyncio.run(
+        register_analysis_run(
+            conn,
+            registration=AnalysisRunRegistration(
+                "account-id", "run-key", started + timedelta(minutes=1)
+            ),
+            profile=profile,
+            snapshot=snapshot,
+            configuration=configuration,
+        )
+    )
+    assert result == "run-id"
+    assert conn.calls[-1][2][2] == persisted_started
 
 
 @pytest.mark.parametrize(
