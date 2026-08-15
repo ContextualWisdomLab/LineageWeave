@@ -794,7 +794,16 @@ def test_workspace_surface_and_reports_skip_full_graph(monkeypatch) -> None:
     monkeypatch.setattr(
         lw,
         "load_authorized_report_document_numbers",
-        lambda _connection, _actor: {"DOC-D02", "DOC-TEAM", "DOC-PROJECT"},
+        lambda _connection, _actor, _documents=None: {"DOC-D02", "DOC-TEAM", "DOC-PROJECT"},
+    )
+    monkeypatch.setattr(
+        lw,
+        "load_report_document_nodes",
+        lambda _connection: [
+            {"document_no": "DOC-D02", "title_sample": "PU document"},
+            {"document_no": "DOC-TEAM", "title_sample": "Team document"},
+            {"document_no": "DOC-PROJECT", "title_sample": "Project document"},
+        ],
     )
     actor = {**ACTOR, "pu_code": "D02"}
     surface = app.workspace_surface(actor)
@@ -803,6 +812,7 @@ def test_workspace_surface_and_reports_skip_full_graph(monkeypatch) -> None:
         "weekly-pu-D02",
         "weekly-team-1",
     ]
+    assert [item["slice_label"] for item in surface["period_reports"]] == ["D02", "T1"]
     monkeypatch.setattr(
         lw,
         "load_period_reports",
@@ -821,6 +831,7 @@ def test_workspace_surface_and_reports_skip_full_graph(monkeypatch) -> None:
     reports = app.reports(actor)
     assert reports["source"] == "persisted"
     assert reports["reports"][0]["slice_kind"] == "project"
+    assert reports["reports"][0]["slice_label"] == "Project document"
 
 
 def test_admin_report_refresh_is_audited_and_requires_admin(monkeypatch) -> None:
@@ -1266,7 +1277,12 @@ def test_persisted_knowledge_neighborhood_and_report_build_paths(monkeypatch) ->
 
     app._payload = _payload()
     monkeypatch.setattr(lw, "load_period_reports", lambda _connection: [])
-    monkeypatch.setattr(lw, "load_authorized_report_document_numbers", lambda _connection, _actor: {"DOC-1"})
+    monkeypatch.setattr(
+        lw,
+        "load_authorized_report_document_numbers",
+        lambda _connection, _actor, _documents=None: {"DOC-1"},
+    )
+    monkeypatch.setattr(lw, "load_report_document_nodes", lambda _connection: [])
     monkeypatch.setattr(lw, "resolve_product_transport", lambda: (_ for _ in ()).throw(RuntimeError("gateway_unavailable")))
     monkeypatch.setattr(lw, "resolve_mlsirm_transport", lambda: (None, "not_configured"))
     monkeypatch.setattr(lw, "build_period_report_slices", lambda documents: [{"slice_key": documents[0]["document_no"]}])
@@ -1670,7 +1686,12 @@ def test_cold_report_build_does_not_require_an_unrelated_cached_payload(monkeypa
     persisted: list[dict] = []
     monkeypatch.setattr(server.psycopg, "connect", lambda *_args, **_kwargs: _Connection())
     monkeypatch.setattr(lw, "load_period_reports", lambda _connection: [])
-    monkeypatch.setattr(lw, "load_authorized_report_document_numbers", lambda _connection, _actor: {"DOC-1"})
+    monkeypatch.setattr(
+        lw,
+        "load_authorized_report_document_numbers",
+        lambda _connection, _actor, _documents=None: {"DOC-1"},
+    )
+    monkeypatch.setattr(lw, "load_report_document_nodes", lambda _connection: [])
     monkeypatch.setattr(app, "filtered_payload", lambda _actor: {"nodes": documents})
     monkeypatch.setattr(lw, "build_period_report_slices", lambda rows: [{"slice_key": rows[0]["document_no"]}])
     monkeypatch.setattr(lw, "resolve_product_transport", lambda: (None, "not_configured"))

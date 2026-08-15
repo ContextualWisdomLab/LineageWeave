@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Added evidence-backed reader labels for report scopes. PU/team labels use
+  their business attributes, while project labels use the first actor-authorized
+  document title or Korean summary; opaque project storage keys remain API and
+  administrator trace data and are never rendered in the general-user screen.
 - Replaced raw report period/slice IDs, Judge verdict codes, and customer
   hierarchy tiers on general-user screens with Korean business labels. Report
   detail also translates score-linking and Judge-source codes into business
@@ -62,8 +66,8 @@
   projection, while 3,020 current matching pairs per projection remain
   visible as non-temporal relatedness and the 107 observed row-successors are
   the only chronological links.
-- The current source gate passes 352 tests with no skip and 100%
-  line-and-branch coverage for 7,598 shipped-runtime statements and 2,966
+- The current source gate passes 355 tests with no skip and 100%
+  line-and-branch coverage for 7,627 measured-runtime statements and 2,984
   branches; the React V8 gate
   and production build pass as well.
 - Added an isolated PostgreSQL service to the product test workflow and

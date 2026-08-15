@@ -6176,16 +6176,62 @@ def load_report_document_nodes(connection: psycopg.Connection) -> List[Dict[str,
 def load_authorized_report_document_numbers(
     connection: psycopg.Connection,
     actor: Optional[Dict[str, Any]],
+    documents: Optional[Sequence[Dict[str, Any]]] = None,
 ) -> set[str]:
     """Return report evidence documents visible to one verified actor."""
-    documents = load_report_document_nodes(connection)
+    report_documents = (
+        list(documents)
+        if documents is not None
+        else load_report_document_nodes(connection)
+    )
     if actor is None:
-        return {str(document["document_no"]) for document in documents}
+        return {str(document["document_no"]) for document in report_documents}
     return {
         str(document["document_no"])
-        for document in documents
+        for document in report_documents
         if authorize_access(actor=actor, resource=document, action="read")["allowed"]
     }
+
+
+def attach_report_display_labels(
+    reports: Sequence[Dict[str, Any]],
+    documents: Sequence[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Attach response-only labels from actor-authorized report evidence.
+
+    Project storage keys are opaque lineage identifiers and are intentionally
+    never used as reader-facing labels.  PU and team codes are business
+    attributes, while project labels come from the report's own evidence
+    documents.  The caller must pass documents already authorized for the
+    requesting actor.
+    """
+    documents_by_no = {
+        document_no: document
+        for document in documents
+        if (document_no := str(document.get("document_no") or "").strip())
+    }
+    labeled_reports: List[Dict[str, Any]] = []
+    for report in reports:
+        labeled = dict(report)
+        slice_kind = str(report.get("slice_kind") or "").strip()
+        label = ""
+        if slice_kind in {"pu", "team"}:
+            label = str(report.get("slice_key") or "").strip()
+        elif slice_kind == "project":
+            for document_no in report.get("document_nos", ()):
+                document = documents_by_no.get(str(document_no))
+                if document is None:
+                    continue
+                for field in ("title_sample", "korean_summary"):
+                    label = _bounded_inference_text(document.get(field), 160)
+                    if label:
+                        break
+                if label:
+                    break
+        if label:
+            labeled["slice_label"] = label
+        labeled_reports.append(labeled)
+    return labeled_reports
 
 
 def filter_period_reports_for_actor(

@@ -1765,6 +1765,61 @@ def test_report_document_loader_and_actor_filter_fail_closed(monkeypatch) -> Non
     assert lw.load_report_document_nodes(object()) == []
 
 
+def test_report_display_labels_use_authorized_document_titles_without_storage_keys() -> None:
+    """Build reader labels from evidence titles while keeping project keys private."""
+    reports = [
+        {
+            "report_id": "project-title",
+            "slice_kind": "project",
+            "slice_key": "OPAQUE-PROJECT-KEY",
+            "document_nos": ["DOC-TITLE"],
+        },
+        {
+            "report_id": "project-summary",
+            "slice_kind": "project",
+            "slice_key": "OPAQUE-SUMMARY-KEY",
+            "document_nos": ["DOC-SUMMARY"],
+        },
+        {"report_id": "pu", "slice_kind": "pu", "slice_key": "D02"},
+        {"report_id": "team", "slice_kind": "team", "slice_key": "T1"},
+        {
+            "report_id": "project-without-label",
+            "slice_kind": "project",
+            "slice_key": "OPAQUE-MISSING-KEY",
+            "document_nos": ["DOC-MISSING"],
+        },
+        {
+            "report_id": "project-after-empty-document",
+            "slice_kind": "project",
+            "slice_key": "OPAQUE-EMPTY-KEY",
+            "document_nos": ["DOC-EMPTY", "DOC-TITLE"],
+        },
+        {"report_id": "unknown", "slice_kind": "other", "slice_key": "internal"},
+    ]
+    documents = [
+        {"document_no": "DOC-TITLE", "title_sample": "  제목\n기반 프로젝트  "},
+        {"document_no": "DOC-SUMMARY", "title_sample": "", "korean_summary": "요약 기반 프로젝트"},
+        {"document_no": "DOC-UNUSED", "title_sample": "권한 없는 문서 제목"},
+        {"document_no": "DOC-EMPTY", "title_sample": "", "korean_summary": ""},
+        {"title_sample": "문서 번호 없는 제목"},
+    ]
+
+    labeled = lw.attach_report_display_labels(reports, documents)
+
+    assert labeled[0]["slice_label"] == "제목 기반 프로젝트"
+    assert labeled[1]["slice_label"] == "요약 기반 프로젝트"
+    assert labeled[2]["slice_label"] == "D02"
+    assert labeled[3]["slice_label"] == "T1"
+    assert "slice_label" not in labeled[4]
+    assert labeled[5]["slice_label"] == "제목 기반 프로젝트"
+    assert "slice_label" not in labeled[6]
+    assert all(
+        not str(item.get("slice_label") or "").startswith("OPAQUE-")
+        for item in labeled
+    )
+    assert "slice_label" not in reports[0]
+
+
 def test_valkey_resp_and_stream_contract(monkeypatch) -> None:
     """Use the Redis-compatible protocol directly for health and Stream append operations."""
     real_open_connection = lw._open_valkey_connection
