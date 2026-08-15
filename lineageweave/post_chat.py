@@ -187,7 +187,7 @@ class ContextualOrchestratorPostChatClient:
     ``mode="verify"`` exists for (one worker call plus one checked
     verifier judgment), same reasoning ``adjudication_client`` already
     uses, not ``keyman_extraction``/``entity_relationship_classification``'s
-    single-pass ``mode="route"`` structured extraction.
+    single-pass ``mode="auto"`` structured extraction.
     """
 
     available = True

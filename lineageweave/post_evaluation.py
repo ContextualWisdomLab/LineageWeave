@@ -85,7 +85,7 @@ class _OrchestratorCompleteAdapter:
         self._api_key = api_key
         self._timeout = timeout
 
-    def complete(self, messages: list[dict[str, Any]], mode: str = "route") -> dict[str, Any]:
+    def complete(self, messages: list[dict[str, Any]], mode: str = "auto") -> dict[str, Any]:
         body = post_json(
             f"{self._base_url}/v1/chat/completions",
             {"messages": messages, "mode": mode, "reasoning_effort": "medium"},
@@ -107,7 +107,7 @@ class ContextualOrchestratorPostEvaluationClient:
     def __init__(self, base_url: str, api_key: str, *, timeout: float = 60.0) -> None:
         self._judge = ContextualOrchestratorJudge(
             _OrchestratorCompleteAdapter(base_url, api_key, timeout=timeout),
-            mode="route",
+            mode="auto",
         )
 
     def evaluate(self, post_title: str, post_body: str) -> LLMJudgeResult:

@@ -4,6 +4,12 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Active contextual-orchestrator clients now request `mode="auto"` rather than forcing a one-model route. The orchestrator owns the minimum-cost route, verification, or conducted workflow that satisfies the detected quality requirement; explicit modes remain available for controlled experiments and operator overrides.
+
 ## [0.71.0] - 2026-08-14
 
 ### Added
