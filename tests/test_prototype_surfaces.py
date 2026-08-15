@@ -1078,6 +1078,12 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     server_source = Path("lineageweave_server.py").read_text(encoding="utf-8")
     assert 'id="popupKeymanOur"' in react
     assert 'id="popupKeymanCounterpart"' in react
+    assert "분석 상태" in react
+    assert "관리 상태" in react
+    assert "자동 도출" in react
+    assert "사용자 관리" in react
+    assert "source: {selectedDocument.keyman_source" not in react
+    assert "status: {selectedDocument.keyman_status" not in react
     assert "document.getElementById" not in react
     assert "const selectedDocument" in react
     assert "ticketStatusOptions" in react

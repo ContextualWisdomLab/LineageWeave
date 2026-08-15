@@ -89,6 +89,8 @@
 | Executable Keyverse RP boundary | `OIDC_ISSUER_ROUTE_PARTS`, `LineageHandler`, Compose worker, HTTP contracts | Fresh rebuilt-runtime probe returned `404` for every product-and-worker `GET`/`POST` discovery, authorization, token, and introspection route, including `/oidc/*` aliases. Anonymous access remains Keyverse-gated; no issuer was started or used. |
 | Current product-runtime coverage | shipped Python runtime sources and `web/` V8 presentation model | 351 Python tests plus one expected optional fast-mlsirm skip and 7,598 statements / 2,966 branches at 100% line-and-branch coverage; 8 React tests, V8 100%, and production build passed. This does not replace real-Keyverse or Figma/browser acceptance. |
 
+| Reader Keyman vocabulary | `keymanSourceLabel`, `keymanStatusLabel`, `#popupKeymanOur`, `#popupKeymanCounterpart` | The general-user popup hides raw `source`/`status` model codes and renders business labels for automatic derivation, user management, pending, and unavailable states. Raw provenance remains available to authorized server/admin review; the actor-filtered Ontology/Semantic Layer and Keyman KG behavior is unchanged. Static surface contract and production build pass. |
+
 | Hourly product-gap proposal loop | .github/workflows/hourly-product-gap.yml, docs/operations/hourly-product-gap-loop.md | Workflow contract tests require the minute-17 schedule, NIM-only model boundary, immutable action pins, bounded patch artifact, fresh Python/React verifier, queue/base recheck, and PR creation without merge authority. The local product has no remote, so a live scheduled run remains a deployment gate. |
 
 ## Acceptance commands
