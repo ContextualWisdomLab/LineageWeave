@@ -80,3 +80,30 @@ def test_preflight_rejects_missing_required_settings_without_value_disclosure(tm
     assert result.returncode == 1
     assert "LINEAGEWEAVE_OIDC_CLIENT_SECRET" in result.stderr
     assert "postgresql://fixture" not in result.stdout + result.stderr
+
+
+def test_container_images_pin_base_digests_and_run_non_root() -> None:
+    """Keep shipped and conformance images reproducible and non-root at runtime."""
+    expected_images = {
+        "Dockerfile": (
+            "node:24.18.0-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd",
+            "ghcr.io/astral-sh/uv:0.9.27-python3.13-bookworm-slim@sha256:fb12b20e86027dac1b4c78a359ba091b639df39b85d9e9f5d93a91bd08e01666",
+            "USER node",
+            "USER lineageweave",
+        ),
+        "compose/Dockerfile": (
+            "python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d",
+            "USER lineageweave",
+        ),
+        "compose/searxng/Dockerfile": (
+            "searxng/searxng@sha256:c2dc2d9e6b910653e8628361c23443222490e4cabbb9e02667b7847143db843b",
+            "USER searxng",
+        ),
+        "tests/Dockerfile.oidc-conformance": (
+            "quay.io/keycloak/keycloak:26.0.8@sha256:09a381c715ab0b111835b70f2905955274843a219c6f27efb348e4d9f4086858",
+            "USER 1000",
+        ),
+    }
+    for relative_path, markers in expected_images.items():
+        source = (_REPO_ROOT / relative_path).read_text(encoding="utf-8")
+        assert all(marker in source for marker in markers), relative_path

@@ -94,6 +94,17 @@ customer projection. Reader vocabulary hides raw implementation provenance and
 uses business terms for evidence and visibility; administrator/audit routes
 retain source fields for operational diagnosis.
 
+## Container and workflow supply-chain boundary
+
+All shipped product, Compose worker, SearXNG, and isolated OIDC-conformance
+base images are referenced by immutable registry digest. The React build stage
+uses the non-root `node` account, and runtime stages retain their explicit
+non-root users. GitHub workflow bootstrap installation uses `pip` hash
+verification for the pinned Linux `uv` wheel in both the scheduled verifier
+and the normal test workflow. These controls make image and CI dependency
+replacement detectable without changing the PostgreSQL, Keyverse, Valkey, or
+HTTP-only integration boundaries.
+
 ## Evidence
 
 - `lineageweave.py`
