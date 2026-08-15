@@ -1,0 +1,65 @@
+name: Drain hourly commercialization loop PR 76
+
+on:
+  push:
+    branches:
+      - automation/scrub-milestone2-v079
+    paths:
+      - .github/workflows/drain-hourly-loop-pr76.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  statuses: read
+
+concurrency:
+  group: drain-hourly-loop-pr76
+  cancel-in-progress: false
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Poll exact live governance and arm protected auto-merge
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 110); do
+            payload="$(gh pr view 76 --repo "$GITHUB_REPOSITORY" \
+              --json state,isDraft,headRefOid,mergeStateStatus,statusCheckRollup)"
+            state="$(python -c 'import json,sys; print(json.load(sys.stdin)["state"])' <<<"$payload")"
+            if [[ "$state" != "OPEN" ]]; then
+              exit 0
+            fi
+
+            unresolved="$(gh api graphql \
+              -f owner="${GITHUB_REPOSITORY%%/*}" \
+              -f name="${GITHUB_REPOSITORY##*/}" \
+              -F number=76 \
+              -f query='query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){reviewThreads(first:100){nodes{isResolved}}}}}' \
+              --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)] | length')"
+
+            failing="$(python -c '
+          import json,sys
+          data=json.load(sys.stdin)
+          bad={"FAILURE","ERROR","CANCELLED","TIMED_OUT","ACTION_REQUIRED","STARTUP_FAILURE","STALE"}
+          checks=data.get("statusCheckRollup") or []
+          states=[(item.get("conclusion") or item.get("state") or "").upper() for item in checks]
+          print("true" if any(state in bad for state in states) else "false")
+          ' <<<"$payload")"
+
+            if [[ "$unresolved" == "0" && "$failing" == "false" ]]; then
+              draft="$(python -c 'import json,sys; print(str(json.load(sys.stdin)["isDraft"]).lower())' <<<"$payload")"
+              if [[ "$draft" == "true" ]]; then
+                gh pr ready 76 --repo "$GITHUB_REPOSITORY"
+              fi
+              gh pr merge 76 --repo "$GITHUB_REPOSITORY" --auto --squash || true
+            fi
+            sleep 60
+          done
+          exit 0
