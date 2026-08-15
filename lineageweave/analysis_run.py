@@ -18,6 +18,17 @@ from typing import Any, Mapping
 
 _SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 _PROFILE_KEY_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]{0,127}$")
+_SOURCE_KIND_CODES = frozenset({"postgresql_query_profile"})
+_RUN_STATUS_CODES = frozenset(
+    {
+        "analysis_run_running",
+        "analysis_run_succeeded",
+        "analysis_run_failed",
+    }
+)
+_TERMINAL_RUN_STATUS_CODES = frozenset(
+    {"analysis_run_succeeded", "analysis_run_failed"}
+)
 
 
 class AnalysisRunContractError(ValueError):
@@ -110,6 +121,10 @@ class SourceProfileReference:
             raise AnalysisRunContractError("profile_revision must be at least 1")
         _require_sha256("query_digest_sha256", self.query_digest_sha256)
         _require_nonempty("source_kind_code", self.source_kind_code, maximum=64)
+        if self.source_kind_code not in _SOURCE_KIND_CODES:
+            raise AnalysisRunContractError(
+                "source_kind_code must be a supported source kind"
+            )
 
     def public_json(self) -> dict[str, Any]:
         """Return the source-safe profile projection exposed to operators."""
@@ -192,6 +207,25 @@ class AnalysisRunRegistration:
         )
         _require_nonempty("idempotency_key", self.idempotency_key, maximum=255)
         _require_aware("started_at", self.started_at)
+
+
+@dataclass(frozen=True)
+class AnalysisRunCompletion:
+    """Validated terminal transition request for one running analysis."""
+
+    analysis_run_id: str
+    actor_account_id: str
+    succeeded: bool
+    completed_at: datetime
+
+    def __post_init__(self) -> None:
+        """Reject unsafe identifiers, ambiguous booleans, and naïve clocks."""
+
+        _require_nonempty("analysis_run_id", self.analysis_run_id, maximum=128)
+        _require_nonempty("actor_account_id", self.actor_account_id, maximum=128)
+        if not isinstance(self.succeeded, bool):
+            raise AnalysisRunContractError("succeeded must be a boolean")
+        _require_aware("completed_at", self.completed_at)
 
 
 @dataclass(frozen=True)
@@ -283,6 +317,10 @@ class AnalysisRunSummary:
         if self.profile_revision < 1:
             raise AnalysisRunContractError("profile_revision must be at least 1")
         _require_nonempty("run_status_code", self.run_status_code, maximum=64)
+        if self.run_status_code not in _RUN_STATUS_CODES:
+            raise AnalysisRunContractError(
+                "run_status_code must be a supported run status"
+            )
         _require_sha256("request_digest_sha256", self.request_digest_sha256)
         SourceSnapshotEvidence(
             source_digest_sha256=self.source_digest_sha256,
@@ -298,6 +336,16 @@ class AnalysisRunSummary:
             if self.completed_at < self.started_at:
                 raise AnalysisRunContractError(
                     "completed_at must not precede started_at"
+                )
+        if self.run_status_code == "analysis_run_running":
+            if self.completed_at is not None:
+                raise AnalysisRunContractError(
+                    "a running run cannot have completed_at"
+                )
+        elif self.run_status_code in _TERMINAL_RUN_STATUS_CODES:
+            if self.completed_at is None:
+                raise AnalysisRunContractError(
+                    "a terminal run requires completed_at"
                 )
 
     def public_json(self) -> dict[str, Any]:
