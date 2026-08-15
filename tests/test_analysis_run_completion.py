@@ -11,6 +11,7 @@ from lineageweave.analysis_run import (
     AnalysisRunConfiguration,
     AnalysisRunContractError,
     AnalysisRunSummary,
+    SourceProfileReference,
 )
 
 UTC = timezone.utc
@@ -43,6 +44,16 @@ def _summary(**changes: object) -> AnalysisRunSummary:
     }
     values.update(changes)
     return AnalysisRunSummary(**values)  # type: ignore[arg-type]
+
+
+def test_source_profile_rejects_unknown_source_kind() -> None:
+    with pytest.raises(AnalysisRunContractError, match="supported source kind"):
+        SourceProfileReference(
+            "configured-primary",
+            1,
+            DIGEST_A,
+            "filesystem_source_profile",
+        )
 
 
 def test_completion_requires_safe_identifiers_boolean_and_aware_time() -> None:
