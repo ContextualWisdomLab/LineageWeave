@@ -1,0 +1,169 @@
+name: Restack Milestone 2 v0.79 after PR 80
+
+on:
+  push:
+    branches:
+      - automation/scrub-milestone2-v079
+    paths:
+      - .github/workflows/restack-milestone2-v079.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: restack-milestone2-v079
+  cancel-in-progress: false
+
+jobs:
+  restack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TARGET_BRANCH: feat/milestone2-analysis-run-contract-v079
+      STACK_BASE_SHA: c7bb517803e7781f4ababaff2ab383093b5c5782
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout helper repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Stop cleanly until v0.78 is merged
+        id: readiness
+        run: |
+          set -euo pipefail
+          merged="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/80" --jq '.merged')"
+          if [[ "$merged" != "true" ]]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - name: Build unique v0.79 delta on current protected main
+        if: steps.readiness.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main "$TARGET_BRANCH"
+          old_head="$(git rev-parse "origin/${TARGET_BRANCH}")"
+          git merge-base --is-ancestor "$STACK_BASE_SHA" "$old_head"
+          git diff --binary "$STACK_BASE_SHA" "$old_head" > /tmp/v079.patch
+          test -s /tmp/v079.patch
+          git checkout --detach origin/main
+          git apply --3way /tmp/v079.patch
+          rm -f \
+            .github/workflows/prepare-milestone2-analysis-run-v079.yml \
+            .github/workflows/verify-milestone2-analysis-run-v079.yml
+          git add -A
+          git diff --cached --check
+          printf '%s' "$old_head" > /tmp/old-target-head
+
+      - name: Reject source-specific public content
+        if: steps.readiness.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+
+          patterns = (
+              re.compile(r"postgresql://[^\s/]+@localhost/postgres", re.IGNORECASE),
+              re.compile(r"\b[a-z0-9]+_export_rows\b", re.IGNORECASE),
+          )
+          for name in subprocess.check_output(
+              ["git", "diff", "--cached", "--name-only"], text=True
+          ).splitlines():
+              path = Path(name)
+              if not path.is_file():
+                  continue
+              text = path.read_text(encoding="utf-8", errors="ignore")
+              if any(pattern.search(text) for pattern in patterns):
+                  raise SystemExit(f"source-specific content found in {name}")
+          PY
+          test ! -e compose/keyverse_oidc.py
+
+      - name: Set up Python
+        if: steps.readiness.outputs.ready == 'true'
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Select Rust toolchain
+        if: steps.readiness.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Set up uv
+        if: steps.readiness.outputs.ready == 'true'
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Verify focused coverage and complete Python/PostgreSQL product
+        if: steps.readiness.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          uv sync --frozen --extra dev --extra backend
+          uv run --frozen coverage erase
+          uv run --frozen coverage run --branch \
+            --source=lineageweave.analysis_run,backend.app.analysis_run_ingestion \
+            -m pytest -q \
+            tests/test_analysis_run.py \
+            tests/test_analysis_run_coverage.py \
+            backend/tests/test_analysis_run_ingestion.py
+          uv run --frozen coverage report --show-missing --fail-under=100
+          uv run --frozen python -m pytest -q tests/test_analysis_run_schema.py
+          uv run --frozen python -m pytest -q
+          uv run --frozen python -m compileall -q backend lineageweave tests
+
+      - name: Set up Node
+        if: steps.readiness.outputs.ready == 'true'
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Verify React product
+        if: steps.readiness.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          corepack enable
+          cd frontend
+          pnpm install --frozen-lockfile
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+
+      - name: Replace stacked branch and retarget Draft PR
+        if: steps.readiness.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          old_head="$(cat /tmp/old-target-head)"
+          git config user.name "opencode-agent[bot]"
+          git config user.email "1549082+opencode-agent[bot]@users.noreply.github.com"
+          git commit -m "feat: establish Milestone 2 analysis-run provenance (v0.79.0)"
+          git push \
+            --force-with-lease="refs/heads/${TARGET_BRANCH}:${old_head}" \
+            origin "HEAD:refs/heads/${TARGET_BRANCH}"
+          gh api \
+            --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/pulls/83" \
+            -f base=main >/dev/null
