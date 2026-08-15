@@ -2,39 +2,41 @@
 
 ## Purpose
 
-The hourly workflow turns the approved DB-grounded Figma design into protected,
-reviewed product increments while keeping pull-request completion ahead of new
-feature creation.
+The hourly repository workflow turns the approved DB-grounded Figma design into
+one protected product increment only when the live LineageWeave pull-request
+queue is empty. It never reviews, repairs, updates, approves, or merges an
+existing pull request.
 
 The workflow file is
 `.github/workflows/hourly-commercialization-loop.yml`. It runs at minute 23 of
 every hour and can also be invoked manually.
 
-## Queue policy
+## Central governance and queue policy
 
-One pull request owns the development queue.
+The central `.github` scheduler is the only PR review, repair, branch-update, and merge writer.
+It runs the organization-wide sweep every 15 minutes and reacts to PR, review,
+and required-workflow events. LineageWeave does not install a second merger or
+call the central reusable writer from its own schedule.
 
 ```mermaid
 flowchart TD
-    A[Hourly trigger] --> B[Inspect every open PR]
-    B --> C[Dispatch current-head review where missing]
-    C --> D[Repair actionable review feedback]
-    D --> E[Revalidate checks and branch freshness]
-    E --> F{Open PR remains?}
-    F -->|yes| A
-    F -->|no| G[Select one buyer-visible DB-grounded gap]
-    G --> H[Write design supplement and failing test]
-    H --> I[Implement one vertical slice]
-    I --> J[Validate in isolated copy without network]
-    J --> K{Queue and main unchanged?}
-    K -->|no| L[Discard stale proposal]
-    K -->|yes| M[Open exactly one PR]
-    M --> A
+    A[Hourly product trigger] --> B[Read live open-PR count]
+    B --> C{Any open PR?}
+    C -->|yes| D[Exit without mutating the queue]
+    C -->|no| E[Select one buyer-visible DB-grounded gap]
+    E --> F[Write design supplement and failing test]
+    F --> G[Implement one vertical slice]
+    G --> H[Validate in isolated copy without network]
+    H --> I{Queue and main unchanged?}
+    I -->|no| J[Discard stale proposal]
+    I -->|yes| K[Open exactly one PR]
+    K --> L[Central governance reviews and merges]
 ```
 
-The central ContextualWisdomLab workflows own review dispatch, review-feedback
-repair, branch updates, required-check evaluation, auto-merge, and direct merge.
-The product-development job cannot approve or merge its own work.
+The repository workflow receives only read access to pull-request inventory.
+After validation and repeated queue/base checks, it may exchange the existing
+OIDC credential for a short-lived app token that pushes one generated branch
+and opens one PR. It cannot approve, update, or merge that PR.
 
 ## Accuracy-first cadence
 
@@ -43,8 +45,8 @@ queues later invocations rather than being killed at the next heartbeat. This
 is intentional: current-head correctness and reproducible evidence take
 precedence over wall-clock throughput.
 
-The product job has a 180-minute budget. It starts only after all three queue
-jobs succeed and no open pull request remains.
+The product job has a 180-minute budget. It starts only when read-only live
+inspection finds no open pull request; central governance continues independently.
 
 ## Product selection
 
@@ -196,8 +198,9 @@ Generated PRs enter the same central loop as human-authored PRs:
 5. an independent approval is required;
 6. auto-merge or direct merge occurs without bypass.
 
-Review wait time is not a blocker. Subsequent hourly invocations continue
-repairing and revalidating the queue but do not create another product PR.
+Review wait time is not a blocker. The central scheduler continues reviewing,
+repairing, and revalidating the queue; the repository heartbeat exits without
+creating another product PR while any pull request remains open.
 
 ## Failure behavior
 
@@ -218,11 +221,10 @@ mutation step was reached.
 ## Operating evidence
 
 The permanent contract tests in
-`tests/test_hourly_commercialization_workflow.py` verify the schedule,
-governance pins, NVIDIA-only model path, credential removal, red/green
-discipline, protected paths, isolated validation, stale-work checks, and
-one-PR/no-self-merge boundary.
+`tests/test_hourly_commercialization_workflow.py` verify the schedule, central
+single-writer boundary, read-only live queue gate, NVIDIA-only model path,
+credential removal, red/green discipline, protected paths, isolated
+validation, stale-work checks, and one-PR/no-self-merge boundary.
 
-The central scheduler remains independently active. This repository workflow
-adds a LineageWeave-specific hourly heartbeat and product-gap generator; it
-does not duplicate the central scheduler's implementation.
+The central scheduler remains independently active every 15 minutes. This
+repository workflow contributes only the LineageWeave product-gap heartbeat.

@@ -2,17 +2,18 @@
 
 ## Added
 
-- An hourly, review-first commercialization workflow now drains open pull
-  requests through current-head review, feedback repair, check revalidation,
-  branch refresh, and protected merge before creating more work.
+- An hourly product-gap workflow now reads the live pull-request queue and
+  exits without mutation whenever an open PR exists. The organization-central
+  scheduler remains the only review, repair, branch-update, and merge writer.
 - When the pull-request queue is empty, a pinned OpenCode CLI using only
   `NVIDIA_NIM_API_KEY` selects one buyer-visible gap from the approved
   DB-grounded Figma design, writes a failing regression first, implements one
   bounded vertical slice, validates it in an unprivileged network-isolated
   copy, and opens exactly one protected pull request.
-- Permanent workflow-contract tests bind the schedule, immutable central
-  governance references, credential removal, no-Copilot rule, test-first
-  evidence, protected paths, stale-work checks, and no-self-merge boundary.
+- Permanent workflow-contract tests bind the hourly schedule, central
+  single-writer boundary, read-only queue gate, credential removal,
+  no-Copilot rule, test-first evidence, protected paths, stale-work checks,
+  and no-self-merge boundary.
 - Product design and doctoring documentation now records the truthful mapping
   from PostgreSQL cardinalities to Records, Lineage, Record Detail, Entity
   Catalog, Calendar, Reports, Accounts, Roles, and read-only system-policy

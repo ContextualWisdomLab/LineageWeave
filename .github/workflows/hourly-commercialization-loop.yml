@@ -1,4 +1,4 @@
-name: Hourly LineageWeave Commercialization Loop
+name: Hourly LineageWeave Product Gap Loop
 
 on:
   schedule:
@@ -9,78 +9,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: lineageweave-hourly-commercialization-loop
+  group: lineageweave-hourly-product-gap-loop
   cancel-in-progress: false
 
 jobs:
-  inspect-pr-queue:
-    permissions:
-      actions: write
-      checks: read
-      contents: write
-      id-token: write
-      pull-requests: write
-    uses: ContextualWisdomLab/.github/.github/workflows/pr-review-merge-scheduler.yml@6eb06cdd08c79a06f7b390069d4ffa49e2eb7dba
-    with:
-      base_branch: main
-      max_prs: "50"
-      trigger_reviews: true
-      review_dispatch_limit: "-1"
-      branch_update_limit: "-1"
-      enable_auto_merge: true
-      merge_mode: direct_or_auto
-      update_branches: true
-    secrets: inherit
-
-  repair-review-feedback:
-    needs: inspect-pr-queue
-    if: ${{ always() }}
-    permissions:
-      actions: write
-      contents: read
-      issues: write
-      pull-requests: read
-      statuses: read
-    uses: ContextualWisdomLab/.github/.github/workflows/pr-review-fix-scheduler.yml@6eb06cdd08c79a06f7b390069d4ffa49e2eb7dba
-    with:
-      target_repository: ContextualWisdomLab/LineageWeave
-      base_branch: main
-      max_prs: "50"
-      max_dispatches: "50"
-      retry_hours: "1"
-      canonical_ref: 6eb06cdd08c79a06f7b390069d4ffa49e2eb7dba
-    secrets: inherit
-
-  revalidate-pr-queue:
-    needs: repair-review-feedback
-    if: ${{ always() }}
-    permissions:
-      actions: write
-      checks: read
-      contents: write
-      id-token: write
-      pull-requests: write
-    uses: ContextualWisdomLab/.github/.github/workflows/pr-review-merge-scheduler.yml@6eb06cdd08c79a06f7b390069d4ffa49e2eb7dba
-    with:
-      base_branch: main
-      max_prs: "50"
-      trigger_reviews: true
-      review_dispatch_limit: "-1"
-      branch_update_limit: "-1"
-      enable_auto_merge: true
-      merge_mode: direct_or_auto
-      update_branches: true
-    secrets: inherit
-
   develop-next-product-gap:
-    needs: [inspect-pr-queue, repair-review-feedback, revalidate-pr-queue]
-    if: >-
-      ${{
-        always() &&
-        needs.inspect-pr-queue.result == 'success' &&
-        needs.repair-review-feedback.result == 'success' &&
-        needs.revalidate-pr-queue.result == 'success'
-      }}
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     permissions:
@@ -135,7 +68,7 @@ jobs:
               --jq 'length'
           )"
           if [ "$open_pr_count" -ne 0 ]; then
-            echo "An open pull request owns the queue; review, repair, checks, and merge stay ahead of new development."
+            echo "Central governance owns every open pull request; product development remains read-only and waits for the queue to reach zero."
             echo "eligible=false" >>"$GITHUB_OUTPUT"
             exit 0
           fi
@@ -207,7 +140,7 @@ jobs:
           pnpm --dir frontend run lint
           pnpm --dir frontend run test
           pnpm --dir frontend run build
-          python -m compileall -q lineageweave backend tests
+          uv run --frozen python -m compileall -q lineageweave backend tests
 
       - name: Install the pinned OpenCode CLI
         if: steps.gate.outputs.eligible == 'true'
