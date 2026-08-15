@@ -60,3 +60,13 @@ def test_hourly_workflow_has_fail_closed_queue_and_patch_limits() -> None:
         "git rev-parse FETCH_HEAD",
     ):
         assert marker in text
+
+
+def test_workflow_python_bootstrap_is_hash_pinned() -> None:
+    """Keep CI bootstrap packages pinned to the known Linux wheel digest."""
+    root = WORKFLOW.parents[2]
+    expected = "--hash=sha256:cbff74f884846d794713670faf8abe10db3bd70c43b01e63223f74eb7d958689"
+    for relative_path in (".github/workflows/hourly-product-gap.yml", ".github/workflows/tests.yml"):
+        text = (root / relative_path).read_text(encoding="utf-8")
+        assert "--require-hashes" in text
+        assert expected in text

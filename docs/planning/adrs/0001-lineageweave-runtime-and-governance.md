@@ -4186,3 +4186,22 @@ remain server-gated management actions.
 Evidence: `test_web_page_uses_verified_session_and_real_api`, the React
 production build, and the visual reader browser capture reviewed on
 2026-08-15.
+
+## Amendment: immutable container and workflow dependencies (2026-08-15)
+
+The supply-chain review identified mutable base-image references and unhashed
+workflow installation of the pinned `uv` runner. Product, Compose worker,
+SearXNG, and isolated OIDC-conformance images now use the exact registry
+digests captured by the security review. The product's React build stage runs
+as the non-root `node` account; runtime stages keep their existing explicit
+non-root users. Both the ordinary test workflow and the hourly proposal
+verifier install the Linux `uv` wheel with `--require-hashes`.
+
+This is a reproducibility and least-privilege boundary only. It does not add
+credentials to images, change the issuer-free Compose worker, grant the
+proposal agent write or review authority, or alter the PostgreSQL/Keyverse/
+Valkey/HTTP integration boundaries.
+
+Evidence: `test_container_images_pin_base_digests_and_run_non_root`,
+`test_workflow_python_bootstrap_is_hash_pinned`, the OIDC conformance contract,
+and the post-change Scorecard, Trivy, and Semgrep checks.

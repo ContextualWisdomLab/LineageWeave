@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Hardened the container and CI supply-chain boundary: product, worker,
+  SearXNG, and OIDC-conformance base images are digest-pinned, the React
+  builder runs as `node`, and both workflow `uv` bootstraps require the pinned
+  Linux wheel hash.
 - Removed raw `source`/`status` provenance labels from the general-user
   Keyman popup. Reader screens now show business vocabulary for automatic
   derivation and management state while authorized audit payloads retain the
