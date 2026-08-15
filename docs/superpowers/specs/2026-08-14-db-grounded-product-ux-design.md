@@ -39,6 +39,8 @@ become a product claim.
   each surface truthful.
 - The canonical role vocabulary is `viewer` and `admin`; Figma does not fabricate an `Analyst` role.
 - Direct lineage remains a plausible parent-child reconstruction, never a causal claim.
+- Canonical helper copy directs customers to open evidence, records, actors, tickets, or reports.
+- Synthetic report grouping labels must match the persisted grouping kind.
 - The Records, Record Detail, Entity Catalog, Calendar and Reports, Accounts and
   Access, and Roles and read-only System Policy screens stay synchronized with
   the cardinality, authorization, evidence, and accessibility requirements in
