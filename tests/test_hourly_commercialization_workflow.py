@@ -1,9 +1,9 @@
-"""Contract tests for the hourly DB-grounded commercialization workflow.
+"""Contracts for the centrally governed hourly DB-grounded product-gap loop.
 
-The workflow is security-sensitive production automation. These tests keep its
-review-first queue discipline, NVIDIA-only OpenCode execution, test-first
-authoring, sandboxed validation, and one-PR mutation boundary visible in code
-review instead of relying on prose.
+The repository workflow is security-sensitive production automation. These
+tests keep central PR governance single-writer, NVIDIA-only OpenCode execution,
+test-first authoring, sandboxed validation, and the one-PR mutation boundary
+visible in code review instead of relying on prose.
 """
 
 from __future__ import annotations
@@ -59,54 +59,47 @@ def _implementation_path_classifiers() -> dict[str, object]:
 def test_schedule_runs_hourly_without_cancelling_long_accuracy_work() -> None:
     """The heartbeat is hourly while long OpenCode runs queue instead of being killed."""
     assert '- cron: "23 * * * *"' in _WORKFLOW
-    assert "group: lineageweave-hourly-commercialization-loop" in _WORKFLOW
+    assert "group: lineageweave-hourly-product-gap-loop" in _WORKFLOW
     assert "cancel-in-progress: false" in _WORKFLOW
     assert "timeout-minutes: 180" in _WORKFLOW
 
 
-def test_review_fix_check_merge_loop_precedes_new_development() -> None:
-    """Every run inspects, repairs, and revalidates PRs before opening new work."""
-    assert _WORKFLOW.index("  inspect-pr-queue:") < _WORKFLOW.index(
-        "  repair-review-feedback:"
+def test_central_governance_remains_the_only_pr_writer_and_merger() -> None:
+    """The repository heartbeat may create one PR but never duplicate PR governance."""
+    forbidden = (
+        "pr-review-merge-scheduler.yml",
+        "pr-review-fix-scheduler.yml",
+        "inspect-pr-queue",
+        "repair-review-feedback",
+        "revalidate-pr-queue",
+        "review_dispatch_limit:",
+        "branch_update_limit:",
+        "max_dispatches:",
+        "merge_mode:",
+        "enable_auto_merge:",
+        "update_branches:",
+        "pull-requests: write",
+        "actions: write",
     )
-    assert _WORKFLOW.index("  repair-review-feedback:") < _WORKFLOW.index(
-        "  revalidate-pr-queue:"
-    )
-    assert _WORKFLOW.index("  revalidate-pr-queue:") < _WORKFLOW.index(
-        "  develop-next-product-gap:"
-    )
+    for marker in forbidden:
+        assert marker not in _WORKFLOW
+
+    operations = _OPERATIONS_PATH.read_text(encoding="utf-8")
+    assert "central `.github` scheduler is the only PR review, repair, branch-update, and merge writer" in operations
+    assert "every 15 minutes" in operations
+
+
+def test_product_development_is_gated_by_read_only_live_queue_state() -> None:
+    """A nonempty PR queue blocks authoring without mutating any existing PR."""
     develop = _job_text("develop-next-product-gap")
-    assert "needs: [inspect-pr-queue, repair-review-feedback, revalidate-pr-queue]" in develop
+    header = develop.split("    steps:\n", maxsplit=1)[0]
+    assert "needs:" not in header
+    assert "contents: read" in header
+    assert "pull-requests: read" in header
+    assert "id-token: write" in header
     assert "open_pr_count" in develop
-    assert "An open pull request owns the queue" in develop
-
-
-def test_central_review_and_repair_workflows_are_immutable_pins() -> None:
-    """Reusable governance workflows must use exact commits, never moving refs."""
-    expected = (
-        "ContextualWisdomLab/.github/.github/workflows/"
-        "pr-review-merge-scheduler.yml@"
-        "6eb06cdd08c79a06f7b390069d4ffa49e2eb7dba"
-    )
-    repair = (
-        "ContextualWisdomLab/.github/.github/workflows/"
-        "pr-review-fix-scheduler.yml@"
-        "6eb06cdd08c79a06f7b390069d4ffa49e2eb7dba"
-    )
-    assert _WORKFLOW.count(expected) == 2
-    assert repair in _WORKFLOW
-    assert "@main" not in "\n".join(
-        line for line in _WORKFLOW.splitlines() if "uses: ContextualWisdomLab/.github" in line
-    )
-
-
-def test_scheduler_is_configured_to_exhaust_the_pr_queue() -> None:
-    """Review and branch-update budgets do not strand additional eligible PRs."""
-    assert _WORKFLOW.count('review_dispatch_limit: "-1"') == 2
-    assert _WORKFLOW.count('branch_update_limit: "-1"') == 2
-    assert _WORKFLOW.count("merge_mode: direct_or_auto") == 2
-    assert _WORKFLOW.count("enable_auto_merge: true") == 2
-    assert 'max_dispatches: "50"' in _WORKFLOW
+    assert "Central governance owns every open pull request" in develop
+    assert "eligible=false" in develop
 
 
 def test_product_agent_uses_only_nvidia_nim_and_pinned_opencode() -> None:
@@ -267,7 +260,7 @@ def test_networkless_validation_keeps_real_service_evidence_in_exact_head_ci() -
     assert "ordinary exact-head pull-request checks" in operations
 
 
-def test_mutation_rechecks_single_writer_and_base_freshness() -> None:
+def test_mutation_rechecks_queue_and_base_freshness() -> None:
     """A concurrent PR or moved main branch discards stale autonomous work."""
     assert _WORKFLOW.count(
         'gh api "/repos/${TARGET_REPOSITORY}/pulls?state=open&per_page=1"'
