@@ -75,6 +75,18 @@ function reportVerdictLabel(verdict) {
   }[verdict] || "평가 대기";
 }
 
+function reportLinkingLabel(method) {
+  return {
+    fipc: "문항 연결",
+    cat: "적응형 평가",
+    linked: "연결 점수",
+  }[String(method || "").toLowerCase()] || "연결 점수";
+}
+
+function reportJudgeSourceLabel(source) {
+  return { llm_judge: "자동 평가", llm: "자동 평가" }[String(source || "").toLowerCase()] || "평가 출처 확인";
+}
+
 function reportBusinessTitle(report) {
   const title = String(report?.title || "").trim();
   if (title && !/^(weekly|monthly)\s+(pu|team|project)\b/i.test(title)) return title;
@@ -950,10 +962,10 @@ export default function App() {
     reportFactors.find((factor) => factor.factor_id === factorId)?.factor_label || factorId
   );
   const reportMetricLabels = {
-    ragas_faithfulness: "Faithfulness · 사실성",
-    ragas_answer_relevancy: "Answer relevancy · 답변 관련성",
-    ragas_context_precision: "Context precision · 맥락 정밀도",
-    ragas_context_recall: "Context recall · 맥락 재현율",
+    ragas_faithfulness: "근거 충실도",
+    ragas_answer_relevancy: "질문 관련성",
+    ragas_context_precision: "맥락 정밀도",
+    ragas_context_recall: "맥락 재현율",
   };
   return (
     <main id="workspace" className="app-shell">
@@ -1082,16 +1094,16 @@ export default function App() {
               <p className="meta">{reportPeriodLabel(selectedReport.period_kind)} {reportSliceLabel(selectedReport.slice_kind)} · {selectedReport.period_start} ~ {selectedReport.period_end} · {formatNumber(selectedReport.document_count)}건</p>
               {selectedReport.judge?.rationale ? <p className="report-rationale">{selectedReport.judge.rationale}</p> : null}
               <div className="report-score-list">
-                {(selectedReport.linked_scores || []).map((score) => <p key={score.score_id || `${score.factor_id}-${score.linking_method}`}><strong>{reportFactorLabel(score.factor_id)}</strong><span>θ {Number(score.theta || 0).toFixed(2)} · SE {Number(score.standard_error || 0).toFixed(2)} · {score.linking_method || "linked"}</span></p>)}
+                {(selectedReport.linked_scores || []).map((score) => <p key={score.score_id || `${score.factor_id}-${score.linking_method}`}><strong>{reportFactorLabel(score.factor_id)}</strong><span>점수 {Number(score.theta || 0).toFixed(2)} · 오차 {Number(score.standard_error || 0).toFixed(2)} · {reportLinkingLabel(score.linking_method)}</span></p>)}
                 {!(selectedReport.linked_scores || []).length ? <p className="meta">연결 점수 없음</p> : null}
               </div>
-              <div className="report-metric-list" aria-label="RAGAS 평가 지표">
-                <div className="section-heading"><span>LLM Judge · RAGAS 지표</span><small>{selectedReport.judge?.source || "평가 출처 없음"}</small></div>
+              <div className="report-metric-list" aria-label="리포트 품질 평가 지표">
+                <div className="section-heading"><span>품질 평가 지표</span><small>{reportJudgeSourceLabel(selectedReport.judge?.source)}</small></div>
                 {(selectedReport.judge?.ragas_metrics || []).map((metric) => {
                   const score = typeof metric.score === "number" ? `${Math.round(metric.score * 100)}점` : "평가 보류";
                   const evidenceIds = (metric.evidence_ids || []).filter(Boolean).slice(0, 8);
                   return <article className="report-metric" key={metric.metric_id}>
-                    <div className="report-metric-head"><strong>{reportMetricLabels[metric.metric_id] || metric.metric_id}</strong><span className={`report-metric-verdict ${metric.verdict || "abstain"}`}>{metric.verdict || "abstain"} · {score}</span></div>
+                    <div className="report-metric-head"><strong>{reportMetricLabels[metric.metric_id] || "품질 지표"}</strong><span className={`report-metric-verdict ${metric.verdict || "abstain"}`}>{reportVerdictLabel(metric.verdict)} · {score}</span></div>
                     {metric.rationale ? <p>{metric.rationale}</p> : null}
                     {evidenceIds.length ? <div className="report-metric-evidence"><span>근거</span>{evidenceIds.map((documentNo) => <button className="report-document-link" key={documentNo} type="button" onClick={() => setSelectedNo(documentNo)}>{documentNo}</button>)}</div> : <small className="meta">연결된 근거 없음</small>}
                   </article>;
