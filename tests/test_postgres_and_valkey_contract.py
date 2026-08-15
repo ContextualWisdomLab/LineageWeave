@@ -1408,6 +1408,40 @@ def test_persist_operational_surfaces_clears_stale_customer_snapshot_on_llm_abst
     ]
 
 
+def test_persist_operational_surfaces_preserves_existing_work_for_keyman_batch(monkeypatch) -> None:
+    """A bounded Keyman-only snapshot must not delete unrelated LLM work or customer facts."""
+    statements: list[str] = []
+    monkeypatch.setattr(lw, "_ensure_operational_tables", lambda _connection: None)
+    monkeypatch.setattr(lw, "_database_exec", lambda _connection, sql, params=(): statements.append(sql))
+    connection = _RecordingConnection()
+    documents = [
+        {
+            "document_no": "DOC-1",
+            "todo_items": [{"todo_id": "todo-1", "ticket_id": "ticket-1"}],
+            "calendar_items": [{"calendar_id": "calendar-1", "ticket_id": "ticket-1"}],
+            "appointments": [{"appointment_id": "appointment-1"}],
+        }
+    ]
+
+    persisted = lw.persist_operational_surfaces(
+        connection,
+        {"metadata": {"operational_surface_mode": "preserve"}, "customer_master": {"accounts": []}},
+        documents,
+    )
+
+    assert persisted == {
+        "ticket_rows": 0,
+        "todo_rows": 0,
+        "calendar_rows": 0,
+        "appointment_rows": 0,
+        "customer_account_rows": 0,
+        "customer_document_rows": 0,
+        "report_rows": 0,
+    }
+    assert statements == []
+    assert connection.recording_cursor.executemany_calls == []
+
+
 def test_persist_operational_surfaces_writes_llm_work_appointments_and_customer_evidence(monkeypatch) -> None:
     """Persist each popup operational surface in its normalized table with source evidence."""
     statements: list[str] = []

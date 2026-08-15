@@ -5798,6 +5798,18 @@ def persist_operational_surfaces(
     """Persist issue work items, appointments, and LLM customer-master rows."""
     if ensure_schema:
         _ensure_operational_tables(connection)
+    if (payload.get("metadata") or {}).get("operational_surface_mode") == "preserve":
+        # A bounded Keyman-only reanalysis is a graph/document update, not an
+        # operational-surface snapshot. Keep prior LLM work and customer facts.
+        return {
+            "ticket_rows": 0,
+            "todo_rows": 0,
+            "calendar_rows": 0,
+            "appointment_rows": 0,
+            "customer_account_rows": 0,
+            "customer_document_rows": 0,
+            "report_rows": 0,
+        }
     todos = [
         {**item, "document_no": item.get("document_no") or node.get("document_no")}
         for node in documents
@@ -7278,8 +7290,10 @@ def load_persisted_analysis_payload(
 def select_keyman_documents(
     document_nodes: List[Dict[str, Any]],
     limit: int,
+    *,
+    offset: int = 0,
 ) -> List[Dict[str, Any]]:
-    """Prefer documents the React list opens first: newest last_row_ts."""
+    """Select a bounded, non-overlapping live batch in newest-first order."""
     eligible = [
         node
         for node in document_nodes
@@ -7289,7 +7303,8 @@ def select_keyman_documents(
         key=lambda node: (str(node.get("last_row_ts") or ""), str(node.get("document_no") or "")),
         reverse=True,
     )
-    return eligible[: max(0, int(limit))]
+    start = max(0, int(offset))
+    return eligible[start : start + max(0, int(limit))]
 
 
 def attach_document_events(payload_nodes: List[Dict[str, Any]]) -> None:
@@ -14541,6 +14556,7 @@ def build_payload(
     keyman_transport: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
     product_transport: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
     keyman_limit: int = 16,
+    keyman_offset: int = 0,
 ) -> Dict[str, Any]:
     """Return the full JSON payload for export."""
     rows = _build_rows(raw_rows)
@@ -14552,7 +14568,7 @@ def build_payload(
     transport = keyman_transport
     product = product_transport
     candidates = (
-        {id(node) for node in select_keyman_documents(document_nodes, keyman_limit)}
+        {id(node) for node in select_keyman_documents(document_nodes, keyman_limit, offset=keyman_offset)}
         if transport or product
         else set()
     )
@@ -14579,6 +14595,7 @@ def build_payload(
     metadata = _build_metadata(rows, thread_docs)
     metadata["common_enum_table"] = COMMON_ENUM_TABLE
     metadata["keyman_llm_documents"] = applied
+    metadata["keyman_batch_offset"] = max(0, int(keyman_offset))
     metadata["product_llm_documents"] = applied if product is not None else 0
     metadata["customer_master_source"] = customer_master.get("source")
     if transport is None:
@@ -14948,6 +14965,12 @@ def parse_args() -> argparse.Namespace:
         help="How many live documents receive the LLM Keyman HTTP step (0 keeps persisted LLM rows)",
     )
     parser.add_argument(
+        "--keyman-offset",
+        type=int,
+        default=0,
+        help="Skip this many newest documents before the bounded live Keyman batch",
+    )
+    parser.add_argument(
         "--write-reports",
         action="store_true",
         help="Build weekly/monthly PU/팀/프로젝트 reports with judge and FIPC/CAT scores",
@@ -15069,17 +15092,26 @@ def main() -> None:
         product_transport, product_mode = resolve_product_transport()
     except RuntimeError as exc:
         product_transport, product_mode = None, str(exc)
+    keyman_limit = int(
+        os.environ["LINEAGEWEAVE_KEYMAN_LIMIT"]
+        if os.environ.get("LINEAGEWEAVE_KEYMAN_LIMIT") not in {None, ""}
+        else args.keyman_limit
+    )
+    keyman_offset = int(
+        os.environ["LINEAGEWEAVE_KEYMAN_OFFSET"]
+        if os.environ.get("LINEAGEWEAVE_KEYMAN_OFFSET") not in {None, ""}
+        else getattr(args, "keyman_offset", 0)
+    )
     payload = build_payload(
         raw_rows,
         enum_values=enum_values,
         keyman_transport=keyman_transport,
         product_transport=product_transport,
-        keyman_limit=int(
-            os.environ["LINEAGEWEAVE_KEYMAN_LIMIT"]
-            if os.environ.get("LINEAGEWEAVE_KEYMAN_LIMIT") not in {None, ""}
-            else args.keyman_limit
-        ),
+        keyman_limit=keyman_limit,
+        keyman_offset=keyman_offset,
     )
+    if keyman_limit > 0:
+        payload["metadata"]["operational_surface_mode"] = "preserve"
     payload["metadata"]["source_table"] = "runtime"
     payload["metadata"]["keyman_transport"] = keyman_mode
     payload["metadata"]["product_transport"] = product_mode

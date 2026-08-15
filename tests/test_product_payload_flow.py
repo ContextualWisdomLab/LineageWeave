@@ -127,6 +127,19 @@ def test_build_and_filter_product_payload_preserves_evidence_and_cross_unit_know
     assert all("DOC-2" not in node.get("document_nos", []) for node in filtered["knowledge_graph"]["nodes"])
 
 
+def test_select_keyman_documents_supports_non_overlapping_live_batches() -> None:
+    """Advance a bounded live Keyman batch without selecting the newest documents again."""
+    documents = [
+        {"document_no": "DOC-1", "last_row_ts": "2026-01-01"},
+        {"document_no": "DOC-2", "last_row_ts": "2026-01-02"},
+        {"document_no": "DOC-3", "last_row_ts": "2026-01-03"},
+        {"document_no": "DOC-4", "last_row_ts": "2026-01-04"},
+    ]
+
+    assert [item["document_no"] for item in lw.select_keyman_documents(documents, 2)] == ["DOC-4", "DOC-3"]
+    assert [item["document_no"] for item in lw.select_keyman_documents(documents, 2, offset=2)] == ["DOC-2", "DOC-1"]
+
+
 def test_knowledge_graph_scope_filter_removes_hidden_shared_context_and_evidence() -> None:
     """Keep shared KG entities useful without exposing an inaccessible document or evidence id."""
     graph = {

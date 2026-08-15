@@ -22,6 +22,18 @@ runtime table, run:
 ./scripts/run_real_lineageweave.sh
 ```
 
+For bounded live Keyman reanalysis, advance the deterministic newest-first
+window instead of repeating the same documents:
+
+```bash
+uv run python lineageweave.py --dsn "$LINEAGEWEAVE_DSN" \
+  --table "$LINEAGE_SOURCE_TABLE" --keyman-limit 64 --keyman-offset 64
+```
+
+The offset is applied before the live HTTP calls and is recorded in payload
+metadata. It does not bypass the durable user override merge or authorize a
+document outside the normal server scope.
+
 ## Retained local OIDC fixture — audit only
 
 Do **not** start `scripts/run_oidc_conformance_e2e.sh` or either associated

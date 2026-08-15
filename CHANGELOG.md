@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- Prevented bounded Keyman-only reanalysis from deleting previously persisted
+  appointment, To Do/calendar, or customer-master LLM results. The post-fix
+  live offset batch increased durable Keyman coverage from 127 to 128 while
+  preserving the other operational projections.
+- Added deterministic `--keyman-offset` batching for the direct live HTTP
+  Keyman CLI, so repeated bounded reanalysis advances through the corpus rather
+  than selecting the same newest documents again. The selected offset is
+  persisted in payload metadata and remains behind the existing durable
+  override merge.
 - Rechecked the data-bearing Milestone 2 projection after a bounded live HTTPS
   Keyman batch: 64 document payloads were LLM-derived without recorded
   fallback, while 43,642 of 43,707 documents remain explicitly `not_run`.

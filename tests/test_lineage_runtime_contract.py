@@ -3962,7 +3962,7 @@ def test_cli_main_writes_release_artifacts_from_direct_database_contract(monkeyp
         orchestrator_token="",
         artifact_id="",
         artifact_source="lineageweave",
-        keyman_limit=0,
+        keyman_limit=1,
         write_reports=True,
         derive_factor_items=False,
         sweep_content_inspections=False,
@@ -4004,6 +4004,7 @@ def test_cli_main_writes_release_artifacts_from_direct_database_contract(monkeyp
     )
     monkeypatch.setattr(lw, "persist_period_reports", lambda _connection, rows: len(rows))
     lw.main()
+    assert payload["metadata"]["operational_surface_mode"] == "preserve"
     assert json_out.is_file()
     assert '"doc-1" -> "doc-1" [label="revision"' in dot_out.read_text()
     assert json.loads(analytics_out.read_text())["total_documents"] == 1
@@ -4275,6 +4276,9 @@ def test_runtime_environment_upload_parser_and_graph_helpers(monkeypatch, tmp_pa
         parsed.sweep_content_inspections,
         parsed.inspection_document_limit,
     ) == ("schema.table", 3, 2, False, 0)
+    assert parsed.keyman_offset == 0
+    monkeypatch.setattr(sys, "argv", ["lineageweave.py", "--keyman-offset", "2"])
+    assert lw.parse_args().keyman_offset == 2
     assert lw.normalize_keyman_side(["Ana", {"name": "Bo", "org": "Org B"}, None]) == [
         {"person_name": "Ana", "org_name": ""},
         {"person_name": "Bo", "org_name": "Org B"},

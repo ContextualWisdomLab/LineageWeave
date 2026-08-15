@@ -4538,3 +4538,45 @@ it does not claim production Keyverse login or Keyverse Admin acceptance.
 Evidence: the reader and administrator Playwright runs, direct PostgreSQL
 session/payload responses, React screenshots retained outside the repository,
 and the server-side capability checks.
+
+The follow-up reader-only run after the offset-writer fix reached the same
+business screens with the current projection: 43,483 authorized document
+actions, three actor-scoped customer accounts and two evidence-backed customer
+relations in the bounded detail view, four report metrics, 32 report-evidence
+links, zero observed chronological edges, and eight separate relatedness
+results. It still exposed no administrator navigation, diagnostic KPI,
+Keyman editor, or save action. This is the current general-user acceptance
+record; the earlier 22-account/11-relatedness values remain historical evidence
+of the preceding bounded projection. A direct reader session also received
+`403 keyverse_admin_required` from the administrator enrichment endpoint, so
+the separation is enforced at the server boundary rather than only by hidden
+navigation.
+
+## Amendment: bounded Keyman reanalysis preserves operational projections (2026-08-15)
+
+The first offset-aware full snapshot exposed a writer-boundary defect: a
+Keyman-only batch rebuilt the complete graph and then deleted unrelated
+appointment, To Do/calendar, and customer-master projections before inserting
+only the batch's product-task rows. This did not delete source rows, but it
+could silently remove previously completed LLM work from the business popup.
+
+The CLI now marks a run with `keyman-limit > 0` as
+`operational_surface_mode=preserve`. `persist_operational_surfaces` still
+ensures the normalized tables exist, but it does not delete or rewrite those
+tables for a Keyman-only graph batch. Explicit appointment, issue-work, and
+customer-master refresh commands remain the writers for their own projections;
+full analysis snapshots without the preserve marker retain the existing
+snapshot-replacement semantics, including clearing an explicit LLM abstention.
+
+The red-green regression proves that a preserve-mode payload emits no
+operational DELETE or INSERT. A post-fix live run with `keyman-limit=1` and
+`keyman-offset=128` increased durable Keyman values from 127 to 128 while
+leaving appointment LLM rows at 2, To Do/calendar LLM rows at 18, customer
+accounts at 23, customer affiliate relations at 15, and customer evidence
+links at 27. The current corpus has 43,577 document nodes still `not_run` for
+Keyman, so offset batching remains an incremental path rather than a claim of
+complete enrichment.
+
+Evidence: `test_persist_operational_surfaces_preserves_existing_work_for_keyman_batch`,
+`select_keyman_documents` offset tests, the live `offset=128` CLI completion,
+and the before/after aggregate-only PostgreSQL checks.

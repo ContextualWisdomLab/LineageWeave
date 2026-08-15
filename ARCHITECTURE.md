@@ -569,23 +569,25 @@ appears for a reader session.
 ## Current data-bearing evidence boundary
 
 The product's direct PostgreSQL recheck on 2026-08-15 recorded 43,814 source
-rows, 43,707 document nodes, 6,385 persisted Lineage edges, 264,897 Knowledge
-Graph nodes, and 838,760 Knowledge Graph edges. Only 107 Lineage edges are
+rows, 43,707 document nodes, 6,318 persisted Lineage edges, 264,989 Knowledge
+Graph nodes, and 838,891 Knowledge Graph edges. Only 107 Lineage edges are
 observed same-document temporal transitions; all remaining relations are
-returned as non-temporal relatedness or reviewable hypotheses. A bounded live
-HTTPS Keyman batch produced 64 LLM-derived document payloads while 43,642
-documents remain `not_run`. This distinction is intentional: the UI and ADR
+returned as non-temporal relatedness or reviewable hypotheses. Offset-aware
+bounded live HTTPS Keyman batches produced 128 LLM-derived document payloads
+while 43,577 documents remain `not_run`; the post-fix one-document batch
+preserved existing operational projections. This distinction is intentional:
+the UI and ADR
 must show the live path and its remaining coverage rather than imply a complete
 corpus enrichment.
 
-The current normalized customer projection contains 22 accounts, 9 affiliate
-relations, and 23 evidence links. Its reader surface is derived from the
+The current normalized customer projection contains 23 accounts, 15 affiliate
+relations, and 27 evidence links. Its reader surface is derived from the
 Ontology/Semantic Layer (`schema:Organization`, `schema:subOrganization`, and
 `schema:about`) after document ABAC; it is not a client-side customer tree.
 Reports currently contain 80 LLM-judged reports, 320 metric observations, 400
 linked psychometric scores, and 105 finite calibration rows. Pending issue-work
 and calendar rows remain visible to authorized operators as pending work, never
-as completed LLM output: the current projection has 37 LLM rows and 28,174
+as completed LLM output: the current projection has 18 LLM rows and 28,193
 pending rows in each relation. Appointment projection evidence currently has
-6,991 rows, of which 71 are LLM-derived and 6,920 are extracted; the latest
-bounded live appointment batch published 57 scoped events with none pending.
+6,984 rows, of which 2 are LLM-derived; the post-fix Keyman batch preserved
+those operational rows.

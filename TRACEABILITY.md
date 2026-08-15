@@ -3,7 +3,7 @@
 | Requirement | Implementation | Verification |
 | --- | --- | --- |
 | Direct PostgreSQL architecture | `LineageApplication.payload`, `build_source_query`, `persist_analysis_payload`, direct batch CLI/wrappers | PostgreSQL persistence and health contracts; normal CLI and wrapper runs keep JSON, analytics, and DOT export disabled unless an operator provides an explicit output path. Focused CLI/wrapper contracts pass. |
-| Current direct-PostgreSQL aggregate integrity | `analysis_run_records`, report/score relations, transactional outbox | A bounded `READ ONLY` aggregate confirmed matching 43,814-row/43,707-document/42,467-thread run metadata; 80 reports with complete Judge fields; 400 linked scores across 80 report groups, 22 explicitly unavailable score slices, 105 finite calibration rows, and zero orphan candidate-evidence rows. The latest live Keyman batch persisted 64 LLM-derived document payloads; 43,642 documents remain `not_run`, so the corpus is not represented as fully LLM-enriched. No document body, image payload, or identifier was returned. |
+| Current direct-PostgreSQL aggregate integrity | `analysis_run_records`, report/score relations, transactional outbox | A bounded `READ ONLY` aggregate confirmed matching 43,814-row/43,707-document/42,467-thread run metadata; 80 reports with complete Judge fields; 400 linked scores across 80 report groups, 22 explicitly unavailable score slices, 105 finite calibration rows, and zero orphan candidate-evidence rows. The latest offset-aware live Keyman batches persisted 128 LLM-derived document payloads; 43,577 documents remain `not_run`, so the corpus is not represented as fully LLM-enriched. No document body, image payload, or identifier was returned. |
 | TEPP integration boundary | Separate direct-PostgreSQL product; TEPP and contextual-orchestrator exchange only through explicit import or HTTP; report psychometrics delegate to fast-mlsirm and fail closed without package output | PRD/literature reread; actual local fast-mlsirm connector and Rust-backed EAP smoke; missing/malformed/recorded connector bodies produce no score rows; unmerged upstream changes are not treated as integrated. A fresh read-only Compose inventory found no TEPP service URL or credential. |
 | TEPP v1 analysis-run port | `tepp_http_config`, `normalize_tepp_analysis_request`, `post_tepp_analysis_run`, `get_tepp_analysis_run`, `/api/admin/tepp/analysis-runs`, `analysis_tepp_run_records` | Contract tests and a loopback wire smoke cover `POST accepted` → `GET completed`, version/unknown-field/size/idempotency/TLS/degraded-service handling, external lifecycle metadata, same-corp persistence, and the React administrator entry point. TEPP's current source and doctoring explicitly state that this is not a live HTTP server; missing configuration remains `tepp_service_unavailable`. No mock, loopback, or local service is used as scientific-runtime or release evidence. |
 | TEPP research doctoring | `docs/doctoring/tepp-literature-review.md`, `notes/tepp_research_notes.md`, `OA_METHOD_PAPERS` | Full APA 7th TEPP register retained locally, including RAGAS; LayoutLM/LayoutLMv2/DocFormer/Donut and RAGAS OA originals and metadata are stored through Local Zotero with 13/13 attachment digests |
@@ -94,7 +94,7 @@
 | Customer snapshot truth and reader vocabulary | `persist_operational_surfaces`, `web/src/App.jsx`, `tests/test_postgres_and_valkey_contract.py` | Explicit customer-master snapshots clear document links, affiliate facts, and accounts child-first before replacement, including LLM abstention; a payload without the boundary leaves the projection intact. Reader screens show `근거 연결`, `공개`, and `내부` rather than raw implementation provenance. |
 | Current shared-thread aggregate | direct PostgreSQL Lineage and KG projections, `is_current_shared_thread_relation` | Aggregate-only recheck found one retained stale audit row in each projection. It is excluded from current responses; 3,020 matching shared-thread pairs remain in each projection as non-temporal relatedness, and 107 observed `row_successor` edges remain the sole chronological links. |
 | Executable Keyverse RP boundary | `OIDC_ISSUER_ROUTE_PARTS`, `LineageHandler`, Compose worker, HTTP contracts | Fresh rebuilt-runtime probe returned `404` for every product-and-worker `GET`/`POST` discovery, authorization, token, and introspection route, including `/oidc/*` aliases. Anonymous access remains Keyverse-gated; no issuer was started or used. |
-| Current product-runtime coverage | shipped Python runtime sources and `web/` V8 presentation model | 354 Python tests plus one expected optional fast-mlsirm skip and 7,627 statements / 2,984 branches at 100% line-and-branch coverage; 8 React tests, V8 100%, and production build passed. This does not replace real-Keyverse or Figma/browser acceptance. |
+| Current product-runtime coverage | shipped Python runtime sources and `web/` V8 presentation model | 356 Python tests plus one expected optional fast-mlsirm skip and 7,636 statements / 2,988 branches at 100% line-and-branch coverage; 8 React tests, V8 100%, and production build passed. This does not replace real-Keyverse or Figma/browser acceptance. |
 
 | Container and CI supply-chain boundary | `Dockerfile`, `compose/Dockerfile`, `compose/searxng/Dockerfile`, `tests/Dockerfile.oidc-conformance`, `.github/workflows/tests.yml`, `.github/workflows/hourly-product-gap.yml` | Base images are immutable digest references; the product web-build stage and runtime images declare non-root users; workflow `uv` installation uses `--require-hashes` with the known Linux wheel digest. Container/workflow contract tests pass, and current Scorecard/Trivy checks are clean. |
 
@@ -107,24 +107,26 @@
 
 ## Current direct-data recheck (2026-08-15)
 
-The latest aggregate-only PostgreSQL read followed three bounded live HTTP
-operator batches. Keyman produced 64 LLM-derived document payloads while
-43,642 of 43,707 documents remain `not_run`. Appointment enrichment completed
-57 rows and published 57 scoped Valkey events; issue-work enrichment completed
-20 To Do/calendar pairs and published 20 scoped events. The current
-appointment projection contains 6,991 rows (71 LLM-derived, 6,920 extracted),
-and each issue-work relation contains 37 LLM rows plus 28,174 `pending_llm`
-rows. Incomplete model responses remain pending or retain the prior extraction.
+The latest aggregate-only PostgreSQL read followed offset-aware bounded live
+HTTP operator batches. Keyman produced 128 LLM-derived document payloads while
+43,577 of 43,707 documents remain `not_run`. A post-fix one-document Keyman
+batch preserved the existing appointment, To Do/calendar, and customer-master
+projections while increasing only the durable Keyman count. The current
+projection contains 6,984 appointment rows (2 LLM-derived), 18 LLM To Do and
+calendar rows with 28,193 pending rows in each relation, 23 customer accounts,
+15 affiliate relations, and 27 account-to-document evidence links. Incomplete
+model responses remain pending or retain the prior extraction.
 
 This section is the current runtime state; earlier table entries retain their
 historical batch evidence. No result here claims full-corpus enrichment.
 
 The fresh reader-only browser run against the direct PostgreSQL server reached
 `업무 홈`, `업무공간`, `고객 화면`, report detail, source evidence, and the
-Knowledge Graph. It rendered 43,483 authorized document actions, 22 customer
-accounts on the home projection, four report metrics, one selected document
-with zero observed chronological edges and 11 separate relatedness clues, and
-no administrator navigation, diagnostic KPI, or Keyman editor. The same
+Knowledge Graph. It rendered 43,483 authorized document actions, three
+customer accounts and two evidence-backed relations in the bounded customer
+detail, four report metrics, one selected document with zero observed
+chronological edges and eight separate relatedness clues, and no administrator
+navigation, diagnostic KPI, or Keyman editor. The same
 administrator-role run reached policy and Lineage review, completed private /
 public restoration and Keyman organization save/restore with HTTP 200, and
 correctly displayed the unavailable external Keyverse Admin directory as a
