@@ -1,0 +1,135 @@
+name: Analysis-run registry clean verifier
+
+on:
+  push:
+    branches:
+      - feat/analysis-run-registry-v079-clean
+    paths:
+      - .github/workflows/analysis-run-registry-clean-verifier.yml
+
+permissions: {}
+
+concurrency:
+  group: analysis-run-registry-clean-verifier
+  cancel-in-progress: false
+
+jobs:
+  verify-and-clean:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+      BRANCH_NAME: feat/analysis-run-registry-v079-clean
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/analysis-run-registry-v079-clean
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Record immutable verification head
+        run: echo "VERIFICATION_HEAD=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Select repository Rust toolchain
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install committed dependencies
+        run: |
+          set -euo pipefail
+          uv sync --frozen --extra dev --extra backend
+          corepack enable
+          pnpm --dir frontend install --frozen-lockfile
+
+      - name: Require PostgreSQL rather than accept skipped contracts
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 30); do
+            pg_isready -h localhost -p 5432 -U postgres && exit 0
+            sleep 2
+          done
+          echo "PostgreSQL unavailable; registry verification is fail-closed." >&2
+          exit 1
+
+      - name: Verify normalized registry against real PostgreSQL
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m pytest -q tests/test_analysis_run_registry_schema.py
+
+      - name: Verify complete Python product contracts
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m pytest -q
+          uv run --frozen python -m compileall -q backend lineageweave tests
+
+      - name: Verify React product contracts
+        run: |
+          set -euo pipefail
+          pnpm --dir frontend run lint
+          pnpm --dir frontend run test
+          pnpm --dir frontend run build
+
+      - name: Verify public-content and diff hygiene
+        run: |
+          set -euo pipefail
+          git diff --check "${{ github.event.before }}" "$VERIFICATION_HEAD"
+          changed_files=$(git diff --name-only "${{ github.event.before }}" "$VERIFICATION_HEAD")
+          if [ -n "$changed_files" ]; then
+            if git grep -n -i -E 'hyosung|zcrht' "$VERIFICATION_HEAD" -- $changed_files; then
+              echo "Private source identifier detected in public change." >&2
+              exit 1
+            fi
+          fi
+          test ! -e .github/workflows/pr83-analysis-run-registry-repair.yml
+          test ! -e .github/workflows/pr83-analysis-run-registry-repair-v2.yml
+          test ! -e scripts/apply_pr83_analysis_registry_repair.py
+
+      - name: Reject concurrent branch movement
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$BRANCH_NAME"
+          test "$(git rev-parse FETCH_HEAD)" = "$VERIFICATION_HEAD"
+
+      - name: Remove verifier and publish verified product head
+        run: |
+          set -euo pipefail
+          rm .github/workflows/analysis-run-registry-clean-verifier.yml
+          git add -A
+          git diff --cached --check
+          git config user.name "opencode-agent[bot]"
+          git config user.email "1549082+opencode-agent[bot]@users.noreply.github.com"
+          git commit -m "feat(db): verify normalized analysis-run registry"
+          git push origin HEAD:"$BRANCH_NAME"
