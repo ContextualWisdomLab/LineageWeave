@@ -333,6 +333,16 @@ try {
       const payload = response.ok ? await response.json() : null;
       return { status: response.status, edges: payload?.items?.length || 0 };
     });
+    const reportRefreshButton = page.locator("#refreshReportsBtn");
+    const reportRefreshAvailable = (await reportRefreshButton.count()) === 1;
+    let reportRefreshResponse = null;
+    if (reportRefreshAvailable) {
+      const reportRefreshRequest = page.waitForResponse(
+        (response) => response.url().includes("/api/admin/reports/refresh") && response.request().method() === "POST",
+      );
+      await reportRefreshButton.click();
+      reportRefreshResponse = await reportRefreshRequest;
+    }
     result.admin = {
       status: adminResponse.status,
       screen: await page.locator("#adminMode").isVisible(),
@@ -342,6 +352,8 @@ try {
       lineage_review_screen: await page.locator("#lineageReviewScreen").isVisible(),
       lineage_review_status: lineageReviewResponse.status,
       lineage_review_edges: lineageReviewResponse.edges,
+      report_refresh_screen: reportRefreshAvailable,
+      report_refresh_status: reportRefreshResponse?.status() || 0,
     };
     if (adminResponse.status === 503) {
       result.admin.directory_notice_visible = await page.locator("#adminMode .admin-status")
@@ -357,6 +369,8 @@ try {
       assert.equal(result.admin.screen, true);
       assert.equal(result.admin.access_policy_screen, true);
       assert.equal(result.admin.lineage_review_screen, true);
+      assert.equal(result.admin.report_refresh_screen, true);
+      assert.equal(result.admin.report_refresh_status, 200);
     }
     await page.screenshot({ path: `${artifactDir}/admin.png` });
   }

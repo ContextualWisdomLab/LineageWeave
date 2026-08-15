@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Added an administrator-only report-quality action that retries stale
+  weekly/monthly Judge and fast-mlsirm results through the existing bounded
+  PostgreSQL maintenance path, refreshes the reader report surface, and emits
+  `period_report_refresh_completed` through the transactional event outbox.
+  Unavailable providers remain explicit abstentions; no score is fabricated.
 - Recorded the current direct-PostgreSQL content-analysis evidence: 267
   normalized content blocks, 299 DOM/format hints, 7 asset profiles, 7
   multimodal inspections with non-empty OCR, 3 object labels, and 29 semantic
@@ -44,9 +49,8 @@
   projection, while 3,020 current matching pairs per projection remain
   visible as non-temporal relatedness and the 107 observed row-successors are
   the only chronological links.
-- The current source gate passes 350 tests plus one expected connector skip
-  (351 when the optional fast-mlsirm interpreter is installed) and 100%
-  line-and-branch coverage for 7,587 shipped-runtime statements and 2,964
+- The current source gate passes 352 tests with no skip and 100%
+  line-and-branch coverage for 7,598 shipped-runtime statements and 2,966
   branches; the React V8 gate
   and production build pass as well.
 - Added an isolated PostgreSQL service to the product test workflow and

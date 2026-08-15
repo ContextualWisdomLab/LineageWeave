@@ -1228,6 +1228,8 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert 'id="enrichmentScreen"' in react
     assert 'api("/api/admin/enrichment/status")' in react
     assert '"/api/admin/enrichment/run"' in react
+    assert 'api("/api/admin/reports/refresh"' in react
+    assert 'id="refreshReportsBtn"' in react
     assert 'id="teppScreen"' in react
     assert 'api("/api/admin/tepp/status")' in react
     assert '"/api/admin/tepp/analysis-runs"' in react
@@ -1242,6 +1244,8 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert '["api", "admin", "lineage", "edges"]' in server_source
     assert '["api", "admin", "enrichment", "status"]' in server_source
     assert '["api", "admin", "enrichment", "run"]' in server_source
+    assert '["api", "admin", "reports", "refresh"]' in server_source
+    assert "refresh_reports" in server_source
     assert "update_lineage_edge_override" in server_source
 
 

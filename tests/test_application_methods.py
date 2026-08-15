@@ -823,6 +823,28 @@ def test_workspace_surface_and_reports_skip_full_graph(monkeypatch) -> None:
     assert reports["reports"][0]["slice_kind"] == "project"
 
 
+def test_admin_report_refresh_is_audited_and_requires_admin(monkeypatch) -> None:
+    """Allow an administrator to retry stale report scoring through the product API."""
+    app = server.LineageApplication("postgresql://fixture", "schema.table")
+    monkeypatch.setattr(server.psycopg, "connect", lambda *_args, **_kwargs: _Connection())
+    monkeypatch.setattr(app, "refresh_persisted_reports", lambda: 2)
+    events: list[tuple[object, ...]] = []
+    monkeypatch.setattr(lw, "enqueue_event_outbox", lambda _connection, *args: events.append(args))
+    monkeypatch.setattr(app, "_flush_event_outbox", lambda: 1)
+
+    assert app.refresh_reports(ACTOR) == {"status": "refreshed", "refreshed": 2}
+    assert events == [
+        (
+            "period_report_refresh_completed",
+            "reports",
+            "fixture-account",
+            {"refreshed": 2},
+        )
+    ]
+    with pytest.raises(PermissionError, match="keyverse_admin_required"):
+        app.refresh_reports({**ACTOR, "roles": ["reader"]})
+
+
 def test_persisted_report_refresh_retries_unavailable_global_results(monkeypatch) -> None:
     """Recover stale persisted reports only after the live judge path is available."""
     app = server.LineageApplication("postgresql://fixture", "schema.table")
