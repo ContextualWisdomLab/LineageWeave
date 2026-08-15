@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Corrected the reader Lineage empty-transition state: a document with no
+  observed event transition is now labeled `독립 관측` and shows no connector,
+  so an unrelated search result cannot appear to be chronologically linked.
 - Added a reader-only implementation baseline to the supplied Figma file at
   node `304:2`. The captured screen shows business-home, workspace, customer,
   and report entry points with `열람` permission and no administrator

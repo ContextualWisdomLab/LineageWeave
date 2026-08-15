@@ -4374,3 +4374,21 @@ Evidence: Figma node `304:2`, `#userHome`/`#customerScreen`, the authorized
 customer API and normalized semantic relations, the reader-only direct-data
 browser run, the React production build, and the full Python line-and-branch
 coverage run.
+
+## Amendment: explicit no-transition reader presentation (2026-08-15)
+
+The reader detail previously rendered a selected document as an `observed`
+Lineage node even when its event-lineage payload contained no bead and no
+observed transition. That presentation could make an unrelated search result
+look chronologically connected. The no-transition state now renders an
+explicit `독립 관측` item with the message `확인된 사건 전이가 없어 Lineage로
+연결하지 않습니다.` and emits no connector. The same rule remains true when
+relatedness exists: inferred or predicted neighbors stay in the separate
+relatedness section and cannot become chronological Event Lineage.
+
+This is a presentation correction over the existing evidence boundary. It
+does not create an edge, change the normalized Ontology/Semantic Layer, or
+alter the observed `row_successor` facts. The direct-data browser acceptance
+confirmed a one-node/no-observed-edge result for the affected state, while the
+React static contract and production build cover the explicit no-transition
+copy.

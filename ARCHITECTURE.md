@@ -544,3 +544,9 @@ It was generated from the running direct-PostgreSQL product with an actor
 whose permission is `열람`; the captured navigation has no administrator mode.
 This capture is traceability evidence, not a replacement for independent
 Figma parity review or production Keyverse acceptance.
+
+When a selected document has no persisted observed event transition, the
+reader detail uses an explicit independent-observation state and renders no
+chronological connector. Inferred or predicted relatedness remains a separate
+panel. This keeps the visual DAG faithful to evidence instead of using the
+selected document itself as implicit proof of a transition.

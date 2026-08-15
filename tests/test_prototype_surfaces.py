@@ -686,6 +686,8 @@ def test_event_lineage_separates_observed_order_from_relatedness() -> None:
     assert "partitionLineageBeads" in react
     assert "lineage-segments" in react
     assert "전이 근거가 없는 사건은 독립적으로 표시합니다." in react
+    assert "확인된 사건 전이가 없어 Lineage로 연결하지 않습니다." in react
+    assert "독립 관측" in react
     assert "documentRows.slice(0, 24)" not in react
     lineage_panel = react.split("<span>글 자체의 Lineage</span>", 1)[1].split("</section>", 1)[0]
     assert "documentRows" not in lineage_panel

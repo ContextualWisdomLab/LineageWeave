@@ -631,13 +631,16 @@ export default function App() {
     const evidenceId = String(bead.evidence_id || "");
     const opensEvidence = evidenceId && !evidenceId.includes(":");
     const connectsObservedEvents = !asObservation && bead.connects_to_next === true;
+    const beadStatusLabel = asObservation
+      ? (bead.kind === "event" ? "관찰된 사건" : "독립 관측")
+      : `${bead.evidence_status || "observed"} · ${bead.kind || "document"}`;
     return <div className={`lineage-step ${bead.kind || "document"} ${asObservation ? "observation" : ""}`} key={`${bead.kind}-${bead.label}-${index}`}>
       <button
         type="button"
         className={`lineage-node ${bead.evidence_status || "observed"} ${bead.kind === "event" ? "selected" : ""}`}
         onClick={() => { if (opensEvidence) void openEvidence(evidenceId); }}
       >
-        <span>{bead.kind === "event" ? (asObservation ? "관찰된 사건" : String(index + 1).padStart(2, "0")) : `${bead.evidence_status || "observed"} · ${bead.kind || "document"}`}</span>
+        <span>{bead.kind === "event" ? (asObservation ? beadStatusLabel : String(index + 1).padStart(2, "0")) : beadStatusLabel}</span>
         <strong>{bead.label || selectedNo}</strong>
         <em>{bead.detail || bead.neighbor || selectedNo}</em>
       </button>
@@ -648,7 +651,7 @@ export default function App() {
   function renderEventLineage(id = "") {
     const idProps = id ? { id } : {};
     if (!lineageBeads.length) {
-      return <div {...idProps} className="lineage-presentation"><div className="lineage-chain"><span className="lineage-node selected"><span>observed</span><strong>{selectedNo}</strong></span></div></div>;
+      return <div {...idProps} className="lineage-presentation"><p className="lineage-unlinked-message">확인된 사건 전이가 없어 Lineage로 연결하지 않습니다.</p><div className="lineage-observations">{renderLineageBead({ kind: "document", evidence_status: "observed", label: selectedNo, detail: "확인된 사건 전이 없음" }, 0, [], true)}</div></div>;
     }
     const segments = hasObservedTransition ? lineagePresentation.segments : [];
     const observations = segments.length ? lineagePresentation.observations : lineageBeads;
