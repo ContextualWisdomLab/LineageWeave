@@ -176,7 +176,12 @@ def _literal(cursor, lexical_value: str, datatype_iri: str | None) -> str:
 
 @pytest.mark.parametrize(
     "lexical_value",
-    ("2026-08-14T04:00:00", "not-a-date", "2026-02-31T04:00:00Z"),
+    (
+        "2026-08-14T04:00:00",
+        "not-a-date",
+        "2026-02-31T04:00:00Z",
+        "2026-08-14T04:00:00+14:01",
+    ),
 )
 def test_database_rejects_invalid_xsd_datetime(prov_schema_db, lexical_value: str) -> None:
     """Malformed and timezone-less xsd:dateTime values fail closed."""
