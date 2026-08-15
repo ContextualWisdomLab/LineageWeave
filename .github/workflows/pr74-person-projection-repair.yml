@@ -43,7 +43,7 @@ jobs:
 
       - name: Reject stale or reordered execution
         env:
-          EXPECTED_PARENT_SHA: 15be1c70f28bf68be67507db67db9838d6ea1a68
+          EXPECTED_PARENT_SHA: 0c72b3a3fbc856cd4b3a92fd729792ab0e5cd5d5
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT_SHA"
@@ -78,7 +78,8 @@ jobs:
           pnpm --dir frontend install --frozen-lockfile
           uv run --frozen python -m py_compile \
             scripts/pr74_person_projection_repair.py \
-            scripts/pr74_person_projection_repair_v2.py
+            scripts/pr74_person_projection_repair_v2.py \
+            scripts/pr74_person_projection_repair_v3.py
 
       - name: Require PostgreSQL instead of accepting a skipped contract
         run: |
@@ -101,8 +102,8 @@ jobs:
           test "$status" -ne 0
           grep -Eq 'post_summary_person_mention|UndefinedTable|does not exist' /tmp/pr74-red.log
 
-      - name: Apply the minimal source-aware projection repair
-        run: uv run --frozen python scripts/pr74_person_projection_repair_v2.py
+      - name: Apply the complete source-aware projection repair
+        run: uv run --frozen python scripts/pr74_person_projection_repair_v3.py
 
       - name: Verify focused data-integrity contracts
         run: |
@@ -131,7 +132,8 @@ jobs:
           rm -f \
             .github/workflows/pr74-person-projection-repair.yml \
             scripts/pr74_person_projection_repair.py \
-            scripts/pr74_person_projection_repair_v2.py
+            scripts/pr74_person_projection_repair_v2.py \
+            scripts/pr74_person_projection_repair_v3.py
           git add -A
           git diff --cached --check
           test -z "$(git ls-files '*.orig' '*.rej')"
