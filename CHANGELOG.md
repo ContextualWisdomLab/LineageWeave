@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.72.0] - 2026-08-15
+
+### Changed
+
+- Related-node person chips use the `person_side` lookup label instead
+  of the ontology class. After `make seed`, walking from Ada West
+  shows "Priya Nair (Counterparty)" and walking from Demo Corp shows
+  "Ada West (Our side)" -- not "Ada West (Person)". The payload
+  already had `person_side_code`; it now also carries
+  `person_side_label` from `common_lookup_value`.
+
 ## [0.71.0] - 2026-08-14
 
 ### Added

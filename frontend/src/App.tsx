@@ -466,6 +466,18 @@ function VocEvidenceSection({
 }
 
 const NODE_PERSON = "node_person";
+
+function relatedNodeCaption(node: RelatedNode): string {
+  const name = node.label ?? node.node_id;
+  if (node.node_type_code === NODE_PERSON) {
+    const side = node.person_side_label ?? node.person_side_code;
+    if (side) {
+      return `${name} (${side})`;
+    }
+  }
+  return `${name} (${node.ontology_label ?? node.node_type_code})`;
+}
+
 const NODE_POST = "node_post";
 const NODE_CORPORATE_ENTITY = "node_corporate_entity";
 
@@ -677,7 +689,7 @@ function KeymanPanel({
           ) : (
             <ul>
               {related.map((node) => {
-                const caption = `${node.label ?? node.node_id} (${node.ontology_label ?? node.node_type_code})`;
+                const caption = relatedNodeCaption(node);
                 if (node.node_type_code === NODE_POST && onSelectPost) {
                   return (
                     <li key={`${node.node_type_code}:${node.node_id}`}>
