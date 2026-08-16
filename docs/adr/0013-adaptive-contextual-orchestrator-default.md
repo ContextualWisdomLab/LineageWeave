@@ -21,6 +21,8 @@ LineageWeave continues to own strict output parsing, evidence identifiers, IRT p
 
 A structured task may still be served by one model when the adaptive policy determines that it is sufficient. Harder requests may receive a deeper workflow without changing the LineageWeave API. Consumers must retain returned orchestration and usage evidence when the gateway exposes it.
 
+Contract tests require a payload-level `"mode": "auto"` or `"mode": "verify"` literal (or, for post-evaluation, `"mode": mode` plus `mode: str = "auto"`). A docstring mention of `mode="auto"` or `mode="verify"` is not sufficient. Wire tests call `answer()` / `judge()` / `evaluate()` and assert the outbound body.
+
 ## References
 
 Omidvar, H., & Akhlaghi, V. (2026). *A communication-theoretic framework for LLM agents: Cost-aware adaptive reliability* [Preprint]. arXiv. https://doi.org/10.48550/arXiv.2605.09121

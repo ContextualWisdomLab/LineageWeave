@@ -22,24 +22,14 @@ _ROUTE_MARKERS = (
     'mode="route"',
     'mode: str = "route"',
 )
-_AUTO_MARKERS = (
-    '"mode": "auto"',
-    'mode="auto"',
-    'mode: str = "auto"',
-)
-_VERIFY_MARKERS = (
-    '"mode": "verify"',
-    'mode="verify"',
-    'mode: str = "verify"',
-)
+_PAYLOAD_AUTO = '"mode": "auto"'
+_PAYLOAD_VERIFY = '"mode": "verify"'
+_TYPED_AUTO_DEFAULT = 'mode: str = "auto"'
+_FORWARDED_MODE = '"mode": mode'
 
 
 def _source(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
-
-
-def _contains_any(source: str, markers: tuple[str, ...]) -> bool:
-    return any(marker in source for marker in markers)
 
 
 class AdaptiveOrchestratorDefaultTest(unittest.TestCase):
@@ -51,9 +41,14 @@ class AdaptiveOrchestratorDefaultTest(unittest.TestCase):
             with self.subTest(path=relative):
                 for marker in _ROUTE_MARKERS:
                     self.assertNotIn(marker, source)
-                self.assertTrue(
-                    _contains_any(source, _AUTO_MARKERS),
-                    f"{relative} must request mode=auto in executable source",
+                if relative.endswith("post_evaluation.py"):
+                    self.assertIn(_FORWARDED_MODE, source)
+                    self.assertIn(_TYPED_AUTO_DEFAULT, source)
+                    continue
+                self.assertIn(
+                    _PAYLOAD_AUTO,
+                    source,
+                    f"{relative} must send a payload-level mode=auto literal",
                 )
 
     def test_verify_clients_keep_checked_judgment_and_never_force_route(self) -> None:
@@ -62,15 +57,28 @@ class AdaptiveOrchestratorDefaultTest(unittest.TestCase):
             with self.subTest(path=relative):
                 for marker in _ROUTE_MARKERS:
                     self.assertNotIn(marker, source)
-                self.assertTrue(
-                    _contains_any(source, _VERIFY_MARKERS),
-                    f"{relative} must request mode=verify in executable source",
+                self.assertIn(
+                    _PAYLOAD_VERIFY,
+                    source,
+                    f"{relative} must send a payload-level mode=verify literal",
                 )
                 self.assertNotIn(
-                    '"mode": "auto"',
+                    _PAYLOAD_AUTO,
                     source,
                     f"{relative} must send verify, not a payload-level auto default",
                 )
+
+    def test_docstring_mode_mention_is_not_a_payload_literal(self) -> None:
+        """A class docstring contrast must not satisfy the auto/verify scan."""
+
+        source = (
+            '"""Calls the orchestrator with mode="auto", not mode="verify"."""\n'
+            "body = {\"messages\": [], \"mode\": \"route\"}\n"
+        )
+        self.assertNotIn(_PAYLOAD_AUTO, source)
+        self.assertNotIn(_PAYLOAD_VERIFY, source)
+        self.assertIn('mode="auto"', source)
+        self.assertIn('mode="verify"', source)
 
 
 if __name__ == "__main__":
