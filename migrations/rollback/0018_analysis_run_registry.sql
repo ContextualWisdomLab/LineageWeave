@@ -1,7 +1,9 @@
 -- Fail-closed rollback for migration 0018.
 --
--- Registry evidence must be exported or explicitly deleted under an approved
--- retention procedure before these objects can be removed. Re-running this
+-- Registry evidence must be exported, then emptied with
+-- select purge_analysis_run_registry('approved-retention-purge')
+-- (migration 0020 / ADR 0020), before these objects can be removed. A raw
+-- DELETE of analysis_run / scope / status is rejected. Re-running this
 -- rollback after a successful empty rollback is safe.
 
 begin;

@@ -88,7 +88,7 @@ describe("App, authenticated", () => {
     let nextTicketId = 1;
     const events: { event_id: string; event_type: string; actor_account_id: string; summary: string }[] = [];
     let nextEventId = 1;
-    let createdPendingLineage = false;
+    let createdPendingLineage: Record<string, unknown> | null = null;
     const pendingLineageRun = {
       analysis_run_id: "run-demo-lineage-pending",
       run_kind_code: "analysis_run_lineage" as const,
@@ -409,13 +409,14 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs") && method === "POST") {
-        createdPendingLineage = true;
+        createdPendingLineage = pendingLineageRun;
         return Promise.resolve(new Response(JSON.stringify(pendingLineageRun), { status: 201 }));
       }
       if (url.endsWith("/api/analysis-runs")) {
         return Promise.resolve(
           jsonResponse({
             analysis_runs: [
+              ...(createdPendingLineage ? [createdPendingLineage] : []),
               {
                 analysis_run_id: "run-demo-lineage",
                 run_kind_code: "analysis_run_lineage",
@@ -475,7 +476,6 @@ describe("App, authenticated", () => {
                   },
                 ],
               },
-              ...(createdPendingLineage ? [pendingLineageRun] : []),
               ...(options?.failedReportRun || options?.pendingReportRun
                 ? [
                     {
@@ -1954,8 +1954,8 @@ describe("App, authenticated", () => {
     expect(
       screen.getAllByText(
         "Open this run to confirm which posts it will use. Reconstruction has not started yet.",
-      ).length,
-    ).toBeGreaterThanOrEqual(2);
+      ),
+    ).toHaveLength(2);
     expect(screen.queryByText(/Measurement has not started/)).not.toBeInTheDocument();
     expect(screen.queryByText(/The report has not been built/)).not.toBeInTheDocument();
     const postCall = fetchMock.mock.calls.find(
