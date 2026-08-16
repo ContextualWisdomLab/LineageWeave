@@ -688,12 +688,19 @@ def test_start_analysis_run_recovers_the_a100_fork(
         },
     )
     assert tepp.status_code == 201
-    refused = client.post(
+    measured = client.post(
         f"/api/analysis-runs/{tepp.json()['analysis_run_id']}/start",
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
-    assert refused.status_code == 422
-    assert "invent a measurement" in refused.json()["detail"]
+    assert measured.status_code == 200, measured.text
+    tepp_body = measured.json()
+    assert tepp_body["status_label"] == "Failed"
+    assert tepp_body["failure_code"] == "tepp_not_available"
+    assert any(
+        event.get("failure_code") == "tepp_not_available"
+        for event in tepp_body["status_history"]
+    )
+    assert "theta" not in str(tepp_body).lower()
 
     admin_conn = psycopg2.connect(seeded_db["dsn"])
     admin_conn.autocommit = True

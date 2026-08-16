@@ -475,9 +475,12 @@ revision and configuration digest prefixes.
 cutoff capture (ADR 0017): snapshot, counts, frozen membership, run,
 scope, and the first status in one transaction.
 `POST /api/analysis-runs/{id}/start` then runs ThreadWeave on that
-frozen bag and persists run-scoped edges (ADR 0021). It does not invent
-a TEPP score. Request a lineage reconstruction from the home list, open
-the Pending row, then start reconstruction. Hover the Result digest
+frozen bag and persists run-scoped edges (ADR 0021), or submits TEPP
+through `tepp_client` (ADR 0022). It does not invent a TEPP score.
+Request a lineage reconstruction from the home list, open the Pending
+row, then start reconstruction. A Pending TEPP row starts a
+measurement; a missing transport stays Failed /
+`tepp_not_available`. Hover the Result digest
 prefix, then confirm the designed A-100 fork before treating the live
 Event Lineage panel as that run's tree.
 `make seed` also records a TEPP measurement run through

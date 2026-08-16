@@ -1,16 +1,24 @@
 """Start-reconstruction contracts: digest, freeze, 422/409, designed tree."""
 
+from datetime import datetime, timezone
+
+import pytest
+
 from backend.app.analysis_run_ingestion import reconstructed_edge_is_visible
 from backend.app.analysis_run_start import (
     AnalysisRunStartError,
+    configured_tepp_client,
     reconstruction_member_ids,
     reconstruction_result_digest,
     start_kind_rejection,
     start_write_conflict_error,
+    tepp_run_request,
+    tepp_submit_outcome,
 )
 from backend.app.lineage_ingestion import records_from_source_posts
 from lineageweave.fixtures import sample_records
 from lineageweave.lineage_persistence import lineage_edge_specs
+from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 
 
 def test_reconstruction_digest_is_stable_and_ignores_edge_order() -> None:
@@ -85,18 +93,64 @@ def test_reconstructed_edge_hides_unaffiliated_private_titles() -> None:
     )
 
 
-def test_tepp_and_period_report_start_are_unprocessable() -> None:
-    """TEPP and period-report start stay 422 so this path cannot invent a score."""
-    tepp = start_kind_rejection("analysis_run_tepp")
-    assert tepp is not None
-    assert tepp.status_code == 422
-    assert "invent a measurement" in tepp.detail
+def test_period_report_start_is_unprocessable_and_tepp_is_allowed() -> None:
+    """Period-report stays 422. TEPP start is allowed so tepp_client can run."""
     report = start_kind_rejection("analysis_run_report")
     assert report is not None
     assert report.status_code == 422
     assert "invent a measurement" in report.detail
     assert "period report" in report.detail
     assert start_kind_rejection("analysis_run_lineage") is None
+    assert start_kind_rejection("analysis_run_tepp") is None
+
+
+def _tepp_request() -> AnalysisRunRequest:
+    return tepp_run_request(
+        idempotency_key="buyer-tepp-2026-w07",
+        snapshot_sha256="ab" * 32,
+        knowledge_cutoff=datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc),
+        corporate_entity_id="11111111-1111-1111-1111-111111111111",
+    )
+
+
+def test_tepp_run_request_is_the_published_wire_shape() -> None:
+    """Start builds TEPP's seven-field request from the frozen run."""
+    request = _tepp_request()
+    payload = request.to_json()
+    assert payload["contract_version"] == 1
+    assert payload["idempotency_key"] == "buyer-tepp-2026-w07"
+    assert payload["snapshot_id"] == "ab" * 32
+    assert payload["knowledge_cutoff"] == "2026-01-12T12:00:00Z"
+    assert payload["model_contract_version"] == "tepp-analysis-run-v1"
+    assert payload["output_profile"] == "calibrated_event_measurement"
+    assert "theta" not in str(payload).casefold()
+
+
+def test_tepp_submit_outcome_drops_a_missing_transport() -> None:
+    """A missing TEPP transport is Failed, never a fabricated score."""
+    status, failure = tepp_submit_outcome(TeppClient(), _tepp_request())
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_not_available"
+
+
+def test_tepp_submit_outcome_does_not_persist_an_empty_envelope() -> None:
+    """An accepted envelope is not a persistable measurement."""
+
+    class _Accepting(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(transport=lambda _payload: {"status": "accepted"})
+
+    status, failure = tepp_submit_outcome(_Accepting(), _tepp_request())
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_result_not_persisted"
+
+
+def test_configured_tepp_client_stays_unavailable_without_http() -> None:
+    """Empty or non-http URLs keep the default dropped channel."""
+    assert isinstance(configured_tepp_client(""), TeppClient)
+    client = configured_tepp_client("file:///tmp/tepp.json")
+    with pytest.raises(TeppNotAvailable):
+        client.submit_analysis_run(_tepp_request())
 
 
 def test_hidden_run_start_is_not_found() -> None:

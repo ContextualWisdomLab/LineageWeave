@@ -1,8 +1,8 @@
-"""Start a Pending lineage reconstruction without inventing a TEPP score.
+"""Start a Pending lineage reconstruction or TEPP measurement.
 
-ADR 0021. ``POST /api/analysis-runs/{id}/start`` transitions Pending to
-Running, runs ThreadWeave on the frozen cutoff bag, persists run-scoped
-edges, then stamps Succeeded. TEPP and period-report stay other paths.
+ADR 0021 reconstructs lineage. ADR 0022 starts TEPP through
+``tepp_client`` only. Period-report stays another path. Neither start
+invents a theta or a calibrated report score.
 """
 
 from __future__ import annotations
@@ -20,8 +20,10 @@ from backend.app.analysis_run_ingestion import (
     fetch_visible_analysis_run,
 )
 from backend.app.lineage_ingestion import records_from_source_posts
+from lineageweave.http_client import HttpClientError, post_json
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge
+from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 
 _LINEAGE_KIND = "analysis_run_lineage"
 _TEPP_KIND = "analysis_run_tepp"
@@ -29,6 +31,9 @@ _REPORT_KIND = "analysis_run_report"
 _PENDING = "analysis_status_pending"
 _RUNNING = "analysis_status_running"
 _SUCCEEDED = "analysis_status_succeeded"
+_FAILED = "analysis_status_failed"
+_TEPP_MODEL_CONTRACT = "tepp-analysis-run-v1"
+_TEPP_OUTPUT_PROFILE = "calibrated_event_measurement"
 
 
 class AnalysisRunStartError(AnalysisRunCreateError):
@@ -53,19 +58,14 @@ def reconstruction_result_digest(edges: list[Edge]) -> str:
 
 
 def start_kind_rejection(run_kind_code: str) -> AnalysisRunStartError | None:
-    """Return a 422 when start is not a lineage reconstruction.
+    """Return a 422 when start cannot run this kind.
 
-    TEPP and period-report keep their own transports. This path must not
-    invent a theta or a calibrated report score.
+    Lineage reconstructs the frozen bag. TEPP submits through
+    ``tepp_client`` and never invents a theta. Period-report stays on
+    its own rebuild path.
     """
-    if run_kind_code == _LINEAGE_KIND:
+    if run_kind_code in {_LINEAGE_KIND, _TEPP_KIND}:
         return None
-    if run_kind_code == _TEPP_KIND:
-        return AnalysisRunStartError(
-            422,
-            "Connect a TEPP transport from a Failed TEPP row. "
-            "This start path does not invent a measurement.",
-        )
     if run_kind_code == _REPORT_KIND:
         return AnalysisRunStartError(
             422,
@@ -74,9 +74,67 @@ def start_kind_rejection(run_kind_code: str) -> AnalysisRunStartError | None:
         )
     return AnalysisRunStartError(
         422,
-        "Start reconstructs a Pending lineage run only. "
+        "Start reconstructs a Pending lineage run or submits TEPP. "
         "This start path does not invent a measurement.",
     )
+
+
+def configured_tepp_client(transport_url: str = "") -> TeppClient:
+    """Build a TEPP client from an optional HTTP transport URL.
+
+    An empty URL keeps the default unavailable transport. A set URL
+    POSTs TEPP's published wire payload. File URLs and other schemes
+    stay unavailable -- this is not a local psychometric substitute.
+    """
+    url = transport_url.strip()
+    if not url:
+        return TeppClient()
+
+    def transport(payload: dict[str, Any]) -> dict[str, Any]:
+        try:
+            return post_json(url, payload, headers={}, timeout=30.0)
+        except (HttpClientError, ValueError, TypeError) as exc:
+            raise TeppNotAvailable(str(exc)) from exc
+
+    return TeppClient(transport=transport)
+
+
+def tepp_run_request(
+    *,
+    idempotency_key: str,
+    snapshot_sha256: str,
+    knowledge_cutoff: datetime,
+    corporate_entity_id: str,
+) -> AnalysisRunRequest:
+    """Build TEPP's published request from the frozen run, never a theta."""
+    cutoff = knowledge_cutoff
+    if cutoff.tzinfo is None:
+        cutoff = cutoff.replace(tzinfo=timezone.utc)
+    return AnalysisRunRequest(
+        idempotency_key=idempotency_key,
+        tenant_workspace_id=str(corporate_entity_id),
+        snapshot_id=snapshot_sha256,
+        knowledge_cutoff=cutoff.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        model_contract_version=_TEPP_MODEL_CONTRACT,
+        output_profile=_TEPP_OUTPUT_PROFILE,
+    )
+
+
+def tepp_submit_outcome(
+    client: TeppClient,
+    request: AnalysisRunRequest,
+) -> tuple[str, str]:
+    """Submit through ``tepp_client``. Never invent or persist a theta.
+
+    A missing transport is ``tepp_not_available``. An accepted envelope
+    is not a persistable measurement until TEPP publishes one, so the
+    run stays Failed / ``tepp_result_not_persisted``.
+    """
+    try:
+        client.submit_analysis_run(request)
+    except TeppNotAvailable:
+        return _FAILED, "tepp_not_available"
+    return _FAILED, "tepp_result_not_persisted"
 
 
 def start_write_conflict_error() -> AnalysisRunStartError:
@@ -201,14 +259,17 @@ async def start_pending_analysis_run(
     analysis_run_id: str,
     account_id: str,
     affiliated_entity_ids: list[str],
+    tepp_client: TeppClient | None = None,
 ) -> dict[str, Any]:
-    """Run ThreadWeave on a visible Pending lineage row.
+    """Run ThreadWeave or submit TEPP on a visible Pending row.
 
-    TEPP and period-report are rejected so this path cannot invent a
-    theta. A Succeeded retry returns the stored reconstruction (documented
-    no-op replay). A Running or concurrent write is 409. Hidden runs 404.
-    The run row is locked before Running so a double-click is 409 or a
-    replay, never a 500.
+    Period-report is rejected so this path cannot invent a calibrated
+    score. TEPP goes through ``tepp_client`` and stays Failed when the
+    transport is missing or the envelope is not persistable. A Succeeded
+    retry returns the stored reconstruction (documented no-op replay).
+    A Running or concurrent write is 409. Hidden runs 404. The run row
+    is locked before Running so a double-click is 409 or a replay,
+    never a 500.
     """
     try:
         UUID(analysis_run_id)
@@ -231,15 +292,19 @@ async def start_pending_analysis_run(
     if current["status_code"] != _PENDING:
         raise AnalysisRunStartError(
             409,
-            "Open this run. Start is only for a Pending lineage reconstruction.",
+            "Open this run. Start is only for a Pending lineage reconstruction "
+            "or TEPP measurement.",
         )
 
     locked = await conn.fetchrow(
         """
-        select run.analysis_run_id, run.knowledge_cutoff,
-               run.analysis_source_snapshot_id, scope.corporate_entity_id
+        select run.analysis_run_id, run.knowledge_cutoff, run.run_kind_code,
+               run.idempotency_key, run.analysis_source_snapshot_id,
+               snapshot.snapshot_sha256, scope.corporate_entity_id
         from analysis_run run
         join analysis_run_scope scope on scope.analysis_run_id = run.analysis_run_id
+        join analysis_source_snapshot snapshot
+          on snapshot.analysis_source_snapshot_id = run.analysis_source_snapshot_id
         where run.analysis_run_id = $1
         for update of run
         """,
@@ -266,7 +331,18 @@ async def start_pending_analysis_run(
     if locked_status != _PENDING:
         raise AnalysisRunStartError(
             409,
-            "Open this run. Start is only for a Pending lineage reconstruction.",
+            "Open this run. Start is only for a Pending lineage reconstruction "
+            "or TEPP measurement.",
+        )
+
+    if locked["run_kind_code"] == _TEPP_KIND:
+        return await _start_tepp_measurement(
+            conn,
+            analysis_run_id=analysis_run_id,
+            account_id=account_id,
+            affiliated_entity_ids=affiliated_entity_ids,
+            locked=locked,
+            tepp_client=tepp_client or TeppClient(),
         )
 
     now = datetime.now(timezone.utc)
@@ -322,6 +398,51 @@ async def start_pending_analysis_run(
             running_ordinal + 1,
             _SUCCEEDED,
             finished,
+        )
+    except asyncpg.UniqueViolationError as exc:
+        raise start_write_conflict_error() from exc
+    started = await fetch_visible_analysis_run(
+        conn,
+        analysis_run_id,
+        account_id,
+        affiliated_entity_ids,
+    )
+    if started is None:
+        raise AnalysisRunStartError(404, "This analysis run is not visible.")
+    return started
+
+
+async def _start_tepp_measurement(
+    conn: asyncpg.Connection,
+    *,
+    analysis_run_id: str,
+    account_id: str,
+    affiliated_entity_ids: list[str],
+    locked: asyncpg.Record,
+    tepp_client: TeppClient,
+) -> dict[str, Any]:
+    """Submit the frozen snapshot through ``tepp_client``. Never persist a theta."""
+    now = datetime.now(timezone.utc)
+    running_ordinal = await _next_status_ordinal(conn, analysis_run_id)
+    try:
+        await _append_status(conn, analysis_run_id, running_ordinal, _RUNNING, now)
+        request = tepp_run_request(
+            idempotency_key=str(locked["idempotency_key"]),
+            snapshot_sha256=str(locked["snapshot_sha256"]),
+            knowledge_cutoff=locked["knowledge_cutoff"],
+            corporate_entity_id=str(locked["corporate_entity_id"]),
+        )
+        status_code, failure_code = tepp_submit_outcome(tepp_client, request)
+        finished = datetime.now(timezone.utc)
+        if finished < now:
+            finished = now
+        await _append_status(
+            conn,
+            analysis_run_id,
+            running_ordinal + 1,
+            status_code,
+            finished,
+            failure_code,
         )
     except asyncpg.UniqueViolationError as exc:
         raise start_write_conflict_error() from exc

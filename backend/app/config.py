@@ -48,6 +48,9 @@ class Settings:
     # means the verification channel is unavailable, same "no fake
     # channel" discipline as every other pluggable client.
     searxng_base_url: str
+    # Optional TEPP HTTP transport. Empty keeps TeppClient's default
+    # unavailable transport. Never a local psychometric substitute.
+    tepp_transport_url: str
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -80,4 +83,5 @@ def load_settings() -> Settings:
         vision_model=os.environ.get("VISION_MODEL", ""),
         valkey_url=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
         searxng_base_url=os.environ.get("SEARXNG_BASE_URL", ""),
+        tepp_transport_url=os.environ.get("TEPP_TRANSPORT_URL", ""),
     )

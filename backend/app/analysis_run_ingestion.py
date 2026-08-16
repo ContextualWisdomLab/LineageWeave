@@ -8,8 +8,9 @@ payloads never do.
 
 ``create_pending_analysis_run`` (ADR 0017) writes snapshot, counts, frozen
 membership, run, scope, and the first Pending event atomically.
-``start_pending_analysis_run`` (ADR 0021) later reconstructs lineage on
-that cutoff bag. Neither path invents a TEPP score.
+``start_pending_analysis_run`` later reconstructs lineage (ADR 0021)
+or submits TEPP through ``tepp_client`` (ADR 0022). Neither path
+invents a TEPP score.
 """
 
 from __future__ import annotations

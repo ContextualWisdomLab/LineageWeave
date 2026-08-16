@@ -30,8 +30,8 @@ free slot.
 transaction:
 
 1. loads the authorized run (hidden scopes 404);
-2. rejects non-lineage kinds so TEPP and period-report cannot invent a
-   theta or a calibrated score;
+2. rejects period-report so this path cannot invent a calibrated
+   score; TEPP start is ADR 0022 and still cannot invent a theta;
 3. replays a Succeeded run (documented no-op; same stored digest);
 4. accepts only Pending lineage — Running is 409;
 5. locks the run row, re-reads status, appends Running, runs

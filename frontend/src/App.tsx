@@ -1656,15 +1656,27 @@ function AnalysisRunReproducibilityDigests({
 }
 
 /**
- * Start is only for a Pending Demo Corp lineage row after Request.
+ * Start is for a Pending lineage or TEPP row after Request.
  *
- * TEPP and period-report keep their own transports. This button must
- * not appear on those kinds.
+ * Period-report keeps its own rebuild path. TEPP start goes through
+ * tepp_client and must not be labeled reconstruction.
  */
-function analysisRunCanStartReconstruction(run: AnalysisRun): boolean {
+function analysisRunCanStart(run: AnalysisRun): boolean {
   return (
-    run.run_kind_code === "analysis_run_lineage" && run.status_code === "analysis_status_pending"
+    (run.run_kind_code === "analysis_run_lineage" || run.run_kind_code === "analysis_run_tepp") &&
+    run.status_code === "analysis_status_pending"
   );
+}
+
+function analysisRunStartLabel(run: AnalysisRun): string {
+  return run.run_kind_code === "analysis_run_tepp"
+    ? "Start TEPP measurement"
+    : "Start reconstruction";
+}
+
+/** Failed TEPP is terminal. Re-run records a new Pending TEPP row. */
+function analysisRunCanRequestTeppRetry(run: AnalysisRun): boolean {
+  return run.run_kind_code === "analysis_run_tepp" && run.status_code === "analysis_status_failed";
 }
 
 /**
@@ -1732,6 +1744,24 @@ function AnalysisRunsPanel({
       setError(err instanceof BackendError ? err.message : String(err));
     } finally {
       setStarting(false);
+    }
+  }
+
+  async function handleRequestTepp() {
+    setError(null);
+    setRequesting(true);
+    try {
+      const created = await createAnalysisRun(accessToken, {
+        run_kind_code: "analysis_run_tepp",
+        idempotency_key: crypto.randomUUID(),
+      });
+      const listed = await fetchAnalysisRuns(accessToken);
+      setRuns(listed.analysis_runs);
+      setSelected(created);
+    } catch (err) {
+      setError(err instanceof BackendError ? err.message : String(err));
+    } finally {
+      setRequesting(false);
     }
   }
 
@@ -1816,14 +1846,28 @@ function AnalysisRunsPanel({
             configurationSha256={selected.configuration_sha256}
             reconstructionResultSha256={selected.reconstruction_result_sha256}
           />
-          {analysisRunCanStartReconstruction(selected) && (
+          {analysisRunCanStart(selected) && (
             <button
               className="keyman-select"
-              aria-label="Start reconstruction"
+              aria-label={analysisRunStartLabel(selected)}
               disabled={starting}
               onClick={() => void handleStartReconstruction()}
             >
-              {starting ? "Reconstructing the cutoff bag..." : "Start reconstruction"}
+              {starting
+                ? selected.run_kind_code === "analysis_run_tepp"
+                  ? "Submitting the TEPP request..."
+                  : "Reconstructing the cutoff bag..."
+                : analysisRunStartLabel(selected)}
+            </button>
+          )}
+          {analysisRunCanRequestTeppRetry(selected) && (
+            <button
+              className="keyman-select"
+              aria-label="Request a new TEPP measurement"
+              disabled={requesting}
+              onClick={() => void handleRequestTepp()}
+            >
+              {requesting ? "Recording the run..." : "Request a new TEPP measurement"}
             </button>
           )}
           {selected.reconstructed_edges && selected.reconstructed_edges.length > 0 && (

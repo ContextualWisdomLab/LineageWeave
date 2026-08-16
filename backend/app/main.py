@@ -74,6 +74,7 @@ from backend.app.analysis_run_ingestion import (
 )
 from backend.app.analysis_run_start import (
     AnalysisRunStartError,
+    configured_tepp_client,
     start_pending_analysis_run,
 )
 from backend.app.activity_stream import (
@@ -1263,13 +1264,16 @@ async def start_analysis_run(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Start ThreadWeave on a visible Pending lineage run.
+    """Start ThreadWeave or submit TEPP on a visible Pending run.
 
-    post_read is enough. Hidden runs 404. TEPP and period-report are 422
-    so this path cannot invent a theta. A Succeeded retry returns the
-    stored tree. A Running restart is 409.
+    post_read is enough. Hidden runs 404. Period-report is 422 so this
+    path cannot invent a calibrated score. TEPP goes through
+    ``tepp_client`` and stays Failed when the transport is missing or
+    the envelope is not persistable. A Succeeded lineage retry returns
+    the stored tree. A Running restart is 409.
     """
     _require_post_read(account)
+    settings = load_settings()
     async with pool.acquire() as conn:
         async with conn.transaction():
             try:
@@ -1278,6 +1282,7 @@ async def start_analysis_run(
                     analysis_run_id=analysis_run_id,
                     account_id=account.user_account_id,
                     affiliated_entity_ids=list(account.corporate_entity_ids),
+                    tepp_client=configured_tepp_client(settings.tepp_transport_url),
                 )
             except AnalysisRunStartError as exc:
                 raise HTTPException(exc.status_code, exc.detail) from exc

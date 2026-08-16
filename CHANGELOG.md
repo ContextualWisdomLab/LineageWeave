@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.92.0] - 2026-08-17
+
+### Added
+
+- **Start TEPP measurement** on a Pending TEPP row submits
+  `AnalysisRunRequest` through `tepp_client` (ADR 0022). A missing
+  `TEPP_TRANSPORT_URL` or a refused URL is Failed /
+  `tepp_not_available`. An accepted envelope is Failed /
+  `tepp_result_not_persisted`. Failed stays terminal: **Request a new
+  TEPP measurement** records a new Pending run. Period-report start
+  stays 422. No TEPP theta is invented.
+
 ## [0.91.0] - 2026-08-17
 
 ### Added
