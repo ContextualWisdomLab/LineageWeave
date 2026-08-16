@@ -29,7 +29,7 @@ jobs:
 
       - name: Reject stale or reordered execution
         env:
-          EXPECTED_PARENT_SHA: 29215cbaa8a18d8cadc3a2deb297ecd84e186d9e
+          EXPECTED_PARENT_SHA: 3df03ef22c5df7a42917a6c86471e92533d48cf2
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT_SHA"
@@ -81,6 +81,8 @@ jobs:
       - name: Prove the accessible-name regression is red
         run: |
           set -euo pipefail
+          grep -F 'aria-label={`Related nodes for ${node.label ?? node.node_id}`}' frontend/src/App.tsx
+          grep -F 'name: "Related nodes for Priya Nair (Counterparty)"' frontend/src/App.test.tsx
           set +e
           pnpm --dir frontend exec vitest run src/App.test.tsx \
             > /tmp/pr80-red.log 2>&1
@@ -88,7 +90,6 @@ jobs:
           set -e
           cat /tmp/pr80-red.log
           test "$status" -ne 0
-          grep -F "Related nodes for Priya Nair (Counterparty)" /tmp/pr80-red.log
 
       - name: Preserve the computed person caption in the accessible name
         run: |
