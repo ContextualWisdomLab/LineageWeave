@@ -40,7 +40,9 @@ retention event, delete those rows, roll back 0019, then roll back 0018.
 
 ## Follow-up
 
-Bind the approval token to an authenticated administrator grant table when
+ADR 0019 binds purge to an unrevoked `analysis_run_retention_grant` on
+`session_user`, records `invoking_session_role`, and revokes `PUBLIC`
+execute. Bind an administrator `user_account` to that grant table when
 the write API exists. Do not expose purge on a public HTTP route.
 
 ## References — APA 7th

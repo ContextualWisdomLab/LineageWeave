@@ -1,7 +1,7 @@
 # Analysis-run registry standards and research traceability
 
 **Status:** Active PR evidence; not protected-main truth until merge.  
-**Scope:** Migrations 0018–0019, ADR 0013 / 0018, rollback, and real-PostgreSQL contract tests.
+**Scope:** Migrations 0018–0019, ADR 0013 / 0018 / 0019, rollback, and real-PostgreSQL contract tests.
 
 ## Standards mapped to implementation
 
@@ -74,13 +74,21 @@ provenance, retention, and immutable evidence rather than blanket masking.
 | Request identity is stable | Reject analysis-run updates; scope and lifecycle live in their own relations. |
 | Idempotency is actor-scoped | Permit identical opaque keys for two accounts and reject reuse by the same account. |
 | Lifecycle is ordered | Require pending first, contiguous ordinals, monotonic time, legal transitions, terminal finality, and append-only rows. |
-| Rollback does not erase audit data silently | Reject 0018 rollback with any registry rows. A run-bearing registry empties only through `purge_analysis_run_registry('approved-retention-purge')`; a wrong token and a raw `DELETE` stay rejected. Export then delete `analysis_run_retention_event` before 0019 rollback. |
+| Rollback does not erase audit data silently | Reject 0018 rollback with any registry rows. A run-bearing registry empties only through an unrevoked `analysis_run_retention_grant` plus `purge_analysis_run_registry('approved-retention-purge')`; a missing grant, a wrong token, and a raw `DELETE` stay rejected. The retention event names `invoking_session_role`. Export then delete `analysis_run_retention_event` before 0019 rollback. |
 
 ## APA 7th references
 
 International Organization for Standardization. (2016). *ISO 15489-1:2016:
 Information and documentation—Records management—Part 1: Concepts and
 principles*.
+
+Joint Task Force. (2020). *Security and privacy controls for information
+systems and organizations* (NIST Special Publication 800-53, Rev. 5).
+National Institute of Standards and Technology.
+https://doi.org/10.6028/NIST.SP.800-53r5
+
+MITRE. (2026). *CWE-250: Execution with unnecessary privileges*.
+https://cwe.mitre.org/data/definitions/250.html
 
 International Organization for Standardization. (2019). *ISO 8601-1:2019: Date
 and time—Representations for information interchange—Part 1: Basic rules*

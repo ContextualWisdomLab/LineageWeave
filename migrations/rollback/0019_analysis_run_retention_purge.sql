@@ -1,8 +1,9 @@
 -- Fail-closed rollback for migration 0019.
 --
 -- Export analysis_run_retention_event, then delete those rows, before
--- this script can drop the purge function and audit table. Re-running
--- after a successful empty rollback is safe.
+-- this script can drop the purge function, grant table, and audit
+-- table. Grant rows are authorization config and drop with the table.
+-- Re-running after a successful empty rollback is safe.
 
 begin;
 
@@ -21,6 +22,7 @@ end
 $$;
 
 drop function if exists purge_analysis_run_registry(text);
+drop table if exists analysis_run_retention_grant;
 drop table if exists analysis_run_retention_event;
 
 commit;

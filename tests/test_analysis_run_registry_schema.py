@@ -189,6 +189,42 @@ def _insert_run(
     return str(cursor.fetchone()[0])
 
 
+def _insert_run_bearing_registry(
+    cursor,
+    *,
+    digest: str,
+    idempotency_key: str,
+) -> None:
+    """Insert one snapshot, count, run, scope, and pending event."""
+
+    account_id = _insert_account(cursor)
+    snapshot_id = _insert_snapshot(cursor, digest=digest)
+    cursor.execute(
+        "insert into analysis_source_count values "
+        "(%s, 'analysis_count_document', 3)",
+        (snapshot_id,),
+    )
+    run_id = _insert_run(
+        cursor,
+        snapshot_id=snapshot_id,
+        account_id=account_id,
+        idempotency_key=idempotency_key,
+    )
+    cursor.execute(
+        "insert into analysis_run_scope "
+        "(analysis_run_id, scope_kind_code) "
+        "values (%s, 'analysis_scope_all_visible')",
+        (run_id,),
+    )
+    cursor.execute(
+        "insert into analysis_run_status_event "
+        "(analysis_run_id, status_ordinal, status_code, occurred_at) "
+        "values (%s, 1, 'analysis_status_pending', "
+        "'2026-08-15T01:00:00Z')",
+        (run_id,),
+    )
+
+
 def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> None:
     """Static contract rejects the parallel prototype and duplicated clocks."""
 
@@ -212,8 +248,13 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     retention_rollback = _RETENTION_ROLLBACK.read_text(encoding="utf-8")
     assert "purge_analysis_run_registry" in retention
     assert "analysis_run_retention_event" in retention
+    assert "analysis_run_retention_grant" in retention
+    assert "invoking_session_role" in retention
     assert "security definer" in retention.casefold()
+    assert "revoke all" in retention.casefold()
+    assert "from public" in retention.casefold()
     assert "analysis_run_retention_not_approved" in retention
+    assert "analysis_run_retention_not_granted" in retention
     assert "analysis_run_retention_event_not_empty" in retention_rollback
     assert "jsonb" not in retention.casefold()
     for object_name in re.findall(
@@ -271,6 +312,7 @@ def test_registry_migration_is_idempotent(registry_db) -> None:
         views = {row[0] for row in cursor.fetchall()}
     assert _REQUIRED_TABLES <= tables
     assert "analysis_run_retention_event" in tables
+    assert "analysis_run_retention_grant" in tables
     assert "analysis_run_current_status" in views
 
 
@@ -800,16 +842,25 @@ def test_approved_retention_purge_empties_a_run_bearing_registry(registry_db) ->
         assert cursor.fetchone()[0] == 0
         cursor.execute("select count(*) from analysis_source_snapshot")
         assert cursor.fetchone()[0] == 0
+        cursor.execute("select session_user")
+        session_role = cursor.fetchone()[0]
         cursor.execute(
             "select purged_run_count, purged_snapshot_count, "
-            "approval_token_digest from analysis_run_retention_event"
+            "approval_token_digest, invoking_session_role "
+            "from analysis_run_retention_event"
         )
-        purged_run_count, purged_snapshot_count, token_digest = cursor.fetchone()
+        (
+            purged_run_count,
+            purged_snapshot_count,
+            token_digest,
+            invoking_session_role,
+        ) = cursor.fetchone()
         assert purged_run_count == 1
         assert purged_snapshot_count == 1
         assert token_digest == hashlib.sha256(
             b"approved-retention-purge"
         ).hexdigest()
+        assert invoking_session_role == session_role
         cursor.execute(rollback_sql)
         cursor.execute("select to_regclass('public.analysis_run')")
         assert cursor.fetchone()[0] is None
@@ -825,3 +876,96 @@ def test_approved_retention_purge_empties_a_run_bearing_registry(registry_db) ->
             "select to_regclass('public.analysis_run_retention_event')"
         )
         assert cursor.fetchone()[0] is None
+
+
+def test_retention_purge_requires_unrevoked_session_grant(registry_db) -> None:
+    """A published token does not purge until session_user holds a grant."""
+
+    role_name = f"retention_denied_{uuid.uuid4().hex[:8]}"
+    with registry_db.cursor() as cursor:
+        cursor.execute(
+            "select has_function_privilege(%s, %s, 'execute')",
+            ("public", "purge_analysis_run_registry(text)"),
+        )
+        assert cursor.fetchone()[0] is False
+        _insert_run_bearing_registry(
+            cursor,
+            digest="d" * 64,
+            idempotency_key="retention-grant-deny",
+        )
+        cursor.execute(
+            sql.SQL("create role {}").format(sql.Identifier(role_name))
+        )
+        cursor.execute(
+            sql.SQL(
+                "grant execute on function purge_analysis_run_registry(text) "
+                "to {}"
+            ).format(sql.Identifier(role_name))
+        )
+        try:
+            cursor.execute(
+                sql.SQL("set session authorization {}").format(
+                    sql.Identifier(role_name)
+                )
+            )
+        except psycopg2.errors.InsufficientPrivilege:
+            cursor.execute(
+                sql.SQL("drop role {}").format(sql.Identifier(role_name))
+            )
+            pytest.skip("session authorization requires superuser")
+        with pytest.raises(
+            psycopg2.errors.RaiseException,
+            match="analysis_run_retention_not_granted",
+        ):
+            cursor.execute(
+                "select purge_analysis_run_registry(%s)",
+                ("approved-retention-purge",),
+            )
+        cursor.execute("reset session authorization")
+        cursor.execute(
+            "insert into analysis_run_retention_grant (database_role_name) "
+            "values (%s)",
+            (role_name,),
+        )
+        cursor.execute(
+            sql.SQL("set session authorization {}").format(
+                sql.Identifier(role_name)
+            )
+        )
+        cursor.execute(
+            "select purge_analysis_run_registry(%s)",
+            ("approved-retention-purge",),
+        )
+        cursor.execute("reset session authorization")
+        cursor.execute(
+            "select invoking_session_role from analysis_run_retention_event"
+        )
+        assert cursor.fetchone()[0] == role_name
+        cursor.execute(
+            "update analysis_run_retention_grant "
+            "set revoked_at = clock_timestamp() "
+            "where database_role_name = %s and revoked_at is null",
+            (role_name,),
+        )
+        _insert_run_bearing_registry(
+            cursor,
+            digest="e" * 64,
+            idempotency_key="retention-grant-revoked",
+        )
+        cursor.execute(
+            sql.SQL("set session authorization {}").format(
+                sql.Identifier(role_name)
+            )
+        )
+        with pytest.raises(
+            psycopg2.errors.RaiseException,
+            match="analysis_run_retention_not_granted",
+        ):
+            cursor.execute(
+                "select purge_analysis_run_registry(%s)",
+                ("approved-retention-purge",),
+            )
+        cursor.execute("reset session authorization")
+        cursor.execute(
+            sql.SQL("drop role {}").format(sql.Identifier(role_name))
+        )

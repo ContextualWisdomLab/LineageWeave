@@ -3,12 +3,14 @@
 Tool-specific pointer. Policy lives in [AGENTS.md](AGENTS.md) and the
 ADRs under `docs/adr/`. Do not fork those rules here.
 
-## Analysis-run retention (v0.86.0)
+## Analysis-run retention (v0.87.0)
 
-To empty a run-bearing registry before rolling back 0018, run
+Confirm `session_user` has an unrevoked `analysis_run_retention_grant`
+row (insert one if you are not the migrator). Then run
 `select purge_analysis_run_registry('approved-retention-purge')`,
-export `analysis_run_retention_event`, delete those rows, then roll
-back 0019 and 0018. Do not `DISABLE TRIGGER` as superuser.
+export `analysis_run_retention_event` (it names `invoking_session_role`),
+delete those rows, then roll back 0019 and 0018. Do not `DISABLE TRIGGER`
+as superuser. The published token is not a grant.
 
 ## Analysis-run seed (v0.84.0)
 
