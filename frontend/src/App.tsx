@@ -1922,6 +1922,15 @@ function AnalysisRunsPanel({
               ))}
             </ol>
           )}
+          {selected.outbox_deliveries && selected.outbox_deliveries.length > 0 && (
+            <ol aria-label="Analysis run outbox delivery">
+              {selected.outbox_deliveries.map((event) => (
+                <li key={event.delivery_ordinal}>
+                  {event.delivery_status_label} {event.occurred_at.slice(0, 16).replace("T", " ")}
+                </li>
+              ))}
+            </ol>
+          )}
           {selected.visible_posts && selected.visible_posts.length > 0 ? (
             <>
               {corpusHint && <p className="post-meta">{corpusHint}</p>}

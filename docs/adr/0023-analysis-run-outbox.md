@@ -69,9 +69,10 @@ before the registry rows.
 ## Consequences
 
 Start survives a crash after Running. Refreshing a queued run finishes
-the same work item. Valkey is a wake-up, not a source of truth. Do not
-invent a theta, and do not stamp Succeeded from a missing reconstruct
-library.
+the same work item. Valkey is a wake-up, not a source of truth. Detail
+lists labeled Claimed / Delivered events; stream entry ids stay off
+the payload. Do not invent a theta, and do not stamp Succeeded from a
+missing reconstruct library.
 
 ## References — APA 7th
 

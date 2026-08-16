@@ -536,6 +536,13 @@ export interface AnalysisRunStatusEvent {
   failure_code?: string;
 }
 
+export interface AnalysisRunOutboxDelivery {
+  delivery_ordinal: number;
+  delivery_status_code: string;
+  delivery_status_label: string;
+  occurred_at: string;
+}
+
 export interface AnalysisRunReconstructedEdge {
   parent_post_id: string;
   parent_post_title: string;
@@ -565,6 +572,7 @@ export interface AnalysisRun {
   requested_at: string;
   source_counts: AnalysisRunCount[];
   status_history?: AnalysisRunStatusEvent[];
+  outbox_deliveries?: AnalysisRunOutboxDelivery[];
   visible_posts?: AnalysisRunVisiblePost[];
   reconstructed_edges?: AnalysisRunReconstructedEdge[];
   reconstruction_result_sha256?: string;

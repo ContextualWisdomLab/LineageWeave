@@ -371,6 +371,20 @@ describe("App, authenticated", () => {
               },
             ],
             reconstruction_result_sha256: "aa".repeat(32),
+            outbox_deliveries: [
+              {
+                delivery_ordinal: 1,
+                delivery_status_code: "analysis_outbox_claimed",
+                delivery_status_label: "Claimed",
+                occurred_at: "2026-01-12T12:32:00Z",
+              },
+              {
+                delivery_ordinal: 2,
+                delivery_status_code: "analysis_outbox_delivered",
+                delivery_status_label: "Delivered",
+                occurred_at: "2026-01-12T12:33:00Z",
+              },
+            ],
             code_revision_sha: "abcdef0123456789deadbeefcafebabe",
             configuration_sha256:
               "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
@@ -1869,6 +1883,8 @@ describe("App, authenticated", () => {
     expect(list).toHaveTextContent("3 documents");
     expect(list).not.toHaveTextContent("postgresql://");
     expect(list).not.toHaveTextContent("select ");
+    expect(list).not.toHaveTextContent("Claimed");
+    expect(list).not.toHaveTextContent("Delivered");
     expect(list).not.toHaveTextContent("Code abcdef012345");
     expect(list).not.toHaveTextContent("Config 0123456789ab");
     expect(list).not.toHaveTextContent("abcdef0123456789deadbeefcafebabe");
@@ -1900,6 +1916,11 @@ describe("App, authenticated", () => {
     expect(history).toHaveTextContent("Pending 2026-01-12 12:31");
     expect(history).toHaveTextContent("Running 2026-01-12 12:32");
     expect(history).toHaveTextContent("Succeeded 2026-01-12 12:33");
+    const outbox = screen.getByRole("list", { name: "Analysis run outbox delivery" });
+    expect(outbox).toHaveTextContent("Claimed 2026-01-12 12:32");
+    expect(outbox).toHaveTextContent("Delivered 2026-01-12 12:33");
+    expect(outbox).not.toHaveTextContent("valkey");
+    expect(outbox).not.toHaveTextContent("stream");
     expect(screen.getByRole("list", { name: "Posts known at this run cutoff" })).toBeInTheDocument();
     const seededFork = screen.getByRole("list", { name: "Reconstructed lineage edges" });
     expect(seededFork).toHaveTextContent(
