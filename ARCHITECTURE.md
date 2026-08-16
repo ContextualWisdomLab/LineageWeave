@@ -324,6 +324,7 @@ codes when a label exists. Related-node person chips use the same
 side label (`Ada West (Our side)`), not the ontology class
 (`Ada West (Person)`). Related-node organization chips use the
 entity-level label (`Demo Corp (Company)`), not `Organization`.
+Related-node post chips show the post title only, not `(Post)`.
 
 `GET /api/posts` and `GET /api/posts/{post_id}` include
 `voc_type_label` / `visibility_label` from `common_lookup_value` so
