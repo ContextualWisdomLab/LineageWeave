@@ -33,6 +33,7 @@ _REALM = "lineageweave-demo"
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
 _RETENTION_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0020_analysis_run_retention_purge.sql"
+_WRITE_CLOCK_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0021_source_post_write_clock.sql"
 
 
 def _postgres_available() -> bool:
@@ -117,6 +118,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_MIGRATION_PATH.read_text())
             cur.execute(_REGISTRY_MIGRATION.read_text())
             cur.execute(_RETENTION_MIGRATION.read_text())
+            cur.execute(_WRITE_CLOCK_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -620,6 +622,46 @@ def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, 
     public = next(post for post in response.json() if post["post_title"] == "Public post")
     assert public["voc_type_label"] == "Voice of Customer"
     assert public["visibility_label"] == "Public"
+
+
+def test_body_rewrite_moves_the_write_clock_unless_the_statement_sets_it(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A later body write is live-after-cutoff; an explicit clock stays put."""
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "update source_post set post_body = %s where post_id = %s",
+                ("Rewritten after the January run.", seeded_db["own_private_post_id"]),
+            )
+            cur.execute(
+                "select post_id from source_post where post_title = %s",
+                ("Edited own-corp private post",),
+            )
+            edited_id = str(cur.fetchone()[0])
+            cur.execute(
+                "update source_post set post_body = %s, updated_at = %s "
+                "where post_id = %s",
+                ("Still the January rewrite.", "2026-01-13T09:00:00Z", edited_id),
+            )
+            cur.execute(
+                "update source_post set thread_group_key = %s where post_title = %s",
+                ("thread-group-rewrite", "Edited own-corp private post"),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    detail = client.get(
+        f"/api/analysis-runs/{seeded_db['visible_run_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert detail.status_code == 200
+    posts = {post["post_title"]: post for post in detail.json()["visible_posts"]}
+    assert posts["Own-corp private post"]["live_after_cutoff"] is True
+    assert posts["Edited own-corp private post"]["live_after_cutoff"] is True
+    assert posts["Edited own-corp private post"]["updated_at"].startswith("2026-01-13")
 
 
 def test_post_detail_uses_lookup_labels_not_raw_codes(client, demo_analyst_token, seeded_db) -> None:

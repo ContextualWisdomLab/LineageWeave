@@ -122,6 +122,7 @@ def seed(
             cur.execute((migrations / "0018_analysis_run_registry.sql").read_text())
             cur.execute((migrations / "0019_role_catalog_identity.sql").read_text())
             cur.execute((migrations / "0020_analysis_run_retention_purge.sql").read_text())
+            cur.execute((migrations / "0021_source_post_write_clock.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -245,6 +246,16 @@ def seed(
                     (account_ids["demo.admin"], corporate_entity_id, process_units["DEMO-PU-HQ"]),
                 )
 
+            cur.execute("select post_id from source_post where post_title = 'Demo public post'")
+            demo_public_post_id = cur.fetchone()[0]
+            cur.execute(
+                "update source_post set post_body = %s, "
+                "updated_at = '2026-01-13T09:00:00Z' where post_id = %s",
+                (
+                    "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
+                    demo_public_post_id,
+                ),
+            )
             cur.execute(
                 "update source_post set created_at = '2026-01-10T12:00:00Z', "
                 "updated_at = '2026-01-13T09:00:00Z' "
@@ -254,15 +265,6 @@ def seed(
                 "update source_post set created_at = '2026-01-10T12:00:00Z', "
                 "updated_at = '2026-01-10T12:00:00Z' "
                 "where post_title = 'Demo private post'"
-            )
-            cur.execute("select post_id from source_post where post_title = 'Demo public post'")
-            demo_public_post_id = cur.fetchone()[0]
-            cur.execute(
-                "update source_post set post_body = %s where post_id = %s",
-                (
-                    "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
-                    demo_public_post_id,
-                ),
             )
             cur.execute(
                 "insert into post_counterparty_entity (post_id, counterparty_entity_name, relationship_type_code) "
@@ -332,6 +334,16 @@ def seed(
                 process_units["DEMO-PU-LINEAGE"],
             )
             _seed_fixture_keymen_and_voc(cur, corporate_entity_id)
+            cur.execute(
+                "update source_post set created_at = '2026-01-10T12:00:00Z', "
+                "updated_at = '2026-01-13T09:00:00Z' "
+                "where post_title = 'Demo public post'"
+            )
+            cur.execute(
+                "update source_post set created_at = '2026-01-10T12:00:00Z', "
+                "updated_at = '2026-01-10T12:00:00Z' "
+                "where post_title = 'Demo private post'"
+            )
             _seed_fixture_summaries(cur)
             _seed_fixture_chats(cur)
             _seed_fixture_evaluations(cur)
@@ -714,7 +726,8 @@ def _seed_fixture_keymen_and_voc(cur, corporate_entity_id) -> None:
         post_id = str(row[0])
         if cast.body is not None:
             cur.execute(
-                "update source_post set post_body = %s where post_id = %s",
+                "update source_post set post_body = %s, updated_at = created_at "
+                "where post_id = %s",
                 (cast.body, post_id),
             )
         mentioned: list[str] = []

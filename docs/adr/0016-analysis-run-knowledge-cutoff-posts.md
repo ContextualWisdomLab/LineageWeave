@@ -51,7 +51,9 @@ run.
 - Hover a digest prefix to read the full code or configuration digest
   when you need to match the API payload.
 - Post-body versioning at the cutoff remains future work. The write
-  clock is a projection, not a stored cutoff body.
+  clock is a projection, not a stored cutoff body. Migration 0021
+  stamps `updated_at` on title or body rewrites and honors an explicit
+  `updated_at` so `make seed` can keep Demo public post at 2026-01-13.
 - Thread-group *run list* visibility now uses the same cutoff
   (ADR 0018). A later public post cannot surface a previously hidden
   thread-group run.
