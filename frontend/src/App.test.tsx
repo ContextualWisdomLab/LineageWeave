@@ -1667,17 +1667,34 @@ describe("App, authenticated", () => {
     expect(screen.getByText(/Cutoff 2026-01-12/)).toBeInTheDocument();
     expect(screen.getByText(/Requested 2026-01-12/)).toBeInTheDocument();
     const digests = screen.getByLabelText("Analysis run reproducibility digests");
-    expect(digests).toHaveTextContent("Hover a prefix to read the full digest for verification.");
-    expect(digests).toHaveTextContent("Code abcdef012345");
-    expect(digests).toHaveTextContent("Config 0123456789ab");
-    expect(digests).not.toHaveTextContent("abcdef0123456789deadbeefcafebabe");
-    expect(digests).not.toHaveTextContent(
-      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    expect(digests).toHaveTextContent(
+      "Activate a prefix to read the full digest and match the API payload.",
     );
-    expect(screen.getByTitle("abcdef0123456789deadbeefcafebabe")).toHaveTextContent("Code abcdef012345");
+    expect(digests).not.toHaveTextContent("Hover");
+    expect(screen.getByRole("button", { name: "Code abcdef012345" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(screen.getByRole("button", { name: "Config 0123456789ab" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(screen.getByText("abcdef0123456789deadbeefcafebabe")).not.toBeVisible();
     expect(
-      screen.getByTitle("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"),
-    ).toHaveTextContent("Config 0123456789ab");
+      screen.getByText(
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      ),
+    ).not.toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: "Code abcdef012345" }));
+    expect(screen.getByText("abcdef0123456789deadbeefcafebabe")).toBeVisible();
+    expect(
+      screen.getByText("Match the revealed digest to the API payload."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      ),
+    ).not.toBeVisible();
     const history = screen.getByRole("list", { name: "Analysis run status history" });
     expect(history).toHaveTextContent("Pending 2026-01-12 12:31");
     expect(history).toHaveTextContent("Running 2026-01-12 12:32");
