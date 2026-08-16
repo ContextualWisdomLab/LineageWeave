@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.3] - 2026-08-16
+
+### Fixed
+
+- Analysis-run list buttons keep the next-action sentence in the
+  accessible name (WCAG 2.2 SC 4.1.2). Open a Failed TEPP row: the
+  name includes “connect the measurement service.” A Pending TEPP
+  corpus no longer says the run has already started finishing.
+
 ## [0.86.2] - 2026-08-16
 
 ### Fixed

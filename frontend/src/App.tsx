@@ -1470,7 +1470,8 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
           return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
         default: {
           const unexpected: never = run.run_kind_code;
-          return unexpected;
+          void unexpected;
+          return "Open this run to confirm its next step. The registered kind is not lineage, TEPP, or a period report.";
         }
       }
     case "analysis_status_failed":
@@ -1483,7 +1484,8 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
           return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
         default: {
           const unexpected: never = run.run_kind_code;
-          return unexpected;
+          void unexpected;
+          return "Open this run to see why it failed, then retry from a current snapshot.";
         }
       }
     case "analysis_status_running":
@@ -1493,9 +1495,22 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
       return null;
     default: {
       const unexpected: never = run.status_code;
-      return unexpected;
+      void unexpected;
+      return "Open this run to confirm its current status before acting.";
     }
   }
+}
+
+/**
+ * List-button accessible name (WCAG 2.2 SC 4.1.2 / AccName 1.1).
+ *
+ * `aria-label` replaces the button contents, so the next-action sentence
+ * must be in the name or a screen reader only hears the caption.
+ */
+function analysisRunAccessibleName(run: AnalysisRun): string {
+  const caption = analysisRunCaption(run);
+  const nextAction = analysisRunNextAction(run);
+  return nextAction ? `Open analysis run: ${caption}. ${nextAction}` : `Open analysis run: ${caption}`;
 }
 
 /**
@@ -1520,7 +1535,11 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
       );
     default: {
       const unexpected: never = run.run_kind_code;
-      return unexpected;
+      void unexpected;
+      return (
+        "No posts were available at this cutoff. Open a later run, or ask an " +
+        "administrator to capture a newer snapshot."
+      );
     }
   }
 }
@@ -1542,6 +1561,10 @@ function analysisRunCorpusHint(run: AnalysisRun): string | null {
     case "analysis_status_succeeded":
       return "These posts are the cutoff corpus this TEPP run measured.";
     case "analysis_status_pending":
+      return (
+        "These posts are the cutoff corpus TEPP will measure. Measurement has " +
+        "not started — this is not a calibrated result."
+      );
     case "analysis_status_running":
       return "These posts are the cutoff corpus TEPP will measure once this run finishes.";
     case "analysis_status_cancelled":
@@ -1553,7 +1576,8 @@ function analysisRunCorpusHint(run: AnalysisRun): string | null {
       return "These posts are the cutoff corpus attached to this TEPP run.";
     default: {
       const unexpected: never = run.status_code;
-      return unexpected;
+      void unexpected;
+      return "These posts are the cutoff corpus attached to this TEPP run.";
     }
   }
 }
@@ -1701,7 +1725,7 @@ function AnalysisRunsPanel({
               <li key={run.analysis_run_id} className="ticket-list-item">
                 <button
                   className="post-list-item"
-                  aria-label={`Open analysis run: ${caption}`}
+                  aria-label={analysisRunAccessibleName(run)}
                   onClick={() => void handleOpen(run.analysis_run_id)}
                 >
                   <span className="ticket-title">{caption}</span>
