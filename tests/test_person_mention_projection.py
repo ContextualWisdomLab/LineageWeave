@@ -21,13 +21,21 @@ import pytest
 
 from backend.app.keyman_ingestion import ingest_post_keymen
 from backend.app.knowledge_graph import (
+    hydrate_related_nodes,
     load_visible_subgraph,
     persist_edges_for_post,
+    related_for_start,
     visible_mention_post_ids,
 )
 from backend.app.post_summary_ingestion import persist_post_summary
 from lineageweave.keyman_extraction import OUR_SIDE, PersonMention
-from lineageweave.knowledge_graph import EDGE_MENTION, NODE_PERSON, NODE_POST
+from lineageweave.knowledge_graph import (
+    EDGE_MENTION,
+    EDGE_MENTION_TEAM,
+    NODE_PERSON,
+    NODE_POST,
+    NODE_TEAM,
+)
 from lineageweave.post_summary import PostSummary, RoleResponsibility
 
 _ADMIN_DSN = os.environ.get(
@@ -365,3 +373,81 @@ def test_cross_post_identity_upgrade_keeps_keyman_mention_context(
     assert keyman_row is not None
     assert keyman_row[0] == "Keyman extracted this mention from the synthetic body"
     assert summary_count == 1
+
+
+async def _exercise_team_only_related_walk(
+    database_dsn: str,
+    first_post_id: str,
+) -> None:
+    """A team mentioned on two posts must walk even when one post has no people."""
+
+    connection = await asyncpg.connect(database_dsn)
+    try:
+        author_id, corporate_entity_id = await connection.fetchrow(
+            "select author_account_id, corporate_entity_id from source_post where post_id = $1",
+            first_post_id,
+        )
+        second_post_id = str(
+            await connection.fetchval(
+                """
+                insert into source_post
+                    (author_account_id, corporate_entity_id, post_title, post_body,
+                     voc_type_code, visibility_code)
+                values ($1, $2, 'Team-only follow-up', '설계팀이 도면을 재검토했다.',
+                        'voc', 'public')
+                returning post_id
+                """,
+                author_id,
+                corporate_entity_id,
+            )
+        )
+        team_id = str(
+            await connection.fetchval(
+                """
+                insert into cataloged_team (team_name, affiliated_organization_name)
+                values ('설계팀', 'Synthetic Corp')
+                returning team_id
+                """
+            )
+        )
+        await connection.execute(
+            """
+            insert into post_team_mention (post_id, team_id)
+            values ($1, $2), ($3, $2)
+            """,
+            first_post_id,
+            team_id,
+            second_post_id,
+        )
+        async with connection.transaction():
+            await persist_edges_for_post(connection, first_post_id)
+            await persist_edges_for_post(connection, second_post_id)
+
+        team_only_edges = await load_visible_subgraph(connection, [second_post_id])
+        assert any(
+            edge.edge_type_code == EDGE_MENTION_TEAM
+            and edge.source_node_id == team_id
+            and edge.target_node_id == second_post_id
+            for edge in team_only_edges
+        ), "a team-only post must still load its mention edge"
+
+        related = await related_for_start(
+            connection, NODE_TEAM, team_id, [first_post_id, second_post_id]
+        )
+        related_ids = {node["node_id"] for node in related}
+        assert first_post_id in related_ids
+        assert second_post_id in related_ids
+        hydrated = await hydrate_related_nodes(
+            connection, [(f"{NODE_TEAM}:{team_id}", 1.0)]
+        )
+        assert hydrated[0]["label"] == "설계팀"
+        assert hydrated[0]["node_type_code"] == NODE_TEAM
+    finally:
+        await connection.close()
+
+
+def test_team_only_posts_walk_related_nodes(projection_database: str) -> None:
+    """ADR 0017: team mention edges must participate in the visible RWR walk."""
+
+    database_dsn, post_id, _summary_person_id = projection_database.split("|")
+    asyncio.run(_exercise_team_only_related_walk(database_dsn, post_id))

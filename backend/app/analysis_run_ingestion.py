@@ -34,6 +34,7 @@ _VISIBLE_RUN_SQL = """
       and exists (
         select 1 from source_post p
         where p.thread_group_key = scope.scope_key
+          and p.created_at <= run.knowledge_cutoff
           and (
             p.visibility_code = 'public'
             or p.corporate_entity_id = any($2::uuid[])

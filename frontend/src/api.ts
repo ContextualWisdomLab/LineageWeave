@@ -73,9 +73,15 @@ export interface VocEvidence {
   counterparties: VocEvidenceCounterparty[];
 }
 
+export type RelatedNodeType =
+  | "node_person"
+  | "node_post"
+  | "node_corporate_entity"
+  | "node_team";
+
 export interface RelatedNode {
   node_id: string;
-  node_type_code: string;
+  node_type_code: RelatedNodeType | string;
   relevance: number;
   label?: string;
   person_side_code?: string;
@@ -89,6 +95,8 @@ export interface PostRoleResponsibility {
   responsibility: string;
   actor_type_code: string;
   affiliated_organization_name: string | null;
+  catalog_node_id?: string | null;
+  catalog_node_type_code?: string | null;
 }
 
 export interface PostAiSummary {
@@ -282,6 +290,13 @@ export function fetchRelatedEntity(
   entityId: string,
 ): Promise<{ corporate_entity_id: string; entity_name: string; related: RelatedNode[] }> {
   return backendFetch(`/api/corporate-entities/${entityId}/related`, accessToken);
+}
+
+export function fetchRelatedTeam(
+  accessToken: string,
+  teamId: string,
+): Promise<{ team_id: string; team_name: string; related: RelatedNode[] }> {
+  return backendFetch(`/api/teams/${teamId}/related`, accessToken);
 }
 
 export function extractPostKeymen(

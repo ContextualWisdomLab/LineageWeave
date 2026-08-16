@@ -39,6 +39,9 @@ run.
 - Open the run, then open a listed post, to inspect what that cutoff
   actually reconstructed.
 - Post-body versioning at the cutoff remains future work.
+- Thread-group *run list* visibility now uses the same cutoff
+  (ADR 0017). A later public post cannot surface a previously hidden
+  thread-group run.
 
 ## References
 

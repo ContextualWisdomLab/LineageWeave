@@ -18,9 +18,13 @@ from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
     EDGE_CO_MENTION,
     EDGE_MENTION,
+    EDGE_MENTION_ORGANIZATION,
+    EDGE_MENTION_TEAM,
+    EDGE_TEAM_AFFILIATION,
     NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
+    NODE_TEAM,
     KnowledgeGraphEdgeSpec,
     adjacency_from_edges,
     knowledge_graph_edges_for_post,
@@ -235,6 +239,16 @@ async def corporate_entity_exists(conn: asyncpg.Connection, entity_id: str) -> b
     return row is not None
 
 
+async def team_exists(conn: asyncpg.Connection, team_id: str) -> bool:
+    """True when ``team_id`` is a UUID that exists in ``cataloged_team``."""
+    try:
+        UUID(team_id)
+    except ValueError:
+        return False
+    row = await conn.fetchrow("select 1 from cataloged_team where team_id = $1", team_id)
+    return row is not None
+
+
 async def visible_mention_post_ids(
     conn: asyncpg.Connection,
     person_id: str,
@@ -258,19 +272,45 @@ async def visible_affiliation_post_ids(
     entity_id: str,
     can_see_post,
 ) -> list[str]:
-    """Visible posts whose Keyman or R&R people affiliate with an entity."""
+    """Visible posts that mention an entity via a person or a direct org mention."""
     rows = await conn.fetch(
         """
         select distinct post.post_id, post.visibility_code,
                         post.corporate_entity_id, post.created_at
-          from person_affiliation affiliation
-          join combined_post_person_mention mention
-            on mention.person_id = affiliation.person_id
-          join source_post post on post.post_id = mention.post_id
-         where affiliation.affiliated_corporate_entity_id = $1
+          from source_post post
+         where post.post_id in (
+            select mention.post_id
+              from person_affiliation affiliation
+              join combined_post_person_mention mention
+                on mention.person_id = affiliation.person_id
+             where affiliation.affiliated_corporate_entity_id = $1
+            union
+            select org_mention.post_id
+              from post_organization_mention org_mention
+             where org_mention.corporate_entity_id = $1
+         )
          order by post.created_at, post.post_id
         """,
         entity_id,
+    )
+    return [str(row["post_id"]) for row in rows if can_see_post(row)]
+
+
+async def visible_team_mention_post_ids(
+    conn: asyncpg.Connection,
+    team_id: str,
+    can_see_post,
+) -> list[str]:
+    """Visible post ids supported by a cataloged team mention."""
+    rows = await conn.fetch(
+        """
+        select post.post_id, post.visibility_code, post.corporate_entity_id
+          from post_team_mention mention
+          join source_post post on post.post_id = mention.post_id
+         where mention.team_id = $1
+         order by post.created_at, post.post_id
+        """,
+        team_id,
     )
     return [str(row["post_id"]) for row in rows if can_see_post(row)]
 
@@ -278,7 +318,11 @@ async def load_visible_subgraph(
     conn: asyncpg.Connection,
     visible_post_ids: list[str],
 ) -> list[KnowledgeGraphEdgeSpec]:
-    """Edges supported by at least one post the account may already see."""
+    """Edges supported by at least one post the account may already see.
+
+    Person, team, and organization mention channels are independent. A
+    team-only or organization-only post must still walk (ADR 0017).
+    """
     if not visible_post_ids:
         return []
     person_rows = await conn.fetch(
@@ -287,7 +331,19 @@ async def load_visible_subgraph(
         visible_post_ids,
     )
     person_ids = [row["person_id"] for row in person_rows]
-    if not person_ids:
+    team_rows = await conn.fetch(
+        "select distinct team_id from post_team_mention "
+        "where post_id = any($1::uuid[])",
+        visible_post_ids,
+    )
+    team_ids = [row["team_id"] for row in team_rows]
+    organization_rows = await conn.fetch(
+        "select distinct corporate_entity_id from post_organization_mention "
+        "where post_id = any($1::uuid[])",
+        visible_post_ids,
+    )
+    organization_ids = [row["corporate_entity_id"] for row in organization_rows]
+    if not person_ids and not team_ids and not organization_ids:
         return []
     rows = await conn.fetch(
         """
@@ -326,6 +382,48 @@ async def load_visible_subgraph(
                and edge.target_node_id = any($2::uuid[]))
             )
           )
+          or (
+            edge.edge_type_code = $8
+            and (
+              (edge.source_node_type_code = $4
+               and edge.source_node_id = any($1::uuid[]))
+              or
+              (edge.target_node_type_code = $4
+               and edge.target_node_id = any($1::uuid[]))
+              or
+              (edge.source_node_type_code = $9
+               and edge.source_node_id = any($10::uuid[]))
+              or
+              (edge.target_node_type_code = $9
+               and edge.target_node_id = any($10::uuid[]))
+            )
+          )
+          or (
+            edge.edge_type_code = $11
+            and (
+              (edge.source_node_type_code = $9
+               and edge.source_node_id = any($10::uuid[]))
+              or
+              (edge.target_node_type_code = $9
+               and edge.target_node_id = any($10::uuid[]))
+            )
+          )
+          or (
+            edge.edge_type_code = $12
+            and (
+              (edge.source_node_type_code = $4
+               and edge.source_node_id = any($1::uuid[]))
+              or
+              (edge.target_node_type_code = $4
+               and edge.target_node_id = any($1::uuid[]))
+              or
+              (edge.source_node_type_code = $13
+               and edge.source_node_id = any($14::uuid[]))
+              or
+              (edge.target_node_type_code = $13
+               and edge.target_node_id = any($14::uuid[]))
+            )
+          )
         """,
         visible_post_ids,
         person_ids,
@@ -334,6 +432,13 @@ async def load_visible_subgraph(
         EDGE_CO_MENTION,
         NODE_PERSON,
         EDGE_AFFILIATION,
+        EDGE_MENTION_TEAM,
+        NODE_TEAM,
+        team_ids,
+        EDGE_TEAM_AFFILIATION,
+        EDGE_MENTION_ORGANIZATION,
+        NODE_CORPORATE_ENTITY,
+        organization_ids,
     )
     return [edge_spec_from_row(row) for row in rows]
 
@@ -349,6 +454,7 @@ async def hydrate_related_nodes(
     person_ids: list[str] = []
     post_ids: list[str] = []
     corp_ids: list[str] = []
+    team_ids: list[str] = []
     parsed: list[tuple[str, str, float]] = []
     for key, score in related:
         node_type_code, node_id = parse_node_key(key)
@@ -359,6 +465,8 @@ async def hydrate_related_nodes(
             post_ids.append(node_id)
         elif node_type_code == NODE_CORPORATE_ENTITY:
             corp_ids.append(node_id)
+        elif node_type_code == NODE_TEAM:
+            team_ids.append(node_id)
 
     people = {
         str(row["person_id"]): row
@@ -381,6 +489,13 @@ async def hydrate_related_nodes(
             corp_ids,
         )
     } if corp_ids else {}
+    teams = {
+        str(row["team_id"]): row
+        for row in await conn.fetch(
+            "select team_id, team_name from cataloged_team where team_id = any($1::uuid[])",
+            team_ids,
+        )
+    } if team_ids else {}
 
     side_labels = await labels_for_codes(
         conn, [row["person_side_code"] for row in people.values()]
@@ -403,6 +518,8 @@ async def hydrate_related_nodes(
             item["label"] = posts[node_id]["post_title"]
         elif node_type_code == NODE_CORPORATE_ENTITY and node_id in corps:
             item["label"] = corps[node_id]["entity_name"]
+        elif node_type_code == NODE_TEAM and node_id in teams:
+            item["label"] = teams[node_id]["team_name"]
         else:
             continue
         payload.append(item)
@@ -439,3 +556,12 @@ async def related_for_entity(
 ) -> list[dict[str, Any]]:
     """Run RWR from ``entity_id`` over the account's visible subgraph."""
     return await related_for_start(conn, NODE_CORPORATE_ENTITY, entity_id, visible_post_ids)
+
+
+async def related_for_team(
+    conn: asyncpg.Connection,
+    team_id: str,
+    visible_post_ids: list[str],
+) -> list[dict[str, Any]]:
+    """Run RWR from ``team_id`` over the account's visible subgraph."""
+    return await related_for_start(conn, NODE_TEAM, team_id, visible_post_ids)

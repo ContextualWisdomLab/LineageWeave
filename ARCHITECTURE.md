@@ -256,11 +256,14 @@ pattern and then hide the action button so it cannot 503 again.
 `find_linked_post_ids` first expands to every post
 sharing a mentioned person before calling
 `backend/app/knowledge_graph.py::load_visible_subgraph` -- that function
-only loads edges among an *already-known* post set (its other caller,
-`related_for_person`, pre-resolves the full set itself), it does not
-discover new posts on its own; a real bug from calling it with only the
-single starting post was caught while building this and is now
-regression-tested (`test_post_chat_cites_a_post_linked_only_via_a_shared_keyman`).
+only loads edges among an *already-known* post set (its other callers,
+`related_for_person` / `related_for_entity` / `related_for_team`,
+pre-resolve the full set themselves), it does not discover new posts on
+its own; a real bug from calling it with only the single starting post
+was caught while building this and is now regression-tested
+(`test_post_chat_cites_a_post_linked_only_via_a_shared_keyman`).
+Person, team, and organization mention channels load independently
+(ADR 0017): a team-only or organization-only post still walks.
 
 ### Frontend (`frontend/`)
 
@@ -276,8 +279,9 @@ summary/key-events/R&R, VOC evidence excerpts, an Event Lineage panel
 affiliate tree (resolved ancestors plus unresolved org roots), Keyman +
 counterparty panels (a Keyman click loads RWR related nodes;
 a related corporate-entity node, a resolved Keyman affiliation,
-or a classified name that resolves to a cataloged org continues
-the same walk via `GET /api/corporate-entities/{id}/related`;
+a classified name that resolves to a cataloged org, or an R&R team
+continues the same walk via `GET /api/corporate-entities/{id}/related`
+or `GET /api/teams/{id}/related`;
 `post_admin` can extract),
 and an in-popup chat whose cited sources
 open a sliding evidence panel (`EvidencePanel`, CSS

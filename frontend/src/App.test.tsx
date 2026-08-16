@@ -621,6 +621,14 @@ describe("App, authenticated", () => {
                 actor_type_code: "prov_organization",
                 affiliated_organization_name: null,
               },
+              {
+                actor_name: "설계팀",
+                responsibility: "도면 검토",
+                actor_type_code: "prov_team",
+                affiliated_organization_name: "Demo Corp",
+                catalog_node_id: "team-1",
+                catalog_node_type_code: "node_team",
+              },
             ],
           }),
         );
@@ -721,6 +729,32 @@ describe("App, authenticated", () => {
                 ontology_label: "Organization",
                 label: "Demo Corp",
                 relevance: 0.2,
+              },
+              {
+                node_id: "team-1",
+                node_type_code: "node_team",
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Team",
+                ontology_label: "Team",
+                label: "설계팀",
+                relevance: 0.15,
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/teams/team-1/related")) {
+        return Promise.resolve(
+          jsonResponse({
+            team_id: "team-1",
+            team_name: "설계팀",
+            related: [
+              {
+                node_id: "post-2",
+                node_type_code: "node_post",
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                ontology_label: "Post",
+                label: "Linked post",
+                relevance: 0.6,
               },
             ],
           }),
@@ -1170,6 +1204,30 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     expect(screen.getByText("Related to Ada West").closest(".related-keymen")).toHaveTextContent(
       "Priya Nair (Counterparty)",
+    );
+  });
+
+  it("opens related nodes from an R&R team", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "R&R team: 설계팀" }));
+    await waitFor(() => expect(screen.getByText("Related to 설계팀")).toBeInTheDocument());
+    expect(screen.getByText("Related to 설계팀").closest(".related-keymen")).toHaveTextContent(
+      "Linked post",
+    );
+  });
+
+  it("opens related nodes from a related team chip", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+    await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Related nodes for 설계팀" }));
+    await waitFor(() => expect(screen.getByText("Related to 설계팀")).toBeInTheDocument());
+    expect(screen.getByText("Related to 설계팀").closest(".related-keymen")).toHaveTextContent(
+      "Linked post",
     );
   });
 
