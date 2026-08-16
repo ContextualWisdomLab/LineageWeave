@@ -59,6 +59,8 @@ describe("App, authenticated", () => {
     chatUnavailable?: boolean;
     searchUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
+    failedLineageRun?: boolean;
+    succeededTeppRun?: boolean;
   }) {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -178,8 +180,10 @@ describe("App, authenticated", () => {
             scope_kind_code: "analysis_scope_corporate_entity",
             scope_kind_label: "Corporate entity",
             scope_entity_name: "Demo Corp",
-            status_code: "analysis_status_failed",
-            status_label: "Failed",
+            status_code: options?.succeededTeppRun
+              ? "analysis_status_succeeded"
+              : "analysis_status_failed",
+            status_label: options?.succeededTeppRun ? "Succeeded" : "Failed",
             knowledge_cutoff: "2026-01-12T12:00:00Z",
             requested_at: "2026-01-12T12:34:00Z",
             source_counts: [
@@ -205,10 +209,14 @@ describe("App, authenticated", () => {
               },
               {
                 status_ordinal: 3,
-                status_code: "analysis_status_failed",
-                status_label: "Failed",
+                status_code: options?.succeededTeppRun
+                  ? "analysis_status_succeeded"
+                  : "analysis_status_failed",
+                status_label: options?.succeededTeppRun ? "Succeeded" : "Failed",
                 occurred_at: "2026-01-12T12:37:00Z",
-                failure_code: "tepp_not_available",
+                ...(options?.succeededTeppRun
+                  ? {}
+                  : { failure_code: "tepp_not_available" }),
               },
             ],
           }),
@@ -272,8 +280,10 @@ describe("App, authenticated", () => {
                 scope_kind_code: "analysis_scope_corporate_entity",
                 scope_kind_label: "Corporate entity",
                 scope_entity_name: "Demo Corp",
-                status_code: "analysis_status_succeeded",
-                status_label: "Succeeded",
+                status_code: options?.failedLineageRun
+                  ? "analysis_status_failed"
+                  : "analysis_status_succeeded",
+                status_label: options?.failedLineageRun ? "Failed" : "Succeeded",
                 knowledge_cutoff: "2026-01-12T12:00:00Z",
                 requested_at: "2026-01-12T12:30:00Z",
                 source_counts: [
@@ -291,8 +301,10 @@ describe("App, authenticated", () => {
                 scope_kind_code: "analysis_scope_corporate_entity",
                 scope_kind_label: "Corporate entity",
                 scope_entity_name: "Demo Corp",
-                status_code: "analysis_status_failed",
-                status_label: "Failed",
+                status_code: options?.succeededTeppRun
+                  ? "analysis_status_succeeded"
+                  : "analysis_status_failed",
+                status_label: options?.succeededTeppRun ? "Succeeded" : "Failed",
                 knowledge_cutoff: "2026-01-12T12:00:00Z",
                 requested_at: "2026-01-12T12:34:00Z",
                 source_counts: [
@@ -1487,6 +1499,39 @@ describe("App, authenticated", () => {
     expect(teppHistory).toHaveTextContent("Failed 2026-01-12 12:37 · tepp_not_available");
     expect(screen.getByText(/cutoff corpus TEPP would measure/i)).toBeInTheDocument();
     expect(teppHistory).not.toHaveTextContent("Succeeded");
+  });
+
+  it("does not tell a failed lineage run to connect the measurement service", async () => {
+    stubBackend({ failedLineageRun: true });
+    render(<App />);
+
+    const list = await screen.findByRole("list", { name: "Analysis runs" });
+    expect(list).toHaveTextContent("Lineage reconstruction · Failed · Demo Corp");
+    expect(list).toHaveTextContent(
+      "Open this run to see why it failed, then retry reconstruction from a current snapshot.",
+    );
+    expect(list).toHaveTextContent(
+      "Open this run to see why it failed, then connect the measurement service and re-run.",
+    );
+    const lineageButton = screen.getByRole("button", {
+      name: "Open analysis run: Lineage reconstruction · Failed · Demo Corp",
+    });
+    expect(lineageButton).not.toHaveTextContent("measurement service");
+  });
+
+  it("does not tell a succeeded TEPP run to replace Failed", async () => {
+    stubBackend({ succeededTeppRun: true });
+    render(<App />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: TEPP measurement · Succeeded · Demo Corp",
+      }),
+    );
+    expect(
+      await screen.findByText("These posts are the cutoff corpus this TEPP run measured."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
   });
 
   it("shows the calibrated period-report mean theta on the home page", async () => {

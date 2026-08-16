@@ -43,10 +43,11 @@ run on the same snapshot so the existing React home page can show both
 kinds without a second application. The TEPP run is Failed /
 `tepp_not_available` when the default transport is missing -- the list
 keeps that machine code off the caption (this decision) and instead
-tells the operator to open the run, then connect the measurement
-service. The detail now shows the legal lifecycle the registry already
-stored. Write/rebuild APIs, a live TEPP transport, and a fuller
-Analysis Run Console remain later slices.
+tells the operator to open the TEPP run, then connect the measurement
+service. A failed lineage row tells the operator to retry
+reconstruction, not to connect TEPP. The detail now shows the legal
+lifecycle the registry already stored. Write/rebuild APIs, a live TEPP
+transport, and a fuller Analysis Run Console remain later slices.
 
 ## References
 

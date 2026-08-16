@@ -11,4 +11,6 @@ transport or an unused accepted envelope is Failed
 (`tepp_not_available` / `tepp_result_not_persisted`). Do not invent a
 theta or a local psychometric substitute. The home list caption stays
 `kind · status · entity`; the machine failure code is detail-only
-(ADR 0014). Open the Failed row, then connect a live TEPP transport.
+(ADR 0014). Open a Failed TEPP row, then connect a live TEPP
+transport. A failed lineage row retries reconstruction -- it does not
+mention TEPP.

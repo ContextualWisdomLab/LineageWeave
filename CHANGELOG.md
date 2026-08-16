@@ -16,7 +16,9 @@ All notable changes to this project are documented here. Format follows
   keeps `tepp_not_available` -- never a fabricated theta. TEPP stays
   a wire client, not a local psychometric engine. `make seed` skips
   snapshot-count inserts once counts exist so a re-run does not hit
-  the freeze trigger.
+  the freeze trigger. A failed lineage row tells the operator to retry
+  reconstruction; only a failed TEPP row mentions the measurement
+  service. Stacked PRs now run the same GitHub Checks as PRs to main.
 
 ## [0.83.0] - 2026-08-16
 

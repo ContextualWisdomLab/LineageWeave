@@ -1356,14 +1356,22 @@ function analysisRunCaption(run: AnalysisRun): string {
 /**
  * Next action for a failed run on the home list.
  *
- * The machine `failure_code` stays on detail history (ADR 0014). The
- * list tells the operator to open the run, then reconnect the service.
+ * The machine `failure_code` stays on detail history (ADR 0014). Copy
+ * is kind-specific so a failed lineage reconstruction is not mistaken
+ * for a missing TEPP transport.
  */
 function analysisRunNextAction(run: AnalysisRun): string | null {
-  if (run.status_code === "analysis_status_failed") {
-    return "Open this run to see why it failed, then connect the measurement service and re-run.";
+  if (run.status_code !== "analysis_status_failed") {
+    return null;
   }
-  return null;
+  switch (run.run_kind_code) {
+    case "analysis_run_tepp":
+      return "Open this run to see why it failed, then connect the measurement service and re-run.";
+    case "analysis_run_lineage":
+      return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
+    default:
+      return "Open this run to see why it failed, then retry after the blocking service is connected.";
+  }
 }
 
 /**
@@ -1389,10 +1397,13 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
  */
 function analysisRunCorpusHint(run: AnalysisRun): string | null {
   if (run.run_kind_code !== "analysis_run_tepp") return null;
-  return (
-    "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
-    "transport, then re-run, to replace Failed with a calibrated result."
-  );
+  if (run.status_code === "analysis_status_failed") {
+    return (
+      "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
+      "transport, then re-run, to replace Failed with a calibrated result."
+    );
+  }
+  return "These posts are the cutoff corpus this TEPP run measured.";
 }
 
 function AnalysisRunsPanel({
