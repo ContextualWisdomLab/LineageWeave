@@ -1772,6 +1772,7 @@ describe("App, authenticated", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/this TEPP run measured/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reconstruction has not started yet/)).not.toBeInTheDocument();
   });
 
   it("does not tell a succeeded TEPP run to replace Failed", async () => {
@@ -1799,7 +1800,11 @@ describe("App, authenticated", () => {
     expect(
       await screen.findByRole("heading", { name: "Lineage reconstruction · Pending · Demo Corp" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/has not started yet/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Open this run to confirm which posts it will use. Reconstruction has not started yet.",
+      ),
+    ).toBeInTheDocument();
     const postCall = fetchMock.mock.calls.find(
       (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
     );
