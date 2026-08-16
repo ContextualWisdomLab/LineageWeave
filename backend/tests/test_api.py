@@ -506,6 +506,83 @@ def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
     assert unauthenticated.status_code == 401
 
 
+def test_post_analysis_run_creates_pending_lineage_and_rejects_tepp(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Analysts can request reconstruction; TEPP stays a wire client."""
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    created = client.post(
+        "/api/analysis-runs",
+        headers=headers,
+        json={
+            "run_kind_code": "analysis_run_lineage",
+            "idempotency_key": "buyer-lineage-1",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+        },
+    )
+    assert created.status_code == 200
+    body = created.json()
+    assert body["run_kind_code"] == "analysis_run_lineage"
+    assert body["status_code"] == "analysis_status_pending"
+    assert body["replayed"] is False
+    assert body["status_history"][0]["status_code"] == "analysis_status_pending"
+    assert "postgresql://" not in str(body)
+    assert "theta" not in str(body).casefold()
+
+    replay = client.post(
+        "/api/analysis-runs",
+        headers=headers,
+        json={
+            "run_kind_code": "analysis_run_lineage",
+            "idempotency_key": "buyer-lineage-1",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+        },
+    )
+    assert replay.status_code == 200
+    assert replay.json()["analysis_run_id"] == body["analysis_run_id"]
+    assert replay.json()["replayed"] is True
+
+    drifted = client.post(
+        "/api/analysis-runs",
+        headers=headers,
+        json={
+            "run_kind_code": "analysis_run_lineage",
+            "idempotency_key": "buyer-lineage-1",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "knowledge_cutoff": "2026-01-12T12:00:00Z",
+        },
+    )
+    assert drifted.status_code == 409
+
+    tepp = client.post(
+        "/api/analysis-runs",
+        headers=headers,
+        json={
+            "run_kind_code": "analysis_run_tepp",
+            "idempotency_key": "buyer-tepp-1",
+        },
+    )
+    assert tepp.status_code == 422
+    assert "invent a measurement" in tepp.json()["detail"]
+
+    hidden = client.post(
+        "/api/analysis-runs",
+        headers=headers,
+        json={
+            "run_kind_code": "analysis_run_lineage",
+            "idempotency_key": "buyer-other-corp",
+            "corporate_entity_id": seeded_db["other_corp_id"],
+        },
+    )
+    assert hidden.status_code == 404
+
+    unauthenticated = client.post(
+        "/api/analysis-runs",
+        json={"run_kind_code": "analysis_run_lineage", "idempotency_key": "anon"},
+    )
+    assert unauthenticated.status_code == 401
+
+
 def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> None:
     response = client.get("/api/me", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200

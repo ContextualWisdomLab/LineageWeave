@@ -69,6 +69,14 @@ from backend.app.analysis_run_ingestion import (
     fetch_visible_analysis_run,
     fetch_visible_analysis_runs,
 )
+from backend.app.analysis_run_write import (
+    AnalysisRunConflict,
+    AnalysisRunForbiddenScope,
+    AnalysisRunInvalidRequest,
+    AnalysisRunNotAllowed,
+    AnalysisRunSnapshotMissing,
+    create_pending_lineage_run,
+)
 from backend.app.activity_stream import (
     create_valkey_client,
     get_valkey,
@@ -1153,6 +1161,15 @@ async def derive_post_commitment(
     return {"post_id": str(post["post_id"]), "has_commitment": True, "ticket": ticket}
 
 
+class CreateAnalysisRunRequest(BaseModel):
+    """Buyer request for a new lineage reconstruction on a captured snapshot."""
+
+    run_kind_code: str
+    idempotency_key: str
+    corporate_entity_id: str | None = None
+    knowledge_cutoff: str | None = None
+
+
 @app.get("/api/analysis-runs")
 async def list_analysis_runs(
     account: CurrentAccount = Depends(get_current_account),
@@ -1171,6 +1188,55 @@ async def list_analysis_runs(
             list(account.corporate_entity_ids),
         )
     return {"analysis_runs": runs}
+
+
+@app.post("/api/analysis-runs")
+async def create_analysis_run(
+    body: CreateAnalysisRunRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Create a pending lineage run, or replay the same account/key.
+
+    TEPP and period-report kinds are rejected so this path cannot invent
+    a measurement or skip the Reports panel. Hidden corporate scopes 404.
+    """
+    _require_post_read(account)
+    try:
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                created = await create_pending_lineage_run(
+                    conn,
+                    account_id=account.user_account_id,
+                    affiliated_entity_ids=account.corporate_entity_ids,
+                    run_kind_code=body.run_kind_code,
+                    idempotency_key=body.idempotency_key,
+                    corporate_entity_id=body.corporate_entity_id,
+                    knowledge_cutoff=body.knowledge_cutoff,
+                )
+            run = await fetch_visible_analysis_run(
+                conn,
+                created.analysis_run_id,
+                account.user_account_id,
+                list(account.corporate_entity_ids),
+            )
+    except AnalysisRunNotAllowed as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+    except AnalysisRunInvalidRequest as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+    except AnalysisRunSnapshotMissing as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+    except AnalysisRunForbiddenScope as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except AnalysisRunConflict as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"idempotency key already names a different reconstruction ({exc.analysis_run_id})",
+        ) from exc
+    if run is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "analysis run not found")
+    run["replayed"] = created.replayed
+    return run
 
 
 @app.get("/api/analysis-runs/{analysis_run_id}")

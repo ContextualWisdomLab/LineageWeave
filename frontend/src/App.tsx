@@ -3,6 +3,7 @@ import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
   BackendError,
+  createAnalysisRun,
   createPostTicket,
   deriveCommitment,
   evaluatePost,
@@ -1369,6 +1370,8 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
       return "Open this run to see why it failed, then connect the measurement service and re-run.";
     case "analysis_run_lineage":
       return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
+    case "analysis_run_report":
+      return "Open this run to see why it failed, then rebuild the period report from the Reports panel.";
     default:
       return "Open this run to see why it failed, then retry after the blocking service is connected.";
   }
@@ -1397,13 +1400,25 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
  */
 function analysisRunCorpusHint(run: AnalysisRun): string | null {
   if (run.run_kind_code !== "analysis_run_tepp") return null;
-  if (run.status_code === "analysis_status_failed") {
-    return (
-      "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
-      "transport, then re-run, to replace Failed with a calibrated result."
-    );
+  switch (run.status_code) {
+    case "analysis_status_failed":
+      return (
+        "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
+        "transport, then re-run, to replace Failed with a calibrated result."
+      );
+    case "analysis_status_succeeded":
+      return "These posts are the cutoff corpus this TEPP run measured.";
+    case "analysis_status_pending":
+    case "analysis_status_running":
+      return (
+        "These posts are the cutoff corpus TEPP will measure after a transport " +
+        "is connected and this run finishes."
+      );
+    case "analysis_status_cancelled":
+      return "These posts were the cutoff corpus for this cancelled TEPP run.";
+    default:
+      return null;
   }
-  return "These posts are the cutoff corpus this TEPP run measured.";
 }
 
 function AnalysisRunsPanel({
@@ -1416,12 +1431,38 @@ function AnalysisRunsPanel({
   const [runs, setRuns] = useState<AnalysisRun[] | null>(null);
   const [selected, setSelected] = useState<AnalysisRun | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [requesting, setRequesting] = useState(false);
 
   useEffect(() => {
     fetchAnalysisRuns(accessToken)
       .then((payload) => setRuns(payload.analysis_runs))
       .catch((err) => setError(String(err)));
   }, [accessToken]);
+
+  async function handleRequestLineage() {
+    setRequesting(true);
+    setError(null);
+    try {
+      await createAnalysisRun(accessToken, {
+        run_kind_code: "analysis_run_lineage",
+        idempotency_key: crypto.randomUUID(),
+      });
+      const payload = await fetchAnalysisRuns(accessToken);
+      setRuns(payload.analysis_runs);
+    } catch (err) {
+      if (err instanceof BackendError && err.status === 409) {
+        setError(
+          "This request key already names a different reconstruction. Request again to start a new run.",
+        );
+      } else if (err instanceof BackendError && err.status === 422) {
+        setError(err.message);
+      } else {
+        setError(String(err));
+      }
+    } finally {
+      setRequesting(false);
+    }
+  }
 
   async function handleOpen(runId: string) {
     setError(null);
@@ -1446,6 +1487,13 @@ function AnalysisRunsPanel({
     <section className="popup-section lineage-home">
       <div className="lineage-home-header">
         <h2>Analysis runs</h2>
+        <button
+          onClick={() => void handleRequestLineage()}
+          disabled={requesting}
+          aria-label="Request lineage reconstruction"
+        >
+          {requesting ? "Requesting..." : "Request lineage reconstruction"}
+        </button>
       </div>
       {error && <p className="error">{error}</p>}
       {runs.length === 0 ? (

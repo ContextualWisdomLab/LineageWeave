@@ -4,6 +4,24 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.85.0] - 2026-08-16
+
+### Added
+
+- `POST /api/analysis-runs` records a pending lineage reconstruction on
+  a snapshot already bound to the caller's corporate entity (ADR 0017).
+  Open Analysis runs, then click **Request lineage reconstruction**.
+  The same account/key replays; a drifted cutoff is 409. TEPP and
+  period-report kinds are rejected so this path cannot invent a
+  measurement. A missing snapshot tells the operator to ask an
+  administrator to capture one.
+
+### Fixed
+
+- A pending or running TEPP corpus hint no longer says the run already
+  measured. A failed period-report row tells the operator to rebuild
+  from the Reports panel.
+
 ## [0.84.0] - 2026-08-16
 
 ### Added

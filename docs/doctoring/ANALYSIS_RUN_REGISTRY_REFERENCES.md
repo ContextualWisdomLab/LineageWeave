@@ -12,7 +12,7 @@
 | ISO 8601-1:2019 | Use unambiguous timestamp representation and timezone-aware persistence. | PostgreSQL `timestamptz` for availability, capture, cutoff, request, occurrence, and record clocks; tests use explicit `Z` offsets. |
 | PostgreSQL 18 constraints and trigger contracts | Put integrity close to durable truth and use constraints for row shape while triggers enforce cross-row state and serialization. | Digest/check constraints, category allowlists, account-scoped uniqueness, shape constraints, immutable-row triggers, shared snapshot-row locking, and serialized status transitions. |
 | NIST SP 800-92 | Treat audit records as bounded, protected operational evidence rather than unstructured application logging. | Append-only status events, machine failure codes, actor identity, occurrence/record clocks, fail-closed rollback, and exclusion of raw source/provider payloads. |
-| OpenAPI 3.2.0 | Define explicit versioned API schemas rather than exposing database rows or implementation-specific payloads. | API intentionally deferred; ADR 0013 requires a source-redacting run list/detail contract before a product surface is claimed. |
+| OpenAPI 3.2.0 | Define explicit versioned API schemas rather than exposing database rows or implementation-specific payloads. | `GET`/`POST /api/analysis-runs` and `GET /api/analysis-runs/{id}` are source-redacting list, write, and detail contracts (ADR 0014, ADR 0017). |
 
 ## Temporal reasoning
 
@@ -74,6 +74,7 @@ provenance, retention, and immutable evidence rather than blanket masking.
 | Request identity is stable | Reject analysis-run updates; scope and lifecycle live in their own relations. |
 | Idempotency is actor-scoped | Permit identical opaque keys for two accounts and reject reuse by the same account. |
 | Lifecycle is ordered | Require pending first, contiguous ordinals, monotonic time, legal transitions, terminal finality, and append-only rows. |
+| Write is lineage-only and idempotent | `POST /api/analysis-runs` creates pending lineage on a bound snapshot; same key+digest replays; TEPP/report kinds 422; hidden corp 404 (ADR 0017). |
 | Rollback does not erase audit data silently | Reject rollback with any registry rows and allow replay after explicit cleanup. |
 
 ## APA 7th references

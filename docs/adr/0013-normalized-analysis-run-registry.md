@@ -238,6 +238,9 @@ Acceptance requires:
 
 1. Add a transaction repository that creates snapshot, counts, run, scope, and
    first status atomically and compares request digests on idempotent retries.
+   ADR 0017 lands the run+scope+pending write against an already-captured
+   snapshot bound to the caller's corporate entity. New snapshot+count
+   materialization from live evidence remains the next increment.
 2. Add RBAC/ABAC-protected run list/detail endpoints and the DB-grounded
    read-only administrator surface.
 3. Add a normalized PostgreSQL outbox and Valkey delivery worker.

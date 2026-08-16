@@ -46,8 +46,10 @@ keeps that machine code off the caption (this decision) and instead
 tells the operator to open the TEPP run, then connect the measurement
 service. A failed lineage row tells the operator to retry
 reconstruction, not to connect TEPP. The detail now shows the legal
-lifecycle the registry already stored. Write/rebuild APIs, a live TEPP
-transport, and a fuller Analysis Run Console remain later slices.
+lifecycle the registry already stored. ADR 0017 adds
+`POST /api/analysis-runs` for a pending lineage request on a captured
+snapshot. A live TEPP transport, snapshot materialization from live
+evidence, and a fuller Analysis Run Console remain later slices.
 
 ## References
 

@@ -61,6 +61,8 @@ describe("App, authenticated", () => {
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
     succeededTeppRun?: boolean;
+    pendingTeppRun?: boolean;
+    failedReportRun?: boolean;
   }) {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -82,6 +84,7 @@ describe("App, authenticated", () => {
     let nextTicketId = 1;
     const events: { event_id: string; event_type: string; actor_account_id: string; summary: string }[] = [];
     let nextEventId = 1;
+    let requestedLineageRun: Record<string, unknown> | null = null;
 
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -180,10 +183,16 @@ describe("App, authenticated", () => {
             scope_kind_code: "analysis_scope_corporate_entity",
             scope_kind_label: "Corporate entity",
             scope_entity_name: "Demo Corp",
-            status_code: options?.succeededTeppRun
-              ? "analysis_status_succeeded"
-              : "analysis_status_failed",
-            status_label: options?.succeededTeppRun ? "Succeeded" : "Failed",
+            status_code: options?.pendingTeppRun
+              ? "analysis_status_pending"
+              : options?.succeededTeppRun
+                ? "analysis_status_succeeded"
+                : "analysis_status_failed",
+            status_label: options?.pendingTeppRun
+              ? "Pending"
+              : options?.succeededTeppRun
+                ? "Succeeded"
+                : "Failed",
             knowledge_cutoff: "2026-01-12T12:00:00Z",
             requested_at: "2026-01-12T12:34:00Z",
             source_counts: [
@@ -194,31 +203,40 @@ describe("App, authenticated", () => {
               },
             ],
             visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
-            status_history: [
-              {
-                status_ordinal: 1,
-                status_code: "analysis_status_pending",
-                status_label: "Pending",
-                occurred_at: "2026-01-12T12:35:00Z",
-              },
-              {
-                status_ordinal: 2,
-                status_code: "analysis_status_running",
-                status_label: "Running",
-                occurred_at: "2026-01-12T12:36:00Z",
-              },
-              {
-                status_ordinal: 3,
-                status_code: options?.succeededTeppRun
-                  ? "analysis_status_succeeded"
-                  : "analysis_status_failed",
-                status_label: options?.succeededTeppRun ? "Succeeded" : "Failed",
-                occurred_at: "2026-01-12T12:37:00Z",
-                ...(options?.succeededTeppRun
-                  ? {}
-                  : { failure_code: "tepp_not_available" }),
-              },
-            ],
+            status_history: options?.pendingTeppRun
+              ? [
+                  {
+                    status_ordinal: 1,
+                    status_code: "analysis_status_pending",
+                    status_label: "Pending",
+                    occurred_at: "2026-01-12T12:35:00Z",
+                  },
+                ]
+              : [
+                  {
+                    status_ordinal: 1,
+                    status_code: "analysis_status_pending",
+                    status_label: "Pending",
+                    occurred_at: "2026-01-12T12:35:00Z",
+                  },
+                  {
+                    status_ordinal: 2,
+                    status_code: "analysis_status_running",
+                    status_label: "Running",
+                    occurred_at: "2026-01-12T12:36:00Z",
+                  },
+                  {
+                    status_ordinal: 3,
+                    status_code: options?.succeededTeppRun
+                      ? "analysis_status_succeeded"
+                      : "analysis_status_failed",
+                    status_label: options?.succeededTeppRun ? "Succeeded" : "Failed",
+                    occurred_at: "2026-01-12T12:37:00Z",
+                    ...(options?.succeededTeppRun
+                      ? {}
+                      : { failure_code: "tepp_not_available" }),
+                  },
+                ],
           }),
         );
       }
@@ -231,8 +249,10 @@ describe("App, authenticated", () => {
             scope_kind_code: "analysis_scope_corporate_entity",
             scope_kind_label: "Corporate entity",
             scope_entity_name: "Demo Corp",
-            status_code: "analysis_status_succeeded",
-            status_label: "Succeeded",
+            status_code: options?.failedLineageRun
+              ? "analysis_status_failed"
+              : "analysis_status_succeeded",
+            status_label: options?.failedLineageRun ? "Failed" : "Succeeded",
             knowledge_cutoff: "2026-01-12T12:00:00Z",
             requested_at: "2026-01-12T12:30:00Z",
             source_counts: [
@@ -258,61 +278,113 @@ describe("App, authenticated", () => {
               },
               {
                 status_ordinal: 3,
-                status_code: "analysis_status_succeeded",
-                status_label: "Succeeded",
+                status_code: options?.failedLineageRun
+                  ? "analysis_status_failed"
+                  : "analysis_status_succeeded",
+                status_label: options?.failedLineageRun ? "Failed" : "Succeeded",
                 occurred_at: "2026-01-12T12:33:00Z",
+                ...(options?.failedLineageRun
+                  ? { failure_code: "lineage_rebuild_failed" }
+                  : {}),
               },
             ],
           }),
         );
       }
+      const analysisRuns: Record<string, unknown>[] = [
+        {
+          analysis_run_id: "run-demo-lineage",
+          run_kind_code: "analysis_run_lineage",
+          run_kind_label: "Lineage reconstruction",
+          scope_kind_code: "analysis_scope_corporate_entity",
+          scope_kind_label: "Corporate entity",
+          scope_entity_name: "Demo Corp",
+          status_code: options?.failedLineageRun
+            ? "analysis_status_failed"
+            : "analysis_status_succeeded",
+          status_label: options?.failedLineageRun ? "Failed" : "Succeeded",
+          knowledge_cutoff: "2026-01-12T12:00:00Z",
+          requested_at: "2026-01-12T12:30:00Z",
+          source_counts: [
+            {
+              count_type_code: "analysis_count_document",
+              count_type_label: "Documents",
+              count_value: 3,
+            },
+          ],
+        },
+        {
+          analysis_run_id: "run-demo-tepp",
+          run_kind_code: "analysis_run_tepp",
+          run_kind_label: "TEPP measurement",
+          scope_kind_code: "analysis_scope_corporate_entity",
+          scope_kind_label: "Corporate entity",
+          scope_entity_name: "Demo Corp",
+          status_code: options?.pendingTeppRun
+            ? "analysis_status_pending"
+            : options?.succeededTeppRun
+              ? "analysis_status_succeeded"
+              : "analysis_status_failed",
+          status_label: options?.pendingTeppRun
+            ? "Pending"
+            : options?.succeededTeppRun
+              ? "Succeeded"
+              : "Failed",
+          knowledge_cutoff: "2026-01-12T12:00:00Z",
+          requested_at: "2026-01-12T12:34:00Z",
+          source_counts: [
+            {
+              count_type_code: "analysis_count_document",
+              count_type_label: "Documents",
+              count_value: 3,
+            },
+          ],
+        },
+      ];
+      if (options?.failedReportRun) {
+        analysisRuns.push({
+          analysis_run_id: "run-demo-report",
+          run_kind_code: "analysis_run_report",
+          run_kind_label: "Period report",
+          scope_kind_code: "analysis_scope_corporate_entity",
+          scope_kind_label: "Corporate entity",
+          scope_entity_name: "Demo Corp",
+          status_code: "analysis_status_failed",
+          status_label: "Failed",
+          knowledge_cutoff: "2026-01-12T12:00:00Z",
+          requested_at: "2026-01-12T12:40:00Z",
+          source_counts: [],
+        });
+      }
+      if (url.endsWith("/api/analysis-runs") && method === "POST") {
+        requestedLineageRun = {
+          analysis_run_id: "run-requested-lineage",
+          run_kind_code: "analysis_run_lineage",
+          run_kind_label: "Lineage reconstruction",
+          scope_kind_code: "analysis_scope_corporate_entity",
+          scope_kind_label: "Corporate entity",
+          scope_entity_name: "Demo Corp",
+          status_code: "analysis_status_pending",
+          status_label: "Pending",
+          knowledge_cutoff: "2026-01-12T00:00:00Z",
+          requested_at: "2026-08-16T15:00:00Z",
+          source_counts: [
+            {
+              count_type_code: "analysis_count_document",
+              count_type_label: "Documents",
+              count_value: 3,
+            },
+          ],
+          replayed: false,
+        };
+        return Promise.resolve(jsonResponse(requestedLineageRun));
+      }
       if (url.endsWith("/api/analysis-runs")) {
         return Promise.resolve(
           jsonResponse({
-            analysis_runs: [
-              {
-                analysis_run_id: "run-demo-lineage",
-                run_kind_code: "analysis_run_lineage",
-                run_kind_label: "Lineage reconstruction",
-                scope_kind_code: "analysis_scope_corporate_entity",
-                scope_kind_label: "Corporate entity",
-                scope_entity_name: "Demo Corp",
-                status_code: options?.failedLineageRun
-                  ? "analysis_status_failed"
-                  : "analysis_status_succeeded",
-                status_label: options?.failedLineageRun ? "Failed" : "Succeeded",
-                knowledge_cutoff: "2026-01-12T12:00:00Z",
-                requested_at: "2026-01-12T12:30:00Z",
-                source_counts: [
-                  {
-                    count_type_code: "analysis_count_document",
-                    count_type_label: "Documents",
-                    count_value: 3,
-                  },
-                ],
-              },
-              {
-                analysis_run_id: "run-demo-tepp",
-                run_kind_code: "analysis_run_tepp",
-                run_kind_label: "TEPP measurement",
-                scope_kind_code: "analysis_scope_corporate_entity",
-                scope_kind_label: "Corporate entity",
-                scope_entity_name: "Demo Corp",
-                status_code: options?.succeededTeppRun
-                  ? "analysis_status_succeeded"
-                  : "analysis_status_failed",
-                status_label: options?.succeededTeppRun ? "Succeeded" : "Failed",
-                knowledge_cutoff: "2026-01-12T12:00:00Z",
-                requested_at: "2026-01-12T12:34:00Z",
-                source_counts: [
-                  {
-                    count_type_code: "analysis_count_document",
-                    count_type_label: "Documents",
-                    count_value: 3,
-                  },
-                ],
-              },
-            ],
+            analysis_runs: requestedLineageRun
+              ? [requestedLineageRun, ...analysisRuns]
+              : analysisRuns,
           }),
         );
       }
@@ -1522,6 +1594,62 @@ describe("App, authenticated", () => {
       await screen.findByText("These posts are the cutoff corpus this TEPP run measured."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
+  });
+
+  it("does not tell a pending TEPP run that it already measured", async () => {
+    stubBackend({ pendingTeppRun: true });
+    render(<App />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: TEPP measurement · Pending · Demo Corp",
+      }),
+    );
+    expect(
+      await screen.findByText(
+        "These posts are the cutoff corpus TEPP will measure after a transport is connected and this run finishes.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/this TEPP run measured/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
+  });
+
+  it("tells a failed period-report run to rebuild from the Reports panel", async () => {
+    stubBackend({ failedReportRun: true });
+    render(<App />);
+
+    const reportButton = await screen.findByRole("button", {
+      name: "Open analysis run: Period report · Failed · Demo Corp",
+    });
+    expect(reportButton).toHaveTextContent(
+      "Open this run to see why it failed, then rebuild the period report from the Reports panel.",
+    );
+    expect(reportButton).not.toHaveTextContent("measurement service");
+  });
+
+  it("requests a pending lineage reconstruction from the home list", async () => {
+    const fetchMock = stubBackend();
+    render(<App />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Request lineage reconstruction" }),
+    );
+    const list = await screen.findByRole("list", { name: "Analysis runs" });
+    expect(list).toHaveTextContent("Lineage reconstruction · Pending · Demo Corp");
+    const posted = fetchMock.mock.calls.find((call) => {
+      const url = String(call[0]);
+      const init = call[1] as RequestInit | undefined;
+      return url.endsWith("/api/analysis-runs") && init?.method === "POST";
+    });
+    expect(posted).toBeDefined();
+    if (posted === undefined) {
+      throw new Error("expected POST /api/analysis-runs");
+    }
+    const body = JSON.parse(String((posted[1] as RequestInit).body));
+    expect(body.run_kind_code).toBe("analysis_run_lineage");
+    expect(body.idempotency_key).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
   });
 
   it("shows the calibrated period-report mean theta on the home page", async () => {
