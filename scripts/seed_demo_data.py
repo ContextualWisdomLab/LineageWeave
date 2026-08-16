@@ -19,6 +19,7 @@ Usage: KEYCLOAK_ADMIN_PASSWORD=... python3 scripts/seed_demo_data.py [--postgres
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import sys
 from pathlib import Path
@@ -30,12 +31,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import psycopg2
 
 from lineageweave.http_client import get_json_list, post_form
+from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 
 REALM = "lineageweave-demo"
 DEFAULT_POSTGRES_DSN = "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
 DEFAULT_KEYCLOAK_BASE_URL = "http://localhost:18080"
 DEFAULT_KEYCLOAK_ADMIN_USER = os.environ.get("KEYCLOAK_ADMIN", "admin")
 DEFAULT_VALKEY_URL = "redis://localhost:16379/0"
+
+# ADR 0013: one Demo Corp capture, many runs (lineage + TEPP).
+DEMO_SOURCE_SNAPSHOT_MATERIAL = b"lineageweave-synthetic-demo-snapshot-v1"
+DEMO_SOURCE_CONTRACT_VERSION = "demo-source-contract-v1"
+DEMO_LINEAGE_IDEMPOTENCY_KEY = "demo-lineage-seed-2026-w02"
+DEMO_TEPP_IDEMPOTENCY_KEY = "demo-tepp-seed-2026-w02"
 
 # (post_title, ticket_title, due_date) -- Event Lineage fixtures a report
 # member click opens. Activity seed uses the same titles so Valkey matches.
@@ -1236,36 +1244,57 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
     _persist_seed_period_report(cur, "process_unit", high_key, w03, week3[high_key])
 
 
-def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -> None:
-    """Insert one Demo-Corp lineage run so Analysis runs is not empty.
+def demo_source_snapshot_sha256() -> str:
+    """Return the reusable Demo Corp snapshot digest (never a source row)."""
+    return hashlib.sha256(DEMO_SOURCE_SNAPSHOT_MATERIAL).hexdigest()
 
-    Aggregates only: three synthetic documents, one thread. The digest is
-    a hash of a fixed demo contract string -- never a source row or DSN.
+
+def _ensure_demo_source_snapshot(cur):
+    """Return the shared Demo Corp capture, inserting it on first seed.
+
+    Lineage and TEPP runs share this snapshot (ADR 0013: one capture,
+    many runs). The digest is a hash of a fixed demo contract string --
+    never a source row or DSN.
     """
-    import hashlib
-
-    digest = hashlib.sha256(b"lineageweave-synthetic-demo-snapshot-v1").hexdigest()
+    digest = demo_source_snapshot_sha256()
     cur.execute(
         "select analysis_source_snapshot_id from analysis_source_snapshot "
         "where snapshot_sha256 = %s",
         (digest,),
     )
     snapshot_row = cur.fetchone()
-    if snapshot_row is None:
-        cur.execute(
-            """
-            insert into analysis_source_snapshot
-                (snapshot_sha256, source_contract_version,
-                 maximum_available_time, captured_at)
-            values (%s, 'demo-source-contract-v1',
-                    '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
-            returning analysis_source_snapshot_id
-            """,
-            (digest,),
-        )
-        snapshot_id = cur.fetchone()[0]
-    else:
-        snapshot_id = snapshot_row[0]
+    if snapshot_row is not None:
+        return snapshot_row[0]
+    cur.execute(
+        """
+        insert into analysis_source_snapshot
+            (snapshot_sha256, source_contract_version,
+             maximum_available_time, captured_at)
+        values (%s, %s,
+                '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
+        returning analysis_source_snapshot_id
+        """,
+        (digest, DEMO_SOURCE_CONTRACT_VERSION),
+    )
+    return cur.fetchone()[0]
+
+
+def _ensure_demo_source_counts(cur, snapshot_id) -> None:
+    """Insert demo counts only when the snapshot still has none.
+
+    ``enforce_analysis_source_count_freeze`` runs BEFORE INSERT. After
+    the first run points at the snapshot, a later ``INSERT ... ON
+    CONFLICT DO NOTHING`` still raises ``analysis_source_count_frozen_after_run``
+    and rolls back the whole ``seed()`` transaction. Skip when counts
+    already exist so ``make seed`` can be re-run.
+    """
+    cur.execute(
+        "select 1 from analysis_source_count "
+        "where analysis_source_snapshot_id = %s limit 1",
+        (snapshot_id,),
+    )
+    if cur.fetchone() is not None:
+        return
     cur.execute(
         """
         insert into analysis_source_count
@@ -1275,17 +1304,27 @@ def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -
             (%s, 'analysis_count_thread', 1),
             (%s, 'analysis_count_lineage_node', 5),
             (%s, 'analysis_count_lineage_edge', 4)
-        on conflict do nothing
         """,
         (snapshot_id, snapshot_id, snapshot_id, snapshot_id),
     )
+
+
+def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -> None:
+    """Insert one Demo-Corp lineage run so Analysis runs is not empty.
+
+    Aggregates only: three synthetic documents, one thread. Reuses the
+    shared Demo Corp snapshot so a later TEPP run can attach to the
+    same capture.
+    """
+    snapshot_id = _ensure_demo_source_snapshot(cur)
+    _ensure_demo_source_counts(cur, snapshot_id)
     cur.execute(
         """
         select analysis_run_id from analysis_run
         where requested_by_account_id = %s
-          and idempotency_key = 'demo-lineage-seed-2026-w02'
+          and idempotency_key = %s
         """,
-        (requested_by_account_id,),
+        (requested_by_account_id, DEMO_LINEAGE_IDEMPOTENCY_KEY),
     )
     run_row = cur.fetchone()
     if run_row is None:
@@ -1296,12 +1335,18 @@ def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -
                  requested_by_account_id, knowledge_cutoff,
                  configuration_schema_version, configuration_sha256,
                  code_revision_sha, requested_at)
-            values (%s, 'analysis_run_lineage', 'demo-lineage-seed-2026-w02',
+            values (%s, 'analysis_run_lineage', %s,
                     %s, '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
                     '2026-01-12T12:30:00Z')
             returning analysis_run_id
             """,
-            (snapshot_id, requested_by_account_id, "b" * 64, "c" * 40),
+            (
+                snapshot_id,
+                DEMO_LINEAGE_IDEMPOTENCY_KEY,
+                requested_by_account_id,
+                "b" * 64,
+                "c" * 40,
+            ),
         )
         run_id = cur.fetchone()[0]
     else:
@@ -1331,75 +1376,50 @@ def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -
         )
 
 
-def tepp_seed_outcome() -> tuple[str, str | None]:
-    """Ask TEPP through the published client. A missing transport is Failed.
-
-    Never invents a psychometric score. ``tepp_not_available`` means the
-    channel was dropped, not a calibrated negative result.
-    """
-    from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
-
-    request = AnalysisRunRequest(
-        idempotency_key="demo-tepp-seed-2026-w02",
+def tepp_seed_request() -> AnalysisRunRequest:
+    """Build the Demo Corp TEPP request against the shared snapshot digest."""
+    return AnalysisRunRequest(
+        idempotency_key=DEMO_TEPP_IDEMPOTENCY_KEY,
         tenant_workspace_id="demo-workspace",
-        snapshot_id="demo-source-contract-v1",
+        snapshot_id=demo_source_snapshot_sha256(),
         knowledge_cutoff="2026-01-12T12:00:00Z",
         model_contract_version="tepp-analysis-run-v1",
         output_profile="calibrated_event_measurement",
     )
+
+
+def tepp_seed_outcome(client: TeppClient | None = None) -> tuple[str, str | None]:
+    """Ask TEPP through the published client. A missing transport is Failed.
+
+    Never invents a psychometric score. ``tepp_not_available`` means the
+    channel was dropped, not a calibrated negative result. A live
+    envelope is also not a persistable measurement in this seed, so the
+    run is not stamped Succeeded.
+    """
+    request = tepp_seed_request()
     try:
-        TeppClient().submit_analysis_run(request)
+        (client or TeppClient()).submit_analysis_run(request)
     except TeppNotAvailable:
         return "analysis_status_failed", "tepp_not_available"
-    return "analysis_status_succeeded", None
+    return "analysis_status_failed", "tepp_result_not_persisted"
 
 
 def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> None:
     """Insert one Demo-Corp TEPP run so the kind is visible without a live TEPP.
 
-    Uses :func:`tepp_seed_outcome`. Default transport is unavailable, so
-    the run ends Failed / ``tepp_not_available`` -- never a fake theta.
+    Uses :func:`tepp_seed_outcome` against the shared lineage snapshot.
+    Default transport is unavailable, so the run ends Failed /
+    ``tepp_not_available`` -- never a fake theta.
     """
-    import hashlib
-
-    digest = hashlib.sha256(b"lineageweave-synthetic-tepp-snapshot-v1").hexdigest()
-    cur.execute(
-        "select analysis_source_snapshot_id from analysis_source_snapshot "
-        "where snapshot_sha256 = %s",
-        (digest,),
-    )
-    snapshot_row = cur.fetchone()
-    if snapshot_row is None:
-        cur.execute(
-            """
-            insert into analysis_source_snapshot
-                (snapshot_sha256, source_contract_version,
-                 maximum_available_time, captured_at)
-            values (%s, 'demo-tepp-contract-v1',
-                    '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
-            returning analysis_source_snapshot_id
-            """,
-            (digest,),
-        )
-        snapshot_id = cur.fetchone()[0]
-    else:
-        snapshot_id = snapshot_row[0]
-    cur.execute(
-        """
-        insert into analysis_source_count
-            (analysis_source_snapshot_id, count_type_code, count_value)
-        values (%s, 'analysis_count_document', 3)
-        on conflict do nothing
-        """,
-        (snapshot_id,),
-    )
+    snapshot_id = _ensure_demo_source_snapshot(cur)
+    _ensure_demo_source_counts(cur, snapshot_id)
     cur.execute(
         """
         select analysis_run_id from analysis_run
         where requested_by_account_id = %s
-          and idempotency_key = 'demo-tepp-seed-2026-w02'
+          and idempotency_key = %s
         """,
-        (requested_by_account_id,),
+        (requested_by_account_id, DEMO_TEPP_IDEMPOTENCY_KEY),
     )
     run_row = cur.fetchone()
     if run_row is None:
@@ -1410,12 +1430,18 @@ def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> No
                  requested_by_account_id, knowledge_cutoff,
                  configuration_schema_version, configuration_sha256,
                  code_revision_sha, requested_at)
-            values (%s, 'analysis_run_tepp', 'demo-tepp-seed-2026-w02',
+            values (%s, 'analysis_run_tepp', %s,
                     %s, '2026-01-12T12:00:00Z', 'tepp-run-v1', %s, %s,
                     '2026-01-12T12:34:00Z')
             returning analysis_run_id
             """,
-            (snapshot_id, requested_by_account_id, "d" * 64, "e" * 40),
+            (
+                snapshot_id,
+                DEMO_TEPP_IDEMPOTENCY_KEY,
+                requested_by_account_id,
+                "d" * 64,
+                "e" * 40,
+            ),
         )
         run_id = cur.fetchone()[0]
     else:

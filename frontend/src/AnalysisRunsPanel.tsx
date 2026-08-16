@@ -5,7 +5,13 @@ import {
   fetchAnalysisRuns,
   type AnalysisRun,
 } from "./api";
-import { analysisRunCaption, shortDigest } from "./analysisRunDisplay";
+import {
+  analysisRunCaption,
+  analysisRunCorpusHint,
+  analysisRunEmptyPostsHint,
+  analysisRunNextAction,
+  shortDigest,
+} from "./analysisRunDisplay";
 
 /**
  * Home-page Analysis runs list and authorized detail.
@@ -47,6 +53,8 @@ export function AnalysisRunsPanel({
   if (error && runs === null) return <p className="error">{error}</p>;
   if (runs === null) return <p>Loading analysis runs...</p>;
 
+  const corpusHint = selected ? analysisRunCorpusHint(selected) : null;
+
   return (
     <section className="popup-section lineage-home">
       <div className="lineage-home-header">
@@ -64,6 +72,7 @@ export function AnalysisRunsPanel({
               (count) => count.count_type_code === "analysis_count_document",
             );
             const caption = analysisRunCaption(run);
+            const nextAction = analysisRunNextAction(run);
             return (
               <li key={run.analysis_run_id} className="ticket-list-item">
                 <button
@@ -77,6 +86,7 @@ export function AnalysisRunsPanel({
                       {documentCount.count_value} {documentCount.count_type_label.toLowerCase()}
                     </span>
                   )}
+                  {nextAction && <span className="post-meta">{nextAction}</span>}
                 </button>
               </li>
             );
@@ -116,24 +126,24 @@ export function AnalysisRunsPanel({
             </ol>
           )}
           {selected.visible_posts && selected.visible_posts.length > 0 ? (
-            <ul aria-label="Posts in this analysis run">
-              {selected.visible_posts.map((post) => (
-                <li key={post.post_id}>
-                  <button
-                    className="keyman-select"
-                    aria-label={`Open run post: ${post.post_title}`}
-                    onClick={() => onSelectPost(post.post_id)}
-                  >
-                    {post.post_title}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <>
+              {corpusHint && <p className="post-meta">{corpusHint}</p>}
+              <ul aria-label="Posts in this analysis run">
+                {selected.visible_posts.map((post) => (
+                  <li key={post.post_id}>
+                    <button
+                      className="keyman-select"
+                      aria-label={`Open run post: ${post.post_title}`}
+                      onClick={() => onSelectPost(post.post_id)}
+                    >
+                      {post.post_title}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
           ) : (
-            <p className="popup-placeholder">
-              No posts were available at this cutoff. Open a later run, or ask an
-              administrator to capture a newer snapshot.
-            </p>
+            <p className="popup-placeholder">{analysisRunEmptyPostsHint(selected)}</p>
           )}
         </div>
       )}

@@ -169,6 +169,54 @@ describe("App, authenticated", () => {
           jsonResponse({ post_id: "post-1", has_commitment: true, ticket }),
         );
       }
+      if (url.endsWith("/api/analysis-runs/run-demo-tepp")) {
+        return Promise.resolve(
+          jsonResponse({
+            analysis_run_id: "run-demo-tepp",
+            run_kind_code: "analysis_run_tepp",
+            run_kind_label: "TEPP measurement",
+            scope_kind_code: "analysis_scope_corporate_entity",
+            scope_kind_label: "Corporate entity",
+            scope_entity_name: "Demo Corp",
+            status_code: "analysis_status_failed",
+            status_label: "Failed",
+            knowledge_cutoff: "2026-01-12T12:00:00Z",
+            requested_at: "2026-01-12T12:34:00Z",
+            source_counts: [
+              {
+                count_type_code: "analysis_count_document",
+                count_type_label: "Documents",
+                count_value: 3,
+              },
+            ],
+            visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+            configuration_schema_version: "tepp-run-v1",
+            configuration_sha256: "d".repeat(64),
+            code_revision_sha: "e".repeat(40),
+            status_history: [
+              {
+                status_ordinal: 1,
+                status_code: "analysis_status_pending",
+                status_label: "Pending",
+                occurred_at: "2026-01-12T12:35:00Z",
+              },
+              {
+                status_ordinal: 2,
+                status_code: "analysis_status_running",
+                status_label: "Running",
+                occurred_at: "2026-01-12T12:36:00Z",
+              },
+              {
+                status_ordinal: 3,
+                status_code: "analysis_status_failed",
+                status_label: "Failed",
+                occurred_at: "2026-01-12T12:37:00Z",
+                failure_code: "tepp_not_available",
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/analysis-runs/run-demo-lineage")) {
         return Promise.resolve(
           jsonResponse({
@@ -1397,6 +1445,9 @@ describe("App, authenticated", () => {
     const list = screen.getByRole("list", { name: "Analysis runs" });
     expect(list).toHaveTextContent("Lineage reconstruction · Succeeded · Demo Corp");
     expect(list).toHaveTextContent("TEPP measurement · Failed · Demo Corp");
+    expect(list).toHaveTextContent(
+      "Open this run to see why it failed, then connect the measurement service and re-run.",
+    );
     expect(list).toHaveTextContent("3 documents");
     expect(list).not.toHaveTextContent("postgresql://");
     expect(list).not.toHaveTextContent("select ");
@@ -1420,6 +1471,19 @@ describe("App, authenticated", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Open run post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+      }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "TEPP measurement · Failed · Demo Corp" }),
+    ).toBeInTheDocument();
+    const teppHistory = screen.getByRole("list", { name: "Analysis run status history" });
+    expect(teppHistory).toHaveTextContent("Failed 2026-01-12 12:37 · tepp_not_available");
+    expect(screen.getByText(/cutoff corpus TEPP would measure/i)).toBeInTheDocument();
+    expect(teppHistory).not.toHaveTextContent("Succeeded");
   });
 
   it("shows the calibrated period-report mean theta on the home page", async () => {

@@ -40,11 +40,15 @@ LineageWeave owns a fail-closed read projection of the #89 registry:
 
 ## Consequences
 
-`make seed` writes one synthetic Demo Corp lineage run so the existing
-React home page can show Analysis runs without a second application.
-The detail now shows the legal lifecycle the registry already stored.
-Write/rebuild APIs, TEPP submission, and a fuller Analysis Run Console
-remain later slices.
+`make seed` writes one synthetic Demo Corp lineage run and one TEPP
+run on the same snapshot so the existing React home page can show both
+kinds without a second application. The TEPP run is Failed /
+`tepp_not_available` when the default transport is missing -- the list
+keeps that machine code off the caption (this decision) and instead
+tells the operator to open the run, then connect the measurement
+service. The detail now shows the legal lifecycle the registry already
+stored. Write/rebuild APIs, a live TEPP transport, and a fuller
+Analysis Run Console remain later slices.
 
 ## References
 
