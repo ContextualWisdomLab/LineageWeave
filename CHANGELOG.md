@@ -8,6 +8,13 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Opening an analysis-run title marked **Updated after cutoff** now
+  shows a popup status that the body is live, not a cutoff snapshot
+  (ADR 0016). After `make seed`, open the Demo Corp lineage run and
+  click Demo public post: the warning appears above the live body.
+  Demo private post and the home post list do not. The earlier text
+  is not stored, so the popup does not invent it.
+
 - Analysis-run detail now compares each in-cutoff title's live
   `updated_at` with that run's knowledge cutoff. After `make seed`,
   open the Demo Corp lineage run: Demo public post is marked

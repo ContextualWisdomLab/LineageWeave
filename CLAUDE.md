@@ -6,10 +6,11 @@ ADRs under `docs/adr/`. Do not fork those rules here.
 ## Analysis-run write clock (v0.88.0)
 
 Open the Demo Corp lineage run after `make seed`. Demo public post is
-marked **Updated after cutoff**; Demo private post is not. Opening a
-marked title still shows the live body. Compare those rewritten
-bodies with the cutoff before treating them as reconstructed
-evidence (ADR 0016).
+marked **Updated after cutoff**; Demo private post is not. Opening the
+marked title shows a live-body status above the text — the earlier
+version is not stored, so the popup does not invent it. Compare that
+body with the cutoff before treating it as reconstructed evidence
+(ADR 0016). The home post list and unmarked titles stay quiet.
 
 ## Analysis-run retention (v0.87.0)
 

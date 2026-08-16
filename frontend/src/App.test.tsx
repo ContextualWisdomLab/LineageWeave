@@ -1742,6 +1742,42 @@ describe("App, authenticated", () => {
     expect(teppHistory).not.toHaveTextContent("Succeeded");
   });
 
+  it("warns that a cutoff-rewritten title opens the live body, not a snapshot", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+      }),
+    );
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open live post (updated after cutoff): Public post",
+      }),
+    );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "This is the live body, not the version known at the 2026-01-12 analysis-run cutoff. The earlier text is not stored, so this popup does not invent it.",
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open live post: Private post",
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(screen.getByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
   it("does not tell a failed lineage run to connect the measurement service", async () => {
     stubBackend({ failedLineageRun: true });
     render(<App />);

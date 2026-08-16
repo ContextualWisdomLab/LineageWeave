@@ -147,6 +147,14 @@
   opacity: 0.7;
 }
 
+.popup-live-body-warning {
+  margin: 0.75rem 0 1rem;
+  padding: 0.65rem 0.75rem;
+  border-left: 3px solid #b45309;
+  background: color-mix(in srgb, canvas 88%, #b45309 12%);
+  font-size: 0.85rem;
+}
+
 .popup-section {
   margin-top: 1.5rem;
   padding-top: 1rem;
