@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
@@ -30,6 +30,7 @@ import {
   fetchPosts,
   fetchRelatedEntity,
   fetchRelatedKeymen,
+  fetchRelatedTeam,
   rebuildLineage,
   rebuildPeriodReports,
   updateTicketStatus,
@@ -54,6 +55,7 @@ import {
   type PostLineage,
   type PostSummary,
   type RelatedNode,
+  type RelatedNodeType,
   type VocEvidence,
 } from "./api";
 import { AnalysisRunReproducibilityDigests } from "./AnalysisRunReproducibilityDigests";
@@ -471,6 +473,15 @@ function VocEvidenceSection({
 }
 
 const NODE_PERSON = "node_person";
+const NODE_POST = "node_post";
+const NODE_CORPORATE_ENTITY = "node_corporate_entity";
+const NODE_TEAM = "node_team";
+
+const KNOWN_RELATED_NODE_TYPES = [NODE_PERSON, NODE_POST, NODE_CORPORATE_ENTITY, NODE_TEAM] as const;
+
+function isKnownRelatedNodeType(code: string): code is RelatedNodeType {
+  return (KNOWN_RELATED_NODE_TYPES as readonly string[]).includes(code);
+}
 
 function relatedNodeCaption(node: RelatedNode): string {
   const name = node.label ?? node.node_id;
@@ -482,9 +493,6 @@ function relatedNodeCaption(node: RelatedNode): string {
   }
   return `${name} (${node.ontology_label ?? node.node_type_code})`;
 }
-
-const NODE_POST = "node_post";
-const NODE_CORPORATE_ENTITY = "node_corporate_entity";
 
 const VERIFICATION_BADGE: Record<string, string> = {
   verify_pending: "Not yet checked",
@@ -540,6 +548,7 @@ function KeymanPanel({
   onSelectPost,
   focusPerson,
   focusEntity,
+  focusTeam,
 }: {
   postId: string;
   accessToken: string;
@@ -549,6 +558,7 @@ function KeymanPanel({
   onSelectPost?: (postId: string) => void;
   focusPerson?: { personId: string; personName: string } | null;
   focusEntity?: { entityId: string; entityName: string } | null;
+  focusTeam?: { teamId: string; teamName: string } | null;
 }) {
   const [related, setRelated] = useState<RelatedNode[] | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
@@ -586,6 +596,18 @@ function KeymanPanel({
     }
   }
 
+  async function handleSelectTeam(teamId: string, teamName: string) {
+    const requestId = ++relatedRequest.current;
+    setSelectedName(teamName);
+    setRelated(null);
+    try {
+      const result = await fetchRelatedTeam(accessToken, teamId);
+      if (requestId === relatedRequest.current) setRelated(result.related);
+    } catch {
+      if (requestId === relatedRequest.current) setRelated([]);
+    }
+  }
+
   useEffect(() => {
     if (!focusPerson) return;
     const requestId = ++relatedRequest.current;
@@ -613,6 +635,20 @@ function KeymanPanel({
         if (requestId === relatedRequest.current) setRelated([]);
       });
   }, [accessToken, focusEntity]);
+
+  useEffect(() => {
+    if (!focusTeam) return;
+    const requestId = ++relatedRequest.current;
+    setSelectedName(focusTeam.teamName);
+    setRelated(null);
+    fetchRelatedTeam(accessToken, focusTeam.teamId)
+      .then((result) => {
+        if (requestId === relatedRequest.current) setRelated(result.related);
+      })
+      .catch(() => {
+        if (requestId === relatedRequest.current) setRelated([]);
+      });
+  }, [accessToken, focusTeam]);
 
   async function handleExtract() {
     setExtracting(true);
@@ -701,48 +737,67 @@ function KeymanPanel({
             <ul>
               {related.map((node) => {
                 const caption = relatedNodeCaption(node);
-                if (node.node_type_code === NODE_POST && onSelectPost) {
-                  return (
-                    <li key={`${node.node_type_code}:${node.node_id}`}>
-                      <button
-                        className="keyman-select"
-                        aria-label={`Open related post: ${node.label ?? node.node_id}`}
-                        onClick={() => onSelectPost(node.node_id)}
-                      >
-                        {caption}
-                      </button>
-                    </li>
-                  );
+                const key = `${node.node_type_code}:${node.node_id}`;
+                if (!isKnownRelatedNodeType(node.node_type_code)) {
+                  return <li key={key}>{caption}</li>;
                 }
-                if (node.node_type_code === NODE_PERSON) {
-                  return (
-                    <li key={`${node.node_type_code}:${node.node_id}`}>
-                      <button
-                        className="keyman-select"
-                        aria-label={`Related nodes for ${caption}`}
-                        onClick={() => handleSelect(node.node_id, node.label ?? node.node_id)}
-                      >
-                        {caption}
-                      </button>
-                    </li>
-                  );
+                switch (node.node_type_code) {
+                  case NODE_POST:
+                    if (!onSelectPost) {
+                      return <li key={key}>{caption}</li>;
+                    }
+                    return (
+                      <li key={key}>
+                        <button
+                          className="keyman-select"
+                          aria-label={`Open related post: ${node.label ?? node.node_id}`}
+                          onClick={() => onSelectPost(node.node_id)}
+                        >
+                          {caption}
+                        </button>
+                      </li>
+                    );
+                  case NODE_PERSON:
+                    return (
+                      <li key={key}>
+                        <button
+                          className="keyman-select"
+                          aria-label={`Related nodes for ${caption}`}
+                          onClick={() => handleSelect(node.node_id, node.label ?? node.node_id)}
+                        >
+                          {caption}
+                        </button>
+                      </li>
+                    );
+                  case NODE_CORPORATE_ENTITY:
+                    return (
+                      <li key={key}>
+                        <button
+                          className="keyman-select"
+                          aria-label={`Related nodes for ${node.label ?? node.node_id}`}
+                          onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
+                        >
+                          {caption}
+                        </button>
+                      </li>
+                    );
+                  case NODE_TEAM:
+                    return (
+                      <li key={key}>
+                        <button
+                          className="keyman-select"
+                          aria-label={`Related nodes for ${node.label ?? node.node_id}`}
+                          onClick={() => handleSelectTeam(node.node_id, node.label ?? node.node_id)}
+                        >
+                          {caption}
+                        </button>
+                      </li>
+                    );
+                  default: {
+                    const _exhaustive: never = node.node_type_code;
+                    return <li key={key}>{_exhaustive}</li>;
+                  }
                 }
-                if (node.node_type_code === NODE_CORPORATE_ENTITY) {
-                  return (
-                    <li key={`${node.node_type_code}:${node.node_id}`}>
-                      <button
-                        className="keyman-select"
-                        aria-label={`Related nodes for ${node.label ?? node.node_id}`}
-                        onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
-                      >
-                        {caption}
-                      </button>
-                    </li>
-                  );
-                }
-                return (
-                  <li key={`${node.node_type_code}:${node.node_id}`}>{caption}</li>
-                );
               })}
             </ul>
           )}
@@ -1129,6 +1184,7 @@ function PostDetailPopup({
   const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
+  const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
 
   function reloadKeymen() {
     fetchPostKeymen(accessToken, postId).then((r) => setKeymen(r.keymen)).catch(() => setKeymen([]));
@@ -1157,6 +1213,7 @@ function PostDetailPopup({
     setEvaluation(null);
     setFocusPerson(null);
     setFocusEntity(null);
+    setFocusTeam(null);
     fetchPost(accessToken, postId).then(setPost).catch((err) => setError(String(err)));
     fetchPostEvaluation(accessToken, postId)
       .then((r) => setEvaluation(r.responses))
@@ -1221,28 +1278,61 @@ function PostDetailPopup({
                           const person = isPerson
                             ? keymen?.find((row) => row.person_name === rr.actor_name)
                             : undefined;
+                          const catalogId = rr.catalog_node_id;
+                          const catalogType = rr.catalog_node_type_code;
+                          let actorName: ReactNode = <strong>{rr.actor_name}</strong>;
+                          if (person) {
+                            actorName = (
+                              <button
+                                className="keyman-select"
+                                aria-label={`R&R Keyman: ${rr.actor_name}`}
+                                onClick={() => {
+                                  setFocusEntity(null);
+                                  setFocusTeam(null);
+                                  setFocusPerson({
+                                    personId: person.person_id,
+                                    personName: person.person_name,
+                                  });
+                                }}
+                              >
+                                <strong>{rr.actor_name}</strong>
+                              </button>
+                            );
+                          } else if (catalogType === NODE_TEAM && catalogId) {
+                            actorName = (
+                              <button
+                                className="keyman-select"
+                                aria-label={`R&R team: ${rr.actor_name}`}
+                                onClick={() => {
+                                  setFocusPerson(null);
+                                  setFocusEntity(null);
+                                  setFocusTeam({ teamId: catalogId, teamName: rr.actor_name });
+                                }}
+                              >
+                                <strong>{rr.actor_name}</strong>
+                              </button>
+                            );
+                          } else if (catalogType === NODE_CORPORATE_ENTITY && catalogId) {
+                            actorName = (
+                              <button
+                                className="keyman-select"
+                                aria-label={`R&R organization: ${rr.actor_name}`}
+                                onClick={() => {
+                                  setFocusPerson(null);
+                                  setFocusTeam(null);
+                                  setFocusEntity({ entityId: catalogId, entityName: rr.actor_name });
+                                }}
+                              >
+                                <strong>{rr.actor_name}</strong>
+                              </button>
+                            );
+                          }
                           return (
                             <li key={i}>
                               <span className={`actor-type-badge actor-type-${rr.actor_type_code}`}>
                                 {actorTypeLabel}
                               </span>{" "}
-                              {person ? (
-                                <button
-                                  className="keyman-select"
-                                  aria-label={`R&R Keyman: ${rr.actor_name}`}
-                                  onClick={() => {
-                                    setFocusEntity(null);
-                                    setFocusPerson({
-                                      personId: person.person_id,
-                                      personName: person.person_name,
-                                    });
-                                  }}
-                                >
-                                  <strong>{rr.actor_name}</strong>
-                                </button>
-                              ) : (
-                                <strong>{rr.actor_name}</strong>
-                              )}
+                              {actorName}
                               {rr.affiliated_organization_name && (
                                 <span className="rr-affiliation"> ({rr.affiliated_organization_name})</span>
                               )}
@@ -1272,6 +1362,7 @@ function PostDetailPopup({
               affiliateTrees={affiliateTrees}
               onSelectPerson={(personId, personName) => {
                 setFocusEntity(null);
+                setFocusTeam(null);
                 setFocusPerson({ personId, personName });
               }}
             />
@@ -1300,10 +1391,12 @@ function PostDetailPopup({
                       node={node}
                       onSelectPerson={(personId, personName) => {
                         setFocusEntity(null);
+                        setFocusTeam(null);
                         setFocusPerson({ personId, personName });
                       }}
                       onSelectEntity={(entityId, entityName) => {
                         setFocusPerson(null);
+                        setFocusTeam(null);
                         setFocusEntity({ entityId, entityName });
                       }}
                     />
@@ -1321,6 +1414,7 @@ function PostDetailPopup({
               onSelectPost={onSelectPost}
               focusPerson={focusPerson}
               focusEntity={focusEntity}
+              focusTeam={focusTeam}
             />
 
             {counterparties && counterparties.length > 0 && (
@@ -1332,6 +1426,7 @@ function PostDetailPopup({
                 onVerified={reloadCounterparties}
                 onSelectEntity={(entityId, entityName) => {
                   setFocusPerson(null);
+                  setFocusTeam(null);
                   setFocusEntity({ entityId, entityName });
                 }}
               />

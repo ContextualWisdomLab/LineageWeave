@@ -3,7 +3,7 @@
 Tool-specific pointer. Policy lives in [AGENTS.md](AGENTS.md) and the
 ADRs under `docs/adr/`. Do not fork those rules here.
 
-## Analysis-run seed (v0.85.1)
+## Analysis-run seed (v0.86.1)
 
 `make seed` writes a Demo Corp lineage run and a TEPP run on the same
 snapshot (ADR 0013). The TEPP path goes through `tepp_client`. A missing

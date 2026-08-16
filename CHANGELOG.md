@@ -4,7 +4,7 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.85.1] - 2026-08-16
+## [0.86.1] - 2026-08-16
 
 ### Fixed
 
@@ -15,6 +15,24 @@ All notable changes to this project are documented here. Format follows
   the 24px pointer target (WCAG 2.2 SC 1.4.13 and 2.5.8; WAI-ARIA APG
   Disclosure). A hover `title` is no longer the only path. The home
   list still hides digests even when the list JSON includes them.
+
+## [0.86.0] - 2026-08-16
+
+### Added
+
+- Related-node walks now include team and organization mention edges.
+  After `make seed` and a summary that names 설계팀 on two posts, open
+  either post, click the R&R team, and open the sibling post (ADR 0018).
+  A team-only follow-up is no longer an island.
+- `GET /api/teams/{team_id}/related` starts the same RWR walk Keyman
+  and corporate-entity related already use. Related team chips are
+  buttons.
+
+### Fixed
+
+- Thread-group analysis-run *lists* now require an in-cutoff visible
+  post. A later public post in that thread group no longer surfaces a
+  January run the account was not allowed to know.
 
 ## [0.85.0] - 2026-08-16
 
