@@ -136,9 +136,16 @@ create table if not exists analysis_run (
             'analysis_run_tepp'
         )),
     constraint analysis_run_idempotency_key_check
-        check (length(btrim(idempotency_key)) between 1 and 256),
+        check (
+            idempotency_key = btrim(idempotency_key)
+            and length(idempotency_key) between 1 and 256
+            and idempotency_key !~ '[[:cntrl:]]'
+        ),
     constraint analysis_run_configuration_version_check
-        check (length(btrim(configuration_schema_version)) between 1 and 128),
+        check (
+            configuration_schema_version = btrim(configuration_schema_version)
+            and length(configuration_schema_version) between 1 and 128
+        ),
     constraint analysis_run_configuration_digest_check
         check (configuration_sha256 ~ '^[0-9a-f]{64}$'),
     constraint analysis_run_model_digest_check
@@ -171,7 +178,7 @@ comment on table analysis_run is
 
 create table if not exists analysis_run_scope (
     analysis_run_id uuid primary key
-        references analysis_run (analysis_run_id) on delete cascade,
+        references analysis_run (analysis_run_id),
     scope_kind_code text not null
         references common_lookup_value (lookup_code),
     corporate_entity_id uuid
@@ -207,7 +214,9 @@ create table if not exists analysis_run_scope (
                 and corporate_entity_id is null
                 and process_unit_id is null
                 and scope_key is not null
-                and length(btrim(scope_key)) between 1 and 256)
+                and scope_key = btrim(scope_key)
+                and length(scope_key) between 1 and 256
+                and scope_key !~ '[[:cntrl:]]')
         )
 );
 
@@ -219,12 +228,12 @@ create index if not exists analysis_run_scope_unit_idx
     where process_unit_id is not null;
 
 comment on table analysis_run_scope is
-    'At most one authorization-relevant product scope for an immutable run; '
-    'process-unit ownership remains derivable from process_unit.';
+    'One immutable authorization-relevant scope is required before lifecycle '
+    'evidence; process-unit ownership remains derivable from process_unit.';
 
 create table if not exists analysis_run_status_event (
     analysis_run_id uuid not null
-        references analysis_run (analysis_run_id) on delete cascade,
+        references analysis_run (analysis_run_id),
     status_ordinal integer not null,
     status_code text not null
         references common_lookup_value (lookup_code),
@@ -249,7 +258,7 @@ create table if not exists analysis_run_status_event (
         check (
             (status_code = 'analysis_status_failed'
                 and failure_code is not null
-                and length(btrim(failure_code)) between 1 and 128)
+                and failure_code ~ '^[a-z][a-z0-9_]{0,127}$')
             or
             (status_code <> 'analysis_status_failed'
                 and failure_code is null
@@ -354,6 +363,10 @@ declare
     snapshot_available_time timestamptz;
     snapshot_capture_time timestamptz;
 begin
+    if new.requested_at > clock_timestamp() then
+        raise exception 'analysis_run_request_time_in_future';
+    end if;
+
     select maximum_available_time, captured_at
       into snapshot_available_time, snapshot_capture_time
       from analysis_source_snapshot
@@ -383,7 +396,13 @@ create trigger analysis_run_knowledge_cutoff_guard
 before insert on analysis_run
 for each row execute function enforce_analysis_run_knowledge_cutoff();
 
-create or replace function reject_analysis_run_update()
+drop trigger if exists analysis_run_update_reject
+    on analysis_run;
+drop trigger if exists analysis_run_mutation_reject
+    on analysis_run;
+drop function if exists reject_analysis_run_update();
+
+create or replace function reject_analysis_run_mutation()
 returns trigger
 language plpgsql
 as $$
@@ -392,15 +411,32 @@ begin
 end
 $$;
 
-comment on function reject_analysis_run_update() is
-    'Rejects mutation of actor, scope root, cutoff, or reproducibility digests; '
-    'run progress belongs to append-only status events.';
+comment on function reject_analysis_run_mutation() is
+    'Rejects update or delete of actor, cutoff, idempotency, and reproducibility '
+    'evidence; run progress belongs to append-only status events.';
 
-drop trigger if exists analysis_run_update_reject
-    on analysis_run;
-create trigger analysis_run_update_reject
-before update on analysis_run
-for each row execute function reject_analysis_run_update();
+create trigger analysis_run_mutation_reject
+before update or delete on analysis_run
+for each row execute function reject_analysis_run_mutation();
+
+create or replace function reject_analysis_run_scope_mutation()
+returns trigger
+language plpgsql
+as $$
+begin
+    raise exception 'analysis_run_scope_is_immutable';
+end
+$$;
+
+comment on function reject_analysis_run_scope_mutation() is
+    'Rejects update or delete of the authorization-relevant scope attached to '
+    'an immutable analysis request.';
+
+drop trigger if exists analysis_run_scope_mutation_reject
+    on analysis_run_scope;
+create trigger analysis_run_scope_mutation_reject
+before update or delete on analysis_run_scope
+for each row execute function reject_analysis_run_scope_mutation();
 
 create or replace function reject_analysis_run_status_mutation()
 returns trigger
@@ -434,10 +470,12 @@ declare
     previous_ordinal integer;
     previous_status_code text;
     previous_occurred_at timestamptz;
+    run_requested_at timestamptz;
 begin
     -- The immutable parent row is a per-run serialization lock. It prevents
     -- concurrent writers from both accepting the same next ordinal.
-    perform 1
+    select requested_at
+      into run_requested_at
       from analysis_run
      where analysis_run_id = new.analysis_run_id
      for update;
@@ -445,6 +483,16 @@ begin
     if not found then
         raise exception 'analysis_run_not_found';
     end if;
+    if not exists (
+        select 1 from analysis_run_scope
+         where analysis_run_id = new.analysis_run_id
+    ) then
+        raise exception 'analysis_run_scope_required';
+    end if;
+    if new.occurred_at < run_requested_at then
+        raise exception 'analysis_run_status_before_request';
+    end if;
+    new.recorded_at := clock_timestamp();
 
     select status_ordinal, status_code, occurred_at
       into previous_ordinal, previous_status_code, previous_occurred_at
@@ -492,8 +540,8 @@ end
 $$;
 
 comment on function enforce_analysis_run_status_transition() is
-    'Serializes status appends and enforces pending-first, contiguous ordinals, '
-    'monotonic occurrence time, legal transitions, and terminal finality.';
+    'Serializes status appends and requires immutable scope, request-time '
+    'ordering, database-recorded time, legal transitions, and terminal finality.';
 
 drop trigger if exists analysis_run_status_transition_guard
     on analysis_run_status_event;

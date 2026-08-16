@@ -38,6 +38,8 @@ drop table if exists analysis_source_snapshot;
 
 drop function if exists enforce_analysis_run_status_transition();
 drop function if exists reject_analysis_run_status_mutation();
+drop function if exists reject_analysis_run_scope_mutation();
+drop function if exists reject_analysis_run_mutation();
 drop function if exists reject_analysis_run_update();
 drop function if exists enforce_analysis_run_knowledge_cutoff();
 drop function if exists enforce_analysis_source_count_freeze();
