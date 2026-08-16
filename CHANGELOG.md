@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.80.0] - 2026-08-16
+
+### Added
+
+- Home Analysis runs rows are buttons. Clicking the seeded Demo Corp
+  lineage run opens `GET /api/analysis-runs/{id}` and shows cutoff,
+  requested date, and document count. A hidden run is "This analysis
+  run is not visible." -- never a raw 404 or a DSN. Still synthetic
+  aggregates only.
+
 ## [0.79.0] - 2026-08-16
 
 ### Added
