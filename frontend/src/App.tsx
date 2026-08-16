@@ -469,25 +469,40 @@ const NODE_PERSON = "node_person";
 const NODE_POST = "node_post";
 const NODE_CORPORATE_ENTITY = "node_corporate_entity";
 
+/**
+ * Build the related-node chip caption the buyer reads and activates.
+ *
+ * Person chips add a unique organization, or "multiple organizations"
+ * when the payload marks a known-plural set, so a missing affiliation
+ * and an ambiguous set are not the same next action. Organization
+ * chips use the entity-level label. Post chips stay title-only.
+ */
 function relatedNodeCaption(node: RelatedNode): string {
   const name = node.label ?? node.node_id;
-  if (node.node_type_code === NODE_PERSON) {
+  const nodeType = node.node_type_code;
+  if (nodeType === NODE_PERSON) {
     const side = node.person_side_label?.trim() || node.person_side_code?.trim();
     const org = node.affiliation_organization_name?.trim();
-    if (side && org) {
-      return `${name}, ${org} (${side})`;
+    const context = org || (node.affiliation_ambiguous ? "multiple organizations" : "");
+    if (side && context) {
+      return `${name}, ${context} (${side})`;
     }
     if (side) {
       return `${name} (${side})`;
     }
+    if (context) {
+      return `${name}, ${context}`;
+    }
+    return name;
   }
-  if (node.node_type_code === NODE_CORPORATE_ENTITY) {
+  if (nodeType === NODE_CORPORATE_ENTITY) {
     const level = node.entity_level_label?.trim() || node.entity_level_code?.trim();
     if (level) {
       return `${name} (${level})`;
     }
+    return name;
   }
-  if (node.node_type_code === NODE_POST) {
+  if (nodeType === NODE_POST) {
     return name;
   }
   return `${name} (${node.ontology_label ?? node.node_type_code})`;

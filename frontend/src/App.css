@@ -263,10 +263,10 @@
 .keyman-select {
   background: none;
   border: none;
-  padding: 0;
+  padding: var(--chip-action-padding);
   color: inherit;
   cursor: pointer;
-  font: inherit;
+  font: var(--chip-action-font);
   text-align: left;
 }
 
@@ -330,7 +330,7 @@
 }
 
 .related-keymen {
-  margin-top: 0.75rem;
+  margin-top: var(--space-related);
 }
 
 .ticket-list {

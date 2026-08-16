@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.76.0] - 2026-08-16
+
+### Changed
+
+- Related-node person chips distinguish a known-plural affiliation
+  set from a missing one. After `make seed`, walking from Ada West
+  shows "Priya Nair, multiple organizations (Counterparty)" so the
+  next action is to open the Keyman panel for the full list. The
+  chip still never names a guessed primary. A person with no
+  affiliation stays side-only. Unresolved names that differ only
+  by letter case count as one identity.
+
 ## [0.75.0] - 2026-08-16
 
 ### Changed

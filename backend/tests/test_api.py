@@ -886,6 +886,7 @@ def test_related_keymen_use_rwr_and_hide_invisible_posts(client, demo_analyst_to
     assert counterpart["person_side_code"] == "counterparty"
     assert counterpart["person_side_label"] == "Counterparty"
     assert "affiliation_organization_name" not in counterpart
+    assert counterpart["affiliation_ambiguous"] is True
     for node in body["related"]:
         if node["node_type_code"] != "node_person":
             continue
@@ -924,6 +925,7 @@ def test_related_corporate_entity_uses_rwr_and_hides_invisible_posts(
     assert our_person["person_side_code"] == "our_side"
     assert our_person["person_side_label"] == "Our side"
     assert our_person["affiliation_organization_name"] == "Test Corp"
+    assert "affiliation_ambiguous" not in our_person
     assert seeded_db["other_private_post_id"] not in related_ids
     assert seeded_db["hidden_person_id"] not in related_ids
 

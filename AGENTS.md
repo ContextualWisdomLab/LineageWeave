@@ -52,7 +52,11 @@ must set `available = False` and make their channel dropped +
 renormalized (`reconstruct.active_weights`), never silently return a
 placeholder score, invented Keyman, guessed relationship, fabricated
 summary/chat, or invented commitment. A missing signal and a
-confidently-negative signal are different things. Keyman extraction,
+confidently-negative signal are different things. Related-node person
+chips follow the same rule: a known-plural affiliation set emits
+`affiliation_ambiguous` and the caption `multiple organizations`; it
+must not look like a person with no affiliation, and it must not
+invent a primary organization. Keyman extraction,
 entity-relationship classification, post summary, in-popup chat, and
 commitment derivation go through contextual-orchestrator the same way
 adjudication does -- never a raw LLM API.

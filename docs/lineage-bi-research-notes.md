@@ -17,7 +17,11 @@ Psychometrics Platform) answers. TEPP estimates calibrated latent-construct
 scores and trajectories from evidence-grounded text under an explicit
 multilevel/multiple-membership model (its own literature register,
 `docs/research/standards-and-literature.md`, is built on Raudenbush and
-Bryk (2002) and Browne et al. (2001) -- see below). LineageWeave's channel
+Bryk (2002) and Browne et al. (2001) -- see below). Related-node person
+chips apply that multiple-membership rule at the display boundary: a
+known-plural affiliation set is labeled `multiple organizations` rather
+than collapsed into a guessed primary or hidden as if no affiliation
+existed (ISO 9241-110; Browne et al., 2001). LineageWeave's channel
 scores are a much weaker claim: "this pair of records plausibly continues
 one another," produced by fast, cheap heuristics plus an optional LLM
 judgment, with no calibration or uncertainty quantification. TEPP's own
@@ -220,6 +224,8 @@ Fellegi, I. P., & Sunter, A. B. (1969). A theory for record linkage. *Journal of
 Gildea, D., & Jurafsky, D. (2002). Automatic labeling of semantic roles. *Computational Linguistics*, *28*(3), 245-288. https://doi.org/10.1162/089120102760275983
 
 Hearst, M. A. (1997). TextTiling: Segmenting text into multi-paragraph subtopic passages. *Computational Linguistics*, *23*(1), 33-64.
+
+International Organization for Standardization. (2020). *Ergonomics of human-system interaction — Part 110: Interaction principles* (ISO 9241-110:2020). https://www.iso.org/standard/75258.html
 
 Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., Küttler, H., Lewis, M., Yih, W., Rocktäschel, T., Riedel, S., & Kiela, D. (2020). Retrieval-augmented generation for knowledge-intensive NLP tasks. In H. Larochelle, M. Ranzato, R. Hadsell, M. F. Balcan, & H. Lin (Eds.), *Advances in Neural Information Processing Systems* (Vol. 33, pp. 9459-9474). Curran Associates.
 

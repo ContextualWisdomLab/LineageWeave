@@ -538,6 +538,7 @@ describe("App, authenticated", () => {
                 label: "Priya Nair",
                 person_side_code: "counterparty",
                 person_side_label: "Counterparty",
+                affiliation_ambiguous: true,
                 relevance: 0.4,
               },
               {
@@ -980,13 +981,18 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     expect(
-      screen.getByRole("button", { name: "Related nodes for Priya Nair (Counterparty)" }),
+      screen.getByRole("button", {
+        name: "Related nodes for Priya Nair, multiple organizations (Counterparty)",
+      }),
     ).toBeInTheDocument();
     expect(screen.getByText("Related to Ada West").closest(".related-keymen")).not.toHaveTextContent(
       "Priya Nair (Person)",
     );
     expect(screen.getByText("Related to Ada West").closest(".related-keymen")).not.toHaveTextContent(
       "Priya Nair, Northridge Grid (Counterparty)",
+    );
+    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).not.toHaveTextContent(
+      "Priya Nair (Counterparty)",
     );
     const relatedPanel = screen.getByText("Related to Ada West").closest(".related-keymen");
     expect(relatedPanel).toHaveTextContent("Linked post");
@@ -1004,7 +1010,9 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "R&R Keyman: Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     expect(
-      screen.getByRole("button", { name: "Related nodes for Priya Nair (Counterparty)" }),
+      screen.getByRole("button", {
+        name: "Related nodes for Priya Nair, multiple organizations (Counterparty)",
+      }),
     ).toBeInTheDocument();
   });
 

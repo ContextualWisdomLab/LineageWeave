@@ -58,9 +58,10 @@ def test_related_person_exposes_one_unambiguous_affiliation() -> None:
     """A single known affiliation is safe to use as compact display context."""
     node = _hydrate([{"affiliated_organization_name": "Northridge Grid"}])
     assert node["affiliation_organization_name"] == "Northridge Grid"
+    assert "affiliation_ambiguous" not in node
 
 
-def test_related_person_omits_affiliation_when_multiple_are_known() -> None:
+def test_related_person_marks_ambiguous_when_multiple_are_known() -> None:
     """Multiple affiliations must not be collapsed into an invented primary one."""
     node = _hydrate(
         [
@@ -69,12 +70,14 @@ def test_related_person_omits_affiliation_when_multiple_are_known() -> None:
         ]
     )
     assert "affiliation_organization_name" not in node
+    assert node["affiliation_ambiguous"] is True
 
 
 def test_related_person_omits_blank_affiliation() -> None:
     """Whitespace-only extraction strings are missing evidence, not a name."""
     node = _hydrate([{"affiliated_organization_name": "   "}])
     assert "affiliation_organization_name" not in node
+    assert "affiliation_ambiguous" not in node
 
 
 def test_related_person_uses_catalog_name_for_one_resolved_org() -> None:
@@ -89,6 +92,7 @@ def test_related_person_uses_catalog_name_for_one_resolved_org() -> None:
         ]
     )
     assert node["affiliation_organization_name"] == "Demo Corp"
+    assert "affiliation_ambiguous" not in node
 
 
 def test_related_person_collapses_aliases_of_one_catalog_org() -> None:
@@ -108,6 +112,7 @@ def test_related_person_collapses_aliases_of_one_catalog_org() -> None:
         ]
     )
     assert node["affiliation_organization_name"] == "Demo Corp"
+    assert "affiliation_ambiguous" not in node
 
 
 def test_related_person_collapses_unresolved_name_matching_catalog() -> None:
@@ -123,9 +128,22 @@ def test_related_person_collapses_unresolved_name_matching_catalog() -> None:
         ]
     )
     assert node["affiliation_organization_name"] == "Demo Corp"
+    assert "affiliation_ambiguous" not in node
 
 
-def test_related_person_omits_resolved_plus_distinct_unresolved() -> None:
+def test_related_person_collapses_unresolved_names_that_differ_only_by_case() -> None:
+    """Two unresolved strings that casefold-match are one identity, not a plural set."""
+    node = _hydrate(
+        [
+            {"affiliated_organization_name": "Northridge Grid"},
+            {"affiliated_organization_name": "northridge grid"},
+        ]
+    )
+    assert node["affiliation_organization_name"] == "Northridge Grid"
+    assert "affiliation_ambiguous" not in node
+
+
+def test_related_person_marks_resolved_plus_distinct_unresolved_ambiguous() -> None:
     """A catalog org plus a different unresolved name stays ambiguous."""
     node = _hydrate(
         [
@@ -138,3 +156,4 @@ def test_related_person_omits_resolved_plus_distinct_unresolved() -> None:
         ]
     )
     assert "affiliation_organization_name" not in node
+    assert node["affiliation_ambiguous"] is True
