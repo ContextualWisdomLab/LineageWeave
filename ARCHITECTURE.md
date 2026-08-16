@@ -555,8 +555,10 @@ Counterpart Keyman lists authorized customer-appointment excerpts in
 `#vocExcerpts` when the document already has appointment text. Name matches
 are preferred; otherwise the authorized excerpts stay under the relative-side
 card. Excerpts that name a counterpart also render under that actor via
-`vocExcerptsForCounterpart`. This is a presentation of existing appointment
-evidence, not a new VOC edge or Lineage transition.
+`vocExcerptsForCounterpart`. When `vocExcerptEvidenceId` finds an authorized
+source guid (or a same-document event guid), the excerpt opens the existing
+원문 drawer. This is a presentation of existing appointment evidence, not a
+new VOC edge or Lineage transition.
 
 Event-lineage chat is a live-model question over the authorized document
 neighborhood. If the transport returns `live_model_unavailable`, React sets

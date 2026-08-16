@@ -174,6 +174,22 @@ export function counterpartVocExcerpts(appointments = [], counterparts = []) {
   return (matched.length ? matched : rows).slice(0, 8);
 }
 
+export function vocExcerptEvidenceId(excerpt = {}, events = []) {
+  const candidates = [
+    excerpt?.source_evidence_id,
+    excerpt?.guid,
+    excerpt?.evidence_id,
+    ...((Array.isArray(events) ? events : []).map((item) => item?.guid || item?.evidence_id)),
+  ];
+  for (const value of candidates) {
+    const text = String(value || "").trim();
+    if (text && !text.includes(":") && !text.startsWith("http") && !text.startsWith("urn:")) {
+      return text;
+    }
+  }
+  return "";
+}
+
 export function vocExcerptsForCounterpart(appointments = [], counterpart = {}) {
   const names = [counterpart?.actor_name, counterpart?.person_name, counterpart?.org_name, counterpart?.organization_name]
     .map((value) => String(value || "").trim().toLowerCase())
