@@ -174,6 +174,21 @@ export function counterpartVocExcerpts(appointments = [], counterparts = []) {
   return (matched.length ? matched : rows).slice(0, 8);
 }
 
+export function vocExcerptsForCounterpart(appointments = [], counterpart = {}) {
+  const names = [counterpart?.actor_name, counterpart?.person_name, counterpart?.org_name, counterpart?.organization_name]
+    .map((value) => String(value || "").trim().toLowerCase())
+    .filter(Boolean);
+  if (!names.length) return [];
+  return (Array.isArray(appointments) ? appointments : [])
+    .filter((item) => {
+      const excerpt = String(item?.excerpt || "").trim();
+      if (!excerpt) return false;
+      const blob = `${excerpt} ${item.label || ""}`.toLowerCase();
+      return names.some((name) => blob.includes(name));
+    })
+    .slice(0, 4);
+}
+
 export function partitionLineageBeads(beads = []) {
   const segments = [];
   const observations = [];
