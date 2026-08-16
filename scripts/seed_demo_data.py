@@ -235,22 +235,27 @@ def seed(
             cur.execute("select post_id from source_post where post_title = 'Demo public post'")
             if cur.fetchone() is None:
                 cur.execute(
-                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at) "
+                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at, updated_at) "
                     "values (%s, %s, %s, 'Demo public post', "
                     "'Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.', "
-                    "'voc', 'public', '2026-01-10T12:00:00Z')",
+                    "'voc', 'public', '2026-01-10T12:00:00Z', '2026-01-13T09:00:00Z')",
                     (account_ids["demo.analyst"], corporate_entity_id, process_units["DEMO-PU-A"]),
                 )
                 cur.execute(
-                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at) "
-                    "values (%s, %s, %s, 'Demo private post', 'A synthetic private post scoped to Demo Corp accounts.', 'vom', 'private', '2026-01-10T12:00:00Z')",
+                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at, updated_at) "
+                    "values (%s, %s, %s, 'Demo private post', 'A synthetic private post scoped to Demo Corp accounts.', 'vom', 'private', '2026-01-10T12:00:00Z', '2026-01-10T12:00:00Z')",
                     (account_ids["demo.admin"], corporate_entity_id, process_units["DEMO-PU-HQ"]),
                 )
 
             cur.execute(
-                "update source_post set created_at = '2026-01-10T12:00:00Z' "
-                "where post_title in ('Demo public post', 'Demo private post') "
-                "and created_at > '2026-01-12T12:00:00Z'"
+                "update source_post set created_at = '2026-01-10T12:00:00Z', "
+                "updated_at = '2026-01-13T09:00:00Z' "
+                "where post_title = 'Demo public post'"
+            )
+            cur.execute(
+                "update source_post set created_at = '2026-01-10T12:00:00Z', "
+                "updated_at = '2026-01-10T12:00:00Z' "
+                "where post_title = 'Demo private post'"
             )
             cur.execute("select post_id from source_post where post_title = 'Demo public post'")
             demo_public_post_id = cur.fetchone()[0]
@@ -379,8 +384,8 @@ def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, pro
             "insert into source_post "
             "(author_account_id, corporate_entity_id, process_unit_id, "
             " post_title, post_body, voc_type_code, visibility_code, "
-            " thread_group_key, secondary_grouping_key, created_at) "
-            "values (%s, %s, %s, %s, %s, %s, 'public', %s, %s, %s) returning post_id",
+            " thread_group_key, secondary_grouping_key, created_at, updated_at) "
+            "values (%s, %s, %s, %s, %s, %s, 'public', %s, %s, %s, %s) returning post_id",
             (
                 author_account_id,
                 corporate_entity_id,
@@ -390,6 +395,7 @@ def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, pro
                 voc_type,
                 rec.group_key,
                 rec.secondary_key,
+                occurred,
                 occurred,
             ),
         )
