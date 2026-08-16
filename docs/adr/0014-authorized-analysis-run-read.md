@@ -45,7 +45,10 @@ kinds without a second application. The TEPP run is Failed /
 keeps that machine code off the caption (this decision) and instead
 tells the operator to open the TEPP run, then connect the measurement
 service. A failed lineage row tells the operator to retry
-reconstruction, not to connect TEPP. The detail now shows the legal
+reconstruction, not to connect TEPP. A failed period-report row
+tells the operator to rebuild the report from a current snapshot.
+A pending or running TEPP row must not claim a calibrated
+measurement. The detail now shows the legal
 lifecycle the registry already stored. `POST /api/analysis-runs` now
 records a Pending run on an authorized cutoff capture (ADR 0017).
 Reconstruction, a live TEPP transport, and a fuller Analysis Run

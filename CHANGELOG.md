@@ -21,6 +21,9 @@ All notable changes to this project are documented here. Format follows
 - Thread-group analysis-run *lists* now require an in-cutoff visible
   post. A later public post in that thread group no longer surfaces a
   January run the account was not allowed to know.
+- Failed period-report rows tell the operator to rebuild the report.
+  Next-action copy is pinned to the registered run kinds. A pending
+  TEPP corpus does not claim a calibrated measurement.
 
 ## [0.85.0] - 2026-08-16
 
@@ -62,7 +65,10 @@ All notable changes to this project are documented here. Format follows
   snapshot-count inserts once counts exist so a re-run does not hit
   the freeze trigger. A failed lineage row tells the operator to retry
   reconstruction; only a failed TEPP row mentions the measurement
-  service. Stacked PRs now run the same GitHub Checks as PRs to main.
+  service. A failed period-report row tells the operator to rebuild
+  the report from a current snapshot. A pending TEPP row does not
+  claim a calibrated measurement. Stacked PRs now run the same
+  GitHub Checks as PRs to main.
 
 ## [0.83.0] - 2026-08-16
 
