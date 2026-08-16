@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.84.0] - 2026-08-16
+
+### Added
+
+- `make seed` records a Demo Corp TEPP measurement run through
+  `tepp_client`. The default transport is unavailable, so the home
+  list shows "TEPP measurement · Failed · Demo Corp" with
+  `tepp_not_available` -- never a fabricated theta. TEPP stays a
+  wire client, not a local psychometric engine.
+
 ## [0.83.0] - 2026-08-16
 
 ### Fixed

@@ -467,6 +467,9 @@ run's scope whose `created_at` is at or before the run
 `knowledge_cutoff`, so a later post cannot appear inside a historical
 reconstruction (ADR 0016). Detail also returns revision and
 configuration digest prefixes.
+`make seed` also records a TEPP measurement run through
+`tepp_client`; the default transport is unavailable, so that run is
+Failed / `tepp_not_available` rather than a fabricated score.
 The home list is clickable: `GET /api/analysis-runs/{id}` fills a
 labeled detail (cutoff, requested date, counts, status history, digests)
 without exposing a DSN or raw record. Status history is detail-only

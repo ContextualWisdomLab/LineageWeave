@@ -361,6 +361,11 @@ def seed(
                 account_ids["demo.analyst"],
                 corporate_entity_id,
             )
+            _seed_demo_tepp_run(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+            )
 
         conn.commit()
     finally:
@@ -1323,6 +1328,122 @@ def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -
             on conflict do nothing
             """,
             (run_id, ordinal, status, occurred),
+        )
+
+
+def tepp_seed_outcome() -> tuple[str, str | None]:
+    """Ask TEPP through the published client. A missing transport is Failed.
+
+    Never invents a psychometric score. ``tepp_not_available`` means the
+    channel was dropped, not a calibrated negative result.
+    """
+    from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
+
+    request = AnalysisRunRequest(
+        idempotency_key="demo-tepp-seed-2026-w02",
+        tenant_workspace_id="demo-workspace",
+        snapshot_id="demo-source-contract-v1",
+        knowledge_cutoff="2026-01-12T12:00:00Z",
+        model_contract_version="tepp-analysis-run-v1",
+        output_profile="calibrated_event_measurement",
+    )
+    try:
+        TeppClient().submit_analysis_run(request)
+    except TeppNotAvailable:
+        return "analysis_status_failed", "tepp_not_available"
+    return "analysis_status_succeeded", None
+
+
+def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> None:
+    """Insert one Demo-Corp TEPP run so the kind is visible without a live TEPP.
+
+    Uses :func:`tepp_seed_outcome`. Default transport is unavailable, so
+    the run ends Failed / ``tepp_not_available`` -- never a fake theta.
+    """
+    import hashlib
+
+    digest = hashlib.sha256(b"lineageweave-synthetic-tepp-snapshot-v1").hexdigest()
+    cur.execute(
+        "select analysis_source_snapshot_id from analysis_source_snapshot "
+        "where snapshot_sha256 = %s",
+        (digest,),
+    )
+    snapshot_row = cur.fetchone()
+    if snapshot_row is None:
+        cur.execute(
+            """
+            insert into analysis_source_snapshot
+                (snapshot_sha256, source_contract_version,
+                 maximum_available_time, captured_at)
+            values (%s, 'demo-tepp-contract-v1',
+                    '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
+            returning analysis_source_snapshot_id
+            """,
+            (digest,),
+        )
+        snapshot_id = cur.fetchone()[0]
+    else:
+        snapshot_id = snapshot_row[0]
+    cur.execute(
+        """
+        insert into analysis_source_count
+            (analysis_source_snapshot_id, count_type_code, count_value)
+        values (%s, 'analysis_count_document', 3)
+        on conflict do nothing
+        """,
+        (snapshot_id,),
+    )
+    cur.execute(
+        """
+        select analysis_run_id from analysis_run
+        where requested_by_account_id = %s
+          and idempotency_key = 'demo-tepp-seed-2026-w02'
+        """,
+        (requested_by_account_id,),
+    )
+    run_row = cur.fetchone()
+    if run_row is None:
+        cur.execute(
+            """
+            insert into analysis_run
+                (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                 requested_by_account_id, knowledge_cutoff,
+                 configuration_schema_version, configuration_sha256,
+                 code_revision_sha, requested_at)
+            values (%s, 'analysis_run_tepp', 'demo-tepp-seed-2026-w02',
+                    %s, '2026-01-12T12:00:00Z', 'tepp-run-v1', %s, %s,
+                    '2026-01-12T12:34:00Z')
+            returning analysis_run_id
+            """,
+            (snapshot_id, requested_by_account_id, "d" * 64, "e" * 40),
+        )
+        run_id = cur.fetchone()[0]
+    else:
+        run_id = run_row[0]
+    cur.execute(
+        """
+        insert into analysis_run_scope
+            (analysis_run_id, scope_kind_code, corporate_entity_id)
+        values (%s, 'analysis_scope_corporate_entity', %s)
+        on conflict (analysis_run_id) do nothing
+        """,
+        (run_id, corporate_entity_id),
+    )
+    final_status, failure_code = tepp_seed_outcome()
+    events = [
+        (1, "analysis_status_pending", "2026-01-12T12:35:00Z", None),
+        (2, "analysis_status_running", "2026-01-12T12:36:00Z", None),
+        (3, final_status, "2026-01-12T12:37:00Z", failure_code),
+    ]
+    for ordinal, status, occurred, fail in events:
+        cur.execute(
+            """
+            insert into analysis_run_status_event
+                (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
+            values (%s, %s, %s, %s, %s)
+            on conflict do nothing
+            """,
+            (run_id, ordinal, status, occurred, fail),
         )
 
 
