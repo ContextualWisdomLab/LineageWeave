@@ -514,6 +514,9 @@ describe("App, authenticated", () => {
                 ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
                 ontology_label: "Person",
                 label: "Ada West",
+                person_side_code: "our_side",
+                person_side_label: "Our side",
+                affiliation_organization_name: "Demo Corp",
                 relevance: 0.4,
               },
             ],
@@ -533,6 +536,9 @@ describe("App, authenticated", () => {
                 ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
                 ontology_label: "Person",
                 label: "Priya Nair",
+                person_side_code: "counterparty",
+                person_side_label: "Counterparty",
+                affiliation_ambiguous: true,
                 relevance: 0.4,
               },
               {
@@ -549,6 +555,8 @@ describe("App, authenticated", () => {
                 ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Organization",
                 ontology_label: "Organization",
                 label: "Demo Corp",
+                entity_level_code: "company",
+                entity_level_label: "Company",
                 relevance: 0.2,
               },
             ],
@@ -567,6 +575,9 @@ describe("App, authenticated", () => {
                 ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
                 ontology_label: "Person",
                 label: "Ada West",
+                person_side_code: "our_side",
+                person_side_label: "Our side",
+                affiliation_organization_name: "Demo Corp",
                 relevance: 0.5,
               },
             ],
@@ -969,7 +980,21 @@ describe("App, authenticated", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
-    expect(screen.getByText("Priya Nair (Person)")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Related nodes for Priya Nair, multiple organizations (Counterparty)" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).not.toHaveTextContent(
+      "Priya Nair (Person)",
+    );
+    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).not.toHaveTextContent(
+      "Northridge Grid",
+    );
+    const relatedPanel = screen.getByText("Related to Ada West").closest(".related-keymen");
+    expect(relatedPanel).toHaveTextContent(
+      "A chip that says multiple organizations is not a missing affiliation. Read every organization in the Keyman list above, then click the chip to continue the walk.",
+    );
+    expect(relatedPanel).toHaveTextContent("Linked post");
+    expect(relatedPanel).not.toHaveTextContent("Linked post (Post)");
     await userEvent.click(screen.getByRole("button", { name: "Open related post: Linked post" }));
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
@@ -982,7 +1007,9 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: "R&R Keyman: Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
-    expect(screen.getByText("Priya Nair (Person)")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Related nodes for Priya Nair, multiple organizations (Counterparty)" }),
+    ).toBeInTheDocument();
   });
 
   it("opens related nodes from a related corporate entity", async () => {
@@ -991,9 +1018,17 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Demo Corp" }));
+    expect(
+      screen.getByRole("button", { name: "Related nodes for Demo Corp (Company)" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).not.toHaveTextContent(
+      "Demo Corp (Organization)",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Demo Corp (Company)" }));
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
-    expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Related nodes for Ada West, Demo Corp (Our side)" }),
+    ).toBeInTheDocument();
   });
 
   it("shows the VOC excerpt under its counterparty, not a detached list", async () => {
@@ -1022,7 +1057,9 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: "VOC Keyman: Northridge Grid" }));
     await waitFor(() => expect(screen.getByText("Related to Priya Nair")).toBeInTheDocument());
-    expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Related nodes for Ada West, Demo Corp (Our side)" }),
+    ).toBeInTheDocument();
   });
 
   it("opens related Keyman nodes from an affiliate-tree person", async () => {
@@ -1031,7 +1068,9 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: "Affiliate Keyman: Priya Nair" }));
     await waitFor(() => expect(screen.getByText("Related to Priya Nair")).toBeInTheDocument());
-    expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Related nodes for Ada West, Demo Corp (Our side)" }),
+    ).toBeInTheDocument();
   });
 
   it("opens related nodes from a Keyman affiliation organization", async () => {
@@ -1040,7 +1079,9 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: "Keyman affiliation: Demo Corp" }));
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
-    expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Related nodes for Ada West, Demo Corp (Our side)" }),
+    ).toBeInTheDocument();
   });
 
   it("opens related nodes from an affiliate-tree organization", async () => {
@@ -1049,7 +1090,9 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: "Affiliate org: Demo Corp" }));
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
-    expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Related nodes for Ada West, Demo Corp (Our side)" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Affiliate org: Northridge Grid" })).not.toBeInTheDocument();
   });
 
@@ -1059,7 +1102,9 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: "Counterparty org: Demo Corp" }));
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
-    expect(screen.getByText("Ada West (Person)")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Related nodes for Ada West, Demo Corp (Our side)" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Counterparty org: Northridge Grid" })).not.toBeInTheDocument();
   });
 

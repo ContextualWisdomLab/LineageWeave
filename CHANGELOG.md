@@ -4,6 +4,42 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.77.0] - 2026-08-16
+
+### Changed
+
+- When a related-node chip says `multiple organizations`, the related
+  panel now names the next action: read every organization in the
+  Keyman list above (or extract Keymen if that list is empty), then
+  click the chip to continue the walk. A stale payload that sends
+  both a name and `affiliation_ambiguous` still shows the plural
+  signal, never a guessed primary. Repeating chips use the
+  `RelatedNodeChip` module and `--related-node-*` tokens.
+
+## [0.76.0] - 2026-08-16
+
+### Changed
+
+- Related-node person chips distinguish a known-plural affiliation
+  set from a missing one. After `make seed`, walking from Ada West
+  shows `Priya Nair, multiple organizations (Counterparty)` so the
+  next action is to open the Keyman list. The chip still never names
+  a guessed primary. Two distinct catalog orgs are marked the same
+  way. A person with no affiliation stays side-only. Unresolved
+  names that differ only by letter case count as one identity.
+
+## [0.75.0] - 2026-08-16
+
+### Changed
+
+- Related-node chips use decision-relevant business context instead of
+  ontology-class noise. Walking from Demo Corp shows
+  `Ada West, Demo Corp (Our side)` and `Demo Corp (Company)`. A person
+  chip adds an organization only when exactly one identity is known;
+  a resolved catalog org shows `entity_name`, and aliases of that org
+  collapse. Post chips show the title only. Click the chip to continue
+  the walk, or open the Keyman list when you need every affiliation.
+
 ## [0.71.0] - 2026-08-14
 
 ### Added

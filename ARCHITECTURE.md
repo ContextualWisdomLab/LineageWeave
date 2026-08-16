@@ -320,7 +320,21 @@ is the same never-guess-a-parent rule
 `corporate_hierarchy_resolution` already applies. Entity levels and
 Keyman sides are labeled from `common_lookup_value` (`Our side`,
 `Plant`, `Company`) so the popup never shows raw `our_side` / `plant`
-codes when a label exists.
+codes when a label exists. Related-node person chips use the same
+side label plus compact affiliation context when exactly one
+distinct organization identity is known
+(`Ada West, Demo Corp (Our side)`), not the ontology class
+(`Ada West (Person)`). Multiple distinct affiliations set
+`affiliation_ambiguous` and the caption
+`Priya Nair, multiple organizations (Counterparty)` after
+`make seed` -- never a guessed primary, and never a side-only chip
+that looks like a missing affiliation. The related panel then says
+to read the Keyman list above (or extract Keymen) before clicking
+the chip to continue the walk. A resolved catalog org supplies `entity_name`;
+unresolved aliases of that same org collapse into it. Related-node
+organization chips use the entity-level label
+(`Demo Corp (Company)`), not `Organization`. Related-node post chips
+show the post title only, not `(Post)`.
 
 `GET /api/posts` and `GET /api/posts/{post_id}` include
 `voc_type_label` / `visibility_label` from `common_lookup_value` so
