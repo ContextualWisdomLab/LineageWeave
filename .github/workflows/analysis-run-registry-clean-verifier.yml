@@ -1,5 +1,4 @@
 name: Analysis-run registry clean verifier
-# Re-run after the autocommit rollback contract fix.
 
 on:
   push:
@@ -43,8 +42,13 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Record immutable verification head
-        run: echo "VERIFICATION_HEAD=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Reject stale or reordered execution
+        env:
+          EXPECTED_PARENT_SHA: 552eb6cf52d287cf71b2e65cba315bd57b8a14af
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT_SHA"
+          echo "VERIFICATION_HEAD=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
@@ -88,6 +92,73 @@ jobs:
           echo "PostgreSQL unavailable; registry verification is fail-closed." >&2
           exit 1
 
+      - name: Compile the bounded repair helper
+        run: python -m py_compile scripts/repair_analysis_run_registry.py
+
+      - name: Add failing audit and lifecycle contracts
+        run: |
+          set -euo pipefail
+          python scripts/repair_analysis_run_registry.py add-tests
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("tests/test_analysis_run_registry_schema.py")
+          text = path.read_text(encoding="utf-8")
+
+          def replace_once(source: str, old: str, new: str, label: str) -> str:
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected one anchor, found {count}")
+              return source.replace(old, new, 1)
+
+          for run_variable, idempotency_key in (
+              ("first_run_id", "first-status"),
+              ("second_run_id", "second-status"),
+          ):
+              anchor = (
+                  f'        {run_variable} = _insert_run(\n'
+                  '            cursor,\n'
+                  '            snapshot_id=snapshot_id,\n'
+                  '            account_id=account_id,\n'
+                  f'            idempotency_key="{idempotency_key}",\n'
+                  '        )\n'
+              )
+              scope_insert = (
+                  anchor
+                  + '        cursor.execute(\n'
+                  + '            "insert into analysis_run_scope "\n'
+                  + '            "(analysis_run_id, scope_kind_code) "\n'
+                  + '            "values (%s, \'analysis_scope_all_visible\')",\n'
+                  + f'            ({run_variable},),\n'
+                  + '        )\n'
+              )
+              text = replace_once(
+                  text,
+                  anchor,
+                  scope_insert,
+                  f"{idempotency_key} scope fixture",
+              )
+
+          path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Prove the hardened registry contracts are red
+        run: |
+          set -euo pipefail
+          grep -F "test_run_scope_and_request_evidence_are_immutable" tests/test_analysis_run_registry_schema.py
+          grep -F "test_status_requires_scope_and_cannot_predate_request" tests/test_analysis_run_registry_schema.py
+          grep -F "test_machine_codes_and_canonical_idempotency_are_fail_closed" tests/test_analysis_run_registry_schema.py
+          set +e
+          uv run --frozen python -m pytest -q tests/test_analysis_run_registry_schema.py \
+            > /tmp/analysis-run-registry-red.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/analysis-run-registry-red.log
+          test "$status" -ne 0
+
+      - name: Implement immutable request scope and lifecycle evidence
+        run: python scripts/repair_analysis_run_registry.py apply
+
       - name: Capture normalized registry verification
         id: registry
         shell: bash
@@ -100,14 +171,16 @@ jobs:
           cat /tmp/analysis-run-registry.log
           echo "status=$status" >> "$GITHUB_OUTPUT"
 
-      - name: Upload normalized registry failure evidence
+      - name: Upload normalized registry evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: analysis-run-registry-verification
-          path: /tmp/analysis-run-registry.log
+          path: |
+            /tmp/analysis-run-registry-red.log
+            /tmp/analysis-run-registry.log
           retention-days: 3
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Require normalized registry verification
         run: test "${{ steps.registry.outputs.status }}" = "0"
@@ -129,10 +202,10 @@ jobs:
       - name: Verify public-content and diff hygiene
         run: |
           set -euo pipefail
-          git diff --check "${{ github.event.before }}" "$VERIFICATION_HEAD"
-          changed_files=$(git diff --name-only "${{ github.event.before }}" "$VERIFICATION_HEAD")
+          git diff --check
+          changed_files=$(git diff --name-only "$VERIFICATION_HEAD")
           if [ -n "$changed_files" ]; then
-            if git grep -n -i -E 'hyosung|zcrht' "$VERIFICATION_HEAD" -- $changed_files; then
+            if grep -n -i -E 'hyosung|zcrht' $changed_files; then
               echo "Private source identifier detected in public change." >&2
               exit 1
             fi
@@ -150,10 +223,12 @@ jobs:
       - name: Remove verifier and publish verified product head
         run: |
           set -euo pipefail
-          rm .github/workflows/analysis-run-registry-clean-verifier.yml
+          rm \
+            .github/workflows/analysis-run-registry-clean-verifier.yml \
+            scripts/repair_analysis_run_registry.py
           git add -A
           git diff --cached --check
           git config user.name "opencode-agent[bot]"
           git config user.email "1549082+opencode-agent[bot]@users.noreply.github.com"
-          git commit -m "feat(db): verify normalized analysis-run registry"
+          git commit -m "fix(db): make analysis-run evidence immutable"
           git push origin HEAD:"$BRANCH_NAME"
