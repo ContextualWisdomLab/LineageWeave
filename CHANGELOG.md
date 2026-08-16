@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.87.2] - 2026-08-16
+
+### Fixed
+
+- Opening a listed analysis-run that then 404s tells you to open a
+  visible run from the home list, or request a lineage reconstruction
+  for a corporation you already walk. The message does not name the
+  thread or the cutoff, so a hidden row stays unconfirmed (ADR 0014 /
+  ADR 0018).
+
 ## [0.87.1] - 2026-08-16
 
 ### Fixed

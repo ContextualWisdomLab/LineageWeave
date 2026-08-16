@@ -63,6 +63,7 @@ describe("App, authenticated", () => {
     failedReportRun?: boolean;
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
+    hiddenAnalysisRun?: boolean;
     postBody?: string;
   }) {
     const statusLabel: Record<string, string> = {
@@ -283,6 +284,14 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-lineage")) {
+        if (options?.hiddenAnalysisRun) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "Not found" }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-lineage",
@@ -1738,6 +1747,27 @@ describe("App, authenticated", () => {
       "Open this run to see why it failed, then connect the measurement service and re-run.",
     );
     expect(teppButton).not.toHaveTextContent("reconstruction");
+  });
+
+  it("tells the operator what to do when a listed run is no longer visible", async () => {
+    stubBackend({ hiddenAnalysisRun: true });
+    render(<App />);
+
+    await screen.findByRole("list", { name: "Analysis runs" });
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+      }),
+    );
+
+    expect(
+      await screen.findByText(
+        "This run is not on your list. Open a visible run from the home list, or request a lineage reconstruction for a corporation you already walk.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/not visible/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/thread-group/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/knowledge_cutoff/i)).not.toBeInTheDocument();
   });
 
   it("does not tell a failed period report to connect the measurement service", async () => {

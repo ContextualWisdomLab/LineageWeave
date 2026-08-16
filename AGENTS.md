@@ -91,6 +91,28 @@ A run-bearing analysis-run registry empties only after an unrevoked
 (ADR 0020 / v0.87.0). The documented phrase is not a secret. Do not
 expose purge on a public HTTP route.
 
+`make seed` writes a Demo Corp lineage run and a TEPP run on the same
+snapshot (ADR 0013). The TEPP path goes through `tepp_client`. A missing
+transport or an unused accepted envelope is Failed
+(`tepp_not_available` / `tepp_result_not_persisted`). Do not invent a
+theta or a local psychometric substitute. The home list caption stays
+`kind · status · entity`; the machine failure code is detail-only
+(ADR 0014). Open a Failed TEPP row, then connect a live TEPP
+transport. A failed lineage row retries reconstruction -- it does not
+mention TEPP. A failed period-report row rebuilds the report. A
+pending TEPP row does not claim a calibrated measurement. A pending
+lineage row says reconstruction has not started yet.
+Digest prefixes stay audible; hover a prefix to read the full digest.
+Opening a cutoff title shows the live post -- compare it with the
+cutoff before treating the body as reconstructed evidence (ADR 0016).
+`POST /api/analysis-runs` records Pending on an authorized
+cutoff capture (ADR 0017) and does not reconstruct lineage.
+A thread-group run lists only when an ABAC-visible post exists at or
+before `knowledge_cutoff`, even when the signed-in account requested
+the run (ADR 0018). Requesting a January thread that has no in-cutoff
+visible post does not put that row on the home list. A 404 on that
+hidden row must stay generic: do not name the thread or the cutoff.
+
 ## CI gates
 
 `.github/workflows/tests.yml` runs the full suite on every PR to `main`.

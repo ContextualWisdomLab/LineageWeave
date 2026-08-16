@@ -53,7 +53,12 @@ started yet. The detail now shows the legal
 lifecycle the registry already stored. `POST /api/analysis-runs` now
 records a Pending run on an authorized cutoff capture (ADR 0017).
 Reconstruction, a live TEPP transport, and a fuller Analysis Run
-Console remain later slices.
+Console remain later slices. A 404 on a hidden run (including a
+thread-group row the caller requested that still lacks an in-cutoff
+visible post, ADR 0018) must stay generic: do not name the thread or
+the cutoff. Tell the operator to open a visible run from the home
+list, or request a lineage reconstruction for a corporation they
+already walk.
 
 ## References
 

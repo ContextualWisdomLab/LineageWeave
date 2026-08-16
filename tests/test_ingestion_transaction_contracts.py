@@ -508,6 +508,26 @@ def test_release_notes_do_not_offer_thread_group_request() -> None:
     assert "Request still records a corporate-scope lineage run" in adr
 
 
+def test_hidden_run_copy_stays_generic_and_names_the_next_action() -> None:
+    """ADR 0014/0018: a 404 must not confirm why a row is hidden."""
+
+    app = (
+        Path(__file__).resolve().parents[1] / "frontend" / "src" / "App.tsx"
+    ).read_text(encoding="utf-8")
+    agents = (
+        Path(__file__).resolve().parents[1] / "AGENTS.md"
+    ).read_text(encoding="utf-8")
+    assert "This analysis run is not visible." not in app
+    assert "This run is not on your list. Open a visible run from the home list," in app
+    assert (
+        "or request a lineage reconstruction for a corporation you already walk."
+        in app
+    )
+    assert "do not name the thread or the cutoff" in app
+    assert "even when the signed-in account requested" in agents
+    assert "do not name the thread or the cutoff" in agents
+
+
 def test_person_role_join_orders_catalog_homonyms() -> None:
     """ADR 0009: two same-named people must not attach by unordered LIMIT 1."""
 

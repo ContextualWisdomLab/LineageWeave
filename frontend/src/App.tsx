@@ -1568,6 +1568,17 @@ function analysisRunDigestPrefix(digest: string): string {
  * compare the opened body with this run's cutoff instead of treating
  * today's text as reconstructed evidence.
  */
+/**
+ * Next action when detail 404s. Stay generic: naming the thread or
+ * cutoff would confirm a hidden row (ADR 0018).
+ */
+function analysisRunHiddenNextAction(): string {
+  return (
+    "This run is not on your list. Open a visible run from the home list, " +
+    "or request a lineage reconstruction for a corporation you already walk."
+  );
+}
+
 function analysisRunLivePostWarning(cutoffIso: string): string {
   const cutoffDate = cutoffIso.slice(0, 10);
   return (
@@ -1653,7 +1664,7 @@ function AnalysisRunsPanel({
     } catch (err) {
       setSelected(null);
       if (err instanceof BackendError && err.status === 404) {
-        setError("This analysis run is not visible.");
+        setError(analysisRunHiddenNextAction());
         return;
       }
       setError(String(err));
