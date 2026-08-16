@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from lineageweave import post_evaluation
+from lineageweave import adjudication_client, post_chat, post_evaluation
+from lineageweave.post_chat import ChatSourceDocument, ContextualOrchestratorPostChatClient
 
 
 def test_post_evaluation_adapter_defaults_to_auto(monkeypatch) -> None:
@@ -33,6 +34,67 @@ def test_post_evaluation_judge_uses_auto_by_default() -> None:
         "https://orchestrator.example.test", "inference_token"
     )
     assert client._judge.mode == "auto"
+
+
+def test_post_chat_requests_verify_mode(monkeypatch) -> None:
+    """Citation chat must send verify on the wire, not a docstring mention of auto."""
+
+    observed: dict[str, object] = {}
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        observed["payload"] = payload
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": (
+                            '{"answer_text": "The follow-up names the same bid.",'
+                            ' "cited_source_numbers": [1]}'
+                        )
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr(post_chat, "post_json", fake_post_json)
+    client = ContextualOrchestratorPostChatClient(
+        "https://orchestrator.example.test", "inference_token"
+    )
+    answer = client.answer(
+        "What happened between these events?",
+        [
+            ChatSourceDocument(
+                post_id="post-bid-follow-up",
+                post_title="Bid follow-up",
+                post_body="Northridge asked to confirm the bid date.",
+            )
+        ],
+    )
+
+    assert answer.cited_post_ids == ("post-bid-follow-up",)
+    assert observed["payload"]["mode"] == "verify"
+
+
+def test_adjudication_requests_verify_mode(monkeypatch) -> None:
+    """Lineage adjudication must send verify on the wire, not a source substring."""
+
+    observed: dict[str, object] = {}
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        observed["payload"] = payload
+        return {"choices": [{"message": {"content": "0.91"}}]}
+
+    monkeypatch.setattr(adjudication_client, "post_json", fake_post_json)
+    client = adjudication_client.ContextualOrchestratorAdjudicationClient(
+        "https://orchestrator.example.test", "inference_token"
+    )
+    confidence = client.judge(
+        "Quarterly budget review meeting notes",
+        "Budget review follow-up: revised quarterly numbers",
+    )
+
+    assert confidence == 0.91
+    assert observed["payload"]["mode"] == "verify"
 
 
 def test_runtime_clients_do_not_force_single_model_route() -> None:
