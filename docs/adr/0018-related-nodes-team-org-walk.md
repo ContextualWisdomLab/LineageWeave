@@ -53,8 +53,9 @@ post stays off the home list and returns 404 on detail.
 - A later public post in a thread group no longer lists a January run
   that could not have known that post.
 - Requesting that January run yourself does not put it on your home
-  list. Open a thread that has an in-cutoff visible post, then request
-  again.
+  list. The row appears when the thread already has an in-cutoff
+  visible post. Request still records a corporate-scope lineage run
+  (ADR 0017).
 
 ## References
 

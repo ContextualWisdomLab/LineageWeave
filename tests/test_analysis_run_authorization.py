@@ -101,6 +101,37 @@ def _insert_corp(cursor, code: str, name: str) -> str:
     return str(cursor.fetchone()[0])
 
 
+def _insert_process_unit(
+    cursor, corporate_entity_id: str, code: str, name: str
+) -> str:
+    """Insert one synthetic process unit under a corporate entity."""
+    cursor.execute(
+        """
+        insert into process_unit
+            (corporate_entity_id, process_unit_code, process_unit_name)
+        values (%s, %s, %s)
+        returning process_unit_id
+        """,
+        (corporate_entity_id, code, name),
+    )
+    return str(cursor.fetchone()[0])
+
+
+def _ensure_post_lookups(cursor) -> None:
+    """Insert the visibility and VOC codes the cutoff fixtures need."""
+    cursor.execute(
+        """
+        insert into common_lookup_value
+            (lookup_category, lookup_code, lookup_label)
+        values
+            ('post_visibility', 'public', 'Public'),
+            ('post_visibility', 'private', 'Private'),
+            ('voc_type', 'voc', 'Voice of Customer')
+        on conflict (lookup_code) do nothing
+        """
+    )
+
+
 def _complete_run(
     cursor,
     *,
@@ -109,6 +140,7 @@ def _complete_run(
     idempotency_key: str,
     scope_kind: str,
     corporate_entity_id: str | None = None,
+    process_unit_id: str | None = None,
     scope_key: str | None = None,
     knowledge_cutoff: str = "2026-01-12T12:00:00Z",
 ) -> str:
@@ -173,6 +205,15 @@ def _complete_run(
             """,
             (run_id, scope_kind, scope_key),
         )
+    elif scope_kind == "analysis_scope_process_unit":
+        cursor.execute(
+            """
+            insert into analysis_run_scope
+                (analysis_run_id, scope_kind_code, process_unit_id)
+            values (%s, %s, %s)
+            """,
+            (run_id, scope_kind, process_unit_id),
+        )
     else:
         cursor.execute(
             """
@@ -198,30 +239,62 @@ def _complete_run(
     return run_id
 
 
+def _product_visibility_predicate() -> str:
+    """Translate asyncpg ``$1``/``$2`` reuse into psycopg2 named placeholders.
+
+    The product SQL binds the account once as ``$1`` and affiliated
+    entity ids once as ``$2``, then reuses both. Positional ``%s``
+    cannot do that: interpolating the cutoff fragment twice yields
+    five placeholders and only two arguments.
+    """
+    return (
+        _VISIBLE_RUN_SQL.replace("$2::uuid[]", "%(entity_ids)s::uuid[]").replace(
+            "$1", "%(account_id)s"
+        )
+    )
+
+
 def _visible_ids(cursor, account_id: str, entity_ids: list[str]) -> set[str]:
     """Apply the same visibility predicate the product API uses."""
-    predicate = _VISIBLE_RUN_SQL.replace("$2::uuid[]", "%s::uuid[]").replace(
-        "$1", "%s"
-    )
     cursor.execute(
         f"""
         select run.analysis_run_id
         from analysis_run run
         join analysis_run_scope scope on scope.analysis_run_id = run.analysis_run_id
-        where {predicate}
+        where {_product_visibility_predicate()}
         """,
-        (account_id, entity_ids),
+        {"account_id": account_id, "entity_ids": entity_ids},
     )
     return {str(row[0]) for row in cursor.fetchall()}
 
 
+def test_visible_ids_helper_reuses_named_account_and_entity_binds() -> None:
+    """asyncpg $1/$2 reuse must not become positional %s."""
+
+    predicate = _product_visibility_predicate()
+    leftover = (
+        predicate.replace("%(account_id)s", "").replace("%(entity_ids)s", "")
+    )
+    assert "%(account_id)s" in predicate
+    assert "%(entity_ids)s::uuid[]" in predicate
+    assert "%s" not in leftover
+    assert predicate.count("%(account_id)s") == 2
+    assert predicate.count("%(entity_ids)s") == 3
+
+
 def test_requester_ownership_cannot_bypass_thread_group_cutoff() -> None:
-    """ADR 0018: requester ownership is not a standalone OR past the clock."""
+    """ADR 0018: requester ownership stays inside the first conjunct."""
 
     sql = " ".join(_VISIBLE_RUN_SQL.split())
+    ownership = "run.requested_by_account_id = $1"
+    first, separator, second = sql.partition(") and (")
+    assert ownership in sql
     assert "p.created_at <= run.knowledge_cutoff" in sql
-    assert "scope.scope_kind_code <> 'analysis_scope_thread_group'" in sql
-    assert "run.requested_by_account_id = $1" in sql
+    assert separator
+    assert ownership in first
+    assert ownership not in second
+    assert "scope.scope_kind_code <> 'analysis_scope_thread_group'" in second
+    assert "p.created_at <= run.knowledge_cutoff" in second
 
 
 def test_hidden_scope_does_not_leak_through_all_visible_or_other_corp(authz_db) -> None:
@@ -279,16 +352,7 @@ def test_requester_owned_thread_group_run_needs_in_cutoff_post(authz_db) -> None
     with authz_db.cursor() as cursor:
         viewer = _insert_account(cursor, "requester")
         own_corp = _insert_corp(cursor, "DEMO-CORP-CUTOFF", "Demo Corp")
-        cursor.execute(
-            """
-            insert into common_lookup_value
-                (lookup_category, lookup_code, lookup_label)
-            values
-                ('post_visibility', 'public', 'Public'),
-                ('voc_type', 'voc', 'Voice of Customer')
-            on conflict (lookup_code) do nothing
-            """
-        )
+        _ensure_post_lookups(cursor)
         cursor.execute(
             """
             insert into account_affiliation (user_account_id, corporate_entity_id)
@@ -328,3 +392,98 @@ def test_requester_owned_thread_group_run_needs_in_cutoff_post(authz_db) -> None
         visible = _visible_ids(cursor, viewer, [own_corp])
         assert hidden_own not in visible
         assert visible_own in visible
+
+
+def test_thread_group_cutoff_honors_private_and_empty_affiliation(authz_db) -> None:
+    """Private own-corp in-cutoff lists; other-corp private and empty $2 do not."""
+
+    with authz_db.cursor() as cursor:
+        viewer = _insert_account(cursor, "private-viewer")
+        other = _insert_account(cursor, "other-author")
+        own_corp = _insert_corp(cursor, "DEMO-CORP-PRIVATE", "Demo Corp")
+        other_corp = _insert_corp(cursor, "OTHER-CORP-PRIVATE", "Other Corp")
+        _ensure_post_lookups(cursor)
+        cursor.execute(
+            """
+            insert into account_affiliation (user_account_id, corporate_entity_id)
+            values (%s, %s)
+            """,
+            (viewer, own_corp),
+        )
+        cursor.execute(
+            """
+            insert into source_post
+                (author_account_id, corporate_entity_id, post_title, post_body,
+                 voc_type_code, visibility_code, thread_group_key, created_at)
+            values
+                (%s, %s, 'Private own thread', 'Visible only to Demo Corp.',
+                 'voc', 'private', 'private-own-thread', '2026-01-10T12:00:00Z'),
+                (%s, %s, 'Private other thread', 'Other corp only.',
+                 'voc', 'private', 'private-other-thread', '2026-01-10T12:00:00Z'),
+                (%s, %s, 'Public empty-aff thread', 'Public in-cutoff post.',
+                 'voc', 'public', 'public-empty-aff-thread', '2026-01-10T12:00:00Z')
+            """,
+            (viewer, own_corp, other, other_corp, viewer, own_corp),
+        )
+        private_own = _complete_run(
+            cursor,
+            account_id=viewer,
+            digest="3" * 64,
+            idempotency_key="private-own-thread",
+            scope_kind="analysis_scope_thread_group",
+            scope_key="private-own-thread",
+        )
+        private_other = _complete_run(
+            cursor,
+            account_id=viewer,
+            digest="4" * 64,
+            idempotency_key="private-other-thread",
+            scope_kind="analysis_scope_thread_group",
+            scope_key="private-other-thread",
+        )
+        public_empty = _complete_run(
+            cursor,
+            account_id=viewer,
+            digest="5" * 64,
+            idempotency_key="public-empty-aff-thread",
+            scope_kind="analysis_scope_thread_group",
+            scope_key="public-empty-aff-thread",
+        )
+        affiliated = _visible_ids(cursor, viewer, [own_corp])
+        assert private_own in affiliated
+        assert private_other not in affiliated
+        assert public_empty in affiliated
+
+        unaffiliated = _visible_ids(cursor, viewer, [])
+        assert private_own not in unaffiliated
+        assert private_other not in unaffiliated
+        assert public_empty in unaffiliated
+
+
+def test_process_unit_run_lists_without_thread_group_cutoff(authz_db) -> None:
+    """A process-unit run the caller already walks is not gated by cutoff."""
+
+    with authz_db.cursor() as cursor:
+        viewer = _insert_account(cursor, "unit-viewer")
+        own_corp = _insert_corp(cursor, "DEMO-CORP-UNIT", "Demo Corp")
+        process_unit_id = _insert_process_unit(
+            cursor, own_corp, "DEMO-PU-CUTOFF", "Demo Process Unit"
+        )
+        cursor.execute(
+            """
+            insert into account_affiliation
+                (user_account_id, corporate_entity_id, process_unit_id)
+            values (%s, %s, %s)
+            """,
+            (viewer, own_corp, process_unit_id),
+        )
+        unit_run = _complete_run(
+            cursor,
+            account_id=viewer,
+            digest="6" * 64,
+            idempotency_key="own-process-unit",
+            scope_kind="analysis_scope_process_unit",
+            process_unit_id=process_unit_id,
+        )
+        visible = _visible_ids(cursor, viewer, [own_corp])
+        assert unit_run in visible

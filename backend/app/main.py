@@ -1263,7 +1263,9 @@ async def read_analysis_run(
 ) -> dict[str, Any]:
     """One authorized analysis-run projection, or 404 when hidden.
 
-    Detail adds the labeled status history. Hidden runs never leak events.
+    Detail adds the labeled status history. Hidden runs never leak
+    events. A thread-group run you requested still needs an in-cutoff
+    visible post (ADR 0018).
     """
     _require_post_read(account)
     try:

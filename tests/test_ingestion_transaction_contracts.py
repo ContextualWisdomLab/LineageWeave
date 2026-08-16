@@ -484,6 +484,30 @@ def test_release_notes_describe_balanced_outer_emphasis_stripping() -> None:
     assert "preserves Markdown emphasis in field values" not in content
 
 
+def test_release_notes_do_not_offer_thread_group_request() -> None:
+    """ADR 0017 create is still corporate-scope; copy must not invent a retry path."""
+
+    changelog = " ".join(
+        (Path(__file__).resolve().parents[1] / "CHANGELOG.md")
+        .read_text(encoding="utf-8")
+        .split()
+    )
+    adr = " ".join(
+        (
+            Path(__file__).resolve().parents[1]
+            / "docs"
+            / "adr"
+            / "0018-related-nodes-team-org-walk.md"
+        )
+        .read_text(encoding="utf-8")
+        .split()
+    )
+    assert "then request again" not in changelog
+    assert "then request again" not in adr
+    assert "Request still records a corporate-scope lineage run" in changelog
+    assert "Request still records a corporate-scope lineage run" in adr
+
+
 def test_person_role_join_orders_catalog_homonyms() -> None:
     """ADR 0009: two same-named people must not attach by unordered LIMIT 1."""
 
