@@ -1937,7 +1937,7 @@ describe("App, authenticated", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
-        name: "Open analysis run: Lineage reconstruction · Pending · Demo Corp",
+        name: "Open analysis run: Lineage reconstruction · Pending · Demo Corp. Open this run to confirm which posts it will use. Reconstruction has not started yet.",
       }),
     ).toBeInTheDocument();
     expect(
