@@ -535,7 +535,10 @@ def test_rollback_refuses_data_loss_then_removes_an_empty_registry(registry_db) 
         snapshot_id = _insert_snapshot(cursor)
         with pytest.raises(psycopg2.errors.RaiseException):
             cursor.execute(rollback_sql)
-    registry_db.rollback()
+        # The rollback script opens an explicit transaction on this
+        # autocommit connection. A RAISE leaves that transaction aborted, and
+        # connection.rollback() is a no-op while autocommit is true.
+        cursor.execute("rollback")
     with registry_db.cursor() as cursor:
         cursor.execute(
             "delete from analysis_source_snapshot "

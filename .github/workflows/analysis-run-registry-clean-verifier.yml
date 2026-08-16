@@ -1,4 +1,5 @@
 name: Analysis-run registry clean verifier
+# Re-run after the autocommit rollback contract fix.
 
 on:
   push:
