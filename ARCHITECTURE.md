@@ -465,16 +465,25 @@ thread-group scope is visible only when the account can already see a
 post in that group; `all_visible` is requester-only. Hidden runs 404. Detail also lists ABAC-visible post titles in the
 run's scope whose `created_at` is at or before `knowledge_cutoff`
 (ADR 0016) so a buyer can open a post the run was allowed to know
-without seeing later live rows or hidden bodies.
+without seeing later live rows or hidden bodies. Detail also returns
+revision and configuration digest prefixes.
+`make seed` also records a TEPP measurement run through
+`tepp_client` on that same snapshot; the default transport is
+unavailable, so that run is Failed rather than a fabricated score.
 The home list is clickable: `GET /api/analysis-runs/{id}` fills a
 labeled detail (cutoff, requested date, counts, status history)
 without exposing a DSN or raw record. Status history is detail-only
 and uses lookup labels plus occurrence times; a failure event keeps
-its machine `failure_code` rather than an invented caption. The
+its machine `failure_code` rather than an invented caption. Failed
+list rows add a next-action line (open the run, then connect the
+measurement service) so `tepp_not_available` is not mistaken for a
+calibrated negative result. The
 payload is lookup labels plus non-negative aggregate counts -- never
 source SQL, a DSN, a raw record, or a provider body. After `make seed`,
 Demo Analyst and Demo Admin see "Lineage reconstruction · Succeeded ·
-Demo Corp" with "3 documents" and Pending / Running / Succeeded times.
+Demo Corp" with "3 documents" and Pending / Running / Succeeded times,
+and "TEPP measurement · Failed · Demo Corp" whose detail history ends
+in Failed / `tepp_not_available`.
 
 ## Phase 6a: fast-mlsirm dependency + Rust toolchain (infra only)
 
