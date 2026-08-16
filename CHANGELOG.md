@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.87.0] - 2026-08-17
+
+### Added
+
+- Analysis-run detail now compares each in-cutoff title's live
+  `updated_at` with that run's knowledge cutoff. After `make seed`,
+  open the Demo Corp lineage run: Demo public post is marked
+  **Updated after cutoff**; Demo private post is not. Opening a
+  marked title still shows the live body -- cutoff body versioning
+  stays a later slice (ADR 0016). The list stays aggregates-only.
+  No TEPP theta is invented.
+
 ## [0.86.2] - 2026-08-16
 
 ### Fixed

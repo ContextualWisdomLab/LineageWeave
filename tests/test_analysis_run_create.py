@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
     _resolve_corporate_entity_id,
+    live_write_after_cutoff,
     plan_analysis_run_capture,
 )
 import pytest
@@ -122,6 +123,17 @@ def test_empty_corpus_uses_the_cutoff_as_latest_available_time() -> None:
     assert capture.document_count == 0
     assert capture.thread_count == 0
     assert capture.maximum_available_time == _CUTOFF
+
+
+def test_live_write_clock_is_distinct_from_the_cutoff_admission_clock() -> None:
+    """An in-cutoff title can still have been rewritten after the run."""
+    cutoff = _CUTOFF
+    assert live_write_after_cutoff(_EARLIER, cutoff) is False
+    assert live_write_after_cutoff(cutoff, cutoff) is False
+    assert live_write_after_cutoff(
+        datetime(2026, 1, 13, 9, 0, tzinfo=timezone.utc), cutoff
+    ) is True
+    assert live_write_after_cutoff(datetime(2026, 1, 13, 9, 0), cutoff) is True
 
 
 def test_create_rejects_an_unaffiliated_or_ambiguous_corporate_entity() -> None:

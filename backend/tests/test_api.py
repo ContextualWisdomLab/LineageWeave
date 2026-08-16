@@ -303,11 +303,21 @@ def seeded_db(demo_analyst_token):
                 visibility_code: str,
                 body: str = "body",
                 created_at: str = "2026-01-10T12:00:00Z",
+                updated_at: str | None = None,
             ) -> str:
+                written_at = updated_at if updated_at is not None else created_at
                 cur.execute(
-                    "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code, created_at) "
-                    "values (%s, %s, %s, %s, 'voc', %s, %s) returning post_id",
-                    (account_id, corporate_entity_id, title, body, visibility_code, created_at),
+                    "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code, created_at, updated_at) "
+                    "values (%s, %s, %s, %s, 'voc', %s, %s, %s) returning post_id",
+                    (
+                        account_id,
+                        corporate_entity_id,
+                        title,
+                        body,
+                        visibility_code,
+                        created_at,
+                        written_at,
+                    ),
                 )
                 return str(cur.fetchone()[0])
 
@@ -326,6 +336,14 @@ def seeded_db(demo_analyst_token):
                 "private",
                 "A follow-up written after the January 2026 run cutoff.",
                 created_at="2026-01-20T12:00:00Z",
+            )
+            _insert_post(
+                "Edited own-corp private post",
+                own_corp_id,
+                "private",
+                "A January post rewritten after the run cutoff.",
+                created_at="2026-01-10T12:00:00Z",
+                updated_at="2026-01-13T09:00:00Z",
             )
 
             cur.execute(
@@ -492,8 +510,14 @@ def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
     assert all("failure_code" not in event for event in history)
     titles = {post["post_title"] for post in body["visible_posts"]}
     assert "Own-corp private post" in titles
+    assert "Edited own-corp private post" in titles
     assert "Late own-corp private post" not in titles
     assert "Other-corp private post" not in titles
+    posts_by_title = {post["post_title"]: post for post in body["visible_posts"]}
+    assert posts_by_title["Own-corp private post"]["live_after_cutoff"] is False
+    assert posts_by_title["Edited own-corp private post"]["live_after_cutoff"] is True
+    assert posts_by_title["Edited own-corp private post"]["updated_at"].startswith("2026-01-13")
+    assert "post_body" not in posts_by_title["Edited own-corp private post"]
     assert "postgresql://" not in str(body)
     assert "visible_posts" not in visible
 
