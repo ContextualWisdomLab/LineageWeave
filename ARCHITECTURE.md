@@ -474,7 +474,10 @@ The home list is clickable: `GET /api/analysis-runs/{id}` fills a
 labeled detail (cutoff, requested date, 12-character digest prefixes
 with full digests on hover, counts, status history)
 without exposing a DSN or raw record. Opening a cutoff title warns
-that the live body may have changed after the run. Status history is detail-only
+that the live body may have changed after the run, then compares the
+live ``updated_at`` write clock with that cutoff so the operator can
+decide whether to treat the opened text as reconstructed evidence.
+Status history is detail-only
 and uses lookup labels plus occurrence times; a failure event keeps
 its machine `failure_code` rather than an invented caption. Failed
 list rows add a next-action line (open the run, then connect the

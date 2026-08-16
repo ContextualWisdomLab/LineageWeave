@@ -120,6 +120,7 @@ def seed(
             cur.execute((migrations / "0015_organization_name_resolution.sql").read_text())
             cur.execute((migrations / "0016_cross_post_actor_identity.sql").read_text())
             cur.execute((migrations / "0018_analysis_run_registry.sql").read_text())
+            cur.execute((migrations / "0019_source_post_write_clock.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -231,27 +232,28 @@ def seed(
             cur.execute("select post_id from source_post where post_title = 'Demo public post'")
             if cur.fetchone() is None:
                 cur.execute(
-                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at) "
+                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at, updated_at) "
                     "values (%s, %s, %s, 'Demo public post', "
                     "'Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.', "
-                    "'voc', 'public', '2026-01-10T12:00:00Z')",
+                    "'voc', 'public', '2026-01-10T12:00:00Z', '2026-01-10T12:00:00Z')",
                     (account_ids["demo.analyst"], corporate_entity_id, process_units["DEMO-PU-A"]),
                 )
                 cur.execute(
-                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at) "
-                    "values (%s, %s, %s, 'Demo private post', 'A synthetic private post scoped to Demo Corp accounts.', 'vom', 'private', '2026-01-10T12:00:00Z')",
+                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at, updated_at) "
+                    "values (%s, %s, %s, 'Demo private post', 'A synthetic private post scoped to Demo Corp accounts.', 'vom', 'private', '2026-01-10T12:00:00Z', '2026-01-10T12:00:00Z')",
                     (account_ids["demo.admin"], corporate_entity_id, process_units["DEMO-PU-HQ"]),
                 )
 
             cur.execute(
-                "update source_post set created_at = '2026-01-10T12:00:00Z' "
+                "update source_post set created_at = '2026-01-10T12:00:00Z', "
+                "updated_at = '2026-01-10T12:00:00Z' "
                 "where post_title in ('Demo public post', 'Demo private post') "
                 "and created_at > '2026-01-12T12:00:00Z'"
             )
             cur.execute("select post_id from source_post where post_title = 'Demo public post'")
             demo_public_post_id = cur.fetchone()[0]
             cur.execute(
-                "update source_post set post_body = %s where post_id = %s",
+                "update source_post set post_body = %s, updated_at = created_at where post_id = %s",
                 (
                     "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
                     demo_public_post_id,
@@ -375,8 +377,8 @@ def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, pro
             "insert into source_post "
             "(author_account_id, corporate_entity_id, process_unit_id, "
             " post_title, post_body, voc_type_code, visibility_code, "
-            " thread_group_key, secondary_grouping_key, created_at) "
-            "values (%s, %s, %s, %s, %s, %s, 'public', %s, %s, %s) returning post_id",
+            " thread_group_key, secondary_grouping_key, created_at, updated_at) "
+            "values (%s, %s, %s, %s, %s, %s, 'public', %s, %s, %s, %s) returning post_id",
             (
                 author_account_id,
                 corporate_entity_id,
@@ -386,6 +388,7 @@ def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, pro
                 voc_type,
                 rec.group_key,
                 rec.secondary_key,
+                occurred,
                 occurred,
             ),
         )
@@ -706,7 +709,7 @@ def _seed_fixture_keymen_and_voc(cur, corporate_entity_id) -> None:
         post_id = str(row[0])
         if cast.body is not None:
             cur.execute(
-                "update source_post set post_body = %s where post_id = %s",
+                "update source_post set post_body = %s, updated_at = created_at where post_id = %s",
                 (cast.body, post_id),
             )
         mentioned: list[str] = []
@@ -787,8 +790,8 @@ def _seed_demo_calendar_commitment(cur, author_account_id, corporate_entity_id, 
             "insert into source_post "
             "(author_account_id, corporate_entity_id, process_unit_id, "
             " post_title, post_body, voc_type_code, visibility_code, "
-            " thread_group_key, created_at) "
-            "values (%s, %s, %s, %s, %s, 'voc', 'public', 'A-100', %s) "
+            " thread_group_key, created_at, updated_at) "
+            "values (%s, %s, %s, %s, %s, 'voc', 'public', 'A-100', %s, %s) "
             "returning post_id",
             (
                 author_account_id,
@@ -796,6 +799,7 @@ def _seed_demo_calendar_commitment(cur, author_account_id, corporate_entity_id, 
                 process_unit_id,
                 title,
                 body,
+                calendar_commitment_occurred_at().replace(tzinfo=timezone.utc),
                 calendar_commitment_occurred_at().replace(tzinfo=timezone.utc),
             ),
         )
@@ -971,14 +975,15 @@ def _ensure_eval_posts(
                 "insert into source_post "
                 "(author_account_id, corporate_entity_id, process_unit_id, "
                 " post_title, post_body, voc_type_code, visibility_code, "
-                " thread_group_key, created_at) "
-                "values (%s, %s, %s, %s, 'body', 'voc', 'public', %s, %s) returning post_id",
+                " thread_group_key, created_at, updated_at) "
+                "values (%s, %s, %s, %s, 'body', 'voc', 'public', %s, %s, %s) returning post_id",
                 (
                     author_account_id,
                     corporate_entity_id,
                     process_unit_id,
                     title,
                     thread_group_key,
+                    created,
                     created,
                 ),
             )

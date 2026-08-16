@@ -8,6 +8,7 @@ for the literature this design is grounded in.
 """
 
 from .affiliate_tree import build_affiliate_forest
+from .analysis_run_live_body import live_body_written_after_cutoff
 from .corporate_hierarchy_resolution import resolve_corporate_entity
 from .entity_relationship_classification import OrganizationRelationship
 from .knowledge_graph import random_walk_with_restart, select_related_nodes
@@ -46,6 +47,7 @@ __all__ = [
     "Record",
     "Tree",
     "build_affiliate_forest",
+    "live_body_written_after_cutoff",
     "cited_post_summaries",
     "lineage_edge_specs",
     "random_walk_with_restart",
@@ -55,4 +57,4 @@ __all__ = [
     "sentence_excerpts",
 ]
 
-__version__ = "0.84.1"
+__version__ = "0.84.2"

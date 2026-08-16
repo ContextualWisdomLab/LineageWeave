@@ -4,6 +4,20 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.84.2] - 2026-08-16
+
+### Added
+
+- Opening a cutoff title now compares the live `source_post.updated_at`
+  write clock with that run's knowledge cutoff. Open the Demo Corp
+  lineage run, then a listed title: if the body was rewritten after
+  2026-01-12, do not treat it as reconstructed evidence. A write clock
+  at or before the cutoff tells you the opened text is still the
+  cutoff corpus. Post-body versioning remains later work (ADR 0016).
+- `GET /api/posts` and `GET /api/posts/{id}` include `updated_at`.
+  Seed historical Demo posts keep `updated_at = created_at` so the
+  January run does not look rewritten at seed time.
+
 ## [0.84.1] - 2026-08-16
 
 ### Fixed

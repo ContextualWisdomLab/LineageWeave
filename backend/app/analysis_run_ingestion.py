@@ -244,10 +244,12 @@ async def fetch_visible_scope_posts(
 
     ``knowledge_cutoff`` is the analysis clock (W3C Time / ISO 8601-1:2019;
     ADR 0013/0016). A later live post must not appear inside an earlier run.
+    ``updated_at`` is the live write clock so the operator can compare
+    today's body with that cutoff before treating it as evidence.
     """
     if scope_kind_code == "analysis_scope_corporate_entity" and corporate_entity_id:
         rows = await conn.fetch(
-            "select post_id, post_title, visibility_code, corporate_entity_id "
+            "select post_id, post_title, visibility_code, corporate_entity_id, updated_at "
             "from source_post where corporate_entity_id = $1 "
             "and created_at <= $2 "
             "order by created_at, post_title",
@@ -256,7 +258,7 @@ async def fetch_visible_scope_posts(
         )
     elif scope_kind_code == "analysis_scope_process_unit" and process_unit_id:
         rows = await conn.fetch(
-            "select post_id, post_title, visibility_code, corporate_entity_id "
+            "select post_id, post_title, visibility_code, corporate_entity_id, updated_at "
             "from source_post where process_unit_id = $1 "
             "and created_at <= $2 "
             "order by created_at, post_title",
@@ -265,7 +267,7 @@ async def fetch_visible_scope_posts(
         )
     elif scope_kind_code == "analysis_scope_thread_group" and scope_key:
         rows = await conn.fetch(
-            "select post_id, post_title, visibility_code, corporate_entity_id "
+            "select post_id, post_title, visibility_code, corporate_entity_id, updated_at "
             "from source_post where thread_group_key = $1 "
             "and created_at <= $2 "
             "order by created_at, post_title",
@@ -274,7 +276,7 @@ async def fetch_visible_scope_posts(
         )
     elif scope_kind_code == "analysis_scope_all_visible":
         rows = await conn.fetch(
-            "select post_id, post_title, visibility_code, corporate_entity_id "
+            "select post_id, post_title, visibility_code, corporate_entity_id, updated_at "
             "from source_post where created_at <= $1 "
             "order by created_at, post_title",
             knowledge_cutoff,
@@ -287,5 +289,11 @@ async def fetch_visible_scope_posts(
         visible = row["visibility_code"] == "public" or str(row["corporate_entity_id"]) in affiliated
         if not visible:
             continue
-        posts.append({"post_id": str(row["post_id"]), "post_title": row["post_title"]})
+        posts.append(
+            {
+                "post_id": str(row["post_id"]),
+                "post_title": row["post_title"],
+                "updated_at": _iso(row["updated_at"]),
+            }
+        )
     return posts

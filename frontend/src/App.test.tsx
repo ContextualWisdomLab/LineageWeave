@@ -59,6 +59,7 @@ describe("App, authenticated", () => {
     chatUnavailable?: boolean;
     searchUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
+    postUpdatedAt?: string;
   }) {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -550,6 +551,7 @@ describe("App, authenticated", () => {
             visibility_code: "public",
             visibility_label: "Public",
             created_at: "2026-01-01T00:00:00Z",
+            updated_at: options?.postUpdatedAt ?? "2026-01-01T00:00:00Z",
           }),
         );
       }
@@ -1514,6 +1516,35 @@ describe("App, authenticated", () => {
     expect(teppHistory).toHaveTextContent("Failed 2026-01-12 12:37 · tepp_not_available");
     expect(screen.getByText(/cutoff corpus TEPP would measure/i)).toBeInTheDocument();
     expect(teppHistory).not.toHaveTextContent("Succeeded");
+  });
+
+  it("compares the live write clock with the run cutoff when a cutoff title is opened", async () => {
+    stubBackend({ postUpdatedAt: "2026-02-01T00:00:00Z" });
+    render(<App />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+      }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open live post (may have changed after cutoff): Public post",
+      }),
+    );
+    expect(
+      await screen.findByText(
+        "This live body was last written after cutoff 2026-01-12. Do not treat it as reconstructed evidence.",
+      ),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(
+      screen.queryByText(/This live body was last written after cutoff/),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/has not been written since cutoff/)).not.toBeInTheDocument();
   });
 
   it("shows the calibrated period-report mean theta on the home page", async () => {

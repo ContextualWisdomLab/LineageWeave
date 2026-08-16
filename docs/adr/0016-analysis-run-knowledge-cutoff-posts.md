@@ -44,11 +44,14 @@ run.
 - After `make seed`, the Demo Corp lineage run lists Demo public post
   and other in-cutoff Demo Corp titles. The later fixture account-review
   post (2026-02-10) does not appear.
-- Open the run, read the live-body warning, then open a listed post
-  and compare it with the cutoff date.
+- Open the run, read the live-body warning, then open a listed post.
+  The opened popup compares ``source_post.updated_at`` with this
+  cutoff. If the live row was written after the run, do not treat the
+  body as reconstructed evidence.
 - Hover a digest prefix to read the full code or configuration digest
   when you need to match the API payload.
-- Post-body versioning at the cutoff remains future work.
+- Post-body versioning at the cutoff remains future work. The write
+  clock comparison is the operator action until that snapshot exists.
 
 ## References
 

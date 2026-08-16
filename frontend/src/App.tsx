@@ -55,6 +55,7 @@ import {
   type RelatedNode,
   type VocEvidence,
 } from "./api";
+import { analysisRunLiveBodyComparison } from "./analysisRunLiveBody";
 import { LineageDag } from "./LineageDag";
 import { subgraphForPost } from "./lineageLayout";
 import "./App.css";
@@ -1106,6 +1107,7 @@ function PostDetailPopup({
   accessToken,
   canExtract,
   graph,
+  knowledgeCutoff,
   onClose,
   onSelectPost,
 }: {
@@ -1113,6 +1115,7 @@ function PostDetailPopup({
   accessToken: string;
   canExtract: boolean;
   graph: LineageGraph | null;
+  knowledgeCutoff?: string | null;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
 }) {
@@ -1187,6 +1190,11 @@ function PostDetailPopup({
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
+            {knowledgeCutoff && post.updated_at ? (
+              <p className="post-meta">
+                {analysisRunLiveBodyComparison(knowledgeCutoff, post.updated_at)}
+              </p>
+            ) : null}
             <p className="post-body">{post.post_body}</p>
 
             <section className="popup-section">
@@ -1456,7 +1464,7 @@ function AnalysisRunsPanel({
   onSelectPost,
 }: {
   accessToken: string;
-  onSelectPost: (postId: string) => void;
+  onSelectPost: (postId: string, knowledgeCutoff?: string) => void;
 }) {
   const [runs, setRuns] = useState<AnalysisRun[] | null>(null);
   const [selected, setSelected] = useState<AnalysisRun | null>(null);
@@ -1564,7 +1572,7 @@ function AnalysisRunsPanel({
                     <button
                       className="keyman-select"
                       aria-label={analysisRunLivePostButtonLabel(post.post_title)}
-                      onClick={() => onSelectPost(post.post_id)}
+                      onClick={() => onSelectPost(post.post_id, selected.knowledge_cutoff)}
                     >
                       {post.post_title}
                     </button>
@@ -1837,9 +1845,20 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [graph, setGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [openedFromCutoff, setOpenedFromCutoff] = useState<string | null>(null);
   const [canRebuild, setCanRebuild] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
+
+  function selectPost(postId: string, knowledgeCutoff?: string) {
+    setSelectedPostId(postId);
+    setOpenedFromCutoff(knowledgeCutoff ?? null);
+  }
+
+  function closePost() {
+    setSelectedPostId(null);
+    setOpenedFromCutoff(null);
+  }
 
   useEffect(() => {
     fetchPosts(accessToken).then(setPosts).catch((err) => setError(String(err)));
@@ -1868,9 +1887,9 @@ function PostList({ accessToken }: { accessToken: string }) {
 
   return (
     <>
-      <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <AnalysisRunsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
+      <CalendarPanel accessToken={accessToken} onSelectPost={selectPost} />
+      <AnalysisRunsPanel accessToken={accessToken} onSelectPost={selectPost} />
+      <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={selectPost} />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
           <h2>Event Lineage</h2>
@@ -1882,7 +1901,7 @@ function PostList({ accessToken }: { accessToken: string }) {
         </div>
         {rebuildError && <p className="error">{rebuildError}</p>}
         {!graph && <p>Loading lineage graph...</p>}
-        {graph && <LineageDag graph={graph} onSelectPost={setSelectedPostId} />}
+        {graph && <LineageDag graph={graph} onSelectPost={selectPost} />}
       </section>
       <ul className="post-list">
         {posts.map((post) => (
@@ -1890,7 +1909,7 @@ function PostList({ accessToken }: { accessToken: string }) {
             <button
               className="post-list-item"
               aria-label={`View post: ${post.post_title}`}
-              onClick={() => setSelectedPostId(post.post_id)}
+              onClick={() => selectPost(post.post_id)}
             >
               <span className="post-title">{post.post_title}</span>
               <span className="post-badge">{post.voc_type_label ?? post.voc_type_code}</span>
@@ -1905,8 +1924,9 @@ function PostList({ accessToken }: { accessToken: string }) {
           accessToken={accessToken}
           canExtract={canRebuild}
           graph={graph}
-          onClose={() => setSelectedPostId(null)}
-          onSelectPost={setSelectedPostId}
+          knowledgeCutoff={openedFromCutoff}
+          onClose={closePost}
+          onSelectPost={(postId) => selectPost(postId)}
         />
       )}
     </>

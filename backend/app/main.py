@@ -278,7 +278,11 @@ def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
 
 
 def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) -> dict[str, Any]:
-    """Turn a ``source_post`` row into the public JSON shape."""
+    """Turn a ``source_post`` row into the public JSON shape.
+
+    ``updated_at`` is the live write clock the analysis-run popup
+    compares with ``knowledge_cutoff`` (ADR 0016).
+    """
     resolved = labels or {}
     voc = post["voc_type_code"]
     visibility = post["visibility_code"]
@@ -290,6 +294,7 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "visibility_code": visibility,
         "visibility_label": resolved.get(visibility, visibility),
         "created_at": post["created_at"].isoformat(),
+        "updated_at": post["updated_at"].isoformat(),
     }
 
 
@@ -351,7 +356,7 @@ async def list_posts(
     _require_post_read(account)
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            "select post_id, post_title, voc_type_code, visibility_code, corporate_entity_id, created_at "
+            "select post_id, post_title, voc_type_code, visibility_code, corporate_entity_id, created_at, updated_at "
             "from source_post order by created_at desc"
         )
         visible = [row for row in rows if _can_see_post(account, row)]
@@ -369,7 +374,7 @@ async def read_post(
     _require_post_read(account)
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "select post_id, post_title, post_body, voc_type_code, visibility_code, corporate_entity_id, created_at "
+            "select post_id, post_title, post_body, voc_type_code, visibility_code, corporate_entity_id, created_at, updated_at "
             "from source_post where post_id = $1",
             post_id,
         )

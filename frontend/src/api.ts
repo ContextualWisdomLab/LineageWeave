@@ -8,6 +8,7 @@ export interface PostSummary {
   visibility_code: string;
   visibility_label?: string;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface PostDetail extends PostSummary {
@@ -520,7 +521,7 @@ export interface AnalysisRun {
   requested_at: string;
   source_counts: AnalysisRunCount[];
   status_history?: AnalysisRunStatusEvent[];
-  visible_posts?: { post_id: string; post_title: string }[];
+  visible_posts?: { post_id: string; post_title: string; updated_at?: string }[];
   code_revision_sha?: string;
   configuration_sha256?: string;
 }
