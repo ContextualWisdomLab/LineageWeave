@@ -1355,59 +1355,124 @@ function analysisRunCaption(run: AnalysisRun): string {
 }
 
 /**
- * Next action for a failed run on the home list.
+ * Next action for a pending or failed run on the home list.
  *
  * The machine `failure_code` stays on detail history (ADR 0014). Copy
- * is kind-specific so a failed lineage reconstruction is not mistaken
- * for a missing TEPP transport.
+ * is kind-specific so a pending TEPP row is not mistaken for a
+ * reconstruction, and a failed period report is not mistaken for a
+ * missing measurement transport.
  */
 function analysisRunNextAction(run: AnalysisRun): string | null {
-  if (run.status_code === "analysis_status_pending") {
-    return "Open this run to confirm which posts it will use. Reconstruction has not started yet.";
+  switch (run.status_code) {
+    case "analysis_status_pending":
+      switch (run.run_kind_code) {
+        case "analysis_run_lineage":
+          return "Open this run to confirm which posts it will use. Reconstruction has not started yet.";
+        case "analysis_run_tepp":
+          return "Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.";
+        case "analysis_run_report":
+          return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
+        default: {
+          const unexpected: never = run.run_kind_code;
+          return unexpected;
+        }
+      }
+    case "analysis_status_failed":
+      switch (run.run_kind_code) {
+        case "analysis_run_tepp":
+          return "Open this run to see why it failed, then connect the measurement service and re-run.";
+        case "analysis_run_lineage":
+          return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
+        case "analysis_run_report":
+          return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
+        default: {
+          const unexpected: never = run.run_kind_code;
+          return unexpected;
+        }
+      }
+    case "analysis_status_running":
+    case "analysis_status_succeeded":
+    case "analysis_status_cancelled":
+    case null:
+      return null;
+    default: {
+      const unexpected: never = run.status_code;
+      return unexpected;
+    }
   }
-  if (run.status_code !== "analysis_status_failed") {
-    return null;
-  }
-  switch (run.run_kind_code) {
-    case "analysis_run_tepp":
-      return "Open this run to see why it failed, then connect the measurement service and re-run.";
-    case "analysis_run_lineage":
-      return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
-    default:
-      return "Open this run to see why it failed, then retry after the blocking service is connected.";
-  }
+}
+
+/**
+ * Accessible name for a home-list run button.
+ *
+ * `aria-label` replaces computed names (WCAG 2.2 Success Criterion
+ * 4.1.2). The next-action sentence must stay in that name so a
+ * screen-reader operator hears the same instruction as a sighted one.
+ */
+function analysisRunAccessibleName(run: AnalysisRun): string {
+  const caption = analysisRunCaption(run);
+  const nextAction = analysisRunNextAction(run);
+  return nextAction ? `Open analysis run: ${caption}. ${nextAction}` : `Open analysis run: ${caption}`;
 }
 
 /**
  * Empty-corpus copy that tells the operator what to do next.
  */
 function analysisRunEmptyPostsHint(run: AnalysisRun): string {
-  if (run.run_kind_code === "analysis_run_tepp") {
-    return (
-      "No posts were available at this cutoff for TEPP to measure. " +
-      "Open a later run, or ask an administrator to capture a newer snapshot."
-    );
+  switch (run.run_kind_code) {
+    case "analysis_run_tepp":
+      return (
+        "No posts were available at this cutoff for TEPP to measure. " +
+        "Open a later run, or ask an administrator to capture a newer snapshot."
+      );
+    case "analysis_run_lineage":
+      return (
+        "No posts were available at this cutoff for reconstruction. " +
+        "Open a later run, or ask an administrator to capture a newer snapshot."
+      );
+    case "analysis_run_report":
+      return (
+        "No posts were available at this cutoff for the period report. " +
+        "Open a later run, or ask an administrator to capture a newer snapshot."
+      );
+    default: {
+      const unexpected: never = run.run_kind_code;
+      return unexpected;
+    }
   }
-  return (
-    "No posts were available at this cutoff. Open a later run, or ask an " +
-    "administrator to capture a newer snapshot."
-  );
 }
 
 /**
  * Corpus copy for a TEPP run that already has cutoff posts.
  *
  * Those titles are the measurement bag, not a reconstruction result.
+ * Pending or running must not claim a calibrated measurement.
  */
 function analysisRunCorpusHint(run: AnalysisRun): string | null {
   if (run.run_kind_code !== "analysis_run_tepp") return null;
-  if (run.status_code === "analysis_status_failed") {
-    return (
-      "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
-      "transport, then re-run, to replace Failed with a calibrated result."
-    );
+  switch (run.status_code) {
+    case "analysis_status_failed":
+      return (
+        "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
+        "transport, then re-run, to replace Failed with a calibrated result."
+      );
+    case "analysis_status_succeeded":
+      return "These posts are the cutoff corpus this TEPP run measured.";
+    case "analysis_status_pending":
+    case "analysis_status_running":
+      return "These posts are the cutoff corpus TEPP will measure once this run finishes.";
+    case "analysis_status_cancelled":
+      return (
+        "These posts are the cutoff corpus this TEPP run would have measured. " +
+        "The run was cancelled before a calibrated result."
+      );
+    case null:
+      return "These posts are the cutoff corpus attached to this TEPP run.";
+    default: {
+      const unexpected: never = run.status_code;
+      return unexpected;
+    }
   }
-  return "These posts are the cutoff corpus this TEPP run measured.";
 }
 
 /** Git-style prefix. The full digest stays on `title` for verification. */
@@ -1552,7 +1617,7 @@ function AnalysisRunsPanel({
               <li key={run.analysis_run_id} className="ticket-list-item">
                 <button
                   className="post-list-item"
-                  aria-label={`Open analysis run: ${caption}`}
+                  aria-label={analysisRunAccessibleName(run)}
                   onClick={() => void handleOpen(run.analysis_run_id)}
                 >
                   <span className="ticket-title">{caption}</span>
