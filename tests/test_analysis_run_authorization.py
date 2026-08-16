@@ -11,6 +11,8 @@ import psycopg2
 import pytest
 from psycopg2 import sql
 
+from backend.app.analysis_run_ingestion import _VISIBLE_RUN_SQL
+
 _ROOT = Path(__file__).resolve().parents[1]
 _INITIAL_MIGRATION = _ROOT / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = _ROOT / "migrations" / "0018_analysis_run_registry.sql"
@@ -107,6 +109,8 @@ def _complete_run(
     idempotency_key: str,
     scope_kind: str,
     corporate_entity_id: str | None = None,
+    scope_key: str | None = None,
+    knowledge_cutoff: str = "2026-01-12T12:00:00Z",
 ) -> str:
     """Insert one succeeded run with one document-count aggregate."""
     cursor.execute(
@@ -137,11 +141,18 @@ def _complete_run(
              configuration_schema_version, configuration_sha256,
              code_revision_sha, requested_at)
         values (%s, 'analysis_run_lineage', %s, %s,
-                '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
+                %s, 'lineage-run-v1', %s, %s,
                 '2026-01-12T12:30:00Z')
         returning analysis_run_id
         """,
-        (snapshot_id, idempotency_key, account_id, "b" * 64, "c" * 40),
+        (
+            snapshot_id,
+            idempotency_key,
+            account_id,
+            knowledge_cutoff,
+            "b" * 64,
+            "c" * 40,
+        ),
     )
     run_id = str(cursor.fetchone()[0])
     if scope_kind == "analysis_scope_corporate_entity":
@@ -152,6 +163,15 @@ def _complete_run(
             values (%s, %s, %s)
             """,
             (run_id, scope_kind, corporate_entity_id),
+        )
+    elif scope_kind == "analysis_scope_thread_group":
+        cursor.execute(
+            """
+            insert into analysis_run_scope
+                (analysis_run_id, scope_kind_code, scope_key)
+            values (%s, %s, %s)
+            """,
+            (run_id, scope_kind, scope_key),
         )
     else:
         cursor.execute(
@@ -180,29 +200,28 @@ def _complete_run(
 
 def _visible_ids(cursor, account_id: str, entity_ids: list[str]) -> set[str]:
     """Apply the same visibility predicate the product API uses."""
+    predicate = _VISIBLE_RUN_SQL.replace("$2::uuid[]", "%s::uuid[]").replace(
+        "$1", "%s"
+    )
     cursor.execute(
-        """
+        f"""
         select run.analysis_run_id
         from analysis_run run
         join analysis_run_scope scope on scope.analysis_run_id = run.analysis_run_id
-        where
-          run.requested_by_account_id = %s
-          or (
-            scope.scope_kind_code = 'analysis_scope_corporate_entity'
-            and scope.corporate_entity_id = any(%s::uuid[])
-          )
-          or (
-            scope.scope_kind_code = 'analysis_scope_process_unit'
-            and exists (
-              select 1 from account_affiliation aff
-              where aff.user_account_id = %s
-                and aff.process_unit_id = scope.process_unit_id
-            )
-          )
+        where {predicate}
         """,
-        (account_id, entity_ids, account_id),
+        (account_id, entity_ids),
     )
     return {str(row[0]) for row in cursor.fetchall()}
+
+
+def test_requester_ownership_cannot_bypass_thread_group_cutoff() -> None:
+    """ADR 0018: requester ownership is not a standalone OR past the clock."""
+
+    sql = " ".join(_VISIBLE_RUN_SQL.split())
+    assert "p.created_at <= run.knowledge_cutoff" in sql
+    assert "scope.scope_kind_code <> 'analysis_scope_thread_group'" in sql
+    assert "run.requested_by_account_id = $1" in sql
 
 
 def test_hidden_scope_does_not_leak_through_all_visible_or_other_corp(authz_db) -> None:
@@ -252,3 +271,60 @@ def test_hidden_scope_does_not_leak_through_all_visible_or_other_corp(authz_db) 
         assert hidden_all_visible in outsider_visible
         assert hidden_other_corp in outsider_visible
         assert own_run not in outsider_visible
+
+
+def test_requester_owned_thread_group_run_needs_in_cutoff_post(authz_db) -> None:
+    """A January thread-group run you requested stays hidden without an in-cutoff post."""
+
+    with authz_db.cursor() as cursor:
+        viewer = _insert_account(cursor, "requester")
+        own_corp = _insert_corp(cursor, "DEMO-CORP-CUTOFF", "Demo Corp")
+        cursor.execute(
+            """
+            insert into common_lookup_value
+                (lookup_category, lookup_code, lookup_label)
+            values
+                ('post_visibility', 'public', 'Public'),
+                ('voc_type', 'voc', 'Voice of Customer')
+            on conflict (lookup_code) do nothing
+            """
+        )
+        cursor.execute(
+            """
+            insert into account_affiliation (user_account_id, corporate_entity_id)
+            values (%s, %s)
+            """,
+            (viewer, own_corp),
+        )
+        cursor.execute(
+            """
+            insert into source_post
+                (author_account_id, corporate_entity_id, post_title, post_body,
+                 voc_type_code, visibility_code, thread_group_key, created_at)
+            values
+                (%s, %s, 'Late own thread', 'Written after the January cutoff.',
+                 'voc', 'public', 'late-own-thread', '2026-01-20T12:00:00Z'),
+                (%s, %s, 'In-cutoff own thread', 'Visible at the January cutoff.',
+                 'voc', 'public', 'in-cutoff-own-thread', '2026-01-10T12:00:00Z')
+            """,
+            (viewer, own_corp, viewer, own_corp),
+        )
+        hidden_own = _complete_run(
+            cursor,
+            account_id=viewer,
+            digest="1" * 64,
+            idempotency_key="own-late-thread",
+            scope_kind="analysis_scope_thread_group",
+            scope_key="late-own-thread",
+        )
+        visible_own = _complete_run(
+            cursor,
+            account_id=viewer,
+            digest="2" * 64,
+            idempotency_key="own-in-cutoff-thread",
+            scope_kind="analysis_scope_thread_group",
+            scope_key="in-cutoff-own-thread",
+        )
+        visible = _visible_ids(cursor, viewer, [own_corp])
+        assert hidden_own not in visible
+        assert visible_own in visible

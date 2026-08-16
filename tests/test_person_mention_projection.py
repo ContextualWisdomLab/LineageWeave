@@ -36,7 +36,11 @@ from lineageweave.knowledge_graph import (
     NODE_POST,
     NODE_TEAM,
 )
-from lineageweave.post_summary import PostSummary, RoleResponsibility
+from lineageweave.post_summary import (
+    ACTOR_TYPE_PERSON,
+    PostSummary,
+    RoleResponsibility,
+)
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -451,3 +455,68 @@ def test_team_only_posts_walk_related_nodes(projection_database: str) -> None:
 
     database_dsn, post_id, _summary_person_id = projection_database.split("|")
     asyncio.run(_exercise_team_only_related_walk(database_dsn, post_id))
+
+
+async def _exercise_person_homonym_role_binding(
+    database_dsn: str,
+    post_id: str,
+) -> None:
+    """A later same-named catalog person must not steal the R&R mention."""
+
+    connection = await asyncpg.connect(database_dsn)
+    try:
+        earlier_id = str(
+            await connection.fetchval(
+                """
+                insert into cataloged_person
+                    (person_name, person_side_code, created_at)
+                values ('Homonym Person', 'our_side', '2026-01-01T00:00:00Z')
+                returning person_id
+                """
+            )
+        )
+        later_id = str(
+            await connection.fetchval(
+                """
+                insert into cataloged_person
+                    (person_name, person_side_code, created_at)
+                values ('Homonym Person', 'counterparty', '2026-02-01T00:00:00Z')
+                returning person_id
+                """
+            )
+        )
+        await persist_post_summary(
+            connection,
+            post_id,
+            PostSummary(
+                korean_summary="동명이인 담당자가 일정을 확인했다.",
+                roles_and_responsibilities=(
+                    RoleResponsibility(
+                        actor_name="Homonym Person",
+                        responsibility="일정 확인",
+                        actor_type_code=ACTOR_TYPE_PERSON,
+                    ),
+                ),
+            ),
+        )
+        mention_ids = [
+            str(row["person_id"])
+            for row in await connection.fetch(
+                "select person_id from post_summary_person_mention "
+                "where post_id = $1",
+                post_id,
+            )
+        ]
+        assert mention_ids == [earlier_id]
+        assert later_id not in mention_ids
+    finally:
+        await connection.close()
+
+
+def test_person_role_binds_the_earliest_same_named_catalog_id(
+    projection_database: str,
+) -> None:
+    """ADR 0009: two catalog people can share a name; R&R keeps the earliest id."""
+
+    database_dsn, post_id, _summary_person_id = projection_database.split("|")
+    asyncio.run(_exercise_person_homonym_role_binding(database_dsn, post_id))

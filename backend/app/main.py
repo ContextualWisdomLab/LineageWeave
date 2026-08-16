@@ -1194,8 +1194,10 @@ async def list_analysis_runs(
 ) -> dict[str, Any]:
     """Authorized analysis-run list: aggregates and labels only.
 
-    Hidden scopes 404 at the item path and never appear here. The
-    payload has no source SQL, DSN, raw record, or provider body.
+    Hidden scopes 404 at the item path and never appear here. A
+    thread-group run you requested still needs an in-cutoff visible
+    post (ADR 0018). The payload has no source SQL, DSN, raw record,
+    or provider body.
     """
     _require_post_read(account)
     async with pool.acquire() as conn:

@@ -44,6 +44,9 @@ counterparty and Keyman affiliation already resolves against).
 **Person** (an R&R actor, not a Keyman): opportunistically joined to an
 *existing* `cataloged_person` row by exact name match, when Keyman
 extraction has already cataloged that name on this or another post.
+When two rows share `person_name`, the join takes the earliest
+`created_at`, then `person_id` — it does not invent a person or pick
+an arbitrary `LIMIT 1` row.
 R&R does not create a new person identity itself -- `cataloged_person`
 requires `person_side_code` (our-side vs. counterparty), which R&R's
 prompt does not currently ask for and Keyman's does; inventing one here

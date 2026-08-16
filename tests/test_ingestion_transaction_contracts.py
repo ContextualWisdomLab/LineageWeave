@@ -199,6 +199,7 @@ class _SummaryConnection:
             return {"korean_summary": "합성 요약"}
         if compact.startswith("select person_id from cataloged_person"):
             assert self.in_transaction
+            assert "order by created_at, person_id" in compact
             return None
         raise AssertionError(f"unexpected fetchrow query: {compact}")
 
@@ -215,6 +216,8 @@ class _SummaryConnection:
                     "responsibility": "도면 검토",
                     "actor_type_code": ACTOR_TYPE_TEAM,
                     "affiliated_organization_name": "Synthetic Energy",
+                    "team_id": None,
+                    "corporate_entity_id": None,
                 }
             ]
         raise AssertionError(f"unexpected fetch query: {compact}")
@@ -469,3 +472,19 @@ def test_release_notes_describe_balanced_outer_emphasis_stripping() -> None:
     assert "strips balanced outer Markdown emphasis from field values" in content
     assert "while still accepting emphasized field labels" in content
     assert "preserves Markdown emphasis in field values" not in content
+
+
+def test_person_role_join_orders_catalog_homonyms() -> None:
+    """ADR 0009: two same-named people must not attach by unordered LIMIT 1."""
+
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "backend"
+        / "app"
+        / "post_summary_ingestion.py"
+    ).read_text(encoding="utf-8")
+    assert "order by created_at, person_id" in source
+    assert (
+        "select person_id from cataloged_person where person_name = $1 limit 1"
+        not in source
+    )

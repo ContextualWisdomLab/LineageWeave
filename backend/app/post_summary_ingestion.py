@@ -258,7 +258,10 @@ async def _replace_summary_projection(
                 )
         elif role.actor_type_code == ACTOR_TYPE_PERSON:
             person_row = await conn.fetchrow(
-                "select person_id from cataloged_person where person_name = $1 limit 1",
+                "select person_id from cataloged_person "
+                "where person_name = $1 "
+                "order by created_at, person_id "
+                "limit 1",
                 role.actor_name,
             )
             if person_row is not None:

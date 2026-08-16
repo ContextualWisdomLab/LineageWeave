@@ -39,6 +39,9 @@ post. The popup turns that name into a related-node button.
 
 Thread-group run list visibility requires at least one ABAC-visible
 `source_post` whose `created_at` is at or before `knowledge_cutoff`.
+Requester ownership (`requested_by_account_id`) does not bypass that
+clock: a run you requested on a thread that has no in-cutoff visible
+post stays off the home list and returns 404 on detail.
 
 ## Consequences
 
@@ -48,6 +51,9 @@ Thread-group run list visibility requires at least one ABAC-visible
   organization chip.
 - A later public post in a thread group no longer lists a January run
   that could not have known that post.
+- Requesting that January run yourself does not put it on your home
+  list. Open a thread that has an in-cutoff visible post, then request
+  again.
 
 ## References
 

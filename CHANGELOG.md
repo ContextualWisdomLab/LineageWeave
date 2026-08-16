@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.2] - 2026-08-16
+
+### Fixed
+
+- A thread-group analysis-run you requested no longer appears on the
+  home list when that thread has no ABAC-visible post at or before
+  `knowledge_cutoff` (ADR 0018). Open a thread that has an in-cutoff
+  visible post, then request again. Detail of the hidden row is 404.
+- An R&R person name that matches two catalog rows now binds the
+  earliest `created_at`, then `person_id`. A later same-named Keyman
+  row no longer steals the mention.
+
 ## [0.86.1] - 2026-08-16
 
 ### Changed

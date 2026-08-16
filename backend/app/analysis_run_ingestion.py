@@ -1,10 +1,11 @@
 """Authorized, source-redacting reads of the Milestone 2 analysis-run registry.
 
 The registry itself is issue #89 / migration 0018. This module is the
-product projection: an account sees only runs they requested or whose
-scope they already have ABAC authority to walk. Aggregate counts and
-lookup labels come back; source SQL, DSNs, raw records, and provider
-payloads never do.
+product projection: an account sees runs they requested or whose scope
+they already have ABAC authority to walk, except a thread-group run
+also needs an in-cutoff visible post (ADR 0018). Requester ownership
+does not bypass that clock. Aggregate counts and lookup labels come
+back; source SQL, DSNs, raw records, and provider payloads never do.
 
 ``create_pending_analysis_run`` (ADR 0017) writes snapshot, counts, run,
 scope, and the first Pending event atomically. It does not reconstruct
@@ -33,23 +34,8 @@ _KIND_SCHEMA_VERSION = {
     "analysis_run_tepp": "tepp-run-v1",
 }
 
-_VISIBLE_RUN_SQL = """
-    run.requested_by_account_id = $1
-    or (
-      scope.scope_kind_code = 'analysis_scope_corporate_entity'
-      and scope.corporate_entity_id = any($2::uuid[])
-    )
-    or (
-      scope.scope_kind_code = 'analysis_scope_process_unit'
-      and exists (
-        select 1 from account_affiliation aff
-        where aff.user_account_id = $1
-          and aff.process_unit_id = scope.process_unit_id
-      )
-    )
-    or (
-      scope.scope_kind_code = 'analysis_scope_thread_group'
-      and exists (
+_THREAD_GROUP_IN_CUTOFF_SQL = """
+      exists (
         select 1 from source_post p
         where p.thread_group_key = scope.scope_key
           and p.created_at <= run.knowledge_cutoff
@@ -58,6 +44,31 @@ _VISIBLE_RUN_SQL = """
             or p.corporate_entity_id = any($2::uuid[])
           )
       )
+"""
+
+_VISIBLE_RUN_SQL = f"""
+    (
+      run.requested_by_account_id = $1
+      or (
+        scope.scope_kind_code = 'analysis_scope_corporate_entity'
+        and scope.corporate_entity_id = any($2::uuid[])
+      )
+      or (
+        scope.scope_kind_code = 'analysis_scope_process_unit'
+        and exists (
+          select 1 from account_affiliation aff
+          where aff.user_account_id = $1
+            and aff.process_unit_id = scope.process_unit_id
+        )
+      )
+      or (
+        scope.scope_kind_code = 'analysis_scope_thread_group'
+        and {_THREAD_GROUP_IN_CUTOFF_SQL}
+      )
+    )
+    and (
+      scope.scope_kind_code <> 'analysis_scope_thread_group'
+      or {_THREAD_GROUP_IN_CUTOFF_SQL}
     )
 """
 
@@ -203,7 +214,7 @@ async def fetch_visible_analysis_runs(
     account_id: str,
     affiliated_entity_ids: list[str],
 ) -> list[dict[str, Any]]:
-    """Runs the account requested or whose scope they may already walk."""
+    """Runs the account may walk, with thread-group cutoff still applied."""
     rows = await conn.fetch(
         _RUN_SELECT.format(where=_VISIBLE_RUN_SQL),
         account_id,

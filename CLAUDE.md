@@ -20,3 +20,7 @@ Opening a cutoff title shows the live post -- compare it with the
 cutoff before treating the body as reconstructed evidence (ADR 0016).
 `POST /api/analysis-runs` records Pending on an authorized
 cutoff capture (ADR 0017) and does not reconstruct lineage.
+A thread-group run lists only when an ABAC-visible post exists at or
+before `knowledge_cutoff`, even when the signed-in account requested
+the run (ADR 0018). Requesting a January thread that has no in-cutoff
+visible post does not put that row on the home list.

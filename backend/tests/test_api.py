@@ -1607,6 +1607,86 @@ def test_thread_group_run_list_honors_knowledge_cutoff(
     assert seeded_db["visible_run_id"] in ids
 
 
+def test_requester_owned_thread_group_run_list_honors_knowledge_cutoff(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Requesting a January thread-group run does not list it without an in-cutoff post."""
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code, thread_group_key, created_at) "
+                "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public', %s, %s "
+                "from source_post where post_id = %s",
+                (
+                    "Late requester thread-group post",
+                    "Written after the January cutoff.",
+                    "late-requester-thread-group",
+                    "2026-01-20T12:00:00Z",
+                    seeded_db["own_private_post_id"],
+                ),
+            )
+            cur.execute(
+                """
+                insert into analysis_source_snapshot
+                    (snapshot_sha256, source_contract_version,
+                     maximum_available_time, captured_at)
+                values (%s, 'source-contract-v1',
+                        '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
+                returning analysis_source_snapshot_id
+                """,
+                ("e" * 64,),
+            )
+            snapshot_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_run
+                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                     requested_by_account_id, knowledge_cutoff,
+                     configuration_schema_version, configuration_sha256,
+                     code_revision_sha, requested_at)
+                values (%s, 'analysis_run_lineage', %s,
+                        (select user_account_id from user_account
+                          where email_address = 'test.analyst@example.test'),
+                        '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
+                        '2026-01-12T12:30:00Z')
+                returning analysis_run_id
+                """,
+                (snapshot_id, "hidden-own-late-thread", "b" * 64, "c" * 40),
+            )
+            run_id = str(cur.fetchone()[0])
+            cur.execute(
+                """
+                insert into analysis_run_scope
+                    (analysis_run_id, scope_kind_code, scope_key)
+                values (%s, 'analysis_scope_thread_group', 'late-requester-thread-group')
+                """,
+                (run_id,),
+            )
+            cur.execute(
+                """
+                insert into analysis_run_status_event
+                    (analysis_run_id, status_ordinal, status_code, occurred_at)
+                values (%s, 1, 'analysis_status_succeeded', '2026-01-12T12:33:00Z')
+                """,
+                (run_id,),
+            )
+    finally:
+        admin_conn.close()
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    listed = client.get("/api/analysis-runs", headers=headers)
+    assert listed.status_code == 200
+    ids = {run["analysis_run_id"] for run in listed.json()["analysis_runs"]}
+    assert run_id not in ids
+    assert seeded_db["visible_run_id"] in ids
+
+    hidden = client.get(f"/api/analysis-runs/{run_id}", headers=headers)
+    assert hidden.status_code == 404
+
+
 def test_first_mention_of_a_new_counterparty_creates_a_real_corporate_entity(
     client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
