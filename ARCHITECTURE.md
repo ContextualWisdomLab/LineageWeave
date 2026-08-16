@@ -490,9 +490,10 @@ TEPP list rows add a next-action line (open the run, then connect the
 measurement service) so `tepp_not_available` is not mistaken for a
 calibrated negative result. A failed lineage row tells the operator
 to retry reconstruction, not to connect TEPP. A failed period-report
-row tells the operator to rebuild the report. A pending TEPP row
+row tells the operator to rebuild the report. A pending or running TEPP row
 does not claim a calibrated measurement and does not say
-reconstruction. The list button accessible name includes the
+reconstruction. A cancelled TEPP row says it stopped before a
+calibrated result. The list button accessible name includes the
 next-action sentence; detail repeats it (ADR 0014). A pending lineage row
 says reconstruction has not started yet. The
 payload is lookup labels plus non-negative aggregate counts -- never

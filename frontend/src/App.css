@@ -85,11 +85,6 @@
   cursor: pointer;
 }
 
-:root {
-  --lw-opacity-meta: 0.7;
-  --lw-font-size-meta: 0.85rem;
-}
-
 .post-meta {
   opacity: var(--lw-opacity-meta);
   font-size: var(--lw-font-size-meta);

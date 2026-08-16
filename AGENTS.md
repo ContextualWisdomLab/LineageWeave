@@ -91,6 +91,25 @@ A run-bearing analysis-run registry empties only after an unrevoked
 (ADR 0020 / v0.87.0). The documented phrase is not a secret. Do not
 expose purge on a public HTTP route.
 
+## Analysis-run list names (ADR 0014)
+
+`make seed` writes a Demo Corp lineage run and a TEPP run on the same
+snapshot (ADR 0013). The TEPP path goes through `tepp_client`. A missing
+transport or an unused accepted envelope is Failed
+(`tepp_not_available` / `tepp_result_not_persisted`). Do not invent a
+theta or a local psychometric substitute. The home list caption stays
+`kind · status · entity`; the machine failure code is detail-only.
+The list button accessible name is
+`Open analysis run: {caption}. {nextAction}` when a next action exists
+(WCAG 2.2 SC 4.1.2). Open a Failed TEPP row, then connect a live TEPP
+transport. A failed lineage row retries reconstruction -- it does not
+mention TEPP. A failed period-report row rebuilds the report. A pending
+or running TEPP row does not claim a calibrated measurement and does
+not say reconstruction. A cancelled TEPP row says it stopped before a
+calibrated result. A pending lineage row says reconstruction has not
+started yet. `POST /api/analysis-runs` records Pending on an authorized
+cutoff capture (ADR 0017) and does not reconstruct lineage.
+
 ## CI gates
 
 `.github/workflows/tests.yml` runs the full suite on every PR to `main`.

@@ -1883,7 +1883,7 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Running · Demo Corp",
+        name: "Open analysis run: TEPP measurement · Running · Demo Corp. Open this run to confirm which posts TEPP is measuring. Measurement is in progress — this is not a calibrated result.",
       }),
     );
     expect(
@@ -1898,7 +1898,7 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Cancelled · Demo Corp",
+        name: "Open analysis run: TEPP measurement · Cancelled · Demo Corp. This run was cancelled before a calibrated result. Connect the measurement service, then re-run.",
       }),
     );
     expect(

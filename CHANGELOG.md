@@ -8,11 +8,15 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
-- Pending analysis-run next actions stay kind-specific, and the list
-  button accessible name includes that sentence (WCAG 2.2 SC 4.1.2).
-  A pending TEPP row tells the operator measurement has not started —
-  it does not say reconstruction. Open the row: detail repeats it
-  (ADR 0014). This slice does not take v0.86.3 or ADR 0021.
+- Pending, running, and cancelled analysis-run next actions stay
+  kind-specific, and the list button accessible name includes that
+  sentence (WCAG 2.2 SC 4.1.2). A pending or running TEPP row tells
+  the operator measurement is not a calibrated result — it does not
+  say reconstruction. A cancelled TEPP row says it stopped before a
+  calibrated result. Preview the repeating list button in Storybook
+  (`AnalysisRuns/AnalysisRunListButton`). Open the row: detail
+  repeats the sentence (ADR 0014). This slice does not take v0.86.3
+  or ADR 0021.
 
 ## [0.87.0] - 2026-08-16
 
