@@ -12,6 +12,9 @@ All notable changes to this project are documented here. Format follows
   supplied by the authorized API payload. Users see business context such as
   `Our side` or `Counterparty`, while ontology class metadata remains available
   separately for semantic processing and provenance.
+- Related-person buttons now expose that same caption in the accessible name, so
+  assistive technology hears `Related nodes for Priya Nair (Counterparty)`
+  instead of the name alone.
 
 ## [0.77.0] - 2026-08-14
 

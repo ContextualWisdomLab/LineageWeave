@@ -714,7 +714,7 @@ function KeymanPanel({
                     <li key={`${node.node_type_code}:${node.node_id}`}>
                       <button
                         className="keyman-select"
-                        aria-label={`Related nodes for ${node.label ?? node.node_id}`}
+                        aria-label={`Related nodes for ${caption}`}
                         onClick={() => handleSelect(node.node_id, node.label ?? node.node_id)}
                       >
                         {caption}

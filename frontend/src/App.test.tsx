@@ -1001,6 +1001,11 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Related to Ada West").closest(".related-keymen")).not.toHaveTextContent(
       "Priya Nair (Person)",
     );
+    expect(
+      screen.getByRole("button", {
+        name: "Related nodes for Priya Nair (Counterparty)",
+      }),
+    ).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Open related post: Linked post" }));
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
