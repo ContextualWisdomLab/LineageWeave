@@ -1353,6 +1353,48 @@ function analysisRunCaption(run: AnalysisRun): string {
     .join(" · ");
 }
 
+/**
+ * Next action for a failed run on the home list.
+ *
+ * The machine `failure_code` stays on detail history (ADR 0014). The
+ * list tells the operator to open the run, then reconnect the service.
+ */
+function analysisRunNextAction(run: AnalysisRun): string | null {
+  if (run.status_code === "analysis_status_failed") {
+    return "Open this run to see why it failed, then connect the measurement service and re-run.";
+  }
+  return null;
+}
+
+/**
+ * Empty-corpus copy that tells the operator what to do next.
+ */
+function analysisRunEmptyPostsHint(run: AnalysisRun): string {
+  if (run.run_kind_code === "analysis_run_tepp") {
+    return (
+      "No posts were available at this cutoff for TEPP to measure. " +
+      "Open a later run, or ask an administrator to capture a newer snapshot."
+    );
+  }
+  return (
+    "No posts were available at this cutoff. Open a later run, or ask an " +
+    "administrator to capture a newer snapshot."
+  );
+}
+
+/**
+ * Corpus copy for a TEPP run that already has cutoff posts.
+ *
+ * Those titles are the measurement bag, not a reconstruction result.
+ */
+function analysisRunCorpusHint(run: AnalysisRun): string | null {
+  if (run.run_kind_code !== "analysis_run_tepp") return null;
+  return (
+    "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
+    "transport, then re-run, to replace Failed with a calibrated result."
+  );
+}
+
 function AnalysisRunsPanel({
   accessToken,
   onSelectPost,
@@ -1387,6 +1429,8 @@ function AnalysisRunsPanel({
   if (error && runs === null) return <p className="error">{error}</p>;
   if (runs === null) return <p>Loading analysis runs...</p>;
 
+  const corpusHint = selected ? analysisRunCorpusHint(selected) : null;
+
   return (
     <section className="popup-section lineage-home">
       <div className="lineage-home-header">
@@ -1404,6 +1448,7 @@ function AnalysisRunsPanel({
               (count) => count.count_type_code === "analysis_count_document",
             );
             const caption = analysisRunCaption(run);
+            const nextAction = analysisRunNextAction(run);
             return (
               <li key={run.analysis_run_id} className="ticket-list-item">
                 <button
@@ -1417,6 +1462,7 @@ function AnalysisRunsPanel({
                       {documentCount.count_value} {documentCount.count_type_label.toLowerCase()}
                     </span>
                   )}
+                  {nextAction && <span className="post-meta">{nextAction}</span>}
                 </button>
               </li>
             );
@@ -1448,20 +1494,25 @@ function AnalysisRunsPanel({
               ))}
             </ol>
           )}
-          {selected.visible_posts && selected.visible_posts.length > 0 && (
-            <ul aria-label="Posts known at this run cutoff">
-              {selected.visible_posts.map((post) => (
-                <li key={post.post_id}>
-                  <button
-                    className="keyman-select"
-                    aria-label={`Open run post: ${post.post_title}`}
-                    onClick={() => onSelectPost(post.post_id)}
-                  >
-                    {post.post_title}
-                  </button>
-                </li>
-              ))}
-            </ul>
+          {selected.visible_posts && selected.visible_posts.length > 0 ? (
+            <>
+              {corpusHint && <p className="post-meta">{corpusHint}</p>}
+              <ul aria-label="Posts known at this run cutoff">
+                {selected.visible_posts.map((post) => (
+                  <li key={post.post_id}>
+                    <button
+                      className="keyman-select"
+                      aria-label={`Open run post: ${post.post_title}`}
+                      onClick={() => onSelectPost(post.post_id)}
+                    >
+                      {post.post_title}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="popup-placeholder">{analysisRunEmptyPostsHint(selected)}</p>
           )}
         </div>
       )}
