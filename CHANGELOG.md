@@ -15,6 +15,11 @@ All notable changes to this project are documented here. Format follows
 - Related-person buttons now expose that same caption in the accessible name, so
   assistive technology hears `Related nodes for Priya Nair (Counterparty)`
   instead of the name alone.
+- Structured extraction, summarization, commitment, relationship-classification,
+  and LLM-as-a-Judge consumers now request contextual-orchestrator `auto` mode
+  so the orchestration plane can meet the quality requirement and then minimize
+  known execution cost. Explicit checked `verify` paths remain unchanged
+  (ADR 0013).
 
 ## [0.77.0] - 2026-08-14
 
