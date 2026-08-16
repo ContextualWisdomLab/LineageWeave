@@ -49,7 +49,9 @@ reconstruction, not to connect TEPP. A failed period-report row
 tells the operator to rebuild the report from a current snapshot.
 A pending or running TEPP row must not claim a calibrated
 measurement and must not say reconstruction. The list
-button accessible name includes the next-action sentence. A pending
+button accessible name is `Open analysis run: {caption}. {nextAction}`
+when a next action exists (WCAG 2.2 SC 4.1.2); otherwise the caption
+alone. Detail repeats that sentence. A pending
 lineage row says reconstruction has not started yet. The detail now shows the legal
 lifecycle the registry already stored. `POST /api/analysis-runs` now
 records a Pending run on an authorized cutoff capture (ADR 0017).
