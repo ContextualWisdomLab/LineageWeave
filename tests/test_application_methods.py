@@ -1379,17 +1379,21 @@ def test_content_manifest_asset_and_evidence_fallbacks_remain_document_scoped(mo
         app.asset_bytes(ACTOR, "DOC-1", -1)
 
     monkeypatch.setattr(lw, "voc_evidence_guid_candidates", lambda *_args: ["missing", "also-missing"])
-    calls: list[tuple[object, ...]] = []
+    calls: list[tuple[str, tuple[object, ...]]] = []
 
-    def query(_connection, _sql, params=()):  # noqa: ANN001
-        calls.append(tuple(params))
+    def query(_connection, sql, params=()):  # noqa: ANN001
+        calls.append((str(sql), tuple(params)))
         return []
 
     monkeypatch.setattr(lw, "_database_query", query)
     with pytest.raises(KeyError):
         app.source_evidence(ACTOR, "DOC-1", "requested")
-    assert ("DOC-1", "missing") in calls
-    assert ("DOC-1",) not in calls
+    assert any(params == ("DOC-1", "missing") for _sql, params in calls)
+    assert any(params == ("DOC-1", "also-missing") for _sql, params in calls)
+    assert not any(
+        "guid_field" in sql and "ORDER BY erdat_field" in sql
+        for sql, _params in calls
+    )
     monkeypatch.setattr(lw, "_database_query", lambda *_args, **_kwargs: [])
     with pytest.raises(KeyError):
         app.source_evidence(ACTOR, "DOC-1", "requested")

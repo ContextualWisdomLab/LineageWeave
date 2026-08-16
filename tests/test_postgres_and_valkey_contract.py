@@ -81,7 +81,7 @@ def test_bounded_llm_appointment_enrichment_replaces_only_complete_model_rows(mo
     assert "meeting|visit|kickoff" in query_calls[0][0]
     assert any("DELETE FROM" in sql and params == ("DOC-1",) for sql, params in connection.recording_cursor.execute_calls)
     assert connection.recording_cursor.executemany_calls[0][1] == [
-        ("apt-1", "DOC-1", "2026-08-15", "고객 약속", "방문", "llm")
+        ("apt-1", "DOC-1", "2026-08-15", "고객 약속", "방문", "llm", None)
     ]
     assert events == [
         (
