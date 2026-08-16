@@ -239,8 +239,11 @@ Acceptance requires:
 
 1. Add a transaction repository that creates snapshot, counts, run, scope, and
    first status atomically and compares request digests on idempotent retries.
-   `POST /api/analysis-runs` now records that Pending write (ADR 0017);
-   reconstruction and live TEPP execution remain later slices.
+   `POST /api/analysis-runs` now records that Pending write (ADR 0017).
+   `POST /api/analysis-runs/{id}/start` now reconstructs a Pending
+   lineage cutoff bag in-process from frozen snapshot membership
+   (ADR 0021). A durable outbox / Valkey worker and live TEPP execution
+   remain later slices.
 2. Add RBAC/ABAC-protected run list/detail endpoints and the DB-grounded
    read-only administrator surface.
 3. Add a normalized PostgreSQL outbox and Valkey delivery worker.

@@ -4,6 +4,23 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.88.0] - 2026-08-16
+
+### Added
+
+- `POST /api/analysis-runs/{id}/start` runs ThreadWeave on a visible
+  Pending lineage cutoff bag and persists run-scoped parent choices
+  (ADR 0021). Open the Pending run, then start reconstruction. The
+  designed A-100 fork (revised quote and delivery question under the
+  pricing follow-up) is the acceptance tree. TEPP start is 422 — this
+  path does not invent a theta. A Succeeded retry returns the stored
+  digest. Hover the Result digest prefix to verify the parent-choice
+  hash. Live Event Lineage stays a separate rebuild.
+- Create freezes authorized post ids on
+  `analysis_source_snapshot_member`. Start reconstructs that bag
+  instead of a later backfill that shares the cutoff clock. A granted
+  purge (ADR 0020) now also deletes reconstruction and member rows.
+
 ## [0.87.0] - 2026-08-16
 
 ### Added

@@ -122,6 +122,8 @@ def seed(
             cur.execute((migrations / "0018_analysis_run_registry.sql").read_text())
             cur.execute((migrations / "0019_role_catalog_identity.sql").read_text())
             cur.execute((migrations / "0020_analysis_run_retention_purge.sql").read_text())
+            cur.execute((migrations / "0021_analysis_run_reconstruction.sql").read_text())
+            cur.execute((migrations / "0022_analysis_source_snapshot_member.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -1283,6 +1285,35 @@ def _ensure_demo_source_counts(cur, snapshot_id) -> None:
     )
 
 
+def _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id) -> None:
+    """Freeze Demo Corp post ids on the shared snapshot when the table exists."""
+    cur.execute(
+        "select 1 from information_schema.tables "
+        "where table_schema = 'public' "
+        "and table_name = 'analysis_source_snapshot_member'"
+    )
+    if cur.fetchone() is None:
+        return
+    cur.execute(
+        "select 1 from analysis_source_snapshot_member "
+        "where analysis_source_snapshot_id = %s limit 1",
+        (snapshot_id,),
+    )
+    if cur.fetchone() is not None:
+        return
+    cur.execute(
+        """
+        insert into analysis_source_snapshot_member
+            (analysis_source_snapshot_id, source_post_id)
+        select %s, post_id from source_post
+        where corporate_entity_id = %s
+          and created_at <= '2026-01-12T00:00:00Z'
+        on conflict do nothing
+        """,
+        (snapshot_id, corporate_entity_id),
+    )
+
+
 def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -> None:
     """Insert one Demo-Corp lineage run so Analysis runs is not empty.
 
@@ -1292,6 +1323,7 @@ def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -
     """
     snapshot_id = _ensure_demo_source_snapshot(cur)
     _ensure_demo_source_counts(cur, snapshot_id)
+    _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id)
     cur.execute(
         """
         select analysis_run_id from analysis_run
@@ -1387,6 +1419,7 @@ def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> No
     """
     snapshot_id = _ensure_demo_source_snapshot(cur)
     _ensure_demo_source_counts(cur, snapshot_id)
+    _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id)
     cur.execute(
         """
         select analysis_run_id from analysis_run

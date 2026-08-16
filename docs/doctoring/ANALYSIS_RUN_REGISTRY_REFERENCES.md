@@ -1,7 +1,8 @@
 # Analysis-run registry standards and research traceability
 
 **Status:** Active PR evidence; not protected-main truth until merge.  
-**Scope:** Migrations 0018 and 0020, ADR 0013 / 0020, rollback, and real-PostgreSQL contract tests.
+**Scope:** Migrations 0018, 0020, 0021, and 0022; ADR 0013 / 0017 / 0020 / 0021;
+rollback; and real-PostgreSQL contract tests.
 
 ## Standards mapped to implementation
 
@@ -14,7 +15,8 @@
 | PostgreSQL 18 constraints and trigger contracts | Put integrity close to durable truth and use constraints for row shape while triggers enforce cross-row state and serialization. | Digest/check constraints, category allowlists, account-scoped uniqueness, shape constraints, immutable-row triggers, shared snapshot-row locking, and serialized status transitions. |
 | NIST SP 800-92 | Treat audit records as bounded, protected operational evidence rather than unstructured application logging. | Append-only status events, machine failure codes, actor identity, occurrence/record clocks, fail-closed rollback, `invoking_session_role` on each retention event, and exclusion of raw source/provider payloads. |
 | NIST SP 800-53 Rev. 5 AC-3 | Enforce least privilege on privileged procedures; a well-known procedure name is not an authorization secret. | `REVOKE ALL` on `purge_analysis_run_registry` from `PUBLIC`; `GRANT EXECUTE` only to `analysis_run_retention_admin`; unrevoked `analysis_run_retention_grant` required (ADR 0020). |
-| OpenAPI 3.2.0 | Define explicit versioned API schemas rather than exposing database rows or implementation-specific payloads. | API intentionally deferred; ADR 0013 requires a source-redacting run list/detail contract before a product surface is claimed. |
+| OpenAPI 3.2.0 | Define explicit versioned API schemas rather than exposing database rows or implementation-specific payloads. | `GET` / `POST /api/analysis-runs` and `POST /api/analysis-runs/{id}/start` return labels, clocks, aggregates, and titled reconstruction edges — never source SQL or a provider body. |
+| ThreadWeave tree assembly | Persist the same parent choices the library reconstructs on the cutoff bag. | `start_pending_analysis_run` calls `lineage_edge_specs` on frozen `analysis_source_snapshot_member` rows (or the live cutoff query when membership is absent); tests require the designed A-100 fork through `records_from_source_posts` (revised quote + delivery question under the pricing follow-up). |
 
 ## Temporal reasoning
 
@@ -76,7 +78,8 @@ provenance, retention, and immutable evidence rather than blanket masking.
 | Request identity is stable | Reject analysis-run updates; scope and lifecycle live in their own relations. |
 | Idempotency is actor-scoped | Permit identical opaque keys for two accounts and reject reuse by the same account. |
 | Lifecycle is ordered | Require pending first, contiguous ordinals, monotonic time, legal transitions, terminal finality, and append-only rows. |
-| Rollback does not erase audit data silently | Reject 0018 rollback with any registry rows. A run-bearing registry empties only through an unrevoked `analysis_run_retention_grant` plus `analysis_run_retention_admin`, then `purge_analysis_run_registry('approved-retention-purge')`; a wrong token, a raw `DELETE`, and a runtime role that only knows the public phrase stay rejected. Export then delete `analysis_run_retention_event` before 0020 rollback. |
+| Rollback does not erase audit data silently | Reject 0018 rollback with any registry rows. A run-bearing registry empties only through an unrevoked `analysis_run_retention_grant` plus `analysis_run_retention_admin`, then `purge_analysis_run_registry('approved-retention-purge')`; a wrong token, a raw `DELETE`, and a runtime role that only knows the public phrase stay rejected. Export then delete `analysis_run_retention_event` before 0022, 0021, 0020, then 0018 rollback. |
+| Start recovers the designed tree | `POST /api/analysis-runs/{id}/start` on a Pending lineage run persists the A-100 fork (revised quote and delivery question under the pricing follow-up) and refuses TEPP with 422. |
 
 ## APA 7th references
 

@@ -173,6 +173,8 @@ cd frontend && cp .env.example .env.local && pnpm install && pnpm run dev
 # for session_user, GRANT analysis_run_retention_admin, then
 # select purge_analysis_run_registry('approved-retention-purge').
 # The published token is not a grant (ADR 0020).
+# Start a Pending lineage row: open it, click Start reconstruction,
+# hover the Result digest, confirm the A-100 fork (ADR 0021).
 # -> http://localhost:5173, click "Log in", redirects through the real
 #    Keycloak login page for demo.analyst / lineageweave-demo-only
 ```

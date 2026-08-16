@@ -22,7 +22,8 @@ still owns reconstruction and live TEPP execution.
   they already walk. An unaffiliated corp is 404, not 403.
 - The capture digest hashes scope, entity, cutoff, and authorized post
   ids — never a post body, DSN, or source SQL.
-- The write inserts snapshot, aggregate counts, `analysis_run`,
+- The write inserts snapshot, aggregate counts, frozen
+  `analysis_source_snapshot_member` ids (ADR 0021), `analysis_run`,
   `analysis_run_scope`, and `analysis_status_pending` in one transaction.
 - The first status is Pending. This slice does not reconstruct lineage
   and does not call TEPP. A missing measurement stays Failed only on the

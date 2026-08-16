@@ -72,6 +72,10 @@ from backend.app.analysis_run_ingestion import (
     fetch_visible_analysis_run,
     fetch_visible_analysis_runs,
 )
+from backend.app.analysis_run_start import (
+    AnalysisRunStartError,
+    start_pending_analysis_run,
+)
 from backend.app.activity_stream import (
     create_valkey_client,
     get_valkey,
@@ -1211,8 +1215,8 @@ class CreateAnalysisRunRequest(BaseModel):
     """JSON body for ``POST /api/analysis-runs``.
 
     Omitting ``corporate_entity_id`` uses the account's sole affiliation.
-    Reconstruction and TEPP execution stay later slices; this write
-    records Pending only.
+    Reconstruction starts from ``POST /api/analysis-runs/{id}/start``.
+    This write records Pending only and does not invent a TEPP score.
     """
 
     run_kind_code: str = "analysis_run_lineage"
@@ -1251,6 +1255,32 @@ async def create_analysis_run(
             except AnalysisRunCreateError as exc:
                 raise HTTPException(exc.status_code, exc.detail) from exc
     return created
+
+
+@app.post("/api/analysis-runs/{analysis_run_id}/start")
+async def start_analysis_run(
+    analysis_run_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Start ThreadWeave on a visible Pending lineage run.
+
+    post_read is enough. Hidden runs 404. TEPP is 422 so this path
+    cannot invent a theta. A Succeeded retry returns the stored tree.
+    """
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            try:
+                started = await start_pending_analysis_run(
+                    conn,
+                    analysis_run_id=analysis_run_id,
+                    account_id=account.user_account_id,
+                    affiliated_entity_ids=list(account.corporate_entity_ids),
+                )
+            except AnalysisRunStartError as exc:
+                raise HTTPException(exc.status_code, exc.detail) from exc
+    return started
 
 
 @app.get("/api/analysis-runs/{analysis_run_id}")
