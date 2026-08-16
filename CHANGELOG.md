@@ -25,6 +25,12 @@ All notable changes to this project are documented here. Format follows
   whose body includes a data-URI image shows the picture; Extract Keyman
   or Ask still runs OCR on that image for search.
 
+### Fixed
+
+- Opening a Pending lineage run repeats that reconstruction has not
+  started. Pending next-action copy is pinned to the registered run
+  kinds, so a Pending TEPP row does not say reconstruction.
+
 ## [0.86.0] - 2026-08-16
 
 ### Added

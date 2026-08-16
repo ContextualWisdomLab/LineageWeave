@@ -1451,28 +1451,48 @@ function analysisRunCaption(run: AnalysisRun): string {
 }
 
 /**
- * Next action for a failed run on the home list.
+ * Next action for a pending or failed run on the home list and detail.
  *
  * The machine `failure_code` stays on detail history (ADR 0014). Copy
- * is kind-specific so a failed lineage reconstruction is not mistaken
- * for a missing TEPP transport.
+ * is pinned to registered kinds so a pending TEPP row is not mistaken
+ * for reconstruction, and a failed lineage row is not mistaken for a
+ * missing TEPP transport.
  */
 function analysisRunNextAction(run: AnalysisRun): string | null {
-  if (run.status_code === "analysis_status_pending") {
-    return "Open this run to confirm which posts it will use. Reconstruction has not started yet.";
-  }
-  if (run.status_code !== "analysis_status_failed") {
-    return null;
-  }
-  switch (run.run_kind_code) {
-    case "analysis_run_tepp":
-      return "Open this run to see why it failed, then connect the measurement service and re-run.";
-    case "analysis_run_lineage":
-      return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
-    case "analysis_run_report":
-      return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
+  switch (run.status_code) {
+    case "analysis_status_pending":
+      switch (run.run_kind_code) {
+        case "analysis_run_lineage":
+          return "Open this run to confirm which posts it will use. Reconstruction has not started yet.";
+        case "analysis_run_tepp":
+          return "Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.";
+        case "analysis_run_report":
+          return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
+        default: {
+          const unexpected: never = run.run_kind_code;
+          return unexpected;
+        }
+      }
+    case "analysis_status_failed":
+      switch (run.run_kind_code) {
+        case "analysis_run_tepp":
+          return "Open this run to see why it failed, then connect the measurement service and re-run.";
+        case "analysis_run_lineage":
+          return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
+        case "analysis_run_report":
+          return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
+        default: {
+          const unexpected: never = run.run_kind_code;
+          return unexpected;
+        }
+      }
+    case "analysis_status_running":
+    case "analysis_status_succeeded":
+    case "analysis_status_cancelled":
+    case null:
+      return null;
     default: {
-      const unexpected: never = run.run_kind_code;
+      const unexpected: never = run.status_code;
       return unexpected;
     }
   }
@@ -1648,6 +1668,7 @@ function AnalysisRunsPanel({
   if (runs === null) return <p>Loading analysis runs...</p>;
 
   const corpusHint = selected ? analysisRunCorpusHint(selected) : null;
+  const selectedNextAction = selected ? analysisRunNextAction(selected) : null;
 
   return (
     <section className="popup-section lineage-home">
@@ -1699,6 +1720,7 @@ function AnalysisRunsPanel({
       {selected && (
         <div className="popup-section">
           <h3>{analysisRunCaption(selected)}</h3>
+          {selectedNextAction && <p className="post-meta">{selectedNextAction}</p>}
           <p className="post-meta">
             Cutoff {selected.knowledge_cutoff.slice(0, 10)}
             {" · "}
