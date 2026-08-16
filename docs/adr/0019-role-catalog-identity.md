@@ -35,27 +35,42 @@ time:
 - `cataloged_person_id` for `prov_person`
 
 At most one of those columns is set, and the set column must match
-`actor_type_code`. `fetch_persisted_summary` reads those columns. It
-does not rejoin the catalog by display name.
+`actor_type_code`. `fetch_persisted_summary` reads those columns,
+including `cataloged_person_id` into `catalog_node_id`. It does not
+rejoin the catalog by display name.
 
 Person lookup, when it still resolves by name, orders by
 `created_at`, then `person_id`, and stores that id. It still does not
 create a new `cataloged_person` row (ADR 0009 gap).
 
+Historical backfill copies a mention only when exactly one mentioned
+catalog row on that post shares the role's actor name
+(`HAVING count(*) = 1`). Two same-named mentions stay unbound. A
+`DISTINCT ON` / min-UUID pick is a later re-search by a non-unique
+attribute and is forbidden here (Fellegi & Sunter, 1969).
+
 `GET /api/teams/{team_id}/related` keeps person/entity parity: unknown
 UUID is 404; a team mentioned only on an unseen private post is 403.
 A private `post_organization_mention` does not open the related walk
-through the ADR 0018 UNION (Hu et al., 2014).
+through the ADR 0018 UNION (Hu et al., 2014), including when the
+mentioned organization is one the requester can already see.
 
 ## Consequences
 
 - Open a post whose R&R names an organization that shares a display
   name with another catalog row. The chip keeps the id persist stored.
   Click it to walk that organization's posts, not the homonym's.
+- Open a post whose R&R names a person already in `cataloged_person`.
+  The chip is a button even when Keyman extraction was not run on that
+  post. Click it to walk that person, not a later same-named row.
 - A later mention of the homonym on the same post does not duplicate
   the role or retarget the chip.
+- Pre-0019 rows with two same-named mentions stay unbound until an
+  operator re-persists the summary. Do not guess a UUID at migrate
+  time.
 - Team and organization related endpoints fail closed the same way
-  Keyman and corporate-entity related already do.
+  Keyman and corporate-entity related already do. A private mention of
+  an organization you can already see must not appear in that walk.
 
 ## References
 

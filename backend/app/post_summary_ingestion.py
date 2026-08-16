@@ -39,7 +39,11 @@ from lineageweave.corporate_hierarchy_inference import (
     NullCorporateHierarchyInferenceClient,
 )
 from lineageweave.fixtures import fixture_thread_cast
-from lineageweave.knowledge_graph import NODE_CORPORATE_ENTITY, NODE_TEAM
+from lineageweave.knowledge_graph import (
+    NODE_CORPORATE_ENTITY,
+    NODE_PERSON,
+    NODE_TEAM,
+)
 from lineageweave.ontology import ontology_annotations
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
@@ -84,7 +88,8 @@ async def fetch_persisted_summary(
         select role.actor_name, role.responsibility, role.actor_type_code,
                role.affiliated_organization_name,
                role.cataloged_team_id as team_id,
-               role.corporate_entity_id
+               role.corporate_entity_id,
+               role.cataloged_person_id
           from post_summary_role role
          where role.post_id = $1
          order by role.actor_name
@@ -101,6 +106,9 @@ async def fetch_persisted_summary(
         elif row["corporate_entity_id"] is not None:
             catalog_node_id = str(row["corporate_entity_id"])
             catalog_node_type_code = NODE_CORPORATE_ENTITY
+        elif row["cataloged_person_id"] is not None:
+            catalog_node_id = str(row["cataloged_person_id"])
+            catalog_node_type_code = NODE_PERSON
         payload_roles.append(
             {
                 "actor_name": row["actor_name"],

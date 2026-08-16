@@ -59,49 +59,42 @@ update post_summary_role role
    and team.affiliated_organization_name
        is not distinct from role.affiliated_organization_name;
 
+-- Organizations: copy a mention only when exactly one mentioned org on
+-- that post has this role's actor_name. Two same-named mentions stay
+-- unbound rather than guessing a UUID (Fellegi & Sunter, 1969).
 update post_summary_role role
-   set corporate_entity_id = picked.corporate_entity_id
+   set corporate_entity_id = matched.corporate_entity_id
   from (
-        select distinct on (role_key.post_id, role_key.actor_name)
-               role_key.post_id,
-               role_key.actor_name,
-               org.corporate_entity_id
-          from post_summary_role role_key
-          join post_organization_mention mention
-            on mention.post_id = role_key.post_id
+        select mention.post_id,
+               org.entity_name,
+               min(org.corporate_entity_id) as corporate_entity_id
+          from post_organization_mention mention
           join corporate_entity org
             on org.corporate_entity_id = mention.corporate_entity_id
-           and org.entity_name = role_key.actor_name
-         where role_key.actor_type_code = 'prov_organization'
-           and role_key.corporate_entity_id is null
-         order by role_key.post_id, role_key.actor_name, org.corporate_entity_id
-  ) picked
- where role.post_id = picked.post_id
-   and role.actor_name = picked.actor_name
-   and role.actor_type_code = 'prov_organization'
-   and role.corporate_entity_id is null;
+         group by mention.post_id, org.entity_name
+        having count(*) = 1
+  ) matched
+ where role.actor_type_code = 'prov_organization'
+   and role.corporate_entity_id is null
+   and role.post_id = matched.post_id
+   and role.actor_name = matched.entity_name;
 
+-- People: the same honesty rule. Write-time persist still orders by
+-- created_at, then person_id. Historical backfill must not invent a
+-- binding when two same-named mentions already exist on the post.
 update post_summary_role role
-   set cataloged_person_id = picked.person_id
+   set cataloged_person_id = matched.person_id
   from (
-        select distinct on (role_key.post_id, role_key.actor_name)
-               role_key.post_id,
-               role_key.actor_name,
-               person.person_id
-          from post_summary_role role_key
-          join post_summary_person_mention mention
-            on mention.post_id = role_key.post_id
+        select mention.post_id,
+               person.person_name,
+               min(person.person_id) as person_id
+          from post_summary_person_mention mention
           join cataloged_person person
             on person.person_id = mention.person_id
-           and person.person_name = role_key.actor_name
-         where role_key.actor_type_code = 'prov_person'
-           and role_key.cataloged_person_id is null
-         order by role_key.post_id,
-                  role_key.actor_name,
-                  person.created_at,
-                  person.person_id
-  ) picked
- where role.post_id = picked.post_id
-   and role.actor_name = picked.actor_name
-   and role.actor_type_code = 'prov_person'
-   and role.cataloged_person_id is null;
+         group by mention.post_id, person.person_name
+        having count(*) = 1
+  ) matched
+ where role.actor_type_code = 'prov_person'
+   and role.cataloged_person_id is null
+   and role.post_id = matched.post_id
+   and role.actor_name = matched.person_name;

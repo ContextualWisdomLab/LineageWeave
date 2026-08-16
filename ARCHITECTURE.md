@@ -855,10 +855,13 @@ by name (never originated by R&R itself -- documented gap in the ADR:
 not currently capture). ADR 0019 stores that resolved catalog id on
 `post_summary_role` (`cataloged_team_id` / `corporate_entity_id` /
 `cataloged_person_id`) so a later read does not rejoin
-`corporate_entity` by `entity_name`. Open a post whose R&R names an
-organization that shares a display name with another catalog row: the
-chip keeps the id persist stored. Click it to walk that organization,
-not the homonym.
+`corporate_entity` by `entity_name`. Fetch returns the person foreign
+key as `catalog_node_id` the same way. Historical backfill leaves a
+role unbound when two same-named mentions already exist on the post.
+Open a post whose R&R names an organization that shares a display name
+with another catalog row: the chip keeps the id persist stored. Click
+it to walk that organization, not the homonym. Click a person chip to
+walk the stored person even when Keyman was not extracted on that post.
 
 ## Phase 12: a real counterparty organization is auto-created, not left permanently unresolved
 

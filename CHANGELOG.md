@@ -4,6 +4,19 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.2] - 2026-08-16
+
+### Fixed
+
+- R&R person chips now read `cataloged_person_id` from
+  `post_summary_role`. Open a post whose R&R names a cataloged person:
+  the chip is a button even when Keyman extraction was not run on that
+  post. Click it to walk that person, not a later same-named row.
+- Historical 0019 backfill leaves a role unbound when two same-named
+  mentions already exist on the post. It does not pick a UUID.
+- A private mention of an organization you can already see does not
+  appear in that organization's related walk.
+
 ## [0.86.1] - 2026-08-16
 
 ### Fixed

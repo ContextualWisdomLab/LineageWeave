@@ -1547,6 +1547,65 @@ def test_organization_mentioned_only_on_other_corp_private_post_is_forbidden(
     assert response.status_code == 403
 
 
+def test_private_other_corp_organization_mention_does_not_leak(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A private mention of a visible org must not appear in that org walk."""
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into post_organization_mention (post_id, corporate_entity_id) "
+                "values (%s, %s) on conflict do nothing",
+                (seeded_db["other_private_post_id"], seeded_db["own_corp_id"]),
+            )
+            cur.execute(
+                "insert into post_organization_mention (post_id, corporate_entity_id) "
+                "values (%s, %s) on conflict do nothing",
+                (seeded_db["other_private_post_id"], seeded_db["other_corp_id"]),
+            )
+            for entity_id in (seeded_db["own_corp_id"], seeded_db["other_corp_id"]):
+                for edge in knowledge_graph_edges_for_post(
+                    seeded_db["other_private_post_id"],
+                    [],
+                    organization_corporate_entity_ids=[entity_id],
+                ):
+                    cur.execute(
+                        "insert into knowledge_graph_edge ("
+                        "source_node_type_code, source_node_id, target_node_type_code, "
+                        "target_node_id, edge_type_code, edge_weight"
+                        ") values (%s, %s, %s, %s, %s, %s) "
+                        "on conflict do nothing",
+                        (
+                            edge.source_node_type_code,
+                            edge.source_node_id,
+                            edge.target_node_type_code,
+                            edge.target_node_id,
+                            edge.edge_type_code,
+                            edge.edge_weight,
+                        ),
+                    )
+    finally:
+        admin_conn.close()
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    own = client.get(
+        f"/api/corporate-entities/{seeded_db['own_corp_id']}/related",
+        headers=headers,
+    )
+    assert own.status_code == 200, own.text
+    own_ids = {node["node_id"] for node in own.json()["related"]}
+    assert seeded_db["other_private_post_id"] not in own_ids
+
+    hidden = client.get(
+        f"/api/corporate-entities/{seeded_db['other_corp_id']}/related",
+        headers=headers,
+    )
+    assert hidden.status_code == 403
+
+
 def test_organization_mention_only_posts_appear_in_entity_related(
     client, demo_analyst_token, seeded_db
 ) -> None:

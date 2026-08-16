@@ -20,4 +20,6 @@ cutoff before treating the body as reconstructed evidence (ADR 0016).
 `POST /api/analysis-runs` records Pending on an authorized
 cutoff capture (ADR 0017) and does not reconstruct lineage.
 R&R chips read the catalog id stored on `post_summary_role`
-(ADR 0019). Do not rejoin `corporate_entity` by `entity_name`.
+(ADR 0019), including `cataloged_person_id`. Do not rejoin
+`corporate_entity` by `entity_name`. Historical backfill leaves a
+role unbound when two same-named mentions already exist on the post.

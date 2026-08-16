@@ -27,6 +27,7 @@ from backend.app.knowledge_graph import (
     related_for_start,
     visible_mention_post_ids,
 )
+from backend.app import post_summary_ingestion as summary_ingestion
 from backend.app.post_summary_ingestion import (
     fetch_persisted_summary,
     persist_post_summary,
@@ -489,20 +490,30 @@ async def _exercise_homonym_organization_catalog_binding(
                 """
             )
         )
-        await persist_post_summary(
-            connection,
-            post_id,
-            PostSummary(
-                korean_summary="노스리지 그리드가 일정 확인을 요청했다.",
-                roles_and_responsibilities=(
-                    RoleResponsibility(
-                        actor_name="Northridge Grid",
-                        responsibility="일정 확인",
-                        actor_type_code=ACTOR_TYPE_ORGANIZATION,
+        async def resolve_first(
+            *_args: object, **_kwargs: object
+        ) -> str:
+            return first_org_id
+
+        original_resolve = summary_ingestion.get_or_create_corporate_entity
+        summary_ingestion.get_or_create_corporate_entity = resolve_first
+        try:
+            await persist_post_summary(
+                connection,
+                post_id,
+                PostSummary(
+                    korean_summary="노스리지 그리드가 일정 확인을 요청했다.",
+                    roles_and_responsibilities=(
+                        RoleResponsibility(
+                            actor_name="Northridge Grid",
+                            responsibility="일정 확인",
+                            actor_type_code=ACTOR_TYPE_ORGANIZATION,
+                        ),
                     ),
                 ),
-            ),
-        )
+            )
+        finally:
+            summary_ingestion.get_or_create_corporate_entity = original_resolve
         stored_id = str(
             await connection.fetchval(
                 """
@@ -513,7 +524,7 @@ async def _exercise_homonym_organization_catalog_binding(
                 post_id,
             )
         )
-        assert stored_id in {first_org_id, second_org_id}
+        assert stored_id == first_org_id
         other_id = second_org_id if stored_id == first_org_id else first_org_id
         await connection.execute(
             """
@@ -603,7 +614,8 @@ async def _exercise_same_name_person_catalog_order(
             )
         )
         assert stored_id == earlier_id
-        assert roles[0]["catalog_node_id"] is None
+        assert roles[0]["catalog_node_id"] == earlier_id
+        assert roles[0]["catalog_node_type_code"] == NODE_PERSON
         mention_id = str(
             await connection.fetchval(
                 """

@@ -52,6 +52,7 @@ def test_fetch_persisted_summary_reads_stored_catalog_ids() -> None:
     )
     assert "org.entity_name = role.actor_name" not in source
     assert "role.cataloged_team_id as team_id" in source
+    assert "role.cataloged_person_id" in source
     assert "order by created_at, person_id limit 1" in source
 
 
@@ -70,3 +71,5 @@ def test_role_catalog_identity_migration_is_wired() -> None:
     for column_name in _ROLE_CATALOG_COLUMNS:
         assert column_name in migration
         assert len(column_name.split("_")) >= 2
+    assert "having count(*) = 1" in migration
+    assert "distinct on" not in migration.lower()
