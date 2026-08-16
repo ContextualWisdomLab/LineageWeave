@@ -320,7 +320,15 @@ is the same never-guess-a-parent rule
 `corporate_hierarchy_resolution` already applies. Entity levels and
 Keyman sides are labeled from `common_lookup_value` (`Our side`,
 `Plant`, `Company`) so the popup never shows raw `our_side` / `plant`
-codes when a label exists.
+codes when a label exists. Related-node person chips use the same
+side label plus an affiliation only when exactly one distinct
+non-empty affiliation is known (`Ada West, Demo Corp (Our side)`),
+not the ontology class (`Ada West (Person)`). Multiple affiliations
+are omitted rather than collapsed into an invented primary
+organization -- open the Keyman list to see every affiliation. Related-node
+organization chips use the entity-level label
+(`Demo Corp (Company)`), not `Organization`. Related-node post chips
+show the post title only, not `(Post)`.
 
 `GET /api/posts` and `GET /api/posts/{post_id}` include
 `voc_type_label` / `visibility_label` from `common_lookup_value` so

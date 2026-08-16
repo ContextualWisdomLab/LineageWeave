@@ -469,6 +469,30 @@ const NODE_PERSON = "node_person";
 const NODE_POST = "node_post";
 const NODE_CORPORATE_ENTITY = "node_corporate_entity";
 
+function relatedNodeCaption(node: RelatedNode): string {
+  const name = node.label ?? node.node_id;
+  if (node.node_type_code === NODE_PERSON) {
+    const side = node.person_side_label ?? node.person_side_code;
+    const org = node.affiliation_organization_name?.trim();
+    if (side && org) {
+      return `${name}, ${org} (${side})`;
+    }
+    if (side) {
+      return `${name} (${side})`;
+    }
+  }
+  if (node.node_type_code === NODE_CORPORATE_ENTITY) {
+    const level = node.entity_level_label ?? node.entity_level_code;
+    if (level) {
+      return `${name} (${level})`;
+    }
+  }
+  if (node.node_type_code === NODE_POST) {
+    return name;
+  }
+  return `${name} (${node.ontology_label ?? node.node_type_code})`;
+}
+
 const VERIFICATION_BADGE: Record<string, string> = {
   verify_pending: "Not yet checked",
   verify_corroborated: "Corroborated",
@@ -677,7 +701,7 @@ function KeymanPanel({
           ) : (
             <ul>
               {related.map((node) => {
-                const caption = `${node.label ?? node.node_id} (${node.ontology_label ?? node.node_type_code})`;
+                const caption = relatedNodeCaption(node);
                 if (node.node_type_code === NODE_POST && onSelectPost) {
                   return (
                     <li key={`${node.node_type_code}:${node.node_id}`}>
@@ -696,7 +720,7 @@ function KeymanPanel({
                     <li key={`${node.node_type_code}:${node.node_id}`}>
                       <button
                         className="keyman-select"
-                        aria-label={`Related nodes for ${node.label ?? node.node_id}`}
+                        aria-label={`Related nodes for ${caption}`}
                         onClick={() => handleSelect(node.node_id, node.label ?? node.node_id)}
                       >
                         {caption}
@@ -709,7 +733,7 @@ function KeymanPanel({
                     <li key={`${node.node_type_code}:${node.node_id}`}>
                       <button
                         className="keyman-select"
-                        aria-label={`Related nodes for ${node.label ?? node.node_id}`}
+                        aria-label={`Related nodes for ${caption}`}
                         onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
                       >
                         {caption}

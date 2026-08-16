@@ -253,7 +253,12 @@ not yet a resolved person node, and a mention whose side cannot be
 classified into the closed `{our_side, counterparty}` set is dropped
 rather than guessed. N:N organization attachments are slot-filling on
 that mention (a person may have zero, one, or several affiliations in
-the same post), not a second independent NER pass. The live client
+the same post), not a second independent NER pass. Compact related-node
+chips therefore add an organization only when the affiliation set has
+cardinality one; collapsing several memberships into a sorted "primary"
+would repeat the atomistic fallacy Browne et al. (2001) warn against
+for multiple-membership structures. Open the Keyman list to read every
+affiliation. The live client
 calls contextual-orchestrator (`mode="auto"`) rather than a raw LLM
 API so the orchestration plane can allocate route, verify, or a
 deeper workflow; adjudication and post-chat keep explicit
@@ -272,7 +277,10 @@ adaptive cutoff (a relevance-ratio threshold against the top score) --
 `tests/test_knowledge_graph.py` proves this concretely: the same ratio
 threshold yields a five-node related-set from a well-connected "hub" node
 and a one-node related-set from a sparsely-connected node, with no hop-count
-constant anywhere in the algorithm or the test.
+constant anywhere in the algorithm or the test. Hydrated related-node
+chips (ADR-0014) then replace the ontology class with the authorized
+side or entity-level label so the next click is a business decision,
+not a class reminder.
 
 ## Entity-relationship classification and corporate hierarchy resolution (Phase 3)
 

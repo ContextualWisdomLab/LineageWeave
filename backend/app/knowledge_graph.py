@@ -283,6 +283,9 @@ async def hydrate_related_nodes(
 
     Unknown ids are dropped. Ontology fields are omitted (not faked)
     when ``node_type_code`` has no term in lineageweave-kg.ttl.
+    Person nodes carry compact affiliation context only when exactly one
+    distinct non-empty affiliation is known; ambiguous affiliations are
+    omitted rather than collapsed into an invented primary organization.
     """
     person_ids: list[str] = []
     post_ids: list[str] = []
@@ -305,6 +308,28 @@ async def hydrate_related_nodes(
             person_ids,
         )
     } if person_ids else {}
+    affiliation_names_by_person: dict[str, set[str]] = {}
+    if person_ids:
+        affiliation_rows = await conn.fetch(
+            """
+            select person_id, affiliated_organization_name
+            from person_affiliation
+            where person_id = any($1::uuid[])
+            order by person_id, affiliated_organization_name
+            """,
+            person_ids,
+        )
+        for row in affiliation_rows:
+            person_id = str(row["person_id"])
+            org = (row["affiliated_organization_name"] or "").strip()
+            if not org:
+                continue
+            affiliation_names_by_person.setdefault(person_id, set()).add(org)
+    affiliations = {
+        person_id: next(iter(organization_names))
+        for person_id, organization_names in affiliation_names_by_person.items()
+        if len(organization_names) == 1
+    }
     posts = {
         str(row["post_id"]): row
         for row in await conn.fetch(
@@ -315,10 +340,18 @@ async def hydrate_related_nodes(
     corps = {
         str(row["corporate_entity_id"]): row
         for row in await conn.fetch(
-            "select corporate_entity_id, entity_name from corporate_entity where corporate_entity_id = any($1::uuid[])",
+            "select corporate_entity_id, entity_name, entity_level_code "
+            "from corporate_entity where corporate_entity_id = any($1::uuid[])",
             corp_ids,
         )
     } if corp_ids else {}
+
+    side_labels = await labels_for_codes(
+        conn, [row["person_side_code"] for row in people.values()]
+    )
+    level_labels = await labels_for_codes(
+        conn, [row["entity_level_code"] for row in corps.values()]
+    )
 
     payload: list[dict[str, Any]] = []
     for node_type_code, node_id, score in parsed:
@@ -329,12 +362,20 @@ async def hydrate_related_nodes(
             **ontology_annotations(node_type_code),
         }
         if node_type_code == NODE_PERSON and node_id in people:
+            side = people[node_id]["person_side_code"]
             item["label"] = people[node_id]["person_name"]
-            item["person_side_code"] = people[node_id]["person_side_code"]
+            item["person_side_code"] = side
+            item["person_side_label"] = side_labels.get(side, side)
+            org = affiliations.get(node_id)
+            if org:
+                item["affiliation_organization_name"] = org
         elif node_type_code == NODE_POST and node_id in posts:
             item["label"] = posts[node_id]["post_title"]
         elif node_type_code == NODE_CORPORATE_ENTITY and node_id in corps:
+            level = corps[node_id]["entity_level_code"]
             item["label"] = corps[node_id]["entity_name"]
+            item["entity_level_code"] = level
+            item["entity_level_label"] = level_labels.get(level, level)
         else:
             continue
         payload.append(item)
