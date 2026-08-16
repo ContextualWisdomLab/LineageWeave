@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- VOC excerpts that have an authorized source guid (or a same-document event
+  guid) open the existing 원문 drawer. Ontology URIs stay non-clickable.
 - Each counterpart Keyman now carries the appointment excerpts that name that
   person or organization, so VOC evidence sits under the matching relative-side
   actor instead of only in a shared card list.

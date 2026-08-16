@@ -179,7 +179,7 @@ h3 { margin-bottom: 12px; font-size: .83rem; letter-spacing: .02em; }
 .detail-card textarea { min-height: 72px; resize: vertical; }
 .counterpart-voc { display: grid; gap: 6px; }
 .voc-excerpts { margin-top: 12px; display: grid; gap: 8px; }
-.voc-excerpt { margin: 0; padding: 8px 10px; border-left: 3px solid var(--blue); background: var(--soft); }
+.voc-excerpt { margin: 0; padding: 8px 10px; border-left: 3px solid var(--blue); background: var(--soft); text-align: left; width: 100%; border-top: 0; border-right: 0; border-bottom: 0; }
 .voc-excerpt p { margin: 0 0 4px; font-size: .82rem; }
 .voc-excerpt small { color: var(--muted); }
 .ticket { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--gray); font-size: .8rem; }

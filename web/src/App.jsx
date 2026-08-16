@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   canPreviewAsset,
   counterpartVocExcerpts,
+  vocExcerptEvidenceId,
   vocExcerptsForCounterpart,
   customerTreeRows,
   emailValidationMessage,
@@ -1316,17 +1317,25 @@ export default function App() {
               </section>
               <section className="detail-card modal-keyman-counterpart">
                 <h3>Keyman · 상대측</h3>
-                <ul id="popupKeymanCounterpart">{sideRows(selectedDocument.keyman_counterpart_side).map((item, index) => { const label = item.actor_name || item.person_name || item.org_name; const node = sourcePersons.find((candidate) => candidate.label === label || candidate.label === item.organization_name || candidate.label === item.org_name); const excerpts = vocExcerptsForCounterpart(selectedDocument.appointments, item); return <li key={`${label}-${item.org_name}-${index}`} className="counterpart-voc"><button className="keyman-link" onClick={() => openKnowledge(node || { person: label })}>{sideLabel(item)}</button>{excerpts.map((excerpt) => <blockquote className="voc-excerpt" key={excerpt.appointment_id || `${label}-${excerpt.excerpt}`}><p>{excerpt.excerpt}</p><small>{excerpt.occurred_on || "날짜 미상"}{excerpt.label ? ` · ${excerpt.label}` : ""}</small></blockquote>)}</li>; })}</ul>
+                <ul id="popupKeymanCounterpart">{sideRows(selectedDocument.keyman_counterpart_side).map((item, index) => { const label = item.actor_name || item.person_name || item.org_name; const node = sourcePersons.find((candidate) => candidate.label === label || candidate.label === item.organization_name || candidate.label === item.org_name); const excerpts = vocExcerptsForCounterpart(selectedDocument.appointments, item); return <li key={`${label}-${item.org_name}-${index}`} className="counterpart-voc"><button className="keyman-link" onClick={() => openKnowledge(node || { person: label })}>{sideLabel(item)}</button>{excerpts.map((excerpt) => { const evidenceId = vocExcerptEvidenceId(excerpt, events); return evidenceId ? <button type="button" className="voc-excerpt" key={excerpt.appointment_id || `${label}-${excerpt.excerpt}`} onClick={() => openEvidence(evidenceId)}><p>{excerpt.excerpt}</p><small>{excerpt.occurred_on || "날짜 미상"}{excerpt.label ? ` · ${excerpt.label}` : ""} · 원문 보기</small></button> : <blockquote className="voc-excerpt" key={excerpt.appointment_id || `${label}-${excerpt.excerpt}`}><p>{excerpt.excerpt}</p><small>{excerpt.occurred_on || "날짜 미상"}{excerpt.label ? ` · ${excerpt.label}` : ""}</small></blockquote>; })}</li>; })}</ul>
                 <p className="meta">관리 상태: {keymanStatusLabel(selectedDocument.keyman_status || "not_run")}</p>
                 {counterpartExcerpts.length ? (
                   <div id="vocExcerpts" className="voc-excerpts">
                     <h4>고객 발화 근거</h4>
-                    {counterpartExcerpts.map((item) => (
-                      <blockquote className="voc-excerpt" key={item.appointment_id || `${item.occurred_on}-${item.excerpt}`}>
-                        <p>{item.excerpt}</p>
-                        <small>{item.occurred_on || "날짜 미상"}{item.label ? ` · ${item.label}` : ""}</small>
-                      </blockquote>
-                    ))}
+                    {counterpartExcerpts.map((item) => {
+                      const evidenceId = vocExcerptEvidenceId(item, events);
+                      return evidenceId ? (
+                        <button type="button" className="voc-excerpt" key={item.appointment_id || `${item.occurred_on}-${item.excerpt}`} onClick={() => openEvidence(evidenceId)}>
+                          <p>{item.excerpt}</p>
+                          <small>{item.occurred_on || "날짜 미상"}{item.label ? ` · ${item.label}` : ""} · 원문 보기</small>
+                        </button>
+                      ) : (
+                        <blockquote className="voc-excerpt" key={item.appointment_id || `${item.occurred_on}-${item.excerpt}`}>
+                          <p>{item.excerpt}</p>
+                          <small>{item.occurred_on || "날짜 미상"}{item.label ? ` · ${item.label}` : ""}</small>
+                        </blockquote>
+                      );
+                    })}
                   </div>
                 ) : null}
               </section>
