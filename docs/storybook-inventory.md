@@ -7,6 +7,8 @@ buyer-facing control you can click before changing product CSS.
 |---|---|---|
 | `Evidence/CitationChip` | Click a cited title to open that source post. | `--color-chip-border`, `--radius-chip`, `CitationChip` |
 | `Chrome/PopupCloseButton` | Close the evidence panel or post popup. | `--space-close-inset`, `--font-size-close`, `PopupCloseButton` |
+| `AnalysisRuns/RequestButton` | Click to record a Pending lineage cutoff bag. | `--space-home-header-gap`, `AnalysisRunRequestButton` |
+| `AnalysisRuns/ListButton` | Open the named run and confirm its cutoff posts. | `--space-list-item-block`, `--space-list-item-gap`, `AnalysisRunListButton` |
 
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module
 under `frontend/src/components/`. Do not add a second Node package manager;

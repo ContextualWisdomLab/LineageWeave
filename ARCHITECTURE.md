@@ -503,8 +503,11 @@ A run-bearing registry is emptied only after an unrevoked
 `analysis_run_retention_grant` and `GRANT analysis_run_retention_admin`,
 then `purge_analysis_run_registry('approved-retention-purge')`
 (ADR 0020); a raw `DELETE` and a runtime role that only knows the
-public phrase stay rejected. Repeated chip and close controls use
-`frontend/src/styles/tokens.css` and the Storybook inventory.
+public phrase stay rejected. Repeated chip, close, Analysis-run request,
+and `kind · status · entity` list controls use
+`frontend/src/styles/tokens.css` and the Storybook inventory
+(ADR 0023). Open the catalog, then click **Request a lineage
+reconstruction** or a run row.
 
 ## Phase 6a: fast-mlsirm dependency + Rust toolchain (infra only)
 

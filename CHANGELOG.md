@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.87.1] - 2026-08-16
+
+### Added
+
+- Analysis runs request and list rows use named tokens and Storybook
+  modules (ADR 0023). Open `cd frontend && pnpm run storybook`, then
+  click **Request a lineage reconstruction** or a `kind · status ·
+  entity` row. This does not start reconstruction and does not invent
+  a theta.
+
 ## [0.87.0] - 2026-08-16
 
 ### Added

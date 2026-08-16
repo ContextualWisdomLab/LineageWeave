@@ -209,8 +209,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
+  gap: var(--space-home-header-gap);
+  margin-bottom: var(--space-home-header-gap);
 }
 
 .lineage-dag-group {
@@ -421,8 +421,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.4rem 0;
-  gap: 0.5rem;
+  padding: var(--space-list-item-block) 0;
+  gap: var(--space-list-item-gap);
 }
 
 .ticket-title {
