@@ -41,6 +41,7 @@ import {
   type CalendarEntry,
   type ChatAnswer,
   type ChatExchange,
+  type CorporateEntityRef,
   type Counterparty,
   type EvaluationResponse,
   type IssueTicket,
@@ -1456,20 +1457,42 @@ function analysisRunCaption(run: AnalysisRun): string {
  * is kind-specific so a failed lineage reconstruction is not mistaken
  * for a missing TEPP transport.
  */
+const ANALYSIS_RUN_KINDS = [
+  "analysis_run_lineage",
+  "analysis_run_tepp",
+  "analysis_run_report",
+] as const;
+type AnalysisRunKind = (typeof ANALYSIS_RUN_KINDS)[number];
+
+function isAnalysisRunKind(code: string): code is AnalysisRunKind {
+  return (ANALYSIS_RUN_KINDS as readonly string[]).includes(code);
+}
+
 function analysisRunNextAction(run: AnalysisRun): string | null {
   if (run.status_code === "analysis_status_pending") {
+    if (run.run_kind_code === "analysis_run_tepp") {
+      return "Open this run to confirm which posts TEPP will measure. Measurement has not started yet.";
+    }
     return "Open this run to confirm which posts it will use. Reconstruction has not started yet.";
   }
   if (run.status_code !== "analysis_status_failed") {
     return null;
   }
-  switch (run.run_kind_code) {
+  const kind = isAnalysisRunKind(run.run_kind_code) ? run.run_kind_code : null;
+  if (kind === null) {
+    return "Open this run to see why it failed, then retry after the blocking service is connected.";
+  }
+  switch (kind) {
     case "analysis_run_tepp":
       return "Open this run to see why it failed, then connect the measurement service and re-run.";
     case "analysis_run_lineage":
-      return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
-    default:
-      return "Open this run to see why it failed, then retry after the blocking service is connected.";
+      return "Open this run to see why it failed, then click Request a lineage reconstruction.";
+    case "analysis_run_report":
+      return "Open this run to see why it failed, then rebuild the period report from the Reports panel.";
+    default: {
+      const _exhaustive: never = kind;
+      return _exhaustive;
+    }
   }
 }
 
@@ -1494,15 +1517,46 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
  *
  * Those titles are the measurement bag, not a reconstruction result.
  */
+const ANALYSIS_RUN_STATUSES = [
+  "analysis_status_pending",
+  "analysis_status_running",
+  "analysis_status_succeeded",
+  "analysis_status_failed",
+  "analysis_status_cancelled",
+] as const;
+type AnalysisRunStatus = (typeof ANALYSIS_RUN_STATUSES)[number];
+
+function isAnalysisRunStatus(code: string | null): code is AnalysisRunStatus {
+  return code !== null && (ANALYSIS_RUN_STATUSES as readonly string[]).includes(code);
+}
+
 function analysisRunCorpusHint(run: AnalysisRun): string | null {
   if (run.run_kind_code !== "analysis_run_tepp") return null;
-  if (run.status_code === "analysis_status_failed") {
-    return (
-      "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
-      "transport, then re-run, to replace Failed with a calibrated result."
-    );
+  const status = isAnalysisRunStatus(run.status_code) ? run.status_code : null;
+  if (status === null) {
+    return null;
   }
-  return "These posts are the cutoff corpus this TEPP run measured.";
+  switch (status) {
+    case "analysis_status_failed":
+      return (
+        "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
+        "transport, then re-run, to replace Failed with a calibrated result."
+      );
+    case "analysis_status_succeeded":
+      return "These posts are the cutoff corpus this TEPP run measured.";
+    case "analysis_status_pending":
+    case "analysis_status_running":
+      return (
+        "These posts are the cutoff corpus TEPP will measure after a transport " +
+        "is connected and this run finishes."
+      );
+    case "analysis_status_cancelled":
+      return "These posts were the cutoff corpus for this cancelled TEPP run.";
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
+  }
 }
 
 /** Git-style prefix. The full digest stays on `title` for verification. */
@@ -1572,6 +1626,9 @@ function AnalysisRunsPanel({
   const [selected, setSelected] = useState<AnalysisRun | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [requesting, setRequesting] = useState(false);
+  const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[]>([]);
+  const [selectedEntityId, setSelectedEntityId] = useState<string>("");
+  const inFlightKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     fetchAnalysisRuns(accessToken)
@@ -1579,19 +1636,48 @@ function AnalysisRunsPanel({
       .catch((err) => setError(String(err)));
   }, [accessToken]);
 
+  useEffect(() => {
+    fetchMe(accessToken)
+      .then((me) => {
+        const entities = me.corporate_entities ?? [];
+        setCorporateEntities(entities);
+        setSelectedEntityId((current) => current || entities[0]?.corporate_entity_id || "");
+      })
+      .catch(() => {
+        setCorporateEntities([]);
+      });
+  }, [accessToken]);
+
   async function handleRequestLineage() {
+    if (corporateEntities.length > 1 && !selectedEntityId) {
+      setError("Choose which corporate entity to reconstruct.");
+      return;
+    }
     setError(null);
     setRequesting(true);
+    if (inFlightKeyRef.current === null) {
+      inFlightKeyRef.current = crypto.randomUUID();
+    }
+    const idempotencyKey = inFlightKeyRef.current;
     try {
       const created = await createAnalysisRun(accessToken, {
         run_kind_code: "analysis_run_lineage",
-        idempotency_key: crypto.randomUUID(),
+        idempotency_key: idempotencyKey,
+        ...(selectedEntityId ? { corporate_entity_id: selectedEntityId } : {}),
       });
       const listed = await fetchAnalysisRuns(accessToken);
       setRuns(listed.analysis_runs);
       setSelected(created);
+      inFlightKeyRef.current = null;
     } catch (err) {
-      setError(err instanceof BackendError ? err.message : String(err));
+      if (err instanceof BackendError && err.status === 409) {
+        inFlightKeyRef.current = null;
+        setError(
+          "This request key already names a different reconstruction. Request again to start a new run.",
+        );
+      } else {
+        setError(err instanceof BackendError ? err.message : String(err));
+      }
     } finally {
       setRequesting(false);
     }
@@ -1620,6 +1706,22 @@ function AnalysisRunsPanel({
     <section className="popup-section lineage-home">
       <div className="lineage-home-header">
         <h2>Analysis runs</h2>
+        {corporateEntities.length > 1 && (
+          <label>
+            Corporate entity to reconstruct
+            <select
+              aria-label="Corporate entity to reconstruct"
+              value={selectedEntityId}
+              onChange={(event) => setSelectedEntityId(event.target.value)}
+            >
+              {corporateEntities.map((entity) => (
+                <option key={entity.corporate_entity_id} value={entity.corporate_entity_id}>
+                  {entity.entity_name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <button
           className="keyman-select"
           aria-label="Request a lineage reconstruction"

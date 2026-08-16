@@ -61,6 +61,8 @@ describe("App, authenticated", () => {
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
     succeededTeppRun?: boolean;
+    pendingTeppRun?: boolean;
+    pluralAffiliations?: boolean;
   }) {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -93,6 +95,12 @@ describe("App, authenticated", () => {
             user_account_id: options?.admin ? "acct-admin" : "acct-1",
             display_name: options?.admin ? "Demo Admin" : "Demo Analyst",
             permission_codes: options?.admin ? ["post_read", "post_admin"] : ["post_read"],
+            corporate_entities: options?.pluralAffiliations
+              ? [
+                  { corporate_entity_id: "corp-demo", entity_name: "Demo Corp" },
+                  { corporate_entity_id: "corp-north", entity_name: "Northridge Grid" },
+                ]
+              : [{ corporate_entity_id: "corp-demo", entity_name: "Demo Corp" }],
           }),
         );
       }
@@ -180,10 +188,16 @@ describe("App, authenticated", () => {
             scope_kind_code: "analysis_scope_corporate_entity",
             scope_kind_label: "Corporate entity",
             scope_entity_name: "Demo Corp",
-            status_code: options?.succeededTeppRun
-              ? "analysis_status_succeeded"
-              : "analysis_status_failed",
-            status_label: options?.succeededTeppRun ? "Succeeded" : "Failed",
+            status_code: options?.pendingTeppRun
+              ? "analysis_status_pending"
+              : options?.succeededTeppRun
+                ? "analysis_status_succeeded"
+                : "analysis_status_failed",
+            status_label: options?.pendingTeppRun
+              ? "Pending"
+              : options?.succeededTeppRun
+                ? "Succeeded"
+                : "Failed",
             knowledge_cutoff: "2026-01-12T12:00:00Z",
             requested_at: "2026-01-12T12:34:00Z",
             source_counts: [
@@ -194,31 +208,40 @@ describe("App, authenticated", () => {
               },
             ],
             visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
-            status_history: [
-              {
-                status_ordinal: 1,
-                status_code: "analysis_status_pending",
-                status_label: "Pending",
-                occurred_at: "2026-01-12T12:35:00Z",
-              },
-              {
-                status_ordinal: 2,
-                status_code: "analysis_status_running",
-                status_label: "Running",
-                occurred_at: "2026-01-12T12:36:00Z",
-              },
-              {
-                status_ordinal: 3,
-                status_code: options?.succeededTeppRun
-                  ? "analysis_status_succeeded"
-                  : "analysis_status_failed",
-                status_label: options?.succeededTeppRun ? "Succeeded" : "Failed",
-                occurred_at: "2026-01-12T12:37:00Z",
-                ...(options?.succeededTeppRun
-                  ? {}
-                  : { failure_code: "tepp_not_available" }),
-              },
-            ],
+            status_history: options?.pendingTeppRun
+              ? [
+                  {
+                    status_ordinal: 1,
+                    status_code: "analysis_status_pending",
+                    status_label: "Pending",
+                    occurred_at: "2026-01-12T12:35:00Z",
+                  },
+                ]
+              : [
+                  {
+                    status_ordinal: 1,
+                    status_code: "analysis_status_pending",
+                    status_label: "Pending",
+                    occurred_at: "2026-01-12T12:35:00Z",
+                  },
+                  {
+                    status_ordinal: 2,
+                    status_code: "analysis_status_running",
+                    status_label: "Running",
+                    occurred_at: "2026-01-12T12:36:00Z",
+                  },
+                  {
+                    status_ordinal: 3,
+                    status_code: options?.succeededTeppRun
+                      ? "analysis_status_succeeded"
+                      : "analysis_status_failed",
+                    status_label: options?.succeededTeppRun ? "Succeeded" : "Failed",
+                    occurred_at: "2026-01-12T12:37:00Z",
+                    ...(options?.succeededTeppRun
+                      ? {}
+                      : { failure_code: "tepp_not_available" }),
+                  },
+                ],
           }),
         );
       }
@@ -329,10 +352,16 @@ describe("App, authenticated", () => {
                 scope_kind_code: "analysis_scope_corporate_entity",
                 scope_kind_label: "Corporate entity",
                 scope_entity_name: "Demo Corp",
-                status_code: options?.succeededTeppRun
-                  ? "analysis_status_succeeded"
-                  : "analysis_status_failed",
-                status_label: options?.succeededTeppRun ? "Succeeded" : "Failed",
+                status_code: options?.pendingTeppRun
+                  ? "analysis_status_pending"
+                  : options?.succeededTeppRun
+                    ? "analysis_status_succeeded"
+                    : "analysis_status_failed",
+                status_label: options?.pendingTeppRun
+                  ? "Pending"
+                  : options?.succeededTeppRun
+                    ? "Succeeded"
+                    : "Failed",
                 knowledge_cutoff: "2026-01-12T12:00:00Z",
                 requested_at: "2026-01-12T12:34:00Z",
                 source_counts: [
@@ -1618,7 +1647,7 @@ describe("App, authenticated", () => {
     const list = await screen.findByRole("list", { name: "Analysis runs" });
     expect(list).toHaveTextContent("Lineage reconstruction · Failed · Demo Corp");
     expect(list).toHaveTextContent(
-      "Open this run to see why it failed, then retry reconstruction from a current snapshot.",
+      "Open this run to see why it failed, then click Request a lineage reconstruction.",
     );
     expect(list).toHaveTextContent(
       "Open this run to see why it failed, then connect the measurement service and re-run.",
@@ -1661,8 +1690,47 @@ describe("App, authenticated", () => {
     expect(postCall).toBeDefined();
     const body = JSON.parse(String(postCall?.[1]?.body));
     expect(body.run_kind_code).toBe("analysis_run_lineage");
+    expect(body.corporate_entity_id).toBe("corp-demo");
     expect(body.idempotency_key).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+  });
+
+  it("does not say a pending TEPP run already measured", async () => {
+    stubBackend({ pendingTeppRun: true });
+    render(<App />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: TEPP measurement · Pending · Demo Corp",
+      }),
+    );
+    expect(
+      await screen.findByText(
+        "These posts are the cutoff corpus TEPP will measure after a transport is connected and this run finishes.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/this TEPP run measured/i)).not.toBeInTheDocument();
+  });
+
+  it("lets a multi-affiliation operator choose which corp to reconstruct", async () => {
+    const fetchMock = stubBackend({ pluralAffiliations: true });
+    render(<App />);
+
+    const picker = await screen.findByRole("combobox", {
+      name: "Corporate entity to reconstruct",
+    });
+    await userEvent.selectOptions(picker, "corp-north");
+    await userEvent.click(screen.getByRole("button", { name: "Request a lineage reconstruction" }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          (call) =>
+            String(call[0]).endsWith("/api/analysis-runs") &&
+            call[1]?.method === "POST" &&
+            JSON.parse(String(call[1]?.body)).corporate_entity_id === "corp-north",
+        ),
+      ).toBe(true),
     );
   });
 

@@ -47,9 +47,10 @@ tells the operator to open the TEPP run, then connect the measurement
 service. A failed lineage row tells the operator to retry
 reconstruction, not to connect TEPP. The detail now shows the legal
 lifecycle the registry already stored. `POST /api/analysis-runs` now
-records a Pending run on an authorized cutoff capture (ADR 0017).
-Reconstruction, a live TEPP transport, and a fuller Analysis Run
-Console remain later slices.
+records a Pending lineage run on an authorized cutoff capture
+(ADR 0017). TEPP and period-report kinds are 422. Reconstruction, a
+live TEPP transport, and a fuller Analysis Run Console remain later
+slices.
 
 ## References
 

@@ -234,10 +234,16 @@ export function fetchLineageGraph(accessToken: string): Promise<LineageGraph> {
   return backendFetch<LineageGraph>("/api/lineage", accessToken);
 }
 
+export interface CorporateEntityRef {
+  corporate_entity_id: string;
+  entity_name: string;
+}
+
 export interface CurrentUser {
   user_account_id: string;
   display_name: string;
   permission_codes: string[];
+  corporate_entities?: CorporateEntityRef[];
 }
 
 export function fetchMe(accessToken: string): Promise<CurrentUser> {

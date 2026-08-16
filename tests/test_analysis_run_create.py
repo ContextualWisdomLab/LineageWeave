@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
+    _require_lineage_create_kind,
     _resolve_corporate_entity_id,
     plan_analysis_run_capture,
 )
@@ -122,6 +123,19 @@ def test_empty_corpus_uses_the_cutoff_as_latest_available_time() -> None:
     assert capture.document_count == 0
     assert capture.thread_count == 0
     assert capture.maximum_available_time == _CUTOFF
+
+
+def test_create_rejects_tepp_and_report_kinds_without_a_fake_score() -> None:
+    """POST must not record a TEPP row that never called tepp_client."""
+    with pytest.raises(AnalysisRunCreateError) as tepp:
+        _require_lineage_create_kind("analysis_run_tepp")
+    assert tepp.value.status_code == 422
+    assert "invent a measurement" in tepp.value.detail
+    with pytest.raises(AnalysisRunCreateError) as report:
+        _require_lineage_create_kind("analysis_run_report")
+    assert report.value.status_code == 422
+    assert "Reports panel" in report.value.detail
+    _require_lineage_create_kind("analysis_run_lineage")
 
 
 def test_create_rejects_an_unaffiliated_or_ambiguous_corporate_entity() -> None:

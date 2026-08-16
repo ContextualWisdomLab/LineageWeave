@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.1] - 2026-08-16
+
+### Fixed
+
+- `POST /api/analysis-runs` records Pending lineage only (ADR 0017).
+  TEPP and period-report kinds are 422 so this path cannot invent a
+  measurement. Open Analysis runs, choose a corp if you walk more than
+  one, then click **Request a lineage reconstruction**. A failed
+  lineage row names that button. A pending TEPP corpus no longer says
+  the run already measured.
+
 ## [0.86.0] - 2026-08-16
 
 ### Added
