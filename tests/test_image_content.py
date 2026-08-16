@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import base64
+from pathlib import Path
 
 import pytest
 
+from lineageweave.chunking import chunk_by_dom
+from lineageweave.embedded_image_payload import decode_data_uri_image
 from lineageweave.image_content import (
     ImageContentClient,
     ImageDescriptionParseError,
@@ -53,6 +56,45 @@ def test_extract_base64_images_ignores_non_data_uri_images() -> None:
 
 def test_extract_base64_images_empty_document_yields_no_images() -> None:
     assert extract_base64_images("<p>No images here.</p>") == []
+
+
+def test_extract_base64_images_skips_svg_and_unpadded_payloads() -> None:
+    svg = (
+        '<img src="data:image/svg+xml;base64,'
+        'PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjwvc3ZnPg==">'
+    )
+    assert extract_base64_images(svg) == []
+    assert extract_base64_images('<img src="data:image/png;base64,YQ">') == []
+    assert decode_data_uri_image(f"data:image/png;base64,{_TINY_PNG_B64}") is not None
+
+
+def test_invoice_fixture_is_one_visible_png_for_every_extractor() -> None:
+    """Outlook-style invoice HTML must not resurrect the base64 wall.
+
+    The same file is read by the TypeScript popup splitter. All three
+    extractors must see one raster PNG, ignore the commented copy, the
+    remote URL, the SVG, and the CSS background, and keep surrounding
+    sentences readable.
+    """
+    html = (Path(__file__).parent / "fixtures" / "synthetic_invoice_embedded_image.html").read_text(
+        encoding="utf-8"
+    )
+    images = extract_base64_images(html)
+    chunks = chunk_by_dom(html)
+    image_chunks = [chunk for chunk in chunks if chunk.unit_type == "image"]
+    text = " ".join(chunk.text for chunk in chunks if chunk.unit_type == "dom")
+
+    assert len(images) == 1
+    assert len(image_chunks) == 1
+    assert images[0].mime_type == "image/png"
+    assert images[0].data == base64.b64decode(_TINY_PNG_B64)
+    assert images[0].position == html.find("<img alt=")
+    assert "Quote attached." in text
+    assert "Terms & conditions." in text
+    assert "Please confirm." in text
+    assert _TINY_PNG_B64 not in text
+    assert "example.test" not in text
+    assert "background:url" not in text
 
 
 def test_parse_description_extracts_all_three_fields() -> None:
