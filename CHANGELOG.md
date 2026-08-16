@@ -4,7 +4,7 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.86.2] - 2026-08-16
+## [0.86.3] - 2026-08-16
 
 ### Fixed
 
@@ -15,6 +15,16 @@ All notable changes to this project are documented here. Format follows
 - An R&R person name that matches two catalog rows now binds the
   earliest `created_at`, then `person_id`. A later same-named Keyman
   row no longer steals the mention.
+
+## [0.86.2] - 2026-08-16
+
+### Fixed
+
+- An R&R organization button now walks the catalog id stored on that
+  role row (ADR 0019). Two catalog orgs can share a display name; open
+  the post, click the name, and you stay on the resolved org — not a
+  homonym. `GET /api/teams/{id}/related` matches person/entity authz:
+  another corp's private-only team is 403; an unknown UUID is 404.
 
 ## [0.86.1] - 2026-08-16
 

@@ -34,8 +34,9 @@ rows with person-affiliation posts so an org-only mention can start a
 walk.
 
 The summary payload exposes `catalog_node_id` / `catalog_node_type_code`
-when the R&R actor resolved to a team or organization mention on that
-post. The popup turns that name into a related-node button.
+from the catalog foreign keys stored on `post_summary_role` (ADR 0019).
+The popup turns that name into a related-node button. Do not reconstruct
+the id by `corporate_entity.entity_name`.
 
 Thread-group run list visibility requires at least one ABAC-visible
 `source_post` whose `created_at` is at or before `knowledge_cutoff`.
