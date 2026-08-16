@@ -192,6 +192,7 @@ function eventEvidenceCandidates(events = []) {
     .filter((item) => item.id);
 }
 
+/** Return a drawer guid only when the excerpt owns it or one event uniquely matches. */
 export function vocExcerptEvidenceId(excerpt = {}, events = []) {
   const own = usableEvidenceId(
     excerpt?.source_evidence_id || excerpt?.guid || excerpt?.evidence_id,
