@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.82.0] - 2026-08-16
+
+### Added
+
+- Analysis-run detail lists ABAC-visible posts in the run's scope.
+  After `make seed`, the Demo Corp lineage run opens the Demo public
+  post. Hidden other-corp private posts never appear. List payloads
+  stay aggregates-only.
+
 ## [0.81.0] - 2026-08-16
 
 ### Added

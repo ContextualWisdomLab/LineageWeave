@@ -475,7 +475,11 @@ def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
         "2026-01-12T12:33",
     ]
     assert all("failure_code" not in event for event in history)
+    titles = {post["post_title"] for post in body["visible_posts"]}
+    assert "Own-corp private post" in titles
+    assert "Other-corp private post" not in titles
     assert "postgresql://" not in str(body)
+    assert "visible_posts" not in visible
 
     hidden = client.get(
         f"/api/analysis-runs/{seeded_db['hidden_run_id']}",
