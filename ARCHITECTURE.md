@@ -486,7 +486,7 @@ Demo Corp" with "3 documents" and Pending / Running / Succeeded times,
 and "TEPP measurement · Failed · Demo Corp" whose detail history ends
 in Failed / `tepp_not_available`.
 A run-bearing registry is emptied only with
-`purge_analysis_run_registry('approved-retention-purge')` (ADR 0017);
+`purge_analysis_run_registry('approved-retention-purge')` (ADR 0018);
 a raw `DELETE` stays rejected. Repeated chip and close controls use
 `frontend/src/styles/tokens.css` and the Storybook inventory.
 

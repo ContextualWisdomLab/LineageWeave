@@ -1,4 +1,4 @@
-# ADR 0017 — Approved retention purge empties an immutable analysis-run registry
+# ADR 0018 — Approved retention purge empties an immutable analysis-run registry
 
 **Decision status:** Accepted on this active PR; not protected-main truth until merge
 **Date:** 2026-08-16
