@@ -26,10 +26,12 @@ registry is not allowed to store (ADR 0013).
 - `_seed_demo_period_report` still builds the calibrated report first.
 - `_seed_demo_report_run` then inserts `analysis_run_report` on the
   same Demo Corp snapshot, scoped to the same corporate entity.
-- The lifecycle is Pending → Running → Succeeded because the report
-  tables already hold the scored period. The run row stores only
-  registry digests and counts — never a theta, item bank, or provider
-  body.
+- Succeeded is allowed only after `select 1` finds the Demo Corp
+  week-2 `report_period_score` corporate row. A missing row is Failed
+  / `period_report_not_persisted` — the same fail-closed shape as a
+  missing TEPP envelope. The existence query must not read a theta.
+- The run row stores only registry digests and counts — never a
+  theta, item bank, or provider body.
 - Home next-action copy for a Succeeded report stays empty. Failed
   report fixtures still say rebuild the period report.
 - `POST /api/analysis-runs` stays lineage-or-TEPP as implemented
@@ -40,9 +42,11 @@ registry is not allowed to store (ADR 0013).
 
 After `make seed`, Demo Analyst opens Analysis runs and sees
 **Period report · Succeeded · Demo Corp** next to the lineage and TEPP
-rows. Opening it shows the cutoff posts. Mean θ remains on the
-period-report panel. Re-seed is idempotent on
-`demo-report-seed-2026-w02`.
+rows when the scored tables exist. Opening it shows the cutoff posts.
+Mean θ remains on the period-report panel. A seed that cannot see
+those tables stays Failed / `period_report_not_persisted` so the
+registry does not invent a calibrated result. Re-seed is idempotent
+on `demo-report-seed-2026-w02`.
 
 ## References — APA 7th
 

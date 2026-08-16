@@ -1452,13 +1452,38 @@ def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> No
         )
 
 
+def _demo_period_report_persisted(cur, corporate_entity_id) -> bool:
+    """Return whether Demo Corp week-2 corporate scores already exist.
+
+    The registry row may not copy a theta. Presence of the scored
+    ``report_period_score`` row is the only Succeeded evidence
+    (ADR 0022). The query is ``select 1`` so a missing signal stays
+    missing instead of becoming a placeholder score.
+    """
+    cur.execute(
+        """
+        select 1
+          from report_period_score
+         where grouping_kind = 'corporate_entity'
+           and grouping_key = %s
+           and period_code = '2026-W02'
+         limit 1
+        """,
+        (str(corporate_entity_id),),
+    )
+    return cur.fetchone() is not None
+
+
 def _seed_demo_report_run(cur, requested_by_account_id, corporate_entity_id) -> None:
     """Record the already-built Demo Corp period report on the shared snapshot.
 
     ``_seed_demo_period_report`` persists calibrated report tables first.
-    This registry row is Succeeded because that write already happened.
-    It does not copy a theta onto ``analysis_run`` and does not invent
-    a local psychometric substitute (ADR 0022).
+    This registry row is Succeeded only when that write is visible on
+    ``report_period_score``. A missing row is Failed /
+    ``period_report_not_persisted`` — the same fail-closed shape as a
+    missing TEPP envelope. It does not copy a theta onto
+    ``analysis_run`` and does not invent a local psychometric
+    substitute (ADR 0022).
     """
     snapshot_id = _ensure_demo_source_snapshot(cur)
     _ensure_demo_source_counts(cur, snapshot_id)
@@ -1504,19 +1529,27 @@ def _seed_demo_report_run(cur, requested_by_account_id, corporate_entity_id) -> 
         """,
         (run_id, corporate_entity_id),
     )
-    for ordinal, status, occurred in (
-        (1, "analysis_status_pending", "2026-01-12T12:39:00Z"),
-        (2, "analysis_status_running", "2026-01-12T12:40:00Z"),
-        (3, "analysis_status_succeeded", "2026-01-12T12:41:00Z"),
-    ):
+    if _demo_period_report_persisted(cur, corporate_entity_id):
+        final_status, failure_code = "analysis_status_succeeded", None
+    else:
+        final_status, failure_code = (
+            "analysis_status_failed",
+            "period_report_not_persisted",
+        )
+    events = [
+        (1, "analysis_status_pending", "2026-01-12T12:39:00Z", None),
+        (2, "analysis_status_running", "2026-01-12T12:40:00Z", None),
+        (3, final_status, "2026-01-12T12:41:00Z", failure_code),
+    ]
+    for ordinal, status, occurred, fail in events:
         cur.execute(
             """
             insert into analysis_run_status_event
-                (analysis_run_id, status_ordinal, status_code, occurred_at)
-            values (%s, %s, %s, %s)
+                (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
+            values (%s, %s, %s, %s, %s)
             on conflict do nothing
             """,
-            (run_id, ordinal, status, occurred),
+            (run_id, ordinal, status, occurred, fail),
         )
 
 

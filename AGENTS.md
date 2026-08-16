@@ -10,7 +10,8 @@ scattered short records. See [ARCHITECTURE.md](ARCHITECTURE.md) for the
 design and [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md)
 for the literature it is grounded in. After `make seed`, Analysis runs
 lists lineage, TEPP, and the built period-report registry row on one
-Demo Corp snapshot (ADR 0022). Mean θ stays on the period-report panel.
+Demo Corp snapshot (ADR 0022) when `report_period_score` already holds
+the week-2 corporate row. Mean θ stays on the period-report panel.
 
 ## Hard rule: no real data, ever
 

@@ -19,6 +19,9 @@ All notable changes to this project are documented here. Format follows
 - Opening a Pending lineage run repeats that reconstruction has not
   started. Pending next-action copy is pinned to the registered run
   kinds, so a Pending TEPP row does not say reconstruction.
+- Seed stamps the period-report registry row Failed /
+  `period_report_not_persisted` when the scored Demo Corp week-2
+  tables are missing, instead of inventing Succeeded.
 
 ## [0.86.2] - 2026-08-16
 

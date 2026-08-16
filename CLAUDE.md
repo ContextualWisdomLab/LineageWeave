@@ -5,8 +5,11 @@ ADRs under `docs/adr/`. Do not fork those rules here.
 
 ## Analysis-run seed (v0.85.0)
 
-`make seed` writes a Demo Corp lineage run, a TEPP run, and a Succeeded
-period-report run on the same snapshot (ADR 0013 / ADR 0022). The TEPP path goes through `tepp_client`. A missing
+`make seed` writes a Demo Corp lineage run, a TEPP run, and a
+period-report run on the same snapshot (ADR 0013 / ADR 0022). The
+report run is Succeeded only when `report_period_score` already holds
+the Demo Corp week-2 corporate row; otherwise it is Failed /
+`period_report_not_persisted`. The TEPP path goes through `tepp_client`. A missing
 transport or an unused accepted envelope is Failed
 (`tepp_not_available` / `tepp_result_not_persisted`). Do not invent a
 theta or a local psychometric substitute. The home list caption stays

@@ -500,8 +500,10 @@ Demo Corp" with "3 documents" and Pending / Running / Succeeded times,
 and "TEPP measurement · Failed · Demo Corp" whose detail history ends
 in Failed / `tepp_not_available`. Seed also records
 "Period report · Succeeded · Demo Corp" on that same snapshot after
-the calibrated report tables are written (ADR 0022). Open that row
-to confirm the cutoff posts; mean θ stays on the period-report panel.
+the calibrated report tables are written (ADR 0022). A missing
+`report_period_score` row is Failed / `period_report_not_persisted`
+instead of inventing Succeeded. Open the Succeeded row to confirm
+the cutoff posts; mean θ stays on the period-report panel.
 
 ## Phase 6a: fast-mlsirm dependency + Rust toolchain (infra only)
 
