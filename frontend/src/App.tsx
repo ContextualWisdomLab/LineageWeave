@@ -1563,8 +1563,8 @@ function analysisRunDigestPrefix(digest: string): string {
 }
 
 /**
- * Next action when detail 404s. Stay generic: do not name the thread
- * or the cutoff — that would confirm a hidden row (ADR 0018).
+ * Next action when detail 404s. Stay generic: do not name the thread or the cutoff.
+ * Naming either would confirm a hidden row (ADR 0018).
  */
 function analysisRunHiddenNextAction(): string {
   return (
