@@ -293,6 +293,9 @@ describe("App, authenticated", () => {
                     count_value: 3,
                   },
                 ],
+                code_revision_sha: "abcdef0123456789deadbeefcafebabe",
+                configuration_sha256:
+                  "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
               },
               {
                 analysis_run_id: "run-demo-tepp",
@@ -1460,6 +1463,12 @@ describe("App, authenticated", () => {
     expect(list).toHaveTextContent("3 documents");
     expect(list).not.toHaveTextContent("postgresql://");
     expect(list).not.toHaveTextContent("select ");
+    expect(list).not.toHaveTextContent("Code abcdef012345");
+    expect(list).not.toHaveTextContent("Config 0123456789ab");
+    expect(list).not.toHaveTextContent("abcdef0123456789deadbeefcafebabe");
+    expect(list).not.toHaveTextContent(
+      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    );
 
     await userEvent.click(
       screen.getByRole("button", {
@@ -1470,21 +1479,39 @@ describe("App, authenticated", () => {
     expect(screen.getByText(/Cutoff 2026-01-12/)).toBeInTheDocument();
     expect(screen.getByText(/Requested 2026-01-12/)).toBeInTheDocument();
     const digests = screen.getByLabelText("Analysis run reproducibility digests");
+    expect(digests).toHaveTextContent("Hover a prefix to read the full digest for verification.");
     expect(digests).toHaveTextContent("Code abcdef012345");
     expect(digests).toHaveTextContent("Config 0123456789ab");
     expect(digests).not.toHaveTextContent("abcdef0123456789deadbeefcafebabe");
     expect(digests).not.toHaveTextContent(
       "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     );
+    expect(screen.getByTitle("abcdef0123456789deadbeefcafebabe")).toHaveTextContent("Code abcdef012345");
+    expect(
+      screen.getByTitle("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"),
+    ).toHaveTextContent("Config 0123456789ab");
     const history = screen.getByRole("list", { name: "Analysis run status history" });
     expect(history).toHaveTextContent("Pending 2026-01-12 12:31");
     expect(history).toHaveTextContent("Running 2026-01-12 12:32");
     expect(history).toHaveTextContent("Succeeded 2026-01-12 12:33");
     expect(screen.getByRole("list", { name: "Posts known at this run cutoff" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open run post: Public post" })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Opening a title shows the live post. Compare it with cutoff 2026-01-12 before you treat the body as reconstructed evidence — it may have changed after this run.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Open live post (may have changed after cutoff): Public post",
+      }),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/postgresql:\/\//)).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Open run post: Public post" }));
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open live post (may have changed after cutoff): Public post",
+      }),
+    );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
 
     await userEvent.click(

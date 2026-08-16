@@ -1406,6 +1406,62 @@ function analysisRunCorpusHint(run: AnalysisRun): string | null {
   return "These posts are the cutoff corpus this TEPP run measured.";
 }
 
+/** Git-style prefix. The full digest stays on `title` for verification. */
+const ANALYSIS_RUN_DIGEST_PREFIX_LENGTH = 12;
+
+function analysisRunDigestPrefix(digest: string): string {
+  return digest.slice(0, ANALYSIS_RUN_DIGEST_PREFIX_LENGTH);
+}
+
+/**
+ * Next action when a cutoff title opens the live post (ADR 0016).
+ *
+ * Post-body versioning is a later slice. Until then the operator must
+ * compare the opened body with this run's cutoff instead of treating
+ * today's text as reconstructed evidence.
+ */
+function analysisRunLivePostWarning(cutoffIso: string): string {
+  const cutoffDate = cutoffIso.slice(0, 10);
+  return (
+    `Opening a title shows the live post. Compare it with cutoff ${cutoffDate} ` +
+    "before you treat the body as reconstructed evidence — it may have changed after this run."
+  );
+}
+
+function analysisRunLivePostButtonLabel(postTitle: string): string {
+  return `Open live post (may have changed after cutoff): ${postTitle}`;
+}
+
+function AnalysisRunReproducibilityDigests({
+  codeRevisionSha,
+  configurationSha256,
+}: {
+  codeRevisionSha?: string;
+  configurationSha256?: string;
+}) {
+  if (!codeRevisionSha && !configurationSha256) {
+    return null;
+  }
+  return (
+    <div role="group" aria-label="Analysis run reproducibility digests">
+      <p className="post-meta">
+        <span className="visually-hidden">
+          Hover a prefix to read the full digest for verification.{" "}
+        </span>
+        {codeRevisionSha ? (
+          <span title={codeRevisionSha}>{`Code ${analysisRunDigestPrefix(codeRevisionSha)}`}</span>
+        ) : null}
+        {codeRevisionSha && configurationSha256 ? " · " : null}
+        {configurationSha256 ? (
+          <span title={configurationSha256}>
+            {`Config ${analysisRunDigestPrefix(configurationSha256)}`}
+          </span>
+        ) : null}
+      </p>
+    </div>
+  );
+}
+
 function AnalysisRunsPanel({
   accessToken,
   onSelectPost,
@@ -1488,19 +1544,10 @@ function AnalysisRunsPanel({
             {" · "}
             Requested {selected.requested_at.slice(0, 10)}
           </p>
-          {(selected.code_revision_sha || selected.configuration_sha256) && (
-            <p className="post-meta" aria-label="Analysis run reproducibility digests">
-              {selected.code_revision_sha
-                ? `Code ${selected.code_revision_sha.slice(0, 12)}`
-                : ""}
-              {selected.code_revision_sha && selected.configuration_sha256
-                ? " · "
-                : ""}
-              {selected.configuration_sha256
-                ? `Config ${selected.configuration_sha256.slice(0, 12)}`
-                : ""}
-            </p>
-          )}
+          <AnalysisRunReproducibilityDigests
+            codeRevisionSha={selected.code_revision_sha}
+            configurationSha256={selected.configuration_sha256}
+          />
           <ul>
             {selected.source_counts.map((count) => (
               <li key={count.count_type_code}>
@@ -1521,12 +1568,13 @@ function AnalysisRunsPanel({
           {selected.visible_posts && selected.visible_posts.length > 0 ? (
             <>
               {corpusHint && <p className="post-meta">{corpusHint}</p>}
+              <p className="post-meta">{analysisRunLivePostWarning(selected.knowledge_cutoff)}</p>
               <ul aria-label="Posts known at this run cutoff">
                 {selected.visible_posts.map((post) => (
                   <li key={post.post_id}>
                     <button
                       className="keyman-select"
-                      aria-label={`Open run post: ${post.post_title}`}
+                      aria-label={analysisRunLivePostButtonLabel(post.post_title)}
                       onClick={() => onSelectPost(post.post_id)}
                     >
                       {post.post_title}
