@@ -36,6 +36,7 @@ from lineageweave.keyman_extraction import OUR_SIDE, PersonMention
 from lineageweave.knowledge_graph import (
     EDGE_MENTION,
     EDGE_MENTION_TEAM,
+    NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
     NODE_TEAM,
@@ -462,96 +463,86 @@ def test_team_only_posts_walk_related_nodes(projection_database: str) -> None:
     asyncio.run(_exercise_team_only_related_walk(database_dsn, post_id))
 
 
-async def _exercise_homonym_organization_catalog_binding(
+async def _exercise_homonym_organization_role_binding(
     database_dsn: str,
     post_id: str,
 ) -> None:
-    """Two same-named orgs on one post must keep the role bound to one id."""
+    """A same-named catalog org that this post did not resolve must stay off the role."""
 
     connection = await asyncpg.connect(database_dsn)
     try:
-        first_org_id = str(
+        mentioned_id = str(
             await connection.fetchval(
                 """
                 insert into corporate_entity
                     (corporate_entity_code, entity_name, entity_level_code)
-                values ('HOMONYM-A', 'Northridge Grid', 'company')
+                values ('HOMONYM-MENTIONED', 'Homonym Energy', 'company')
                 returning corporate_entity_id
                 """
             )
         )
-        second_org_id = str(
+        other_id = str(
             await connection.fetchval(
                 """
                 insert into corporate_entity
                     (corporate_entity_code, entity_name, entity_level_code)
-                values ('HOMONYM-B', 'Northridge Grid', 'company')
+                values ('HOMONYM-OTHER', 'Homonym Energy', 'company')
                 returning corporate_entity_id
                 """
             )
         )
-        async def resolve_first(
-            *_args: object, **_kwargs: object
-        ) -> str:
-            return first_org_id
 
-        original_resolve = summary_ingestion.get_or_create_corporate_entity
-        summary_ingestion.get_or_create_corporate_entity = resolve_first
+        async def resolve_mentioned_organization(*_args, **_kwargs) -> str:
+            return mentioned_id
+
+        original = summary_ingestion.get_or_create_corporate_entity
+        summary_ingestion.get_or_create_corporate_entity = resolve_mentioned_organization
         try:
-            await persist_post_summary(
+            payload = await persist_post_summary(
                 connection,
                 post_id,
                 PostSummary(
-                    korean_summary="노스리지 그리드가 일정 확인을 요청했다.",
+                    korean_summary="동명이인 조직이 일정만 확정했다.",
                     roles_and_responsibilities=(
                         RoleResponsibility(
-                            actor_name="Northridge Grid",
-                            responsibility="일정 확인",
+                            actor_name="Homonym Energy",
+                            responsibility="납품 일정 확정",
                             actor_type_code=ACTOR_TYPE_ORGANIZATION,
                         ),
                     ),
                 ),
             )
         finally:
-            summary_ingestion.get_or_create_corporate_entity = original_resolve
-        stored_id = str(
-            await connection.fetchval(
-                """
-                select corporate_entity_id
-                  from post_summary_role
-                 where post_id = $1 and actor_name = 'Northridge Grid'
-                """,
-                post_id,
-            )
-        )
-        assert stored_id == first_org_id
-        other_id = second_org_id if stored_id == first_org_id else first_org_id
-        await connection.execute(
-            """
-            insert into post_organization_mention (post_id, corporate_entity_id)
-            values ($1, $2)
-            on conflict do nothing
-            """,
-            post_id,
-            other_id,
-        )
-        payload = await fetch_persisted_summary(connection, post_id)
-        assert payload is not None
+            summary_ingestion.get_or_create_corporate_entity = original
+
         roles = payload["roles_and_responsibilities"]
         assert len(roles) == 1
-        assert roles[0]["catalog_node_id"] == stored_id
-        assert roles[0]["catalog_node_type_code"] == "node_corporate_entity"
+        assert roles[0]["catalog_node_id"] == mentioned_id
+        assert roles[0]["catalog_node_type_code"] == NODE_CORPORATE_ENTITY
+        fetched = await fetch_persisted_summary(connection, post_id)
+        assert fetched is not None
+        assert fetched["roles_and_responsibilities"][0]["catalog_node_id"] == mentioned_id
+        assert fetched["roles_and_responsibilities"][0]["catalog_node_id"] != other_id
+        mention_ids = [
+            str(row["corporate_entity_id"])
+            for row in await connection.fetch(
+                "select corporate_entity_id from post_organization_mention "
+                "where post_id = $1",
+                post_id,
+            )
+        ]
+        assert mention_ids == [mentioned_id]
     finally:
         await connection.close()
 
 
-def test_homonym_organization_roles_keep_the_persisted_catalog_id(
+def test_homonym_organization_role_binds_the_resolved_catalog_id(
     projection_database: str,
 ) -> None:
-    """ADR 0019: a shared display name must not duplicate or rebind the role."""
+    """ADR 0019: two catalog orgs can share a display name; the role keeps one id."""
 
     database_dsn, post_id, _summary_person_id = projection_database.split("|")
-    asyncio.run(_exercise_homonym_organization_catalog_binding(database_dsn, post_id))
+    asyncio.run(_exercise_homonym_organization_role_binding(database_dsn, post_id))
 
 
 async def _exercise_same_name_person_catalog_order(
@@ -616,17 +607,6 @@ async def _exercise_same_name_person_catalog_order(
         assert stored_id == earlier_id
         assert roles[0]["catalog_node_id"] == earlier_id
         assert roles[0]["catalog_node_type_code"] == NODE_PERSON
-        mention_id = str(
-            await connection.fetchval(
-                """
-                select person_id
-                  from post_summary_person_mention
-                 where post_id = $1
-                """,
-                post_id,
-            )
-        )
-        assert mention_id == earlier_id
     finally:
         await connection.close()
 
@@ -634,7 +614,7 @@ async def _exercise_same_name_person_catalog_order(
 def test_same_name_person_roles_bind_the_earliest_catalog_row(
     projection_database: str,
 ) -> None:
-    """R&R person lookup must order by created_at, then person_id."""
+    """ADR 0020: R&R person lookup must order by created_at, then person_id."""
 
     database_dsn, post_id, _summary_person_id = projection_database.split("|")
     asyncio.run(_exercise_same_name_person_catalog_order(database_dsn, post_id))

@@ -1,10 +1,11 @@
 """Persist and load the popup's Korean summary / key events / R&R.
 
-ADR 0009: an R&R actor is not just per-post free text -- when it is a
-team or organization, it is resolved to a shared catalog identity
-(``cataloged_team`` / ``corporate_entity``) and a Knowledge Graph
-mention edge is written, so the same "설계팀" or organization named
-across two posts becomes one linkable node, not two unrelated strings.
+ADR 0009 / 0019: an R&R actor is not just per-post free text -- when it
+is a team or organization, it is resolved to a shared catalog identity
+(``cataloged_team`` / ``corporate_entity``) stored on the role row and
+a Knowledge Graph mention edge is written, so the same "설계팀" or
+organization named across two posts becomes one linkable node. Fetch
+never reconstructs that id by ``entity_name``; that column is not unique.
 A person actor is opportunistically joined to an *existing*
 ``cataloged_person`` row by name when Keyman extraction has already
 cataloged that name. The R&R evidence is written to
@@ -21,11 +22,6 @@ tree instead of staying permanently unresolved.  Inference,
 verification, and the short advisory-lock creation transaction finish
 before the summary-replacement transaction begins; slow external work
 therefore cannot extend the lock or the atomic replacement window.
-
-ADR 0019: the resolved catalog id is stored on ``post_summary_role``.
-``entity_name`` is a display label, not an identity key -- two companies
-can share it, and a name join can then duplicate the role or attach the
-wrong id. Fetch reads the stored foreign key.
 """
 
 from __future__ import annotations
@@ -68,10 +64,9 @@ async def fetch_persisted_summary(
 ) -> dict[str, Any] | None:
     """Return the stored summary payload, or None when none has been written.
 
-    Catalog ids come from ``post_summary_role`` itself (ADR 0019). Do not
-    rejoin ``corporate_entity`` by ``entity_name`` -- that label is not
-    unique and a colliding catalog row would duplicate or mis-link the
-    role the buyer clicks.
+    ``catalog_node_id`` comes from the role row's catalog foreign keys
+    (ADR 0019 / 0020). This function does not join ``corporate_entity``
+    by ``entity_name``. Person chips read ``cataloged_person_id``.
     """
     header = await conn.fetchrow(
         "select korean_summary from post_summary_result where post_id = $1",
@@ -87,8 +82,8 @@ async def fetch_persisted_summary(
         """
         select role.actor_name, role.responsibility, role.actor_type_code,
                role.affiliated_organization_name,
-               role.cataloged_team_id as team_id,
-               role.corporate_entity_id,
+               role.cataloged_team_id,
+               role.cataloged_corporate_entity_id,
                role.cataloged_person_id
           from post_summary_role role
          where role.post_id = $1
@@ -100,11 +95,11 @@ async def fetch_persisted_summary(
     for row in roles:
         catalog_node_id = None
         catalog_node_type_code = None
-        if row["team_id"] is not None:
-            catalog_node_id = str(row["team_id"])
+        if row["cataloged_team_id"] is not None:
+            catalog_node_id = str(row["cataloged_team_id"])
             catalog_node_type_code = NODE_TEAM
-        elif row["corporate_entity_id"] is not None:
-            catalog_node_id = str(row["corporate_entity_id"])
+        elif row["cataloged_corporate_entity_id"] is not None:
+            catalog_node_id = str(row["cataloged_corporate_entity_id"])
             catalog_node_type_code = NODE_CORPORATE_ENTITY
         elif row["cataloged_person_id"] is not None:
             catalog_node_id = str(row["cataloged_person_id"])
@@ -223,11 +218,11 @@ async def _replace_summary_projection(
             ordinal,
             event_text,
         )
-    # ADR 0009 / 0019: resolve catalog identity before the role insert so
-    # fetch can read the stored id instead of rejoining by display name.
+    # ADR 0009 / 0019: resolve catalog identity before writing the role
+    # row so fetch never reconstructs it by a non-unique name.
     for role_index, role in enumerate(summary.roles_and_responsibilities):
         cataloged_team_id = None
-        corporate_entity_id = None
+        cataloged_corporate_entity_id = None
         cataloged_person_id = None
         if role.actor_type_code == ACTOR_TYPE_TEAM:
             cataloged_team_id = await upsert_team(
@@ -237,7 +232,9 @@ async def _replace_summary_projection(
                 candidates,
             )
         elif role.actor_type_code == ACTOR_TYPE_ORGANIZATION:
-            corporate_entity_id = resolved_organization_ids.get(role_index)
+            cataloged_corporate_entity_id = resolved_organization_ids.get(
+                role_index
+            )
         elif role.actor_type_code == ACTOR_TYPE_PERSON:
             person_row = await conn.fetchrow(
                 "select person_id from cataloged_person "
@@ -251,15 +248,15 @@ async def _replace_summary_projection(
             "insert into post_summary_role "
             "(post_id, actor_name, responsibility, actor_type_code, "
             "affiliated_organization_name, cataloged_team_id, "
-            "corporate_entity_id, cataloged_person_id) "
-            "values ($1, $2, $3, $4, $5, $6, $7, $8)",
+            "cataloged_corporate_entity_id, cataloged_person_id) values "
+            "($1, $2, $3, $4, $5, $6, $7, $8)",
             post_id,
             role.actor_name,
             role.responsibility,
             role.actor_type_code,
             role.affiliated_organization_name,
             cataloged_team_id,
-            corporate_entity_id,
+            cataloged_corporate_entity_id,
             cataloged_person_id,
         )
         if cataloged_team_id is not None:
@@ -269,13 +266,13 @@ async def _replace_summary_projection(
                 post_id,
                 cataloged_team_id,
             )
-        elif corporate_entity_id is not None:
+        elif cataloged_corporate_entity_id is not None:
             await conn.execute(
                 "insert into post_organization_mention "
                 "(post_id, corporate_entity_id) values ($1, $2) "
                 "on conflict do nothing",
                 post_id,
-                corporate_entity_id,
+                cataloged_corporate_entity_id,
             )
         elif cataloged_person_id is not None:
             await conn.execute(

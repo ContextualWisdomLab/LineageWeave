@@ -1,8 +1,8 @@
 # R&R catalog identity — doctoring
 
-These are the standards and papers that ground ADR 0019. Cite them in
-APA 7th when you extend role identity binding or related-node
-authorization.
+These are the standards and papers that ground ADR 0019 and ADR 0020.
+Cite them in APA 7th when you extend role identity binding or
+related-node authorization.
 
 Bhattacharya, I., & Getoor, L. (2007). Collective entity resolution in
 relational data. *ACM Transactions on Knowledge Discovery from Data,

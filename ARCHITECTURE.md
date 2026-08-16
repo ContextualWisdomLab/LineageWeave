@@ -64,7 +64,7 @@ flowchart LR
 | `chunking.py` | Splits a document into meaning-identifiable units (paragraph, sentence, DOM, conversation-turn) plus embedded-image extraction, in document order |
 | `embedding_client.py` | Pluggable text-embedding channel (`Null` default, `OpenAiCompatible` real impl) + `chunked_max_similarity` |
 | `adjudication_client.py` | Pluggable LLM-judgment channel (`Null` default, `ContextualOrchestrator` real impl) |
-| `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl) |
+| `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl). The product popup (`frontend/src/PostBody.tsx`) renders each `data:image` payload in document order so the buyer sees the picture, not the base64 string; GET does not call the vision client. |
 | `tepp_client.py` | TEPP's published `AnalysisRunRequest` wire contract, pluggable transport |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
 | `lineage_persistence.py` | Flattens reconstruct trees into `post_lineage_edge` row specs (parent, child, fused_score) |
@@ -489,7 +489,9 @@ its machine `failure_code` rather than an invented caption. Failed
 TEPP list rows add a next-action line (open the run, then connect the
 measurement service) so `tepp_not_available` is not mistaken for a
 calibrated negative result. A failed lineage row tells the operator
-to retry reconstruction, not to connect TEPP. The
+to retry reconstruction, not to connect TEPP. A failed period-report
+row tells the operator to rebuild the report. A pending TEPP row
+does not claim a calibrated measurement. The
 payload is lookup labels plus non-negative aggregate counts -- never
 source SQL, a DSN, a raw record, or a provider body. After `make seed`,
 Demo Analyst and Demo Admin see "Lineage reconstruction · Succeeded ·
@@ -847,17 +849,19 @@ new table needed. `lineageweave/knowledge_graph.py`'s
 `knowledge_graph_edges_for_post` extended with three new edge kinds
 (`edge_mention_team`, `edge_team_affiliation`, `edge_mention_organization`);
 `backend/app/post_summary_ingestion.py`'s `persist_post_summary` now
-resolves each R&R actor's identity and calls the same
-`persist_edges_for_post` Keyman ingestion already uses. A person R&R
+resolves each R&R actor's identity, stores that id on
+`post_summary_role` (ADR 0019 — `entity_name` is not unique), and calls
+the same `persist_edges_for_post` Keyman ingestion already uses. A person R&R
 actor is opportunistically joined to an existing `cataloged_person` row
 by name (never originated by R&R itself -- documented gap in the ADR:
 `cataloged_person` needs `person_side_code`, which R&R's prompt does
 not currently capture). ADR 0019 stores that resolved catalog id on
-`post_summary_role` (`cataloged_team_id` / `corporate_entity_id` /
-`cataloged_person_id`) so a later read does not rejoin
-`corporate_entity` by `entity_name`. Fetch returns the person foreign
-key as `catalog_node_id` the same way. Historical backfill leaves a
-role unbound when two same-named mentions already exist on the post.
+`post_summary_role` (`cataloged_team_id` /
+`cataloged_corporate_entity_id` / `cataloged_person_id`, ADR 0019 /
+0020) so a later read does not rejoin `corporate_entity` by
+`entity_name`. Fetch returns the person foreign key as
+`catalog_node_id` the same way. Historical backfill leaves a role
+unbound when two same-named mentions already exist on the post.
 Open a post whose R&R names an organization that shares a display name
 with another catalog row: the chip keeps the id persist stored. Click
 it to walk that organization, not the homonym. Click a person chip to

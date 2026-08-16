@@ -82,6 +82,18 @@ picture sat relative to the surrounding paragraphs."
 | `chunk_position` | `integer not null` | 0-based index among ALL of this document's chunks (text and image together) -- matches `Chunk.index` from `chunk_by_dom` |
 | primary key | `(source_document_id, chunk_position)` | one image slot per position per document |
 
+## Viewer contract (before persistence exists)
+
+The demo popup does not yet read these tables. It splits the live
+`post_body` the same way `extract_base64_images` does: each
+`data:image/...;base64,...` payload becomes an `<img>` at its original
+character offset, and the surrounding HTML is shown as text. A buyer who
+opens the post sees the picture that sat between the paragraphs, not the
+base64 wall. Remote `src="https://..."` tags are stripped, never fetched.
+OCR, caption, and tag search still require the vision client on extract /
+Ask (Li et al., 2023; Radford et al., 2021) and, in a real deployment,
+the tables below.
+
 ## Query shapes this supports
 
 - **"Find images whose extracted text or tags match a search query, then
@@ -105,3 +117,17 @@ picture sat relative to the surrounding paragraphs."
   ON CONFLICT DO NOTHING` before the provider call, or a short-lived
   lease row) to close that race; this schema documents the storage
   guarantee, not that concurrency control.
+
+## References
+
+Li, M., Lv, T., Chen, J., Cui, L., Lu, Y., Florencio, D., Zhang, C., Li, Z.,
+& Wei, F. (2023). TrOCR: Transformer-based optical character recognition
+with pre-trained models. *Proceedings of the AAAI Conference on Artificial
+Intelligence, 37*(11), 13094–13102. https://doi.org/10.1609/aaai.v37i11.26538
+
+Radford, A., Kim, J. W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S.,
+Sastry, G., Askell, A., Mishkin, P., Clark, J., Krueger, G., & Sutskever, I.
+(2021). Learning transferable visual models from natural language
+supervision. In M. Meila & T. Zhang (Eds.), *Proceedings of the 38th
+International Conference on Machine Learning* (pp. 8748–8763). PMLR.
+https://proceedings.mlr.press/v139/radford21a.html

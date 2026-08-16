@@ -4,32 +4,39 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.86.2] - 2026-08-16
+## [0.86.3] - 2026-08-16
 
 ### Fixed
 
 - R&R person chips now read `cataloged_person_id` from
-  `post_summary_role`. Open a post whose R&R names a cataloged person:
-  the chip is a button even when Keyman extraction was not run on that
-  post. Click it to walk that person, not a later same-named row.
-- Historical 0019 backfill leaves a role unbound when two same-named
-  mentions already exist on the post. It does not pick a UUID.
-- A private mention of an organization you can already see does not
-  appear in that organization's related walk.
+  `post_summary_role` (ADR 0020). Open a post whose R&R names a
+  cataloged person: the chip is a button even when Keyman extraction
+  was not run on that post. Click it to walk that person, not a later
+  same-named row. Historical backfill leaves a role unbound when two
+  same-named mentions already exist.
+- Request a lineage reconstruction: the opened Pending panel says
+  reconstruction has not started yet.
 
-## [0.86.1] - 2026-08-16
+## [0.86.2] - 2026-08-16
 
 ### Fixed
 
-- R&R summary chips now keep the catalog id persist stored (ADR 0019).
-  Open a post whose organization actor shares a display name with
-  another catalog row: the chip stays bound to that id, even if the
-  homonym is also mentioned on the post. Click it to walk the intended
-  organization.
-- `GET /api/teams/{team_id}/related` returns 403 when the team exists
-  only on an unseen private post, and 404 for an unknown UUID — the
-  same fail-closed path corporate-entity related already uses. A
-  private organization mention does not open the related walk.
+- An R&R organization button now walks the catalog id stored on that
+  role row (ADR 0019). Two catalog orgs can share a display name; open
+  the post, click the name, and you stay on the resolved org — not a
+  homonym. `GET /api/teams/{id}/related` matches person/entity authz:
+  another corp's private-only team is 403; an unknown UUID is 404.
+
+## [0.86.1] - 2026-08-16
+
+### Changed
+
+- Opening a post or its evidence panel now shows each embedded
+  `data:image` picture in document order, with the surrounding sentences
+  as text. The raw base64 string is no longer dumped into the popup.
+  Remote `http(s)` image URLs stay unloaded. After `make seed`, a post
+  whose body includes a data-URI image shows the picture; Extract Keyman
+  or Ask still runs OCR on that image for search.
 
 ## [0.86.0] - 2026-08-16
 
@@ -48,6 +55,9 @@ All notable changes to this project are documented here. Format follows
 - Thread-group analysis-run *lists* now require an in-cutoff visible
   post. A later public post in that thread group no longer surfaces a
   January run the account was not allowed to know.
+- Failed period-report rows tell the operator to rebuild the report.
+  Next-action copy is pinned to the registered run kinds. A pending
+  TEPP corpus does not claim a calibrated measurement.
 
 ## [0.85.0] - 2026-08-16
 
@@ -89,7 +99,10 @@ All notable changes to this project are documented here. Format follows
   snapshot-count inserts once counts exist so a re-run does not hit
   the freeze trigger. A failed lineage row tells the operator to retry
   reconstruction; only a failed TEPP row mentions the measurement
-  service. Stacked PRs now run the same GitHub Checks as PRs to main.
+  service. A failed period-report row tells the operator to rebuild
+  the report from a current snapshot. A pending TEPP row does not
+  claim a calibrated measurement. Stacked PRs now run the same
+  GitHub Checks as PRs to main.
 
 ## [0.83.0] - 2026-08-16
 

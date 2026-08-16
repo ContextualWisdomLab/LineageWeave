@@ -1201,6 +1201,44 @@ def test_unknown_corporate_entity_related_is_not_found(
     assert response.status_code == 404
 
 
+def test_team_only_on_other_corp_private_post_is_forbidden(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A team mentioned only on another corp's private post must 403."""
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into cataloged_team (team_name, affiliated_organization_name) "
+                "values ('비공개 설계팀', 'Other Corp') returning team_id"
+            )
+            team_id = str(cur.fetchone()[0])
+            cur.execute(
+                "insert into post_team_mention (post_id, team_id) values (%s, %s)",
+                (seeded_db["other_private_post_id"], team_id),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/teams/{team_id}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_unknown_team_related_is_not_found(client, demo_analyst_token) -> None:
+    """An unknown team UUID must 404, matching person and entity related."""
+
+    response = client.get(
+        f"/api/teams/{uuid.uuid4()}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 404
+
+
 def test_keyman_only_on_other_corp_private_post_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         f"/api/keymen/{seeded_db['hidden_person_id']}/related",
@@ -1476,46 +1514,6 @@ def test_same_team_named_in_two_posts_resolves_to_one_cataloged_team(
         assert role["catalog_node_type_code"] == "node_team"
 
 
-def test_team_mentioned_only_on_other_corp_private_post_is_forbidden(
-    client, demo_analyst_token, seeded_db
-) -> None:
-    """A team that exists only on an unseen private post must 403, not walk."""
-
-    admin_conn = psycopg2.connect(seeded_db["dsn"])
-    admin_conn.autocommit = True
-    try:
-        with admin_conn.cursor() as cur:
-            cur.execute(
-                "insert into cataloged_team (team_name, affiliated_organization_name) "
-                "values ('Hidden Team', 'Other Corp') returning team_id"
-            )
-            team_id = str(cur.fetchone()[0])
-            cur.execute(
-                "insert into post_team_mention (post_id, team_id) values (%s, %s)",
-                (seeded_db["other_private_post_id"], team_id),
-            )
-    finally:
-        admin_conn.close()
-
-    response = client.get(
-        f"/api/teams/{team_id}/related",
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
-    assert response.status_code == 403
-
-
-def test_unknown_team_related_is_not_found(
-    client, demo_analyst_token, seeded_db
-) -> None:
-    """An unknown team UUID must 404 the same way an unknown org does."""
-
-    response = client.get(
-        f"/api/teams/{uuid.uuid4()}/related",
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
-    assert response.status_code == 404
-
-
 def test_organization_mentioned_only_on_other_corp_private_post_is_forbidden(
     client, demo_analyst_token, seeded_db
 ) -> None:
@@ -1547,10 +1545,62 @@ def test_organization_mentioned_only_on_other_corp_private_post_is_forbidden(
     assert response.status_code == 403
 
 
+def test_organization_mention_only_posts_appear_in_entity_related(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """An org mentioned with no affiliated person must still start a related walk."""
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public' "
+                "from source_post where post_id = %s returning post_id",
+                ("Org-only mention", "Test Corp was named without a person.", seeded_db["own_private_post_id"]),
+            )
+            org_only_post_id = str(cur.fetchone()[0])
+            cur.execute(
+                "insert into post_organization_mention (post_id, corporate_entity_id) values (%s, %s)",
+                (org_only_post_id, seeded_db["own_corp_id"]),
+            )
+            for edge in knowledge_graph_edges_for_post(
+                org_only_post_id,
+                [],
+                organization_corporate_entity_ids=[seeded_db["own_corp_id"]],
+            ):
+                cur.execute(
+                    "insert into knowledge_graph_edge ("
+                    "source_node_type_code, source_node_id, target_node_type_code, "
+                    "target_node_id, edge_type_code, edge_weight"
+                    ") values (%s, %s, %s, %s, %s, %s) "
+                    "on conflict do nothing",
+                    (
+                        edge.source_node_type_code,
+                        edge.source_node_id,
+                        edge.target_node_type_code,
+                        edge.target_node_id,
+                        edge.edge_type_code,
+                        edge.edge_weight,
+                    ),
+                )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/corporate-entities/{seeded_db['own_corp_id']}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    related_ids = {node["node_id"] for node in response.json()["related"]}
+    assert org_only_post_id in related_ids
+
+
 def test_private_other_corp_organization_mention_does_not_leak(
     client, demo_analyst_token, seeded_db
 ) -> None:
-    """A private mention of a visible org must not appear in that org walk."""
+    """The org-mention UNION must still apply ABAC per post."""
 
     admin_conn = psycopg2.connect(seeded_db["dsn"])
     admin_conn.autocommit = True
@@ -1604,58 +1654,6 @@ def test_private_other_corp_organization_mention_does_not_leak(
         headers=headers,
     )
     assert hidden.status_code == 403
-
-
-def test_organization_mention_only_posts_appear_in_entity_related(
-    client, demo_analyst_token, seeded_db
-) -> None:
-    """An org mentioned with no affiliated person must still start a related walk."""
-
-    admin_conn = psycopg2.connect(seeded_db["dsn"])
-    admin_conn.autocommit = True
-    try:
-        with admin_conn.cursor() as cur:
-            cur.execute(
-                "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
-                "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public' "
-                "from source_post where post_id = %s returning post_id",
-                ("Org-only mention", "Test Corp was named without a person.", seeded_db["own_private_post_id"]),
-            )
-            org_only_post_id = str(cur.fetchone()[0])
-            cur.execute(
-                "insert into post_organization_mention (post_id, corporate_entity_id) values (%s, %s)",
-                (org_only_post_id, seeded_db["own_corp_id"]),
-            )
-            for edge in knowledge_graph_edges_for_post(
-                org_only_post_id,
-                [],
-                organization_corporate_entity_ids=[seeded_db["own_corp_id"]],
-            ):
-                cur.execute(
-                    "insert into knowledge_graph_edge ("
-                    "source_node_type_code, source_node_id, target_node_type_code, "
-                    "target_node_id, edge_type_code, edge_weight"
-                    ") values (%s, %s, %s, %s, %s, %s) "
-                    "on conflict do nothing",
-                    (
-                        edge.source_node_type_code,
-                        edge.source_node_id,
-                        edge.target_node_type_code,
-                        edge.target_node_id,
-                        edge.edge_type_code,
-                        edge.edge_weight,
-                    ),
-                )
-    finally:
-        admin_conn.close()
-
-    response = client.get(
-        f"/api/corporate-entities/{seeded_db['own_corp_id']}/related",
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
-    assert response.status_code == 200, response.text
-    related_ids = {node["node_id"] for node in response.json()["related"]}
-    assert org_only_post_id in related_ids
 
 
 def test_thread_group_run_list_honors_knowledge_cutoff(

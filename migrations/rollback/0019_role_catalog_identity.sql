@@ -1,11 +1,8 @@
--- Fail-closed rollback for migration 0019.
---
--- Drops the persisted catalog identity columns on post_summary_role.
--- Re-running after a successful rollback is safe.
+-- Drop role-scoped catalog identity columns added by 0019.
+-- Mention tables remain; only the role-row binding is removed.
 
-alter table if exists post_summary_role
-    drop constraint if exists post_summary_role_catalog_type_chk,
-    drop constraint if exists post_summary_role_one_catalog_chk,
-    drop column if exists cataloged_person_id,
-    drop column if exists corporate_entity_id,
+alter table post_summary_role
     drop column if exists cataloged_team_id;
+
+alter table post_summary_role
+    drop column if exists cataloged_corporate_entity_id;
