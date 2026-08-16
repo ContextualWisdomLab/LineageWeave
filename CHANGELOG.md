@@ -4,18 +4,6 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Changed
-
-- Product LLM adapters now request contextual-orchestrator
-  `mode="auto"` rather than forcing a one-model route. The
-  orchestrator owns the quality-sufficient route, verification, or
-  conducted workflow. Citation-bearing post-chat and lineage
-  adjudication keep their explicit `verify` contracts. Policy scans
-  require the payload literals `"mode": "auto"` / `"mode": "verify"`
-  so a docstring mention cannot satisfy ADR-0013.
-
 ## [0.75.0] - 2026-08-16
 
 ### Changed
@@ -28,8 +16,16 @@ All notable changes to this project are documented here. Format follows
   `Ada West, Demo Corp (Our side)` and `Demo Corp (Company)`. A person
   chip adds an organization only when exactly one identity is known;
   a resolved catalog org shows `entity_name`, and aliases of that org
-  collapse. Post chips show the title only. Click the chip to continue
-  the walk, or open the Keyman list when you need every affiliation.
+  collapse. Two distinct catalog orgs are omitted the same way.
+  Post chips show the title only. Click the chip to continue the walk,
+  or open the Keyman list when you need every affiliation.
+- Product LLM adapters now request contextual-orchestrator
+  `mode="auto"` rather than forcing a one-model route. The
+  orchestrator owns the quality-sufficient route, verification, or
+  conducted workflow. Citation-bearing post-chat and lineage
+  adjudication keep their explicit `verify` contracts. Policy scans
+  require the payload literals `"mode": "auto"` / `"mode": "verify"`
+  so a docstring mention cannot satisfy ADR-0013.
 
 ## [0.71.0] - 2026-08-14
 

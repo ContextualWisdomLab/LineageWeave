@@ -11,6 +11,7 @@ from lineageweave.knowledge_graph import NODE_PERSON, node_key
 
 _PERSON_ID = "11111111-1111-4111-8111-111111111111"
 _CATALOG_ID = "22222222-2222-4222-8222-222222222222"
+_SECOND_CATALOG_ID = "33333333-3333-4333-8333-333333333333"
 
 
 class _FakeConnection:
@@ -137,6 +138,25 @@ def test_related_person_omits_resolved_plus_distinct_unresolved() -> None:
                 "catalog_entity_name": "Demo Corp",
             },
             {"affiliated_organization_name": "Northridge Holdings"},
+        ]
+    )
+    assert "affiliation_organization_name" not in node
+
+
+def test_related_person_omits_two_distinct_catalog_orgs() -> None:
+    """Two resolved catalog orgs must not collapse into a guessed primary."""
+    node = _hydrate(
+        [
+            {
+                "affiliated_organization_name": "Demo Corp",
+                "affiliated_corporate_entity_id": _CATALOG_ID,
+                "catalog_entity_name": "Demo Corp",
+            },
+            {
+                "affiliated_organization_name": "Northridge Holdings",
+                "affiliated_corporate_entity_id": _SECOND_CATALOG_ID,
+                "catalog_entity_name": "Northridge Holdings",
+            },
         ]
     )
     assert "affiliation_organization_name" not in node

@@ -54,6 +54,7 @@ import {
 } from "./api";
 import { LineageDag } from "./LineageDag";
 import { subgraphForPost } from "./lineageLayout";
+import { relatedNodeCaption } from "./relatedNodeCaption";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -469,30 +470,6 @@ const NODE_PERSON = "node_person";
 const NODE_POST = "node_post";
 const NODE_CORPORATE_ENTITY = "node_corporate_entity";
 
-function relatedNodeCaption(node: RelatedNode): string {
-  const name = node.label ?? node.node_id;
-  if (node.node_type_code === NODE_PERSON) {
-    const side = node.person_side_label?.trim() || node.person_side_code?.trim();
-    const org = node.affiliation_organization_name?.trim();
-    if (side && org) {
-      return `${name}, ${org} (${side})`;
-    }
-    if (side) {
-      return `${name} (${side})`;
-    }
-  }
-  if (node.node_type_code === NODE_CORPORATE_ENTITY) {
-    const level = node.entity_level_label?.trim() || node.entity_level_code?.trim();
-    if (level) {
-      return `${name} (${level})`;
-    }
-  }
-  if (node.node_type_code === NODE_POST) {
-    return name;
-  }
-  return `${name} (${node.ontology_label ?? node.node_type_code})`;
-}
-
 const VERIFICATION_BADGE: Record<string, string> = {
   verify_pending: "Not yet checked",
   verify_corroborated: "Corroborated",
@@ -707,7 +684,7 @@ function KeymanPanel({
                     <li key={`${node.node_type_code}:${node.node_id}`}>
                       <button
                         className="keyman-select"
-                        aria-label={`Open related post: ${node.label ?? node.node_id}`}
+                        aria-label={`Open related post: ${caption}`}
                         onClick={() => onSelectPost(node.node_id)}
                       >
                         {caption}

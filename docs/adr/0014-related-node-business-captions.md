@@ -26,12 +26,19 @@ Hydrate related-node payloads with authorized lookup labels:
 - A person chip adds `affiliation_organization_name` only when exactly
   one distinct organization identity is known. A resolved catalog org
   supplies `corporate_entity.entity_name`; unresolved aliases that
-  casefold-match that label collapse into it.
+  casefold-match that label collapse into it. Two distinct catalog
+  orgs are omitted the same way as two unresolved names.
+- A unique org without a side still names the org
+  (`Ada West, Demo Corp`) so a missing side cannot revive the
+  ontology-class caption.
 - Organization chips use `entity_level_label` (fallback: raw code).
 - Post chips show the post title only.
 
-The same caption is the interactive control's accessible name. Full
-affiliation lists stay on the Keyman and affiliate-tree surfaces.
+Person and organization chips use `Related nodes for ${caption}` as
+the accessible name. Post chips use `Open related post: ${caption}`
+so the next action stays in the name and the visible caption is
+contained (WCAG 2.5.3). Full affiliation lists stay on the Keyman
+and affiliate-tree surfaces.
 
 ## Consequences
 

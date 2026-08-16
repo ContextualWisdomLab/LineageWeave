@@ -1,0 +1,76 @@
+import { describe, expect, it } from "vitest";
+import type { RelatedNode } from "./api";
+import { relatedNodeCaption } from "./relatedNodeCaption";
+
+function node(partial: Partial<RelatedNode> & Pick<RelatedNode, "node_type_code">): RelatedNode {
+  return {
+    node_id: "node-1",
+    relevance: 0.4,
+    ...partial,
+  };
+}
+
+describe("relatedNodeCaption", () => {
+  it("names the side and unique org so the next click is a business walk", () => {
+    expect(
+      relatedNodeCaption(
+        node({
+          node_type_code: "node_person",
+          label: "Ada West",
+          person_side_label: "Our side",
+          affiliation_organization_name: "Demo Corp",
+        }),
+      ),
+    ).toBe("Ada West, Demo Corp (Our side)");
+  });
+
+  it("omits a guessed primary org when only the side is known", () => {
+    expect(
+      relatedNodeCaption(
+        node({
+          node_type_code: "node_person",
+          label: "Priya Nair",
+          person_side_code: "counterparty",
+          person_side_label: "Counterparty",
+        }),
+      ),
+    ).toBe("Priya Nair (Counterparty)");
+  });
+
+  it("keeps a unique org when the side label is missing", () => {
+    expect(
+      relatedNodeCaption(
+        node({
+          node_type_code: "node_person",
+          label: "Ada West",
+          affiliation_organization_name: "Demo Corp",
+          ontology_label: "Person",
+        }),
+      ),
+    ).toBe("Ada West, Demo Corp");
+  });
+
+  it("uses the entity-level label on organization chips", () => {
+    expect(
+      relatedNodeCaption(
+        node({
+          node_type_code: "node_corporate_entity",
+          label: "Demo Corp",
+          entity_level_label: "Company",
+        }),
+      ),
+    ).toBe("Demo Corp (Company)");
+  });
+
+  it("shows the post title only", () => {
+    expect(
+      relatedNodeCaption(
+        node({
+          node_type_code: "node_post",
+          label: "Linked post",
+          ontology_label: "Post",
+        }),
+      ),
+    ).toBe("Linked post");
+  });
+});
