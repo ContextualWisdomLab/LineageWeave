@@ -120,6 +120,7 @@ def seed(
             cur.execute((migrations / "0015_organization_name_resolution.sql").read_text())
             cur.execute((migrations / "0016_cross_post_actor_identity.sql").read_text())
             cur.execute((migrations / "0018_analysis_run_registry.sql").read_text())
+            cur.execute((migrations / "0019_role_catalog_identity.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values

@@ -851,8 +851,9 @@ new table needed. `lineageweave/knowledge_graph.py`'s
 `knowledge_graph_edges_for_post` extended with three new edge kinds
 (`edge_mention_team`, `edge_team_affiliation`, `edge_mention_organization`);
 `backend/app/post_summary_ingestion.py`'s `persist_post_summary` now
-resolves each R&R actor's identity and calls the same
-`persist_edges_for_post` Keyman ingestion already uses. A person R&R
+resolves each R&R actor's identity, stores that id on
+`post_summary_role` (ADR 0019 — `entity_name` is not unique), and calls
+the same `persist_edges_for_post` Keyman ingestion already uses. A person R&R
 actor is opportunistically joined to an existing `cataloged_person` row
 by name (never originated by R&R itself -- documented gap in the ADR:
 `cataloged_person` needs `person_side_code`, which R&R's prompt does
