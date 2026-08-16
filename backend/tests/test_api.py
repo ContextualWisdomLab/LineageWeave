@@ -925,6 +925,7 @@ def test_related_corporate_entity_uses_rwr_and_hides_invisible_posts(
     assert our_person["person_side_code"] == "our_side"
     assert our_person["person_side_label"] == "Our side"
     assert our_person["affiliation_organization_name"] == "Test Corp"
+    assert "affiliation_ambiguous" not in our_person
     assert seeded_db["other_private_post_id"] not in related_ids
     assert seeded_db["hidden_person_id"] not in related_ids
 
