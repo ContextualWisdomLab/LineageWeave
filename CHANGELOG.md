@@ -10,11 +10,12 @@ All notable changes to this project are documented here. Format follows
 
 - Home-list next-action copy is now kind-specific for every registered
   analysis-run kind, and that sentence is part of the row's accessible
-  name (WCAG 2.2 Success Criterion 4.1.2). Open a Failed period-report
-  row to hear rebuild-from-snapshot, not "connect the measurement
-  service." Open a Pending TEPP row to hear that measurement has not
-  started — not that reconstruction has not started, and not that TEPP
-  already measured. A Failed lineage row still retries reconstruction.
+  name (WCAG 2.2 Success Criterion 4.1.2). Opening the run repeats the
+  same sentence on the detail. Open a Failed period-report row to hear
+  rebuild-from-snapshot, not "connect the measurement service." Open a
+  Pending TEPP row to hear that measurement has not started — not that
+  reconstruction has not started, and not that TEPP already measured.
+  A Failed lineage row still retries reconstruction.
 
 ## [0.85.0] - 2026-08-16
 
