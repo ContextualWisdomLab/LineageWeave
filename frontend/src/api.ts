@@ -544,6 +544,13 @@ export interface AnalysisRunReconstructedEdge {
   fused_score: number;
 }
 
+export interface AnalysisRunVisiblePost {
+  post_id: string;
+  post_title: string;
+  updated_at?: string;
+  live_after_cutoff?: boolean;
+}
+
 export interface AnalysisRun {
   analysis_run_id: string;
   run_kind_code: AnalysisRunKindCode;
@@ -557,7 +564,7 @@ export interface AnalysisRun {
   requested_at: string;
   source_counts: AnalysisRunCount[];
   status_history?: AnalysisRunStatusEvent[];
-  visible_posts?: { post_id: string; post_title: string }[];
+  visible_posts?: AnalysisRunVisiblePost[];
   reconstructed_edges?: AnalysisRunReconstructedEdge[];
   reconstruction_result_sha256?: string;
   code_revision_sha?: string;

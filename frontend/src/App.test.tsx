@@ -302,7 +302,20 @@ describe("App, authenticated", () => {
                 count_value: 3,
               },
             ],
-            visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+            visible_posts: [
+              {
+                post_id: "post-1",
+                post_title: "Public post",
+                updated_at: "2026-01-13T09:00:00Z",
+                live_after_cutoff: true,
+              },
+              {
+                post_id: "post-2",
+                post_title: "Private post",
+                updated_at: "2026-01-10T12:00:00Z",
+                live_after_cutoff: false,
+              },
+            ],
             code_revision_sha: "abcdef0123456789deadbeefcafebabe",
             configuration_sha256:
               "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
@@ -1744,19 +1757,29 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("list", { name: "Posts known at this run cutoff" })).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Opening a title shows the live post. Compare it with cutoff 2026-01-12 before you treat the body as reconstructed evidence — it may have changed after this run.",
+        "Opening a title shows the live post. Titles marked updated after cutoff were rewritten after 2026-01-12. Compare those bodies with this run before you treat them as reconstructed evidence.",
       ),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
-        name: "Open live post (may have changed after cutoff): Public post",
+        name: "Open live post (updated after cutoff): Public post",
       }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Open live post: Private post",
+      }),
+    ).toBeInTheDocument();
+    const cutoffPosts = screen.getByRole("list", { name: "Posts known at this run cutoff" });
+    expect(cutoffPosts).toHaveTextContent("Updated after cutoff");
+    expect(screen.getByRole("button", { name: "Open live post: Private post" }).closest("li")).not.toHaveTextContent(
+      "Updated after cutoff",
+    );
     expect(screen.queryByText(/postgresql:\/\//)).not.toBeInTheDocument();
 
     await userEvent.click(
       screen.getByRole("button", {
-        name: "Open live post (may have changed after cutoff): Public post",
+        name: "Open live post (updated after cutoff): Public post",
       }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
