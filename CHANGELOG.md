@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.75.0] - 2026-08-16
+
+### Changed
+
+- Related-node person chips include the primary affiliation
+  organization when one exists. After `make seed`, walking from Ada
+  West shows "Priya Nair, Northridge Grid (Counterparty)" and walking
+  from Demo Corp shows "Ada West, Demo Corp (Our side)". A person with
+  no affiliation keeps the side-only caption -- the org is never
+  guessed. Resolved catalog orgs win over unresolved names.
+
 ## [0.74.0] - 2026-08-16
 
 ### Changed
