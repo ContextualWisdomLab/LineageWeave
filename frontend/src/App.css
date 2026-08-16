@@ -88,6 +88,10 @@
 :root {
   --lw-opacity-meta: 0.7;
   --lw-font-size-meta: 0.85rem;
+  --lw-space-digest-gap: 0.35rem;
+  --lw-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --lw-focus-ring: 2px solid currentColor;
+  --lw-focus-offset: 2px;
 }
 
 .post-meta {
@@ -95,16 +99,41 @@
   font-size: var(--lw-font-size-meta);
 }
 
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
+.analysis-run-digest-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--lw-space-digest-gap);
+}
+
+.analysis-run-digest {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--lw-space-digest-gap);
+}
+
+.analysis-run-digest-toggle {
+  background: none;
+  border: none;
   padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.analysis-run-digest-toggle:focus-visible {
+  outline: var(--lw-focus-ring);
+  outline-offset: var(--lw-focus-offset);
+}
+
+.analysis-run-digest-full {
+  display: block;
+  font-family: var(--lw-font-family-mono);
+  font-size: var(--lw-font-size-meta);
+  overflow-wrap: anywhere;
 }
 
 .post-body {

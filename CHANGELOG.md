@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.84.3] - 2026-08-16
+
+### Fixed
+
+- Analysis-run digest prefixes are disclosure buttons. Open the Demo
+  Corp lineage run, activate `Code` or `Config`, and match the revealed
+  digest to the API payload. Keyboard and assistive technology can
+  complete that check; a hover `title` is no longer the only path
+  (WCAG 2.2 SC 1.4.13; WAI-ARIA APG Disclosure). The home list still
+  hides digests even when the list JSON includes them.
+
 ## [0.84.1] - 2026-08-16
 
 ### Fixed

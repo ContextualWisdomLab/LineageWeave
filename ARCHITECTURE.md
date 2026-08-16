@@ -472,7 +472,7 @@ revision and configuration digest prefixes.
 unavailable, so that run is Failed rather than a fabricated score.
 The home list is clickable: `GET /api/analysis-runs/{id}` fills a
 labeled detail (cutoff, requested date, 12-character digest prefixes
-with full digests on hover, counts, status history)
+that disclose the full digest on activation, counts, status history)
 without exposing a DSN or raw record. Opening a cutoff title warns
 that the live body may have changed after the run. Status history is detail-only
 and uses lookup labels plus occurrence times; a failure event keeps

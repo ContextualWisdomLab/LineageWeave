@@ -31,9 +31,11 @@ as reconstructed evidence.
 
 Reproducibility digests on the same detail use a labeled group whose
 accessible name does not replace the visible prefixes (W3C Accessible
-Name and Description Computation 1.1). Full digests stay on `title`
-for hover verification and on the API payload; the home list stays
-aggregates-only.
+Name and Description Computation 1.1). Each prefix is a disclosure
+button (WAI-ARIA APG Disclosure; WCAG 2.2 Success Criterion 1.4.13).
+The full digest is hidden until activation so keyboard and assistive
+technology can verify it the same way a pointer can. The home list
+stays aggregates-only; the API payload still carries the full values.
 
 Seed and API fixtures backdate in-cutoff posts. A late own-corp private
 post remains on the live post list and stays out of the January 2026
@@ -46,8 +48,8 @@ run.
   post (2026-02-10) does not appear.
 - Open the run, read the live-body warning, then open a listed post
   and compare it with the cutoff date.
-- Hover a digest prefix to read the full code or configuration digest
-  when you need to match the API payload.
+- Activate a digest prefix (Enter, Space, or click) to read the full
+  code or configuration digest when you need to match the API payload.
 - Post-body versioning at the cutoff remains future work.
 
 ## References
@@ -62,3 +64,10 @@ Recommendation). https://www.w3.org/TR/owl-time/
 World Wide Web Consortium. (2018). *Accessible name and description
 computation 1.1* (W3C Recommendation).
 https://www.w3.org/TR/accname-1.1/
+
+World Wide Web Consortium. (2024). *Web content accessibility guidelines
+(WCAG) 2.2* (W3C Recommendation). https://www.w3.org/TR/WCAG22/
+
+World Wide Web Consortium. (n.d.). *Disclosure (show/hide) pattern*.
+ARIA Authoring Practices Guide.
+https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/

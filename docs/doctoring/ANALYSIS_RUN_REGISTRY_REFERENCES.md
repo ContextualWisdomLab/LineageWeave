@@ -9,7 +9,9 @@
 |---|---|---|
 | W3C PROV-DM and PROV-O | Preserve identifiable entities, activities, agents, generation/use, and derivation without flattening provenance into display-only edges. | `analysis_source_snapshot`, `analysis_run`, authenticated requester, append-only status events, immutable digests; later product bindings continue to use the separate `provenance_*` layer from ADR 0011. |
 | W3C Time Ontology in OWL | Keep temporal concepts explicit and avoid collapsing distinct clocks. | Evidence availability and snapshot capture remain on `analysis_source_snapshot`; analysis knowledge cutoff and request time remain on `analysis_run`; status occurrence and database record time remain distinct. `GET /api/analysis-runs/{id}` visible posts apply `created_at <= knowledge_cutoff` (ADR 0016). Opening a listed title warns that the live body may have changed after that cutoff. |
-| W3C Accessible Name and Description Computation 1.1 | Do not let `aria-label` replace visible text the operator must hear. | Analysis-run digest prefixes live in a labeled group; the prefixes remain the accessible contents and the full digest is on `title` for hover verification. |
+| W3C Accessible Name and Description Computation 1.1 | Do not let `aria-label` replace visible text the operator must hear. | Analysis-run digest prefixes live in a labeled group; the prefixes remain the accessible contents of disclosure buttons. |
+| WCAG 2.2 Success Criterion 1.4.13 | Additional content that appears only on hover or focus must not be the only way to complete a task. | Full digests are hidden until the operator activates a prefix button (Enter, Space, or click). Native `title` tooltips are not the verification path. |
+| WAI-ARIA APG Disclosure | Use a button with `aria-expanded` to show and hide the controlled digest. | `AnalysisRunReproducibilityDigests` toggles a `<code>` panel per prefix. |
 | ISO 8601-1:2019 | Use unambiguous timestamp representation and timezone-aware persistence. | PostgreSQL `timestamptz` for availability, capture, cutoff, request, occurrence, and record clocks; tests use explicit `Z` offsets. |
 | PostgreSQL 18 constraints and trigger contracts | Put integrity close to durable truth and use constraints for row shape while triggers enforce cross-row state and serialization. | Digest/check constraints, category allowlists, account-scoped uniqueness, shape constraints, immutable-row triggers, shared snapshot-row locking, and serialized status transitions. |
 | NIST SP 800-92 | Treat audit records as bounded, protected operational evidence rather than unstructured application logging. | Append-only status events, machine failure codes, actor identity, occurrence/record clocks, fail-closed rollback, and exclusion of raw source/provider payloads. |
@@ -104,3 +106,10 @@ computation 1.1* (W3C Recommendation). https://www.w3.org/TR/accname-1.1/
 
 World Wide Web Consortium. (2022). *Time ontology in OWL* (W3C Recommendation).
 https://www.w3.org/TR/owl-time/
+
+World Wide Web Consortium. (2024). *Web content accessibility guidelines
+(WCAG) 2.2* (W3C Recommendation). https://www.w3.org/TR/WCAG22/
+
+World Wide Web Consortium. (n.d.). *Disclosure (show/hide) pattern*.
+ARIA Authoring Practices Guide.
+https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/
