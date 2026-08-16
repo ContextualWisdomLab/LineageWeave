@@ -16,6 +16,7 @@ from backend.app.analysis_run_ingestion import _VISIBLE_RUN_SQL
 _ROOT = Path(__file__).resolve().parents[1]
 _INITIAL_MIGRATION = _ROOT / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = _ROOT / "migrations" / "0018_analysis_run_registry.sql"
+_RETENTION_MIGRATION = _ROOT / "migrations" / "0020_analysis_run_retention_purge.sql"
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
 )
@@ -55,6 +56,7 @@ def authz_db():
             with connection.cursor() as cursor:
                 cursor.execute(_INITIAL_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_REGISTRY_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_RETENTION_MIGRATION.read_text(encoding="utf-8"))
             yield connection
         finally:
             connection.close()
