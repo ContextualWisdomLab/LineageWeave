@@ -87,10 +87,29 @@ jobs:
           echo "PostgreSQL unavailable; registry verification is fail-closed." >&2
           exit 1
 
-      - name: Verify normalized registry against real PostgreSQL
+      - name: Capture normalized registry verification
+        id: registry
+        shell: bash
         run: |
-          set -euo pipefail
-          uv run --frozen python -m pytest -q tests/test_analysis_run_registry_schema.py
+          set +e
+          uv run --frozen python -m pytest -q tests/test_analysis_run_registry_schema.py \
+            > /tmp/analysis-run-registry.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/analysis-run-registry.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Upload normalized registry failure evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: analysis-run-registry-verification
+          path: /tmp/analysis-run-registry.log
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Require normalized registry verification
+        run: test "${{ steps.registry.outputs.status }}" = "0"
 
       - name: Verify complete Python product contracts
         run: |
