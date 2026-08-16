@@ -27,9 +27,11 @@ Click-through still opens the live post body -- post versioning is a
 later slice -- but the run list itself must not advertise a post the
 run was not allowed to know. Detail compares the live `updated_at`
 write clock with `knowledge_cutoff` and marks titles rewritten after
-the run. The next action is specific: only those marked titles need a
-cutoff comparison before treating the live body as reconstructed
-evidence.
+the run. Opening a marked title shows a popup status that the body is
+live and must be compared with this run; the earlier text is not
+stored, so the popup does not invent it. The next action is specific:
+only those marked titles need a cutoff comparison before treating the
+live body as reconstructed evidence.
 
 Reproducibility digests on the same detail use a labeled group whose
 accessible name does not replace the visible prefixes (W3C Accessible
@@ -47,11 +49,15 @@ run.
   and other in-cutoff Demo Corp titles. The later fixture account-review
   post (2026-02-10) does not appear.
 - Open the run: Demo public post is marked updated after cutoff
-  (`updated_at` 2026-01-13). Demo private post is not.
+  (`updated_at` 2026-01-13). Demo private post is not. Opening the
+  marked title shows a live-body status; the private title and the
+  home post list do not.
 - Hover a digest prefix to read the full code or configuration digest
   when you need to match the API payload.
 - Post-body versioning at the cutoff remains future work. The write
-  clock is a projection, not a stored cutoff body.
+  clock is a projection, not a stored cutoff body. The popup tells
+  the operator to compare the live body with this run instead of
+  inventing the earlier text.
 - Thread-group *run list* visibility now uses the same cutoff
   (ADR 0018). A later public post cannot surface a previously hidden
   thread-group run.
