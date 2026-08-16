@@ -41,7 +41,7 @@ def test_adr_numbers_are_unique_and_documents_are_not_placeholders() -> None:
 
 def test_agents_md_locks_analysis_run_list_accname() -> None:
     """AGENTS.md is the policy home for the list accessible-name formula."""
-    agents = (_ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    agents = " ".join((_ROOT / "AGENTS.md").read_text(encoding="utf-8").split())
     assert "Open analysis run: {caption}. {nextAction}" in agents
     assert "does not claim a calibrated measurement" in agents
     assert "does not say reconstruction" in agents
