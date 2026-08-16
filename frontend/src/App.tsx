@@ -1564,20 +1564,27 @@ function analysisRunDigestPrefix(digest: string): string {
 /**
  * Next action when a cutoff title opens the live post (ADR 0016).
  *
- * Post-body versioning is a later slice. Until then the operator must
- * compare the opened body with this run's cutoff instead of treating
- * today's text as reconstructed evidence.
+ * Post-body versioning is a later slice. Titles marked
+ * `live_after_cutoff` were rewritten after this run; others still
+ * match the write clock the run knew.
  */
 function analysisRunLivePostWarning(cutoffIso: string): string {
   const cutoffDate = cutoffIso.slice(0, 10);
   return (
-    `Opening a title shows the live post. Compare it with cutoff ${cutoffDate} ` +
-    "before you treat the body as reconstructed evidence — it may have changed after this run."
+    `Opening a title shows the live post. Titles marked updated after cutoff ` +
+    `were rewritten after ${cutoffDate}. Compare those bodies with this run ` +
+    "before you treat them as reconstructed evidence."
   );
 }
 
-function analysisRunLivePostButtonLabel(postTitle: string): string {
-  return `Open live post (may have changed after cutoff): ${postTitle}`;
+function analysisRunLivePostButtonLabel(post: {
+  post_title: string;
+  live_after_cutoff?: boolean;
+}): string {
+  if (post.live_after_cutoff) {
+    return `Open live post (updated after cutoff): ${post.post_title}`;
+  }
+  return `Open live post: ${post.post_title}`;
 }
 
 function AnalysisRunReproducibilityDigests({
@@ -1752,11 +1759,14 @@ function AnalysisRunsPanel({
                   <li key={post.post_id}>
                     <button
                       className="keyman-select"
-                      aria-label={analysisRunLivePostButtonLabel(post.post_title)}
+                      aria-label={analysisRunLivePostButtonLabel(post)}
                       onClick={() => onSelectPost(post.post_id)}
                     >
                       {post.post_title}
                     </button>
+                    {post.live_after_cutoff && (
+                      <span className="post-badge">Updated after cutoff</span>
+                    )}
                   </li>
                 ))}
               </ul>

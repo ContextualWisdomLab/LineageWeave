@@ -3,6 +3,14 @@
 Tool-specific pointer. Policy lives in [AGENTS.md](AGENTS.md) and the
 ADRs under `docs/adr/`. Do not fork those rules here.
 
+## Analysis-run write clock (v0.88.0)
+
+Open the Demo Corp lineage run after `make seed`. Demo public post is
+marked **Updated after cutoff**; Demo private post is not. Opening a
+marked title still shows the live body. Compare those rewritten
+bodies with the cutoff before treating them as reconstructed
+evidence (ADR 0016).
+
 ## Analysis-run retention (v0.87.0)
 
 To empty a run-bearing registry, insert an unrevoked
@@ -29,7 +37,8 @@ mention TEPP. A failed period-report row rebuilds the report. A
 pending TEPP row does not claim a calibrated measurement. A pending
 lineage row says reconstruction has not started yet.
 Digest prefixes stay audible; hover a prefix to read the full digest.
-Opening a cutoff title shows the live post -- compare it with the
-cutoff before treating the body as reconstructed evidence (ADR 0016).
+Opening a cutoff title shows the live post. Titles marked updated
+after cutoff were rewritten after the run; compare those bodies
+before treating them as reconstructed evidence (ADR 0016).
 `POST /api/analysis-runs` records Pending on an authorized
 cutoff capture (ADR 0017) and does not reconstruct lineage.
