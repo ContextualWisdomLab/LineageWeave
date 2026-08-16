@@ -1,0 +1,94 @@
+name: Apply adaptive contextual-orchestrator defaults
+
+on:
+  push:
+    branches:
+      - agent/adaptive-orchestrator-default
+    paths:
+      - scripts/stage_adaptive_orchestrator_default_test.py
+      - scripts/apply_adaptive_orchestrator_default.py
+      - .github/workflows/apply-adaptive-orchestrator-default.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-adaptive-orchestrator-default-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  red-green-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up Rust for fast-mlsirm
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30
+
+      - name: Install product and test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev,backend]'
+
+      - name: Stage the default-mode regressions
+        run: python scripts/stage_adaptive_orchestrator_default_test.py
+
+      - name: Establish red state or recognize an already-applied source change
+        id: red
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python -m pytest -q tests/test_adaptive_orchestrator_default.py > /tmp/adaptive-default-red.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/adaptive-default-red.log
+          if [ "$status" -eq 0 ]; then
+            echo "already_applied=true" >> "$GITHUB_OUTPUT"
+          else
+            grep -Eq "FAILED|ERROR" /tmp/adaptive-default-red.log
+            echo "already_applied=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Apply source, ADR, and changelog changes
+        run: python scripts/apply_adaptive_orchestrator_default.py
+
+      - name: Prove the focused regression is green
+        run: python -m pytest -q tests/test_adaptive_orchestrator_default.py
+
+      - name: Run the complete repository suite
+        run: python -m pytest -q
+
+      - name: Verify syntax and patch integrity
+        shell: bash
+        run: |
+          python -m compileall -q lineageweave tests/test_adaptive_orchestrator_default.py
+          git diff --check
+
+      - name: Publish the verified source commit
+        env:
+          TARGET_BRANCH: agent/adaptive-orchestrator-default
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm scripts/stage_adaptive_orchestrator_default_test.py
+          rm scripts/apply_adaptive_orchestrator_default.py
+          rm .github/workflows/apply-adaptive-orchestrator-default.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git diff --cached --check
+          git commit -m "feat(ai): delegate product defaults to adaptive orchestration"
+          git push origin "HEAD:${TARGET_BRANCH}"
