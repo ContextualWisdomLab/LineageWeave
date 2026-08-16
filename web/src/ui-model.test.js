@@ -42,8 +42,25 @@ describe("counterpartVocExcerpts", () => {
     expect(counterpartVocExcerpts(appointments, []).map((item) => item.appointment_id)).toEqual(["a1", "a2"]);
     expect(vocExcerptsForCounterpart(appointments, { person_name: "Ada West" }).map((item) => item.appointment_id)).toEqual(["a1"]);
     expect(vocExcerptsForCounterpart(appointments, { person_name: "Priya Nair" })).toEqual([]);
+  });
+});
+
+describe("vocExcerptEvidenceId", () => {
+  it("opens only the excerpt's own guid or a uniquely matching same-document event", () => {
+    const delay = { excerpt: "Ada West confirmed the delay", occurred_on: "2026-08-01" };
+    const standup = { excerpt: "Internal standup notes", occurred_on: "2026-08-02" };
+    const events = [
+      { guid: "evt-delay", timestamp: "2026-08-01T09:00:00", event: "Ada West confirmed the delay", title: "follow-up" },
+      { guid: "evt-standup", timestamp: "2026-08-02T10:00:00", event: "Internal standup notes", title: "standup" },
+    ];
+
     expect(vocExcerptEvidenceId({ guid: "evt-1" }, [])).toBe("evt-1");
-    expect(vocExcerptEvidenceId({}, [{ guid: "evt-2" }])).toBe("evt-2");
+    expect(vocExcerptEvidenceId({ source_evidence_id: "row-9" }, events)).toBe("row-9");
+    expect(vocExcerptEvidenceId({}, [{ guid: "evt-only" }])).toBe("evt-only");
+    expect(vocExcerptEvidenceId(delay, events)).toBe("evt-delay");
+    expect(vocExcerptEvidenceId(standup, events)).toBe("evt-standup");
+    expect(vocExcerptEvidenceId({ excerpt: "unrelated note", occurred_on: "2026-08-03" }, events)).toBe("");
+    expect(vocExcerptEvidenceId({}, events)).toBe("");
     expect(vocExcerptEvidenceId({ guid: "urn:example" }, [{ guid: "http://example" }])).toBe("");
   });
 });

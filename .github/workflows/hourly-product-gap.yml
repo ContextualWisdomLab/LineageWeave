@@ -98,7 +98,10 @@ jobs:
           the general-user 업무 홈, 업무공간, 고객 화면, server-side Keyverse
           ABAC/RBAC, evidence-backed Ontology/Semantic Layer, PostgreSQL system
           of record, HTTP-only TEPP and contextual-orchestrator boundaries, and
-          observed-versus-relatedness separation.
+          observed-versus-relatedness separation. Never bind a reader click to
+          the first unmatched document event: a source drawer opens only an
+          excerpt's own authorized guid or a uniquely matching same-document
+          event.
 
           For model work, retain the Fugu/Conductor/TRINITY distinction between
           direct routing and bounded deeper orchestration. Do not broaden access

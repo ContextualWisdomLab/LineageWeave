@@ -4637,3 +4637,21 @@ or chronologicalize a customer or Lineage relation.
 Relative-side Keyman may show authorized appointment excerpts as `고객 발화 근거`.
 Name matching is a presentation preference only. Empty excerpts are omitted,
 and no VOC, affiliate, or Lineage relation is created from this display.
+
+## Amendment: VOC source clicks stay uniquely bound (2026-08-16)
+
+A reader click on a VOC excerpt or 고객 약속 row may open the existing 원문
+drawer only when the row carries its own authorized non-URI guid, the document
+has exactly one usable event guid, or the excerpt date/text uniquely matches
+one same-document event. The first unmatched event in a multi-row document is
+not a source. Ambiguous excerpts stay visible as static text so the next
+action is "read the utterance" rather than "open someone else's row."
+
+This follows the PROV requirement that a derivation identify its used entity
+and the Web Annotation requirement that a body keep a specific target
+(Lebo et al., 2013; Moreau & Missier, 2013; Sanderson et al., 2017). See
+`docs/doctoring/evidence-source-binding.md`.
+
+Evidence: `vocExcerptEvidenceId` Vitest cases for own-guid, unique-event,
+date/text match, and multi-event fail-closed selection; React
+`renderVocExcerpt` and `#popupAppointments` surface contracts.

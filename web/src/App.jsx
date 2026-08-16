@@ -772,6 +772,32 @@ export default function App() {
     }
   }
 
+  function renderVocExcerpt(item, key) {
+    const evidenceId = vocExcerptEvidenceId(item, events);
+    const excerpt = String(item?.excerpt || "").trim();
+    const meta = `${item.occurred_on || "날짜 미상"}${item.label ? ` · ${item.label}` : ""}`;
+    if (evidenceId) {
+      return (
+        <button
+          type="button"
+          className="voc-excerpt"
+          key={key}
+          onClick={() => openEvidence(evidenceId)}
+          aria-label={`${excerpt || meta} 원문 보기`}
+        >
+          <p>{excerpt}</p>
+          <small>{meta} · 원문 보기</small>
+        </button>
+      );
+    }
+    return (
+      <blockquote className="voc-excerpt" key={key}>
+        <p>{excerpt}</p>
+        <small>{meta}</small>
+      </blockquote>
+    );
+  }
+
   async function openKnowledge(node) {
     if (!selectedNo || !node) return;
     setError("");
@@ -1317,25 +1343,12 @@ export default function App() {
               </section>
               <section className="detail-card modal-keyman-counterpart">
                 <h3>Keyman · 상대측</h3>
-                <ul id="popupKeymanCounterpart">{sideRows(selectedDocument.keyman_counterpart_side).map((item, index) => { const label = item.actor_name || item.person_name || item.org_name; const node = sourcePersons.find((candidate) => candidate.label === label || candidate.label === item.organization_name || candidate.label === item.org_name); const excerpts = vocExcerptsForCounterpart(selectedDocument.appointments, item); return <li key={`${label}-${item.org_name}-${index}`} className="counterpart-voc"><button className="keyman-link" onClick={() => openKnowledge(node || { person: label })}>{sideLabel(item)}</button>{excerpts.map((excerpt) => { const evidenceId = vocExcerptEvidenceId(excerpt, events); return evidenceId ? <button type="button" className="voc-excerpt" key={excerpt.appointment_id || `${label}-${excerpt.excerpt}`} onClick={() => openEvidence(evidenceId)}><p>{excerpt.excerpt}</p><small>{excerpt.occurred_on || "날짜 미상"}{excerpt.label ? ` · ${excerpt.label}` : ""} · 원문 보기</small></button> : <blockquote className="voc-excerpt" key={excerpt.appointment_id || `${label}-${excerpt.excerpt}`}><p>{excerpt.excerpt}</p><small>{excerpt.occurred_on || "날짜 미상"}{excerpt.label ? ` · ${excerpt.label}` : ""}</small></blockquote>; })}</li>; })}</ul>
+                <ul id="popupKeymanCounterpart">{sideRows(selectedDocument.keyman_counterpart_side).map((item, index) => { const label = item.actor_name || item.person_name || item.org_name; const node = sourcePersons.find((candidate) => candidate.label === label || candidate.label === item.organization_name || candidate.label === item.org_name); const excerpts = vocExcerptsForCounterpart(selectedDocument.appointments, item); return <li key={`${label}-${item.org_name}-${index}`} className="counterpart-voc"><button className="keyman-link" onClick={() => openKnowledge(node || { person: label })}>{sideLabel(item)}</button>{excerpts.map((excerpt) => renderVocExcerpt(excerpt, excerpt.appointment_id || `${label}-${excerpt.excerpt}`))}</li>; })}</ul>
                 <p className="meta">관리 상태: {keymanStatusLabel(selectedDocument.keyman_status || "not_run")}</p>
                 {counterpartExcerpts.length ? (
                   <div id="vocExcerpts" className="voc-excerpts">
                     <h4>고객 발화 근거</h4>
-                    {counterpartExcerpts.map((item) => {
-                      const evidenceId = vocExcerptEvidenceId(item, events);
-                      return evidenceId ? (
-                        <button type="button" className="voc-excerpt" key={item.appointment_id || `${item.occurred_on}-${item.excerpt}`} onClick={() => openEvidence(evidenceId)}>
-                          <p>{item.excerpt}</p>
-                          <small>{item.occurred_on || "날짜 미상"}{item.label ? ` · ${item.label}` : ""} · 원문 보기</small>
-                        </button>
-                      ) : (
-                        <blockquote className="voc-excerpt" key={item.appointment_id || `${item.occurred_on}-${item.excerpt}`}>
-                          <p>{item.excerpt}</p>
-                          <small>{item.occurred_on || "날짜 미상"}{item.label ? ` · ${item.label}` : ""}</small>
-                        </blockquote>
-                      );
-                    })}
+                    {counterpartExcerpts.map((item) => renderVocExcerpt(item, item.appointment_id || `${item.occurred_on}-${item.excerpt}`))}
                   </div>
                 ) : null}
               </section>
@@ -1413,7 +1426,7 @@ export default function App() {
               </section>
               <section className="detail-card modal-appointments">
                 <h3>고객 약속</h3>
-                <ul id="popupAppointments">{(selectedDocument.appointments || []).map((item) => <li className="ticket" key={item.appointment_id}><strong>{item.occurred_on}</strong><span>{item.excerpt || item.label}</span></li>)}</ul>
+                <ul id="popupAppointments">{(selectedDocument.appointments || []).map((item) => { const evidenceId = vocExcerptEvidenceId(item, events); const label = item.excerpt || item.label; return <li className="ticket" key={item.appointment_id}><strong>{item.occurred_on}</strong>{evidenceId ? <button type="button" className="keyman-link" onClick={() => openEvidence(evidenceId)} aria-label={`${label} 원문 보기`}>{label}</button> : <span>{label}</span>}</li>; })}</ul>
               </section>
               {canManage ? <section className="detail-card wide modal-keyman-editor"><h3>Keyman 관리</h3><p className="meta">사람은 <code>이름 | 조직 | 직급 | 직책</code>, 기관·팀은 <code>organization | 이름 | 소속 | 직급 | 직책</code> 형식입니다. 기관을 사람 이름으로 입력하지 않으며, 뒤 항목은 생략할 수 있습니다.</p><div className="two-column"><label>사측<textarea value={keymanForm.our} onChange={(event) => setKeymanForm({ ...keymanForm, our: event.target.value })} /></label><label>상대측<textarea value={keymanForm.counterpart} onChange={(event) => setKeymanForm({ ...keymanForm, counterpart: event.target.value })} /></label></div><button className="secondary-button" disabled={busy} onClick={saveKeymen}>Keyman 저장</button></section> : null}
               {evidence ? <aside id="vocDrawer" className="source-drawer" aria-label="원문 출처"><button className="close-button" onClick={() => setEvidence(null)} aria-label="출처 닫기">×</button><p className="eyebrow">원문 근거</p><h2>{evidence.title || evidence.evidence_id}</h2><p className="meta">{evidence.event} · {evidence.stage} · {evidence.created_at}</p><dl><dt>법인 / PU</dt><dd>{evidence.corp_code} / {evidence.pu_code}</dd><dt>바이트</dt><dd>{formatNumber(evidence.content_bytes)}</dd><dt>본문 미리보기</dt><dd className="source-preview">{evidence.content_preview || "내용 없음"}</dd></dl></aside> : null}

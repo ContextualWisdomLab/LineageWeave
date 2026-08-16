@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- VOC excerpt and 고객 약속 clicks open the 원문 drawer only when the excerpt
+  carries its own authorized guid, the document has exactly one usable event
+  guid, or date/text uniquely matches one same-document event. Multiple
+  unmatched events stay non-clickable so a reader cannot open the wrong source.
 - VOC excerpts that have an authorized source guid (or a same-document event
   guid) open the existing 원문 drawer. Ontology URIs stay non-clickable.
 - Each counterpart Keyman now carries the appointment excerpts that name that
