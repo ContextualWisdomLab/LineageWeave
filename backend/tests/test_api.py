@@ -39,6 +39,9 @@ _RECONSTRUCTION_MIGRATION = (
 _SNAPSHOT_MEMBER_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0022_analysis_source_snapshot_member.sql"
 )
+_OUTBOX_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0023_analysis_run_outbox.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -125,6 +128,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_RETENTION_MIGRATION.read_text())
             cur.execute(_RECONSTRUCTION_MIGRATION.read_text())
             cur.execute(_SNAPSHOT_MEMBER_MIGRATION.read_text())
+            cur.execute(_OUTBOX_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -669,6 +673,39 @@ def test_start_analysis_run_recovers_the_a100_fork(
     assert "Pricing renegotiation: revised quote sent" in children
     assert "Delivery schedule question raised" in children
     assert "theta" not in str(body).lower()
+    assert "outbox_request_sha256" not in body
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                """
+                select outbox.work_kind_code, delivery.delivery_status_code
+                from analysis_run_outbox outbox
+                join analysis_run_outbox_delivery delivery
+                  on delivery.analysis_run_id = outbox.analysis_run_id
+                where outbox.analysis_run_id = %s
+                order by delivery.delivery_ordinal desc
+                limit 1
+                """,
+                (run_id,),
+            )
+            outbox_row = cur.fetchone()
+            assert outbox_row == ("analysis_run_lineage", "analysis_outbox_delivered")
+    finally:
+        admin_conn.close()
+    valkey = redis.from_url(_VALKEY_URL, decode_responses=True)
+    try:
+        entries = valkey.xrevrange("analysis-run-outbox", count=50)
+        assert any(
+            fields.get("analysis_run_id") == run_id
+            and fields.get("work_kind_code") == "analysis_run_lineage"
+            and "theta" not in str(fields).casefold()
+            for _entry_id, fields in entries
+        )
+    finally:
+        valkey.close()
 
     replay = client.post(
         f"/api/analysis-runs/{run_id}/start",
@@ -823,6 +860,83 @@ def test_start_analysis_run_recovers_the_a100_fork(
     )
     assert hidden.status_code == 404
 
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                """
+                insert into analysis_source_snapshot
+                    (snapshot_sha256, source_contract_version,
+                     maximum_available_time, captured_at)
+                values (%s, 'source-contract-v1',
+                        '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
+                returning analysis_source_snapshot_id
+                """,
+                ("3" * 64,),
+            )
+            crash_snapshot_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_run
+                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                     requested_by_account_id, knowledge_cutoff,
+                     configuration_schema_version, configuration_sha256,
+                     code_revision_sha, requested_at)
+                values (%s, 'analysis_run_lineage', 'buyer-start-outbox-resume',
+                        %s, '2026-02-15T00:00:00Z', 'lineage-run-v1', %s, %s,
+                        '2026-02-15T12:30:00Z')
+                returning analysis_run_id
+                """,
+                (crash_snapshot_id, requester_id, "2" * 64, "1" * 40),
+            )
+            crash_run_id = str(cur.fetchone()[0])
+            cur.execute(
+                """
+                insert into analysis_run_scope
+                    (analysis_run_id, scope_kind_code, corporate_entity_id)
+                values (%s, 'analysis_scope_corporate_entity', %s)
+                """,
+                (crash_run_id, seeded_db["own_corp_id"]),
+            )
+            for ordinal, status, occurred in (
+                (1, "analysis_status_pending", "2026-02-15T12:31:00Z"),
+                (2, "analysis_status_running", "2026-02-15T12:32:00Z"),
+            ):
+                cur.execute(
+                    """
+                    insert into analysis_run_status_event
+                        (analysis_run_id, status_ordinal, status_code, occurred_at)
+                    values (%s, %s, %s, %s)
+                    """,
+                    (crash_run_id, ordinal, status, occurred),
+                )
+            cur.execute(
+                """
+                insert into analysis_run_outbox
+                    (analysis_run_id, work_kind_code, request_sha256, enqueued_at)
+                values (%s, 'analysis_run_lineage', %s, '2026-02-15T12:32:00Z')
+                """,
+                (crash_run_id, "a" * 64),
+            )
+    finally:
+        admin_conn.close()
+
+    resumed = client.post(
+        f"/api/analysis-runs/{crash_run_id}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert resumed.status_code == 200, resumed.text
+    resumed_body = resumed.json()
+    assert resumed_body["status_label"] == "Succeeded"
+    assert "theta" not in str(resumed_body).lower()
+    children = {
+        edge["child_post_title"]
+        for edge in resumed_body["reconstructed_edges"]
+        if edge["parent_post_title"] == "Pricing renegotiation follow-up"
+    }
+    assert "Pricing renegotiation: revised quote sent" in children
+
 
 def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> None:
     response = client.get("/api/me", headers={"Authorization": f"Bearer {demo_analyst_token}"})
@@ -836,7 +950,12 @@ def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, 
     response = client.get("/api/posts", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200
     titles = {post["post_title"] for post in response.json()}
-    assert titles == {"Public post", "Own-corp private post", "Late own-corp private post"}
+    assert titles == {
+        "Public post",
+        "Own-corp private post",
+        "Late own-corp private post",
+        "Edited own-corp private post",
+    }
     public = next(post for post in response.json() if post["post_title"] == "Public post")
     assert public["voc_type_label"] == "Voice of Customer"
     assert public["visibility_label"] == "Public"
@@ -1934,14 +2053,19 @@ def test_thread_group_run_list_honors_knowledge_cutoff(
                 """,
                 (run_id,),
             )
-            cur.execute(
-                """
-                insert into analysis_run_status_event
-                    (analysis_run_id, status_ordinal, status_code, occurred_at)
-                values (%s, 1, 'analysis_status_succeeded', '2026-01-12T12:33:00Z')
-                """,
-                (run_id,),
-            )
+            for ordinal, status, occurred in (
+                (1, "analysis_status_pending", "2026-01-12T12:31:00Z"),
+                (2, "analysis_status_running", "2026-01-12T12:32:00Z"),
+                (3, "analysis_status_succeeded", "2026-01-12T12:33:00Z"),
+            ):
+                cur.execute(
+                    """
+                    insert into analysis_run_status_event
+                        (analysis_run_id, status_ordinal, status_code, occurred_at)
+                    values (%s, %s, %s, %s)
+                    """,
+                    (run_id, ordinal, status, occurred),
+                )
     finally:
         admin_conn.close()
 

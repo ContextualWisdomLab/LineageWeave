@@ -70,9 +70,9 @@ sequenceDiagram
     end
 ```
 
-A durable outbox / Valkey worker remains a later slice. Start still
-holds the request through the TEPP call so a crash rolls back to
-Pending.
+A durable outbox / Valkey worker is ADR 0023. Start commits Running
+plus the outbox row before `tepp_client` so a crash leaves the work
+item instead of rolling back to Pending.
 
 ## Consequences
 

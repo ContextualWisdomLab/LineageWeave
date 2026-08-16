@@ -60,6 +60,7 @@ describe("App, authenticated", () => {
     searchUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
+    runningLineageRun?: boolean;
     failedReportRun?: boolean;
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
@@ -320,8 +321,16 @@ describe("App, authenticated", () => {
             scope_kind_code: "analysis_scope_corporate_entity",
             scope_kind_label: "Corporate entity",
             scope_entity_name: "Demo Corp",
-            status_code: "analysis_status_succeeded",
-            status_label: "Succeeded",
+            status_code: options?.runningLineageRun
+              ? "analysis_status_running"
+              : options?.failedLineageRun
+                ? "analysis_status_failed"
+                : "analysis_status_succeeded",
+            status_label: options?.runningLineageRun
+              ? "Running"
+              : options?.failedLineageRun
+                ? "Failed"
+                : "Succeeded",
             knowledge_cutoff: "2026-01-12T12:00:00Z",
             requested_at: "2026-01-12T12:30:00Z",
             source_counts: [
@@ -569,8 +578,14 @@ describe("App, authenticated", () => {
                 scope_entity_name: "Demo Corp",
                 status_code: options?.failedLineageRun
                   ? "analysis_status_failed"
-                  : "analysis_status_succeeded",
-                status_label: options?.failedLineageRun ? "Failed" : "Succeeded",
+                  : options?.runningLineageRun
+                    ? "analysis_status_running"
+                    : "analysis_status_succeeded",
+                status_label: options?.failedLineageRun
+                  ? "Failed"
+                  : options?.runningLineageRun
+                    ? "Running"
+                    : "Succeeded",
                 knowledge_cutoff: "2026-01-12T12:00:00Z",
                 requested_at: "2026-01-12T12:30:00Z",
                 source_counts: [
@@ -1985,6 +2000,23 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
+  });
+
+  it("tells a running lineage run to refresh the durable outbox", async () => {
+    stubBackend({ runningLineageRun: true });
+    render(<App />);
+
+    const lineageButton = await screen.findByRole("button", {
+      name: "Open analysis run: Lineage reconstruction · Running · Demo Corp",
+    });
+    expect(lineageButton).toHaveTextContent(
+      "Refresh this run. Start already queued the work on the durable outbox.",
+    );
+    await userEvent.click(lineageButton);
+    expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Refresh this run. Start already queued the work on the durable outbox."),
+    ).not.toHaveLength(0);
   });
 
   it("does not tell a failed lineage run to connect the measurement service", async () => {

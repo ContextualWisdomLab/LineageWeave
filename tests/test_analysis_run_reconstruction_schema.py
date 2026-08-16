@@ -47,6 +47,7 @@ def test_reconstruction_migration_is_normalized_and_wired() -> None:
     assert "theta" not in migration.casefold()
     assert "0021_analysis_run_reconstruction.sql" in dockerfile
     assert "0022_analysis_source_snapshot_member.sql" in dockerfile
+    assert "0023_analysis_run_outbox.sql" in dockerfile
     assert "analysis_run_reconstruction_not_empty" in rollback
     assert "reject_analysis_run_reconstruction_update" in migration
     assert "reject_analysis_run_lineage_edge_update" in migration

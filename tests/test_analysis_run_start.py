@@ -161,7 +161,7 @@ def test_hidden_run_start_is_not_found() -> None:
 
 
 def test_running_restart_conflicts_and_succeeded_replay_is_documented() -> None:
-    """Running is 409. Succeeded replay is a documented no-op (200 in the API)."""
+    """Running without pending outbox is 409. Succeeded replay is a no-op."""
     conflict = start_write_conflict_error()
     assert conflict.status_code == 409
     assert "Refresh to see the stored tree" in conflict.detail

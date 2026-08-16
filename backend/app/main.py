@@ -72,10 +72,12 @@ from backend.app.analysis_run_ingestion import (
     fetch_visible_analysis_run,
     fetch_visible_analysis_runs,
 )
+from backend.app.analysis_run_outbox import publish_outbox_event
 from backend.app.analysis_run_start import (
     AnalysisRunStartError,
     configured_tepp_client,
-    start_pending_analysis_run,
+    deliver_queued_analysis_run,
+    enqueue_pending_analysis_run,
 )
 from backend.app.activity_stream import (
     create_valkey_client,
@@ -1263,26 +1265,53 @@ async def start_analysis_run(
     analysis_run_id: str,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
-    """Start ThreadWeave or submit TEPP on a visible Pending run.
+    """Enqueue start work, then deliver ThreadWeave or TEPP.
 
     post_read is enough. Hidden runs 404. Period-report is 422 so this
     path cannot invent a calibrated score. TEPP goes through
     ``tepp_client`` and stays Failed when the transport is missing or
     the envelope is not persistable. A Succeeded lineage retry returns
-    the stored tree. A Running restart is 409.
+    the stored tree. A Running restart with an undelivered outbox
+    finishes that work. A Running restart without pending work is 409.
+    The outbox commits before reconstruct/TEPP so a crash leaves a
+    durable work item (ADR 0023).
     """
     _require_post_read(account)
     settings = load_settings()
     async with pool.acquire() as conn:
         async with conn.transaction():
             try:
-                started = await start_pending_analysis_run(
+                queued = await enqueue_pending_analysis_run(
+                    conn,
+                    analysis_run_id=analysis_run_id,
+                    account_id=account.user_account_id,
+                    affiliated_entity_ids=list(account.corporate_entity_ids),
+                )
+            except AnalysisRunStartError as exc:
+                raise HTTPException(exc.status_code, exc.detail) from exc
+    if queued.get("status_code") == "analysis_status_succeeded":
+        return queued
+    request_digest = queued.pop("outbox_request_sha256", None)
+    stream_id = None
+    if request_digest:
+        stream_id = await publish_outbox_event(
+            valkey,
+            analysis_run_id=analysis_run_id,
+            work_kind_code=str(queued.get("run_kind_code") or ""),
+            request_sha256=request_digest,
+        )
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            try:
+                started = await deliver_queued_analysis_run(
                     conn,
                     analysis_run_id=analysis_run_id,
                     account_id=account.user_account_id,
                     affiliated_entity_ids=list(account.corporate_entity_ids),
                     tepp_client=configured_tepp_client(settings.tepp_transport_url),
+                    valkey_stream_entry_id=stream_id,
                 )
             except AnalysisRunStartError as exc:
                 raise HTTPException(exc.status_code, exc.detail) from exc

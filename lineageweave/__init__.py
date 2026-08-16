@@ -55,4 +55,4 @@ __all__ = [
     "sentence_excerpts",
 ]
 
-__version__ = "0.93.0"
+__version__ = "0.94.0"

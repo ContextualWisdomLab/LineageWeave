@@ -160,7 +160,7 @@ runs. This migration does not claim that an API or UI exists.
   reviewed API.
 - **fast-mlsirm** owns Rust psychometric arithmetic and calibration interfaces.
 - **Valkey** remains the event queue. Durable registry truth remains in
-  PostgreSQL; a later outbox slice bridges the two.
+  PostgreSQL; the start outbox (ADR 0023) bridges the two.
 
 No component reads another service's private application tables.
 
@@ -242,11 +242,13 @@ Acceptance requires:
    `POST /api/analysis-runs` now records that Pending write (ADR 0017).
    `POST /api/analysis-runs/{id}/start` now reconstructs a Pending
    lineage cutoff bag in-process from frozen snapshot membership
-   (ADR 0021). A durable outbox / Valkey worker remains a later slice.
-   Live TEPP start now submits through `tepp_client` (ADR 0022).
+   (ADR 0021). Start now commits a durable outbox row and wakes Valkey
+   before reconstruct / TEPP (ADR 0023). Live TEPP start submits
+   through `tepp_client` (ADR 0022).
 2. Add RBAC/ABAC-protected run list/detail endpoints and the DB-grounded
    read-only administrator surface.
-3. Add a normalized PostgreSQL outbox and Valkey delivery worker.
+3. Add a normalized PostgreSQL outbox and Valkey delivery worker
+   (ADR 0023).
 4. Add TEPP and contextual-orchestrator adapters only after their versioned
    contracts are present on reviewed main branches. Seed and
    `POST /api/analysis-runs/{id}/start` now record Failed TEPP through
