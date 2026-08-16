@@ -43,7 +43,7 @@ jobs:
 
       - name: Reject stale or reordered execution
         env:
-          EXPECTED_PARENT_SHA: 3420d09c82776b6e6ca6bc89f83677818b0565c1
+          EXPECTED_PARENT_SHA: 57cad1f00b161854c578921beb02b53fbf2eb8dd
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT_SHA"
