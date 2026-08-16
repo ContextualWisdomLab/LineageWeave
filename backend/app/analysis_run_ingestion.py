@@ -5,15 +5,33 @@ product projection: an account sees only runs they requested or whose
 scope they already have ABAC authority to walk. Aggregate counts and
 lookup labels come back; source SQL, DSNs, raw records, and provider
 payloads never do.
+
+``create_pending_analysis_run`` (ADR 0017) writes snapshot, counts, run,
+scope, and the first Pending event atomically. It does not reconstruct
+lineage or invent a TEPP score.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any
+from uuid import UUID
 
 import asyncpg
 
 from backend.app.knowledge_graph import labels_for_codes
+from lineageweave import __version__ as PACKAGE_VERSION
+
+_ALLOWED_CREATE_KINDS = frozenset({"analysis_run_lineage", "analysis_run_tepp"})
+_CORPORATE_SCOPE = "analysis_scope_corporate_entity"
+_CAPTURE_CONTRACT_VERSION = "analysis-run-capture-v1"
+_KIND_SCHEMA_VERSION = {
+    "analysis_run_lineage": "lineage-run-v1",
+    "analysis_run_tepp": "tepp-run-v1",
+}
 
 _VISIBLE_RUN_SQL = """
     run.requested_by_account_id = $1
@@ -289,3 +307,343 @@ async def fetch_visible_scope_posts(
             continue
         posts.append({"post_id": str(row["post_id"]), "post_title": row["post_title"]})
     return posts
+
+
+class AnalysisRunCreateError(Exception):
+    """Fail-closed create: HTTP status plus a next-action detail string."""
+
+    def __init__(self, status_code: int, detail: str) -> None:
+        super().__init__(detail)
+        self.status_code = status_code
+        self.detail = detail
+
+
+@dataclass(frozen=True)
+class AnalysisRunCapture:
+    """Immutable capture plan for one authorized create (no source rows)."""
+
+    snapshot_sha256: str
+    maximum_available_time: datetime
+    document_count: int
+    thread_count: int
+    configuration_sha256: str
+    configuration_schema_version: str
+    code_revision_sha: str
+
+
+def utc_iso(value: datetime) -> str:
+    """Normalize a timestamp to UTC ISO-8601 for digest stability."""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).isoformat()
+
+
+def plan_analysis_run_capture(
+    *,
+    run_kind_code: str,
+    scope_kind_code: str,
+    corporate_entity_id: str,
+    knowledge_cutoff: datetime,
+    idempotency_key: str,
+    post_ids: list[str],
+    thread_keys: list[str],
+    latest_post_created_at: datetime | None,
+    cutoff_explicit: bool = True,
+) -> AnalysisRunCapture:
+    """Hash the authorized cutoff bag. Never stores a post body or DSN.
+
+    An omitted cutoff is hashed as ``unspecified`` so a retry of the same
+    client key does not 409 just because the clock moved.
+    """
+    cutoff_token = utc_iso(knowledge_cutoff) if cutoff_explicit else "unspecified"
+    snapshot_material = json.dumps(
+        {
+            "scope_kind_code": scope_kind_code,
+            "corporate_entity_id": corporate_entity_id,
+            "knowledge_cutoff": cutoff_token,
+            "post_ids": sorted(post_ids),
+        },
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    configuration_material = json.dumps(
+        {
+            "run_kind_code": run_kind_code,
+            "scope_kind_code": scope_kind_code,
+            "corporate_entity_id": corporate_entity_id,
+            "knowledge_cutoff": cutoff_token,
+            "idempotency_key": idempotency_key,
+            "configuration_schema_version": _KIND_SCHEMA_VERSION[run_kind_code],
+        },
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    available = latest_post_created_at if latest_post_created_at is not None else knowledge_cutoff
+    return AnalysisRunCapture(
+        snapshot_sha256=hashlib.sha256(snapshot_material.encode()).hexdigest(),
+        maximum_available_time=available,
+        document_count=len(post_ids),
+        thread_count=len(set(thread_keys)),
+        configuration_sha256=hashlib.sha256(configuration_material.encode()).hexdigest(),
+        configuration_schema_version=_KIND_SCHEMA_VERSION[run_kind_code],
+        code_revision_sha=hashlib.sha256(f"lineageweave-{PACKAGE_VERSION}".encode()).hexdigest(),
+    )
+
+
+def _canonical_idempotency_key(raw: str) -> str:
+    """Trim and reject empty or control-bearing client keys."""
+    key = raw.strip()
+    if not key or len(key) > 256 or any(ord(char) < 32 for char in key):
+        raise AnalysisRunCreateError(
+            422,
+            "Use a 1–256 character idempotency key without control characters, then retry.",
+        )
+    return key
+
+
+def _resolve_corporate_entity_id(
+    corporate_entity_id: str | None,
+    affiliated_entity_ids: list[str],
+) -> str:
+    """Return the affiliated corp this run may cover, or a next-action error."""
+    affiliated = [entity_id for entity_id in affiliated_entity_ids if entity_id]
+    if corporate_entity_id:
+        try:
+            UUID(corporate_entity_id)
+        except ValueError as exc:
+            raise AnalysisRunCreateError(
+                404,
+                "This corporate entity is not visible to this account.",
+            ) from exc
+        if corporate_entity_id not in affiliated:
+            raise AnalysisRunCreateError(
+                404,
+                "This corporate entity is not visible to this account.",
+            )
+        return corporate_entity_id
+    if len(affiliated) != 1:
+        raise AnalysisRunCreateError(
+            422,
+            "Choose the corporate entity this run should cover.",
+        )
+    return affiliated[0]
+
+
+async def create_pending_analysis_run(
+    conn: asyncpg.Connection,
+    *,
+    account_id: str,
+    affiliated_entity_ids: list[str],
+    run_kind_code: str,
+    scope_kind_code: str,
+    corporate_entity_id: str | None,
+    knowledge_cutoff: datetime | None,
+    idempotency_key: str,
+) -> dict[str, Any]:
+    """Insert snapshot, counts, run, scope, and Pending in one transaction.
+
+    Does not reconstruct lineage and does not call TEPP. A missing
+    measurement stays a later worker slice; this write only records the
+    request. Idempotent retries compare ``configuration_sha256``.
+    """
+    if run_kind_code not in _ALLOWED_CREATE_KINDS:
+        raise AnalysisRunCreateError(
+            422,
+            "Request a lineage reconstruction or a TEPP measurement. Other kinds are not available yet.",
+        )
+    if scope_kind_code != _CORPORATE_SCOPE:
+        raise AnalysisRunCreateError(
+            422,
+            "Request a corporate-entity run. Other scopes are not available yet.",
+        )
+    cutoff_explicit = knowledge_cutoff is not None
+    if knowledge_cutoff is None:
+        knowledge_cutoff = datetime.now(timezone.utc)
+    elif knowledge_cutoff.tzinfo is None:
+        knowledge_cutoff = knowledge_cutoff.replace(tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
+    if knowledge_cutoff > now:
+        raise AnalysisRunCreateError(
+            422,
+            "Choose a knowledge cutoff at or before now, then request the run again.",
+        )
+    key = _canonical_idempotency_key(idempotency_key)
+    corp_id = _resolve_corporate_entity_id(corporate_entity_id, affiliated_entity_ids)
+
+    existing = await conn.fetchrow(
+        """
+        select analysis_run_id, configuration_sha256
+        from analysis_run
+        where requested_by_account_id = $1 and idempotency_key = $2
+        """,
+        account_id,
+        key,
+    )
+
+    rows = await conn.fetch(
+        """
+        select post_id, post_title, thread_group_key, created_at,
+               visibility_code, corporate_entity_id
+        from source_post
+        where corporate_entity_id = $1 and created_at <= $2
+        order by created_at, post_title
+        """,
+        corp_id,
+        knowledge_cutoff,
+    )
+    affiliated = {str(entity_id) for entity_id in affiliated_entity_ids}
+    visible_rows = [
+        row
+        for row in rows
+        if row["visibility_code"] == "public" or str(row["corporate_entity_id"]) in affiliated
+    ]
+    post_ids = [str(row["post_id"]) for row in visible_rows]
+    thread_keys = [row["thread_group_key"] for row in visible_rows]
+    latest = max((row["created_at"] for row in visible_rows), default=None)
+    capture = plan_analysis_run_capture(
+        run_kind_code=run_kind_code,
+        scope_kind_code=scope_kind_code,
+        corporate_entity_id=corp_id,
+        knowledge_cutoff=knowledge_cutoff,
+        idempotency_key=key,
+        post_ids=post_ids,
+        thread_keys=thread_keys,
+        latest_post_created_at=latest,
+        cutoff_explicit=cutoff_explicit,
+    )
+    if existing is not None:
+        if existing["configuration_sha256"] != capture.configuration_sha256:
+            raise AnalysisRunCreateError(
+                409,
+                "This request does not match the earlier run with the same key. "
+                "Open that run, or retry with a new idempotency key.",
+            )
+        replayed = await fetch_visible_analysis_run(
+            conn,
+            str(existing["analysis_run_id"]),
+            account_id,
+            affiliated_entity_ids,
+        )
+        if replayed is None:
+            raise AnalysisRunCreateError(404, "This analysis run is not visible.")
+        return replayed
+
+    snapshot_id = await conn.fetchval(
+        """
+        insert into analysis_source_snapshot
+            (snapshot_sha256, source_contract_version,
+             maximum_available_time, captured_at, created_at)
+        values ($1, $2, $3, $4, $4)
+        on conflict (snapshot_sha256) do nothing
+        returning analysis_source_snapshot_id
+        """,
+        capture.snapshot_sha256,
+        _CAPTURE_CONTRACT_VERSION,
+        capture.maximum_available_time,
+        now,
+    )
+    if snapshot_id is None:
+        snapshot_id = await conn.fetchval(
+            """
+            select analysis_source_snapshot_id
+            from analysis_source_snapshot
+            where snapshot_sha256 = $1
+            for update
+            """,
+            capture.snapshot_sha256,
+        )
+    count_exists = await conn.fetchval(
+        """
+        select 1 from analysis_source_count
+        where analysis_source_snapshot_id = $1
+        limit 1
+        """,
+        snapshot_id,
+    )
+    if count_exists is None:
+        await conn.execute(
+            """
+            insert into analysis_source_count
+                (analysis_source_snapshot_id, count_type_code, count_value)
+            values
+                ($1, 'analysis_count_document', $2),
+                ($1, 'analysis_count_thread', $3)
+            """,
+            snapshot_id,
+            capture.document_count,
+            capture.thread_count,
+        )
+    try:
+        run_id = await conn.fetchval(
+            """
+            insert into analysis_run
+                (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                 requested_by_account_id, knowledge_cutoff,
+                 configuration_schema_version, configuration_sha256,
+                 code_revision_sha, requested_at)
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            returning analysis_run_id
+            """,
+            snapshot_id,
+            run_kind_code,
+            key,
+            account_id,
+            knowledge_cutoff,
+            capture.configuration_schema_version,
+            capture.configuration_sha256,
+            capture.code_revision_sha,
+            now,
+        )
+    except asyncpg.UniqueViolationError:
+        raced = await conn.fetchrow(
+            """
+            select analysis_run_id, configuration_sha256
+            from analysis_run
+            where requested_by_account_id = $1 and idempotency_key = $2
+            """,
+            account_id,
+            key,
+        )
+        if raced is None or raced["configuration_sha256"] != capture.configuration_sha256:
+            raise AnalysisRunCreateError(
+                409,
+                "This request does not match the earlier run with the same key. "
+                "Open that run, or retry with a new idempotency key.",
+            ) from None
+        replayed = await fetch_visible_analysis_run(
+            conn,
+            str(raced["analysis_run_id"]),
+            account_id,
+            affiliated_entity_ids,
+        )
+        if replayed is None:
+            raise AnalysisRunCreateError(404, "This analysis run is not visible.")
+        return replayed
+    await conn.execute(
+        """
+        insert into analysis_run_scope
+            (analysis_run_id, scope_kind_code, corporate_entity_id)
+        values ($1, $2, $3)
+        """,
+        run_id,
+        scope_kind_code,
+        corp_id,
+    )
+    await conn.execute(
+        """
+        insert into analysis_run_status_event
+            (analysis_run_id, status_ordinal, status_code, occurred_at)
+        values ($1, 1, 'analysis_status_pending', $2)
+        """,
+        run_id,
+        now,
+    )
+    created = await fetch_visible_analysis_run(
+        conn,
+        str(run_id),
+        account_id,
+        affiliated_entity_ids,
+    )
+    if created is None:
+        raise AnalysisRunCreateError(404, "This analysis run is not visible.")
+    return created

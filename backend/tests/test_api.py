@@ -506,6 +506,72 @@ def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
     assert unauthenticated.status_code == 401
 
 
+def test_create_analysis_run_records_pending_without_inventing_a_score(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """POST /api/analysis-runs writes Pending on the authorized cutoff bag."""
+    created = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_lineage",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "idempotency_key": "buyer-create-2026-w02",
+        },
+    )
+    assert created.status_code == 201
+    body = created.json()
+    assert body["run_kind_label"] == "Lineage reconstruction"
+    assert body["status_label"] == "Pending"
+    assert body["status_history"][0]["status_label"] == "Pending"
+    assert all(event["status_label"] != "Succeeded" for event in body["status_history"])
+    titles = {post["post_title"] for post in body["visible_posts"]}
+    assert "Own-corp private post" in titles
+    assert "Other-corp private post" not in titles
+    assert "theta" not in str(body).lower()
+    assert "postgresql://" not in str(body)
+
+    replay = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_lineage",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "idempotency_key": "buyer-create-2026-w02",
+        },
+    )
+    assert replay.status_code == 201
+    assert replay.json()["analysis_run_id"] == body["analysis_run_id"]
+
+    conflict = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_tepp",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "idempotency_key": "buyer-create-2026-w02",
+        },
+    )
+    assert conflict.status_code == 409
+
+    hidden = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_lineage",
+            "corporate_entity_id": seeded_db["other_corp_id"],
+            "idempotency_key": "buyer-create-hidden-corp",
+        },
+    )
+    assert hidden.status_code == 404
+
+    unauthenticated = client.post(
+        "/api/analysis-runs",
+        json={"idempotency_key": "buyer-create-unauthenticated"},
+    )
+    assert unauthenticated.status_code == 401
+
+
 def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> None:
     response = client.get("/api/me", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200

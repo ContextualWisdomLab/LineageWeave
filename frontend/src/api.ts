@@ -532,3 +532,21 @@ export function fetchAnalysisRuns(accessToken: string): Promise<{ analysis_runs:
 export function fetchAnalysisRun(accessToken: string, analysisRunId: string): Promise<AnalysisRun> {
   return backendFetch(`/api/analysis-runs/${analysisRunId}`, accessToken);
 }
+
+export interface CreateAnalysisRunRequest {
+  run_kind_code?: string;
+  scope_kind_code?: string;
+  corporate_entity_id?: string;
+  knowledge_cutoff?: string;
+  idempotency_key: string;
+}
+
+export function createAnalysisRun(
+  accessToken: string,
+  request: CreateAnalysisRunRequest,
+): Promise<AnalysisRun> {
+  return backendFetch("/api/analysis-runs", accessToken, {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}

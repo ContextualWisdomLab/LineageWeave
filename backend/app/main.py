@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -66,6 +67,8 @@ from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, N
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
 
 from backend.app.analysis_run_ingestion import (
+    AnalysisRunCreateError,
+    create_pending_analysis_run,
     fetch_visible_analysis_run,
     fetch_visible_analysis_runs,
 )
@@ -1171,6 +1174,52 @@ async def list_analysis_runs(
             list(account.corporate_entity_ids),
         )
     return {"analysis_runs": runs}
+
+
+class CreateAnalysisRunRequest(BaseModel):
+    """JSON body for ``POST /api/analysis-runs``.
+
+    Omitting ``corporate_entity_id`` uses the account's sole affiliation.
+    Reconstruction and TEPP execution stay later slices; this write
+    records Pending only.
+    """
+
+    run_kind_code: str = "analysis_run_lineage"
+    scope_kind_code: str = "analysis_scope_corporate_entity"
+    corporate_entity_id: str | None = None
+    knowledge_cutoff: datetime | None = None
+    idempotency_key: str
+
+
+@app.post("/api/analysis-runs", status_code=status.HTTP_201_CREATED)
+async def create_analysis_run(
+    request: CreateAnalysisRunRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Record a Pending analysis run on an authorized cutoff capture.
+
+    post_read is enough: the caller requests a run of a corp they
+    already walk. The payload is the same authorized detail as GET.
+    Hidden scopes 404. A matching idempotent retry returns the same run.
+    """
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            try:
+                created = await create_pending_analysis_run(
+                    conn,
+                    account_id=account.user_account_id,
+                    affiliated_entity_ids=list(account.corporate_entity_ids),
+                    run_kind_code=request.run_kind_code,
+                    scope_kind_code=request.scope_kind_code,
+                    corporate_entity_id=request.corporate_entity_id,
+                    knowledge_cutoff=request.knowledge_cutoff,
+                    idempotency_key=request.idempotency_key,
+                )
+            except AnalysisRunCreateError as exc:
+                raise HTTPException(exc.status_code, exc.detail) from exc
+    return created
 
 
 @app.get("/api/analysis-runs/{analysis_run_id}")
