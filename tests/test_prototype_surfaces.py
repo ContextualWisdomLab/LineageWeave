@@ -1194,6 +1194,15 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert "글 목록" in react
     assert 'id="popupRoles"' in react
     assert 'id="affiliateTree"' in react
+    assert 'className="tree-label affiliate-edge"' in react
+    assert "setActiveView(\"customers\")" in react
+    assert "근거 ${formatNumber(evidenceCount)}건" in react
+    changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+    architecture = Path("ARCHITECTURE.md").read_text(encoding="utf-8")
+    traceability = Path("TRACEABILITY.md").read_text(encoding="utf-8")
+    assert "고객 관계 요약" in changelog
+    assert "affiliate-edge" in architecture
+    assert "Workspace affiliate evidence" in traceability
     assert 'id="popupChat"' in react
     assert "const [chatUnavailable, setChatUnavailable] = useState(false);" in react
     assert 'if (caught.message === "live_model_unavailable")' in react

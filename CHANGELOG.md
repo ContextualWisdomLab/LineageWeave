@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- The workspace `고객 관계 요약` now prefers actor-scoped customer-master edges,
+  shows the business relation and evidence count, and opens the customer
+  screen on the matching account. Corp/PU labels without customer evidence
+  stay non-clickable and are not treated as VOC or Lineage facts.
 - Event-lineage chat now fails closed when the live model is unavailable:
   the document popup replaces the ask box with `지금은 질문할 수 없습니다` and
   does not invent an answer or keep the ask control after `live_model_unavailable`.

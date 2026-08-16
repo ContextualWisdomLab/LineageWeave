@@ -1179,8 +1179,28 @@ export default function App() {
           {!semanticSearch && documents.length < totalDocuments ? <button className="load-button" onClick={loadMore} disabled={loadingMore}>{loadingMore ? "불러오는 중…" : "더 보기"}</button> : null}
           <div id="affiliateTree" className="sidebar-block">
             <div className="section-heading"><span>고객 관계 요약</span><small>근거 기반</small></div>
-            {(summary?.affiliate_tree?.edges || []).slice(0, 16).map((edge) => <p className="tree-label" key={`${edge.parent}-${edge.child}`}>{edge.parent} → {edge.child}</p>)}
-            {!(summary?.affiliate_tree?.edges || []).length ? (summary?.affiliate_tree?.nodes || []).slice(0, 16).map((label) => <p className="tree-label" key={label}>{label}</p>) : null}
+            {((customerSurface?.edges || []).length ? customerSurface.edges : (summary?.affiliate_tree?.edges || [])).slice(0, 16).map((edge) => {
+              const accountNames = new Set((customerSurface?.accounts || []).map((account) => account.account_name).filter(Boolean));
+              const targetName = accountNames.has(edge.child) ? edge.child : accountNames.has(edge.parent) ? edge.parent : "";
+              const evidenceCount = (edge.document_nos || []).length;
+              return (
+                <button
+                  type="button"
+                  className="tree-label affiliate-edge"
+                  key={`${edge.parent}-${edge.child}-${edge.relation || ""}`}
+                  disabled={!targetName}
+                  onClick={() => {
+                    if (!targetName) return;
+                    setSelectedCustomer(targetName);
+                    setActiveView("customers");
+                  }}
+                >
+                  <strong>{edge.parent} → {edge.child}</strong>
+                  <small>{customerRelationLabel(edge.relation)}{evidenceCount ? ` · 근거 ${formatNumber(evidenceCount)}건` : ""}</small>
+                </button>
+              );
+            })}
+            {!(customerSurface?.edges || []).length && !(summary?.affiliate_tree?.edges || []).length ? (summary?.affiliate_tree?.nodes || []).slice(0, 16).map((label) => <p className="tree-label" key={label}>{label}</p>) : null}
           </div>
           <div id="periodReports" className="sidebar-block">
             <div className="section-heading"><span>주간/월간 리포트</span></div>

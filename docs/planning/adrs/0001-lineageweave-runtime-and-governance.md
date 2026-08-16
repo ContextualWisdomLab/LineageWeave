@@ -4622,3 +4622,12 @@ must round-trip through `/api/customers` with actor-scoped document links.
 Evidence: the updated `surfaceMode` chip text, the role-label normalization in
 `web/src/App.jsx`, and Playwright `home.surface_mode_text` assertions for both
 non-admin and admin sessions.
+
+## Amendment: Workspace affiliate summary uses customer evidence (2026-08-16)
+
+The workspace `고객 관계 요약` list now prefers actor-scoped `/api/customers`
+edges over corp/PU `affiliate_tree` labels. Each clickable `.affiliate-edge`
+opens the existing customer screen for a matching account and shows the
+business relation plus evidence count. Edges without a customer-account match
+remain disabled. This is a presentation path only: it does not create, promote,
+or chronologicalize a customer or Lineage relation.
