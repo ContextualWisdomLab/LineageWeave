@@ -67,12 +67,15 @@ jobs:
         with:
           node-version: "24"
 
-      - name: Install committed dependencies
-        run: |
-          set -euo pipefail
-          uv sync --frozen --extra dev --extra backend
-          corepack enable
-          pnpm --dir frontend install --frozen-lockfile
+      - name: Install committed Python dependencies
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install committed frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
 
       - name: Require PostgreSQL rather than accept skipped contracts
         run: |
@@ -96,11 +99,12 @@ jobs:
           uv run --frozen python -m compileall -q backend lineageweave tests
 
       - name: Verify React product contracts
+        working-directory: frontend
         run: |
           set -euo pipefail
-          pnpm --dir frontend run lint
-          pnpm --dir frontend run test
-          pnpm --dir frontend run build
+          pnpm run lint
+          pnpm run test
+          pnpm run build
 
       - name: Verify public-content and diff hygiene
         run: |
