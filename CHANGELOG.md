@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Event-lineage chat now fails closed when the live model is unavailable:
+  the document popup replaces the ask box with `지금은 질문할 수 없습니다` and
+  does not invent an answer or keep the ask control after `live_model_unavailable`.
 - The general-user shell now names its mode explicitly as `일반 사용자 모드` or
   `운영 모드` and cannot render the administrator console from stale or
   case-variant role claims. Readers stay on `업무 홈` / `업무공간` / `고객 화면`;

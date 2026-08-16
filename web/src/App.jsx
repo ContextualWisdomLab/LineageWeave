@@ -134,6 +134,7 @@ export default function App() {
   const [knowledgeDepth, setKnowledgeDepth] = useState("");
   const [evidence, setEvidence] = useState(null);
   const [chat, setChat] = useState(null);
+  const [chatUnavailable, setChatUnavailable] = useState(false);
   const [inferenceVerification, setInferenceVerification] = useState(null);
   const [organizationAlias, setOrganizationAlias] = useState("");
   const [aliasResolution, setAliasResolution] = useState(null);
@@ -437,6 +438,7 @@ export default function App() {
         setSemanticRelated(null);
         setEvidence(null);
         setChat(null);
+        setChatUnavailable(false);
         setInferenceVerification(null);
         setOrganizationAlias("");
         setAliasResolution(null);
@@ -821,16 +823,22 @@ export default function App() {
   }
 
   async function askLineage() {
-    if (!selectedNo || !message.trim()) return;
+    if (!selectedNo || !message.trim() || chatUnavailable) return;
     setBusy(true);
     setError("");
     try {
+      setChatUnavailable(false);
       setChat(await api(`/api/documents/${encodeURIComponent(selectedNo)}/chat`, {
         method: "POST",
         body: JSON.stringify({ message }),
       }));
     } catch (caught) {
-      setError(caught.message);
+      if (caught.message === "live_model_unavailable") {
+        setChat(null);
+        setChatUnavailable(true);
+      } else {
+        setError(caught.message);
+      }
     } finally {
       setBusy(false);
     }
@@ -1300,9 +1308,15 @@ export default function App() {
 
               <section id="popupChat" className="detail-card wide modal-chat">
                 <h3>이벤트 사이 무슨 일이 있었나</h3>
+                {chatUnavailable ? (
+                  <p id="chatUnavailable" className="meta" role="status">지금은 질문할 수 없습니다. 모델 연결이 없어 답을 만들지 않습니다.</p>
+                ) : (
+                  <>
                 <textarea id="chatMessage" aria-label="글 자체의 Lineage 질문" value={message} onChange={(event) => setMessage(event.target.value)} />
                 <button id="chatAskBtn" className="secondary-button" disabled={busy} onClick={askLineage}>LLM에게 묻기</button>
-                {chat ? (
+                  </>
+                )}
+                {chat && !chatUnavailable ? (
                   <div className="chat-answer">
                     <p id="chatAnswer">{chat.answer}</p>
                     <div id="chatCitations" className="citation-row">
