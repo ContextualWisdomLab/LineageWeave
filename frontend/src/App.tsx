@@ -1397,10 +1397,13 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
  */
 function analysisRunCorpusHint(run: AnalysisRun): string | null {
   if (run.run_kind_code !== "analysis_run_tepp") return null;
-  return (
-    "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
-    "transport, then re-run, to replace Failed with a calibrated result."
-  );
+  if (run.status_code === "analysis_status_failed") {
+    return (
+      "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
+      "transport, then re-run, to replace Failed with a calibrated result."
+    );
+  }
+  return "These posts are the cutoff corpus this TEPP run measured.";
 }
 
 function AnalysisRunsPanel({
