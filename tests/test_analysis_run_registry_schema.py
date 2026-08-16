@@ -928,9 +928,16 @@ def test_runtime_role_cannot_purge_with_only_the_public_token(registry_db) -> No
     finally:
         with registry_db.cursor() as cursor:
             cursor.execute("reset role")
-            cursor.execute(
-                sql.SQL("drop role if exists {}").format(sql.Identifier(runtime_role))
-            )
-            cursor.execute(
-                sql.SQL("drop role if exists {}").format(sql.Identifier(operator_role))
-            )
+            for role_name in (runtime_role, operator_role):
+                cursor.execute(
+                    "select 1 from pg_roles where rolname = %s",
+                    (role_name,),
+                )
+                if cursor.fetchone() is None:
+                    continue
+                cursor.execute(
+                    sql.SQL("drop owned by {}").format(sql.Identifier(role_name))
+                )
+                cursor.execute(
+                    sql.SQL("drop role {}").format(sql.Identifier(role_name))
+                )
