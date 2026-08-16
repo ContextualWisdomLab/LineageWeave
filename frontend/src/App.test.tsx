@@ -235,6 +235,9 @@ describe("App, authenticated", () => {
               },
             ],
             visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+            code_revision_sha: "abcdef0123456789deadbeefcafebabe",
+            configuration_sha256:
+              "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
             status_history: [
               {
                 status_ordinal: 1,
@@ -1454,6 +1457,13 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("heading", { name: "Lineage reconstruction · Succeeded · Demo Corp" })).toBeInTheDocument();
     expect(screen.getByText(/Cutoff 2026-01-12/)).toBeInTheDocument();
     expect(screen.getByText(/Requested 2026-01-12/)).toBeInTheDocument();
+    const digests = screen.getByLabelText("Analysis run reproducibility digests");
+    expect(digests).toHaveTextContent("Code abcdef012345");
+    expect(digests).toHaveTextContent("Config 0123456789ab");
+    expect(digests).not.toHaveTextContent("abcdef0123456789deadbeefcafebabe");
+    expect(digests).not.toHaveTextContent(
+      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    );
     const history = screen.getByRole("list", { name: "Analysis run status history" });
     expect(history).toHaveTextContent("Pending 2026-01-12 12:31");
     expect(history).toHaveTextContent("Running 2026-01-12 12:32");
