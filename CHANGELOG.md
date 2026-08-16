@@ -4,6 +4,20 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.85.0] - 2026-08-16
+
+### Added
+
+- Operators can empty a run-bearing analysis-run registry without a
+  superuser trigger disable. After export, run
+  `select purge_analysis_run_registry('approved-retention-purge')`,
+  export `analysis_run_retention_event`, delete those rows, then roll
+  back 0019 and 0018. A raw `DELETE` of a run still fails (ADR 0017).
+- Repeated chip and close-button styles live in
+  `frontend/src/styles/tokens.css`. Open
+  `cd frontend && pnpm run storybook` and click a citation chip or
+  close control before changing product CSS.
+
 ## [0.84.0] - 2026-08-16
 
 ### Added

@@ -3,6 +3,13 @@
 Tool-specific pointer. Policy lives in [AGENTS.md](AGENTS.md) and the
 ADRs under `docs/adr/`. Do not fork those rules here.
 
+## Analysis-run retention (v0.85.0)
+
+To empty a run-bearing registry before rolling back 0018, run
+`select purge_analysis_run_registry('approved-retention-purge')`,
+export `analysis_run_retention_event`, delete those rows, then roll
+back 0019 and 0018. Do not `DISABLE TRIGGER` as superuser.
+
 ## Analysis-run seed (v0.84.0)
 
 `make seed` writes a Demo Corp lineage run and a TEPP run on the same

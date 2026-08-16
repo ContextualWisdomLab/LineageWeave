@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import uuid
@@ -17,6 +18,10 @@ _ROOT = Path(__file__).resolve().parents[1]
 _INITIAL_MIGRATION = _ROOT / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = _ROOT / "migrations" / "0018_analysis_run_registry.sql"
 _REGISTRY_ROLLBACK = _ROOT / "migrations" / "rollback" / "0018_analysis_run_registry.sql"
+_RETENTION_MIGRATION = _ROOT / "migrations" / "0019_analysis_run_retention_purge.sql"
+_RETENTION_ROLLBACK = (
+    _ROOT / "migrations" / "rollback" / "0019_analysis_run_retention_purge.sql"
+)
 _POSTGRES_IMAGE = _ROOT / "docker" / "postgres-init" / "Dockerfile"
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -98,6 +103,7 @@ def registry_db():
             with connection.cursor() as cursor:
                 cursor.execute(_INITIAL_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_REGISTRY_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_RETENTION_MIGRATION.read_text(encoding="utf-8"))
             yield connection
         finally:
             connection.close()
@@ -200,7 +206,24 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
         re.findall(r"'(analysis_[a-z0-9_]+)'", migration)
     )
     assert "0018_analysis_run_registry.sql" in dockerfile
+    assert "0019_analysis_run_retention_purge.sql" in dockerfile
     assert "analysis_run_registry_not_empty" in rollback
+    retention = _RETENTION_MIGRATION.read_text(encoding="utf-8")
+    retention_rollback = _RETENTION_ROLLBACK.read_text(encoding="utf-8")
+    assert "purge_analysis_run_registry" in retention
+    assert "analysis_run_retention_event" in retention
+    assert "security definer" in retention.casefold()
+    assert "analysis_run_retention_not_approved" in retention
+    assert "analysis_run_retention_event_not_empty" in retention_rollback
+    assert "jsonb" not in retention.casefold()
+    for object_name in re.findall(
+        r"create table if not exists\s+([a-z0-9_]+)"
+        r"|create or replace function\s+([a-z0-9_]+)",
+        retention,
+        re.I,
+    ):
+        name = object_name[0] or object_name[1]
+        assert len(name.split("_")) >= 2, name
 
     snapshot_definition = _table_definition(migration, "analysis_source_snapshot")
     run_definition = _table_definition(migration, "analysis_run")
@@ -235,6 +258,7 @@ def test_registry_migration_is_idempotent(registry_db) -> None:
 
     with registry_db.cursor() as cursor:
         cursor.execute(_REGISTRY_MIGRATION.read_text(encoding="utf-8"))
+        cursor.execute(_RETENTION_MIGRATION.read_text(encoding="utf-8"))
         cursor.execute(
             "select table_name from information_schema.tables "
             "where table_schema = 'public'"
@@ -246,6 +270,7 @@ def test_registry_migration_is_idempotent(registry_db) -> None:
         )
         views = {row[0] for row in cursor.fetchall()}
     assert _REQUIRED_TABLES <= tables
+    assert "analysis_run_retention_event" in tables
     assert "analysis_run_current_status" in views
 
 
@@ -714,3 +739,89 @@ def test_rollback_refuses_data_loss_then_removes_an_empty_registry(registry_db) 
         cursor.execute("select to_regclass('public.analysis_run')")
         assert cursor.fetchone()[0] is None
         cursor.execute(rollback_sql)
+
+
+def test_approved_retention_purge_empties_a_run_bearing_registry(registry_db) -> None:
+    """A run-bearing registry empties only through the approved purge token."""
+
+    rollback_sql = _REGISTRY_ROLLBACK.read_text(encoding="utf-8")
+    retention_rollback = _RETENTION_ROLLBACK.read_text(encoding="utf-8")
+    with registry_db.cursor() as cursor:
+        account_id = _insert_account(cursor)
+        snapshot_id = _insert_snapshot(cursor)
+        cursor.execute(
+            "insert into analysis_source_count values "
+            "(%s, 'analysis_count_document', 3)",
+            (snapshot_id,),
+        )
+        run_id = _insert_run(
+            cursor,
+            snapshot_id=snapshot_id,
+            account_id=account_id,
+            idempotency_key="retention-purge",
+        )
+        cursor.execute(
+            "insert into analysis_run_scope "
+            "(analysis_run_id, scope_kind_code) "
+            "values (%s, 'analysis_scope_all_visible')",
+            (run_id,),
+        )
+        cursor.execute(
+            "insert into analysis_run_status_event "
+            "(analysis_run_id, status_ordinal, status_code, occurred_at) "
+            "values (%s, 1, 'analysis_status_pending', "
+            "'2026-08-15T01:00:00Z')",
+            (run_id,),
+        )
+        with pytest.raises(
+            psycopg2.errors.RaiseException,
+            match="analysis_run_request_is_immutable",
+        ):
+            cursor.execute(
+                "delete from analysis_run where analysis_run_id = %s",
+                (run_id,),
+            )
+        with pytest.raises(
+            psycopg2.errors.RaiseException,
+            match="analysis_run_registry_not_empty",
+        ):
+            cursor.execute(rollback_sql)
+        cursor.execute("rollback")
+        with pytest.raises(
+            psycopg2.errors.RaiseException,
+            match="analysis_run_retention_not_approved",
+        ):
+            cursor.execute("select purge_analysis_run_registry(%s)", ("wrong-token",))
+        cursor.execute(
+            "select purge_analysis_run_registry(%s)",
+            ("approved-retention-purge",),
+        )
+        cursor.execute("select count(*) from analysis_run")
+        assert cursor.fetchone()[0] == 0
+        cursor.execute("select count(*) from analysis_source_snapshot")
+        assert cursor.fetchone()[0] == 0
+        cursor.execute(
+            "select purged_run_count, purged_snapshot_count, "
+            "approval_token_digest from analysis_run_retention_event"
+        )
+        purged_run_count, purged_snapshot_count, token_digest = cursor.fetchone()
+        assert purged_run_count == 1
+        assert purged_snapshot_count == 1
+        assert token_digest == hashlib.sha256(
+            b"approved-retention-purge"
+        ).hexdigest()
+        cursor.execute(rollback_sql)
+        cursor.execute("select to_regclass('public.analysis_run')")
+        assert cursor.fetchone()[0] is None
+        with pytest.raises(
+            psycopg2.errors.RaiseException,
+            match="analysis_run_retention_event_not_empty",
+        ):
+            cursor.execute(retention_rollback)
+        cursor.execute("rollback")
+        cursor.execute("delete from analysis_run_retention_event")
+        cursor.execute(retention_rollback)
+        cursor.execute(
+            "select to_regclass('public.analysis_run_retention_event')"
+        )
+        assert cursor.fetchone()[0] is None
