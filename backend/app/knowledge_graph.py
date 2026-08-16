@@ -315,13 +315,17 @@ async def hydrate_related_nodes(
     corps = {
         str(row["corporate_entity_id"]): row
         for row in await conn.fetch(
-            "select corporate_entity_id, entity_name from corporate_entity where corporate_entity_id = any($1::uuid[])",
+            "select corporate_entity_id, entity_name, entity_level_code "
+            "from corporate_entity where corporate_entity_id = any($1::uuid[])",
             corp_ids,
         )
     } if corp_ids else {}
 
     side_labels = await labels_for_codes(
         conn, [row["person_side_code"] for row in people.values()]
+    )
+    level_labels = await labels_for_codes(
+        conn, [row["entity_level_code"] for row in corps.values()]
     )
 
     payload: list[dict[str, Any]] = []
@@ -340,7 +344,10 @@ async def hydrate_related_nodes(
         elif node_type_code == NODE_POST and node_id in posts:
             item["label"] = posts[node_id]["post_title"]
         elif node_type_code == NODE_CORPORATE_ENTITY and node_id in corps:
+            level = corps[node_id]["entity_level_code"]
             item["label"] = corps[node_id]["entity_name"]
+            item["entity_level_code"] = level
+            item["entity_level_label"] = level_labels.get(level, level)
         else:
             continue
         payload.append(item)

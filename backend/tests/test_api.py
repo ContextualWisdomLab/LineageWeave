@@ -887,6 +887,15 @@ def test_related_keymen_use_rwr_and_hide_invisible_posts(client, demo_analyst_to
     assert counterpart["person_side_label"] == "Counterparty"
     own_post = by_id[seeded_db["own_private_post_id"]]
     assert own_post["ontology_label"] == "Post"
+    corp_nodes = [
+        node for node in body["related"] if node["node_type_code"] == "node_corporate_entity"
+    ]
+    assert corp_nodes
+    assert all(node.get("entity_level_label") for node in corp_nodes)
+    if seeded_db["own_corp_id"] in related_ids:
+        own_corp = by_id[seeded_db["own_corp_id"]]
+        assert own_corp["entity_level_code"] == "company"
+        assert own_corp["entity_level_label"] == "Company"
 
 
 def test_related_corporate_entity_uses_rwr_and_hides_invisible_posts(
