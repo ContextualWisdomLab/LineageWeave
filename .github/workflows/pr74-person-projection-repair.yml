@@ -43,7 +43,7 @@ jobs:
 
       - name: Reject stale or reordered execution
         env:
-          EXPECTED_PARENT_SHA: 0c72b3a3fbc856cd4b3a92fd729792ab0e5cd5d5
+          EXPECTED_PARENT_SHA: a9fef1233cd74c9f26d06e68a581c9ee822e1faf
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT_SHA"
@@ -70,13 +70,22 @@ jobs:
           version: "0.11.28"
           enable-cache: false
 
-      - name: Install committed dependencies
+      - name: Install committed Python dependencies
         run: |
           set -euo pipefail
           uv sync --frozen --extra dev --extra backend
-          corepack enable
-          pnpm --dir frontend install --frozen-lockfile
-          uv run --frozen python -m py_compile \
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install committed frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Compile transient repair helpers
+        run: |
+          set -euo pipefail
+          python -m py_compile \
             scripts/pr74_person_projection_repair.py \
             scripts/pr74_person_projection_repair_v2.py \
             scripts/pr74_person_projection_repair_v3.py
