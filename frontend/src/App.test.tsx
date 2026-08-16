@@ -63,6 +63,7 @@ describe("App, authenticated", () => {
     failedReportRun?: boolean;
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
+    pluralAffiliations?: boolean;
     postBody?: string;
   }) {
     const statusLabel: Record<string, string> = {
@@ -96,6 +97,12 @@ describe("App, authenticated", () => {
             user_account_id: options?.admin ? "acct-admin" : "acct-1",
             display_name: options?.admin ? "Demo Admin" : "Demo Analyst",
             permission_codes: options?.admin ? ["post_read", "post_admin"] : ["post_read"],
+            corporate_entities: options?.pluralAffiliations
+              ? [
+                  { corporate_entity_id: "corp-demo", entity_name: "Demo Corp" },
+                  { corporate_entity_id: "corp-north", entity_name: "Northridge Grid" },
+                ]
+              : [{ corporate_entity_id: "corp-demo", entity_name: "Demo Corp" }],
           }),
         );
       }
@@ -1728,7 +1735,7 @@ describe("App, authenticated", () => {
       name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
     });
     expect(lineageButton).toHaveTextContent(
-      "Open this run to see why it failed, then retry reconstruction from a current snapshot.",
+      "Open this run to see why it failed, then click Request a lineage reconstruction.",
     );
     expect(lineageButton).not.toHaveTextContent("measurement service");
     expect(teppButton).toHaveTextContent(
@@ -1811,8 +1818,30 @@ describe("App, authenticated", () => {
     expect(postCall).toBeDefined();
     const body = JSON.parse(String(postCall?.[1]?.body));
     expect(body.run_kind_code).toBe("analysis_run_lineage");
+    expect(body.corporate_entity_id).toBe("corp-demo");
     expect(body.idempotency_key).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+  });
+
+  it("lets a multi-affiliation operator choose which corp to reconstruct", async () => {
+    const fetchMock = stubBackend({ pluralAffiliations: true });
+    render(<App />);
+
+    const picker = await screen.findByRole("combobox", {
+      name: "Corporate entity to reconstruct",
+    });
+    await userEvent.selectOptions(picker, "corp-north");
+    await userEvent.click(screen.getByRole("button", { name: "Request a lineage reconstruction" }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          (call) =>
+            String(call[0]).endsWith("/api/analysis-runs") &&
+            call[1]?.method === "POST" &&
+            JSON.parse(String(call[1]?.body)).corporate_entity_id === "corp-north",
+        ),
+      ).toBe(true),
     );
   });
 

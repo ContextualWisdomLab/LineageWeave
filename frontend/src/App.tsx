@@ -41,6 +41,7 @@ import {
   type CalendarEntry,
   type ChatAnswer,
   type ChatExchange,
+  type CorporateEntityRef,
   type Counterparty,
   type EvaluationResponse,
   type IssueTicket,
@@ -1478,7 +1479,7 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
         case "analysis_run_tepp":
           return "Open this run to see why it failed, then connect the measurement service and re-run.";
         case "analysis_run_lineage":
-          return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
+          return "Open this run to see why it failed, then click Request a lineage reconstruction.";
         case "analysis_run_report":
           return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
         default: {
@@ -1625,6 +1626,9 @@ function AnalysisRunsPanel({
   const [selected, setSelected] = useState<AnalysisRun | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [requesting, setRequesting] = useState(false);
+  const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[]>([]);
+  const [selectedEntityId, setSelectedEntityId] = useState("");
+  const inFlightKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     fetchAnalysisRuns(accessToken)
@@ -1632,19 +1636,51 @@ function AnalysisRunsPanel({
       .catch((err) => setError(String(err)));
   }, [accessToken]);
 
+  useEffect(() => {
+    fetchMe(accessToken)
+      .then((me) => {
+        const entities = me.corporate_entities ?? [];
+        setCorporateEntities(entities);
+        setSelectedEntityId((current) => current || entities[0]?.corporate_entity_id || "");
+      })
+      .catch(() => {
+        setCorporateEntities([]);
+        setError((current) =>
+          current ?? "Reload to load the corporate entities this account may reconstruct.",
+        );
+      });
+  }, [accessToken]);
+
   async function handleRequestLineage() {
+    if (corporateEntities.length > 1 && !selectedEntityId) {
+      setError("Choose which corporate entity to reconstruct.");
+      return;
+    }
     setError(null);
     setRequesting(true);
+    if (inFlightKeyRef.current === null) {
+      inFlightKeyRef.current = crypto.randomUUID();
+    }
+    const idempotencyKey = inFlightKeyRef.current;
     try {
       const created = await createAnalysisRun(accessToken, {
         run_kind_code: "analysis_run_lineage",
-        idempotency_key: crypto.randomUUID(),
+        idempotency_key: idempotencyKey,
+        ...(selectedEntityId ? { corporate_entity_id: selectedEntityId } : {}),
       });
       const listed = await fetchAnalysisRuns(accessToken);
       setRuns(listed.analysis_runs);
       setSelected(created);
+      inFlightKeyRef.current = null;
     } catch (err) {
-      setError(err instanceof BackendError ? err.message : String(err));
+      if (err instanceof BackendError && err.status === 409) {
+        inFlightKeyRef.current = null;
+        setError(
+          "This request key already names a different reconstruction. Request again to start a new run.",
+        );
+      } else {
+        setError(err instanceof BackendError ? err.message : String(err));
+      }
     } finally {
       setRequesting(false);
     }
@@ -1674,6 +1710,22 @@ function AnalysisRunsPanel({
     <section className="popup-section lineage-home">
       <div className="lineage-home-header">
         <h2>Analysis runs</h2>
+        {corporateEntities.length > 1 && (
+          <label>
+            Corporate entity to reconstruct
+            <select
+              aria-label="Corporate entity to reconstruct"
+              value={selectedEntityId}
+              onChange={(event) => setSelectedEntityId(event.target.value)}
+            >
+              {corporateEntities.map((entity) => (
+                <option key={entity.corporate_entity_id} value={entity.corporate_entity_id}>
+                  {entity.entity_name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <button
           className="keyman-select"
           aria-label="Request a lineage reconstruction"
