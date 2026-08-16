@@ -27,16 +27,25 @@ from backend.app.knowledge_graph import (
     related_for_start,
     visible_mention_post_ids,
 )
-from backend.app.post_summary_ingestion import persist_post_summary
+from backend.app import post_summary_ingestion as summary_ingestion
+from backend.app.post_summary_ingestion import (
+    fetch_persisted_summary,
+    persist_post_summary,
+)
 from lineageweave.keyman_extraction import OUR_SIDE, PersonMention
 from lineageweave.knowledge_graph import (
     EDGE_MENTION,
     EDGE_MENTION_TEAM,
+    NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
     NODE_TEAM,
 )
-from lineageweave.post_summary import PostSummary, RoleResponsibility
+from lineageweave.post_summary import (
+    ACTOR_TYPE_ORGANIZATION,
+    PostSummary,
+    RoleResponsibility,
+)
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -451,3 +460,85 @@ def test_team_only_posts_walk_related_nodes(projection_database: str) -> None:
 
     database_dsn, post_id, _summary_person_id = projection_database.split("|")
     asyncio.run(_exercise_team_only_related_walk(database_dsn, post_id))
+
+
+async def _exercise_homonym_organization_role_binding(
+    database_dsn: str,
+    post_id: str,
+) -> None:
+    """A same-named catalog org that this post did not resolve must stay off the role."""
+
+    connection = await asyncpg.connect(database_dsn)
+    try:
+        mentioned_id = str(
+            await connection.fetchval(
+                """
+                insert into corporate_entity
+                    (corporate_entity_code, entity_name, entity_level_code)
+                values ('HOMONYM-MENTIONED', 'Homonym Energy', 'company')
+                returning corporate_entity_id
+                """
+            )
+        )
+        other_id = str(
+            await connection.fetchval(
+                """
+                insert into corporate_entity
+                    (corporate_entity_code, entity_name, entity_level_code)
+                values ('HOMONYM-OTHER', 'Homonym Energy', 'company')
+                returning corporate_entity_id
+                """
+            )
+        )
+
+        async def resolve_mentioned_organization(*_args, **_kwargs) -> str:
+            return mentioned_id
+
+        original = summary_ingestion.get_or_create_corporate_entity
+        summary_ingestion.get_or_create_corporate_entity = resolve_mentioned_organization
+        try:
+            payload = await persist_post_summary(
+                connection,
+                post_id,
+                PostSummary(
+                    korean_summary="동명이인 조직이 일정만 확정했다.",
+                    roles_and_responsibilities=(
+                        RoleResponsibility(
+                            actor_name="Homonym Energy",
+                            responsibility="납품 일정 확정",
+                            actor_type_code=ACTOR_TYPE_ORGANIZATION,
+                        ),
+                    ),
+                ),
+            )
+        finally:
+            summary_ingestion.get_or_create_corporate_entity = original
+
+        roles = payload["roles_and_responsibilities"]
+        assert len(roles) == 1
+        assert roles[0]["catalog_node_id"] == mentioned_id
+        assert roles[0]["catalog_node_type_code"] == NODE_CORPORATE_ENTITY
+        fetched = await fetch_persisted_summary(connection, post_id)
+        assert fetched is not None
+        assert fetched["roles_and_responsibilities"][0]["catalog_node_id"] == mentioned_id
+        assert fetched["roles_and_responsibilities"][0]["catalog_node_id"] != other_id
+        mention_ids = [
+            str(row["corporate_entity_id"])
+            for row in await connection.fetch(
+                "select corporate_entity_id from post_organization_mention "
+                "where post_id = $1",
+                post_id,
+            )
+        ]
+        assert mention_ids == [mentioned_id]
+    finally:
+        await connection.close()
+
+
+def test_homonym_organization_role_binds_the_resolved_catalog_id(
+    projection_database: str,
+) -> None:
+    """ADR 0019: two catalog orgs can share a display name; the role keeps one id."""
+
+    database_dsn, post_id, _summary_person_id = projection_database.split("|")
+    asyncio.run(_exercise_homonym_organization_role_binding(database_dsn, post_id))

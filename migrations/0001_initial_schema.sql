@@ -411,6 +411,15 @@ create table post_organization_mention (
     primary key (post_id, corporate_entity_id)
 );
 
+-- ADR 0019: store the resolved catalog id on the role row itself.
+-- corporate_entity.entity_name is not unique, and mention tables are
+-- post-scoped, so reconstructing identity by name is not 3NF.
+alter table post_summary_role
+    add column cataloged_team_id uuid references cataloged_team (team_id);
+alter table post_summary_role
+    add column cataloged_corporate_entity_id uuid
+        references corporate_entity (corporate_entity_id);
+
 -- ---------------------------------------------------------------------
 -- Knowledge graph: person/company/post nodes, typed edges. The type
 -- codes (which kind of node, which kind of edge) are real enums and DO
