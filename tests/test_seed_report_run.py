@@ -85,3 +85,20 @@ def test_seed_demo_report_run_inserts_succeeded_report_without_a_theta() -> None
         for event_params in status_params
     )
     assert not any("analysis_run_outbox" in sql for sql in cursor.statements)
+    scope_params = [
+        params
+        for sql, params in zip(cursor.statements, cursor.params, strict=True)
+        if "insert into analysis_run_scope" in sql
+    ]
+    assert any(
+        event_params is not None and "2026-W02" in event_params
+        for event_params in scope_params
+    )
+    assert not any(
+        event_params is not None
+        and any(
+            isinstance(value, str) and ("theta" in value.lower() or "θ" in value)
+            for value in event_params
+        )
+        for event_params in scope_params
+    )

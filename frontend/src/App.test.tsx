@@ -2121,6 +2121,7 @@ describe("App, authenticated", () => {
     expect(periodInput).toHaveValue("2026-W03");
     await userEvent.click(screen.getByRole("button", { name: "Open period report 2026-W02" }));
     expect(periodInput).toHaveValue("2026-W02");
+    expect(periodInput).toHaveFocus();
   });
 
   it("does not tell a failed period report to connect the measurement service", async () => {
@@ -2138,6 +2139,9 @@ describe("App, authenticated", () => {
 
     await userEvent.click(reportButton);
     expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Open period report 2026-W02" }),
+    ).not.toBeInTheDocument();
     expect(
       await screen.findByText(
         "No posts were available at this cutoff for the period report. Open a later run, or ask an administrator to capture a newer snapshot.",

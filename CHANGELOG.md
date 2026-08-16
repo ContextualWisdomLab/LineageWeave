@@ -10,8 +10,9 @@ All notable changes to this project are documented here. Format follows
 
 - A Succeeded period-report analysis run now opens the scored week.
   After `make seed`, open **Period report · Succeeded · Demo Corp**
-  and click **Open period report 2026-W02**. Mean θ stays on the
-  report panel. No TEPP theta is invented.
+  and click **Open period report 2026-W02**: the report period field
+  is focused on that week. Failed rows stay closed. Mean θ stays on
+  the report panel. No TEPP theta is invented.
 
 ## [0.96.0] - 2026-08-17
 

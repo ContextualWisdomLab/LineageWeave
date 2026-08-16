@@ -1904,6 +1904,7 @@ function AnalysisRunsPanel({
                 const periodCode = analysisRunReportPeriod(selected);
                 if (periodCode) {
                   onSelectReportPeriod(periodCode);
+                  document.getElementById("report-period")?.focus();
                 }
               }}
             >
@@ -2137,6 +2138,7 @@ function ReportsPanel({
         <label>
           Period
           <input
+            id="report-period"
             aria-label="Report period"
             value={period}
             onChange={(event) => onSelectPeriod(event.target.value)}
