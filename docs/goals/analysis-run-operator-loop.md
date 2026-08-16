@@ -14,14 +14,14 @@ evidence.
 
 1. #127 is on `feat/role-responsibility-agent-ontology` (`44912a6`).
    Prefixes are audible; the live-body warning is present.
-2. Land the v0.86.3 digest-disclosure successor of #139 so keyboard and
-   AT operators can match a digest to the API payload. Closed panels
-   stay in the document with `hidden`; each prefix is a 24px target.
-   Prefer that successor over #135 and over #139 `cf8c2e8` (stale
-   0.86.1 on `3c17fd3`). Do not self-approve or merge from this
-   automation.
-3. Keep #131 as the write-clock comparison slice. Do not open a second
-   write-clock PR.
+2. Land #155 (v0.86.3) so keyboard and AT operators can match a digest
+   to the API payload. Closed panels stay in the document with `hidden`;
+   each prefix is a 24px target. Prefer #155 over #139 `cf8c2e8` and
+   over #135. Do not self-approve or merge from this automation.
+3. Write-clock landing is #150. Prefer it over #131. Do not open a
+   second write-clock PR. Kind-specific pending copy is #149 — do not
+   open a second pending-copy PR. Retention purge + Storybook tokens
+   landing is #154. Prefer it over #145/#134/#137.
 4. #125 (`POST /api/analysis-runs`) is on the same base. Do not open a
    second create PR.
 5. Post-body versioning at the cutoff remains later work (ADR 0016).
