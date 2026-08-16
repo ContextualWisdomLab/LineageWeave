@@ -1432,6 +1432,16 @@ function AnalysisRunsPanel({ accessToken }: { accessToken: string }) {
               </li>
             ))}
           </ul>
+          {selected.status_history && selected.status_history.length > 0 && (
+            <ol aria-label="Analysis run status history">
+              {selected.status_history.map((event) => (
+                <li key={event.status_ordinal}>
+                  {event.status_label} {event.occurred_at.slice(0, 16).replace("T", " ")}
+                  {event.failure_code ? ` · ${event.failure_code}` : ""}
+                </li>
+              ))}
+            </ol>
+          )}
         </div>
       )}
     </section>

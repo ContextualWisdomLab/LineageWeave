@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.81.0] - 2026-08-16
+
+### Added
+
+- Analysis-run detail shows the labeled lifecycle: Pending, Running,
+  then Succeeded, with occurrence times from `analysis_run_status_event`.
+  The list stays latest-status only. Hidden runs still 404 and never
+  leak events. Failure codes stay machine tokens -- no invented label.
+  Synthetic Demo Corp seed only.
+
 ## [0.80.0] - 2026-08-16
 
 ### Added

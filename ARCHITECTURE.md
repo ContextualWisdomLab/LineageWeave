@@ -464,11 +464,14 @@ process-unit scope is visible only to affiliated accounts; a
 thread-group scope is visible only when the account can already see a
 post in that group; `all_visible` is requester-only. Hidden runs 404.
 The home list is clickable: `GET /api/analysis-runs/{id}` fills a
-labeled detail (cutoff, requested date, counts) without exposing a
-DSN or raw record. The payload is lookup labels plus non-negative aggregate counts -- never
+labeled detail (cutoff, requested date, counts, status history)
+without exposing a DSN or raw record. Status history is detail-only
+and uses lookup labels plus occurrence times; a failure event keeps
+its machine `failure_code` rather than an invented caption. The
+payload is lookup labels plus non-negative aggregate counts -- never
 source SQL, a DSN, a raw record, or a provider body. After `make seed`,
 Demo Analyst and Demo Admin see "Lineage reconstruction · Succeeded ·
-Demo Corp" with "3 documents".
+Demo Corp" with "3 documents" and Pending / Running / Succeeded times.
 
 ## Phase 6a: fast-mlsirm dependency + Rust toolchain (infra only)
 
