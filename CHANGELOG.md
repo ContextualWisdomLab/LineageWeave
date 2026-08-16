@@ -4,6 +4,20 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.88.0] - 2026-08-16
+
+### Added
+
+- `POST /api/analysis-runs/{id}/start` runs ThreadWeave on a visible
+  Pending lineage cutoff bag and persists run-scoped parent choices
+  (ADR 0021). Open the Pending Demo Corp row, then start reconstruction.
+  The designed A-100 fork (revised quote and delivery question under the
+  pricing follow-up) is the acceptance tree. TEPP and period-report
+  start are 422 — this path does not invent a theta. A Succeeded retry
+  returns the stored digest. A Running restart is 409. Create freezes
+  authorized post ids so start cannot pick up a later backfill. Live
+  Event Lineage stays a separate rebuild.
+
 ## [0.87.0] - 2026-08-16
 
 ### Added

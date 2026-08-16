@@ -32,4 +32,6 @@ Digest prefixes stay audible; hover a prefix to read the full digest.
 Opening a cutoff title shows the live post -- compare it with the
 cutoff before treating the body as reconstructed evidence (ADR 0016).
 `POST /api/analysis-runs` records Pending on an authorized
-cutoff capture (ADR 0017) and does not reconstruct lineage.
+cutoff capture (ADR 0017). `POST /api/analysis-runs/{id}/start`
+reconstructs that frozen cutoff bag (ADR 0021) and does not invent a
+theta. Hover the Result prefix to read the parent-choice digest.

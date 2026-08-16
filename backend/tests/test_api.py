@@ -33,6 +33,12 @@ _REALM = "lineageweave-demo"
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
 _RETENTION_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0020_analysis_run_retention_purge.sql"
+_RECONSTRUCTION_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0021_analysis_run_reconstruction.sql"
+)
+_SNAPSHOT_MEMBER_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0022_analysis_source_snapshot_member.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -117,6 +123,8 @@ def seeded_db(demo_analyst_token):
             cur.execute(_MIGRATION_PATH.read_text())
             cur.execute(_REGISTRY_MIGRATION.read_text())
             cur.execute(_RETENTION_MIGRATION.read_text())
+            cur.execute(_RECONSTRUCTION_MIGRATION.read_text())
+            cur.execute(_SNAPSHOT_MEMBER_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -573,6 +581,216 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
         json={"idempotency_key": "buyer-create-unauthenticated"},
     )
     assert unauthenticated.status_code == 401
+
+
+def test_start_analysis_run_recovers_the_a100_fork(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Starting a Pending lineage run persists the designed fixture tree."""
+    from scripts.seed_demo_data import insert_fixture_source_posts
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('voc_type', 'vom', 'Voice of Market') "
+                "on conflict (lookup_code) do nothing"
+            )
+            cur.execute(
+                "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
+                "select corporate_entity_id, 'TEST-PU-START', 'Start reconstruction' "
+                "from source_post where post_id = %s returning process_unit_id",
+                (seeded_db["own_private_post_id"],),
+            )
+            process_unit_id = cur.fetchone()[0]
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_id, corp_id = cur.fetchone()
+            insert_fixture_source_posts(cur, author_id, corp_id, process_unit_id)
+    finally:
+        admin_conn.close()
+
+    created = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_lineage",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "knowledge_cutoff": "2026-02-15T00:00:00Z",
+            "idempotency_key": "buyer-start-2026-w07",
+        },
+    )
+    assert created.status_code == 201, created.text
+    run_id = created.json()["analysis_run_id"]
+    assert created.json()["status_label"] == "Pending"
+
+    started = client.post(
+        f"/api/analysis-runs/{run_id}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert started.status_code == 200, started.text
+    body = started.json()
+    assert body["status_label"] == "Succeeded"
+    assert all(event["status_label"] != "Failed" for event in body["status_history"])
+    assert body["reconstruction_result_sha256"]
+    children = {
+        edge["child_post_title"]
+        for edge in body["reconstructed_edges"]
+        if edge["parent_post_title"] == "Pricing renegotiation follow-up"
+    }
+    assert "Pricing renegotiation: revised quote sent" in children
+    assert "Delivery schedule question raised" in children
+    assert "theta" not in str(body).lower()
+
+    replay = client.post(
+        f"/api/analysis-runs/{run_id}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert replay.status_code == 200
+    assert replay.json()["reconstruction_result_sha256"] == body["reconstruction_result_sha256"]
+
+    tepp = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_tepp",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "knowledge_cutoff": "2026-02-15T00:00:00Z",
+            "idempotency_key": "buyer-start-tepp-2026-w07",
+        },
+    )
+    assert tepp.status_code == 201
+    refused = client.post(
+        f"/api/analysis-runs/{tepp.json()['analysis_run_id']}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert refused.status_code == 422
+    assert "invent a measurement" in refused.json()["detail"]
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                """
+                insert into analysis_source_snapshot
+                    (snapshot_sha256, source_contract_version,
+                     maximum_available_time, captured_at)
+                values (%s, 'source-contract-v1',
+                        '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
+                returning analysis_source_snapshot_id
+                """,
+                ("9" * 64,),
+            )
+            report_snapshot_id = cur.fetchone()[0]
+            cur.execute(
+                "select requested_by_account_id from analysis_run where analysis_run_id = %s",
+                (run_id,),
+            )
+            requester_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_run
+                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                     requested_by_account_id, knowledge_cutoff,
+                     configuration_schema_version, configuration_sha256,
+                     code_revision_sha, requested_at)
+                values (%s, 'analysis_run_report', 'buyer-start-report',
+                        %s, '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
+                        '2026-01-12T12:30:00Z')
+                returning analysis_run_id
+                """,
+                (report_snapshot_id, requester_id, "8" * 64, "7" * 40),
+            )
+            report_run_id = str(cur.fetchone()[0])
+            cur.execute(
+                """
+                insert into analysis_run_scope
+                    (analysis_run_id, scope_kind_code, corporate_entity_id)
+                values (%s, 'analysis_scope_corporate_entity', %s)
+                """,
+                (report_run_id, seeded_db["own_corp_id"]),
+            )
+            cur.execute(
+                """
+                insert into analysis_run_status_event
+                    (analysis_run_id, status_ordinal, status_code, occurred_at)
+                values (%s, 1, 'analysis_status_pending', '2026-01-12T12:31:00Z')
+                """,
+                (report_run_id,),
+            )
+            cur.execute(
+                """
+                insert into analysis_source_snapshot
+                    (snapshot_sha256, source_contract_version,
+                     maximum_available_time, captured_at)
+                values (%s, 'source-contract-v1',
+                        '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
+                returning analysis_source_snapshot_id
+                """,
+                ("6" * 64,),
+            )
+            running_snapshot_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_run
+                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                     requested_by_account_id, knowledge_cutoff,
+                     configuration_schema_version, configuration_sha256,
+                     code_revision_sha, requested_at)
+                values (%s, 'analysis_run_lineage', 'buyer-start-running',
+                        %s, '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
+                        '2026-01-12T12:30:00Z')
+                returning analysis_run_id
+                """,
+                (running_snapshot_id, requester_id, "5" * 64, "4" * 40),
+            )
+            running_run_id = str(cur.fetchone()[0])
+            cur.execute(
+                """
+                insert into analysis_run_scope
+                    (analysis_run_id, scope_kind_code, corporate_entity_id)
+                values (%s, 'analysis_scope_corporate_entity', %s)
+                """,
+                (running_run_id, seeded_db["own_corp_id"]),
+            )
+            for ordinal, status, occurred in (
+                (1, "analysis_status_pending", "2026-01-12T12:31:00Z"),
+                (2, "analysis_status_running", "2026-01-12T12:32:00Z"),
+            ):
+                cur.execute(
+                    """
+                    insert into analysis_run_status_event
+                        (analysis_run_id, status_ordinal, status_code, occurred_at)
+                    values (%s, %s, %s, %s)
+                    """,
+                    (running_run_id, ordinal, status, occurred),
+                )
+    finally:
+        admin_conn.close()
+
+    report_refused = client.post(
+        f"/api/analysis-runs/{report_run_id}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert report_refused.status_code == 422
+    assert "invent a measurement" in report_refused.json()["detail"]
+
+    running = client.post(
+        f"/api/analysis-runs/{running_run_id}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert running.status_code == 409
+
+    hidden = client.post(
+        f"/api/analysis-runs/{seeded_db['hidden_run_id']}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert hidden.status_code == 404
 
 
 def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> None:
