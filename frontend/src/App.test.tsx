@@ -553,6 +553,8 @@ describe("App, authenticated", () => {
                 ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Organization",
                 ontology_label: "Organization",
                 label: "Demo Corp",
+                entity_level_code: "company",
+                entity_level_label: "Company",
                 relevance: 0.2,
               },
             ],
@@ -1004,7 +1006,13 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Demo Corp" }));
+    expect(
+      screen.getByRole("button", { name: "Related nodes for Demo Corp (Company)" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).not.toHaveTextContent(
+      "Demo Corp (Organization)",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Demo Corp (Company)" }));
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
     expect(
       screen.getByRole("button", { name: "Related nodes for Ada West (Our side)" }),
