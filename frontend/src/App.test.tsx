@@ -990,6 +990,9 @@ describe("App, authenticated", () => {
       "Northridge Grid",
     );
     const relatedPanel = screen.getByText("Related to Ada West").closest(".related-keymen");
+    expect(relatedPanel).toHaveTextContent(
+      "A chip that says multiple organizations is not a missing affiliation. Read every organization in the Keyman list above, then click the chip to continue the walk.",
+    );
     expect(relatedPanel).toHaveTextContent("Linked post");
     expect(relatedPanel).not.toHaveTextContent("Linked post (Post)");
     await userEvent.click(screen.getByRole("button", { name: "Open related post: Linked post" }));

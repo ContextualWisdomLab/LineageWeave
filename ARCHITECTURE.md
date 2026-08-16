@@ -328,7 +328,9 @@ distinct organization identity is known
 `affiliation_ambiguous` and the caption
 `Priya Nair, multiple organizations (Counterparty)` after
 `make seed` -- never a guessed primary, and never a side-only chip
-that looks like a missing affiliation. A resolved catalog org supplies `entity_name`;
+that looks like a missing affiliation. The related panel then says
+to read the Keyman list above (or extract Keymen) before clicking
+the chip to continue the walk. A resolved catalog org supplies `entity_name`;
 unresolved aliases of that same org collapse into it. Related-node
 organization chips use the entity-level label
 (`Demo Corp (Company)`), not `Organization`. Related-node post chips

@@ -115,6 +115,7 @@ def test_related_person_collapses_aliases_of_one_catalog_org() -> None:
         ]
     )
     assert node["affiliation_organization_name"] == "Demo Corp"
+    assert "affiliation_ambiguous" not in node
 
 
 def test_related_person_collapses_unresolved_name_matching_catalog() -> None:
@@ -130,6 +131,7 @@ def test_related_person_collapses_unresolved_name_matching_catalog() -> None:
         ]
     )
     assert node["affiliation_organization_name"] == "Demo Corp"
+    assert "affiliation_ambiguous" not in node
 
 
 def test_related_person_omits_resolved_plus_distinct_unresolved() -> None:
@@ -166,6 +168,22 @@ def test_related_person_marks_two_distinct_catalog_orgs_ambiguous() -> None:
     )
     assert "affiliation_organization_name" not in node
     assert node["affiliation_ambiguous"] is True
+
+
+def test_related_person_keeps_nameless_catalog_identity_side_only() -> None:
+    """An orphaned catalog id with no name is not a guessed primary or a plural set."""
+    node = _hydrate(
+        [
+            {
+                "affiliated_organization_name": "",
+                "affiliated_corporate_entity_id": _CATALOG_ID,
+                "catalog_entity_name": "",
+            }
+        ]
+    )
+    assert "affiliation_organization_name" not in node
+    assert "affiliation_ambiguous" not in node
+    assert node["person_side_label"] == "Counterparty"
 
 
 def test_related_person_collapses_unresolved_names_that_differ_only_by_case() -> None:

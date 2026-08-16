@@ -32,7 +32,11 @@ Hydrate related-node payloads with authorized lookup labels:
   catalog org plus a distinct unresolved name) sets
   `affiliation_ambiguous` and the caption uses
   `multiple organizations`. That is not the same as a missing
-  affiliation: the next action is to open the Keyman list.
+  affiliation. The related panel then names the next action: read
+  every organization in the Keyman list (or extract Keymen if the
+  list is empty), then click the chip to continue the walk. The
+  caption prefers the plural signal if a name is also present so a
+  stale payload cannot invent a primary.
 - A unique org without a side still names the org
   (`Ada West, Demo Corp`) so a missing side cannot revive the
   ontology-class caption.
@@ -52,11 +56,9 @@ Walking from Ada West shows
 `Priya Nair, Northridge Grid (Counterparty)` or a side-only chip that
 looks like Priya has no organization. Walking from Demo Corp shows
 `Ada West, Demo Corp (Our side)` and `Demo Corp (Company)`.
-Click a chip to continue the walk. Open the Keyman list when the chip
-says multiple organizations.
+Click a chip to continue the walk. When the chip says multiple
+organizations, read the Keyman list above first.
 
 ## References
 
-Browne, W. J., Goldstein, H., & Rasbash, J. (2001). Multiple membership
-multiple classification (MMMC) models. *Statistical Modelling, 1*(2),
-103–124. https://doi.org/10.1177/1471082X0100100202
+See [RELATED_NODE_AFFILIATION_REFERENCES.md](../doctoring/RELATED_NODE_AFFILIATION_REFERENCES.md).

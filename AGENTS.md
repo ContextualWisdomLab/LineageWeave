@@ -8,7 +8,11 @@ Cross-agent conventions for `LineageWeave`, readable by any coding agent
 A demo BI prototype that reconstructs git-branch-style lineage between
 scattered short records. See [ARCHITECTURE.md](ARCHITECTURE.md) for the
 design and [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md)
-for the literature it is grounded in.
+for the literature it is grounded in. APA 7th citations for product
+decisions live under [`docs/doctoring/`](docs/doctoring/) -- start
+with
+[`RELATED_NODE_AFFILIATION_REFERENCES.md`](docs/doctoring/RELATED_NODE_AFFILIATION_REFERENCES.md)
+before changing related-node affiliation display.
 
 ## Hard rule: no real data, ever
 

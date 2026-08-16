@@ -260,8 +260,10 @@ memberships stay distinct and the chip says `multiple organizations`
 so a plural set is not mistaken for a missing affiliation. Collapsing
 several memberships into a sorted "primary" would repeat the
 atomistic fallacy Browne et al. (2001) warn against for
-multiple-membership structures. Open the Keyman list to read every
-affiliation. The live client
+multiple-membership structures. The related panel names that next
+action: read the Keyman list (or extract Keymen), then click the
+chip to continue the walk. Citations live in
+[`docs/doctoring/RELATED_NODE_AFFILIATION_REFERENCES.md`](doctoring/RELATED_NODE_AFFILIATION_REFERENCES.md). The live client
 calls contextual-orchestrator (`mode="auto"`) rather than a raw LLM
 API so the orchestration plane can allocate route, verify, or a
 deeper workflow; adjudication and post-chat keep explicit

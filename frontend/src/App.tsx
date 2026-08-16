@@ -54,7 +54,8 @@ import {
 } from "./api";
 import { LineageDag } from "./LineageDag";
 import { subgraphForPost } from "./lineageLayout";
-import { relatedNodeCaption } from "./relatedNodeCaption";
+import { RelatedNodeChip } from "./RelatedNodeChip";
+import { relatedAffiliationNextAction } from "./relatedNodeCaption";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -671,6 +672,11 @@ function KeymanPanel({
       {selectedName && (
         <div className="related-keymen">
           <h4>Related to {selectedName}</h4>
+          {related !== null && related.some((node) => node.affiliation_ambiguous) ? (
+            <p className="related-affiliation-hint">
+              {relatedAffiliationNextAction(Boolean(keymen && keymen.length > 0))}
+            </p>
+          ) : null}
           {related === null ? (
             <p>Loading related nodes...</p>
           ) : related.length === 0 ? (
@@ -678,48 +684,47 @@ function KeymanPanel({
           ) : (
             <ul>
               {related.map((node) => {
-                const caption = relatedNodeCaption(node);
                 if (node.node_type_code === NODE_POST && onSelectPost) {
                   return (
                     <li key={`${node.node_type_code}:${node.node_id}`}>
-                      <button
-                        className="keyman-select"
-                        aria-label={`Open related post: ${caption}`}
-                        onClick={() => onSelectPost(node.node_id)}
-                      >
-                        {caption}
-                      </button>
+                      <RelatedNodeChip
+                        node={node}
+                        action="open_post"
+                        onSelect={(selected) => onSelectPost(selected.node_id)}
+                      />
                     </li>
                   );
                 }
                 if (node.node_type_code === NODE_PERSON) {
                   return (
                     <li key={`${node.node_type_code}:${node.node_id}`}>
-                      <button
-                        className="keyman-select"
-                        aria-label={`Related nodes for ${caption}`}
-                        onClick={() => handleSelect(node.node_id, node.label ?? node.node_id)}
-                      >
-                        {caption}
-                      </button>
+                      <RelatedNodeChip
+                        node={node}
+                        action="walk_person"
+                        onSelect={(selected) =>
+                          handleSelect(selected.node_id, selected.label ?? selected.node_id)
+                        }
+                      />
                     </li>
                   );
                 }
                 if (node.node_type_code === NODE_CORPORATE_ENTITY) {
                   return (
                     <li key={`${node.node_type_code}:${node.node_id}`}>
-                      <button
-                        className="keyman-select"
-                        aria-label={`Related nodes for ${caption}`}
-                        onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
-                      >
-                        {caption}
-                      </button>
+                      <RelatedNodeChip
+                        node={node}
+                        action="walk_entity"
+                        onSelect={(selected) =>
+                          handleSelectEntity(selected.node_id, selected.label ?? selected.node_id)
+                        }
+                      />
                     </li>
                   );
                 }
                 return (
-                  <li key={`${node.node_type_code}:${node.node_id}`}>{caption}</li>
+                  <li key={`${node.node_type_code}:${node.node_id}`}>
+                    {node.label ?? node.node_id}
+                  </li>
                 );
               })}
             </ul>
