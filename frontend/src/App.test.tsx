@@ -169,6 +169,77 @@ describe("App, authenticated", () => {
           jsonResponse({ post_id: "post-1", has_commitment: true, ticket }),
         );
       }
+      if (url.endsWith("/api/analysis-runs/run-demo-lineage")) {
+        return Promise.resolve(
+          jsonResponse({
+            analysis_run_id: "run-demo-lineage",
+            run_kind_code: "analysis_run_lineage",
+            run_kind_label: "Lineage reconstruction",
+            scope_kind_code: "analysis_scope_corporate_entity",
+            scope_kind_label: "Corporate entity",
+            scope_entity_name: "Demo Corp",
+            status_code: "analysis_status_succeeded",
+            status_label: "Succeeded",
+            knowledge_cutoff: "2026-01-12T12:00:00Z",
+            requested_at: "2026-01-12T12:30:00Z",
+            source_counts: [
+              {
+                count_type_code: "analysis_count_document",
+                count_type_label: "Documents",
+                count_value: 3,
+              },
+            ],
+            visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+            status_history: [
+              {
+                status_ordinal: 1,
+                status_code: "analysis_status_pending",
+                status_label: "Pending",
+                occurred_at: "2026-01-12T12:31:00Z",
+              },
+              {
+                status_ordinal: 2,
+                status_code: "analysis_status_running",
+                status_label: "Running",
+                occurred_at: "2026-01-12T12:32:00Z",
+              },
+              {
+                status_ordinal: 3,
+                status_code: "analysis_status_succeeded",
+                status_label: "Succeeded",
+                occurred_at: "2026-01-12T12:33:00Z",
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/analysis-runs")) {
+        return Promise.resolve(
+          jsonResponse({
+            analysis_runs: [
+              {
+                analysis_run_id: "run-demo-lineage",
+                run_kind_code: "analysis_run_lineage",
+                run_kind_label: "Lineage reconstruction",
+                scope_kind_code: "analysis_scope_corporate_entity",
+                scope_kind_label: "Corporate entity",
+                scope_entity_name: "Demo Corp",
+                status_code: "analysis_status_succeeded",
+                status_label: "Succeeded",
+                knowledge_cutoff: "2026-01-12T12:00:00Z",
+                requested_at: "2026-01-12T12:30:00Z",
+                source_counts: [
+                  {
+                    count_type_code: "analysis_count_document",
+                    count_type_label: "Documents",
+                    count_value: 3,
+                  },
+                ],
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/calendar")) {
         return Promise.resolve(
           jsonResponse({
@@ -1293,6 +1364,36 @@ describe("App, authenticated", () => {
 
     await userEvent.click(calendarButton);
 
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
+  it("shows the seeded analysis run on the home page", async () => {
+    stubBackend();
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Analysis runs" })).toBeInTheDocument();
+    const list = screen.getByRole("list", { name: "Analysis runs" });
+    expect(list).toHaveTextContent("Lineage reconstruction · Succeeded · Demo Corp");
+    expect(list).toHaveTextContent("3 documents");
+    expect(list).not.toHaveTextContent("postgresql://");
+    expect(list).not.toHaveTextContent("select ");
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+      }),
+    );
+    expect(await screen.findByRole("heading", { name: "Lineage reconstruction · Succeeded · Demo Corp" })).toBeInTheDocument();
+    expect(screen.getByText(/Cutoff 2026-01-12/)).toBeInTheDocument();
+    expect(screen.getByText(/Requested 2026-01-12/)).toBeInTheDocument();
+    const history = screen.getByRole("list", { name: "Analysis run status history" });
+    expect(history).toHaveTextContent("Pending 2026-01-12 12:31");
+    expect(history).toHaveTextContent("Running 2026-01-12 12:32");
+    expect(history).toHaveTextContent("Succeeded 2026-01-12 12:33");
+    expect(screen.getByRole("button", { name: "Open run post: Public post" })).toBeInTheDocument();
+    expect(screen.queryByText(/postgresql:\/\//)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Open run post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });
 

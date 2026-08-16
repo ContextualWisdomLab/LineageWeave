@@ -1,4 +1,4 @@
-# ADR-0013: Adaptive contextual-orchestrator mode is the default
+# ADR-0015: Adaptive contextual-orchestrator mode is the default
 
 - Status: Accepted
 - Date: 2026-08-16

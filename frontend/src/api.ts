@@ -492,3 +492,41 @@ export function deriveCommitment(accessToken: string, postId: string): Promise<D
 export function fetchCalendar(accessToken: string): Promise<{ commitments: CalendarEntry[] }> {
   return backendFetch("/api/calendar", accessToken);
 }
+
+export interface AnalysisRunCount {
+  count_type_code: string;
+  count_type_label: string;
+  count_value: number;
+}
+
+export interface AnalysisRunStatusEvent {
+  status_ordinal: number;
+  status_code: string;
+  status_label: string;
+  occurred_at: string;
+  failure_code?: string;
+}
+
+export interface AnalysisRun {
+  analysis_run_id: string;
+  run_kind_code: string;
+  run_kind_label: string;
+  scope_kind_code: string;
+  scope_kind_label: string;
+  scope_entity_name?: string;
+  status_code: string | null;
+  status_label: string | null;
+  knowledge_cutoff: string;
+  requested_at: string;
+  source_counts: AnalysisRunCount[];
+  status_history?: AnalysisRunStatusEvent[];
+  visible_posts?: { post_id: string; post_title: string }[];
+}
+
+export function fetchAnalysisRuns(accessToken: string): Promise<{ analysis_runs: AnalysisRun[] }> {
+  return backendFetch("/api/analysis-runs", accessToken);
+}
+
+export function fetchAnalysisRun(accessToken: string, analysisRunId: string): Promise<AnalysisRun> {
+  return backendFetch(`/api/analysis-runs/${analysisRunId}`, accessToken);
+}

@@ -4,6 +4,47 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.82.0] - 2026-08-16
+
+### Added
+
+- Analysis-run detail lists ABAC-visible posts in the run's scope.
+  After `make seed`, the Demo Corp lineage run opens the Demo public
+  post. Hidden other-corp private posts never appear. List payloads
+  stay aggregates-only.
+
+## [0.81.0] - 2026-08-16
+
+### Added
+
+- Analysis-run detail shows the labeled lifecycle: Pending, Running,
+  then Succeeded, with occurrence times from `analysis_run_status_event`.
+  The list stays latest-status only. Hidden runs still 404 and never
+  leak events. Failure codes stay machine tokens -- no invented label.
+  Synthetic Demo Corp seed only.
+
+## [0.80.0] - 2026-08-16
+
+### Added
+
+- Home Analysis runs rows are buttons. Clicking the seeded Demo Corp
+  lineage run opens `GET /api/analysis-runs/{id}` and shows cutoff,
+  requested date, and document count. A hidden run is "This analysis
+  run is not visible." -- never a raw 404 or a DSN. Still synthetic
+  aggregates only.
+
+## [0.79.0] - 2026-08-16
+
+### Added
+
+- Authorized analysis-run evidence on the product home page. After
+  `make seed`, Demo Analyst sees "Lineage reconstruction · Succeeded ·
+  Demo Corp" with the synthetic document count. `GET /api/analysis-runs`
+  is scoped in SQL: another tenant's run 404s and never appears in the
+  list. The payload is labels and aggregates -- never source SQL, a DSN,
+  or a raw record. TEPP stays behind `tepp_client`; Null channels are
+  unchanged.
+
 ## [0.78.0] - 2026-08-15
 
 ### Changed
@@ -19,7 +60,7 @@ All notable changes to this project are documented here. Format follows
   and LLM-as-a-Judge consumers now request contextual-orchestrator `auto` mode
   so the orchestration plane can meet the quality requirement and then minimize
   known execution cost. Explicit checked `verify` paths remain unchanged
-  (ADR 0013).
+  (ADR 0015).
 
 ## [0.77.0] - 2026-08-14
 
