@@ -24,12 +24,12 @@ All notable changes to this project are documented here. Format follows
   ontology-class noise. After `make seed`, walking from Ada West shows
   `Priya Nair (Counterparty)` -- not `Priya Nair (Person)` and not an
   invented `Northridge Grid` primary, because Priya has two
-  affiliations. Walking from Demo Corp shows
+  unresolved orgs. Walking from Demo Corp shows
   `Ada West, Demo Corp (Our side)` and `Demo Corp (Company)`. A person
-  with exactly one affiliation adds that org; multiple affiliations
-  keep the side-only caption. Post chips show the title only. Click
-  the chip to continue the walk, or open the Keyman/affiliate surfaces
-  when you need the full affiliation list.
+  chip adds an organization only when exactly one identity is known;
+  a resolved catalog org shows `entity_name`, and aliases of that org
+  collapse. Post chips show the title only. Click the chip to continue
+  the walk, or open the Keyman list when you need every affiliation.
 
 ## [0.71.0] - 2026-08-14
 

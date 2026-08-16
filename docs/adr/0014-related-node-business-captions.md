@@ -24,7 +24,9 @@ Hydrate related-node payloads with authorized lookup labels:
 
 - Person chips use `person_side_label` (fallback: raw `person_side_code`).
 - A person chip adds `affiliation_organization_name` only when exactly
-  one distinct non-empty affiliation is known.
+  one distinct organization identity is known. A resolved catalog org
+  supplies `corporate_entity.entity_name`; unresolved aliases that
+  casefold-match that label collapse into it.
 - Organization chips use `entity_level_label` (fallback: raw code).
 - Post chips show the post title only.
 

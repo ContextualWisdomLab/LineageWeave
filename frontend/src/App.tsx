@@ -472,7 +472,7 @@ const NODE_CORPORATE_ENTITY = "node_corporate_entity";
 function relatedNodeCaption(node: RelatedNode): string {
   const name = node.label ?? node.node_id;
   if (node.node_type_code === NODE_PERSON) {
-    const side = node.person_side_label ?? node.person_side_code;
+    const side = node.person_side_label?.trim() || node.person_side_code?.trim();
     const org = node.affiliation_organization_name?.trim();
     if (side && org) {
       return `${name}, ${org} (${side})`;
@@ -482,7 +482,7 @@ function relatedNodeCaption(node: RelatedNode): string {
     }
   }
   if (node.node_type_code === NODE_CORPORATE_ENTITY) {
-    const level = node.entity_level_label ?? node.entity_level_code;
+    const level = node.entity_level_label?.trim() || node.entity_level_code?.trim();
     if (level) {
       return `${name} (${level})`;
     }
