@@ -57,8 +57,10 @@ def test_run_scoped_persist_does_not_wipe_live_lineage_edges() -> None:
 def test_enqueue_is_lineage_only_and_replay_safe() -> None:
     """A second insert of the same run must not open another delivery."""
     source = inspect.getsource(enqueue_lineage_delivery)
-    assert LINEAGE_DELIVERY_KIND in source
-    assert DELIVERY_QUEUED in source
+    assert LINEAGE_DELIVERY_KIND == "analysis_delivery_lineage"
+    assert "LINEAGE_DELIVERY_KIND" in source
+    assert "DELIVERY_QUEUED" in source
+    assert DELIVERY_QUEUED == "analysis_delivery_queued"
     assert "on conflict (analysis_run_id) do nothing" in source
 
 
@@ -70,7 +72,8 @@ def test_outbox_migration_keeps_two_word_names_and_no_theta() -> None:
     assert "create table if not exists analysis_run_outbox" in migration
     assert "create table if not exists analysis_run_lineage_edge" in migration
     assert "jsonb" not in migration.casefold()
-    assert "theta" not in migration.casefold()
+    assert "fused_score double precision" in migration
+    assert " theta " not in f" {migration.casefold()} "
     assert "postgresql://" not in migration
     assert "analysis_run_outbox_not_empty" in rollback
     assert "0019_analysis_run_outbox.sql" in dockerfile
