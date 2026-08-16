@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.88.1] - 2026-08-16
+
+### Fixed
+
+- A granted `purge_analysis_run_registry` now deletes reconstruction
+  edges and frozen snapshot members before the 0018 registry tables
+  (ADR 0022). After you start a Pending lineage run, the documented
+  grant + admin + phrase path still empties the registry. Then export
+  `analysis_run_retention_event` and roll back 0023 through 0018.
+
 ## [0.88.0] - 2026-08-16
 
 ### Added

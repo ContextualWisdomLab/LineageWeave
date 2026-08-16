@@ -39,6 +39,11 @@ _RECONSTRUCTION_MIGRATION = (
 _SNAPSHOT_MEMBER_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0022_analysis_source_snapshot_member.sql"
 )
+_PURGE_RECONSTRUCTION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0023_analysis_run_retention_purge_reconstruction.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -125,6 +130,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_RETENTION_MIGRATION.read_text())
             cur.execute(_RECONSTRUCTION_MIGRATION.read_text())
             cur.execute(_SNAPSHOT_MEMBER_MIGRATION.read_text())
+            cur.execute(_PURGE_RECONSTRUCTION_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "

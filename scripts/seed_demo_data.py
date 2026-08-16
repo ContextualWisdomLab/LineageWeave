@@ -124,6 +124,7 @@ def seed(
             cur.execute((migrations / "0020_analysis_run_retention_purge.sql").read_text())
             cur.execute((migrations / "0021_analysis_run_reconstruction.sql").read_text())
             cur.execute((migrations / "0022_analysis_source_snapshot_member.sql").read_text())
+            cur.execute((migrations / "0023_analysis_run_retention_purge_reconstruction.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values

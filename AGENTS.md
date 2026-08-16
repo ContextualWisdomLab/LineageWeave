@@ -89,7 +89,9 @@ pnpm run lint && pnpm run test && pnpm run build
 A run-bearing analysis-run registry empties only after an unrevoked
 `analysis_run_retention_grant` and `GRANT analysis_run_retention_admin`
 (ADR 0020 / v0.87.0). The documented phrase is not a secret. Do not
-expose purge on a public HTTP route.
+expose purge on a public HTTP route. After a start, migration 0023
+(ADR 0022 / v0.88.1) makes that purge delete reconstruction and
+snapshot-member rows first.
 
 `POST /api/analysis-runs/{id}/start` reconstructs a Pending lineage
 cutoff bag through `reconstruct()` / `lineage_edge_specs` (ADR 0021 /

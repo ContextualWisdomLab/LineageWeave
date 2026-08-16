@@ -278,6 +278,7 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert "0020_analysis_run_retention_purge.sql" in dockerfile
     assert "0021_analysis_run_reconstruction.sql" in dockerfile
     assert "0022_analysis_source_snapshot_member.sql" in dockerfile
+    assert "0023_analysis_run_retention_purge_reconstruction.sql" in dockerfile
     seed = (_ROOT / "scripts" / "seed_demo_data.py").read_text(encoding="utf-8")
     assert seed.index("0019_role_catalog_identity.sql") < seed.index(
         "0020_analysis_run_retention_purge.sql"
@@ -288,6 +289,16 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert seed.index("0021_analysis_run_reconstruction.sql") < seed.index(
         "0022_analysis_source_snapshot_member.sql"
     )
+    assert seed.index("0022_analysis_source_snapshot_member.sql") < seed.index(
+        "0023_analysis_run_retention_purge_reconstruction.sql"
+    )
+    purge_reconstruction = (
+        _ROOT / "migrations" / "0023_analysis_run_retention_purge_reconstruction.sql"
+    ).read_text(encoding="utf-8")
+    assert "delete from analysis_run_lineage_edge" in purge_reconstruction
+    assert "delete from analysis_run_reconstruction" in purge_reconstruction
+    assert "delete from analysis_source_snapshot_member" in purge_reconstruction
+    assert "revoke all" in purge_reconstruction.casefold()
     assert "analysis_run_registry_not_empty" in rollback
     retention = _RETENTION_MIGRATION.read_text(encoding="utf-8")
     retention_rollback = _RETENTION_ROLLBACK.read_text(encoding="utf-8")
