@@ -4641,17 +4641,23 @@ and no VOC, affiliate, or Lineage relation is created from this display.
 ## Amendment: VOC source clicks stay uniquely bound (2026-08-16)
 
 A reader click on a VOC excerpt or 고객 약속 row may open the existing 원문
-drawer only when the row carries its own authorized non-URI guid, the document
-has exactly one usable event guid, or the excerpt date/text uniquely matches
-one same-document event. The first unmatched event in a multi-row document is
-not a source. Ambiguous excerpts stay visible as static text so the next
-action is "read the utterance" rather than "open someone else's row."
+drawer only when the row's own authorized non-URI guid is already in the
+same-document event set, the document has exactly one event with a usable
+non-document-number guid, or the excerpt text uniquely matches one
+same-document event. Date may narrow candidates; date alone does not bind.
+Leftover usable guids, empty blobs, and document-number fallbacks stay
+non-clickable. A missing cited guid 404s. Unique binds persist as
+`source_evidence_id` on `analysis_appointment_records`. Ambiguous excerpts
+stay visible as static text so the next action is "read the utterance"
+rather than "open someone else's row."
 
 This follows the PROV requirement that a derivation identify its used entity
 and the Web Annotation requirement that a body keep a specific target
 (Lebo et al., 2013; Moreau & Missier, 2013; Sanderson et al., 2017). See
 `docs/doctoring/evidence-source-binding.md`.
 
-Evidence: `vocExcerptEvidenceId` Vitest cases for own-guid, unique-event,
-date/text match, and multi-event fail-closed selection; React
-`renderVocExcerpt` and `#popupAppointments` surface contracts.
+Evidence: `vocExcerptEvidenceId` / `voc_excerpt_evidence_id` cases for
+unscoped own-id, date-only mismatch, leftover URI guid, empty blob,
+document-number guid, same-day multi-row VOC, and production `observed_row`
+titles; React `renderVocExcerpt` and `#popupAppointments` surface contracts;
+`source_evidence` KeyError when the cited guid is absent.

@@ -1876,7 +1876,7 @@ class LineageApplication:
                 persisted_appointments = lw._database_query(
                     connection,
                     f"""
-                    SELECT appointment_id, document_no, occurred_on, label, excerpt, content_source
+                    SELECT appointment_id, document_no, occurred_on, label, excerpt, content_source, source_evidence_id
                     FROM {lw.ANALYSIS_APPOINTMENT_TABLE}
                     WHERE document_no = %s
                     """,
@@ -2424,23 +2424,6 @@ class LineageApplication:
                 )
                 if rows:
                     break
-            if not rows:
-                rows = lw._database_query(
-                    connection,
-                    f"""
-                    SELECT guid_field, docnosub_field, acthguid_field,
-                           title_field, voctp_field, ststs_field, dtsts_field,
-                           grade_field, bukrs_field, pucode_field, userid_field,
-                           erdat_field, erzet_field, aedat_field, aezet_field,
-                           source_row_number, octet_length(voccts_field) AS content_bytes,
-                           left(voccts_field, 4000) AS content_preview
-                    FROM {self.source_table}
-                    WHERE docnosub_field = %s
-                    ORDER BY erdat_field, erzet_field, guid_field
-                    LIMIT 1
-                    """,
-                    (document_no,),
-                )
         if not rows:
             raise KeyError(guid)
         row = rows[0]

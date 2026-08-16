@@ -46,22 +46,41 @@ describe("counterpartVocExcerpts", () => {
 });
 
 describe("vocExcerptEvidenceId", () => {
-  it("opens only the excerpt's own guid or a uniquely matching same-document event", () => {
-    const delay = { excerpt: "Ada West confirmed the delay", occurred_on: "2026-08-01" };
-    const standup = { excerpt: "Internal standup notes", occurred_on: "2026-08-02" };
-    const events = [
-      { guid: "evt-delay", timestamp: "2026-08-01T09:00:00", event: "Ada West confirmed the delay", title: "follow-up" },
-      { guid: "evt-standup", timestamp: "2026-08-02T10:00:00", event: "Internal standup notes", title: "standup" },
+  it("opens a drawer only when one authorized same-document event uniquely matches", () => {
+    const delay = { excerpt: "납기 지연을 확인해 주세요", occurred_on: "2026-08-01" };
+    const standup = { excerpt: "주간 스탠드업 일정", occurred_on: "2026-08-02" };
+    const productionEvents = [
+      { guid: "evt-delay", timestamp: "2026-08-01T09:12:00", event: "observed_row", title: "납기 지연을 확인해 주세요" },
+      { guid: "evt-standup", timestamp: "2026-08-02T10:05:00", event: "observed_row", title: "주간 스탠드업 일정" },
+    ];
+    const sameDayEvents = [
+      { guid: "evt-delay", timestamp: "2026-08-01T09:12:00", event: "observed_row", title: "납기 지연을 확인해 주세요" },
+      { guid: "evt-escalation", timestamp: "2026-08-01T15:40:00", event: "observed_row", title: "에스컬레이션 회의" },
     ];
 
-    expect(vocExcerptEvidenceId({ guid: "evt-1" }, [])).toBe("evt-1");
-    expect(vocExcerptEvidenceId({ source_evidence_id: "row-9" }, events)).toBe("row-9");
+    expect(vocExcerptEvidenceId({ guid: "evt-1" }, [])).toBe("");
+    expect(vocExcerptEvidenceId({ source_evidence_id: "row-9" }, productionEvents)).toBe("");
+    expect(vocExcerptEvidenceId({ source_evidence_id: "evt-delay" }, productionEvents)).toBe("evt-delay");
     expect(vocExcerptEvidenceId({}, [{ guid: "evt-only" }])).toBe("evt-only");
-    expect(vocExcerptEvidenceId(delay, events)).toBe("evt-delay");
-    expect(vocExcerptEvidenceId(standup, events)).toBe("evt-standup");
-    expect(vocExcerptEvidenceId({ excerpt: "unrelated note", occurred_on: "2026-08-03" }, events)).toBe("");
-    expect(vocExcerptEvidenceId({}, events)).toBe("");
+    expect(vocExcerptEvidenceId(delay, productionEvents)).toBe("evt-delay");
+    expect(vocExcerptEvidenceId(standup, productionEvents)).toBe("evt-standup");
+    expect(vocExcerptEvidenceId({ excerpt: "unrelated note", occurred_on: "2026-08-01" }, productionEvents)).toBe("");
+    expect(vocExcerptEvidenceId({ excerpt: "unrelated note", occurred_on: "2026-08-03" }, productionEvents)).toBe("");
+    expect(vocExcerptEvidenceId({}, productionEvents)).toBe("");
     expect(vocExcerptEvidenceId({ guid: "urn:example" }, [{ guid: "http://example" }])).toBe("");
+    expect(vocExcerptEvidenceId(delay, [
+      { guid: "urn:example:delay", timestamp: "2026-08-01T09:12:00", event: "observed_row", title: "납기 지연을 확인해 주세요" },
+      { guid: "evt-only", timestamp: "2026-08-02T10:05:00", event: "observed_row", title: "주간 스탠드업 일정" },
+    ])).toBe("");
+    expect(vocExcerptEvidenceId(delay, [
+      { guid: "", timestamp: "2026-08-01T09:12:00", event: "", title: "" },
+      { guid: "evt-delay", timestamp: "2026-08-01T09:12:00", event: "observed_row", title: "납기 지연을 확인해 주세요" },
+    ])).toBe("evt-delay");
+    expect(vocExcerptEvidenceId({ excerpt: "납기 지연을 확인해 주세요", occurred_on: "2026-08-01" }, sameDayEvents)).toBe("evt-delay");
+    expect(vocExcerptEvidenceId({ excerpt: "다른 메모", occurred_on: "2026-08-01" }, sameDayEvents)).toBe("");
+    expect(vocExcerptEvidenceId(delay, [
+      { guid: "DOC-1", timestamp: "2026-08-01T09:12:00", event: "observed_row", title: "납기 지연을 확인해 주세요" },
+    ], "DOC-1")).toBe("");
   });
 });
 

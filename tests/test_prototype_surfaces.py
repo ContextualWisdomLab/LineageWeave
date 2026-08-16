@@ -1025,6 +1025,62 @@ def test_voc_evidence_candidates_skip_document_numbers() -> None:
     assert lw.voc_evidence_guid_candidates("https://example.test/term", "DOC-1", []) == []
 
 
+def test_voc_excerpt_evidence_id_fails_closed_on_realistic_multi_row_voc() -> None:
+    """A 원문 click must identify the used row, not the first leftover guid or date."""
+    delay = {"excerpt": "납기 지연을 확인해 주세요", "occurred_on": "2026-08-01"}
+    events = [
+        {
+            "guid": "evt-delay",
+            "timestamp": "2026-08-01T09:12:00",
+            "event": "observed_row",
+            "title": "납기 지연을 확인해 주세요",
+        },
+        {
+            "guid": "evt-standup",
+            "timestamp": "2026-08-02T10:05:00",
+            "event": "observed_row",
+            "title": "주간 스탠드업 일정",
+        },
+    ]
+    same_day = [
+        events[0],
+        {
+            "guid": "evt-escalation",
+            "timestamp": "2026-08-01T15:40:00",
+            "event": "observed_row",
+            "title": "에스컬레이션 회의",
+        },
+    ]
+    leftover = [
+        {
+            "guid": "urn:example:delay",
+            "timestamp": "2026-08-01T09:12:00",
+            "event": "observed_row",
+            "title": "납기 지연을 확인해 주세요",
+        },
+        events[1],
+    ]
+    assert lw.voc_excerpt_evidence_id({"guid": "evt-1"}, []) == ""
+    assert lw.voc_excerpt_evidence_id({"source_evidence_id": "row-9"}, events) == ""
+    assert lw.voc_excerpt_evidence_id({"source_evidence_id": "evt-delay"}, events) == "evt-delay"
+    assert lw.voc_excerpt_evidence_id({}, [{"guid": "evt-only"}]) == "evt-only"
+    assert lw.voc_excerpt_evidence_id(delay, events) == "evt-delay"
+    assert lw.voc_excerpt_evidence_id({"excerpt": "unrelated note", "occurred_on": "2026-08-01"}, events) == ""
+    assert lw.voc_excerpt_evidence_id(delay, leftover) == ""
+    assert lw.voc_excerpt_evidence_id(delay, same_day) == "evt-delay"
+    assert lw.voc_excerpt_evidence_id({"excerpt": "다른 메모", "occurred_on": "2026-08-01"}, same_day) == ""
+    assert lw.voc_excerpt_evidence_id(delay, [{"guid": "DOC-1", "event": "observed_row", "title": delay["excerpt"]}], "DOC-1") == ""
+    bound = lw.bind_appointment_source_evidence(delay, events, "DOC-1")
+    assert bound["source_evidence_id"] == "evt-delay"
+    unbound = lw.bind_appointment_source_evidence({"excerpt": "다른 메모", "occurred_on": "2026-08-01"}, same_day, "DOC-1")
+    assert "source_evidence_id" not in unbound
+    resolved = lw.resolve_document_appointments(
+        {"document_no": "DOC-1", "document_events": events},
+        persisted=[{"appointment_id": "apt-1", "occurred_on": "2026-08-01", "excerpt": delay["excerpt"]}],
+    )
+    assert resolved[0]["source_evidence_id"] == "evt-delay"
+
+
 def test_event_chat_citations_are_authorized_and_nonempty() -> None:
     result = lw.normalize_event_chat_response(
         {"answer": "관찰된 변경입니다.", "evidence_ids": ["hidden-guid"]},
@@ -1088,7 +1144,7 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert "function renderVocExcerpt" in react
     assert "vocExcerptEvidenceId" in react
     assert "원문 보기" in react
-    assert "popupAppointments" in react and "vocExcerptEvidenceId(item, events)" in react
+    assert "popupAppointments" in react and "vocExcerptEvidenceId(item, events, selectedNo)" in react
     assert "counterpartVocExcerpts" in react
     assert "vocExcerptsForCounterpart" in react
     assert 'id="vocExcerpts"' in react

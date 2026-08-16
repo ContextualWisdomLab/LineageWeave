@@ -1455,6 +1455,7 @@ def test_persist_operational_surfaces_writes_llm_work_appointments_and_customer_
             "todo_items": [{"todo_id": "todo-1", "ticket_id": "ticket-1", "title": "Follow up", "body": "Call customer"}],
             "calendar_items": [{"calendar_id": "calendar-1", "ticket_id": "ticket-1", "title": "Follow up", "body": "Call customer", "occurred_on": "2026-09-01"}],
             "appointments": [{"appointment_id": "appointment-1", "occurred_on": "2026-09-02", "label": "고객 약속", "excerpt": "Review meeting", "source": "llm"}],
+            "document_events": [{"guid": "evt-review", "timestamp": "2026-09-02T09:00:00", "event": "observed_row", "title": "Review meeting"}],
         }
     ]
     payload = {
@@ -1488,6 +1489,14 @@ def test_persist_operational_surfaces_writes_llm_work_appointments_and_customer_
     assert lw.ANALYSIS_TODO_TABLE in batch_sql
     assert lw.ANALYSIS_CALENDAR_TABLE in batch_sql
     assert lw.ANALYSIS_APPOINTMENT_TABLE in batch_sql
+    assert "source_evidence_id" in batch_sql
+    appointment_values = [
+        values
+        for sql, values in connection.recording_cursor.executemany_calls
+        if lw.ANALYSIS_APPOINTMENT_TABLE in sql
+    ]
+    assert appointment_values
+    assert any(row[-1] == "evt-review" for row in appointment_values[0])
     assert lw.ANALYSIS_CUSTOMER_TABLE in batch_sql
     assert lw.ANALYSIS_CUSTOMER_DOCUMENT_TABLE in batch_sql
     assert lw.ANALYSIS_CUSTOMER_AFFILIATE_TABLE in batch_sql

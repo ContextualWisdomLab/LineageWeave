@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+
+## 0.2.19 - 2026-08-16
+- VOC excerpt and 고객 약속 clicks now fail closed: the 원문 drawer opens only
+  when the excerpt's own guid is already in the authorized event set, the
+  document has exactly one usable non-document-number event, or the excerpt
+  text uniquely matches one same-document event. Date alone, leftover usable
+  guids, empty blobs, and a missing cited guid no longer open another row.
+  Unique binds persist as `source_evidence_id` on
+  `analysis_appointment_records` so the next 원문 보기 click keeps the used
+  source.
 - VOC excerpt and 고객 약속 clicks open the 원문 drawer only when the excerpt
   carries its own authorized guid, the document has exactly one usable event
   guid, or date/text uniquely matches one same-document event. Multiple

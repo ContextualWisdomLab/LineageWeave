@@ -7,15 +7,20 @@ as if it evidenced the utterance.
 
 ## Binding rule
 
-`vocExcerptEvidenceId` returns a drawer guid only when:
+`vocExcerptEvidenceId` and `voc_excerpt_evidence_id` return a drawer guid only
+when:
 
-1. the excerpt already carries its own non-URI `source_evidence_id`, `guid`,
-   or `evidence_id`;
-2. the authorized document has exactly one usable event guid; or
-3. the excerpt date and/or text uniquely matches one same-document event.
+1. the excerpt's own non-URI `source_evidence_id`, `guid`, or `evidence_id`
+   already appears in the authorized same-document event set;
+2. the document has exactly one event and that event has a usable guid that is
+   not the document number; or
+3. the excerpt text uniquely matches one same-document event. Date may narrow
+   candidates. Date alone does not bind. Empty event blobs do not match.
 
-Ontology HTTP/URN identifiers stay non-clickable. Multiple unmatched events
-stay static text.
+Ontology HTTP/URN identifiers and leftover usable guids stay non-clickable.
+A missing cited guid 404s instead of opening the first source row. Persist
+`source_evidence_id` on `analysis_appointment_records` when the bind is unique
+so the next 원문 보기 click keeps the same used entity.
 
 ## APA 7th sources
 

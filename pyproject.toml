@@ -1,6 +1,6 @@
 [project]
 name = "lineageweave"
-version = "0.2.18"
+version = "0.2.19"
 requires-python = ">=3.10"
 dependencies = [
     "psycopg[binary]>=3.2",

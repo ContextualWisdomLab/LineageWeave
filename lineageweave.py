@@ -4940,7 +4940,8 @@ def _ensure_operational_tables(connection: psycopg.Connection) -> None:
             occurred_on date NOT NULL,
             label text NOT NULL,
             excerpt text NOT NULL,
-            content_source text NOT NULL
+            content_source text NOT NULL,
+            source_evidence_id text
         )
         """,
         f"""
@@ -5139,6 +5140,10 @@ def _ensure_operational_tables(connection: psycopg.Connection) -> None:
     )
     for statement in statements:
         _database_exec(connection, statement)
+    _database_exec(
+        connection,
+        f"ALTER TABLE {ANALYSIS_APPOINTMENT_TABLE} ADD COLUMN IF NOT EXISTS source_evidence_id text",
+    )
     _database_exec(
         connection,
         f"ALTER TABLE {ANALYSIS_CALENDAR_TABLE} ALTER COLUMN occurred_on DROP NOT NULL",
@@ -5826,7 +5831,11 @@ def persist_operational_surfaces(
         if item.get("calendar_id")
     ]
     appointments = [
-        {**item, "document_no": node.get("document_no")}
+        bind_appointment_source_evidence(
+            {**item, "document_no": node.get("document_no")},
+            document_event_rows(node),
+            node.get("document_no"),
+        )
         for node in documents
         for item in node.get("appointments") or []
         if item.get("appointment_id")
@@ -5923,8 +5932,8 @@ def persist_operational_surfaces(
             cursor.executemany(
                 f"""
                 INSERT INTO {ANALYSIS_APPOINTMENT_TABLE}
-                    (appointment_id, document_no, occurred_on, label, excerpt, content_source)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                    (appointment_id, document_no, occurred_on, label, excerpt, content_source, source_evidence_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (appointment_id) DO NOTHING
                 """,
                 [
@@ -5940,6 +5949,7 @@ def persist_operational_surfaces(
                         item.get("label") or "고객 약속",
                         item.get("excerpt") or "",
                         item.get("source") or "extract",
+                        item.get("source_evidence_id") or None,
                     )
                     for item in appointments
                 ],
@@ -6902,7 +6912,7 @@ def load_persisted_document_detail(
         (
             ANALYSIS_APPOINTMENT_TABLE,
             "appointments",
-            "appointment_id, document_no, occurred_on, label, excerpt, content_source",
+            "appointment_id, document_no, occurred_on, label, excerpt, content_source, source_evidence_id",
         ),
     ):
         if not _database_table_exists(connection, table_name):
@@ -7524,7 +7534,7 @@ def load_database_overrides(
         )
         appointments = _database_query(
             connection,
-            f"SELECT appointment_id, document_no, occurred_on, label, excerpt, content_source FROM {ANALYSIS_APPOINTMENT_TABLE}",
+            f"SELECT appointment_id, document_no, occurred_on, label, excerpt, content_source, source_evidence_id FROM {ANALYSIS_APPOINTMENT_TABLE}",
         )
     except Exception:
         todos, calendars, appointments = [], [], []
@@ -9285,6 +9295,8 @@ def resolve_document_appointments(
     persisted: Optional[Sequence[Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
     """Prefer persisted 약속 rows, then in-memory rows, then title/document-number extract."""
+    events = document_event_rows(document)
+    document_no = document.get("document_no") if isinstance(document, dict) else None
     if persisted:
         resolved: List[Dict[str, Any]] = []
         for item in persisted:
@@ -9292,11 +9304,16 @@ def resolve_document_appointments(
             row["source"] = row.get("source") or row.get("content_source") or "extract"
             if row.get("occurred_on") is not None:
                 row["occurred_on"] = str(row["occurred_on"])[:10]
-            resolved.append(row)
+            resolved.append(bind_appointment_source_evidence(row, events, document_no))
         return resolved
     existing = document.get("appointments") or []
     if existing:
-        return [dict(item) if isinstance(item, dict) else item for item in existing]
+        return [
+            bind_appointment_source_evidence(dict(item), events, document_no)
+            if isinstance(item, dict)
+            else item
+            for item in existing
+        ]
     text = " ".join(
         str(value)
         for value in (
@@ -9439,13 +9456,14 @@ def enrich_pending_appointment_records(
             cursor.executemany(
                 f"""
                 INSERT INTO {ANALYSIS_APPOINTMENT_TABLE}
-                    (appointment_id, document_no, occurred_on, label, excerpt, content_source)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                    (appointment_id, document_no, occurred_on, label, excerpt, content_source, source_evidence_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (appointment_id) DO UPDATE SET
                     occurred_on = EXCLUDED.occurred_on,
                     label = EXCLUDED.label,
                     excerpt = EXCLUDED.excerpt,
-                    content_source = EXCLUDED.content_source
+                    content_source = EXCLUDED.content_source,
+                    source_evidence_id = EXCLUDED.source_evidence_id
                 """,
                 [
                     (
@@ -9455,6 +9473,7 @@ def enrich_pending_appointment_records(
                         item.get("label") or "고객 약속",
                         item.get("excerpt") or "",
                         "llm",
+                        item.get("source_evidence_id") or None,
                     )
                     for item in llm_rows
                 ],
@@ -9979,14 +9998,95 @@ def voc_evidence_guid_candidates(
         guid,
         *(item.get("guid") or item.get("evidence_id") for item in events if isinstance(item, dict)),
     ):
-        text = str(value or "").strip()
-        if not text or text.startswith("http") or text.startswith("urn:"):
-            continue
-        if document_no and text == str(document_no):
-            continue
-        if text not in candidates:
+        text = voc_usable_evidence_id(value, document_no)
+        if text and text not in candidates:
             candidates.append(text)
     return candidates
+
+
+def voc_usable_evidence_id(
+    value: Optional[str],
+    document_no: Optional[str] = None,
+) -> str:
+    """Return a plain same-document guid, never an ontology URI or document number."""
+    text = str(value or "").strip()
+    if not text or ":" in text or text.startswith("http") or text.startswith("urn:"):
+        return ""
+    if document_no and text == str(document_no).strip():
+        return ""
+    return text
+
+
+def document_event_rows(document: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    """Collect observed row events used to bind a VOC excerpt."""
+    rows: List[Dict[str, Any]] = []
+    if not isinstance(document, dict):
+        return rows
+    for field_name in ("rows", "document_events"):
+        for item in document.get(field_name) or []:
+            if isinstance(item, dict):
+                rows.append(item)
+    return rows
+
+
+def voc_excerpt_evidence_id(
+    excerpt: Optional[Dict[str, Any]] = None,
+    events: Sequence[Dict[str, Any]] = (),
+    document_no: Optional[str] = None,
+) -> str:
+    """Return a drawer guid only when the excerpt uniquely identifies one event."""
+    excerpt_row = excerpt if isinstance(excerpt, dict) else {}
+    rows: List[Dict[str, str]] = []
+    for item in events or []:
+        if not isinstance(item, dict):
+            continue
+        rows.append(
+            {
+                "id": voc_usable_evidence_id(
+                    item.get("guid") or item.get("evidence_id") or item.get("source_evidence_id"),
+                    document_no,
+                ),
+                "day": str(item.get("timestamp") or item.get("occurred_on") or "").strip()[:10],
+                "blob": " ".join(
+                    str(item.get(field) or "") for field in ("event", "title", "stage")
+                )
+                .strip()
+                .lower(),
+            }
+        )
+    authorized = {item["id"] for item in rows if item["id"]}
+    own = voc_usable_evidence_id(
+        excerpt_row.get("source_evidence_id") or excerpt_row.get("guid") or excerpt_row.get("evidence_id"),
+        document_no,
+    )
+    if own and own in authorized:
+        return own
+    if len(rows) == 1 and rows[0]["id"]:
+        return rows[0]["id"]
+    occurred_on = str(excerpt_row.get("occurred_on") or "").strip()[:10]
+    excerpt_text = str(excerpt_row.get("excerpt") or "").strip().lower()
+    matched = [item for item in rows if item["id"]]
+    if occurred_on:
+        by_day = [item for item in matched if item["day"] == occurred_on]
+        if by_day:
+            matched = by_day
+    if not excerpt_text:
+        return ""
+    by_text = [item for item in matched if item["blob"] and excerpt_text in item["blob"]]
+    return by_text[0]["id"] if len(by_text) == 1 else ""
+
+
+def bind_appointment_source_evidence(
+    appointment: Dict[str, Any],
+    events: Sequence[Dict[str, Any]] = (),
+    document_no: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Attach a unique source guid when the appointment text identifies one event."""
+    row = dict(appointment)
+    evidence_id = voc_excerpt_evidence_id(row, events, document_no or row.get("document_no"))
+    if evidence_id:
+        row["source_evidence_id"] = evidence_id
+    return row
 
 
 def customer_master_sample_documents(
