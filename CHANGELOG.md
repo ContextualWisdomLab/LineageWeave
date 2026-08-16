@@ -15,8 +15,6 @@ All notable changes to this project are documented here. Format follows
   the 24px pointer target (WCAG 2.2 SC 1.4.13 and 2.5.8; WAI-ARIA APG
   Disclosure). A hover `title` is no longer the only path. The home
   list still hides digests even when the list JSON includes them.
-  Requesting a lineage reconstruction now keeps the pending next action
-  on that opened detail: reconstruction has not started yet.
 
 ## [0.86.2] - 2026-08-16
 

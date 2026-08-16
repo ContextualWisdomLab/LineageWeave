@@ -14,13 +14,14 @@ evidence.
 
 1. #127 is on `feat/role-responsibility-agent-ontology` (`44912a6`).
    Prefixes are audible; the live-body warning is present.
-2. Land #155 (v0.86.3) so keyboard and AT operators can match a digest
-   to the API payload. Closed panels stay in the document with `hidden`;
-   each prefix is a 24px target. Prefer #155 over #139 `cf8c2e8` and
-   over #135. Do not self-approve or merge from this automation.
+2. #148 landed kind-specific pending copy on this base (`39ed6eb`).
+   #155 (`2daed45`) now conflicts with that tip. Rebase the digest
+   disclosure onto #148 and prefer that successor over #155, #139
+   `cf8c2e8`, and #135. Do not self-approve or merge from this
+   automation.
 3. Write-clock landing is #150. Prefer it over #131. Do not open a
-   second write-clock PR. Kind-specific pending copy is #149 — do not
-   open a second pending-copy PR. Retention purge + Storybook tokens
+   second write-clock PR. Do not reopen pending-copy (#149/#146);
+   that slice landed as #148. Retention purge + Storybook tokens
    landing is #154. Prefer it over #145/#134/#137.
 4. #125 (`POST /api/analysis-runs`) is on the same base. Do not open a
    second create PR.
@@ -30,5 +31,6 @@ evidence.
 
 Retention purge and the Storybook runner belong to the approved
 frontend-toolchain PR. Failed-run next-action copy already landed with
-#124. Embedded `data:image` rendering landed as 0.86.1. R&R catalog-id
-walks landed as 0.86.2 (#141).
+#124. Kind-specific pending copy landed as #148. Embedded `data:image`
+rendering landed as 0.86.1. R&R catalog-id walks landed as 0.86.2
+(#141).

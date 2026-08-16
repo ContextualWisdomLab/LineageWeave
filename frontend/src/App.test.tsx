@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
@@ -1814,14 +1814,17 @@ describe("App, authenticated", () => {
     await userEvent.click(
       await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
     );
-    expect(
-      await screen.findByRole("heading", { name: "Lineage reconstruction · Pending · Demo Corp" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Open this run to confirm which posts it will use. Reconstruction has not started yet.",
-      ),
-    ).toBeInTheDocument();
+    const pendingHeading = await screen.findByRole("heading", {
+      name: "Lineage reconstruction · Pending · Demo Corp",
+    });
+    const pendingCopy =
+      "Open this run to confirm which posts it will use. Reconstruction has not started yet.";
+    expect(screen.getAllByText(pendingCopy).length).toBeGreaterThanOrEqual(1);
+    const pendingDetail = pendingHeading.closest(".popup-section");
+    if (pendingDetail === null) {
+      throw new Error("Pending run detail is missing after the create request.");
+    }
+    expect(within(pendingDetail).getAllByText(pendingCopy)).toHaveLength(1);
     const postCall = fetchMock.mock.calls.find(
       (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
     );
