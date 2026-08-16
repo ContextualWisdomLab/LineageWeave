@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.79.0] - 2026-08-16
+
+### Added
+
+- Authorized analysis-run evidence on the product home page. After
+  `make seed`, Demo Analyst sees "Lineage reconstruction · Succeeded ·
+  Demo Corp" with the synthetic document count. `GET /api/analysis-runs`
+  is scoped in SQL: another tenant's run 404s and never appears in the
+  list. The payload is labels and aggregates -- never source SQL, a DSN,
+  or a raw record. TEPP stays behind `tepp_client`; Null channels are
+  unchanged.
+
 ## [0.78.0] - 2026-08-15
 
 ### Changed

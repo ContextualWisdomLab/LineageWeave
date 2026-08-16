@@ -454,6 +454,20 @@ lists the same dated tickets the period-report members already show.
 Re-seed is idempotent. The empty-state copy is only for accounts that
 truly have no dated open tickets.
 
+## Phase 6-M2: authorized analysis-run evidence (read projection)
+
+Issue #79's first buyer-visible Milestone 2 slice is a source-redacting
+read of the #89 registry. `GET /api/analysis-runs` and
+`GET /api/analysis-runs/{id}` require `post_read` and apply the scope
+in SQL: the requester always sees their own run; a corporate-entity or
+process-unit scope is visible only to affiliated accounts; a
+thread-group scope is visible only when the account can already see a
+post in that group; `all_visible` is requester-only. Hidden runs 404.
+The payload is lookup labels plus non-negative aggregate counts -- never
+source SQL, a DSN, a raw record, or a provider body. After `make seed`,
+Demo Analyst and Demo Admin see "Lineage reconstruction · Succeeded ·
+Demo Corp" with "3 documents".
+
 ## Phase 6a: fast-mlsirm dependency + Rust toolchain (infra only)
 
 First of three staged slices toward the brief's weekly/monthly

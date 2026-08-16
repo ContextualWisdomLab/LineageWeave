@@ -30,6 +30,7 @@ _KEYCLOAK_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL", "http
 _VALKEY_URL = os.environ.get("LINEAGEWEAVE_TEST_VALKEY_URL", "redis://localhost:16379/0")
 _REALM = "lineageweave-demo"
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
+_REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
 
 
 def _postgres_available() -> bool:
@@ -112,6 +113,7 @@ def seeded_db(demo_analyst_token):
     try:
         with conn.cursor() as cur:
             cur.execute(_MIGRATION_PATH.read_text())
+            cur.execute(_REGISTRY_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -186,6 +188,108 @@ def seeded_db(demo_analyst_token):
             cur.execute(
                 "insert into role_permission (access_role_id, permission_code) values (%s, 'post_read')",
                 (role_id,),
+            )
+
+            def _seed_analysis_run(
+                digest: str,
+                idempotency_key: str,
+                requester_id,
+                scope_kind: str,
+                corp_id=None,
+            ) -> str:
+                cur.execute(
+                    """
+                    insert into analysis_source_snapshot
+                        (snapshot_sha256, source_contract_version,
+                         maximum_available_time, captured_at)
+                    values (%s, 'source-contract-v1',
+                            '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
+                    returning analysis_source_snapshot_id
+                    """,
+                    (digest,),
+                )
+                snapshot_id = cur.fetchone()[0]
+                cur.execute(
+                    """
+                    insert into analysis_source_count
+                        (analysis_source_snapshot_id, count_type_code, count_value)
+                    values (%s, 'analysis_count_document', 3)
+                    """,
+                    (snapshot_id,),
+                )
+                cur.execute(
+                    """
+                    insert into analysis_run
+                        (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                         requested_by_account_id, knowledge_cutoff,
+                         configuration_schema_version, configuration_sha256,
+                         code_revision_sha, requested_at)
+                    values (%s, 'analysis_run_lineage', %s, %s,
+                            '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
+                            '2026-01-12T12:30:00Z')
+                    returning analysis_run_id
+                    """,
+                    (snapshot_id, idempotency_key, requester_id, "b" * 64, "c" * 40),
+                )
+                run_id = str(cur.fetchone()[0])
+                if scope_kind == "analysis_scope_corporate_entity":
+                    cur.execute(
+                        """
+                        insert into analysis_run_scope
+                            (analysis_run_id, scope_kind_code, corporate_entity_id)
+                        values (%s, %s, %s)
+                        """,
+                        (run_id, scope_kind, corp_id),
+                    )
+                else:
+                    cur.execute(
+                        """
+                        insert into analysis_run_scope
+                            (analysis_run_id, scope_kind_code)
+                        values (%s, %s)
+                        """,
+                        (run_id, scope_kind),
+                    )
+                for ordinal, status, occurred in (
+                    (1, "analysis_status_pending", "2026-01-12T12:31:00Z"),
+                    (2, "analysis_status_running", "2026-01-12T12:32:00Z"),
+                    (3, "analysis_status_succeeded", "2026-01-12T12:33:00Z"),
+                ):
+                    cur.execute(
+                        """
+                        insert into analysis_run_status_event
+                            (analysis_run_id, status_ordinal, status_code, occurred_at)
+                        values (%s, %s, %s, %s)
+                        """,
+                        (run_id, ordinal, status, occurred),
+                    )
+                return run_id
+
+            cur.execute(
+                "insert into user_account (external_subject_id, display_name, email_address) "
+                "values (%s, 'Other Analyst', 'other.analyst@example.test') returning user_account_id",
+                (f"other-{uuid.uuid4()}",),
+            )
+            other_account_id = cur.fetchone()[0]
+            visible_run_id = _seed_analysis_run(
+                "a" * 64,
+                "visible-own-corp",
+                account_id,
+                "analysis_scope_corporate_entity",
+                own_corp_id,
+            )
+            hidden_run_id = _seed_analysis_run(
+                "d" * 64,
+                "hidden-other-corp",
+                other_account_id,
+                "analysis_scope_corporate_entity",
+                other_corp_id,
+            )
+            hidden_all_visible_id = _seed_analysis_run(
+                "e" * 64,
+                "hidden-all-visible",
+                other_account_id,
+                "analysis_scope_all_visible",
             )
             cur.execute(
                 "insert into account_role_assignment (user_account_id, access_role_id) values (%s, %s)",
@@ -298,6 +402,9 @@ def seeded_db(demo_analyst_token):
             "our_person_id": our_person_id,
             "counterpart_person_id": counterpart_person_id,
             "hidden_person_id": hidden_person_id,
+            "visible_run_id": visible_run_id,
+            "hidden_run_id": hidden_run_id,
+            "hidden_all_visible_id": hidden_all_visible_id,
         }
     finally:
         conn.close()
@@ -318,6 +425,51 @@ def client(seeded_db):
 
     with TestClient(app) as test_client:
         yield test_client
+
+
+def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Demo analyst sees the Test Corp run, never the Other Corp or outsider run."""
+    listed = client.get("/api/analysis-runs", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert listed.status_code == 200
+    runs = listed.json()["analysis_runs"]
+    ids = {run["analysis_run_id"] for run in runs}
+    assert seeded_db["visible_run_id"] in ids
+    assert seeded_db["hidden_run_id"] not in ids
+    assert seeded_db["hidden_all_visible_id"] not in ids
+    visible = next(run for run in runs if run["analysis_run_id"] == seeded_db["visible_run_id"])
+    assert visible["run_kind_label"] == "Lineage reconstruction"
+    assert visible["status_label"] == "Succeeded"
+    assert visible["scope_kind_label"] == "Corporate entity"
+    assert visible["scope_entity_name"] == "Test Corp"
+    assert visible["source_counts"] == [
+        {
+            "count_type_code": "analysis_count_document",
+            "count_type_label": "Documents",
+            "count_value": 3,
+        }
+    ]
+    dumped = str(visible)
+    assert "postgresql://" not in dumped
+    assert "select " not in dumped.lower()
+
+    detail = client.get(
+        f"/api/analysis-runs/{seeded_db['visible_run_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert detail.status_code == 200
+    assert detail.json()["configuration_schema_version"] == "lineage-run-v1"
+    assert "snapshot_sha256" not in detail.json()
+
+    hidden = client.get(
+        f"/api/analysis-runs/{seeded_db['hidden_run_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert hidden.status_code == 404
+
+    unauthenticated = client.get("/api/analysis-runs")
+    assert unauthenticated.status_code == 401
 
 
 def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> None:
