@@ -1195,6 +1195,17 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert 'id="popupRoles"' in react
     assert 'id="affiliateTree"' in react
     assert 'id="popupChat"' in react
+    assert "const [chatUnavailable, setChatUnavailable] = useState(false);" in react
+    assert 'if (caught.message === "live_model_unavailable")' in react
+    assert 'id="chatUnavailable"' in react
+    assert "지금은 질문할 수 없습니다. 모델 연결이 없어 답을 만들지 않습니다." in react
+    assert "{chat && !chatUnavailable ?" in react
+    changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+    architecture = Path("ARCHITECTURE.md").read_text(encoding="utf-8")
+    traceability = Path("TRACEABILITY.md").read_text(encoding="utf-8")
+    assert "live_model_unavailable" in changelog
+    assert "chatUnavailable" in architecture
+    assert "Chat unavailable empty state" in traceability
     assert 'id="popupKnowledge"' in react
     assert 'id="popupKnowledgeEdges"' in react
     assert "function openKnowledgeNode" in react

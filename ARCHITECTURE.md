@@ -548,6 +548,12 @@ whose permission is `열람`; the captured navigation has no administrator mode.
 This capture is traceability evidence, not a replacement for independent
 Figma parity review or production Keyverse acceptance.
 
+Event-lineage chat is a live-model question over the authorized document
+neighborhood. If the transport returns `live_model_unavailable`, React sets
+`chatUnavailable` and replaces the ask control with an honest empty state
+instead of fabricating an answer. A later document selection clears that
+flag so a recovered model can be asked again.
+
 When a selected document has no persisted observed event transition, the
 reader detail uses an explicit independent-observation state and renders no
 chronological connector. Inferred or predicted relatedness remains a separate
