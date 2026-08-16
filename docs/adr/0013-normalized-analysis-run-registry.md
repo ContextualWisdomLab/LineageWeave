@@ -242,18 +242,18 @@ Acceptance requires:
    `POST /api/analysis-runs` now records that Pending write (ADR 0017).
    `POST /api/analysis-runs/{id}/start` now reconstructs a Pending
    lineage cutoff bag in-process from frozen snapshot membership
-   (ADR 0021). A durable outbox / Valkey worker and live TEPP execution
-   remain later slices.
+   (ADR 0021). A durable outbox / Valkey worker remains a later slice.
+   Live TEPP start now submits through `tepp_client` (ADR 0022).
 2. Add RBAC/ABAC-protected run list/detail endpoints and the DB-grounded
    read-only administrator surface.
 3. Add a normalized PostgreSQL outbox and Valkey delivery worker.
 4. Add TEPP and contextual-orchestrator adapters only after their versioned
-   contracts are present on reviewed main branches. Seed now records a
-   Failed TEPP run through `tepp_client` on the shared Demo Corp snapshot;
-   a live transport remains a later slice. A missing or unused TEPP
-   envelope must stay Failed (`tepp_not_available` /
-   `tepp_result_not_persisted`) and must not write a local psychometric
-   substitute.
+   contracts are present on reviewed main branches. Seed and
+   `POST /api/analysis-runs/{id}/start` now record Failed TEPP through
+   `tepp_client` on the frozen snapshot; a persistable measurement
+   remains a later slice. A missing or unused TEPP envelope must stay
+   Failed (`tepp_not_available` / `tepp_result_not_persisted`) and must
+   not write a local psychometric substitute.
 5. Execute private actual-data analysis and store only signed aggregate and
    reproducibility manifests outside public source control.
 6. Run browser E2E through real OIDC, product navigation, and evidence drill-down.

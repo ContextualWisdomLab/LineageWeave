@@ -86,6 +86,7 @@ describe("App, authenticated", () => {
     const events: { event_id: string; event_type: string; actor_account_id: string; summary: string }[] = [];
     let nextEventId = 1;
     let createdPendingLineage: Record<string, unknown> | null = null;
+    let createdPendingTepp: Record<string, unknown> | null = null;
 
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -212,6 +213,34 @@ describe("App, authenticated", () => {
               },
             ],
           }),
+        );
+      }
+      if (url.endsWith("/api/analysis-runs/run-demo-tepp-pending")) {
+        return Promise.resolve(
+          jsonResponse(
+            createdPendingTepp ?? {
+              analysis_run_id: "run-demo-tepp-pending",
+              run_kind_code: "analysis_run_tepp",
+              run_kind_label: "TEPP measurement",
+              scope_kind_code: "analysis_scope_corporate_entity",
+              scope_kind_label: "Corporate entity",
+              scope_entity_name: "Demo Corp",
+              status_code: "analysis_status_pending",
+              status_label: "Pending",
+              knowledge_cutoff: "2026-01-12T12:00:00Z",
+              requested_at: "2026-01-12T12:41:00Z",
+              source_counts: [],
+              visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+              status_history: [
+                {
+                  status_ordinal: 1,
+                  status_code: "analysis_status_pending",
+                  status_label: "Pending",
+                  occurred_at: "2026-01-12T12:41:00Z",
+                },
+              ],
+            },
+          ),
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-tepp")) {
@@ -356,17 +385,28 @@ describe("App, authenticated", () => {
             knowledge_cutoff: "2026-01-12T12:00:00Z",
             requested_at: "2026-01-12T12:35:00Z",
             source_counts: [],
-            visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+            visible_posts: [
+              {
+                post_id: "post-1",
+                post_title: "Pricing renegotiation: revised quote sent",
+                live_after_cutoff: true,
+              },
+              {
+                post_id: "post-2",
+                post_title: "Pricing renegotiation follow-up",
+                live_after_cutoff: false,
+              },
+            ],
             reconstructed_edges: [
               {
-                parent_post_id: "post-follow-up",
+                parent_post_id: "post-2",
                 parent_post_title: "Pricing renegotiation follow-up",
-                child_post_id: "post-quote",
+                child_post_id: "post-1",
                 child_post_title: "Pricing renegotiation: revised quote sent",
                 fused_score: 0.72,
               },
               {
-                parent_post_id: "post-follow-up",
+                parent_post_id: "post-2",
                 parent_post_title: "Pricing renegotiation follow-up",
                 child_post_id: "post-delivery",
                 child_post_title: "Delivery schedule question raised",
@@ -397,7 +437,80 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/analysis-runs/run-demo-tepp/start") && method === "POST") {
+        return Promise.resolve(
+          jsonResponse({
+            analysis_run_id: "run-demo-tepp",
+            run_kind_code: "analysis_run_tepp",
+            run_kind_label: "TEPP measurement",
+            scope_kind_code: "analysis_scope_corporate_entity",
+            scope_kind_label: "Corporate entity",
+            scope_entity_name: "Demo Corp",
+            status_code: "analysis_status_failed",
+            status_label: "Failed",
+            failure_code: "tepp_not_available",
+            knowledge_cutoff: "2026-01-12T12:00:00Z",
+            requested_at: "2026-01-12T12:34:00Z",
+            source_counts: [
+              {
+                count_type_code: "analysis_count_document",
+                count_type_label: "Documents",
+                count_value: 3,
+              },
+            ],
+            visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+            status_history: [
+              {
+                status_ordinal: 1,
+                status_code: "analysis_status_pending",
+                status_label: "Pending",
+                occurred_at: "2026-01-12T12:35:00Z",
+              },
+              {
+                status_ordinal: 2,
+                status_code: "analysis_status_running",
+                status_label: "Running",
+                occurred_at: "2026-01-12T12:36:00Z",
+              },
+              {
+                status_ordinal: 3,
+                status_code: "analysis_status_failed",
+                status_label: "Failed",
+                occurred_at: "2026-01-12T12:37:00Z",
+                failure_code: "tepp_not_available",
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/analysis-runs") && method === "POST") {
+        const payload = init?.body ? JSON.parse(String(init.body)) : {};
+        if (payload.run_kind_code === "analysis_run_tepp") {
+          const created = {
+            analysis_run_id: "run-demo-tepp-pending",
+            run_kind_code: "analysis_run_tepp",
+            run_kind_label: "TEPP measurement",
+            scope_kind_code: "analysis_scope_corporate_entity",
+            scope_kind_label: "Corporate entity",
+            scope_entity_name: "Demo Corp",
+            status_code: "analysis_status_pending",
+            status_label: "Pending",
+            knowledge_cutoff: "2026-01-12T12:00:00Z",
+            requested_at: "2026-01-12T12:41:00Z",
+            source_counts: [],
+            visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+            status_history: [
+              {
+                status_ordinal: 1,
+                status_code: "analysis_status_pending",
+                status_label: "Pending",
+                occurred_at: "2026-01-12T12:41:00Z",
+              },
+            ],
+          };
+          createdPendingTepp = created;
+          return Promise.resolve(new Response(JSON.stringify(created), { status: 201 }));
+        }
         const created = {
           analysis_run_id: "run-demo-lineage-pending",
           run_kind_code: "analysis_run_lineage",
@@ -429,6 +542,7 @@ describe("App, authenticated", () => {
           jsonResponse({
             analysis_runs: [
               ...(createdPendingLineage ? [createdPendingLineage] : []),
+              ...(createdPendingTepp ? [createdPendingTepp] : []),
               {
                 analysis_run_id: "run-demo-lineage",
                 run_kind_code: "analysis_run_lineage",
@@ -1900,6 +2014,52 @@ describe("App, authenticated", () => {
     expect(screen.queryByText(/this TEPP run measured/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reconstruction has not started yet/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start TEPP measurement" })).toBeInTheDocument();
+  });
+
+  it("starts a pending TEPP run through tepp_client and does not invent a theta", async () => {
+    const fetchMock = stubBackend({ pendingTeppRun: true });
+    render(<App />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: TEPP measurement · Pending · Demo Corp",
+      }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Start TEPP measurement" }));
+    expect(
+      await screen.findByRole("heading", { name: "TEPP measurement · Failed · Demo Corp" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/tepp_not_available/)).toBeInTheDocument();
+    expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
+    const startCall = fetchMock.mock.calls.find((call) =>
+      String(call[0]).endsWith("/api/analysis-runs/run-demo-tepp/start"),
+    );
+    expect(startCall?.[1]?.method).toBe("POST");
+  });
+
+  it("requests a new TEPP run from a failed row instead of mutating Failed", async () => {
+    const fetchMock = stubBackend();
+    render(<App />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+      }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Request a new TEPP measurement" }));
+    expect(
+      await screen.findByRole("heading", { name: "TEPP measurement · Pending · Demo Corp" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start TEPP measurement" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
+    const postCall = fetchMock.mock.calls.find(
+      (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+    );
+    expect(postCall).toBeDefined();
+    const body = JSON.parse(String(postCall?.[1]?.body));
+    expect(body.run_kind_code).toBe("analysis_run_tepp");
   });
 
   it("does not tell a succeeded TEPP run to replace Failed", async () => {
@@ -1960,14 +2120,13 @@ describe("App, authenticated", () => {
     expect(
       await screen.findByRole("heading", { name: "Lineage reconstruction · Succeeded · Demo Corp" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Pricing renegotiation: revised quote sent follows Pricing renegotiation follow-up",
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Delivery schedule question raised follows Pricing renegotiation follow-up"),
-    ).toBeInTheDocument();
+    const fork = screen.getByRole("list", { name: "Reconstructed lineage edges" });
+    expect(fork).toHaveTextContent(
+      "Pricing renegotiation: revised quote sent follows Pricing renegotiation follow-up",
+    );
+    expect(fork).toHaveTextContent(
+      "Delivery schedule question raised follows Pricing renegotiation follow-up",
+    );
     const digests = screen.getByLabelText("Analysis run reproducibility digests");
     expect(digests).toHaveTextContent("Result aaaaaaaaaaaa");
     expect(screen.getByTitle("aa".repeat(32))).toHaveTextContent("Result aaaaaaaaaaaa");
@@ -1975,6 +2134,25 @@ describe("App, authenticated", () => {
       String(call[0]).endsWith("/api/analysis-runs/run-demo-lineage-pending/start"),
     );
     expect(startCall?.[1]?.method).toBe("POST");
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open reconstructed child: Pricing renegotiation: revised quote sent",
+      }),
+    );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(screen.getByRole("status", { name: "Live body warning" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(
+      screen.getAllByRole("button", {
+        name: "Open reconstructed parent: Pricing renegotiation follow-up",
+      })[0],
+    );
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
   });
 
   it("shows the calibrated period-report mean theta on the home page", async () => {

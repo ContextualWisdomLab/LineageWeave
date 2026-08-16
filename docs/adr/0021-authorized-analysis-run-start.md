@@ -30,8 +30,8 @@ free slot.
 transaction:
 
 1. loads the authorized run (hidden scopes 404);
-2. rejects non-lineage kinds so TEPP and period-report cannot invent a
-   theta or a calibrated score;
+2. rejects period-report so this path cannot invent a calibrated
+   score; TEPP start is ADR 0022 and still cannot invent a theta;
 3. replays a Succeeded run (documented no-op; same stored digest);
 4. accepts only Pending lineage — Running is 409;
 5. locks the run row, re-reads status, appends Running, runs
@@ -79,7 +79,9 @@ Rules:
   backfill that shares the cutoff clock.
 
 The home detail adds **Start reconstruction** on a Pending lineage row
-and lists titled parent→child edges after Succeeded. The Result digest
+and lists titled parent→child edges after Succeeded. Those titles are
+buttons that open the live post (a marked child still shows the
+live-body warning). The Result digest
 prefix is audible next to Code and Config; hover it to verify the
 parent-choice hash. Edge titles stay public-or-affiliated. TEPP and
 period-report rows do not show the button.

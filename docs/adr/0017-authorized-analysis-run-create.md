@@ -38,7 +38,8 @@ still owns reconstruction and live TEPP execution.
 The home panel's **Request a lineage reconstruction** button records a
 Pending row the operator can open immediately. `POST
 /api/analysis-runs/{id}/start` then reconstructs that frozen bag
-(ADR 0021). TEPP transport and the outbox worker remain later slices.
+(ADR 0021). TEPP start now goes through `tepp_client` (ADR 0022). The
+outbox worker remains a later slice.
 Do not stamp Succeeded or invent a theta from this write.
 
 ## References — APA 7th

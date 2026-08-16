@@ -4,6 +4,28 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.92.0] - 2026-08-17
+
+### Added
+
+- **Start TEPP measurement** on a Pending TEPP row submits
+  `AnalysisRunRequest` through `tepp_client` (ADR 0022). A missing
+  `TEPP_TRANSPORT_URL` or a refused URL is Failed /
+  `tepp_not_available`. An accepted envelope is Failed /
+  `tepp_result_not_persisted`. Failed stays terminal: **Request a new
+  TEPP measurement** records a new Pending run. Period-report start
+  stays 422. No TEPP theta is invented.
+
+## [0.91.0] - 2026-08-17
+
+### Added
+
+- After **Start reconstruction**, the titled A-100 edges are buttons.
+  Click the revised-quote child to open the live post; click the
+  pricing-follow-up parent to open that post. A child marked
+  **Updated after cutoff** still shows the live-body warning. The
+  popup does not invent a cutoff snapshot. No TEPP theta is invented.
+
 ## [0.90.0] - 2026-08-17
 
 ### Added

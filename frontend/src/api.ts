@@ -560,6 +560,7 @@ export interface AnalysisRun {
   scope_entity_name?: string;
   status_code: AnalysisRunStatusCode | null;
   status_label: string | null;
+  failure_code?: string;
   knowledge_cutoff: string;
   requested_at: string;
   source_counts: AnalysisRunCount[];

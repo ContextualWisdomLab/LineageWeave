@@ -34,5 +34,8 @@ after cutoff were rewritten after the run; compare those bodies
 before treating them as reconstructed evidence (ADR 0016).
 `POST /api/analysis-runs` records Pending on an authorized
 cutoff capture (ADR 0017). `POST /api/analysis-runs/{id}/start`
-reconstructs that frozen cutoff bag (ADR 0021) and does not invent a
-theta. Hover the Result prefix to read the parent-choice digest.
+reconstructs that frozen cutoff bag (ADR 0021) or submits TEPP
+through `tepp_client` (ADR 0022). A missing transport or unused
+accepted envelope is Failed. Failed TEPP is terminal — request a
+new run, then start. Do not invent a theta. Hover the Result
+prefix to read the parent-choice digest.
