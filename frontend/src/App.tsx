@@ -3,6 +3,7 @@ import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
   BackendError,
+  createAnalysisRun,
   createPostTicket,
   deriveCommitment,
   evaluatePost,
@@ -1361,6 +1362,9 @@ function analysisRunCaption(run: AnalysisRun): string {
  * for a missing TEPP transport.
  */
 function analysisRunNextAction(run: AnalysisRun): string | null {
+  if (run.status_code === "analysis_status_pending") {
+    return "Open this run to confirm which posts it will use. Reconstruction has not started yet.";
+  }
   if (run.status_code !== "analysis_status_failed") {
     return null;
   }
@@ -1472,12 +1476,31 @@ function AnalysisRunsPanel({
   const [runs, setRuns] = useState<AnalysisRun[] | null>(null);
   const [selected, setSelected] = useState<AnalysisRun | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [requesting, setRequesting] = useState(false);
 
   useEffect(() => {
     fetchAnalysisRuns(accessToken)
       .then((payload) => setRuns(payload.analysis_runs))
       .catch((err) => setError(String(err)));
   }, [accessToken]);
+
+  async function handleRequestLineage() {
+    setError(null);
+    setRequesting(true);
+    try {
+      const created = await createAnalysisRun(accessToken, {
+        run_kind_code: "analysis_run_lineage",
+        idempotency_key: crypto.randomUUID(),
+      });
+      const listed = await fetchAnalysisRuns(accessToken);
+      setRuns(listed.analysis_runs);
+      setSelected(created);
+    } catch (err) {
+      setError(err instanceof BackendError ? err.message : String(err));
+    } finally {
+      setRequesting(false);
+    }
+  }
 
   async function handleOpen(runId: string) {
     setError(null);
@@ -1502,11 +1525,20 @@ function AnalysisRunsPanel({
     <section className="popup-section lineage-home">
       <div className="lineage-home-header">
         <h2>Analysis runs</h2>
+        <button
+          className="keyman-select"
+          aria-label="Request a lineage reconstruction"
+          disabled={requesting}
+          onClick={() => void handleRequestLineage()}
+        >
+          {requesting ? "Recording the run..." : "Request a lineage reconstruction"}
+        </button>
       </div>
       {error && <p className="error">{error}</p>}
       {runs.length === 0 ? (
         <p className="popup-placeholder">
-          No analysis runs visible to this account yet -- try `make seed`.
+          No analysis runs visible to this account yet. Request a lineage
+          reconstruction, or ask an administrator to run make seed.
         </p>
       ) : (
         <ul className="ticket-list" aria-label="Analysis runs">

@@ -269,6 +269,31 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/analysis-runs") && method === "POST") {
+        const created = {
+          analysis_run_id: "run-demo-lineage-pending",
+          run_kind_code: "analysis_run_lineage",
+          run_kind_label: "Lineage reconstruction",
+          scope_kind_code: "analysis_scope_corporate_entity",
+          scope_kind_label: "Corporate entity",
+          scope_entity_name: "Demo Corp",
+          status_code: "analysis_status_pending",
+          status_label: "Pending",
+          knowledge_cutoff: "2026-01-12T12:00:00Z",
+          requested_at: "2026-01-12T12:35:00Z",
+          source_counts: [],
+          visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+          status_history: [
+            {
+              status_ordinal: 1,
+              status_code: "analysis_status_pending",
+              status_label: "Pending",
+              occurred_at: "2026-01-12T12:35:00Z",
+            },
+          ],
+        };
+        return Promise.resolve(new Response(JSON.stringify(created), { status: 201 }));
+      }
       if (url.endsWith("/api/analysis-runs")) {
         return Promise.resolve(
           jsonResponse({
@@ -1559,6 +1584,28 @@ describe("App, authenticated", () => {
       await screen.findByText("These posts are the cutoff corpus this TEPP run measured."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
+  });
+
+  it("records a pending lineage run and opens the authorized detail", async () => {
+    const fetchMock = stubBackend();
+    render(<App />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "Lineage reconstruction · Pending · Demo Corp" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/has not started yet/)).toBeInTheDocument();
+    const postCall = fetchMock.mock.calls.find(
+      (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+    );
+    expect(postCall).toBeDefined();
+    const body = JSON.parse(String(postCall?.[1]?.body));
+    expect(body.run_kind_code).toBe("analysis_run_lineage");
+    expect(body.idempotency_key).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
   });
 
   it("shows the calibrated period-report mean theta on the home page", async () => {

@@ -467,6 +467,11 @@ run's scope whose `created_at` is at or before `knowledge_cutoff`
 (ADR 0016) so a buyer can open a post the run was allowed to know
 without seeing later live rows or hidden bodies. Detail also returns
 revision and configuration digest prefixes.
+`POST /api/analysis-runs` records a Pending run on a new authorized
+cutoff capture (ADR 0017): snapshot, counts, run, scope, and the first
+status in one transaction. It does not reconstruct lineage and does not
+invent a TEPP score. Request a lineage reconstruction from the home
+list, then open the Pending row to confirm the cutoff corpus.
 `make seed` also records a TEPP measurement run through
 `tepp_client` on that same snapshot; the default transport is
 unavailable, so that run is Failed rather than a fabricated score.

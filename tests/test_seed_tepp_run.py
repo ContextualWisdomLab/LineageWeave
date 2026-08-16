@@ -3,6 +3,7 @@
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 from scripts.seed_demo_data import (
     _ensure_demo_source_counts,
+    _seed_demo_tepp_run,
     demo_source_snapshot_sha256,
     tepp_seed_outcome,
     tepp_seed_request,
@@ -83,3 +84,49 @@ def test_ensure_demo_source_counts_inserts_when_the_snapshot_is_empty() -> None:
     cursor = _CountCursor(existing_counts=False)
     _ensure_demo_source_counts(cursor, "snapshot-1")
     assert any(sql.lstrip().startswith("insert into analysis_source_count") for sql in cursor.statements)
+
+
+class _TeppSeedCursor:
+    """Drive `_seed_demo_tepp_run` without a live database."""
+
+    def __init__(self) -> None:
+        self.statements: list[str] = []
+        self.params: list[object] = []
+
+    def execute(self, sql: str, params=None) -> None:
+        self.statements.append(" ".join(sql.split()))
+        self.params.append(params)
+
+    def fetchone(self):
+        last = self.statements[-1]
+        if last.lstrip().startswith("select") and "from analysis_source_snapshot" in last:
+            return None
+        if "insert into analysis_source_snapshot" in last:
+            return ("snapshot-demo",)
+        if last.lstrip().startswith("select") and "from analysis_source_count" in last:
+            return None
+        if last.lstrip().startswith("select") and "from analysis_run" in last:
+            return None
+        if "insert into analysis_run" in last:
+            return ("run-demo-tepp",)
+        return None
+
+
+def test_seed_demo_tepp_run_inserts_failed_tepp_not_available() -> None:
+    cursor = _TeppSeedCursor()
+    _seed_demo_tepp_run(cursor, "account-1", "corp-1")
+    run_inserts = [sql for sql in cursor.statements if "insert into analysis_run" in sql]
+    assert run_inserts, "seed must insert the TEPP analysis_run row"
+    assert any("analysis_run_tepp" in sql for sql in run_inserts)
+    status_params = [
+        params
+        for sql, params in zip(cursor.statements, cursor.params, strict=True)
+        if "insert into analysis_run_status_event" in sql
+    ]
+    assert any(
+        params is not None and "analysis_status_failed" in params and "tepp_not_available" in params
+        for params in status_params
+    )
+    assert not any(
+        params is not None and "analysis_status_succeeded" in params for params in status_params
+    )
