@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Product LLM adapters now request contextual-orchestrator
+  `mode="auto"` rather than forcing a one-model route. The
+  orchestrator owns the quality-sufficient route, verification, or
+  conducted workflow; the explicit adjudication `verify` contract
+  remains unchanged.
+
 ## [0.71.0] - 2026-08-14
 
 ### Added
