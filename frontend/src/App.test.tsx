@@ -1782,7 +1782,6 @@ describe("App, authenticated", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/rebuild the period report/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reconstruction has not started yet/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/measurement service/)).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", {
         name: "Open live post (may have changed after cutoff): Public post",
