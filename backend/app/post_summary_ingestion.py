@@ -1,10 +1,11 @@
 """Persist and load the popup's Korean summary / key events / R&R.
 
-ADR 0009: an R&R actor is not just per-post free text -- when it is a
-team or organization, it is resolved to a shared catalog identity
-(``cataloged_team`` / ``corporate_entity``) and a Knowledge Graph
-mention edge is written, so the same "설계팀" or organization named
-across two posts becomes one linkable node, not two unrelated strings.
+ADR 0009 / 0019: an R&R actor is not just per-post free text -- when it
+is a team or organization, it is resolved to a shared catalog identity
+(``cataloged_team`` / ``corporate_entity``) stored on the role row and
+a Knowledge Graph mention edge is written, so the same "설계팀" or
+organization named across two posts becomes one linkable node. Fetch
+never reconstructs that id by ``entity_name``; that column is not unique.
 A person actor is opportunistically joined to an *existing*
 ``cataloged_person`` row by name when Keyman extraction has already
 cataloged that name. The R&R evidence is written to
@@ -57,7 +58,12 @@ from .team_ingestion import upsert_team
 async def fetch_persisted_summary(
     conn: asyncpg.Connection, post_id: str
 ) -> dict[str, Any] | None:
-    """Return the stored summary payload, or None when none has been written."""
+    """Return the stored summary payload, or None when none has been written.
+
+    ``catalog_node_id`` comes from the role row's catalog foreign keys
+    (ADR 0019). This function does not join ``corporate_entity`` by
+    ``entity_name``.
+    """
     header = await conn.fetchrow(
         "select korean_summary from post_summary_result where post_id = $1",
         post_id,
@@ -72,23 +78,9 @@ async def fetch_persisted_summary(
         """
         select role.actor_name, role.responsibility, role.actor_type_code,
                role.affiliated_organization_name,
-               team_mention.team_id,
-               org_mention.corporate_entity_id
+               role.cataloged_team_id,
+               role.cataloged_corporate_entity_id
           from post_summary_role role
-          left join cataloged_team team
-            on role.actor_type_code = 'prov_team'
-           and team.team_name = role.actor_name
-           and team.affiliated_organization_name
-               is not distinct from role.affiliated_organization_name
-          left join post_team_mention team_mention
-            on team_mention.post_id = role.post_id
-           and team_mention.team_id = team.team_id
-          left join corporate_entity org
-            on role.actor_type_code = 'prov_organization'
-           and org.entity_name = role.actor_name
-          left join post_organization_mention org_mention
-            on org_mention.post_id = role.post_id
-           and org_mention.corporate_entity_id = org.corporate_entity_id
          where role.post_id = $1
          order by role.actor_name
         """,
@@ -98,11 +90,11 @@ async def fetch_persisted_summary(
     for row in roles:
         catalog_node_id = None
         catalog_node_type_code = None
-        if row["team_id"] is not None:
-            catalog_node_id = str(row["team_id"])
+        if row["cataloged_team_id"] is not None:
+            catalog_node_id = str(row["cataloged_team_id"])
             catalog_node_type_code = NODE_TEAM
-        elif row["corporate_entity_id"] is not None:
-            catalog_node_id = str(row["corporate_entity_id"])
+        elif row["cataloged_corporate_entity_id"] is not None:
+            catalog_node_id = str(row["cataloged_corporate_entity_id"])
             catalog_node_type_code = NODE_CORPORATE_ENTITY
         payload_roles.append(
             {
@@ -218,44 +210,51 @@ async def _replace_summary_projection(
             ordinal,
             event_text,
         )
-    for role in summary.roles_and_responsibilities:
-        await conn.execute(
-            "insert into post_summary_role "
-            "(post_id, actor_name, responsibility, actor_type_code, "
-            "affiliated_organization_name) values ($1, $2, $3, $4, $5)",
-            post_id,
-            role.actor_name,
-            role.responsibility,
-            role.actor_type_code,
-            role.affiliated_organization_name,
-        )
-
-    # ADR 0009: cross-post identity resolution for team/organization/person
-    # actors -- see module docstring.
+    # ADR 0009 / 0019: resolve catalog identity before writing the role
+    # row so fetch never reconstructs it by a non-unique name.
     for role_index, role in enumerate(summary.roles_and_responsibilities):
+        cataloged_team_id = None
+        cataloged_corporate_entity_id = None
         if role.actor_type_code == ACTOR_TYPE_TEAM:
-            team_id = await upsert_team(
+            cataloged_team_id = await upsert_team(
                 conn,
                 role.actor_name,
                 role.affiliated_organization_name,
                 candidates,
             )
+        elif role.actor_type_code == ACTOR_TYPE_ORGANIZATION:
+            cataloged_corporate_entity_id = resolved_organization_ids.get(
+                role_index
+            )
+        await conn.execute(
+            "insert into post_summary_role "
+            "(post_id, actor_name, responsibility, actor_type_code, "
+            "affiliated_organization_name, cataloged_team_id, "
+            "cataloged_corporate_entity_id) values "
+            "($1, $2, $3, $4, $5, $6, $7)",
+            post_id,
+            role.actor_name,
+            role.responsibility,
+            role.actor_type_code,
+            role.affiliated_organization_name,
+            cataloged_team_id,
+            cataloged_corporate_entity_id,
+        )
+        if cataloged_team_id is not None:
             await conn.execute(
                 "insert into post_team_mention (post_id, team_id) values ($1, $2) "
                 "on conflict do nothing",
                 post_id,
-                team_id,
+                cataloged_team_id,
             )
-        elif role.actor_type_code == ACTOR_TYPE_ORGANIZATION:
-            corporate_entity_id = resolved_organization_ids.get(role_index)
-            if corporate_entity_id is not None:
-                await conn.execute(
-                    "insert into post_organization_mention "
-                    "(post_id, corporate_entity_id) values ($1, $2) "
-                    "on conflict do nothing",
-                    post_id,
-                    corporate_entity_id,
-                )
+        elif cataloged_corporate_entity_id is not None:
+            await conn.execute(
+                "insert into post_organization_mention "
+                "(post_id, corporate_entity_id) values ($1, $2) "
+                "on conflict do nothing",
+                post_id,
+                cataloged_corporate_entity_id,
+            )
         elif role.actor_type_code == ACTOR_TYPE_PERSON:
             person_row = await conn.fetchrow(
                 "select person_id from cataloged_person where person_name = $1 limit 1",

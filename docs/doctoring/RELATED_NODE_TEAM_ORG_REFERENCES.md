@@ -17,3 +17,15 @@ rules* (confirmed 2024; Amendment 1:2022).
 
 World Wide Web Consortium. (2022). *Time ontology in OWL* (W3C
 Recommendation). https://www.w3.org/TR/owl-time/
+
+Codd, E. F. (1970). A relational model of data for large shared data
+banks. *Communications of the ACM, 13*(6), 377–387.
+https://doi.org/10.1145/362384.362685
+
+Date, C. J. (2019). *Database design and relational theory: Normal forms
+and all that jazz* (2nd ed.). Apress.
+https://doi.org/10.1007/978-1-4842-5540-7
+
+International Organization for Standardization. (2023). *ISO/IEC
+11179-1:2023: Information technology—Metadata registries (MDR)—Part 1:
+Framework*.
