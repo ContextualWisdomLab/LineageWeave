@@ -32,6 +32,9 @@ _VALKEY_URL = os.environ.get("LINEAGEWEAVE_TEST_VALKEY_URL", "redis://localhost:
 _REALM = "lineageweave-demo"
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
+_RECONSTRUCTION_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0019_analysis_run_reconstruction.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -115,6 +118,7 @@ def seeded_db(demo_analyst_token):
         with conn.cursor() as cur:
             cur.execute(_MIGRATION_PATH.read_text())
             cur.execute(_REGISTRY_MIGRATION.read_text())
+            cur.execute(_RECONSTRUCTION_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -571,6 +575,101 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
         json={"idempotency_key": "buyer-create-unauthenticated"},
     )
     assert unauthenticated.status_code == 401
+
+
+def test_start_analysis_run_recovers_the_a100_fork(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Starting a Pending lineage run persists the designed fixture tree."""
+    from scripts.seed_demo_data import insert_fixture_source_posts
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('voc_type', 'vom', 'Voice of Market') "
+                "on conflict (lookup_code) do nothing"
+            )
+            cur.execute(
+                "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
+                "select corporate_entity_id, 'TEST-PU-START', 'Start reconstruction' "
+                "from source_post where post_id = %s returning process_unit_id",
+                (seeded_db["own_private_post_id"],),
+            )
+            process_unit_id = cur.fetchone()[0]
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_id, corp_id = cur.fetchone()
+            insert_fixture_source_posts(cur, author_id, corp_id, process_unit_id)
+    finally:
+        admin_conn.close()
+
+    created = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_lineage",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "knowledge_cutoff": "2026-02-15T00:00:00Z",
+            "idempotency_key": "buyer-start-2026-w07",
+        },
+    )
+    assert created.status_code == 201, created.text
+    run_id = created.json()["analysis_run_id"]
+    assert created.json()["status_label"] == "Pending"
+
+    started = client.post(
+        f"/api/analysis-runs/{run_id}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert started.status_code == 200, started.text
+    body = started.json()
+    assert body["status_label"] == "Succeeded"
+    assert all(event["status_label"] != "Failed" for event in body["status_history"])
+    assert body["reconstruction_result_sha256"]
+    children = {
+        edge["child_post_title"]
+        for edge in body["reconstructed_edges"]
+        if edge["parent_post_title"] == "Pricing renegotiation follow-up"
+    }
+    assert "Pricing renegotiation: revised quote sent" in children
+    assert "Delivery schedule question raised" in children
+    assert "theta" not in str(body).lower()
+
+    replay = client.post(
+        f"/api/analysis-runs/{run_id}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert replay.status_code == 200
+    assert replay.json()["reconstruction_result_sha256"] == body["reconstruction_result_sha256"]
+
+    tepp = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_tepp",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "knowledge_cutoff": "2026-02-15T00:00:00Z",
+            "idempotency_key": "buyer-start-tepp-2026-w07",
+        },
+    )
+    assert tepp.status_code == 201
+    refused = client.post(
+        f"/api/analysis-runs/{tepp.json()['analysis_run_id']}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert refused.status_code == 422
+    assert "invent a measurement" in refused.json()["detail"]
+
+    hidden = client.post(
+        f"/api/analysis-runs/{seeded_db['hidden_run_id']}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert hidden.status_code == 404
 
 
 def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> None:

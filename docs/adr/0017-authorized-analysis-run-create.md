@@ -1,6 +1,7 @@
 # ADR 0017 — Operators request an analysis run through the product API
 
-**Decision status:** Accepted on this active PR; not protected-main truth until merge
+**Decision status:** Accepted; merged to the #74 stack via #125. Not
+protected-main truth until #74 lands.
 **Date:** 2026-08-16
 **Depends on:** ADR 0013 normalized analysis-run registry; ADR 0014 authorized
 analysis-run read; ADR 0016 knowledge-cutoff posts
