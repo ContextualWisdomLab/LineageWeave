@@ -189,13 +189,15 @@ def test_lookup_code_is_unique_across_categories(schema_db) -> None:
 
 
 def test_every_created_table_name_has_at_least_two_words() -> None:
-    """The project naming rule is enforced on the shipped migration, not
-    only on tables that happen to be created in a live-Postgres run.
-    """
+    """Enforce naming for ordinary and idempotent table declarations."""
     import re
 
     sql = _MIGRATION_PATH.read_text()
-    names = re.findall(r"create table (\w+)", sql)
+    names = re.findall(
+        r"create\s+table\s+(?:if\s+not\s+exists\s+)?([a-z][a-z0-9_]*)",
+        sql,
+        flags=re.IGNORECASE,
+    )
     assert names, "migration must create at least one table"
     for name in names:
         words = name.split("_")
