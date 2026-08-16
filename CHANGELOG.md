@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.77.0] - 2026-08-16
+
+### Changed
+
+- When a related-node chip says `multiple organizations`, the related
+  panel now names the next action: read every organization in the
+  Keyman list above (or extract Keymen if that list is empty), then
+  click the chip to continue the walk. A stale payload that sends
+  both a name and `affiliation_ambiguous` still shows the plural
+  signal, never a guessed primary.
+
 ## [0.76.0] - 2026-08-16
 
 ### Changed

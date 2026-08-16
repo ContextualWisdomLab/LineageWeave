@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RelatedNode } from "./api";
-import { relatedNodeCaption } from "./relatedNodeCaption";
+import { relatedAffiliationNextAction, relatedNodeCaption } from "./relatedNodeCaption";
 
 function node(partial: Partial<RelatedNode> & Pick<RelatedNode, "node_type_code">): RelatedNode {
   return {
@@ -74,6 +74,36 @@ describe("relatedNodeCaption", () => {
         }),
       ),
     ).toBe("Demo Corp (Company)");
+  });
+
+  it("prefers the plural signal when a name is also present", () => {
+    expect(
+      relatedNodeCaption(
+        node({
+          node_type_code: "node_person",
+          label: "Priya Nair",
+          person_side_label: "Counterparty",
+          affiliation_organization_name: "Northridge Grid",
+          affiliation_ambiguous: true,
+        }),
+      ),
+    ).toBe("Priya Nair, multiple organizations (Counterparty)");
+  });
+
+  it("tells the buyer to read the Keyman list when it is already on screen", () => {
+    expect(relatedAffiliationNextAction(true)).toBe(
+      "A chip that says multiple organizations is not a missing affiliation. " +
+        "Read every organization in the Keyman list above, then click the chip " +
+        "to continue the walk.",
+    );
+  });
+
+  it("tells the buyer to extract Keymen when the list is empty", () => {
+    expect(relatedAffiliationNextAction(false)).toBe(
+      "A chip that says multiple organizations is not a missing affiliation. " +
+        "Extract Keymen to list every organization, then click the chip to " +
+        "continue the walk.",
+    );
   });
 
   it("shows the post title only", () => {

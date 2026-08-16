@@ -54,7 +54,7 @@ import {
 } from "./api";
 import { LineageDag } from "./LineageDag";
 import { subgraphForPost } from "./lineageLayout";
-import { relatedNodeCaption } from "./relatedNodeCaption";
+import { relatedAffiliationNextAction, relatedNodeCaption } from "./relatedNodeCaption";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -671,6 +671,11 @@ function KeymanPanel({
       {selectedName && (
         <div className="related-keymen">
           <h4>Related to {selectedName}</h4>
+          {related !== null && related.some((node) => node.affiliation_ambiguous) ? (
+            <p className="related-affiliation-hint">
+              {relatedAffiliationNextAction(Boolean(keymen && keymen.length > 0))}
+            </p>
+          ) : null}
           {related === null ? (
             <p>Loading related nodes...</p>
           ) : related.length === 0 ? (

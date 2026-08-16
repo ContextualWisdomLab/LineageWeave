@@ -333,6 +333,11 @@
   margin-top: 0.75rem;
 }
 
+.related-affiliation-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
 .ticket-list {
   list-style: none;
   padding: 0;
