@@ -1,14 +1,10 @@
 import type { RelatedNode } from "./api";
-
-const NODE_PERSON = "node_person";
-const NODE_POST = "node_post";
-const NODE_CORPORATE_ENTITY = "node_corporate_entity";
-
-type RelatedNodeKind = typeof NODE_PERSON | typeof NODE_POST | typeof NODE_CORPORATE_ENTITY;
-
-function isRelatedNodeKind(code: string): code is RelatedNodeKind {
-  return code === NODE_PERSON || code === NODE_POST || code === NODE_CORPORATE_ENTITY;
-}
+import {
+  NODE_CORPORATE_ENTITY,
+  NODE_PERSON,
+  NODE_POST,
+  isRelatedNodeKind,
+} from "./nodeTypes";
 
 /**
  * Decision-facing label for a related-node chip.
@@ -17,10 +13,10 @@ function isRelatedNodeKind(code: string): code is RelatedNodeKind {
  * organization identity is known, that organization. A known-plural
  * set uses "multiple organizations" even if a name is also present
  * so a stale payload cannot invent a primary. That is not the same
- * as a missing affiliation.
- * A unique org without a side still names the org so a missing side
- * cannot revive the ontology-class caption. Organization chips use
- * the entity-level label. Post chips are the title only.
+ * as a missing affiliation. A unique org without a side still names
+ * the org so a missing side cannot revive the ontology-class caption.
+ * Organization chips use the entity-level label. Post chips are the
+ * title only.
  */
 export function relatedNodeCaption(node: RelatedNode): string {
   const name = node.label?.trim() || node.node_id;
@@ -80,4 +76,12 @@ export function relatedAffiliationNextAction(hasKeymanList: boolean): string {
     "Extract Keymen to list every organization, then click the chip to " +
     "continue the walk."
   );
+}
+
+/** Accessible name that contains the visible caption (WCAG 2.5.3). */
+export function relatedNodeAriaLabel(node: RelatedNode, caption: string): string {
+  if (node.node_type_code === NODE_POST) {
+    return `Open related post: ${caption}`;
+  }
+  return `Related nodes for ${caption}`;
 }

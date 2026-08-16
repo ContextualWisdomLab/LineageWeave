@@ -1,0 +1,34 @@
+/**
+ * Runtime aliases for frontend/src/tokens/design-tokens.json.
+ * Token paths are two-word groups (color.text, space.chip-gap) so CSS
+ * custom properties stay `--color-text`, `--space-chip-gap`.
+ */
+:root {
+  --color-text: #6b6375;
+  --color-heading: #08060d;
+  --color-canvas: #fff;
+  --color-border: #e5e4e7;
+  --color-accent: #aa3bff;
+  --color-danger: #b91c1c;
+  --space-chip-gap: 0.75rem;
+  --space-panel-inset: 2rem;
+  --radius-chip-edge: 0.25rem;
+  --radius-panel-edge: 0.75rem;
+
+  --text: var(--color-text);
+  --text-h: var(--color-heading);
+  --bg: var(--color-canvas);
+  --border: var(--color-border);
+  --accent: var(--color-accent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-text: #9ca3af;
+    --color-heading: #f3f4f6;
+    --color-canvas: #16171d;
+    --color-border: #2e303a;
+    --color-accent: #c084fc;
+    --color-danger: #fca5a5;
+  }
+}

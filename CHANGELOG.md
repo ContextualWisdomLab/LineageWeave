@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.78.0] - 2026-08-16
+
+### Added
+
+- Related-node chips are a Storybook module with design tokens. Run
+  `cd frontend && pnpm run storybook` and open Walk/RelatedNodeChip
+  to compare `Ada West, Demo Corp (Our side)`, `Priya Nair, multiple
+  organizations (Counterparty)`, and a side-only missing affiliation
+  before you walk a seeded graph. Click a person or organization
+  story to rehearse the next walk; click the post story to open that
+  source. `pnpm run build-storybook` is part of the frontend CI gate.
+
 ## [0.77.0] - 2026-08-16
 
 ### Changed

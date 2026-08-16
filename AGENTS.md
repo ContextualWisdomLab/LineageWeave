@@ -83,8 +83,12 @@ floating Node version):
 
 ```bash
 cd frontend && pnpm install
-pnpm run lint && pnpm run test && pnpm run build
+pnpm run lint && pnpm run test && pnpm run build && pnpm run build-storybook
 ```
+
+Repeating walk objects use design tokens in
+`frontend/src/tokens/design-tokens.json` and stories in
+`frontend/src/*.stories.tsx` (ADR-0016).
 
 ## CI gates
 

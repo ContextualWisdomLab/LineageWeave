@@ -80,6 +80,7 @@ def test_related_person_omits_blank_affiliation() -> None:
     """Whitespace-only extraction strings are missing evidence, not a name."""
     node = _hydrate([{"affiliated_organization_name": "   "}])
     assert "affiliation_organization_name" not in node
+    assert "affiliation_ambiguous" not in node
 
 
 def test_related_person_uses_catalog_name_for_one_resolved_org() -> None:

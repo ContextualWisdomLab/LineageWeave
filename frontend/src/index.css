@@ -1,10 +1,12 @@
+@import "./tokens/tokens.css";
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
+  --text: var(--color-text);
+  --text-h: var(--color-heading);
+  --bg: var(--color-canvas);
+  --border: var(--color-border);
   --code-bg: #f4f3ec;
-  --accent: #aa3bff;
+  --accent: var(--color-accent);
   --accent-bg: rgba(170, 59, 255, 0.1);
   --accent-border: rgba(170, 59, 255, 0.5);
   --social-bg: rgba(244, 243, 236, 0.5);
@@ -32,12 +34,12 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
+    --text: var(--color-text);
+    --text-h: var(--color-heading);
+    --bg: var(--color-canvas);
+    --border: var(--color-border);
     --code-bg: #1f2028;
-    --accent: #c084fc;
+    --accent: var(--color-accent);
     --accent-bg: rgba(192, 132, 252, 0.15);
     --accent-border: rgba(192, 132, 252, 0.5);
     --social-bg: rgba(47, 48, 58, 0.5);

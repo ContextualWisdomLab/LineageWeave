@@ -38,6 +38,20 @@ describe("relatedNodeCaption", () => {
     ).toBe("Priya Nair, multiple organizations (Counterparty)");
   });
 
+  it("keeps a stale name-plus-ambiguous payload plural", () => {
+    expect(
+      relatedNodeCaption(
+        node({
+          node_type_code: "node_person",
+          label: "Priya Nair",
+          person_side_label: "Counterparty",
+          affiliation_organization_name: "Northridge Grid",
+          affiliation_ambiguous: true,
+        }),
+      ),
+    ).toBe("Priya Nair, multiple organizations (Counterparty)");
+  });
+
   it("keeps a person with no affiliation side-only", () => {
     expect(
       relatedNodeCaption(

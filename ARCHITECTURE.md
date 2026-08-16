@@ -263,6 +263,10 @@ regression-tested (`test_post_chat_cites_a_post_linked_only_via_a_shared_keyman`
 ### Frontend (`frontend/`)
 
 React + Vite + TypeScript, pinned Node via `mise.toml`, pnpm via Corepack.
+Repeating walk chips are `RelatedNodeChip` plus
+`frontend/src/tokens/design-tokens.json` (ADR-0016). Open
+`pnpm run storybook` in `frontend/` to compare unique, plural, and
+missing affiliation captions before walking a seeded graph.
 `react-oidc-context` drives a real Authorization Code redirect through
 Keycloak (`src/main.tsx`'s `AuthProvider`) -- no mocked auth, no static
 HTML. `src/api.ts` calls the FastAPI backend directly with the token

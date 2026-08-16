@@ -1,0 +1,59 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "color": {
+    "text": {
+      "$type": "color",
+      "$value": "#6b6375",
+      "$description": "Body copy on light canvas."
+    },
+    "heading": {
+      "$type": "color",
+      "$value": "#08060d",
+      "$description": "Headings and chip labels."
+    },
+    "canvas": {
+      "$type": "color",
+      "$value": "#ffffff",
+      "$description": "Page and panel background."
+    },
+    "border": {
+      "$type": "color",
+      "$value": "#e5e4e7",
+      "$description": "Hairline around lists and chips."
+    },
+    "accent": {
+      "$type": "color",
+      "$value": "#aa3bff",
+      "$description": "Focus and selected walk affordance."
+    },
+    "danger": {
+      "$type": "color",
+      "$value": "#b91c1c",
+      "$description": "Recoverable error text that names the next action."
+    }
+  },
+  "space": {
+    "chip-gap": {
+      "$type": "dimension",
+      "$value": "0.75rem",
+      "$description": "Gap between related-node chips in a walk list."
+    },
+    "panel-inset": {
+      "$type": "dimension",
+      "$value": "2rem",
+      "$description": "Inner padding of the post popup and evidence panel."
+    }
+  },
+  "radius": {
+    "chip-edge": {
+      "$type": "dimension",
+      "$value": "0.25rem",
+      "$description": "Related-node and citation chip corner radius."
+    },
+    "panel-edge": {
+      "$type": "dimension",
+      "$value": "0.75rem",
+      "$description": "Popup and evidence panel corner radius."
+    }
+  }
+}
