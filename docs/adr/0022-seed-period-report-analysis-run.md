@@ -1,4 +1,4 @@
-# ADR 0021 — Seed records the built period report on the shared snapshot
+# ADR 0022 — Seed records the built period report on the shared snapshot
 
 **Decision status:** Accepted on this active PR; not protected-main truth until merge
 **Date:** 2026-08-16
@@ -6,7 +6,7 @@
 fast-mlsirm report integration; ADR 0014 authorized analysis-run read
 **Refs:** After `make seed`, lineage and TEPP registry rows were visible
 on home Analysis runs, but the calibrated period report lived only on
-the separate report panel.
+the separate report panel. ADR 0021 is the person-catalog bind on #153.
 
 ## Context
 

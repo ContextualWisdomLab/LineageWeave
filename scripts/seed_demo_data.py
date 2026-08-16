@@ -1458,7 +1458,7 @@ def _seed_demo_report_run(cur, requested_by_account_id, corporate_entity_id) -> 
     ``_seed_demo_period_report`` persists calibrated report tables first.
     This registry row is Succeeded because that write already happened.
     It does not copy a theta onto ``analysis_run`` and does not invent
-    a local psychometric substitute (ADR 0021).
+    a local psychometric substitute (ADR 0022).
     """
     snapshot_id = _ensure_demo_source_snapshot(cur)
     _ensure_demo_source_counts(cur, snapshot_id)

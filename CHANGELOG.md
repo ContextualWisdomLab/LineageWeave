@@ -10,7 +10,7 @@ All notable changes to this project are documented here. Format follows
 
 - `make seed` now records the already-built Demo Corp period report as
   **Period report · Succeeded · Demo Corp** on the shared analysis-run
-  snapshot (ADR 0021). Open that row to confirm the cutoff posts. Mean
+  snapshot (ADR 0022). Open that row to confirm the cutoff posts. Mean
   θ stays on the period-report panel — the registry row does not copy
   a score.
 
