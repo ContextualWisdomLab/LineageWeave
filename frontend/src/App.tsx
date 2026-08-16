@@ -7,6 +7,7 @@ import {
   deriveCommitment,
   evaluatePost,
   extractPostKeymen,
+  fetchAnalysisRuns,
   fetchCalendar,
   fetchLineageGraph,
   fetchMe,
@@ -33,6 +34,7 @@ import {
   verifyPostRelations,
   type ActivityEvent,
   type AffiliateNode,
+  type AnalysisRun,
   type CalendarEntry,
   type ChatAnswer,
   type ChatExchange,
@@ -1344,6 +1346,58 @@ function PostDetailPopup({
   );
 }
 
+function AnalysisRunsPanel({ accessToken }: { accessToken: string }) {
+  const [runs, setRuns] = useState<AnalysisRun[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchAnalysisRuns(accessToken)
+      .then((payload) => setRuns(payload.analysis_runs))
+      .catch((err) => setError(String(err)));
+  }, [accessToken]);
+
+  if (error) return <p className="error">{error}</p>;
+  if (runs === null) return <p>Loading analysis runs...</p>;
+
+  return (
+    <section className="popup-section lineage-home">
+      <div className="lineage-home-header">
+        <h2>Analysis runs</h2>
+      </div>
+      {runs.length === 0 ? (
+        <p className="popup-placeholder">
+          No analysis runs visible to this account yet -- try `make seed`.
+        </p>
+      ) : (
+        <ul className="ticket-list" aria-label="Analysis runs">
+          {runs.map((run) => {
+            const documentCount = run.source_counts.find(
+              (count) => count.count_type_code === "analysis_count_document",
+            );
+            const caption = [
+              run.run_kind_label,
+              run.status_label,
+              run.scope_entity_name ?? run.scope_kind_label,
+            ]
+              .filter(Boolean)
+              .join(" · ");
+            return (
+              <li key={run.analysis_run_id} className="ticket-list-item">
+                <span className="ticket-title">{caption}</span>
+                {documentCount && (
+                  <span className="post-badge">
+                    {documentCount.count_value} {documentCount.count_type_label.toLowerCase()}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function CalendarPanel({
   accessToken,
   onSelectPost,
@@ -1632,6 +1686,7 @@ function PostList({ accessToken }: { accessToken: string }) {
   return (
     <>
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
+      <AnalysisRunsPanel accessToken={accessToken} />
       <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
