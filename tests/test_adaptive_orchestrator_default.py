@@ -1,13 +1,4 @@
-#!/usr/bin/env python3
-"""Stage regressions for LineageWeave's adaptive orchestration default."""
-
-from __future__ import annotations
-
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[1]
-TEST_PATH = ROOT / "tests" / "test_adaptive_orchestrator_default.py"
-CONTENT = '''"""LineageWeave delegates product-default LLM execution to auto policy."""
+"""LineageWeave delegates product-default LLM execution to auto policy."""
 
 from __future__ import annotations
 
@@ -62,10 +53,3 @@ def test_runtime_clients_do_not_force_single_model_route() -> None:
         if 'mode: str = "route"' in text or "mode: str = 'route'" in text:
             violations.append(f"{path.name}: typed default")
     assert violations == []
-'''
-
-if TEST_PATH.exists():
-    if TEST_PATH.read_text(encoding="utf-8") != CONTENT:
-        raise SystemExit(f"refusing to replace a different existing test: {TEST_PATH}")
-else:
-    TEST_PATH.write_text(CONTENT, encoding="utf-8")
