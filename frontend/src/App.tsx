@@ -1500,6 +1500,20 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
 }
 
 /**
+ * List-button accessible name (WCAG 2.2 SC 4.1.2 / AccName 1.1).
+ *
+ * `aria-label` replaces the button contents, so the next-action sentence
+ * must be in the name or a screen reader only hears the caption.
+ */
+function analysisRunAccessibleName(run: AnalysisRun): string {
+  const caption = analysisRunCaption(run);
+  const nextAction = analysisRunNextAction(run);
+  return nextAction
+    ? `Open analysis run: ${caption}. ${nextAction}`
+    : `Open analysis run: ${caption}`;
+}
+
+/**
  * Empty-corpus copy that tells the operator what to do next.
  */
 function analysisRunEmptyPostsHint(run: AnalysisRun): string {
@@ -1665,7 +1679,7 @@ function AnalysisRunsPanel({
               <li key={run.analysis_run_id} className="ticket-list-item">
                 <button
                   className="post-list-item"
-                  aria-label={`Open analysis run: ${caption}`}
+                  aria-label={analysisRunAccessibleName(run)}
                   onClick={() => void handleOpen(run.analysis_run_id)}
                 >
                   <span className="ticket-title">{caption}</span>

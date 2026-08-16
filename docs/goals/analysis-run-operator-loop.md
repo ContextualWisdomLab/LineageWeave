@@ -14,15 +14,18 @@ evidence.
 
 1. #127 is on `feat/role-responsibility-agent-ontology` (`44912a6`).
    Prefixes are audible; the live-body warning is present.
-2. Digest-disclosure landing is #158. Prefer it over conflicting #155
-   `2daed45`, #139 `cf8c2e8`, and #135. #148 (`39ed6eb`) already
-   landed kind-specific pending copy on this base. Do not self-approve
-   or merge from this automation. Retarget #158 to
-   `feat/role-responsibility-agent-ontology` before merge.
+2. Digest-disclosure + list AccName landing is this head. Prefer it
+   over #158 (still based on `main`), conflicting #155 `2daed45`,
+   #139 `cf8c2e8`, and #135. #148 (`39ed6eb`) already landed
+   kind-specific pending *copy*. This head also puts that sentence in
+   the list accessible name (WCAG 2.2 SC 4.1.2 / AccName 1.1). Do not
+   merge #149/#146 for AccName — they collide on ADR 0020/0021. Do not
+   self-approve. Retarget to `feat/role-responsibility-agent-ontology`
+   before merge.
 3. Write-clock landing is #150. Prefer it over #131. Do not open a
-   second write-clock PR. Do not reopen pending-copy (#149/#146);
-   that slice landed as #148. Retention purge + Storybook tokens
-   landing is #154. Prefer it over #145/#134/#137.
+   second write-clock PR. Retention purge + Storybook tokens landing
+   is #145 (human-authored; #154 is closed). Prefer it over
+   #134/#137/#129.
 4. #125 (`POST /api/analysis-runs`) is on the same base. Do not open a
    second create PR.
 5. Post-body versioning at the cutoff remains later work (ADR 0016).

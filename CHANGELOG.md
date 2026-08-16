@@ -15,6 +15,9 @@ All notable changes to this project are documented here. Format follows
   the 24px pointer target (WCAG 2.2 SC 1.4.13 and 2.5.8; WAI-ARIA APG
   Disclosure). A hover `title` is no longer the only path. The home
   list still hides digests even when the list JSON includes them.
+  Pending and failed list rows keep the visible caption as
+  `kind · status · entity` and put the next-action sentence in the
+  accessible name so a screen reader hears the same next step.
 
 ## [0.86.2] - 2026-08-16
 

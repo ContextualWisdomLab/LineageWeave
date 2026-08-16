@@ -38,6 +38,10 @@ so `aria-controls` has a target and keyboard and assistive technology
 can verify it the same way a pointer can. Each prefix button meets the
 WCAG 2.2 SC 2.5.8 24px minimum target. The home list stays
 aggregates-only; the API payload still carries the full values.
+List-row `aria-label` includes the next-action sentence when one is
+shown (WCAG 2.2 Success Criterion 4.1.2) so the caption
+`kind · status · entity` remains visible while assistive technology
+hears the same next step.
 
 Seed and API fixtures backdate in-cutoff posts. A late own-corp private
 post remains on the live post list and stays out of the January 2026

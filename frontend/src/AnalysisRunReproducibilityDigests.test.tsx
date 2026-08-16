@@ -40,6 +40,10 @@ describe("AnalysisRunReproducibilityDigests", () => {
       minHeight: `${ANALYSIS_RUN_DIGEST_TARGET_MIN_PX}px`,
       minWidth: `${ANALYSIS_RUN_DIGEST_TARGET_MIN_PX}px`,
     });
+    expect(configButton).toHaveStyle({
+      minHeight: `${ANALYSIS_RUN_DIGEST_TARGET_MIN_PX}px`,
+      minWidth: `${ANALYSIS_RUN_DIGEST_TARGET_MIN_PX}px`,
+    });
   });
 
   it("reveals the full code digest with Enter and hides it on the next activation", async () => {
@@ -99,6 +103,11 @@ describe("AnalysisRunReproducibilityDigests", () => {
     await user.tab();
     expect(screen.getByRole("button", { name: "Config 0123456789ab" })).toHaveFocus();
     await user.keyboard(" ");
+    const configButton = screen.getByRole("button", { name: "Config 0123456789ab" });
+    expect(configButton).toHaveAttribute("aria-expanded", "true");
+    const configPanelId = configButton.getAttribute("aria-controls");
+    expect(configPanelId).toBeTruthy();
+    expect(document.getElementById(configPanelId ?? "")).not.toHaveAttribute("hidden");
     expect(screen.getByText(CONFIGURATION_SHA256)).toBeVisible();
     expect(screen.getByText(CODE_REVISION_SHA)).not.toBeVisible();
   });
