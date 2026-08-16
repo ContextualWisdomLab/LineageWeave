@@ -1431,6 +1431,19 @@ function AnalysisRunsPanel({
             {" · "}
             Requested {selected.requested_at.slice(0, 10)}
           </p>
+          {(selected.code_revision_sha || selected.configuration_sha256) && (
+            <p className="post-meta" aria-label="Analysis run reproducibility digests">
+              {selected.code_revision_sha
+                ? `Code ${selected.code_revision_sha.slice(0, 12)}`
+                : ""}
+              {selected.code_revision_sha && selected.configuration_sha256
+                ? " · "
+                : ""}
+              {selected.configuration_sha256
+                ? `Config ${selected.configuration_sha256.slice(0, 12)}`
+                : ""}
+            </p>
+          )}
           <ul>
             {selected.source_counts.map((count) => (
               <li key={count.count_type_code}>

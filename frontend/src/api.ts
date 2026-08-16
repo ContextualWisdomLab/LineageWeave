@@ -521,6 +521,8 @@ export interface AnalysisRun {
   source_counts: AnalysisRunCount[];
   status_history?: AnalysisRunStatusEvent[];
   visible_posts?: { post_id: string; post_title: string }[];
+  code_revision_sha?: string;
+  configuration_sha256?: string;
 }
 
 export function fetchAnalysisRuns(accessToken: string): Promise<{ analysis_runs: AnalysisRun[] }> {
