@@ -852,7 +852,13 @@ resolves each R&R actor's identity and calls the same
 actor is opportunistically joined to an existing `cataloged_person` row
 by name (never originated by R&R itself -- documented gap in the ADR:
 `cataloged_person` needs `person_side_code`, which R&R's prompt does
-not currently capture).
+not currently capture). ADR 0019 stores that resolved catalog id on
+`post_summary_role` (`cataloged_team_id` / `corporate_entity_id` /
+`cataloged_person_id`) so a later read does not rejoin
+`corporate_entity` by `entity_name`. Open a post whose R&R names an
+organization that shares a display name with another catalog row: the
+chip keeps the id persist stored. Click it to walk that organization,
+not the homonym.
 
 ## Phase 12: a real counterparty organization is auto-created, not left permanently unresolved
 

@@ -411,6 +411,26 @@ create table post_organization_mention (
     primary key (post_id, corporate_entity_id)
 );
 
+-- ADR 0019: store the catalog id resolved at write time. Rejoining
+-- corporate_entity by entity_name is not identifying -- two companies
+-- can share a display name. Columns land after the catalog tables so
+-- the foreign keys can resolve.
+alter table post_summary_role
+    add column cataloged_team_id uuid references cataloged_team (team_id),
+    add column corporate_entity_id uuid references corporate_entity (corporate_entity_id),
+    add column cataloged_person_id uuid references cataloged_person (person_id),
+    add constraint post_summary_role_one_catalog_chk check (
+        (cataloged_team_id is not null)::int
+        + (corporate_entity_id is not null)::int
+        + (cataloged_person_id is not null)::int
+        <= 1
+    ),
+    add constraint post_summary_role_catalog_type_chk check (
+        (cataloged_team_id is null or actor_type_code = 'prov_team')
+        and (corporate_entity_id is null or actor_type_code = 'prov_organization')
+        and (cataloged_person_id is null or actor_type_code = 'prov_person')
+    );
+
 -- ---------------------------------------------------------------------
 -- Knowledge graph: person/company/post nodes, typed edges. The type
 -- codes (which kind of node, which kind of edge) are real enums and DO

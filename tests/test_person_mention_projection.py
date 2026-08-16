@@ -27,7 +27,10 @@ from backend.app.knowledge_graph import (
     related_for_start,
     visible_mention_post_ids,
 )
-from backend.app.post_summary_ingestion import persist_post_summary
+from backend.app.post_summary_ingestion import (
+    fetch_persisted_summary,
+    persist_post_summary,
+)
 from lineageweave.keyman_extraction import OUR_SIDE, PersonMention
 from lineageweave.knowledge_graph import (
     EDGE_MENTION,
@@ -36,7 +39,12 @@ from lineageweave.knowledge_graph import (
     NODE_POST,
     NODE_TEAM,
 )
-from lineageweave.post_summary import PostSummary, RoleResponsibility
+from lineageweave.post_summary import (
+    ACTOR_TYPE_ORGANIZATION,
+    ACTOR_TYPE_PERSON,
+    PostSummary,
+    RoleResponsibility,
+)
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -451,3 +459,170 @@ def test_team_only_posts_walk_related_nodes(projection_database: str) -> None:
 
     database_dsn, post_id, _summary_person_id = projection_database.split("|")
     asyncio.run(_exercise_team_only_related_walk(database_dsn, post_id))
+
+
+async def _exercise_homonym_organization_catalog_binding(
+    database_dsn: str,
+    post_id: str,
+) -> None:
+    """Two same-named orgs on one post must keep the role bound to one id."""
+
+    connection = await asyncpg.connect(database_dsn)
+    try:
+        first_org_id = str(
+            await connection.fetchval(
+                """
+                insert into corporate_entity
+                    (corporate_entity_code, entity_name, entity_level_code)
+                values ('HOMONYM-A', 'Northridge Grid', 'company')
+                returning corporate_entity_id
+                """
+            )
+        )
+        second_org_id = str(
+            await connection.fetchval(
+                """
+                insert into corporate_entity
+                    (corporate_entity_code, entity_name, entity_level_code)
+                values ('HOMONYM-B', 'Northridge Grid', 'company')
+                returning corporate_entity_id
+                """
+            )
+        )
+        await persist_post_summary(
+            connection,
+            post_id,
+            PostSummary(
+                korean_summary="노스리지 그리드가 일정 확인을 요청했다.",
+                roles_and_responsibilities=(
+                    RoleResponsibility(
+                        actor_name="Northridge Grid",
+                        responsibility="일정 확인",
+                        actor_type_code=ACTOR_TYPE_ORGANIZATION,
+                    ),
+                ),
+            ),
+        )
+        stored_id = str(
+            await connection.fetchval(
+                """
+                select corporate_entity_id
+                  from post_summary_role
+                 where post_id = $1 and actor_name = 'Northridge Grid'
+                """,
+                post_id,
+            )
+        )
+        assert stored_id in {first_org_id, second_org_id}
+        other_id = second_org_id if stored_id == first_org_id else first_org_id
+        await connection.execute(
+            """
+            insert into post_organization_mention (post_id, corporate_entity_id)
+            values ($1, $2)
+            on conflict do nothing
+            """,
+            post_id,
+            other_id,
+        )
+        payload = await fetch_persisted_summary(connection, post_id)
+        assert payload is not None
+        roles = payload["roles_and_responsibilities"]
+        assert len(roles) == 1
+        assert roles[0]["catalog_node_id"] == stored_id
+        assert roles[0]["catalog_node_type_code"] == "node_corporate_entity"
+    finally:
+        await connection.close()
+
+
+def test_homonym_organization_roles_keep_the_persisted_catalog_id(
+    projection_database: str,
+) -> None:
+    """ADR 0019: a shared display name must not duplicate or rebind the role."""
+
+    database_dsn, post_id, _summary_person_id = projection_database.split("|")
+    asyncio.run(_exercise_homonym_organization_catalog_binding(database_dsn, post_id))
+
+
+async def _exercise_same_name_person_catalog_order(
+    database_dsn: str,
+    post_id: str,
+) -> None:
+    """Two people with the same name must bind the earlier catalog row."""
+
+    connection = await asyncpg.connect(database_dsn)
+    try:
+        earlier_id = str(
+            await connection.fetchval(
+                """
+                insert into cataloged_person
+                    (person_name, person_side_code, last_known_job_title, created_at)
+                values (
+                    'Kim Cheolsu', 'our_side', 'Sales Manager',
+                    '2024-01-01T00:00:00+00'
+                )
+                returning person_id
+                """
+            )
+        )
+        await connection.execute(
+            """
+            insert into cataloged_person
+                (person_name, person_side_code, last_known_job_title, created_at)
+            values (
+                'Kim Cheolsu', 'counterparty', 'Purchasing Lead',
+                '2024-06-01T00:00:00+00'
+            )
+            """
+        )
+        await persist_post_summary(
+            connection,
+            post_id,
+            PostSummary(
+                korean_summary="김철수가 후속을 맡았다.",
+                roles_and_responsibilities=(
+                    RoleResponsibility(
+                        actor_name="Kim Cheolsu",
+                        responsibility="후속",
+                        actor_type_code=ACTOR_TYPE_PERSON,
+                    ),
+                ),
+            ),
+        )
+        payload = await fetch_persisted_summary(connection, post_id)
+        assert payload is not None
+        roles = payload["roles_and_responsibilities"]
+        assert len(roles) == 1
+        stored_id = str(
+            await connection.fetchval(
+                """
+                select cataloged_person_id
+                  from post_summary_role
+                 where post_id = $1 and actor_name = 'Kim Cheolsu'
+                """,
+                post_id,
+            )
+        )
+        assert stored_id == earlier_id
+        assert roles[0]["catalog_node_id"] is None
+        mention_id = str(
+            await connection.fetchval(
+                """
+                select person_id
+                  from post_summary_person_mention
+                 where post_id = $1
+                """,
+                post_id,
+            )
+        )
+        assert mention_id == earlier_id
+    finally:
+        await connection.close()
+
+
+def test_same_name_person_roles_bind_the_earliest_catalog_row(
+    projection_database: str,
+) -> None:
+    """R&R person lookup must order by created_at, then person_id."""
+
+    database_dsn, post_id, _summary_person_id = projection_database.split("|")
+    asyncio.run(_exercise_same_name_person_catalog_order(database_dsn, post_id))

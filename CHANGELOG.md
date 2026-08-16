@@ -4,6 +4,20 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.1] - 2026-08-16
+
+### Fixed
+
+- R&R summary chips now keep the catalog id persist stored (ADR 0019).
+  Open a post whose organization actor shares a display name with
+  another catalog row: the chip stays bound to that id, even if the
+  homonym is also mentioned on the post. Click it to walk the intended
+  organization.
+- `GET /api/teams/{team_id}/related` returns 403 when the team exists
+  only on an unseen private post, and 404 for an unknown UUID — the
+  same fail-closed path corporate-entity related already uses. A
+  private organization mention does not open the related walk.
+
 ## [0.86.0] - 2026-08-16
 
 ### Added

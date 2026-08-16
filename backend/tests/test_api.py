@@ -1476,6 +1476,77 @@ def test_same_team_named_in_two_posts_resolves_to_one_cataloged_team(
         assert role["catalog_node_type_code"] == "node_team"
 
 
+def test_team_mentioned_only_on_other_corp_private_post_is_forbidden(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A team that exists only on an unseen private post must 403, not walk."""
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into cataloged_team (team_name, affiliated_organization_name) "
+                "values ('Hidden Team', 'Other Corp') returning team_id"
+            )
+            team_id = str(cur.fetchone()[0])
+            cur.execute(
+                "insert into post_team_mention (post_id, team_id) values (%s, %s)",
+                (seeded_db["other_private_post_id"], team_id),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/teams/{team_id}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_unknown_team_related_is_not_found(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """An unknown team UUID must 404 the same way an unknown org does."""
+
+    response = client.get(
+        f"/api/teams/{uuid.uuid4()}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 404
+
+
+def test_organization_mentioned_only_on_other_corp_private_post_is_forbidden(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A private org mention must not open the related walk through the UNION."""
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into corporate_entity "
+                "(corporate_entity_code, entity_name, entity_level_code) "
+                "values ('HIDDEN-MENTION', 'Hidden Mention Corp', 'company') "
+                "returning corporate_entity_id"
+            )
+            hidden_org_id = str(cur.fetchone()[0])
+            cur.execute(
+                "insert into post_organization_mention "
+                "(post_id, corporate_entity_id) values (%s, %s)",
+                (seeded_db["other_private_post_id"], hidden_org_id),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/corporate-entities/{hidden_org_id}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
 def test_organization_mention_only_posts_appear_in_entity_related(
     client, demo_analyst_token, seeded_db
 ) -> None:

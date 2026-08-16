@@ -121,7 +121,9 @@ Depends on [ADR 0006](0006-role-responsibility-agent-ontology.md) and
 [ADR 0007](0007-team-actor-type.md) (actor *type*) and
 `lineageweave.corporate_hierarchy_resolution` (Bhattacharya & Getoor,
 2007, cited there) for the organization-matching this ADR reuses rather
-than re-deriving.
+than re-deriving. [ADR 0019](0019-role-catalog-identity.md) stores the
+resolved catalog id on `post_summary_role` so fetch does not rejoin by
+display name.
 
 ## References (APA 7th)
 
