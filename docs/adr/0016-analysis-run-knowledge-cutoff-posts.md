@@ -48,14 +48,15 @@ run.
   post (2026-02-10) does not appear.
 - Open the run: Demo public post is marked updated after cutoff
   (`updated_at` 2026-01-13). Demo private post is not.
-- Open a marked title: the live popup names the write clock and the
-  cutoff. Compare that body with the run before treating it as
-  reconstructed evidence.
+- Open a marked title: the popup shows **Body this run knew** from
+  `source_post_revision` and the live rewrite. Compare those two texts
+  before treating the live body as reconstructed evidence (ADR 0022).
 - Hover a digest prefix to read the full code or configuration digest
   when you need to match the API payload.
-- Post-body versioning at the cutoff remains future work. The write
-  clock is a projection, not a stored cutoff body. Migration 0021
-  (ADR 0021) keeps `updated_at` honest after a title or body write.
+- Migration 0021 (ADR 0021) keeps `updated_at` honest after a title or
+  body write. Migration 0022 (ADR 0022) stores each rewrite on
+  `source_post_revision` so the opened post can show the cutoff-known
+  body without putting that body on the analysis-run payload.
 - Thread-group *run list* visibility now uses the same cutoff
   (ADR 0018). A later public post cannot surface a previously hidden
   thread-group run.

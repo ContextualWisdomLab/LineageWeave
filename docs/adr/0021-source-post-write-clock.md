@@ -33,17 +33,20 @@ January cutoff marks the title.
 
 - After `make seed`, open the Demo Corp lineage run: Demo public post
   is marked updated after cutoff; Demo private post is not.
-- Open a marked title: the live popup names both clocks. Compare that
-  body with the run before treating it as reconstructed evidence.
-- Cutoff body versioning remains a later slice.
-- Roll back `0021` before `0020` / `0018` when emptying a database
-  that also uses the retention purge.
+- Open a marked title: the live popup names both clocks. ADR 0022
+  then shows the cutoff-known body beside the live rewrite.
+- Roll back `0022` before `0021` / `0020` / `0018` when emptying a
+  database that also uses the retention purge.
 
 ## References
 
 International Organization for Standardization. (2019). *ISO 8601-1:2019:
 Date and time—Representations for information interchange—Part 1: Basic
 rules* (confirmed 2024; Amendment 1:2022).
+
+Hobbs, J. R., & Pan, F. (2017). *Time ontology in OWL* (W3C
+Recommendation). World Wide Web Consortium.
+https://www.w3.org/TR/2017/REC-owl-time-20171019/
 
 World Wide Web Consortium. (2022). *Time ontology in OWL* (W3C
 Recommendation). https://www.w3.org/TR/owl-time/

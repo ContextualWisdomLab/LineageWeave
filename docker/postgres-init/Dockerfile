@@ -27,6 +27,7 @@ COPY migrations/0018_analysis_run_registry.sql /docker-entrypoint-initdb.d/19-an
 COPY migrations/0019_role_catalog_identity.sql /docker-entrypoint-initdb.d/20-role-catalog-identity.sql
 COPY migrations/0020_analysis_run_retention_purge.sql /docker-entrypoint-initdb.d/21-analysis-run-retention-purge.sql
 COPY migrations/0021_source_post_write_clock.sql /docker-entrypoint-initdb.d/22-source-post-write-clock.sql
+COPY migrations/0022_source_post_revision.sql /docker-entrypoint-initdb.d/23-source-post-revision.sql
 # Official image already drops to this account at runtime; declare it so
 # the Dockerfile itself satisfies DS-0002 (explicit non-root USER).
 USER postgres

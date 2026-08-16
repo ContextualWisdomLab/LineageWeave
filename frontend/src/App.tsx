@@ -59,6 +59,7 @@ import {
   type VocEvidence,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
+import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { CutoffWriteClockBadge } from "./components/CutoffWriteClockBadge";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { LineageDag } from "./LineageDag";
@@ -1215,7 +1216,8 @@ function PostDetailPopup({
     setFocusPerson(null);
     setFocusEntity(null);
     setFocusTeam(null);
-    fetchPost(accessToken, postId).then(setPost).catch((err) => setError(String(err)));
+    const asOf = liveWriteClock?.liveAfterCutoff ? liveWriteClock.knowledgeCutoff : undefined;
+    fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
     fetchPostEvaluation(accessToken, postId)
       .then((r) => setEvaluation(r.responses))
       .catch(() => setEvaluation([]));
@@ -1229,7 +1231,7 @@ function PostDetailPopup({
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
     fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
-  }, [postId, accessToken]);
+  }, [postId, accessToken, liveWriteClock]);
 
   return (
     <div className="popup-backdrop" onClick={onClose}>
@@ -1247,6 +1249,14 @@ function PostDetailPopup({
             </p>
             {liveWriteClock?.liveAfterCutoff && (
               <p className="post-meta">{analysisRunOpenedPostWarning(liveWriteClock)}</p>
+            )}
+            {post.known_at && (
+              <CutoffKnownBody
+                title={post.known_at.post_title}
+                body={post.known_at.post_body}
+                writtenAt={post.known_at.written_at}
+                cutoff={post.known_at.as_of}
+              />
             )}
             <PostBody body={post.post_body} />
 

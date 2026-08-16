@@ -31,7 +31,8 @@ lineage row says reconstruction has not started yet.
 Digest prefixes stay audible; hover a prefix to read the full digest.
 Opening a cutoff title shows the live post. Titles marked updated
 after cutoff were rewritten after the run; the opened body names
-both clocks. Compare those bodies before treating them as
-reconstructed evidence (ADR 0016 / 0021).
+both clocks and shows **Body this run knew** beside the live
+rewrite. Compare those two texts before treating the live body as
+reconstructed evidence (ADR 0016 / 0021 / 0022).
 `POST /api/analysis-runs` records Pending on an authorized
 cutoff capture (ADR 0017) and does not reconstruct lineage.

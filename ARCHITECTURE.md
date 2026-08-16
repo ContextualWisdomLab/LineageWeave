@@ -484,7 +484,9 @@ labeled detail (cutoff, requested date, 12-character digest prefixes
 with full digests on hover, counts, status history)
 without exposing a DSN or raw record. Opening a cutoff title still
 shows the live body and names both clocks when the title was
-rewritten after the run. Status history is detail-only
+rewritten after the run. A marked title also shows the body that
+run knew (`GET /api/posts/{id}?as_of=`) so the operator can compare
+two texts, not two clocks. Status history is detail-only
 and uses lookup labels plus occurrence times; a failure event keeps
 its machine `failure_code` rather than an invented caption. Failed
 TEPP list rows add a next-action line (open the run, then connect the

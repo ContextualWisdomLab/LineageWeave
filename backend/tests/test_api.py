@@ -34,6 +34,7 @@ _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_ini
 _REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
 _RETENTION_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0020_analysis_run_retention_purge.sql"
 _WRITE_CLOCK_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0021_source_post_write_clock.sql"
+_REVISION_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0022_source_post_revision.sql"
 
 
 def _postgres_available() -> bool:
@@ -119,6 +120,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_REGISTRY_MIGRATION.read_text())
             cur.execute(_RETENTION_MIGRATION.read_text())
             cur.execute(_WRITE_CLOCK_MIGRATION.read_text())
+            cur.execute(_REVISION_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -341,13 +343,21 @@ def seeded_db(demo_analyst_token):
                 "A follow-up written after the January 2026 run cutoff.",
                 created_at="2026-01-20T12:00:00Z",
             )
-            _insert_post(
+            edited_own_post_id = _insert_post(
                 "Edited own-corp private post",
                 own_corp_id,
                 "private",
-                "A January post rewritten after the run cutoff.",
+                "A January post before the rewrite.",
                 created_at="2026-01-10T12:00:00Z",
-                updated_at="2026-01-13T09:00:00Z",
+                updated_at="2026-01-10T12:00:00Z",
+            )
+            cur.execute(
+                "update source_post set post_body = %s, updated_at = %s where post_id = %s",
+                (
+                    "A January post rewritten after the run cutoff.",
+                    "2026-01-13T09:00:00Z",
+                    edited_own_post_id,
+                ),
             )
 
             cur.execute(
@@ -435,6 +445,7 @@ def seeded_db(demo_analyst_token):
             "other_corp_id": str(other_corp_id),
             "own_private_post_id": own_private_post_id,
             "late_own_private_post_id": late_own_private_post_id,
+            "edited_own_post_id": edited_own_post_id,
             "other_private_post_id": other_private_post_id,
             "our_person_id": our_person_id,
             "counterpart_person_id": counterpart_person_id,
@@ -522,6 +533,7 @@ def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
     assert posts_by_title["Edited own-corp private post"]["live_after_cutoff"] is True
     assert posts_by_title["Edited own-corp private post"]["updated_at"].startswith("2026-01-13")
     assert "post_body" not in posts_by_title["Edited own-corp private post"]
+    assert "known_at" not in posts_by_title["Edited own-corp private post"]
     assert "postgresql://" not in str(body)
     assert "visible_posts" not in visible
 
@@ -669,6 +681,44 @@ def test_post_detail_uses_lookup_labels_not_raw_codes(client, demo_analyst_token
     assert body["voc_type_label"] == "Voice of Customer"
     assert body["visibility_code"] == "public"
     assert body["visibility_label"] == "Public"
+
+
+def test_post_detail_as_of_returns_the_cutoff_known_body(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Opened marked titles compare two real sentences, not two clocks."""
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    live = client.get(f"/api/posts/{seeded_db['edited_own_post_id']}", headers=headers)
+    assert live.status_code == 200
+    assert live.json()["post_body"] == "A January post rewritten after the run cutoff."
+    assert "known_at" not in live.json()
+
+    known = client.get(
+        f"/api/posts/{seeded_db['edited_own_post_id']}",
+        params={"as_of": "2026-01-12T12:00:00Z"},
+        headers=headers,
+    )
+    assert known.status_code == 200
+    body = known.json()
+    assert body["post_body"] == "A January post rewritten after the run cutoff."
+    assert body["known_at"]["post_body"] == "A January post before the rewrite."
+    assert body["known_at"]["written_at"].startswith("2026-01-10")
+    assert "postgresql://" not in str(body)
+
+    missing = client.get(
+        f"/api/posts/{seeded_db['edited_own_post_id']}",
+        params={"as_of": "2026-01-01T00:00:00Z"},
+        headers=headers,
+    )
+    assert missing.status_code == 200
+    assert "known_at" not in missing.json()
+
+    invalid = client.get(
+        f"/api/posts/{seeded_db['edited_own_post_id']}",
+        params={"as_of": "not-a-clock"},
+        headers=headers,
+    )
+    assert invalid.status_code == 422
 
 
 def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token, seeded_db) -> None:

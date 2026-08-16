@@ -72,6 +72,7 @@ from backend.app.analysis_run_ingestion import (
     fetch_visible_analysis_run,
     fetch_visible_analysis_runs,
 )
+from backend.app.source_post_revision import fetch_known_at_revision, parse_as_of_clock
 from backend.app.activity_stream import (
     create_valkey_client,
     get_valkey,
@@ -368,11 +369,29 @@ async def list_posts(
 @app.get("/api/posts/{post_id}")
 async def read_post(
     post_id: str,
+    as_of: str | None = None,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Return one source_post, or 404 / 403 if it is missing or out of scope."""
+    """Return one source_post, or 404 / 403 if it is missing or out of scope.
+
+    ``as_of`` adds ``known_at`` when a ``source_post_revision`` covers that
+    clock (ADR 0022). The live ``post_body`` stays the live row. A missing
+    cover is omitted -- never a fabricated cutoff sentence. Next action:
+    pass the analysis-run cutoff, then compare ``known_at`` with the live
+    body before treating the live text as reconstructed evidence.
+    """
     _require_post_read(account)
+    as_of_clock = None
+    if as_of is not None:
+        try:
+            as_of_clock = parse_as_of_clock(as_of)
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "as_of must be an ISO-8601 timestamp. Use the run cutoff, "
+                "then compare the known body with the live body.",
+            ) from exc
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "select post_id, post_title, post_body, voc_type_code, visibility_code, corporate_entity_id, created_at "
@@ -384,7 +403,13 @@ async def read_post(
         if not _can_see_post(account, row):
             raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
         labels = await _lookup_post_labels(conn, [row])
-    return {**_serialize_post(row, labels), "post_body": row["post_body"]}
+        known_at = None
+        if as_of_clock is not None:
+            known_at = await fetch_known_at_revision(conn, post_id, as_of_clock)
+    payload = {**_serialize_post(row, labels), "post_body": row["post_body"]}
+    if known_at is not None:
+        payload["known_at"] = known_at
+    return payload
 
 
 async def _load_visible_post(
