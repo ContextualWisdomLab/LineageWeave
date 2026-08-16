@@ -27,6 +27,10 @@
   color: #b91c1c;
 }
 
+.status-alert {
+  color: var(--color-status-alert);
+}
+
 .post-list {
   list-style: none;
   padding: 0;

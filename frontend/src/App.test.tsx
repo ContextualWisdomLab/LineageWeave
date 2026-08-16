@@ -87,6 +87,7 @@ describe("App, authenticated", () => {
     const events: { event_id: string; event_type: string; actor_account_id: string; summary: string }[] = [];
     let nextEventId = 1;
     let createdPendingLineage: Record<string, unknown> | null = null;
+    let analysisRunListCalls = 0;
 
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -365,11 +366,17 @@ describe("App, authenticated", () => {
         return Promise.resolve(new Response(JSON.stringify(created), { status: 201 }));
       }
       if (url.endsWith("/api/analysis-runs")) {
+        analysisRunListCalls += 1;
+        const includeStaleLineageRow = !(
+          options?.hiddenAnalysisRun && analysisRunListCalls > 1
+        );
         return Promise.resolve(
           jsonResponse({
             analysis_runs: [
               ...(createdPendingLineage ? [createdPendingLineage] : []),
-              {
+              ...(includeStaleLineageRow
+                ? [
+                    {
                 analysis_run_id: "run-demo-lineage",
                 run_kind_code: "analysis_run_lineage",
                 run_kind_label: "Lineage reconstruction",
@@ -392,7 +399,9 @@ describe("App, authenticated", () => {
                 code_revision_sha: "abcdef0123456789deadbeefcafebabe",
                 configuration_sha256:
                   "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-              },
+                    },
+                  ]
+                : []),
               {
                 analysis_run_id: "run-demo-tepp",
                 run_kind_code: "analysis_run_tepp",
@@ -1761,9 +1770,24 @@ describe("App, authenticated", () => {
     );
 
     expect(
-      await screen.findByText(
-        "This run is not on your list. Open a visible run from the home list, or request a lineage reconstruction for a corporation you already walk.",
-      ),
+      await screen.findByRole("alert"),
+    ).toHaveTextContent(
+      "This run is not on your list. Open a visible run from the home list, or request a lineage reconstruction for a corporation you already walk.",
+    );
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("button", {
+          name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+        }),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole("button", {
+        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Request a lineage reconstruction" }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/not visible/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/thread-group/i)).not.toBeInTheDocument();

@@ -58,7 +58,9 @@ thread-group row the caller requested that still lacks an in-cutoff
 visible post, ADR 0018) must stay generic: do not name the thread or
 the cutoff. Tell the operator to open a visible run from the home
 list, or request a lineage reconstruction for a corporation they
-already walk.
+already walk. After that 404, re-read `GET /api/analysis-runs` so
+the stale list row does not stay clickable, and announce the status
+with `role="alert"` (WCAG 2.2 SC 4.1.3).
 
 ## References
 
@@ -66,6 +68,10 @@ American Educational Research Association, American Psychological
 Association, & National Council on Measurement in Education. (2014).
 *Standards for educational and psychological testing*. American
 Educational Research Association.
+
+Kirkpatrick, A., Campbell, A., Cooper, M., & Adams, C. (Eds.). (2023).
+*Web Content Accessibility Guidelines (WCAG) 2.2* (W3C Recommendation).
+World Wide Web Consortium. https://www.w3.org/TR/WCAG22/
 
 Lebo, T., Sahoo, S., & McGuinness, D. (Eds.). (2013). *PROV-O: The PROV
 ontology* (W3C Recommendation). World Wide Web Consortium.

@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.87.4] - 2026-08-16
+
+### Fixed
+
+- Opening a listed analysis-run that then 404s drops that stale row
+  from the home list after an authorized re-read. The next action is
+  announced as a status alert: open a remaining visible run, or
+  request a lineage reconstruction. The message still does not name
+  the thread or the cutoff (ADR 0014 / ADR 0018).
+
 ## [0.87.2] - 2026-08-16
 
 ### Fixed

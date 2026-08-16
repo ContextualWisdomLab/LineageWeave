@@ -60,6 +60,7 @@ import {
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
 import { PopupCloseButton } from "./components/PopupCloseButton";
+import { StatusAlert } from "./components/StatusAlert";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { subgraphForPost } from "./lineageLayout";
@@ -1665,13 +1666,18 @@ function AnalysisRunsPanel({
       setSelected(null);
       if (err instanceof BackendError && err.status === 404) {
         setError(analysisRunHiddenNextAction());
+        try {
+          setRuns((await fetchAnalysisRuns(accessToken)).analysis_runs);
+        } catch {
+          // Keep the last authorized list if the re-read fails.
+        }
         return;
       }
       setError(String(err));
     }
   }
 
-  if (error && runs === null) return <p className="error">{error}</p>;
+  if (error && runs === null) return <StatusAlert>{error}</StatusAlert>;
   if (runs === null) return <p>Loading analysis runs...</p>;
 
   const corpusHint = selected ? analysisRunCorpusHint(selected) : null;
@@ -1690,7 +1696,7 @@ function AnalysisRunsPanel({
           {requesting ? "Recording the run..." : "Request a lineage reconstruction"}
         </button>
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && <StatusAlert>{error}</StatusAlert>}
       {runs.length === 0 ? (
         <p className="popup-placeholder">
           No analysis runs visible to this account yet. Request a lineage

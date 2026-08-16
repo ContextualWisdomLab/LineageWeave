@@ -514,6 +514,13 @@ def test_hidden_run_copy_stays_generic_and_names_the_next_action() -> None:
     app = (
         Path(__file__).resolve().parents[1] / "frontend" / "src" / "App.tsx"
     ).read_text(encoding="utf-8")
+    alert = (
+        Path(__file__).resolve().parents[1]
+        / "frontend"
+        / "src"
+        / "components"
+        / "StatusAlert.tsx"
+    ).read_text(encoding="utf-8")
     agents = (
         Path(__file__).resolve().parents[1] / "AGENTS.md"
     ).read_text(encoding="utf-8")
@@ -524,8 +531,12 @@ def test_hidden_run_copy_stays_generic_and_names_the_next_action() -> None:
         in app
     )
     assert "do not name the thread or the cutoff" in app
+    assert "setRuns((await fetchAnalysisRuns(accessToken)).analysis_runs)" in app
+    assert 'role="alert"' in alert
+    assert "<StatusAlert>{error}</StatusAlert>" in app
     assert "even when the signed-in account requested" in agents
     assert "do not name the thread or the cutoff" in agents
+    assert "re-read the authorized list" in agents
 
 
 def test_person_role_join_orders_catalog_homonyms() -> None:
