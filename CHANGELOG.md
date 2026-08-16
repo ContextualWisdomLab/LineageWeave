@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Each counterpart Keyman now carries the appointment excerpts that name that
+  person or organization, so VOC evidence sits under the matching relative-side
+  actor instead of only in a shared card list.
 - Counterpart Keyman now shows authorized customer-appointment excerpts as
   `고객 발화 근거` under the relative-side card. Matching names are preferred;
   otherwise the document's authorized appointment text is shown. This does not

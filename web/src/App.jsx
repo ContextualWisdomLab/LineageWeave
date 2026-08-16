@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   canPreviewAsset,
   counterpartVocExcerpts,
+  vocExcerptsForCounterpart,
   customerTreeRows,
   emailValidationMessage,
   formatNumber,
@@ -1315,7 +1316,7 @@ export default function App() {
               </section>
               <section className="detail-card modal-keyman-counterpart">
                 <h3>Keyman · 상대측</h3>
-                <ul id="popupKeymanCounterpart">{sideRows(selectedDocument.keyman_counterpart_side).map((item, index) => { const label = item.actor_name || item.person_name || item.org_name; const node = sourcePersons.find((candidate) => candidate.label === label || candidate.label === item.organization_name || candidate.label === item.org_name); return <li key={`${label}-${item.org_name}-${index}`}><button className="keyman-link" onClick={() => openKnowledge(node || { person: label })}>{sideLabel(item)}</button></li>; })}</ul>
+                <ul id="popupKeymanCounterpart">{sideRows(selectedDocument.keyman_counterpart_side).map((item, index) => { const label = item.actor_name || item.person_name || item.org_name; const node = sourcePersons.find((candidate) => candidate.label === label || candidate.label === item.organization_name || candidate.label === item.org_name); const excerpts = vocExcerptsForCounterpart(selectedDocument.appointments, item); return <li key={`${label}-${item.org_name}-${index}`} className="counterpart-voc"><button className="keyman-link" onClick={() => openKnowledge(node || { person: label })}>{sideLabel(item)}</button>{excerpts.map((excerpt) => <blockquote className="voc-excerpt" key={excerpt.appointment_id || `${label}-${excerpt.excerpt}`}><p>{excerpt.excerpt}</p><small>{excerpt.occurred_on || "날짜 미상"}{excerpt.label ? ` · ${excerpt.label}` : ""}</small></blockquote>)}</li>; })}</ul>
                 <p className="meta">관리 상태: {keymanStatusLabel(selectedDocument.keyman_status || "not_run")}</p>
                 {counterpartExcerpts.length ? (
                   <div id="vocExcerpts" className="voc-excerpts">

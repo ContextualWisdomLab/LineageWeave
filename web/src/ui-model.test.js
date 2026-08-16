@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   canPreviewAsset,
   counterpartVocExcerpts,
+  vocExcerptsForCounterpart,
   customerTreeRows,
   emailValidationMessage,
   EMPTY_EMAIL_MESSAGE,
@@ -38,6 +39,8 @@ describe("counterpartVocExcerpts", () => {
     expect(counterpartVocExcerpts(appointments, [{ person_name: "Ada West" }]).map((item) => item.appointment_id)).toEqual(["a1"]);
     expect(counterpartVocExcerpts(appointments, [{ person_name: "Priya Nair" }]).map((item) => item.appointment_id)).toEqual(["a1", "a2"]);
     expect(counterpartVocExcerpts(appointments, []).map((item) => item.appointment_id)).toEqual(["a1", "a2"]);
+    expect(vocExcerptsForCounterpart(appointments, { person_name: "Ada West" }).map((item) => item.appointment_id)).toEqual(["a1"]);
+    expect(vocExcerptsForCounterpart(appointments, { person_name: "Priya Nair" })).toEqual([]);
   });
 });
 

@@ -554,8 +554,9 @@ Figma parity review or production Keyverse acceptance.
 Counterpart Keyman lists authorized customer-appointment excerpts in
 `#vocExcerpts` when the document already has appointment text. Name matches
 are preferred; otherwise the authorized excerpts stay under the relative-side
-card. This is a presentation of existing appointment evidence, not a new VOC
-edge or Lineage transition.
+card. Excerpts that name a counterpart also render under that actor via
+`vocExcerptsForCounterpart`. This is a presentation of existing appointment
+evidence, not a new VOC edge or Lineage transition.
 
 Event-lineage chat is a live-model question over the authorized document
 neighborhood. If the transport returns `live_model_unavailable`, React sets
