@@ -1234,8 +1234,10 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
 def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -> None:
     """Insert one Demo-Corp lineage run so Analysis runs is not empty.
 
-    Aggregates only: three synthetic documents, one thread. The digest is
-    a hash of a fixed demo contract string -- never a source row or DSN.
+    Aggregates only: three synthetic snapshot documents, one thread. The
+    digest is a hash of a fixed demo contract string -- never a source
+    row or DSN. Counts stay snapshot inventory (ADR 0013); they are not
+    a live count of cutoff-filtered Demo posts.
     """
     import hashlib
 
@@ -1262,18 +1264,23 @@ def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -
     else:
         snapshot_id = snapshot_row[0]
     cur.execute(
-        """
-        insert into analysis_source_count
-            (analysis_source_snapshot_id, count_type_code, count_value)
-        values
-            (%s, 'analysis_count_document', 3),
-            (%s, 'analysis_count_thread', 1),
-            (%s, 'analysis_count_lineage_node', 5),
-            (%s, 'analysis_count_lineage_edge', 4)
-        on conflict do nothing
-        """,
-        (snapshot_id, snapshot_id, snapshot_id, snapshot_id),
+        "select 1 from analysis_source_count "
+        "where analysis_source_snapshot_id = %s limit 1",
+        (snapshot_id,),
     )
+    if cur.fetchone() is None:
+        cur.execute(
+            """
+            insert into analysis_source_count
+                (analysis_source_snapshot_id, count_type_code, count_value)
+            values
+                (%s, 'analysis_count_document', 3),
+                (%s, 'analysis_count_thread', 1),
+                (%s, 'analysis_count_lineage_node', 5),
+                (%s, 'analysis_count_lineage_edge', 4)
+            """,
+            (snapshot_id, snapshot_id, snapshot_id, snapshot_id),
+        )
     cur.execute(
         """
         select analysis_run_id from analysis_run

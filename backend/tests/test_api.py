@@ -95,10 +95,11 @@ def demo_analyst_token() -> str:
 @pytest.fixture
 def seeded_db(demo_analyst_token):
     """A throwaway, freshly migrated database seeded with a user_account
-    keyed to the real Keycloak demo.analyst subject, plus three source_post
-    rows covering the three visibility outcomes the API must distinguish:
-    public (visible to anyone), same-corp private (visible), and
-    other-corp private (must NOT be visible).
+    keyed to the real Keycloak demo.analyst subject, plus four source_post
+    rows covering the visibility and cutoff outcomes the API must
+    distinguish: public (visible to anyone), same-corp private (visible),
+    other-corp private (must NOT be visible), and a later own-corp private
+    post that GET /api/posts still lists but analysis-run detail hides.
     """
     subject = jwt.decode(demo_analyst_token, options={"verify_signature": False})["sub"]
 
@@ -491,6 +492,7 @@ def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
     assert all("failure_code" not in event for event in history)
     titles = {post["post_title"] for post in body["visible_posts"]}
     assert "Own-corp private post" in titles
+    assert "Public post" not in titles
     assert "Late own-corp private post" not in titles
     assert "Other-corp private post" not in titles
     assert body["code_revision_sha"] == "c" * 40
@@ -503,6 +505,12 @@ def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert hidden.status_code == 404
+
+    hidden_all_visible = client.get(
+        f"/api/analysis-runs/{seeded_db['hidden_all_visible_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert hidden_all_visible.status_code == 404
 
     unauthenticated = client.get("/api/analysis-runs")
     assert unauthenticated.status_code == 401
@@ -520,7 +528,7 @@ def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, 
     response = client.get("/api/posts", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200
     titles = {post["post_title"] for post in response.json()}
-    assert titles == {"Public post", "Own-corp private post"}
+    assert titles == {"Public post", "Own-corp private post", "Late own-corp private post"}
     public = next(post for post in response.json() if post["post_title"] == "Public post")
     assert public["voc_type_label"] == "Voice of Customer"
     assert public["visibility_label"] == "Public"
