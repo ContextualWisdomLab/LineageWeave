@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- The general-user shell now names its mode explicitly as `일반 사용자 모드` or
+  `운영 모드` and cannot render the administrator console from stale or
+  case-variant role claims. Readers stay on `업무 홈` / `업무공간` / `고객 화면`;
+  administrators still reach diagnostic panels only after a verified `admin`
+  recheck in the same render cycle.
 - Prevented bounded Keyman-only reanalysis from deleting previously persisted
   appointment, To Do/calendar, or customer-master LLM results. The post-fix
   live offset batch increased durable Keyman coverage from 127 to 128 while

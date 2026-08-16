@@ -207,10 +207,12 @@ try {
   const homeAdminNav = viewNav.getByRole("button", { name: "관리자 모드", exact: true });
   const homeHasAdminNav = (await homeAdminNav.count()) > 0;
   const homeHasDiagnosticKpi = (await page.locator("#metricRows").count()) > 0;
+  const surfaceModeText = (await page.locator("#surfaceMode").textContent()) || "";
   result.home = {
     screen: await page.locator("#userHome").isVisible(),
     admin_navigation_visible: homeHasAdminNav,
     diagnostic_kpi_visible: homeHasDiagnosticKpi,
+    surface_mode_text: surfaceModeText,
   };
   assert.equal(result.home.screen, true);
   if (requireData) {
@@ -268,6 +270,8 @@ try {
   if (!(sessionActor?.roles || []).includes("admin")) {
     assert.equal(result.home.admin_navigation_visible, false);
     assert.equal(result.home.diagnostic_kpi_visible, false);
+    assert.equal(await page.locator("#adminMode").count(), 0);
+    assert.equal(result.home.surface_mode_text.includes("일반 사용자 모드"), true);
   }
   const customerNav = viewNav.getByRole("button", { name: "고객 화면", exact: true });
   assert.equal(await customerNav.count(), 1);
@@ -332,6 +336,7 @@ try {
   if ((sessionActor?.roles || []).includes("admin")) {
     const adminNav = viewNav.getByRole("button", { name: "관리자 모드", exact: true });
     assert.equal(await adminNav.count(), 1);
+    assert.equal(result.home.surface_mode_text.includes("운영 모드"), true);
     await adminNav.click();
     await page.locator("#adminMode").waitFor({ timeout: 30_000 });
     await page.locator("#accessPolicyScreen").waitFor({ timeout: 30_000 });

@@ -528,7 +528,10 @@ business home with work, customer-master, and report entry points; a verified
 administrator enters a separate server-authorized console for policy, Lineage
 review, enrichment, and account-directory operations. Reader navigation does
 not merely hide a debug panel: the API payloads and route handlers enforce the
-same actor scope before React renders a surface.
+same actor scope before React renders a surface. The shell also derives one
+normalized `visibleActiveView` from verified roles, so a stale `admin` view
+or case-variant role claim cannot mount the administrator console for a
+general user. The session badge names this as `일반 사용자 모드` or `운영 모드`.
 
 The customer master is a semantic projection. `schema:Organization` identifies
 customer entities, `schema:subOrganization` identifies hierarchy relations, and

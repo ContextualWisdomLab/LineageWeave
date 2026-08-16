@@ -4580,3 +4580,45 @@ complete enrichment.
 Evidence: `test_persist_operational_surfaces_preserves_existing_work_for_keyman_batch`,
 `select_keyman_documents` offset tests, the live `offset=128` CLI completion,
 and the before/after aggregate-only PostgreSQL checks.
+
+## Amendment: UI boundary guard for general-user screens (2026-08-15)
+
+The user-facing React shell now enforces a normalized view boundary that cannot
+render an administrator surface for a non-administrator actor, even if stale
+state arrives during a fast role refresh. `session.roles` is normalized with
+case-insensitive deduplication before role checks, and a single `visibleActiveView`
+state is derived for all navigation and render branching. If a stale or malformed
+`activeView` value is present, or a non-admin actor carries an invalid `admin`
+view state, the shell falls back to `home` before rendering any surface.
+
+That boundary is server-enforced downstream as before by `lineageweave_server.py`;
+this amendment makes the browser boundary fail-safe instead of merely menu-based.
+General users therefore see one of: `업무 홈`, `업무공간`, `고객 화면` only.
+Administrators continue to receive all diagnostic panels only after a verified role
+recheck in this same render cycle.
+
+Acceptance updates:
+
+- Playwright now asserts `#adminMode` is absent for non-admin sessions.
+- General-user browser captures continue to render `#userHome`, customer navigation,
+  and workspace screens, and do not rely on the hidden admin button to hide
+  administrative controls.
+- Role casing in the UI no longer blocks expected privilege interpretation when
+  upstream tokens carry non-canonical case.
+
+## Amendment: General-user screen surface and customer-master first classing (2026-08-15)
+
+The reader/business experience is now documented as a first-class product surface,
+not an implementation leftover. The shell labels it explicitly as `일반 사용자 모드`
+and computes role text through a normalized `surfaceRoleLabel` so the same
+terminology is shown in the badge and home summary. The visible customer screen
+(`고객 화면`) remains the product entry for customer-master hierarchy, and
+reader/home/workspace/customer navigation remains available when `admin` is absent.
+
+This also means an empty or case-variant `roles` claim cannot accidentally move
+the browser into administrative surface rendering, and customer evidence still
+must round-trip through `/api/customers` with actor-scoped document links.
+
+Evidence: the updated `surfaceMode` chip text, the role-label normalization in
+`web/src/App.jsx`, and Playwright `home.surface_mode_text` assertions for both
+non-admin and admin sessions.
