@@ -43,6 +43,7 @@ from lineageweave.knowledge_graph import (
 )
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
+    ACTOR_TYPE_PERSON,
     PostSummary,
     RoleResponsibility,
 )
@@ -542,3 +543,150 @@ def test_homonym_organization_role_binds_the_resolved_catalog_id(
 
     database_dsn, post_id, _summary_person_id = projection_database.split("|")
     asyncio.run(_exercise_homonym_organization_role_binding(database_dsn, post_id))
+
+
+async def _exercise_unique_person_catalog_bind(
+    database_dsn: str,
+    post_id: str,
+) -> None:
+    """One catalog row with this name must become the stored person id."""
+
+    connection = await asyncpg.connect(database_dsn)
+    try:
+        unique_id = str(
+            await connection.fetchval(
+                """
+                insert into cataloged_person
+                    (person_name, person_side_code, last_known_job_title)
+                values ('Park Younghee', 'our_side', 'Contract Lead')
+                returning person_id
+                """
+            )
+        )
+        await persist_post_summary(
+            connection,
+            post_id,
+            PostSummary(
+                korean_summary="박영희가 후속을 맡았다.",
+                roles_and_responsibilities=(
+                    RoleResponsibility(
+                        actor_name="Park Younghee",
+                        responsibility="후속",
+                        actor_type_code=ACTOR_TYPE_PERSON,
+                    ),
+                ),
+            ),
+        )
+        payload = await fetch_persisted_summary(connection, post_id)
+        assert payload is not None
+        roles = payload["roles_and_responsibilities"]
+        assert len(roles) == 1
+        stored_id = await connection.fetchval(
+            """
+            select cataloged_person_id
+              from post_summary_role
+             where post_id = $1 and actor_name = 'Park Younghee'
+            """,
+            post_id,
+        )
+        assert stored_id is not None
+        assert str(stored_id) == unique_id
+        assert roles[0]["catalog_node_id"] == unique_id
+        assert roles[0]["catalog_node_type_code"] == NODE_PERSON
+        mention_id = await connection.fetchval(
+            """
+            select person_id from post_summary_person_mention
+             where post_id = $1 and person_id = $2
+            """,
+            post_id,
+            unique_id,
+        )
+        assert mention_id is not None
+    finally:
+        await connection.close()
+
+
+def test_unique_person_roles_bind_the_only_catalog_row(
+    projection_database: str,
+) -> None:
+    """ADR 0021: a unique catalog name is the stored person chip id."""
+
+    database_dsn, post_id, _summary_person_id = projection_database.split("|")
+    asyncio.run(_exercise_unique_person_catalog_bind(database_dsn, post_id))
+
+
+async def _exercise_same_name_person_catalog_unbound(
+    database_dsn: str,
+    post_id: str,
+) -> None:
+    """Two people with the same name must leave the role unbound."""
+
+    connection = await asyncpg.connect(database_dsn)
+    try:
+        await connection.execute(
+            """
+            insert into cataloged_person
+                (person_name, person_side_code, last_known_job_title, created_at)
+            values (
+                'Kim Cheolsu', 'our_side', 'Sales Manager',
+                '2024-01-01T00:00:00+00'
+            )
+            """
+        )
+        await connection.execute(
+            """
+            insert into cataloged_person
+                (person_name, person_side_code, last_known_job_title, created_at)
+            values (
+                'Kim Cheolsu', 'counterparty', 'Purchasing Lead',
+                '2024-06-01T00:00:00+00'
+            )
+            """
+        )
+        await persist_post_summary(
+            connection,
+            post_id,
+            PostSummary(
+                korean_summary="김철수가 후속을 맡았다.",
+                roles_and_responsibilities=(
+                    RoleResponsibility(
+                        actor_name="Kim Cheolsu",
+                        responsibility="후속",
+                        actor_type_code=ACTOR_TYPE_PERSON,
+                    ),
+                ),
+            ),
+        )
+        payload = await fetch_persisted_summary(connection, post_id)
+        assert payload is not None
+        roles = payload["roles_and_responsibilities"]
+        assert len(roles) == 1
+        stored_id = await connection.fetchval(
+            """
+            select cataloged_person_id
+              from post_summary_role
+             where post_id = $1 and actor_name = 'Kim Cheolsu'
+            """,
+            post_id,
+        )
+        assert stored_id is None
+        assert roles[0]["catalog_node_id"] is None
+        mention_count = await connection.fetchval(
+            """
+            select count(*) from post_summary_person_mention
+             where post_id = $1
+            """,
+            post_id,
+        )
+        assert mention_count == 0
+    finally:
+        await connection.close()
+
+
+def test_same_name_person_roles_stay_unbound(
+    projection_database: str,
+) -> None:
+    """ADR 0021: two catalog people who share a name stay unbound."""
+
+    database_dsn, post_id, _summary_person_id = projection_database.split("|")
+    asyncio.run(_exercise_same_name_person_catalog_unbound(database_dsn, post_id))

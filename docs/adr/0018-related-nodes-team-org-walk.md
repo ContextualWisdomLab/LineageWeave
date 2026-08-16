@@ -49,6 +49,8 @@ Thread-group run list visibility requires at least one ABAC-visible
   organization chip.
 - A later public post in a thread group no longer lists a January run
   that could not have known that post.
+- Catalog ids on those chips come from `post_summary_role` (ADR 0019 /
+  0021). Do not rejoin `corporate_entity` by `entity_name`.
 
 ## References
 

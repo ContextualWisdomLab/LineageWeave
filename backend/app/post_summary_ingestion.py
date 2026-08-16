@@ -7,8 +7,9 @@ a Knowledge Graph mention edge is written, so the same "설계팀" or
 organization named across two posts becomes one linkable node. Fetch
 never reconstructs that id by ``entity_name``; that column is not unique.
 A person actor is opportunistically joined to an *existing*
-``cataloged_person`` row by name when Keyman extraction has already
-cataloged that name. The R&R evidence is written to
+``cataloged_person`` row by name when exactly one catalog row matches
+(ADR 0021). Two same-named catalog rows stay unbound. The R&R evidence
+is written to
 ``post_summary_person_mention`` rather than Keyman's
 ``post_person_mention`` so either extractor can replace its own result
 without leaving or deleting the other's evidence.
@@ -35,7 +36,11 @@ from lineageweave.corporate_hierarchy_inference import (
     NullCorporateHierarchyInferenceClient,
 )
 from lineageweave.fixtures import fixture_thread_cast
-from lineageweave.knowledge_graph import NODE_CORPORATE_ENTITY, NODE_TEAM
+from lineageweave.knowledge_graph import (
+    NODE_CORPORATE_ENTITY,
+    NODE_PERSON,
+    NODE_TEAM,
+)
 from lineageweave.ontology import ontology_annotations
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
@@ -55,14 +60,33 @@ from .knowledge_graph import persist_edges_for_post
 from .team_ingestion import upsert_team
 
 
+async def _unique_cataloged_person_id(
+    conn: asyncpg.Connection, person_name: str
+) -> str | None:
+    """Return the catalog id only when exactly one person has this name.
+
+    Two same-named ``cataloged_person`` rows stay unbound (Fellegi &
+    Sunter, 1969). R&R does not create a person row (ADR 0009).
+    """
+    person_rows = await conn.fetch(
+        "select person_id from cataloged_person "
+        "where person_name = $1 "
+        "order by created_at, person_id",
+        person_name,
+    )
+    if len(person_rows) != 1:
+        return None
+    return str(person_rows[0]["person_id"])
+
+
 async def fetch_persisted_summary(
     conn: asyncpg.Connection, post_id: str
 ) -> dict[str, Any] | None:
     """Return the stored summary payload, or None when none has been written.
 
     ``catalog_node_id`` comes from the role row's catalog foreign keys
-    (ADR 0019). This function does not join ``corporate_entity`` by
-    ``entity_name``.
+    (ADR 0019 / 0021). This function does not join ``corporate_entity``
+    by ``entity_name``. Person chips read ``cataloged_person_id``.
     """
     header = await conn.fetchrow(
         "select korean_summary from post_summary_result where post_id = $1",
@@ -79,7 +103,8 @@ async def fetch_persisted_summary(
         select role.actor_name, role.responsibility, role.actor_type_code,
                role.affiliated_organization_name,
                role.cataloged_team_id,
-               role.cataloged_corporate_entity_id
+               role.cataloged_corporate_entity_id,
+               role.cataloged_person_id
           from post_summary_role role
          where role.post_id = $1
          order by role.actor_name
@@ -96,6 +121,9 @@ async def fetch_persisted_summary(
         elif row["cataloged_corporate_entity_id"] is not None:
             catalog_node_id = str(row["cataloged_corporate_entity_id"])
             catalog_node_type_code = NODE_CORPORATE_ENTITY
+        elif row["cataloged_person_id"] is not None:
+            catalog_node_id = str(row["cataloged_person_id"])
+            catalog_node_type_code = NODE_PERSON
         payload_roles.append(
             {
                 "actor_name": row["actor_name"],
@@ -215,6 +243,7 @@ async def _replace_summary_projection(
     for role_index, role in enumerate(summary.roles_and_responsibilities):
         cataloged_team_id = None
         cataloged_corporate_entity_id = None
+        cataloged_person_id = None
         if role.actor_type_code == ACTOR_TYPE_TEAM:
             cataloged_team_id = await upsert_team(
                 conn,
@@ -226,12 +255,16 @@ async def _replace_summary_projection(
             cataloged_corporate_entity_id = resolved_organization_ids.get(
                 role_index
             )
+        elif role.actor_type_code == ACTOR_TYPE_PERSON:
+            cataloged_person_id = await _unique_cataloged_person_id(
+                conn, role.actor_name
+            )
         await conn.execute(
             "insert into post_summary_role "
             "(post_id, actor_name, responsibility, actor_type_code, "
             "affiliated_organization_name, cataloged_team_id, "
-            "cataloged_corporate_entity_id) values "
-            "($1, $2, $3, $4, $5, $6, $7)",
+            "cataloged_corporate_entity_id, cataloged_person_id) values "
+            "($1, $2, $3, $4, $5, $6, $7, $8)",
             post_id,
             role.actor_name,
             role.responsibility,
@@ -239,6 +272,7 @@ async def _replace_summary_projection(
             role.affiliated_organization_name,
             cataloged_team_id,
             cataloged_corporate_entity_id,
+            cataloged_person_id,
         )
         if cataloged_team_id is not None:
             await conn.execute(
@@ -255,18 +289,13 @@ async def _replace_summary_projection(
                 post_id,
                 cataloged_corporate_entity_id,
             )
-        elif role.actor_type_code == ACTOR_TYPE_PERSON:
-            person_row = await conn.fetchrow(
-                "select person_id from cataloged_person where person_name = $1 limit 1",
-                role.actor_name,
+        elif cataloged_person_id is not None:
+            await conn.execute(
+                "insert into post_summary_person_mention (post_id, person_id) "
+                "values ($1, $2) on conflict do nothing",
+                post_id,
+                cataloged_person_id,
             )
-            if person_row is not None:
-                await conn.execute(
-                    "insert into post_summary_person_mention (post_id, person_id) "
-                    "values ($1, $2) on conflict do nothing",
-                    post_id,
-                    str(person_row["person_id"]),
-                )
     await persist_edges_for_post(conn, post_id)
 
 

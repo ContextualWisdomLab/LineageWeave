@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.87.1] - 2026-08-16
+
+### Fixed
+
+- R&R person chips now read `cataloged_person_id` from
+  `post_summary_role` (ADR 0021). Open a post whose R&R names a
+  cataloged person: the chip is a button even when Keyman extraction
+  was not run on that post. Click it to walk that person. Persist and
+  historical backfill leave a role unbound when two same-named catalog
+  rows or mentions already exist.
+
 ## [0.87.0] - 2026-08-16
 
 ### Added

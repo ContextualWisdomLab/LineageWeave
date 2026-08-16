@@ -862,7 +862,15 @@ the same `persist_edges_for_post` Keyman ingestion already uses. A person R&R
 actor is opportunistically joined to an existing `cataloged_person` row
 by name (never originated by R&R itself -- documented gap in the ADR:
 `cataloged_person` needs `person_side_code`, which R&R's prompt does
-not currently capture).
+not currently capture). ADR 0019 / 0021 store that resolved catalog id
+on `post_summary_role` (`cataloged_team_id` /
+`cataloged_corporate_entity_id` / `cataloged_person_id`) so a later
+read does not rejoin `corporate_entity` by `entity_name`. Fetch returns
+the person foreign key as `catalog_node_id` the same way. Persist and
+historical backfill leave a role unbound when two same-named catalog
+rows or mentions already exist. Open a post whose R&R names a cataloged
+person: the chip is a button even when Keyman was not extracted on that
+post. Click it to walk that stored person.
 
 ## Phase 12: a real counterparty organization is auto-created, not left permanently unresolved
 

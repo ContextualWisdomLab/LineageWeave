@@ -419,6 +419,24 @@ alter table post_summary_role
 alter table post_summary_role
     add column cataloged_corporate_entity_id uuid
         references corporate_entity (corporate_entity_id);
+-- ADR 0021: person chips read the stored catalog id, not a later
+-- same-named Keyman row. At most one catalog FK is set.
+alter table post_summary_role
+    add column cataloged_person_id uuid references cataloged_person (person_id),
+    add constraint post_summary_role_one_catalog_chk check (
+        (cataloged_team_id is not null)::int
+        + (cataloged_corporate_entity_id is not null)::int
+        + (cataloged_person_id is not null)::int
+        <= 1
+    ),
+    add constraint post_summary_role_catalog_type_chk check (
+        (cataloged_team_id is null or actor_type_code = 'prov_team')
+        and (
+            cataloged_corporate_entity_id is null
+            or actor_type_code = 'prov_organization'
+        )
+        and (cataloged_person_id is null or actor_type_code = 'prov_person')
+    );
 
 -- ---------------------------------------------------------------------
 -- Knowledge graph: person/company/post nodes, typed edges. The type

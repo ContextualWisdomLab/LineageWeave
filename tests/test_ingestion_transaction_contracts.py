@@ -205,6 +205,9 @@ class _SummaryConnection:
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
         compact = " ".join(query.split())
         self._events.append(("fetch", compact))
+        if compact.startswith("select person_id from cataloged_person"):
+            assert self.in_transaction
+            return []
         assert not self.in_transaction
         if "from post_summary_event" in compact:
             return [{"event_text": "검토 완료"}]
@@ -219,6 +222,7 @@ class _SummaryConnection:
                     "affiliated_organization_name": "Synthetic Energy",
                     "cataloged_team_id": None,
                     "cataloged_corporate_entity_id": None,
+                    "cataloged_person_id": None,
                 }
             ]
         raise AssertionError(f"unexpected fetch query: {compact}")
@@ -366,6 +370,7 @@ def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch
         and "insert into post_summary_role" in event[1]
     )
     assert "cataloged_corporate_entity_id" in role_insert
+    assert "cataloged_person_id" in role_insert
     assert resolve_index < enter_index < mention_index < exit_index
 
 
@@ -495,6 +500,9 @@ def test_role_catalog_identity_is_stored_on_the_role_row() -> None:
     upgrade = (root / "migrations" / "0019_role_catalog_identity.sql").read_text(
         encoding="utf-8"
     )
+    person_upgrade = (
+        root / "migrations" / "0021_role_person_catalog_identity.sql"
+    ).read_text(encoding="utf-8")
     dockerfile = (
         root / "docker" / "postgres-init" / "Dockerfile"
     ).read_text(encoding="utf-8")
@@ -503,7 +511,11 @@ def test_role_catalog_identity_is_stored_on_the_role_row() -> None:
     fetch_sql = fetch_sql.split("async def persist_post_summary", 1)[0]
     assert "org.entity_name = role.actor_name" not in fetch_sql
     assert "cataloged_corporate_entity_id" in fetch_sql
+    assert "cataloged_person_id" in fetch_sql
     assert "cataloged_team_id" in initial
     assert "cataloged_corporate_entity_id" in upgrade
+    assert "cataloged_person_id" in person_upgrade
     assert "0019_role_catalog_identity.sql" in dockerfile
+    assert "0021_role_person_catalog_identity.sql" in dockerfile
     assert "ADR 0019" in changelog
+    assert "ADR 0021" in changelog

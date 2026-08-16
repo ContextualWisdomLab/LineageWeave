@@ -8,6 +8,11 @@ from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[1]
 _ADR_DIRECTORY = _ROOT / "docs" / "adr"
+_ROLE_CATALOG_COLUMNS = (
+    "cataloged_team_id",
+    "cataloged_corporate_entity_id",
+    "cataloged_person_id",
+)
 _ADR_NAME = re.compile(r"^(?P<number>[0-9]{4})-.+\.md$")
 _FORBIDDEN_MARKERS = (
     "PLACEHOLDER_DO_NOT_WRITE",
@@ -37,3 +42,46 @@ def test_adr_numbers_are_unique_and_documents_are_not_placeholders() -> None:
     counts = Counter(number for number, _ in numbered_paths)
     duplicates = sorted(number for number, count in counts.items() if count > 1)
     assert duplicates == [], f"duplicate ADR numbers: {duplicates}"
+
+
+def test_fetch_persisted_summary_reads_stored_catalog_ids() -> None:
+    """ADR 0019 / 0021: fetch must not rejoin the catalog by a non-unique name."""
+
+    source = (_ROOT / "backend" / "app" / "post_summary_ingestion.py").read_text(
+        encoding="utf-8"
+    )
+    assert "org.entity_name = role.actor_name" not in source
+    assert "role.cataloged_team_id" in source
+    assert "role.cataloged_corporate_entity_id" in source
+    assert "role.cataloged_person_id" in source
+    assert "async def _unique_cataloged_person_id" in source
+    assert "len(person_rows) != 1" in source
+    assert "order by created_at, person_id limit 1" not in source
+
+
+def test_role_catalog_identity_migration_is_wired() -> None:
+    """Fresh stacks and seed must apply the catalog-identity columns."""
+
+    dockerfile = (_ROOT / "docker" / "postgres-init" / "Dockerfile").read_text(
+        encoding="utf-8"
+    )
+    seed = (_ROOT / "scripts" / "seed_demo_data.py").read_text(encoding="utf-8")
+    migration_0019 = (_ROOT / "migrations" / "0019_role_catalog_identity.sql").read_text(
+        encoding="utf-8"
+    )
+    migration_0021 = (_ROOT / "migrations" / "0021_role_person_catalog_identity.sql").read_text(
+        encoding="utf-8"
+    )
+    assert "0019_role_catalog_identity.sql" in dockerfile
+    assert "0021_role_person_catalog_identity.sql" in dockerfile
+    assert "0019_role_catalog_identity.sql" in seed
+    assert "0021_role_person_catalog_identity.sql" in seed
+    assert "cataloged_team_id" in migration_0019
+    assert "cataloged_corporate_entity_id" in migration_0019
+    assert "cataloged_person_id" in migration_0021
+    for column_name in _ROLE_CATALOG_COLUMNS:
+        assert len(column_name.split("_")) >= 2
+    assert "having count(*) = 1" in migration_0019
+    assert "having count(*) = 1" in migration_0021
+    assert "distinct on" not in migration_0019.lower()
+    assert "distinct on" not in migration_0021.lower()

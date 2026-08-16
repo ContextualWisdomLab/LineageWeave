@@ -31,7 +31,8 @@ not.
 `post_summary_role` stores the resolved catalog foreign keys
 (`cataloged_team_id`, `cataloged_corporate_entity_id`) written during
 `persist_post_summary`. `fetch_persisted_summary` reads those columns.
-It does not join `corporate_entity` by `entity_name`.
+It does not join `corporate_entity` by `entity_name`. Person identity
+is ADR 0021 (`cataloged_person_id`).
 
 Migration `0019_role_catalog_identity.sql` backfills existing rows from
 a post-scoped mention only when the name match is unique on that post.
