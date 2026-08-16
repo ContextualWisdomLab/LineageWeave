@@ -4,6 +4,7 @@ import {
   askPostChat,
   BackendError,
   createAnalysisRun,
+  reconstructAnalysisRun,
   createPostTicket,
   deriveCommitment,
   evaluatePost,
@@ -1363,7 +1364,16 @@ function analysisRunCaption(run: AnalysisRun): string {
  */
 function analysisRunNextAction(run: AnalysisRun): string | null {
   if (run.status_code === "analysis_status_pending") {
-    return "Open this run to confirm which posts it will use. Reconstruction has not started yet.";
+    if (run.run_kind_code === "analysis_run_tepp") {
+      return "Open this run to confirm which posts TEPP will measure. Measurement has not started yet.";
+    }
+    return "Open this run to confirm which posts it will use, then start reconstruction.";
+  }
+  if (run.status_code === "analysis_status_running") {
+    if (run.run_kind_code === "analysis_run_tepp") {
+      return "Measurement is in progress. Refresh this run.";
+    }
+    return "Reconstruction is in progress. Refresh this run.";
   }
   if (run.status_code !== "analysis_status_failed") {
     return null;
@@ -1373,6 +1383,8 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
       return "Open this run to see why it failed, then connect the measurement service and re-run.";
     case "analysis_run_lineage":
       return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
+    case "analysis_run_report":
+      return "Open this run to see why it failed, then retry the period report from a current snapshot.";
     default:
       return "Open this run to see why it failed, then retry after the blocking service is connected.";
   }
@@ -1401,13 +1413,19 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
  */
 function analysisRunCorpusHint(run: AnalysisRun): string | null {
   if (run.run_kind_code !== "analysis_run_tepp") return null;
+  if (run.status_code === "analysis_status_succeeded") {
+    return "These posts are the cutoff corpus this TEPP run measured.";
+  }
   if (run.status_code === "analysis_status_failed") {
     return (
       "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
       "transport, then re-run, to replace Failed with a calibrated result."
     );
   }
-  return "These posts are the cutoff corpus this TEPP run measured.";
+  return (
+    "These posts are the cutoff corpus TEPP will measure. Connect a TEPP " +
+    "transport, then start measurement."
+  );
 }
 
 /** Git-style prefix. The full digest stays on `title` for verification. */
@@ -1477,6 +1495,8 @@ function AnalysisRunsPanel({
   const [selected, setSelected] = useState<AnalysisRun | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [requesting, setRequesting] = useState(false);
+  const [requestPhase, setRequestPhase] = useState<"idle" | "recording" | "reconstructing">("idle");
+  const requestKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     fetchAnalysisRuns(accessToken)
@@ -1487,18 +1507,57 @@ function AnalysisRunsPanel({
   async function handleRequestLineage() {
     setError(null);
     setRequesting(true);
+    setRequestPhase("recording");
     try {
+      if (!requestKeyRef.current) {
+        requestKeyRef.current = crypto.randomUUID();
+      }
       const created = await createAnalysisRun(accessToken, {
         run_kind_code: "analysis_run_lineage",
-        idempotency_key: crypto.randomUUID(),
+        idempotency_key: requestKeyRef.current,
       });
+      requestKeyRef.current = null;
+      let detail = created;
+      if (
+        created.run_kind_code === "analysis_run_lineage" &&
+        created.status_code === "analysis_status_pending"
+      ) {
+        setRequestPhase("reconstructing");
+        try {
+          detail = await reconstructAnalysisRun(accessToken, created.analysis_run_id);
+        } catch (reconstructErr) {
+          setError(
+            reconstructErr instanceof BackendError
+              ? reconstructErr.message
+              : String(reconstructErr),
+          );
+        }
+      }
       const listed = await fetchAnalysisRuns(accessToken);
       setRuns(listed.analysis_runs);
-      setSelected(created);
+      setSelected(detail);
     } catch (err) {
       setError(err instanceof BackendError ? err.message : String(err));
     } finally {
       setRequesting(false);
+      setRequestPhase("idle");
+    }
+  }
+
+  async function handleStartReconstruction(runId: string) {
+    setError(null);
+    setRequesting(true);
+    setRequestPhase("reconstructing");
+    try {
+      const detail = await reconstructAnalysisRun(accessToken, runId);
+      const listed = await fetchAnalysisRuns(accessToken);
+      setRuns(listed.analysis_runs);
+      setSelected(detail);
+    } catch (err) {
+      setError(err instanceof BackendError ? err.message : String(err));
+    } finally {
+      setRequesting(false);
+      setRequestPhase("idle");
     }
   }
 
@@ -1531,7 +1590,11 @@ function AnalysisRunsPanel({
           disabled={requesting}
           onClick={() => void handleRequestLineage()}
         >
-          {requesting ? "Recording the run..." : "Request a lineage reconstruction"}
+          {requestPhase === "reconstructing"
+            ? "Starting reconstruction..."
+            : requesting
+              ? "Recording the run..."
+              : "Request a lineage reconstruction"}
         </button>
       </div>
       {error && <p className="error">{error}</p>}
@@ -1576,10 +1639,28 @@ function AnalysisRunsPanel({
             {" · "}
             Requested {selected.requested_at.slice(0, 10)}
           </p>
+          {selected.run_kind_code === "analysis_run_lineage" &&
+          selected.status_code === "analysis_status_pending" ? (
+            <button
+              className="keyman-select"
+              aria-label="Start reconstruction from this cutoff"
+              disabled={requesting}
+              onClick={() => void handleStartReconstruction(selected.analysis_run_id)}
+            >
+              {requestPhase === "reconstructing"
+                ? "Starting reconstruction..."
+                : "Start reconstruction"}
+            </button>
+          ) : null}
           <AnalysisRunReproducibilityDigests
             codeRevisionSha={selected.code_revision_sha}
             configurationSha256={selected.configuration_sha256}
           />
+          {selected.lineage_edges && selected.lineage_edges.length > 0 ? (
+            <p className="post-meta">
+              {`This run reconstructed ${selected.lineage_edges.length} parent→child links. Open Event Lineage to inspect the live graph, and compare cutoff titles before treating a live body as evidence.`}
+            </p>
+          ) : null}
           <ul>
             {selected.source_counts.map((count) => (
               <li key={count.count_type_code}>

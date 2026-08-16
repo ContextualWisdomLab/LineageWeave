@@ -507,20 +507,39 @@ export interface AnalysisRunStatusEvent {
   failure_code?: string;
 }
 
+export type AnalysisRunKindCode =
+  | "analysis_run_lineage"
+  | "analysis_run_tepp"
+  | "analysis_run_report";
+
+export type AnalysisRunStatusCode =
+  | "analysis_status_pending"
+  | "analysis_status_running"
+  | "analysis_status_succeeded"
+  | "analysis_status_failed"
+  | "analysis_status_cancelled";
+
+export interface AnalysisRunLineageEdge {
+  parent_post_id: string;
+  child_post_id: string;
+  fused_score: number;
+}
+
 export interface AnalysisRun {
   analysis_run_id: string;
-  run_kind_code: string;
+  run_kind_code: AnalysisRunKindCode | string;
   run_kind_label: string;
   scope_kind_code: string;
   scope_kind_label: string;
   scope_entity_name?: string;
-  status_code: string | null;
+  status_code: AnalysisRunStatusCode | string | null;
   status_label: string | null;
   knowledge_cutoff: string;
   requested_at: string;
   source_counts: AnalysisRunCount[];
   status_history?: AnalysisRunStatusEvent[];
   visible_posts?: { post_id: string; post_title: string }[];
+  lineage_edges?: AnalysisRunLineageEdge[];
   code_revision_sha?: string;
   configuration_sha256?: string;
 }
@@ -548,5 +567,14 @@ export function createAnalysisRun(
   return backendFetch("/api/analysis-runs", accessToken, {
     method: "POST",
     body: JSON.stringify(request),
+  });
+}
+
+export function reconstructAnalysisRun(
+  accessToken: string,
+  analysisRunId: string,
+): Promise<AnalysisRun> {
+  return backendFetch(`/api/analysis-runs/${analysisRunId}/reconstruct`, accessToken, {
+    method: "POST",
   });
 }

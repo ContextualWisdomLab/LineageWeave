@@ -468,10 +468,14 @@ run's scope whose `created_at` is at or before `knowledge_cutoff`
 without seeing later live rows or hidden bodies. Detail also returns
 revision and configuration digest prefixes.
 `POST /api/analysis-runs` records a Pending run on a new authorized
-cutoff capture (ADR 0017): snapshot, counts, run, scope, and the first
-status in one transaction. It does not reconstruct lineage and does not
-invent a TEPP score. Request a lineage reconstruction from the home
-list, then open the Pending row to confirm the cutoff corpus.
+cutoff capture (ADR 0017): snapshot, counts, run, scope, the first
+status, and a lineage outbox row in one transaction. It does not
+reconstruct lineage and does not invent a TEPP score.
+`POST /api/analysis-runs/{id}/reconstruct` then claims that outbox
+(ADR 0018), reconstructs the cutoff bag through ThreadWeave, and
+persists run-scoped edges. Request a lineage reconstruction from the
+home list; the panel starts that delivery so the row does not stay
+Pending. TEPP reconstruct is 422.
 `make seed` also records a TEPP measurement run through
 `tepp_client` on that same snapshot; the default transport is
 unavailable, so that run is Failed rather than a fabricated score.

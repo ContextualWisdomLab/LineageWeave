@@ -242,7 +242,9 @@ Acceptance requires:
    reconstruction and live TEPP execution remain later slices.
 2. Add RBAC/ABAC-protected run list/detail endpoints and the DB-grounded
    read-only administrator surface.
-3. Add a normalized PostgreSQL outbox and Valkey delivery worker.
+3. Add a normalized PostgreSQL outbox and lineage delivery worker
+   (ADR 0018 / `POST /api/analysis-runs/{id}/reconstruct`). Valkey may
+   later signal the same outbox; PostgreSQL remains source of truth.
 4. Add TEPP and contextual-orchestrator adapters only after their versioned
    contracts are present on reviewed main branches. Seed now records a
    Failed TEPP run through `tepp_client` on the shared Demo Corp snapshot;

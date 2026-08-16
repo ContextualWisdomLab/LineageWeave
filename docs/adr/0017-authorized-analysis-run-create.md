@@ -35,9 +35,10 @@ still owns reconstruction and live TEPP execution.
 ## Consequences
 
 The home panel's **Request a lineage reconstruction** button records a
-Pending row the operator can open immediately. Reconstruction, TEPP
-transport, and the outbox worker remain later slices. Do not stamp
-Succeeded or invent a theta from this write.
+Pending row the operator can open immediately. Reconstruction is ADR
+0018 (`POST /api/analysis-runs/{id}/reconstruct`). TEPP transport
+remains a later slice. Do not stamp Succeeded or invent a theta from
+this write.
 
 ## References — APA 7th
 

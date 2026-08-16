@@ -61,6 +61,7 @@ describe("App, authenticated", () => {
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
     succeededTeppRun?: boolean;
+    failFirstCreate?: boolean;
   }) {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -82,6 +83,7 @@ describe("App, authenticated", () => {
     let nextTicketId = 1;
     const events: { event_id: string; event_type: string; actor_account_id: string; summary: string }[] = [];
     let nextEventId = 1;
+    let createAttempts = 0;
 
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -269,7 +271,65 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/analysis-runs/run-demo-lineage-pending/reconstruct") && method === "POST") {
+        return Promise.resolve(
+          jsonResponse({
+            analysis_run_id: "run-demo-lineage-pending",
+            run_kind_code: "analysis_run_lineage",
+            run_kind_label: "Lineage reconstruction",
+            scope_kind_code: "analysis_scope_corporate_entity",
+            scope_kind_label: "Corporate entity",
+            scope_entity_name: "Demo Corp",
+            status_code: "analysis_status_succeeded",
+            status_label: "Succeeded",
+            knowledge_cutoff: "2026-01-12T12:00:00Z",
+            requested_at: "2026-01-12T12:35:00Z",
+            source_counts: [],
+            visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+            lineage_edges: [
+              {
+                parent_post_id: "post-pricing-follow-up",
+                child_post_id: "post-revised-quote",
+                fused_score: 0.81,
+              },
+              {
+                parent_post_id: "post-pricing-follow-up",
+                child_post_id: "post-delivery-question",
+                fused_score: 0.77,
+              },
+            ],
+            status_history: [
+              {
+                status_ordinal: 1,
+                status_code: "analysis_status_pending",
+                status_label: "Pending",
+                occurred_at: "2026-01-12T12:35:00Z",
+              },
+              {
+                status_ordinal: 2,
+                status_code: "analysis_status_running",
+                status_label: "Running",
+                occurred_at: "2026-01-12T12:36:00Z",
+              },
+              {
+                status_ordinal: 3,
+                status_code: "analysis_status_succeeded",
+                status_label: "Succeeded",
+                occurred_at: "2026-01-12T12:37:00Z",
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/analysis-runs") && method === "POST") {
+        createAttempts += 1;
+        if (options?.failFirstCreate && createAttempts === 1) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "Request timed out. Retry the same run." }), {
+              status: 500,
+            }),
+          );
+        }
         const created = {
           analysis_run_id: "run-demo-lineage-pending",
           run_kind_code: "analysis_run_lineage",
@@ -1586,7 +1646,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
   });
 
-  it("records a pending lineage run and opens the authorized detail", async () => {
+  it("records a pending lineage run and starts reconstruction", async () => {
     const fetchMock = stubBackend();
     render(<App />);
 
@@ -1594,9 +1654,9 @@ describe("App, authenticated", () => {
       await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
     );
     expect(
-      await screen.findByRole("heading", { name: "Lineage reconstruction · Pending · Demo Corp" }),
+      await screen.findByRole("heading", { name: "Lineage reconstruction · Succeeded · Demo Corp" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/has not started yet/)).toBeInTheDocument();
+    expect(screen.getByText(/reconstructed 2 parent→child links/i)).toBeInTheDocument();
     const postCall = fetchMock.mock.calls.find(
       (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
     );
@@ -1606,6 +1666,29 @@ describe("App, authenticated", () => {
     expect(body.idempotency_key).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     );
+    const reconstructCall = fetchMock.mock.calls.find((call) =>
+      String(call[0]).endsWith("/api/analysis-runs/run-demo-lineage-pending/reconstruct"),
+    );
+    expect(reconstructCall?.[1]?.method).toBe("POST");
+  });
+
+  it("reuses the in-flight idempotency key when create has not committed", async () => {
+    const fetchMock = stubBackend({ failFirstCreate: true });
+    render(<App />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+    );
+    expect(await screen.findByText(/timed out/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Request a lineage reconstruction" }));
+    expect(
+      await screen.findByRole("heading", { name: "Lineage reconstruction · Succeeded · Demo Corp" }),
+    ).toBeInTheDocument();
+    const createBodies = fetchMock.mock.calls
+      .filter((call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST")
+      .map((call) => JSON.parse(String(call[1]?.body)) as { idempotency_key: string });
+    expect(createBodies).toHaveLength(2);
+    expect(createBodies[0]?.idempotency_key).toBe(createBodies[1]?.idempotency_key);
   });
 
   it("shows the calibrated period-report mean theta on the home page", async () => {

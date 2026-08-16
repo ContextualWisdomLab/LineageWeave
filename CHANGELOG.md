@@ -4,6 +4,20 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.0] - 2026-08-16
+
+### Added
+
+- `POST /api/analysis-runs/{id}/reconstruct` starts the queued lineage
+  delivery (ADR 0018). Request a lineage reconstruction, then the home
+  panel starts that worker so the row does not stay Pending. The cutoff
+  bag is reconstructed through ThreadWeave; run-scoped edges stay on
+  that run. Live Event Lineage is not wiped. TEPP stays 422 — this path
+  never invents a theta.
+- The request button reuses one in-flight idempotency key until the
+  create commits, so a retry after a timeout does not write a second
+  Pending row.
+
 ## [0.85.0] - 2026-08-16
 
 ### Added
@@ -14,8 +28,9 @@ All notable changes to this project are documented here. Format follows
   confirm the cutoff corpus immediately. Reconstruction and live TEPP
   execution stay later slices — this write never invents a theta.
 - Failed lineage rows tell the operator to retry reconstruction; only
-  Failed TEPP rows mention the measurement service. Pending rows say
-  reconstruction has not started yet.
+  Failed TEPP rows mention the measurement service. Pending lineage
+  rows say to start reconstruction; Pending TEPP rows say measurement
+  has not started.
 
 ## [0.84.1] - 2026-08-16
 
