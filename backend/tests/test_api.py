@@ -453,14 +453,29 @@ def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
     dumped = str(visible)
     assert "postgresql://" not in dumped
     assert "select " not in dumped.lower()
+    assert "status_history" not in visible
 
     detail = client.get(
         f"/api/analysis-runs/{seeded_db['visible_run_id']}",
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert detail.status_code == 200
-    assert detail.json()["configuration_schema_version"] == "lineage-run-v1"
-    assert "snapshot_sha256" not in detail.json()
+    body = detail.json()
+    assert body["configuration_schema_version"] == "lineage-run-v1"
+    assert "snapshot_sha256" not in body
+    history = body["status_history"]
+    assert [event["status_label"] for event in history] == [
+        "Pending",
+        "Running",
+        "Succeeded",
+    ]
+    assert [event["occurred_at"][:16] for event in history] == [
+        "2026-01-12T12:31",
+        "2026-01-12T12:32",
+        "2026-01-12T12:33",
+    ]
+    assert all("failure_code" not in event for event in history)
+    assert "postgresql://" not in str(body)
 
     hidden = client.get(
         f"/api/analysis-runs/{seeded_db['hidden_run_id']}",
