@@ -46,6 +46,18 @@ def test_extract_base64_images_skips_malformed_base64() -> None:
     assert extract_base64_images(html) == []
 
 
+def test_extract_base64_images_accepts_charset_and_unquoted_src() -> None:
+    quoted_charset = f'<img src="data:image/png;charset=utf-8;base64,{_TINY_PNG_B64}">'
+    unquoted = f"<img src=data:image/png;base64,{_TINY_PNG_B64}>"
+    expected = base64.b64decode(_TINY_PNG_B64)
+
+    for html in (quoted_charset, unquoted):
+        images = extract_base64_images(html)
+        assert len(images) == 1
+        assert images[0].mime_type == "image/png"
+        assert images[0].data == expected
+
+
 def test_extract_base64_images_ignores_non_data_uri_images() -> None:
     html = '<img src="https://example.com/photo.png">'
     assert extract_base64_images(html) == []

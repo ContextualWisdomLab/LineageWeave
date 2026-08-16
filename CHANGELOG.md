@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.2] - 2026-08-16
+
+### Fixed
+
+- Opening a post whose body is only a remote `http(s)` image, a
+  `charset=` data-URI, an unquoted `src`, or undecodable base64 no
+  longer dumps the raw source string. Re-export the source with the
+  picture embedded, then open the post again. A valid 1x1 PNG still
+  renders as a picture. This screen does not read text inside the
+  picture; Extract Keyman and Ask stay on their own channels and stay
+  silent when the vision client is Null.
+
 ## [0.86.1] - 2026-08-16
 
 ### Changed
@@ -12,8 +24,7 @@ All notable changes to this project are documented here. Format follows
   `data:image` picture in document order, with the surrounding sentences
   as text. The raw base64 string is no longer dumped into the popup.
   Remote `http(s)` image URLs stay unloaded. After `make seed`, a post
-  whose body includes a data-URI image shows the picture; Extract Keyman
-  or Ask still runs OCR on that image for search.
+  whose body includes a data-URI image shows the picture.
 
 ## [0.86.0] - 2026-08-16
 

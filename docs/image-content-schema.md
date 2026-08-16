@@ -87,12 +87,17 @@ picture sat relative to the surrounding paragraphs."
 The demo popup does not yet read these tables. It splits the live
 `post_body` the same way `extract_base64_images` does: each
 `data:image/...;base64,...` payload becomes an `<img>` at its original
-character offset, and the surrounding HTML is shown as text. A buyer who
+character offset, and the surrounding HTML is shown as text. Quoted or
+unquoted `src` and optional data-URI parameters such as `charset=utf-8`
+are accepted so a real export still shows the picture. A buyer who
 opens the post sees the picture that sat between the paragraphs, not the
-base64 wall. Remote `src="https://..."` tags are stripped, never fetched.
-OCR, caption, and tag search still require the vision client on extract /
-Ask (Li et al., 2023; Radford et al., 2021) and, in a real deployment,
-the tables below.
+base64 wall. Remote `src="https://..."` tags are stripped, never fetched;
+a remote-only body tells the operator to re-export with the picture
+embedded. Undecodable payloads say the same. This screen does not read
+text inside the picture. OCR, caption, and tag search still require the
+vision client on extract / Ask (Li et al., 2023; Radford et al., 2021)
+and, in a real deployment, the tables below. See
+`docs/doctoring/IMAGE_CONTENT_REFERENCES.md`.
 
 ## Query shapes this supports
 

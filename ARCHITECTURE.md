@@ -64,7 +64,7 @@ flowchart LR
 | `chunking.py` | Splits a document into meaning-identifiable units (paragraph, sentence, DOM, conversation-turn) plus embedded-image extraction, in document order |
 | `embedding_client.py` | Pluggable text-embedding channel (`Null` default, `OpenAiCompatible` real impl) + `chunked_max_similarity` |
 | `adjudication_client.py` | Pluggable LLM-judgment channel (`Null` default, `ContextualOrchestrator` real impl) |
-| `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl). The product popup (`frontend/src/PostBody.tsx`) renders each `data:image` payload in document order so the buyer sees the picture, not the base64 string; GET does not call the vision client. |
+| `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl). The product popup (`frontend/src/PostBody.tsx`) renders each `data:image` payload in document order so the buyer sees the picture, not the base64 string. Tag-only, charset, unquoted, or undecodable bodies never fall back to the raw source. GET does not call the vision client. |
 | `tepp_client.py` | TEPP's published `AnalysisRunRequest` wire contract, pluggable transport |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
 | `lineage_persistence.py` | Flattens reconstruct trees into `post_lineage_edge` row specs (parent, child, fused_score) |

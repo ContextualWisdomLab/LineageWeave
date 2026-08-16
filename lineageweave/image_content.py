@@ -33,8 +33,13 @@ from urllib.parse import urlparse
 
 from .http_client import post_json
 
-_DATA_URI_IMG = re.compile(
-    r'<img\b[^>]*\bsrc\s*=\s*["\']data:(image/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)["\']',
+_IMG_TAG = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
+_SRC_ATTR = re.compile(
+    r"""\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))""",
+    re.IGNORECASE,
+)
+_DATA_URI = re.compile(
+    r"^data:(image/[a-zA-Z0-9.+-]+)(?:;[\w.+-]+=[^;,]*)*;base64,([A-Za-z0-9+/=\s]+)$",
     re.IGNORECASE,
 )
 
@@ -63,14 +68,25 @@ class EmbeddedImage:
 def extract_base64_images(html: str) -> list[EmbeddedImage]:
     """Find every ``<img src="data:...;base64,...">`` in document order.
 
-    Malformed base64 in a matched tag is skipped rather than raising --
-    one corrupt embedded image must not fail extraction of the rest of the
-    document.
+    Accepts quoted or unquoted ``src`` and optional data-URI parameters
+    such as ``charset=utf-8`` so the same picture the popup renders is
+    also available to the vision channel. Malformed base64 in a matched
+    tag is skipped rather than raising -- one corrupt embedded image must
+    not fail extraction of the rest of the document.
     """
     images: list[EmbeddedImage] = []
-    for match in _DATA_URI_IMG.finditer(html):
-        mime_type = match.group(1)
-        raw_b64 = re.sub(r"\s+", "", match.group(2))
+    for match in _IMG_TAG.finditer(html):
+        src_match = _SRC_ATTR.search(match.group(0))
+        if src_match is None:
+            continue
+        src = next((group for group in src_match.groups() if group), None)
+        if src is None:
+            continue
+        data_match = _DATA_URI.match(src.strip())
+        if data_match is None:
+            continue
+        mime_type = data_match.group(1)
+        raw_b64 = re.sub(r"\s+", "", data_match.group(2))
         try:
             data = base64.b64decode(raw_b64, validate=True)
         except (binascii.Error, ValueError):

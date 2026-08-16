@@ -64,6 +64,7 @@ describe("App, authenticated", () => {
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
     postBody?: string;
+    evidencePostBody?: string;
   }) {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -683,7 +684,7 @@ describe("App, authenticated", () => {
           jsonResponse({
             post_id: "post-2",
             post_title: "Linked post",
-            post_body: "The evidence panel should show exactly this text.",
+            post_body: options?.evidencePostBody ?? "The evidence panel should show exactly this text.",
             voc_type_code: "voc",
             visibility_code: "public",
             created_at: "2026-01-02T00:00:00Z",
@@ -1102,7 +1103,32 @@ describe("App, authenticated", () => {
     expect(image).toHaveAttribute("src", `data:image/png;base64,${tinyPng}`);
     expect(screen.getByText("Quote attached.")).toBeInTheDocument();
     expect(screen.getByText("Please confirm.")).toBeInTheDocument();
-    expect(screen.getByText(/Extract Keyman or ask a question/)).toBeInTheDocument();
+    expect(screen.getByText(/Text inside the picture is not read on this screen/)).toBeInTheDocument();
+    expect(screen.queryByText(/Extract Keyman or ask a question/)).not.toBeInTheDocument();
+    expect(screen.queryByText(new RegExp(tinyPng))).not.toBeInTheDocument();
+  });
+
+  it("shows an embedded image in the evidence panel without dumping base64", async () => {
+    const tinyPng =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+    stubBackend({
+      evidencePostBody: `<p>Source quote.</p><img src="data:image/png;base64,${tinyPng}" alt="">`,
+    });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByPlaceholderText(/what happened/i)).toBeInTheDocument());
+    await userEvent.type(screen.getByPlaceholderText(/what happened/i), "What happened?");
+    await userEvent.click(screen.getByRole("button", { name: /^ask$/i }));
+    await waitFor(() =>
+      expect(screen.getByText("Here is what happened, drawing on the linked post.")).toBeInTheDocument(),
+    );
+    const evidenceChips = screen.getAllByRole("button", { name: "Open evidence: Linked post" });
+    await userEvent.click(evidenceChips[evidenceChips.length - 1]);
+
+    const image = await screen.findByRole("img", { name: /embedded image at character offset/i });
+    expect(image).toHaveAttribute("src", `data:image/png;base64,${tinyPng}`);
+    expect(screen.getByText("Source quote.")).toBeInTheDocument();
     expect(screen.queryByText(new RegExp(tinyPng))).not.toBeInTheDocument();
   });
 

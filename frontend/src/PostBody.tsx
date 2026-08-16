@@ -1,4 +1,27 @@
-import { splitPostBody, type PostBodySegment } from "./postBodyDisplay";
+import { useState } from "react";
+import {
+  IMAGE_NOT_READ_HERE,
+  UNDECODEABLE_IMAGE,
+  splitPostBody,
+  type PostBodySegment,
+} from "./postBodyDisplay";
+
+function EmbeddedPostImage({ src, position }: { src: string; position: number }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return <p className="post-body-text">{UNDECODEABLE_IMAGE}</p>;
+  }
+  return (
+    <figure className="post-embedded-image">
+      <img
+        src={src}
+        alt={`Embedded image at character offset ${position}`}
+        onError={() => setFailed(true)}
+      />
+      <figcaption>{IMAGE_NOT_READ_HERE}</figcaption>
+    </figure>
+  );
+}
 
 function renderSegment(segment: PostBodySegment, index: number) {
   switch (segment.kind) {
@@ -10,16 +33,11 @@ function renderSegment(segment: PostBodySegment, index: number) {
       );
     case "image":
       return (
-        <figure key={`post-body-image-${index}`} className="post-embedded-image">
-          <img
-            src={segment.src}
-            alt={`Embedded image at character offset ${segment.position}`}
-          />
-          <figcaption>
-            Image from this post. Extract Keyman or ask a question to read text
-            inside it.
-          </figcaption>
-        </figure>
+        <EmbeddedPostImage
+          key={`post-body-image-${index}`}
+          src={segment.src}
+          position={segment.position}
+        />
       );
     default: {
       const _exhaustive: never = segment;

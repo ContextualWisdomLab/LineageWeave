@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { splitPostBody } from "./postBodyDisplay";
+import {
+  REMOTE_IMAGE_SKIPPED,
+  UNDECODEABLE_IMAGE,
+  splitPostBody,
+} from "./postBodyDisplay";
 
 /** 1x1 transparent PNG — the same synthetic fixture the Python vision tests use. */
 const TINY_PNG_B64 =
@@ -52,14 +56,44 @@ describe("splitPostBody", () => {
     expect(segments[2]?.kind === "image" && segments[2].position).toBeGreaterThan(0);
   });
 
+  it("accepts charset parameters and unquoted or single-quoted src", () => {
+    const charset = `<img src="data:image/png;charset=utf-8;base64,${TINY_PNG_B64}">`;
+    const unquoted = `<img src=data:image/png;base64,${TINY_PNG_B64}>`;
+    const single = `<img src='data:image/png;base64,${TINY_PNG_B64}'>`;
+
+    for (const html of [charset, unquoted, single]) {
+      const segments = splitPostBody(html);
+      expect(segments).toEqual([
+        {
+          kind: "image",
+          src: `data:image/png;base64,${TINY_PNG_B64}`,
+          mimeType: "image/png",
+          position: 0,
+        },
+      ]);
+    }
+  });
+
   it("tells the operator to re-export when the base64 payload is not decodable", () => {
     const html = '<img src="data:image/png;base64,A">';
     expect(splitPostBody(html)).toEqual([
       {
         kind: "text",
-        text: "Embedded image could not be decoded. Re-export the source post and open it again.",
+        text: UNDECODEABLE_IMAGE,
       },
     ]);
+  });
+
+  it("does not treat valid-base64 non-image bytes as a picture", () => {
+    expect(splitPostBody('<img src="data:image/png;base64,AA==">')).toEqual([
+      { kind: "text", text: UNDECODEABLE_IMAGE },
+    ]);
+  });
+
+  it("does not re-dump an invalid alphabet payload", () => {
+    const html = '<img src="data:image/png;base64,not-valid-base64!!!">';
+    expect(splitPostBody(html)).toEqual([{ kind: "text", text: UNDECODEABLE_IMAGE }]);
+    expect(JSON.stringify(splitPostBody(html))).not.toContain("not-valid-base64");
   });
 
   it("does not turn a remote http img into a loaded image", () => {
@@ -70,5 +104,11 @@ describe("splitPostBody", () => {
       "See",
     );
     expect(JSON.stringify(segments)).not.toContain("https://example.test");
+  });
+
+  it("tells the operator to re-export a remote-only image instead of leaking the URL", () => {
+    const html = '<img src="https://example.test/invoice.png">';
+    expect(splitPostBody(html)).toEqual([{ kind: "text", text: REMOTE_IMAGE_SKIPPED }]);
+    expect(JSON.stringify(splitPostBody(html))).not.toContain("https://example.test");
   });
 });
