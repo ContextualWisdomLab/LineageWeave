@@ -64,6 +64,7 @@ describe("App, authenticated", () => {
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
     pluralAffiliations?: boolean;
+    emptyAffiliations?: boolean;
     deferMe?: boolean;
     meFailed?: boolean;
     postBody?: string;
@@ -113,12 +114,14 @@ describe("App, authenticated", () => {
             user_account_id: options?.admin ? "acct-admin" : "acct-1",
             display_name: options?.admin ? "Demo Admin" : "Demo Analyst",
             permission_codes: options?.admin ? ["post_read", "post_admin"] : ["post_read"],
-            corporate_entities: options?.pluralAffiliations
-              ? [
-                  { corporate_entity_id: "corp-demo", entity_name: "Demo Corp" },
-                  { corporate_entity_id: "corp-north", entity_name: "Northridge Grid" },
-                ]
-              : [{ corporate_entity_id: "corp-demo", entity_name: "Demo Corp" }],
+            corporate_entities: options?.emptyAffiliations
+              ? []
+              : options?.pluralAffiliations
+                ? [
+                    { corporate_entity_id: "corp-demo", entity_name: "Demo Corp" },
+                    { corporate_entity_id: "corp-north", entity_name: "Northridge Grid" },
+                  ]
+                : [{ corporate_entity_id: "corp-demo", entity_name: "Demo Corp" }],
           });
         });
       }
@@ -1854,6 +1857,16 @@ describe("App, authenticated", () => {
     const picker = await screen.findByRole("combobox", {
       name: "Corporate entity to reconstruct",
     });
+    const beforeChoice = screen.getByRole("button", {
+      name: "Choose a corporate entity, then request",
+    });
+    expect(beforeChoice).toBeDisabled();
+    await userEvent.click(beforeChoice);
+    expect(
+      fetchMock.mock.calls.some(
+        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+      ),
+    ).toBe(false);
     await userEvent.selectOptions(picker, "corp-north");
     await userEvent.click(screen.getByRole("button", { name: "Request a lineage reconstruction" }));
     await waitFor(() =>
@@ -1884,11 +1897,33 @@ describe("App, authenticated", () => {
 
     fetchMock.releaseMe();
     expect(
-      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
-    ).toBeEnabled();
+      await screen.findByRole("button", { name: "Choose a corporate entity, then request" }),
+    ).toBeDisabled();
     expect(
       await screen.findByRole("combobox", { name: "Corporate entity to reconstruct" }),
     ).toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.some(
+        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps Request disabled when the account has no affiliated corp", async () => {
+    const fetchMock = stubBackend({ emptyAffiliations: true });
+    render(<App />);
+
+    const request = await screen.findByRole("button", {
+      name: "Ask an administrator to affiliate this account",
+    });
+    expect(request).toBeDisabled();
+    await userEvent.click(request);
+    expect(
+      fetchMock.mock.calls.some(
+        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+      ),
+    ).toBe(false);
+    expect(screen.queryByRole("combobox", { name: "Corporate entity to reconstruct" })).toBeNull();
   });
 
   it("keeps Request disabled when affiliated corps fail to load", async () => {

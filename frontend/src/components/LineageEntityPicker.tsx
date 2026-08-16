@@ -30,6 +30,7 @@ export function LineageEntityPicker({
         value={selectedEntityId}
         onChange={(event) => onSelectEntityId(event.target.value)}
       >
+        <option value="">Choose a corporate entity</option>
         {entities.map((entity) => (
           <option key={entity.corporate_entity_id} value={entity.corporate_entity_id}>
             {entity.entity_name}

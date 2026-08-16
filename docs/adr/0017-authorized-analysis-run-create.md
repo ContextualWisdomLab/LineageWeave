@@ -62,16 +62,20 @@ sequenceDiagram
 ```
 
 The home panel's **Request a lineage reconstruction** button stays
-disabled until `GET /api/me` returns affiliated corps, then records
-that Pending row for the chosen entity. A failed lineage row names
-that button. Only a failed TEPP row mentions the measurement service.
+disabled until `GET /api/me` returns affiliated corps. When the token
+walks more than one corp, Request stays disabled until the operator
+picks one. When the account has none, Request stays disabled and names
+the administrator affiliation step. A failed lineage row names that
+button. Only a failed TEPP row mentions the measurement service.
 
 ## Consequences
 
 - Demo Analyst can request a new Pending Demo Corp lineage run after
   `make seed` without inventing a measurement.
-- A multi-affiliation account sees the corp picker before the Request
-  button enables, then chooses the corp before clicking.
+- A multi-affiliation account sees the corp picker with an empty
+  choice. Request stays disabled until they pick a corp.
+- An account with no affiliated corp sees **Ask an administrator to
+  affiliate this account** and cannot POST.
 - Reconstruction, live TEPP transport, and the outbox worker remain
   later slices. Do not stamp Succeeded or invent a theta from this write.
 

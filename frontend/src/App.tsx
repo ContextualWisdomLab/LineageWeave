@@ -1582,6 +1582,36 @@ function analysisRunLivePostButtonLabel(postTitle: string): string {
   return `Open live post (may have changed after cutoff): ${postTitle}`;
 }
 
+/**
+ * AccName for the lineage Request control.
+ *
+ * Next action only. A multi-affiliation token must pick a corp
+ * before this becomes "Request a lineage reconstruction".
+ */
+function lineageRequestLabel(
+  requesting: boolean,
+  entitiesLoadError: string | null,
+  corporateEntities: CorporateEntityRef[] | null,
+  selectedEntityId: string,
+): string {
+  if (requesting) {
+    return "Recording the run...";
+  }
+  if (entitiesLoadError) {
+    return "Reload to choose a corporate entity";
+  }
+  if (corporateEntities === null) {
+    return "Loading affiliated entities...";
+  }
+  if (corporateEntities.length === 0) {
+    return "Ask an administrator to affiliate this account";
+  }
+  if (corporateEntities.length > 1 && !selectedEntityId) {
+    return "Choose a corporate entity, then request";
+  }
+  return "Request a lineage reconstruction";
+}
+
 function AnalysisRunReproducibilityDigests({
   codeRevisionSha,
   configurationSha256,
@@ -1630,13 +1660,14 @@ function AnalysisRunsPanel({
   const [selectedEntityId, setSelectedEntityId] = useState("");
   const inFlightKeyRef = useRef<string | null>(null);
   const entitiesReady = corporateEntities !== null && entitiesLoadError === null;
-  const requestLabel = requesting
-    ? "Recording the run..."
-    : entitiesLoadError
-      ? "Reload to choose a corporate entity"
-      : corporateEntities === null
-        ? "Loading affiliated entities..."
-        : "Request a lineage reconstruction";
+  const hasAffiliation = (corporateEntities?.length ?? 0) > 0;
+  const needsExplicitChoice = (corporateEntities?.length ?? 0) > 1 && !selectedEntityId;
+  const requestLabel = lineageRequestLabel(
+    requesting,
+    entitiesLoadError,
+    corporateEntities,
+    selectedEntityId,
+  );
 
   useEffect(() => {
     fetchAnalysisRuns(accessToken)
@@ -1645,10 +1676,10 @@ function AnalysisRunsPanel({
   }, [accessToken]);
 
   useEffect(() => {
-    if (!corporateEntities?.length) {
+    if (corporateEntities?.length !== 1) {
       return;
     }
-    setSelectedEntityId((current) => current || corporateEntities[0].corporate_entity_id);
+    setSelectedEntityId(corporateEntities[0].corporate_entity_id);
   }, [corporateEntities]);
 
   async function handleRequestLineage() {
@@ -1656,6 +1687,10 @@ function AnalysisRunsPanel({
       setError(
         entitiesLoadError ?? "Reload to load the corporate entities this account may reconstruct.",
       );
+      return;
+    }
+    if (corporateEntities.length === 0) {
+      setError("Ask an administrator to affiliate this account with a corporate entity.");
       return;
     }
     if (corporateEntities.length > 1 && !selectedEntityId) {
@@ -1726,9 +1761,7 @@ function AnalysisRunsPanel({
           aria-label={requestLabel}
           aria-busy={corporateEntities === null || requesting}
           disabled={
-            requesting ||
-            !entitiesReady ||
-            (corporateEntities !== null && corporateEntities.length > 1 && !selectedEntityId)
+            requesting || !entitiesReady || !hasAffiliation || needsExplicitChoice
           }
           onClick={() => void handleRequestLineage()}
         >

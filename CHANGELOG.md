@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.87.2] - 2026-08-16
+
+### Fixed
+
+- Request stays disabled until a multi-affiliation operator picks a
+  corp. An account with no affiliated corp sees **Ask an administrator
+  to affiliate this account** and cannot POST. Preview the empty
+  choice in Storybook (`Analysis/LineageEntityPicker` /
+  `NeedsExplicitChoice`).
+
 ## [0.87.1] - 2026-08-16
 
 ### Fixed

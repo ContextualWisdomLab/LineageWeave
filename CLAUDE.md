@@ -15,7 +15,7 @@ back 0020 then 0018. The published phrase is not a secret. Do not
 retention grant to the application `DATABASE_URL` login. ADR 0019
 is the R&R catalog-id bind, not this purge.
 
-## Analysis-run seed (v0.87.1)
+## Analysis-run seed (v0.87.2)
 
 `make seed` writes a Demo Corp lineage run and a TEPP run on the same
 snapshot (ADR 0013). The TEPP path goes through `tepp_client`. A missing
@@ -34,5 +34,6 @@ cutoff before treating the body as reconstructed evidence (ADR 0016).
 `POST /api/analysis-runs` records Pending lineage only on an
 authorized cutoff capture (ADR 0017). TEPP and period-report kinds
 are 422. It does not invent a TEPP theta. The Request button waits
-until affiliated corps load; choose a corp if the token walks more
-than one.
+until affiliated corps load. If the token walks more than one corp,
+pick one before Request enables. If the account has none, ask an
+administrator to affiliate it.

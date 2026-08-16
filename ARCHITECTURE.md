@@ -476,8 +476,9 @@ authorized cutoff capture (ADR 0017): snapshot, counts, run, scope, and
 the first status in one transaction. TEPP and period-report kinds are
 422. It does not reconstruct lineage and does not invent a TEPP score.
 Request a lineage reconstruction from the home list after affiliated
-corps load (choose a corp if you walk more than one), then open the
-Pending row to confirm the cutoff corpus.
+corps load. If you walk more than one corp, pick one before Request
+enables. If this account has none, ask an administrator to affiliate
+it. Then open the Pending row to confirm the cutoff corpus.
 `make seed` also records a TEPP measurement run through
 `tepp_client` on that same snapshot; the default transport is
 unavailable, so that run is Failed rather than a fabricated score.

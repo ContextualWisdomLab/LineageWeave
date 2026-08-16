@@ -34,6 +34,12 @@ export const TwoAffiliations: Story = {
   },
 };
 
+export const NeedsExplicitChoice: Story = {
+  args: {
+    selectedEntityId: "",
+  },
+};
+
 export const SingleAffiliationHidden: Story = {
   args: {
     entities: [{ corporate_entity_id: "corp-demo", entity_name: "Demo Corp" }],
