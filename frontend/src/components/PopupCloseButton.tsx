@@ -3,6 +3,11 @@ export type PopupCloseButtonProps = {
   label: string;
 };
 
+/**
+ * Closes the evidence panel or post popup.
+ *
+ * Next action: click to return to the list or the reconstruction view.
+ */
 export function PopupCloseButton({ onClose, label }: PopupCloseButtonProps) {
   return (
     <button

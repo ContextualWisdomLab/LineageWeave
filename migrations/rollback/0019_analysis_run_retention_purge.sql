@@ -23,4 +23,9 @@ $$;
 drop function if exists purge_analysis_run_registry(text);
 drop table if exists analysis_run_retention_event;
 
+-- analysis_run_retention_admin is cluster-scoped. Leave it in place so a
+-- parallel database that still has 0019 applied does not lose the role.
+-- Revoke leftover memberships before dropping the role in a dedicated
+-- cluster teardown.
+
 commit;

@@ -214,15 +214,20 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert "analysis_run_retention_event" in retention
     assert "security definer" in retention.casefold()
     assert "analysis_run_retention_not_approved" in retention
+    assert "revoke all on function purge_analysis_run_registry" in retention.casefold()
+    assert "analysis_run_retention_admin" in retention
+    assert "invoking_session_role" in retention
+    assert "invoking_current_role" in retention
     assert "analysis_run_retention_event_not_empty" in retention_rollback
     assert "jsonb" not in retention.casefold()
     for object_name in re.findall(
         r"create table if not exists\s+([a-z0-9_]+)"
-        r"|create or replace function\s+([a-z0-9_]+)",
+        r"|create or replace function\s+([a-z0-9_]+)"
+        r"|create role\s+([a-z0-9_]+)",
         retention,
         re.I,
     ):
-        name = object_name[0] or object_name[1]
+        name = object_name[0] or object_name[1] or object_name[2]
         assert len(name.split("_")) >= 2, name
 
     snapshot_definition = _table_definition(migration, "analysis_source_snapshot")
@@ -802,14 +807,23 @@ def test_approved_retention_purge_empties_a_run_bearing_registry(registry_db) ->
         assert cursor.fetchone()[0] == 0
         cursor.execute(
             "select purged_run_count, purged_snapshot_count, "
-            "approval_token_digest from analysis_run_retention_event"
+            "approval_token_digest, invoking_session_role, "
+            "invoking_current_role from analysis_run_retention_event"
         )
-        purged_run_count, purged_snapshot_count, token_digest = cursor.fetchone()
+        (
+            purged_run_count,
+            purged_snapshot_count,
+            token_digest,
+            invoking_session_role,
+            invoking_current_role,
+        ) = cursor.fetchone()
         assert purged_run_count == 1
         assert purged_snapshot_count == 1
         assert token_digest == hashlib.sha256(
             b"approved-retention-purge"
         ).hexdigest()
+        assert invoking_session_role
+        assert invoking_current_role
         cursor.execute(rollback_sql)
         cursor.execute("select to_regclass('public.analysis_run')")
         assert cursor.fetchone()[0] is None
@@ -825,3 +839,98 @@ def test_approved_retention_purge_empties_a_run_bearing_registry(registry_db) ->
             "select to_regclass('public.analysis_run_retention_event')"
         )
         assert cursor.fetchone()[0] is None
+
+
+def test_runtime_role_cannot_purge_with_only_the_public_token(registry_db) -> None:
+    """Table DML plus the documented phrase is not a retention grant."""
+
+    runtime_role = f"analysis_run_app_{uuid.uuid4().hex[:12]}"
+    operator_role = f"analysis_run_operator_{uuid.uuid4().hex[:12]}"
+    try:
+        with registry_db.cursor() as cursor:
+            account_id = _insert_account(cursor)
+            snapshot_id = _insert_snapshot(cursor)
+            run_id = _insert_run(
+                cursor,
+                snapshot_id=snapshot_id,
+                account_id=account_id,
+                idempotency_key="runtime-denied-purge",
+            )
+            cursor.execute(
+                "insert into analysis_run_scope "
+                "(analysis_run_id, scope_kind_code) "
+                "values (%s, 'analysis_scope_all_visible')",
+                (run_id,),
+            )
+            cursor.execute(
+                sql.SQL(
+                    "create role {} nologin nosuperuser inherit"
+                ).format(sql.Identifier(runtime_role))
+            )
+            cursor.execute(
+                sql.SQL(
+                    "create role {} nologin nosuperuser inherit"
+                ).format(sql.Identifier(operator_role))
+            )
+            cursor.execute(
+                sql.SQL("grant usage on schema public to {}, {}").format(
+                    sql.Identifier(runtime_role),
+                    sql.Identifier(operator_role),
+                )
+            )
+            cursor.execute(
+                sql.SQL(
+                    "grant select, insert, update, delete on "
+                    "analysis_run, analysis_run_scope, "
+                    "analysis_run_status_event, analysis_source_snapshot, "
+                    "analysis_source_count to {}"
+                ).format(sql.Identifier(runtime_role))
+            )
+            cursor.execute(
+                sql.SQL("grant analysis_run_retention_admin to {}").format(
+                    sql.Identifier(operator_role)
+                )
+            )
+            cursor.execute(
+                sql.SQL("set role {}").format(sql.Identifier(runtime_role))
+            )
+            with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+                cursor.execute(
+                    "select purge_analysis_run_registry(%s)",
+                    ("approved-retention-purge",),
+                )
+            with pytest.raises(
+                psycopg2.errors.RaiseException,
+                match="analysis_run_request_is_immutable",
+            ):
+                cursor.execute(
+                    "delete from analysis_run where analysis_run_id = %s",
+                    (run_id,),
+                )
+            cursor.execute("reset role")
+            cursor.execute(
+                sql.SQL("set role {}").format(sql.Identifier(operator_role))
+            )
+            cursor.execute(
+                "select purge_analysis_run_registry(%s)",
+                ("approved-retention-purge",),
+            )
+            cursor.execute("reset role")
+            cursor.execute("select count(*) from analysis_run")
+            assert cursor.fetchone()[0] == 0
+            cursor.execute(
+                "select invoking_session_role, invoking_current_role "
+                "from analysis_run_retention_event"
+            )
+            invoking_session_role, invoking_current_role = cursor.fetchone()
+            assert invoking_session_role
+            assert invoking_current_role
+    finally:
+        with registry_db.cursor() as cursor:
+            cursor.execute("reset role")
+            cursor.execute(
+                sql.SQL("drop role if exists {}").format(sql.Identifier(runtime_role))
+            )
+            cursor.execute(
+                sql.SQL("drop role if exists {}").format(sql.Identifier(operator_role))
+            )

@@ -27,5 +27,6 @@
     --color-accent: #c084fc;
     --color-accent-background: rgba(192, 132, 252, 0.15);
     --color-accent-border: rgba(192, 132, 252, 0.5);
+    --color-chip-border: #9ca3af;
   }
 }

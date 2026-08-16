@@ -9,10 +9,13 @@ All notable changes to this project are documented here. Format follows
 ### Added
 
 - Operators can empty a run-bearing analysis-run registry without a
-  superuser trigger disable. After export, run
-  `select purge_analysis_run_registry('approved-retention-purge')`,
-  export `analysis_run_retention_event`, delete those rows, then roll
-  back 0019 and 0018. A raw `DELETE` of a run still fails (ADR 0018).
+  superuser trigger disable. Grant `analysis_run_retention_admin`,
+  `SET ROLE` that role, then run
+  `select purge_analysis_run_registry('approved-retention-purge')`.
+  Export `analysis_run_retention_event` (it records the invoking
+  session role), delete those rows, then roll back 0019 and 0018. A
+  raw `DELETE` and a runtime role that only knows the public phrase
+  still fail (ADR 0018).
 - Repeated chip and close-button styles live in
   `frontend/src/styles/tokens.css`. Open
   `cd frontend && pnpm run storybook` and click a citation chip or

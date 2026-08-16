@@ -5,10 +5,12 @@ ADRs under `docs/adr/`. Do not fork those rules here.
 
 ## Analysis-run retention (v0.86.0)
 
-To empty a run-bearing registry before rolling back 0018, run
-`select purge_analysis_run_registry('approved-retention-purge')`,
+To empty a run-bearing registry before rolling back 0018, grant
+`analysis_run_retention_admin`, `SET ROLE analysis_run_retention_admin`,
+run `select purge_analysis_run_registry('approved-retention-purge')`,
 export `analysis_run_retention_event`, delete those rows, then roll
-back 0019 and 0018. Do not `DISABLE TRIGGER` as superuser.
+back 0019 and 0018. Do not `DISABLE TRIGGER` as superuser. Do not grant
+the retention role to the application `DATABASE_URL` login.
 
 ## Analysis-run seed (v0.84.0)
 

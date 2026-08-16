@@ -5,9 +5,27 @@
 -- cannot empty a run-bearing registry. This slice adds that procedure:
 -- an audited SECURITY DEFINER purge that disables the immutability
 -- triggers only inside the approved call, then records one retention
--- event. A session SET cannot authorize a raw DELETE.
+-- event. A session SET cannot authorize a raw DELETE. PUBLIC cannot
+-- execute the function; only analysis_run_retention_admin (and the
+-- function owner) can. The documented token is a procedure name, not
+-- an authorization secret.
 
 begin;
+
+do $$
+begin
+    if not exists (
+        select 1 from pg_roles where rolname = 'analysis_run_retention_admin'
+    ) then
+        create role analysis_run_retention_admin nologin nosuperuser inherit;
+    end if;
+end
+$$;
+
+comment on role analysis_run_retention_admin is
+    'Least-privilege role that may call purge_analysis_run_registry. '
+    'Grant this role to an operator session, then SET ROLE, then call '
+    'the function. Do not grant it to the application DATABASE_URL role.';
 
 create table if not exists analysis_run_retention_event (
     analysis_run_retention_event_id uuid primary key default gen_random_uuid(),
@@ -15,7 +33,10 @@ create table if not exists analysis_run_retention_event (
     purged_run_count bigint not null check (purged_run_count >= 0),
     purged_snapshot_count bigint not null check (purged_snapshot_count >= 0),
     approval_token_digest text not null
-        check (approval_token_digest ~ '^[0-9a-f]{64}$')
+        check (approval_token_digest ~ '^[0-9a-f]{64}$'),
+    invoking_session_role name not null,
+    invoking_current_role name not null,
+    client_network_address inet
 );
 
 comment on table analysis_run_retention_event is
@@ -24,6 +45,16 @@ comment on table analysis_run_retention_event is
 
 comment on column analysis_run_retention_event.approval_token_digest is
     'SHA-256 hex of the approval token; the raw phrase is never stored.';
+
+comment on column analysis_run_retention_event.invoking_session_role is
+    'session_user at purge time: the login role that invoked the call.';
+
+comment on column analysis_run_retention_event.invoking_current_role is
+    'current_user at purge time: the SECURITY DEFINER owner while the '
+    'function runs.';
+
+comment on column analysis_run_retention_event.client_network_address is
+    'inet_client_addr() when the caller is remote; NULL for local sockets.';
 
 create or replace function purge_analysis_run_registry(approval_token text)
 returns void
@@ -76,18 +107,30 @@ begin
     insert into analysis_run_retention_event (
         purged_run_count,
         purged_snapshot_count,
-        approval_token_digest
+        approval_token_digest,
+        invoking_session_role,
+        invoking_current_role,
+        client_network_address
     ) values (
         run_count,
         snapshot_count,
-        encode(sha256(convert_to(approval_token, 'UTF8')), 'hex')
+        encode(sha256(convert_to(approval_token, 'UTF8')), 'hex'),
+        session_user,
+        current_user,
+        inet_client_addr()
     );
 end
 $$;
 
 comment on function purge_analysis_run_registry(text) is
     'Empties immutable registry relations after the documented approval '
-    'token; records one analysis_run_retention_event. Next action: export '
-    'that event, delete it, then roll back 0019 and 0018.';
+    'token and an analysis_run_retention_admin (or owner) execute grant; '
+    'records one analysis_run_retention_event. Next action: SET ROLE '
+    'analysis_run_retention_admin, call the function, export the event, '
+    'delete it, then roll back 0019 and 0018.';
+
+revoke all on function purge_analysis_run_registry(text) from public;
+grant execute on function purge_analysis_run_registry(text)
+    to analysis_run_retention_admin;
 
 commit;
