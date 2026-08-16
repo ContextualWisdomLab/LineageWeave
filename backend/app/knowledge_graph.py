@@ -283,8 +283,9 @@ async def hydrate_related_nodes(
 
     Unknown ids are dropped. Ontology fields are omitted (not faked)
     when ``node_type_code`` has no term in lineageweave-kg.ttl.
-    Person nodes carry the primary affiliation organization when one
-    exists; a missing affiliation is omitted, never invented.
+    Person nodes carry compact affiliation context only when exactly one
+    distinct non-empty affiliation is known; ambiguous affiliations are
+    omitted rather than collapsed into an invented primary organization.
     """
     person_ids: list[str] = []
     post_ids: list[str] = []
@@ -307,25 +308,28 @@ async def hydrate_related_nodes(
             person_ids,
         )
     } if person_ids else {}
-    affiliations: dict[str, str] = {}
+    affiliation_names_by_person: dict[str, set[str]] = {}
     if person_ids:
         affiliation_rows = await conn.fetch(
             """
-            select person_id, affiliated_organization_name, affiliated_corporate_entity_id
+            select person_id, affiliated_organization_name
             from person_affiliation
             where person_id = any($1::uuid[])
-            order by
-              (affiliated_corporate_entity_id is not null) desc,
-              affiliated_organization_name
+            order by person_id, affiliated_organization_name
             """,
             person_ids,
         )
         for row in affiliation_rows:
             person_id = str(row["person_id"])
             org = (row["affiliated_organization_name"] or "").strip()
-            if person_id in affiliations or not org:
+            if not org:
                 continue
-            affiliations[person_id] = org
+            affiliation_names_by_person.setdefault(person_id, set()).add(org)
+    affiliations = {
+        person_id: next(iter(organization_names))
+        for person_id, organization_names in affiliation_names_by_person.items()
+        if len(organization_names) == 1
+    }
     posts = {
         str(row["post_id"]): row
         for row in await conn.fetch(
