@@ -14,6 +14,23 @@ All notable changes to this project are documented here. Format follows
   it does not say reconstruction. Open the row: detail repeats it
   (ADR 0014). This slice does not take v0.86.3 or ADR 0021.
 
+## [0.87.0] - 2026-08-16
+
+### Added
+
+- Operators can empty a run-bearing analysis-run registry without a
+  superuser trigger disable. Insert an unrevoked
+  `analysis_run_retention_grant` for `session_user`, grant
+  `analysis_run_retention_admin`, then
+  `select purge_analysis_run_registry('approved-retention-purge')`
+  (ADR 0020). Export `analysis_run_retention_event`, delete those
+  rows, then roll back 0020 and 0018. A raw `DELETE`, a published
+  token without a grant, and a runtime role that is not the admin
+  role still fail.
+- Repeated citation chips and close buttons use named design tokens
+  in `frontend/src/styles/tokens.css`. Preview them in Storybook
+  (`cd frontend && pnpm run storybook`).
+
 ## [0.86.2] - 2026-08-16
 
 ### Fixed

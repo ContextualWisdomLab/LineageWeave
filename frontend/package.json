@@ -1,14 +1,16 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "0.86.2",
+  "version": "0.87.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "oidc-client-ts": "^3.5.0",
@@ -17,6 +19,7 @@
     "react-oidc-context": "^3.3.1"
   },
   "devDependencies": {
+    "@storybook/react-vite": "^10.5.8",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.4",
@@ -26,6 +29,7 @@
     "@vitejs/plugin-react": "^6.0.4",
     "jsdom": "^30.0.1",
     "oxlint": "^1.75.0",
+    "storybook": "^10.5.8",
     "typescript": "~6.0.2",
     "vite": "^8.2.0",
     "vitest": "^4.1.10"
