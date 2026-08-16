@@ -45,7 +45,13 @@ kinds without a second application. The TEPP run is Failed /
 keeps that machine code off the caption (this decision) and instead
 tells the operator to open the TEPP run, then connect the measurement
 service. A failed lineage row tells the operator to retry
-reconstruction, not to connect TEPP. The detail now shows the legal
+reconstruction, not to connect TEPP. A failed period-report row
+tells the operator to rebuild the report from a current snapshot.
+A pending or running TEPP row must not claim a calibrated
+measurement and must not say reconstruction has not started. The
+home-list button accessible name includes that next-action sentence
+so assistive technology hears the same instruction as the visible
+row (WCAG 2.2 Success Criterion 4.1.2). The detail now shows the legal
 lifecycle the registry already stored. `POST /api/analysis-runs` now
 records a Pending run on an authorized cutoff capture (ADR 0017).
 Reconstruction, a live TEPP transport, and a fuller Analysis Run
@@ -61,3 +67,7 @@ Educational Research Association.
 Lebo, T., Sahoo, S., & McGuinness, D. (Eds.). (2013). *PROV-O: The PROV
 ontology* (W3C Recommendation). World Wide Web Consortium.
 https://www.w3.org/TR/2013/REC-prov-o-20130430/
+
+World Wide Web Consortium. (2023). *Web content accessibility guidelines
+(WCAG) 2.2* (W3C Recommendation).
+https://www.w3.org/TR/2023/REC-WCAG22-20231005/

@@ -35,8 +35,10 @@ still owns reconstruction and live TEPP execution.
 ## Consequences
 
 The home panel's **Request a lineage reconstruction** button records a
-Pending row the operator can open immediately. Reconstruction, TEPP
-transport, and the outbox worker remain later slices. Do not stamp
+Pending row the operator can open immediately. That row's next-action
+copy is kind-specific: a Pending TEPP row must say measurement has
+not started, not that reconstruction has not started. Reconstruction,
+TEPP transport, and the outbox worker remain later slices. Do not stamp
 Succeeded or invent a theta from this write.
 
 ## References — APA 7th
