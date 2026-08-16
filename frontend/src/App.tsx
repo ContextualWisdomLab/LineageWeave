@@ -1668,6 +1668,9 @@ function AnalysisRunsPanel({
             {" · "}
             Requested {selected.requested_at.slice(0, 10)}
           </p>
+          {analysisRunNextAction(selected) && (
+            <p className="post-meta">{analysisRunNextAction(selected)}</p>
+          )}
           <AnalysisRunReproducibilityDigests
             codeRevisionSha={selected.code_revision_sha}
             configurationSha256={selected.configuration_sha256}
