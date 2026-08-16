@@ -8,12 +8,16 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
-- Additive analysis-run registry (`migrations/0012_analysis_run_registry.sql`,
-  ADR 0014). Operators can persist an immutable source snapshot, aggregate
-  reconciliation counts, an authenticated Demo Corp requester, run-owned
-  knowledge cutoff, product scope, and append-only legal status events.
-  Current status is a view. There is no public CRUD API in this slice.
-  TEPP stays fail-closed unless an HTTPS `POST /v1/analysis-runs` or
+- Additive analysis-run registry schema
+  (`migrations/0012_analysis_run_registry.sql`, ADR 0014). The tables can
+  hold an immutable source snapshot, aggregate reconciliation counts, an
+  authenticated Demo Corp requester, run-owned knowledge cutoff, product
+  scope, and append-only legal status events. Current status is a view.
+  This slice is schema only: a raw insert can store a run with no scope,
+  no counts, and no pending event. Treat a run as recorded only after a
+  later write API stores snapshot, counts, run, scope, and pending in one
+  transaction (ADR 0014 follow-up 1). There is no public CRUD API. TEPP
+  stays fail-closed unless an HTTPS `POST /v1/analysis-runs` or
   in-process `tepp_api` is injected. New orchestrator helpers use
   `mode="auto"` only.
 

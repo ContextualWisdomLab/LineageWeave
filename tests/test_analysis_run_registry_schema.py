@@ -626,46 +626,46 @@ def test_registry_rejects_orphans_and_missing_actor(registry_db) -> None:
                 """,
                 (missing, missing, "b" * 64, "c" * 40),
             )
-            snapshot_id = _insert_snapshot(cursor)
-            with pytest.raises(psycopg2.errors.CheckViolation):
-                cursor.execute(
-                    "insert into analysis_source_count values "
-                    "(%s, 'analysis_count_source_row', -1)",
-                    (snapshot_id,),
-                )
-            with pytest.raises(psycopg2.errors.CheckViolation):
-                cursor.execute(
-                    "insert into analysis_source_snapshot "
-                    "(snapshot_sha256, source_contract_version, "
-                    "maximum_available_time, captured_at) "
-                    "values ('bad', 'source-contract-v1', now(), now())"
-                )
-            with pytest.raises(psycopg2.errors.NotNullViolation):
-                cursor.execute(
-                    """
-                    insert into analysis_run
-                        (analysis_source_snapshot_id, run_kind_code, idempotency_key,
-                         knowledge_cutoff, configuration_schema_version,
-                         configuration_sha256, code_revision_sha)
-                    values (%s, 'analysis_run_report', 'missing-actor', now(),
-                            'report-run-v1', %s, %s)
-                    """,
-                    (snapshot_id, "d" * 64, "e" * 40),
-                )
-            account_id = _insert_account(cursor)
-            run_id = _insert_run(
-                cursor,
-                snapshot_id=snapshot_id,
-                account_id=account_id,
-                idempotency_key="scope-orphan",
+        snapshot_id = _insert_snapshot(cursor)
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            cursor.execute(
+                "insert into analysis_source_count values "
+                "(%s, 'analysis_count_source_row', -1)",
+                (snapshot_id,),
             )
-            with pytest.raises(psycopg2.errors.ForeignKeyViolation):
-                cursor.execute(
-                    "insert into analysis_run_scope "
-                    "(analysis_run_id, scope_kind_code, corporate_entity_id) "
-                    "values (%s, 'analysis_scope_corporate_entity', %s)",
-                    (run_id, missing),
-                )
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            cursor.execute(
+                "insert into analysis_source_snapshot "
+                "(snapshot_sha256, source_contract_version, "
+                "maximum_available_time, captured_at) "
+                "values ('bad', 'source-contract-v1', now(), now())"
+            )
+        with pytest.raises(psycopg2.errors.NotNullViolation):
+            cursor.execute(
+                """
+                insert into analysis_run
+                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                     knowledge_cutoff, configuration_schema_version,
+                     configuration_sha256, code_revision_sha)
+                values (%s, 'analysis_run_report', 'missing-actor', now(),
+                        'report-run-v1', %s, %s)
+                """,
+                (snapshot_id, "d" * 64, "e" * 40),
+            )
+        account_id = _insert_account(cursor)
+        run_id = _insert_run(
+            cursor,
+            snapshot_id=snapshot_id,
+            account_id=account_id,
+            idempotency_key="scope-orphan",
+        )
+        with pytest.raises(psycopg2.errors.ForeignKeyViolation):
+            cursor.execute(
+                "insert into analysis_run_scope "
+                "(analysis_run_id, scope_kind_code, corporate_entity_id) "
+                "values (%s, 'analysis_scope_corporate_entity', %s)",
+                (run_id, missing),
+            )
 
 
 def test_scope_shapes_cover_all_four_vocabularies(registry_db) -> None:
@@ -799,6 +799,15 @@ def test_status_history_enforces_shape_order_time_and_legal_transitions(
                 "(analysis_run_id, status_ordinal, status_code, occurred_at) "
                 "values (%s, 2, 'analysis_status_succeeded', "
                 "'2026-08-15T01:00:01Z')",
+                (second_run_id,),
+            )
+        with pytest.raises(psycopg2.errors.RaiseException):
+            cursor.execute(
+                "insert into analysis_run_status_event "
+                "(analysis_run_id, status_ordinal, status_code, occurred_at, "
+                "failure_code, retryable) "
+                "values (%s, 2, 'analysis_status_failed', "
+                "'2026-08-15T01:00:01Z', 'provider_timeout', true)",
                 (second_run_id,),
             )
         cursor.execute(
@@ -1099,6 +1108,16 @@ def test_capture_after_request_and_availability_after_capture_are_rejected(
                 snapshot_id=snapshot_id,
                 account_id=account_id,
                 idempotency_key="late-capture",
+                requested_at="2026-08-15T00:45:00Z",
+            )
+        timely_snapshot_id = _insert_snapshot(cursor)
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            _insert_run(
+                cursor,
+                snapshot_id=timely_snapshot_id,
+                account_id=account_id,
+                idempotency_key="cutoff-after-request",
+                knowledge_cutoff="2026-08-15T00:50:00Z",
                 requested_at="2026-08-15T00:45:00Z",
             )
 

@@ -7,13 +7,16 @@ record and [the APA 7th traceability note](doctoring/ANALYSIS_RUN_REGISTRY_REFER
 for the standards mapping.
 
 There is no public create/read/update/delete API in this slice. The registry
-is a database contract only. Examples use synthetic **Demo Corp** and
-aggregate ranges, never private source names or exact private counts.
+is a database contract only. A raw insert can store a run with no scope, no
+counts, and no pending event. Treat a run as recorded only after a later
+write API stores snapshot, counts, run, scope, and pending in one
+transaction (ADR 0014 follow-up 1). Examples use synthetic **Demo Corp**
+and aggregate ranges, never private source names or exact private counts.
 
-## What a buyer can rely on
+## What the schema can hold
 
-An analysis run is a dated, account-owned request to derive product evidence
-from one frozen source capture. The database remembers:
+The tables can remember these facts once a later write API fills them
+together. This slice does not invite hand-entered registry rows.
 
 1. **What was captured** — a digest and the latest time any admitted fact
    could be known (`maximum_available_time`).
@@ -24,7 +27,8 @@ from one frozen source capture. The database remembers:
 4. **How wide the request was** — all visible records, one Demo Corp
    corporate entity, one process unit, or one thread group.
 5. **What happened next** — append-only status events. Current status is a
-   view, not a second editable table.
+   view, not a second editable table. Status insert requires a scope; run
+   insert does not.
 
 ## Entity-relationship diagram
 

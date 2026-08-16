@@ -140,12 +140,14 @@ identities and content) and `migrations/0001_initial_schema.sql` for the
 (skipped without a reachable PostgreSQL server, same pattern as the
 real-provider LLM tests).
 
-Milestone 2.1 adds an additive analysis-run registry in
+Milestone 2.1 adds an additive analysis-run registry schema in
 `migrations/0012_analysis_run_registry.sql` (ADR 0014): immutable source
 snapshots, aggregate counts, account-scoped runs, one product scope, and
-append-only status events with a derived current-status view. Beginner
-ERD: [`docs/analysis-run-registry.md`](docs/analysis-run-registry.md).
-This slice has no public CRUD API.
+append-only status events with a derived current-status view. A raw insert
+can store a run with no scope, no counts, and no pending event until a
+later write API creates those rows atomically. Beginner ERD:
+[`docs/analysis-run-registry.md`](docs/analysis-run-registry.md). This
+slice has no public CRUD API.
 
 ### Local infrastructure (Docker Compose)
 
