@@ -189,6 +189,7 @@ describe("App, authenticated", () => {
                 count_value: 3,
               },
             ],
+            visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
             status_history: [
               {
                 status_ordinal: 1,
@@ -1389,7 +1390,11 @@ describe("App, authenticated", () => {
     expect(history).toHaveTextContent("Pending 2026-01-12 12:31");
     expect(history).toHaveTextContent("Running 2026-01-12 12:32");
     expect(history).toHaveTextContent("Succeeded 2026-01-12 12:33");
+    expect(screen.getByRole("button", { name: "Open run post: Public post" })).toBeInTheDocument();
     expect(screen.queryByText(/postgresql:\/\//)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Open run post: Public post" }));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });
 
   it("shows the calibrated period-report mean theta on the home page", async () => {

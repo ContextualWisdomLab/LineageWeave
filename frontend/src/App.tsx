@@ -1353,7 +1353,13 @@ function analysisRunCaption(run: AnalysisRun): string {
     .join(" · ");
 }
 
-function AnalysisRunsPanel({ accessToken }: { accessToken: string }) {
+function AnalysisRunsPanel({
+  accessToken,
+  onSelectPost,
+}: {
+  accessToken: string;
+  onSelectPost: (postId: string) => void;
+}) {
   const [runs, setRuns] = useState<AnalysisRun[] | null>(null);
   const [selected, setSelected] = useState<AnalysisRun | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1441,6 +1447,21 @@ function AnalysisRunsPanel({ accessToken }: { accessToken: string }) {
                 </li>
               ))}
             </ol>
+          )}
+          {selected.visible_posts && selected.visible_posts.length > 0 && (
+            <ul aria-label="Posts in this analysis run">
+              {selected.visible_posts.map((post) => (
+                <li key={post.post_id}>
+                  <button
+                    className="keyman-select"
+                    aria-label={`Open run post: ${post.post_title}`}
+                    onClick={() => onSelectPost(post.post_id)}
+                  >
+                    {post.post_title}
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}
@@ -1736,7 +1757,7 @@ function PostList({ accessToken }: { accessToken: string }) {
   return (
     <>
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <AnalysisRunsPanel accessToken={accessToken} />
+      <AnalysisRunsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">

@@ -53,6 +53,8 @@ _RUN_SELECT = f"""
       run.code_revision_sha,
       scope.scope_kind_code,
       scope.corporate_entity_id,
+      scope.process_unit_id,
+      scope.scope_key,
       corp.entity_name as scope_entity_name,
       status.status_code,
       status.failure_code
@@ -217,4 +219,59 @@ async def fetch_visible_analysis_run(
     if row["failure_code"]:
         detail["failure_code"] = row["failure_code"]
     detail["status_history"] = await _status_history(conn, analysis_run_id)
+    detail["visible_posts"] = await fetch_visible_scope_posts(
+        conn,
+        row["scope_kind_code"],
+        row["corporate_entity_id"],
+        row["process_unit_id"],
+        row["scope_key"],
+        affiliated_entity_ids,
+    )
     return detail
+
+
+async def fetch_visible_scope_posts(
+    conn: asyncpg.Connection,
+    scope_kind_code: str,
+    corporate_entity_id: Any,
+    process_unit_id: Any,
+    scope_key: str | None,
+    affiliated_entity_ids: list[str],
+) -> list[dict[str, str]]:
+    """ABAC-visible post titles in the run's scope -- never a hidden body."""
+    if scope_kind_code == "analysis_scope_corporate_entity" and corporate_entity_id:
+        rows = await conn.fetch(
+            "select post_id, post_title, visibility_code, corporate_entity_id "
+            "from source_post where corporate_entity_id = $1 "
+            "order by created_at, post_title",
+            corporate_entity_id,
+        )
+    elif scope_kind_code == "analysis_scope_process_unit" and process_unit_id:
+        rows = await conn.fetch(
+            "select post_id, post_title, visibility_code, corporate_entity_id "
+            "from source_post where process_unit_id = $1 "
+            "order by created_at, post_title",
+            process_unit_id,
+        )
+    elif scope_kind_code == "analysis_scope_thread_group" and scope_key:
+        rows = await conn.fetch(
+            "select post_id, post_title, visibility_code, corporate_entity_id "
+            "from source_post where thread_group_key = $1 "
+            "order by created_at, post_title",
+            scope_key,
+        )
+    elif scope_kind_code == "analysis_scope_all_visible":
+        rows = await conn.fetch(
+            "select post_id, post_title, visibility_code, corporate_entity_id "
+            "from source_post order by created_at, post_title"
+        )
+    else:
+        return []
+    affiliated = {str(entity_id) for entity_id in affiliated_entity_ids}
+    posts: list[dict[str, str]] = []
+    for row in rows:
+        visible = row["visibility_code"] == "public" or str(row["corporate_entity_id"]) in affiliated
+        if not visible:
+            continue
+        posts.append({"post_id": str(row["post_id"]), "post_title": row["post_title"]})
+    return posts

@@ -520,6 +520,7 @@ export interface AnalysisRun {
   requested_at: string;
   source_counts: AnalysisRunCount[];
   status_history?: AnalysisRunStatusEvent[];
+  visible_posts?: { post_id: string; post_title: string }[];
 }
 
 export function fetchAnalysisRuns(accessToken: string): Promise<{ analysis_runs: AnalysisRun[] }> {
