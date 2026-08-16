@@ -52,10 +52,13 @@ insert into common_lookup_value (lookup_category, lookup_code, lookup_label, dis
     ('edge_type', 'edge_team_affiliation', 'Team affiliated with', 4),
     ('edge_type', 'edge_mention_organization', 'Organization mentioned in', 5)
 on conflict (lookup_code) do nothing;
-        -- Keyman and R&R person mentions are independent replaceable evidence
-        -- channels. Existing rows matching a current R&R role are conservatively
-        -- reclassified to R&R; a later Keyman extraction repopulates its own set.
-        create table if not exists post_summary_person_mention (
+-- Keyman and R&R person mentions are independent replaceable evidence
+-- channels. The upgrade copies matching R&R actor names into
+-- post_summary_person_mention and leaves post_person_mention (including
+-- mention_context) untouched. combined_post_person_mention already unions
+-- both sources; deleting Keyman rows would drop mention_context and let a
+-- later persist_post_summary erase the only remaining person evidence.
+create table if not exists post_summary_person_mention (
             post_id uuid not null references source_post (post_id) on delete cascade,
             person_id uuid not null references cataloged_person (person_id),
             primary key (post_id, person_id)
@@ -78,11 +81,6 @@ on conflict (lookup_code) do nothing;
           ) matched_person on true
          where role.actor_type_code = 'prov_person'
         on conflict do nothing;
-
-        delete from post_person_mention keyman_mention
-         using post_summary_person_mention summary_mention
-         where keyman_mention.post_id = summary_mention.post_id
-           and keyman_mention.person_id = summary_mention.person_id;
 
         with ranked_edge as (
             select knowledge_graph_edge_id,

@@ -223,18 +223,23 @@ def seed(
             cur.execute("select post_id from source_post where post_title = 'Demo public post'")
             if cur.fetchone() is None:
                 cur.execute(
-                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code) "
+                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at) "
                     "values (%s, %s, %s, 'Demo public post', "
                     "'Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.', "
-                    "'voc', 'public')",
+                    "'voc', 'public', '2026-01-10T12:00:00Z')",
                     (account_ids["demo.analyst"], corporate_entity_id, process_units["DEMO-PU-A"]),
                 )
                 cur.execute(
-                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code) "
-                    "values (%s, %s, %s, 'Demo private post', 'A synthetic private post scoped to Demo Corp accounts.', 'vom', 'private')",
+                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at) "
+                    "values (%s, %s, %s, 'Demo private post', 'A synthetic private post scoped to Demo Corp accounts.', 'vom', 'private', '2026-01-10T12:00:00Z')",
                     (account_ids["demo.admin"], corporate_entity_id, process_units["DEMO-PU-HQ"]),
                 )
 
+            cur.execute(
+                "update source_post set created_at = '2026-01-10T12:00:00Z' "
+                "where post_title in ('Demo public post', 'Demo private post') "
+                "and created_at > '2026-01-12T12:00:00Z'"
+            )
             cur.execute("select post_id from source_post where post_title = 'Demo public post'")
             demo_public_post_id = cur.fetchone()[0]
             cur.execute(

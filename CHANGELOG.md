@@ -4,6 +4,22 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.83.0] - 2026-08-16
+
+### Fixed
+
+- Analysis-run detail now lists only ABAC-visible posts whose
+  `created_at` is at or before that run's `knowledge_cutoff`. After
+  `make seed`, open the Demo Corp lineage run: Demo public post is
+  there; a later own-corp follow-up is not. The live post list is
+  unchanged. Click a listed title to inspect what that cutoff
+  reconstructed (ADR 0016).
+- Upgrading through `0016_cross_post_actor_identity.sql` copies R&R
+  person names into `post_summary_person_mention` and leaves Keyman
+  `post_person_mention.mention_context` in place. Re-run Keyman only
+  when you want a new Keyman set -- a later summary no longer erases
+  the stolen row.
+
 ## [0.82.0] - 2026-08-16
 
 ### Added

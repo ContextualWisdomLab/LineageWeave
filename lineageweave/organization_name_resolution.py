@@ -1,4 +1,4 @@
-"""Resolves an abbreviated or slang organization name (e.g. "한수원") to
+"""Resolves an abbreviated or slang organization name (e.g. "AGP") to
 its full canonical name using LLM context, then cross-verifies the
 proposed name against external web search before it is trusted --
 :mod:`lineageweave.corporate_hierarchy_resolution`'s character-similarity
@@ -91,8 +91,8 @@ class NullOrganizationNameResolutionClient:
 _RESOLUTION_PROMPT_TEMPLATE = """\
 The text below mentions an organization by the short/abbreviated name
 "{raw_name}" (this may be a Korean-style contraction, an initialism, or
-another kind of shorthand -- e.g. "한수원" is a common Korean
-abbreviation for "한국수력원자력," Korea Hydro & Nuclear Power).
+another kind of shorthand -- e.g. "AGP" is a synthetic contraction
+for "Aurora Grid Power").
 
 Using ONLY what the text itself supports (do not guess from the
 abbreviation's letters/syllables alone if the text gives no supporting

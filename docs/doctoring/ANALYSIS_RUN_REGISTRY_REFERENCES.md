@@ -8,7 +8,7 @@
 | Source | Product implication | Implemented evidence |
 |---|---|---|
 | W3C PROV-DM and PROV-O | Preserve identifiable entities, activities, agents, generation/use, and derivation without flattening provenance into display-only edges. | `analysis_source_snapshot`, `analysis_run`, authenticated requester, append-only status events, immutable digests; later product bindings continue to use the separate `provenance_*` layer from ADR 0011. |
-| W3C Time Ontology in OWL | Keep temporal concepts explicit and avoid collapsing distinct clocks. | Evidence availability and snapshot capture remain on `analysis_source_snapshot`; analysis knowledge cutoff and request time remain on `analysis_run`; status occurrence and database record time remain distinct. |
+| W3C Time Ontology in OWL | Keep temporal concepts explicit and avoid collapsing distinct clocks. | Evidence availability and snapshot capture remain on `analysis_source_snapshot`; analysis knowledge cutoff and request time remain on `analysis_run`; status occurrence and database record time remain distinct. `GET /api/analysis-runs/{id}` visible posts apply `created_at <= knowledge_cutoff` (ADR 0016). |
 | ISO 8601-1:2019 | Use unambiguous timestamp representation and timezone-aware persistence. | PostgreSQL `timestamptz` for availability, capture, cutoff, request, occurrence, and record clocks; tests use explicit `Z` offsets. |
 | PostgreSQL 18 constraints and trigger contracts | Put integrity close to durable truth and use constraints for row shape while triggers enforce cross-row state and serialization. | Digest/check constraints, category allowlists, account-scoped uniqueness, shape constraints, immutable-row triggers, shared snapshot-row locking, and serialized status transitions. |
 | NIST SP 800-92 | Treat audit records as bounded, protected operational evidence rather than unstructured application logging. | Append-only status events, machine failure codes, actor identity, occurrence/record clocks, fail-closed rollback, and exclusion of raw source/provider payloads. |
@@ -68,7 +68,7 @@ provenance, retention, and immutable evidence rather than blanket masking.
 | Claim | Falsifiable test |
 |---|---|
 | One snapshot supports multiple analyses | Insert two runs over one snapshot with different valid cutoffs. |
-| Future evidence is excluded | Reject a run whose cutoff precedes the snapshot's maximum availability time. |
+| Future evidence is excluded | Reject a run whose cutoff precedes the snapshot's maximum availability time. A late own-corp post stays out of `visible_posts`. |
 | Evidence cannot change after derivation | Reject snapshot/count updates and count insert/delete after the first run. |
 | Count/run race is serialized | Both paths acquire the snapshot row first; a later concurrency test must prove one legal winner and no lost freeze. |
 | Request identity is stable | Reject analysis-run updates; scope and lifecycle live in their own relations. |

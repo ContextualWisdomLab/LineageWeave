@@ -9,8 +9,10 @@ from types import SimpleNamespace
 from typing import Any
 
 from backend.app import corporate_entity_ingestion as corporate_ingestion
+from backend.app import keyman_ingestion
 from backend.app import post_summary_ingestion as summary_ingestion
 from lineageweave.corporate_hierarchy_inference import HierarchyProposal
+from lineageweave.keyman_extraction import OUR_SIDE, PersonMention
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
     ACTOR_TYPE_TEAM,
@@ -353,6 +355,110 @@ def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch
         and "insert into post_organization_mention" in event[1]
     )
     assert resolve_index < enter_index < mention_index < exit_index
+
+
+class _KeymanConnection:
+    """Record whether organization enrichment runs outside the write transaction."""
+
+    def __init__(self, events: list[Any]) -> None:
+        self._events = events
+        self.in_transaction = False
+
+    def transaction(self) -> _RecordedTransaction:
+        self._events.append("transaction:open")
+        return _RecordedTransaction(self._events, self)
+
+    async def execute(self, query: str, *args: Any) -> str:
+        assert self.in_transaction
+        compact = " ".join(query.split())
+        self._events.append(("execute", compact))
+        return "OK"
+
+    async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
+        compact = " ".join(query.split())
+        self._events.append(("fetch", compact))
+        if compact == "select corporate_entity_id, entity_name from corporate_entity":
+            assert not self.in_transaction
+            return []
+        if compact.startswith("select person_id, last_known_job_title"):
+            assert self.in_transaction
+            return []
+        raise AssertionError(f"unexpected fetch query: {compact}")
+
+    async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
+        assert self.in_transaction
+        compact = " ".join(query.split())
+        self._events.append(("fetchrow", compact))
+        if compact.startswith("select person_id, last_known_job_title"):
+            return None
+        if compact.startswith("insert into cataloged_person"):
+            return {"person_id": uuid.uuid4()}
+        raise AssertionError(f"unexpected fetchrow query: {compact}")
+
+
+def test_keyman_organization_enrichment_finishes_before_write_transaction(monkeypatch) -> None:
+    """LLM resolution and hierarchy creation must not hold the Keyman write lock."""
+    events: list[Any] = []
+    connection = _KeymanConnection(events)
+    corporate_entity_id = str(uuid.uuid4())
+
+    async def resolve_name(conn, resolution_client, verification_client, organization_name, post_body) -> str:
+        events.append(("organization_resolve", conn.in_transaction))
+        assert not conn.in_transaction
+        return "Aurora Grid Power"
+
+    async def resolve_organization(
+        conn,
+        organization_name,
+        context_text,
+        inference_client,
+        verification_client,
+        candidates,
+    ) -> str:
+        events.append(("organization_create", conn.in_transaction))
+        assert not conn.in_transaction
+        return corporate_entity_id
+
+    class _Client:
+        available = True
+
+        def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
+            return [
+                PersonMention(
+                    "Ada West",
+                    OUR_SIDE,
+                    affiliated_organization_names=("AGP",),
+                )
+            ]
+
+    monkeypatch.setattr(keyman_ingestion, "resolve_organization_name", resolve_name)
+    monkeypatch.setattr(keyman_ingestion, "get_or_create_corporate_entity", resolve_organization)
+
+    asyncio.run(
+        keyman_ingestion.ingest_post_keymen(
+            connection,
+            _Client(),
+            str(uuid.uuid4()),
+            "Synthetic post",
+            "Ada West at AGP followed up.",
+            persist_graph=False,
+        )
+    )
+
+    assert ("organization_resolve", False) in events
+    assert ("organization_create", False) in events
+    resolve_index = events.index(("organization_resolve", False))
+    create_index = events.index(("organization_create", False))
+    enter_index = events.index("transaction:enter")
+    mention_index = next(
+        index
+        for index, event in enumerate(events)
+        if isinstance(event, tuple)
+        and event[0] == "execute"
+        and "insert into post_person_mention" in event[1]
+    )
+    assert resolve_index < enter_index
+    assert create_index < enter_index < mention_index
 
 
 def test_release_notes_describe_balanced_outer_emphasis_stripping() -> None:

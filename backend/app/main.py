@@ -588,27 +588,27 @@ async def extract_post_keymen(
         # literal text either blows the token budget or is silently
         # ignored (see lineageweave/post_content_normalization.py).
         post_body = normalize_post_body(raw_body, vision_client=_vision_client()).text
+        mentions = await ingest_post_keymen(
+            conn,
+            keyman_client,
+            post_id,
+            post["post_title"],
+            post_body,
+            resolution_client=_organization_name_resolution_client(),
+            verification_client=_relation_verification_client(),
+            hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+            persist_graph=False,
+        )
+        organization_names = sorted(
+            {name for mention in mentions for name in mention.affiliated_organization_names}
+        )
+        # relationship_client is gated by the same settings check as
+        # keyman_client above (both read ORCHESTRATOR_BASE_URL/_API_KEY),
+        # so reaching here means it is available too.
+        relationships = await ingest_post_entity_relationships(
+            conn, relationship_client, post_id, post["post_title"], post_body, organization_names
+        )
         async with conn.transaction():
-            mentions = await ingest_post_keymen(
-                conn,
-                keyman_client,
-                post_id,
-                post["post_title"],
-                post_body,
-                resolution_client=_organization_name_resolution_client(),
-                verification_client=_relation_verification_client(),
-                hierarchy_inference_client=_corporate_hierarchy_inference_client(),
-                persist_graph=False,
-            )
-            organization_names = sorted(
-                {name for mention in mentions for name in mention.affiliated_organization_names}
-            )
-            # relationship_client is gated by the same settings check as
-            # keyman_client above (both read ORCHESTRATOR_BASE_URL/_API_KEY),
-            # so reaching here means it is available too.
-            relationships = await ingest_post_entity_relationships(
-                conn, relationship_client, post_id, post["post_title"], post_body, organization_names
-            )
             await persist_edges_for_post(conn, post_id)
     return {
         "post_id": str(post["post_id"]),

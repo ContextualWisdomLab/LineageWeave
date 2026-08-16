@@ -50,7 +50,7 @@ class _FakeVerificationClient:
 
 
 def test_parse_resolution_response_extracts_the_first_line() -> None:
-    assert parse_resolution_response("한국수력원자력\n") == "한국수력원자력"
+    assert parse_resolution_response("Aurora Grid Power\n") == "Aurora Grid Power"
 
 
 def test_parse_resolution_response_rejects_unknown() -> None:
@@ -65,14 +65,14 @@ def test_parse_resolution_response_rejects_empty() -> None:
 
 def test_no_resolution_when_client_unavailable() -> None:
     result = resolve_and_verify_organization_name(
-        "한수원", "context", NullOrganizationNameResolutionClient(), NullRelationVerificationClient()
+        "AGP", "context", NullOrganizationNameResolutionClient(), NullRelationVerificationClient()
     )
     assert result is None
 
 
 def test_no_resolution_when_model_proposes_nothing() -> None:
     result = resolve_and_verify_organization_name(
-        "한수원", "context", _FakeResolutionClient(None), NullRelationVerificationClient()
+        "AGP", "context", _FakeResolutionClient(None), NullRelationVerificationClient()
     )
     assert result is None
 
@@ -81,27 +81,27 @@ def test_no_resolution_when_model_echoes_the_same_name() -> None:
     """A "resolution" that just returns the raw name back is not a real
     resolution -- must not be persisted as one."""
     result = resolve_and_verify_organization_name(
-        "한수원", "context", _FakeResolutionClient("한수원"), NullRelationVerificationClient()
+        "AGP", "context", _FakeResolutionClient("AGP"), NullRelationVerificationClient()
     )
     assert result is None
 
 
 def test_corroborated_resolution_carries_evidence() -> None:
     verification = _FakeVerificationClient(
-        RelationVerificationResult(status_code=STATUS_CORROBORATED, evidence_url="https://example.org/khnp")
+        RelationVerificationResult(status_code=STATUS_CORROBORATED, evidence_url="https://example.org/agp")
     )
-    resolution_client = _FakeResolutionClient("한국수력원자력")
-    result = resolve_and_verify_organization_name("한수원", "설계팀이 한수원과 회의했다", resolution_client, verification)
+    resolution_client = _FakeResolutionClient("Aurora Grid Power")
+    result = resolve_and_verify_organization_name("AGP", "설계팀이 AGP와 회의했다", resolution_client, verification)
     assert result == OrganizationNameResolution(
-        raw_organization_name="한수원",
-        resolved_organization_name="한국수력원자력",
+        raw_organization_name="AGP",
+        resolved_organization_name="Aurora Grid Power",
         verification_status_code=STATUS_CORROBORATED,
-        verification_evidence_url="https://example.org/khnp",
+        verification_evidence_url="https://example.org/agp",
     )
     # The full name and the raw abbreviation are searched together --
     # the specific pairing is what needs corroborating, not just that
     # the full name exists as some organization.
-    assert verification.calls == [("한국수력원자력", "한수원")]
+    assert verification.calls == [("Aurora Grid Power", "AGP")]
 
 
 def test_uncorroborated_resolution_still_returned_with_evidence_none() -> None:
@@ -109,7 +109,7 @@ def test_uncorroborated_resolution_still_returned_with_evidence_none() -> None:
         RelationVerificationResult(status_code=STATUS_UNCORROBORATED, evidence_url=None)
     )
     result = resolve_and_verify_organization_name(
-        "한수원", "context", _FakeResolutionClient("Invented Co"), verification
+        "AGP", "context", _FakeResolutionClient("Invented Co"), verification
     )
     assert result is not None
     assert result.verification_status_code == STATUS_UNCORROBORATED
@@ -118,7 +118,7 @@ def test_uncorroborated_resolution_still_returned_with_evidence_none() -> None:
 
 def test_verification_unavailable_yields_pending_not_a_fabricated_result() -> None:
     result = resolve_and_verify_organization_name(
-        "한수원", "context", _FakeResolutionClient("한국수력원자력"), NullRelationVerificationClient()
+        "AGP", "context", _FakeResolutionClient("Aurora Grid Power"), NullRelationVerificationClient()
     )
     assert result is not None
     assert result.verification_status_code == STATUS_PENDING

@@ -1449,7 +1449,7 @@ function AnalysisRunsPanel({
             </ol>
           )}
           {selected.visible_posts && selected.visible_posts.length > 0 && (
-            <ul aria-label="Posts in this analysis run">
+            <ul aria-label="Posts known at this run cutoff">
               {selected.visible_posts.map((post) => (
                 <li key={post.post_id}>
                   <button

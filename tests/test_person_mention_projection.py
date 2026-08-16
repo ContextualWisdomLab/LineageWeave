@@ -172,14 +172,13 @@ async def _exercise_projection_contract(
     try:
         keyman = PersonMention("Keyman Person", OUR_SIDE)
         client = _KeymanClient([keyman])
-        async with connection.transaction():
-            await ingest_post_keymen(
-                connection,
-                client,
-                post_id,
-                "Synthetic post",
-                "Synthetic body",
-            )
+        await ingest_post_keymen(
+            connection,
+            client,
+            post_id,
+            "Synthetic post",
+            "Synthetic body",
+        )
         keyman_person_id = str(
             await connection.fetchval(
                 "select person_id from cataloged_person where person_name = 'Keyman Person'"
@@ -239,14 +238,13 @@ async def _exercise_projection_contract(
         assert keyman_person_id in visible_person_ids
 
         client.mentions = []
-        async with connection.transaction():
-            await ingest_post_keymen(
-                connection,
-                client,
-                post_id,
-                "Synthetic post",
-                "Synthetic body",
-            )
+        await ingest_post_keymen(
+            connection,
+            client,
+            post_id,
+            "Synthetic post",
+            "Synthetic body",
+        )
         assert await visible_mention_post_ids(
             connection, keyman_person_id, lambda row: True
         ) == []
@@ -306,3 +304,64 @@ def test_person_mention_sources_reconcile_without_stale_graph_edges(
     asyncio.run(
         _exercise_projection_contract(database_dsn, post_id, summary_person_id)
     )
+
+
+def test_cross_post_identity_upgrade_keeps_keyman_mention_context(
+    projection_database: str,
+) -> None:
+    """Migration 0016 copies R&R names and must not steal Keyman mention_context."""
+
+    database_dsn, post_id, summary_person_id = projection_database.split("|")
+    migration = Path(__file__).resolve().parents[1] / "migrations" / "0016_cross_post_actor_identity.sql"
+    connection = psycopg2.connect(database_dsn)
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                insert into post_person_mention (post_id, person_id, mention_context)
+                values (%s, %s, %s)
+                """,
+                (
+                    post_id,
+                    summary_person_id,
+                    "Keyman extracted this mention from the synthetic body",
+                ),
+            )
+            cursor.execute(
+                "insert into post_summary_result (post_id, korean_summary) values (%s, %s)",
+                (post_id, "합성 요약"),
+            )
+            cursor.execute(
+                """
+                insert into post_summary_role
+                    (post_id, actor_name, responsibility, actor_type_code)
+                values (%s, 'Summary Person', '검토', 'prov_person')
+                """,
+                (post_id,),
+            )
+            cursor.execute(migration.read_text(encoding="utf-8"))
+            cursor.execute(
+                """
+                select mention_context
+                  from post_person_mention
+                 where post_id = %s and person_id = %s
+                """,
+                (post_id, summary_person_id),
+            )
+            keyman_row = cursor.fetchone()
+            cursor.execute(
+                """
+                select count(*)
+                  from post_summary_person_mention
+                 where post_id = %s and person_id = %s
+                """,
+                (post_id, summary_person_id),
+            )
+            summary_count = cursor.fetchone()[0]
+        connection.commit()
+    finally:
+        connection.close()
+
+    assert keyman_row is not None
+    assert keyman_row[0] == "Keyman extracted this mention from the synthetic body"
+    assert summary_count == 1

@@ -237,8 +237,8 @@
 #################################################################
 # organization_name_resolution (raw/canonical organization-name pairs)
 #
-# ADR 0008: an abbreviated/slang organization mention (e.g. "한수원")
-# is resolved to its full canonical name ("한국수력원자력") and
+# ADR 0008: an abbreviated/slang organization mention (e.g. "AGP")
+# is resolved to its full canonical name ("Aurora Grid Power") and
 # cross-verified via external search before being trusted. This is not
 # a new KG node/edge type -- no new :lookupCode term is declared here,
 # since organization_name_resolution's columns are not a

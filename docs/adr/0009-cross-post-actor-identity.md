@@ -54,7 +54,11 @@ Person evidence sources remain separate: Keyman extraction replaces
 `post_summary_person_mention`. `combined_post_person_mention` is a
 read-only union used for lineage and KG derivation. This prevents a new
 summary from deleting Keyman evidence and prevents removed R&R actors
-from surviving as stale Keymen.
+from surviving as stale Keymen. Migration 0016 copies matching R&R
+actor names into `post_summary_person_mention` and must not delete
+overlapping Keyman rows -- `mention_context` has no R&R column, and a
+later summary replacement would otherwise erase the only remaining
+person evidence.
 
 
 Each resolved actor gets a real Knowledge Graph mention edge (new

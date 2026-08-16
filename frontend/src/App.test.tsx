@@ -1390,6 +1390,7 @@ describe("App, authenticated", () => {
     expect(history).toHaveTextContent("Pending 2026-01-12 12:31");
     expect(history).toHaveTextContent("Running 2026-01-12 12:32");
     expect(history).toHaveTextContent("Succeeded 2026-01-12 12:33");
+    expect(screen.getByRole("list", { name: "Posts known at this run cutoff" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open run post: Public post" })).toBeInTheDocument();
     expect(screen.queryByText(/postgresql:\/\//)).not.toBeInTheDocument();
 

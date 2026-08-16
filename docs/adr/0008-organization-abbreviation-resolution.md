@@ -7,8 +7,8 @@
 
 Real post text names organizations by abbreviated or slang forms a
 human reader immediately recognizes but a string-matching pipeline
-cannot -- e.g. "AGP," a common Korean contraction of "Aurora Grid Power"
-(Korea Hydro & Nuclear Power). `lineageweave.corporate_hierarchy_resolution`
+cannot -- e.g. "AGP," a synthetic contraction of "Aurora Grid Power".
+`lineageweave.corporate_hierarchy_resolution`
 already resolves near-matches (a trailing legal suffix, a minor
 abbreviation) via character-sequence similarity
 (`difflib.SequenceMatcher`, grounded in Bhattacharya & Getoor, 2007's

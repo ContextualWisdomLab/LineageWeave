@@ -9,18 +9,14 @@
 matching only ever locates an *already-cataloged* `corporate_entity`
 row -- it has no path to create one. This was fine while the only
 `corporate_entity` catalog was synthetic demo fixtures with a handful
-of names extraction would naturally already know. Real Milestone 2 data
-exposed the actual gap: `corporate_entity` for the unseen dataset holds
-only the employer's own 2-row hierarchy (its own group/subsidiary
-structure); every counterparty, customer, partner, or competitor
-organization named in real posts is, by definition, something outside
-that hierarchy. A direct count confirmed the consequence: **0 of 4,154
-`person_affiliation` rows and 0 of 9,852 R&R organization-actor
-mentions ever resolved to a real `corporate_entity`** -- the standing
-"통합 고객사 계열 tree AI" (integrated customer affiliate tree)
-requirement, present in this product's brief since Milestone 1
-(the Samsung -> Samsung Electronics Korea -> ... example), was never
-actually populated for real extraction, silently.
+of names extraction would naturally already know. A synthetic batch
+where the catalog holds only the employer's own two-row hierarchy
+exposes the same gap: every counterparty named in a post is, by
+definition, outside that catalog. Similarity matching then resolves
+**0 affiliation rows and 0 R&R organization-actor mentions** -- the
+standing integrated customer-affiliate tree requirement (Harbor Group
+-> Harbor Devices Korea -> ... in the synthetic brief) stays empty
+until a verified creation path exists.
 
 ## Decision
 

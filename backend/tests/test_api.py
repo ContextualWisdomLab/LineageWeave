@@ -296,11 +296,17 @@ def seeded_db(demo_analyst_token):
                 (account_id, role_id),
             )
 
-            def _insert_post(title: str, corporate_entity_id, visibility_code: str, body: str = "body") -> str:
+            def _insert_post(
+                title: str,
+                corporate_entity_id,
+                visibility_code: str,
+                body: str = "body",
+                created_at: str = "2026-01-10T12:00:00Z",
+            ) -> str:
                 cur.execute(
-                    "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
-                    "values (%s, %s, %s, %s, 'voc', %s) returning post_id",
-                    (account_id, corporate_entity_id, title, body, visibility_code),
+                    "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code, created_at) "
+                    "values (%s, %s, %s, %s, 'voc', %s, %s) returning post_id",
+                    (account_id, corporate_entity_id, title, body, visibility_code, created_at),
                 )
                 return str(cur.fetchone()[0])
 
@@ -313,6 +319,13 @@ def seeded_db(demo_analyst_token):
                 "The weather in Gwangju was irrelevant.",
             )
             other_private_post_id = _insert_post("Other-corp private post", other_corp_id, "private")
+            late_own_private_post_id = _insert_post(
+                "Late own-corp private post",
+                own_corp_id,
+                "private",
+                "A follow-up written after the January 2026 run cutoff.",
+                created_at="2026-01-20T12:00:00Z",
+            )
 
             cur.execute(
                 "insert into cataloged_person (person_name, person_side_code) values "
@@ -398,6 +411,7 @@ def seeded_db(demo_analyst_token):
             "own_corp_id": str(own_corp_id),
             "other_corp_id": str(other_corp_id),
             "own_private_post_id": own_private_post_id,
+            "late_own_private_post_id": late_own_private_post_id,
             "other_private_post_id": other_private_post_id,
             "our_person_id": our_person_id,
             "counterpart_person_id": counterpart_person_id,
@@ -477,6 +491,7 @@ def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
     assert all("failure_code" not in event for event in history)
     titles = {post["post_title"] for post in body["visible_posts"]}
     assert "Own-corp private post" in titles
+    assert "Late own-corp private post" not in titles
     assert "Other-corp private post" not in titles
     assert "postgresql://" not in str(body)
     assert "visible_posts" not in visible
@@ -503,7 +518,7 @@ def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, 
     response = client.get("/api/posts", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200
     titles = {post["post_title"] for post in response.json()}
-    assert titles == {"Public post", "Own-corp private post"}
+    assert titles == {"Public post", "Own-corp private post", "Late own-corp private post"}
     public = next(post for post in response.json() if post["post_title"] == "Public post")
     assert public["voc_type_label"] == "Voice of Customer"
     assert public["visibility_label"] == "Public"

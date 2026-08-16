@@ -185,9 +185,13 @@ async def ingest_post_keymen(
     real ones get the exact same behavior as before ADR 0008/0010 (raw
     affiliation names, unresolved).
 
-    The post's prior Keyman mention set is replaced atomically after a successful
-    extraction. ``persist_graph=False`` lets a larger caller defer graph
-    reconciliation until the end of its own transaction.
+    Organization resolution and hierarchy creation finish before the Keyman
+    write transaction. Callers must not wrap this function in an outer
+    transaction: that would turn ``pg_advisory_xact_lock`` into a savepoint
+    and hold the creation lock across later LLM work. The post's prior
+    Keyman mention set is replaced atomically after enrichment.
+    ``persist_graph=False`` lets a larger caller persist edges in its own
+    short write transaction after this function returns.
 
     Raises whatever `client.extract` raises (e.g. a `NullKeymanExtractionClient`
     would raise `RuntimeError`) -- callers should check `client.available`
@@ -198,20 +202,9 @@ async def ingest_post_keymen(
     hierarchy_inference_client = hierarchy_inference_client or NullCorporateHierarchyInferenceClient()
     mentions = await asyncio.to_thread(client.extract, post_title, post_body)
     candidates = await _load_corporate_entity_candidates(conn)
-    normalized_mentions: list[PersonMention] = []
-    await conn.execute(
-        "delete from post_person_mention where post_id = $1", post_id
-    )
-
+    resolved_by_mention: list[tuple[PersonMention, list[tuple[str, str, str | None]]]] = []
     for mention in mentions:
-        person_id = await _upsert_person(conn, mention)
-        await conn.execute(
-            "insert into post_person_mention (post_id, person_id) values ($1, $2) on conflict do nothing",
-            post_id,
-            person_id,
-        )
-
-        resolved_names: list[str] = []
+        resolved_orgs: list[tuple[str, str, str | None]] = []
         for organization_name in mention.affiliated_organization_names:
             resolved_name = await resolve_organization_name(
                 conn,
@@ -228,24 +221,40 @@ async def ingest_post_keymen(
                 verification_client,
                 candidates,
             )
-            await _upsert_affiliation(
-                conn,
-                person_id,
-                organization_name,
-                resolved_name,
-                corporate_entity_id,
-                mention.job_title,
-            )
-            if resolved_name not in resolved_names:
-                resolved_names.append(resolved_name)
-        normalized_mentions.append(
-            replace(
-                mention,
-                affiliated_organization_names=tuple(resolved_names),
-            )
-        )
+            resolved_orgs.append((organization_name, resolved_name, corporate_entity_id))
+        resolved_by_mention.append((mention, resolved_orgs))
 
-    if persist_graph:
-        await persist_edges_for_post(conn, post_id)
+    normalized_mentions: list[PersonMention] = []
+    async with conn.transaction():
+        await conn.execute(
+            "delete from post_person_mention where post_id = $1", post_id
+        )
+        for mention, resolved_orgs in resolved_by_mention:
+            person_id = await _upsert_person(conn, mention)
+            await conn.execute(
+                "insert into post_person_mention (post_id, person_id) values ($1, $2) on conflict do nothing",
+                post_id,
+                person_id,
+            )
+            resolved_names: list[str] = []
+            for organization_name, resolved_name, corporate_entity_id in resolved_orgs:
+                await _upsert_affiliation(
+                    conn,
+                    person_id,
+                    organization_name,
+                    resolved_name,
+                    corporate_entity_id,
+                    mention.job_title,
+                )
+                if resolved_name not in resolved_names:
+                    resolved_names.append(resolved_name)
+            normalized_mentions.append(
+                replace(
+                    mention,
+                    affiliated_organization_names=tuple(resolved_names),
+                )
+            )
+        if persist_graph:
+            await persist_edges_for_post(conn, post_id)
 
     return normalized_mentions
