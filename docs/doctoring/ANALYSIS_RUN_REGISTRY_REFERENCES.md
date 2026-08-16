@@ -76,7 +76,7 @@ provenance, retention, and immutable evidence rather than blanket masking.
 | Request identity is stable | Reject analysis-run updates; scope and lifecycle live in their own relations. |
 | Idempotency is actor-scoped | Permit identical opaque keys for two accounts and reject reuse by the same account. |
 | Lifecycle is ordered | Require pending first, contiguous ordinals, monotonic time, legal transitions, terminal finality, and append-only rows. |
-| Rollback does not erase audit data silently | Reject 0018 rollback with any registry rows. A run-bearing registry empties only through an unrevoked `analysis_run_retention_grant` plus `analysis_run_retention_admin`, then `purge_analysis_run_registry('approved-retention-purge')`; a wrong token, a raw `DELETE`, and a runtime role that only knows the public phrase stay rejected. Export then delete `analysis_run_retention_event` before 0020 rollback. |
+| Rollback does not erase audit data silently | Reject 0018 rollback with any registry rows. A run-bearing registry empties only through an unrevoked `analysis_run_retention_grant` plus `analysis_run_retention_admin`, then `purge_analysis_run_registry('approved-retention-purge')`; a wrong token, a raw `DELETE`, and a runtime role that only knows the public phrase stay rejected. When `analysis_run_reconstruction` children exist, that same call empties them despite delete-reject triggers. Export then delete `analysis_run_retention_event` before 0020 rollback. |
 
 ## APA 7th references
 

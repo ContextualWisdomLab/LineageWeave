@@ -21,6 +21,14 @@ All notable changes to this project are documented here. Format follows
   in `frontend/src/styles/tokens.css`. Preview them in Storybook
   (`cd frontend && pnpm run storybook`).
 
+### Fixed
+
+- The same purge empties `analysis_run_lineage_edge`,
+  `analysis_run_reconstruction`, and `analysis_source_snapshot_member`
+  when those start-reconstruction tables exist, including their
+  delete-reject triggers. After a Succeeded start, follow the same
+  grant + admin + phrase path — do not `DISABLE TRIGGER` as superuser.
+
 ## [0.86.2] - 2026-08-16
 
 ### Fixed

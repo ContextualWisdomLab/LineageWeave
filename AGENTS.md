@@ -88,7 +88,8 @@ pnpm run lint && pnpm run test && pnpm run build
 
 A run-bearing analysis-run registry empties only after an unrevoked
 `analysis_run_retention_grant` and `GRANT analysis_run_retention_admin`
-(ADR 0020 / v0.87.0). The documented phrase is not a secret. Do not
+(ADR 0020 / v0.87.0). The documented phrase is not a secret. The same
+call empties reconstruction children when those tables exist. Do not
 expose purge on a public HTTP route.
 
 ## CI gates

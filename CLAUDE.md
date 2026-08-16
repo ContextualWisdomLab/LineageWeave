@@ -10,7 +10,8 @@ To empty a run-bearing registry, insert an unrevoked
 `GRANT analysis_run_retention_admin` (ADR 0020). Then
 `select purge_analysis_run_registry('approved-retention-purge')`,
 export `analysis_run_retention_event`, delete those rows, and roll
-back 0020 then 0018. The published phrase is not a secret. Do not
+back 0020 then 0018. The same call empties reconstruction children
+when ADR 0021 tables exist. The published phrase is not a secret. Do not
 `DISABLE TRIGGER` as superuser. Do not grant the admin role or a
 retention grant to the application `DATABASE_URL` login. ADR 0019
 is the R&R catalog-id bind, not this purge.

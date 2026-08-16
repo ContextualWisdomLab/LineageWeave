@@ -76,6 +76,14 @@ operators who purge from `psql`. Do not expose purge on a public HTTP
 route. Split the application login from the migration owner so the
 product role cannot execute the function even as table owner.
 
+Start reconstruction (ADR 0021) adds `analysis_run_lineage_edge`,
+`analysis_run_reconstruction`, and `analysis_source_snapshot_member`
+with delete-reject triggers. This procedure already disables those
+user triggers when `to_regclass` finds the tables, deletes children
+before the 0018 rows, then re-enables the triggers. A 0.87.0-only
+database without those relations still purges. Do not require a
+superuser `DISABLE TRIGGER` after a Succeeded start.
+
 ## References — APA 7th
 
 American Institute of Certified Public Accountants. (2017). *SOC 2®: SOC

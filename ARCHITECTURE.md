@@ -503,7 +503,9 @@ A run-bearing registry is emptied only after an unrevoked
 `analysis_run_retention_grant` and `GRANT analysis_run_retention_admin`,
 then `purge_analysis_run_registry('approved-retention-purge')`
 (ADR 0020); a raw `DELETE` and a runtime role that only knows the
-public phrase stay rejected. Repeated chip and close controls use
+public phrase stay rejected. When start reconstruction has persisted
+run-scoped edges, that same call empties those children instead of
+stopping on an immutable-trigger or foreign-key error. Repeated chip and close controls use
 `frontend/src/styles/tokens.css` and the Storybook inventory.
 
 ## Phase 6a: fast-mlsirm dependency + Rust toolchain (infra only)
