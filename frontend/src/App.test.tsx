@@ -345,6 +345,23 @@ describe("App, authenticated", () => {
                 live_after_cutoff: false,
               },
             ],
+            reconstructed_edges: [
+              {
+                parent_post_id: "post-2",
+                parent_post_title: "Pricing renegotiation follow-up",
+                child_post_id: "post-1",
+                child_post_title: "Pricing renegotiation: revised quote sent",
+                fused_score: 0.72,
+              },
+              {
+                parent_post_id: "post-2",
+                parent_post_title: "Pricing renegotiation follow-up",
+                child_post_id: "post-delivery",
+                child_post_title: "Delivery schedule question raised",
+                fused_score: 0.68,
+              },
+            ],
+            reconstruction_result_sha256: "aa".repeat(32),
             code_revision_sha: "abcdef0123456789deadbeefcafebabe",
             configuration_sha256:
               "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
@@ -1868,6 +1885,21 @@ describe("App, authenticated", () => {
     expect(history).toHaveTextContent("Pending 2026-01-12 12:31");
     expect(history).toHaveTextContent("Running 2026-01-12 12:32");
     expect(history).toHaveTextContent("Succeeded 2026-01-12 12:33");
+    expect(screen.getByRole("list", { name: "Posts known at this run cutoff" })).toBeInTheDocument();
+    const seededFork = screen.getByRole("list", { name: "Reconstructed lineage edges" });
+    expect(seededFork).toHaveTextContent(
+      "Pricing renegotiation: revised quote sent follows Pricing renegotiation follow-up",
+    );
+    expect(seededFork).toHaveTextContent(
+      "Delivery schedule question raised follows Pricing renegotiation follow-up",
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open reconstructed child: Pricing renegotiation: revised quote sent",
+      }),
+    );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.getByRole("list", { name: "Posts known at this run cutoff" })).toBeInTheDocument();
     expect(
       screen.getByText(

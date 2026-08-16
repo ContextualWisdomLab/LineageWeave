@@ -89,8 +89,9 @@ period-report rows do not show the button.
 ## Consequences
 
 Demo Analyst can request a run, start it, and confirm the designed A-100
-fork (revised quote and delivery question under the pricing follow-up)
-without a seed-only Succeeded row. The durable outbox / Valkey worker
+fork (revised quote and delivery question under the pricing follow-up).
+`make seed` also persists that fork on the Demo Corp Succeeded row so
+open-after-seed is not empty. The durable outbox / Valkey worker
 and live TEPP transport remain later slices. Do not stamp Succeeded
 from a missing reconstruct library, and do not invent a theta.
 

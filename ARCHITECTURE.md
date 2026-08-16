@@ -506,7 +506,8 @@ payload is lookup labels plus non-negative aggregate counts -- never
 source SQL, a DSN, a raw record, or a provider body. After `make seed`,
 Demo Analyst and Demo Admin see "Lineage reconstruction · Succeeded ·
 Demo Corp" with "3 documents" and Pending / Running / Succeeded times,
-and "TEPP measurement · Failed · Demo Corp" whose detail history ends
+the designed A-100 fork as clickable reconstructed edges, and
+"TEPP measurement · Failed · Demo Corp" whose detail history ends
 in Failed / `tepp_not_available`.
 A run-bearing registry is emptied only after an unrevoked
 `analysis_run_retention_grant` and `GRANT analysis_run_retention_admin`,

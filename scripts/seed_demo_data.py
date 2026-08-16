@@ -1386,6 +1386,72 @@ def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -
             """,
             (run_id, ordinal, status, occurred),
         )
+    _seed_demo_run_reconstruction(cur, run_id, corporate_entity_id)
+
+
+def seed_reconstruction_edges(rows: list[dict]) -> tuple:
+    """ThreadWeave parent choices and digest for seed and start. Never a theta."""
+    from backend.app.analysis_run_start import reconstruction_result_digest
+    from backend.app.lineage_ingestion import records_from_source_posts
+    from lineageweave.lineage_persistence import lineage_edge_specs
+
+    edges = lineage_edge_specs(records_from_source_posts(rows))
+    return edges, reconstruction_result_digest(edges)
+
+
+def _seed_demo_run_reconstruction(cur, analysis_run_id, corporate_entity_id) -> None:
+    """Persist the designed A-100 fork on the seeded Succeeded lineage run.
+
+    Seed already stamps Succeeded. Without run-scoped edges the home
+    detail has cutoff titles and no fork. Reuses the same ThreadWeave
+    path start uses. Does not invent a TEPP score.
+    """
+    from datetime import datetime, timezone
+
+    cur.execute(
+        "select 1 from analysis_run_reconstruction where analysis_run_id = %s",
+        (analysis_run_id,),
+    )
+    if cur.fetchone() is not None:
+        return
+    cur.execute(
+        """
+        select post_id, post_title, created_at, visibility_code,
+               corporate_entity_id, process_unit_id,
+               thread_group_key, secondary_grouping_key
+        from source_post
+        where corporate_entity_id = %s
+          and created_at <= %s
+        order by created_at, post_title
+        """,
+        (corporate_entity_id, datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc)),
+    )
+    columns = [desc[0] for desc in cur.description]
+    rows = [dict(zip(columns, row)) for row in cur.fetchall()]
+    if not rows:
+        return
+    edges, digest = seed_reconstruction_edges(rows)
+    finished = datetime(2026, 1, 12, 12, 33, tzinfo=timezone.utc)
+    cur.execute(
+        """
+        insert into analysis_run_reconstruction
+            (analysis_run_id, result_sha256, edge_count, reconstructed_at)
+        values (%s, %s, %s, %s)
+        on conflict do nothing
+        """,
+        (analysis_run_id, digest, len(edges), finished),
+    )
+    for edge in edges:
+        cur.execute(
+            """
+            insert into analysis_run_lineage_edge
+                (analysis_run_id, child_post_id, parent_post_id,
+                 fused_score, reconstructed_at)
+            values (%s, %s, %s, %s, %s)
+            on conflict do nothing
+            """,
+            (analysis_run_id, edge.child_id, edge.parent_id, edge.fused_score, finished),
+        )
 
 
 def tepp_seed_request() -> AnalysisRunRequest:
