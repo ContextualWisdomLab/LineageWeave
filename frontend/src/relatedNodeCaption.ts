@@ -14,11 +14,12 @@ function isRelatedNodeKind(code: string): code is RelatedNodeKind {
  * Decision-facing label for a related-node chip.
  *
  * Person chips use the authorized side label and, when exactly one
- * organization identity is known, that organization. A unique org
- * without a side still names the org so a missing side cannot revive
- * the ontology-class caption. Organization chips use the entity-level
- * label. Post chips are the title only. Click the chip to continue
- * the walk, or open the Keyman list when you need every affiliation.
+ * organization identity is known, that organization. A known-plural
+ * set uses "multiple organizations" so the next action is to open
+ * the Keyman list -- that is not the same as a missing affiliation.
+ * A unique org without a side still names the org so a missing side
+ * cannot revive the ontology-class caption. Organization chips use
+ * the entity-level label. Post chips are the title only.
  */
 export function relatedNodeCaption(node: RelatedNode): string {
   const name = node.label?.trim() || node.node_id;
@@ -30,14 +31,15 @@ export function relatedNodeCaption(node: RelatedNode): string {
     case NODE_PERSON: {
       const side = node.person_side_label?.trim() || node.person_side_code?.trim();
       const org = node.affiliation_organization_name?.trim();
-      if (side && org) {
-        return `${name}, ${org} (${side})`;
+      const context = org || (node.affiliation_ambiguous ? "multiple organizations" : "");
+      if (side && context) {
+        return `${name}, ${context} (${side})`;
       }
       if (side) {
         return `${name} (${side})`;
       }
-      if (org) {
-        return `${name}, ${org}`;
+      if (context) {
+        return `${name}, ${context}`;
       }
       return `${name} (${node.ontology_label ?? kind})`;
     }

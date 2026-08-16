@@ -324,9 +324,11 @@ codes when a label exists. Related-node person chips use the same
 side label plus compact affiliation context when exactly one
 distinct organization identity is known
 (`Ada West, Demo Corp (Our side)`), not the ontology class
-(`Ada West (Person)`). Multiple distinct affiliations are omitted,
-never collapsed into a guessed primary (`Priya Nair (Counterparty)`
-after `make seed`). A resolved catalog org supplies `entity_name`;
+(`Ada West (Person)`). Multiple distinct affiliations set
+`affiliation_ambiguous` and the caption
+`Priya Nair, multiple organizations (Counterparty)` after
+`make seed` -- never a guessed primary, and never a side-only chip
+that looks like a missing affiliation. A resolved catalog org supplies `entity_name`;
 unresolved aliases of that same org collapse into it. Related-node
 organization chips use the entity-level label
 (`Demo Corp (Company)`), not `Organization`. Related-node post chips

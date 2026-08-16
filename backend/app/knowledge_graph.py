@@ -9,6 +9,7 @@ nodes, and a Keyman who is only mentioned on such posts is forbidden.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
@@ -276,21 +277,44 @@ async def load_visible_subgraph(
     return [edge_spec_from_row(row) for row in rows]
 
 
-def compact_affiliation_display_names(
+@dataclass(frozen=True)
+class CompactAffiliation:
+    """Authorized compact affiliation for one related-node person.
+
+    ``identity_count`` is the number of distinct organization identities
+    after catalog-id and casefold-alias collapse. ``display_name`` is
+    set only when that count is exactly one so the chip never invents
+    a primary. ``ambiguous`` is true when the count is greater than
+    one -- a known plural set is not the same as a missing affiliation
+    (Browne et al., 2001).
+    """
+
+    identity_count: int
+    display_name: str | None = None
+
+    @property
+    def ambiguous(self) -> bool:
+        """True when more than one distinct organization identity remains."""
+        return self.identity_count > 1
+
+
+def compact_affiliation_summaries(
     rows: list[Mapping[str, Any]],
-) -> dict[str, str]:
-    """Return at most one display organization per person.
+) -> dict[str, CompactAffiliation]:
+    """Return the compact affiliation summary per person.
 
     A resolved ``corporate_entity`` is one identity, labeled with
     ``catalog_entity_name`` (falling back to the raw extraction
     string). Unresolved names that casefold-match that catalog label
     collapse into it -- the catalog name wins. Distinct unresolved
-    names stay distinct. A person with more than one remaining
-    identity is omitted so the chip never invents a primary org.
+    names stay distinct, except two unresolved strings that differ
+    only by letter case count as one identity. A person with more
+    than one remaining identity keeps ``ambiguous=True`` and no
+    ``display_name`` so the chip never invents a primary org.
     """
     catalog_ids: dict[str, set[str]] = {}
     catalog_labels: dict[str, dict[str, str]] = {}
-    unresolved_names: dict[str, set[str]] = {}
+    unresolved_labels: dict[str, dict[str, str]] = {}
     for row in rows:
         person_id = str(row["person_id"])
         raw_name = (row["affiliated_organization_name"] or "").strip()
@@ -304,25 +328,33 @@ def compact_affiliation_display_names(
                 catalog_labels.setdefault(person_id, {})[identity] = label
             continue
         if raw_name:
-            unresolved_names.setdefault(person_id, set()).add(raw_name)
+            unresolved_labels.setdefault(person_id, {}).setdefault(
+                raw_name.casefold(), raw_name
+            )
 
-    display_names: dict[str, str] = {}
-    for person_id in set(catalog_ids) | set(unresolved_names):
+    summaries: dict[str, CompactAffiliation] = {}
+    for person_id in set(catalog_ids) | set(unresolved_labels):
         labels_by_id = catalog_labels.get(person_id, {})
         catalog_name_fold = {name.casefold() for name in labels_by_id.values()}
         leftover_names = {
             name
-            for name in unresolved_names.get(person_id, set())
-            if name.casefold() not in catalog_name_fold
+            for fold, name in unresolved_labels.get(person_id, {}).items()
+            if fold not in catalog_name_fold
         }
         identity_count = len(catalog_ids.get(person_id, set())) + len(leftover_names)
-        if identity_count != 1:
+        if identity_count == 0:
             continue
-        if leftover_names:
-            display_names[person_id] = next(iter(leftover_names))
-        elif labels_by_id:
-            display_names[person_id] = next(iter(labels_by_id.values()))
-    return display_names
+        display_name: str | None = None
+        if identity_count == 1:
+            if leftover_names:
+                display_name = next(iter(leftover_names))
+            elif labels_by_id:
+                display_name = next(iter(labels_by_id.values()))
+        summaries[person_id] = CompactAffiliation(
+            identity_count=identity_count,
+            display_name=display_name,
+        )
+    return summaries
 
 
 async def hydrate_related_nodes(
@@ -336,8 +368,8 @@ async def hydrate_related_nodes(
     Person nodes carry compact affiliation context only when exactly one
     distinct organization identity is known. A resolved catalog org
     supplies ``entity_name``; aliases of that same org collapse into it.
-    Multiple distinct affiliations are omitted rather than collapsed
-    into an invented primary organization.
+    Multiple distinct affiliations set ``affiliation_ambiguous`` and
+    omit the name rather than collapsing into an invented primary.
     """
     person_ids: list[str] = []
     post_ids: list[str] = []
@@ -360,7 +392,7 @@ async def hydrate_related_nodes(
             person_ids,
         )
     } if person_ids else {}
-    affiliations = compact_affiliation_display_names(
+    affiliations = compact_affiliation_summaries(
         await conn.fetch(
             """
             select
@@ -412,9 +444,12 @@ async def hydrate_related_nodes(
             item["label"] = people[node_id]["person_name"]
             item["person_side_code"] = side
             item["person_side_label"] = side_labels.get(side, side)
-            org = affiliations.get(node_id)
-            if org:
-                item["affiliation_organization_name"] = org
+            summary = affiliations.get(node_id)
+            if summary is not None:
+                if summary.display_name:
+                    item["affiliation_organization_name"] = summary.display_name
+                if summary.ambiguous:
+                    item["affiliation_ambiguous"] = True
         elif node_type_code == NODE_POST and node_id in posts:
             item["label"] = posts[node_id]["post_title"]
         elif node_type_code == NODE_CORPORATE_ENTITY and node_id in corps:

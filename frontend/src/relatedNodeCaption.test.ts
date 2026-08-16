@@ -24,7 +24,21 @@ describe("relatedNodeCaption", () => {
     ).toBe("Ada West, Demo Corp (Our side)");
   });
 
-  it("omits a guessed primary org when only the side is known", () => {
+  it("names a known-plural set so the next action is the Keyman list", () => {
+    expect(
+      relatedNodeCaption(
+        node({
+          node_type_code: "node_person",
+          label: "Priya Nair",
+          person_side_code: "counterparty",
+          person_side_label: "Counterparty",
+          affiliation_ambiguous: true,
+        }),
+      ),
+    ).toBe("Priya Nair, multiple organizations (Counterparty)");
+  });
+
+  it("keeps a person with no affiliation side-only", () => {
     expect(
       relatedNodeCaption(
         node({

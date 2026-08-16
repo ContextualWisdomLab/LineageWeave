@@ -59,11 +59,12 @@ def test_related_person_exposes_one_unambiguous_affiliation() -> None:
     """A single known affiliation is safe to use as compact display context."""
     node = _hydrate([{"affiliated_organization_name": "Northridge Grid"}])
     assert node["affiliation_organization_name"] == "Northridge Grid"
+    assert "affiliation_ambiguous" not in node
     assert node["person_side_label"] == "Counterparty"
 
 
-def test_related_person_omits_affiliation_when_multiple_are_known() -> None:
-    """Multiple affiliations must not be collapsed into an invented primary one."""
+def test_related_person_marks_plural_affiliations_ambiguous() -> None:
+    """A known-plural set is not a missing affiliation and never invents a primary."""
     node = _hydrate(
         [
             {"affiliated_organization_name": "Northridge Grid"},
@@ -71,6 +72,7 @@ def test_related_person_omits_affiliation_when_multiple_are_known() -> None:
         ]
     )
     assert "affiliation_organization_name" not in node
+    assert node["affiliation_ambiguous"] is True
     assert node["person_side_label"] == "Counterparty"
 
 
@@ -92,6 +94,7 @@ def test_related_person_uses_catalog_name_for_one_resolved_org() -> None:
         ]
     )
     assert node["affiliation_organization_name"] == "Demo Corp"
+    assert "affiliation_ambiguous" not in node
 
 
 def test_related_person_collapses_aliases_of_one_catalog_org() -> None:
@@ -141,9 +144,10 @@ def test_related_person_omits_resolved_plus_distinct_unresolved() -> None:
         ]
     )
     assert "affiliation_organization_name" not in node
+    assert node["affiliation_ambiguous"] is True
 
 
-def test_related_person_omits_two_distinct_catalog_orgs() -> None:
+def test_related_person_marks_two_distinct_catalog_orgs_ambiguous() -> None:
     """Two resolved catalog orgs must not collapse into a guessed primary."""
     node = _hydrate(
         [
@@ -160,3 +164,16 @@ def test_related_person_omits_two_distinct_catalog_orgs() -> None:
         ]
     )
     assert "affiliation_organization_name" not in node
+    assert node["affiliation_ambiguous"] is True
+
+
+def test_related_person_collapses_unresolved_names_that_differ_only_by_case() -> None:
+    """Letter-case variants of one unresolved name are one identity."""
+    node = _hydrate(
+        [
+            {"affiliated_organization_name": "Northridge Grid"},
+            {"affiliated_organization_name": "northridge grid"},
+        ]
+    )
+    assert node["affiliation_organization_name"] == "Northridge Grid"
+    assert "affiliation_ambiguous" not in node

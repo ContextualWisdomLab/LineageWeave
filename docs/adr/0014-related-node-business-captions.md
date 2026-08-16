@@ -26,8 +26,13 @@ Hydrate related-node payloads with authorized lookup labels:
 - A person chip adds `affiliation_organization_name` only when exactly
   one distinct organization identity is known. A resolved catalog org
   supplies `corporate_entity.entity_name`; unresolved aliases that
-  casefold-match that label collapse into it. Two distinct catalog
-  orgs are omitted the same way as two unresolved names.
+  casefold-match that label collapse into it. Two unresolved names
+  that differ only by letter case count as one identity.
+- A known-plural set (two unresolved names, two catalog orgs, or a
+  catalog org plus a distinct unresolved name) sets
+  `affiliation_ambiguous` and the caption uses
+  `multiple organizations`. That is not the same as a missing
+  affiliation: the next action is to open the Keyman list.
 - A unique org without a side still names the org
   (`Ada West, Demo Corp`) so a missing side cannot revive the
   ontology-class caption.
@@ -42,11 +47,13 @@ and affiliate-tree surfaces.
 
 ## Consequences
 
-Walking from Ada West shows `Priya Nair (Counterparty)` rather than
-`Priya Nair, Northridge Grid (Counterparty)`. Walking from Demo Corp
-shows `Ada West, Demo Corp (Our side)` and `Demo Corp (Company)`.
-Click a chip to continue the walk. Open the Keyman list when you need
-every affiliation.
+Walking from Ada West shows
+`Priya Nair, multiple organizations (Counterparty)` rather than
+`Priya Nair, Northridge Grid (Counterparty)` or a side-only chip that
+looks like Priya has no organization. Walking from Demo Corp shows
+`Ada West, Demo Corp (Our side)` and `Demo Corp (Company)`.
+Click a chip to continue the walk. Open the Keyman list when the chip
+says multiple organizations.
 
 ## References
 

@@ -256,10 +256,12 @@ that mention (a person may have zero, one, or several affiliations in
 the same post), not a second independent NER pass. Compact related-node
 chips therefore add an organization only when exactly one organization
 identity is known. Resolved catalog aliases collapse; distinct
-memberships stay distinct. Collapsing several memberships into a
-sorted "primary" would repeat the atomistic fallacy Browne et al.
-(2001) warn against for multiple-membership structures. Open the
-Keyman list to read every affiliation. The live client
+memberships stay distinct and the chip says `multiple organizations`
+so a plural set is not mistaken for a missing affiliation. Collapsing
+several memberships into a sorted "primary" would repeat the
+atomistic fallacy Browne et al. (2001) warn against for
+multiple-membership structures. Open the Keyman list to read every
+affiliation. The live client
 calls contextual-orchestrator (`mode="auto"`) rather than a raw LLM
 API so the orchestration plane can allocate route, verify, or a
 deeper workflow; adjudication and post-chat keep explicit
