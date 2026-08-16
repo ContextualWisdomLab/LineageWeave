@@ -4,6 +4,19 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.84.1] - 2026-08-16
+
+### Fixed
+
+- Analysis-run detail keeps 12-character digest prefixes as visible
+  text (so assistive technology hears `Code` / `Config` values) and
+  puts the full digest on hover. Open the Demo Corp lineage run, hover
+  a prefix, and match it to the API payload. The home list still hides
+  digests even when the list JSON includes them.
+- Opening a cutoff title now says the live body may have changed after
+  that run. Compare the opened post with the cutoff date before you
+  treat it as reconstructed evidence (ADR 0016).
+
 ## [0.84.0] - 2026-08-16
 
 ### Added

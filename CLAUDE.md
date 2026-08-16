@@ -12,3 +12,6 @@ transport or an unused accepted envelope is Failed
 theta or a local psychometric substitute. The home list caption stays
 `kind · status · entity`; the machine failure code is detail-only
 (ADR 0014). Open the Failed row, then connect a live TEPP transport.
+Digest prefixes stay audible; hover a prefix to read the full digest.
+Opening a cutoff title shows the live post -- compare it with the
+cutoff before treating the body as reconstructed evidence (ADR 0016).
