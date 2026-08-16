@@ -7,7 +7,7 @@ fast-mlsirm report integration; ADR 0014 authorized analysis-run read
 **Refs:** After `make seed`, lineage and TEPP registry rows were visible
 on home Analysis runs, but the calibrated period report lived only on
 the separate report panel. ADR 0020 (v0.87.0) is the granted retention
-purge. ADR 0021 is the person-catalog bind on #153.
+purge. ADR 0021 (v0.88.0) is authorized lineage start.
 
 ## Context
 
@@ -34,8 +34,9 @@ registry is not allowed to store (ADR 0013).
 - Home next-action copy for a Succeeded report stays empty. Failed
   report fixtures still say rebuild the period report.
 - `POST /api/analysis-runs` stays lineage-or-TEPP as implemented
-  (ADR 0017). This slice does not add a Request period-report button
-  and does not call TEPP.
+  (ADR 0017). ADR 0021 starts a Pending lineage run only; TEPP and
+  period-report start stay 422. This slice does not add a Request
+  period-report button and does not call TEPP.
 
 ## Consequences
 

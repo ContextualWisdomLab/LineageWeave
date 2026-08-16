@@ -4,16 +4,7 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.87.2] - 2026-08-16
-
-### Fixed
-
-- The default Analysis runs home fixture now includes **Period report ·
-  Succeeded · Demo Corp** so it matches `make seed` (ADR 0022). Open
-  that row to confirm the cutoff posts. Mean θ stays on the
-  period-report panel. A Failed report fixture still says rebuild.
-
-## [0.87.1] - 2026-08-16
+## [0.88.1] - 2026-08-16
 
 ### Added
 
@@ -22,6 +13,26 @@ All notable changes to this project are documented here. Format follows
   snapshot (ADR 0022). Open that row to confirm the cutoff posts. Mean
   θ stays on the period-report panel — the registry row does not copy
   a score.
+
+### Fixed
+
+- The default Analysis runs home fixture now includes that Succeeded
+  period-report row so it matches `make seed`. A Failed report fixture
+  still says rebuild.
+
+## [0.88.0] - 2026-08-16
+
+### Added
+
+- `POST /api/analysis-runs/{id}/start` runs ThreadWeave on a visible
+  Pending lineage cutoff bag and persists run-scoped parent choices
+  (ADR 0021). Open the Pending Demo Corp row, then start reconstruction.
+  The designed A-100 fork (revised quote and delivery question under the
+  pricing follow-up) is the acceptance tree. TEPP and period-report
+  start are 422 — this path does not invent a theta. A Succeeded retry
+  returns the stored digest. A Running restart is 409. Create freezes
+  authorized post ids so start cannot pick up a later backfill. Live
+  Event Lineage stays a separate rebuild.
 
 ## [0.87.0] - 2026-08-16
 

@@ -15,7 +15,7 @@ back 0020 then 0018. The published phrase is not a secret. Do not
 retention grant to the application `DATABASE_URL` login. ADR 0019
 is the R&R catalog-id bind, not this purge.
 
-## Analysis-run seed (v0.87.2)
+## Analysis-run seed (v0.88.1)
 
 `make seed` writes a Demo Corp lineage run, a TEPP run, and a Succeeded
 period-report run on the same snapshot (ADR 0013 / ADR 0022). The TEPP path goes through `tepp_client`. A missing
@@ -32,8 +32,10 @@ Digest prefixes stay audible; hover a prefix to read the full digest.
 Opening a cutoff title shows the live post -- compare it with the
 cutoff before treating the body as reconstructed evidence (ADR 0016).
 `POST /api/analysis-runs` records Pending on an authorized
-cutoff capture (ADR 0017) and does not reconstruct lineage.
+cutoff capture (ADR 0017). `POST /api/analysis-runs/{id}/start`
+reconstructs that frozen cutoff bag (ADR 0021) and does not invent a
+theta. Hover the Result prefix to read the parent-choice digest.
 After `make seed`, open **Period report · Succeeded · Demo Corp**
 to confirm the cutoff posts; mean θ stays on the period-report panel.
 The default home fixture includes that Succeeded row so the canonical
-home test matches seed.
+home test matches seed. TEPP and period-report start stay 422.
