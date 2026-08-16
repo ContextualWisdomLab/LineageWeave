@@ -4,6 +4,19 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.72.0] - 2026-08-16
+
+### Added
+
+- Additive analysis-run registry (`migrations/0012_analysis_run_registry.sql`,
+  ADR 0014). Operators can persist an immutable source snapshot, aggregate
+  reconciliation counts, an authenticated Demo Corp requester, run-owned
+  knowledge cutoff, product scope, and append-only legal status events.
+  Current status is a view. There is no public CRUD API in this slice.
+  TEPP stays fail-closed unless an HTTPS `POST /v1/analysis-runs` or
+  in-process `tepp_api` is injected. New orchestrator helpers use
+  `mode="auto"` only.
+
 ## [0.71.0] - 2026-08-14
 
 ### Added

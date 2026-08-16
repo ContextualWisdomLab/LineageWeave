@@ -129,7 +129,8 @@ Postgres/Redis/local server on those. Override via `.env` (copy
 Postgres's `POSTGRES_DB` (the "app" database) is migrated automatically on
 first boot -- `docker/postgres-init/Dockerfile` bakes in the exact same
 `migrations/0001_initial_schema.sql` file `tests/test_schema.py` applies,
-no re-typed copy.
+no re-typed copy, then the later `0002`–`0012` upgrade files including
+the analysis-run registry.
 
 `backend/` is a FastAPI app talking directly to that database (`asyncpg`,
 no ORM, no file DB) and to Keycloak's live JWKS for OIDC verification:

@@ -4,8 +4,9 @@ services:
     # product schema migration ship inside the image itself -- portable
     # across hosts/CI runners that don't share a filesystem with the
     # Docker daemon. Context is the repo root so the Dockerfile can COPY
-    # migrations/0001_initial_schema.sql (single source of truth --
-    # tests/test_schema.py applies this exact same file).
+    # migrations/0001_initial_schema.sql plus later 0002-0012 upgrades
+    # (single source of truth -- tests/test_schema.py applies 0001;
+    # the registry contract applies 0001-0012).
     build:
       context: .
       dockerfile: docker/postgres-init/Dockerfile

@@ -140,6 +140,13 @@ identities and content) and `migrations/0001_initial_schema.sql` for the
 (skipped without a reachable PostgreSQL server, same pattern as the
 real-provider LLM tests).
 
+Milestone 2.1 adds an additive analysis-run registry in
+`migrations/0012_analysis_run_registry.sql` (ADR 0014): immutable source
+snapshots, aggregate counts, account-scoped runs, one product scope, and
+append-only status events with a derived current-status view. Beginner
+ERD: [`docs/analysis-run-registry.md`](docs/analysis-run-registry.md).
+This slice has no public CRUD API.
+
 ### Local infrastructure (Docker Compose)
 
 `docker-compose.yml` runs PostgreSQL, Valkey, and a real Keycloak OIDC
@@ -157,8 +164,8 @@ makes them reproducible in CI. Valkey is the Phase 2+ event queue (not a
 traditional MQ) for asynchronous work like Keyman/Knowledge-Graph
 recomputation once posts change. Postgres's app database is auto-migrated
 on first boot from the same `migrations/0001_initial_schema.sql` file
-`tests/test_schema.py` applies -- one schema file, no drift between what's
-tested and what ships.
+`tests/test_schema.py` applies, plus later `0002`–`0012` upgrades -- one
+schema chain, no drift between what's tested and what ships.
 
 ### Backend (`backend/`)
 
