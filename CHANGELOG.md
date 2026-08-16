@@ -8,6 +8,7 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Keyman and R&R person mentions now replace independent source projections. Knowledge Graph edges have one canonical identity plus post-level evidence, so removed actors and concurrent writes cannot leave stale or duplicate buyer-visible relationships.
 - Vision-response parsing now strips balanced outer Markdown emphasis from field values
   while still accepting emphasized field labels, so OCR such as
   ``TEXT: **LT7**`` is not truncated.

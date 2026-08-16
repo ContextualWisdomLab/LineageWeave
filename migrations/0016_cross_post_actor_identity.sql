@@ -52,3 +52,130 @@ insert into common_lookup_value (lookup_category, lookup_code, lookup_label, dis
     ('edge_type', 'edge_team_affiliation', 'Team affiliated with', 4),
     ('edge_type', 'edge_mention_organization', 'Organization mentioned in', 5)
 on conflict (lookup_code) do nothing;
+        -- Keyman and R&R person mentions are independent replaceable evidence
+        -- channels. Existing rows matching a current R&R role are conservatively
+        -- reclassified to R&R; a later Keyman extraction repopulates its own set.
+        create table if not exists post_summary_person_mention (
+            post_id uuid not null references source_post (post_id) on delete cascade,
+            person_id uuid not null references cataloged_person (person_id),
+            primary key (post_id, person_id)
+        );
+
+        create or replace view combined_post_person_mention as
+            select post_id, person_id from post_person_mention
+            union
+            select post_id, person_id from post_summary_person_mention;
+
+        insert into post_summary_person_mention (post_id, person_id)
+        select distinct role.post_id, matched_person.person_id
+          from post_summary_role role
+          join lateral (
+                select person.person_id
+                  from cataloged_person person
+                 where person.person_name = role.actor_name
+                 order by person.created_at, person.person_id
+                 limit 1
+          ) matched_person on true
+         where role.actor_type_code = 'prov_person'
+        on conflict do nothing;
+
+        delete from post_person_mention keyman_mention
+         using post_summary_person_mention summary_mention
+         where keyman_mention.post_id = summary_mention.post_id
+           and keyman_mention.person_id = summary_mention.person_id;
+
+        with ranked_edge as (
+            select knowledge_graph_edge_id,
+                   row_number() over (
+                       partition by source_node_type_code, source_node_id,
+                                    target_node_type_code, target_node_id,
+                                    edge_type_code
+                       order by created_at, knowledge_graph_edge_id
+                   ) as duplicate_rank
+              from knowledge_graph_edge
+        )
+        delete from knowledge_graph_edge edge_row
+         using ranked_edge duplicate
+         where edge_row.knowledge_graph_edge_id = duplicate.knowledge_graph_edge_id
+           and duplicate.duplicate_rank > 1;
+
+        create unique index if not exists knowledge_graph_edge_identity_uq
+            on knowledge_graph_edge (
+                source_node_type_code, source_node_id,
+                target_node_type_code, target_node_id,
+                edge_type_code
+            );
+
+        create table if not exists knowledge_graph_edge_evidence (
+    knowledge_graph_edge_id uuid not null
+        references knowledge_graph_edge (knowledge_graph_edge_id) on delete cascade,
+    evidence_post_id uuid not null references source_post (post_id) on delete cascade,
+    primary key (knowledge_graph_edge_id, evidence_post_id)
+);
+
+create index if not exists knowledge_graph_edge_evidence_post_idx
+    on knowledge_graph_edge_evidence (evidence_post_id, knowledge_graph_edge_id);
+
+create or replace function register_knowledge_graph_edge_evidence()
+returns trigger
+language plpgsql
+as $$
+begin
+    if new.edge_type_code in (
+        'edge_mention',
+        'edge_mention_team',
+        'edge_mention_organization'
+    ) and new.target_node_type_code = 'node_post' then
+        insert into knowledge_graph_edge_evidence
+            (knowledge_graph_edge_id, evidence_post_id)
+        values (new.knowledge_graph_edge_id, new.target_node_id)
+        on conflict do nothing;
+    elsif new.edge_type_code = 'edge_co_mention' then
+        insert into knowledge_graph_edge_evidence
+            (knowledge_graph_edge_id, evidence_post_id)
+        select distinct new.knowledge_graph_edge_id, left_mention.post_id
+          from combined_post_person_mention left_mention
+          join combined_post_person_mention right_mention
+            on right_mention.post_id = left_mention.post_id
+         where left_mention.person_id = new.source_node_id
+           and right_mention.person_id = new.target_node_id
+        on conflict do nothing;
+    elsif new.edge_type_code = 'edge_affiliation' then
+        insert into knowledge_graph_edge_evidence
+            (knowledge_graph_edge_id, evidence_post_id)
+        select distinct new.knowledge_graph_edge_id, mention.post_id
+          from combined_post_person_mention mention
+          join person_affiliation affiliation
+            on affiliation.person_id = mention.person_id
+         where mention.person_id = new.source_node_id
+           and affiliation.affiliated_corporate_entity_id = new.target_node_id
+        on conflict do nothing;
+    elsif new.edge_type_code = 'edge_team_affiliation' then
+        insert into knowledge_graph_edge_evidence
+            (knowledge_graph_edge_id, evidence_post_id)
+        select distinct new.knowledge_graph_edge_id, mention.post_id
+          from post_team_mention mention
+          join cataloged_team team on team.team_id = mention.team_id
+         where mention.team_id = new.source_node_id
+           and team.affiliated_corporate_entity_id = new.target_node_id
+        on conflict do nothing;
+    end if;
+    return new;
+end
+$$;
+
+drop trigger if exists knowledge_graph_edge_evidence_register
+    on knowledge_graph_edge;
+create trigger knowledge_graph_edge_evidence_register
+after insert or update on knowledge_graph_edge
+for each row execute function register_knowledge_graph_edge_evidence();
+
+        -- Re-run the support trigger for every surviving legacy edge, then prune
+        -- rows that cannot be tied to current post evidence.
+        update knowledge_graph_edge set edge_weight = edge_weight;
+        delete from knowledge_graph_edge edge_row
+         where not exists (
+             select 1
+               from knowledge_graph_edge_evidence evidence
+              where evidence.knowledge_graph_edge_id = edge_row.knowledge_graph_edge_id
+         );

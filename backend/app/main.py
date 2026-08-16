@@ -105,6 +105,7 @@ from backend.app.knowledge_graph import (
     fetch_post_keymen,
     labels_for_codes,
     person_exists,
+    persist_edges_for_post,
     related_for_entity,
     related_for_person,
     visible_affiliation_post_ids,
@@ -592,6 +593,7 @@ async def extract_post_keymen(
                 resolution_client=_organization_name_resolution_client(),
                 verification_client=_relation_verification_client(),
                 hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+                persist_graph=False,
             )
             organization_names = sorted(
                 {name for mention in mentions for name in mention.affiliated_organization_names}
@@ -602,6 +604,7 @@ async def extract_post_keymen(
             relationships = await ingest_post_entity_relationships(
                 conn, relationship_client, post_id, post["post_title"], post_body, organization_names
             )
+            await persist_edges_for_post(conn, post_id)
     return {
         "post_id": str(post["post_id"]),
         "extracted_count": len(mentions),

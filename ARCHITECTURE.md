@@ -136,6 +136,8 @@ identities and content) and `migrations/0001_initial_schema.sql` for the
 `role_permission` / `account_role_assignment`, `abac_policy`, `post` /
 `post_counterparty_entity`, `person` / `person_affiliation` /
 `post_person_mention`, `knowledge_graph_edge`, `issue_ticket`,
+
+Keyman and R&R person mentions are separate replaceable projections (`post_person_mention` and `post_summary_person_mention`). The read-only `combined_post_person_mention` view feeds lineage discovery. Materialized KG edges are unique and carry normalized `knowledge_graph_edge_evidence`; only evidence from an ABAC-visible post participates in RWR.
 `post_lineage_edge`). Real-database tests: `tests/test_schema.py`
 (skipped without a reachable PostgreSQL server, same pattern as the
 real-provider LLM tests).

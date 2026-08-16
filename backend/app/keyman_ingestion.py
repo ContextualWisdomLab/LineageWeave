@@ -176,6 +176,7 @@ async def ingest_post_keymen(
     resolution_client: OrganizationNameResolutionClient | None = None,
     verification_client: RelationVerificationClient | None = None,
     hierarchy_inference_client: CorporateHierarchyInferenceClient | None = None,
+    persist_graph: bool = True,
 ) -> list[PersonMention]:
     """Extracts, persists, and returns the `PersonMention`s found in one post.
 
@@ -183,6 +184,10 @@ async def ingest_post_keymen(
     default to the unavailable Null clients -- callers that don't pass
     real ones get the exact same behavior as before ADR 0008/0010 (raw
     affiliation names, unresolved).
+
+    The post's prior Keyman mention set is replaced atomically after a successful
+    extraction. ``persist_graph=False`` lets a larger caller defer graph
+    reconciliation until the end of its own transaction.
 
     Raises whatever `client.extract` raises (e.g. a `NullKeymanExtractionClient`
     would raise `RuntimeError`) -- callers should check `client.available`
@@ -194,6 +199,9 @@ async def ingest_post_keymen(
     mentions = await asyncio.to_thread(client.extract, post_title, post_body)
     candidates = await _load_corporate_entity_candidates(conn)
     normalized_mentions: list[PersonMention] = []
+    await conn.execute(
+        "delete from post_person_mention where post_id = $1", post_id
+    )
 
     for mention in mentions:
         person_id = await _upsert_person(conn, mention)
@@ -237,7 +245,7 @@ async def ingest_post_keymen(
             )
         )
 
-    if normalized_mentions:
+    if persist_graph:
         await persist_edges_for_post(conn, post_id)
 
     return normalized_mentions

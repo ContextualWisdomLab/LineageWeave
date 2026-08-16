@@ -31,6 +31,9 @@ from lineageweave.knowledge_graph import (
 )
 
 
+_GRAPH_PROJECTION_LOCK_KEY = "lineageweave:knowledge_graph_projection"
+
+
 def edge_spec_from_row(row: asyncpg.Record) -> KnowledgeGraphEdgeSpec:
     """Map one ``knowledge_graph_edge`` row onto the library spec."""
     return KnowledgeGraphEdgeSpec(
@@ -112,18 +115,27 @@ async def fetch_post_keymen(conn: asyncpg.Connection, post_id: str) -> list[dict
     ]
 
 
-async def persist_edges_for_post(conn: asyncpg.Connection, post_id: str) -> list[KnowledgeGraphEdgeSpec]:
-    """Insert mention, affiliation, and co-mention edges for one post.
+async def persist_edges_for_post(
+    conn: asyncpg.Connection, post_id: str
+) -> list[KnowledgeGraphEdgeSpec]:
+    """Reconcile one post's evidence-backed navigation projection.
 
-    Also derives ADR 0009's team/organization mention edges from
-    ``post_team_mention``/``post_organization_mention`` when present --
-    a no-op for posts with none of either, so this stays the single
-    "compute this post's edges" entry point Keyman ingestion and R&R
-    persistence both call, rather than each needing their own partial
-    edge-writing logic.
+    Callers own the surrounding transaction. A transaction-scoped
+    advisory lock serializes the small materialized projection so two
+    writers cannot interleave evidence deletion and orphan pruning.
+    Keyman and R&R person sources stay distinct in their writable tables;
+    ``combined_post_person_mention`` is used only to derive graph edges.
     """
+    await conn.execute(
+        "select pg_advisory_xact_lock(hashtext($1))",
+        _GRAPH_PROJECTION_LOCK_KEY,
+    )
+    await conn.execute(
+        "delete from knowledge_graph_edge_evidence where evidence_post_id = $1",
+        post_id,
+    )
     mention_rows = await conn.fetch(
-        "select person_id from post_person_mention where post_id = $1",
+        "select person_id from combined_post_person_mention where post_id = $1",
         post_id,
     )
     affiliation_rows = await conn.fetch(
@@ -167,22 +179,19 @@ async def persist_edges_for_post(conn: asyncpg.Connection, post_id: str) -> list
         [str(row["corporate_entity_id"]) for row in organization_mention_rows],
     )
     for edge in edges:
-        await conn.execute(
+        await conn.fetchrow(
             """
             insert into knowledge_graph_edge (
                 source_node_type_code, source_node_id,
                 target_node_type_code, target_node_id,
                 edge_type_code, edge_weight
-            )
-            select $1, $2::uuid, $3, $4::uuid, $5, $6
-            where not exists (
-                select 1 from knowledge_graph_edge
-                where source_node_type_code = $1
-                  and source_node_id = $2::uuid
-                  and target_node_type_code = $3
-                  and target_node_id = $4::uuid
-                  and edge_type_code = $5
-            )
+            ) values ($1, $2::uuid, $3, $4::uuid, $5, $6)
+            on conflict (
+                source_node_type_code, source_node_id,
+                target_node_type_code, target_node_id,
+                edge_type_code
+            ) do update set edge_weight = excluded.edge_weight
+            returning knowledge_graph_edge_id
             """,
             edge.source_node_type_code,
             edge.source_node_id,
@@ -191,8 +200,18 @@ async def persist_edges_for_post(conn: asyncpg.Connection, post_id: str) -> list
             edge.edge_type_code,
             edge.edge_weight,
         )
+    await conn.execute(
+        """
+        delete from knowledge_graph_edge edge_row
+         where not exists (
+             select 1
+               from knowledge_graph_edge_evidence evidence
+              where evidence.knowledge_graph_edge_id =
+                    edge_row.knowledge_graph_edge_id
+         )
+        """
+    )
     return edges
-
 
 async def person_exists(conn: asyncpg.Connection, person_id: str) -> bool:
     """True when ``person_id`` is a UUID that exists in ``cataloged_person``."""
@@ -221,47 +240,50 @@ async def visible_mention_post_ids(
     person_id: str,
     can_see_post,
 ) -> list[str]:
-    """Post ids that mention ``person_id`` and pass the caller's ABAC check."""
+    """Visible post ids supported by Keyman or R&R person evidence."""
     rows = await conn.fetch(
         """
-        select p.post_id, p.visibility_code, p.corporate_entity_id
-        from post_person_mention ppm
-        join source_post p on p.post_id = ppm.post_id
-        where ppm.person_id = $1
+        select post.post_id, post.visibility_code, post.corporate_entity_id
+          from combined_post_person_mention mention
+          join source_post post on post.post_id = mention.post_id
+         where mention.person_id = $1
+         order by post.created_at, post.post_id
         """,
         person_id,
     )
     return [str(row["post_id"]) for row in rows if can_see_post(row)]
-
 
 async def visible_affiliation_post_ids(
     conn: asyncpg.Connection,
     entity_id: str,
     can_see_post,
 ) -> list[str]:
-    """Post ids that mention someone affiliated with ``entity_id`` and pass ABAC."""
+    """Visible posts whose Keyman or R&R people affiliate with an entity."""
     rows = await conn.fetch(
         """
-        select distinct p.post_id, p.visibility_code, p.corporate_entity_id
-        from person_affiliation pa
-        join post_person_mention ppm on ppm.person_id = pa.person_id
-        join source_post p on p.post_id = ppm.post_id
-        where pa.affiliated_corporate_entity_id = $1
+        select distinct post.post_id, post.visibility_code,
+                        post.corporate_entity_id, post.created_at
+          from person_affiliation affiliation
+          join combined_post_person_mention mention
+            on mention.person_id = affiliation.person_id
+          join source_post post on post.post_id = mention.post_id
+         where affiliation.affiliated_corporate_entity_id = $1
+         order by post.created_at, post.post_id
         """,
         entity_id,
     )
     return [str(row["post_id"]) for row in rows if can_see_post(row)]
 
-
 async def load_visible_subgraph(
     conn: asyncpg.Connection,
     visible_post_ids: list[str],
 ) -> list[KnowledgeGraphEdgeSpec]:
-    """Edges whose endpoints the account can already see via those posts."""
+    """Edges supported by at least one post the account may already see."""
     if not visible_post_ids:
         return []
     person_rows = await conn.fetch(
-        "select distinct person_id from post_person_mention where post_id = any($1::uuid[])",
+        "select distinct person_id from combined_post_person_mention "
+        "where post_id = any($1::uuid[])",
         visible_post_ids,
     )
     person_ids = [row["person_id"] for row in person_rows]
@@ -269,30 +291,39 @@ async def load_visible_subgraph(
         return []
     rows = await conn.fetch(
         """
-        select source_node_type_code, source_node_id,
-               target_node_type_code, target_node_id,
-               edge_type_code, edge_weight
-        from knowledge_graph_edge
-        where
+        select distinct edge.source_node_type_code, edge.source_node_id,
+               edge.target_node_type_code, edge.target_node_id,
+               edge.edge_type_code, edge.edge_weight
+          from knowledge_graph_edge edge
+          join knowledge_graph_edge_evidence evidence
+            on evidence.knowledge_graph_edge_id = edge.knowledge_graph_edge_id
+           and evidence.evidence_post_id = any($1::uuid[])
+         where
           (
-            edge_type_code = $3
+            edge.edge_type_code = $3
             and (
-              (source_node_type_code = $4 and source_node_id = any($1::uuid[]))
-              or (target_node_type_code = $4 and target_node_id = any($1::uuid[]))
+              (edge.source_node_type_code = $4
+               and edge.source_node_id = any($1::uuid[]))
+              or
+              (edge.target_node_type_code = $4
+               and edge.target_node_id = any($1::uuid[]))
             )
           )
           or (
-            edge_type_code = $5
-            and source_node_type_code = $6
-            and target_node_type_code = $6
-            and source_node_id = any($2::uuid[])
-            and target_node_id = any($2::uuid[])
+            edge.edge_type_code = $5
+            and edge.source_node_type_code = $6
+            and edge.target_node_type_code = $6
+            and edge.source_node_id = any($2::uuid[])
+            and edge.target_node_id = any($2::uuid[])
           )
           or (
-            edge_type_code = $7
+            edge.edge_type_code = $7
             and (
-              (source_node_type_code = $6 and source_node_id = any($2::uuid[]))
-              or (target_node_type_code = $6 and target_node_id = any($2::uuid[]))
+              (edge.source_node_type_code = $6
+               and edge.source_node_id = any($2::uuid[]))
+              or
+              (edge.target_node_type_code = $6
+               and edge.target_node_id = any($2::uuid[]))
             )
           )
         """,
@@ -305,7 +336,6 @@ async def load_visible_subgraph(
         EDGE_AFFILIATION,
     )
     return [edge_spec_from_row(row) for row in rows]
-
 
 async def hydrate_related_nodes(
     conn: asyncpg.Connection,

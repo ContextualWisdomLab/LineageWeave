@@ -49,6 +49,13 @@ requires `person_side_code` (our-side vs. counterparty), which R&R's
 prompt does not currently ask for and Keyman's does; inventing one here
 risked a wrong side assignment. Documented as a real, deliberate scope
 boundary below, not silently half-done.
+Person evidence sources remain separate: Keyman extraction replaces
+`post_person_mention`; R&R replacement writes
+`post_summary_person_mention`. `combined_post_person_mention` is a
+read-only union used for lineage and KG derivation. This prevents a new
+summary from deleting Keyman evidence and prevents removed R&R actors
+from surviving as stale Keymen.
+
 
 Each resolved actor gets a real Knowledge Graph mention edge (new
 `edge_mention_team` / `edge_team_affiliation` / `edge_mention_organization`
@@ -57,6 +64,13 @@ lookup codes, `lineageweave/knowledge_graph.py`'s
 path), reusing the same `persist_edges_for_post` entry point Keyman
 ingestion already calls -- one function computes a post's whole edge
 set regardless of which extraction step triggered it.
+
+`knowledge_graph_edge` is a deduplicated materialized registry.
+`knowledge_graph_edge_evidence` records every post that currently supports an
+edge; readers require support from an ABAC-visible post. Writers reconcile one
+post under a transaction-scoped advisory lock, and unsupported registry rows
+are pruned. Edge identity therefore cannot duplicate under concurrency, and a
+replacement cannot leave a buyer-visible orphan edge.
 
 Ontology (`docs/ontology/lineageweave-kg.ttl`): `:Team a owl:Class ;
 rdfs:subClassOf org:OrganizationalUnit` (same W3C ORG grounding as

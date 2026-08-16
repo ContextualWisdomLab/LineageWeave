@@ -367,6 +367,19 @@ create table post_person_mention (
     primary key (post_id, person_id)
 );
 
+create table post_summary_person_mention (
+    post_id uuid not null references source_post (post_id) on delete cascade,
+    person_id uuid not null references cataloged_person (person_id),
+    primary key (post_id, person_id)
+);
+
+-- Read-side union only. The two writable tables retain the evidence source:
+-- post_person_mention is Keyman extraction; post_summary_person_mention is R&R.
+create view combined_post_person_mention as
+    select post_id, person_id from post_person_mention
+    union
+    select post_id, person_id from post_summary_person_mention;
+
 -- ---------------------------------------------------------------------
 -- Cross-post identity resolution for R&R actors (ADR 0009/0007): a
 -- team named across two posts (e.g. 설계팀) must resolve to the same
@@ -416,11 +429,80 @@ create table knowledge_graph_edge (
     target_node_id uuid not null,
     edge_type_code text not null references common_lookup_value (lookup_code),
     edge_weight numeric not null default 1.0,
-    created_at timestamptz not null default now()
+    created_at timestamptz not null default now(),
+    constraint knowledge_graph_edge_identity_uq unique (
+        source_node_type_code, source_node_id,
+        target_node_type_code, target_node_id,
+        edge_type_code
+    )
 );
 
 create index knowledge_graph_edge_source_idx on knowledge_graph_edge (source_node_type_code, source_node_id);
 create index knowledge_graph_edge_target_idx on knowledge_graph_edge (target_node_type_code, target_node_id);
+
+create table if not exists knowledge_graph_edge_evidence (
+    knowledge_graph_edge_id uuid not null
+        references knowledge_graph_edge (knowledge_graph_edge_id) on delete cascade,
+    evidence_post_id uuid not null references source_post (post_id) on delete cascade,
+    primary key (knowledge_graph_edge_id, evidence_post_id)
+);
+
+create index if not exists knowledge_graph_edge_evidence_post_idx
+    on knowledge_graph_edge_evidence (evidence_post_id, knowledge_graph_edge_id);
+
+create or replace function register_knowledge_graph_edge_evidence()
+returns trigger
+language plpgsql
+as $$
+begin
+    if new.edge_type_code in (
+        'edge_mention',
+        'edge_mention_team',
+        'edge_mention_organization'
+    ) and new.target_node_type_code = 'node_post' then
+        insert into knowledge_graph_edge_evidence
+            (knowledge_graph_edge_id, evidence_post_id)
+        values (new.knowledge_graph_edge_id, new.target_node_id)
+        on conflict do nothing;
+    elsif new.edge_type_code = 'edge_co_mention' then
+        insert into knowledge_graph_edge_evidence
+            (knowledge_graph_edge_id, evidence_post_id)
+        select distinct new.knowledge_graph_edge_id, left_mention.post_id
+          from combined_post_person_mention left_mention
+          join combined_post_person_mention right_mention
+            on right_mention.post_id = left_mention.post_id
+         where left_mention.person_id = new.source_node_id
+           and right_mention.person_id = new.target_node_id
+        on conflict do nothing;
+    elsif new.edge_type_code = 'edge_affiliation' then
+        insert into knowledge_graph_edge_evidence
+            (knowledge_graph_edge_id, evidence_post_id)
+        select distinct new.knowledge_graph_edge_id, mention.post_id
+          from combined_post_person_mention mention
+          join person_affiliation affiliation
+            on affiliation.person_id = mention.person_id
+         where mention.person_id = new.source_node_id
+           and affiliation.affiliated_corporate_entity_id = new.target_node_id
+        on conflict do nothing;
+    elsif new.edge_type_code = 'edge_team_affiliation' then
+        insert into knowledge_graph_edge_evidence
+            (knowledge_graph_edge_id, evidence_post_id)
+        select distinct new.knowledge_graph_edge_id, mention.post_id
+          from post_team_mention mention
+          join cataloged_team team on team.team_id = mention.team_id
+         where mention.team_id = new.source_node_id
+           and team.affiliated_corporate_entity_id = new.target_node_id
+        on conflict do nothing;
+    end if;
+    return new;
+end
+$$;
+
+drop trigger if exists knowledge_graph_edge_evidence_register
+    on knowledge_graph_edge;
+create trigger knowledge_graph_edge_evidence_register
+after insert or update on knowledge_graph_edge
+for each row execute function register_knowledge_graph_edge_evidence();
 
 -- ---------------------------------------------------------------------
 -- Issue tickets tied to a post.

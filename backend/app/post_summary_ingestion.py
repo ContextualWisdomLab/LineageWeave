@@ -7,9 +7,10 @@ mention edge is written, so the same "설계팀" or organization named
 across two posts becomes one linkable node, not two unrelated strings.
 A person actor is opportunistically joined to an *existing*
 ``cataloged_person`` row by name when Keyman extraction has already
-cataloged that name -- R&R does not originate new person identities
-itself (it has no reliable ``person_side_code`` to create one with; see
-ADR 0009's documented follow-up).
+cataloged that name. The R&R evidence is written to
+``post_summary_person_mention`` rather than Keyman's
+``post_person_mention`` so either extractor can replace its own result
+without leaving or deleting the other's evidence.
 
 ADR 0010: an organization actor's name is resolved via
 ``get_or_create_corporate_entity`` -- similarity matching first, then
@@ -161,18 +162,10 @@ async def _replace_summary_projection(
     resolved_organization_ids: dict[int, str],
 ) -> None:
     """Write one atomic replacement using pre-resolved shared identities."""
-    # Summary replacement also replaces its team/organization projections.
-    # Keyman-owned person mentions are intentionally left untouched.
+    # Summary replacement owns only R&R projections. Keyman mentions remain
+    # independent and are combined only by the graph read/derivation view.
     await conn.execute(
-        """
-        delete from knowledge_graph_edge
-         where target_node_type_code = 'node_post'
-           and target_node_id = $1::uuid
-           and edge_type_code in (
-               'edge_mention_team',
-               'edge_mention_organization'
-           )
-        """,
+        "delete from post_summary_person_mention where post_id = $1",
         post_id,
     )
     await conn.execute("delete from post_team_mention where post_id = $1", post_id)
@@ -236,13 +229,12 @@ async def _replace_summary_projection(
             )
             if person_row is not None:
                 await conn.execute(
-                    "insert into post_person_mention (post_id, person_id) "
+                    "insert into post_summary_person_mention (post_id, person_id) "
                     "values ($1, $2) on conflict do nothing",
                     post_id,
                     str(person_row["person_id"]),
                 )
-    if summary.roles_and_responsibilities:
-        await persist_edges_for_post(conn, post_id)
+    await persist_edges_for_post(conn, post_id)
 
 
 def seeded_demo_summary() -> PostSummary:

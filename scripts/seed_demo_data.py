@@ -296,6 +296,8 @@ def seed(
                         ),
                     )
 
+            _seed_demo_public_summary(cur, demo_public_post_id)
+
             _seed_reconstructed_lineage(
                 cur,
                 account_ids["demo.analyst"],
@@ -308,10 +310,10 @@ def seed(
                 corporate_entity_id,
                 process_units["DEMO-PU-LINEAGE"],
             )
+            _seed_fixture_keymen_and_voc(cur, corporate_entity_id)
             _seed_fixture_summaries(cur)
             _seed_fixture_chats(cur)
             _seed_fixture_evaluations(cur)
-            _seed_fixture_keymen_and_voc(cur, corporate_entity_id)
             _seed_fixture_tickets(cur)
             _seed_fixture_ticket_activity(cur, account_ids["demo.analyst"], valkey_url)
             _seed_demo_period_report(
@@ -398,6 +400,7 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
 
 def _write_post_summary(cur, post_id, summary) -> None:
     """Replace the stored summary for ``post_id`` (idempotent re-seed)."""
+    cur.execute("delete from post_summary_person_mention where post_id = %s", (post_id,))
     cur.execute("delete from post_summary_result where post_id = %s", (post_id,))
     cur.execute(
         "insert into post_summary_result (post_id, korean_summary) values (%s, %s)",
@@ -421,6 +424,25 @@ def _write_post_summary(cur, post_id, summary) -> None:
                 role.affiliated_organization_name,
             ),
         )
+
+    cur.execute(
+        """
+        insert into post_summary_person_mention (post_id, person_id)
+        select distinct role.post_id, matched_person.person_id
+          from post_summary_role role
+          join lateral (
+                select person.person_id
+                  from cataloged_person person
+                 where person.person_name = role.actor_name
+                 order by person.created_at, person.person_id
+                 limit 1
+          ) matched_person on true
+         where role.post_id = %s
+           and role.actor_type_code = 'prov_person'
+        on conflict do nothing
+        """,
+        (post_id,),
+    )
 
 
 def _write_post_chat(cur, post_id, question: str, chat) -> None:
