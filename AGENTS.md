@@ -55,7 +55,10 @@ summary/chat, or invented commitment. A missing signal and a
 confidently-negative signal are different things. Keyman extraction,
 entity-relationship classification, post summary, in-popup chat, and
 commitment derivation go through contextual-orchestrator the same way
-adjudication does -- never a raw LLM API.
+adjudication does -- never a raw LLM API. Demo TEPP seed goes through
+`tepp_client` the same way: a missing transport or an unused accepted
+envelope is Failed (`tepp_not_available` / `tepp_result_not_persisted`),
+never a fabricated theta or a local psychometric substitute.
 
 ## Tests
 

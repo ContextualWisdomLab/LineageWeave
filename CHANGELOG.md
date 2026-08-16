@@ -9,10 +9,14 @@ All notable changes to this project are documented here. Format follows
 ### Added
 
 - `make seed` records a Demo Corp TEPP measurement run through
-  `tepp_client`. The default transport is unavailable, so the home
-  list shows "TEPP measurement · Failed · Demo Corp" with
-  `tepp_not_available` -- never a fabricated theta. TEPP stays a
-  wire client, not a local psychometric engine.
+  `tepp_client` on the same snapshot as the lineage run (ADR 0013).
+  The default transport is unavailable, so the home list shows
+  "TEPP measurement · Failed · Demo Corp" and tells the operator to
+  open the run, then connect the measurement service. Detail history
+  keeps `tepp_not_available` -- never a fabricated theta. TEPP stays
+  a wire client, not a local psychometric engine. `make seed` skips
+  snapshot-count inserts once counts exist so a re-run does not hit
+  the freeze trigger.
 
 ## [0.83.0] - 2026-08-16
 
