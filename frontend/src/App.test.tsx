@@ -1804,10 +1804,15 @@ describe("App, authenticated", () => {
       await screen.findByRole("heading", { name: "Lineage reconstruction · Pending · Demo Corp" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
+      screen.getByRole("button", {
+        name: "Open analysis run: Lineage reconstruction · Pending · Demo Corp",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByText(
         "Open this run to confirm which posts it will use. Reconstruction has not started yet.",
       ),
-    ).toBeInTheDocument();
+    ).toHaveLength(2);
     const postCall = fetchMock.mock.calls.find(
       (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
     );
