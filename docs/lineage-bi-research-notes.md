@@ -254,9 +254,10 @@ classified into the closed `{our_side, counterparty}` set is dropped
 rather than guessed. N:N organization attachments are slot-filling on
 that mention (a person may have zero, one, or several affiliations in
 the same post), not a second independent NER pass. The live client
-calls contextual-orchestrator (`mode="route"`) rather than a raw LLM
-API so reasoning-effort allocation stays centralized with the
-adjudication channel. Proven for real during development against
+calls contextual-orchestrator (`mode="auto"`) rather than a raw LLM
+API so the orchestration plane can allocate route, verify, or a
+deeper workflow; adjudication and post-chat keep explicit
+`mode="verify"`. Proven for real during development against
 `fixtures.ambiguous_keyman_post` when orchestrator credentials are set;
 the default suite asserts the parser and the never-fake null client.
 
