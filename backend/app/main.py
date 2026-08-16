@@ -312,12 +312,39 @@ async def healthz() -> dict[str, str]:
 
 
 @app.get("/api/me")
-async def read_me(account: CurrentAccount = Depends(get_current_account)) -> dict[str, Any]:
-    """Return the provisioned account that the bearer token resolved to."""
+async def read_me(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return the provisioned account and the corps this token may walk.
+
+    Multi-affiliation operators need those names to choose which entity
+    ``POST /api/analysis-runs`` should cover.
+    """
+    entities: list[dict[str, str]] = []
+    if account.corporate_entity_ids:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                select corporate_entity_id, entity_name
+                  from corporate_entity
+                 where corporate_entity_id = any($1::uuid[])
+                 order by entity_name
+                """,
+                list(account.corporate_entity_ids),
+            )
+        entities = [
+            {
+                "corporate_entity_id": str(row["corporate_entity_id"]),
+                "entity_name": row["entity_name"],
+            }
+            for row in rows
+        ]
     return {
         "user_account_id": account.user_account_id,
         "display_name": account.display_name,
         "permission_codes": sorted(account.permission_codes),
+        "corporate_entities": entities,
     }
 
 
@@ -1211,8 +1238,8 @@ class CreateAnalysisRunRequest(BaseModel):
     """JSON body for ``POST /api/analysis-runs``.
 
     Omitting ``corporate_entity_id`` uses the account's sole affiliation.
-    Reconstruction and TEPP execution stay later slices; this write
-    records Pending only.
+    Only ``analysis_run_lineage`` is accepted. Reconstruction and TEPP
+    execution stay later slices; this write records Pending lineage only.
     """
 
     run_kind_code: str = "analysis_run_lineage"
@@ -1228,11 +1255,12 @@ async def create_analysis_run(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Record a Pending analysis run on an authorized cutoff capture.
+    """Record a Pending lineage run on an authorized cutoff capture.
 
     post_read is enough: the caller requests a run of a corp they
-    already walk. The payload is the same authorized detail as GET.
-    Hidden scopes 404. A matching idempotent retry returns the same run.
+    already walk. TEPP and period-report kinds are 422 so this path
+    cannot invent a measurement. Hidden scopes 404. A matching
+    idempotent retry returns the same run.
     """
     _require_post_read(account)
     async with pool.acquire() as conn:

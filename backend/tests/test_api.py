@@ -544,12 +544,38 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
     assert replay.status_code == 201
     assert replay.json()["analysis_run_id"] == body["analysis_run_id"]
 
-    conflict = client.post(
+    tepp = client.post(
         "/api/analysis-runs",
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
         json={
             "run_kind_code": "analysis_run_tepp",
             "corporate_entity_id": seeded_db["own_corp_id"],
+            "idempotency_key": "buyer-create-tepp",
+        },
+    )
+    assert tepp.status_code == 422
+    assert "invent a measurement" in tepp.json()["detail"]
+    assert "theta" not in tepp.json()["detail"].lower()
+
+    report = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_report",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "idempotency_key": "buyer-create-report",
+        },
+    )
+    assert report.status_code == 422
+    assert "Reports panel" in report.json()["detail"]
+
+    conflict = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_lineage",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "knowledge_cutoff": "2026-01-01T00:00:00Z",
             "idempotency_key": "buyer-create-2026-w02",
         },
     )
@@ -579,6 +605,9 @@ def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> No
     body = response.json()
     assert body["display_name"] == "Test Analyst"
     assert "post_read" in body["permission_codes"]
+    assert any(
+        entity["entity_name"] == "Test Corp" for entity in body["corporate_entities"]
+    )
 
 
 def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, demo_analyst_token, seeded_db) -> None:
