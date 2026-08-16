@@ -1470,7 +1470,8 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
           return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
         default: {
           const unexpected: never = run.run_kind_code;
-          return unexpected;
+          void unexpected;
+          return "Open this run to confirm its next step. The registered kind is not lineage, TEPP, or a period report.";
         }
       }
     case "analysis_status_failed":
@@ -1483,7 +1484,8 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
           return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
         default: {
           const unexpected: never = run.run_kind_code;
-          return unexpected;
+          void unexpected;
+          return "Open this run to see why it failed, then retry from a current snapshot.";
         }
       }
     case "analysis_status_running":
@@ -1493,7 +1495,8 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
       return null;
     default: {
       const unexpected: never = run.status_code;
-      return unexpected;
+      void unexpected;
+      return "Open this run to confirm its current status before acting.";
     }
   }
 }
@@ -1532,7 +1535,11 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
       );
     default: {
       const unexpected: never = run.run_kind_code;
-      return unexpected;
+      void unexpected;
+      return (
+        "No posts were available at this cutoff. Open a later run, or ask an " +
+        "administrator to capture a newer snapshot."
+      );
     }
   }
 }
@@ -1565,7 +1572,8 @@ function analysisRunCorpusHint(run: AnalysisRun): string | null {
       return "These posts are the cutoff corpus attached to this TEPP run.";
     default: {
       const unexpected: never = run.status_code;
-      return unexpected;
+      void unexpected;
+      return "These posts are the cutoff corpus attached to this TEPP run.";
     }
   }
 }
@@ -1680,6 +1688,7 @@ function AnalysisRunsPanel({
   if (runs === null) return <p>Loading analysis runs...</p>;
 
   const corpusHint = selected ? analysisRunCorpusHint(selected) : null;
+  const selectedNextAction = selected ? analysisRunNextAction(selected) : null;
 
   return (
     <section className="popup-section lineage-home">
@@ -1731,9 +1740,7 @@ function AnalysisRunsPanel({
       {selected && (
         <div className="popup-section">
           <h3>{analysisRunCaption(selected)}</h3>
-          {analysisRunNextAction(selected) && (
-            <p className="post-meta">{analysisRunNextAction(selected)}</p>
-          )}
+          {selectedNextAction && <p className="post-meta">{selectedNextAction}</p>}
           <p className="post-meta">
             Cutoff {selected.knowledge_cutoff.slice(0, 10)}
             {" · "}
