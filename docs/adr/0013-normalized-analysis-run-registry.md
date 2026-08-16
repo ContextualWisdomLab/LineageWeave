@@ -104,7 +104,8 @@ psychometric computation.
 ### Identity and idempotency
 
 Every run references a real `user_account`. `requested_by_account_id` is not
-nullable. The idempotency key is unique per authenticated account rather than
+nullable. Idempotency keys are trimmed, control-free canonical values and are
+unique per authenticated account rather than
 globally, because independent callers may legitimately choose the same opaque
 client key. A later repository must compare request digests on retry and return
 a conflict when the same account/key names different evidence or configuration.
@@ -117,8 +118,9 @@ lock before checking whether a run exists. This shared lock order closes the
 race in which a count set and first derivation could otherwise both commit.
 After the first run, the complete count set is frozen.
 
-The analysis request row rejects updates. Lifecycle changes are represented only
-by append-only status events.
+The analysis request and its authorization scope reject updates and deletes.
+Lifecycle changes are represented only by append-only status events, so a cascade
+cannot erase the derivation root or its access boundary.
 
 ### Lifecycle state machine
 
@@ -131,16 +133,18 @@ running -> succeeded | failed | cancelled
 succeeded | failed | cancelled -> terminal
 ```
 
-The first event must be `pending`. Failed events require a bounded machine
-failure code; raw exception text is prohibited. `recorded_at` is database system
-time and cannot precede `occurred_at`. `analysis_run_current_status` is a view,
-not a second mutable state authority.
+The first event must be `pending`, requires an immutable scope, and cannot predate
+the run request. Failed events require a lowercase machine-code identifier; raw
+exception text is prohibited. `recorded_at` is overwritten with database system
+time on every insert and cannot precede `occurred_at`.
+`analysis_run_current_status` is a view, not a second mutable state authority.
 
 ### Authorization scope
 
-`analysis_run_scope` stores at most one all-visible, corporate-entity,
-process-unit, or thread-group scope. Its shape is database constrained. The
-next repository/API slice must insert run, scope, and first status in one
+`analysis_run_scope` stores one immutable all-visible, corporate-entity,
+process-unit, or thread-group scope. Its shape is database constrained and the
+first lifecycle event is rejected until it exists. The next repository/API slice
+must insert run, scope, and first status in one
 transaction and apply the existing RBAC/ABAC contract when listing or reading
 runs. This migration does not claim that an API or UI exists.
 
@@ -218,7 +222,10 @@ Acceptance requires:
 - distinct cutoffs over one snapshot;
 - rejection of future-information leakage;
 - account-scoped idempotency;
-- snapshot, count, and run immutability;
+- snapshot, count, run, and authorization-scope immutability;
+- deletion resistance for request and scope audit evidence;
+- scope-required lifecycle, request-time ordering, and database-owned record time;
+- canonical idempotency and bounded machine-code failure identifiers;
 - count/run concurrency serialization;
 - pending-first, contiguous, monotonic, legal status transitions;
 - append-only status evidence;

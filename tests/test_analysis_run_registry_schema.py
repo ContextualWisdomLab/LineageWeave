@@ -155,6 +155,7 @@ def _insert_run(
     idempotency_key: str,
     knowledge_cutoff: str = "2026-08-15T00:30:00Z",
     run_kind_code: str = "analysis_run_lineage",
+    requested_at: str = "2026-08-15T00:45:00Z",
 ) -> str:
     """Insert one immutable account-scoped analysis request."""
 
@@ -164,8 +165,8 @@ def _insert_run(
             (analysis_source_snapshot_id, run_kind_code, idempotency_key,
              requested_by_account_id, knowledge_cutoff,
              configuration_schema_version, configuration_sha256,
-             code_revision_sha)
-        values (%s, %s, %s, %s, %s, 'lineage-run-v1', %s, %s)
+             code_revision_sha, requested_at)
+        values (%s, %s, %s, %s, %s, 'lineage-run-v1', %s, %s, %s)
         returning analysis_run_id
         """,
         (
@@ -176,6 +177,7 @@ def _insert_run(
             knowledge_cutoff,
             "b" * 64,
             "c" * 40,
+            requested_at,
         ),
     )
     return str(cursor.fetchone()[0])
@@ -209,7 +211,9 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert "unique (requested_by_account_id, idempotency_key)" in run_definition
     assert "enforce_analysis_run_knowledge_cutoff" in migration
     assert "reject_analysis_source_snapshot_update" in migration
-    assert "reject_analysis_run_update" in migration
+    assert "reject_analysis_run_mutation" in migration
+    assert "reject_analysis_run_scope_mutation" in migration
+    assert "analysis_run_scope_required" in migration
     assert "enforce_analysis_source_count_freeze" in migration
     assert "enforce_analysis_run_status_transition" in migration
     assert "analysis_run_current_status" in migration
@@ -309,6 +313,7 @@ def test_snapshot_supports_multiple_run_owned_cutoffs_and_blocks_future_evidence
             account_id=second_account_id,
             idempotency_key="cutoff-two",
             knowledge_cutoff="2026-08-16T00:00:00Z",
+            requested_at="2026-08-16T00:30:00Z",
         )
         assert first_run_id != second_run_id
         with pytest.raises(psycopg2.errors.RaiseException):
@@ -444,6 +449,12 @@ def test_status_history_enforces_shape_order_time_and_legal_transitions(
             account_id=account_id,
             idempotency_key="first-status",
         )
+        cursor.execute(
+            "insert into analysis_run_scope "
+            "(analysis_run_id, scope_kind_code) "
+            "values (%s, 'analysis_scope_all_visible')",
+            (first_run_id,),
+        )
         with pytest.raises(psycopg2.errors.RaiseException):
             cursor.execute(
                 "insert into analysis_run_status_event "
@@ -457,6 +468,12 @@ def test_status_history_enforces_shape_order_time_and_legal_transitions(
             snapshot_id=snapshot_id,
             account_id=account_id,
             idempotency_key="second-status",
+        )
+        cursor.execute(
+            "insert into analysis_run_scope "
+            "(analysis_run_id, scope_kind_code) "
+            "values (%s, 'analysis_scope_all_visible')",
+            (second_run_id,),
         )
         cursor.execute(
             "insert into analysis_run_status_event "
@@ -526,6 +543,154 @@ def test_status_history_enforces_shape_order_time_and_legal_transitions(
                 (second_run_id,),
             )
 
+
+
+def test_run_scope_and_request_evidence_are_immutable(registry_db) -> None:
+    """Authorization scope and request identity cannot be rewritten or erased."""
+
+    with registry_db.cursor() as cursor:
+        snapshot_id = _insert_snapshot(cursor)
+        account_id = _insert_account(cursor)
+        run_id = _insert_run(
+            cursor,
+            snapshot_id=snapshot_id,
+            account_id=account_id,
+            idempotency_key="immutable-run",
+        )
+        cursor.execute(
+            "insert into analysis_run_scope "
+            "(analysis_run_id, scope_kind_code) "
+            "values (%s, 'analysis_scope_all_visible')",
+            (run_id,),
+        )
+        with pytest.raises(psycopg2.errors.RaiseException):
+            cursor.execute(
+                "update analysis_run_scope set scope_kind_code = scope_kind_code "
+                "where analysis_run_id = %s",
+                (run_id,),
+            )
+        with pytest.raises(psycopg2.errors.RaiseException):
+            cursor.execute(
+                "delete from analysis_run_scope where analysis_run_id = %s",
+                (run_id,),
+            )
+        with pytest.raises(psycopg2.errors.RaiseException):
+            cursor.execute(
+                "delete from analysis_run where analysis_run_id = %s",
+                (run_id,),
+            )
+
+
+def test_status_requires_scope_and_cannot_predate_request(registry_db) -> None:
+    """Lifecycle evidence starts only after an immutable authorized request."""
+
+    with registry_db.cursor() as cursor:
+        snapshot_id = _insert_snapshot(cursor)
+        account_id = _insert_account(cursor)
+        run_id = _insert_run(
+            cursor,
+            snapshot_id=snapshot_id,
+            account_id=account_id,
+            idempotency_key="scoped-status",
+        )
+        with pytest.raises(psycopg2.errors.RaiseException):
+            cursor.execute(
+                "insert into analysis_run_status_event "
+                "(analysis_run_id, status_ordinal, status_code, occurred_at) "
+                "values (%s, 1, 'analysis_status_pending', "
+                "'2026-08-15T01:00:00Z')",
+                (run_id,),
+            )
+        cursor.execute(
+            "insert into analysis_run_scope "
+            "(analysis_run_id, scope_kind_code) "
+            "values (%s, 'analysis_scope_all_visible')",
+            (run_id,),
+        )
+        with pytest.raises(psycopg2.errors.RaiseException):
+            cursor.execute(
+                "insert into analysis_run_status_event "
+                "(analysis_run_id, status_ordinal, status_code, occurred_at) "
+                "values (%s, 1, 'analysis_status_pending', "
+                "'2026-08-15T00:44:59Z')",
+                (run_id,),
+            )
+        cursor.execute(
+            "insert into analysis_run_status_event "
+            "(analysis_run_id, status_ordinal, status_code, occurred_at, recorded_at) "
+            "values (%s, 1, 'analysis_status_pending', "
+            "'2026-08-15T01:00:00Z', '2099-01-01T00:00:00Z') "
+            "returning recorded_at",
+            (run_id,),
+        )
+        recorded_at = cursor.fetchone()[0]
+    assert recorded_at.year < 2099
+
+
+def test_machine_codes_and_canonical_idempotency_are_fail_closed(registry_db) -> None:
+    """Audit identifiers are canonical and failure details stay machine-safe."""
+
+    with registry_db.cursor() as cursor:
+        snapshot_id = _insert_snapshot(cursor)
+        account_id = _insert_account(cursor)
+        with pytest.raises(psycopg2.errors.RaiseException):
+            _insert_run(
+                cursor,
+                snapshot_id=snapshot_id,
+                account_id=account_id,
+                idempotency_key="future-request",
+                requested_at="2099-01-01T00:00:00Z",
+            )
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            _insert_run(
+                cursor,
+                snapshot_id=snapshot_id,
+                account_id=account_id,
+                idempotency_key=" padded-key ",
+            )
+        run_id = _insert_run(
+            cursor,
+            snapshot_id=snapshot_id,
+            account_id=account_id,
+            idempotency_key="machine-safe",
+        )
+        cursor.execute(
+            "insert into analysis_run_scope "
+            "(analysis_run_id, scope_kind_code) "
+            "values (%s, 'analysis_scope_all_visible')",
+            (run_id,),
+        )
+        cursor.execute(
+            "insert into analysis_run_status_event "
+            "(analysis_run_id, status_ordinal, status_code, occurred_at) "
+            "values (%s, 1, 'analysis_status_pending', "
+            "'2026-08-15T01:00:00Z')",
+            (run_id,),
+        )
+        cursor.execute(
+            "insert into analysis_run_status_event "
+            "(analysis_run_id, status_ordinal, status_code, occurred_at) "
+            "values (%s, 2, 'analysis_status_running', "
+            "'2026-08-15T01:00:00Z')",
+            (run_id,),
+        )
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            cursor.execute(
+                "insert into analysis_run_status_event "
+                "(analysis_run_id, status_ordinal, status_code, occurred_at, "
+                "failure_code, retryable) "
+                "values (%s, 3, 'analysis_status_failed', "
+                "'2026-08-15T01:00:00Z', 'provider timeout', true)",
+                (run_id,),
+            )
+        cursor.execute(
+            "insert into analysis_run_status_event "
+            "(analysis_run_id, status_ordinal, status_code, occurred_at, "
+            "failure_code, retryable) "
+            "values (%s, 3, 'analysis_status_failed', "
+            "'2026-08-15T01:00:00Z', 'provider_timeout', true)",
+            (run_id,),
+        )
 
 def test_rollback_refuses_data_loss_then_removes_an_empty_registry(registry_db) -> None:
     """Downgrade fails closed until audit evidence is explicitly removed."""
