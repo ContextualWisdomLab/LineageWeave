@@ -11,10 +11,10 @@ unavailable, same never-fake-a-missing-signal discipline as
 contextual-orchestrator instance -- never a raw LLM API directly, per
 AGENTS.md -- because Keyman identification is a structured-extraction task
 that benefits from the orchestrator's reasoning-effort allocation, not a
-single confidence number, so it uses ``mode="route"`` (one worker call) at
-a ``"medium"`` reasoning effort by default rather than ``verify``'s
-worker-plus-checker pattern, which is reserved for adjudication's binary
-judgment calls.
+single confidence number, so it uses ``mode="auto"`` and lets the orchestration plane allocate
+quality-sufficient test-time compute before minimizing known cost. Explicit
+``verify`` remains reserved for adjudication's checked binary-judgment
+contract.
 """
 
 from __future__ import annotations
@@ -158,7 +158,7 @@ def parse_keyman_response(content: str) -> list[PersonMention]:
 
 
 class ContextualOrchestratorKeymanExtractionClient:
-    """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="route"``."""
+    """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="auto"``."""
 
     available = True
 
@@ -176,7 +176,7 @@ class ContextualOrchestratorKeymanExtractionClient:
             f"{self._base_url}/v1/chat/completions",
             {
                 "messages": [{"role": "user", "content": prompt}],
-                "mode": "route",
+                "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},
