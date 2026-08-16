@@ -12,7 +12,24 @@ All notable changes to this project are documented here. Format follows
   `mode="auto"` rather than forcing a one-model route. The
   orchestrator owns the quality-sufficient route, verification, or
   conducted workflow. Citation-bearing post-chat and lineage
-  adjudication keep their explicit `verify` contracts.
+  adjudication keep their explicit `verify` contracts. Policy scans
+  require the payload literals `"mode": "auto"` / `"mode": "verify"`
+  so a docstring mention cannot satisfy ADR-0013.
+
+## [0.75.0] - 2026-08-16
+
+### Changed
+
+- Related-node chips use decision-relevant business context instead of
+  ontology-class noise. After `make seed`, walking from Ada West shows
+  `Priya Nair (Counterparty)` -- not `Priya Nair (Person)` and not an
+  invented `Northridge Grid` primary, because Priya has two
+  affiliations. Walking from Demo Corp shows
+  `Ada West, Demo Corp (Our side)` and `Demo Corp (Company)`. A person
+  with exactly one affiliation adds that org; multiple affiliations
+  keep the side-only caption. Post chips show the title only. Click
+  the chip to continue the walk, or open the Keyman/affiliate surfaces
+  when you need the full affiliation list.
 
 ## [0.71.0] - 2026-08-14
 

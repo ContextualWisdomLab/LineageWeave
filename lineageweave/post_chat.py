@@ -186,8 +186,8 @@ class ContextualOrchestratorPostChatClient:
     -- a chat answer with citations is exactly the checked-judgment shape
     ``mode="verify"`` exists for (one worker call plus one checked
     verifier judgment), same reasoning ``adjudication_client`` already
-    uses, not ``keyman_extraction``/``entity_relationship_classification``'s
-    single-pass ``mode="auto"`` structured extraction.
+    uses, not the ordinary adapters' single-pass adaptive
+    structured extraction.
     """
 
     available = True

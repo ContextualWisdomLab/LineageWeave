@@ -22,24 +22,10 @@ _ROUTE_MARKERS = (
     'mode="route"',
     'mode: str = "route"',
 )
-_AUTO_MARKERS = (
-    '"mode": "auto"',
-    'mode="auto"',
-    'mode: str = "auto"',
-)
-_VERIFY_MARKERS = (
-    '"mode": "verify"',
-    'mode="verify"',
-    'mode: str = "verify"',
-)
 
 
 def _source(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
-
-
-def _contains_any(source: str, markers: tuple[str, ...]) -> bool:
-    return any(marker in source for marker in markers)
 
 
 class AdaptiveOrchestratorDefaultTest(unittest.TestCase):
@@ -51,9 +37,14 @@ class AdaptiveOrchestratorDefaultTest(unittest.TestCase):
             with self.subTest(path=relative):
                 for marker in _ROUTE_MARKERS:
                     self.assertNotIn(marker, source)
-                self.assertTrue(
-                    _contains_any(source, _AUTO_MARKERS),
-                    f"{relative} must request mode=auto in executable source",
+                if relative.endswith("post_evaluation.py"):
+                    self.assertIn('"mode": mode', source)
+                    self.assertIn('mode: str = "auto"', source)
+                    continue
+                self.assertIn(
+                    '"mode": "auto"',
+                    source,
+                    f"{relative} must send a payload-level mode=auto literal",
                 )
 
     def test_verify_clients_keep_checked_judgment_and_never_force_route(self) -> None:
@@ -62,9 +53,10 @@ class AdaptiveOrchestratorDefaultTest(unittest.TestCase):
             with self.subTest(path=relative):
                 for marker in _ROUTE_MARKERS:
                     self.assertNotIn(marker, source)
-                self.assertTrue(
-                    _contains_any(source, _VERIFY_MARKERS),
-                    f"{relative} must request mode=verify in executable source",
+                self.assertIn(
+                    '"mode": "verify"',
+                    source,
+                    f"{relative} must send a payload-level mode=verify literal",
                 )
                 self.assertNotIn(
                     '"mode": "auto"',
