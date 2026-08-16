@@ -483,6 +483,9 @@ function relatedNodeCaption(node: RelatedNode): string {
       return `${name} (${level})`;
     }
   }
+  if (node.node_type_code === NODE_POST) {
+    return name;
+  }
   return `${name} (${node.ontology_label ?? node.node_type_code})`;
 }
 
