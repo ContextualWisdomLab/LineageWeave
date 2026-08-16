@@ -492,7 +492,14 @@ calibrated negative result. A failed lineage row tells the operator
 to retry reconstruction, not to connect TEPP. A failed period-report
 row tells the operator to rebuild the report. A pending TEPP row
 does not claim a calibrated measurement. A pending lineage row
-says reconstruction has not started yet. The
+says reconstruction has not started yet. A running row tells the
+operator to refresh the list, then open the run when the status
+changes — a running TEPP row still is not a calibrated result. A
+succeeded lineage row tells the operator to open the run and compare
+each live title with the cutoff. A succeeded TEPP row names the
+titles as the measurement corpus, not a reconstruction. A cancelled
+row tells the operator to request or rebuild from a current snapshot.
+The
 payload is lookup labels plus non-negative aggregate counts -- never
 source SQL, a DSN, a raw record, or a provider body. After `make seed`,
 Demo Analyst and Demo Admin see "Lineage reconstruction · Succeeded ·

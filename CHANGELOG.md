@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.87.3] - 2026-08-16
+
+### Fixed
+
+- Running, succeeded, and cancelled analysis-run rows now tell the
+  operator the next click. Refresh a running row; open a succeeded
+  lineage run and compare each live title with the cutoff; treat a
+  succeeded TEPP title list as the measurement corpus, not a
+  reconstruction; request or rebuild after cancel. Copy stays pinned
+  to registered kinds so a running TEPP row is not a calibrated
+  result (ADR 0014).
+
 ## [0.87.0] - 2026-08-16
 
 ### Added

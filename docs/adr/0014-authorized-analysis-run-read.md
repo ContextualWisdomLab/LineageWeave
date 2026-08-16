@@ -49,7 +49,13 @@ reconstruction, not to connect TEPP. A failed period-report row
 tells the operator to rebuild the report from a current snapshot.
 A pending or running TEPP row must not claim a calibrated
 measurement. A pending lineage row says reconstruction has not
-started yet. The detail now shows the legal
+started yet. A running row tells the operator to refresh the list,
+then open the run when the status changes. A succeeded lineage row
+tells the operator to open the run and compare each live title with
+the cutoff. A succeeded TEPP row names the titles as the measurement
+corpus, not a reconstruction. A cancelled row tells the operator to
+request or rebuild from a current snapshot, still kind-specific.
+The detail now shows the legal
 lifecycle the registry already stored. `POST /api/analysis-runs` now
 records a Pending run on an authorized cutoff capture (ADR 0017).
 Reconstruction, a live TEPP transport, and a fuller Analysis Run

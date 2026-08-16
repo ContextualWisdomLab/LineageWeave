@@ -27,7 +27,10 @@ theta or a local psychometric substitute. The home list caption stays
 transport. A failed lineage row retries reconstruction -- it does not
 mention TEPP. A failed period-report row rebuilds the report. A
 pending TEPP row does not claim a calibrated measurement. A pending
-lineage row says reconstruction has not started yet.
+lineage row says reconstruction has not started yet. A running row
+says refresh the list; a running TEPP row is not a calibrated result.
+A succeeded lineage row compares live titles with the cutoff. A
+cancelled row requests or rebuilds from a current snapshot.
 Digest prefixes stay audible; hover a prefix to read the full digest.
 Opening a cutoff title shows the live post -- compare it with the
 cutoff before treating the body as reconstructed evidence (ADR 0016).
