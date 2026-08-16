@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.87.2] - 2026-08-16
+
+### Fixed
+
+- The default Analysis runs home fixture now includes **Period report ·
+  Succeeded · Demo Corp** so it matches `make seed` (ADR 0022). Open
+  that row to confirm the cutoff posts. Mean θ stays on the
+  period-report panel. A Failed report fixture still says rebuild.
+
 ## [0.87.1] - 2026-08-16
 
 ### Added

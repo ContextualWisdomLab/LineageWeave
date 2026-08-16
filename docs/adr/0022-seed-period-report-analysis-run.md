@@ -42,7 +42,9 @@ registry is not allowed to store (ADR 0013).
 After `make seed`, Demo Analyst opens Analysis runs and sees
 **Period report · Succeeded · Demo Corp** next to the lineage and TEPP
 rows. Opening it shows the cutoff posts. Mean θ remains on the
-period-report panel. Re-seed is idempotent on
+period-report panel. The default home fixture includes that Succeeded
+row so the canonical home test matches seed; `failedReportRun` remains
+the Failed override. Re-seed is idempotent on
 `demo-report-seed-2026-w02`.
 
 ## References — APA 7th
