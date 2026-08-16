@@ -5,8 +5,8 @@ ADRs under `docs/adr/`. Do not fork those rules here.
 
 ## Analysis-run seed (v0.85.0)
 
-`make seed` writes a Demo Corp lineage run and a TEPP run on the same
-snapshot (ADR 0013). The TEPP path goes through `tepp_client`. A missing
+`make seed` writes a Demo Corp lineage run, a TEPP run, and a Succeeded
+period-report run on the same snapshot (ADR 0013 / ADR 0021). The TEPP path goes through `tepp_client`. A missing
 transport or an unused accepted envelope is Failed
 (`tepp_not_available` / `tepp_result_not_persisted`). Do not invent a
 theta or a local psychometric substitute. The home list caption stays
@@ -21,3 +21,5 @@ Opening a cutoff title shows the live post -- compare it with the
 cutoff before treating the body as reconstructed evidence (ADR 0016).
 `POST /api/analysis-runs` records Pending on an authorized
 cutoff capture (ADR 0017) and does not reconstruct lineage.
+After `make seed`, open **Period report · Succeeded · Demo Corp**
+to confirm the cutoff posts; mean θ stays on the period-report panel.

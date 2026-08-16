@@ -38,9 +38,10 @@ LineageWeave owns a fail-closed read projection of the #89 registry:
 
 ## Consequences
 
-`make seed` writes one synthetic Demo Corp lineage run and one TEPP
-run on the same snapshot so the existing React home page can show both
-kinds without a second application. The TEPP run is Failed /
+`make seed` writes one synthetic Demo Corp lineage run, one TEPP
+run, and one Succeeded period-report run on the same snapshot so the
+existing React home page can show all three kinds without a second
+application (ADR 0021). The TEPP run is Failed /
 `tepp_not_available` when the default transport is missing -- the list
 keeps that machine code off the caption (this decision) and instead
 tells the operator to open the TEPP run, then connect the measurement

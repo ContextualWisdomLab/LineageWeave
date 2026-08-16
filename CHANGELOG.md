@@ -4,6 +4,22 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.4] - 2026-08-16
+
+### Added
+
+- `make seed` now records the already-built Demo Corp period report as
+  **Period report · Succeeded · Demo Corp** on the shared analysis-run
+  snapshot (ADR 0021). Open that row to confirm the cutoff posts. Mean
+  θ stays on the period-report panel — the registry row does not copy
+  a score.
+
+### Fixed
+
+- Opening a Pending lineage run repeats that reconstruction has not
+  started. Pending next-action copy is pinned to the registered run
+  kinds, so a Pending TEPP row does not say reconstruction.
+
 ## [0.86.2] - 2026-08-16
 
 ### Fixed
@@ -24,12 +40,6 @@ All notable changes to this project are documented here. Format follows
   Remote `http(s)` image URLs stay unloaded. After `make seed`, a post
   whose body includes a data-URI image shows the picture; Extract Keyman
   or Ask still runs OCR on that image for search.
-
-### Fixed
-
-- Opening a Pending lineage run repeats that reconstruction has not
-  started. Pending next-action copy is pinned to the registered run
-  kinds, so a Pending TEPP row does not say reconstruction.
 
 ## [0.86.0] - 2026-08-16
 

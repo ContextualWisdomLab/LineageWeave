@@ -8,7 +8,9 @@ Cross-agent conventions for `LineageWeave`, readable by any coding agent
 A demo BI prototype that reconstructs git-branch-style lineage between
 scattered short records. See [ARCHITECTURE.md](ARCHITECTURE.md) for the
 design and [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md)
-for the literature it is grounded in.
+for the literature it is grounded in. After `make seed`, Analysis runs
+lists lineage, TEPP, and the built period-report registry row on one
+Demo Corp snapshot (ADR 0021). Mean θ stays on the period-report panel.
 
 ## Hard rule: no real data, ever
 

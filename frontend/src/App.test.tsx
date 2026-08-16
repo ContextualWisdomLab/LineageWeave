@@ -61,6 +61,7 @@ describe("App, authenticated", () => {
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
     failedReportRun?: boolean;
+    succeededReportRun?: boolean;
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
     postBody?: string;
@@ -175,6 +176,7 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-report")) {
+        const reportSucceeded = Boolean(options?.succeededReportRun);
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-report",
@@ -183,8 +185,8 @@ describe("App, authenticated", () => {
             scope_kind_code: "analysis_scope_corporate_entity",
             scope_kind_label: "Corporate entity",
             scope_entity_name: "Demo Corp",
-            status_code: "analysis_status_failed",
-            status_label: "Failed",
+            status_code: reportSucceeded ? "analysis_status_succeeded" : "analysis_status_failed",
+            status_label: reportSucceeded ? "Succeeded" : "Failed",
             knowledge_cutoff: "2026-01-12T12:00:00Z",
             requested_at: "2026-01-12T12:38:00Z",
             source_counts: [
@@ -194,22 +196,45 @@ describe("App, authenticated", () => {
                 count_value: 3,
               },
             ],
-            visible_posts: [],
-            status_history: [
-              {
-                status_ordinal: 1,
-                status_code: "analysis_status_pending",
-                status_label: "Pending",
-                occurred_at: "2026-01-12T12:39:00Z",
-              },
-              {
-                status_ordinal: 2,
-                status_code: "analysis_status_failed",
-                status_label: "Failed",
-                occurred_at: "2026-01-12T12:40:00Z",
-                failure_code: "period_report_rebuild_failed",
-              },
-            ],
+            visible_posts: reportSucceeded
+              ? [{ post_id: "post-1", post_title: "Public post" }]
+              : [],
+            status_history: reportSucceeded
+              ? [
+                  {
+                    status_ordinal: 1,
+                    status_code: "analysis_status_pending",
+                    status_label: "Pending",
+                    occurred_at: "2026-01-12T12:39:00Z",
+                  },
+                  {
+                    status_ordinal: 2,
+                    status_code: "analysis_status_running",
+                    status_label: "Running",
+                    occurred_at: "2026-01-12T12:40:00Z",
+                  },
+                  {
+                    status_ordinal: 3,
+                    status_code: "analysis_status_succeeded",
+                    status_label: "Succeeded",
+                    occurred_at: "2026-01-12T12:41:00Z",
+                  },
+                ]
+              : [
+                  {
+                    status_ordinal: 1,
+                    status_code: "analysis_status_pending",
+                    status_label: "Pending",
+                    occurred_at: "2026-01-12T12:39:00Z",
+                  },
+                  {
+                    status_ordinal: 2,
+                    status_code: "analysis_status_failed",
+                    status_label: "Failed",
+                    occurred_at: "2026-01-12T12:40:00Z",
+                    failure_code: "period_report_rebuild_failed",
+                  },
+                ],
           }),
         );
       }
@@ -408,7 +433,7 @@ describe("App, authenticated", () => {
                   },
                 ],
               },
-              ...(options?.failedReportRun
+              ...(options?.failedReportRun || options?.succeededReportRun
                 ? [
                     {
                       analysis_run_id: "run-demo-report",
@@ -417,8 +442,10 @@ describe("App, authenticated", () => {
                       scope_kind_code: "analysis_scope_corporate_entity",
                       scope_kind_label: "Corporate entity",
                       scope_entity_name: "Demo Corp",
-                      status_code: "analysis_status_failed" as const,
-                      status_label: "Failed",
+                      status_code: options?.succeededReportRun
+                        ? ("analysis_status_succeeded" as const)
+                        : ("analysis_status_failed" as const),
+                      status_label: options?.succeededReportRun ? "Succeeded" : "Failed",
                       knowledge_cutoff: "2026-01-12T12:00:00Z",
                       requested_at: "2026-01-12T12:38:00Z",
                       source_counts: [
@@ -1735,6 +1762,32 @@ describe("App, authenticated", () => {
       "Open this run to see why it failed, then connect the measurement service and re-run.",
     );
     expect(teppButton).not.toHaveTextContent("reconstruction");
+  });
+
+  it("does not tell a succeeded period report to rebuild, reconstruct, or measure", async () => {
+    stubBackend({ succeededReportRun: true });
+    render(<App />);
+
+    const reportButton = await screen.findByRole("button", {
+      name: "Open analysis run: Period report · Succeeded · Demo Corp",
+    });
+    expect(reportButton).not.toHaveTextContent("rebuild the period report");
+    expect(reportButton).not.toHaveTextContent("Reconstruction has not started yet");
+    expect(reportButton).not.toHaveTextContent("measurement service");
+    expect(reportButton).not.toHaveTextContent("θ");
+
+    await userEvent.click(reportButton);
+    expect(
+      await screen.findByRole("heading", { name: "Period report · Succeeded · Demo Corp" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/rebuild the period report/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reconstruction has not started yet/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/measurement service/)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Open live post (may have changed after cutoff): Public post",
+      }),
+    ).toBeInTheDocument();
   });
 
   it("does not tell a failed period report to connect the measurement service", async () => {
