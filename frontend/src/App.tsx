@@ -1491,6 +1491,7 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
         }
       }
     case "analysis_status_running":
+      return "Refresh this run. Start already queued the work on the durable outbox.";
     case "analysis_status_succeeded":
     case "analysis_status_cancelled":
     case null:
@@ -1664,7 +1665,8 @@ function AnalysisRunReproducibilityDigests({
 function analysisRunCanStart(run: AnalysisRun): boolean {
   return (
     (run.run_kind_code === "analysis_run_lineage" || run.run_kind_code === "analysis_run_tepp") &&
-    run.status_code === "analysis_status_pending"
+    (run.status_code === "analysis_status_pending" ||
+      run.status_code === "analysis_status_running")
   );
 }
 

@@ -1,8 +1,8 @@
 # Analysis-run registry standards and research traceability
 
 **Status:** Active PR evidence; not protected-main truth until merge.  
-**Scope:** Migrations 0018–0022, ADR 0013 / 0017 / 0020 / 0021, rollback, and
-real-PostgreSQL contract tests.
+**Scope:** Migrations 0018–0023, ADR 0013 / 0017 / 0020 / 0021 / 0022 /
+0023, rollback, and real-PostgreSQL contract tests.
 
 ## Standards mapped to implementation
 
@@ -16,7 +16,7 @@ real-PostgreSQL contract tests.
 | NIST SP 800-92 | Treat audit records as bounded, protected operational evidence rather than unstructured application logging. | Append-only status events, machine failure codes, actor identity, occurrence/record clocks, fail-closed rollback, `invoking_session_role` on each retention event, and exclusion of raw source/provider payloads. |
 | NIST SP 800-53 Rev. 5 AC-3 | Enforce least privilege on privileged procedures; a well-known procedure name is not an authorization secret. | `REVOKE ALL` on `purge_analysis_run_registry` from `PUBLIC`; `GRANT EXECUTE` only to `analysis_run_retention_admin`; unrevoked `analysis_run_retention_grant` required (ADR 0020). |
 | OpenAPI 3.2.0 | Define explicit versioned API schemas rather than exposing database rows or implementation-specific payloads. | `GET` / `POST /api/analysis-runs` and `POST /api/analysis-runs/{id}/start` return labels, clocks, aggregates, and titled reconstruction edges — never source SQL or a provider body. |
-| ThreadWeave tree assembly | Persist the same parent choices the library reconstructs on the cutoff bag. | `start_pending_analysis_run` calls `lineage_edge_specs` on frozen `analysis_source_snapshot_member` rows (or the live cutoff query when membership is absent); tests require the designed A-100 fork through `records_from_source_posts` (revised quote + delivery question under the pricing follow-up). TEPP start uses `tepp_client` only. |
+| ThreadWeave tree assembly | Persist the same parent choices the library reconstructs on the cutoff bag. | Start enqueues `analysis_run_outbox` then `deliver_queued_analysis_run` calls `lineage_edge_specs` on frozen `analysis_source_snapshot_member` rows (or the live cutoff query when membership is absent); tests require the designed A-100 fork through `records_from_source_posts` (revised quote + delivery question under the pricing follow-up). TEPP start uses `tepp_client` only. Valkey `analysis-run-outbox` is the wake-up (ADR 0023). |
 
 ## Temporal reasoning
 

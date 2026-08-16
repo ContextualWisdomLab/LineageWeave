@@ -1,8 +1,10 @@
 """Start a Pending lineage reconstruction or TEPP measurement.
 
 ADR 0021 reconstructs lineage. ADR 0022 starts TEPP through
-``tepp_client`` only. Period-report stays another path. Neither start
-invents a theta or a calibrated report score.
+``tepp_client`` only. ADR 0023 enqueues that work on a durable outbox
+so a crash after Running does not lose the item. Period-report stays
+another path. Neither start invents a theta or a calibrated report
+score.
 """
 
 from __future__ import annotations
@@ -18,6 +20,11 @@ import asyncpg
 from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
     fetch_visible_analysis_run,
+)
+from backend.app.analysis_run_outbox import (
+    latest_outbox_delivery_is_claimed,
+    latest_outbox_delivery_is_delivered,
+    outbox_request_digest,
 )
 from backend.app.lineage_ingestion import records_from_source_posts
 from lineageweave.http_client import HttpClientError, post_json
@@ -253,23 +260,138 @@ async def _next_status_ordinal(
     return int(current_max) + 1
 
 
-async def start_pending_analysis_run(
+async def _latest_outbox_delivery(
+    conn: asyncpg.Connection,
+    analysis_run_id: str,
+) -> str | None:
+    """Newest outbox delivery status, or None when the row was never claimed."""
+    return await conn.fetchval(
+        """
+        select delivery_status_code
+        from analysis_run_outbox_delivery
+        where analysis_run_id = $1
+        order by delivery_ordinal desc
+        limit 1
+        """,
+        analysis_run_id,
+    )
+
+
+async def _next_outbox_delivery_ordinal(
+    conn: asyncpg.Connection,
+    analysis_run_id: str,
+) -> int:
+    """Return the next contiguous outbox delivery ordinal for this run."""
+    current_max = await conn.fetchval(
+        """
+        select coalesce(max(delivery_ordinal), 0)
+        from analysis_run_outbox_delivery
+        where analysis_run_id = $1
+        """,
+        analysis_run_id,
+    )
+    return int(current_max) + 1
+
+
+async def _append_outbox_delivery(
+    conn: asyncpg.Connection,
+    analysis_run_id: str,
+    delivery_ordinal: int,
+    delivery_status_code: str,
+    occurred_at: datetime,
+    valkey_stream_entry_id: str | None = None,
+) -> None:
+    """Append one claim or delivery event. Stream id is optional."""
+    await conn.execute(
+        """
+        insert into analysis_run_outbox_delivery
+            (analysis_run_id, delivery_ordinal, delivery_status_code,
+             occurred_at, valkey_stream_entry_id)
+        values ($1, $2, $3, $4, $5)
+        """,
+        analysis_run_id,
+        delivery_ordinal,
+        delivery_status_code,
+        occurred_at,
+        valkey_stream_entry_id,
+    )
+
+
+async def _visible_or_404(
+    conn: asyncpg.Connection,
+    analysis_run_id: str,
+    account_id: str,
+    affiliated_entity_ids: list[str],
+) -> dict[str, Any]:
+    """Reload the authorized projection or hide the run."""
+    started = await fetch_visible_analysis_run(
+        conn,
+        analysis_run_id,
+        account_id,
+        affiliated_entity_ids,
+    )
+    if started is None:
+        raise AnalysisRunStartError(404, "This analysis run is not visible.")
+    return started
+
+
+async def _attach_outbox_digest(
+    conn: asyncpg.Connection,
+    started: dict[str, Any],
+) -> dict[str, Any]:
+    """Expose the wake-up digest to the start API, never to the client body."""
+    digest = await conn.fetchval(
+        """
+        select request_sha256
+        from analysis_run_outbox
+        where analysis_run_id = $1
+        """,
+        started["analysis_run_id"],
+    )
+    if not digest:
+        return started
+    attached = dict(started)
+    attached["outbox_request_sha256"] = str(digest)
+    return attached
+
+
+async def _lock_start_run(
+    conn: asyncpg.Connection,
+    analysis_run_id: str,
+) -> asyncpg.Record:
+    """Lock the run row used by enqueue and delivery."""
+    locked = await conn.fetchrow(
+        """
+        select run.analysis_run_id, run.knowledge_cutoff, run.run_kind_code,
+               run.idempotency_key, run.analysis_source_snapshot_id,
+               snapshot.snapshot_sha256, scope.corporate_entity_id
+        from analysis_run run
+        join analysis_run_scope scope on scope.analysis_run_id = run.analysis_run_id
+        join analysis_source_snapshot snapshot
+          on snapshot.analysis_source_snapshot_id = run.analysis_source_snapshot_id
+        where run.analysis_run_id = $1
+        for update of run
+        """,
+        analysis_run_id,
+    )
+    if locked is None:
+        raise AnalysisRunStartError(404, "This analysis run is not visible.")
+    return locked
+
+
+async def enqueue_pending_analysis_run(
     conn: asyncpg.Connection,
     *,
     analysis_run_id: str,
     account_id: str,
     affiliated_entity_ids: list[str],
-    tepp_client: TeppClient | None = None,
 ) -> dict[str, Any]:
-    """Run ThreadWeave or submit TEPP on a visible Pending row.
+    """Append Running and one outbox row, or resume an undelivered item.
 
     Period-report is rejected so this path cannot invent a calibrated
-    score. TEPP goes through ``tepp_client`` and stays Failed when the
-    transport is missing or the envelope is not persistable. A Succeeded
-    retry returns the stored reconstruction (documented no-op replay).
-    A Running or concurrent write is 409. Hidden runs 404. The run row
-    is locked before Running so a double-click is 409 or a replay,
-    never a 500.
+    score. A Succeeded retry returns the stored reconstruction. A
+    Running row with an undelivered outbox is a crash resume. A Running
+    row without pending work is 409. Hidden runs 404.
     """
     try:
         UUID(analysis_run_id)
@@ -289,27 +411,8 @@ async def start_pending_analysis_run(
         raise kind_error
     if current["status_code"] == _SUCCEEDED:
         return current
-    if current["status_code"] != _PENDING:
-        raise AnalysisRunStartError(
-            409,
-            "Open this run. Start is only for a Pending lineage reconstruction "
-            "or TEPP measurement.",
-        )
 
-    locked = await conn.fetchrow(
-        """
-        select run.analysis_run_id, run.knowledge_cutoff, run.run_kind_code,
-               run.idempotency_key, run.analysis_source_snapshot_id,
-               snapshot.snapshot_sha256, scope.corporate_entity_id
-        from analysis_run run
-        join analysis_run_scope scope on scope.analysis_run_id = run.analysis_run_id
-        join analysis_source_snapshot snapshot
-          on snapshot.analysis_source_snapshot_id = run.analysis_source_snapshot_id
-        where run.analysis_run_id = $1
-        for update of run
-        """,
-        analysis_run_id,
-    )
+    locked = await _lock_start_run(conn, analysis_run_id)
     locked_status = await conn.fetchval(
         """
         select status_code
@@ -319,15 +422,35 @@ async def start_pending_analysis_run(
         analysis_run_id,
     )
     if locked_status == _SUCCEEDED:
-        replayed = await fetch_visible_analysis_run(
-            conn,
-            analysis_run_id,
-            account_id,
-            affiliated_entity_ids,
+        return await _visible_or_404(
+            conn, analysis_run_id, account_id, affiliated_entity_ids
         )
-        if replayed is None:
-            raise AnalysisRunStartError(404, "This analysis run is not visible.")
-        return replayed
+    if locked_status == _RUNNING:
+        latest = await _latest_outbox_delivery(conn, analysis_run_id)
+        if latest_outbox_delivery_is_delivered(latest):
+            raise AnalysisRunStartError(
+                409,
+                "Open this run. Start is only for a Pending lineage reconstruction "
+                "or TEPP measurement.",
+            )
+        has_outbox = await conn.fetchval(
+            """
+            select 1 from analysis_run_outbox where analysis_run_id = $1
+            """,
+            analysis_run_id,
+        )
+        if has_outbox is None:
+            raise AnalysisRunStartError(
+                409,
+                "Open this run. Start is only for a Pending lineage reconstruction "
+                "or TEPP measurement.",
+            )
+        return await _attach_outbox_digest(
+            conn,
+            await _visible_or_404(
+                conn, analysis_run_id, account_id, affiliated_entity_ids
+            ),
+        )
     if locked_status != _PENDING:
         raise AnalysisRunStartError(
             409,
@@ -335,123 +458,262 @@ async def start_pending_analysis_run(
             "or TEPP measurement.",
         )
 
-    if locked["run_kind_code"] == _TEPP_KIND:
-        return await _start_tepp_measurement(
-            conn,
-            analysis_run_id=analysis_run_id,
-            account_id=account_id,
-            affiliated_entity_ids=affiliated_entity_ids,
-            locked=locked,
-            tepp_client=tepp_client or TeppClient(),
-        )
-
     now = datetime.now(timezone.utc)
-    running_ordinal = await _next_status_ordinal(conn, analysis_run_id)
+    digest = outbox_request_digest(
+        analysis_run_id=str(locked["analysis_run_id"]),
+        work_kind_code=str(locked["run_kind_code"]),
+        snapshot_sha256=str(locked["snapshot_sha256"]),
+        knowledge_cutoff=locked["knowledge_cutoff"],
+    )
     try:
-        await _append_status(conn, analysis_run_id, running_ordinal, _RUNNING, now)
-        member_rows = await _snapshot_member_posts(
-            conn,
-            locked["analysis_source_snapshot_id"],
-        )
-        if member_rows:
-            rows = member_rows
-        else:
-            rows = await _cutoff_source_posts(
-                conn,
-                corporate_entity_id=locked["corporate_entity_id"],
-                knowledge_cutoff=locked["knowledge_cutoff"],
-                affiliated_entity_ids=affiliated_entity_ids,
-            )
-        edges = lineage_edge_specs(records_from_source_posts(rows))
-        digest = reconstruction_result_digest(edges)
-        finished = datetime.now(timezone.utc)
-        if finished < now:
-            finished = now
-        await conn.execute(
-            """
-            insert into analysis_run_reconstruction
-                (analysis_run_id, result_sha256, edge_count, reconstructed_at)
-            values ($1, $2, $3, $4)
-            """,
-            analysis_run_id,
-            digest,
-            len(edges),
-            finished,
-        )
-        for edge in edges:
-            await conn.execute(
-                """
-                insert into analysis_run_lineage_edge
-                    (analysis_run_id, child_post_id, parent_post_id,
-                     fused_score, reconstructed_at)
-                values ($1, $2, $3, $4, $5)
-                """,
-                analysis_run_id,
-                edge.child_id,
-                edge.parent_id,
-                edge.fused_score,
-                finished,
-            )
         await _append_status(
             conn,
             analysis_run_id,
-            running_ordinal + 1,
-            _SUCCEEDED,
-            finished,
+            await _next_status_ordinal(conn, analysis_run_id),
+            _RUNNING,
+            now,
+        )
+        await conn.execute(
+            """
+            insert into analysis_run_outbox
+                (analysis_run_id, work_kind_code, request_sha256, enqueued_at)
+            values ($1, $2, $3, $4)
+            """,
+            analysis_run_id,
+            locked["run_kind_code"],
+            digest,
+            now,
         )
     except asyncpg.UniqueViolationError as exc:
         raise start_write_conflict_error() from exc
-    started = await fetch_visible_analysis_run(
+    return await _attach_outbox_digest(
         conn,
-        analysis_run_id,
-        account_id,
-        affiliated_entity_ids,
+        await _visible_or_404(
+            conn, analysis_run_id, account_id, affiliated_entity_ids
+        ),
     )
-    if started is None:
-        raise AnalysisRunStartError(404, "This analysis run is not visible.")
-    return started
 
 
-async def _start_tepp_measurement(
+async def deliver_queued_analysis_run(
     conn: asyncpg.Connection,
     *,
     analysis_run_id: str,
     account_id: str,
     affiliated_entity_ids: list[str],
-    locked: asyncpg.Record,
-    tepp_client: TeppClient,
+    tepp_client: TeppClient | None = None,
+    valkey_stream_entry_id: str | None = None,
 ) -> dict[str, Any]:
-    """Submit the frozen snapshot through ``tepp_client``. Never persist a theta."""
-    now = datetime.now(timezone.utc)
-    running_ordinal = await _next_status_ordinal(conn, analysis_run_id)
+    """Claim the outbox row and finish ThreadWeave or TEPP.
+
+    A delivered row replays the stored result. Missing work is 409.
+    TEPP stays Failed when the transport is missing or the envelope is
+    not persistable. No theta is invented.
+    """
     try:
-        await _append_status(conn, analysis_run_id, running_ordinal, _RUNNING, now)
-        request = tepp_run_request(
-            idempotency_key=str(locked["idempotency_key"]),
-            snapshot_sha256=str(locked["snapshot_sha256"]),
-            knowledge_cutoff=locked["knowledge_cutoff"],
-            corporate_entity_id=str(locked["corporate_entity_id"]),
-        )
-        status_code, failure_code = tepp_submit_outcome(tepp_client, request)
-        finished = datetime.now(timezone.utc)
-        if finished < now:
-            finished = now
-        await _append_status(
-            conn,
-            analysis_run_id,
-            running_ordinal + 1,
-            status_code,
-            finished,
-            failure_code,
-        )
-    except asyncpg.UniqueViolationError as exc:
-        raise start_write_conflict_error() from exc
-    started = await fetch_visible_analysis_run(
+        UUID(analysis_run_id)
+    except ValueError as exc:
+        raise AnalysisRunStartError(404, "This analysis run is not visible.") from exc
+
+    current = await fetch_visible_analysis_run(
         conn,
         analysis_run_id,
         account_id,
         affiliated_entity_ids,
     )
-    if started is None:
+    if current is None:
         raise AnalysisRunStartError(404, "This analysis run is not visible.")
-    return started
+    if current["status_code"] == _SUCCEEDED:
+        return current
+
+    outbox = await conn.fetchrow(
+        """
+        select outbox.analysis_run_id, outbox.work_kind_code,
+               run.knowledge_cutoff, run.idempotency_key,
+               run.analysis_source_snapshot_id, snapshot.snapshot_sha256,
+               scope.corporate_entity_id
+        from analysis_run_outbox outbox
+        join analysis_run run on run.analysis_run_id = outbox.analysis_run_id
+        join analysis_run_scope scope on scope.analysis_run_id = run.analysis_run_id
+        join analysis_source_snapshot snapshot
+          on snapshot.analysis_source_snapshot_id = run.analysis_source_snapshot_id
+        where outbox.analysis_run_id = $1
+        for update of outbox
+        """,
+        analysis_run_id,
+    )
+    if outbox is None:
+        raise AnalysisRunStartError(
+            409,
+            "Open this run. Start is only for a Pending lineage reconstruction "
+            "or TEPP measurement.",
+        )
+    latest = await _latest_outbox_delivery(conn, analysis_run_id)
+    if latest_outbox_delivery_is_delivered(latest):
+        return await _visible_or_404(
+            conn, analysis_run_id, account_id, affiliated_entity_ids
+        )
+    now = datetime.now(timezone.utc)
+    try:
+        if not latest_outbox_delivery_is_claimed(latest):
+            await _append_outbox_delivery(
+                conn,
+                analysis_run_id,
+                await _next_outbox_delivery_ordinal(conn, analysis_run_id),
+                "analysis_outbox_claimed",
+                now,
+                valkey_stream_entry_id,
+            )
+        if outbox["work_kind_code"] == _TEPP_KIND:
+            await _deliver_tepp_measurement(
+                conn,
+                analysis_run_id=analysis_run_id,
+                locked=outbox,
+                tepp_client=tepp_client or TeppClient(),
+            )
+        else:
+            await _deliver_lineage_reconstruction(
+                conn,
+                analysis_run_id=analysis_run_id,
+                locked=outbox,
+                affiliated_entity_ids=affiliated_entity_ids,
+            )
+        finished = datetime.now(timezone.utc)
+        if finished < now:
+            finished = now
+        await _append_outbox_delivery(
+            conn,
+            analysis_run_id,
+            await _next_outbox_delivery_ordinal(conn, analysis_run_id),
+            "analysis_outbox_delivered",
+            finished,
+            valkey_stream_entry_id,
+        )
+    except asyncpg.UniqueViolationError as exc:
+        raise start_write_conflict_error() from exc
+    return await _visible_or_404(
+        conn, analysis_run_id, account_id, affiliated_entity_ids
+    )
+
+
+async def start_pending_analysis_run(
+    conn: asyncpg.Connection,
+    *,
+    analysis_run_id: str,
+    account_id: str,
+    affiliated_entity_ids: list[str],
+    tepp_client: TeppClient | None = None,
+    valkey_stream_entry_id: str | None = None,
+) -> dict[str, Any]:
+    """Enqueue then deliver on one connection.
+
+    The HTTP start path commits the outbox before this delivery so a
+    crash leaves Running plus a durable work item. Callers that wrap
+    both steps in one transaction keep the older all-or-nothing
+    behavior.
+    """
+    queued = await enqueue_pending_analysis_run(
+        conn,
+        analysis_run_id=analysis_run_id,
+        account_id=account_id,
+        affiliated_entity_ids=affiliated_entity_ids,
+    )
+    if queued["status_code"] == _SUCCEEDED:
+        return queued
+    return await deliver_queued_analysis_run(
+        conn,
+        analysis_run_id=analysis_run_id,
+        account_id=account_id,
+        affiliated_entity_ids=affiliated_entity_ids,
+        tepp_client=tepp_client,
+        valkey_stream_entry_id=valkey_stream_entry_id,
+    )
+
+
+async def _deliver_lineage_reconstruction(
+    conn: asyncpg.Connection,
+    *,
+    analysis_run_id: str,
+    locked: asyncpg.Record,
+    affiliated_entity_ids: list[str],
+) -> None:
+    """Persist ThreadWeave parent choices for the frozen bag."""
+    now = datetime.now(timezone.utc)
+    member_rows = await _snapshot_member_posts(
+        conn,
+        locked["analysis_source_snapshot_id"],
+    )
+    if member_rows:
+        rows = member_rows
+    else:
+        rows = await _cutoff_source_posts(
+            conn,
+            corporate_entity_id=locked["corporate_entity_id"],
+            knowledge_cutoff=locked["knowledge_cutoff"],
+            affiliated_entity_ids=affiliated_entity_ids,
+        )
+    edges = lineage_edge_specs(records_from_source_posts(rows))
+    digest = reconstruction_result_digest(edges)
+    finished = datetime.now(timezone.utc)
+    if finished < now:
+        finished = now
+    await conn.execute(
+        """
+        insert into analysis_run_reconstruction
+            (analysis_run_id, result_sha256, edge_count, reconstructed_at)
+        values ($1, $2, $3, $4)
+        """,
+        analysis_run_id,
+        digest,
+        len(edges),
+        finished,
+    )
+    for edge in edges:
+        await conn.execute(
+            """
+            insert into analysis_run_lineage_edge
+                (analysis_run_id, child_post_id, parent_post_id,
+                 fused_score, reconstructed_at)
+            values ($1, $2, $3, $4, $5)
+            """,
+            analysis_run_id,
+            edge.child_id,
+            edge.parent_id,
+            edge.fused_score,
+            finished,
+        )
+    await _append_status(
+        conn,
+        analysis_run_id,
+        await _next_status_ordinal(conn, analysis_run_id),
+        _SUCCEEDED,
+        finished,
+    )
+
+
+async def _deliver_tepp_measurement(
+    conn: asyncpg.Connection,
+    *,
+    analysis_run_id: str,
+    locked: asyncpg.Record,
+    tepp_client: TeppClient,
+) -> None:
+    """Submit the frozen snapshot through ``tepp_client``. Never persist a theta."""
+    now = datetime.now(timezone.utc)
+    request = tepp_run_request(
+        idempotency_key=str(locked["idempotency_key"]),
+        snapshot_sha256=str(locked["snapshot_sha256"]),
+        knowledge_cutoff=locked["knowledge_cutoff"],
+        corporate_entity_id=str(locked["corporate_entity_id"]),
+    )
+    status_code, failure_code = tepp_submit_outcome(tepp_client, request)
+    finished = datetime.now(timezone.utc)
+    if finished < now:
+        finished = now
+    await _append_status(
+        conn,
+        analysis_run_id,
+        await _next_status_ordinal(conn, analysis_run_id),
+        status_code,
+        finished,
+        failure_code,
+    )

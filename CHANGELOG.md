@@ -4,6 +4,25 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.94.0] - 2026-08-17
+
+### Added
+
+- `POST /api/analysis-runs/{id}/start` now commits Running plus one
+  durable outbox row, wakes Valkey (`analysis-run-outbox`), then
+  delivers ThreadWeave or `tepp_client` (ADR 0023). A crash after
+  Start leaves the work item; refresh finishes it. Period-report
+  stays 422. No TEPP theta is invented.
+
+## [0.93.0] - 2026-08-17
+
+### Added
+
+- `make seed` now persists the designed A-100 fork on the Demo Corp
+  Succeeded lineage run. Open that run: the revised quote and delivery
+  question follow the pricing follow-up and are buttons. Start is
+  unchanged. No TEPP theta is invented.
+
 ## [0.92.0] - 2026-08-17
 
 ### Added

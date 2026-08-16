@@ -5,7 +5,7 @@
 **Depends on:** ADR 0013 registry; ADR 0014 authorized read; ADR 0016 cutoff
 posts; ADR 0017 authorized create
 **Refs:** Issue #79 (Milestone 2 parent); ADR 0013 follow-up 3 (in-process
-start; durable outbox remains later)
+start; durable outbox is ADR 0023)
 
 ## Context
 
@@ -15,10 +15,8 @@ Seed still owned the only Succeeded Demo Corp tree. A buyer cannot
 treat a request they cannot start as a product.
 
 ADR 0013 follow-up 3 asked for a PostgreSQL outbox and Valkey worker.
-That durable delivery path is still later. This slice starts
-reconstruction in the authorized request so the operator can see the
-cutoff tree immediately. A crash after Running and before Succeeded
-rolls the transaction back to Pending.
+That durable delivery path is ADR 0023. This slice starts
+reconstruction so the operator can see the cutoff tree immediately.
 
 Landed #145 occupies ADR 0020 / package 0.87.0 for granted retention
 purge. ADR 0019 binds R&R catalog identity. This decision is the next
@@ -89,10 +87,12 @@ period-report rows do not show the button.
 ## Consequences
 
 Demo Analyst can request a run, start it, and confirm the designed A-100
-fork (revised quote and delivery question under the pricing follow-up)
-without a seed-only Succeeded row. The durable outbox / Valkey worker
-and live TEPP transport remain later slices. Do not stamp Succeeded
-from a missing reconstruct library, and do not invent a theta.
+fork (revised quote and delivery question under the pricing follow-up).
+`make seed` also persists that fork on the Demo Corp Succeeded row so
+open-after-seed is not empty. The durable outbox / Valkey worker is
+ADR 0023. Live TEPP transport remains a later persistable-result
+slice. Do not stamp Succeeded from a missing reconstruct library, and
+do not invent a theta.
 
 ## References — APA 7th
 
