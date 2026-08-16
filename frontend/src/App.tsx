@@ -1632,6 +1632,7 @@ function AnalysisRunsPanel({
   if (runs === null) return <p>Loading analysis runs...</p>;
 
   const corpusHint = selected ? analysisRunCorpusHint(selected) : null;
+  const selectedNextAction = selected ? analysisRunNextAction(selected) : null;
 
   return (
     <section className="popup-section lineage-home">
@@ -1688,6 +1689,7 @@ function AnalysisRunsPanel({
             {" · "}
             Requested {selected.requested_at.slice(0, 10)}
           </p>
+          {selectedNextAction && <p className="post-meta">{selectedNextAction}</p>}
           <AnalysisRunReproducibilityDigests
             codeRevisionSha={selected.code_revision_sha}
             configurationSha256={selected.configuration_sha256}
