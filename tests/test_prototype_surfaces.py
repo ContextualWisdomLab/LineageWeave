@@ -1085,8 +1085,10 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert "function counterpartVocExcerpts" in ui_model
     assert "function vocExcerptsForCounterpart" in ui_model
     assert "function vocExcerptEvidenceId" in ui_model
+    assert "function renderVocExcerpt" in react
     assert "vocExcerptEvidenceId" in react
     assert "원문 보기" in react
+    assert "popupAppointments" in react and "vocExcerptEvidenceId(item, events)" in react
     assert "counterpartVocExcerpts" in react
     assert "vocExcerptsForCounterpart" in react
     assert 'id="vocExcerpts"' in react

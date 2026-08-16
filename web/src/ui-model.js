@@ -174,20 +174,49 @@ export function counterpartVocExcerpts(appointments = [], counterparts = []) {
   return (matched.length ? matched : rows).slice(0, 8);
 }
 
-export function vocExcerptEvidenceId(excerpt = {}, events = []) {
-  const candidates = [
-    excerpt?.source_evidence_id,
-    excerpt?.guid,
-    excerpt?.evidence_id,
-    ...((Array.isArray(events) ? events : []).map((item) => item?.guid || item?.evidence_id)),
-  ];
-  for (const value of candidates) {
-    const text = String(value || "").trim();
-    if (text && !text.includes(":") && !text.startsWith("http") && !text.startsWith("urn:")) {
-      return text;
-    }
+function usableEvidenceId(value) {
+  const text = String(value || "").trim();
+  if (!text || text.includes(":") || text.startsWith("http") || text.startsWith("urn:")) {
+    return "";
   }
-  return "";
+  return text;
+}
+
+function eventEvidenceCandidates(events = []) {
+  return (Array.isArray(events) ? events : [])
+    .map((item) => ({
+      id: usableEvidenceId(item?.guid || item?.evidence_id || item?.source_evidence_id),
+      day: String(item?.timestamp || item?.occurred_on || "").trim().slice(0, 10),
+      blob: `${item?.event || ""} ${item?.title || ""} ${item?.stage || ""}`.toLowerCase(),
+    }))
+    .filter((item) => item.id);
+}
+
+/** Return a drawer guid only when the excerpt owns it or one event uniquely matches. */
+export function vocExcerptEvidenceId(excerpt = {}, events = []) {
+  const own = usableEvidenceId(
+    excerpt?.source_evidence_id || excerpt?.guid || excerpt?.evidence_id,
+  );
+  if (own) return own;
+
+  const rows = eventEvidenceCandidates(events);
+  if (!rows.length) return "";
+  if (rows.length === 1) return rows[0].id;
+
+  const occurredOn = String(excerpt?.occurred_on || "").trim().slice(0, 10);
+  const excerptText = String(excerpt?.excerpt || "").trim().toLowerCase();
+  let matched = rows;
+  if (occurredOn) {
+    const byDay = rows.filter((item) => item.day === occurredOn);
+    if (byDay.length) matched = byDay;
+  }
+  if (matched.length > 1 && excerptText) {
+    const byText = matched.filter((item) => (
+      item.blob.includes(excerptText) || excerptText.includes(item.blob.trim())
+    ));
+    if (byText.length) matched = byText;
+  }
+  return matched.length === 1 ? matched[0].id : "";
 }
 
 export function vocExcerptsForCounterpart(appointments = [], counterpart = {}) {

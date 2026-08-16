@@ -2,7 +2,9 @@
 
 The repository-owned .github/workflows/hourly-product-gap.yml proposes at most
 one bounded buyer-visible increment per hour. It is a proposal loop, not an
-autonomous merge authority.
+autonomous merge authority. The scheduled prompt now also forbids binding a
+reader click to the first unmatched document event: a source drawer opens only
+an excerpt's own authorized guid or a uniquely matching same-document event.
 
 ## Gate and trust boundary
 
