@@ -83,7 +83,13 @@ floating Node version):
 ```bash
 cd frontend && pnpm install
 pnpm run lint && pnpm run test && pnpm run build
+# Storybook inventory (ADR 0020 tokens): pnpm run build-storybook
 ```
+
+A run-bearing analysis-run registry empties only after an unrevoked
+`analysis_run_retention_grant` and `GRANT analysis_run_retention_admin`
+(ADR 0020 / v0.87.0). The documented phrase is not a secret. Do not
+expose purge on a public HTTP route.
 
 ## CI gates
 
