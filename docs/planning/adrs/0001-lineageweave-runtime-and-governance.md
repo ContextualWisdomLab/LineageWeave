@@ -4631,3 +4631,9 @@ opens the existing customer screen for a matching account and shows the
 business relation plus evidence count. Edges without a customer-account match
 remain disabled. This is a presentation path only: it does not create, promote,
 or chronologicalize a customer or Lineage relation.
+
+## Amendment: Counterpart VOC excerpts stay document-scoped (2026-08-16)
+
+Relative-side Keyman may show authorized appointment excerpts as `고객 발화 근거`.
+Name matching is a presentation preference only. Empty excerpts are omitted,
+and no VOC, affiliate, or Lineage relation is created from this display.

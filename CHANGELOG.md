@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Counterpart Keyman now shows authorized customer-appointment excerpts as
+  `고객 발화 근거` under the relative-side card. Matching names are preferred;
+  otherwise the document's authorized appointment text is shown. This does not
+  invent VOC relations or Lineage transitions.
 - The workspace `고객 관계 요약` now prefers actor-scoped customer-master edges,
   shows the business relation and evidence count, and opens the customer
   screen on the matching account. Corp/PU labels without customer evidence
