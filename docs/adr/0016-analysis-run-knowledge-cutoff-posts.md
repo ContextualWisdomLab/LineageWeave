@@ -25,9 +25,11 @@ every scope branch (corporate entity, process unit, thread group, and
 all-visible). ABAC visibility is applied after that temporal gate.
 Click-through still opens the live post body -- post versioning is a
 later slice -- but the run list itself must not advertise a post the
-run was not allowed to know. The detail must say that next action
-plainly: compare the opened body with this cutoff before treating it
-as reconstructed evidence.
+run was not allowed to know. Detail compares the live `updated_at`
+write clock with `knowledge_cutoff` and marks titles rewritten after
+the run. The next action is specific: only those marked titles need a
+cutoff comparison before treating the live body as reconstructed
+evidence.
 
 Reproducibility digests on the same detail use a labeled group whose
 accessible name does not replace the visible prefixes (W3C Accessible
@@ -44,11 +46,12 @@ run.
 - After `make seed`, the Demo Corp lineage run lists Demo public post
   and other in-cutoff Demo Corp titles. The later fixture account-review
   post (2026-02-10) does not appear.
-- Open the run, read the live-body warning, then open a listed post
-  and compare it with the cutoff date.
+- Open the run: Demo public post is marked updated after cutoff
+  (`updated_at` 2026-01-13). Demo private post is not.
 - Hover a digest prefix to read the full code or configuration digest
   when you need to match the API payload.
-- Post-body versioning at the cutoff remains future work.
+- Post-body versioning at the cutoff remains future work. The write
+  clock is a projection, not a stored cutoff body.
 - Thread-group *run list* visibility now uses the same cutoff
   (ADR 0018). A later public post cannot surface a previously hidden
   thread-group run.

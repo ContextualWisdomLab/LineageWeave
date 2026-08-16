@@ -29,7 +29,8 @@ mention TEPP. A failed period-report row rebuilds the report. A
 pending TEPP row does not claim a calibrated measurement. A pending
 lineage row says reconstruction has not started yet.
 Digest prefixes stay audible; hover a prefix to read the full digest.
-Opening a cutoff title shows the live post -- compare it with the
-cutoff before treating the body as reconstructed evidence (ADR 0016).
+Opening a cutoff title shows the live post. Titles marked updated
+after cutoff were rewritten after the run; compare those bodies
+before treating them as reconstructed evidence (ADR 0016).
 `POST /api/analysis-runs` records Pending on an authorized
 cutoff capture (ADR 0017) and does not reconstruct lineage.
