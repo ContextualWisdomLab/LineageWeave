@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.98.0] - 2026-08-17
+
+### Added
+
+- Opening **Open period report 2026-W02** from a corporate-entity
+  analysis run also switches Report grouping to Corporate entity.
+  After `make seed`, the Demo Corp week is the one that opens. Mean θ
+  stays on the report panel. No TEPP theta is invented.
+
 ## [0.97.0] - 2026-08-17
 
 ### Added

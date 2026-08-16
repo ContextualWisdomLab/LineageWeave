@@ -2119,8 +2119,11 @@ describe("App, authenticated", () => {
     await userEvent.clear(periodInput);
     await userEvent.type(periodInput, "2026-W03");
     expect(periodInput).toHaveValue("2026-W03");
+    const groupingSelect = screen.getByLabelText("Report grouping");
+    expect(groupingSelect).toHaveValue("process_unit");
     await userEvent.click(screen.getByRole("button", { name: "Open period report 2026-W02" }));
     expect(periodInput).toHaveValue("2026-W02");
+    expect(groupingSelect).toHaveValue("corporate_entity");
     expect(periodInput).toHaveFocus();
   });
 
