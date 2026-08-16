@@ -49,7 +49,11 @@ reconstruction, not to connect TEPP. A failed period-report row
 tells the operator to rebuild the report from a current snapshot.
 A pending or running TEPP row must not claim a calibrated
 measurement. A pending lineage row says reconstruction has not
-started yet. The detail now shows the legal
+started yet. The list button accessible name is
+`Open analysis run: {caption}. {nextAction}` when a next action
+exists, otherwise the caption alone, so `aria-label` does not hide
+the sentence a sighted operator already sees (W3C, 2018, 2023).
+The detail now shows the legal
 lifecycle the registry already stored. `POST /api/analysis-runs` now
 records a Pending run on an authorized cutoff capture (ADR 0017).
 Reconstruction, a live TEPP transport, and a fuller Analysis Run
@@ -65,3 +69,11 @@ Educational Research Association.
 Lebo, T., Sahoo, S., & McGuinness, D. (Eds.). (2013). *PROV-O: The PROV
 ontology* (W3C Recommendation). World Wide Web Consortium.
 https://www.w3.org/TR/2013/REC-prov-o-20130430/
+
+World Wide Web Consortium. (2018). *Accessible name and description
+computation 1.1* (W3C Recommendation).
+https://www.w3.org/TR/accname-1.1/
+
+World Wide Web Consortium. (2023). *Web content accessibility
+guidelines (WCAG) 2.2* (W3C Recommendation).
+https://www.w3.org/TR/WCAG22/

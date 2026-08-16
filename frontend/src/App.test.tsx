@@ -85,6 +85,7 @@ describe("App, authenticated", () => {
     let nextTicketId = 1;
     const events: { event_id: string; event_type: string; actor_account_id: string; summary: string }[] = [];
     let nextEventId = 1;
+    let createdPendingLineage: Record<string, unknown> | null = null;
 
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -351,12 +352,14 @@ describe("App, authenticated", () => {
             },
           ],
         };
+        createdPendingLineage = created;
         return Promise.resolve(new Response(JSON.stringify(created), { status: 201 }));
       }
       if (url.endsWith("/api/analysis-runs")) {
         return Promise.resolve(
           jsonResponse({
             analysis_runs: [
+              ...(createdPendingLineage ? [createdPendingLineage] : []),
               {
                 analysis_run_id: "run-demo-lineage",
                 run_kind_code: "analysis_run_lineage",
@@ -1704,7 +1707,7 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       screen.getByRole("button", {
-        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+        name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to see why it failed, then connect the measurement service and re-run.",
       }),
     );
     expect(
@@ -1722,10 +1725,10 @@ describe("App, authenticated", () => {
 
     await screen.findByRole("list", { name: "Analysis runs" });
     const lineageButton = screen.getByRole("button", {
-      name: "Open analysis run: Lineage reconstruction · Failed · Demo Corp",
+      name: "Open analysis run: Lineage reconstruction · Failed · Demo Corp. Open this run to see why it failed, then retry reconstruction from a current snapshot.",
     });
     const teppButton = screen.getByRole("button", {
-      name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+      name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to see why it failed, then connect the measurement service and re-run.",
     });
     expect(lineageButton).toHaveTextContent(
       "Open this run to see why it failed, then retry reconstruction from a current snapshot.",
@@ -1742,7 +1745,7 @@ describe("App, authenticated", () => {
     render(<App />);
 
     const reportButton = await screen.findByRole("button", {
-      name: "Open analysis run: Period report · Failed · Demo Corp",
+      name: "Open analysis run: Period report · Failed · Demo Corp. Open this run to see why it failed, then rebuild the period report from a current snapshot.",
     });
     expect(reportButton).toHaveTextContent(
       "Open this run to see why it failed, then rebuild the period report from a current snapshot.",
@@ -1762,11 +1765,11 @@ describe("App, authenticated", () => {
     stubBackend({ pendingTeppRun: true });
     render(<App />);
 
-    await userEvent.click(
-      await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Pending · Demo Corp",
-      }),
-    );
+    const teppButton = await screen.findByRole("button", {
+      name: "Open analysis run: TEPP measurement · Pending · Demo Corp. Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.",
+    });
+    expect(teppButton).not.toHaveTextContent("Reconstruction has not started yet");
+    await userEvent.click(teppButton);
     expect(
       await screen.findByText("These posts are the cutoff corpus TEPP will measure once this run finishes."),
     ).toBeInTheDocument();
@@ -1801,10 +1804,15 @@ describe("App, authenticated", () => {
       await screen.findByRole("heading", { name: "Lineage reconstruction · Pending · Demo Corp" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "Open this run to confirm which posts it will use. Reconstruction has not started yet.",
-      ),
+      screen.getByRole("button", {
+        name: "Open analysis run: Lineage reconstruction · Pending · Demo Corp. Open this run to confirm which posts it will use. Reconstruction has not started yet.",
+      }),
     ).toBeInTheDocument();
+    expect(
+      screen.getAllByText(
+        "Open this run to confirm which posts it will use. Reconstruction has not started yet.",
+      ).length,
+    ).toBeGreaterThanOrEqual(2);
     const postCall = fetchMock.mock.calls.find(
       (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
     );

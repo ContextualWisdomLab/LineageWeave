@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Analysis-run list buttons include the kind-specific next-action
+  sentence in the accessible name (ADR 0014). Open a Failed TEPP row
+  and hear “connect the measurement service” in the list name. A
+  Pending TEPP name does not say reconstruction.
+
 ## [0.86.2] - 2026-08-16
 
 ### Fixed
