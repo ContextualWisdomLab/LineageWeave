@@ -116,8 +116,11 @@ from backend.app.knowledge_graph import (
     persist_edges_for_post,
     related_for_entity,
     related_for_person,
+    related_for_team,
+    team_exists,
     visible_affiliation_post_ids,
     visible_mention_post_ids,
+    visible_team_mention_post_ids,
 )
 from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
 from backend.app.post_chat_ingestion import (
@@ -469,6 +472,34 @@ async def read_related_corporate_entity(
     return {
         "corporate_entity_id": str(entity["corporate_entity_id"]),
         "entity_name": entity["entity_name"],
+        "related": related,
+    }
+
+
+@app.get("/api/teams/{team_id}/related")
+async def read_related_team(
+    team_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """RWR-ranked related nodes from one cataloged team, hiding unseen posts."""
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        if not await team_exists(conn, team_id):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "team not found")
+        visible_post_ids = await visible_team_mention_post_ids(
+            conn, team_id, lambda row: _can_see_post(account, row)
+        )
+        if not visible_post_ids:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this team")
+        team = await conn.fetchrow(
+            "select team_id, team_name from cataloged_team where team_id = $1",
+            team_id,
+        )
+        related = await related_for_team(conn, team_id, visible_post_ids)
+    return {
+        "team_id": str(team["team_id"]),
+        "team_name": team["team_name"],
         "related": related,
     }
 

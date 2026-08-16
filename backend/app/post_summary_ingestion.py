@@ -34,6 +34,7 @@ from lineageweave.corporate_hierarchy_inference import (
     NullCorporateHierarchyInferenceClient,
 )
 from lineageweave.fixtures import fixture_thread_cast
+from lineageweave.knowledge_graph import NODE_CORPORATE_ENTITY, NODE_TEAM
 from lineageweave.ontology import ontology_annotations
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
@@ -68,24 +69,57 @@ async def fetch_persisted_summary(
         post_id,
     )
     roles = await conn.fetch(
-        "select actor_name, responsibility, actor_type_code, affiliated_organization_name "
-        "from post_summary_role where post_id = $1 order by actor_name",
+        """
+        select role.actor_name, role.responsibility, role.actor_type_code,
+               role.affiliated_organization_name,
+               team_mention.team_id,
+               org_mention.corporate_entity_id
+          from post_summary_role role
+          left join cataloged_team team
+            on role.actor_type_code = 'prov_team'
+           and team.team_name = role.actor_name
+           and team.affiliated_organization_name
+               is not distinct from role.affiliated_organization_name
+          left join post_team_mention team_mention
+            on team_mention.post_id = role.post_id
+           and team_mention.team_id = team.team_id
+          left join corporate_entity org
+            on role.actor_type_code = 'prov_organization'
+           and org.entity_name = role.actor_name
+          left join post_organization_mention org_mention
+            on org_mention.post_id = role.post_id
+           and org_mention.corporate_entity_id = org.corporate_entity_id
+         where role.post_id = $1
+         order by role.actor_name
+        """,
         post_id,
     )
-    return {
-        "post_id": post_id,
-        "korean_summary": header["korean_summary"],
-        "key_events": [row["event_text"] for row in events],
-        "roles_and_responsibilities": [
+    payload_roles: list[dict[str, Any]] = []
+    for row in roles:
+        catalog_node_id = None
+        catalog_node_type_code = None
+        if row["team_id"] is not None:
+            catalog_node_id = str(row["team_id"])
+            catalog_node_type_code = NODE_TEAM
+        elif row["corporate_entity_id"] is not None:
+            catalog_node_id = str(row["corporate_entity_id"])
+            catalog_node_type_code = NODE_CORPORATE_ENTITY
+        payload_roles.append(
             {
                 "actor_name": row["actor_name"],
                 "responsibility": row["responsibility"],
                 "actor_type_code": row["actor_type_code"],
                 "affiliated_organization_name": row["affiliated_organization_name"],
+                "catalog_node_id": catalog_node_id,
+                "catalog_node_type_code": catalog_node_type_code,
                 **ontology_annotations(row["actor_type_code"]),
             }
-            for row in roles
-        ],
+        )
+    return {
+        "post_id": post_id,
+        "korean_summary": header["korean_summary"],
+        "key_events": [row["event_text"] for row in events],
+        "roles_and_responsibilities": payload_roles,
     }
 
 
