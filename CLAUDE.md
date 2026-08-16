@@ -15,10 +15,10 @@ back 0020 then 0018. The published phrase is not a secret. Do not
 retention grant to the application `DATABASE_URL` login. ADR 0019
 is the R&R catalog-id bind, not this purge.
 
-## Analysis-run seed (v0.85.0)
+## Analysis-run seed (v0.96.0)
 
-`make seed` writes a Demo Corp lineage run and a TEPP run on the same
-snapshot (ADR 0013). The TEPP path goes through `tepp_client`. A missing
+`make seed` writes a Demo Corp lineage run, a TEPP run, and a Succeeded
+period-report run on the same snapshot (ADR 0013 / ADR 0024). The TEPP path goes through `tepp_client`. A missing
 transport or an unused accepted envelope is Failed
 (`tepp_not_available` / `tepp_result_not_persisted`). Do not invent a
 theta or a local psychometric substitute. The home list caption stays
@@ -40,3 +40,5 @@ frozen cutoff bag (ADR 0021 / ADR 0023) or submits TEPP through
 envelope is Failed. Failed TEPP is terminal — request a new run,
 then start. Do not invent a theta. Hover the Result prefix to read
 the parent-choice digest.
+After `make seed`, open **Period report · Succeeded · Demo Corp**
+to confirm the cutoff posts; mean θ stays on the period-report panel.
