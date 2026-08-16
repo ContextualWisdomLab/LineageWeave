@@ -49,8 +49,20 @@
 }
 
 .post-badge {
-  font-size: 0.75rem;
+  font-size: var(--font-size-badge);
   opacity: 0.7;
+  text-transform: uppercase;
+}
+
+.cutoff-write-clock-badge {
+  display: inline-block;
+  margin-left: var(--space-chip-gap);
+  padding: var(--space-chip-block) var(--space-chip-inline);
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-chip);
+  background: var(--color-accent-background);
+  color: var(--color-text-heading);
+  font-size: var(--font-size-badge);
   text-transform: uppercase;
 }
 

@@ -1727,6 +1727,11 @@ describe("App, authenticated", () => {
       }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(
+      screen.getByText(
+        "This live body was rewritten on 2026-01-13, after cutoff 2026-01-12. Compare it with this run before you treat it as reconstructed evidence.",
+      ),
+    ).toBeInTheDocument();
 
     await userEvent.click(
       screen.getByRole("button", {

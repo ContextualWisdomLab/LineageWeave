@@ -1,6 +1,7 @@
 """Authorized analysis-run create hashes the cutoff bag, never a score."""
 
 from datetime import datetime, timezone
+from pathlib import Path
 
 from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
@@ -134,6 +135,21 @@ def test_live_write_clock_is_distinct_from_the_cutoff_admission_clock() -> None:
         datetime(2026, 1, 13, 9, 0, tzinfo=timezone.utc), cutoff
     ) is True
     assert live_write_after_cutoff(datetime(2026, 1, 13, 9, 0), cutoff) is True
+
+
+def test_write_clock_trigger_honors_an_explicit_pin() -> None:
+    """A body rewrite bumps the clock; an assigned updated_at stays."""
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0021_source_post_write_clock.sql"
+    ).read_text(encoding="utf-8")
+    assert "touch_source_post_write_clock" in sql
+    assert "source_post_write_clock" in sql
+    assert "new.updated_at is not distinct from old.updated_at" in sql
+    assert "post_title" in sql
+    assert "post_body" in sql
+    assert "clock_timestamp()" in sql
 
 
 def test_create_rejects_an_unaffiliated_or_ambiguous_corporate_entity() -> None:

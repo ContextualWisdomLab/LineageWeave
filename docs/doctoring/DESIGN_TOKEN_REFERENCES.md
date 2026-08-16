@@ -8,7 +8,7 @@ the Storybook inventory.
 
 | Source | Product implication | Implemented evidence |
 |---|---|---|
-| W3C Design Tokens Format Module 1.0 | Name color, space, type, and radius once; consume those names from repeated objects. | `frontend/src/styles/tokens.css` defines `--color-*`, `--space-*`, `--radius-chip`, and `--font-*`. `CitationChip` and `PopupCloseButton` read those names through `App.css`. |
+| W3C Design Tokens Format Module 1.0 | Name color, space, type, and radius once; consume those names from repeated objects. | `frontend/src/styles/tokens.css` defines `--color-*`, `--space-*`, `--radius-chip`, and `--font-*`. `CitationChip`, `PopupCloseButton`, and `CutoffWriteClockBadge` read those names through `App.css`. |
 | Storybook for React & Vite | Catalog repeated controls so a buyer can try the next click without reading `App.tsx`. | `frontend/src/components/*.stories.tsx` and `docs/storybook-inventory.md`. |
 
 ## APA 7th references

@@ -33,6 +33,7 @@ _REALM = "lineageweave-demo"
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
 _RETENTION_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0020_analysis_run_retention_purge.sql"
+_WRITE_CLOCK_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0021_source_post_write_clock.sql"
 
 
 def _postgres_available() -> bool:
@@ -117,6 +118,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_MIGRATION_PATH.read_text())
             cur.execute(_REGISTRY_MIGRATION.read_text())
             cur.execute(_RETENTION_MIGRATION.read_text())
+            cur.execute(_WRITE_CLOCK_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -523,6 +525,40 @@ def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
     assert "postgresql://" not in str(body)
     assert "visible_posts" not in visible
 
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select updated_at from source_post where post_title = %s",
+                ("Own-corp private post",),
+            )
+            pinned = cur.fetchone()[0]
+            cur.execute(
+                "update source_post set post_body = post_body || ' rewritten' "
+                "where post_title = %s",
+                ("Own-corp private post",),
+            )
+            cur.execute(
+                "select updated_at from source_post where post_title = %s",
+                ("Own-corp private post",),
+            )
+            rewritten = cur.fetchone()[0]
+            assert rewritten > pinned
+            cur.execute(
+                "update source_post set post_body = %s, updated_at = %s "
+                "where post_title = %s",
+                ("body", pinned, "Own-corp private post"),
+            )
+            cur.execute(
+                "select updated_at from source_post where post_title = %s",
+                ("Own-corp private post",),
+            )
+            honoured = cur.fetchone()[0]
+            assert honoured == pinned
+    finally:
+        admin_conn.close()
+
     hidden = client.get(
         f"/api/analysis-runs/{seeded_db['hidden_run_id']}",
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
@@ -611,7 +647,12 @@ def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, 
     response = client.get("/api/posts", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200
     titles = {post["post_title"] for post in response.json()}
-    assert titles == {"Public post", "Own-corp private post", "Late own-corp private post"}
+    assert titles == {
+        "Public post",
+        "Own-corp private post",
+        "Late own-corp private post",
+        "Edited own-corp private post",
+    }
     public = next(post for post in response.json() if post["post_title"] == "Public post")
     assert public["voc_type_label"] == "Voice of Customer"
     assert public["visibility_label"] == "Public"

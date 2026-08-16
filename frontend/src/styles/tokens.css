@@ -15,6 +15,7 @@
   --radius-chip: 999px;
   --font-size-close: 1.5rem;
   --font-family-chip: ui-monospace, Consolas, monospace;
+  --font-size-badge: 0.75rem;
 }
 
 @media (prefers-color-scheme: dark) {

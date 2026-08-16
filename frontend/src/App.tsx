@@ -59,6 +59,7 @@ import {
   type VocEvidence,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
+import { CutoffWriteClockBadge } from "./components/CutoffWriteClockBadge";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
@@ -1163,13 +1164,15 @@ function PostDetailPopup({
   graph,
   onClose,
   onSelectPost,
+  liveWriteClock,
 }: {
   postId: string;
   accessToken: string;
   canExtract: boolean;
   graph: LineageGraph | null;
   onClose: () => void;
-  onSelectPost?: (postId: string) => void;
+  onSelectPost?: SelectPostFn;
+  liveWriteClock?: AnalysisRunLiveWriteClock | null;
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1242,6 +1245,9 @@ function PostDetailPopup({
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
+            {liveWriteClock?.liveAfterCutoff && (
+              <p className="post-meta">{analysisRunOpenedPostWarning(liveWriteClock)}</p>
+            )}
             <PostBody body={post.post_body} />
 
             <section className="popup-section">
@@ -1587,6 +1593,30 @@ function analysisRunLivePostButtonLabel(post: {
   return `Open live post: ${post.post_title}`;
 }
 
+type AnalysisRunLiveWriteClock = {
+  knowledgeCutoff: string;
+  updatedAt?: string;
+  liveAfterCutoff?: boolean;
+};
+
+type SelectPostFn = (postId: string, liveWriteClock?: AnalysisRunLiveWriteClock) => void;
+
+/**
+ * Next action after a marked cutoff title opens the live body.
+ */
+function analysisRunOpenedPostWarning(clock: AnalysisRunLiveWriteClock): string {
+  const cutoffDate = clock.knowledgeCutoff.slice(0, 10);
+  const writtenDate = clock.updatedAt?.slice(0, 10);
+  if (!clock.liveAfterCutoff) {
+    return `This live body still matches the write clock this run knew (cutoff ${cutoffDate}).`;
+  }
+  const written = writtenDate ? ` on ${writtenDate}` : "";
+  return (
+    `This live body was rewritten${written}, after cutoff ${cutoffDate}. ` +
+    "Compare it with this run before you treat it as reconstructed evidence."
+  );
+}
+
 function AnalysisRunReproducibilityDigests({
   codeRevisionSha,
   configurationSha256,
@@ -1622,7 +1652,7 @@ function AnalysisRunsPanel({
   onSelectPost,
 }: {
   accessToken: string;
-  onSelectPost: (postId: string) => void;
+  onSelectPost: SelectPostFn;
 }) {
   const [runs, setRuns] = useState<AnalysisRun[] | null>(null);
   const [selected, setSelected] = useState<AnalysisRun | null>(null);
@@ -1760,13 +1790,17 @@ function AnalysisRunsPanel({
                     <button
                       className="keyman-select"
                       aria-label={analysisRunLivePostButtonLabel(post)}
-                      onClick={() => onSelectPost(post.post_id)}
+                      onClick={() =>
+                        onSelectPost(post.post_id, {
+                          knowledgeCutoff: selected.knowledge_cutoff,
+                          updatedAt: post.updated_at,
+                          liveAfterCutoff: post.live_after_cutoff,
+                        })
+                      }
                     >
                       {post.post_title}
                     </button>
-                    {post.live_after_cutoff && (
-                      <span className="post-badge">Updated after cutoff</span>
-                    )}
+                    {post.live_after_cutoff && <CutoffWriteClockBadge />}
                   </li>
                 ))}
               </ul>
@@ -2036,6 +2070,12 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [graph, setGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [liveWriteClock, setLiveWriteClock] = useState<AnalysisRunLiveWriteClock | null>(null);
+
+  function selectPost(postId: string, comparison?: AnalysisRunLiveWriteClock) {
+    setSelectedPostId(postId);
+    setLiveWriteClock(comparison ?? null);
+  }
   const [canRebuild, setCanRebuild] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
@@ -2067,9 +2107,9 @@ function PostList({ accessToken }: { accessToken: string }) {
 
   return (
     <>
-      <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <AnalysisRunsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
+      <CalendarPanel accessToken={accessToken} onSelectPost={selectPost} />
+      <AnalysisRunsPanel accessToken={accessToken} onSelectPost={selectPost} />
+      <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={selectPost} />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
           <h2>Event Lineage</h2>
@@ -2081,7 +2121,7 @@ function PostList({ accessToken }: { accessToken: string }) {
         </div>
         {rebuildError && <p className="error">{rebuildError}</p>}
         {!graph && <p>Loading lineage graph...</p>}
-        {graph && <LineageDag graph={graph} onSelectPost={setSelectedPostId} />}
+        {graph && <LineageDag graph={graph} onSelectPost={selectPost} />}
       </section>
       <ul className="post-list">
         {posts.map((post) => (
@@ -2089,7 +2129,7 @@ function PostList({ accessToken }: { accessToken: string }) {
             <button
               className="post-list-item"
               aria-label={`View post: ${post.post_title}`}
-              onClick={() => setSelectedPostId(post.post_id)}
+              onClick={() => selectPost(post.post_id)}
             >
               <span className="post-title">{post.post_title}</span>
               <span className="post-badge">{post.voc_type_label ?? post.voc_type_code}</span>
@@ -2104,8 +2144,12 @@ function PostList({ accessToken }: { accessToken: string }) {
           accessToken={accessToken}
           canExtract={canRebuild}
           graph={graph}
-          onClose={() => setSelectedPostId(null)}
-          onSelectPost={setSelectedPostId}
+          onClose={() => {
+            setSelectedPostId(null);
+            setLiveWriteClock(null);
+          }}
+          onSelectPost={selectPost}
+          liveWriteClock={liveWriteClock}
         />
       )}
     </>

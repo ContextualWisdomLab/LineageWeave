@@ -22,6 +22,10 @@ _RETENTION_MIGRATION = _ROOT / "migrations" / "0020_analysis_run_retention_purge
 _RETENTION_ROLLBACK = (
     _ROOT / "migrations" / "rollback" / "0020_analysis_run_retention_purge.sql"
 )
+_WRITE_CLOCK_MIGRATION = _ROOT / "migrations" / "0021_source_post_write_clock.sql"
+_WRITE_CLOCK_ROLLBACK = (
+    _ROOT / "migrations" / "rollback" / "0021_source_post_write_clock.sql"
+)
 _POSTGRES_IMAGE = _ROOT / "docker" / "postgres-init" / "Dockerfile"
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -276,10 +280,21 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert "0018_analysis_run_registry.sql" in dockerfile
     assert "0019_role_catalog_identity.sql" in dockerfile
     assert "0020_analysis_run_retention_purge.sql" in dockerfile
+    assert "0021_source_post_write_clock.sql" in dockerfile
     seed = (_ROOT / "scripts" / "seed_demo_data.py").read_text(encoding="utf-8")
     assert seed.index("0019_role_catalog_identity.sql") < seed.index(
         "0020_analysis_run_retention_purge.sql"
     )
+    assert seed.index("0020_analysis_run_retention_purge.sql") < seed.index(
+        "0021_source_post_write_clock.sql"
+    )
+    write_clock = _WRITE_CLOCK_MIGRATION.read_text(encoding="utf-8")
+    write_clock_rollback = _WRITE_CLOCK_ROLLBACK.read_text(encoding="utf-8")
+    assert "touch_source_post_write_clock" in write_clock
+    assert "source_post_write_clock" in write_clock
+    assert "new.updated_at is not distinct from old.updated_at" in write_clock
+    assert "drop trigger if exists source_post_write_clock" in write_clock_rollback
+    assert "drop function if exists touch_source_post_write_clock" in write_clock_rollback
     assert "analysis_run_registry_not_empty" in rollback
     retention = _RETENTION_MIGRATION.read_text(encoding="utf-8")
     retention_rollback = _RETENTION_ROLLBACK.read_text(encoding="utf-8")
