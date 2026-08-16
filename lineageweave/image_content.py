@@ -173,6 +173,7 @@ class OpenAiCompatibleVisionClient:
         *,
         timeout: float = 60.0,
         allow_insecure_http: bool = False,
+        mode: str | None = None,
     ) -> None:
         parsed = urlparse(base_url)
         if parsed.scheme not in {"http", "https"}:
@@ -192,25 +193,32 @@ class OpenAiCompatibleVisionClient:
         self._api_key = api_key
         self._model = model
         self._timeout = timeout
+        # None keeps generic OpenAI-compatible gateways from rejecting an
+        # unknown ``mode`` field. ``orchestrator_vision_client`` sets
+        # ``mode="auto"`` so ADR-0013 applies on the orchestrator path.
+        self._mode = mode
 
     def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
         data_uri = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
+        payload: dict = {
+            "model": self._model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": _RESPONSE_FORMAT},
+                        {"type": "image_url", "image_url": {"url": data_uri}},
+                    ],
+                }
+            ],
+            "max_tokens": 300,
+            "temperature": 0.0,
+        }
+        if self._mode is not None:
+            payload["mode"] = self._mode
         body = post_json(
             f"{self._base_url}/chat/completions",
-            {
-                "model": self._model,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": _RESPONSE_FORMAT},
-                            {"type": "image_url", "image_url": {"url": data_uri}},
-                        ],
-                    }
-                ],
-                "max_tokens": 300,
-                "temperature": 0.0,
-            },
+            payload,
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
@@ -223,10 +231,11 @@ def orchestrator_vision_client(base_url: str, api_key: str, model: str) -> Image
 
     Other clients POST ``{base_url}/v1/chat/completions``;
     :class:`OpenAiCompatibleVisionClient` POSTs ``{base_url}/chat/completions``,
-    so this appends ``/v1`` unless already present. An ``http://`` orchestrator
-    (local docker) is allowed because the other channels already talk to the
-    same URL. A construct-time error degrades to the unavailable null rather
-    than crashing the request that asked for a description.
+    so this appends ``/v1`` unless already present. The factory passes
+    ``mode="auto"`` (ADR-0013). An ``http://`` orchestrator (local docker)
+    is allowed because the other channels already talk to the same URL.
+    A construct-time error degrades to the unavailable null rather than
+    crashing the request that asked for a description.
     """
     if not (base_url and api_key and model):
         return NullImageContentClient()
@@ -240,6 +249,7 @@ def orchestrator_vision_client(base_url: str, api_key: str, model: str) -> Image
             api_key=api_key,
             model=model,
             allow_insecure_http=parsed.scheme == "http",
+            mode="auto",
         )
     except ValueError:
         return NullImageContentClient()

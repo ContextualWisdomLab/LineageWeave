@@ -98,6 +98,7 @@ def test_vision_client_accepts_https_urls_by_default() -> None:
         model="unused",
     )
     assert https_client._base_url == "https://gateway.example/v1"
+    assert https_client._mode is None
 
 
 def test_vision_client_rejects_plain_http_by_default() -> None:
@@ -126,6 +127,7 @@ def test_orchestrator_vision_client_appends_v1_and_allows_local_http() -> None:
     client = orchestrator_vision_client("http://127.0.0.1:8000", "key", "vision-model")
     assert isinstance(client, OpenAiCompatibleVisionClient)
     assert client._base_url == "http://127.0.0.1:8000/v1"
+    assert client._mode == "auto"
 
 
 def test_orchestrator_vision_client_does_not_double_v1() -> None:
@@ -138,6 +140,52 @@ def test_orchestrator_vision_client_is_null_when_unconfigured() -> None:
     client = orchestrator_vision_client("", "", "")
     assert isinstance(client, NullImageContentClient)
     assert client.available is False
+
+
+def test_orchestrator_vision_client_requests_auto_mode(monkeypatch) -> None:
+    """Orchestrator-built vision must send mode=auto on the wire, not a docstring."""
+
+    observed: dict[str, object] = {}
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        observed["payload"] = payload
+        return {
+            "choices": [
+                {"message": {"content": "TEXT: NONE\nCAPTION: A 1x1 pixel.\nTAGS: pixel"}}
+            ]
+        }
+
+    monkeypatch.setattr("lineageweave.image_content.post_json", fake_post_json)
+    client = orchestrator_vision_client("https://orchestrator.example.test", "key", "vision-model")
+    assert isinstance(client, OpenAiCompatibleVisionClient)
+    description = client.describe(base64.b64decode(_TINY_PNG_B64), "image/png")
+
+    assert observed["payload"]["mode"] == "auto"
+    assert description.caption == "A 1x1 pixel."
+
+
+def test_generic_vision_client_omits_mode_for_openai_compat(monkeypatch) -> None:
+    """A raw OpenAI-compatible gateway must not receive an unknown mode field."""
+
+    observed: dict[str, object] = {}
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        observed["payload"] = payload
+        return {
+            "choices": [
+                {"message": {"content": "TEXT: NONE\nCAPTION: A 1x1 pixel.\nTAGS: pixel"}}
+            ]
+        }
+
+    monkeypatch.setattr("lineageweave.image_content.post_json", fake_post_json)
+    client = OpenAiCompatibleVisionClient(
+        base_url="https://gateway.example/v1",
+        api_key="key",
+        model="vision-model",
+    )
+    client.describe(base64.b64decode(_TINY_PNG_B64), "image/png")
+
+    assert "mode" not in observed["payload"]
 
 
 def test_image_content_client_protocol_stub_raises() -> None:

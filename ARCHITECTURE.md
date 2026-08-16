@@ -93,7 +93,9 @@ flowchart LR
 > accepts `auto`/`route`/`conduct`) -- confirmed by reproducing the same
 > `400` directly against the orchestrator's own `/v1/chat/completions`,
 > not caused by anything in this repo. Ordinary product adapters request
-> `mode="auto"` and are unaffected.
+> `mode="auto"` and are unaffected. Vision built by
+> `orchestrator_vision_client` also sends `mode="auto"`; a generic
+> OpenAI-compatible vision client omits `mode`.
 
 ## Design decisions worth naming
 

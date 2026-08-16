@@ -9,7 +9,7 @@ LineageWeave used fixed single-worker `route` mode for structured extraction, su
 
 ## Decision
 
-Ordinary LineageWeave LLM consumers request `mode="auto"`.
+Ordinary LineageWeave LLM consumers request `mode="auto"`. That includes structured extraction, summarization, commitment derivation, relationship classification, post evaluation, and vision OCR/captioning when the client is built by `orchestrator_vision_client`. A generic `OpenAiCompatibleVisionClient` omits `mode` so an OpenAI-compatible gateway that rejects unknown fields still works.
 
 The orchestration plane owns provider/model selection, test-time compute, workflow depth, verification, fallback, and known-price optimization. Quality sufficiency is the first constraint; cost is minimized among execution paths that satisfy it. Unpriced models are not treated as free.
 
@@ -21,7 +21,7 @@ LineageWeave continues to own strict output parsing, evidence identifiers, IRT p
 
 A structured task may still be served by one model when the adaptive policy determines that it is sufficient. Harder requests may receive a deeper workflow without changing the LineageWeave API. Consumers must retain returned orchestration and usage evidence when the gateway exposes it.
 
-Contract tests require a payload-level `"mode": "auto"` or `"mode": "verify"` literal (or, for post-evaluation, `"mode": mode` plus `mode: str = "auto"`). A docstring mention of `mode="auto"` or `mode="verify"` is not sufficient. Wire tests call `answer()` / `judge()` / `evaluate()` and assert the outbound body.
+Contract tests walk the AST for a payload-level `"mode": "auto"` or `"mode": "verify"` literal (or, for post-evaluation, `"mode": mode` plus `mode: str = "auto"`; for vision, the orchestrator factory passes `mode="auto"` and `describe()` writes it onto the body). A docstring mention of `mode="auto"` or `mode="verify"`, including a quoted `{"mode": "auto"}` fragment, is not sufficient. Wire tests call `answer()` / `judge()` / `evaluate()` / `describe()` and assert the outbound body.
 
 ## References
 

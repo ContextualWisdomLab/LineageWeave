@@ -12,9 +12,11 @@ All notable changes to this project are documented here. Format follows
   `mode="auto"` rather than forcing a one-model route. The
   orchestrator owns the quality-sufficient route, verification, or
   conducted workflow. Citation-bearing post-chat and lineage
-  adjudication keep their explicit `verify` contracts. Source-scan
-  regressions require those payload literals so a docstring mention
-  cannot satisfy ADR-0013.
+  adjudication keep their explicit `verify` contracts. Vision built
+  by `orchestrator_vision_client` also sends `mode="auto"`; a generic
+  OpenAI-compatible vision client still omits `mode`. Source-scan
+  regressions walk the AST for those payload literals so a docstring
+  mention, including quoted JSON, cannot satisfy ADR-0013.
 
 ## [0.71.0] - 2026-08-14
 
