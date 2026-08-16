@@ -9,9 +9,10 @@ never a fabricated cutoff body or a TEPP theta.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import asyncpg
+if TYPE_CHECKING:
+    import asyncpg
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -61,7 +62,7 @@ def _iso(value: Any) -> str:
 
 
 async def fetch_known_at_revision(
-    conn: asyncpg.Connection,
+    conn: "asyncpg.Connection",
     post_id: str,
     as_of: datetime,
 ) -> dict[str, str] | None:
