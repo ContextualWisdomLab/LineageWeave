@@ -169,6 +169,33 @@ describe("App, authenticated", () => {
           jsonResponse({ post_id: "post-1", has_commitment: true, ticket }),
         );
       }
+      if (url.endsWith("/api/analysis-runs")) {
+        return Promise.resolve(
+          jsonResponse({
+            analysis_runs: [
+              {
+                analysis_run_id: "run-demo-lineage",
+                run_kind_code: "analysis_run_lineage",
+                run_kind_label: "Lineage reconstruction",
+                scope_kind_code: "analysis_scope_corporate_entity",
+                scope_kind_label: "Corporate entity",
+                scope_entity_name: "Demo Corp",
+                status_code: "analysis_status_succeeded",
+                status_label: "Succeeded",
+                knowledge_cutoff: "2026-01-12T12:00:00Z",
+                requested_at: "2026-01-12T12:30:00Z",
+                source_counts: [
+                  {
+                    count_type_code: "analysis_count_document",
+                    count_type_label: "Documents",
+                    count_value: 3,
+                  },
+                ],
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/calendar")) {
         return Promise.resolve(
           jsonResponse({
@@ -1294,6 +1321,18 @@ describe("App, authenticated", () => {
     await userEvent.click(calendarButton);
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
+  it("shows the seeded analysis run on the home page", async () => {
+    stubBackend();
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Analysis runs" })).toBeInTheDocument();
+    const list = screen.getByRole("list", { name: "Analysis runs" });
+    expect(list).toHaveTextContent("Lineage reconstruction · Succeeded · Demo Corp");
+    expect(list).toHaveTextContent("3 documents");
+    expect(list).not.toHaveTextContent("postgresql://");
+    expect(list).not.toHaveTextContent("select ");
   });
 
   it("shows the calibrated period-report mean theta on the home page", async () => {

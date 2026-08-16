@@ -111,6 +111,7 @@ def seed(
             cur.execute((migrations / "0014_role_responsibility_team_actor_type.sql").read_text())
             cur.execute((migrations / "0015_organization_name_resolution.sql").read_text())
             cur.execute((migrations / "0016_cross_post_actor_identity.sql").read_text())
+            cur.execute((migrations / "0018_analysis_run_registry.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -321,6 +322,11 @@ def seed(
                 account_ids["demo.analyst"],
                 corporate_entity_id,
                 process_units["DEMO-PU-LINEAGE"],
+            )
+            _seed_demo_analysis_run(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
             )
 
         conn.commit()
@@ -1190,6 +1196,101 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
         source_period_code=w03,
     )
     _persist_seed_period_report(cur, "process_unit", high_key, w03, week3[high_key])
+
+
+def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -> None:
+    """Insert one Demo-Corp lineage run so Analysis runs is not empty.
+
+    Aggregates only: three synthetic documents, one thread. The digest is
+    a hash of a fixed demo contract string -- never a source row or DSN.
+    """
+    import hashlib
+
+    digest = hashlib.sha256(b"lineageweave-synthetic-demo-snapshot-v1").hexdigest()
+    cur.execute(
+        "select analysis_source_snapshot_id from analysis_source_snapshot "
+        "where snapshot_sha256 = %s",
+        (digest,),
+    )
+    snapshot_row = cur.fetchone()
+    if snapshot_row is None:
+        cur.execute(
+            """
+            insert into analysis_source_snapshot
+                (snapshot_sha256, source_contract_version,
+                 maximum_available_time, captured_at)
+            values (%s, 'demo-source-contract-v1',
+                    '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
+            returning analysis_source_snapshot_id
+            """,
+            (digest,),
+        )
+        snapshot_id = cur.fetchone()[0]
+    else:
+        snapshot_id = snapshot_row[0]
+    cur.execute(
+        """
+        insert into analysis_source_count
+            (analysis_source_snapshot_id, count_type_code, count_value)
+        values
+            (%s, 'analysis_count_document', 3),
+            (%s, 'analysis_count_thread', 1),
+            (%s, 'analysis_count_lineage_node', 5),
+            (%s, 'analysis_count_lineage_edge', 4)
+        on conflict do nothing
+        """,
+        (snapshot_id, snapshot_id, snapshot_id, snapshot_id),
+    )
+    cur.execute(
+        """
+        select analysis_run_id from analysis_run
+        where requested_by_account_id = %s
+          and idempotency_key = 'demo-lineage-seed-2026-w02'
+        """,
+        (requested_by_account_id,),
+    )
+    run_row = cur.fetchone()
+    if run_row is None:
+        cur.execute(
+            """
+            insert into analysis_run
+                (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                 requested_by_account_id, knowledge_cutoff,
+                 configuration_schema_version, configuration_sha256,
+                 code_revision_sha, requested_at)
+            values (%s, 'analysis_run_lineage', 'demo-lineage-seed-2026-w02',
+                    %s, '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
+                    '2026-01-12T12:30:00Z')
+            returning analysis_run_id
+            """,
+            (snapshot_id, requested_by_account_id, "b" * 64, "c" * 40),
+        )
+        run_id = cur.fetchone()[0]
+    else:
+        run_id = run_row[0]
+    cur.execute(
+        """
+        insert into analysis_run_scope
+            (analysis_run_id, scope_kind_code, corporate_entity_id)
+        values (%s, 'analysis_scope_corporate_entity', %s)
+        on conflict (analysis_run_id) do nothing
+        """,
+        (run_id, corporate_entity_id),
+    )
+    for ordinal, status, occurred in (
+        (1, "analysis_status_pending", "2026-01-12T12:31:00Z"),
+        (2, "analysis_status_running", "2026-01-12T12:32:00Z"),
+        (3, "analysis_status_succeeded", "2026-01-12T12:33:00Z"),
+    ):
+        cur.execute(
+            """
+            insert into analysis_run_status_event
+                (analysis_run_id, status_ordinal, status_code, occurred_at)
+            values (%s, %s, %s, %s)
+            on conflict do nothing
+            """,
+            (run_id, ordinal, status, occurred),
+        )
 
 
 def main() -> None:

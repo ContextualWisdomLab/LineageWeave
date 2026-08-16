@@ -22,6 +22,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 from typing import Any
+from uuid import UUID
 
 import asyncpg
 import redis.asyncio as redis
@@ -64,6 +65,10 @@ from lineageweave.post_evaluation import (
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
 
+from backend.app.analysis_run_ingestion import (
+    fetch_visible_analysis_run,
+    fetch_visible_analysis_runs,
+)
 from backend.app.activity_stream import (
     create_valkey_client,
     get_valkey,
@@ -1146,6 +1151,50 @@ async def derive_post_commitment(
         f"Commitment derived: {commitment.commitment_summary}",
     )
     return {"post_id": str(post["post_id"]), "has_commitment": True, "ticket": ticket}
+
+
+@app.get("/api/analysis-runs")
+async def list_analysis_runs(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Authorized analysis-run list: aggregates and labels only.
+
+    Hidden scopes 404 at the item path and never appear here. The
+    payload has no source SQL, DSN, raw record, or provider body.
+    """
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        runs = await fetch_visible_analysis_runs(
+            conn,
+            account.user_account_id,
+            list(account.corporate_entity_ids),
+        )
+    return {"analysis_runs": runs}
+
+
+@app.get("/api/analysis-runs/{analysis_run_id}")
+async def read_analysis_run(
+    analysis_run_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """One authorized analysis-run projection, or 404 when hidden."""
+    _require_post_read(account)
+    try:
+        UUID(analysis_run_id)
+    except ValueError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "analysis run not found") from None
+    async with pool.acquire() as conn:
+        run = await fetch_visible_analysis_run(
+            conn,
+            analysis_run_id,
+            account.user_account_id,
+            list(account.corporate_entity_ids),
+        )
+    if run is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "analysis run not found")
+    return run
 
 
 @app.get("/api/calendar")
