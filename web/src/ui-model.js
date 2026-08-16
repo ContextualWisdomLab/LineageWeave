@@ -174,49 +174,69 @@ export function counterpartVocExcerpts(appointments = [], counterparts = []) {
   return (matched.length ? matched : rows).slice(0, 8);
 }
 
-function usableEvidenceId(value) {
+function usableEvidenceId(value, documentNo = "") {
   const text = String(value || "").trim();
   if (!text || text.includes(":") || text.startsWith("http") || text.startsWith("urn:")) {
+    return "";
+  }
+  if (documentNo && text === String(documentNo).trim()) {
     return "";
   }
   return text;
 }
 
-function eventEvidenceCandidates(events = []) {
+function eventEvidenceCandidates(events = [], documentNo = "") {
   return (Array.isArray(events) ? events : [])
     .map((item) => ({
-      id: usableEvidenceId(item?.guid || item?.evidence_id || item?.source_evidence_id),
+      id: usableEvidenceId(item?.guid || item?.evidence_id || item?.source_evidence_id, documentNo),
       day: String(item?.timestamp || item?.occurred_on || "").trim().slice(0, 10),
       blob: `${item?.event || ""} ${item?.title || ""} ${item?.stage || ""}`.toLowerCase(),
     }))
     .filter((item) => item.id);
 }
 
-/** Return a drawer guid only when the excerpt owns it or one event uniquely matches. */
-export function vocExcerptEvidenceId(excerpt = {}, events = []) {
+/**
+ * Choose a 원문-drawer guid only when the click names one authorized event.
+ *
+ * Own ids must already appear on the document events. A single-event document
+ * may bind that event. Otherwise the excerpt text must uniquely match one
+ * event blob. A shared date can narrow candidates; a date alone cannot open
+ * another row. Document-number guids, URIs, and empty blobs stay inert.
+ */
+export function vocExcerptEvidenceId(excerpt = {}, events = [], documentNo = "") {
+  const rows = eventEvidenceCandidates(events, documentNo);
   const own = usableEvidenceId(
     excerpt?.source_evidence_id || excerpt?.guid || excerpt?.evidence_id,
+    documentNo,
   );
-  if (own) return own;
+  if (own && rows.some((item) => item.id === own)) {
+    return own;
+  }
 
-  const rows = eventEvidenceCandidates(events);
-  if (!rows.length) return "";
-  if (rows.length === 1) return rows[0].id;
+  const eventCount = Array.isArray(events) ? events.length : 0;
+  if (eventCount === 1 && rows.length === 1) {
+    return rows[0].id;
+  }
+
+  const excerptText = String(excerpt?.excerpt || "").trim().toLowerCase();
+  if (!excerptText) {
+    return "";
+  }
 
   const occurredOn = String(excerpt?.occurred_on || "").trim().slice(0, 10);
-  const excerptText = String(excerpt?.excerpt || "").trim().toLowerCase();
   let matched = rows;
   if (occurredOn) {
     const byDay = rows.filter((item) => item.day === occurredOn);
-    if (byDay.length) matched = byDay;
+    if (byDay.length) {
+      matched = byDay;
+    }
   }
-  if (matched.length > 1 && excerptText) {
-    const byText = matched.filter((item) => (
-      item.blob.includes(excerptText) || excerptText.includes(item.blob.trim())
-    ));
-    if (byText.length) matched = byText;
-  }
-  return matched.length === 1 ? matched[0].id : "";
+
+  const byText = matched.filter((item) => {
+    const blob = item.blob.trim();
+    return Boolean(blob) && blob.includes(excerptText);
+  });
+  return byText.length === 1 ? byText[0].id : "";
 }
 
 export function vocExcerptsForCounterpart(appointments = [], counterpart = {}) {

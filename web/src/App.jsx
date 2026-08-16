@@ -773,7 +773,7 @@ export default function App() {
   }
 
   function renderVocExcerpt(item, key) {
-    const evidenceId = vocExcerptEvidenceId(item, events);
+    const evidenceId = vocExcerptEvidenceId(item, events, selectedNo);
     const excerpt = String(item?.excerpt || "").trim();
     const meta = `${item.occurred_on || "날짜 미상"}${item.label ? ` · ${item.label}` : ""}`;
     if (evidenceId) {
@@ -1426,7 +1426,7 @@ export default function App() {
               </section>
               <section className="detail-card modal-appointments">
                 <h3>고객 약속</h3>
-                <ul id="popupAppointments">{(selectedDocument.appointments || []).map((item) => { const evidenceId = vocExcerptEvidenceId(item, events); const label = item.excerpt || item.label; return <li className="ticket" key={item.appointment_id}><strong>{item.occurred_on}</strong>{evidenceId ? <button type="button" className="keyman-link" onClick={() => openEvidence(evidenceId)} aria-label={`${label} 원문 보기`}>{label}</button> : <span>{label}</span>}</li>; })}</ul>
+                <ul id="popupAppointments">{(selectedDocument.appointments || []).map((item) => { const evidenceId = vocExcerptEvidenceId(item, events, selectedNo); const label = item.excerpt || item.label; return <li className="ticket" key={item.appointment_id}><strong>{item.occurred_on}</strong>{evidenceId ? <button type="button" className="keyman-link" onClick={() => openEvidence(evidenceId)} aria-label={`${label} 원문 보기`}>{label}</button> : <span>{label}</span>}</li>; })}</ul>
               </section>
               {canManage ? <section className="detail-card wide modal-keyman-editor"><h3>Keyman 관리</h3><p className="meta">사람은 <code>이름 | 조직 | 직급 | 직책</code>, 기관·팀은 <code>organization | 이름 | 소속 | 직급 | 직책</code> 형식입니다. 기관을 사람 이름으로 입력하지 않으며, 뒤 항목은 생략할 수 있습니다.</p><div className="two-column"><label>사측<textarea value={keymanForm.our} onChange={(event) => setKeymanForm({ ...keymanForm, our: event.target.value })} /></label><label>상대측<textarea value={keymanForm.counterpart} onChange={(event) => setKeymanForm({ ...keymanForm, counterpart: event.target.value })} /></label></div><button className="secondary-button" disabled={busy} onClick={saveKeymen}>Keyman 저장</button></section> : null}
               {evidence ? <aside id="vocDrawer" className="source-drawer" aria-label="원문 출처"><button className="close-button" onClick={() => setEvidence(null)} aria-label="출처 닫기">×</button><p className="eyebrow">원문 근거</p><h2>{evidence.title || evidence.evidence_id}</h2><p className="meta">{evidence.event} · {evidence.stage} · {evidence.created_at}</p><dl><dt>법인 / PU</dt><dd>{evidence.corp_code} / {evidence.pu_code}</dd><dt>바이트</dt><dd>{formatNumber(evidence.content_bytes)}</dd><dt>본문 미리보기</dt><dd className="source-preview">{evidence.content_preview || "내용 없음"}</dd></dl></aside> : null}

@@ -2400,7 +2400,7 @@ class LineageApplication:
         return {"query": term, "items": rows}
 
     def source_evidence(self, actor: dict[str, Any], document_no: str, guid: str) -> dict[str, Any]:
-        """Return one bounded, authorized source row for the evidence drawer."""
+        """Return the cited source row, or 404 when that guid is not in the document."""
         detail = self.document(actor, document_no)
         events = lw.chat_events_from_document_detail(detail)
         candidates = lw.voc_evidence_guid_candidates(guid, document_no, events)
@@ -2424,23 +2424,6 @@ class LineageApplication:
                 )
                 if rows:
                     break
-            if not rows:
-                rows = lw._database_query(
-                    connection,
-                    f"""
-                    SELECT guid_field, docnosub_field, acthguid_field,
-                           title_field, voctp_field, ststs_field, dtsts_field,
-                           grade_field, bukrs_field, pucode_field, userid_field,
-                           erdat_field, erzet_field, aedat_field, aezet_field,
-                           source_row_number, octet_length(voccts_field) AS content_bytes,
-                           left(voccts_field, 4000) AS content_preview
-                    FROM {self.source_table}
-                    WHERE docnosub_field = %s
-                    ORDER BY erdat_field, erzet_field, guid_field
-                    LIMIT 1
-                    """,
-                    (document_no,),
-                )
         if not rows:
             raise KeyError(guid)
         row = rows[0]

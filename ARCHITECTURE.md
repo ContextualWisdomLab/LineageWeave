@@ -556,10 +556,12 @@ Counterpart Keyman lists authorized customer-appointment excerpts in
 are preferred; otherwise the authorized excerpts stay under the relative-side
 card. Excerpts that name a counterpart also render under that actor via
 `vocExcerptsForCounterpart`. When `vocExcerptEvidenceId` finds the excerpt's
-own authorized guid, a unique same-document event, or a date/text match to
-exactly one event, the excerpt and the 고객 약속 row open the existing 원문
-drawer. Multiple unmatched events stay non-clickable. This is a presentation
-of existing appointment evidence, not a new VOC edge or Lineage transition.
+own same-document guid, exactly one usable event, or a unique text match to
+one event, the excerpt and the 고객 약속 row open the existing 원문 drawer.
+Date-only matches and leftover usable guids stay non-clickable. A missing
+cited guid 404s instead of opening the first source row. This is a
+presentation of existing appointment evidence, not a new VOC edge or Lineage
+transition.
 
 Event-lineage chat is a live-model question over the authorized document
 neighborhood. If the transport returns `live_model_unavailable`, React sets

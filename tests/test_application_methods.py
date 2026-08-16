@@ -1379,37 +1379,17 @@ def test_content_manifest_asset_and_evidence_fallbacks_remain_document_scoped(mo
         app.asset_bytes(ACTOR, "DOC-1", -1)
 
     monkeypatch.setattr(lw, "voc_evidence_guid_candidates", lambda *_args: ["missing", "also-missing"])
-    row = {
-        "guid_field": "ROW-FALLBACK",
-        "docnosub_field": "DOC-1",
-        "acthguid_field": "THREAD-1",
-        "title_field": "Fixture evidence",
-        "voctp_field": "opened",
-        "ststs_field": "open",
-        "dtsts_field": "active",
-        "grade_field": "A",
-        "bukrs_field": "CORP_A",
-        "pucode_field": "PU_A",
-        "userid_field": "fixture-account",
-        "erdat_field": "2026-01-01",
-        "erzet_field": "09:00:00",
-        "aedat_field": "2026-01-02",
-        "aezet_field": "10:00:00",
-        "source_row_number": 7,
-        "content_bytes": 12,
-        "content_preview": "bounded text",
-    }
+    monkeypatch.setattr(app, "document", lambda *_args: {"document": {"document_no": "DOC-1"}, "rows": []})
     calls: list[tuple[object, ...]] = []
 
     def query(_connection, _sql, params=()):  # noqa: ANN001
         calls.append(tuple(params))
-        return [row] if len(params) == 1 else []
+        return []
 
     monkeypatch.setattr(lw, "_database_query", query)
-    evidence = app.source_evidence(ACTOR, "DOC-1", "requested")
-    assert evidence["evidence_id"] == "ROW-FALLBACK"
-    assert evidence["created_at"] == "2026-01-01 09:00:00"
-    assert calls[-1] == ("DOC-1",)
+    with pytest.raises(KeyError):
+        app.source_evidence(ACTOR, "DOC-1", "requested")
+    assert calls == [("DOC-1", "missing"), ("DOC-1", "also-missing")]
     monkeypatch.setattr(lw, "_database_query", lambda *_args, **_kwargs: [])
     with pytest.raises(KeyError):
         app.source_evidence(ACTOR, "DOC-1", "requested")

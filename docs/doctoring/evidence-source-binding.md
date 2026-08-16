@@ -10,12 +10,15 @@ as if it evidenced the utterance.
 `vocExcerptEvidenceId` returns a drawer guid only when:
 
 1. the excerpt already carries its own non-URI `source_evidence_id`, `guid`,
-   or `evidence_id`;
-2. the authorized document has exactly one usable event guid; or
-3. the excerpt date and/or text uniquely matches one same-document event.
+   or `evidence_id`, and that id is one of the authorized document events;
+2. the authorized document has exactly one event and that event has a usable
+   guid that is not the document number; or
+3. the excerpt text uniquely matches one same-document event. A matching date
+   may narrow the candidate set, but a date alone is not a source.
 
-Ontology HTTP/URN identifiers stay non-clickable. Multiple unmatched events
-stay static text.
+Ontology HTTP/URN identifiers, document-number guids, empty event blobs, and
+ambiguous excerpts stay non-clickable. The evidence route returns 404 when
+the cited guid is not a row in that document.
 
 ## APA 7th sources
 

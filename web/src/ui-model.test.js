@@ -46,22 +46,58 @@ describe("counterpartVocExcerpts", () => {
 });
 
 describe("vocExcerptEvidenceId", () => {
-  it("opens only the excerpt's own guid or a uniquely matching same-document event", () => {
-    const delay = { excerpt: "Ada West confirmed the delay", occurred_on: "2026-08-01" };
-    const standup = { excerpt: "Internal standup notes", occurred_on: "2026-08-02" };
-    const events = [
-      { guid: "evt-delay", timestamp: "2026-08-01T09:00:00", event: "Ada West confirmed the delay", title: "follow-up" },
-      { guid: "evt-standup", timestamp: "2026-08-02T10:00:00", event: "Internal standup notes", title: "standup" },
-    ];
+  const delay = { excerpt: "Ada West confirmed the delay", occurred_on: "2026-08-01" };
+  const standup = { excerpt: "Internal standup notes", occurred_on: "2026-08-02" };
+  const events = [
+    { guid: "evt-delay", timestamp: "2026-08-01T09:00:00", event: "Ada West confirmed the delay", title: "follow-up" },
+    { guid: "evt-standup", timestamp: "2026-08-02T10:00:00", event: "Internal standup notes", title: "standup" },
+  ];
 
-    expect(vocExcerptEvidenceId({ guid: "evt-1" }, [])).toBe("evt-1");
-    expect(vocExcerptEvidenceId({ source_evidence_id: "row-9" }, events)).toBe("row-9");
+  it("opens only an authorized own guid or a uniquely matching same-document event", () => {
+    expect(vocExcerptEvidenceId({ guid: "evt-1" }, [])).toBe("");
+    expect(vocExcerptEvidenceId({ source_evidence_id: "row-9" }, events)).toBe("");
+    expect(vocExcerptEvidenceId({ source_evidence_id: "evt-delay" }, events)).toBe("evt-delay");
     expect(vocExcerptEvidenceId({}, [{ guid: "evt-only" }])).toBe("evt-only");
     expect(vocExcerptEvidenceId(delay, events)).toBe("evt-delay");
     expect(vocExcerptEvidenceId(standup, events)).toBe("evt-standup");
     expect(vocExcerptEvidenceId({ excerpt: "unrelated note", occurred_on: "2026-08-03" }, events)).toBe("");
     expect(vocExcerptEvidenceId({}, events)).toBe("");
     expect(vocExcerptEvidenceId({ guid: "urn:example" }, [{ guid: "http://example" }])).toBe("");
+  });
+
+  it("does not open a different event from a date-only appointment bind", () => {
+    expect(vocExcerptEvidenceId({ excerpt: "unrelated note", occurred_on: "2026-08-01" }, events)).toBe("");
+  });
+
+  it("does not treat one leftover usable guid as the only event", () => {
+    const mixed = [
+      { guid: "urn:skip-me", timestamp: "2026-08-01T09:00:00", event: "first row delay", title: "VOC-9" },
+      { guid: "only-plain", timestamp: "2026-08-02T10:00:00", event: "later utterance", title: "VOC-9" },
+    ];
+    expect(vocExcerptEvidenceId({ excerpt: "later utterance", occurred_on: "2026-08-02" }, mixed)).toBe("only-plain");
+    expect(vocExcerptEvidenceId({ excerpt: "first row delay", occurred_on: "2026-08-01" }, mixed)).toBe("");
+    expect(vocExcerptEvidenceId({ excerpt: "unrelated note" }, mixed)).toBe("");
+  });
+
+  it("fails closed when same-day observed rows share a title", () => {
+    const sameDay = [
+      { guid: "row-1", timestamp: "2026-08-01T09:00:00", event: "observed_row", title: "VOC follow-up" },
+      { guid: "row-2", timestamp: "2026-08-01T10:00:00", event: "observed_row", title: "VOC follow-up" },
+    ];
+    expect(vocExcerptEvidenceId({ excerpt: "Ada asked for a delay", occurred_on: "2026-08-01" }, sameDay)).toBe("");
+  });
+
+  it("ignores empty event blobs and document-number guids", () => {
+    const withEmpty = [
+      { guid: "empty-1", timestamp: "2026-08-01T09:00:00", event: "", title: "" },
+      { guid: "evt-standup", timestamp: "2026-08-02T10:00:00", event: "Internal standup notes", title: "standup" },
+    ];
+    expect(vocExcerptEvidenceId({ excerpt: "Ada West confirmed the delay", occurred_on: "2026-08-03" }, withEmpty)).toBe("");
+    expect(vocExcerptEvidenceId(
+      { excerpt: "note", source_evidence_id: "VOC-9" },
+      [{ guid: "VOC-9", timestamp: "2026-08-01T09:00:00", event: "note", title: "VOC-9" }],
+      "VOC-9",
+    )).toBe("");
   });
 });
 
