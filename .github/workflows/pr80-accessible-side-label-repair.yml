@@ -29,7 +29,7 @@ jobs:
 
       - name: Reject stale or reordered execution
         env:
-          EXPECTED_PARENT_SHA: 9c99b81029c9e3ea1d288ba32dd025801686b4ec
+          EXPECTED_PARENT_SHA: 29215cbaa8a18d8cadc3a2deb297ecd84e186d9e
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT_SHA"
@@ -39,11 +39,12 @@ jobs:
         with:
           node-version: "24"
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Install locked frontend dependencies
-        run: |
-          set -euo pipefail
-          corepack enable
-          pnpm --dir frontend install --frozen-lockfile
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
 
       - name: Add the regression before production code
         run: |
