@@ -46,12 +46,13 @@ does it (`gh repo list ContextualWisdomLab`).
 
 `NullEmbeddingClient`, `NullAdjudicationClient`,
 `NullKeymanExtractionClient`, `NullEntityRelationshipClient`,
-`NullPostSummaryClient`, `NullPostChatClient`, and
-`NullCommitmentExtractionClient` (and any new channel client you add)
+`NullPostSummaryClient`, `NullPostChatClient`,
+`NullCommitmentExtractionClient`, and
+`NullAnalysisRunOrchestrationClient` (and any new channel client you add)
 must set `available = False` and make their channel dropped +
 renormalized (`reconstruct.active_weights`), never silently return a
 placeholder score, invented Keyman, guessed relationship, fabricated
-summary/chat, or invented commitment. A missing signal and a
+summary/chat, invented commitment, or invented analysis-run completion. A missing signal and a
 confidently-negative signal are different things. Keyman extraction,
 entity-relationship classification, post summary, in-popup chat, and
 commitment derivation go through contextual-orchestrator the same way

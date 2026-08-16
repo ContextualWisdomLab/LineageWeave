@@ -1073,3 +1073,120 @@ def test_rollback_refuses_data_loss_then_removes_an_empty_registry(registry_db) 
         _apply_sql_files(connection, [_REGISTRY_MIGRATION])
         cursor.execute("select to_regclass('public.analysis_run')")
         assert cursor.fetchone()[0] == "analysis_run"
+
+
+def test_capture_after_request_and_availability_after_capture_are_rejected(
+    registry_db,
+) -> None:
+    """The leakage guard rejects inverted snapshot and request clocks."""
+
+    connection, _dsn = registry_db
+    with connection.cursor() as cursor:
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            _insert_snapshot(
+                cursor,
+                maximum_available_time="2026-08-15T00:10:00Z",
+                captured_at="2026-08-15T00:05:00Z",
+            )
+        snapshot_id = _insert_snapshot(
+            cursor,
+            captured_at="2026-08-15T01:00:00Z",
+        )
+        account_id = _insert_account(cursor)
+        with pytest.raises(psycopg2.errors.RaiseException):
+            _insert_run(
+                cursor,
+                snapshot_id=snapshot_id,
+                account_id=account_id,
+                idempotency_key="late-capture",
+                requested_at="2026-08-15T00:45:00Z",
+            )
+
+
+def test_status_events_cannot_be_deleted(registry_db) -> None:
+    """Append-only lifecycle evidence rejects delete as well as update."""
+
+    connection, _dsn = registry_db
+    with connection.cursor() as cursor:
+        snapshot_id = _insert_snapshot(cursor)
+        account_id = _insert_account(cursor)
+        run_id = _insert_run(
+            cursor,
+            snapshot_id=snapshot_id,
+            account_id=account_id,
+            idempotency_key="delete-status",
+        )
+        _insert_all_visible_scope(cursor, run_id)
+        cursor.execute(
+            "insert into analysis_run_status_event "
+            "(analysis_run_id, status_ordinal, status_code, occurred_at) "
+            "values (%s, 1, 'analysis_status_pending', "
+            "'2026-08-15T01:00:00Z')",
+            (run_id,),
+        )
+        with pytest.raises(psycopg2.errors.RaiseException):
+            cursor.execute(
+                "delete from analysis_run_status_event "
+                "where analysis_run_id = %s",
+                (run_id,),
+            )
+
+
+def test_concurrent_count_writes_freeze_once_a_run_exists(registry_db) -> None:
+    """Count insert and first run share the snapshot lock; later counts fail."""
+
+    connection, dsn = registry_db
+    with connection.cursor() as cursor:
+        snapshot_id = _insert_snapshot(cursor)
+        account_id = _insert_account(cursor)
+        cursor.execute(
+            "insert into analysis_source_count values "
+            "(%s, 'analysis_count_document', 3)",
+            (snapshot_id,),
+        )
+        _insert_run(
+            cursor,
+            snapshot_id=snapshot_id,
+            account_id=account_id,
+            idempotency_key="freeze-race",
+        )
+
+    barrier = threading.Barrier(2)
+    outcomes: list[str] = []
+    lock = threading.Lock()
+
+    def _race(count_type: str) -> None:
+        raced = psycopg2.connect(dsn)
+        raced.autocommit = True
+        try:
+            with raced.cursor() as cursor:
+                barrier.wait(timeout=5)
+                try:
+                    cursor.execute(
+                        "insert into analysis_source_count values (%s, %s, 1)",
+                        (snapshot_id, count_type),
+                    )
+                    result = "inserted"
+                except psycopg2.errors.RaiseException:
+                    result = "frozen"
+            with lock:
+                outcomes.append(result)
+        finally:
+            raced.close()
+
+    workers = [
+        threading.Thread(target=_race, args=("analysis_count_thread",)),
+        threading.Thread(target=_race, args=("analysis_count_source_row",)),
+    ]
+    for worker in workers:
+        worker.start()
+    for worker in workers:
+        worker.join(timeout=10)
+    assert outcomes == ["frozen", "frozen"]
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "select count(*) from analysis_source_count "
+            "where analysis_source_snapshot_id = %s",
+            (snapshot_id,),
+        )
+        assert cursor.fetchone()[0] == 1
