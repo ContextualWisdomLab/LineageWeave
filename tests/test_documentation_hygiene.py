@@ -67,19 +67,19 @@ def test_role_catalog_identity_migration_is_wired() -> None:
     migration_0019 = (_ROOT / "migrations" / "0019_role_catalog_identity.sql").read_text(
         encoding="utf-8"
     )
-    migration_0020 = (_ROOT / "migrations" / "0020_role_person_catalog_identity.sql").read_text(
+    migration_0021 = (_ROOT / "migrations" / "0021_role_person_catalog_identity.sql").read_text(
         encoding="utf-8"
     )
     assert "0019_role_catalog_identity.sql" in dockerfile
-    assert "0020_role_person_catalog_identity.sql" in dockerfile
+    assert "0021_role_person_catalog_identity.sql" in dockerfile
     assert "0019_role_catalog_identity.sql" in seed
-    assert "0020_role_person_catalog_identity.sql" in seed
+    assert "0021_role_person_catalog_identity.sql" in seed
     assert "cataloged_team_id" in migration_0019
     assert "cataloged_corporate_entity_id" in migration_0019
-    assert "cataloged_person_id" in migration_0020
+    assert "cataloged_person_id" in migration_0021
     for column_name in _ROLE_CATALOG_COLUMNS:
         assert len(column_name.split("_")) >= 2
     assert "having count(*) = 1" in migration_0019
-    assert "having count(*) = 1" in migration_0020
+    assert "having count(*) = 1" in migration_0021
     assert "distinct on" not in migration_0019.lower()
-    assert "distinct on" not in migration_0020.lower()
+    assert "distinct on" not in migration_0021.lower()

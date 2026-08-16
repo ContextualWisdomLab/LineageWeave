@@ -9,7 +9,7 @@ All notable changes to this project are documented here. Format follows
 ### Fixed
 
 - R&R person chips now read `cataloged_person_id` from
-  `post_summary_role` (ADR 0020). Open a post whose R&R names a
+  `post_summary_role` (ADR 0021). Open a post whose R&R names a
   cataloged person: the chip is a button even when Keyman extraction
   was not run on that post. Click it to walk that person, not a later
   same-named row. Historical backfill leaves a role unbound when two

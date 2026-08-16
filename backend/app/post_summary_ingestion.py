@@ -65,7 +65,7 @@ async def fetch_persisted_summary(
     """Return the stored summary payload, or None when none has been written.
 
     ``catalog_node_id`` comes from the role row's catalog foreign keys
-    (ADR 0019 / 0020). This function does not join ``corporate_entity``
+    (ADR 0019 / 0021). This function does not join ``corporate_entity``
     by ``entity_name``. Person chips read ``cataloged_person_id``.
     """
     header = await conn.fetchrow(

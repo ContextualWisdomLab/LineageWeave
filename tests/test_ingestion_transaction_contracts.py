@@ -498,7 +498,7 @@ def test_role_catalog_identity_is_stored_on_the_role_row() -> None:
         encoding="utf-8"
     )
     person_upgrade = (
-        root / "migrations" / "0020_role_person_catalog_identity.sql"
+        root / "migrations" / "0021_role_person_catalog_identity.sql"
     ).read_text(encoding="utf-8")
     dockerfile = (
         root / "docker" / "postgres-init" / "Dockerfile"
@@ -513,5 +513,5 @@ def test_role_catalog_identity_is_stored_on_the_role_row() -> None:
     assert "cataloged_corporate_entity_id" in upgrade
     assert "cataloged_person_id" in person_upgrade
     assert "0019_role_catalog_identity.sql" in dockerfile
-    assert "0020_role_person_catalog_identity.sql" in dockerfile
+    assert "0021_role_person_catalog_identity.sql" in dockerfile
     assert "ADR 0019" in changelog

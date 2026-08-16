@@ -1,4 +1,4 @@
-# ADR 0020 — Persist the R&R person catalog identity on the role row
+# ADR 0021 — Persist the R&R person catalog identity on the role row
 
 **Decision status:** Accepted
 **Date:** 2026-08-16
@@ -25,7 +25,7 @@ record, not a later re-search by a non-unique attribute.
 by name, orders by `created_at`, then `person_id`. It still does not
 create a new `cataloged_person` row (ADR 0009 gap).
 
-Migration `0020_role_person_catalog_identity.sql` backfills existing
+Migration `0021_role_person_catalog_identity.sql` backfills existing
 rows from a post-scoped mention only when the name match is unique on
 that post (`HAVING count(*) = 1`). Two same-named mentions stay unbound.
 
@@ -38,7 +38,7 @@ At most one of `cataloged_team_id`, `cataloged_corporate_entity_id`, and
 - Open a post whose R&R names a cataloged person. The chip is a button
   even when Keyman extraction was not run on that post. Click it to walk
   that person, not a later same-named row.
-- Pre-0020 rows with two same-named mentions stay unbound until an
+- Pre-0021 rows with two same-named mentions stay unbound until an
   operator re-persists the summary. Do not guess a UUID at migrate time.
 
 ## References

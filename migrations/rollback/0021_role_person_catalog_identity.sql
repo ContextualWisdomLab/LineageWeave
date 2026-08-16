@@ -1,4 +1,4 @@
--- Fail-closed rollback for migration 0020.
+-- Fail-closed rollback for migration 0021.
 --
 -- Drops the persisted person catalog identity on post_summary_role.
 -- Team and organization columns from 0019 remain.

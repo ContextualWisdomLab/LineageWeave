@@ -1,4 +1,4 @@
--- ADR 0020: persist the person catalog id resolved for an R&R actor.
+-- ADR 0021: persist the person catalog id resolved for an R&R actor.
 -- Fetching by person_name is not identifying -- two people can share a
 -- display name. Write-time persist orders by created_at, then person_id.
 -- Historical backfill copies a mention only when exactly one mentioned

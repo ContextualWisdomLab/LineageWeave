@@ -614,7 +614,7 @@ async def _exercise_same_name_person_catalog_order(
 def test_same_name_person_roles_bind_the_earliest_catalog_row(
     projection_database: str,
 ) -> None:
-    """ADR 0020: R&R person lookup must order by created_at, then person_id."""
+    """ADR 0021: R&R person lookup must order by created_at, then person_id."""
 
     database_dsn, post_id, _summary_person_id = projection_database.split("|")
     asyncio.run(_exercise_same_name_person_catalog_order(database_dsn, post_id))

@@ -858,7 +858,7 @@ by name (never originated by R&R itself -- documented gap in the ADR:
 not currently capture). ADR 0019 stores that resolved catalog id on
 `post_summary_role` (`cataloged_team_id` /
 `cataloged_corporate_entity_id` / `cataloged_person_id`, ADR 0019 /
-0020) so a later read does not rejoin `corporate_entity` by
+0021) so a later read does not rejoin `corporate_entity` by
 `entity_name`. Fetch returns the person foreign key as
 `catalog_node_id` the same way. Historical backfill leaves a role
 unbound when two same-named mentions already exist on the post.

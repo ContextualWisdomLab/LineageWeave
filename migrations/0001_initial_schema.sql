@@ -419,7 +419,7 @@ alter table post_summary_role
 alter table post_summary_role
     add column cataloged_corporate_entity_id uuid
         references corporate_entity (corporate_entity_id);
--- ADR 0020: person chips read the stored catalog id, not a later
+-- ADR 0021: person chips read the stored catalog id, not a later
 -- same-named Keyman row. At most one catalog FK is set.
 alter table post_summary_role
     add column cataloged_person_id uuid references cataloged_person (person_id),
