@@ -108,7 +108,34 @@
 }
 
 .post-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--post-body-gap);
+}
+
+.post-body-text {
+  margin: 0;
   white-space: pre-wrap;
+}
+
+.post-embedded-image {
+  margin: 0;
+  padding: var(--post-image-padding);
+  border: 1px solid var(--post-image-border);
+  border-radius: var(--post-image-radius);
+  background: var(--post-image-bg);
+}
+
+.post-embedded-image img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.post-embedded-image figcaption {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text);
 }
 
 .popup-placeholder {

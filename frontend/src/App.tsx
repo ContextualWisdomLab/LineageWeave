@@ -59,6 +59,7 @@ import {
   type VocEvidence,
 } from "./api";
 import { LineageDag } from "./LineageDag";
+import { PostBody } from "./PostBody";
 import { subgraphForPost } from "./lineageLayout";
 import "./App.css";
 
@@ -119,7 +120,7 @@ function EvidencePanel({
       {post && (
         <>
           <h4>{post.post_title}</h4>
-          <p className="post-body">{post.post_body}</p>
+          <PostBody body={post.post_body} />
         </>
       )}
     </div>
@@ -1245,7 +1246,7 @@ function PostDetailPopup({
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
-            <p className="post-body">{post.post_body}</p>
+            <PostBody body={post.post_body} />
 
             <section className="popup-section">
               <h3>요약 (Summary)</h3>
