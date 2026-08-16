@@ -32,6 +32,7 @@ _VALKEY_URL = os.environ.get("LINEAGEWEAVE_TEST_VALKEY_URL", "redis://localhost:
 _REALM = "lineageweave-demo"
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
+_RETENTION_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0020_analysis_run_retention_purge.sql"
 
 
 def _postgres_available() -> bool:
@@ -115,6 +116,7 @@ def seeded_db(demo_analyst_token):
         with conn.cursor() as cur:
             cur.execute(_MIGRATION_PATH.read_text())
             cur.execute(_REGISTRY_MIGRATION.read_text())
+            cur.execute(_RETENTION_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "

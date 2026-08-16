@@ -209,9 +209,10 @@ functional dependency and forces duplicate snapshots.
 
 Migration replay is idempotent and rejects lookup-category collisions. The
 rollback refuses to remove non-empty registry relations. Evidence must first be
-exported or explicitly deleted under an approved retention procedure. An empty
-rollback removes the view, tables, functions, and lookup rows and is itself
-replayable.
+exported, then emptied with `purge_analysis_run_registry` after an unrevoked
+`analysis_run_retention_grant` and `analysis_run_retention_admin` membership
+(ADR 0020). An empty rollback removes the view, tables, functions, and lookup
+rows and is itself replayable.
 
 ## Verification
 
