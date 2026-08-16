@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.73.0] - 2026-08-16
+
+### Changed
+
+- Related-node organization chips use the `entity_level` lookup
+  label instead of the ontology class. After `make seed`, walking
+  from Ada West shows "Demo Corp (Company)" -- not "Demo Corp
+  (Organization)". The payload now carries `entity_level_label`
+  from `common_lookup_value`. Missing lookups fall back to the
+  code. The same caption is the button accessible name.
+
 ## [0.72.0] - 2026-08-16
 
 ### Changed

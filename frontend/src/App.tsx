@@ -466,6 +466,8 @@ function VocEvidenceSection({
 }
 
 const NODE_PERSON = "node_person";
+const NODE_POST = "node_post";
+const NODE_CORPORATE_ENTITY = "node_corporate_entity";
 
 function relatedNodeCaption(node: RelatedNode): string {
   const name = node.label ?? node.node_id;
@@ -475,11 +477,14 @@ function relatedNodeCaption(node: RelatedNode): string {
       return `${name} (${side})`;
     }
   }
+  if (node.node_type_code === NODE_CORPORATE_ENTITY) {
+    const level = node.entity_level_label ?? node.entity_level_code;
+    if (level) {
+      return `${name} (${level})`;
+    }
+  }
   return `${name} (${node.ontology_label ?? node.node_type_code})`;
 }
-
-const NODE_POST = "node_post";
-const NODE_CORPORATE_ENTITY = "node_corporate_entity";
 
 const VERIFICATION_BADGE: Record<string, string> = {
   verify_pending: "Not yet checked",
@@ -721,7 +726,7 @@ function KeymanPanel({
                     <li key={`${node.node_type_code}:${node.node_id}`}>
                       <button
                         className="keyman-select"
-                        aria-label={`Related nodes for ${node.label ?? node.node_id}`}
+                        aria-label={`Related nodes for ${caption}`}
                         onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
                       >
                         {caption}
