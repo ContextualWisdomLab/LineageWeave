@@ -1377,7 +1377,7 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("heading", { name: "Analysis runs" })).toBeInTheDocument();
     const list = screen.getByRole("list", { name: "Analysis runs" });
     expect(list).toHaveTextContent("Lineage reconstruction · Succeeded · Demo Corp");
-    expect(list).toHaveTextContent("3 documents");
+    expect(list).toHaveTextContent("3 documents in the snapshot");
     expect(list).not.toHaveTextContent("postgresql://");
     expect(list).not.toHaveTextContent("select ");
 

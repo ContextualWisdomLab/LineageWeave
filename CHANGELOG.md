@@ -13,6 +13,11 @@ All notable changes to this project are documented here. Format follows
   (2026-01-10) still opens from the January 12 reconstruction; Late Demo
   public post (2026-01-13) does not. Open a later run, or ask an
   administrator to capture a newer snapshot, when the list is empty.
+- Snapshot document counts are labeled "in the snapshot" so a frozen
+  capture total is not read as the cutoff-filtered post list.
+- `make seed` skips frozen `analysis_source_count` inserts when the
+  Demo snapshot already has rows, so a second seed after the Demo run
+  exists no longer raises `analysis_source_count_frozen_after_run`.
 
 ### Added
 

@@ -29,10 +29,12 @@ projects `source_post` titles.
 3. `source_post.created_at <= analysis_run.knowledge_cutoff`.
 
 Hidden or later posts never appear. The list payload stays
-aggregates-only. Detail also returns `code_revision_sha` and
-`configuration_sha256` so an operator can confirm the run matches
-the code and configuration they approved. Prefixes are shown in the
-home panel; full digests remain on the API.
+aggregates-only. `source_counts` remain snapshot inventory
+(ADR 0013); the home panel labels them "in the snapshot" so they
+are not read as the cutoff-filtered title list. Detail also returns
+`code_revision_sha` and `configuration_sha256` so an operator can
+confirm the run matches the code and configuration they approved.
+Prefixes are shown in the home panel; full digests remain on the API.
 
 The home Analysis runs panel lives in `AnalysisRunsPanel` so the
 repeating list/detail object can be inventoried for Storybook without

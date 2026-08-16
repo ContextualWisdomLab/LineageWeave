@@ -74,6 +74,8 @@ for Milestone 2 analysis requests and lifecycle evidence.
 2. Apply `created_at <= knowledge_cutoff` in the authorized read.
 3. Show revision/config digest prefixes on the home detail.
 4. Extract `AnalysisRunsPanel` and inventory Storybook states.
+5. Label snapshot counts as capture inventory; skip frozen re-seed
+   count inserts; keep `GET /api/posts` listing later own-corp posts.
 
 ## Task 6 — Next bounded vertical slice
 

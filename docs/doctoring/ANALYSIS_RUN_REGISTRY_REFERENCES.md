@@ -69,7 +69,8 @@ provenance, retention, and immutable evidence rather than blanket masking.
 |---|---|
 | One snapshot supports multiple analyses | Insert two runs over one snapshot with different valid cutoffs. |
 | Future evidence is excluded | Reject a run whose cutoff precedes the snapshot's maximum availability time. |
-| Later posts are excluded from a historical run | A post with `created_at` after `knowledge_cutoff` is absent from `visible_posts`. |
+| Later posts are excluded from a historical run | A post with `created_at` after `knowledge_cutoff` is absent from `visible_posts`. Equal-to-cutoff remains. |
+| Snapshot counts are not the cutoff list | Home copy says "in the snapshot"; a late own-corp post is listed by `GET /api/posts` and absent from run detail. |
 | Evidence cannot change after derivation | Reject snapshot/count updates and count insert/delete after the first run. |
 | Count/run race is serialized | Both paths acquire the snapshot row first; a later concurrency test must prove one legal winner and no lost freeze. |
 | Request identity is stable | Reject analysis-run updates; scope and lifecycle live in their own relations. |

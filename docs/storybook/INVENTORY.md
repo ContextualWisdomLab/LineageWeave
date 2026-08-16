@@ -9,8 +9,8 @@ pins Node 24, Corepack pnpm only).
 
 | Object | Module | States a Storybook story must cover |
 |---|---|---|
-| Analysis run list | `frontend/src/AnalysisRunsPanel.tsx` | empty (`make seed` hint), loading, one succeeded Demo Corp run, hidden-run error |
-| Analysis run detail | same | cutoff + requested date, status history, digest prefixes, in-cutoff posts, no posts at cutoff |
+| Analysis run list | `frontend/src/AnalysisRunsPanel.tsx` | empty (`make seed` hint), loading, one succeeded Demo Corp run with snapshot-count badge, hidden-run error |
+| Analysis run detail | same | cutoff + requested date, status history, digest prefixes, snapshot-count labels, in-cutoff posts, no posts at cutoff |
 | Post list chip | `frontend/src/App.tsx` | public / private badges |
 | Calendar commitment | `frontend/src/App.tsx` | dated open ticket |
 | Period report row | `frontend/src/App.tsx` | mean θ, CAT item, member click-through |

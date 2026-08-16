@@ -5,7 +5,7 @@ import {
   fetchAnalysisRuns,
   type AnalysisRun,
 } from "./api";
-import { analysisRunCaption, shortDigest } from "./analysisRunDisplay";
+import { analysisRunCaption, shortDigest, snapshotCountCaption } from "./analysisRunDisplay";
 
 /**
  * Home-page Analysis runs list and authorized detail.
@@ -73,9 +73,7 @@ export function AnalysisRunsPanel({
                 >
                   <span className="ticket-title">{caption}</span>
                   {documentCount && (
-                    <span className="post-badge">
-                      {documentCount.count_value} {documentCount.count_type_label.toLowerCase()}
-                    </span>
+                    <span className="post-badge">{snapshotCountCaption(documentCount)}</span>
                   )}
                 </button>
               </li>
@@ -100,9 +98,7 @@ export function AnalysisRunsPanel({
           )}
           <ul>
             {selected.source_counts.map((count) => (
-              <li key={count.count_type_code}>
-                {count.count_value} {count.count_type_label.toLowerCase()}
-              </li>
+              <li key={count.count_type_code}>{snapshotCountCaption(count)}</li>
             ))}
           </ul>
           {selected.status_history && selected.status_history.length > 0 && (
@@ -129,12 +125,12 @@ export function AnalysisRunsPanel({
                 </li>
               ))}
             </ul>
-          ) : (
+          ) : selected.visible_posts ? (
             <p className="popup-placeholder">
               No posts were available at this cutoff. Open a later run, or ask an
               administrator to capture a newer snapshot.
             </p>
-          )}
+          ) : null}
         </div>
       )}
     </section>

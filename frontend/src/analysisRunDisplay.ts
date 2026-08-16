@@ -1,4 +1,4 @@
-import type { AnalysisRun } from "./api";
+import type { AnalysisRun, AnalysisRunCount } from "./api";
 
 /**
  * Buyer-facing caption for one authorized analysis run.
@@ -21,4 +21,15 @@ export function analysisRunCaption(run: AnalysisRun): string {
 export function shortDigest(value: string | undefined, length = 12): string | null {
   if (!value) return null;
   return value.slice(0, length);
+}
+
+/**
+ * Label a frozen snapshot aggregate so it is not read as the cutoff list.
+ *
+ * ADR 0013 stores counts on the capture, not on the run. The home panel
+ * must say they describe the snapshot, or "3 documents" looks like the
+ * two in-cutoff Demo posts plus the late counter-example.
+ */
+export function snapshotCountCaption(count: AnalysisRunCount): string {
+  return `${count.count_value} ${count.count_type_label.toLowerCase()} in the snapshot`;
 }

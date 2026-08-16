@@ -475,7 +475,9 @@ its machine `failure_code` rather than an invented caption. The
 payload is lookup labels plus non-negative aggregate counts -- never
 source SQL, a DSN, a raw record, or a provider body. After `make seed`,
 Demo Analyst and Demo Admin see "Lineage reconstruction · Succeeded ·
-Demo Corp" with "3 documents" and Pending / Running / Succeeded times.
+Demo Corp" with "3 documents in the snapshot" and Pending / Running /
+Succeeded times. Snapshot counts stay capture inventory; the post list
+applies the run knowledge cutoff (ADR 0016).
 
 ## Phase 6a: fast-mlsirm dependency + Rust toolchain (infra only)
 
