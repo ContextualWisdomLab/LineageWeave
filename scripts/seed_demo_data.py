@@ -39,11 +39,12 @@ DEFAULT_KEYCLOAK_BASE_URL = "http://localhost:18080"
 DEFAULT_KEYCLOAK_ADMIN_USER = os.environ.get("KEYCLOAK_ADMIN", "admin")
 DEFAULT_VALKEY_URL = "redis://localhost:16379/0"
 
-# ADR 0013: one Demo Corp capture, many runs (lineage + TEPP).
+# ADR 0013: one Demo Corp capture, many runs (lineage + TEPP + report).
 DEMO_SOURCE_SNAPSHOT_MATERIAL = b"lineageweave-synthetic-demo-snapshot-v1"
 DEMO_SOURCE_CONTRACT_VERSION = "demo-source-contract-v1"
 DEMO_LINEAGE_IDEMPOTENCY_KEY = "demo-lineage-seed-2026-w02"
 DEMO_TEPP_IDEMPOTENCY_KEY = "demo-tepp-seed-2026-w02"
+DEMO_REPORT_IDEMPOTENCY_KEY = "demo-report-seed-2026-w02"
 
 # (post_title, ticket_title, due_date) -- Event Lineage fixtures a report
 # member click opens. Activity seed uses the same titles so Valkey matches.
@@ -344,6 +345,11 @@ def seed(
                 corporate_entity_id,
             )
             _seed_demo_tepp_run(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+            )
+            _seed_demo_report_run(
                 cur,
                 account_ids["demo.analyst"],
                 corporate_entity_id,
@@ -1226,9 +1232,9 @@ def demo_source_snapshot_sha256() -> str:
 def _ensure_demo_source_snapshot(cur):
     """Return the shared Demo Corp capture, inserting it on first seed.
 
-    Lineage and TEPP runs share this snapshot (ADR 0013: one capture,
-    many runs). The digest is a hash of a fixed demo contract string --
-    never a source row or DSN.
+    Lineage, TEPP, and period-report runs share this snapshot
+    (ADR 0013: one capture, many runs). The digest is a hash of a
+    fixed demo contract string -- never a source row or DSN.
     """
     digest = demo_source_snapshot_sha256()
     cur.execute(
@@ -1444,6 +1450,74 @@ def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> No
             on conflict do nothing
             """,
             (run_id, ordinal, status, occurred, fail),
+        )
+
+
+def _seed_demo_report_run(cur, requested_by_account_id, corporate_entity_id) -> None:
+    """Record the already-built Demo Corp period report on the shared snapshot.
+
+    ``_seed_demo_period_report`` persists calibrated report tables first.
+    This registry row is Succeeded because that write already happened.
+    It does not copy a theta onto ``analysis_run`` and does not invent
+    a local psychometric substitute (ADR 0022).
+    """
+    snapshot_id = _ensure_demo_source_snapshot(cur)
+    _ensure_demo_source_counts(cur, snapshot_id)
+    cur.execute(
+        """
+        select analysis_run_id from analysis_run
+        where requested_by_account_id = %s
+          and idempotency_key = %s
+        """,
+        (requested_by_account_id, DEMO_REPORT_IDEMPOTENCY_KEY),
+    )
+    run_row = cur.fetchone()
+    if run_row is None:
+        cur.execute(
+            """
+            insert into analysis_run
+                (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                 requested_by_account_id, knowledge_cutoff,
+                 configuration_schema_version, configuration_sha256,
+                 code_revision_sha, requested_at)
+            values (%s, 'analysis_run_report', %s,
+                    %s, '2026-01-12T12:00:00Z', 'report-run-v1', %s, %s,
+                    '2026-01-12T12:38:00Z')
+            returning analysis_run_id
+            """,
+            (
+                snapshot_id,
+                DEMO_REPORT_IDEMPOTENCY_KEY,
+                requested_by_account_id,
+                "f" * 64,
+                "a" * 40,
+            ),
+        )
+        run_id = cur.fetchone()[0]
+    else:
+        run_id = run_row[0]
+    cur.execute(
+        """
+        insert into analysis_run_scope
+            (analysis_run_id, scope_kind_code, corporate_entity_id)
+        values (%s, 'analysis_scope_corporate_entity', %s)
+        on conflict (analysis_run_id) do nothing
+        """,
+        (run_id, corporate_entity_id),
+    )
+    for ordinal, status, occurred in (
+        (1, "analysis_status_pending", "2026-01-12T12:39:00Z"),
+        (2, "analysis_status_running", "2026-01-12T12:40:00Z"),
+        (3, "analysis_status_succeeded", "2026-01-12T12:41:00Z"),
+    ):
+        cur.execute(
+            """
+            insert into analysis_run_status_event
+                (analysis_run_id, status_ordinal, status_code, occurred_at)
+            values (%s, %s, %s, %s)
+            on conflict do nothing
+            """,
+            (run_id, ordinal, status, occurred),
         )
 
 

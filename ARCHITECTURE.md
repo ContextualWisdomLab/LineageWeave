@@ -498,7 +498,10 @@ source SQL, a DSN, a raw record, or a provider body. After `make seed`,
 Demo Analyst and Demo Admin see "Lineage reconstruction · Succeeded ·
 Demo Corp" with "3 documents" and Pending / Running / Succeeded times,
 and "TEPP measurement · Failed · Demo Corp" whose detail history ends
-in Failed / `tepp_not_available`.
+in Failed / `tepp_not_available`. Seed also records
+"Period report · Succeeded · Demo Corp" on that same snapshot after
+the calibrated report tables are written (ADR 0022). Open that row
+to confirm the cutoff posts; mean θ stays on the period-report panel.
 A run-bearing registry is emptied only after an unrevoked
 `analysis_run_retention_grant` and `GRANT analysis_run_retention_admin`,
 then `purge_analysis_run_registry('approved-retention-purge')`
