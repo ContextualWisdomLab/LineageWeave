@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.87.2] - 2026-08-16
+
+### Fixed
+
+- Home calendar, period-report, and post-list buttons keep the visible
+  due date, θ, status, and labels in the accessible name (WCAG 2.2
+  SC 4.1.2). Open a commitment: the name includes “due 2026-01-12”.
+  Open a report post: the name includes θ and the ticket. A post-list
+  name includes Voice of Customer and Public.
+
 ## [0.87.1] - 2026-08-16
 
 ### Fixed

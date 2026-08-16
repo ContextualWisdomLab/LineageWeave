@@ -493,7 +493,9 @@ to retry reconstruction, not to connect TEPP. A failed period-report
 row tells the operator to rebuild the report. A pending TEPP row
 does not claim a calibrated measurement and does not say
 reconstruction. The list button accessible name includes the
-next-action sentence; detail repeats it. The
+next-action sentence; detail repeats it. Calendar, period-report,
+and post-list buttons follow the same AccName rule for their
+visible due date, θ, and labels (ADR 0024). The
 payload is lookup labels plus non-negative aggregate counts -- never
 source SQL, a DSN, a raw record, or a provider body. After `make seed`,
 Demo Analyst and Demo Admin see "Lineage reconstruction · Succeeded ·
@@ -573,7 +575,10 @@ bank as the dummy high/low band rows, so comparison-strip click
 through opens those DAG posts. Report members include the earliest
 open ticket title, status lookup label, and due date when one exists. The home page renders
 the actual mean θ, the FIPC delta, the CAT-selected item, and the
-PU / corp / thread comparison -- never a placeholder. TEPP is unchanged.
+PU / corp / thread comparison -- never a placeholder. Those same
+facts stay in each list-button accessible name (ADR 0024) so a
+screen reader can pick the due commitment or the higher-θ post.
+TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer
 

@@ -30,6 +30,9 @@ pending TEPP row does not claim a calibrated measurement and does
 not say reconstruction. A pending lineage row still says
 reconstruction has not started. The list button name includes the
 next-action sentence.
+Home calendar, period-report, and post-list buttons include the
+visible due date, θ, status, and labels in the accessible name
+(ADR 0024).
 Digest prefixes stay audible; hover a prefix to read the full digest.
 Opening a cutoff title shows the live post -- compare it with the
 cutoff before treating the body as reconstructed evidence (ADR 0016).

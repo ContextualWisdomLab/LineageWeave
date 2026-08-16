@@ -1166,7 +1166,7 @@ describe("App, authenticated", () => {
       postBody: `<p>Quote attached.</p><img src="data:image/png;base64,${tinyPng}" alt=""><p>Please confirm.</p>`,
     });
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
 
     const image = await screen.findByRole("img", { name: /embedded image at character offset/i });
     expect(image).toHaveAttribute("src", `data:image/png;base64,${tinyPng}`);
@@ -1181,7 +1181,7 @@ describe("App, authenticated", () => {
 
     render(<App />);
 
-    const listButton = await screen.findByRole("button", { name: "View post: Public post" });
+    const listButton = await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." });
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/posts"),
       expect.objectContaining({ headers: expect.objectContaining({ Authorization: "Bearer test-access-token" }) }),
@@ -1214,7 +1214,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
 
     await waitFor(() => expect(screen.getByText("이것은 요약입니다.")).toBeInTheDocument());
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
@@ -1234,7 +1234,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await waitFor(() =>
       expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument(),
     );
@@ -1251,7 +1251,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await waitFor(() => expect(screen.getByPlaceholderText(/what happened/i)).toBeInTheDocument());
 
     await userEvent.type(screen.getByPlaceholderText(/what happened/i), "What happened?");
@@ -1276,7 +1276,7 @@ describe("App, authenticated", () => {
     stubBackend({ chatUnavailable: true });
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await waitFor(() => expect(screen.getByPlaceholderText(/what happened/i)).toBeInTheDocument());
     await userEvent.type(screen.getByPlaceholderText(/what happened/i), "What happened?");
     await userEvent.click(screen.getByRole("button", { name: /^ask$/i }));
@@ -1302,7 +1302,7 @@ describe("App, authenticated", () => {
     stubBackend({ admin: true, chatUnavailable: true });
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await userEvent.click(await screen.findByRole("button", { name: /evaluate post/i }));
 
     await waitFor(() =>
@@ -1316,7 +1316,7 @@ describe("App, authenticated", () => {
     stubBackend({ admin: true, chatUnavailable: true });
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await userEvent.click(await screen.findByRole("button", { name: /extract keymen/i }));
 
     await waitFor(() =>
@@ -1330,7 +1330,7 @@ describe("App, authenticated", () => {
     stubBackend({ admin: true, chatUnavailable: true });
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await userEvent.click(await screen.findByRole("button", { name: /derive commitment/i }));
 
     await waitFor(() =>
@@ -1346,7 +1346,7 @@ describe("App, authenticated", () => {
     stubBackend({ admin: true, searchUnavailable: true });
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await userEvent.click(await screen.findByRole("button", { name: /verify against web search/i }));
 
     await waitFor(() =>
@@ -1360,7 +1360,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
 
     await waitFor(() => expect(screen.getByText("Demo Group")).toBeInTheDocument());
     expect(screen.getByRole("button", { name: "Affiliate org: Demo Corp" })).toBeInTheDocument();
@@ -1402,7 +1402,7 @@ describe("App, authenticated", () => {
   it("opens related Keyman nodes from an R&R person", async () => {
     stubBackend();
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await userEvent.click(await screen.findByRole("button", { name: "R&R Keyman: Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     expect(screen.getByText("Related to Ada West").closest(".related-keymen")).toHaveTextContent(
@@ -1413,7 +1413,7 @@ describe("App, authenticated", () => {
   it("opens related nodes from an R&R team", async () => {
     stubBackend();
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await userEvent.click(await screen.findByRole("button", { name: "R&R team: 설계팀" }));
     await waitFor(() => expect(screen.getByText("Related to 설계팀")).toBeInTheDocument());
     expect(screen.getByText("Related to 설계팀").closest(".related-keymen")).toHaveTextContent(
@@ -1424,7 +1424,7 @@ describe("App, authenticated", () => {
   it("opens related nodes from a related team chip", async () => {
     stubBackend();
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for 설계팀" }));
@@ -1437,7 +1437,7 @@ describe("App, authenticated", () => {
   it("opens related nodes from a related corporate entity", async () => {
     stubBackend();
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Demo Corp" }));
@@ -1450,7 +1450,7 @@ describe("App, authenticated", () => {
   it("shows the VOC excerpt under its counterparty, not a detached list", async () => {
     stubBackend();
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     const name = await screen.findByRole("button", { name: "VOC Keyman: Northridge Grid" });
     const excerpt = screen.getByText(
       "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
@@ -1470,7 +1470,7 @@ describe("App, authenticated", () => {
   it("opens related Keyman nodes from a VOC counterparty organization", async () => {
     stubBackend();
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await userEvent.click(await screen.findByRole("button", { name: "VOC Keyman: Northridge Grid" }));
     await waitFor(() => expect(screen.getByText("Related to Priya Nair")).toBeInTheDocument());
     expect(screen.getByText("Related to Priya Nair").closest(".related-keymen")).toHaveTextContent(
@@ -1481,7 +1481,7 @@ describe("App, authenticated", () => {
   it("opens related Keyman nodes from an affiliate-tree person", async () => {
     stubBackend();
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await userEvent.click(await screen.findByRole("button", { name: "Affiliate Keyman: Priya Nair" }));
     await waitFor(() => expect(screen.getByText("Related to Priya Nair")).toBeInTheDocument());
     expect(screen.getByText("Related to Priya Nair").closest(".related-keymen")).toHaveTextContent(
@@ -1492,7 +1492,7 @@ describe("App, authenticated", () => {
   it("opens related nodes from a Keyman affiliation organization", async () => {
     stubBackend();
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await userEvent.click(await screen.findByRole("button", { name: "Keyman affiliation: Demo Corp" }));
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
     expect(screen.getByText("Related to Demo Corp").closest(".related-keymen")).toHaveTextContent(
@@ -1503,7 +1503,7 @@ describe("App, authenticated", () => {
   it("opens related nodes from an affiliate-tree organization", async () => {
     stubBackend();
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await userEvent.click(await screen.findByRole("button", { name: "Affiliate org: Demo Corp" }));
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
     expect(screen.getByText("Related to Demo Corp").closest(".related-keymen")).toHaveTextContent(
@@ -1515,7 +1515,7 @@ describe("App, authenticated", () => {
   it("opens related nodes from a classified counterparty organization", async () => {
     stubBackend();
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await userEvent.click(await screen.findByRole("button", { name: "Counterparty org: Demo Corp" }));
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
     expect(screen.getByText("Related to Demo Corp").closest(".related-keymen")).toHaveTextContent(
@@ -1527,7 +1527,7 @@ describe("App, authenticated", () => {
   it("links a verification badge only for http(s) evidence URLs", async () => {
     stubBackend({ verificationEvidenceUrl: "https://example.test/searxng?q=Northridge" });
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     const badge = await screen.findByRole("link", { name: "VOC verification: Northridge Grid" });
     expect(badge).toHaveAttribute("href", "https://example.test/searxng?q=Northridge");
   });
@@ -1535,7 +1535,7 @@ describe("App, authenticated", () => {
   it("does not turn a javascript: evidence URL into a verification link", async () => {
     stubBackend({ verificationEvidenceUrl: "javascript:alert(1)" });
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await waitFor(() =>
       expect(screen.getByLabelText("VOC verification: Northridge Grid")).toBeInTheDocument(),
     );
@@ -1547,7 +1547,7 @@ describe("App, authenticated", () => {
     const fetchMock = stubBackend({ admin: true });
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await waitFor(() =>
       expect(screen.getByLabelText("VOC verification: Northridge Grid")).toHaveTextContent("Not yet checked"),
     );
@@ -1568,7 +1568,7 @@ describe("App, authenticated", () => {
     const fetchMock = stubBackend({ admin: true });
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await userEvent.click(await screen.findByRole("button", { name: /extract keymen/i }));
 
     await waitFor(() =>
@@ -1583,7 +1583,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await waitFor(() => expect(screen.getByText("No tickets yet.")).toBeInTheDocument());
 
     await userEvent.type(screen.getByPlaceholderText(/new ticket title/i), "Confirm delivery window");
@@ -1606,7 +1606,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await waitFor(() => expect(screen.getByText("No tickets yet.")).toBeInTheDocument());
 
     await userEvent.type(screen.getByPlaceholderText(/new ticket title/i), "Ship the sample kit");
@@ -1621,7 +1621,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await waitFor(() => expect(screen.getByText("No activity yet.")).toBeInTheDocument());
 
     await userEvent.type(screen.getByPlaceholderText(/new ticket title/i), "Confirm freight terms");
@@ -1653,7 +1653,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await waitFor(() => expect(screen.getByText("No tickets yet.")).toBeInTheDocument());
     expect(screen.queryByRole("button", { name: /derive commitment/i })).not.toBeInTheDocument();
   });
@@ -1662,7 +1662,7 @@ describe("App, authenticated", () => {
     stubBackend({ admin: true });
     render(<App />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post. Voice of Customer. Public." }));
     await waitFor(() => expect(screen.getByText("No tickets yet.")).toBeInTheDocument());
 
     await userEvent.click(screen.getByRole("button", { name: /derive commitment/i }));
@@ -1689,14 +1689,14 @@ describe("App, authenticated", () => {
     render(<App />);
 
     const calendarButton = await screen.findByRole("button", {
-      name: /open commitment for: public post/i,
+      name: "Open commitment for: Public post. Send Northridge Grid the revised quote. Open. due 2026-01-12",
     });
     expect(calendarButton).toHaveTextContent("Send Northridge Grid the revised quote");
     expect(calendarButton).toHaveTextContent("Public post");
     expect(calendarButton).toHaveTextContent("Open");
     expect(calendarButton).toHaveTextContent("due 2026-01-12");
     const betaCalendar = screen.getByRole("button", {
-      name: /open commitment for: specification revision requested/i,
+      name: "Open commitment for: Specification revision requested. Send Westfield Power the revised specification. Open. due 2026-01-14",
     });
     expect(betaCalendar).toHaveTextContent("Send Westfield Power the revised specification");
     expect(betaCalendar).toHaveTextContent("Open");
@@ -1705,6 +1705,32 @@ describe("App, authenticated", () => {
     await userEvent.click(calendarButton);
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
+  it("keeps calendar, report, and post-list facts in the accessible name", async () => {
+    stubBackend();
+    render(<App />);
+
+    expect(
+      await screen.findByRole("button", {
+        name: "Open commitment for: Public post. Send Northridge Grid the revised quote. Open. due 2026-01-12",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Open report period 2026-W02. mean θ 0.00. shared metric. CAT: sales-lead I=0.70",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Compare Corporate entity: Test Corp. mean θ 0.01. 8 posts",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "View post: Public post. Voice of Customer. Public.",
+      }),
+    ).toBeInTheDocument();
   });
 
   it("shows the seeded analysis run on the home page", async () => {
@@ -1978,31 +2004,30 @@ describe("App, authenticated", () => {
     expect(screen.getByText(/TEST-PU-REPORT/)).toBeInTheDocument();
     expect(screen.getAllByText("shared metric").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/CAT: sales-lead I=0\.70/).length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: /open report period 2026-W03/i })).toHaveTextContent(
-      "vs 2026-W02: +0.92",
-    );
+    expect(
+      screen.getByRole("button", {
+        name: "Open report period 2026-W03. mean θ 0.92. vs 2026-W02: +0.92. CAT: sales-lead I=0.65",
+      }),
+    ).toHaveTextContent("vs 2026-W02: +0.92");
     expect(screen.queryByRole("button", { name: /rebuild report/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("θ 0.91");
-    expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent(
-      "Send Northridge Grid the revised quote",
-    );
-    expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("Open");
-    expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
+    const reportPost = screen.getByRole("button", {
+      name: "Open report post: Public post. θ 0.91. Send Northridge Grid the revised quote. Open. due 2026-01-12",
+    });
+    expect(reportPost).toHaveTextContent("θ 0.91");
+    expect(reportPost).toHaveTextContent("Send Northridge Grid the revised quote");
+    expect(reportPost).toHaveTextContent("Open");
+    expect(reportPost).toHaveTextContent("due 2026-01-12");
+    const specReportPost = screen.getByRole("button", {
+      name: "Open report post: Specification revision requested. θ 0.18. Send Westfield Power the revised specification. Open. due 2026-01-14",
+    });
+    expect(specReportPost).toHaveTextContent("Send Westfield Power the revised specification");
+    expect(specReportPost).toHaveTextContent("Open");
+    expect(specReportPost).toHaveTextContent("due 2026-01-14");
     expect(
-      screen.getByRole("button", { name: /open report post: specification revision requested/i }),
-    ).toHaveTextContent("Send Westfield Power the revised specification");
-    expect(
-      screen.getByRole("button", { name: /open report post: specification revision requested/i }),
-    ).toHaveTextContent("Open");
-    expect(
-      screen.getByRole("button", { name: /open report post: specification revision requested/i }),
-    ).toHaveTextContent("due 2026-01-14");
-    expect(screen.getByRole("button", { name: /open commitment for: public post/i })).toHaveTextContent(
-      "Send Northridge Grid the revised quote",
-    );
-    expect(screen.getByRole("button", { name: /open commitment for: public post/i })).toHaveTextContent(
-      "due 2026-01-12",
-    );
+      screen.getByRole("button", {
+        name: "Open commitment for: Public post. Send Northridge Grid the revised quote. Open. due 2026-01-12",
+      }),
+    ).toHaveTextContent("Send Northridge Grid the revised quote");
   });
 
   it("shows the grouping comparison strip and switches grouping on click", async () => {
@@ -2010,10 +2035,16 @@ describe("App, authenticated", () => {
     render(<App />);
 
     expect(await screen.findByLabelText("Grouping comparison")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /compare process_unit: demo report high/i })).toHaveTextContent(
-      "mean θ 0.81",
+    expect(
+      screen.getByRole("button", {
+        name: "Compare Process unit: Demo Report High. mean θ 0.81. 4 posts",
+      }),
+    ).toHaveTextContent("mean θ 0.81");
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Compare Thread group: A-100. mean θ 0.81. 4 posts",
+      }),
     );
-    await userEvent.click(screen.getByRole("button", { name: /compare thread_group: a-100/i }));
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/reports/thread_group/2026-W02"),

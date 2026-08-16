@@ -43,6 +43,7 @@ import {
   type ChatExchange,
   type Counterparty,
   type EvaluationResponse,
+  type GroupingComparisonRow,
   type IssueTicket,
   type LineageGraph,
   type Keyman,
@@ -51,9 +52,11 @@ import {
   type PostDetail,
   type PeriodComparison,
   type PeriodReportIndex,
+  type PeriodReportSummary,
   type PeriodReports,
   type PostLineage,
   type PostSummary,
+  type ReportMember,
   type RelatedNode,
   type RelatedNodeType,
   type VocEvidence,
@@ -87,6 +90,16 @@ const CRITERION_SHORT_LABEL: Record<string, string> = {
 
 function criterionShortLabel(itemCode: string): string {
   return CRITERION_SHORT_LABEL[itemCode] ?? itemCode;
+}
+
+const REPORT_GROUPING_LABELS: Record<string, string> = {
+  process_unit: "Process unit",
+  corporate_entity: "Corporate entity",
+  thread_group: "Thread group",
+};
+
+function reportGroupingLabel(kind: string): string {
+  return REPORT_GROUPING_LABELS[kind] ?? kind;
 }
 
 // This popup's layout follows the textual product brief (Korean summary,
@@ -1510,6 +1523,86 @@ function analysisRunAccessibleName(run: AnalysisRun): string {
 }
 
 /**
+ * Calendar-button accessible name (WCAG 2.2 SC 4.1.2 / AccName 1.1).
+ *
+ * `aria-label` replaces the button contents, so the commitment, status,
+ * and due date must be in the name or a screen reader only hears the
+ * post title.
+ */
+function calendarCommitmentAccessibleName(entry: CalendarEntry): string {
+  const summary = entry.commitment_summary ?? entry.ticket_title;
+  const status = entry.ticket_status_label ?? entry.ticket_status_code;
+  const parts = [`Open commitment for: ${entry.post_title}`, summary, status];
+  if (entry.due_date) {
+    parts.push(`due ${entry.due_date}`);
+  }
+  return parts.filter((part) => Boolean(part)).join(". ");
+}
+
+/**
+ * Period-index button accessible name. The visible mean θ, FIPC delta,
+ * and CAT item stay in the name so the operator can pick a period
+ * without seeing the badges.
+ */
+function reportPeriodAccessibleName(row: PeriodReportSummary): string {
+  const parts = [`Open report period ${row.period_code}`, `mean θ ${row.mean_theta.toFixed(2)}`];
+  if (row.link_method === "fipc" && row.anchor_period_code && row.delta_mean_theta != null) {
+    const signed = `${row.delta_mean_theta >= 0 ? "+" : ""}${row.delta_mean_theta.toFixed(2)}`;
+    parts.push(`vs ${row.anchor_period_code}: ${signed}`);
+  } else if (row.link_method === "fipc") {
+    parts.push("shared metric");
+  } else {
+    parts.push("reference");
+  }
+  if (row.selected_item_code && row.selected_item_information != null) {
+    parts.push(
+      `CAT: ${criterionShortLabel(row.selected_item_code)} I=${row.selected_item_information.toFixed(2)}`,
+    );
+  }
+  return parts.join(". ");
+}
+
+/**
+ * Report-member button accessible name. θ, ticket, and due date are the
+ * next facts the operator uses to open the live post.
+ */
+function reportPostAccessibleName(member: ReportMember): string {
+  const parts = [`Open report post: ${member.post_title}`, `θ ${member.theta_eap.toFixed(2)}`];
+  if (member.ticket_title) {
+    parts.push(member.ticket_title);
+  }
+  const status = member.ticket_status_label ?? member.ticket_status_code;
+  if (status) {
+    parts.push(status);
+  }
+  if (member.ticket_due_date) {
+    parts.push(`due ${member.ticket_due_date}`);
+  }
+  return parts.join(". ");
+}
+
+/**
+ * Grouping-comparison button accessible name. The visible mean θ and
+ * post count must stay in the name.
+ */
+function reportCompareAccessibleName(row: GroupingComparisonRow): string {
+  return (
+    `Compare ${reportGroupingLabel(row.grouping_kind)}: ${row.grouping_label}. ` +
+    `mean θ ${row.mean_theta.toFixed(2)}. ${row.post_count} posts`
+  );
+}
+
+/**
+ * Home post-list accessible name. VOC and visibility labels are the
+ * next facts the operator uses to decide which post to open.
+ */
+function postListAccessibleName(post: PostSummary): string {
+  const voc = post.voc_type_label ?? post.voc_type_code;
+  const visibility = post.visibility_label ?? post.visibility_code;
+  return `View post: ${post.post_title}. ${voc}. ${visibility}.`;
+}
+
+/**
  * Empty-corpus copy that tells the operator what to do next.
  */
 function analysisRunEmptyPostsHint(run: AnalysisRun): string {
@@ -1826,7 +1919,7 @@ function CalendarPanel({
             <li key={entry.issue_ticket_id} className="ticket-list-item">
               <button
                 className="post-list-item"
-                aria-label={`Open commitment for: ${entry.post_title}`}
+                aria-label={calendarCommitmentAccessibleName(entry)}
                 onClick={() => onSelectPost(entry.post_id)}
               >
                 <span className="ticket-title">{entry.commitment_summary ?? entry.ticket_title}</span>
@@ -1861,11 +1954,7 @@ function ReportsPanel({
   const [error, setError] = useState<string | null>(null);
   const [rebuilding, setRebuilding] = useState(false);
 
-  const groupingLabels: Record<string, string> = {
-    process_unit: "Process unit",
-    corporate_entity: "Corporate entity",
-    thread_group: "Thread group",
-  };
+  const groupingLabels = REPORT_GROUPING_LABELS;
 
   useEffect(() => {
     setError(null);
@@ -1936,7 +2025,7 @@ function ReportsPanel({
             <li key={`${row.grouping_kind}:${row.grouping_key}`} className="ticket-list-item">
               <button
                 className="post-list-item"
-                aria-label={`Compare ${row.grouping_kind}: ${row.grouping_label}`}
+                aria-label={reportCompareAccessibleName(row)}
                 onClick={() => setGrouping(row.grouping_kind)}
               >
                 <span className="ticket-title">
@@ -1955,7 +2044,7 @@ function ReportsPanel({
             <li key={`${row.period_code}:${row.grouping_key}`} className="ticket-list-item">
               <button
                 className="post-list-item"
-                aria-label={`Open report period ${row.period_code}`}
+                aria-label={reportPeriodAccessibleName(row)}
                 onClick={() => setPeriod(row.period_code)}
               >
                 <span className="ticket-title">
@@ -2016,7 +2105,7 @@ function ReportsPanel({
                     <li key={member.post_id} className="ticket-list-item">
                       <button
                         className="post-list-item"
-                        aria-label={`Open report post: ${member.post_title}`}
+                        aria-label={reportPostAccessibleName(member)}
                         onClick={() => onSelectPost(member.post_id)}
                       >
                         <span className="ticket-title">{member.post_title}</span>
@@ -2102,7 +2191,7 @@ function PostList({ accessToken }: { accessToken: string }) {
           <li key={post.post_id}>
             <button
               className="post-list-item"
-              aria-label={`View post: ${post.post_title}`}
+              aria-label={postListAccessibleName(post)}
               onClick={() => setSelectedPostId(post.post_id)}
             >
               <span className="post-title">{post.post_title}</span>
