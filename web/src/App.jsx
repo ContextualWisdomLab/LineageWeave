@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   canPreviewAsset,
+  counterpartVocExcerpts,
   customerTreeRows,
   emailValidationMessage,
   formatNumber,
@@ -471,6 +472,10 @@ export default function App() {
   const sourcePersons = graph.nodes.filter((node) => node.type === "person");
   const knowledgeEdges = knowledgeEdgeRows(knowledge);
   const ticketStatusOptions = detail?.ticket_status_options || [];
+  const counterpartExcerpts = counterpartVocExcerpts(
+    selectedDocument?.appointments,
+    sideRows(selectedDocument?.keyman_counterpart_side),
+  );
 
   useEffect(() => {
     if (selectedDocument && documentDialog.current && !documentDialog.current.open) {
@@ -1312,6 +1317,17 @@ export default function App() {
                 <h3>Keyman · 상대측</h3>
                 <ul id="popupKeymanCounterpart">{sideRows(selectedDocument.keyman_counterpart_side).map((item, index) => { const label = item.actor_name || item.person_name || item.org_name; const node = sourcePersons.find((candidate) => candidate.label === label || candidate.label === item.organization_name || candidate.label === item.org_name); return <li key={`${label}-${item.org_name}-${index}`}><button className="keyman-link" onClick={() => openKnowledge(node || { person: label })}>{sideLabel(item)}</button></li>; })}</ul>
                 <p className="meta">관리 상태: {keymanStatusLabel(selectedDocument.keyman_status || "not_run")}</p>
+                {counterpartExcerpts.length ? (
+                  <div id="vocExcerpts" className="voc-excerpts">
+                    <h4>고객 발화 근거</h4>
+                    {counterpartExcerpts.map((item) => (
+                      <blockquote className="voc-excerpt" key={item.appointment_id || `${item.occurred_on}-${item.excerpt}`}>
+                        <p>{item.excerpt}</p>
+                        <small>{item.occurred_on || "날짜 미상"}{item.label ? ` · ${item.label}` : ""}</small>
+                      </blockquote>
+                    ))}
+                  </div>
+                ) : null}
               </section>
               <section className="detail-card wide modal-knowledge">
                 <h3>Keyman Knowledge Graph</h3>

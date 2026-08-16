@@ -160,6 +160,20 @@ export function knowledgeEdgeRows(knowledge = {}) {
   });
 }
 
+export function counterpartVocExcerpts(appointments = [], counterparts = []) {
+  const rows = (Array.isArray(appointments) ? appointments : []).filter((item) => String(item?.excerpt || "").trim());
+  const names = (Array.isArray(counterparts) ? counterparts : [])
+    .flatMap((item) => [item?.actor_name, item?.person_name, item?.org_name, item?.organization_name])
+    .map((value) => String(value || "").trim().toLowerCase())
+    .filter(Boolean);
+  if (!names.length) return rows.slice(0, 8);
+  const matched = rows.filter((item) => {
+    const blob = `${item.excerpt || ""} ${item.label || ""}`.toLowerCase();
+    return names.some((name) => blob.includes(name));
+  });
+  return (matched.length ? matched : rows).slice(0, 8);
+}
+
 export function partitionLineageBeads(beads = []) {
   const segments = [];
   const observations = [];

@@ -1082,6 +1082,17 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     server_source = Path("lineageweave_server.py").read_text(encoding="utf-8")
     assert 'id="popupKeymanOur"' in react
     assert 'id="popupKeymanCounterpart"' in react
+    assert "function counterpartVocExcerpts" in ui_model
+    assert "counterpartVocExcerpts" in react
+    assert 'id="vocExcerpts"' in react
+    assert "고객 발화 근거" in react
+    assert ".voc-excerpt" in styles
+    changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+    architecture = Path("ARCHITECTURE.md").read_text(encoding="utf-8")
+    traceability = Path("TRACEABILITY.md").read_text(encoding="utf-8")
+    assert "고객 발화 근거" in changelog
+    assert "vocExcerpts" in architecture
+    assert "Counterpart VOC excerpts" in traceability
     assert "분석 상태" in react
     assert "관리 상태" in react
     assert "const normalizedRoles = useMemo(() =>" in react

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   canPreviewAsset,
+  counterpartVocExcerpts,
   customerTreeRows,
   emailValidationMessage,
   EMPTY_EMAIL_MESSAGE,
@@ -24,6 +25,19 @@ describe("emailValidationMessage", () => {
     expect(emailValidationMessage("", true)).toBe(EMPTY_EMAIL_MESSAGE);
     expect(emailValidationMessage("member@example.com", false)).toBe(INVALID_EMAIL_MESSAGE);
     expect(emailValidationMessage("member@example.com", true)).toBe("");
+  });
+});
+
+describe("counterpartVocExcerpts", () => {
+  it("prefers excerpts that name a counterpart and otherwise keeps authorized appointment text", () => {
+    const appointments = [
+      { appointment_id: "a1", excerpt: "Ada West confirmed the delay", label: "follow-up", occurred_on: "2026-08-01" },
+      { appointment_id: "a2", excerpt: "Internal standup notes", occurred_on: "2026-08-02" },
+      { appointment_id: "a3", excerpt: "", occurred_on: "2026-08-03" },
+    ];
+    expect(counterpartVocExcerpts(appointments, [{ person_name: "Ada West" }]).map((item) => item.appointment_id)).toEqual(["a1"]);
+    expect(counterpartVocExcerpts(appointments, [{ person_name: "Priya Nair" }]).map((item) => item.appointment_id)).toEqual(["a1", "a2"]);
+    expect(counterpartVocExcerpts(appointments, []).map((item) => item.appointment_id)).toEqual(["a1", "a2"]);
   });
 });
 
