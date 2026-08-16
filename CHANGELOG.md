@@ -4,7 +4,7 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.86.3] - 2026-08-16
+## [Unreleased]
 
 ### Fixed
 
@@ -12,7 +12,7 @@ All notable changes to this project are documented here. Format follows
   button accessible name includes that sentence (WCAG 2.2 SC 4.1.2).
   A pending TEPP row tells the operator measurement has not started —
   it does not say reconstruction. Open the row: detail repeats it
-  (ADR 0021).
+  (ADR 0014). This slice does not take v0.86.3 or ADR 0021.
 
 ## [0.86.2] - 2026-08-16
 

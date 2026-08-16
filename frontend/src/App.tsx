@@ -1452,7 +1452,7 @@ function analysisRunCaption(run: AnalysisRun): string {
 
 /**
  * Next action for a pending or failed run on the home list and detail
- * (ADR 0021).
+ * (ADR 0014).
  *
  * The machine `failure_code` stays on detail history (ADR 0014). Copy
  * is pinned to registered kinds so a pending TEPP row is not mistaken

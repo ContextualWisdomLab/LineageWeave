@@ -493,7 +493,7 @@ to retry reconstruction, not to connect TEPP. A failed period-report
 row tells the operator to rebuild the report. A pending TEPP row
 does not claim a calibrated measurement and does not say
 reconstruction. The list button accessible name includes the
-next-action sentence; detail repeats it (ADR 0021). A pending lineage row
+next-action sentence; detail repeats it (ADR 0014). A pending lineage row
 says reconstruction has not started yet. The
 payload is lookup labels plus non-negative aggregate counts -- never
 source SQL, a DSN, a raw record, or a provider body. After `make seed`,

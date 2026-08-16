@@ -15,7 +15,7 @@ theta or a local psychometric substitute. The home list caption stays
 transport. A failed lineage row retries reconstruction -- it does not
 mention TEPP. A failed period-report row rebuilds the report. A
 pending TEPP row does not claim a calibrated measurement and does
-not say reconstruction (ADR 0021). The list button name includes the
+not say reconstruction. The list button name includes the
 next-action sentence. A pending lineage row says reconstruction has
 not started yet.
 Digest prefixes stay audible; hover a prefix to read the full digest.

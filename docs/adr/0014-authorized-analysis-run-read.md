@@ -48,7 +48,7 @@ service. A failed lineage row tells the operator to retry
 reconstruction, not to connect TEPP. A failed period-report row
 tells the operator to rebuild the report from a current snapshot.
 A pending or running TEPP row must not claim a calibrated
-measurement and must not say reconstruction (ADR 0021). The list
+measurement and must not say reconstruction. The list
 button accessible name includes the next-action sentence. A pending
 lineage row says reconstruction has not started yet. The detail now shows the legal
 lifecycle the registry already stored. `POST /api/analysis-runs` now
