@@ -1741,6 +1741,9 @@ describe("App, authenticated", () => {
     expect(
       screen.getByText("Delivery schedule question raised follows Pricing renegotiation follow-up"),
     ).toBeInTheDocument();
+    const digests = screen.getByLabelText("Analysis run reproducibility digests");
+    expect(digests).toHaveTextContent("Result aaaaaaaaaaaa");
+    expect(screen.getByTitle("aa".repeat(32))).toHaveTextContent("Result aaaaaaaaaaaa");
     const startCall = fetchMock.mock.calls.find((call) =>
       String(call[0]).endsWith("/api/analysis-runs/run-demo-lineage-pending/start"),
     );

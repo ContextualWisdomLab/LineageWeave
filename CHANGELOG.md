@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.87.1] - 2026-08-16
+
+### Fixed
+
+- Start locks the Pending run before writing Running, so a double-click
+  is a next-action 409 instead of a 500. Create now freezes authorized
+  post ids on `analysis_source_snapshot_member`; start reconstructs that
+  bag instead of a later backfill that shares the cutoff clock. Hover
+  the Result digest prefix after Succeeded to verify the parent-choice
+  hash. Edge titles stay public-or-affiliated. Open the Pending Demo
+  Corp row, start reconstruction, and confirm the A-100 fork.
+
 ## [0.87.0] - 2026-08-16
 
 ### Added

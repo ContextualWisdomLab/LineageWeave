@@ -15,6 +15,8 @@ _INITIAL_MIGRATION = _ROOT / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = _ROOT / "migrations" / "0018_analysis_run_registry.sql"
 _RECONSTRUCTION_MIGRATION = _ROOT / "migrations" / "0019_analysis_run_reconstruction.sql"
 _RECONSTRUCTION_ROLLBACK = _ROOT / "migrations" / "rollback" / "0019_analysis_run_reconstruction.sql"
+_SNAPSHOT_MEMBER_MIGRATION = _ROOT / "migrations" / "0020_analysis_source_snapshot_member.sql"
+_SNAPSHOT_MEMBER_ROLLBACK = _ROOT / "migrations" / "rollback" / "0020_analysis_source_snapshot_member.sql"
 _POSTGRES_IMAGE = _ROOT / "docker" / "postgres-init" / "Dockerfile"
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -38,9 +40,23 @@ def test_reconstruction_migration_is_normalized_and_wired() -> None:
     assert "metadata_payload" not in migration
     assert "theta" not in migration.casefold()
     assert "0019_analysis_run_reconstruction.sql" in dockerfile
+    assert "0020_analysis_source_snapshot_member.sql" in dockerfile
     assert "analysis_run_reconstruction_not_empty" in rollback
     assert "reject_analysis_run_reconstruction_update" in migration
     assert "reject_analysis_run_lineage_edge_update" in migration
+    member_migration = _SNAPSHOT_MEMBER_MIGRATION.read_text(encoding="utf-8")
+    member_rollback = _SNAPSHOT_MEMBER_ROLLBACK.read_text(encoding="utf-8")
+    assert "analysis_source_snapshot_member" in member_migration
+    assert "jsonb" not in member_migration.casefold()
+    assert "theta" not in member_migration.casefold()
+    assert "analysis_source_snapshot_member_not_empty" in member_rollback
+    assert "reject_analysis_source_snapshot_member_update" in member_migration
+    for object_name in re.findall(
+        r"create table if not exists\s+([a-z0-9_]+)",
+        member_migration,
+        re.I,
+    ):
+        assert len(object_name.split("_")) >= 2, object_name
 
     object_patterns = (
         r"create table if not exists\s+([a-z0-9_]+)",
@@ -91,6 +107,7 @@ def reconstruction_db():
             cursor.execute(_INITIAL_MIGRATION.read_text(encoding="utf-8"))
             cursor.execute(_REGISTRY_MIGRATION.read_text(encoding="utf-8"))
             cursor.execute(_RECONSTRUCTION_MIGRATION.read_text(encoding="utf-8"))
+            cursor.execute(_SNAPSHOT_MEMBER_MIGRATION.read_text(encoding="utf-8"))
         yield conn
     finally:
         conn.close()

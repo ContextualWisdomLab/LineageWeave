@@ -29,9 +29,13 @@ transaction:
 2. rejects non-lineage kinds so TEPP cannot invent a theta;
 3. replays a Succeeded run;
 4. accepts only Pending lineage;
-5. appends Running, runs `lineage_edge_specs` / ThreadWeave on the
-   ABAC-visible cutoff bag, persists `analysis_run_reconstruction` plus
-   `analysis_run_lineage_edge`, then appends Succeeded.
+5. locks the run row, re-reads status, appends Running, runs
+   `lineage_edge_specs` / ThreadWeave on the frozen
+   `analysis_source_snapshot_member` bag (or the live cutoff query when
+   membership was never persisted), persists
+   `analysis_run_reconstruction` plus `analysis_run_lineage_edge`, then
+   appends Succeeded. A concurrent start is 409 with a refresh next
+   action, not a 500.
 
 ```mermaid
 sequenceDiagram
@@ -65,7 +69,9 @@ Rules:
 - Failed TEPP remains a `tepp_client` transport problem.
 
 The home detail adds **Start reconstruction** on a Pending lineage row
-and lists titled parent→child edges after Succeeded.
+and lists titled parent→child edges after Succeeded. The Result digest
+prefix is audible next to Code and Config; hover it to verify the
+parent-choice hash. Edge titles stay public-or-affiliated.
 
 ## Consequences
 

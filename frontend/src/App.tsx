@@ -1538,11 +1538,23 @@ function analysisRunLivePostButtonLabel(postTitle: string): string {
 function AnalysisRunReproducibilityDigests({
   codeRevisionSha,
   configurationSha256,
+  reconstructionResultSha256,
 }: {
   codeRevisionSha?: string;
   configurationSha256?: string;
+  reconstructionResultSha256?: string;
 }) {
-  if (!codeRevisionSha && !configurationSha256) {
+  const parts: { label: string; digest: string }[] = [];
+  if (codeRevisionSha) {
+    parts.push({ label: "Code", digest: codeRevisionSha });
+  }
+  if (configurationSha256) {
+    parts.push({ label: "Config", digest: configurationSha256 });
+  }
+  if (reconstructionResultSha256) {
+    parts.push({ label: "Result", digest: reconstructionResultSha256 });
+  }
+  if (parts.length === 0) {
     return null;
   }
   return (
@@ -1551,15 +1563,12 @@ function AnalysisRunReproducibilityDigests({
         <span className="visually-hidden">
           Hover a prefix to read the full digest for verification.{" "}
         </span>
-        {codeRevisionSha ? (
-          <span title={codeRevisionSha}>{`Code ${analysisRunDigestPrefix(codeRevisionSha)}`}</span>
-        ) : null}
-        {codeRevisionSha && configurationSha256 ? " · " : null}
-        {configurationSha256 ? (
-          <span title={configurationSha256}>
-            {`Config ${analysisRunDigestPrefix(configurationSha256)}`}
+        {parts.map((part, index) => (
+          <span key={part.label}>
+            {index > 0 ? " · " : null}
+            <span title={part.digest}>{`${part.label} ${analysisRunDigestPrefix(part.digest)}`}</span>
           </span>
-        ) : null}
+        ))}
       </p>
     </div>
   );
@@ -1695,6 +1704,7 @@ function AnalysisRunsPanel({
           <AnalysisRunReproducibilityDigests
             codeRevisionSha={selected.code_revision_sha}
             configurationSha256={selected.configuration_sha256}
+            reconstructionResultSha256={selected.reconstruction_result_sha256}
           />
           {selected.status_code === "analysis_status_pending" && (
             <p className="post-meta">{analysisRunNextAction(selected)}</p>

@@ -3,7 +3,7 @@
 Tool-specific pointer. Policy lives in [AGENTS.md](AGENTS.md) and the
 ADRs under `docs/adr/`. Do not fork those rules here.
 
-## Analysis-run seed (v0.87.0)
+## Analysis-run seed (v0.87.1)
 
 `make seed` writes a Demo Corp lineage run and a TEPP run on the same
 snapshot (ADR 0013). The TEPP path goes through `tepp_client`. A missing
@@ -19,4 +19,5 @@ Opening a cutoff title shows the live post -- compare it with the
 cutoff before treating the body as reconstructed evidence (ADR 0016).
 `POST /api/analysis-runs` records Pending on an authorized
 cutoff capture (ADR 0017). `POST /api/analysis-runs/{id}/start`
-reconstructs that cutoff bag (ADR 0019) and does not invent a theta.
+reconstructs that frozen cutoff bag (ADR 0019) and does not invent a
+theta. Hover the Result prefix to read the parent-choice digest.

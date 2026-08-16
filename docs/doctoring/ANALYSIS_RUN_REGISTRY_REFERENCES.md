@@ -1,7 +1,7 @@
 # Analysis-run registry standards and research traceability
 
 **Status:** Active PR evidence; not protected-main truth until merge.  
-**Scope:** Migrations 0018–0019, ADR 0013 / 0017 / 0019, rollback, and
+**Scope:** Migrations 0018–0020, ADR 0013 / 0017 / 0019, rollback, and
 real-PostgreSQL contract tests.
 
 ## Standards mapped to implementation
@@ -15,7 +15,7 @@ real-PostgreSQL contract tests.
 | PostgreSQL 18 constraints and trigger contracts | Put integrity close to durable truth and use constraints for row shape while triggers enforce cross-row state and serialization. | Digest/check constraints, category allowlists, account-scoped uniqueness, shape constraints, immutable-row triggers, shared snapshot-row locking, and serialized status transitions. |
 | NIST SP 800-92 | Treat audit records as bounded, protected operational evidence rather than unstructured application logging. | Append-only status events, machine failure codes, actor identity, occurrence/record clocks, fail-closed rollback, and exclusion of raw source/provider payloads. |
 | OpenAPI 3.2.0 | Define explicit versioned API schemas rather than exposing database rows or implementation-specific payloads. | `GET` / `POST /api/analysis-runs` and `POST /api/analysis-runs/{id}/start` return labels, clocks, aggregates, and titled reconstruction edges — never source SQL or a provider body. |
-| ThreadWeave tree assembly | Persist the same parent choices the library reconstructs on the cutoff bag. | `start_pending_analysis_run` calls `lineage_edge_specs`; tests require the designed A-100 fork (revised quote + delivery question under the pricing follow-up). |
+| ThreadWeave tree assembly | Persist the same parent choices the library reconstructs on the cutoff bag. | `start_pending_analysis_run` calls `lineage_edge_specs` on frozen `analysis_source_snapshot_member` rows (or the live cutoff query when membership is absent); tests require the designed A-100 fork through `records_from_source_posts` (revised quote + delivery question under the pricing follow-up). |
 
 ## Temporal reasoning
 
@@ -78,7 +78,7 @@ provenance, retention, and immutable evidence rather than blanket masking.
 | Idempotency is actor-scoped | Permit identical opaque keys for two accounts and reject reuse by the same account. |
 | Lifecycle is ordered | Require pending first, contiguous ordinals, monotonic time, legal transitions, terminal finality, and append-only rows. |
 | Rollback does not erase audit data silently | Reject rollback with any registry rows and allow replay after explicit cleanup. |
-| Start reconstruction recovers the designed tree | Persist edges from `lineage_edge_specs` on the A-100 fixture bag; the pricing follow-up must parent both the revised quote and the delivery question. A TEPP start must 422 without a theta. |
+| Start reconstruction recovers the designed tree | Persist edges from `lineage_edge_specs` on the A-100 fixture bag via `records_from_source_posts`; the pricing follow-up must parent both the revised quote and the delivery question. A TEPP start must 422 without a theta. Snapshot members exclude a later backfill. A concurrent start is 409 with a refresh next action. |
 
 ## APA 7th references
 

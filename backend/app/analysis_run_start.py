@@ -102,6 +102,70 @@ async def _append_status(
     )
 
 
+def start_write_conflict_error() -> AnalysisRunStartError:
+    """Next action when a concurrent start already wrote this run."""
+    return AnalysisRunStartError(
+        409,
+        "Open this run. Refresh to see the stored tree if start already finished.",
+    )
+
+
+def reconstruction_member_ids(
+    snapshot_member_ids: list[str],
+    cutoff_post_ids: list[str],
+) -> list[str]:
+    """Prefer create-time membership over a later cutoff re-query.
+
+    An empty member list means this database has not frozen the bag yet
+    (migration 0020 missing, or a legacy snapshot). Start then uses the
+    live cutoff query so those rows still reconstruct.
+    """
+    if snapshot_member_ids:
+        return list(snapshot_member_ids)
+    return list(cutoff_post_ids)
+
+
+async def _snapshot_member_posts(
+    conn: asyncpg.Connection,
+    snapshot_id: Any,
+) -> list[asyncpg.Record]:
+    """Load frozen capture rows, or empty when the member table is absent."""
+    try:
+        return list(
+            await conn.fetch(
+                """
+                select post.post_id, post.post_title, post.created_at,
+                       post.visibility_code, post.corporate_entity_id,
+                       post.process_unit_id, post.thread_group_key,
+                       post.secondary_grouping_key
+                from analysis_source_snapshot_member member
+                join source_post post on post.post_id = member.source_post_id
+                where member.analysis_source_snapshot_id = $1
+                order by post.created_at, post.post_title
+                """,
+                snapshot_id,
+            )
+        )
+    except asyncpg.UndefinedTableError:
+        return []
+
+
+async def _next_status_ordinal(
+    conn: asyncpg.Connection,
+    analysis_run_id: str,
+) -> int:
+    """Return the next contiguous status ordinal for this run."""
+    current_max = await conn.fetchval(
+        """
+        select coalesce(max(status_ordinal), 0)
+        from analysis_run_status_event
+        where analysis_run_id = $1
+        """,
+        analysis_run_id,
+    )
+    return int(current_max) + 1
+
+
 async def start_pending_analysis_run(
     conn: asyncpg.Connection,
     *,
@@ -112,7 +176,9 @@ async def start_pending_analysis_run(
     """Run ThreadWeave on a visible Pending lineage row.
 
     TEPP is rejected so this path cannot invent a theta. A Succeeded
-    retry returns the stored reconstruction. Hidden runs 404.
+    retry returns the stored reconstruction. Hidden runs 404. The run
+    row is locked before Running so a double-click is 409 or a replay,
+    never a 500.
     """
     try:
         UUID(analysis_run_id)
@@ -141,13 +207,10 @@ async def start_pending_analysis_run(
             "Open this run. Start is only for a Pending lineage reconstruction.",
         )
 
-    now = datetime.now(timezone.utc)
-    await _append_status(conn, analysis_run_id, 2, _RUNNING, now)
-
     locked = await conn.fetchrow(
         """
         select run.analysis_run_id, run.knowledge_cutoff,
-               scope.corporate_entity_id
+               run.analysis_source_snapshot_id, scope.corporate_entity_id
         from analysis_run run
         join analysis_run_scope scope on scope.analysis_run_id = run.analysis_run_id
         where run.analysis_run_id = $1
@@ -155,43 +218,86 @@ async def start_pending_analysis_run(
         """,
         analysis_run_id,
     )
-    rows = await _cutoff_source_posts(
-        conn,
-        corporate_entity_id=locked["corporate_entity_id"],
-        knowledge_cutoff=locked["knowledge_cutoff"],
-        affiliated_entity_ids=affiliated_entity_ids,
-    )
-    edges = lineage_edge_specs(records_from_source_posts(rows))
-    digest = reconstruction_result_digest(edges)
-    finished = datetime.now(timezone.utc)
-    if finished < now:
-        finished = now
-    await conn.execute(
+    locked_status = await conn.fetchval(
         """
-        insert into analysis_run_reconstruction
-            (analysis_run_id, result_sha256, edge_count, reconstructed_at)
-        values ($1, $2, $3, $4)
+        select status_code
+        from analysis_run_current_status
+        where analysis_run_id = $1
         """,
         analysis_run_id,
-        digest,
-        len(edges),
-        finished,
     )
-    for edge in edges:
+    if locked_status == _SUCCEEDED:
+        replayed = await fetch_visible_analysis_run(
+            conn,
+            analysis_run_id,
+            account_id,
+            affiliated_entity_ids,
+        )
+        if replayed is None:
+            raise AnalysisRunStartError(404, "This analysis run is not visible.")
+        return replayed
+    if locked_status != _PENDING:
+        raise AnalysisRunStartError(
+            409,
+            "Open this run. Start is only for a Pending lineage reconstruction.",
+        )
+
+    now = datetime.now(timezone.utc)
+    running_ordinal = await _next_status_ordinal(conn, analysis_run_id)
+    try:
+        await _append_status(conn, analysis_run_id, running_ordinal, _RUNNING, now)
+        member_rows = await _snapshot_member_posts(
+            conn,
+            locked["analysis_source_snapshot_id"],
+        )
+        if member_rows:
+            rows = member_rows
+        else:
+            rows = await _cutoff_source_posts(
+                conn,
+                corporate_entity_id=locked["corporate_entity_id"],
+                knowledge_cutoff=locked["knowledge_cutoff"],
+                affiliated_entity_ids=affiliated_entity_ids,
+            )
+        edges = lineage_edge_specs(records_from_source_posts(rows))
+        digest = reconstruction_result_digest(edges)
+        finished = datetime.now(timezone.utc)
+        if finished < now:
+            finished = now
         await conn.execute(
             """
-            insert into analysis_run_lineage_edge
-                (analysis_run_id, child_post_id, parent_post_id,
-                 fused_score, reconstructed_at)
-            values ($1, $2, $3, $4, $5)
+            insert into analysis_run_reconstruction
+                (analysis_run_id, result_sha256, edge_count, reconstructed_at)
+            values ($1, $2, $3, $4)
             """,
             analysis_run_id,
-            edge.child_id,
-            edge.parent_id,
-            edge.fused_score,
+            digest,
+            len(edges),
             finished,
         )
-    await _append_status(conn, analysis_run_id, 3, _SUCCEEDED, finished)
+        for edge in edges:
+            await conn.execute(
+                """
+                insert into analysis_run_lineage_edge
+                    (analysis_run_id, child_post_id, parent_post_id,
+                     fused_score, reconstructed_at)
+                values ($1, $2, $3, $4, $5)
+                """,
+                analysis_run_id,
+                edge.child_id,
+                edge.parent_id,
+                edge.fused_score,
+                finished,
+            )
+        await _append_status(
+            conn,
+            analysis_run_id,
+            running_ordinal + 1,
+            _SUCCEEDED,
+            finished,
+        )
+    except asyncpg.UniqueViolationError as exc:
+        raise start_write_conflict_error() from exc
     started = await fetch_visible_analysis_run(
         conn,
         analysis_run_id,

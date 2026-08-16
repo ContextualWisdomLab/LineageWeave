@@ -35,6 +35,9 @@ _REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018
 _RECONSTRUCTION_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0019_analysis_run_reconstruction.sql"
 )
+_SNAPSHOT_MEMBER_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0020_analysis_source_snapshot_member.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -119,6 +122,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_MIGRATION_PATH.read_text())
             cur.execute(_REGISTRY_MIGRATION.read_text())
             cur.execute(_RECONSTRUCTION_MIGRATION.read_text())
+            cur.execute(_SNAPSHOT_MEMBER_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
