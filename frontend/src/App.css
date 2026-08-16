@@ -24,7 +24,7 @@
 }
 
 .error {
-  color: #b91c1c;
+  color: var(--lw-color-danger);
 }
 
 .post-list {

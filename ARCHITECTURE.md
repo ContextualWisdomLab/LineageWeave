@@ -463,9 +463,12 @@ in SQL: the requester always sees their own run; a corporate-entity or
 process-unit scope is visible only to affiliated accounts; a
 thread-group scope is visible only when the account can already see a
 post in that group; `all_visible` is requester-only. Hidden runs 404. Detail also lists ABAC-visible post titles in the
-run's scope so a buyer can open a post without seeing hidden rows.
+run's scope whose `created_at` is at or before the run
+`knowledge_cutoff`, so a later post cannot appear inside a historical
+reconstruction (ADR 0016). Detail also returns revision and
+configuration digest prefixes.
 The home list is clickable: `GET /api/analysis-runs/{id}` fills a
-labeled detail (cutoff, requested date, counts, status history)
+labeled detail (cutoff, requested date, counts, status history, digests)
 without exposing a DSN or raw record. Status history is detail-only
 and uses lookup labels plus occurrence times; a failure event keeps
 its machine `failure_code` rather than an invented caption. The

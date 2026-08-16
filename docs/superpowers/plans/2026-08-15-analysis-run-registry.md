@@ -67,7 +67,15 @@ for Milestone 2 analysis requests and lifecycle evidence.
 8. Obtain independent exact-head review and merge only after the parent PR is on
    protected `main` and base-sensitive evidence is regenerated.
 
-## Task 5 — Next bounded vertical slice
+## Task 5 — Knowledge-cutoff post projection (v0.83.0)
+
+1. Fail if a post written after `knowledge_cutoff` appears in
+   `visible_posts`.
+2. Apply `created_at <= knowledge_cutoff` in the authorized read.
+3. Show revision/config digest prefixes on the home detail.
+4. Extract `AnalysisRunsPanel` and inventory Storybook states.
+
+## Task 6 — Next bounded vertical slice
 
 After this registry reaches protected main:
 

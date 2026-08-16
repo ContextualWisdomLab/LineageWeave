@@ -4,6 +4,23 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.83.0] - 2026-08-16
+
+### Fixed
+
+- Analysis-run detail now lists only posts whose `created_at` is at or
+  before the run `knowledge_cutoff`. After `make seed`, a later own-corp
+  post does not appear inside the January 12 reconstruction. Open a later
+  run, or ask an administrator to capture a newer snapshot, when the list
+  is empty.
+
+### Added
+
+- Run detail shows revision and configuration digest prefixes so an
+  operator can confirm the run matches the code they approved (ADR 0016).
+- `AnalysisRunsPanel` is a standalone home-page module with a Storybook
+  inventory for the next frontend toolchain slice.
+
 ## [0.82.0] - 2026-08-16
 
 ### Added

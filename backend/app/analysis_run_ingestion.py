@@ -2,9 +2,10 @@
 
 The registry itself is issue #89 / migration 0018. This module is the
 product projection: an account sees only runs they requested or whose
-scope they already have ABAC authority to walk. Aggregate counts and
-lookup labels come back; source SQL, DSNs, raw records, and provider
-payloads never do.
+scope they already have ABAC authority to walk. Detail post titles are
+further limited to posts known at the run knowledge cutoff. Aggregate
+counts and lookup labels come back; source SQL, DSNs, raw records, and
+provider payloads never do.
 """
 
 from __future__ import annotations
@@ -226,6 +227,7 @@ async def fetch_visible_analysis_run(
         row["process_unit_id"],
         row["scope_key"],
         affiliated_entity_ids,
+        row["knowledge_cutoff"],
     )
     return detail
 
@@ -237,33 +239,42 @@ async def fetch_visible_scope_posts(
     process_unit_id: Any,
     scope_key: str | None,
     affiliated_entity_ids: list[str],
+    knowledge_cutoff: Any,
 ) -> list[dict[str, str]]:
-    """ABAC-visible post titles in the run's scope -- never a hidden body."""
+    """ABAC-visible titles known at the run cutoff -- never a hidden body."""
     if scope_kind_code == "analysis_scope_corporate_entity" and corporate_entity_id:
         rows = await conn.fetch(
             "select post_id, post_title, visibility_code, corporate_entity_id "
             "from source_post where corporate_entity_id = $1 "
+            "and created_at <= $2 "
             "order by created_at, post_title",
             corporate_entity_id,
+            knowledge_cutoff,
         )
     elif scope_kind_code == "analysis_scope_process_unit" and process_unit_id:
         rows = await conn.fetch(
             "select post_id, post_title, visibility_code, corporate_entity_id "
             "from source_post where process_unit_id = $1 "
+            "and created_at <= $2 "
             "order by created_at, post_title",
             process_unit_id,
+            knowledge_cutoff,
         )
     elif scope_kind_code == "analysis_scope_thread_group" and scope_key:
         rows = await conn.fetch(
             "select post_id, post_title, visibility_code, corporate_entity_id "
             "from source_post where thread_group_key = $1 "
+            "and created_at <= $2 "
             "order by created_at, post_title",
             scope_key,
+            knowledge_cutoff,
         )
     elif scope_kind_code == "analysis_scope_all_visible":
         rows = await conn.fetch(
             "select post_id, post_title, visibility_code, corporate_entity_id "
-            "from source_post order by created_at, post_title"
+            "from source_post where created_at <= $1 "
+            "order by created_at, post_title",
+            knowledge_cutoff,
         )
     else:
         return []
