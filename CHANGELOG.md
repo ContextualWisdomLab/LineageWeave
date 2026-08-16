@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.90.0] - 2026-08-17
+
+### Added
+
+- Opening an analysis-run title marked **Updated after cutoff** now
+  shows a popup status that the body is live, not a cutoff snapshot
+  (ADR 0016). After `make seed`, open the Demo Corp lineage run and
+  click Demo public post: the warning appears above the live body
+  and tells you to compare it with this run. Demo private post and
+  the home post list do not. The popup does not invent the earlier
+  text. No TEPP theta is invented.
+
 ## [0.89.0] - 2026-08-17
 
 ### Added

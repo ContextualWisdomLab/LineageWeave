@@ -1162,6 +1162,7 @@ function PostDetailPopup({
   accessToken,
   canExtract,
   graph,
+  liveBodyWarning,
   onClose,
   onSelectPost,
 }: {
@@ -1169,6 +1170,7 @@ function PostDetailPopup({
   accessToken: string;
   canExtract: boolean;
   graph: LineageGraph | null;
+  liveBodyWarning?: string | null;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
 }) {
@@ -1243,6 +1245,11 @@ function PostDetailPopup({
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
+            {liveBodyWarning ? (
+              <p className="popup-live-body-warning" role="status" aria-label="Live body warning">
+                {liveBodyWarning}
+              </p>
+            ) : null}
             <PostBody body={post.post_body} />
 
             <section className="popup-section">
@@ -1562,12 +1569,18 @@ function analysisRunDigestPrefix(digest: string): string {
   return digest.slice(0, ANALYSIS_RUN_DIGEST_PREFIX_LENGTH);
 }
 
+type SelectPostOptions = {
+  liveAfterCutoff?: boolean;
+  knowledgeCutoff?: string;
+};
+
 /**
  * Next action when a cutoff title opens the live post (ADR 0016).
  *
- * Post-body versioning is a later slice. Titles marked
- * `live_after_cutoff` were rewritten after this run; others still
- * match the write clock the run knew.
+ * Titles marked `live_after_cutoff` were rewritten after this run;
+ * others still match the write clock the run knew. The popup then
+ * states that the body is live. Cutoff body versioning stays later
+ * work -- we never invent the earlier text.
  */
 function analysisRunLivePostWarning(cutoffIso: string): string {
   const cutoffDate = cutoffIso.slice(0, 10);
@@ -1575,6 +1588,21 @@ function analysisRunLivePostWarning(cutoffIso: string): string {
     `Opening a title shows the live post. Titles marked updated after cutoff ` +
     `were rewritten after ${cutoffDate}. Compare those bodies with this run ` +
     "before you treat them as reconstructed evidence."
+  );
+}
+
+/**
+ * Popup next action when a marked cutoff title opens the live body.
+ *
+ * ADR 0016 does not store a historical snapshot. This copy must not
+ * invent the earlier text.
+ */
+function analysisRunOpenedBodyWarning(cutoffIso?: string | null): string {
+  const cutoffDate = cutoffIso?.slice(0, 10);
+  const when = cutoffDate ? ` this ${cutoffDate}` : " this";
+  return (
+    "This is the live body, not a cutoff snapshot. " +
+    `Compare it with${when} run before you treat it as reconstructed evidence.`
   );
 }
 
@@ -1644,7 +1672,7 @@ function AnalysisRunsPanel({
   onSelectPost,
 }: {
   accessToken: string;
-  onSelectPost: (postId: string) => void;
+  onSelectPost: (postId: string, options?: SelectPostOptions) => void;
 }) {
   const [runs, setRuns] = useState<AnalysisRun[] | null>(null);
   const [selected, setSelected] = useState<AnalysisRun | null>(null);
@@ -1819,7 +1847,12 @@ function AnalysisRunsPanel({
                     <button
                       className="keyman-select"
                       aria-label={analysisRunLivePostButtonLabel(post)}
-                      onClick={() => onSelectPost(post.post_id)}
+                      onClick={() =>
+                        onSelectPost(post.post_id, {
+                          liveAfterCutoff: Boolean(post.live_after_cutoff),
+                          knowledgeCutoff: selected.knowledge_cutoff,
+                        })
+                      }
                     >
                       {post.post_title}
                     </button>
@@ -2095,9 +2128,23 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [graph, setGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [openedAfterCutoff, setOpenedAfterCutoff] = useState(false);
+  const [openedCutoffIso, setOpenedCutoffIso] = useState<string | null>(null);
   const [canRebuild, setCanRebuild] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
+
+  function selectPost(postId: string, options?: SelectPostOptions) {
+    setSelectedPostId(postId);
+    setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
+    setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
+  }
+
+  function closeSelectedPost() {
+    setSelectedPostId(null);
+    setOpenedAfterCutoff(false);
+    setOpenedCutoffIso(null);
+  }
 
   useEffect(() => {
     fetchPosts(accessToken).then(setPosts).catch((err) => setError(String(err)));
@@ -2126,9 +2173,9 @@ function PostList({ accessToken }: { accessToken: string }) {
 
   return (
     <>
-      <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <AnalysisRunsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
+      <CalendarPanel accessToken={accessToken} onSelectPost={selectPost} />
+      <AnalysisRunsPanel accessToken={accessToken} onSelectPost={selectPost} />
+      <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={selectPost} />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
           <h2>Event Lineage</h2>
@@ -2140,7 +2187,7 @@ function PostList({ accessToken }: { accessToken: string }) {
         </div>
         {rebuildError && <p className="error">{rebuildError}</p>}
         {!graph && <p>Loading lineage graph...</p>}
-        {graph && <LineageDag graph={graph} onSelectPost={setSelectedPostId} />}
+        {graph && <LineageDag graph={graph} onSelectPost={selectPost} />}
       </section>
       <ul className="post-list">
         {posts.map((post) => (
@@ -2148,7 +2195,7 @@ function PostList({ accessToken }: { accessToken: string }) {
             <button
               className="post-list-item"
               aria-label={`View post: ${post.post_title}`}
-              onClick={() => setSelectedPostId(post.post_id)}
+              onClick={() => selectPost(post.post_id)}
             >
               <span className="post-title">{post.post_title}</span>
               <span className="post-badge">{post.voc_type_label ?? post.voc_type_code}</span>
@@ -2163,8 +2210,11 @@ function PostList({ accessToken }: { accessToken: string }) {
           accessToken={accessToken}
           canExtract={canRebuild}
           graph={graph}
-          onClose={() => setSelectedPostId(null)}
-          onSelectPost={setSelectedPostId}
+          liveBodyWarning={
+            openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
+          }
+          onClose={closeSelectedPost}
+          onSelectPost={selectPost}
         />
       )}
     </>
