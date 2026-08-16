@@ -1084,7 +1084,19 @@ def test_web_page_uses_verified_session_and_real_api() -> None:
     assert 'id="popupKeymanCounterpart"' in react
     assert "분석 상태" in react
     assert "관리 상태" in react
-    assert 'const canManage = (session?.roles || []).some((role) => ["author", "editor", "admin"].includes(role));' in react
+    assert "const normalizedRoles = useMemo(() =>" in react
+    assert "const canManage = normalizedRoles.some((role) => [\"author\", \"editor\", \"admin\"].includes(role));" in react
+    assert "const surfaceRoleLabel = canAdmin ? \"관리자\" : canManage ? \"업무 담당\" : \"일반 사용자\";" in react
+    assert 'id="surfaceMode"' in react
+    assert "const visibleActiveView = canAdmin" in react
+    changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+    architecture = Path("ARCHITECTURE.md").read_text(encoding="utf-8")
+    traceability = Path("TRACEABILITY.md").read_text(encoding="utf-8")
+    assert "visibleActiveView" in architecture
+    assert "일반 사용자 모드" in changelog
+    assert "General-user surface boundary" in traceability
+    assert "result.home.surface_mode_text" in browser_e2e
+    assert 'page.locator("#adminMode")' in browser_e2e
     assert 'const keymanEditor = modal.locator(".modal-keyman-editor");' in browser_e2e
     assert "if (!canManageVisibility)" in browser_e2e
     assert "keyman_editor_visible" in browser_e2e

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   canPreviewAsset,
   customerTreeRows,
@@ -183,8 +183,21 @@ export default function App() {
   const [teppIdempotencyKey, setTeppIdempotencyKey] = useState("");
   const [teppStatusMessage, setTeppStatusMessage] = useState("");
   const [teppBusy, setTeppBusy] = useState(false);
-  const canManage = (session?.roles || []).some((role) => ["author", "editor", "admin"].includes(role));
-  const canAdmin = (session?.roles || []).includes("admin");
+  const normalizedRoles = useMemo(() => {
+    const roles = Array.isArray(session?.roles) ? session.roles : [];
+    return [...new Set(roles.map((role) => String(role || "").trim().toLowerCase()).filter(Boolean))];
+  }, [session?.roles]);
+  const canManage = normalizedRoles.some((role) => ["author", "editor", "admin"].includes(role));
+  const canAdmin = normalizedRoles.includes("admin");
+  const surfaceRoleLabel = canAdmin ? "관리자" : canManage ? "업무 담당" : "일반 사용자";
+  const visibleActiveView = canAdmin
+    ? (["home", "workspace", "customers", "admin"].includes(activeView) ? activeView : "home")
+    : (["home", "workspace", "customers"].includes(activeView) ? activeView : "home");
+
+  useEffect(() => {
+    if (activeView === visibleActiveView) return;
+    setActiveView(visibleActiveView);
+  }, [activeView, visibleActiveView]);
 
   useEffect(() => {
     api("/api/session")
@@ -1072,19 +1085,20 @@ export default function App() {
         <div id="sessionMeta" className="session-badge">
           <strong>내 업무공간</strong>
           <span>{session.corp_name || session.corp_code} / {session.pu_name || session.pu_code}</span>
-          <span>{canAdmin ? "관리자" : canManage ? "업무 담당" : "열람"}</span>
+          <span>{surfaceRoleLabel}</span>
+          <span id="surfaceMode" className="status-chip">{canAdmin ? "운영 모드" : "일반 사용자 모드"}</span>
           <a className="logout-link" href="/api/logout">로그아웃</a>
         </div>
       </header>
 
       <nav className="view-nav" aria-label="LineageWeave 화면">
-        <button type="button" className={activeView === "home" ? "selected" : ""} aria-pressed={activeView === "home"} onClick={() => setActiveView("home")}>업무 홈</button>
-        <button type="button" className={activeView === "workspace" ? "selected" : ""} aria-pressed={activeView === "workspace"} onClick={() => setActiveView("workspace")}>업무공간</button>
-        <button type="button" className={activeView === "customers" ? "selected" : ""} aria-pressed={activeView === "customers"} onClick={() => setActiveView("customers")}>고객 화면</button>
-        {canAdmin ? <button type="button" className={activeView === "admin" ? "selected" : ""} aria-pressed={activeView === "admin"} onClick={() => setActiveView("admin")}>관리자 모드</button> : null}
+        <button type="button" className={visibleActiveView === "home" ? "selected" : ""} aria-pressed={visibleActiveView === "home"} onClick={() => setActiveView("home")}>업무 홈</button>
+        <button type="button" className={visibleActiveView === "workspace" ? "selected" : ""} aria-pressed={visibleActiveView === "workspace"} onClick={() => setActiveView("workspace")}>업무공간</button>
+        <button type="button" className={visibleActiveView === "customers" ? "selected" : ""} aria-pressed={visibleActiveView === "customers"} onClick={() => setActiveView("customers")}>고객 화면</button>
+        {canAdmin ? <button type="button" className={visibleActiveView === "admin" ? "selected" : ""} aria-pressed={visibleActiveView === "admin"} onClick={() => setActiveView("admin")}>관리자 모드</button> : null}
       </nav>
 
-      {canAdmin && activeView === "workspace" ? <section className="kpi-grid" aria-label="운영 진단 지표">
+      {canAdmin && visibleActiveView === "workspace" ? <section className="kpi-grid" aria-label="운영 진단 지표">
         <div className="kpi"><span>ROWS</span><strong id="metricRows">{analytics.total_rows ?? 0}</strong></div>
         <div className="kpi"><span>DOCUMENTS</span><strong id="metricDocs">{analytics.total_documents ?? 0}</strong></div>
         <div className="kpi"><span>THREADS</span><strong id="metricThreads">{analytics.multi_document_threads ?? 0}</strong></div>
@@ -1092,7 +1106,7 @@ export default function App() {
         <div className="kpi"><span>EVENT QUEUE</span><strong id="metricQueue">{queueHealth?.ready ? "READY" : "CHECK"}</strong><small>{queueHealth ? `outbox ${formatNumber(queueHealth.pending_outbox)}` : "상태 미확인"}</small></div>
       </section> : null}
 
-      {activeView === "home" ? (
+      {visibleActiveView === "home" ? (
         <section id="userHome" className="user-home">
           <header className="screen-header home-header">
             <div>
@@ -1109,7 +1123,7 @@ export default function App() {
             <article className="home-metric home-metric-primary"><span>확인할 글</span><strong>{displayDocumentTotal}</strong><p>권한 범위에서 확인할 수 있는 업무 글</p></article>
             <article className="home-metric"><span>연결된 고객</span><strong>{displayCustomerTotal}</strong><p>근거 문서가 연결된 고객 마스터</p></article>
             <article className="home-metric"><span>발행 리포트</span><strong>{displayReportTotal}</strong><p>PU·팀·프로젝트별 업무 리포트</p></article>
-            <article className="home-metric"><span>내 권한</span><strong>{canAdmin ? "관리자" : canManage ? "업무 담당" : "열람"}</strong><p>{session.corp_code} · {session.pu_code}</p></article>
+            <article className="home-metric"><span>내 권한</span><strong>{surfaceRoleLabel}</strong><p>{session.corp_code} · {session.pu_code}</p></article>
           </section>
           <div className="home-columns">
             <section className="home-card" aria-labelledby="homeDocumentsTitle">
@@ -1135,7 +1149,7 @@ export default function App() {
             </section>
           </div>
         </section>
-      ) : activeView === "workspace" ? <>
+      ) : visibleActiveView === "workspace" ? <>
       <section className="workspace-grid">
         <aside className="sidebar">
           <div className="section-heading"><span>글 목록</span><small>{formatNumber(visibleDocumentTotal)}</small></div>
@@ -1317,7 +1331,7 @@ export default function App() {
                 ) : null}
               </section>
 
-              {content ? <section className="detail-card wide modal-content"><h3>콘텐츠 구조 · {content.semantic_block_count || 0} blocks / {content.asset_count || 0} assets</h3><p className="meta">HTML 원문과 인라인 바이트는 KG에 넣지 않습니다. 의미 단위·서식·원래 위치를 PostgreSQL에 분리 저장하고, 원본은 인증된 endpoint에서만 필요할 때 읽습니다.</p>{(content.semantic_blocks || []).length ? <div className="content-block-list">{content.semantic_blocks.map((block) => <article className="content-block" key={`${block.source_evidence_id}-${block.block_index}`}><div className="content-block-head"><strong>{block.block_kind}</strong><span>row {block.source_row_number || "?"} · pos {block.source_position}</span><button className="source-button" type="button" onClick={() => openEvidence(block.source_evidence_id)}>근거 보기</button></div><p>{block.text_preview || "텍스트 없음"}</p>{(block.format_hints || []).length ? <div className="format-hints">{block.format_hints.map((hint, index) => <span key={`${hint.hint_kind}-${hint.hint_value}-${index}`}>{hint.hint_kind}: {hint.hint_value}</span>)}</div> : null}</article>)}</div> : <p className="meta">추출할 HTML 의미 단위가 없습니다.</p>}<div className="asset-grid">{(content.assets || []).slice(0, 24).map((asset) => <div className="asset-item" key={`${asset.asset_index}-${asset.source_position}`}><a href={`/api/documents/${encodeURIComponent(selectedNo)}/assets/${asset.asset_index}`} target="_blank" rel="noreferrer">{canPreviewAsset(asset) ? <img src={`/api/documents/${encodeURIComponent(selectedNo)}/assets/${asset.asset_index}`} alt={`인라인 이미지 ${asset.asset_index}`} /> : <span>{asset.mime_type} · {formatNumber(asset.encoded_bytes)} bytes · 원본 열기</span>}<small>{asset.content_kind} · pos {asset.source_position}</small></a>{asset.inspection ? <div className="asset-inspection"><strong>OCR</strong><p>{asset.inspection.ocr_text || "인식된 텍스트 없음"}</p><div className="asset-labels">{(asset.inspection.object_labels || []).map((label) => <span key={label.label} title={label.description || undefined}>{label.label}</span>)}</div></div> : canManage && isInspectableAsset(asset) ? <button className="source-button" type="button" disabled={busy} onClick={() => inspectAsset(asset)}>OCR·객체 분석</button> : canManage && String(asset.mime_type || "").startsWith("image/") ? <small>검사 한도를 넘었거나 지원되지 않는 형식</small> : null}</div>)}</div></section> : null}
+              {canManage && content ? <section className="detail-card wide modal-content"><h3>콘텐츠 구조 · {content.semantic_block_count || 0} blocks / {content.asset_count || 0} assets</h3><p className="meta">HTML 원문과 인라인 바이트는 KG에 넣지 않습니다. 의미 단위·서식·원래 위치를 PostgreSQL에 분리 저장하고, 원본은 인증된 endpoint에서만 필요할 때 읽습니다.</p>{(content.semantic_blocks || []).length ? <div className="content-block-list">{content.semantic_blocks.map((block) => <article className="content-block" key={`${block.source_evidence_id}-${block.block_index}`}><div className="content-block-head"><strong>{block.block_kind}</strong><span>row {block.source_row_number || "?"} · pos {block.source_position}</span><button className="source-button" type="button" onClick={() => openEvidence(block.source_evidence_id)}>근거 보기</button></div><p>{block.text_preview || "텍스트 없음"}</p>{(block.format_hints || []).length ? <div className="format-hints">{block.format_hints.map((hint, index) => <span key={`${hint.hint_kind}-${hint.hint_value}-${index}`}>{hint.hint_kind}: {hint.hint_value}</span>)}</div> : null}</article>)}</div> : <p className="meta">추출할 HTML 의미 단위가 없습니다.</p>}<div className="asset-grid">{(content.assets || []).slice(0, 24).map((asset) => <div className="asset-item" key={`${asset.asset_index}-${asset.source_position}`}><a href={`/api/documents/${encodeURIComponent(selectedNo)}/assets/${asset.asset_index}`} target="_blank" rel="noreferrer">{canPreviewAsset(asset) ? <img src={`/api/documents/${encodeURIComponent(selectedNo)}/assets/${asset.asset_index}`} alt={`인라인 이미지 ${asset.asset_index}`} /> : <span>{asset.mime_type} · {formatNumber(asset.encoded_bytes)} bytes · 원본 열기</span>}<small>{asset.content_kind} · pos {asset.source_position}</small></a>{asset.inspection ? <div className="asset-inspection"><strong>OCR</strong><p>{asset.inspection.ocr_text || "인식된 텍스트 없음"}</p><div className="asset-labels">{(asset.inspection.object_labels || []).map((label) => <span key={label.label} title={label.description || undefined}>{label.label}</span>)}</div></div> : canManage && isInspectableAsset(asset) ? <button className="source-button" type="button" disabled={busy} onClick={() => inspectAsset(asset)}>OCR·객체 분석</button> : canManage && String(asset.mime_type || "").startsWith("image/") ? <small>검사 한도를 넘었거나 지원되지 않는 형식</small> : null}</div>)}</div></section> : null}
 
               <section className="detail-card modal-visibility">
                 <h3>공개 / 비공개</h3>
@@ -1346,7 +1360,7 @@ export default function App() {
             </div>
         </dialog>
       ) : null}
-      </> : activeView === "customers" ? (
+      </> : visibleActiveView === "customers" ? (
         <section id="customerScreen" className="customer-screen">
           <header className="screen-header">
             <div><p className="eyebrow">고객 관계 분석</p><h2>고객 마스터 · 계열 Tree</h2><p className="meta">확인된 고객·계열 관계를 근거 문서와 함께 살펴봅니다. 근거 없는 관계는 표시하지 않습니다.</p></div>
