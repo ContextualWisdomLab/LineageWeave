@@ -88,6 +88,7 @@
 :root {
   --lw-opacity-meta: 0.7;
   --lw-font-size-meta: 0.85rem;
+  --lw-color-warning: #b45309;
 }
 
 .post-meta {
@@ -150,9 +151,9 @@
 .popup-live-body-warning {
   margin: 0.75rem 0 1rem;
   padding: 0.65rem 0.75rem;
-  border-left: 3px solid #b45309;
-  background: color-mix(in srgb, canvas 88%, #b45309 12%);
-  font-size: 0.85rem;
+  border-left: 3px solid var(--lw-color-warning);
+  background: color-mix(in srgb, canvas 88%, var(--lw-color-warning) 12%);
+  font-size: var(--lw-font-size-meta);
 }
 
 .popup-section {

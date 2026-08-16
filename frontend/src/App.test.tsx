@@ -1769,9 +1769,15 @@ describe("App, authenticated", () => {
       }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "This is the live body, not the version known at the 2026-01-12 analysis-run cutoff. The earlier text is not stored, so this popup does not invent it.",
+    expect(screen.getByRole("status", { name: "Live body warning" })).toHaveTextContent(
+      "This is the live body, not a cutoff snapshot. Compare it with this 2026-01-12 run before you treat it as reconstructed evidence.",
     );
+
+    await userEvent.click(screen.getAllByRole("button", { name: "Open post: Linked post" })[0]);
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     await userEvent.click(

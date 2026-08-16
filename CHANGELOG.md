@@ -11,10 +11,10 @@ All notable changes to this project are documented here. Format follows
 - Opening an analysis-run title marked **Updated after cutoff** now
   shows a popup status that the body is live, not a cutoff snapshot
   (ADR 0016). After `make seed`, open the Demo Corp lineage run and
-  click Demo public post: the warning appears above the live body.
-  Demo private post and the home post list do not. The earlier text
-  is not stored, so the popup does not invent it. No TEPP theta is
-  invented.
+  click Demo public post: the warning says to compare that live body
+  with this run before treating it as reconstructed evidence. Demo
+  private post, a related post opened from that popup, and the home
+  post list do not. No TEPP theta is invented.
 
 ## [0.87.0] - 2026-08-17
 

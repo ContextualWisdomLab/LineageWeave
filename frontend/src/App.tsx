@@ -1249,7 +1249,11 @@ function PostDetailPopup({
               {new Date(post.created_at).toLocaleString()}
             </p>
             {liveBodyWarning ? (
-              <p className="popup-live-body-warning" role="status">
+              <p
+                className="popup-live-body-warning"
+                role="status"
+                aria-label="Live body warning"
+              >
                 {liveBodyWarning}
               </p>
             ) : null}
@@ -1575,17 +1579,18 @@ function analysisRunLivePostWarning(cutoffIso: string): string {
 }
 
 /**
- * Popup honesty when a marked cutoff title opens the live body.
+ * Next action when a marked cutoff title opens the live body.
  *
- * ADR 0016 does not store a historical snapshot. This copy must not
- * invent the earlier text.
+ * ADR 0016 does not store a historical snapshot. The operator must
+ * compare this live text with the run before treating it as
+ * reconstructed evidence.
  */
 function analysisRunOpenedBodyWarning(cutoffIso?: string | null): string {
   const cutoffDate = cutoffIso?.slice(0, 10);
-  const when = cutoffDate ? `the ${cutoffDate} ` : "";
+  const when = cutoffDate ? `this ${cutoffDate} run` : "this run";
   return (
-    `This is the live body, not the version known at ${when}analysis-run cutoff. ` +
-    "The earlier text is not stored, so this popup does not invent it."
+    `This is the live body, not a cutoff snapshot. Compare it with ${when} ` +
+    "before you treat it as reconstructed evidence."
   );
 }
 

@@ -28,9 +28,11 @@ later slice -- but the run list itself must not advertise a post the
 run was not allowed to know. Detail compares the live `updated_at`
 write clock with `knowledge_cutoff` and marks titles rewritten after
 the run. Opening a marked title shows a popup status that the body is
-live; the earlier text is not stored, so the popup does not invent it.
-The next action is specific: only those marked titles need a cutoff
-comparison before treating the live body as reconstructed evidence.
+live, not a cutoff snapshot. The next action is specific: compare that
+live body with this run before treating it as reconstructed evidence.
+That status uses a stable accessible name so a later live region cannot
+replace it (WCAG 2.2 Success Criterion 4.1.3; W3C Accessible Name and
+Description Computation 1.1).
 
 Reproducibility digests on the same detail use a labeled group whose
 accessible name does not replace the visible prefixes (W3C Accessible
@@ -49,13 +51,13 @@ run.
   post (2026-02-10) does not appear.
 - Open the run: Demo public post is marked updated after cutoff
   (`updated_at` 2026-01-13). Demo private post is not. Opening the
-  marked title shows a live-body status; the private title and the
-  home post list do not.
+  marked title shows a live-body status that names the compare-with-
+  this-run action; the private title and the home post list do not.
 - Hover a digest prefix to read the full code or configuration digest
   when you need to match the API payload.
 - Post-body versioning at the cutoff remains future work. The write
-  clock is a projection, not a stored cutoff body. The popup states
-  that honesty instead of inventing the earlier text.
+  clock is a projection, not a stored cutoff body. The popup names
+  the compare action instead of inventing the earlier text.
 - Thread-group *run list* visibility now uses the same cutoff
   (ADR 0018). A later public post cannot surface a previously hidden
   thread-group run.
@@ -72,3 +74,6 @@ Recommendation). https://www.w3.org/TR/owl-time/
 World Wide Web Consortium. (2018). *Accessible name and description
 computation 1.1* (W3C Recommendation).
 https://www.w3.org/TR/accname-1.1/
+
+World Wide Web Consortium. (2023). *Web content accessibility guidelines
+(WCAG) 2.2* (W3C Recommendation). https://www.w3.org/TR/WCAG22/
