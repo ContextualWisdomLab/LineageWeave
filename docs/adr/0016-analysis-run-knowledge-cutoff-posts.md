@@ -25,7 +25,15 @@ every scope branch (corporate entity, process unit, thread group, and
 all-visible). ABAC visibility is applied after that temporal gate.
 Click-through still opens the live post body -- post versioning is a
 later slice -- but the run list itself must not advertise a post the
-run was not allowed to know.
+run was not allowed to know. The detail must say that next action
+plainly: compare the opened body with this cutoff before treating it
+as reconstructed evidence.
+
+Reproducibility digests on the same detail use a labeled group whose
+accessible name does not replace the visible prefixes (W3C Accessible
+Name and Description Computation 1.1). Full digests stay on `title`
+for hover verification and on the API payload; the home list stays
+aggregates-only.
 
 Seed and API fixtures backdate in-cutoff posts. A late own-corp private
 post remains on the live post list and stays out of the January 2026
@@ -36,8 +44,10 @@ run.
 - After `make seed`, the Demo Corp lineage run lists Demo public post
   and other in-cutoff Demo Corp titles. The later fixture account-review
   post (2026-02-10) does not appear.
-- Open the run, then open a listed post, to inspect what that cutoff
-  actually reconstructed.
+- Open the run, read the live-body warning, then open a listed post
+  and compare it with the cutoff date.
+- Hover a digest prefix to read the full code or configuration digest
+  when you need to match the API payload.
 - Post-body versioning at the cutoff remains future work.
 
 ## References
@@ -48,3 +58,7 @@ rules* (confirmed 2024; Amendment 1:2022).
 
 World Wide Web Consortium. (2022). *Time ontology in OWL* (W3C
 Recommendation). https://www.w3.org/TR/owl-time/
+
+World Wide Web Consortium. (2018). *Accessible name and description
+computation 1.1* (W3C Recommendation).
+https://www.w3.org/TR/accname-1.1/
