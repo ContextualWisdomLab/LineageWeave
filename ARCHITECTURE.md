@@ -475,9 +475,10 @@ labeled detail (cutoff, requested date, counts, status history)
 without exposing a DSN or raw record. Status history is detail-only
 and uses lookup labels plus occurrence times; a failure event keeps
 its machine `failure_code` rather than an invented caption. Failed
-list rows add a next-action line (open the run, then connect the
+TEPP list rows add a next-action line (open the run, then connect the
 measurement service) so `tepp_not_available` is not mistaken for a
-calibrated negative result. The
+calibrated negative result. A failed lineage row tells the operator
+to retry reconstruction, not to connect TEPP. The
 payload is lookup labels plus non-negative aggregate counts -- never
 source SQL, a DSN, a raw record, or a provider body. After `make seed`,
 Demo Analyst and Demo Admin see "Lineage reconstruction · Succeeded ·
