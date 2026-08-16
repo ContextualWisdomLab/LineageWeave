@@ -885,7 +885,7 @@ def test_related_keymen_use_rwr_and_hide_invisible_posts(client, demo_analyst_to
     assert counterpart["ontology_iri"].endswith("#Person")
     assert counterpart["person_side_code"] == "counterparty"
     assert counterpart["person_side_label"] == "Counterparty"
-    assert counterpart["affiliation_organization_name"] == "Northridge Grid"
+    assert "affiliation_organization_name" not in counterpart
     for node in body["related"]:
         if node["node_type_code"] != "node_person":
             continue
