@@ -43,7 +43,7 @@ jobs:
 
       - name: Reject stale or reordered execution
         env:
-          EXPECTED_PARENT_SHA: a9fef1233cd74c9f26d06e68a581c9ee822e1faf
+          EXPECTED_PARENT_SHA: 3420d09c82776b6e6ca6bc89f83677818b0565c1
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD^)" = "$EXPECTED_PARENT_SHA"
@@ -71,9 +71,7 @@ jobs:
           enable-cache: false
 
       - name: Install committed Python dependencies
-        run: |
-          set -euo pipefail
-          uv sync --frozen --extra dev --extra backend
+        run: uv sync --frozen --extra dev --extra backend
 
       - name: Enable Corepack
         run: corepack enable
@@ -114,13 +112,37 @@ jobs:
       - name: Apply the complete source-aware projection repair
         run: uv run --frozen python scripts/pr74_person_projection_repair_v3.py
 
-      - name: Verify focused data-integrity contracts
+      - name: Capture focused data-integrity verification
+        id: focused
+        shell: bash
         run: |
-          set -euo pipefail
-          uv run --frozen python -m pytest -q \
+          set -uo pipefail
+          status=0
+          : > /tmp/pr74-focused.log
+          for test_file in \
             tests/test_person_mention_projection.py \
             tests/test_ingestion_transaction_contracts.py \
             tests/test_schema.py
+          do
+            {
+              printf '\n===== %s =====\n' "$test_file"
+              uv run --frozen python -m pytest -q "$test_file"
+            } >> /tmp/pr74-focused.log 2>&1 || status=1
+          done
+          cat /tmp/pr74-focused.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Upload focused failure evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pr74-focused-verification
+          path: /tmp/pr74-focused.log
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Require focused data-integrity contracts
+        run: test "${{ steps.focused.outputs.status }}" = "0"
 
       - name: Verify the complete Python and PostgreSQL product
         run: |
@@ -129,11 +151,12 @@ jobs:
           uv run --frozen python -m compileall -q backend lineageweave scripts tests
 
       - name: Verify the complete React product
+        working-directory: frontend
         run: |
           set -euo pipefail
-          pnpm --dir frontend run lint
-          pnpm --dir frontend run test
-          pnpm --dir frontend run build
+          pnpm run lint
+          pnpm run test
+          pnpm run build
 
       - name: Verify the final diff and remove transient repair code
         run: |
