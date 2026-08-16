@@ -12,9 +12,11 @@ All notable changes to this project are documented here. Format follows
   `make seed`, request a lineage reconstruction, open the Pending Demo
   Corp row, and start it: the designed A-100 fork appears as titled
   parent→child edges (revised quote and delivery question under the
-  pricing follow-up). TEPP start is 422 — this path does not invent a
-  theta. Edges stay on the run; live Event Lineage is unchanged
-  (ADR 0020).
+  pricing follow-up). The run is locked before Running; a raced start
+  is 409. Create freezes `analysis_source_snapshot_member`; start
+  reconstructs that bag. Hover **Result** to read the reconstruction
+  digest. TEPP start is 422 — this path does not invent a theta.
+  Edges stay on the run; live Event Lineage is unchanged (ADR 0020).
 
 ## [0.88.0] - 2026-08-17
 

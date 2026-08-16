@@ -264,21 +264,39 @@ async def fetch_visible_analysis_run(
         affiliated_entity_ids,
         row["knowledge_cutoff"],
     )
-    digest, edges = await fetch_reconstructed_edges(conn, analysis_run_id)
+    digest, edges = await fetch_reconstructed_edges(
+        conn,
+        analysis_run_id,
+        affiliated_entity_ids,
+        row["knowledge_cutoff"],
+    )
     if digest is not None:
         detail["reconstruction_result_sha256"] = digest
     detail["reconstructed_edges"] = edges
     return detail
 
 
+def _affiliated_post_visible(
+    visibility_code: str,
+    corporate_entity_id: Any,
+    affiliated_entity_ids: set[str],
+) -> bool:
+    """Return whether this post is public or in the caller's walk."""
+    return visibility_code == "public" or str(corporate_entity_id) in affiliated_entity_ids
+
+
 async def fetch_reconstructed_edges(
     conn: asyncpg.Connection,
     analysis_run_id: str,
+    affiliated_entity_ids: list[str],
+    knowledge_cutoff: Any,
 ) -> tuple[str | None, list[dict[str, Any]]]:
-    """Return the persisted digest and titled edges, or ``(None, [])``.
+    """Return the persisted digest and ABAC-visible titled edges.
 
     Missing reconstruction tables mean this database has not applied
     migration 0020 yet; treat that as no stored tree rather than 500.
+    Hidden parent or child titles are omitted; the digest stays on the
+    run. Titles rewritten after cutoff are marked ``live_after_cutoff``.
     """
     try:
         header = await conn.fetchrow(
@@ -298,8 +316,14 @@ async def fetch_reconstructed_edges(
         select
           edge.parent_post_id,
           parent_post.post_title as parent_post_title,
+          parent_post.visibility_code as parent_visibility_code,
+          parent_post.corporate_entity_id as parent_corporate_entity_id,
+          parent_post.updated_at as parent_updated_at,
           edge.child_post_id,
           child_post.post_title as child_post_title,
+          child_post.visibility_code as child_visibility_code,
+          child_post.corporate_entity_id as child_corporate_entity_id,
+          child_post.updated_at as child_updated_at,
           edge.fused_score
         from analysis_run_lineage_edge edge
         join source_post parent_post on parent_post.post_id = edge.parent_post_id
@@ -309,16 +333,91 @@ async def fetch_reconstructed_edges(
         """,
         analysis_run_id,
     )
-    return header["result_sha256"], [
-        {
-            "parent_post_id": str(row["parent_post_id"]),
-            "parent_post_title": row["parent_post_title"],
-            "child_post_id": str(row["child_post_id"]),
-            "child_post_title": row["child_post_title"],
-            "fused_score": float(row["fused_score"]),
-        }
-        for row in rows
-    ]
+    affiliated = {str(entity_id) for entity_id in affiliated_entity_ids}
+    edges: list[dict[str, Any]] = []
+    for row in rows:
+        parent_visible = _affiliated_post_visible(
+            row["parent_visibility_code"],
+            row["parent_corporate_entity_id"],
+            affiliated,
+        )
+        child_visible = _affiliated_post_visible(
+            row["child_visibility_code"],
+            row["child_corporate_entity_id"],
+            affiliated,
+        )
+        if not parent_visible or not child_visible:
+            continue
+        edges.append(
+            {
+                "parent_post_id": str(row["parent_post_id"]),
+                "parent_post_title": row["parent_post_title"],
+                "parent_live_after_cutoff": live_write_after_cutoff(
+                    row["parent_updated_at"], knowledge_cutoff
+                ),
+                "child_post_id": str(row["child_post_id"]),
+                "child_post_title": row["child_post_title"],
+                "child_live_after_cutoff": live_write_after_cutoff(
+                    row["child_updated_at"], knowledge_cutoff
+                ),
+                "fused_score": float(row["fused_score"]),
+            }
+        )
+    return header["result_sha256"], edges
+
+
+async def persist_snapshot_members(
+    conn: asyncpg.Connection,
+    analysis_source_snapshot_id: Any,
+    post_ids: list[str],
+) -> None:
+    """Freeze authorized post ids onto the snapshot. Skip if 0020 is absent."""
+    try:
+        for post_id in post_ids:
+            await conn.execute(
+                """
+                insert into analysis_source_snapshot_member
+                    (analysis_source_snapshot_id, source_post_id)
+                values ($1, $2)
+                on conflict do nothing
+                """,
+                analysis_source_snapshot_id,
+                post_id,
+            )
+    except asyncpg.UndefinedTableError:
+        return
+
+
+async def fetch_snapshot_member_posts(
+    conn: asyncpg.Connection,
+    analysis_source_snapshot_id: Any,
+) -> list[asyncpg.Record] | None:
+    """Return frozen snapshot members, or ``None`` if migration 0020 is absent.
+
+    An empty list means the create-time bag was empty. Start must not
+    re-walk live ``source_post`` in that case.
+    """
+    try:
+        return await conn.fetch(
+            """
+            select
+              post.post_id,
+              post.post_title,
+              post.created_at,
+              post.visibility_code,
+              post.corporate_entity_id,
+              post.process_unit_id,
+              post.thread_group_key,
+              post.secondary_grouping_key
+            from analysis_source_snapshot_member member
+            join source_post post on post.post_id = member.source_post_id
+            where member.analysis_source_snapshot_id = $1
+            order by post.created_at, post.post_title
+            """,
+            analysis_source_snapshot_id,
+        )
+    except asyncpg.UndefinedTableError:
+        return None
 
 
 async def fetch_cutoff_reconstruct_posts(
@@ -704,6 +803,7 @@ async def create_pending_analysis_run(
             """,
             capture.snapshot_sha256,
         )
+    await persist_snapshot_members(conn, snapshot_id, post_ids)
     count_exists = await conn.fetchval(
         """
         select 1 from analysis_source_count

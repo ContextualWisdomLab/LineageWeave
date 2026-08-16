@@ -22,6 +22,7 @@ _ADMIN_DSN = os.environ.get(
 _REQUIRED_TABLES = {
     "analysis_run_reconstruction",
     "analysis_run_lineage_edge",
+    "analysis_source_snapshot_member",
 }
 
 
@@ -41,6 +42,7 @@ def test_reconstruction_migration_is_normalized_and_wired() -> None:
     assert "analysis_run_reconstruction_not_empty" in rollback
     assert "reject_analysis_run_reconstruction_update" in migration
     assert "reject_analysis_run_lineage_edge_update" in migration
+    assert "reject_analysis_source_snapshot_member_update" in migration
 
     object_patterns = (
         r"create table if not exists\s+([a-z0-9_]+)",

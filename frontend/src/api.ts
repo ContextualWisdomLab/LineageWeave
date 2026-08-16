@@ -546,8 +546,10 @@ export interface AnalysisRunVisiblePost {
 export interface AnalysisRunReconstructedEdge {
   parent_post_id: string;
   parent_post_title: string;
+  parent_live_after_cutoff?: boolean;
   child_post_id: string;
   child_post_title: string;
+  child_live_after_cutoff?: boolean;
   fused_score: number;
 }
 

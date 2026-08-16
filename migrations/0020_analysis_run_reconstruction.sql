@@ -1,8 +1,39 @@
 -- Run-scoped lineage reconstruction result (ADR 0020).
 --
--- A Pending analysis run may later persist the ThreadWeave parent choices
--- for its cutoff bag. Edges belong to the run, not the live Event Lineage
--- panel. No post body, DSN, or fabricated measurement is stored.
+-- Create freezes authorized post ids on the snapshot. Start reconstructs
+-- that bag, not a live source_post walk. Edges belong to the run, not
+-- the live Event Lineage panel. No post body, DSN, or fabricated
+-- measurement is stored.
+
+create table if not exists analysis_source_snapshot_member (
+    analysis_source_snapshot_id uuid not null
+        references analysis_source_snapshot (analysis_source_snapshot_id),
+    source_post_id uuid not null
+        references source_post (post_id),
+    recorded_at timestamptz not null default clock_timestamp(),
+    primary key (analysis_source_snapshot_id, source_post_id)
+);
+
+comment on table analysis_source_snapshot_member is
+    'One authorized source post frozen into a snapshot; never a post body.';
+
+create or replace function reject_analysis_source_snapshot_member_update()
+returns trigger
+language plpgsql
+as $$
+begin
+    raise exception 'analysis_source_snapshot_member_is_immutable';
+end
+$$;
+
+comment on function reject_analysis_source_snapshot_member_update() is
+    'Rejects mutation of a frozen snapshot member.';
+
+drop trigger if exists analysis_source_snapshot_member_update_reject
+    on analysis_source_snapshot_member;
+create trigger analysis_source_snapshot_member_update_reject
+before update or delete on analysis_source_snapshot_member
+for each row execute function reject_analysis_source_snapshot_member_update();
 
 create table if not exists analysis_run_reconstruction (
     analysis_run_id uuid primary key

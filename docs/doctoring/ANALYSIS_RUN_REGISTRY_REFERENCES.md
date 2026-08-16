@@ -71,6 +71,9 @@ provenance, retention, and immutable evidence rather than blanket masking.
 | One snapshot supports multiple analyses | Insert two runs over one snapshot with different valid cutoffs. |
 | Future evidence is excluded | Reject a run whose cutoff precedes the snapshot's maximum availability time. A late own-corp post stays out of `visible_posts`. |
 | Evidence cannot change after derivation | Reject snapshot/count updates and count insert/delete after the first run. |
+| Start reconstructs the create-time bag | Persist `analysis_source_snapshot_member` at create; start from those ids, not a live `source_post` walk (ADR 0020). |
+| Concurrent start is one legal winner | Lock the run before Running; map `UniqueViolation` to 409. |
+| Result digest is verifiable | Home detail shows `Result` with an audible prefix; hover reads the full SHA-256. |
 | Count/run race is serialized | Both paths acquire the snapshot row first; a later concurrency test must prove one legal winner and no lost freeze. |
 | Request identity is stable | Reject analysis-run updates; scope and lifecycle live in their own relations. |
 | Idempotency is actor-scoped | Permit identical opaque keys for two accounts and reject reuse by the same account. |

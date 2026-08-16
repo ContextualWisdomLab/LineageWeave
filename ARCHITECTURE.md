@@ -476,9 +476,10 @@ cutoff capture (ADR 0017): snapshot, counts, run, scope, and the first
 status in one transaction. It does not reconstruct lineage and does not
 invent a TEPP score. Request a lineage reconstruction from the home
 list, then open the Pending row and **Start reconstruction**
-(ADR 0020). That start runs ThreadWeave on the cutoff bag and persists
-run-scoped edges; it does not replace live Event Lineage and does not
-invent a TEPP score.
+(ADR 0020). That start locks the run, reconstructs the create-time
+snapshot members, and persists run-scoped edges; it does not replace
+live Event Lineage and does not invent a TEPP score. Hover **Result**
+to read the reconstruction digest.
 `make seed` also records a TEPP measurement run through
 `tepp_client` on that same snapshot; the default transport is
 unavailable, so that run is Failed rather than a fabricated score.

@@ -1961,6 +1961,8 @@ describe("App, authenticated", () => {
     expect(
       screen.getByText("Delivery schedule question raised follows Pricing renegotiation follow-up"),
     ).toBeInTheDocument();
+    const resultDigest = "aa".repeat(32);
+    expect(screen.getByTitle(resultDigest)).toHaveTextContent("Result aaaaaaaaaaaa");
     const startCall = fetchMock.mock.calls.find((call) =>
       String(call[0]).endsWith("/api/analysis-runs/run-demo-lineage-pending/start"),
     );

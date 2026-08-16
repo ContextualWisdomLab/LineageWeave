@@ -21,3 +21,7 @@ after cutoff were rewritten after the run; compare those bodies
 before treating them as reconstructed evidence (ADR 0016).
 `POST /api/analysis-runs` records Pending on an authorized
 cutoff capture (ADR 0017) and does not reconstruct lineage.
+`POST /api/analysis-runs/{id}/start` reconstructs a Pending
+lineage run from the create-time snapshot members (ADR 0020).
+TEPP start is 422. Hover the Result prefix to read the
+reconstruction digest.

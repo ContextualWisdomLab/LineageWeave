@@ -27,12 +27,14 @@ transaction:
 
 1. loads the authorized run (hidden scopes 404);
 2. rejects non-lineage kinds so TEPP cannot invent a theta;
-3. replays a Succeeded run;
-4. accepts only Pending lineage;
-5. appends Running, runs `lineage_edge_specs` / ThreadWeave on the
-   ABAC-visible cutoff bag (every registered scope kind), persists
+3. locks the run (`FOR UPDATE`), then re-reads status;
+4. replays a Succeeded run;
+5. accepts only Pending lineage (a raced insert is 409, not 500);
+6. appends Running, runs `lineage_edge_specs` / ThreadWeave on the
+   create-time `analysis_source_snapshot_member` bag (live `source_post`
+   is only a fallback when migration 0020 is absent), persists
    `analysis_run_reconstruction` plus `analysis_run_lineage_edge`, then
-   appends Succeeded.
+   appends Succeeded. Edge titles are ABAC-filtered on read.
 
 ```mermaid
 sequenceDiagram
@@ -61,9 +63,12 @@ Rules:
 - Edges are run-scoped. This write does not replace live
   `post_lineage_edge` (the Event Lineage panel stays a later rebuild).
 - The digest hashes parent id, child id, and rounded fused score — never
-  a post body, DSN, or image.
+  a post body, DSN, or image. The home detail shows that digest as
+  `Result` beside Code/Config.
 - Empty cutoff bags Succeed with zero edges.
 - Failed TEPP remains a `tepp_client` transport problem.
+- Create persists snapshot members. Start does not re-walk live posts
+  when those members exist.
 
 The home detail adds **Start reconstruction** on a Pending lineage row
 and lists titled parent→child edges after Succeeded.
