@@ -539,7 +539,10 @@ customer entities, `schema:subOrganization` identifies hierarchy relations, and
 translates storage predicates into business vocabulary and provides only
 authorized evidence links. Ontology classes, semantic predicates, and
 evidence assertions remain normalized PostgreSQL facts; clicks cannot create
-or reorder them.
+or reorder them. The workspace `고객 관계 요약` list reuses those same
+actor-scoped customer edges as `.affiliate-edge` buttons: a click selects the
+matching account on the customer screen instead of inventing a Lineage
+transition.
 
 The reader-only implementation baseline is captured in the supplied Figma
 file at [node 304:2](https://www.figma.com/design/SBpgot7uTvMxEaxUwvoc0S?node-id=304%3A2).
