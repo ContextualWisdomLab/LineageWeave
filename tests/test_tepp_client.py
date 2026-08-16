@@ -91,13 +91,13 @@ def test_analysis_run_request_from_registry_requires_snapshot_and_cutoff() -> No
 
 
 def test_https_transport_fails_closed_unless_https_post_is_injected() -> None:
-    with pytest.raises(TeppNotAvailable, match="HTTPS"):
+    with pytest.raises(TeppNotAvailable, match="https://"):
         create_https_analysis_run_transport("http://tepp.example.test")
-    with pytest.raises(TeppNotAvailable, match="HTTPS"):
+    with pytest.raises(TeppNotAvailable, match="https://"):
         create_https_analysis_run_transport("")
-    with pytest.raises(TeppNotAvailable, match="HTTPS"):
+    with pytest.raises(TeppNotAvailable, match="https://"):
         create_https_analysis_run_transport("file:///tmp/tepp")
-    with pytest.raises(TeppNotAvailable, match="HTTPS"):
+    with pytest.raises(TeppNotAvailable, match="https://"):
         create_https_analysis_run_transport("https://")
 
     recorded: dict[str, object] = {}

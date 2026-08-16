@@ -52,6 +52,10 @@ def _iter_public_text_files() -> list[Path]:
         for path in root.rglob("*"):
             if not path.is_file() or path.suffix.lower() in _SKIP_SUFFIXES:
                 continue
+            try:
+                path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                continue
             files.append(path)
     return files
 
