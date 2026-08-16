@@ -473,6 +473,10 @@ function relatedNodeCaption(node: RelatedNode): string {
   const name = node.label ?? node.node_id;
   if (node.node_type_code === NODE_PERSON) {
     const side = node.person_side_label ?? node.person_side_code;
+    const org = node.affiliation_organization_name?.trim();
+    if (side && org) {
+      return `${name}, ${org} (${side})`;
+    }
     if (side) {
       return `${name} (${side})`;
     }

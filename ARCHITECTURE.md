@@ -321,8 +321,10 @@ is the same never-guess-a-parent rule
 Keyman sides are labeled from `common_lookup_value` (`Our side`,
 `Plant`, `Company`) so the popup never shows raw `our_side` / `plant`
 codes when a label exists. Related-node person chips use the same
-side label (`Ada West (Our side)`), not the ontology class
-(`Ada West (Person)`). Related-node organization chips use the
+side label plus the primary affiliation when one exists
+(`Ada West, Demo Corp (Our side)`), not the ontology class
+(`Ada West (Person)`). A missing affiliation is omitted, never
+guessed. Related-node organization chips use the
 entity-level label (`Demo Corp (Company)`), not `Organization`.
 Related-node post chips show the post title only, not `(Post)`.
 

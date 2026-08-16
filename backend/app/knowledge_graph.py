@@ -283,6 +283,8 @@ async def hydrate_related_nodes(
 
     Unknown ids are dropped. Ontology fields are omitted (not faked)
     when ``node_type_code`` has no term in lineageweave-kg.ttl.
+    Person nodes carry the primary affiliation organization when one
+    exists; a missing affiliation is omitted, never invented.
     """
     person_ids: list[str] = []
     post_ids: list[str] = []
@@ -305,6 +307,25 @@ async def hydrate_related_nodes(
             person_ids,
         )
     } if person_ids else {}
+    affiliations: dict[str, str] = {}
+    if person_ids:
+        affiliation_rows = await conn.fetch(
+            """
+            select person_id, affiliated_organization_name, affiliated_corporate_entity_id
+            from person_affiliation
+            where person_id = any($1::uuid[])
+            order by
+              (affiliated_corporate_entity_id is not null) desc,
+              affiliated_organization_name
+            """,
+            person_ids,
+        )
+        for row in affiliation_rows:
+            person_id = str(row["person_id"])
+            org = (row["affiliated_organization_name"] or "").strip()
+            if person_id in affiliations or not org:
+                continue
+            affiliations[person_id] = org
     posts = {
         str(row["post_id"]): row
         for row in await conn.fetch(
@@ -341,6 +362,9 @@ async def hydrate_related_nodes(
             item["label"] = people[node_id]["person_name"]
             item["person_side_code"] = side
             item["person_side_label"] = side_labels.get(side, side)
+            org = affiliations.get(node_id)
+            if org:
+                item["affiliation_organization_name"] = org
         elif node_type_code == NODE_POST and node_id in posts:
             item["label"] = posts[node_id]["post_title"]
         elif node_type_code == NODE_CORPORATE_ENTITY and node_id in corps:
