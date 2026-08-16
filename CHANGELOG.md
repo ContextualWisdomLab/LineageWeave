@@ -4,7 +4,7 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.86.3] - 2026-08-16
+## [0.87.1] - 2026-08-16
 
 ### Fixed
 
@@ -12,8 +12,26 @@ All notable changes to this project are documented here. Format follows
   TEPP and period-report kinds are 422 so this path cannot invent a
   measurement. Open Analysis runs and wait until affiliated corps
   load; choose a corp if you walk more than one, then click
-  **Request a lineage reconstruction**. A failed lineage row names
-  that button.
+  **Request a lineage reconstruction**. Preview the picker in
+  Storybook (`Analysis/LineageEntityPicker`). A failed lineage row
+  names that button.
+
+## [0.87.0] - 2026-08-16
+
+### Added
+
+- Operators can empty a run-bearing analysis-run registry without a
+  superuser trigger disable. Insert an unrevoked
+  `analysis_run_retention_grant` for `session_user`, grant
+  `analysis_run_retention_admin`, then
+  `select purge_analysis_run_registry('approved-retention-purge')`
+  (ADR 0020). Export `analysis_run_retention_event`, delete those
+  rows, then roll back 0020 and 0018. A raw `DELETE`, a published
+  token without a grant, and a runtime role that is not the admin
+  role still fail.
+- Repeated citation chips and close buttons use named design tokens
+  in `frontend/src/styles/tokens.css`. Preview them in Storybook
+  (`cd frontend && pnpm run storybook`).
 
 ## [0.86.2] - 2026-08-16
 

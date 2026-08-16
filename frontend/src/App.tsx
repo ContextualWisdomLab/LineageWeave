@@ -59,6 +59,9 @@ import {
   type RelatedNodeType,
   type VocEvidence,
 } from "./api";
+import { CitationChip } from "./components/CitationChip";
+import { LineageEntityPicker } from "./components/LineageEntityPicker";
+import { PopupCloseButton } from "./components/PopupCloseButton";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { subgraphForPost } from "./lineageLayout";
@@ -113,9 +116,7 @@ function EvidencePanel({
 
   return (
     <div className="evidence-panel" role="complementary" aria-label="Evidence">
-      <button className="popup-close" onClick={onClose} aria-label="Close evidence panel">
-        &times;
-      </button>
+      <PopupCloseButton onClose={onClose} label="Close evidence panel" />
       <h3>Evidence</h3>
       {!post && <p>Loading source post...</p>}
       {post && (
@@ -144,14 +145,12 @@ function ChatCitations({
     <div className="chat-citations">
       <span>Sources: </span>
       {chips.map((cited) => (
-        <button
+        <CitationChip
           key={cited.post_id}
-          className="citation-chip"
-          aria-label={`Open evidence: ${cited.post_title}`}
-          onClick={() => onOpenEvidence(cited.post_id)}
-        >
-          {cited.post_title}
-        </button>
+          postId={cited.post_id}
+          postTitle={cited.post_title}
+          onOpenEvidence={onOpenEvidence}
+        />
       ))}
     </div>
   );
@@ -1234,9 +1233,7 @@ function PostDetailPopup({
   return (
     <div className="popup-backdrop" onClick={onClose}>
       <div className="popup-panel" onClick={(event) => event.stopPropagation()}>
-        <button className="popup-close" onClick={onClose} aria-label="Close">
-          &times;
-        </button>
+        <PopupCloseButton onClose={onClose} label="Close" />
         {error && <p className="error">{error}</p>}
         {!post && !error && <p>Loading...</p>}
         {post && (
@@ -1719,22 +1716,11 @@ function AnalysisRunsPanel({
     <section className="popup-section lineage-home">
       <div className="lineage-home-header">
         <h2>Analysis runs</h2>
-        {corporateEntities && corporateEntities.length > 1 && (
-          <label className="lineage-entity-picker">
-            Corporate entity to reconstruct
-            <select
-              aria-label="Corporate entity to reconstruct"
-              value={selectedEntityId}
-              onChange={(event) => setSelectedEntityId(event.target.value)}
-            >
-              {corporateEntities.map((entity) => (
-                <option key={entity.corporate_entity_id} value={entity.corporate_entity_id}>
-                  {entity.entity_name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+        <LineageEntityPicker
+          entities={corporateEntities ?? []}
+          selectedEntityId={selectedEntityId}
+          onSelectEntityId={setSelectedEntityId}
+        />
         <button
           className="keyman-select"
           aria-label={requestLabel}
