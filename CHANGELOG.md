@@ -11,8 +11,8 @@ All notable changes to this project are documented here. Format follows
 - Product LLM adapters now request contextual-orchestrator
   `mode="auto"` rather than forcing a one-model route. The
   orchestrator owns the quality-sufficient route, verification, or
-  conducted workflow; the explicit adjudication `verify` contract
-  remains unchanged.
+  conducted workflow. Citation-bearing post-chat and lineage
+  adjudication keep their explicit `verify` contracts.
 
 ## [0.71.0] - 2026-08-14
 
