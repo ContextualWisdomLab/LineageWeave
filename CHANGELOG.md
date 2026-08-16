@@ -8,12 +8,15 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
-- Related-node person chips include the primary affiliation
-  organization when one exists. After `make seed`, walking from Ada
-  West shows "Priya Nair, Northridge Grid (Counterparty)" and walking
-  from Demo Corp shows "Ada West, Demo Corp (Our side)". A person with
-  no affiliation keeps the side-only caption -- the org is never
-  guessed. Resolved catalog orgs win over unresolved names.
+- Related-node person chips include the affiliation organization when
+  exactly one distinct identity is known. After `make seed`, walking
+  from Demo Corp shows "Ada West, Demo Corp (Our side)". Priya Nair
+  has two unresolved orgs (Northridge Grid and Northridge Holdings),
+  so the chip stays "Priya Nair (Counterparty)" -- a second org is
+  never collapsed into an invented primary. When the one identity is
+  a resolved `corporate_entity`, the catalog `entity_name` is shown
+  rather than the raw extraction string. A person with no affiliation
+  keeps the side-only caption.
 
 ## [0.74.0] - 2026-08-16
 

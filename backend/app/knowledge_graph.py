@@ -8,6 +8,7 @@ nodes, and a Keyman who is only mentioned on such posts is forbidden.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 from uuid import UUID
 
@@ -275,6 +276,55 @@ async def load_visible_subgraph(
     return [edge_spec_from_row(row) for row in rows]
 
 
+def compact_affiliation_display_names(
+    rows: list[Mapping[str, Any]],
+) -> dict[str, str]:
+    """Return at most one display organization per person.
+
+    A resolved ``corporate_entity`` is one identity, labeled with
+    ``catalog_entity_name`` (falling back to the raw extraction
+    string). Unresolved names that casefold-match that catalog label
+    collapse into it -- the catalog name wins. Distinct unresolved
+    names stay distinct. A person with more than one remaining
+    identity is omitted so the chip never invents a primary org.
+    """
+    catalog_ids: dict[str, set[str]] = {}
+    catalog_labels: dict[str, dict[str, str]] = {}
+    unresolved_names: dict[str, set[str]] = {}
+    for row in rows:
+        person_id = str(row["person_id"])
+        raw_name = (row["affiliated_organization_name"] or "").strip()
+        catalog_id = row["affiliated_corporate_entity_id"]
+        catalog_name = (row["catalog_entity_name"] or "").strip()
+        if catalog_id is not None:
+            identity = str(catalog_id)
+            catalog_ids.setdefault(person_id, set()).add(identity)
+            label = catalog_name or raw_name
+            if label:
+                catalog_labels.setdefault(person_id, {})[identity] = label
+            continue
+        if raw_name:
+            unresolved_names.setdefault(person_id, set()).add(raw_name)
+
+    display_names: dict[str, str] = {}
+    for person_id in set(catalog_ids) | set(unresolved_names):
+        labels_by_id = catalog_labels.get(person_id, {})
+        catalog_name_fold = {name.casefold() for name in labels_by_id.values()}
+        leftover_names = {
+            name
+            for name in unresolved_names.get(person_id, set())
+            if name.casefold() not in catalog_name_fold
+        }
+        identity_count = len(catalog_ids.get(person_id, set())) + len(leftover_names)
+        if identity_count != 1:
+            continue
+        if leftover_names:
+            display_names[person_id] = next(iter(leftover_names))
+        elif labels_by_id:
+            display_names[person_id] = next(iter(labels_by_id.values()))
+    return display_names
+
+
 async def hydrate_related_nodes(
     conn: asyncpg.Connection,
     related: list[tuple[str, float]],
@@ -284,8 +334,10 @@ async def hydrate_related_nodes(
     Unknown ids are dropped. Ontology fields are omitted (not faked)
     when ``node_type_code`` has no term in lineageweave-kg.ttl.
     Person nodes carry compact affiliation context only when exactly one
-    distinct non-empty affiliation is known; ambiguous affiliations are
-    omitted rather than collapsed into an invented primary organization.
+    distinct organization identity is known. A resolved catalog org
+    supplies ``entity_name``; aliases of that same org collapse into it.
+    Multiple distinct affiliations are omitted rather than collapsed
+    into an invented primary organization.
     """
     person_ids: list[str] = []
     post_ids: list[str] = []
@@ -308,28 +360,22 @@ async def hydrate_related_nodes(
             person_ids,
         )
     } if person_ids else {}
-    affiliation_names_by_person: dict[str, set[str]] = {}
-    if person_ids:
-        affiliation_rows = await conn.fetch(
+    affiliations = compact_affiliation_display_names(
+        await conn.fetch(
             """
-            select person_id, affiliated_organization_name
-            from person_affiliation
-            where person_id = any($1::uuid[])
-            order by person_id, affiliated_organization_name
+            select
+                pa.person_id,
+                pa.affiliated_organization_name,
+                pa.affiliated_corporate_entity_id,
+                ce.entity_name as catalog_entity_name
+            from person_affiliation pa
+            left join corporate_entity ce
+                on ce.corporate_entity_id = pa.affiliated_corporate_entity_id
+            where pa.person_id = any($1::uuid[])
             """,
             person_ids,
         )
-        for row in affiliation_rows:
-            person_id = str(row["person_id"])
-            org = (row["affiliated_organization_name"] or "").strip()
-            if not org:
-                continue
-            affiliation_names_by_person.setdefault(person_id, set()).add(org)
-    affiliations = {
-        person_id: next(iter(organization_names))
-        for person_id, organization_names in affiliation_names_by_person.items()
-        if len(organization_names) == 1
-    }
+    ) if person_ids else {}
     posts = {
         str(row["post_id"]): row
         for row in await conn.fetch(
