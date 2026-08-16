@@ -1636,6 +1636,9 @@ function AnalysisRunsPanel({
       {selected && (
         <div className="popup-section">
           <h3>{analysisRunCaption(selected)}</h3>
+          {analysisRunNextAction(selected) && (
+            <p className="post-meta">{analysisRunNextAction(selected)}</p>
+          )}
           <p className="post-meta">
             Cutoff {selected.knowledge_cutoff.slice(0, 10)}
             {" · "}
