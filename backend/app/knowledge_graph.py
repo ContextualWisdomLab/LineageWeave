@@ -320,6 +320,10 @@ async def hydrate_related_nodes(
         )
     } if corp_ids else {}
 
+    side_labels = await labels_for_codes(
+        conn, [row["person_side_code"] for row in people.values()]
+    )
+
     payload: list[dict[str, Any]] = []
     for node_type_code, node_id, score in parsed:
         item: dict[str, Any] = {
@@ -329,8 +333,10 @@ async def hydrate_related_nodes(
             **ontology_annotations(node_type_code),
         }
         if node_type_code == NODE_PERSON and node_id in people:
+            side = people[node_id]["person_side_code"]
             item["label"] = people[node_id]["person_name"]
-            item["person_side_code"] = people[node_id]["person_side_code"]
+            item["person_side_code"] = side
+            item["person_side_label"] = side_labels.get(side, side)
         elif node_type_code == NODE_POST and node_id in posts:
             item["label"] = posts[node_id]["post_title"]
         elif node_type_code == NODE_CORPORATE_ENTITY and node_id in corps:
