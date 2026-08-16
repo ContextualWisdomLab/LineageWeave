@@ -1516,15 +1516,22 @@ describe("App, authenticated", () => {
       "aria-expanded",
       "false",
     );
-    expect(digests).not.toHaveTextContent("abcdef0123456789deadbeefcafebabe");
-    expect(digests).not.toHaveTextContent(
-      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-    );
+    expect(screen.getByText("abcdef0123456789deadbeefcafebabe")).not.toBeVisible();
+    expect(
+      screen.getByText(
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      ),
+    ).not.toBeVisible();
     await userEvent.click(screen.getByRole("button", { name: "Code abcdef012345" }));
-    expect(screen.getByText("abcdef0123456789deadbeefcafebabe")).toBeInTheDocument();
-    expect(digests).not.toHaveTextContent(
-      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-    );
+    expect(screen.getByText("abcdef0123456789deadbeefcafebabe")).toBeVisible();
+    expect(
+      screen.getByText("Match the revealed digest to the API payload."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      ),
+    ).not.toBeVisible();
     const history = screen.getByRole("list", { name: "Analysis run status history" });
     expect(history).toHaveTextContent("Pending 2026-01-12 12:31");
     expect(history).toHaveTextContent("Running 2026-01-12 12:32");

@@ -10,10 +10,11 @@ All notable changes to this project are documented here. Format follows
 
 - Analysis-run digest prefixes are disclosure buttons. Open the Demo
   Corp lineage run, activate `Code` or `Config`, and match the revealed
-  digest to the API payload. Keyboard and assistive technology can
-  complete that check; a hover `title` is no longer the only path
-  (WCAG 2.2 SC 1.4.13; WAI-ARIA APG Disclosure). The home list still
-  hides digests even when the list JSON includes them.
+  digest to the API payload. The closed panel stays in the document
+  with `hidden` so `aria-controls` has a target, and each prefix meets
+  the 24px pointer target (WCAG 2.2 SC 1.4.13 and 2.5.8; WAI-ARIA APG
+  Disclosure). A hover `title` is no longer the only path. The home
+  list still hides digests even when the list JSON includes them.
 
 ## [0.85.0] - 2026-08-16
 

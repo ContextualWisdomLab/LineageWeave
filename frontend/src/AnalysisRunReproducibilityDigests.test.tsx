@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
+import { ANALYSIS_RUN_DIGEST_TARGET_MIN_PX } from "./analysisRunDigests";
 import { AnalysisRunReproducibilityDigests } from "./AnalysisRunReproducibilityDigests";
 
 const CODE_REVISION_SHA = "abcdef0123456789deadbeefcafebabe";
@@ -27,8 +28,18 @@ describe("AnalysisRunReproducibilityDigests", () => {
     const configButton = screen.getByRole("button", { name: "Config 0123456789ab" });
     expect(codeButton).toHaveAttribute("aria-expanded", "false");
     expect(configButton).toHaveAttribute("aria-expanded", "false");
-    expect(group).not.toHaveTextContent(CODE_REVISION_SHA);
-    expect(group).not.toHaveTextContent(CONFIGURATION_SHA256);
+    expect(screen.getByText(CODE_REVISION_SHA)).not.toBeVisible();
+    expect(screen.getByText(CONFIGURATION_SHA256)).not.toBeVisible();
+    const codePanelId = codeButton.getAttribute("aria-controls");
+    const configPanelId = configButton.getAttribute("aria-controls");
+    expect(codePanelId).toBeTruthy();
+    expect(configPanelId).toBeTruthy();
+    expect(document.getElementById(codePanelId ?? "")).toHaveAttribute("hidden");
+    expect(document.getElementById(configPanelId ?? "")).toHaveAttribute("hidden");
+    expect(codeButton).toHaveStyle({
+      minHeight: `${ANALYSIS_RUN_DIGEST_TARGET_MIN_PX}px`,
+      minWidth: `${ANALYSIS_RUN_DIGEST_TARGET_MIN_PX}px`,
+    });
   });
 
   it("reveals the full code digest with Enter and hides it on the next activation", async () => {
@@ -46,14 +57,34 @@ describe("AnalysisRunReproducibilityDigests", () => {
       "aria-expanded",
       "true",
     );
-    expect(screen.getByText(CODE_REVISION_SHA)).toBeInTheDocument();
-    expect(screen.queryByText(CONFIGURATION_SHA256)).not.toBeInTheDocument();
+    expect(screen.getByText(CODE_REVISION_SHA)).toBeVisible();
+    expect(screen.getByText(CONFIGURATION_SHA256)).not.toBeVisible();
     await user.keyboard("{Enter}");
     expect(screen.getByRole("button", { name: "Code abcdef012345" })).toHaveAttribute(
       "aria-expanded",
       "false",
     );
-    expect(screen.queryByText(CODE_REVISION_SHA)).not.toBeInTheDocument();
+    expect(screen.getByText(CODE_REVISION_SHA)).not.toBeVisible();
+  });
+
+  it("tells the operator to match the revealed digest after activation", async () => {
+    const user = userEvent.setup();
+    render(
+      <AnalysisRunReproducibilityDigests
+        codeRevisionSha={CODE_REVISION_SHA}
+        configurationSha256={CONFIGURATION_SHA256}
+      />,
+    );
+    expect(
+      screen.getByText("Activate a prefix to read the full digest and match the API payload."),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Code abcdef012345" }));
+    expect(
+      screen.getByText("Match the revealed digest to the API payload."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Activate a prefix to read the full digest and match the API payload."),
+    ).not.toBeInTheDocument();
   });
 
   it("reveals the full configuration digest with Space", async () => {
@@ -68,7 +99,7 @@ describe("AnalysisRunReproducibilityDigests", () => {
     await user.tab();
     expect(screen.getByRole("button", { name: "Config 0123456789ab" })).toHaveFocus();
     await user.keyboard(" ");
-    expect(screen.getByText(CONFIGURATION_SHA256)).toBeInTheDocument();
-    expect(screen.queryByText(CODE_REVISION_SHA)).not.toBeInTheDocument();
+    expect(screen.getByText(CONFIGURATION_SHA256)).toBeVisible();
+    expect(screen.getByText(CODE_REVISION_SHA)).not.toBeVisible();
   });
 });

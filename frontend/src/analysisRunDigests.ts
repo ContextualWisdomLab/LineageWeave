@@ -11,6 +11,9 @@
 /** Git-style prefix length shown before the operator opens the full digest. */
 export const ANALYSIS_RUN_DIGEST_PREFIX_LENGTH = 12;
 
+/** WCAG 2.2 SC 2.5.8 minimum pointer target for each prefix button. */
+export const ANALYSIS_RUN_DIGEST_TARGET_MIN_PX = 24;
+
 /** Which digest the disclosure button reveals. */
 export type AnalysisRunDigestKind = "code" | "config";
 
@@ -65,4 +68,12 @@ export function analysisRunDigestButtonLabel(
  */
 export function analysisRunDigestNextAction(): string {
   return "Activate a prefix to read the full digest and match the API payload.";
+}
+
+/**
+ * Next action after a prefix is open. The operator already revealed the
+ * digest; the remaining step is to match it to the API payload.
+ */
+export function analysisRunDigestRevealedNextAction(): string {
+  return "Match the revealed digest to the API payload.";
 }

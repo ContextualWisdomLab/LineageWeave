@@ -7,7 +7,7 @@ stories must cover.
 
 | Object | Tokens | Next action the story must teach |
 |---|---|---|
-| Analysis-run digest disclosure | `--lw-opacity-meta`, `--lw-font-size-meta`, `--lw-space-digest-gap`, `--lw-font-family-mono`, `--lw-focus-ring`, `--lw-focus-offset` | Activate a prefix, then match the revealed digest to the API payload. |
+| Analysis-run digest disclosure | `--lw-opacity-meta`, `--lw-font-size-meta`, `--lw-space-digest-gap`, `--lw-font-family-mono`, `--lw-focus-ring`, `--lw-focus-offset`, `--lw-target-min` | Activate a prefix, then match the revealed digest to the API payload. |
 | Analysis-run live-post warning | `--lw-opacity-meta`, `--lw-font-size-meta` | Compare the opened body with the run cutoff before treating it as reconstructed evidence. |
 | Meta caption (`.post-meta`) | `--lw-opacity-meta`, `--lw-font-size-meta` | Read the clock or count, then take the control beside it. |
 

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   ANALYSIS_RUN_DIGEST_PREFIX_LENGTH,
+  ANALYSIS_RUN_DIGEST_TARGET_MIN_PX,
   analysisRunDigestButtonLabel,
   analysisRunDigestKindLabel,
   analysisRunDigestNextAction,
   analysisRunDigestPrefix,
+  analysisRunDigestRevealedNextAction,
 } from "./analysisRunDigests";
 
 const CODE_REVISION_SHA = "abcdef0123456789deadbeefcafebabe";
@@ -49,5 +51,19 @@ describe("analysisRunDigestNextAction", () => {
     const nextAction = analysisRunDigestNextAction();
     expect(nextAction).toMatch(/Activate a prefix/);
     expect(nextAction).not.toMatch(/Hover/i);
+  });
+
+  it("tells the operator to match the revealed digest to the API payload", () => {
+    const nextAction = analysisRunDigestRevealedNextAction();
+    expect(nextAction).toMatch(/Match the revealed digest/);
+    expect(nextAction).toMatch(/API payload/);
+    expect(nextAction).not.toMatch(/Hover/i);
+    expect(nextAction).not.toMatch(/Activate a prefix/);
+  });
+});
+
+describe("ANALYSIS_RUN_DIGEST_TARGET_MIN_PX", () => {
+  it("keeps the WCAG 2.5.8 24px minimum pointer target", () => {
+    expect(ANALYSIS_RUN_DIGEST_TARGET_MIN_PX).toBe(24);
   });
 });

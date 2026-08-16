@@ -33,9 +33,11 @@ Reproducibility digests on the same detail use a labeled group whose
 accessible name does not replace the visible prefixes (W3C Accessible
 Name and Description Computation 1.1). Each prefix is a disclosure
 button (WAI-ARIA APG Disclosure; WCAG 2.2 Success Criterion 1.4.13).
-The full digest is hidden until activation so keyboard and assistive
-technology can verify it the same way a pointer can. The home list
-stays aggregates-only; the API payload still carries the full values.
+The full digest stays in the document with `hidden` until activation
+so `aria-controls` has a target and keyboard and assistive technology
+can verify it the same way a pointer can. Each prefix button meets the
+WCAG 2.2 SC 2.5.8 24px minimum target. The home list stays
+aggregates-only; the API payload still carries the full values.
 
 Seed and API fixtures backdate in-cutoff posts. A late own-corp private
 post remains on the live post list and stays out of the January 2026

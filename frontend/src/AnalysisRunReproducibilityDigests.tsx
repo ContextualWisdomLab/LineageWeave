@@ -1,24 +1,30 @@
 import { useId, useState } from "react";
 import {
+  ANALYSIS_RUN_DIGEST_TARGET_MIN_PX,
   analysisRunDigestButtonLabel,
   analysisRunDigestNextAction,
+  analysisRunDigestRevealedNextAction,
   type AnalysisRunDigestKind,
 } from "./analysisRunDigests";
 
 /**
  * One digest disclosure. The button name stays the audible prefix; the
- * full value is shown only after Enter, Space, or click (APG Disclosure).
+ * full value stays in the document with `hidden` until Enter, Space, or
+ * click so `aria-controls` always has a target (APG Disclosure).
  */
 function AnalysisRunDigestDisclosure({
   kind,
   digest,
   panelId,
+  open,
+  onOpenChange,
 }: {
   kind: AnalysisRunDigestKind;
   digest: string;
   panelId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const label = analysisRunDigestButtonLabel(kind, digest);
   return (
     <span className="analysis-run-digest">
@@ -27,15 +33,17 @@ function AnalysisRunDigestDisclosure({
         className="analysis-run-digest-toggle"
         aria-expanded={open}
         aria-controls={panelId}
-        onClick={() => setOpen((current) => !current)}
+        style={{
+          minHeight: ANALYSIS_RUN_DIGEST_TARGET_MIN_PX,
+          minWidth: ANALYSIS_RUN_DIGEST_TARGET_MIN_PX,
+        }}
+        onClick={() => onOpenChange(!open)}
       >
         {label}
       </button>
-      {open ? (
-        <code id={panelId} className="analysis-run-digest-full">
-          {digest}
-        </code>
-      ) : null}
+      <code id={panelId} className="analysis-run-digest-full" hidden={!open}>
+        {digest}
+      </code>
     </span>
   );
 }
@@ -44,7 +52,7 @@ function AnalysisRunDigestDisclosure({
  * Labeled group of analysis-run reproducibility digests.
  *
  * Prefixes remain the accessible contents of the group. Full digests
- * stay off the home list and off the default detail text until the
+ * stay off the home list and stay `hidden` on the detail until the
  * operator activates a prefix.
  */
 export function AnalysisRunReproducibilityDigests({
@@ -55,18 +63,29 @@ export function AnalysisRunReproducibilityDigests({
   configurationSha256?: string;
 }) {
   const id = useId();
+  const [openCode, setOpenCode] = useState(false);
+  const [openConfig, setOpenConfig] = useState(false);
   if (!codeRevisionSha && !configurationSha256) {
     return null;
   }
+  const anyOpen =
+    (Boolean(codeRevisionSha) && openCode) ||
+    (Boolean(configurationSha256) && openConfig);
   return (
     <div role="group" aria-label="Analysis run reproducibility digests">
-      <p className="post-meta">{analysisRunDigestNextAction()}</p>
+      <p className="post-meta">
+        {anyOpen
+          ? analysisRunDigestRevealedNextAction()
+          : analysisRunDigestNextAction()}
+      </p>
       <p className="post-meta analysis-run-digest-row">
         {codeRevisionSha ? (
           <AnalysisRunDigestDisclosure
             kind="code"
             digest={codeRevisionSha}
             panelId={`${id}-code`}
+            open={openCode}
+            onOpenChange={setOpenCode}
           />
         ) : null}
         {codeRevisionSha && configurationSha256 ? " · " : null}
@@ -75,6 +94,8 @@ export function AnalysisRunReproducibilityDigests({
             kind="config"
             digest={configurationSha256}
             panelId={`${id}-config`}
+            open={openConfig}
+            onOpenChange={setOpenConfig}
           />
         ) : null}
       </p>

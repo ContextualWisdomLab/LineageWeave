@@ -14,8 +14,10 @@ evidence.
 
 1. #127 is on `feat/role-responsibility-agent-ontology` (`44912a6`).
    Prefixes are audible; the live-body warning is present.
-2. Land #135 (v0.85.1) so keyboard and AT operators can match a digest
-   to the API payload. Do not self-approve or merge from this automation.
+2. Land the digest-disclosure successor of #135 (v0.85.1) so keyboard
+   and AT operators can match a digest to the API payload. Closed
+   panels stay in the document with `hidden`; each prefix is a 24px
+   target. Do not self-approve or merge from this automation.
 3. Keep #131 as the write-clock comparison slice. Do not open a second
    write-clock PR.
 4. #125 (`POST /api/analysis-runs`) is on the same base. Do not open a
