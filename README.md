@@ -167,6 +167,8 @@ FastAPI backend over real `fetch()` with the token Keycloak issued.
 make up
 make seed
 cd frontend && cp .env.example .env.local && pnpm install && pnpm run dev
+# Repeated chip/close controls: pnpm run storybook
+# (Node 24 via frontend/mise.toml; pnpm only)
 # -> http://localhost:5173, click "Log in", redirects through the real
 #    Keycloak login page for demo.analyst / lineageweave-demo-only
 ```

@@ -91,3 +91,7 @@ jobs:
       - name: Build
         working-directory: frontend
         run: pnpm run build
+
+      - name: Build Storybook
+        working-directory: frontend
+        run: pnpm run build-storybook
