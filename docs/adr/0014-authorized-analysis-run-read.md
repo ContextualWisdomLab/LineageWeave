@@ -28,6 +28,9 @@ LineageWeave owns a fail-closed read projection of the #89 registry:
 - The payload carries lookup labels and non-negative aggregate counts.
   It does not carry source SQL, DSNs, raw records, image bytes, provider
   payloads, credentials, or another service's table names.
+- `GET /api/analysis-runs/{id}` also returns the append-only labeled
+  `status_history`. The list does not. A failed event may include the
+  stored machine `failure_code`; this slice does not invent a label.
 - TEPP remains a versioned `AnalysisRunRequest` consumer
   (`lineageweave.tepp_client`). This slice does not fork TEPP arithmetic.
 - contextual-orchestrator remains the only LLM path. This slice does not
@@ -37,8 +40,9 @@ LineageWeave owns a fail-closed read projection of the #89 registry:
 
 `make seed` writes one synthetic Demo Corp lineage run so the existing
 React home page can show Analysis runs without a second application.
-Write/rebuild APIs, TEPP submission, and an Analysis Run Console remain
-later slices.
+The detail now shows the legal lifecycle the registry already stored.
+Write/rebuild APIs, TEPP submission, and a fuller Analysis Run Console
+remain later slices.
 
 ## References
 

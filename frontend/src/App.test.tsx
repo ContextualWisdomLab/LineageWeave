@@ -189,6 +189,26 @@ describe("App, authenticated", () => {
                 count_value: 3,
               },
             ],
+            status_history: [
+              {
+                status_ordinal: 1,
+                status_code: "analysis_status_pending",
+                status_label: "Pending",
+                occurred_at: "2026-01-12T12:31:00Z",
+              },
+              {
+                status_ordinal: 2,
+                status_code: "analysis_status_running",
+                status_label: "Running",
+                occurred_at: "2026-01-12T12:32:00Z",
+              },
+              {
+                status_ordinal: 3,
+                status_code: "analysis_status_succeeded",
+                status_label: "Succeeded",
+                occurred_at: "2026-01-12T12:33:00Z",
+              },
+            ],
           }),
         );
       }
@@ -1365,6 +1385,10 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("heading", { name: "Lineage reconstruction · Succeeded · Demo Corp" })).toBeInTheDocument();
     expect(screen.getByText(/Cutoff 2026-01-12/)).toBeInTheDocument();
     expect(screen.getByText(/Requested 2026-01-12/)).toBeInTheDocument();
+    const history = screen.getByRole("list", { name: "Analysis run status history" });
+    expect(history).toHaveTextContent("Pending 2026-01-12 12:31");
+    expect(history).toHaveTextContent("Running 2026-01-12 12:32");
+    expect(history).toHaveTextContent("Succeeded 2026-01-12 12:33");
     expect(screen.queryByText(/postgresql:\/\//)).not.toBeInTheDocument();
   });
 

@@ -1179,7 +1179,10 @@ async def read_analysis_run(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """One authorized analysis-run projection, or 404 when hidden."""
+    """One authorized analysis-run projection, or 404 when hidden.
+
+    Detail adds the labeled status history. Hidden runs never leak events.
+    """
     _require_post_read(account)
     try:
         UUID(analysis_run_id)

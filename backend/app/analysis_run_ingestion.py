@@ -96,6 +96,35 @@ async def _counts_by_run(
     return grouped
 
 
+async def _status_history(
+    conn: asyncpg.Connection,
+    analysis_run_id: str,
+) -> list[dict[str, Any]]:
+    """Labeled append-only lifecycle for one already-visible run."""
+    rows = await conn.fetch(
+        """
+        select status_ordinal, status_code, occurred_at, failure_code
+        from analysis_run_status_event
+        where analysis_run_id = $1::uuid
+        order by status_ordinal
+        """,
+        analysis_run_id,
+    )
+    labels = await labels_for_codes(conn, [row["status_code"] for row in rows])
+    history: list[dict[str, Any]] = []
+    for row in rows:
+        item: dict[str, Any] = {
+            "status_ordinal": int(row["status_ordinal"]),
+            "status_code": row["status_code"],
+            "status_label": labels.get(row["status_code"], row["status_code"]),
+            "occurred_at": _iso(row["occurred_at"]),
+        }
+        if row["failure_code"]:
+            item["failure_code"] = row["failure_code"]
+        history.append(item)
+    return history
+
+
 async def _serialize_runs(
     conn: asyncpg.Connection,
     rows: list[asyncpg.Record],
@@ -187,4 +216,5 @@ async def fetch_visible_analysis_run(
     detail["code_revision_sha"] = row["code_revision_sha"]
     if row["failure_code"]:
         detail["failure_code"] = row["failure_code"]
+    detail["status_history"] = await _status_history(conn, analysis_run_id)
     return detail
