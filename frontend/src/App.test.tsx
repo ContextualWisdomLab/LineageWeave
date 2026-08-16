@@ -1821,7 +1821,7 @@ describe("App, authenticated", () => {
       "Open this run to confirm which posts it will use. Reconstruction has not started yet.";
     expect(screen.getAllByText(pendingCopy).length).toBeGreaterThanOrEqual(1);
     const pendingDetail = pendingHeading.closest(".popup-section");
-    if (pendingDetail === null) {
+    if (!(pendingDetail instanceof HTMLElement)) {
       throw new Error("Pending run detail is missing after the create request.");
     }
     expect(within(pendingDetail).getAllByText(pendingCopy)).toHaveLength(1);
