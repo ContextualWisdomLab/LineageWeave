@@ -329,6 +329,61 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/analysis-runs/run-demo-lineage-pending/start") && method === "POST") {
+        return Promise.resolve(
+          jsonResponse({
+            analysis_run_id: "run-demo-lineage-pending",
+            run_kind_code: "analysis_run_lineage",
+            run_kind_label: "Lineage reconstruction",
+            scope_kind_code: "analysis_scope_corporate_entity",
+            scope_kind_label: "Corporate entity",
+            scope_entity_name: "Demo Corp",
+            status_code: "analysis_status_succeeded",
+            status_label: "Succeeded",
+            knowledge_cutoff: "2026-01-12T12:00:00Z",
+            requested_at: "2026-01-12T12:35:00Z",
+            source_counts: [],
+            visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+            reconstructed_edges: [
+              {
+                parent_post_id: "post-follow-up",
+                parent_post_title: "Pricing renegotiation follow-up",
+                child_post_id: "post-quote",
+                child_post_title: "Pricing renegotiation: revised quote sent",
+                fused_score: 0.72,
+              },
+              {
+                parent_post_id: "post-follow-up",
+                parent_post_title: "Pricing renegotiation follow-up",
+                child_post_id: "post-delivery",
+                child_post_title: "Delivery schedule question raised",
+                fused_score: 0.68,
+              },
+            ],
+            reconstruction_result_sha256: "aa".repeat(32),
+            status_history: [
+              {
+                status_ordinal: 1,
+                status_code: "analysis_status_pending",
+                status_label: "Pending",
+                occurred_at: "2026-01-12T12:35:00Z",
+              },
+              {
+                status_ordinal: 2,
+                status_code: "analysis_status_running",
+                status_label: "Running",
+                occurred_at: "2026-01-12T12:36:00Z",
+              },
+              {
+                status_ordinal: 3,
+                status_code: "analysis_status_succeeded",
+                status_label: "Succeeded",
+                occurred_at: "2026-01-12T12:37:00Z",
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/analysis-runs") && method === "POST") {
         const created = {
           analysis_run_id: "run-demo-lineage-pending",
@@ -343,6 +398,7 @@ describe("App, authenticated", () => {
           requested_at: "2026-01-12T12:35:00Z",
           source_counts: [],
           visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+          reconstructed_edges: [],
           status_history: [
             {
               status_ordinal: 1,
@@ -1754,6 +1810,7 @@ describe("App, authenticated", () => {
     expect(reportButton).not.toHaveTextContent("reconstruction");
 
     await userEvent.click(reportButton);
+    expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
     expect(
       await screen.findByText(
         "No posts were available at this cutoff for the period report. Open a later run, or ask an administrator to capture a newer snapshot.",
@@ -1776,6 +1833,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/this TEPP run measured/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reconstruction has not started yet/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
   });
 
   it("does not tell a succeeded TEPP run to replace Failed", async () => {
@@ -1810,9 +1868,10 @@ describe("App, authenticated", () => {
     ).toBeInTheDocument();
     expect(
       screen.getAllByText(
-        "Open this run to confirm which posts it will use. Reconstruction has not started yet.",
+        "Open this run, then start reconstruction. Reconstruction has not started yet.",
       ),
     ).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeInTheDocument();
     const postCall = fetchMock.mock.calls.find(
       (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
     );
@@ -1822,6 +1881,34 @@ describe("App, authenticated", () => {
     expect(body.idempotency_key).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     );
+  });
+
+  it("starts reconstruction and shows the designed A-100 fork", async () => {
+    const fetchMock = stubBackend();
+    render(<App />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+    );
+    await userEvent.click(await screen.findByRole("button", { name: "Start reconstruction" }));
+    expect(
+      await screen.findByRole("heading", { name: "Lineage reconstruction · Succeeded · Demo Corp" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Pricing renegotiation: revised quote sent follows Pricing renegotiation follow-up",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Delivery schedule question raised follows Pricing renegotiation follow-up"),
+    ).toBeInTheDocument();
+    const digests = screen.getByLabelText("Analysis run reproducibility digests");
+    expect(digests).toHaveTextContent("Result aaaaaaaaaaaa");
+    expect(screen.getByTitle("aa".repeat(32))).toHaveTextContent("Result aaaaaaaaaaaa");
+    const startCall = fetchMock.mock.calls.find((call) =>
+      String(call[0]).endsWith("/api/analysis-runs/run-demo-lineage-pending/start"),
+    );
+    expect(startCall?.[1]?.method).toBe("POST");
   });
 
   it("shows the calibrated period-report mean theta on the home page", async () => {

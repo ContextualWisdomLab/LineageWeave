@@ -4,6 +4,7 @@ import {
   askPostChat,
   BackendError,
   createAnalysisRun,
+  startAnalysisRun,
   createPostTicket,
   deriveCommitment,
   evaluatePost,
@@ -1459,7 +1460,7 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_pending":
       switch (run.run_kind_code) {
         case "analysis_run_lineage":
-          return "Open this run to confirm which posts it will use. Reconstruction has not started yet.";
+          return "Open this run, then start reconstruction. Reconstruction has not started yet.";
         case "analysis_run_tepp":
           return "Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.";
         case "analysis_run_report":
@@ -1583,11 +1584,23 @@ function analysisRunLivePostButtonLabel(postTitle: string): string {
 function AnalysisRunReproducibilityDigests({
   codeRevisionSha,
   configurationSha256,
+  reconstructionResultSha256,
 }: {
   codeRevisionSha?: string;
   configurationSha256?: string;
+  reconstructionResultSha256?: string;
 }) {
-  if (!codeRevisionSha && !configurationSha256) {
+  const parts: { label: string; digest: string }[] = [];
+  if (codeRevisionSha) {
+    parts.push({ label: "Code", digest: codeRevisionSha });
+  }
+  if (configurationSha256) {
+    parts.push({ label: "Config", digest: configurationSha256 });
+  }
+  if (reconstructionResultSha256) {
+    parts.push({ label: "Result", digest: reconstructionResultSha256 });
+  }
+  if (parts.length === 0) {
     return null;
   }
   return (
@@ -1596,17 +1609,26 @@ function AnalysisRunReproducibilityDigests({
         <span className="visually-hidden">
           Hover a prefix to read the full digest for verification.{" "}
         </span>
-        {codeRevisionSha ? (
-          <span title={codeRevisionSha}>{`Code ${analysisRunDigestPrefix(codeRevisionSha)}`}</span>
-        ) : null}
-        {codeRevisionSha && configurationSha256 ? " · " : null}
-        {configurationSha256 ? (
-          <span title={configurationSha256}>
-            {`Config ${analysisRunDigestPrefix(configurationSha256)}`}
+        {parts.map((part, index) => (
+          <span key={part.label}>
+            {index > 0 ? " · " : null}
+            <span title={part.digest}>{`${part.label} ${analysisRunDigestPrefix(part.digest)}`}</span>
           </span>
-        ) : null}
+        ))}
       </p>
     </div>
+  );
+}
+
+/**
+ * Start is only for a Pending Demo Corp lineage row after Request.
+ *
+ * TEPP and period-report keep their own transports. This button must
+ * not appear on those kinds.
+ */
+function analysisRunCanStartReconstruction(run: AnalysisRun): boolean {
+  return (
+    run.run_kind_code === "analysis_run_lineage" && run.status_code === "analysis_status_pending"
   );
 }
 
@@ -1621,6 +1643,7 @@ function AnalysisRunsPanel({
   const [selected, setSelected] = useState<AnalysisRun | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [requesting, setRequesting] = useState(false);
+  const [starting, setStarting] = useState(false);
 
   useEffect(() => {
     fetchAnalysisRuns(accessToken)
@@ -1643,6 +1666,22 @@ function AnalysisRunsPanel({
       setError(err instanceof BackendError ? err.message : String(err));
     } finally {
       setRequesting(false);
+    }
+  }
+
+  async function handleStartReconstruction() {
+    if (!selected) return;
+    setError(null);
+    setStarting(true);
+    try {
+      const started = await startAnalysisRun(accessToken, selected.analysis_run_id);
+      const listed = await fetchAnalysisRuns(accessToken);
+      setRuns(listed.analysis_runs);
+      setSelected(started);
+    } catch (err) {
+      setError(err instanceof BackendError ? err.message : String(err));
+    } finally {
+      setStarting(false);
     }
   }
 
@@ -1725,7 +1764,27 @@ function AnalysisRunsPanel({
           <AnalysisRunReproducibilityDigests
             codeRevisionSha={selected.code_revision_sha}
             configurationSha256={selected.configuration_sha256}
+            reconstructionResultSha256={selected.reconstruction_result_sha256}
           />
+          {analysisRunCanStartReconstruction(selected) && (
+            <button
+              className="keyman-select"
+              aria-label="Start reconstruction"
+              disabled={starting}
+              onClick={() => void handleStartReconstruction()}
+            >
+              {starting ? "Reconstructing the cutoff bag..." : "Start reconstruction"}
+            </button>
+          )}
+          {selected.reconstructed_edges && selected.reconstructed_edges.length > 0 && (
+            <ul aria-label="Reconstructed lineage edges">
+              {selected.reconstructed_edges.map((edge) => (
+                <li key={`${edge.parent_post_id}-${edge.child_post_id}`}>
+                  {edge.child_post_title} follows {edge.parent_post_title}
+                </li>
+              ))}
+            </ul>
+          )}
           <ul>
             {selected.source_counts.map((count) => (
               <li key={count.count_type_code}>
