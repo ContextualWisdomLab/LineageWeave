@@ -7,8 +7,9 @@ lookup labels come back; source SQL, DSNs, raw records, and provider
 payloads never do.
 
 ``create_pending_analysis_run`` (ADR 0017) writes snapshot, counts, run,
-scope, and the first Pending event atomically. It does not reconstruct
-lineage or invent a TEPP score.
+scope, and the first Pending event atomically. ``start_pending_analysis_run``
+(ADR 0020) later reconstructs lineage on that cutoff bag. Neither path
+invents a TEPP score.
 """
 
 from __future__ import annotations
@@ -263,7 +264,125 @@ async def fetch_visible_analysis_run(
         affiliated_entity_ids,
         row["knowledge_cutoff"],
     )
+    digest, edges = await fetch_reconstructed_edges(conn, analysis_run_id)
+    if digest is not None:
+        detail["reconstruction_result_sha256"] = digest
+    detail["reconstructed_edges"] = edges
     return detail
+
+
+async def fetch_reconstructed_edges(
+    conn: asyncpg.Connection,
+    analysis_run_id: str,
+) -> tuple[str | None, list[dict[str, Any]]]:
+    """Return the persisted digest and titled edges, or ``(None, [])``.
+
+    Missing reconstruction tables mean this database has not applied
+    migration 0020 yet; treat that as no stored tree rather than 500.
+    """
+    try:
+        header = await conn.fetchrow(
+            """
+            select result_sha256
+            from analysis_run_reconstruction
+            where analysis_run_id = $1
+            """,
+            analysis_run_id,
+        )
+    except asyncpg.UndefinedTableError:
+        return None, []
+    if header is None:
+        return None, []
+    rows = await conn.fetch(
+        """
+        select
+          edge.parent_post_id,
+          parent_post.post_title as parent_post_title,
+          edge.child_post_id,
+          child_post.post_title as child_post_title,
+          edge.fused_score
+        from analysis_run_lineage_edge edge
+        join source_post parent_post on parent_post.post_id = edge.parent_post_id
+        join source_post child_post on child_post.post_id = edge.child_post_id
+        where edge.analysis_run_id = $1
+        order by parent_post.post_title, child_post.post_title
+        """,
+        analysis_run_id,
+    )
+    return header["result_sha256"], [
+        {
+            "parent_post_id": str(row["parent_post_id"]),
+            "parent_post_title": row["parent_post_title"],
+            "child_post_id": str(row["child_post_id"]),
+            "child_post_title": row["child_post_title"],
+            "fused_score": float(row["fused_score"]),
+        }
+        for row in rows
+    ]
+
+
+async def fetch_cutoff_reconstruct_posts(
+    conn: asyncpg.Connection,
+    scope_kind_code: str,
+    corporate_entity_id: Any,
+    process_unit_id: Any,
+    scope_key: str | None,
+    affiliated_entity_ids: list[str],
+    knowledge_cutoff: Any,
+) -> list[asyncpg.Record]:
+    """ABAC-visible cutoff rows with the grouping keys reconstruct needs.
+
+    Same scope branches as ``fetch_visible_scope_posts``. The list
+    payload stays titles-only; this bag is the start path only.
+    """
+    columns = (
+        "post_id, post_title, created_at, visibility_code, "
+        "corporate_entity_id, process_unit_id, "
+        "thread_group_key, secondary_grouping_key"
+    )
+    if scope_kind_code == "analysis_scope_corporate_entity" and corporate_entity_id:
+        rows = await conn.fetch(
+            f"select {columns} "
+            "from source_post where corporate_entity_id = $1 "
+            "and created_at <= $2 "
+            "order by created_at, post_title",
+            corporate_entity_id,
+            knowledge_cutoff,
+        )
+    elif scope_kind_code == "analysis_scope_process_unit" and process_unit_id:
+        rows = await conn.fetch(
+            f"select {columns} "
+            "from source_post where process_unit_id = $1 "
+            "and created_at <= $2 "
+            "order by created_at, post_title",
+            process_unit_id,
+            knowledge_cutoff,
+        )
+    elif scope_kind_code == "analysis_scope_thread_group" and scope_key:
+        rows = await conn.fetch(
+            f"select {columns} "
+            "from source_post where thread_group_key = $1 "
+            "and created_at <= $2 "
+            "order by created_at, post_title",
+            scope_key,
+            knowledge_cutoff,
+        )
+    elif scope_kind_code == "analysis_scope_all_visible":
+        rows = await conn.fetch(
+            f"select {columns} "
+            "from source_post where created_at <= $1 "
+            "order by created_at, post_title",
+            knowledge_cutoff,
+        )
+    else:
+        return []
+    affiliated = {str(entity_id) for entity_id in affiliated_entity_ids}
+    return [
+        row
+        for row in rows
+        if row["visibility_code"] == "public"
+        or str(row["corporate_entity_id"]) in affiliated
+    ]
 
 
 async def fetch_visible_scope_posts(

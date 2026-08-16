@@ -4,6 +4,7 @@ import {
   askPostChat,
   BackendError,
   createAnalysisRun,
+  startAnalysisRun,
   createPostTicket,
   deriveCommitment,
   evaluatePost,
@@ -1466,7 +1467,10 @@ function analysisRunCaption(run: AnalysisRun): string {
  */
 function analysisRunNextAction(run: AnalysisRun): string | null {
   if (run.status_code === "analysis_status_pending") {
-    return "Open this run to confirm which posts it will use. Reconstruction has not started yet.";
+    if (run.run_kind_code === "analysis_run_tepp") {
+      return "Open this run to confirm which posts it will measure. Measurement has not started yet.";
+    }
+    return "Open this run, then start reconstruction. Reconstruction has not started yet.";
   }
   if (run.status_code !== "analysis_status_failed") {
     return null;
@@ -1640,6 +1644,7 @@ function AnalysisRunsPanel({
   const [selected, setSelected] = useState<AnalysisRun | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [requesting, setRequesting] = useState(false);
+  const [starting, setStarting] = useState(false);
 
   useEffect(() => {
     fetchAnalysisRuns(accessToken)
@@ -1662,6 +1667,22 @@ function AnalysisRunsPanel({
       setError(err instanceof BackendError ? err.message : String(err));
     } finally {
       setRequesting(false);
+    }
+  }
+
+  async function handleStartReconstruction() {
+    if (!selected) return;
+    setError(null);
+    setStarting(true);
+    try {
+      const started = await startAnalysisRun(accessToken, selected.analysis_run_id);
+      const listed = await fetchAnalysisRuns(accessToken);
+      setRuns(listed.analysis_runs);
+      setSelected(started);
+    } catch (err) {
+      setError(err instanceof BackendError ? err.message : String(err));
+    } finally {
+      setStarting(false);
     }
   }
 
@@ -1743,6 +1764,29 @@ function AnalysisRunsPanel({
             codeRevisionSha={selected.code_revision_sha}
             configurationSha256={selected.configuration_sha256}
           />
+          {selected.status_code === "analysis_status_pending" && (
+            <p className="post-meta">{analysisRunNextAction(selected)}</p>
+          )}
+          {selected.run_kind_code === "analysis_run_lineage" &&
+            selected.status_code === "analysis_status_pending" && (
+              <button
+                className="keyman-select"
+                aria-label="Start reconstruction"
+                disabled={starting}
+                onClick={() => void handleStartReconstruction()}
+              >
+                {starting ? "Reconstructing the cutoff bag..." : "Start reconstruction"}
+              </button>
+            )}
+          {selected.reconstructed_edges && selected.reconstructed_edges.length > 0 && (
+            <ul aria-label="Reconstructed lineage edges">
+              {selected.reconstructed_edges.map((edge) => (
+                <li key={`${edge.parent_post_id}-${edge.child_post_id}`}>
+                  {edge.child_post_title} follows {edge.parent_post_title}
+                </li>
+              ))}
+            </ul>
+          )}
           <ul>
             {selected.source_counts.map((count) => (
               <li key={count.count_type_code}>

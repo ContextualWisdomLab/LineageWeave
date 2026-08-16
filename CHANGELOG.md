@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.89.0] - 2026-08-17
+
+### Added
+
+- A Pending lineage run now has **Start reconstruction**. After
+  `make seed`, request a lineage reconstruction, open the Pending Demo
+  Corp row, and start it: the designed A-100 fork appears as titled
+  parent→child edges (revised quote and delivery question under the
+  pricing follow-up). TEPP start is 422 — this path does not invent a
+  theta. Edges stay on the run; live Event Lineage is unchanged
+  (ADR 0020).
+
 ## [0.88.0] - 2026-08-17
 
 ### Added

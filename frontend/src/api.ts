@@ -543,6 +543,14 @@ export interface AnalysisRunVisiblePost {
   live_after_cutoff?: boolean;
 }
 
+export interface AnalysisRunReconstructedEdge {
+  parent_post_id: string;
+  parent_post_title: string;
+  child_post_id: string;
+  child_post_title: string;
+  fused_score: number;
+}
+
 export interface AnalysisRun {
   analysis_run_id: string;
   run_kind_code: AnalysisRunKindCode;
@@ -557,6 +565,8 @@ export interface AnalysisRun {
   source_counts: AnalysisRunCount[];
   status_history?: AnalysisRunStatusEvent[];
   visible_posts?: AnalysisRunVisiblePost[];
+  reconstructed_edges?: AnalysisRunReconstructedEdge[];
+  reconstruction_result_sha256?: string;
   code_revision_sha?: string;
   configuration_sha256?: string;
 }
@@ -584,5 +594,14 @@ export function createAnalysisRun(
   return backendFetch("/api/analysis-runs", accessToken, {
     method: "POST",
     body: JSON.stringify(request),
+  });
+}
+
+export function startAnalysisRun(
+  accessToken: string,
+  analysisRunId: string,
+): Promise<AnalysisRun> {
+  return backendFetch(`/api/analysis-runs/${analysisRunId}/start`, accessToken, {
+    method: "POST",
   });
 }
