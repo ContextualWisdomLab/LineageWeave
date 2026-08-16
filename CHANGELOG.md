@@ -10,16 +10,13 @@ All notable changes to this project are documented here. Format follows
 
 - `POST /api/analysis-runs/{id}/start` runs ThreadWeave on a visible
   Pending lineage cutoff bag and persists run-scoped parent choices
-  (ADR 0021). Open the Pending run, then start reconstruction. The
-  designed A-100 fork (revised quote and delivery question under the
-  pricing follow-up) is the acceptance tree. TEPP start is 422 — this
-  path does not invent a theta. A Succeeded retry returns the stored
-  digest. Hover the Result digest prefix to verify the parent-choice
-  hash. Live Event Lineage stays a separate rebuild.
-- Create freezes authorized post ids on
-  `analysis_source_snapshot_member`. Start reconstructs that bag
-  instead of a later backfill that shares the cutoff clock. A granted
-  purge (ADR 0020) now also deletes reconstruction and member rows.
+  (ADR 0021). Open the Pending Demo Corp row, then start reconstruction.
+  The designed A-100 fork (revised quote and delivery question under the
+  pricing follow-up) is the acceptance tree. TEPP and period-report
+  start are 422 — this path does not invent a theta. A Succeeded retry
+  returns the stored digest. A Running restart is 409. Create freezes
+  authorized post ids so start cannot pick up a later backfill. Live
+  Event Lineage stays a separate rebuild.
 
 ## [0.87.0] - 2026-08-16
 

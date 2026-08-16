@@ -671,6 +671,121 @@ def test_start_analysis_run_recovers_the_a100_fork(
     assert refused.status_code == 422
     assert "invent a measurement" in refused.json()["detail"]
 
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                """
+                insert into analysis_source_snapshot
+                    (snapshot_sha256, source_contract_version,
+                     maximum_available_time, captured_at)
+                values (%s, 'source-contract-v1',
+                        '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
+                returning analysis_source_snapshot_id
+                """,
+                ("9" * 64,),
+            )
+            report_snapshot_id = cur.fetchone()[0]
+            cur.execute(
+                "select requested_by_account_id from analysis_run where analysis_run_id = %s",
+                (run_id,),
+            )
+            requester_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_run
+                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                     requested_by_account_id, knowledge_cutoff,
+                     configuration_schema_version, configuration_sha256,
+                     code_revision_sha, requested_at)
+                values (%s, 'analysis_run_report', 'buyer-start-report',
+                        %s, '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
+                        '2026-01-12T12:30:00Z')
+                returning analysis_run_id
+                """,
+                (report_snapshot_id, requester_id, "8" * 64, "7" * 40),
+            )
+            report_run_id = str(cur.fetchone()[0])
+            cur.execute(
+                """
+                insert into analysis_run_scope
+                    (analysis_run_id, scope_kind_code, corporate_entity_id)
+                values (%s, 'analysis_scope_corporate_entity', %s)
+                """,
+                (report_run_id, seeded_db["own_corp_id"]),
+            )
+            cur.execute(
+                """
+                insert into analysis_run_status_event
+                    (analysis_run_id, status_ordinal, status_code, occurred_at)
+                values (%s, 1, 'analysis_status_pending', '2026-01-12T12:31:00Z')
+                """,
+                (report_run_id,),
+            )
+            cur.execute(
+                """
+                insert into analysis_source_snapshot
+                    (snapshot_sha256, source_contract_version,
+                     maximum_available_time, captured_at)
+                values (%s, 'source-contract-v1',
+                        '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
+                returning analysis_source_snapshot_id
+                """,
+                ("6" * 64,),
+            )
+            running_snapshot_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_run
+                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                     requested_by_account_id, knowledge_cutoff,
+                     configuration_schema_version, configuration_sha256,
+                     code_revision_sha, requested_at)
+                values (%s, 'analysis_run_lineage', 'buyer-start-running',
+                        %s, '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
+                        '2026-01-12T12:30:00Z')
+                returning analysis_run_id
+                """,
+                (running_snapshot_id, requester_id, "5" * 64, "4" * 40),
+            )
+            running_run_id = str(cur.fetchone()[0])
+            cur.execute(
+                """
+                insert into analysis_run_scope
+                    (analysis_run_id, scope_kind_code, corporate_entity_id)
+                values (%s, 'analysis_scope_corporate_entity', %s)
+                """,
+                (running_run_id, seeded_db["own_corp_id"]),
+            )
+            for ordinal, status, occurred in (
+                (1, "analysis_status_pending", "2026-01-12T12:31:00Z"),
+                (2, "analysis_status_running", "2026-01-12T12:32:00Z"),
+            ):
+                cur.execute(
+                    """
+                    insert into analysis_run_status_event
+                        (analysis_run_id, status_ordinal, status_code, occurred_at)
+                    values (%s, %s, %s, %s)
+                    """,
+                    (running_run_id, ordinal, status, occurred),
+                )
+    finally:
+        admin_conn.close()
+
+    report_refused = client.post(
+        f"/api/analysis-runs/{report_run_id}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert report_refused.status_code == 422
+    assert "invent a measurement" in report_refused.json()["detail"]
+
+    running = client.post(
+        f"/api/analysis-runs/{running_run_id}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert running.status_code == 409
+
     hidden = client.post(
         f"/api/analysis-runs/{seeded_db['hidden_run_id']}/start",
         headers={"Authorization": f"Bearer {demo_analyst_token}"},

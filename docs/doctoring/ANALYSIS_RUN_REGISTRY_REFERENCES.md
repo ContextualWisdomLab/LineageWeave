@@ -1,8 +1,8 @@
 # Analysis-run registry standards and research traceability
 
 **Status:** Active PR evidence; not protected-main truth until merge.  
-**Scope:** Migrations 0018, 0020, 0021, and 0022; ADR 0013 / 0017 / 0020 / 0021;
-rollback; and real-PostgreSQL contract tests.
+**Scope:** Migrations 0018–0022, ADR 0013 / 0017 / 0020 / 0021, rollback, and
+real-PostgreSQL contract tests.
 
 ## Standards mapped to implementation
 
@@ -78,13 +78,16 @@ provenance, retention, and immutable evidence rather than blanket masking.
 | Request identity is stable | Reject analysis-run updates; scope and lifecycle live in their own relations. |
 | Idempotency is actor-scoped | Permit identical opaque keys for two accounts and reject reuse by the same account. |
 | Lifecycle is ordered | Require pending first, contiguous ordinals, monotonic time, legal transitions, terminal finality, and append-only rows. |
-| Rollback does not erase audit data silently | Reject 0018 rollback with any registry rows. A run-bearing registry empties only through an unrevoked `analysis_run_retention_grant` plus `analysis_run_retention_admin`, then `purge_analysis_run_registry('approved-retention-purge')`; a wrong token, a raw `DELETE`, and a runtime role that only knows the public phrase stay rejected. Export then delete `analysis_run_retention_event` before 0022, 0021, 0020, then 0018 rollback. |
-| Start recovers the designed tree | `POST /api/analysis-runs/{id}/start` on a Pending lineage run persists the A-100 fork (revised quote and delivery question under the pricing follow-up) and refuses TEPP with 422. |
+| Rollback does not erase audit data silently | Reject 0018 rollback with any registry rows. A run-bearing registry empties only through an unrevoked `analysis_run_retention_grant` plus `analysis_run_retention_admin`, then `purge_analysis_run_registry('approved-retention-purge')`; a wrong token, a raw `DELETE`, and a runtime role that only knows the public phrase stay rejected. Export then delete `analysis_run_retention_event` before 0020 rollback. |
+| Start reconstruction recovers the designed tree | Persist edges from `lineage_edge_specs` on the A-100 fixture bag via `records_from_source_posts`; the pricing follow-up must parent both the revised quote and the delivery question. A TEPP or period-report start must 422 without a theta. Snapshot members exclude a later backfill. A concurrent or Running start is 409. A Succeeded retry returns the stored digest. |
 
 ## APA 7th references
 
 American Institute of Certified Public Accountants. (2017). *SOC 2®: SOC
 for Service Organizations: Trust Services Criteria*.
+
+ContextualWisdomLab. (2026). *ThreadWeave* [Computer software].
+https://github.com/ContextualWisdomLab/ThreadWeave
 
 International Organization for Standardization. (2016). *ISO 15489-1:2016:
 Information and documentation—Records management—Part 1: Concepts and

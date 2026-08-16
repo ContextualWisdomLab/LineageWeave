@@ -1,8 +1,8 @@
 """Start a Pending lineage reconstruction without inventing a TEPP score.
 
 ADR 0021. ``POST /api/analysis-runs/{id}/start`` transitions Pending to
-Running, runs ThreadWeave on the authorized cutoff bag, persists
-run-scoped edges, then stamps Succeeded. TEPP stays a wire client.
+Running, runs ThreadWeave on the frozen cutoff bag, persists run-scoped
+edges, then stamps Succeeded. TEPP and period-report stay other paths.
 """
 
 from __future__ import annotations
@@ -24,6 +24,8 @@ from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge
 
 _LINEAGE_KIND = "analysis_run_lineage"
+_TEPP_KIND = "analysis_run_tepp"
+_REPORT_KIND = "analysis_run_report"
 _PENDING = "analysis_status_pending"
 _RUNNING = "analysis_status_running"
 _SUCCEEDED = "analysis_status_succeeded"
@@ -48,6 +50,56 @@ def reconstruction_result_digest(edges: list[Edge]) -> str:
         sort_keys=True,
     )
     return hashlib.sha256(material.encode()).hexdigest()
+
+
+def start_kind_rejection(run_kind_code: str) -> AnalysisRunStartError | None:
+    """Return a 422 when start is not a lineage reconstruction.
+
+    TEPP and period-report keep their own transports. This path must not
+    invent a theta or a calibrated report score.
+    """
+    if run_kind_code == _LINEAGE_KIND:
+        return None
+    if run_kind_code == _TEPP_KIND:
+        return AnalysisRunStartError(
+            422,
+            "Connect a TEPP transport from a Failed TEPP row. "
+            "This start path does not invent a measurement.",
+        )
+    if run_kind_code == _REPORT_KIND:
+        return AnalysisRunStartError(
+            422,
+            "Rebuild the period report from the reports panel. "
+            "This start path does not invent a measurement.",
+        )
+    return AnalysisRunStartError(
+        422,
+        "Start reconstructs a Pending lineage run only. "
+        "This start path does not invent a measurement.",
+    )
+
+
+def start_write_conflict_error() -> AnalysisRunStartError:
+    """Next action when a concurrent start already wrote this run."""
+    return AnalysisRunStartError(
+        409,
+        "Open this run. Refresh to see the stored tree if start already finished.",
+    )
+
+
+def reconstruction_member_ids(
+    snapshot_member_ids: list[str],
+    cutoff_post_ids: list[str],
+) -> list[str]:
+    """Prefer create-time membership over a later cutoff re-query.
+
+    An empty member list means this database has not frozen the bag yet
+    (migration 0022 missing, or a legacy snapshot). Start then uses the
+    live cutoff query so those rows still reconstruct.
+    """
+    if snapshot_member_ids:
+        return list(snapshot_member_ids)
+    return list(cutoff_post_ids)
 
 
 async def _cutoff_source_posts(
@@ -79,52 +131,6 @@ async def _cutoff_source_posts(
     ]
 
 
-async def _append_status(
-    conn: asyncpg.Connection,
-    analysis_run_id: str,
-    status_ordinal: int,
-    status_code: str,
-    occurred_at: datetime,
-    failure_code: str | None = None,
-) -> None:
-    """Append one legal lifecycle event. Failed rows carry a machine code."""
-    await conn.execute(
-        """
-        insert into analysis_run_status_event
-            (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
-        values ($1, $2, $3, $4, $5)
-        """,
-        analysis_run_id,
-        status_ordinal,
-        status_code,
-        occurred_at,
-        failure_code,
-    )
-
-
-def start_write_conflict_error() -> AnalysisRunStartError:
-    """Next action when a concurrent start already wrote this run."""
-    return AnalysisRunStartError(
-        409,
-        "Open this run. Refresh to see the stored tree if start already finished.",
-    )
-
-
-def reconstruction_member_ids(
-    snapshot_member_ids: list[str],
-    cutoff_post_ids: list[str],
-) -> list[str]:
-    """Prefer create-time membership over a later cutoff re-query.
-
-    An empty member list means this database has not frozen the bag yet
-    (migration 0022 missing, or a legacy snapshot). Start then uses the
-    live cutoff query so those rows still reconstruct.
-    """
-    if snapshot_member_ids:
-        return list(snapshot_member_ids)
-    return list(cutoff_post_ids)
-
-
 async def _snapshot_member_posts(
     conn: asyncpg.Connection,
     snapshot_id: Any,
@@ -148,6 +154,29 @@ async def _snapshot_member_posts(
         )
     except asyncpg.UndefinedTableError:
         return []
+
+
+async def _append_status(
+    conn: asyncpg.Connection,
+    analysis_run_id: str,
+    status_ordinal: int,
+    status_code: str,
+    occurred_at: datetime,
+    failure_code: str | None = None,
+) -> None:
+    """Append one legal lifecycle event. Failed rows carry a machine code."""
+    await conn.execute(
+        """
+        insert into analysis_run_status_event
+            (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
+        values ($1, $2, $3, $4, $5)
+        """,
+        analysis_run_id,
+        status_ordinal,
+        status_code,
+        occurred_at,
+        failure_code,
+    )
 
 
 async def _next_status_ordinal(
@@ -175,10 +204,11 @@ async def start_pending_analysis_run(
 ) -> dict[str, Any]:
     """Run ThreadWeave on a visible Pending lineage row.
 
-    TEPP is rejected so this path cannot invent a theta. A Succeeded
-    retry returns the stored reconstruction. Hidden runs 404. The run
-    row is locked before Running so a double-click is 409 or a replay,
-    never a 500.
+    TEPP and period-report are rejected so this path cannot invent a
+    theta. A Succeeded retry returns the stored reconstruction (documented
+    no-op replay). A Running or concurrent write is 409. Hidden runs 404.
+    The run row is locked before Running so a double-click is 409 or a
+    replay, never a 500.
     """
     try:
         UUID(analysis_run_id)
@@ -193,12 +223,9 @@ async def start_pending_analysis_run(
     )
     if current is None:
         raise AnalysisRunStartError(404, "This analysis run is not visible.")
-    if current["run_kind_code"] != _LINEAGE_KIND:
-        raise AnalysisRunStartError(
-            422,
-            "Connect a TEPP transport from a Failed TEPP row. "
-            "This start path does not invent a measurement.",
-        )
+    kind_error = start_kind_rejection(current["run_kind_code"])
+    if kind_error is not None:
+        raise kind_error
     if current["status_code"] == _SUCCEEDED:
         return current
     if current["status_code"] != _PENDING:

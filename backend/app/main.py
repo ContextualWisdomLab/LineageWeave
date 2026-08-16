@@ -1215,8 +1215,8 @@ class CreateAnalysisRunRequest(BaseModel):
     """JSON body for ``POST /api/analysis-runs``.
 
     Omitting ``corporate_entity_id`` uses the account's sole affiliation.
-    Reconstruction starts from ``POST /api/analysis-runs/{id}/start``.
-    This write records Pending only and does not invent a TEPP score.
+    Reconstruction and TEPP execution stay later slices; this write
+    records Pending only.
     """
 
     run_kind_code: str = "analysis_run_lineage"
@@ -1265,8 +1265,9 @@ async def start_analysis_run(
 ) -> dict[str, Any]:
     """Start ThreadWeave on a visible Pending lineage run.
 
-    post_read is enough. Hidden runs 404. TEPP is 422 so this path
-    cannot invent a theta. A Succeeded retry returns the stored tree.
+    post_read is enough. Hidden runs 404. TEPP and period-report are 422
+    so this path cannot invent a theta. A Succeeded retry returns the
+    stored tree. A Running restart is 409.
     """
     _require_post_read(account)
     async with pool.acquire() as conn:

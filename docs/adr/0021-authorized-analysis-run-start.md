@@ -3,7 +3,7 @@
 **Decision status:** Accepted on this active PR; not protected-main truth until merge
 **Date:** 2026-08-16
 **Depends on:** ADR 0013 registry; ADR 0014 authorized read; ADR 0016 cutoff
-posts; ADR 0017 authorized create; ADR 0020 granted retention purge
+posts; ADR 0017 authorized create
 **Refs:** Issue #79 (Milestone 2 parent); ADR 0013 follow-up 3 (in-process
 start; durable outbox remains later)
 
@@ -14,21 +14,15 @@ said “Request a lineage reconstruction,” then the row stayed Pending.
 Seed still owned the only Succeeded Demo Corp tree. A buyer cannot
 treat a request they cannot start as a product.
 
-ADR 0019 binds `cataloged_team_id` / `cataloged_corporate_entity_id`.
-ADR 0020 is the granted retention purge. Those numbers must not be
-reused. Open #142 / #152 used 0019 / 0020 / v0.87.0 on a pre-#141
-base and are not the landing vehicle.
-
 ADR 0013 follow-up 3 asked for a PostgreSQL outbox and Valkey worker.
 That durable delivery path is still later. This slice starts
 reconstruction in the authorized request so the operator can see the
 cutoff tree immediately. A crash after Running and before Succeeded
 rolls the transaction back to Pending.
 
-A granted purge (ADR 0020) must still empty a run that already stored
-edges. Migration `0021` therefore replaces
-`purge_analysis_run_registry` so it deletes reconstruction rows and
-snapshot members before the 0018 registry tables.
+Landed #145 occupies ADR 0020 / package 0.87.0 for granted retention
+purge. ADR 0019 binds R&R catalog identity. This decision is the next
+free slot.
 
 ## Decision
 
@@ -36,11 +30,12 @@ snapshot members before the 0018 registry tables.
 transaction:
 
 1. loads the authorized run (hidden scopes 404);
-2. rejects non-lineage kinds so TEPP cannot invent a theta;
-3. replays a Succeeded run;
-4. accepts only Pending lineage;
+2. rejects non-lineage kinds so TEPP and period-report cannot invent a
+   theta or a calibrated score;
+3. replays a Succeeded run (documented no-op; same stored digest);
+4. accepts only Pending lineage — Running is 409;
 5. locks the run row, re-reads status, appends Running, runs
-   `lineage_edge_specs` / ThreadWeave on the frozen
+   `lineage_edge_specs` / `reconstruct()` on the frozen
    `analysis_source_snapshot_member` bag (or the live cutoff query when
    membership was never persisted), persists
    `analysis_run_reconstruction` plus `analysis_run_lineage_edge`, then
@@ -55,14 +50,16 @@ sequenceDiagram
     participant Registry
     Operator->>API: POST /api/analysis-runs/{id}/start
     API->>Registry: lock visible Pending lineage run
-    alt TEPP or other kind
-        API-->>Operator: 422 connect the measurement service
+    alt TEPP or period-report
+        API-->>Operator: 422 use the kind's own path
     else already Succeeded
         Registry-->>API: stored edges
         API-->>Operator: 200 replay
+    else Running
+        API-->>Operator: 409 refresh
     else Pending lineage
         Registry->>Registry: Running
-        API->>ThreadWeave: reconstruct cutoff records
+        API->>ThreadWeave: reconstruct frozen bag
         ThreadWeave-->>API: parent choices
         Registry->>Registry: reconstruction + edges + Succeeded
         API-->>Operator: 200 titled edges
@@ -77,13 +74,15 @@ Rules:
   a post body, DSN, or image.
 - Empty cutoff bags Succeed with zero edges.
 - Failed TEPP remains a `tepp_client` transport problem.
-- A granted purge deletes reconstruction and snapshot-member rows
-  before `analysis_run` / `analysis_source_snapshot`.
+- Create freezes authorized post ids on
+  `analysis_source_snapshot_member` so start cannot pick up a later
+  backfill that shares the cutoff clock.
 
 The home detail adds **Start reconstruction** on a Pending lineage row
 and lists titled parent→child edges after Succeeded. The Result digest
 prefix is audible next to Code and Config; hover it to verify the
-parent-choice hash. Edge titles stay public-or-affiliated.
+parent-choice hash. Edge titles stay public-or-affiliated. TEPP and
+period-report rows do not show the button.
 
 ## Consequences
 

@@ -23,7 +23,7 @@ still owns reconstruction and live TEPP execution.
 - The capture digest hashes scope, entity, cutoff, and authorized post
   ids — never a post body, DSN, or source SQL.
 - The write inserts snapshot, aggregate counts, frozen
-  `analysis_source_snapshot_member` ids (ADR 0021), `analysis_run`,
+  `analysis_source_snapshot_member` ids, `analysis_run`,
   `analysis_run_scope`, and `analysis_status_pending` in one transaction.
 - The first status is Pending. This slice does not reconstruct lineage
   and does not call TEPP. A missing measurement stays Failed only on the
@@ -36,9 +36,10 @@ still owns reconstruction and live TEPP execution.
 ## Consequences
 
 The home panel's **Request a lineage reconstruction** button records a
-Pending row the operator can open immediately. Reconstruction, TEPP
-transport, and the outbox worker remain later slices. Do not stamp
-Succeeded or invent a theta from this write.
+Pending row the operator can open immediately. `POST
+/api/analysis-runs/{id}/start` then reconstructs that frozen bag
+(ADR 0021). TEPP transport and the outbox worker remain later slices.
+Do not stamp Succeeded or invent a theta from this write.
 
 ## References — APA 7th
 

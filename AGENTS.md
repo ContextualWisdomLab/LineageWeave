@@ -89,9 +89,11 @@ pnpm run lint && pnpm run test && pnpm run build
 A run-bearing analysis-run registry empties only after an unrevoked
 `analysis_run_retention_grant` and `GRANT analysis_run_retention_admin`
 (ADR 0020 / v0.87.0). The documented phrase is not a secret. Do not
-expose purge on a public HTTP route. `POST /api/analysis-runs/{id}/start`
-reconstructs a Pending lineage bag (ADR 0021 / v0.88.0) and does not
-invent a theta.
+expose purge on a public HTTP route.
+
+`POST /api/analysis-runs/{id}/start` reconstructs a Pending lineage
+cutoff bag through `reconstruct()` / `lineage_edge_specs` (ADR 0021 /
+v0.88.0). TEPP and period-report start stay 422. Do not invent a theta.
 
 ## CI gates
 

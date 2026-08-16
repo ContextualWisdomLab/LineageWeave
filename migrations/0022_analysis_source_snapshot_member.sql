@@ -3,11 +3,6 @@
 -- The snapshot digest already hashes authorized post ids. This relation
 -- stores those ids so start reconstructs the same bag, not a later
 -- backfill that shares the cutoff clock. No post body is stored.
---
--- ADR 0020 remains the granted retention purge. purge_analysis_run_registry
--- from migration 0021 already deletes this table when it exists.
-
-begin;
 
 create table if not exists analysis_source_snapshot_member (
     analysis_source_snapshot_id uuid not null
@@ -38,5 +33,3 @@ drop trigger if exists analysis_source_snapshot_member_update_reject
 create trigger analysis_source_snapshot_member_update_reject
 before update or delete on analysis_source_snapshot_member
 for each row execute function reject_analysis_source_snapshot_member_update();
-
-commit;

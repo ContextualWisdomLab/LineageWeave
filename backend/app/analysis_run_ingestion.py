@@ -6,10 +6,10 @@ scope they already have ABAC authority to walk. Aggregate counts and
 lookup labels come back; source SQL, DSNs, raw records, and provider
 payloads never do.
 
-``create_pending_analysis_run`` (ADR 0017) writes snapshot, counts, run,
-scope, and the first Pending event atomically. ``start_pending_analysis_run``
-(ADR 0021) later reconstructs lineage on that cutoff bag. Neither path
-invents a TEPP score.
+``create_pending_analysis_run`` (ADR 0017) writes snapshot, counts, frozen
+membership, run, scope, and the first Pending event atomically.
+``start_pending_analysis_run`` (ADR 0021) later reconstructs lineage on
+that cutoff bag. Neither path invents a TEPP score.
 """
 
 from __future__ import annotations
@@ -556,7 +556,7 @@ async def create_pending_analysis_run(
     knowledge_cutoff: datetime | None,
     idempotency_key: str,
 ) -> dict[str, Any]:
-    """Insert snapshot, counts, run, scope, and Pending in one transaction.
+    """Insert snapshot, counts, frozen members, run, scope, and Pending.
 
     Does not reconstruct lineage and does not call TEPP. A missing
     measurement stays a later worker slice; this write only records the

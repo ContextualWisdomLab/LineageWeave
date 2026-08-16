@@ -1620,6 +1620,18 @@ function AnalysisRunReproducibilityDigests({
   );
 }
 
+/**
+ * Start is only for a Pending Demo Corp lineage row after Request.
+ *
+ * TEPP and period-report keep their own transports. This button must
+ * not appear on those kinds.
+ */
+function analysisRunCanStartReconstruction(run: AnalysisRun): boolean {
+  return (
+    run.run_kind_code === "analysis_run_lineage" && run.status_code === "analysis_status_pending"
+  );
+}
+
 function AnalysisRunsPanel({
   accessToken,
   onSelectPost,
@@ -1754,17 +1766,16 @@ function AnalysisRunsPanel({
             configurationSha256={selected.configuration_sha256}
             reconstructionResultSha256={selected.reconstruction_result_sha256}
           />
-          {selected.run_kind_code === "analysis_run_lineage" &&
-            selected.status_code === "analysis_status_pending" && (
-              <button
-                className="keyman-select"
-                aria-label="Start reconstruction"
-                disabled={starting}
-                onClick={() => void handleStartReconstruction()}
-              >
-                {starting ? "Reconstructing the cutoff bag..." : "Start reconstruction"}
-              </button>
-            )}
+          {analysisRunCanStartReconstruction(selected) && (
+            <button
+              className="keyman-select"
+              aria-label="Start reconstruction"
+              disabled={starting}
+              onClick={() => void handleStartReconstruction()}
+            >
+              {starting ? "Reconstructing the cutoff bag..." : "Start reconstruction"}
+            </button>
+          )}
           {selected.reconstructed_edges && selected.reconstructed_edges.length > 0 && (
             <ul aria-label="Reconstructed lineage edges">
               {selected.reconstructed_edges.map((edge) => (

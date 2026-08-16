@@ -282,6 +282,53 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/analysis-runs/run-demo-lineage")) {
+        return Promise.resolve(
+          jsonResponse({
+            analysis_run_id: "run-demo-lineage",
+            run_kind_code: "analysis_run_lineage",
+            run_kind_label: "Lineage reconstruction",
+            scope_kind_code: "analysis_scope_corporate_entity",
+            scope_kind_label: "Corporate entity",
+            scope_entity_name: "Demo Corp",
+            status_code: "analysis_status_succeeded",
+            status_label: "Succeeded",
+            knowledge_cutoff: "2026-01-12T12:00:00Z",
+            requested_at: "2026-01-12T12:30:00Z",
+            source_counts: [
+              {
+                count_type_code: "analysis_count_document",
+                count_type_label: "Documents",
+                count_value: 3,
+              },
+            ],
+            visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+            code_revision_sha: "abcdef0123456789deadbeefcafebabe",
+            configuration_sha256:
+              "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            status_history: [
+              {
+                status_ordinal: 1,
+                status_code: "analysis_status_pending",
+                status_label: "Pending",
+                occurred_at: "2026-01-12T12:31:00Z",
+              },
+              {
+                status_ordinal: 2,
+                status_code: "analysis_status_running",
+                status_label: "Running",
+                occurred_at: "2026-01-12T12:32:00Z",
+              },
+              {
+                status_ordinal: 3,
+                status_code: "analysis_status_succeeded",
+                status_label: "Succeeded",
+                occurred_at: "2026-01-12T12:33:00Z",
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/analysis-runs/run-demo-lineage-pending/start") && method === "POST") {
         return Promise.resolve(
           jsonResponse({
@@ -332,53 +379,6 @@ describe("App, authenticated", () => {
                 status_code: "analysis_status_succeeded",
                 status_label: "Succeeded",
                 occurred_at: "2026-01-12T12:37:00Z",
-              },
-            ],
-          }),
-        );
-      }
-      if (url.endsWith("/api/analysis-runs/run-demo-lineage")) {
-        return Promise.resolve(
-          jsonResponse({
-            analysis_run_id: "run-demo-lineage",
-            run_kind_code: "analysis_run_lineage",
-            run_kind_label: "Lineage reconstruction",
-            scope_kind_code: "analysis_scope_corporate_entity",
-            scope_kind_label: "Corporate entity",
-            scope_entity_name: "Demo Corp",
-            status_code: "analysis_status_succeeded",
-            status_label: "Succeeded",
-            knowledge_cutoff: "2026-01-12T12:00:00Z",
-            requested_at: "2026-01-12T12:30:00Z",
-            source_counts: [
-              {
-                count_type_code: "analysis_count_document",
-                count_type_label: "Documents",
-                count_value: 3,
-              },
-            ],
-            visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
-            code_revision_sha: "abcdef0123456789deadbeefcafebabe",
-            configuration_sha256:
-              "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-            status_history: [
-              {
-                status_ordinal: 1,
-                status_code: "analysis_status_pending",
-                status_label: "Pending",
-                occurred_at: "2026-01-12T12:31:00Z",
-              },
-              {
-                status_ordinal: 2,
-                status_code: "analysis_status_running",
-                status_label: "Running",
-                occurred_at: "2026-01-12T12:32:00Z",
-              },
-              {
-                status_ordinal: 3,
-                status_code: "analysis_status_succeeded",
-                status_label: "Succeeded",
-                occurred_at: "2026-01-12T12:33:00Z",
               },
             ],
           }),
@@ -1810,6 +1810,7 @@ describe("App, authenticated", () => {
     expect(reportButton).not.toHaveTextContent("reconstruction");
 
     await userEvent.click(reportButton);
+    expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
     expect(
       await screen.findByText(
         "No posts were available at this cutoff for the period report. Open a later run, or ask an administrator to capture a newer snapshot.",
@@ -1832,6 +1833,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/this TEPP run measured/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reconstruction has not started yet/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
   });
 
   it("does not tell a succeeded TEPP run to replace Failed", async () => {
@@ -1869,6 +1871,7 @@ describe("App, authenticated", () => {
         "Open this run, then start reconstruction. Reconstruction has not started yet.",
       ),
     ).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeInTheDocument();
     const postCall = fetchMock.mock.calls.find(
       (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
     );

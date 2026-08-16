@@ -1,10 +1,11 @@
-"""Start-reconstruction contracts: digest stability and designed-tree fidelity."""
+"""Start-reconstruction contracts: digest, freeze, 422/409, designed tree."""
 
 from backend.app.analysis_run_ingestion import reconstructed_edge_is_visible
 from backend.app.analysis_run_start import (
     AnalysisRunStartError,
     reconstruction_member_ids,
     reconstruction_result_digest,
+    start_kind_rejection,
     start_write_conflict_error,
 )
 from backend.app.lineage_ingestion import records_from_source_posts
@@ -29,9 +30,7 @@ def test_start_uses_the_same_parent_choices_as_library_reconstruct() -> None:
     that dropped an edge or invented a parent would fail this check.
     """
     edges = lineage_edge_specs(sample_records())
-    children = {
-        edge.child_id for edge in edges if edge.parent_id == "rec-002"
-    }
+    children = {edge.child_id for edge in edges if edge.parent_id == "rec-002"}
     assert children >= {"rec-003", "rec-004"}
     assert all(0.0 <= edge.fused_score <= 1.0 for edge in edges)
     assert "theta" not in reconstruction_result_digest(edges)
@@ -86,15 +85,35 @@ def test_reconstructed_edge_hides_unaffiliated_private_titles() -> None:
     )
 
 
-def test_start_error_carries_a_next_action() -> None:
-    """Operators get a next action, not an internal exception name."""
-    error = AnalysisRunStartError(
-        422,
-        "Connect a TEPP transport from a Failed TEPP row. "
-        "This start path does not invent a measurement.",
-    )
-    assert error.status_code == 422
-    assert "invent a measurement" in error.detail
+def test_tepp_and_period_report_start_are_unprocessable() -> None:
+    """TEPP and period-report start stay 422 so this path cannot invent a score."""
+    tepp = start_kind_rejection("analysis_run_tepp")
+    assert tepp is not None
+    assert tepp.status_code == 422
+    assert "invent a measurement" in tepp.detail
+    report = start_kind_rejection("analysis_run_report")
+    assert report is not None
+    assert report.status_code == 422
+    assert "invent a measurement" in report.detail
+    assert "period report" in report.detail
+    assert start_kind_rejection("analysis_run_lineage") is None
+
+
+def test_hidden_run_start_is_not_found() -> None:
+    """Operators get a 404 next action, not an internal exception name."""
+    error = AnalysisRunStartError(404, "This analysis run is not visible.")
+    assert error.status_code == 404
+    assert "not visible" in error.detail
+
+
+def test_running_restart_conflicts_and_succeeded_replay_is_documented() -> None:
+    """Running is 409. Succeeded replay is a documented no-op (200 in the API)."""
     conflict = start_write_conflict_error()
     assert conflict.status_code == 409
     assert "Refresh to see the stored tree" in conflict.detail
+    running = AnalysisRunStartError(
+        409,
+        "Open this run. Start is only for a Pending lineage reconstruction.",
+    )
+    assert running.status_code == 409
+    assert "Pending" in running.detail

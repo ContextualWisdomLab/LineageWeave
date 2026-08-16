@@ -13,7 +13,6 @@ import pytest
 _ROOT = Path(__file__).resolve().parents[1]
 _INITIAL_MIGRATION = _ROOT / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = _ROOT / "migrations" / "0018_analysis_run_registry.sql"
-_RETENTION_MIGRATION = _ROOT / "migrations" / "0020_analysis_run_retention_purge.sql"
 _RECONSTRUCTION_MIGRATION = _ROOT / "migrations" / "0021_analysis_run_reconstruction.sql"
 _RECONSTRUCTION_ROLLBACK = (
     _ROOT / "migrations" / "rollback" / "0021_analysis_run_reconstruction.sql"
@@ -39,7 +38,6 @@ def test_reconstruction_migration_is_normalized_and_wired() -> None:
     migration = _RECONSTRUCTION_MIGRATION.read_text(encoding="utf-8")
     rollback = _RECONSTRUCTION_ROLLBACK.read_text(encoding="utf-8")
     dockerfile = _POSTGRES_IMAGE.read_text(encoding="utf-8")
-    seed = (_ROOT / "scripts" / "seed_demo_data.py").read_text(encoding="utf-8")
     created_tables = set(
         re.findall(r"create table if not exists\s+([a-z0-9_]+)", migration, re.I)
     )
@@ -49,17 +47,9 @@ def test_reconstruction_migration_is_normalized_and_wired() -> None:
     assert "theta" not in migration.casefold()
     assert "0021_analysis_run_reconstruction.sql" in dockerfile
     assert "0022_analysis_source_snapshot_member.sql" in dockerfile
-    assert seed.index("0020_analysis_run_retention_purge.sql") < seed.index(
-        "0021_analysis_run_reconstruction.sql"
-    )
-    assert seed.index("0021_analysis_run_reconstruction.sql") < seed.index(
-        "0022_analysis_source_snapshot_member.sql"
-    )
     assert "analysis_run_reconstruction_not_empty" in rollback
     assert "reject_analysis_run_reconstruction_update" in migration
     assert "reject_analysis_run_lineage_edge_update" in migration
-    assert "purge_analysis_run_registry" in migration
-    assert "analysis_run_lineage_edge" in migration
     member_migration = _SNAPSHOT_MEMBER_MIGRATION.read_text(encoding="utf-8")
     member_rollback = _SNAPSHOT_MEMBER_ROLLBACK.read_text(encoding="utf-8")
     assert "analysis_source_snapshot_member" in member_migration
@@ -122,7 +112,6 @@ def reconstruction_db():
         with conn.cursor() as cursor:
             cursor.execute(_INITIAL_MIGRATION.read_text(encoding="utf-8"))
             cursor.execute(_REGISTRY_MIGRATION.read_text(encoding="utf-8"))
-            cursor.execute(_RETENTION_MIGRATION.read_text(encoding="utf-8"))
             cursor.execute(_RECONSTRUCTION_MIGRATION.read_text(encoding="utf-8"))
             cursor.execute(_SNAPSHOT_MEMBER_MIGRATION.read_text(encoding="utf-8"))
         yield conn

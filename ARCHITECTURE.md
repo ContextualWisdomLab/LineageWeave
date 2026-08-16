@@ -475,11 +475,11 @@ revision and configuration digest prefixes.
 cutoff capture (ADR 0017): snapshot, counts, frozen membership, run,
 scope, and the first status in one transaction.
 `POST /api/analysis-runs/{id}/start` then runs ThreadWeave on that
-frozen bag and persists run-scoped edges (ADR 0021). It does not
-invent a TEPP score. Request a lineage reconstruction from the home
-list, open the Pending row, then start reconstruction. Hover the
-Result digest prefix, then confirm the designed A-100 fork before
-treating the live Event Lineage panel as that run's tree.
+frozen bag and persists run-scoped edges (ADR 0021). It does not invent
+a TEPP score. Request a lineage reconstruction from the home list, open
+the Pending row, then start reconstruction. Hover the Result digest
+prefix, then confirm the designed A-100 fork before treating the live
+Event Lineage panel as that run's tree.
 `make seed` also records a TEPP measurement run through
 `tepp_client` on that same snapshot; the default transport is
 unavailable, so that run is Failed rather than a fabricated score.
@@ -496,7 +496,8 @@ calibrated negative result. A failed lineage row tells the operator
 to retry reconstruction, not to connect TEPP. A failed period-report
 row tells the operator to rebuild the report. A pending TEPP row
 does not claim a calibrated measurement. A pending lineage row
-says reconstruction has not started yet. The
+says reconstruction has not started yet; open it and start
+reconstruction. The
 payload is lookup labels plus non-negative aggregate counts -- never
 source SQL, a DSN, a raw record, or a provider body. After `make seed`,
 Demo Analyst and Demo Admin see "Lineage reconstruction · Succeeded ·

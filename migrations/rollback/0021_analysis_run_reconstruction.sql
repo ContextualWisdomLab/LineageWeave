@@ -1,8 +1,7 @@
 -- Fail-closed rollback for migration 0021.
 --
--- Reconstruction evidence must be exported, then emptied with
--- select purge_analysis_run_registry('approved-retention-purge')
--- (ADR 0020 / 0021), before these objects can be removed.
+-- Reconstruction evidence must be exported or explicitly deleted under an
+-- approved retention procedure before these objects can be removed.
 
 begin;
 
