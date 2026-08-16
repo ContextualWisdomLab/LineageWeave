@@ -41,9 +41,10 @@ growing `App.tsx`.
 ## Consequences
 
 Fixture posts that belong in a January 2026 run must carry a
-`created_at` at or before that cutoff. A later own-corp post is the
-falsifiable counter-example. Write/rebuild APIs, TEPP submission, and
-run-scoped post bodies remain later slices.
+`created_at` at or before that cutoff. `make seed` stamps Demo public
+and Demo private posts at 2026-01-10 and inserts Late Demo public post
+at 2026-01-13 as the falsifiable own-corp counter-example. Write/rebuild
+APIs, TEPP submission, and run-scoped post bodies remain later slices.
 
 ## References
 

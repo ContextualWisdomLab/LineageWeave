@@ -14,6 +14,16 @@ from psycopg2 import sql
 _ROOT = Path(__file__).resolve().parents[1]
 _INITIAL_MIGRATION = _ROOT / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = _ROOT / "migrations" / "0018_analysis_run_registry.sql"
+_SEED_SCRIPT = _ROOT / "scripts" / "seed_demo_data.py"
+
+
+def test_seed_stamps_demo_posts_relative_to_run_cutoff() -> None:
+    """make seed must not hide Demo public post behind default created_at=now()."""
+    seed = _SEED_SCRIPT.read_text(encoding="utf-8")
+    assert "2026-01-12T12:00:00Z" in seed
+    assert "demo_post_created_at = \"2026-01-10T09:00:00Z\"" in seed
+    assert "late_demo_post_created_at = \"2026-01-13T09:00:00Z\"" in seed
+    assert "Late Demo public post" in seed
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
 )

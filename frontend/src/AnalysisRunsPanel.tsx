@@ -3,6 +3,7 @@ import {
   BackendError,
   fetchAnalysisRun,
   fetchAnalysisRuns,
+  type AnalysisRun,
 } from "./api";
 import { analysisRunCaption, shortDigest } from "./analysisRunDisplay";
 

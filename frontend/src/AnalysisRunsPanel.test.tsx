@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { AnalysisRunsPanel } from "./AnalysisRunsPanel";
 import { analysisRunCaption, shortDigest } from "./analysisRunDisplay";
 import type { AnalysisRun } from "./api";
 
@@ -31,5 +34,50 @@ describe("shortDigest", () => {
 
   it("returns null when a digest is missing so the UI can hide the row", () => {
     expect(shortDigest(undefined)).toBeNull();
+  });
+});
+
+describe("AnalysisRunsPanel", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("tells the operator to open a later run when no posts existed at cutoff", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.endsWith("/api/analysis-runs/run-demo-lineage")) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                ...sampleRun,
+                visible_posts: [],
+                code_revision_sha: "c".repeat(40),
+                configuration_sha256: "b".repeat(64),
+              }),
+              { status: 200 },
+            ),
+          );
+        }
+        if (url.endsWith("/api/analysis-runs")) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ analysis_runs: [sampleRun] }), { status: 200 }),
+          );
+        }
+        return Promise.resolve(new Response(null, { status: 404 }));
+      }),
+    );
+
+    render(<AnalysisRunsPanel accessToken="test-access-token" onSelectPost={() => undefined} />);
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+      }),
+    );
+    expect(
+      await screen.findByText(/No posts were available at this cutoff/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Open run post:/ })).not.toBeInTheDocument();
   });
 });

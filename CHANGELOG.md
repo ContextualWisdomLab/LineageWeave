@@ -9,10 +9,10 @@ All notable changes to this project are documented here. Format follows
 ### Fixed
 
 - Analysis-run detail now lists only posts whose `created_at` is at or
-  before the run `knowledge_cutoff`. After `make seed`, a later own-corp
-  post does not appear inside the January 12 reconstruction. Open a later
-  run, or ask an administrator to capture a newer snapshot, when the list
-  is empty.
+  before the run `knowledge_cutoff`. After `make seed`, Demo public post
+  (2026-01-10) still opens from the January 12 reconstruction; Late Demo
+  public post (2026-01-13) does not. Open a later run, or ask an
+  administrator to capture a newer snapshot, when the list is empty.
 
 ### Added
 

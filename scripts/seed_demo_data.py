@@ -220,19 +220,52 @@ def seed(
                     (account_id, roles[role_code]),
                 )
 
+            # Analysis-run knowledge cutoff is 2026-01-12T12:00:00Z.
+            # Default created_at=now() would hide every demo post from that run.
+            demo_post_created_at = "2026-01-10T09:00:00Z"
+            late_demo_post_created_at = "2026-01-13T09:00:00Z"
             cur.execute("select post_id from source_post where post_title = 'Demo public post'")
             if cur.fetchone() is None:
                 cur.execute(
-                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code) "
+                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at) "
                     "values (%s, %s, %s, 'Demo public post', "
                     "'Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.', "
-                    "'voc', 'public')",
-                    (account_ids["demo.analyst"], corporate_entity_id, process_units["DEMO-PU-A"]),
+                    "'voc', 'public', %s)",
+                    (
+                        account_ids["demo.analyst"],
+                        corporate_entity_id,
+                        process_units["DEMO-PU-A"],
+                        demo_post_created_at,
+                    ),
                 )
                 cur.execute(
-                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code) "
-                    "values (%s, %s, %s, 'Demo private post', 'A synthetic private post scoped to Demo Corp accounts.', 'vom', 'private')",
-                    (account_ids["demo.admin"], corporate_entity_id, process_units["DEMO-PU-HQ"]),
+                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at) "
+                    "values (%s, %s, %s, 'Demo private post', 'A synthetic private post scoped to Demo Corp accounts.', 'vom', 'private', %s)",
+                    (
+                        account_ids["demo.admin"],
+                        corporate_entity_id,
+                        process_units["DEMO-PU-HQ"],
+                        demo_post_created_at,
+                    ),
+                )
+            cur.execute(
+                "update source_post set created_at = %s "
+                "where post_title in ('Demo public post', 'Demo private post')",
+                (demo_post_created_at,),
+            )
+            cur.execute("select post_id from source_post where post_title = 'Late Demo public post'")
+            if cur.fetchone() is None:
+                cur.execute(
+                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at) "
+                    "values (%s, %s, %s, 'Late Demo public post', "
+                    "'Written after the Demo Corp lineage-run knowledge cutoff.', "
+                    "'voc', 'public', %s)",
+                    (
+                        account_ids["demo.analyst"],
+                        corporate_entity_id,
+                        process_units["DEMO-PU-A"],
+                        late_demo_post_created_at,
+                    ),
                 )
 
             cur.execute("select post_id from source_post where post_title = 'Demo public post'")
