@@ -542,3 +542,59 @@ def test_homonym_organization_role_binds_the_resolved_catalog_id(
 
     database_dsn, post_id, _summary_person_id = projection_database.split("|")
     asyncio.run(_exercise_homonym_organization_role_binding(database_dsn, post_id))
+
+
+async def _exercise_tied_organization_similarity_stays_unbound(
+    database_dsn: str,
+    post_id: str,
+) -> None:
+    """Write-time resolution must not first-win a same-named catalog pair."""
+
+    connection = await asyncpg.connect(database_dsn)
+    try:
+        await connection.execute(
+            """
+            insert into corporate_entity
+                (corporate_entity_code, entity_name, entity_level_code)
+            values
+                ('HOMONYM-TIED-A', 'Tied Energy', 'company'),
+                ('HOMONYM-TIED-B', 'Tied Energy', 'company')
+            """
+        )
+        payload = await persist_post_summary(
+            connection,
+            post_id,
+            PostSummary(
+                korean_summary="동점 조직은 버튼을 만들지 않는다.",
+                roles_and_responsibilities=(
+                    RoleResponsibility(
+                        actor_name="Tied Energy",
+                        responsibility="납품 일정 확정",
+                        actor_type_code=ACTOR_TYPE_ORGANIZATION,
+                    ),
+                ),
+            ),
+        )
+        roles = payload["roles_and_responsibilities"]
+        assert len(roles) == 1
+        assert roles[0]["catalog_node_id"] is None
+        assert roles[0]["catalog_node_type_code"] is None
+        fetched = await fetch_persisted_summary(connection, post_id)
+        assert fetched is not None
+        assert fetched["roles_and_responsibilities"][0]["catalog_node_id"] is None
+        mention_count = await connection.fetchval(
+            "select count(*) from post_organization_mention where post_id = $1",
+            post_id,
+        )
+        assert mention_count == 0
+    finally:
+        await connection.close()
+
+
+def test_tied_organization_similarity_stays_unbound(
+    projection_database: str,
+) -> None:
+    """ADR 0021: open the post — the shared name is text, not a homonym button."""
+
+    database_dsn, post_id, _summary_person_id = projection_database.split("|")
+    asyncio.run(_exercise_tied_organization_similarity_stays_unbound(database_dsn, post_id))

@@ -40,8 +40,9 @@ Two same-named mentions stay unbound rather than guessing.
 ## Consequences
 
 - Open a post whose R&R names an organization that shares a display
-  name with another catalog row. The button walks the resolved id, not
-  the homonym.
+  name with another catalog row. When persist stored a unique id, the
+  button walks that id, not the homonym. When write-time similarity
+  ties, the name stays text (ADR 0021).
 - Clicking that name still uses `GET /api/corporate-entities/{id}/related`
   or `GET /api/teams/{id}/related`. Authz stays person/entity-parity:
   a team mentioned only on another corp's private post is 403; an

@@ -29,3 +29,15 @@ https://doi.org/10.1007/978-1-4842-5540-7
 International Organization for Standardization. (2023). *ISO/IEC
 11179-1:2023: Information technology—Metadata registries (MDR)—Part 1:
 Framework*.
+
+Bhattacharya, I., & Getoor, L. (2007). Collective entity resolution
+in relational data. *ACM Transactions on Knowledge Discovery from
+Data, 1*(1), Article 5. https://doi.org/10.1145/1217299.1217304
+
+Christen, P. (2012). *Data matching: Concepts and techniques for
+record linkage, entity resolution, and duplicate detection*.
+Springer. https://doi.org/10.1007/978-3-642-31164-2
+
+Fellegi, I. P., & Sunter, A. B. (1969). A theory for record linkage.
+*Journal of the American Statistical Association, 64*(328),
+1183–1210. https://doi.org/10.2307/2286061

@@ -18,6 +18,8 @@ same post jointly rather than independently. That joint step is a real
 upgrade path once real usage shows single-mention similarity scoring
 under- or over-resolving in practice -- it is not implemented here because
 nothing yet demonstrates the need for it over this simpler, cheaper stage.
+A tied top score therefore stays unbound (ADR 0021; Fellegi & Sunter,
+1969) instead of first-winning a homonym.
 """
 
 from __future__ import annotations
@@ -61,19 +63,21 @@ def resolve_corporate_entity(
     candidates: Sequence[CorporateEntityCandidate],
     min_similarity: float = DEFAULT_MIN_SIMILARITY,
 ) -> str | None:
-    """Returns the best-matching candidate's `corporate_entity_id`, or
-    `None` if no candidate clears `min_similarity`.
+    """Return the unique best-matching catalog id, or ``None``.
 
-    Returning `None` for a genuine non-match is the point, not a failure
-    case to work around: a wrong hierarchy link corrupts every downstream
-    Knowledge Graph traversal through it, so "no confident match" must
-    stay a real, distinguishable outcome from "matched entity X."
+    ``None`` is the honest outcome when no candidate clears
+    ``min_similarity`` **or** two or more candidates share the top
+    score. A wrong hierarchy link corrupts every downstream Knowledge
+    Graph walk, so a tied homonym must not become a button (ADR 0021;
+    Fellegi & Sunter, 1969; Bhattacharya & Getoor, 2007). Duplicate
+    rows for the same ``corporate_entity_id`` still count as one
+    candidate.
     """
     normalized_mention = normalize_organization_name(mentioned_name)
     if not normalized_mention:
         return None
 
-    best_id: str | None = None
+    best_ids: list[str] = []
     best_score = 0.0
     for candidate in candidates:
         score = SequenceMatcher(
@@ -81,6 +85,14 @@ def resolve_corporate_entity(
         ).ratio()
         if score > best_score:
             best_score = score
-            best_id = candidate.corporate_entity_id
+            best_ids = [candidate.corporate_entity_id]
+        elif (
+            score == best_score
+            and score > 0.0
+            and candidate.corporate_entity_id not in best_ids
+        ):
+            best_ids.append(candidate.corporate_entity_id)
 
-    return best_id if best_score >= min_similarity else None
+    if best_score < min_similarity or len(best_ids) != 1:
+        return None
+    return best_ids[0]

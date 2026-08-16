@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.4] - 2026-08-16
+
+### Fixed
+
+- An R&R organization name that matches two catalog rows at the same
+  similarity score stays text (ADR 0021). Open the post — there is no
+  button until the catalog collision is unique. A unique exact match
+  among other same-named neighbors still walks the resolved org.
+
 ## [0.86.2] - 2026-08-16
 
 ### Fixed

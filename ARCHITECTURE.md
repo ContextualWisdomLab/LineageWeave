@@ -852,7 +852,10 @@ new table needed. `lineageweave/knowledge_graph.py`'s
 `backend/app/post_summary_ingestion.py`'s `persist_post_summary` now
 resolves each R&R actor's identity, stores that id on
 `post_summary_role` (ADR 0019 — `entity_name` is not unique), and calls
-the same `persist_edges_for_post` Keyman ingestion already uses. A person R&R
+the same `persist_edges_for_post` Keyman ingestion already uses.
+`resolve_corporate_entity` returns no id when two catalog rows share
+the top similarity score (ADR 0021), so the popup keeps that name as
+text instead of walking a homonym. A person R&R
 actor is opportunistically joined to an existing `cataloged_person` row
 by name (never originated by R&R itself -- documented gap in the ADR:
 `cataloged_person` needs `person_side_code`, which R&R's prompt does

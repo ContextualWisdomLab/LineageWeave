@@ -507,3 +507,21 @@ def test_role_catalog_identity_is_stored_on_the_role_row() -> None:
     assert "cataloged_corporate_entity_id" in upgrade
     assert "0019_role_catalog_identity.sql" in dockerfile
     assert "ADR 0019" in changelog
+
+
+def test_tied_organization_similarity_fails_closed() -> None:
+    """ADR 0021: write-time resolution must not first-win a tied top score."""
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "lineageweave" / "corporate_hierarchy_resolution.py").read_text(
+        encoding="utf-8"
+    )
+    changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
+    adr = (root / "docs" / "adr" / "0021-tied-organization-similarity.md").read_text(
+        encoding="utf-8"
+    )
+    resolve_source = source.split("def resolve_corporate_entity", 1)[1]
+    assert "len(best_ids) != 1" in resolve_source
+    assert "score > best_score" in resolve_source
+    assert "ADR 0021" in changelog
+    assert "Tied organization similarity stays unbound" in adr
+    assert "Fellegi" in adr

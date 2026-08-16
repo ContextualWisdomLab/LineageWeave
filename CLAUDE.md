@@ -21,3 +21,6 @@ Opening a cutoff title shows the live post -- compare it with the
 cutoff before treating the body as reconstructed evidence (ADR 0016).
 `POST /api/analysis-runs` records Pending on an authorized
 cutoff capture (ADR 0017) and does not reconstruct lineage.
+Two catalog orgs that share a display name and the same similarity
+score stay unbound (ADR 0021). Open the post — that name is text
+until a unique catalog id is stored.

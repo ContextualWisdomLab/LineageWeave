@@ -24,9 +24,10 @@ until a verified creation path exists.
 extends the existing resolution pipeline with a creation fallback, not
 a competing algorithm:
 
-1. Try `resolve_corporate_entity` (similarity matching, unchanged,
-   Bhattacharya & Getoor, 2007) first -- an already-cataloged entity
-   still resolves exactly as before.
+1. Try `resolve_corporate_entity` (similarity matching,
+   Bhattacharya & Getoor, 2007; tied top scores stay unbound, ADR
+   0021) first -- an already-cataloged entity still resolves exactly
+   as before when the top score is unique.
 2. On a miss, ask an LLM
    (`lineageweave.corporate_hierarchy_inference.CorporateHierarchyInferenceClient`)
    to propose this organization's place in the Group -> Company ->
@@ -91,10 +92,13 @@ reuse-the-verification-client pattern and
 [ADR 0009](0009-cross-post-actor-identity.md)'s cross-post identity
 work -- an R&R organization actor's identity is now genuinely resolved
 to a real corporate hierarchy node, not left as free text even when no
-prior mention of it existed anywhere in the dataset.
+prior mention of it existed anywhere in the dataset. A tied similarity
+score stays unbound ([ADR 0021](0021-tied-organization-similarity.md)).
 
 ## References (APA 7th)
 
 Bhattacharya, I., & Getoor, L. (2007). Collective entity resolution in relational data. *ACM Transactions on Knowledge Discovery from Data*, 1(1), Article 5. https://doi.org/10.1145/1217299.1217304
+
+Fellegi, I. P., & Sunter, A. B. (1969). A theory for record linkage. *Journal of the American Statistical Association, 64*(328), 1183–1210. https://doi.org/10.2307/2286061
 
 Miles, A., & Bechhofer, S. (Eds.). (2009). *SKOS simple knowledge organization system reference*. World Wide Web Consortium. https://www.w3.org/TR/skos-reference/
