@@ -242,7 +242,9 @@ Acceptance requires:
    read-only administrator surface.
 3. Add a normalized PostgreSQL outbox and Valkey delivery worker.
 4. Add TEPP and contextual-orchestrator adapters only after their versioned
-   contracts are present on reviewed main branches.
+   contracts are present on reviewed main branches. Seed now records a
+   Failed TEPP run through `tepp_client` on the shared Demo Corp snapshot;
+   a live transport remains a later slice.
 5. Execute private actual-data analysis and store only signed aggregate and
    reproducibility manifests outside public source control.
 6. Run browser E2E through real OIDC, product navigation, and evidence drill-down.
