@@ -236,6 +236,25 @@ describe("App, authenticated", () => {
                   },
                 ],
               },
+              {
+                analysis_run_id: "run-demo-tepp",
+                run_kind_code: "analysis_run_tepp",
+                run_kind_label: "TEPP measurement",
+                scope_kind_code: "analysis_scope_corporate_entity",
+                scope_kind_label: "Corporate entity",
+                scope_entity_name: "Demo Corp",
+                status_code: "analysis_status_failed",
+                status_label: "Failed",
+                knowledge_cutoff: "2026-01-12T12:00:00Z",
+                requested_at: "2026-01-12T12:34:00Z",
+                source_counts: [
+                  {
+                    count_type_code: "analysis_count_document",
+                    count_type_label: "Documents",
+                    count_value: 3,
+                  },
+                ],
+              },
             ],
           }),
         );
@@ -1374,6 +1393,7 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("heading", { name: "Analysis runs" })).toBeInTheDocument();
     const list = screen.getByRole("list", { name: "Analysis runs" });
     expect(list).toHaveTextContent("Lineage reconstruction · Succeeded · Demo Corp");
+    expect(list).toHaveTextContent("TEPP measurement · Failed · Demo Corp");
     expect(list).toHaveTextContent("3 documents");
     expect(list).not.toHaveTextContent("postgresql://");
     expect(list).not.toHaveTextContent("select ");

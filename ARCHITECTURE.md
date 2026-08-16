@@ -465,7 +465,11 @@ thread-group scope is visible only when the account can already see a
 post in that group; `all_visible` is requester-only. Hidden runs 404. Detail also lists ABAC-visible post titles in the
 run's scope whose `created_at` is at or before `knowledge_cutoff`
 (ADR 0016) so a buyer can open a post the run was allowed to know
-without seeing later live rows or hidden bodies.
+without seeing later live rows or hidden bodies. Detail also returns
+revision and configuration digest prefixes.
+`make seed` also records a TEPP measurement run through
+`tepp_client`; the default transport is unavailable, so that run is
+Failed / `tepp_not_available` rather than a fabricated score.
 The home list is clickable: `GET /api/analysis-runs/{id}` fills a
 labeled detail (cutoff, requested date, counts, status history)
 without exposing a DSN or raw record. Status history is detail-only
