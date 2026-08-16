@@ -489,7 +489,9 @@ its machine `failure_code` rather than an invented caption. Failed
 TEPP list rows add a next-action line (open the run, then connect the
 measurement service) so `tepp_not_available` is not mistaken for a
 calibrated negative result. A failed lineage row tells the operator
-to retry reconstruction, not to connect TEPP. The
+to retry reconstruction, not to connect TEPP. A failed period-report
+row tells the operator to rebuild the report. A pending TEPP row
+does not claim a calibrated measurement. The
 payload is lookup labels plus non-negative aggregate counts -- never
 source SQL, a DSN, a raw record, or a provider body. After `make seed`,
 Demo Analyst and Demo Admin see "Lineage reconstruction · Succeeded ·

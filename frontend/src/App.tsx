@@ -1468,8 +1468,12 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
       return "Open this run to see why it failed, then connect the measurement service and re-run.";
     case "analysis_run_lineage":
       return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
-    default:
-      return "Open this run to see why it failed, then retry after the blocking service is connected.";
+    case "analysis_run_report":
+      return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
+    default: {
+      const unexpected: never = run.run_kind_code;
+      return unexpected;
+    }
   }
 }
 
@@ -1477,32 +1481,60 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
  * Empty-corpus copy that tells the operator what to do next.
  */
 function analysisRunEmptyPostsHint(run: AnalysisRun): string {
-  if (run.run_kind_code === "analysis_run_tepp") {
-    return (
-      "No posts were available at this cutoff for TEPP to measure. " +
-      "Open a later run, or ask an administrator to capture a newer snapshot."
-    );
+  switch (run.run_kind_code) {
+    case "analysis_run_tepp":
+      return (
+        "No posts were available at this cutoff for TEPP to measure. " +
+        "Open a later run, or ask an administrator to capture a newer snapshot."
+      );
+    case "analysis_run_lineage":
+      return (
+        "No posts were available at this cutoff for reconstruction. " +
+        "Open a later run, or ask an administrator to capture a newer snapshot."
+      );
+    case "analysis_run_report":
+      return (
+        "No posts were available at this cutoff for the period report. " +
+        "Open a later run, or ask an administrator to capture a newer snapshot."
+      );
+    default: {
+      const unexpected: never = run.run_kind_code;
+      return unexpected;
+    }
   }
-  return (
-    "No posts were available at this cutoff. Open a later run, or ask an " +
-    "administrator to capture a newer snapshot."
-  );
 }
 
 /**
  * Corpus copy for a TEPP run that already has cutoff posts.
  *
  * Those titles are the measurement bag, not a reconstruction result.
+ * Pending or running must not claim a calibrated measurement.
  */
 function analysisRunCorpusHint(run: AnalysisRun): string | null {
   if (run.run_kind_code !== "analysis_run_tepp") return null;
-  if (run.status_code === "analysis_status_failed") {
-    return (
-      "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
-      "transport, then re-run, to replace Failed with a calibrated result."
-    );
+  switch (run.status_code) {
+    case "analysis_status_failed":
+      return (
+        "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
+        "transport, then re-run, to replace Failed with a calibrated result."
+      );
+    case "analysis_status_succeeded":
+      return "These posts are the cutoff corpus this TEPP run measured.";
+    case "analysis_status_pending":
+    case "analysis_status_running":
+      return "These posts are the cutoff corpus TEPP will measure once this run finishes.";
+    case "analysis_status_cancelled":
+      return (
+        "These posts are the cutoff corpus this TEPP run would have measured. " +
+        "The run was cancelled before a calibrated result."
+      );
+    case null:
+      return "These posts are the cutoff corpus attached to this TEPP run.";
+    default: {
+      const unexpected: never = run.status_code;
+      return unexpected;
+    }
   }
-  return "These posts are the cutoff corpus this TEPP run measured.";
 }
 
 /** Git-style prefix. The full digest stays on `title` for verification. */

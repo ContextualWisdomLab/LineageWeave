@@ -514,9 +514,23 @@ export interface AnalysisRunCount {
   count_value: number;
 }
 
+/** Registry kinds from `analysis_run.run_kind_code` (migration 0018). */
+export type AnalysisRunKindCode =
+  | "analysis_run_lineage"
+  | "analysis_run_report"
+  | "analysis_run_tepp";
+
+/** Registry statuses from `analysis_run_status_event.status_code`. */
+export type AnalysisRunStatusCode =
+  | "analysis_status_pending"
+  | "analysis_status_running"
+  | "analysis_status_succeeded"
+  | "analysis_status_failed"
+  | "analysis_status_cancelled";
+
 export interface AnalysisRunStatusEvent {
   status_ordinal: number;
-  status_code: string;
+  status_code: AnalysisRunStatusCode;
   status_label: string;
   occurred_at: string;
   failure_code?: string;
@@ -524,12 +538,12 @@ export interface AnalysisRunStatusEvent {
 
 export interface AnalysisRun {
   analysis_run_id: string;
-  run_kind_code: string;
+  run_kind_code: AnalysisRunKindCode;
   run_kind_label: string;
   scope_kind_code: string;
   scope_kind_label: string;
   scope_entity_name?: string;
-  status_code: string | null;
+  status_code: AnalysisRunStatusCode | null;
   status_label: string | null;
   knowledge_cutoff: string;
   requested_at: string;
