@@ -164,6 +164,45 @@ async def _status_history(
     return history
 
 
+async def fetch_outbox_deliveries(
+    conn: asyncpg.Connection,
+    analysis_run_id: str,
+) -> list[dict[str, Any]]:
+    """Labeled claim/delivery events for one already-visible run.
+
+    Missing outbox tables mean migration 0023 is not applied. Stream
+    entry ids stay off the payload -- they are not buyer evidence.
+    """
+    try:
+        rows = await conn.fetch(
+            """
+            select delivery_ordinal, delivery_status_code, occurred_at
+            from analysis_run_outbox_delivery
+            where analysis_run_id = $1::uuid
+            order by delivery_ordinal
+            """,
+            analysis_run_id,
+        )
+    except asyncpg.UndefinedTableError:
+        return []
+    labels = await labels_for_codes(
+        conn,
+        [row["delivery_status_code"] for row in rows],
+    )
+    return [
+        {
+            "delivery_ordinal": int(row["delivery_ordinal"]),
+            "delivery_status_code": row["delivery_status_code"],
+            "delivery_status_label": labels.get(
+                row["delivery_status_code"],
+                row["delivery_status_code"],
+            ),
+            "occurred_at": _iso(row["occurred_at"]),
+        }
+        for row in rows
+    ]
+
+
 async def _serialize_runs(
     conn: asyncpg.Connection,
     rows: list[asyncpg.Record],
@@ -256,6 +295,7 @@ async def fetch_visible_analysis_run(
     if row["failure_code"]:
         detail["failure_code"] = row["failure_code"]
     detail["status_history"] = await _status_history(conn, analysis_run_id)
+    detail["outbox_deliveries"] = await fetch_outbox_deliveries(conn, analysis_run_id)
     detail["visible_posts"] = await fetch_visible_scope_posts(
         conn,
         row["scope_kind_code"],

@@ -4,6 +4,25 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.96.0] - 2026-08-17
+
+### Added
+
+- `make seed` now records **Period report · Succeeded · Demo Corp** on
+  the shared snapshot after the calibrated report tables are written
+  (ADR 0024). Open that row to confirm the cutoff posts. Mean θ stays
+  on the period-report panel. Start stays 422. No TEPP theta is
+  invented.
+
+## [0.95.0] - 2026-08-17
+
+### Added
+
+- Analysis-run detail now lists labeled outbox delivery: Claimed then
+  Delivered (ADR 0023). After `make seed`, open the Demo Corp lineage
+  run to see those times. Stream entry ids stay off the payload. No
+  TEPP theta is invented.
+
 ## [0.94.0] - 2026-08-17
 
 ### Added

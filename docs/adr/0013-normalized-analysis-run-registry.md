@@ -255,7 +255,10 @@ Acceptance requires:
    `tepp_client` on the frozen snapshot; a persistable measurement
    remains a later slice. A missing or unused TEPP envelope must stay
    Failed (`tepp_not_available` / `tepp_result_not_persisted`) and must
-   not write a local psychometric substitute.
+   not write a local psychometric substitute. Seed also records a
+   Succeeded `analysis_run_report` on that snapshot after the
+   period-report tables are written (ADR 0024); the registry row does
+   not copy a theta.
 5. Execute private actual-data analysis and store only signed aggregate and
    reproducibility manifests outside public source control.
 6. Run browser E2E through real OIDC, product navigation, and evidence drill-down.
