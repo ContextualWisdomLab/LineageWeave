@@ -60,7 +60,7 @@ All notable changes to this project are documented here. Format follows
   and LLM-as-a-Judge consumers now request contextual-orchestrator `auto` mode
   so the orchestration plane can meet the quality requirement and then minimize
   known execution cost. Explicit checked `verify` paths remain unchanged
-  (ADR 0013).
+  (ADR 0015).
 
 ## [0.77.0] - 2026-08-14
 
