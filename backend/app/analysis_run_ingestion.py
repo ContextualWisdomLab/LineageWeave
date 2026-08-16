@@ -93,6 +93,22 @@ def _iso(value: Any) -> str:
     return value.isoformat() if hasattr(value, "isoformat") else str(value)
 
 
+def _as_utc(value: datetime) -> datetime:
+    """Treat a naive clock as UTC so cutoff comparison stays timezone-aware."""
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def live_write_after_cutoff(updated_at: datetime, knowledge_cutoff: datetime) -> bool:
+    """True when the live row was rewritten after the run's analysis clock.
+
+    ``created_at <= knowledge_cutoff`` admits the title. ``updated_at`` is
+    the live write clock (ADR 0016). Equal times stay in-cutoff evidence.
+    """
+    return _as_utc(updated_at) > _as_utc(knowledge_cutoff)
+
+
 async def _counts_by_run(
     conn: asyncpg.Connection,
     run_ids: list[str],
@@ -258,15 +274,21 @@ async def fetch_visible_scope_posts(
     scope_key: str | None,
     affiliated_entity_ids: list[str],
     knowledge_cutoff: Any,
-) -> list[dict[str, str]]:
+) -> list[dict[str, Any]]:
     """ABAC-visible post titles known at the run cutoff -- never a hidden body.
 
     ``knowledge_cutoff`` is the analysis clock (W3C Time / ISO 8601-1:2019;
     ADR 0013/0016). A later live post must not appear inside an earlier run.
+    ``updated_at`` is compared separately so the operator can see which
+    in-cutoff titles were rewritten after that clock. The live body is
+    still not returned.
     """
+    columns = (
+        "post_id, post_title, visibility_code, corporate_entity_id, updated_at"
+    )
     if scope_kind_code == "analysis_scope_corporate_entity" and corporate_entity_id:
         rows = await conn.fetch(
-            "select post_id, post_title, visibility_code, corporate_entity_id "
+            f"select {columns} "
             "from source_post where corporate_entity_id = $1 "
             "and created_at <= $2 "
             "order by created_at, post_title",
@@ -275,7 +297,7 @@ async def fetch_visible_scope_posts(
         )
     elif scope_kind_code == "analysis_scope_process_unit" and process_unit_id:
         rows = await conn.fetch(
-            "select post_id, post_title, visibility_code, corporate_entity_id "
+            f"select {columns} "
             "from source_post where process_unit_id = $1 "
             "and created_at <= $2 "
             "order by created_at, post_title",
@@ -284,7 +306,7 @@ async def fetch_visible_scope_posts(
         )
     elif scope_kind_code == "analysis_scope_thread_group" and scope_key:
         rows = await conn.fetch(
-            "select post_id, post_title, visibility_code, corporate_entity_id "
+            f"select {columns} "
             "from source_post where thread_group_key = $1 "
             "and created_at <= $2 "
             "order by created_at, post_title",
@@ -293,7 +315,7 @@ async def fetch_visible_scope_posts(
         )
     elif scope_kind_code == "analysis_scope_all_visible":
         rows = await conn.fetch(
-            "select post_id, post_title, visibility_code, corporate_entity_id "
+            f"select {columns} "
             "from source_post where created_at <= $1 "
             "order by created_at, post_title",
             knowledge_cutoff,
@@ -301,12 +323,22 @@ async def fetch_visible_scope_posts(
     else:
         return []
     affiliated = {str(entity_id) for entity_id in affiliated_entity_ids}
-    posts: list[dict[str, str]] = []
+    posts: list[dict[str, Any]] = []
     for row in rows:
         visible = row["visibility_code"] == "public" or str(row["corporate_entity_id"]) in affiliated
         if not visible:
             continue
-        posts.append({"post_id": str(row["post_id"]), "post_title": row["post_title"]})
+        updated_at = row["updated_at"]
+        posts.append(
+            {
+                "post_id": str(row["post_id"]),
+                "post_title": row["post_title"],
+                "updated_at": _iso(updated_at),
+                "live_after_cutoff": live_write_after_cutoff(
+                    updated_at, knowledge_cutoff
+                ),
+            }
+        )
     return posts
 
 
