@@ -88,6 +88,9 @@
 :root {
   --lw-opacity-meta: 0.7;
   --lw-font-size-meta: 0.85rem;
+  --lw-control-gap: 0.35rem;
+  --lw-control-min-size: 24px;
+  --lw-control-radius: 8px;
 }
 
 .post-meta {
@@ -212,6 +215,23 @@
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-bottom: 0.75rem;
+}
+
+.lineage-entity-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--lw-control-gap);
+  font-size: var(--lw-font-size-meta);
+}
+
+.lineage-entity-picker select {
+  min-height: var(--lw-control-min-size);
+  min-width: 12rem;
+  border: 1px solid var(--border);
+  border-radius: var(--lw-control-radius);
+  background: var(--bg);
+  color: var(--text-h);
 }
 
 .lineage-dag-group {

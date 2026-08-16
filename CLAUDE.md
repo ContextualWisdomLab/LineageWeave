@@ -21,4 +21,6 @@ Opening a cutoff title shows the live post -- compare it with the
 cutoff before treating the body as reconstructed evidence (ADR 0016).
 `POST /api/analysis-runs` records Pending lineage only on an
 authorized cutoff capture (ADR 0017). TEPP and period-report kinds
-are 422. It does not invent a TEPP theta.
+are 422. It does not invent a TEPP theta. The Request button waits
+until affiliated corps load; choose a corp if the token walks more
+than one.

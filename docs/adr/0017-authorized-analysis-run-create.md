@@ -45,30 +45,33 @@ sequenceDiagram
     participant Operator
     participant API
     participant Registry
-    Operator->>API: POST /api/analysis-runs (lineage, idempotency key)
-    API->>Registry: capture authorized cutoff bag
-    alt TEPP or report kind
-        API-->>Operator: 422 next-action
+    Operator->>API: POST /api/analysis-runs
+    alt TEPP, report, or unknown kind
+        API-->>Operator: 422 next-action (no registry write)
     else same account+key+digest
+        API->>Registry: compare configuration digest
         Registry-->>API: existing run
         API-->>Operator: 201 replay
     else same key, different digest
         API-->>Operator: 409 conflict
-    else new key
+    else lineage kind, new key
+        API->>Registry: capture authorized cutoff bag
         Registry->>Registry: snapshot + counts + run + scope + pending
         API-->>Operator: 201 Pending row
     end
 ```
 
-The home panel's **Request a lineage reconstruction** button records that
-Pending row. A failed lineage row names that button. Only a failed TEPP
-row mentions the measurement service.
+The home panel's **Request a lineage reconstruction** button stays
+disabled until `GET /api/me` returns affiliated corps, then records
+that Pending row for the chosen entity. A failed lineage row names
+that button. Only a failed TEPP row mentions the measurement service.
 
 ## Consequences
 
 - Demo Analyst can request a new Pending Demo Corp lineage run after
   `make seed` without inventing a measurement.
-- A multi-affiliation account chooses the corp before clicking.
+- A multi-affiliation account sees the corp picker before the Request
+  button enables, then chooses the corp before clicking.
 - Reconstruction, live TEPP transport, and the outbox worker remain
   later slices. Do not stamp Succeeded or invent a theta from this write.
 

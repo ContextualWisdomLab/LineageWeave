@@ -64,8 +64,10 @@ describe("App, authenticated", () => {
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
     pluralAffiliations?: boolean;
+    deferMe?: boolean;
+    meFailed?: boolean;
     postBody?: string;
-  }) {
+  }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -87,13 +89,26 @@ describe("App, authenticated", () => {
     const events: { event_id: string; event_type: string; actor_account_id: string; summary: string }[] = [];
     let nextEventId = 1;
 
+    let releaseMe = () => {};
+    const meReady = options?.deferMe
+      ? new Promise<void>((resolve) => {
+          releaseMe = resolve;
+        })
+      : Promise.resolve();
+
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
       if (url.endsWith("/api/me")) {
-        return Promise.resolve(
-          jsonResponse({
+        return meReady.then(() => {
+          if (options?.meFailed) {
+            return new Response(JSON.stringify({ detail: "unavailable" }), {
+              status: 500,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+          return jsonResponse({
             user_account_id: options?.admin ? "acct-admin" : "acct-1",
             display_name: options?.admin ? "Demo Admin" : "Demo Analyst",
             permission_codes: options?.admin ? ["post_read", "post_admin"] : ["post_read"],
@@ -103,8 +118,8 @@ describe("App, authenticated", () => {
                   { corporate_entity_id: "corp-north", entity_name: "Northridge Grid" },
                 ]
               : [{ corporate_entity_id: "corp-demo", entity_name: "Demo Corp" }],
-          }),
-        );
+          });
+        });
       }
       if (url.endsWith("/api/lineage/rebuild") && method === "POST") {
         return Promise.resolve(jsonResponse({ edge_count: 4 }));
@@ -1072,7 +1087,7 @@ describe("App, authenticated", () => {
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
-    return fetchMock;
+    return Object.assign(fetchMock, { releaseMe });
   }
 
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
@@ -1843,6 +1858,44 @@ describe("App, authenticated", () => {
         ),
       ).toBe(true),
     );
+  });
+
+  it("does not record a lineage run before affiliated corps load", async () => {
+    const fetchMock = stubBackend({ deferMe: true, pluralAffiliations: true });
+    render(<App />);
+
+    const loading = await screen.findByRole("button", { name: "Loading affiliated entities..." });
+    expect(loading).toBeDisabled();
+    await userEvent.click(loading);
+    expect(
+      fetchMock.mock.calls.some(
+        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+      ),
+    ).toBe(false);
+    expect(screen.queryByRole("combobox", { name: "Corporate entity to reconstruct" })).toBeNull();
+
+    fetchMock.releaseMe();
+    expect(
+      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+    ).toBeEnabled();
+    expect(
+      await screen.findByRole("combobox", { name: "Corporate entity to reconstruct" }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps Request disabled when affiliated corps fail to load", async () => {
+    const fetchMock = stubBackend({ meFailed: true });
+    render(<App />);
+
+    expect(
+      await screen.findByText("Reload to load the corporate entities this account may reconstruct."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reload to choose a corporate entity" })).toBeDisabled();
+    expect(
+      fetchMock.mock.calls.some(
+        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+      ),
+    ).toBe(false);
   });
 
   it("shows the calibrated period-report mean theta on the home page", async () => {

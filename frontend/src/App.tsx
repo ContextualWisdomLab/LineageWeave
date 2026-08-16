@@ -1618,17 +1618,28 @@ function AnalysisRunReproducibilityDigests({
 function AnalysisRunsPanel({
   accessToken,
   onSelectPost,
+  corporateEntities,
+  entitiesLoadError,
 }: {
   accessToken: string;
   onSelectPost: (postId: string) => void;
+  corporateEntities: CorporateEntityRef[] | null;
+  entitiesLoadError: string | null;
 }) {
   const [runs, setRuns] = useState<AnalysisRun[] | null>(null);
   const [selected, setSelected] = useState<AnalysisRun | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [requesting, setRequesting] = useState(false);
-  const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[]>([]);
   const [selectedEntityId, setSelectedEntityId] = useState("");
   const inFlightKeyRef = useRef<string | null>(null);
+  const entitiesReady = corporateEntities !== null && entitiesLoadError === null;
+  const requestLabel = requesting
+    ? "Recording the run..."
+    : entitiesLoadError
+      ? "Reload to choose a corporate entity"
+      : corporateEntities === null
+        ? "Loading affiliated entities..."
+        : "Request a lineage reconstruction";
 
   useEffect(() => {
     fetchAnalysisRuns(accessToken)
@@ -1637,21 +1648,19 @@ function AnalysisRunsPanel({
   }, [accessToken]);
 
   useEffect(() => {
-    fetchMe(accessToken)
-      .then((me) => {
-        const entities = me.corporate_entities ?? [];
-        setCorporateEntities(entities);
-        setSelectedEntityId((current) => current || entities[0]?.corporate_entity_id || "");
-      })
-      .catch(() => {
-        setCorporateEntities([]);
-        setError((current) =>
-          current ?? "Reload to load the corporate entities this account may reconstruct.",
-        );
-      });
-  }, [accessToken]);
+    if (!corporateEntities?.length) {
+      return;
+    }
+    setSelectedEntityId((current) => current || corporateEntities[0].corporate_entity_id);
+  }, [corporateEntities]);
 
   async function handleRequestLineage() {
+    if (corporateEntities === null || entitiesLoadError) {
+      setError(
+        entitiesLoadError ?? "Reload to load the corporate entities this account may reconstruct.",
+      );
+      return;
+    }
     if (corporateEntities.length > 1 && !selectedEntityId) {
       setError("Choose which corporate entity to reconstruct.");
       return;
@@ -1710,8 +1719,8 @@ function AnalysisRunsPanel({
     <section className="popup-section lineage-home">
       <div className="lineage-home-header">
         <h2>Analysis runs</h2>
-        {corporateEntities.length > 1 && (
-          <label>
+        {corporateEntities && corporateEntities.length > 1 && (
+          <label className="lineage-entity-picker">
             Corporate entity to reconstruct
             <select
               aria-label="Corporate entity to reconstruct"
@@ -1728,14 +1737,19 @@ function AnalysisRunsPanel({
         )}
         <button
           className="keyman-select"
-          aria-label="Request a lineage reconstruction"
-          disabled={requesting}
+          aria-label={requestLabel}
+          aria-busy={corporateEntities === null || requesting}
+          disabled={
+            requesting ||
+            !entitiesReady ||
+            (corporateEntities !== null && corporateEntities.length > 1 && !selectedEntityId)
+          }
           onClick={() => void handleRequestLineage()}
         >
-          {requesting ? "Recording the run..." : "Request a lineage reconstruction"}
+          {requestLabel}
         </button>
       </div>
-      {error && <p className="error">{error}</p>}
+      {(error || entitiesLoadError) && <p className="error">{error ?? entitiesLoadError}</p>}
       {runs.length === 0 ? (
         <p className="popup-placeholder">
           No analysis runs visible to this account yet. Request a lineage
@@ -2085,13 +2099,23 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [canRebuild, setCanRebuild] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
+  const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
+  const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPosts(accessToken).then(setPosts).catch((err) => setError(String(err)));
     fetchLineageGraph(accessToken).then(setGraph).catch(() => setGraph({ nodes: [], edges: [] }));
     fetchMe(accessToken)
-      .then((me) => setCanRebuild(me.permission_codes.includes("post_admin")))
-      .catch(() => setCanRebuild(false));
+      .then((me) => {
+        setCanRebuild(me.permission_codes.includes("post_admin"));
+        setCorporateEntities(me.corporate_entities ?? []);
+        setEntitiesLoadError(null);
+      })
+      .catch(() => {
+        setCanRebuild(false);
+        setCorporateEntities([]);
+        setEntitiesLoadError("Reload to load the corporate entities this account may reconstruct.");
+      });
   }, [accessToken]);
 
   async function handleRebuild() {
@@ -2114,7 +2138,12 @@ function PostList({ accessToken }: { accessToken: string }) {
   return (
     <>
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <AnalysisRunsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
+      <AnalysisRunsPanel
+        accessToken={accessToken}
+        onSelectPost={setSelectedPostId}
+        corporateEntities={corporateEntities}
+        entitiesLoadError={entitiesLoadError}
+      />
       <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">

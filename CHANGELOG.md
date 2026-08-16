@@ -10,9 +10,10 @@ All notable changes to this project are documented here. Format follows
 
 - `POST /api/analysis-runs` records Pending lineage only (ADR 0017).
   TEPP and period-report kinds are 422 so this path cannot invent a
-  measurement. Open Analysis runs, choose a corp if you walk more than
-  one, then click **Request a lineage reconstruction**. A failed
-  lineage row names that button.
+  measurement. Open Analysis runs and wait until affiliated corps
+  load; choose a corp if you walk more than one, then click
+  **Request a lineage reconstruction**. A failed lineage row names
+  that button.
 
 ## [0.86.2] - 2026-08-16
 
