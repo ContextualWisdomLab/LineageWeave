@@ -58,6 +58,7 @@ import {
   type RelatedNodeType,
   type VocEvidence,
 } from "./api";
+import { AnalysisRunReproducibilityDigests } from "./AnalysisRunReproducibilityDigests";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { subgraphForPost } from "./lineageLayout";
@@ -1558,13 +1559,6 @@ function analysisRunCorpusHint(run: AnalysisRun): string | null {
   }
 }
 
-/** Git-style prefix. The full digest stays on `title` for verification. */
-const ANALYSIS_RUN_DIGEST_PREFIX_LENGTH = 12;
-
-function analysisRunDigestPrefix(digest: string): string {
-  return digest.slice(0, ANALYSIS_RUN_DIGEST_PREFIX_LENGTH);
-}
-
 /**
  * Next action when a cutoff title opens the live post (ADR 0016).
  *
@@ -1582,36 +1576,6 @@ function analysisRunLivePostWarning(cutoffIso: string): string {
 
 function analysisRunLivePostButtonLabel(postTitle: string): string {
   return `Open live post (may have changed after cutoff): ${postTitle}`;
-}
-
-function AnalysisRunReproducibilityDigests({
-  codeRevisionSha,
-  configurationSha256,
-}: {
-  codeRevisionSha?: string;
-  configurationSha256?: string;
-}) {
-  if (!codeRevisionSha && !configurationSha256) {
-    return null;
-  }
-  return (
-    <div role="group" aria-label="Analysis run reproducibility digests">
-      <p className="post-meta">
-        <span className="visually-hidden">
-          Hover a prefix to read the full digest for verification.{" "}
-        </span>
-        {codeRevisionSha ? (
-          <span title={codeRevisionSha}>{`Code ${analysisRunDigestPrefix(codeRevisionSha)}`}</span>
-        ) : null}
-        {codeRevisionSha && configurationSha256 ? " · " : null}
-        {configurationSha256 ? (
-          <span title={configurationSha256}>
-            {`Config ${analysisRunDigestPrefix(configurationSha256)}`}
-          </span>
-        ) : null}
-      </p>
-    </div>
-  );
 }
 
 function AnalysisRunsPanel({
