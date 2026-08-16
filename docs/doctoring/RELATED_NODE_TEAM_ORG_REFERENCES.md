@@ -3,6 +3,10 @@
 These are the standards and papers that ground ADR 0017. Cite them in
 APA 7th when you extend the walk or the catalog identity layer.
 
+Bhattacharya, I., & Getoor, L. (2007). Collective entity resolution in
+relational data. *ACM Transactions on Knowledge Discovery from Data,
+1*(1), 5-es. https://doi.org/10.1145/1217299.1217304
+
 Reynolds, D. (Ed.). (2014). *The organization ontology*. World Wide Web
 Consortium. https://www.w3.org/TR/vocab-org/
 

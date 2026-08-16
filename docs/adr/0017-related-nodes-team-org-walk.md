@@ -34,6 +34,14 @@ The summary payload exposes `catalog_node_id` / `catalog_node_type_code`
 when the R&R actor resolved to a team or organization mention on that
 post. The popup turns that name into a related-node button.
 
+`fetch_persisted_summary` binds those ids from `post_team_mention` /
+`post_organization_mention` first, then name-checks the catalog row.
+`corporate_entity.entity_name` is not unique (Bhattacharya & Getoor,
+2007; two legal entities can share a trading name). A global name join
+duplicates the R&R row or attaches the wrong catalog id. Two same-named
+mentions on one post pick a deterministic mention id; they do not emit
+two chips for one actor.
+
 Thread-group run list visibility requires at least one ABAC-visible
 `source_post` whose `created_at` is at or before `knowledge_cutoff`.
 
@@ -45,6 +53,11 @@ Thread-group run list visibility requires at least one ABAC-visible
   organization chip.
 - A later public post in a thread group no longer lists a January run
   that could not have known that post.
+- Two catalog orgs that share a label do not duplicate the R&R chip.
+  Click the chip to walk the mention this post actually stored.
+- A team or org mentioned only on another corporation's private post
+  403s. An unknown team UUID 404s. A private org mention does not
+  authorize or leak that post into a related walk.
 
 ## References
 
@@ -54,6 +67,10 @@ rules* (confirmed 2024; Amendment 1:2022).
 
 Reynolds, D. (Ed.). (2014). *The organization ontology*. World Wide Web
 Consortium. https://www.w3.org/TR/vocab-org/
+
+Bhattacharya, I., & Getoor, L. (2007). Collective entity resolution in
+relational data. *ACM Transactions on Knowledge Discovery from Data,
+1*(1), 5-es. https://doi.org/10.1145/1217299.1217304
 
 Tong, H., Faloutsos, C., & Pan, J.-Y. (2006). Fast random walk with
 restart and its applications. *Proceedings of the Sixth International

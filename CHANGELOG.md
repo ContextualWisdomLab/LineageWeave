@@ -21,6 +21,13 @@ All notable changes to this project are documented here. Format follows
 - Thread-group analysis-run *lists* now require an in-cutoff visible
   post. A later public post in that thread group no longer surfaces a
   January run the account was not allowed to know.
+- R&R organization chips bind the catalog id from this post's
+  `post_organization_mention`, then name-check the catalog. Two orgs
+  that share a trading name no longer duplicate the chip or attach the
+  other catalog id. Open the summary: one actor, one walk.
+- `GET /api/teams/{team_id}/related` now has the same 403/404 parity as
+  person and org related. A private org mention does not authorize or
+  leak that post into a related walk.
 
 ## [0.84.0] - 2026-08-16
 

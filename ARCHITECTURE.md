@@ -264,6 +264,10 @@ was caught while building this and is now regression-tested
 (`test_post_chat_cites_a_post_linked_only_via_a_shared_keyman`).
 Person, team, and organization mention channels load independently
 (ADR 0017): a team-only or organization-only post still walks.
+R&R catalog chips bind `post_*_mention` first, then name-check the
+catalog, so two `corporate_entity` rows that share `entity_name` do
+not duplicate the actor. Team related uses the same 403 (no visible
+mention) / 404 (unknown UUID) contract as person and org related.
 
 ### Frontend (`frontend/`)
 

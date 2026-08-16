@@ -57,7 +57,12 @@ from .team_ingestion import upsert_team
 async def fetch_persisted_summary(
     conn: asyncpg.Connection, post_id: str
 ) -> dict[str, Any] | None:
-    """Return the stored summary payload, or None when none has been written."""
+    """Return the stored summary payload, or None when none has been written.
+
+    Catalog ids come from this post's mention rows, then the catalog is
+    name-checked. Joining ``corporate_entity`` by ``entity_name`` first
+    duplicates an R&R row when two orgs share a label (ADR 0017).
+    """
     header = await conn.fetchrow(
         "select korean_summary from post_summary_result where post_id = $1",
         post_id,
@@ -75,20 +80,30 @@ async def fetch_persisted_summary(
                team_mention.team_id,
                org_mention.corporate_entity_id
           from post_summary_role role
-          left join cataloged_team team
-            on role.actor_type_code = 'prov_team'
-           and team.team_name = role.actor_name
-           and team.affiliated_organization_name
-               is not distinct from role.affiliated_organization_name
-          left join post_team_mention team_mention
-            on team_mention.post_id = role.post_id
-           and team_mention.team_id = team.team_id
-          left join corporate_entity org
-            on role.actor_type_code = 'prov_organization'
-           and org.entity_name = role.actor_name
-          left join post_organization_mention org_mention
-            on org_mention.post_id = role.post_id
-           and org_mention.corporate_entity_id = org.corporate_entity_id
+          left join lateral (
+            select mention.team_id
+              from post_team_mention mention
+              join cataloged_team team
+                on team.team_id = mention.team_id
+             where mention.post_id = role.post_id
+               and role.actor_type_code = 'prov_team'
+               and team.team_name = role.actor_name
+               and team.affiliated_organization_name
+                   is not distinct from role.affiliated_organization_name
+             order by mention.team_id
+             limit 1
+          ) team_mention on true
+          left join lateral (
+            select mention.corporate_entity_id
+              from post_organization_mention mention
+              join corporate_entity org
+                on org.corporate_entity_id = mention.corporate_entity_id
+             where mention.post_id = role.post_id
+               and role.actor_type_code = 'prov_organization'
+               and org.entity_name = role.actor_name
+             order by mention.corporate_entity_id
+             limit 1
+          ) org_mention on true
          where role.post_id = $1
          order by role.actor_name
         """,

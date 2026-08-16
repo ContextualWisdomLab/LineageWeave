@@ -27,11 +27,15 @@ from backend.app.knowledge_graph import (
     related_for_start,
     visible_mention_post_ids,
 )
-from backend.app.post_summary_ingestion import persist_post_summary
+from backend.app.post_summary_ingestion import (
+    fetch_persisted_summary,
+    persist_post_summary,
+)
 from lineageweave.keyman_extraction import OUR_SIDE, PersonMention
 from lineageweave.knowledge_graph import (
     EDGE_MENTION,
     EDGE_MENTION_TEAM,
+    NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
     NODE_TEAM,
@@ -451,3 +455,89 @@ def test_team_only_posts_walk_related_nodes(projection_database: str) -> None:
 
     database_dsn, post_id, _summary_person_id = projection_database.split("|")
     asyncio.run(_exercise_team_only_related_walk(database_dsn, post_id))
+
+
+async def _exercise_homonym_organization_catalog_binding(
+    database_dsn: str,
+    post_id: str,
+) -> None:
+    """Two catalog orgs can share a label; the R&R chip must use this post's mention."""
+
+    connection = await asyncpg.connect(database_dsn)
+    try:
+        mentioned_id = str(
+            await connection.fetchval(
+                """
+                insert into corporate_entity
+                    (corporate_entity_code, entity_name, entity_level_code)
+                values ('ACME-US', 'Acme Holdings', 'company')
+                returning corporate_entity_id
+                """
+            )
+        )
+        colliding_id = str(
+            await connection.fetchval(
+                """
+                insert into corporate_entity
+                    (corporate_entity_code, entity_name, entity_level_code)
+                values ('ACME-KR', 'Acme Holdings', 'company')
+                returning corporate_entity_id
+                """
+            )
+        )
+        await connection.execute(
+            """
+            insert into post_summary_result (post_id, korean_summary)
+            values ($1, '동명 조직이 도면을 검토했다.')
+            """,
+            post_id,
+        )
+        await connection.execute(
+            """
+            insert into post_summary_role
+                (post_id, actor_name, responsibility, actor_type_code)
+            values ($1, 'Acme Holdings', '도면 검토', 'prov_organization')
+            """,
+            post_id,
+        )
+        await connection.execute(
+            """
+            insert into post_organization_mention (post_id, corporate_entity_id)
+            values ($1, $2)
+            """,
+            post_id,
+            mentioned_id,
+        )
+
+        payload = await fetch_persisted_summary(connection, post_id)
+        assert payload is not None
+        roles = payload["roles_and_responsibilities"]
+        assert len(roles) == 1, "a homonym catalog row must not duplicate the R&R actor"
+        assert roles[0]["catalog_node_id"] == mentioned_id
+        assert roles[0]["catalog_node_id"] != colliding_id
+        assert roles[0]["catalog_node_type_code"] == NODE_CORPORATE_ENTITY
+
+        await connection.execute(
+            """
+            insert into post_organization_mention (post_id, corporate_entity_id)
+            values ($1, $2)
+            """,
+            post_id,
+            colliding_id,
+        )
+        both_mentions = await fetch_persisted_summary(connection, post_id)
+        assert both_mentions is not None
+        both_roles = both_mentions["roles_and_responsibilities"]
+        assert len(both_roles) == 1
+        assert both_roles[0]["catalog_node_id"] in {mentioned_id, colliding_id}
+    finally:
+        await connection.close()
+
+
+def test_homonym_organization_roles_bind_the_post_mention(
+    projection_database: str,
+) -> None:
+    """ADR 0017: catalog chips use post-scoped mention ids, not a global name join."""
+
+    database_dsn, post_id, _summary_person_id = projection_database.split("|")
+    asyncio.run(_exercise_homonym_organization_catalog_binding(database_dsn, post_id))
