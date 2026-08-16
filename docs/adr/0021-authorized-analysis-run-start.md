@@ -79,7 +79,9 @@ Rules:
   backfill that shares the cutoff clock.
 
 The home detail adds **Start reconstruction** on a Pending lineage row
-and lists titled parent→child edges after Succeeded. The Result digest
+and lists titled parent→child edges after Succeeded. Those titles are
+buttons that open the live post (a marked child still shows the
+live-body warning). The Result digest
 prefix is audible next to Code and Config; hover it to verify the
 parent-choice hash. Edge titles stay public-or-affiliated. TEPP and
 period-report rows do not show the button.

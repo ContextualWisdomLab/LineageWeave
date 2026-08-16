@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.91.0] - 2026-08-17
+
+### Added
+
+- After **Start reconstruction**, the titled A-100 edges are buttons.
+  Click the revised-quote child to open the live post; click the
+  pricing-follow-up parent to open that post. A child marked
+  **Updated after cutoff** still shows the live-body warning. The
+  popup does not invent a cutoff snapshot. No TEPP theta is invented.
+
 ## [0.90.0] - 2026-08-17
 
 ### Added

@@ -1667,6 +1667,21 @@ function analysisRunCanStartReconstruction(run: AnalysisRun): boolean {
   );
 }
 
+/**
+ * Open options for a reconstructed parent or child.
+ *
+ * The run-scoped edge is the reconstruction result. The popup still
+ * shows the live body; reuse the cutoff write-clock flag when that
+ * title is marked rewritten after this run.
+ */
+function analysisRunPostOpenOptions(run: AnalysisRun, postId: string): SelectPostOptions {
+  const post = run.visible_posts?.find((item) => item.post_id === postId);
+  return {
+    liveAfterCutoff: Boolean(post?.live_after_cutoff),
+    knowledgeCutoff: run.knowledge_cutoff,
+  };
+}
+
 function AnalysisRunsPanel({
   accessToken,
   onSelectPost,
@@ -1815,7 +1830,31 @@ function AnalysisRunsPanel({
             <ul aria-label="Reconstructed lineage edges">
               {selected.reconstructed_edges.map((edge) => (
                 <li key={`${edge.parent_post_id}-${edge.child_post_id}`}>
-                  {edge.child_post_title} follows {edge.parent_post_title}
+                  <button
+                    className="keyman-select"
+                    aria-label={`Open reconstructed child: ${edge.child_post_title}`}
+                    onClick={() =>
+                      onSelectPost(
+                        edge.child_post_id,
+                        analysisRunPostOpenOptions(selected, edge.child_post_id),
+                      )
+                    }
+                  >
+                    {edge.child_post_title}
+                  </button>
+                  {" follows "}
+                  <button
+                    className="keyman-select"
+                    aria-label={`Open reconstructed parent: ${edge.parent_post_title}`}
+                    onClick={() =>
+                      onSelectPost(
+                        edge.parent_post_id,
+                        analysisRunPostOpenOptions(selected, edge.parent_post_id),
+                      )
+                    }
+                  >
+                    {edge.parent_post_title}
+                  </button>
                 </li>
               ))}
             </ul>
