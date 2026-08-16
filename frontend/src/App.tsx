@@ -59,6 +59,7 @@ import {
   type VocEvidence,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
+import { PostBadge } from "./components/PostBadge";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
@@ -1765,7 +1766,7 @@ function AnalysisRunsPanel({
                       {post.post_title}
                     </button>
                     {post.live_after_cutoff && (
-                      <span className="post-badge">Updated after cutoff</span>
+                      <PostBadge>Updated after cutoff</PostBadge>
                     )}
                   </li>
                 ))}

@@ -611,7 +611,12 @@ def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, 
     response = client.get("/api/posts", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200
     titles = {post["post_title"] for post in response.json()}
-    assert titles == {"Public post", "Own-corp private post", "Late own-corp private post"}
+    assert titles == {
+        "Public post",
+        "Own-corp private post",
+        "Late own-corp private post",
+        "Edited own-corp private post",
+    }
     public = next(post for post in response.json() if post["post_title"] == "Public post")
     assert public["voc_type_label"] == "Voice of Customer"
     assert public["visibility_label"] == "Public"

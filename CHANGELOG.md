@@ -14,7 +14,8 @@ All notable changes to this project are documented here. Format follows
   **Updated after cutoff**; Demo private post is not. Opening a
   marked title still shows the live body -- cutoff body versioning
   stays a later slice (ADR 0016). The list stays aggregates-only.
-  No TEPP theta is invented.
+  No TEPP theta is invented. The mark uses the `PostBadge` token
+  module (`cd frontend && pnpm run storybook`).
 
 ## [0.87.0] - 2026-08-16
 

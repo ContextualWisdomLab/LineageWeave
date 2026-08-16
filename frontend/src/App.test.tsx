@@ -447,7 +447,6 @@ describe("App, authenticated", () => {
                     },
                   ]
                 : []),
-              ...createdAnalysisRuns,
             ],
           }),
         );

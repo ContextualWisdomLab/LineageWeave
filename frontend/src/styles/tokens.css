@@ -14,6 +14,8 @@
   --space-close-inset: 0.75rem;
   --radius-chip: 999px;
   --font-size-close: 1.5rem;
+  --font-size-badge: 0.75rem;
+  --opacity-badge: 0.7;
   --font-family-chip: ui-monospace, Consolas, monospace;
 }
 
