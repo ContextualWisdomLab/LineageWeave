@@ -22,6 +22,7 @@ import pytest
 import redis
 
 from lineageweave.http_client import HttpClientError, get_json, post_form
+from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
 
 _POSTGRES_ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
@@ -1449,6 +1450,161 @@ def test_same_team_named_in_two_posts_resolves_to_one_cataloged_team(
     assert (team_row_count, distinct_team_count) == (1, 1), "the same team+org pair must dedupe to one row"
     assert mentioning_post_count == 2, "both posts must link to the single cataloged team"
     assert team_mention_edge_count == 2, "each post's mention must become a real KG edge"
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute("select team_id from cataloged_team where team_name = '설계팀'")
+            team_id = str(cur.fetchone()[0])
+    finally:
+        admin_conn.close()
+
+    related = client.get(
+        f"/api/teams/{team_id}/related",
+        headers=headers,
+    )
+    assert related.status_code == 200, related.text
+    related_ids = {node["node_id"] for node in related.json()["related"]}
+    assert set(post_ids) <= related_ids
+    summaries = [
+        client.get(f"/api/posts/{post_id}/summary", headers=headers).json()
+        for post_id in post_ids
+    ]
+    for body in summaries:
+        role = body["roles_and_responsibilities"][0]
+        assert role["catalog_node_id"] == team_id
+        assert role["catalog_node_type_code"] == "node_team"
+
+
+def test_organization_mention_only_posts_appear_in_entity_related(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """An org mentioned with no affiliated person must still start a related walk."""
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public' "
+                "from source_post where post_id = %s returning post_id",
+                ("Org-only mention", "Test Corp was named without a person.", seeded_db["own_private_post_id"]),
+            )
+            org_only_post_id = str(cur.fetchone()[0])
+            cur.execute(
+                "insert into post_organization_mention (post_id, corporate_entity_id) values (%s, %s)",
+                (org_only_post_id, seeded_db["own_corp_id"]),
+            )
+            for edge in knowledge_graph_edges_for_post(
+                org_only_post_id,
+                [],
+                organization_corporate_entity_ids=[seeded_db["own_corp_id"]],
+            ):
+                cur.execute(
+                    "insert into knowledge_graph_edge ("
+                    "source_node_type_code, source_node_id, target_node_type_code, "
+                    "target_node_id, edge_type_code, edge_weight"
+                    ") values (%s, %s, %s, %s, %s, %s) "
+                    "on conflict do nothing",
+                    (
+                        edge.source_node_type_code,
+                        edge.source_node_id,
+                        edge.target_node_type_code,
+                        edge.target_node_id,
+                        edge.edge_type_code,
+                        edge.edge_weight,
+                    ),
+                )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/corporate-entities/{seeded_db['own_corp_id']}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    related_ids = {node["node_id"] for node in response.json()["related"]}
+    assert org_only_post_id in related_ids
+
+
+def test_thread_group_run_list_honors_knowledge_cutoff(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A later public post must not surface a previously hidden thread-group run."""
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code, thread_group_key, created_at) "
+                "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public', %s, %s "
+                "from source_post where post_id = %s",
+                (
+                    "Late thread-group post",
+                    "Written after the January cutoff.",
+                    "late-thread-group",
+                    "2026-01-20T12:00:00Z",
+                    seeded_db["own_private_post_id"],
+                ),
+            )
+            cur.execute(
+                """
+                insert into analysis_source_snapshot
+                    (snapshot_sha256, source_contract_version,
+                     maximum_available_time, captured_at)
+                values (%s, 'source-contract-v1',
+                        '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
+                returning analysis_source_snapshot_id
+                """,
+                ("f" * 64,),
+            )
+            snapshot_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_run
+                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                     requested_by_account_id, knowledge_cutoff,
+                     configuration_schema_version, configuration_sha256,
+                     code_revision_sha, requested_at)
+                values (%s, 'analysis_run_lineage', %s,
+                        (select user_account_id from user_account
+                          where email_address = 'other.analyst@example.test'),
+                        '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
+                        '2026-01-12T12:30:00Z')
+                returning analysis_run_id
+                """,
+                (snapshot_id, "hidden-late-thread", "b" * 64, "c" * 40),
+            )
+            run_id = str(cur.fetchone()[0])
+            cur.execute(
+                """
+                insert into analysis_run_scope
+                    (analysis_run_id, scope_kind_code, scope_key)
+                values (%s, 'analysis_scope_thread_group', 'late-thread-group')
+                """,
+                (run_id,),
+            )
+            cur.execute(
+                """
+                insert into analysis_run_status_event
+                    (analysis_run_id, status_ordinal, status_code, occurred_at)
+                values (%s, 1, 'analysis_status_succeeded', '2026-01-12T12:33:00Z')
+                """,
+                (run_id,),
+            )
+    finally:
+        admin_conn.close()
+
+    listed = client.get(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert listed.status_code == 200
+    ids = {run["analysis_run_id"] for run in listed.json()["analysis_runs"]}
+    assert run_id not in ids
+    assert seeded_db["visible_run_id"] in ids
 
 
 def test_first_mention_of_a_new_counterparty_creates_a_real_corporate_entity(

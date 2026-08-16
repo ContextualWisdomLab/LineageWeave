@@ -49,6 +49,9 @@ run.
 - Hover a digest prefix to read the full code or configuration digest
   when you need to match the API payload.
 - Post-body versioning at the cutoff remains future work.
+- Thread-group *run list* visibility now uses the same cutoff
+  (ADR 0018). A later public post cannot surface a previously hidden
+  thread-group run.
 
 ## References
 
