@@ -326,9 +326,11 @@ is the same never-guess-a-parent rule
 `corporate_hierarchy_resolution` already applies. Entity levels and
 Keyman sides are labeled from `common_lookup_value` (`Our side`,
 `Plant`, `Company`) so the popup never shows raw `our_side` / `plant`
-codes when a label exists. Related-node person chips use the same
-side lookup label (for example, `Our side` or `Counterparty`) rather
-than exposing the generic PROV-O `Person` class as business context.
+codes when a label exists. The Keyman list button accessible name
+keeps that side (`Related nodes for Ada West (Our side)`). Related-node
+person chips use the same side lookup label (for example, `Our side`
+or `Counterparty`) rather than exposing the generic PROV-O `Person`
+class as business context.
 
 `GET /api/posts` and `GET /api/posts/{post_id}` include
 `voc_type_label` / `visibility_label` from `common_lookup_value` so

@@ -276,6 +276,9 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert "0018_analysis_run_registry.sql" in dockerfile
     assert "0019_role_catalog_identity.sql" in dockerfile
     assert "0020_analysis_run_retention_purge.sql" in dockerfile
+    assert dockerfile.index("20-role-catalog-identity.sql") < dockerfile.index(
+        "21-analysis-run-retention-purge.sql"
+    )
     seed = (_ROOT / "scripts" / "seed_demo_data.py").read_text(encoding="utf-8")
     assert seed.index("0019_role_catalog_identity.sql") < seed.index(
         "0020_analysis_run_retention_purge.sql"
@@ -295,6 +298,10 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert "analysis_run_retention_not_approved" in retention
     assert "analysis_run_retention_not_granted" in retention
     assert "analysis_run_retention_not_admin" in retention
+    assert retention.index(
+        "disable trigger analysis_run_mutation_reject"
+    ) < retention.index("select count(*) into run_count")
+    assert "revoke all on table analysis_run_retention_grant" in retention
     assert "analysis_run_retention_event_not_empty" in retention_rollback
     assert "jsonb" not in retention.casefold()
     for object_name in re.findall(
@@ -1056,6 +1063,12 @@ def test_runtime_role_cannot_purge_with_only_the_public_token(registry_db) -> No
                     "delete from analysis_run where analysis_run_id = %s",
                     (run_id,),
                 )
+            with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+                cursor.execute(
+                    "insert into analysis_run_retention_grant "
+                    "(database_role_name) values (%s)",
+                    (runtime_role,),
+                )
             cursor.execute("reset role")
             try:
                 cursor.execute(
@@ -1138,3 +1151,62 @@ def test_retention_purge_requires_admin_membership_even_with_a_grant(
         cursor.execute("select count(*) from analysis_run")
         assert cursor.fetchone()[0] == 1
         _drop_role_if_exists(cursor, role_name)
+
+
+def test_failed_retention_purge_re_enables_immutability_triggers(
+    registry_db,
+) -> None:
+    """A forced delete failure must leave analysis_run immutable."""
+
+    with registry_db.cursor() as cursor:
+        _insert_run_bearing_registry(
+            cursor,
+            digest="a" * 64,
+            idempotency_key="retention-purge-reenable",
+        )
+        cursor.execute("select analysis_run_id from analysis_run")
+        run_id = cursor.fetchone()[0]
+        cursor.execute(
+            """
+            create function forced_retention_purge_failure()
+            returns trigger
+            language plpgsql
+            as $fn$
+            begin
+                raise exception 'forced_retention_purge_failure';
+            end
+            $fn$;
+            """
+        )
+        cursor.execute(
+            """
+            create trigger forced_retention_purge_failure
+                before delete on analysis_run
+                for each row
+                execute function forced_retention_purge_failure()
+            """
+        )
+        session_role = _authorize_session_for_purge(cursor)
+        with pytest.raises(
+            psycopg2.errors.RaiseException,
+            match="forced_retention_purge_failure",
+        ):
+            cursor.execute(
+                "select purge_analysis_run_registry(%s)",
+                ("approved-retention-purge",),
+            )
+        cursor.execute("select count(*) from analysis_run")
+        assert cursor.fetchone()[0] == 1
+        cursor.execute(
+            "drop trigger forced_retention_purge_failure on analysis_run"
+        )
+        cursor.execute("drop function forced_retention_purge_failure()")
+        with pytest.raises(
+            psycopg2.errors.RaiseException,
+            match="analysis_run_request_is_immutable",
+        ):
+            cursor.execute(
+                "delete from analysis_run where analysis_run_id = %s",
+                (run_id,),
+            )
+        assert session_role

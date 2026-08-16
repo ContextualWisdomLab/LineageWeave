@@ -40,9 +40,11 @@ fail-closed purge:
 - `purge_analysis_run_registry(approval_token text)` — `SECURITY DEFINER`,
   checks the unrevoked grant, then `pg_has_role(..., 'member')` on the
   admin role, then accepts only `approved-retention-purge`, disables the
-  three immutability delete triggers inside that call, deletes in FK
+  three immutability delete triggers inside that call (ACCESS
+  EXCLUSIVE), counts runs and snapshots under that lock, deletes in FK
   order, re-enables the triggers, and writes one
-  `analysis_run_retention_event`;
+  `analysis_run_retention_event`. Counting before the lock can record a
+  stale `purged_run_count` while still deleting the later row;
 - `analysis_run_retention_event` — purged run/snapshot counts, the SHA-256
   of the approval token, `invoking_session_role`, `invoking_current_role`,
   and optional `client_network_address`. The raw phrase is never stored.

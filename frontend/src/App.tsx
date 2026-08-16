@@ -492,6 +492,26 @@ function relatedNodeCaption(node: RelatedNode): string {
   return `${name} (${node.ontology_label ?? node.node_type_code})`;
 }
 
+/**
+ * Accessible name for a Keyman chip that already shows a business side.
+ *
+ * Visible text is `Ada West (Our side)`. The accessible name must keep
+ * that side so a screen reader hears the same next click as the sighted
+ * operator (W3C AccName; WCAG 2.2 SC 4.1.2). Related-person chips already
+ * announce the side through `relatedNodeCaption`.
+ */
+function relatedPersonAccessibleName(
+  personName: string,
+  sideLabel?: string | null,
+  sideCode?: string | null,
+): string {
+  const side = sideLabel ?? sideCode;
+  if (side) {
+    return `Related nodes for ${personName} (${side})`;
+  }
+  return `Related nodes for ${personName}`;
+}
+
 const VERIFICATION_BADGE: Record<string, string> = {
   verify_pending: "Not yet checked",
   verify_corroborated: "Corroborated",
@@ -681,7 +701,11 @@ function KeymanPanel({
             <li key={person.person_id}>
               <button
                 className="keyman-select"
-                aria-label={`Related nodes for ${person.person_name}`}
+                aria-label={relatedPersonAccessibleName(
+                  person.person_name,
+                  person.person_side_label,
+                  person.person_side_code,
+                )}
                 onClick={() => handleSelect(person.person_id, person.person_name)}
               >
                 <strong>{person.person_name}</strong> ({person.person_side_label ?? person.person_side_code})

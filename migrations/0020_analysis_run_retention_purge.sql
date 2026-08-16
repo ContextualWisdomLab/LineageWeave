@@ -115,15 +115,18 @@ begin
         raise exception 'analysis_run_retention_not_approved';
     end if;
 
-    select count(*) into run_count from analysis_run;
-    select count(*) into snapshot_count from analysis_source_snapshot;
-
+    -- ALTER TABLE … DISABLE TRIGGER takes ACCESS EXCLUSIVE, so the
+    -- counts below cannot race a second authorized purge or a run
+    -- inserted after the privilege checks.
     alter table analysis_run_status_event
         disable trigger analysis_run_status_event_delete_reject;
     alter table analysis_run_scope
         disable trigger analysis_run_scope_mutation_reject;
     alter table analysis_run
         disable trigger analysis_run_mutation_reject;
+
+    select count(*) into run_count from analysis_run;
+    select count(*) into snapshot_count from analysis_source_snapshot;
 
     begin
         delete from analysis_run_status_event;
@@ -176,5 +179,7 @@ comment on function purge_analysis_run_registry(text) is
 revoke all on function purge_analysis_run_registry(text) from public;
 grant execute on function purge_analysis_run_registry(text)
     to analysis_run_retention_admin;
+revoke all on table analysis_run_retention_grant from public;
+revoke all on table analysis_run_retention_event from public;
 
 commit;

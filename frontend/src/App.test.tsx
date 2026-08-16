@@ -1313,7 +1313,15 @@ describe("App, authenticated", () => {
       ),
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+    expect(
+      screen.getByRole("button", { name: /^Related nodes for Ada West \(Our side\)$/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^Related nodes for Ada West$/ }),
+    ).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: /^Related nodes for Ada West \(Our side\)$/ }),
+    );
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     expect(screen.getByText("Related to Ada West").closest(".related-keymen")).toHaveTextContent(
       "Priya Nair (Counterparty)",
@@ -1358,7 +1366,9 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /^Related nodes for Ada West \(Our side\)$/ }),
+    );
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for 설계팀" }));
     await waitFor(() => expect(screen.getByText("Related to 설계팀")).toBeInTheDocument());
@@ -1371,7 +1381,9 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /^Related nodes for Ada West \(Our side\)$/ }),
+    );
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Demo Corp" }));
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());

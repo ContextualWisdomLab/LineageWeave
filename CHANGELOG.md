@@ -4,6 +4,20 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.87.1] - 2026-08-16
+
+### Fixed
+
+- Opening a post and tabbing to Ada West now announces
+  `Related nodes for Ada West (Our side)` — the same side the chip
+  already shows. A name-only accessible name hid whether that person
+  is our side or a counterparty.
+- Retention purge now counts runs and snapshots after the immutability
+  triggers are disabled, so the audit row cannot record a stale
+  `purged_run_count`. A table-DML runtime role still cannot insert a
+  retention grant. A forced delete failure leaves
+  `analysis_run_request_is_immutable` in place.
+
 ## [0.87.0] - 2026-08-16
 
 ### Added
