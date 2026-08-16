@@ -7,6 +7,7 @@ import {
   deriveCommitment,
   evaluatePost,
   extractPostKeymen,
+  fetchAnalysisRun,
   fetchAnalysisRuns,
   fetchCalendar,
   fetchLineageGraph,
@@ -1346,8 +1347,15 @@ function PostDetailPopup({
   );
 }
 
+function analysisRunCaption(run: AnalysisRun): string {
+  return [run.run_kind_label, run.status_label, run.scope_entity_name ?? run.scope_kind_label]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 function AnalysisRunsPanel({ accessToken }: { accessToken: string }) {
   const [runs, setRuns] = useState<AnalysisRun[] | null>(null);
+  const [selected, setSelected] = useState<AnalysisRun | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1356,7 +1364,21 @@ function AnalysisRunsPanel({ accessToken }: { accessToken: string }) {
       .catch((err) => setError(String(err)));
   }, [accessToken]);
 
-  if (error) return <p className="error">{error}</p>;
+  async function handleOpen(runId: string) {
+    setError(null);
+    try {
+      setSelected(await fetchAnalysisRun(accessToken, runId));
+    } catch (err) {
+      setSelected(null);
+      if (err instanceof BackendError && err.status === 404) {
+        setError("This analysis run is not visible.");
+        return;
+      }
+      setError(String(err));
+    }
+  }
+
+  if (error && runs === null) return <p className="error">{error}</p>;
   if (runs === null) return <p>Loading analysis runs...</p>;
 
   return (
@@ -1364,6 +1386,7 @@ function AnalysisRunsPanel({ accessToken }: { accessToken: string }) {
       <div className="lineage-home-header">
         <h2>Analysis runs</h2>
       </div>
+      {error && <p className="error">{error}</p>}
       {runs.length === 0 ? (
         <p className="popup-placeholder">
           No analysis runs visible to this account yet -- try `make seed`.
@@ -1374,25 +1397,42 @@ function AnalysisRunsPanel({ accessToken }: { accessToken: string }) {
             const documentCount = run.source_counts.find(
               (count) => count.count_type_code === "analysis_count_document",
             );
-            const caption = [
-              run.run_kind_label,
-              run.status_label,
-              run.scope_entity_name ?? run.scope_kind_label,
-            ]
-              .filter(Boolean)
-              .join(" · ");
+            const caption = analysisRunCaption(run);
             return (
               <li key={run.analysis_run_id} className="ticket-list-item">
-                <span className="ticket-title">{caption}</span>
-                {documentCount && (
-                  <span className="post-badge">
-                    {documentCount.count_value} {documentCount.count_type_label.toLowerCase()}
-                  </span>
-                )}
+                <button
+                  className="post-list-item"
+                  aria-label={`Open analysis run: ${caption}`}
+                  onClick={() => void handleOpen(run.analysis_run_id)}
+                >
+                  <span className="ticket-title">{caption}</span>
+                  {documentCount && (
+                    <span className="post-badge">
+                      {documentCount.count_value} {documentCount.count_type_label.toLowerCase()}
+                    </span>
+                  )}
+                </button>
               </li>
             );
           })}
         </ul>
+      )}
+      {selected && (
+        <div className="popup-section">
+          <h3>{analysisRunCaption(selected)}</h3>
+          <p className="post-meta">
+            Cutoff {selected.knowledge_cutoff.slice(0, 10)}
+            {" · "}
+            Requested {selected.requested_at.slice(0, 10)}
+          </p>
+          <ul>
+            {selected.source_counts.map((count) => (
+              <li key={count.count_type_code}>
+                {count.count_value} {count.count_type_label.toLowerCase()}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </section>
   );

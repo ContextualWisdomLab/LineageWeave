@@ -463,7 +463,9 @@ in SQL: the requester always sees their own run; a corporate-entity or
 process-unit scope is visible only to affiliated accounts; a
 thread-group scope is visible only when the account can already see a
 post in that group; `all_visible` is requester-only. Hidden runs 404.
-The payload is lookup labels plus non-negative aggregate counts -- never
+The home list is clickable: `GET /api/analysis-runs/{id}` fills a
+labeled detail (cutoff, requested date, counts) without exposing a
+DSN or raw record. The payload is lookup labels plus non-negative aggregate counts -- never
 source SQL, a DSN, a raw record, or a provider body. After `make seed`,
 Demo Analyst and Demo Admin see "Lineage reconstruction · Succeeded ·
 Demo Corp" with "3 documents".
