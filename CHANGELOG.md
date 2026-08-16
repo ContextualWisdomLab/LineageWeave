@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.1] - 2026-08-16
+
+### Changed
+
+- Opening a post or its evidence panel now shows each embedded
+  `data:image` picture in document order, with the surrounding sentences
+  as text. The raw base64 string is no longer dumped into the popup.
+  Remote `http(s)` image URLs stay unloaded. After `make seed`, a post
+  whose body includes a data-URI image shows the picture; Extract Keyman
+  or Ask still runs OCR on that image for search.
+
 ## [0.86.0] - 2026-08-16
 
 ### Added

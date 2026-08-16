@@ -63,6 +63,7 @@ describe("App, authenticated", () => {
     failedReportRun?: boolean;
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
+    postBody?: string;
   }) {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -668,7 +669,7 @@ describe("App, authenticated", () => {
           jsonResponse({
             post_id: "post-1",
             post_title: "Public post",
-            post_body: "The full body text.",
+            post_body: options?.postBody ?? "The full body text.",
             voc_type_code: "voc",
             voc_type_label: "Voice of Customer",
             visibility_code: "public",
@@ -1086,6 +1087,23 @@ describe("App, authenticated", () => {
     render(<App />);
     await userEvent.click(await screen.findByLabelText("Open post: Public post"));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
+  it("shows an embedded invoice image instead of the raw base64 string", async () => {
+    const tinyPng =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+    stubBackend({
+      postBody: `<p>Quote attached.</p><img src="data:image/png;base64,${tinyPng}" alt=""><p>Please confirm.</p>`,
+    });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const image = await screen.findByRole("img", { name: /embedded image at character offset/i });
+    expect(image).toHaveAttribute("src", `data:image/png;base64,${tinyPng}`);
+    expect(screen.getByText("Quote attached.")).toBeInTheDocument();
+    expect(screen.getByText("Please confirm.")).toBeInTheDocument();
+    expect(screen.getByText(/Extract Keyman or ask a question/)).toBeInTheDocument();
+    expect(screen.queryByText(new RegExp(tinyPng))).not.toBeInTheDocument();
   });
 
   it("fetches and renders the post list, then opens a detail popup on click", async () => {
