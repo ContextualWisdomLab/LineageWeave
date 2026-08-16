@@ -98,10 +98,12 @@ jobs:
           the general-user 업무 홈, 업무공간, 고객 화면, server-side Keyverse
           ABAC/RBAC, evidence-backed Ontology/Semantic Layer, PostgreSQL system
           of record, HTTP-only TEPP and contextual-orchestrator boundaries, and
-          observed-versus-relatedness separation. Never bind a reader click to
-          the first unmatched document event: a source drawer opens only an
-          excerpt's own authorized guid or a uniquely matching same-document
-          event.
+          observed-versus-relatedness separation.           Never bind a reader click to
+          the first unmatched document event: a source drawer opens only when
+          the excerpt's own authorized guid is already in the same-document
+          event set, the document has exactly one usable non-document-number
+          event, or excerpt text uniquely matches one event. Date alone does
+          not bind. A missing cited guid must 404.
 
           For model work, retain the Fugu/Conductor/TRINITY distinction between
           direct routing and bounded deeper orchestration. Do not broaden access
