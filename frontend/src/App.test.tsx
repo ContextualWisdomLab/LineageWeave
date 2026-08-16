@@ -179,7 +179,7 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-report")) {
-        const reportSucceeded = Boolean(options?.succeededReportRun);
+        const reportSucceeded = !options?.failedReportRun;
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-report",
@@ -188,6 +188,7 @@ describe("App, authenticated", () => {
             scope_kind_code: "analysis_scope_corporate_entity",
             scope_kind_label: "Corporate entity",
             scope_entity_name: "Demo Corp",
+            scope_key: "2026-W02",
             status_code: reportSucceeded ? "analysis_status_succeeded" : "analysis_status_failed",
             status_label: reportSucceeded ? "Succeeded" : "Failed",
             knowledge_cutoff: "2026-01-12T12:00:00Z",
@@ -665,31 +666,28 @@ describe("App, authenticated", () => {
                   },
                 ],
               },
-              ...(options?.failedReportRun || options?.succeededReportRun
-                ? [
-                    {
-                      analysis_run_id: "run-demo-report",
-                      run_kind_code: "analysis_run_report" as const,
-                      run_kind_label: "Period report",
-                      scope_kind_code: "analysis_scope_corporate_entity",
-                      scope_kind_label: "Corporate entity",
-                      scope_entity_name: "Demo Corp",
-                      status_code: options?.succeededReportRun
-                        ? ("analysis_status_succeeded" as const)
-                        : ("analysis_status_failed" as const),
-                      status_label: options?.succeededReportRun ? "Succeeded" : "Failed",
-                      knowledge_cutoff: "2026-01-12T12:00:00Z",
-                      requested_at: "2026-01-12T12:38:00Z",
-                      source_counts: [
-                        {
-                          count_type_code: "analysis_count_document",
-                          count_type_label: "Documents",
-                          count_value: 3,
-                        },
-                      ],
-                    },
-                  ]
-                : []),
+              {
+                analysis_run_id: "run-demo-report",
+                run_kind_code: "analysis_run_report" as const,
+                run_kind_label: "Period report",
+                scope_kind_code: "analysis_scope_corporate_entity",
+                scope_kind_label: "Corporate entity",
+                scope_entity_name: "Demo Corp",
+                scope_key: "2026-W02",
+                status_code: options?.failedReportRun
+                  ? ("analysis_status_failed" as const)
+                  : ("analysis_status_succeeded" as const),
+                status_label: options?.failedReportRun ? "Failed" : "Succeeded",
+                knowledge_cutoff: "2026-01-12T12:00:00Z",
+                requested_at: "2026-01-12T12:38:00Z",
+                source_counts: [
+                  {
+                    count_type_code: "analysis_count_document",
+                    count_type_label: "Documents",
+                    count_value: 3,
+                  },
+                ],
+              },
             ],
           }),
         );
@@ -1904,6 +1902,7 @@ describe("App, authenticated", () => {
     const list = screen.getByRole("list", { name: "Analysis runs" });
     expect(list).toHaveTextContent("Lineage reconstruction · Succeeded · Demo Corp");
     expect(list).toHaveTextContent("TEPP measurement · Failed · Demo Corp");
+    expect(list).toHaveTextContent("Period report · Succeeded · Demo Corp");
     expect(list).toHaveTextContent(
       "Open this run to see why it failed, then connect the measurement service and re-run.",
     );
@@ -2114,6 +2113,14 @@ describe("App, authenticated", () => {
         name: "Open live post: Public post",
       }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open period report 2026-W02" })).toBeInTheDocument();
+
+    const periodInput = screen.getByLabelText("Report period");
+    await userEvent.clear(periodInput);
+    await userEvent.type(periodInput, "2026-W03");
+    expect(periodInput).toHaveValue("2026-W03");
+    await userEvent.click(screen.getByRole("button", { name: "Open period report 2026-W02" }));
+    expect(periodInput).toHaveValue("2026-W02");
   });
 
   it("does not tell a failed period report to connect the measurement service", async () => {

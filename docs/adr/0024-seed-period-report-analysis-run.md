@@ -29,7 +29,8 @@ on a path that is not allowed to (ADR 0021 / ADR 0022 / ADR 0023).
 
 - `_seed_demo_period_report` still builds the calibrated report first.
 - `_seed_demo_report_run` then inserts `analysis_run_report` on the
-  same Demo Corp snapshot, scoped to the same corporate entity.
+  same Demo Corp snapshot, scoped to the same corporate entity, with
+  `scope_key` `2026-W02` so the home detail can open that week.
 - The lifecycle is Pending → Running → Succeeded because the report
   tables already hold the scored period. The run row stores only
   registry digests and counts — never a theta, item bank, or provider
@@ -45,7 +46,8 @@ on a path that is not allowed to (ADR 0021 / ADR 0022 / ADR 0023).
 
 After `make seed`, Demo Analyst opens Analysis runs and sees
 **Period report · Succeeded · Demo Corp** next to the lineage and TEPP
-rows. Opening it shows the cutoff posts. Mean θ remains on the
+rows. Opening it shows the cutoff posts and **Open period report
+2026-W02** (the week stored on `scope_key`). Mean θ remains on the
 period-report panel. Re-seed is idempotent on
 `demo-report-seed-2026-w02`.
 

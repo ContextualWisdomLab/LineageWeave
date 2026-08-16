@@ -1609,11 +1609,12 @@ def _seed_demo_report_run(cur, requested_by_account_id, corporate_entity_id) -> 
     cur.execute(
         """
         insert into analysis_run_scope
-            (analysis_run_id, scope_kind_code, corporate_entity_id)
-        values (%s, 'analysis_scope_corporate_entity', %s)
-        on conflict (analysis_run_id) do nothing
+            (analysis_run_id, scope_kind_code, corporate_entity_id, scope_key)
+        values (%s, 'analysis_scope_corporate_entity', %s, %s)
+        on conflict (analysis_run_id) do update
+            set scope_key = excluded.scope_key
         """,
-        (run_id, corporate_entity_id),
+        (run_id, corporate_entity_id, "2026-W02"),
     )
     for ordinal, status, occurred in (
         (1, "analysis_status_pending", "2026-01-12T12:39:00Z"),

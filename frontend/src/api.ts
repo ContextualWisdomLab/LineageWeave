@@ -565,6 +565,7 @@ export interface AnalysisRun {
   scope_kind_code: string;
   scope_kind_label: string;
   scope_entity_name?: string;
+  scope_key?: string;
   status_code: AnalysisRunStatusCode | null;
   status_label: string | null;
   failure_code?: string;
