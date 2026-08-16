@@ -519,6 +519,9 @@ export interface AnalysisRun {
   knowledge_cutoff: string;
   requested_at: string;
   source_counts: AnalysisRunCount[];
+  configuration_schema_version?: string;
+  configuration_sha256?: string;
+  code_revision_sha?: string;
   status_history?: AnalysisRunStatusEvent[];
   visible_posts?: { post_id: string; post_title: string }[];
 }

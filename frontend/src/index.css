@@ -10,6 +10,12 @@
   --social-bg: rgba(244, 243, 236, 0.5);
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --lw-space-xs: 0.5rem;
+  --lw-space-sm: 0.75rem;
+  --lw-space-md: 1rem;
+  --lw-radius-sm: 8px;
+  --lw-radius-md: 12px;
+  --lw-color-danger: #b91c1c;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;

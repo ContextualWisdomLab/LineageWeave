@@ -296,11 +296,18 @@ def seeded_db(demo_analyst_token):
                 (account_id, role_id),
             )
 
-            def _insert_post(title: str, corporate_entity_id, visibility_code: str, body: str = "body") -> str:
+            def _insert_post(
+                title: str,
+                corporate_entity_id,
+                visibility_code: str,
+                body: str = "body",
+                created_at: str = "2026-01-10T09:00:00Z",
+            ) -> str:
                 cur.execute(
-                    "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
-                    "values (%s, %s, %s, %s, 'voc', %s) returning post_id",
-                    (account_id, corporate_entity_id, title, body, visibility_code),
+                    "insert into source_post (author_account_id, corporate_entity_id, "
+                    "post_title, post_body, voc_type_code, visibility_code, created_at) "
+                    "values (%s, %s, %s, %s, 'voc', %s, %s) returning post_id",
+                    (account_id, corporate_entity_id, title, body, visibility_code, created_at),
                 )
                 return str(cur.fetchone()[0])
 
@@ -313,6 +320,13 @@ def seeded_db(demo_analyst_token):
                 "The weather in Gwangju was irrelevant.",
             )
             other_private_post_id = _insert_post("Other-corp private post", other_corp_id, "private")
+            _insert_post(
+                "Late own-corp private post",
+                own_corp_id,
+                "private",
+                "Written after the analysis-run knowledge cutoff.",
+                created_at="2026-01-13T09:00:00Z",
+            )
 
             cur.execute(
                 "insert into cataloged_person (person_name, person_side_code) values "
@@ -477,7 +491,10 @@ def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
     assert all("failure_code" not in event for event in history)
     titles = {post["post_title"] for post in body["visible_posts"]}
     assert "Own-corp private post" in titles
+    assert "Late own-corp private post" not in titles
     assert "Other-corp private post" not in titles
+    assert body["code_revision_sha"] == "c" * 40
+    assert body["configuration_sha256"] == "b" * 64
     assert "postgresql://" not in str(body)
     assert "visible_posts" not in visible
 

@@ -31,6 +31,8 @@ LineageWeave owns a fail-closed read projection of the #89 registry:
 - `GET /api/analysis-runs/{id}` also returns the append-only labeled
   `status_history`. The list does not. A failed event may include the
   stored machine `failure_code`; this slice does not invent a label.
+- Detail post titles are further limited to
+  `source_post.created_at <= knowledge_cutoff` (ADR 0016).
 - TEPP remains a versioned `AnalysisRunRequest` consumer
   (`lineageweave.tepp_client`). This slice does not fork TEPP arithmetic.
 - contextual-orchestrator remains the only LLM path. This slice does not

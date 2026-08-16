@@ -69,6 +69,7 @@ provenance, retention, and immutable evidence rather than blanket masking.
 |---|---|
 | One snapshot supports multiple analyses | Insert two runs over one snapshot with different valid cutoffs. |
 | Future evidence is excluded | Reject a run whose cutoff precedes the snapshot's maximum availability time. |
+| Later posts are excluded from a historical run | A post with `created_at` after `knowledge_cutoff` is absent from `visible_posts`. |
 | Evidence cannot change after derivation | Reject snapshot/count updates and count insert/delete after the first run. |
 | Count/run race is serialized | Both paths acquire the snapshot row first; a later concurrency test must prove one legal winner and no lost freeze. |
 | Request identity is stable | Reject analysis-run updates; scope and lifecycle live in their own relations. |
@@ -82,12 +83,19 @@ International Organization for Standardization. (2019). *ISO 8601-1:2019: Date
 and time—Representations for information interchange—Part 1: Basic rules*
 (confirmed 2024; Amendment 1:2022).
 
+Jensen, C. S., & Snodgrass, R. T. (1999). Temporal data management. *IEEE
+Transactions on Knowledge and Data Engineering, 11*(1), 36–44.
+https://doi.org/10.1109/69.755613
+
 Kent, K., & Souppaya, M. (2006). *Guide to computer security log management*
 (NIST Special Publication 800-92). National Institute of Standards and
 Technology. https://doi.org/10.6028/NIST.SP.800-92
 
 Moreau, L., & Missier, P. (Eds.). (2013). *PROV-DM: The PROV data model*.
 World Wide Web Consortium. https://www.w3.org/TR/prov-dm/
+
+Snodgrass, R. T. (Ed.). (1995). *The TSQL2 temporal query language*.
+Springer. https://doi.org/10.1007/978-1-4615-2289-8
 
 OpenAPI Initiative. (2025). *OpenAPI specification, version 3.2.0*.
 https://spec.openapis.org/oas/v3.2.0.html

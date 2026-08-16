@@ -190,6 +190,9 @@ describe("App, authenticated", () => {
               },
             ],
             visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+            configuration_schema_version: "lineage-run-v1",
+            configuration_sha256: "b".repeat(64),
+            code_revision_sha: "c".repeat(40),
             status_history: [
               {
                 status_ordinal: 1,
@@ -1391,6 +1394,8 @@ describe("App, authenticated", () => {
     expect(history).toHaveTextContent("Running 2026-01-12 12:32");
     expect(history).toHaveTextContent("Succeeded 2026-01-12 12:33");
     expect(screen.getByRole("button", { name: "Open run post: Public post" })).toBeInTheDocument();
+    expect(screen.getByText(/Revision cccccccccccc/)).toBeInTheDocument();
+    expect(screen.getByText(/Config bbbbbbbbbbbb/)).toBeInTheDocument();
     expect(screen.queryByText(/postgresql:\/\//)).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Open run post: Public post" }));
