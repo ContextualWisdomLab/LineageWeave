@@ -1562,15 +1562,8 @@ function analysisRunDigestPrefix(digest: string): string {
 }
 
 /**
- * Next action when a cutoff title opens the live post (ADR 0016).
- *
- * Post-body versioning is a later slice. Until then the operator must
- * compare the opened body with this run's cutoff instead of treating
- * today's text as reconstructed evidence.
- */
-/**
- * Next action when detail 404s. Stay generic: naming the thread or
- * cutoff would confirm a hidden row (ADR 0018).
+ * Next action when detail 404s. Stay generic: do not name the thread
+ * or the cutoff — that would confirm a hidden row (ADR 0018).
  */
 function analysisRunHiddenNextAction(): string {
   return (
@@ -1579,6 +1572,13 @@ function analysisRunHiddenNextAction(): string {
   );
 }
 
+/**
+ * Next action when a cutoff title opens the live post (ADR 0016).
+ *
+ * Post-body versioning is a later slice. Until then the operator must
+ * compare the opened body with this run's cutoff instead of treating
+ * today's text as reconstructed evidence.
+ */
 function analysisRunLivePostWarning(cutoffIso: string): string {
   const cutoffDate = cutoffIso.slice(0, 10);
   return (
