@@ -4,7 +4,7 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.87.1] - 2026-08-16
+## [0.87.3] - 2026-08-16
 
 ### Added
 
@@ -17,7 +17,7 @@ All notable changes to this project are documented here. Format follows
   No TEPP theta is invented. The mark uses the `PostBadge` token
   module (`cd frontend && pnpm run storybook`). A title or body
   rewrite stamps `updated_at` unless the statement sets that clock
-  (migration 0021).
+  (migration 0022).
 
 ## [0.87.0] - 2026-08-16
 

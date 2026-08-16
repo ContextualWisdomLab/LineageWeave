@@ -33,7 +33,7 @@ _REALM = "lineageweave-demo"
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
 _RETENTION_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0020_analysis_run_retention_purge.sql"
-_WRITE_CLOCK_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0021_source_post_write_clock.sql"
+_WRITE_CLOCK_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0022_source_post_write_clock.sql"
 
 
 def _postgres_available() -> bool:

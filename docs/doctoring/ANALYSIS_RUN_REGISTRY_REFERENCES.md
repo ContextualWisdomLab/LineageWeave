@@ -71,7 +71,7 @@ provenance, retention, and immutable evidence rather than blanket masking.
 |---|---|
 | One snapshot supports multiple analyses | Insert two runs over one snapshot with different valid cutoffs. |
 | Future evidence is excluded | Reject a run whose cutoff precedes the snapshot's maximum availability time. A late own-corp post stays out of `visible_posts`. |
-| Live write clock is distinct from admission | An in-cutoff title with `updated_at` after the cutoff is marked `live_after_cutoff`; equal clocks stay unmarked. After `make seed`, Demo public post is the 2026-01-13 counter-example. A later title or body rewrite stamps `updated_at` unless the statement sets that clock (migration 0021). |
+| Live write clock is distinct from admission | An in-cutoff title with `updated_at` after the cutoff is marked `live_after_cutoff`; equal clocks stay unmarked. After `make seed`, Demo public post is the 2026-01-13 counter-example. A later title or body rewrite stamps `updated_at` unless the statement sets that clock (migration 0022). |
 | Evidence cannot change after derivation | Reject snapshot/count updates and count insert/delete after the first run. |
 | Count/run race is serialized | Both paths acquire the snapshot row first; a later concurrency test must prove one legal winner and no lost freeze. |
 | Request identity is stable | Reject analysis-run updates; scope and lifecycle live in their own relations. |
