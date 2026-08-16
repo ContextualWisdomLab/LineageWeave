@@ -58,6 +58,30 @@ def records_from_source_posts(rows: list[Mapping[str, Any]]) -> list[Record]:
     return records
 
 
+async def persist_run_lineage_edges(
+    conn: asyncpg.Connection,
+    analysis_run_id: str,
+    edges: list[Edge],
+) -> None:
+    """Insert run-scoped reconstruction edges. Never touches ``post_lineage_edge``.
+
+    Rows are insert-only. Call this inside the Succeeded transaction so a
+    failure rolls back a partial edge set. Does not invent a theta.
+    """
+    for edge in edges:
+        await conn.execute(
+            """
+            insert into analysis_run_lineage_edge
+                (analysis_run_id, parent_post_id, child_post_id, fused_score)
+            values ($1::uuid, $2::uuid, $3::uuid, $4)
+            """,
+            analysis_run_id,
+            edge.parent_id,
+            edge.child_id,
+            edge.fused_score,
+        )
+
+
 async def persist_lineage_edges(conn: asyncpg.Connection, edges: list[Edge]) -> None:
     """Replace ``post_lineage_edge`` with ``edges`` (reconstruct is source of truth)."""
     await conn.execute("delete from post_lineage_edge")

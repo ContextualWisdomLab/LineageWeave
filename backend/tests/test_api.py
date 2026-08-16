@@ -31,6 +31,7 @@ _VALKEY_URL = os.environ.get("LINEAGEWEAVE_TEST_VALKEY_URL", "redis://localhost:
 _REALM = "lineageweave-demo"
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
+_OUTBOX_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0019_analysis_run_outbox.sql"
 
 
 def _postgres_available() -> bool:
@@ -114,6 +115,7 @@ def seeded_db(demo_analyst_token):
         with conn.cursor() as cur:
             cur.execute(_MIGRATION_PATH.read_text())
             cur.execute(_REGISTRY_MIGRATION.read_text())
+            cur.execute(_OUTBOX_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -570,6 +572,64 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
         json={"idempotency_key": "buyer-create-unauthenticated"},
     )
     assert unauthenticated.status_code == 401
+
+
+def test_reconstruct_analysis_run_recovers_cutoff_edges_without_a_theta(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """POST reconstruct advances Pending lineage; TEPP stays 422."""
+    created = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_lineage",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "idempotency_key": "buyer-reconstruct-2026-w02",
+        },
+    )
+    assert created.status_code == 201
+    run_id = created.json()["analysis_run_id"]
+    delivered = client.post(
+        f"/api/analysis-runs/{run_id}/reconstruct",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert delivered.status_code == 200
+    body = delivered.json()
+    assert body["status_label"] == "Succeeded"
+    assert body["run_kind_label"] == "Lineage reconstruction"
+    assert "lineage_edges" in body
+    assert "theta" not in str(body).lower()
+    assert "postgresql://" not in str(body)
+    replay = client.post(
+        f"/api/analysis-runs/{run_id}/reconstruct",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert replay.status_code == 200
+    assert replay.json()["analysis_run_id"] == run_id
+    assert replay.json()["status_label"] == "Succeeded"
+
+    tepp = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_tepp",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "idempotency_key": "buyer-reconstruct-tepp",
+        },
+    )
+    assert tepp.status_code == 201
+    blocked = client.post(
+        f"/api/analysis-runs/{tepp.json()['analysis_run_id']}/reconstruct",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert blocked.status_code == 422
+    assert "theta" not in blocked.json()["detail"].lower()
+
+    hidden = client.post(
+        f"/api/analysis-runs/{seeded_db['hidden_run_id']}/reconstruct",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert hidden.status_code == 404
 
 
 def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> None:

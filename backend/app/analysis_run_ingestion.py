@@ -7,8 +7,8 @@ lookup labels come back; source SQL, DSNs, raw records, and provider
 payloads never do.
 
 ``create_pending_analysis_run`` (ADR 0017) writes snapshot, counts, run,
-scope, and the first Pending event atomically. It does not reconstruct
-lineage or invent a TEPP score.
+scope, the first Pending event, and a lineage outbox row atomically. It
+does not reconstruct lineage or invent a TEPP score. Delivery is ADR 0018.
 """
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ from uuid import UUID
 
 import asyncpg
 
+from backend.app.analysis_run_outbox import enqueue_lineage_delivery
 from backend.app.knowledge_graph import labels_for_codes
 from lineageweave import __version__ as PACKAGE_VERSION
 
@@ -237,6 +238,8 @@ async def fetch_visible_analysis_run(
     if row["failure_code"]:
         detail["failure_code"] = row["failure_code"]
     detail["status_history"] = await _status_history(conn, analysis_run_id)
+    if row["run_kind_code"] == "analysis_run_lineage":
+        detail["lineage_edges"] = await _lineage_edges(conn, analysis_run_id)
     detail["visible_posts"] = await fetch_visible_scope_posts(
         conn,
         row["scope_kind_code"],
@@ -247,6 +250,30 @@ async def fetch_visible_analysis_run(
         row["knowledge_cutoff"],
     )
     return detail
+
+
+async def _lineage_edges(
+    conn: asyncpg.Connection,
+    analysis_run_id: str,
+) -> list[dict[str, Any]]:
+    """Run-scoped reconstruction edges for one already-visible lineage run."""
+    rows = await conn.fetch(
+        """
+        select parent_post_id, child_post_id, fused_score
+          from analysis_run_lineage_edge
+         where analysis_run_id = $1::uuid
+         order by parent_post_id, child_post_id
+        """,
+        analysis_run_id,
+    )
+    return [
+        {
+            "parent_post_id": str(row["parent_post_id"]),
+            "child_post_id": str(row["child_post_id"]),
+            "fused_score": float(row["fused_score"]),
+        }
+        for row in rows
+    ]
 
 
 async def fetch_visible_scope_posts(
@@ -440,11 +467,12 @@ async def create_pending_analysis_run(
     knowledge_cutoff: datetime | None,
     idempotency_key: str,
 ) -> dict[str, Any]:
-    """Insert snapshot, counts, run, scope, and Pending in one transaction.
+    """Insert snapshot, counts, run, scope, Pending, and a lineage outbox row.
 
     Does not reconstruct lineage and does not call TEPP. A missing
     measurement stays a later worker slice; this write only records the
-    request. Idempotent retries compare ``configuration_sha256``.
+    request. Idempotent retries compare ``configuration_sha256`` and do
+    not enqueue a second delivery.
     """
     if run_kind_code not in _ALLOWED_CREATE_KINDS:
         raise AnalysisRunCreateError(
@@ -638,6 +666,8 @@ async def create_pending_analysis_run(
         run_id,
         now,
     )
+    if run_kind_code == "analysis_run_lineage":
+        await enqueue_lineage_delivery(conn, str(run_id))
     created = await fetch_visible_analysis_run(
         conn,
         str(run_id),
