@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.2] - 2026-08-16
+
+### Fixed
+
+- Pending analysis-run next actions are kind-specific. A pending TEPP
+  row tells the operator measurement has not started — it does not say
+  reconstruction. The list button accessible name includes that
+  sentence (WCAG 2.2 SC 4.1.2). Open the row: detail repeats it
+  (ADR 0020).
+
 ## [0.86.0] - 2026-08-16
 
 ### Added

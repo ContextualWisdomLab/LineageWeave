@@ -1450,31 +1450,63 @@ function analysisRunCaption(run: AnalysisRun): string {
 }
 
 /**
- * Next action for a failed run on the home list.
+ * Next action for a pending or failed run on the home list (ADR 0020).
  *
  * The machine `failure_code` stays on detail history (ADR 0014). Copy
- * is kind-specific so a failed lineage reconstruction is not mistaken
- * for a missing TEPP transport.
+ * is kind-specific so a pending TEPP row is not mistaken for
+ * reconstruction, and a failed lineage row is not mistaken for a
+ * missing TEPP transport.
  */
 function analysisRunNextAction(run: AnalysisRun): string | null {
-  if (run.status_code === "analysis_status_pending") {
-    return "Open this run to confirm which posts it will use. Reconstruction has not started yet.";
-  }
-  if (run.status_code !== "analysis_status_failed") {
-    return null;
-  }
-  switch (run.run_kind_code) {
-    case "analysis_run_tepp":
-      return "Open this run to see why it failed, then connect the measurement service and re-run.";
-    case "analysis_run_lineage":
-      return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
-    case "analysis_run_report":
-      return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
+  switch (run.status_code) {
+    case "analysis_status_pending":
+      switch (run.run_kind_code) {
+        case "analysis_run_lineage":
+          return "Open this run to confirm which posts it will use. Reconstruction has not started yet.";
+        case "analysis_run_tepp":
+          return "Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.";
+        case "analysis_run_report":
+          return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
+        default: {
+          const unexpected: never = run.run_kind_code;
+          return unexpected;
+        }
+      }
+    case "analysis_status_failed":
+      switch (run.run_kind_code) {
+        case "analysis_run_tepp":
+          return "Open this run to see why it failed, then connect the measurement service and re-run.";
+        case "analysis_run_lineage":
+          return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
+        case "analysis_run_report":
+          return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
+        default: {
+          const unexpected: never = run.run_kind_code;
+          return unexpected;
+        }
+      }
+    case "analysis_status_running":
+    case "analysis_status_succeeded":
+    case "analysis_status_cancelled":
+    case null:
+      return null;
     default: {
-      const unexpected: never = run.run_kind_code;
+      const unexpected: never = run.status_code;
       return unexpected;
     }
   }
+}
+
+/**
+ * List-button accessible name (WCAG 2.2 SC 4.1.2 / AccName 1.1).
+ *
+ * `aria-label` replaces the button contents, so the next-action sentence
+ * must be in the name or a screen reader only hears the caption.
+ */
+function analysisRunAccessibleName(run: AnalysisRun): string {
+  const caption = analysisRunCaption(run);
+  const nextAction = analysisRunNextAction(run);
+  return nextAction ? `Open analysis run: ${caption}. ${nextAction}` : `Open analysis run: ${caption}`;
 }
 
 /**
@@ -1679,7 +1711,7 @@ function AnalysisRunsPanel({
               <li key={run.analysis_run_id} className="ticket-list-item">
                 <button
                   className="post-list-item"
-                  aria-label={`Open analysis run: ${caption}`}
+                  aria-label={analysisRunAccessibleName(run)}
                   onClick={() => void handleOpen(run.analysis_run_id)}
                 >
                   <span className="ticket-title">{caption}</span>
@@ -1698,6 +1730,9 @@ function AnalysisRunsPanel({
       {selected && (
         <div className="popup-section">
           <h3>{analysisRunCaption(selected)}</h3>
+          {analysisRunNextAction(selected) && (
+            <p className="post-meta">{analysisRunNextAction(selected)}</p>
+          )}
           <p className="post-meta">
             Cutoff {selected.knowledge_cutoff.slice(0, 10)}
             {" · "}
