@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.97.0] - 2026-08-17
+
+### Added
+
+- A Succeeded period-report analysis run now opens the scored week.
+  After `make seed`, open **Period report · Succeeded · Demo Corp**
+  and click **Open period report 2026-W02**: the report period field
+  is focused on that week. Failed rows stay closed. Mean θ stays on
+  the report panel. No TEPP theta is invented.
+
 ## [0.96.0] - 2026-08-17
 
 ### Added

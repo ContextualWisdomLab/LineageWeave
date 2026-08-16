@@ -251,6 +251,8 @@ async def _serialize_runs(
         }
         if row["scope_entity_name"]:
             item["scope_entity_name"] = row["scope_entity_name"]
+        if row["scope_key"]:
+            item["scope_key"] = row["scope_key"]
         payload.append(item)
     return payload
 

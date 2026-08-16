@@ -1681,6 +1681,28 @@ function analysisRunCanRequestTeppRetry(run: AnalysisRun): boolean {
   return run.run_kind_code === "analysis_run_tepp" && run.status_code === "analysis_status_failed";
 }
 
+const REPORT_PERIOD_KEY = /^\d{4}-W\d{2}$/;
+
+/**
+ * Period code stored on a succeeded report run's scope key.
+ *
+ * That key is a week label, not a theta. Missing or malformed keys
+ * stay closed so we do not invent a period.
+ */
+function analysisRunReportPeriod(run: AnalysisRun): string | null {
+  if (run.run_kind_code !== "analysis_run_report") {
+    return null;
+  }
+  if (run.status_code !== "analysis_status_succeeded") {
+    return null;
+  }
+  const key = run.scope_key;
+  if (!key || !REPORT_PERIOD_KEY.test(key)) {
+    return null;
+  }
+  return key;
+}
+
 /**
  * Open options for a reconstructed parent or child.
  *
@@ -1699,9 +1721,11 @@ function analysisRunPostOpenOptions(run: AnalysisRun, postId: string): SelectPos
 function AnalysisRunsPanel({
   accessToken,
   onSelectPost,
+  onSelectReportPeriod,
 }: {
   accessToken: string;
   onSelectPost: (postId: string, options?: SelectPostOptions) => void;
+  onSelectReportPeriod?: (periodCode: string) => void;
 }) {
   const [runs, setRuns] = useState<AnalysisRun[] | null>(null);
   const [selected, setSelected] = useState<AnalysisRun | null>(null);
@@ -1872,6 +1896,21 @@ function AnalysisRunsPanel({
               {requesting ? "Recording the run..." : "Request a new TEPP measurement"}
             </button>
           )}
+          {analysisRunReportPeriod(selected) && onSelectReportPeriod && (
+            <button
+              className="keyman-select"
+              aria-label={`Open period report ${analysisRunReportPeriod(selected)}`}
+              onClick={() => {
+                const periodCode = analysisRunReportPeriod(selected);
+                if (periodCode) {
+                  onSelectReportPeriod(periodCode);
+                  document.getElementById("report-period")?.focus();
+                }
+              }}
+            >
+              Open period report {analysisRunReportPeriod(selected)}
+            </button>
+          )}
           {selected.reconstructed_edges && selected.reconstructed_edges.length > 0 && (
             <ul aria-label="Reconstructed lineage edges">
               {selected.reconstructed_edges.map((edge) => (
@@ -2020,13 +2059,16 @@ function ReportsPanel({
   accessToken,
   canRebuild,
   onSelectPost,
+  period,
+  onSelectPeriod,
 }: {
   accessToken: string;
   canRebuild: boolean;
   onSelectPost: (postId: string) => void;
+  period: string;
+  onSelectPeriod: (periodCode: string) => void;
 }) {
   const [grouping, setGrouping] = useState("process_unit");
-  const [period, setPeriod] = useState("2026-W02");
   const [payload, setPayload] = useState<PeriodReports | null>(null);
   const [index, setIndex] = useState<PeriodReportIndex | null>(null);
   const [comparison, setComparison] = useState<PeriodComparison | null>(null);
@@ -2096,9 +2138,10 @@ function ReportsPanel({
         <label>
           Period
           <input
+            id="report-period"
             aria-label="Report period"
             value={period}
-            onChange={(event) => setPeriod(event.target.value)}
+            onChange={(event) => onSelectPeriod(event.target.value)}
           />
         </label>
       </div>
@@ -2128,7 +2171,7 @@ function ReportsPanel({
               <button
                 className="post-list-item"
                 aria-label={`Open report period ${row.period_code}`}
-                onClick={() => setPeriod(row.period_code)}
+                onClick={() => onSelectPeriod(row.period_code)}
               >
                 <span className="ticket-title">
                   {row.period_code}: mean θ {row.mean_theta.toFixed(2)}
@@ -2227,6 +2270,7 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [canRebuild, setCanRebuild] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
+  const [reportPeriod, setReportPeriod] = useState("2026-W02");
 
   function selectPost(postId: string, options?: SelectPostOptions) {
     setSelectedPostId(postId);
@@ -2268,8 +2312,18 @@ function PostList({ accessToken }: { accessToken: string }) {
   return (
     <>
       <CalendarPanel accessToken={accessToken} onSelectPost={selectPost} />
-      <AnalysisRunsPanel accessToken={accessToken} onSelectPost={selectPost} />
-      <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={selectPost} />
+      <AnalysisRunsPanel
+        accessToken={accessToken}
+        onSelectPost={selectPost}
+        onSelectReportPeriod={setReportPeriod}
+      />
+      <ReportsPanel
+        accessToken={accessToken}
+        canRebuild={canRebuild}
+        onSelectPost={selectPost}
+        period={reportPeriod}
+        onSelectPeriod={setReportPeriod}
+      />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
           <h2>Event Lineage</h2>
