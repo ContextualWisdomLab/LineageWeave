@@ -209,12 +209,16 @@ class _SummaryConnection:
         if "from post_summary_event" in compact:
             return [{"event_text": "검토 완료"}]
         if "from post_summary_role" in compact:
+            assert "entity_name" not in compact
+            assert "cataloged_corporate_entity_id" in compact
             return [
                 {
                     "actor_name": "Synthetic Design Team",
                     "responsibility": "도면 검토",
                     "actor_type_code": ACTOR_TYPE_TEAM,
                     "affiliated_organization_name": "Synthetic Energy",
+                    "cataloged_team_id": None,
+                    "cataloged_corporate_entity_id": None,
                 }
             ]
         raise AssertionError(f"unexpected fetch query: {compact}")
@@ -354,6 +358,14 @@ def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch
         and event[0] == "execute"
         and "insert into post_organization_mention" in event[1]
     )
+    role_insert = next(
+        event[1]
+        for event in events
+        if isinstance(event, tuple)
+        and event[0] == "execute"
+        and "insert into post_summary_role" in event[1]
+    )
+    assert "cataloged_corporate_entity_id" in role_insert
     assert resolve_index < enter_index < mention_index < exit_index
 
 
@@ -469,3 +481,29 @@ def test_release_notes_describe_balanced_outer_emphasis_stripping() -> None:
     assert "strips balanced outer Markdown emphasis from field values" in content
     assert "while still accepting emphasized field labels" in content
     assert "preserves Markdown emphasis in field values" not in content
+
+
+def test_role_catalog_identity_is_stored_on_the_role_row() -> None:
+    """ADR 0019: fetch must not reconstruct organization identity by name."""
+    root = Path(__file__).resolve().parents[1]
+    fetch_source = (
+        root / "backend" / "app" / "post_summary_ingestion.py"
+    ).read_text(encoding="utf-8")
+    initial = (root / "migrations" / "0001_initial_schema.sql").read_text(
+        encoding="utf-8"
+    )
+    upgrade = (root / "migrations" / "0019_role_catalog_identity.sql").read_text(
+        encoding="utf-8"
+    )
+    dockerfile = (
+        root / "docker" / "postgres-init" / "Dockerfile"
+    ).read_text(encoding="utf-8")
+    changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
+    fetch_sql = fetch_source.split("async def fetch_persisted_summary", 1)[1]
+    fetch_sql = fetch_sql.split("async def persist_post_summary", 1)[0]
+    assert "org.entity_name = role.actor_name" not in fetch_sql
+    assert "cataloged_corporate_entity_id" in fetch_sql
+    assert "cataloged_team_id" in initial
+    assert "cataloged_corporate_entity_id" in upgrade
+    assert "0019_role_catalog_identity.sql" in dockerfile
+    assert "ADR 0019" in changelog
