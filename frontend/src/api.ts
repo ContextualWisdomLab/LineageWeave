@@ -516,3 +516,7 @@ export interface AnalysisRun {
 export function fetchAnalysisRuns(accessToken: string): Promise<{ analysis_runs: AnalysisRun[] }> {
   return backendFetch("/api/analysis-runs", accessToken);
 }
+
+export function fetchAnalysisRun(accessToken: string, analysisRunId: string): Promise<AnalysisRun> {
+  return backendFetch(`/api/analysis-runs/${analysisRunId}`, accessToken);
+}
