@@ -33,6 +33,7 @@ import psycopg2
 from lineageweave.http_client import get_json_list, post_form
 from lineageweave.post_summary import ACTOR_TYPE_PERSON
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
+from lineageweave.tepp_result import parse_persistable_tepp_result, persistable_tepp_seed_envelope
 
 REALM = "lineageweave-demo"
 DEFAULT_POSTGRES_DSN = "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
@@ -45,6 +46,7 @@ DEMO_SOURCE_SNAPSHOT_MATERIAL = b"lineageweave-synthetic-demo-snapshot-v1"
 DEMO_SOURCE_CONTRACT_VERSION = "demo-source-contract-v1"
 DEMO_LINEAGE_IDEMPOTENCY_KEY = "demo-lineage-seed-2026-w02"
 DEMO_TEPP_IDEMPOTENCY_KEY = "demo-tepp-seed-2026-w02"
+DEMO_TEPP_SUCCEEDED_IDEMPOTENCY_KEY = "demo-tepp-seed-2026-w02-succeeded"
 DEMO_REPORT_IDEMPOTENCY_KEY = "demo-report-seed-2026-w02"
 
 # (post_title, ticket_title, due_date) -- Event Lineage fixtures a report
@@ -131,6 +133,7 @@ def seed(
             cur.execute((migrations / "0025_role_person_catalog_identity.sql").read_text())
             cur.execute((migrations / "0026_report_leftover_pair.sql").read_text())
             cur.execute((migrations / "0027_abbreviation_tree_corroboration.sql").read_text())
+            cur.execute((migrations / "0028_analysis_run_tepp_result.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -418,6 +421,11 @@ def seed(
                 corporate_entity_id,
             )
             _seed_demo_tepp_run(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+            )
+            _seed_demo_succeeded_tepp_run(
                 cur,
                 account_ids["demo.analyst"],
                 corporate_entity_id,
@@ -1557,20 +1565,27 @@ def tepp_seed_request() -> AnalysisRunRequest:
     )
 
 
+def tepp_persistable_seed_client() -> TeppClient:
+    """In-process transport that returns the Demo Corp persistable envelope."""
+    return TeppClient(transport=lambda _payload: persistable_tepp_seed_envelope())
+
+
 def tepp_seed_outcome(client: TeppClient | None = None) -> tuple[str, str | None]:
     """Ask TEPP through the published client. A missing transport is Failed.
 
     Never invents a psychometric score. ``tepp_not_available`` means the
-    channel was dropped, not a calibrated negative result. A live
-    envelope is also not a persistable measurement in this seed, so the
-    run is not stamped Succeeded.
+    channel was dropped, not a calibrated negative result. An accepted
+    ack stays Failed / ``tepp_result_not_persisted``. A persistable
+    time / multilevel / multi-affiliation envelope is Succeeded.
     """
-    request = tepp_seed_request()
     try:
-        (client or TeppClient()).submit_analysis_run(request)
+        envelope = (client or TeppClient()).submit_analysis_run(tepp_seed_request())
     except TeppNotAvailable:
         return "analysis_status_failed", "tepp_not_available"
-    return "analysis_status_failed", "tepp_result_not_persisted"
+    parsed = parse_persistable_tepp_result(envelope)
+    if parsed is None:
+        return "analysis_status_failed", "tepp_result_not_persisted"
+    return "analysis_status_succeeded", None
 
 
 def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> None:
@@ -1640,6 +1655,97 @@ def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> No
             on conflict do nothing
             """,
             (run_id, ordinal, status, occurred, fail),
+        )
+    _seed_demo_run_outbox(cur, run_id)
+
+
+def _seed_demo_succeeded_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> None:
+    """Insert one Demo-Corp Succeeded TEPP run from a persistable envelope.
+
+    Uses an in-process transport so CI and ``make seed`` do not need a
+    live TEPP HTTP endpoint. The envelope is time / multilevel /
+    multi-affiliation aggregates only -- never a fabricated theta.
+    """
+    snapshot_id = _ensure_demo_source_snapshot(cur)
+    _ensure_demo_source_counts(cur, snapshot_id)
+    _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id)
+    cur.execute(
+        """
+        select analysis_run_id from analysis_run
+        where requested_by_account_id = %s
+          and idempotency_key = %s
+        """,
+        (requested_by_account_id, DEMO_TEPP_SUCCEEDED_IDEMPOTENCY_KEY),
+    )
+    run_row = cur.fetchone()
+    if run_row is None:
+        cur.execute(
+            """
+            insert into analysis_run
+                (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                 requested_by_account_id, knowledge_cutoff,
+                 configuration_schema_version, configuration_sha256,
+                 code_revision_sha, requested_at)
+            values (%s, 'analysis_run_tepp', %s,
+                    %s, '2026-01-12T12:00:00Z', 'tepp-run-v1', %s, %s,
+                    '2026-01-12T12:42:00Z')
+            returning analysis_run_id
+            """,
+            (
+                snapshot_id,
+                DEMO_TEPP_SUCCEEDED_IDEMPOTENCY_KEY,
+                requested_by_account_id,
+                "c" * 64,
+                "b" * 40,
+            ),
+        )
+        run_id = cur.fetchone()[0]
+    else:
+        run_id = run_row[0]
+    cur.execute(
+        """
+        insert into analysis_run_scope
+            (analysis_run_id, scope_kind_code, corporate_entity_id)
+        values (%s, 'analysis_scope_corporate_entity', %s)
+        on conflict (analysis_run_id) do nothing
+        """,
+        (run_id, corporate_entity_id),
+    )
+    status, failure = tepp_seed_outcome(tepp_persistable_seed_client())
+    persistable = parse_persistable_tepp_result(persistable_tepp_seed_envelope())
+    if persistable is not None:
+        cur.execute(
+            """
+            insert into analysis_run_tepp_result
+                (analysis_run_id, result_sha256, interval_count, level_count,
+                 affiliation_count, measured_at, recorded_at)
+            values (%s, %s, %s, %s, %s, %s, %s)
+            on conflict do nothing
+            """,
+            (
+                run_id,
+                persistable.result_sha256(),
+                persistable.interval_count,
+                persistable.level_count,
+                persistable.affiliation_count,
+                persistable.measured_at,
+                "2026-01-12T12:45:00Z",
+            ),
+        )
+    events = [
+        (1, "analysis_status_pending", "2026-01-12T12:43:00Z", None),
+        (2, "analysis_status_running", "2026-01-12T12:44:00Z", None),
+        (3, status, "2026-01-12T12:45:00Z", failure),
+    ]
+    for ordinal, event_status, occurred, fail in events:
+        cur.execute(
+            """
+            insert into analysis_run_status_event
+                (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
+            values (%s, %s, %s, %s, %s)
+            on conflict do nothing
+            """,
+            (run_id, ordinal, event_status, occurred, fail),
         )
     _seed_demo_run_outbox(cur, run_id)
 

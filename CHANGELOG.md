@@ -4,6 +4,21 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.0] - 2026-08-17
+
+### Added
+
+- A persistable TEPP **time / multilevel / multi-affiliation** result
+  is stored on the analysis-run and marked Succeeded (ADR 0034). After
+  `make seed`, Demo Analyst sees **TEPP measurement · Succeeded · Demo
+  Corp** next to the Failed missing-transport row. Home list and detail
+  show measured clocks and affiliation counts. A screen reader on that
+  Succeeded row hears open the run to read those aggregates, not only
+  the title. An `accepted` ack or an envelope this product cannot store
+  stays Failed / `tepp_result_not_persisted`. Missing
+  `TEPP_TRANSPORT_URL` stays Failed / `tepp_not_available`. Never
+  invent a theta.
+
 ## [2.11.0] - 2026-08-17
 
 ### Added

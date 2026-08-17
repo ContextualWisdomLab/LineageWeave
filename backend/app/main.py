@@ -1420,7 +1420,9 @@ async def start_analysis_run(
     post_read is enough. Hidden runs 404. Period-report is 422 so this
     path cannot invent a calibrated score. TEPP goes through
     ``tepp_client`` and stays Failed when the transport is missing or
-    the envelope is not persistable. A Succeeded lineage retry returns
+    the envelope is not persistable. A persistable time / multilevel /
+    multi-affiliation result is stored and the run is Succeeded. A
+    Succeeded lineage retry returns
     the stored tree. A Running restart with an undelivered outbox
     finishes that work. A Running restart without pending work is 409.
     The outbox commits before reconstruct/TEPP so a crash leaves a

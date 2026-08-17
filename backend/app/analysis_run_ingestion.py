@@ -11,8 +11,9 @@ membership, run, scope, and the first Pending event atomically. It
 records lineage only. It does not reconstruct lineage, accept a TEPP
 kind, or invent a score. ``enqueue_pending_analysis_run`` then
 ``deliver_queued_analysis_run`` later reconstruct lineage (ADR 0021 /
-ADR 0023) or submit TEPP through ``tepp_client`` (ADR 0022). Neither
-path invents a TEPP score.
+ADR 0023) or submit TEPP through ``tepp_client`` (ADR 0022 / ADR 0034).
+A persistable time / multilevel / multi-affiliation result is stored;
+neither path invents a TEPP score.
 """
 
 from __future__ import annotations
@@ -183,6 +184,32 @@ def live_write_after_cutoff(updated_at: datetime, knowledge_cutoff: datetime) ->
     return _as_utc(updated_at) > _as_utc(knowledge_cutoff)
 
 
+async def _tepp_results_by_run(
+    conn: asyncpg.Connection,
+    run_ids: list[str],
+) -> dict[str, asyncpg.Record]:
+    """Load persistable TEPP aggregates for the given runs.
+
+    Missing ``analysis_run_tepp_result`` means migration 0028 is not
+    applied. Treat that as no stored measurement rather than 500.
+    """
+    if not run_ids:
+        return {}
+    try:
+        rows = await conn.fetch(
+            """
+            select analysis_run_id, result_sha256, interval_count,
+                   level_count, affiliation_count, measured_at
+            from analysis_run_tepp_result
+            where analysis_run_id = any($1::uuid[])
+            """,
+            run_ids,
+        )
+    except asyncpg.UndefinedTableError:
+        return {}
+    return {str(row["analysis_run_id"]): row for row in rows}
+
+
 async def _counts_by_run(
     conn: asyncpg.Connection,
     run_ids: list[str],
@@ -282,7 +309,9 @@ async def _serialize_runs(
     """Project registry rows into the authorized buyer-facing payload."""
     if not rows:
         return []
-    count_rows = await _counts_by_run(conn, [str(row["analysis_run_id"]) for row in rows])
+    run_ids = [str(row["analysis_run_id"]) for row in rows]
+    count_rows = await _counts_by_run(conn, run_ids)
+    tepp_rows = await _tepp_results_by_run(conn, run_ids)
     labels = await labels_for_codes(
         conn,
         [row["run_kind_code"] for row in rows]
@@ -328,6 +357,13 @@ async def _serialize_runs(
         grouping_key = scope_grouping_key(row)
         if grouping_key:
             item["scope_grouping_key"] = grouping_key
+        tepp = tepp_rows.get(run_id)
+        if tepp is not None:
+            item["tepp_result_sha256"] = tepp["result_sha256"]
+            item["tepp_interval_count"] = int(tepp["interval_count"])
+            item["tepp_level_count"] = int(tepp["level_count"])
+            item["tepp_affiliation_count"] = int(tepp["affiliation_count"])
+            item["tepp_measured_at"] = _iso(tepp["measured_at"])
         payload.append(item)
     return payload
 

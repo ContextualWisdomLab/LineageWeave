@@ -23,6 +23,8 @@ import redis
 
 from lineageweave.http_client import HttpClientError, get_json, post_form
 from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
+from lineageweave.tepp_client import TeppClient
+from lineageweave.tepp_result import persistable_tepp_seed_envelope
 
 _POSTGRES_ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
@@ -44,6 +46,9 @@ _OUTBOX_MIGRATION = (
 )
 _REVISION_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0024_source_post_revision.sql"
+)
+_TEPP_RESULT_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0028_analysis_run_tepp_result.sql"
 )
 
 
@@ -133,6 +138,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_SNAPSHOT_MEMBER_MIGRATION.read_text())
             cur.execute(_OUTBOX_MIGRATION.read_text())
             cur.execute(_REVISION_MIGRATION.read_text())
+            cur.execute(_TEPP_RESULT_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -1039,6 +1045,100 @@ def test_start_analysis_run_recovers_the_a100_fork(
         if edge["parent_post_title"] == "Pricing renegotiation follow-up"
     }
     assert "Pricing renegotiation: revised quote sent" in children
+
+
+def test_tepp_start_persists_a_persistable_envelope(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """A persistable TEPP envelope is stored and the run is Succeeded."""
+    monkeypatch.setattr(
+        "backend.app.main.configured_tepp_client",
+        lambda _url="": TeppClient(
+            transport=lambda _payload: persistable_tepp_seed_envelope()
+        ),
+    )
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select requested_by_account_id from analysis_run "
+                "where analysis_run_id = %s",
+                (seeded_db["visible_run_id"],),
+            )
+            requester_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_source_snapshot
+                    (snapshot_sha256, source_contract_version,
+                     maximum_available_time, captured_at)
+                values (%s, 'source-contract-v1',
+                        '2026-02-15T00:00:00Z', '2026-02-15T00:05:00Z')
+                returning analysis_source_snapshot_id
+                """,
+                ("8" * 64,),
+            )
+            snapshot_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_run
+                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                     requested_by_account_id, knowledge_cutoff,
+                     configuration_schema_version, configuration_sha256,
+                     code_revision_sha, requested_at)
+                values (%s, 'analysis_run_tepp', 'buyer-start-tepp-persistable',
+                        %s, '2026-02-15T00:00:00Z', 'tepp-run-v1', %s, %s,
+                        '2026-02-15T12:30:00Z')
+                returning analysis_run_id
+                """,
+                (snapshot_id, requester_id, "7" * 64, "6" * 40),
+            )
+            tepp_run_id = str(cur.fetchone()[0])
+            cur.execute(
+                """
+                insert into analysis_run_scope
+                    (analysis_run_id, scope_kind_code, corporate_entity_id)
+                values (%s, 'analysis_scope_corporate_entity', %s)
+                """,
+                (tepp_run_id, seeded_db["own_corp_id"]),
+            )
+            cur.execute(
+                """
+                insert into analysis_run_status_event
+                    (analysis_run_id, status_ordinal, status_code, occurred_at)
+                values (%s, 1, 'analysis_status_pending', '2026-02-15T12:31:00Z')
+                """,
+                (tepp_run_id,),
+            )
+    finally:
+        admin_conn.close()
+
+    measured = client.post(
+        f"/api/analysis-runs/{tepp_run_id}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert measured.status_code == 200, measured.text
+    body = measured.json()
+    assert body["status_label"] == "Succeeded"
+    assert "failure_code" not in body
+    assert body["tepp_affiliation_count"] == 2
+    assert body["tepp_interval_count"] == 2
+    assert body["tepp_level_count"] == 3
+    assert body["tepp_measured_at"]
+    assert len(body["tepp_result_sha256"]) == 64
+    assert "theta" not in str(body).lower()
+
+    listed = client.get(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert listed.status_code == 200
+    listed_run = next(
+        run for run in listed.json()["analysis_runs"] if run["analysis_run_id"] == tepp_run_id
+    )
+    assert listed_run["status_label"] == "Succeeded"
+    assert listed_run["tepp_affiliation_count"] == 2
+    assert listed_run["tepp_measured_at"]
 
 
 def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> None:
