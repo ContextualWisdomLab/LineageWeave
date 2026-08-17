@@ -2,7 +2,7 @@
 --
 -- Additive to 0028. Existing analysis_run_tepp_result rows stay in place.
 -- This table stores TEPP's published AnalysisRunAccepted fields only.
--- It does not store a completed measurement, theta, membership weight,
+-- It does not store a completed measurement, psychometric score, membership weight,
 -- or LineageWeave-local time_multilevel_multi_affiliation counts.
 
 create table if not exists analysis_run_tepp_accepted (

@@ -22,7 +22,7 @@ _ACCEPTED_RUN_STATE = "accepted"
 _ACCEPTED_FIELDS = frozenset(
     {"contract_version", "run_id", "run_state", "idempotency_key"}
 )
-_EVIDENCE_KIND = "aggregate_transport_evidence"
+_EVIDENCE_KIND = "aggregate transport evidence"
 _FORBIDDEN_TOKENS = (
     "theta",
     "item_parameter",

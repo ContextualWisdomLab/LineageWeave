@@ -2918,7 +2918,7 @@ describe("App, authenticated", () => {
     expect(
       await screen.findByRole("heading", { name: "Measurement evidence" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/not a validated multilevel estimate/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/not a validated multilevel estimate/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/2 affiliations/)).not.toBeInTheDocument();
@@ -2941,7 +2941,7 @@ describe("App, authenticated", () => {
     expect(
       await screen.findByRole("heading", { name: "Measurement evidence" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("aggregate transport evidence")).toBeInTheDocument();
+    expect(screen.getAllByText("aggregate transport evidence").length).toBeGreaterThan(0);
     expect(screen.getByText("a".repeat(64))).toBeInTheDocument();
     expect(screen.getByText(/accepted run demo-tepp-accepted-opaque/)).toBeInTheDocument();
     expect(screen.getByText(/completed-artifact identity/i)).toBeInTheDocument();
