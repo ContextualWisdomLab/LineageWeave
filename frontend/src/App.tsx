@@ -770,11 +770,18 @@ function EvaluationPanel({
   const [evaluating, setEvaluating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orchestratorOff, setOrchestratorOff] = useState(false);
+  const leftoverRowRef = useRef<HTMLLIElement | null>(null);
+  const focusCriterion = leftoverPairs[0]?.criterion_code ?? null;
 
   useEffect(() => {
     setOrchestratorOff(false);
     setError(null);
   }, [postId]);
+
+  useEffect(() => {
+    leftoverRowRef.current?.scrollIntoView?.({ block: "nearest" });
+    leftoverRowRef.current?.focus?.();
+  }, [postId, focusCriterion, responses]);
 
   async function handleEvaluate() {
     setEvaluating(true);
@@ -811,8 +818,14 @@ function EvaluationPanel({
         <ul>
           {responses.map((row) => {
             const leftover = leftoverPairs.find((pair) => pair.criterion_code === row.criterion_code);
+            const isFocusRow = leftover != null && row.criterion_code === focusCriterion;
             return (
-              <li key={row.criterion_code}>
+              <li
+                key={row.criterion_code}
+                ref={isFocusRow ? leftoverRowRef : undefined}
+                tabIndex={isFocusRow ? -1 : undefined}
+                aria-current={leftover ? true : undefined}
+              >
                 {row.criterion_label ?? row.criterion_code}: {row.response_category}
                 {leftover && (
                   <span className="post-badge"> {leftoverRowLabel(leftover.pair_kind)}</span>

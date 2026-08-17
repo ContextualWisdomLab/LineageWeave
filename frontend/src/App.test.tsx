@@ -1420,8 +1420,12 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "This post sat closest to sales-lead after main effects. Read that evaluation row next.",
     );
-    expect(screen.getByText(/Sales-lead specificity: 3/)).toHaveTextContent("Closest leftover");
+    const leftoverRow = screen.getByText(/Sales-lead specificity: 3/).closest("li");
+    expect(leftoverRow).toHaveTextContent("Closest leftover");
+    expect(leftoverRow).toHaveAttribute("aria-current", "true");
+    expect(leftoverRow).toHaveFocus();
     expect(screen.getByText(/Constructive stance: 2/)).not.toHaveTextContent("leftover");
+    expect(screen.getByText(/Constructive stance: 2/).closest("li")).not.toHaveAttribute("aria-current");
   });
 
   it("opens Event Lineage, Keyman, and evaluation from a report member click", async () => {
