@@ -2248,6 +2248,7 @@ describe("App, authenticated", () => {
         name: /open report post: public post/i,
       });
       expect(member).toHaveTextContent("θ 0.91");
+      expect(member).not.toHaveAttribute("aria-current");
       const status = screen.getByRole("status");
       const demoMean = screen.getByText(/Demo Corp: mean θ 0\.42/);
       const weekChip = screen.getByRole("button", { name: /open report period 2026-W03/i });
@@ -2255,6 +2256,14 @@ describe("App, authenticated", () => {
       expect(demoMean.compareDocumentPosition(weekChip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
       await userEvent.click(member);
       await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+      expect(member).toHaveAttribute("aria-current", "true");
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Public post is open from Demo Corp. Read Event Lineage, Keyman, and evaluation on this post.",
+      );
+      expect(screen.getByRole("status")).not.toHaveTextContent("then open a post");
+      expect(
+        screen.getAllByRole("heading", { name: "Event Lineage" }).length,
+      ).toBeGreaterThanOrEqual(2);
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
     }

@@ -2110,7 +2110,16 @@ function comparisonChipAccessibleName(
   return `Compare ${comparisonGroupingTitle(groupingKind, groupingLabel)}, mean θ ${meanTheta.toFixed(2)}`;
 }
 
-function openedReportNextAction(groupingLabel: string): string {
+function openedReportNextAction(
+  groupingLabel: string,
+  openedMemberTitle?: string | null,
+): string {
+  if (openedMemberTitle) {
+    return (
+      `${openedMemberTitle} is open from ${groupingLabel}. ` +
+      "Read Event Lineage, Keyman, and evaluation on this post."
+    );
+  }
   return (
     `${groupingLabel} is the opened grouping. Read its mean θ and member posts below, then open a post.`
   );
@@ -2140,6 +2149,7 @@ function ReportsPanel({
   openedGroupingLabel,
   onOpenGrouping,
   landOnComparison,
+  selectedPostId,
 }: {
   accessToken: string;
   canRebuild: boolean;
@@ -2152,6 +2162,7 @@ function ReportsPanel({
   openedGroupingLabel?: string | null;
   onOpenGrouping?: (groupingKey: string, groupingLabel: string) => void;
   landOnComparison?: boolean;
+  selectedPostId?: string | null;
 }) {
   const [payload, setPayload] = useState<PeriodReports | null>(null);
   const [index, setIndex] = useState<PeriodReportIndex | null>(null);
@@ -2222,6 +2233,14 @@ function ReportsPanel({
         groupingIsOpened(grouping, groupingKey, groupingLabel),
       )
     : [];
+  const openedMemberTitle = selectedPostId
+    ? orderedReports
+        .filter((report) =>
+          groupingIsOpened(grouping, report.grouping_key, report.grouping_label),
+        )
+        .flatMap((report) => report.members)
+        .find((member) => member.post_id === selectedPostId)?.post_title
+    : undefined;
   const reportList =
     payload === null && !error ? (
       <p>Loading reports...</p>
@@ -2271,6 +2290,11 @@ function ReportsPanel({
                     <button
                       className="post-list-item"
                       aria-label={`Open report post: ${member.post_title}`}
+                      aria-current={
+                        selectedPostId && member.post_id === selectedPostId
+                          ? "true"
+                          : undefined
+                      }
                       onClick={() => onSelectPost(member.post_id)}
                     >
                       <span className="ticket-title">{member.post_title}</span>
@@ -2363,7 +2387,7 @@ function ReportsPanel({
       )}
       {openedGroupingLabel && (
         <p className="post-meta" role="status">
-          {openedReportNextAction(openedGroupingLabel)}
+          {openedReportNextAction(openedGroupingLabel, openedMemberTitle)}
         </p>
       )}
       {openedGroupingLabel && reportList}
@@ -2509,6 +2533,7 @@ function PostList({ accessToken }: { accessToken: string }) {
         openedGroupingLabel={openedGroupingLabel}
         onOpenGrouping={openComparedGrouping}
         landOnComparison={landOnComparison}
+        selectedPostId={selectedPostId}
       />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
