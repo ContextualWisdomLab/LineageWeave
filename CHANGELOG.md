@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.78.0] - 2026-08-17
+
+### Added
+
+- Opening a leftover pair (or the same member from the loaded report)
+  names why that post sat closest to or farthest from a criterion after
+  IRT main effects, and marks the matching evaluation row. After
+  `make seed`, click the closest leftover pair: the popup says to read
+  the sales-lead evaluation next.
+
 ## [0.75.0] - 2026-08-17
 
 ### Added

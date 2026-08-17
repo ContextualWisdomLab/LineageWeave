@@ -42,6 +42,7 @@ import {
   type IssueTicket,
   type LineageGraph,
   type Keyman,
+  type LeftoverPair,
   type LinkedPostRef,
   type PostAiSummary,
   type PostDetail,
@@ -80,6 +81,26 @@ const CRITERION_SHORT_LABEL: Record<string, string> = {
 
 function criterionShortLabel(itemCode: string): string {
   return CRITERION_SHORT_LABEL[itemCode] ?? itemCode;
+}
+
+function leftoverKindPhrase(pairKind: string): "closest to" | "farthest from" {
+  return pairKind === "farthest" ? "farthest from" : "closest to";
+}
+
+function leftoverOpenCopy(pair: LeftoverPair): string {
+  const criterion = criterionShortLabel(pair.criterion_code);
+  return (
+    `This post sat ${leftoverKindPhrase(pair.pair_kind)} ${criterion} after main effects. ` +
+    "Read that evaluation row next."
+  );
+}
+
+function leftoverPairsForPost(pairs: LeftoverPair[], postId: string): LeftoverPair[] {
+  return pairs.filter((pair) => pair.post_id === postId);
+}
+
+function leftoverRowLabel(pairKind: string): string {
+  return pairKind === "farthest" ? "Farthest leftover" : "Closest leftover";
 }
 
 // This popup's layout follows the textual product brief (Korean summary,
@@ -735,12 +756,14 @@ function EvaluationPanel({
   postId,
   accessToken,
   responses,
+  leftoverPairs,
   canExtract,
   onEvaluated,
 }: {
   postId: string;
   accessToken: string;
   responses: EvaluationResponse[] | null;
+  leftoverPairs: LeftoverPair[];
   canExtract: boolean;
   onEvaluated: (rows: EvaluationResponse[]) => void;
 }) {
@@ -786,11 +809,17 @@ function EvaluationPanel({
         <p className="popup-placeholder">Not yet evaluated.</p>
       ) : (
         <ul>
-          {responses.map((row) => (
-            <li key={row.criterion_code}>
-              {row.criterion_label ?? row.criterion_code}: {row.response_category}
-            </li>
-          ))}
+          {responses.map((row) => {
+            const leftover = leftoverPairs.find((pair) => pair.criterion_code === row.criterion_code);
+            return (
+              <li key={row.criterion_code}>
+                {row.criterion_label ?? row.criterion_code}: {row.response_category}
+                {leftover && (
+                  <span className="post-badge"> {leftoverRowLabel(leftover.pair_kind)}</span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
@@ -1087,6 +1116,7 @@ function PostDetailPopup({
   accessToken,
   canExtract,
   graph,
+  leftoverPairs,
   onClose,
   onSelectPost,
 }: {
@@ -1094,6 +1124,7 @@ function PostDetailPopup({
   accessToken: string;
   canExtract: boolean;
   graph: LineageGraph | null;
+  leftoverPairs: LeftoverPair[];
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
 }) {
@@ -1169,6 +1200,11 @@ function PostDetailPopup({
               {new Date(post.created_at).toLocaleString()}
             </p>
             <p className="post-body">{post.post_body}</p>
+            {leftoverPairs.length > 0 && (
+              <p className="leftover-open-notice" role="status">
+                {leftoverPairs.map((pair) => leftoverOpenCopy(pair)).join(" ")}
+              </p>
+            )}
 
             <section className="popup-section">
               <h3>요약 (Summary)</h3>
@@ -1227,6 +1263,7 @@ function PostDetailPopup({
               postId={postId}
               accessToken={accessToken}
               responses={evaluation}
+              leftoverPairs={leftoverPairs}
               canExtract={canExtract}
               onEvaluated={(rows) => setEvaluation(rows)}
             />
@@ -1425,10 +1462,12 @@ function ReportsPanel({
   accessToken,
   canRebuild,
   onSelectPost,
+  onLeftoverPairsChange,
 }: {
   accessToken: string;
   canRebuild: boolean;
   onSelectPost: (postId: string) => void;
+  onLeftoverPairsChange: (pairs: LeftoverPair[]) => void;
 }) {
   const [grouping, setGrouping] = useState("process_unit");
   const [period, setPeriod] = useState("2026-W02");
@@ -1455,9 +1494,13 @@ function ReportsPanel({
         setPayload(reports);
         setIndex(periods);
         setComparison(compared);
+        onLeftoverPairsChange(reports.reports.flatMap((row) => row.leftover_pairs ?? []));
       })
-      .catch((err) => setError(String(err)));
-  }, [accessToken, grouping, period]);
+      .catch((err) => {
+        setError(String(err));
+        onLeftoverPairsChange([]);
+      });
+  }, [accessToken, grouping, period, onLeftoverPairsChange]);
 
   async function handleRebuild() {
     setRebuilding(true);
@@ -1472,8 +1515,10 @@ function ReportsPanel({
       setPayload(reports);
       setIndex(periods);
       setComparison(compared);
+      onLeftoverPairsChange(reports.reports.flatMap((row) => row.leftover_pairs ?? []));
     } catch (err) {
       setError(String(err));
+      onLeftoverPairsChange([]);
     } finally {
       setRebuilding(false);
     }
@@ -1658,6 +1703,7 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [graph, setGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [leftoverPairs, setLeftoverPairs] = useState<LeftoverPair[]>([]);
   const [canRebuild, setCanRebuild] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
@@ -1691,7 +1737,12 @@ function PostList({ accessToken }: { accessToken: string }) {
     <>
       <RankingsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
+      <ReportsPanel
+        accessToken={accessToken}
+        canRebuild={canRebuild}
+        onSelectPost={setSelectedPostId}
+        onLeftoverPairsChange={setLeftoverPairs}
+      />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
           <h2>Event Lineage</h2>
@@ -1726,6 +1777,7 @@ function PostList({ accessToken }: { accessToken: string }) {
           accessToken={accessToken}
           canExtract={canRebuild}
           graph={graph}
+          leftoverPairs={leftoverPairsForPost(leftoverPairs, selectedPostId)}
           onClose={() => setSelectedPostId(null)}
           onSelectPost={setSelectedPostId}
         />

@@ -1417,6 +1417,11 @@ describe("App, authenticated", () => {
       await screen.findByRole("button", { name: /open leftover closest pair: public post/i }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "This post sat closest to sales-lead after main effects. Read that evaluation row next.",
+    );
+    expect(screen.getByText(/Sales-lead specificity: 3/)).toHaveTextContent("Closest leftover");
+    expect(screen.getByText(/Constructive stance: 2/)).not.toHaveTextContent("leftover");
   });
 
   it("opens Event Lineage, Keyman, and evaluation from a report member click", async () => {
@@ -1425,6 +1430,9 @@ describe("App, authenticated", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: /open report post: public post/i }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "This post sat closest to sales-lead after main effects. Read that evaluation row next.",
+    );
     expect(screen.getByText("Constructive stance: 2")).toBeInTheDocument();
     expect(screen.getAllByText(/Ada West/).length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText("A-100 lineage").length).toBeGreaterThanOrEqual(2);
