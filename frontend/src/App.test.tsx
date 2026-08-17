@@ -1348,6 +1348,15 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/posts/post-2/lineage")) {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-2",
+            direct: [{ post_id: "post-1", post_title: "Public post" }],
+            indirect: [],
+          }),
+        );
+      }
       if (url.endsWith("/api/posts/post-1/chat") && method === "GET") {
         return Promise.resolve(
           jsonResponse({
@@ -1506,6 +1515,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("status", { name: "Ask citation next action" })).not.toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Evidence next action" })).not.toBeInTheDocument();
     expect(screen.queryByRole("complementary", { name: "Evidence" })).not.toBeInTheDocument();
+    expect(screen.queryByText("직접")).not.toBeInTheDocument();
     expect(screen.queryByText("Related to Ada West")).not.toBeInTheDocument();
     expect(screen.queryByText("Related to Priya Nair")).not.toBeInTheDocument();
     const popup = document.querySelector(".popup-panel");
@@ -2489,6 +2499,22 @@ describe("App, authenticated", () => {
       expect(evidenceNext.compareDocumentPosition(askInput) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
         0,
       );
+      const lineageHeadings = within(popup as HTMLElement).getAllByRole("heading", {
+        name: "Event Lineage",
+      });
+      expect(lineageHeadings).toHaveLength(2);
+      const landedLineage = lineageHeadings[1];
+      expect(
+        evidenceNext.compareDocumentPosition(landedLineage) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+      expect(
+        landedLineage.compareDocumentPosition(askInput) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+      expect(landedLineage.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
+        0,
+      );
+      expect(await within(popup as HTMLElement).findByText("직접")).toBeInTheDocument();
+      expect(screen.getByText("직접").closest("li")).toHaveTextContent("Public post");
       await waitFor(() => expect(document.getElementById("post-ask")).toHaveFocus());
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
@@ -2670,7 +2696,10 @@ describe("App, authenticated", () => {
     fetchMock.releaseMe();
     expect(
       await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
-    ).toBeEnabled();
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Request a lineage reconstruction" })).toBeEnabled(),
+    );
     expect(
       await screen.findByRole("combobox", { name: "Corporate entity to reconstruct" }),
     ).toBeInTheDocument();
@@ -2864,6 +2893,17 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("status", { name: "Evidence next action" })).toHaveTextContent(
       "Linked post evidence is current. Read Event Lineage on that post next.",
     );
+    const lineageHeadings = within(popup as HTMLElement).getAllByRole("heading", {
+      name: "Event Lineage",
+    });
+    expect(lineageHeadings).toHaveLength(2);
+    expect(
+      screen.getByRole("status", { name: "Evidence next action" }).compareDocumentPosition(
+        lineageHeadings[1],
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
+    expect(await within(popup as HTMLElement).findByText("직접")).toBeInTheDocument();
+    expect(screen.getByText("직접").closest("li")).toHaveTextContent("Public post");
     await waitFor(() => expect(document.getElementById("post-ask")).toHaveFocus());
   });
 

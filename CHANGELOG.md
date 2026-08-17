@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members now puts Event
+  Lineage for the cited Linked post immediately under the named
+  evidence next action, ahead of the chat input. Home list opens do
+  not add that section. No TEPP theta is invented. No cutoff body is
+  invented (ADR 0016).
+
 ## [2.9.0] - 2026-08-17
 
 ### Added

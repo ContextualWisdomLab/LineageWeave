@@ -165,10 +165,12 @@ function ChatPanel({
   postId,
   accessToken,
   nameFirstAsk,
+  onSelectPost,
 }: {
   postId: string;
   accessToken: string;
   nameFirstAsk?: boolean;
+  onSelectPost?: (postId: string) => void;
 }) {
   const [question, setQuestion] = useState("");
   const [exchanges, setExchanges] = useState<ChatExchange[]>([]);
@@ -176,6 +178,7 @@ function ChatPanel({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [evidencePostId, setEvidencePostId] = useState<string | null>(null);
+  const [evidenceLineage, setEvidenceLineage] = useState<PostLineage | null>(null);
   const [seededOnly, setSeededOnly] = useState(false);
 
   useEffect(() => {
@@ -222,6 +225,31 @@ function ChatPanel({
     (firstCitedPostId ? firstCitedPostId.slice(0, 8) : null);
   const landedEvidencePostId = nameFirstAsk ? (evidencePostId ?? firstCitedPostId) : null;
 
+  useEffect(() => {
+    if (!landedEvidencePostId) {
+      setEvidenceLineage(null);
+      return;
+    }
+    let cancelled = false;
+    setEvidenceLineage(null);
+    fetchPostLineage(accessToken, landedEvidencePostId)
+      .then((row) => {
+        if (!cancelled) setEvidenceLineage(row);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setEvidenceLineage({
+            post_id: landedEvidencePostId,
+            direct: [],
+            indirect: [],
+          });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, landedEvidencePostId]);
+
   return (
     <section className="popup-section chat-section">
       <h3 id="post-ask" tabIndex={-1}>
@@ -266,6 +294,19 @@ function ChatPanel({
         <p className="post-meta" role="status" aria-label="Evidence next action">
           {landedEvidenceNextAction(firstCitedTitle)}
         </p>
+      ) : null}
+      {nameFirstAsk && landedEvidencePostId ? (
+        <section className="popup-section">
+          <h3 id="post-evidence-event-lineage" tabIndex={-1}>
+            Event Lineage
+          </h3>
+          <EventLineageSection
+            lineage={evidenceLineage}
+            graph={null}
+            postId={landedEvidencePostId}
+            onSelectPost={onSelectPost}
+          />
+        </section>
       ) : null}
       {!seededOnly && (
         <div className="chat-input-row">
@@ -1014,7 +1055,12 @@ function KeymanPanel({
         </p>
       ) : null}
       {afterList && landFirstRelated && landedRelatedName && landedRelated !== null ? (
-        <ChatPanel postId={postId} accessToken={accessToken} nameFirstAsk />
+        <ChatPanel
+          postId={postId}
+          accessToken={accessToken}
+          nameFirstAsk
+          onSelectPost={onSelectPost}
+        />
       ) : null}
     </>
   );

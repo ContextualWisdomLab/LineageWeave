@@ -67,6 +67,8 @@ popup lands Ask about this lineage. After landed chat, the popup names
 the first Ask. After that next action, the popup lands the first Ask
 answer. After landed first Ask answer, the popup names the first
 cited source. After that next action, the popup lands the first cited
-evidence. Changing the week first still
+evidence. After landed cited evidence, the popup names Event Lineage
+on that post. After that next action, the popup lands Event Lineage
+on the cited post. Changing the week first still
 focuses the report period field. Mean θ stays on the period-report
 panel.
