@@ -240,6 +240,16 @@ describe("App, authenticated", () => {
                 mean_theta: 0.81,
                 post_count: 4,
                 link_method: "fipc",
+                leftover_pairs: [
+                  {
+                    pair_kind: "closest",
+                    post_id: "post-1",
+                    post_title: "Public post",
+                    criterion_code: "sales_lead_specificity",
+                    leftover_distance: 0.12,
+                    leftover_residual: 0.4,
+                  },
+                ],
               },
               {
                 grouping_kind: "corporate_entity",
@@ -256,6 +266,16 @@ describe("App, authenticated", () => {
                 mean_theta: 0.81,
                 post_count: 4,
                 link_method: "fipc",
+                leftover_pairs: [
+                  {
+                    pair_kind: "closest",
+                    post_id: "post-1",
+                    post_title: "Public post",
+                    criterion_code: "sales_lead_specificity",
+                    leftover_distance: 0.12,
+                    leftover_residual: 0.4,
+                  },
+                ],
               },
             ],
           }),
@@ -1391,6 +1411,17 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: /compare process_unit: demo report high/i })).toHaveTextContent(
       "mean θ 0.81",
     );
+    expect(screen.getByLabelText("Leftover pairs for Demo Report High")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: /open comparison leftover closest pair on demo report high: public post/i,
+      }),
+    ).toHaveTextContent("Closest leftover: Public post · sales-lead");
+    expect(
+      screen.getByRole("button", {
+        name: /open comparison leftover closest pair on demo report high: public post/i,
+      }),
+    ).toHaveTextContent("Open this post to read the criterion it sat closest to after main effects.");
     await userEvent.click(screen.getByRole("button", { name: /compare thread_group: a-100/i }));
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
@@ -1407,6 +1438,18 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /open report period 2026-W03/i }));
     const periodInput = screen.getByLabelText("Report period");
     expect(periodInput).toHaveValue("2026-W03");
+  });
+
+  it("opens a leftover pair post from the comparison strip", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: /open comparison leftover closest pair on demo report high: public post/i,
+      }),
+    );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });
 
   it("opens a leftover pair post from the report panel", async () => {

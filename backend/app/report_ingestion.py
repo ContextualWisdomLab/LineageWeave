@@ -732,6 +732,26 @@ async def fetch_period_comparison(
     members_by_key: dict[tuple[str, str], list[asyncpg.Record]] = defaultdict(list)
     for row in members:
         members_by_key[(row["grouping_kind"], row["grouping_key"])].append(row)
+    leftover = await conn.fetch(
+        """
+        select lp.grouping_kind, lp.grouping_key, lp.pair_kind, lp.post_id,
+               lp.criterion_code, lp.leftover_distance, lp.leftover_residual,
+               p.post_title, p.visibility_code, p.corporate_entity_id
+        from report_leftover_pair lp
+        join source_post p on p.post_id = lp.post_id
+        where lp.period_code = $1 and lp.rubric_version = $2
+          and lp.grouping_kind = any($3::text[])
+        order by lp.grouping_kind, lp.grouping_key,
+                 case lp.pair_kind when 'closest' then 0 else 1 end,
+                 p.post_title
+        """,
+        period_code,
+        RUBRIC_VERSION,
+        list(GROUPING_KINDS),
+    )
+    leftover_by_key: dict[tuple[str, str], list[asyncpg.Record]] = defaultdict(list)
+    for row in leftover:
+        leftover_by_key[(row["grouping_kind"], row["grouping_key"])].append(row)
     payload: list[dict[str, Any]] = []
     for row in rows:
         label = await resolve_grouping_label(conn, row["grouping_kind"], row["grouping_key"])
@@ -749,6 +769,19 @@ async def fetch_period_comparison(
                         "corporate_entity_id": str(member["corporate_entity_id"]),
                     }
                     for member in members_by_key.get((row["grouping_kind"], row["grouping_key"]), [])
+                ],
+                "leftover_pairs": [
+                    {
+                        "pair_kind": str(pair["pair_kind"]),
+                        "post_id": str(pair["post_id"]),
+                        "post_title": pair["post_title"],
+                        "criterion_code": str(pair["criterion_code"]),
+                        "leftover_distance": float(pair["leftover_distance"]),
+                        "leftover_residual": float(pair["leftover_residual"]),
+                        "visibility_code": pair["visibility_code"],
+                        "corporate_entity_id": str(pair["corporate_entity_id"]),
+                    }
+                    for pair in leftover_by_key.get((row["grouping_kind"], row["grouping_key"]), [])
                 ],
             }
         )

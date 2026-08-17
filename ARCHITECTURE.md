@@ -516,7 +516,9 @@ residual SVD leftover pairs (Jeon et al., 2021; ADR 0017) persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
-`GET /api/reports/compare/{period}` is the home-page grouping strip;
+`GET /api/reports/compare/{period}` is the home-page grouping strip
+and now carries authorized leftover pairs so a comparison-row click
+opens that post;
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared
@@ -524,8 +526,9 @@ bank as the dummy high/low band rows, so comparison-strip click
 through opens those DAG posts. Report members include the earliest
 open ticket title, status lookup label, and due date when one exists. The home page renders
 the actual mean θ, the FIPC delta, the CAT-selected item, leftover
-closest/farthest pairs above the member list, and the
-PU / corp / thread comparison -- never a placeholder. TEPP is unchanged.
+closest/farthest pairs above the member list and on the grouping
+comparison strip, and the PU / corp / thread comparison -- never a
+placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer
 

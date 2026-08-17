@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.0] - 2026-08-17
+
+### Added
+
+- Grouping comparison rows carry authorized leftover pairs (ADR 0025).
+  After `make seed`, the A-100 comparison row names the closest leftover
+  pair; click opens that post. A leftover pair for a hidden post is
+  omitted the same way a hidden member is.
+
 ## [0.75.0] - 2026-08-17
 
 ### Added

@@ -718,7 +718,19 @@ async def compare_period_groupings(
         members = [member for member in row["members"] if _can_see_post(account, member)]
         if not members:
             continue
-        visible.append({**row, "members": [], "post_count": len(members)})
+        leftover_pairs = [
+            pair
+            for pair in row.get("leftover_pairs", [])
+            if _can_see_post(account, pair)
+        ]
+        visible.append(
+            {
+                **row,
+                "members": [],
+                "leftover_pairs": leftover_pairs,
+                "post_count": len(members),
+            }
+        )
     return {"period_code": period_code, "groupings": visible}
 
 
