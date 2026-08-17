@@ -1288,11 +1288,15 @@ describe("App, authenticated", () => {
     const farthestPair = screen.getByRole("button", {
       name: /open leftover farthest pair: specification revision requested/i,
     });
-    expect(closestPair).toHaveTextContent("Closest leftover: Public post");
-    expect(closestPair).toHaveTextContent("sales-lead");
+    expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
+    expect(closestPair).toHaveTextContent(
+      "Open this post to read the criterion it sat closest to after main effects.",
+    );
     expect(closestPair).toHaveTextContent("d 0.12");
-    expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested");
-    expect(farthestPair).toHaveTextContent("negative");
+    expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
+    expect(farthestPair).toHaveTextContent(
+      "Open this post to read the criterion it sat farthest from after main effects.",
+    );
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
     expect(closestPair.compareDocumentPosition(memberButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

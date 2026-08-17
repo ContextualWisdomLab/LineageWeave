@@ -499,7 +499,8 @@ async def fetch_period_reports(
     leftover = await conn.fetch(
         """
         select lp.grouping_key, lp.pair_kind, lp.post_id, lp.criterion_code,
-               lp.leftover_distance, lp.leftover_residual, p.post_title
+               lp.leftover_distance, lp.leftover_residual, p.post_title,
+               p.visibility_code, p.corporate_entity_id
         from report_leftover_pair lp
         join source_post p on p.post_id = lp.post_id
         where lp.grouping_kind = $1 and lp.period_code = $2 and lp.rubric_version = $3
@@ -589,6 +590,8 @@ async def fetch_period_reports(
                         "criterion_code": str(row["criterion_code"]),
                         "leftover_distance": float(row["leftover_distance"]),
                         "leftover_residual": float(row["leftover_residual"]),
+                        "visibility_code": row["visibility_code"],
+                        "corporate_entity_id": str(row["corporate_entity_id"]),
                     }
                     for row in leftover_by_group.get(header["grouping_key"], [])
                 ],

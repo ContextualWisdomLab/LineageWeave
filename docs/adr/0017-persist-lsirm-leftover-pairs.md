@@ -40,8 +40,9 @@ The UI contract is ADR 0018.
 Rebuild and seed write leftover pairs in the same transaction as
 member scores. `GET /api/reports/{grouping}/{period}` returns
 `leftover_pairs` with the post title so the buyer can open that post.
-Migration `0012_report_leftover_pair.sql` upgrades volumes that
-already applied `0001`.
+Hidden posts stay hidden: leftover pairs join `source_post` and use
+the same ABAC gate as members. Migration `0012_report_leftover_pair.sql`
+upgrades volumes that already applied `0001`.
 
 ## References
 
