@@ -13,7 +13,7 @@ from backend.app import keyman_ingestion
 from backend.app import post_summary_ingestion as summary_ingestion
 from lineageweave.corporate_hierarchy_inference import HierarchyProposal
 from lineageweave.keyman_extraction import OUR_SIDE, PersonMention
-from lineageweave.knowledge_graph import NODE_PERSON
+from lineageweave.knowledge_graph import NODE_CORPORATE_ENTITY, NODE_PERSON, NODE_TEAM
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
     ACTOR_TYPE_PERSON,
@@ -491,10 +491,12 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
     """A persisted person role keeps catalog_node_id for the chip button."""
 
     person_id = str(uuid.uuid4())
+    team_id = str(uuid.uuid4())
+    organization_id = str(uuid.uuid4())
     events: list[Any] = []
 
     class _PersonFetchConnection:
-        """Return one stored person catalog id without a live database."""
+        """Return stored catalog ids without a live database."""
 
         async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
             compact = " ".join(query.split())
@@ -519,7 +521,25 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
                         "cataloged_team_id": None,
                         "cataloged_corporate_entity_id": None,
                         "cataloged_person_id": person_id,
-                    }
+                    },
+                    {
+                        "actor_name": "설계팀",
+                        "responsibility": "도면 검토",
+                        "actor_type_code": ACTOR_TYPE_TEAM,
+                        "affiliated_organization_name": "Demo Corp",
+                        "cataloged_team_id": team_id,
+                        "cataloged_corporate_entity_id": None,
+                        "cataloged_person_id": None,
+                    },
+                    {
+                        "actor_name": "당사",
+                        "responsibility": "출하 일정 확정",
+                        "actor_type_code": ACTOR_TYPE_ORGANIZATION,
+                        "affiliated_organization_name": None,
+                        "cataloged_team_id": None,
+                        "cataloged_corporate_entity_id": organization_id,
+                        "cataloged_person_id": None,
+                    },
                 ]
             raise AssertionError(f"unexpected fetch query: {compact}")
 
@@ -527,10 +547,13 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
         summary_ingestion.fetch_persisted_summary(_PersonFetchConnection(), str(uuid.uuid4()))
     )
     assert payload is not None
-    role = payload["roles_and_responsibilities"][0]
-    assert role["catalog_node_id"] == person_id
-    assert role["catalog_node_type_code"] == NODE_PERSON
-    assert role["actor_name"] == "Priya Nair"
+    roles = {row["actor_name"]: row for row in payload["roles_and_responsibilities"]}
+    assert roles["Priya Nair"]["catalog_node_id"] == person_id
+    assert roles["Priya Nair"]["catalog_node_type_code"] == NODE_PERSON
+    assert roles["설계팀"]["catalog_node_id"] == team_id
+    assert roles["설계팀"]["catalog_node_type_code"] == NODE_TEAM
+    assert roles["당사"]["catalog_node_id"] == organization_id
+    assert roles["당사"]["catalog_node_type_code"] == NODE_CORPORATE_ENTITY
 
 
 class _PersonPersistConnection(_SummaryConnection):
