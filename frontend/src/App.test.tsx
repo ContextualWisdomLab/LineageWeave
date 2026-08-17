@@ -2137,6 +2137,12 @@ describe("App, authenticated", () => {
       "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     );
 
+    expect(
+      screen.getByRole("button", {
+        name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to see why it failed, then connect the measurement service and re-run.",
+      }),
+    ).toBeInTheDocument();
+
     await userEvent.click(
       screen.getByRole("button", {
         name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
@@ -2213,7 +2219,7 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       screen.getByRole("button", {
-        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+        name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to see why it failed, then connect the measurement service and re-run.",
       }),
     );
     expect(
@@ -2273,12 +2279,29 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
   });
 
+  it("finds a failed TEPP list button by the next-action accessible name", async () => {
+    stubBackend();
+    render(<App />);
+
+    const teppButton = await screen.findByRole("button", {
+      name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to see why it failed, then connect the measurement service and re-run.",
+    });
+    expect(teppButton).toHaveAccessibleName(
+      "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to see why it failed, then connect the measurement service and re-run.",
+    );
+    expect(
+      screen.getByRole("button", {
+        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+      }),
+    ).toHaveAccessibleName("Open analysis run: Lineage reconstruction · Succeeded · Demo Corp");
+  });
+
   it("tells a running lineage run to refresh the durable outbox", async () => {
     stubBackend({ runningLineageRun: true });
     render(<App />);
 
     const lineageButton = await screen.findByRole("button", {
-      name: "Open analysis run: Lineage reconstruction · Running · Demo Corp",
+      name: "Open analysis run: Lineage reconstruction · Running · Demo Corp. Refresh this run. Start already queued the work on the durable outbox.",
     });
     expect(lineageButton).toHaveTextContent(
       "Refresh this run. Start already queued the work on the durable outbox.",
@@ -2296,10 +2319,10 @@ describe("App, authenticated", () => {
 
     await screen.findByRole("list", { name: "Analysis runs" });
     const lineageButton = screen.getByRole("button", {
-      name: "Open analysis run: Lineage reconstruction · Failed · Demo Corp",
+      name: "Open analysis run: Lineage reconstruction · Failed · Demo Corp. Open this run to see why it failed, then retry reconstruction from a current snapshot.",
     });
     const teppButton = screen.getByRole("button", {
-      name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+      name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to see why it failed, then connect the measurement service and re-run.",
     });
     expect(lineageButton).toHaveTextContent(
       "Open this run to see why it failed, then retry reconstruction from a current snapshot.",
@@ -2584,7 +2607,7 @@ describe("App, authenticated", () => {
     render(<App />);
 
     const reportButton = await screen.findByRole("button", {
-      name: "Open analysis run: Period report · Failed · Demo Corp",
+      name: "Open analysis run: Period report · Failed · Demo Corp. Open this run to see why it failed, then rebuild the period report from a current snapshot.",
     });
     expect(reportButton).toHaveTextContent(
       "Open this run to see why it failed, then rebuild the period report from a current snapshot.",
@@ -2608,11 +2631,13 @@ describe("App, authenticated", () => {
     stubBackend({ pendingTeppRun: true });
     render(<App />);
 
-    await userEvent.click(
-      await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Pending · Demo Corp",
-      }),
-    );
+    const teppButton = await screen.findByRole("button", {
+      name: "Open analysis run: TEPP measurement · Pending · Demo Corp. Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.",
+    });
+    expect(teppButton).not.toHaveAccessibleName(/Reconstruction/);
+    expect(teppButton).not.toHaveAccessibleName(/measured/);
+
+    await userEvent.click(teppButton);
     expect(
       await screen.findByText("These posts are the cutoff corpus TEPP will measure once this run finishes."),
     ).toBeInTheDocument();
@@ -2629,7 +2654,7 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Pending · Demo Corp",
+        name: "Open analysis run: TEPP measurement · Pending · Demo Corp. Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.",
       }),
     );
     await userEvent.click(screen.getByRole("button", { name: "Start TEPP measurement" }));
@@ -2651,7 +2676,7 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
+        name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to see why it failed, then connect the measurement service and re-run.",
       }),
     );
     expect(
@@ -2695,7 +2720,7 @@ describe("App, authenticated", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
-        name: "Open analysis run: Lineage reconstruction · Pending · Demo Corp",
+        name: "Open analysis run: Lineage reconstruction · Pending · Demo Corp. Open this run, then start reconstruction. Reconstruction has not started yet.",
       }),
     ).toBeInTheDocument();
     expect(
