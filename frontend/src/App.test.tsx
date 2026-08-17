@@ -83,6 +83,30 @@ describe("App, authenticated", () => {
     const events: { event_id: string; event_type: string; actor_account_id: string; summary: string }[] = [];
     let nextEventId = 1;
 
+    const createdPendingRun = {
+      analysis_run_id: "run-demo-lineage-pending",
+      run_kind_code: "analysis_run_lineage",
+      run_kind_label: "Lineage reconstruction",
+      scope_kind_code: "analysis_scope_corporate_entity",
+      scope_kind_label: "Corporate entity",
+      scope_entity_name: "Demo Corp",
+      status_code: "analysis_status_pending",
+      status_label: "Pending",
+      knowledge_cutoff: "2026-01-12T12:00:00Z",
+      requested_at: "2026-01-12T12:35:00Z",
+      source_counts: [] as { count_type_code: string; count_type_label: string; count_value: number }[],
+      visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+      status_history: [
+        {
+          status_ordinal: 1,
+          status_code: "analysis_status_pending",
+          status_label: "Pending",
+          occurred_at: "2026-01-12T12:35:00Z",
+        },
+      ],
+    };
+    let recordedPending = false;
+
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       const method = init?.method ?? "GET";
@@ -270,34 +294,30 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs") && method === "POST") {
-        const created = {
-          analysis_run_id: "run-demo-lineage-pending",
-          run_kind_code: "analysis_run_lineage",
-          run_kind_label: "Lineage reconstruction",
-          scope_kind_code: "analysis_scope_corporate_entity",
-          scope_kind_label: "Corporate entity",
-          scope_entity_name: "Demo Corp",
-          status_code: "analysis_status_pending",
-          status_label: "Pending",
-          knowledge_cutoff: "2026-01-12T12:00:00Z",
-          requested_at: "2026-01-12T12:35:00Z",
-          source_counts: [],
-          visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
-          status_history: [
-            {
-              status_ordinal: 1,
-              status_code: "analysis_status_pending",
-              status_label: "Pending",
-              occurred_at: "2026-01-12T12:35:00Z",
-            },
-          ],
-        };
-        return Promise.resolve(new Response(JSON.stringify(created), { status: 201 }));
+        recordedPending = true;
+        return Promise.resolve(new Response(JSON.stringify(createdPendingRun), { status: 201 }));
       }
       if (url.endsWith("/api/analysis-runs")) {
         return Promise.resolve(
           jsonResponse({
             analysis_runs: [
+              ...(recordedPending
+                ? [
+                    {
+                      analysis_run_id: createdPendingRun.analysis_run_id,
+                      run_kind_code: createdPendingRun.run_kind_code,
+                      run_kind_label: createdPendingRun.run_kind_label,
+                      scope_kind_code: createdPendingRun.scope_kind_code,
+                      scope_kind_label: createdPendingRun.scope_kind_label,
+                      scope_entity_name: createdPendingRun.scope_entity_name,
+                      status_code: createdPendingRun.status_code,
+                      status_label: createdPendingRun.status_label,
+                      knowledge_cutoff: createdPendingRun.knowledge_cutoff,
+                      requested_at: createdPendingRun.requested_at,
+                      source_counts: createdPendingRun.source_counts,
+                    },
+                  ]
+                : []),
               {
                 analysis_run_id: "run-demo-lineage",
                 run_kind_code: "analysis_run_lineage",
