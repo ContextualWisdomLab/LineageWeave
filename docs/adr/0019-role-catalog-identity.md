@@ -24,26 +24,42 @@ normal form (Codd, 1970; Date, 2019).
 
 Team identity is already unique on
 `(team_name, affiliated_organization_name)`. Organization identity is
-not.
+not. Person display names are not unique either: two `cataloged_person`
+rows can share `person_name`. A fetch join on that name, or
+`LIMIT 1` without `ORDER BY`, can attach a later homonym.
 
 ## Decision
 
 `post_summary_role` stores the resolved catalog foreign keys
-(`cataloged_team_id`, `cataloged_corporate_entity_id`) written during
-`persist_post_summary`. `fetch_persisted_summary` reads those columns.
-It does not join `corporate_entity` by `entity_name`.
+(`cataloged_team_id`, `cataloged_corporate_entity_id`,
+`cataloged_person_id`) written during `persist_post_summary`.
+`fetch_persisted_summary` reads those columns. It does not join
+`corporate_entity` by `entity_name` or `cataloged_person` by
+`person_name`. At most one catalog foreign key is set, and the set
+column must match `actor_type_code`.
 
-Migration `0019_role_catalog_identity.sql` backfills existing rows from
-a post-scoped mention only when the name match is unique on that post.
-Two same-named mentions stay unbound rather than guessing.
+Person lookup, when it still resolves by name, orders by `created_at`,
+then `person_id`. It still does not create a `cataloged_person` row
+(ADR 0009 gap).
+
+Migration `0019_role_catalog_identity.sql` backfills team and
+organization rows from a post-scoped mention only when the name match
+is unique on that post. Migration `0023_role_person_catalog_identity.sql`
+does the same for people (`HAVING count(*) = 1`). Two same-named
+mentions stay unbound rather than guessing a UUID (Fellegi & Sunter,
+1969).
 
 ## Consequences
 
 - Open a post whose R&R names an organization that shares a display
   name with another catalog row. The button walks the resolved id, not
   the homonym.
-- Clicking that name still uses `GET /api/corporate-entities/{id}/related`
-  or `GET /api/teams/{id}/related`. Authz stays person/entity-parity:
+- Open a post whose R&R names a cataloged person. The chip is a button
+  even when Keyman extraction was not run on that post. Click it to
+  walk that person, not a later same-named row.
+- Clicking a team or organization name still uses
+  `GET /api/corporate-entities/{id}/related` or
+  `GET /api/teams/{id}/related`. Authz stays person/entity-parity:
   a team mentioned only on another corp's private post is 403; an
   unknown UUID is 404.
 
@@ -56,6 +72,10 @@ https://doi.org/10.1145/362384.362685
 Date, C. J. (2019). *Database design and relational theory: Normal forms
 and all that jazz* (2nd ed.). Apress.
 https://doi.org/10.1007/978-1-4842-5540-7
+
+Fellegi, I. P., & Sunter, A. B. (1969). A theory for record linkage.
+*Journal of the American Statistical Association, 64*(328), 1183–1210.
+https://doi.org/10.1080/01621459.1969.10501049
 
 International Organization for Standardization. (2023). *ISO/IEC
 11179-1:2023: Information technology—Metadata registries (MDR)—Part 1:

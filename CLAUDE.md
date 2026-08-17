@@ -35,3 +35,8 @@ cutoff before treating the body as reconstructed evidence (ADR 0016).
 cutoff capture (ADR 0017). `POST /api/analysis-runs/{id}/start`
 reconstructs that frozen cutoff bag (ADR 0021) and does not invent a
 theta. Hover the Result prefix to read the parent-choice digest.
+R&R chips read the catalog id stored on `post_summary_role`
+(ADR 0019), including `cataloged_person_id`. Do not rejoin
+`corporate_entity` by `entity_name` or `cataloged_person` by
+`person_name`. Historical backfill leaves a role unbound when two
+same-named mentions already exist on the post.

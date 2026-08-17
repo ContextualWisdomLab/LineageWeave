@@ -412,13 +412,36 @@ create table post_organization_mention (
 );
 
 -- ADR 0019: store the resolved catalog id on the role row itself.
--- corporate_entity.entity_name is not unique, and mention tables are
--- post-scoped, so reconstructing identity by name is not 3NF.
+-- corporate_entity.entity_name and cataloged_person.person_name are
+-- not unique, and mention tables are post-scoped, so reconstructing
+-- identity by name is not 3NF.
 alter table post_summary_role
     add column cataloged_team_id uuid references cataloged_team (team_id);
 alter table post_summary_role
     add column cataloged_corporate_entity_id uuid
         references corporate_entity (corporate_entity_id);
+alter table post_summary_role
+    add column cataloged_person_id uuid
+        references cataloged_person (person_id);
+alter table post_summary_role
+    add constraint post_summary_role_one_catalog_chk check (
+        (cataloged_team_id is not null)::int
+        + (cataloged_corporate_entity_id is not null)::int
+        + (cataloged_person_id is not null)::int
+        <= 1
+    );
+alter table post_summary_role
+    add constraint post_summary_role_catalog_type_chk check (
+        (cataloged_team_id is null or actor_type_code = 'prov_team')
+        and (
+            cataloged_corporate_entity_id is null
+            or actor_type_code = 'prov_organization'
+        )
+        and (
+            cataloged_person_id is null
+            or actor_type_code = 'prov_person'
+        )
+    );
 
 -- ---------------------------------------------------------------------
 -- Knowledge graph: person/company/post nodes, typed edges. The type

@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.88.1] - 2026-08-16
+
+### Fixed
+
+- An R&R person chip now walks the catalog id stored on that role row
+  (ADR 0019). Two catalog people can share a display name; persist
+  orders by `created_at`, then `person_id`, and fetch does not rejoin
+  by `person_name`. Open a post whose R&R names a cataloged person
+  even when Keyman was not extracted on that post — the chip is a
+  button. Historical backfill leaves two same-named mentions unbound.
+
 ## [0.88.0] - 2026-08-16
 
 ### Added

@@ -41,8 +41,10 @@ from lineageweave.knowledge_graph import (
     NODE_POST,
     NODE_TEAM,
 )
+from lineageweave.fixtures import homonym_person_catalog_rows
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
+    ACTOR_TYPE_PERSON,
     PostSummary,
     RoleResponsibility,
 )
@@ -542,3 +544,183 @@ def test_homonym_organization_role_binds_the_resolved_catalog_id(
 
     database_dsn, post_id, _summary_person_id = projection_database.split("|")
     asyncio.run(_exercise_homonym_organization_role_binding(database_dsn, post_id))
+
+
+async def _exercise_same_name_person_catalog_order(
+    database_dsn: str,
+    post_id: str,
+) -> None:
+    """Two people with the same name must bind the earlier catalog row."""
+
+    earlier, later = homonym_person_catalog_rows()
+    connection = await asyncpg.connect(database_dsn)
+    try:
+        earlier_id = str(
+            await connection.fetchval(
+                """
+                insert into cataloged_person
+                    (person_name, person_side_code, last_known_job_title, created_at)
+                values ($1, $2, $3, $4)
+                returning person_id
+                """,
+                earlier.person_name,
+                earlier.person_side_code,
+                earlier.last_known_job_title,
+                earlier.created_at,
+            )
+        )
+        later_id = str(
+            await connection.fetchval(
+                """
+                insert into cataloged_person
+                    (person_name, person_side_code, last_known_job_title, created_at)
+                values ($1, $2, $3, $4)
+                returning person_id
+                """,
+                later.person_name,
+                later.person_side_code,
+                later.last_known_job_title,
+                later.created_at,
+            )
+        )
+        await persist_post_summary(
+            connection,
+            post_id,
+            PostSummary(
+                korean_summary="김철수가 후속을 맡았다.",
+                roles_and_responsibilities=(
+                    RoleResponsibility(
+                        actor_name=earlier.person_name,
+                        responsibility="후속",
+                        actor_type_code=ACTOR_TYPE_PERSON,
+                    ),
+                ),
+            ),
+        )
+        payload = await fetch_persisted_summary(connection, post_id)
+        assert payload is not None
+        roles = payload["roles_and_responsibilities"]
+        assert len(roles) == 1
+        stored_id = str(
+            await connection.fetchval(
+                """
+                select cataloged_person_id
+                  from post_summary_role
+                 where post_id = $1 and actor_name = $2
+                """,
+                post_id,
+                earlier.person_name,
+            )
+        )
+        assert stored_id == earlier_id
+        assert stored_id != later_id
+        assert roles[0]["catalog_node_id"] == earlier_id
+        assert roles[0]["catalog_node_type_code"] == NODE_PERSON
+    finally:
+        await connection.close()
+
+
+def test_same_name_person_roles_bind_the_earliest_catalog_row(
+    projection_database: str,
+) -> None:
+    """ADR 0019: R&R person lookup must order by created_at, then person_id."""
+
+    database_dsn, post_id, _summary_person_id = projection_database.split("|")
+    asyncio.run(_exercise_same_name_person_catalog_order(database_dsn, post_id))
+
+
+async def _exercise_homonym_person_backfill_stays_unbound(
+    database_dsn: str,
+    post_id: str,
+) -> None:
+    """Two same-named mentions on one post must not guess a UUID at backfill."""
+
+    earlier, later = homonym_person_catalog_rows()
+    connection = await asyncpg.connect(database_dsn)
+    try:
+        earlier_id = str(
+            await connection.fetchval(
+                """
+                insert into cataloged_person
+                    (person_name, person_side_code, last_known_job_title, created_at)
+                values ($1, $2, $3, $4)
+                returning person_id
+                """,
+                earlier.person_name,
+                earlier.person_side_code,
+                earlier.last_known_job_title,
+                earlier.created_at,
+            )
+        )
+        later_id = str(
+            await connection.fetchval(
+                """
+                insert into cataloged_person
+                    (person_name, person_side_code, last_known_job_title, created_at)
+                values ($1, $2, $3, $4)
+                returning person_id
+                """,
+                later.person_name,
+                later.person_side_code,
+                later.last_known_job_title,
+                later.created_at,
+            )
+        )
+        await connection.execute(
+            """
+            insert into post_summary_result (post_id, korean_summary)
+            values ($1, '동명이인 후속')
+            on conflict (post_id) do update
+            set korean_summary = excluded.korean_summary
+            """,
+            post_id,
+        )
+        await connection.execute(
+            "delete from post_summary_role where post_id = $1",
+            post_id,
+        )
+        await connection.execute(
+            """
+            insert into post_summary_role
+                (post_id, actor_name, responsibility, actor_type_code)
+            values ($1, $2, '후속', 'prov_person')
+            """,
+            post_id,
+            earlier.person_name,
+        )
+        await connection.execute(
+            """
+            insert into post_summary_person_mention (post_id, person_id)
+            values ($1, $2), ($1, $3)
+            """,
+            post_id,
+            earlier_id,
+            later_id,
+        )
+        backfill = (
+            Path(__file__).resolve().parents[1]
+            / "migrations"
+            / "0023_role_person_catalog_identity.sql"
+        ).read_text(encoding="utf-8")
+        await connection.execute(backfill)
+        stored_id = await connection.fetchval(
+            """
+            select cataloged_person_id
+              from post_summary_role
+             where post_id = $1 and actor_name = $2
+            """,
+            post_id,
+            earlier.person_name,
+        )
+        assert stored_id is None
+    finally:
+        await connection.close()
+
+
+def test_homonym_person_backfill_leaves_the_role_unbound(
+    projection_database: str,
+) -> None:
+    """ADR 0019: HAVING count(*) = 1 refuses a two-person name collision."""
+
+    database_dsn, post_id, _summary_person_id = projection_database.split("|")
+    asyncio.run(_exercise_homonym_person_backfill_stays_unbound(database_dsn, post_id))

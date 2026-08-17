@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from lineageweave.fixtures import fixture_thread_cast, sample_records
+from lineageweave.fixtures import (
+    fixture_thread_cast,
+    homonym_person_catalog_rows,
+    sample_records,
+)
 from lineageweave.voc_evidence import first_excerpt_for, sentence_excerpts
 
 _BODY = (
@@ -65,3 +69,15 @@ def test_proj_alpha_cast_names_northridge_and_uncast_stays_empty() -> None:
     alpha = [rec.label for rec in sample_records() if rec.secondary_key == "proj-alpha"]
     assert len(alpha) == 5
     assert all(fixture_thread_cast(title) is not None for title in alpha)
+
+
+def test_homonym_person_catalog_rows_share_a_name_and_order_by_created_at() -> None:
+    """Two catalog people can share a display name; the earlier row is first."""
+
+    earlier, later = homonym_person_catalog_rows()
+    assert earlier.person_name == later.person_name
+    assert earlier.person_name == "Kim Cheolsu"
+    assert earlier.created_at < later.created_at
+    assert earlier.person_side_code == "our_side"
+    assert later.person_side_code == "counterparty"
+    assert earlier.last_known_job_title != later.last_known_job_title

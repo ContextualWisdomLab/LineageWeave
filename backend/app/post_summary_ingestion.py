@@ -1,14 +1,16 @@
 """Persist and load the popup's Korean summary / key events / R&R.
 
 ADR 0009 / 0019: an R&R actor is not just per-post free text -- when it
-is a team or organization, it is resolved to a shared catalog identity
-(``cataloged_team`` / ``corporate_entity``) stored on the role row and
-a Knowledge Graph mention edge is written, so the same "설계팀" or
-organization named across two posts becomes one linkable node. Fetch
-never reconstructs that id by ``entity_name``; that column is not unique.
-A person actor is opportunistically joined to an *existing*
-``cataloged_person`` row by name when Keyman extraction has already
-cataloged that name. The R&R evidence is written to
+is a team, organization, or already-cataloged person, it is resolved to
+a shared catalog identity (``cataloged_team`` / ``corporate_entity`` /
+``cataloged_person``) stored on the role row and a Knowledge Graph
+mention edge is written, so the same "설계팀", organization, or person
+named across two posts becomes one linkable node. Fetch never
+reconstructs that id by ``entity_name`` or ``person_name``; those
+columns are not unique. A person actor is opportunistically joined to
+an *existing* ``cataloged_person`` row by name when Keyman extraction
+has already cataloged that name, ordered by ``created_at`` then
+``person_id``. The R&R evidence is written to
 ``post_summary_person_mention`` rather than Keyman's
 ``post_person_mention`` so either extractor can replace its own result
 without leaving or deleting the other's evidence.
@@ -35,7 +37,11 @@ from lineageweave.corporate_hierarchy_inference import (
     NullCorporateHierarchyInferenceClient,
 )
 from lineageweave.fixtures import fixture_thread_cast
-from lineageweave.knowledge_graph import NODE_CORPORATE_ENTITY, NODE_TEAM
+from lineageweave.knowledge_graph import (
+    NODE_CORPORATE_ENTITY,
+    NODE_PERSON,
+    NODE_TEAM,
+)
 from lineageweave.ontology import ontology_annotations
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
@@ -62,7 +68,7 @@ async def fetch_persisted_summary(
 
     ``catalog_node_id`` comes from the role row's catalog foreign keys
     (ADR 0019). This function does not join ``corporate_entity`` by
-    ``entity_name``.
+    ``entity_name`` or ``cataloged_person`` by ``person_name``.
     """
     header = await conn.fetchrow(
         "select korean_summary from post_summary_result where post_id = $1",
@@ -79,7 +85,8 @@ async def fetch_persisted_summary(
         select role.actor_name, role.responsibility, role.actor_type_code,
                role.affiliated_organization_name,
                role.cataloged_team_id,
-               role.cataloged_corporate_entity_id
+               role.cataloged_corporate_entity_id,
+               role.cataloged_person_id
           from post_summary_role role
          where role.post_id = $1
          order by role.actor_name
@@ -96,6 +103,9 @@ async def fetch_persisted_summary(
         elif row["cataloged_corporate_entity_id"] is not None:
             catalog_node_id = str(row["cataloged_corporate_entity_id"])
             catalog_node_type_code = NODE_CORPORATE_ENTITY
+        elif row["cataloged_person_id"] is not None:
+            catalog_node_id = str(row["cataloged_person_id"])
+            catalog_node_type_code = NODE_PERSON
         payload_roles.append(
             {
                 "actor_name": row["actor_name"],
@@ -215,6 +225,7 @@ async def _replace_summary_projection(
     for role_index, role in enumerate(summary.roles_and_responsibilities):
         cataloged_team_id = None
         cataloged_corporate_entity_id = None
+        cataloged_person_id = None
         if role.actor_type_code == ACTOR_TYPE_TEAM:
             cataloged_team_id = await upsert_team(
                 conn,
@@ -226,12 +237,16 @@ async def _replace_summary_projection(
             cataloged_corporate_entity_id = resolved_organization_ids.get(
                 role_index
             )
+        elif role.actor_type_code == ACTOR_TYPE_PERSON:
+            cataloged_person_id = await _existing_cataloged_person_id(
+                conn, role.actor_name
+            )
         await conn.execute(
             "insert into post_summary_role "
             "(post_id, actor_name, responsibility, actor_type_code, "
             "affiliated_organization_name, cataloged_team_id, "
-            "cataloged_corporate_entity_id) values "
-            "($1, $2, $3, $4, $5, $6, $7)",
+            "cataloged_corporate_entity_id, cataloged_person_id) values "
+            "($1, $2, $3, $4, $5, $6, $7, $8)",
             post_id,
             role.actor_name,
             role.responsibility,
@@ -239,6 +254,7 @@ async def _replace_summary_projection(
             role.affiliated_organization_name,
             cataloged_team_id,
             cataloged_corporate_entity_id,
+            cataloged_person_id,
         )
         if cataloged_team_id is not None:
             await conn.execute(
@@ -255,19 +271,35 @@ async def _replace_summary_projection(
                 post_id,
                 cataloged_corporate_entity_id,
             )
-        elif role.actor_type_code == ACTOR_TYPE_PERSON:
-            person_row = await conn.fetchrow(
-                "select person_id from cataloged_person where person_name = $1 limit 1",
-                role.actor_name,
+        elif cataloged_person_id is not None:
+            await conn.execute(
+                "insert into post_summary_person_mention (post_id, person_id) "
+                "values ($1, $2) on conflict do nothing",
+                post_id,
+                cataloged_person_id,
             )
-            if person_row is not None:
-                await conn.execute(
-                    "insert into post_summary_person_mention (post_id, person_id) "
-                    "values ($1, $2) on conflict do nothing",
-                    post_id,
-                    str(person_row["person_id"]),
-                )
     await persist_edges_for_post(conn, post_id)
+
+
+async def _existing_cataloged_person_id(
+    conn: asyncpg.Connection, person_name: str
+) -> str | None:
+    """Return the earliest existing catalog person for ``person_name``.
+
+    R&R does not create a ``cataloged_person`` row (ADR 0009). Two
+    people can share a display name, so this query orders by
+    ``created_at``, then ``person_id``, instead of ``LIMIT 1`` without
+    ``ORDER BY``.
+    """
+    person_row = await conn.fetchrow(
+        "select person_id from cataloged_person "
+        "where person_name = $1 "
+        "order by created_at, person_id limit 1",
+        person_name,
+    )
+    if person_row is None:
+        return None
+    return str(person_row["person_id"])
 
 
 def seeded_demo_summary() -> PostSummary:

@@ -5,7 +5,7 @@ every id, label, and date below is fabricated for demonstration purposes.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from .models import Record
 
@@ -49,6 +49,43 @@ class FixtureThreadCast:
     relationship_type_code: str
     person_names: tuple[str, ...]
     body: str | None = None
+
+
+@dataclass(frozen=True)
+class HomonymPersonCatalogRow:
+    """One synthetic catalog person who shares a display name with another."""
+
+    person_name: str
+    person_side_code: str
+    last_known_job_title: str
+    created_at: datetime
+
+
+def homonym_person_catalog_rows() -> tuple[
+    HomonymPersonCatalogRow, HomonymPersonCatalogRow
+]:
+    """Two people who share a common Korean display name.
+
+    The name is not identifying. The earlier row is our-side sales; the
+    later row is a counterparty purchaser. A persist that uses
+    ``LIMIT 1`` without ``ORDER BY`` can bind either row. The designed
+    bind is the earlier ``created_at``, then ``person_id``.
+    """
+    shared_name = "Kim Cheolsu"
+    return (
+        HomonymPersonCatalogRow(
+            person_name=shared_name,
+            person_side_code="our_side",
+            last_known_job_title="Sales Manager",
+            created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        ),
+        HomonymPersonCatalogRow(
+            person_name=shared_name,
+            person_side_code="counterparty",
+            last_known_job_title="Purchasing Lead",
+            created_at=datetime(2024, 6, 1, tzinfo=timezone.utc),
+        ),
+    )
 
 
 def fixture_thread_cast(title: str) -> FixtureThreadCast | None:

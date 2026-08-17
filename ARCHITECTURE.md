@@ -862,12 +862,16 @@ new table needed. `lineageweave/knowledge_graph.py`'s
 (`edge_mention_team`, `edge_team_affiliation`, `edge_mention_organization`);
 `backend/app/post_summary_ingestion.py`'s `persist_post_summary` now
 resolves each R&R actor's identity, stores that id on
-`post_summary_role` (ADR 0019 — `entity_name` is not unique), and calls
-the same `persist_edges_for_post` Keyman ingestion already uses. A person R&R
-actor is opportunistically joined to an existing `cataloged_person` row
-by name (never originated by R&R itself -- documented gap in the ADR:
-`cataloged_person` needs `person_side_code`, which R&R's prompt does
-not currently capture).
+`post_summary_role` (ADR 0019 — `entity_name` and `person_name` are not
+unique), and calls the same `persist_edges_for_post` Keyman ingestion
+already uses. A person R&R actor is opportunistically joined to an
+existing `cataloged_person` row by name, ordered by `created_at` then
+`person_id` (never originated by R&R itself -- documented gap in the
+ADR: `cataloged_person` needs `person_side_code`, which R&R's prompt
+does not currently capture). Fetch returns `cataloged_person_id` as
+`catalog_node_id` so a person chip walks the stored row even when
+Keyman was not extracted on that post. Historical backfill leaves a
+role unbound when two same-named mentions already exist.
 
 ## Phase 12: a real counterparty organization is auto-created, not left permanently unresolved
 
