@@ -90,6 +90,24 @@ _RUN_SELECT = f"""
 """
 
 
+def scope_grouping_key(row: Any) -> str | None:
+    """Persist the reconstruct grouping key for the run's authorized scope.
+
+    A corporate-entity report run stores the week on ``scope_key``. The
+    grouping that reconstruct and the period-report panel share is the
+    corporate entity (or process unit / thread group), never that week
+    label and never a theta.
+    """
+    scope = row["scope_kind_code"]
+    if scope == "analysis_scope_corporate_entity" and row["corporate_entity_id"]:
+        return str(row["corporate_entity_id"])
+    if scope == "analysis_scope_process_unit" and row["process_unit_id"]:
+        return str(row["process_unit_id"])
+    if scope == "analysis_scope_thread_group" and row["scope_key"]:
+        return str(row["scope_key"])
+    return None
+
+
 def _iso(value: Any) -> str:
     """Serialize a timestamptz the same way post payloads do."""
     return value.isoformat() if hasattr(value, "isoformat") else str(value)
@@ -253,6 +271,9 @@ async def _serialize_runs(
             item["scope_entity_name"] = row["scope_entity_name"]
         if row["scope_key"]:
             item["scope_key"] = row["scope_key"]
+        grouping_key = scope_grouping_key(row)
+        if grouping_key:
+            item["scope_grouping_key"] = grouping_key
         payload.append(item)
     return payload
 

@@ -9,9 +9,10 @@ All notable changes to this project are documented here. Format follows
 ### Added
 
 - Opening **Open period report 2026-W02** from a corporate-entity
-  analysis run also switches Report grouping to Corporate entity.
-  After `make seed`, the Demo Corp week is the one that opens. Mean θ
-  stays on the report panel. No TEPP theta is invented.
+  analysis run also switches Report grouping to Corporate entity and
+  marks the Demo Corp grouping current. The opened report is named
+  Demo Corp, not a UUID. Mean θ stays on the report panel. No TEPP
+  theta is invented.
 
 ## [0.97.0] - 2026-08-17
 

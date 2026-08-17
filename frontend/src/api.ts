@@ -359,6 +359,7 @@ export interface SelectedReportItem {
 
 export interface PeriodGroupReport {
   grouping_key: string;
+  grouping_label?: string;
   selected_model: string;
   mean_theta: number;
   mean_theta_sd: number;
@@ -566,6 +567,7 @@ export interface AnalysisRun {
   scope_kind_label: string;
   scope_entity_name?: string;
   scope_key?: string;
+  scope_grouping_key?: string;
   status_code: AnalysisRunStatusCode | null;
   status_label: string | null;
   failure_code?: string;
