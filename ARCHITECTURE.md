@@ -525,7 +525,8 @@ through opens those DAG posts. Report members include the earliest
 open ticket title, status lookup label, and due date when one exists. The home page renders
 the actual mean θ, the FIPC delta, the CAT-selected item, leftover
 closest/farthest pairs above the member list, leftover-open copy
-on that post (ADR 0026), and the
+on that post (ADR 0026), leftover evaluation-row focus
+(ADR 0027), and the
 PU / corp / thread comparison -- never a placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer

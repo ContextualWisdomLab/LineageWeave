@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.82.0] - 2026-08-17
+
+### Added
+
+- Opening a leftover pair focuses the matching IRT evaluation row
+  (ADR 0027). After `make seed`, click Closest leftover: the
+  sales-lead row is current and receives keyboard focus so “Read
+  that evaluation row next” is the next action, not a scroll hunt.
+
 ## [0.78.0] - 2026-08-17
 
 ### Added
