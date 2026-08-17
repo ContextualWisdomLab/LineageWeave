@@ -98,6 +98,13 @@ Opening a cutoff-rewritten title shows **Body this run knew** from
 `source_post_revision` beside the live rewrite (ADR 0025 / v2.1.0).
 Do not invent the earlier sentence when no revision covers the cutoff.
 
+A corporate-entity similarity result has three outcomes: unique, miss,
+or tie (ADR 0026). A tie is not a miss. Keep the organization name
+unbound and do not create an `AUTO-` catalog row, even when live name
+resolution, hierarchy inference, and verification are available. Keyman
+must test the raw organization name before any abbreviation rewrite so a
+rewrite cannot turn an existing tie into an apparent creation miss.
+
 ## CI gates
 
 `.github/workflows/tests.yml` runs the full suite on every PR to `main`.

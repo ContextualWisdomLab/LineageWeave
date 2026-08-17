@@ -39,6 +39,11 @@ tries similarity matching first, then falls back to an LLM-proposed,
 search-corroborated hierarchy placement (level + parent) before
 creating a real new row, so the "통합 고객사 계열 tree AI" requirement
 is actually populated from real extraction, not left permanently empty.
+
+Tie boundary (ADR 0026): a raw organization name whose distinct catalog
+candidates share the top qualifying similarity score stays unbound before
+abbreviation rewriting. Live name resolution therefore cannot turn known
+ambiguity into an apparent miss and manufacture a third `AUTO-` row.
 """
 
 from __future__ import annotations
@@ -52,7 +57,11 @@ from lineageweave.corporate_hierarchy_inference import (
     CorporateHierarchyInferenceClient,
     NullCorporateHierarchyInferenceClient,
 )
-from lineageweave.corporate_hierarchy_resolution import CorporateEntityCandidate
+from lineageweave.corporate_hierarchy_resolution import (
+    RESOLUTION_TIE,
+    CorporateEntityCandidate,
+    score_corporate_entity,
+)
 from lineageweave.keyman_extraction import KeymanExtractionClient, PersonMention
 from lineageweave.organization_name_resolution import (
     NullOrganizationNameResolutionClient,
@@ -113,7 +122,6 @@ async def _upsert_person(conn: asyncpg.Connection, mention: PersonMention) -> st
     return str(row["person_id"])
 
 
-
 async def _upsert_affiliation(
     conn: asyncpg.Connection,
     person_id: str,
@@ -166,6 +174,38 @@ async def _upsert_affiliation(
     )
 
 
+async def _resolve_affiliated_organization(
+    conn: asyncpg.Connection,
+    organization_name: str,
+    context_text: str,
+    resolution_client: OrganizationNameResolutionClient,
+    verification_client: RelationVerificationClient,
+    hierarchy_inference_client: CorporateHierarchyInferenceClient,
+    candidates: list[CorporateEntityCandidate],
+) -> tuple[str, str, str | None]:
+    """Resolve one affiliation without rewriting a known raw-name tie."""
+    raw_outcome = score_corporate_entity(organization_name, candidates)
+    if raw_outcome.kind == RESOLUTION_TIE:
+        return organization_name, organization_name, None
+
+    resolved_name = await resolve_organization_name(
+        conn,
+        resolution_client,
+        verification_client,
+        organization_name,
+        context_text,
+    )
+    corporate_entity_id = await get_or_create_corporate_entity(
+        conn,
+        resolved_name,
+        context_text,
+        hierarchy_inference_client,
+        verification_client,
+        candidates,
+    )
+    return organization_name, resolved_name, corporate_entity_id
+
+
 async def ingest_post_keymen(
     conn: asyncpg.Connection,
     client: KeymanExtractionClient,
@@ -206,22 +246,17 @@ async def ingest_post_keymen(
     for mention in mentions:
         resolved_orgs: list[tuple[str, str, str | None]] = []
         for organization_name in mention.affiliated_organization_names:
-            resolved_name = await resolve_organization_name(
-                conn,
-                resolution_client,
-                verification_client,
-                organization_name,
-                post_body,
+            resolved_orgs.append(
+                await _resolve_affiliated_organization(
+                    conn,
+                    organization_name,
+                    post_body,
+                    resolution_client,
+                    verification_client,
+                    hierarchy_inference_client,
+                    candidates,
+                )
             )
-            corporate_entity_id = await get_or_create_corporate_entity(
-                conn,
-                resolved_name,
-                post_body,
-                hierarchy_inference_client,
-                verification_client,
-                candidates,
-            )
-            resolved_orgs.append((organization_name, resolved_name, corporate_entity_id))
         resolved_by_mention.append((mention, resolved_orgs))
 
     normalized_mentions: list[PersonMention] = []

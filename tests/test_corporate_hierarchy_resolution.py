@@ -1,18 +1,15 @@
-"""Tests for lineageweave.corporate_hierarchy_resolution, against a
-synthetic hierarchy fixture structurally identical to the one already used
-in tests/test_schema.py's real-database test (Acme Group -> Acme
-Electronics Korea -> Acme Electronics Gwangju Plant), so the correct
-resolution is known by construction: an abbreviation or trailing legal
-suffix of one of these three names must resolve to it, and an unrelated
-organization name must not resolve to anything.
-"""
+"""Tests for deterministic corporate-hierarchy candidate resolution."""
 
 from __future__ import annotations
 
 from lineageweave.corporate_hierarchy_resolution import (
+    RESOLUTION_MISS,
+    RESOLUTION_TIE,
+    RESOLUTION_UNIQUE,
     CorporateEntityCandidate,
     normalize_organization_name,
     resolve_corporate_entity,
+    score_corporate_entity,
 )
 
 _CANDIDATES = [
@@ -23,11 +20,17 @@ _CANDIDATES = [
 
 
 def test_exact_name_resolves() -> None:
-    assert resolve_corporate_entity("Acme Electronics Korea", _CANDIDATES) == "korea-id"
+    assert resolve_corporate_entity(
+        "Acme Electronics Korea",
+        _CANDIDATES,
+    ) == "korea-id"
 
 
 def test_trailing_legal_suffix_still_resolves() -> None:
-    assert resolve_corporate_entity("Acme Electronics Korea Ltd.", _CANDIDATES) == "korea-id"
+    assert resolve_corporate_entity(
+        "Acme Electronics Korea Ltd.",
+        _CANDIDATES,
+    ) == "korea-id"
 
 
 def test_abbreviation_still_resolves() -> None:
@@ -35,20 +38,25 @@ def test_abbreviation_still_resolves() -> None:
 
 
 def test_resolves_to_the_correct_sibling_not_a_different_one() -> None:
-    """The whole point of similarity scoring over "any partial match":
-    a mention close to the Gwangju plant must resolve to the plant, not
-    accidentally to the parent "Acme Electronics Korea" it shares most of
-    its name with.
-    """
-    assert resolve_corporate_entity("Acme Gwangju Plant", _CANDIDATES) == "gwangju-id"
+    """A plant-like mention resolves to the plant rather than its parent."""
+    assert resolve_corporate_entity(
+        "Acme Gwangju Plant",
+        _CANDIDATES,
+    ) == "gwangju-id"
 
 
-def test_unrelated_organization_does_not_resolve() -> None:
-    """A genuine non-match must return None, not the closest-available
-    guess -- a wrong hierarchy link corrupts every downstream Knowledge
-    Graph traversal through it.
-    """
-    assert resolve_corporate_entity("Totally Different Company", _CANDIDATES) is None
+def test_unrelated_organization_is_a_miss() -> None:
+    """A below-threshold candidate set is distinct from an equal-score tie."""
+    outcome = score_corporate_entity(
+        "Totally Different Company",
+        _CANDIDATES,
+    )
+    assert outcome.kind == RESOLUTION_MISS
+    assert outcome.catalog_id is None
+    assert resolve_corporate_entity(
+        "Totally Different Company",
+        _CANDIDATES,
+    ) is None
 
 
 def test_empty_mention_does_not_resolve() -> None:
@@ -60,6 +68,45 @@ def test_no_candidates_does_not_resolve() -> None:
     assert resolve_corporate_entity("Acme Electronics Korea", []) is None
 
 
+def test_tied_same_display_name_stays_unbound() -> None:
+    """Distinct same-named catalog rows are a tie, not a first-wins match."""
+    homonyms = [
+        CorporateEntityCandidate("homonym-a", "Tied Energy"),
+        CorporateEntityCandidate("homonym-b", "Tied Energy"),
+    ]
+    outcome = score_corporate_entity("Tied Energy", homonyms)
+    assert outcome.kind == RESOLUTION_TIE
+    assert outcome.catalog_id is None
+    assert set(outcome.top_catalog_ids) == {"homonym-a", "homonym-b"}
+    assert resolve_corporate_entity("Tied Energy", homonyms) is None
+
+
+def test_duplicate_snapshot_rows_for_one_catalog_id_are_unique() -> None:
+    """Duplicate query rows do not manufacture an identity tie."""
+    duplicated = [
+        CorporateEntityCandidate("korea-id", "Acme Electronics Korea"),
+        CorporateEntityCandidate("korea-id", "Acme Electronics Korea"),
+    ]
+    outcome = score_corporate_entity("Acme Electronics Korea", duplicated)
+    assert outcome.kind == RESOLUTION_UNIQUE
+    assert outcome.catalog_id == "korea-id"
+
+
+def test_unique_exact_name_still_wins_beside_unrelated_homonyms() -> None:
+    mixed = [
+        *_CANDIDATES,
+        CorporateEntityCandidate("homonym-a", "Tied Energy"),
+        CorporateEntityCandidate("homonym-b", "Tied Energy"),
+    ]
+    assert resolve_corporate_entity(
+        "Acme Electronics Korea",
+        mixed,
+    ) == "korea-id"
+    assert resolve_corporate_entity("Tied Energy", mixed) is None
+
+
 def test_normalize_strips_suffix_punctuation_and_case() -> None:
-    assert normalize_organization_name("Acme Electronics Korea, Ltd.") == "acme electronics korea"
+    assert normalize_organization_name(
+        "Acme Electronics Korea, Ltd."
+    ) == "acme electronics korea"
     assert normalize_organization_name("  ACME   Group  ") == "acme group"
