@@ -685,6 +685,15 @@ function KeymanPanel({
   }, [accessToken, landFirstRelated, related]);
 
   useEffect(() => {
+    if (!landFirstRelated || !landedRelatedName || landedRelated === null) {
+      return;
+    }
+    const heading = document.getElementById("post-ask");
+    heading?.focus();
+    heading?.scrollIntoView?.({ block: "nearest" });
+  }, [landFirstRelated, landedRelatedName, landedRelated]);
+
+  useEffect(() => {
     if (!focusPerson) return;
     const requestId = ++relatedRequest.current;
     setSelectedName(focusPerson.personName);
