@@ -2,6 +2,7 @@ export type CitationChipProps = {
   postId: string;
   postTitle: string;
   onOpenEvidence: (postId: string) => void;
+  current?: boolean;
 };
 
 /**
@@ -13,12 +14,14 @@ export function CitationChip({
   postId,
   postTitle,
   onOpenEvidence,
+  current,
 }: CitationChipProps) {
   return (
     <button
       type="button"
       className="citation-chip"
       aria-label={`Open evidence: ${postTitle}`}
+      aria-current={current ? "true" : undefined}
       onClick={() => onOpenEvidence(postId)}
     >
       {postTitle}
