@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-08-17
+
+### Added
+
+- Opening **Open period report 2026-W02** now puts the Demo Corp
+  report (mean θ and member posts) immediately under the named next
+  action, ahead of Other Corp and the week strip. The Public post
+  member stays clickable. Mean θ stays on the report panel. No TEPP
+  theta is invented. No cutoff body is invented (ADR 0016).
+
 ## [1.0.0] - 2026-08-17
 
 ### Added
