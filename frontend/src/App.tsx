@@ -202,7 +202,9 @@ function ChatPanel({ postId, accessToken }: { postId: string; accessToken: strin
 
   return (
     <section className="popup-section chat-section">
-      <h3>Ask about this lineage</h3>
+      <h3 id="post-ask" tabIndex={-1}>
+        Ask about this lineage
+      </h3>
       {!seededOnly && (
         <div className="chat-input-row">
           <input
@@ -277,6 +279,10 @@ function eventLineageCurrentNextAction(postTitle: string): string {
 
 function firstKeymanNextAction(personName: string): string {
   return `${personName} is the first Keyman. Read that person next.`;
+}
+
+function relatedNodesCurrentNextAction(personName: string): string {
+  return `Related nodes for ${personName} are current. Ask about this lineage next.`;
 }
 
 function EventLineageSection({
@@ -847,6 +853,11 @@ function KeymanPanel({
     </section>
       {afterList}
       {afterList && relatedBlock}
+      {afterList && landFirstKeyman && selectedName && related !== null ? (
+        <p className="post-meta" role="status" aria-label="Related-nodes next action">
+          {relatedNodesCurrentNextAction(selectedName)}
+        </p>
+      ) : null}
     </>
   );
 }

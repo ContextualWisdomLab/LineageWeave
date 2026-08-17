@@ -1475,6 +1475,7 @@ describe("App, authenticated", () => {
       screen.queryByRole("status", { name: "Event Lineage next action" }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Keyman next action" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Related-nodes next action" })).not.toBeInTheDocument();
     expect(screen.queryByText("Related to Ada West")).not.toBeInTheDocument();
     const popup = document.querySelector(".popup-panel");
     expect(popup).not.toBeNull();
@@ -2328,7 +2329,14 @@ describe("App, authenticated", () => {
       expect(keymanNext.compareDocumentPosition(related) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
         0,
       );
-      expect(related.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
+      const relatedNext = screen.getByRole("status", { name: "Related-nodes next action" });
+      expect(relatedNext).toHaveTextContent(
+        "Related nodes for Ada West are current. Ask about this lineage next.",
+      );
+      expect(related.compareDocumentPosition(relatedNext) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
+        0,
+      );
+      expect(relatedNext.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
         0,
       );
     } finally {
@@ -2602,6 +2610,9 @@ describe("App, authenticated", () => {
       "Ada West is the first Keyman. Read that person next.",
     );
     expect(await screen.findByRole("heading", { name: "Related to Ada West" })).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Related-nodes next action" })).toHaveTextContent(
+      "Related nodes for Ada West are current. Ask about this lineage next.",
+    );
   });
 
   it("lets post_admin rebuild the period report", async () => {
