@@ -51,6 +51,7 @@ members land immediately under that next action, ahead of Other Corp
 and the week strip. Opening Public post names the next action: read
 Event Lineage, Keyman, and evaluation on that post. The popup Event
 Lineage DAG marks that post current. After that current node, the
-popup names Keyman and evaluation as the next read. Changing the week
-first still focuses the report period field. Mean θ stays on the
-period-report panel.
+popup names Keyman and evaluation as the next read. After landed
+evaluation, the popup names the first Keyman as the next read.
+Changing the week first still focuses the report period field. Mean θ
+stays on the period-report panel.
