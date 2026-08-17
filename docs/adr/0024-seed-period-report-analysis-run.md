@@ -50,7 +50,10 @@ rows. Opening it shows the cutoff posts and **Open period report
 2026-W02** (the week stored on `scope_key`). That click also switches
 Report grouping to Corporate entity and marks the Demo Corp grouping
 current, using the persisted scope grouping key. When the operator is
-already on that week, the comparison strip lands on Demo Corp. Mean θ
+already on that week, the comparison strip lands on Demo Corp. The
+focused chip name contains the visible Corporate entity caption and
+the persisted mean θ. The period-report panel names the next action:
+read that grouping's mean θ and member posts, then open a post. Mean θ
 remains on the period-report panel. Re-seed is idempotent on
 `demo-report-seed-2026-w02`.
 

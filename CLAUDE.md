@@ -43,6 +43,9 @@ the parent-choice digest.
 After `make seed`, open **Period report · Succeeded · Demo Corp**,
 then **Open period report 2026-W02**. The home week is already
 2026-W02, so the grouping comparison strip lands on Demo Corp. Report
-grouping is Corporate entity and Demo Corp is current. Changing the
-week first still focuses the report period field. Mean θ stays on the
-period-report panel.
+grouping is Corporate entity and Demo Corp is current. The focused
+chip name contains `Corporate entity: Demo Corp` and the persisted
+mean θ. The period-report panel says Demo Corp is the opened grouping
+and to read its mean θ and member posts, then open a post. Changing
+the week first still focuses the report period field. Mean θ stays on
+the period-report panel.
