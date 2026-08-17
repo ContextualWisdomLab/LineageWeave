@@ -1490,6 +1490,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("status", { name: "Keyman next action" })).not.toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Related next action" })).not.toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Ask next action" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Ask seed next action" })).not.toBeInTheDocument();
     expect(screen.queryByText("Related to Ada West")).not.toBeInTheDocument();
     expect(screen.queryByText("Related to Priya Nair")).not.toBeInTheDocument();
     const popup = document.querySelector(".popup-panel");
@@ -2384,6 +2385,17 @@ describe("App, authenticated", () => {
       const ask = within(popup as HTMLElement).getByRole("heading", { name: "Ask about this lineage" });
       expect(askNext.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
       expect(ask.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+      const askSeed = await screen.findByRole("status", { name: "Ask seed next action" });
+      expect(askSeed).toHaveTextContent(
+        "What happened between these events? is the first Ask. Read that answer next.",
+      );
+      expect(ask.compareDocumentPosition(askSeed) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+      expect(askSeed.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+      expect(
+        within(popup as HTMLElement).getByRole("button", {
+          name: "Ask seeded question: What happened between these events?",
+        }),
+      ).toHaveAttribute("aria-current", "true");
       await waitFor(() => expect(document.getElementById("post-ask")).toHaveFocus());
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
@@ -2669,6 +2681,9 @@ describe("App, authenticated", () => {
     const askNext = screen.getByRole("status", { name: "Ask next action" });
     expect(askNext.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     expect(ask.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(await screen.findByRole("status", { name: "Ask seed next action" })).toHaveTextContent(
+      "What happened between these events? is the first Ask. Read that answer next.",
+    );
     await waitFor(() => expect(document.getElementById("post-ask")).toHaveFocus());
   });
 
