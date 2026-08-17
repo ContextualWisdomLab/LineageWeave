@@ -65,8 +65,11 @@ describe("App, authenticated", () => {
     succeededReportRun?: boolean;
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
+    pluralAffiliations?: boolean;
+    deferMe?: boolean;
+    meFailed?: boolean;
     postBody?: string;
-  }) {
+  }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -90,18 +93,37 @@ describe("App, authenticated", () => {
     let createdPendingLineage: Record<string, unknown> | null = null;
     let createdPendingTepp: Record<string, unknown> | null = null;
 
+    let releaseMe = () => {};
+    const meReady = options?.deferMe
+      ? new Promise<void>((resolve) => {
+          releaseMe = resolve;
+        })
+      : Promise.resolve();
+
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
       if (url.endsWith("/api/me")) {
-        return Promise.resolve(
-          jsonResponse({
+        return meReady.then(() => {
+          if (options?.meFailed) {
+            return new Response(JSON.stringify({ detail: "unavailable" }), {
+              status: 500,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+          return jsonResponse({
             user_account_id: options?.admin ? "acct-admin" : "acct-1",
             display_name: options?.admin ? "Demo Admin" : "Demo Analyst",
             permission_codes: options?.admin ? ["post_read", "post_admin"] : ["post_read"],
-          }),
-        );
+            corporate_entities: options?.pluralAffiliations
+              ? [
+                  { corporate_entity_id: "corp-demo", entity_name: "Demo Corp" },
+                  { corporate_entity_id: "corp-north", entity_name: "Northridge Grid" },
+                ]
+              : [{ corporate_entity_id: "corp-demo", entity_name: "Demo Corp" }],
+          });
+        });
       }
       if (url.endsWith("/api/lineage/rebuild") && method === "POST") {
         return Promise.resolve(jsonResponse({ edge_count: 4 }));
@@ -552,31 +574,18 @@ describe("App, authenticated", () => {
       }
       if (url.endsWith("/api/analysis-runs") && method === "POST") {
         const payload = init?.body ? JSON.parse(String(init.body)) : {};
-        if (payload.run_kind_code === "analysis_run_tepp") {
-          const created = {
-            analysis_run_id: "run-demo-tepp-pending",
-            run_kind_code: "analysis_run_tepp",
-            run_kind_label: "TEPP measurement",
-            scope_kind_code: "analysis_scope_corporate_entity",
-            scope_kind_label: "Corporate entity",
-            scope_entity_name: "Demo Corp",
-            status_code: "analysis_status_pending",
-            status_label: "Pending",
-            knowledge_cutoff: "2026-01-12T12:00:00Z",
-            requested_at: "2026-01-12T12:41:00Z",
-            source_counts: [],
-            visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
-            status_history: [
-              {
-                status_ordinal: 1,
-                status_code: "analysis_status_pending",
-                status_label: "Pending",
-                occurred_at: "2026-01-12T12:41:00Z",
-              },
-            ],
-          };
-          createdPendingTepp = created;
-          return Promise.resolve(new Response(JSON.stringify(created), { status: 201 }));
+        if (payload.run_kind_code === "analysis_run_tepp" || payload.run_kind_code === "analysis_run_report") {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                detail:
+                  payload.run_kind_code === "analysis_run_tepp"
+                    ? "Connect a TEPP transport from a Failed TEPP row; this endpoint does not invent a measurement."
+                    : "Rebuild the period report from the Reports panel.",
+              }),
+              { status: 422, headers: { "Content-Type": "application/json" } },
+            ),
+          );
         }
         const created = {
           analysis_run_id: "run-demo-lineage-pending",
@@ -1389,7 +1398,7 @@ describe("App, authenticated", () => {
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
-    return fetchMock;
+    return Object.assign(fetchMock, { releaseMe });
   }
 
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
@@ -2511,7 +2520,7 @@ describe("App, authenticated", () => {
     expect(startCall?.[1]?.method).toBe("POST");
   });
 
-  it("requests a new TEPP run from a failed row instead of mutating Failed", async () => {
+  it("does not invent a Pending TEPP row from a Failed TEPP run", async () => {
     const fetchMock = stubBackend();
     render(<App />);
 
@@ -2520,18 +2529,18 @@ describe("App, authenticated", () => {
         name: "Open analysis run: TEPP measurement · Failed · Demo Corp",
       }),
     );
-    await userEvent.click(screen.getByRole("button", { name: "Request a new TEPP measurement" }));
     expect(
-      await screen.findByRole("heading", { name: "TEPP measurement · Pending · Demo Corp" }),
+      await screen.findByText(
+        "Connect a TEPP transport from this Failed row. Request a lineage reconstruction does not invent a measurement.",
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Start TEPP measurement" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
-    const postCall = fetchMock.mock.calls.find(
-      (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
-    );
-    expect(postCall).toBeDefined();
-    const body = JSON.parse(String(postCall?.[1]?.body));
-    expect(body.run_kind_code).toBe("analysis_run_tepp");
+    expect(screen.queryByRole("button", { name: "Request a new TEPP measurement" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "TEPP measurement · Pending · Demo Corp" })).not.toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.some(
+        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+      ),
+    ).toBe(false);
   });
 
   it("does not tell a succeeded TEPP run to replace Failed", async () => {
@@ -2576,9 +2585,69 @@ describe("App, authenticated", () => {
     expect(postCall).toBeDefined();
     const body = JSON.parse(String(postCall?.[1]?.body));
     expect(body.run_kind_code).toBe("analysis_run_lineage");
+    expect(body.corporate_entity_id).toBe("corp-demo");
     expect(body.idempotency_key).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     );
+  });
+
+  it("lets a multi-affiliation operator choose which corp to reconstruct", async () => {
+    const fetchMock = stubBackend({ pluralAffiliations: true });
+    render(<App />);
+
+    const picker = await screen.findByRole("combobox", {
+      name: "Corporate entity to reconstruct",
+    });
+    await userEvent.selectOptions(picker, "corp-north");
+    await userEvent.click(screen.getByRole("button", { name: "Request a lineage reconstruction" }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          (call) =>
+            String(call[0]).endsWith("/api/analysis-runs") &&
+            call[1]?.method === "POST" &&
+            JSON.parse(String(call[1]?.body)).corporate_entity_id === "corp-north",
+        ),
+      ).toBe(true),
+    );
+  });
+
+  it("does not record a lineage run before affiliated corps load", async () => {
+    const fetchMock = stubBackend({ deferMe: true, pluralAffiliations: true });
+    render(<App />);
+
+    const loading = await screen.findByRole("button", { name: "Loading affiliated entities..." });
+    expect(loading).toBeDisabled();
+    await userEvent.click(loading);
+    expect(
+      fetchMock.mock.calls.some(
+        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+      ),
+    ).toBe(false);
+    expect(screen.queryByRole("combobox", { name: "Corporate entity to reconstruct" })).toBeNull();
+
+    fetchMock.releaseMe();
+    expect(
+      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+    ).toBeEnabled();
+    expect(
+      await screen.findByRole("combobox", { name: "Corporate entity to reconstruct" }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps Request disabled when affiliated corps fail to load", async () => {
+    const fetchMock = stubBackend({ meFailed: true });
+    render(<App />);
+
+    expect(
+      await screen.findByText("Reload to load the corporate entities this account may reconstruct."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reload to choose a corporate entity" })).toBeDisabled();
+    expect(
+      fetchMock.mock.calls.some(
+        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
+      ),
+    ).toBe(false);
   });
 
   it("starts reconstruction and shows the designed A-100 fork", async () => {

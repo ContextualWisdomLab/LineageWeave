@@ -34,13 +34,16 @@ after cutoff were rewritten after the run; the opened body names
 both clocks and shows **Body this run knew** beside the live
 rewrite. Compare those two texts before treating the live body as
 reconstructed evidence (ADR 0016 / 0025).
-`POST /api/analysis-runs` records Pending on an authorized
-cutoff capture (ADR 0017). `POST /api/analysis-runs/{id}/start`
+`POST /api/analysis-runs` records Pending lineage only on an
+authorized cutoff capture (ADR 0017). TEPP and period-report kinds
+are 422. The Request button waits until affiliated corps load; choose
+a corp if the token walks more than one. `POST /api/analysis-runs/{id}/start`
 commits Running plus a durable outbox row, then reconstructs that
 frozen cutoff bag (ADR 0021 / ADR 0023) or submits TEPP through
 `tepp_client` (ADR 0022). A missing transport or unused accepted
-envelope is Failed. Failed TEPP is terminal — request a new run,
-then start. Do not invent a theta. Hover the Result prefix to read
+envelope is Failed. Failed TEPP is terminal — connect a TEPP
+transport from that Failed row. Create does not invent a Pending
+TEPP row. Do not invent a theta. Hover the Result prefix to read
 the parent-choice digest.
 After `make seed`, open **Period report · Succeeded · Demo Corp**,
 then **Open period report 2026-W02**. The home week is already

@@ -7,10 +7,12 @@ lookup labels come back; source SQL, DSNs, raw records, and provider
 payloads never do.
 
 ``create_pending_analysis_run`` (ADR 0017) writes snapshot, counts, frozen
-membership, run, scope, and the first Pending event atomically.
-``enqueue_pending_analysis_run`` then ``deliver_queued_analysis_run``
-later reconstruct lineage (ADR 0021 / ADR 0023) or submit TEPP through
-``tepp_client`` (ADR 0022). Neither path invents a TEPP score.
+membership, run, scope, and the first Pending event atomically. It
+records lineage only. It does not reconstruct lineage, accept a TEPP
+kind, or invent a score. ``enqueue_pending_analysis_run`` then
+``deliver_queued_analysis_run`` later reconstruct lineage (ADR 0021 /
+ADR 0023) or submit TEPP through ``tepp_client`` (ADR 0022). Neither
+path invents a TEPP score.
 """
 
 from __future__ import annotations
@@ -27,7 +29,9 @@ import asyncpg
 from backend.app.knowledge_graph import labels_for_codes
 from lineageweave import __version__ as PACKAGE_VERSION
 
-_ALLOWED_CREATE_KINDS = frozenset({"analysis_run_lineage", "analysis_run_tepp"})
+_LINEAGE_RUN_KIND = "analysis_run_lineage"
+_TEPP_RUN_KIND = "analysis_run_tepp"
+_REPORT_RUN_KIND = "analysis_run_report"
 _CORPORATE_SCOPE = "analysis_scope_corporate_entity"
 _CAPTURE_CONTRACT_VERSION = "analysis-run-capture-v1"
 _KIND_SCHEMA_VERSION = {
@@ -578,6 +582,31 @@ class AnalysisRunCreateError(Exception):
         self.detail = detail
 
 
+def _require_lineage_create_kind(run_kind_code: str) -> None:
+    """Reject TEPP and report writes so this path cannot fake those products.
+
+    TEPP stays a ``tepp_client`` wire path. Period reports stay on the
+    Reports panel rebuild. A Pending TEPP row that never called the
+    transport is a fabricated measurement request.
+    """
+    if run_kind_code == _TEPP_RUN_KIND:
+        raise AnalysisRunCreateError(
+            422,
+            "Connect a TEPP transport from a Failed TEPP row; this endpoint "
+            "does not invent a measurement.",
+        )
+    if run_kind_code == _REPORT_RUN_KIND:
+        raise AnalysisRunCreateError(
+            422,
+            "Rebuild the period report from the Reports panel.",
+        )
+    if run_kind_code != _LINEAGE_RUN_KIND:
+        raise AnalysisRunCreateError(
+            422,
+            "Only lineage reconstruction can be requested here.",
+        )
+
+
 @dataclass(frozen=True)
 class AnalysisRunCapture:
     """Immutable capture plan for one authorized create (no source rows)."""
@@ -702,15 +731,11 @@ async def create_pending_analysis_run(
 ) -> dict[str, Any]:
     """Insert snapshot, counts, frozen members, run, scope, and Pending.
 
-    Does not reconstruct lineage and does not call TEPP. A missing
-    measurement stays a later worker slice; this write only records the
-    request. Idempotent retries compare ``configuration_sha256``.
+    Lineage only. Does not reconstruct, call TEPP, or invent a theta.
+    Kind rejection happens before any snapshot or run insert.
+    Idempotent retries compare ``configuration_sha256``.
     """
-    if run_kind_code not in _ALLOWED_CREATE_KINDS:
-        raise AnalysisRunCreateError(
-            422,
-            "Request a lineage reconstruction or a TEPP measurement. Other kinds are not available yet.",
-        )
+    _require_lineage_create_kind(run_kind_code)
     if scope_kind_code != _CORPORATE_SCOPE:
         raise AnalysisRunCreateError(
             422,

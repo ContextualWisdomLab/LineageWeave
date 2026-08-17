@@ -42,6 +42,7 @@ import {
   type CalendarEntry,
   type ChatAnswer,
   type ChatExchange,
+  type CorporateEntityRef,
   type Counterparty,
   type EvaluationResponse,
   type IssueTicket,
@@ -61,6 +62,7 @@ import {
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
+import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
@@ -1930,7 +1932,7 @@ function analysisRunStartLabel(run: AnalysisRun): string {
     : "Start reconstruction";
 }
 
-/** Failed TEPP is terminal. Re-run records a new Pending TEPP row. */
+/** Failed TEPP is terminal. Create cannot invent a Pending TEPP row. */
 function analysisRunCanRequestTeppRetry(run: AnalysisRun): boolean {
   return run.run_kind_code === "analysis_run_tepp" && run.status_code === "analysis_status_failed";
 }
@@ -1999,6 +2001,8 @@ function AnalysisRunsPanel({
   currentReportPeriod,
   onSelectPost,
   onSelectReportPeriod,
+  corporateEntities,
+  entitiesLoadError,
 }: {
   accessToken: string;
   currentReportPeriod?: string;
@@ -2009,12 +2013,24 @@ function AnalysisRunsPanel({
     groupingKey?: string,
     groupingLabel?: string,
   ) => void;
+  corporateEntities: CorporateEntityRef[] | null;
+  entitiesLoadError: string | null;
 }) {
   const [runs, setRuns] = useState<AnalysisRun[] | null>(null);
   const [selected, setSelected] = useState<AnalysisRun | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [requesting, setRequesting] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [selectedEntityId, setSelectedEntityId] = useState("");
+  const inFlightKeyRef = useRef<string | null>(null);
+  const entitiesReady = corporateEntities !== null && entitiesLoadError === null;
+  const requestLabel = requesting
+    ? "Recording the run..."
+    : entitiesLoadError
+      ? "Reload to choose a corporate entity"
+      : corporateEntities === null
+        ? "Loading affiliated entities..."
+        : "Request a lineage reconstruction";
 
   useEffect(() => {
     fetchAnalysisRuns(accessToken)
@@ -2022,19 +2038,49 @@ function AnalysisRunsPanel({
       .catch((err) => setError(String(err)));
   }, [accessToken]);
 
+  useEffect(() => {
+    if (!corporateEntities?.length) {
+      return;
+    }
+    setSelectedEntityId((current) => current || corporateEntities[0].corporate_entity_id);
+  }, [corporateEntities]);
+
   async function handleRequestLineage() {
+    if (corporateEntities === null || entitiesLoadError) {
+      setError(
+        entitiesLoadError ?? "Reload to load the corporate entities this account may reconstruct.",
+      );
+      return;
+    }
+    if (corporateEntities.length > 1 && !selectedEntityId) {
+      setError("Choose which corporate entity to reconstruct.");
+      return;
+    }
     setError(null);
     setRequesting(true);
+    if (inFlightKeyRef.current === null) {
+      inFlightKeyRef.current = crypto.randomUUID();
+    }
+    const idempotencyKey = inFlightKeyRef.current;
     try {
       const created = await createAnalysisRun(accessToken, {
         run_kind_code: "analysis_run_lineage",
-        idempotency_key: crypto.randomUUID(),
+        idempotency_key: idempotencyKey,
+        ...(selectedEntityId ? { corporate_entity_id: selectedEntityId } : {}),
       });
       const listed = await fetchAnalysisRuns(accessToken);
       setRuns(listed.analysis_runs);
       setSelected(created);
+      inFlightKeyRef.current = null;
     } catch (err) {
-      setError(err instanceof BackendError ? err.message : String(err));
+      if (err instanceof BackendError && err.status === 409) {
+        inFlightKeyRef.current = null;
+        setError(
+          "This request key already names a different reconstruction. Request again to start a new run.",
+        );
+      } else {
+        setError(err instanceof BackendError ? err.message : String(err));
+      }
     } finally {
       setRequesting(false);
     }
@@ -2053,24 +2099,6 @@ function AnalysisRunsPanel({
       setError(err instanceof BackendError ? err.message : String(err));
     } finally {
       setStarting(false);
-    }
-  }
-
-  async function handleRequestTepp() {
-    setError(null);
-    setRequesting(true);
-    try {
-      const created = await createAnalysisRun(accessToken, {
-        run_kind_code: "analysis_run_tepp",
-        idempotency_key: crypto.randomUUID(),
-      });
-      const listed = await fetchAnalysisRuns(accessToken);
-      setRuns(listed.analysis_runs);
-      setSelected(created);
-    } catch (err) {
-      setError(err instanceof BackendError ? err.message : String(err));
-    } finally {
-      setRequesting(false);
     }
   }
 
@@ -2098,16 +2126,26 @@ function AnalysisRunsPanel({
     <section className="popup-section lineage-home">
       <div className="lineage-home-header">
         <h2>Analysis runs</h2>
+        <LineageEntityPicker
+          entities={corporateEntities ?? []}
+          selectedEntityId={selectedEntityId}
+          onSelectEntityId={setSelectedEntityId}
+        />
         <button
           className="keyman-select"
-          aria-label="Request a lineage reconstruction"
-          disabled={requesting}
+          aria-label={requestLabel}
+          aria-busy={corporateEntities === null || requesting}
+          disabled={
+            requesting ||
+            !entitiesReady ||
+            (corporateEntities !== null && corporateEntities.length > 1 && !selectedEntityId)
+          }
           onClick={() => void handleRequestLineage()}
         >
-          {requesting ? "Recording the run..." : "Request a lineage reconstruction"}
+          {requestLabel}
         </button>
       </div>
-      {error && <p className="error">{error}</p>}
+      {(error || entitiesLoadError) && <p className="error">{error ?? entitiesLoadError}</p>}
       {runs.length === 0 ? (
         <p className="popup-placeholder">
           No analysis runs visible to this account yet. Request a lineage
@@ -2170,14 +2208,10 @@ function AnalysisRunsPanel({
             </button>
           )}
           {analysisRunCanRequestTeppRetry(selected) && (
-            <button
-              className="keyman-select"
-              aria-label="Request a new TEPP measurement"
-              disabled={requesting}
-              onClick={() => void handleRequestTepp()}
-            >
-              {requesting ? "Recording the run..." : "Request a new TEPP measurement"}
-            </button>
+            <p className="post-meta">
+              Connect a TEPP transport from this Failed row. Request a lineage
+              reconstruction does not invent a measurement.
+            </p>
           )}
           {analysisRunReportPeriod(selected) && onSelectReportPeriod && (
             <button
@@ -2697,6 +2731,8 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [openedGroupingLabel, setOpenedGroupingLabel] = useState<string | null>(null);
   const [landOnComparison, setLandOnComparison] = useState(false);
   const [openedFromReportMember, setOpenedFromReportMember] = useState(false);
+  const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
+  const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
 
   function openReportFromAnalysisRun(
     periodCode: string,
@@ -2748,8 +2784,16 @@ function PostList({ accessToken }: { accessToken: string }) {
     fetchPosts(accessToken).then(setPosts).catch((err) => setError(String(err)));
     fetchLineageGraph(accessToken).then(setGraph).catch(() => setGraph({ nodes: [], edges: [] }));
     fetchMe(accessToken)
-      .then((me) => setCanRebuild(me.permission_codes.includes("post_admin")))
-      .catch(() => setCanRebuild(false));
+      .then((me) => {
+        setCanRebuild(me.permission_codes.includes("post_admin"));
+        setCorporateEntities(me.corporate_entities ?? []);
+        setEntitiesLoadError(null);
+      })
+      .catch(() => {
+        setCanRebuild(false);
+        setCorporateEntities([]);
+        setEntitiesLoadError("Reload to load the corporate entities this account may reconstruct.");
+      });
   }, [accessToken]);
 
   async function handleRebuild() {
@@ -2777,6 +2821,8 @@ function PostList({ accessToken }: { accessToken: string }) {
         currentReportPeriod={reportPeriod}
         onSelectPost={selectPost}
         onSelectReportPeriod={openReportFromAnalysisRun}
+        corporateEntities={corporateEntities}
+        entitiesLoadError={entitiesLoadError}
       />
       <ReportsPanel
         accessToken={accessToken}

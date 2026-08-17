@@ -44,9 +44,9 @@ authorized transaction:
 Succeeded TEPP stays later. This slice does not persist a local
 psychometric substitute, does not call contextual-orchestrator as TEPP,
 and does not stamp Succeeded from an `accepted` envelope. Failed remains
-terminal: the detail offers **Request a new TEPP measurement**, which
-creates a new Pending run (ADR 0017). The operator then starts that
-row.
+terminal. `POST /api/analysis-runs` is lineage-only (ADR 0017) and does
+not invent a Pending TEPP row. The operator connects a TEPP transport
+from the Failed row, then starts that same measurement.
 
 ```mermaid
 sequenceDiagram

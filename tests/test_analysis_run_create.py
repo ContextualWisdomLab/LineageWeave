@@ -1,10 +1,13 @@
 """Authorized analysis-run create hashes the cutoff bag, never a score."""
 
+import asyncio
 from datetime import datetime, timezone
 
 from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
+    _require_lineage_create_kind,
     _resolve_corporate_entity_id,
+    create_pending_analysis_run,
     live_write_after_cutoff,
     plan_analysis_run_capture,
 )
@@ -134,6 +137,48 @@ def test_live_write_clock_is_distinct_from_the_cutoff_admission_clock() -> None:
         datetime(2026, 1, 13, 9, 0, tzinfo=timezone.utc), cutoff
     ) is True
     assert live_write_after_cutoff(datetime(2026, 1, 13, 9, 0), cutoff) is True
+
+
+def test_create_rejects_tepp_and_report_kinds_without_a_fake_score() -> None:
+    """POST must not record a TEPP row that never called tepp_client."""
+    with pytest.raises(AnalysisRunCreateError) as tepp:
+        _require_lineage_create_kind("analysis_run_tepp")
+    assert tepp.value.status_code == 422
+    assert "invent a measurement" in tepp.value.detail
+    with pytest.raises(AnalysisRunCreateError) as report:
+        _require_lineage_create_kind("analysis_run_report")
+    assert report.value.status_code == 422
+    assert "Reports panel" in report.value.detail
+    with pytest.raises(AnalysisRunCreateError) as unknown:
+        _require_lineage_create_kind("analysis_run_unknown")
+    assert unknown.value.status_code == 422
+    assert "Only lineage reconstruction" in unknown.value.detail
+    _require_lineage_create_kind("analysis_run_lineage")
+
+
+def test_create_pending_rejects_tepp_before_touching_the_registry() -> None:
+    """Kind rejection happens before any snapshot or run insert."""
+
+    class ForbiddenConnection:
+        def __getattr__(self, name: str) -> object:
+            raise AssertionError(f"TEPP create must not touch the registry ({name})")
+
+    async def _run() -> None:
+        with pytest.raises(AnalysisRunCreateError) as err:
+            await create_pending_analysis_run(
+                ForbiddenConnection(),  # type: ignore[arg-type]
+                account_id="acct-1",
+                affiliated_entity_ids=["corp-1"],
+                run_kind_code="analysis_run_tepp",
+                scope_kind_code="analysis_scope_corporate_entity",
+                corporate_entity_id="corp-1",
+                knowledge_cutoff=_CUTOFF,
+                idempotency_key="client-key-1",
+            )
+        assert err.value.status_code == 422
+        assert "invent a measurement" in err.value.detail
+
+    asyncio.run(_run())
 
 
 def test_create_rejects_an_unaffiliated_or_ambiguous_corporate_entity() -> None:
