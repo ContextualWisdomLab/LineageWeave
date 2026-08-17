@@ -21,6 +21,11 @@ All notable changes to this project are documented here. Format follows
   in-process `tepp_api` is injected. New orchestrator helpers use
   `mode="auto"` only.
 
+### Fixed
+
+- JWT verification now requires a non-empty `kid` and a matching JWKS
+  key. A token that omits `kid` no longer falls back to the first key.
+
 ## [0.75.0] - 2026-08-17
 
 ### Added

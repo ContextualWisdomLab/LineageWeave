@@ -55,8 +55,10 @@ def _signing_key_from_jwks(jwks: dict, token: str):
     """Pick the JWKS RSA key that matches the JWT kid, without urllib."""
     header = jwt.get_unverified_header(token)
     kid = header.get("kid")
+    if not isinstance(kid, str) or not kid.strip():
+        raise SystemExit("JWT header is missing kid")
     for key in jwks.get("keys", []):
-        if kid is None or key.get("kid") == kid:
+        if key.get("kid") == kid:
             return RSAAlgorithm.from_jwk(json.dumps(key))
     raise SystemExit(f"no JWKS key matched kid={kid!r}")
 
