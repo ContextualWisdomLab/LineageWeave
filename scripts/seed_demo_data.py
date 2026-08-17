@@ -126,6 +126,7 @@ def seed(
             cur.execute((migrations / "0021_analysis_run_reconstruction.sql").read_text())
             cur.execute((migrations / "0022_analysis_source_snapshot_member.sql").read_text())
             cur.execute((migrations / "0023_analysis_run_outbox.sql").read_text())
+            cur.execute((migrations / "0024_source_post_revision.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -234,39 +235,77 @@ def seed(
                     (account_id, roles[role_code]),
                 )
 
-            cur.execute("select post_id from source_post where post_title = 'Demo public post'")
-            if cur.fetchone() is None:
+            demo_public_cutoff_body = (
+                "Ada West at Demo Corp followed up with Priya Nair at "
+                "Northridge Grid about the delayed shipment."
+            )
+            demo_public_live_body = (
+                "Ada West at Demo Corp revised the delayed-shipment note after "
+                "the January cutoff: Priya Nair at Northridge Grid now expects "
+                "a later delivery window."
+            )
+            cur.execute("select post_id, post_body from source_post where post_title = 'Demo public post'")
+            demo_public_row = cur.fetchone()
+            if demo_public_row is None:
                 cur.execute(
                     "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at, updated_at) "
                     "values (%s, %s, %s, 'Demo public post', "
-                    "'Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.', "
-                    "'voc', 'public', '2026-01-10T12:00:00Z', '2026-01-13T09:00:00Z')",
-                    (account_ids["demo.analyst"], corporate_entity_id, process_units["DEMO-PU-A"]),
+                    "%s, "
+                    "'voc', 'public', '2026-01-10T12:00:00Z', '2026-01-10T12:00:00Z') "
+                    "returning post_id",
+                    (
+                        account_ids["demo.analyst"],
+                        corporate_entity_id,
+                        process_units["DEMO-PU-A"],
+                        demo_public_cutoff_body,
+                    ),
+                )
+                demo_public_post_id = cur.fetchone()[0]
+                cur.execute(
+                    "update source_post set post_body = %s, "
+                    "updated_at = '2026-01-13T09:00:00Z' "
+                    "where post_id = %s",
+                    (demo_public_live_body, demo_public_post_id),
                 )
                 cur.execute(
                     "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at, updated_at) "
                     "values (%s, %s, %s, 'Demo private post', 'A synthetic private post scoped to Demo Corp accounts.', 'vom', 'private', '2026-01-10T12:00:00Z', '2026-01-10T12:00:00Z')",
                     (account_ids["demo.admin"], corporate_entity_id, process_units["DEMO-PU-HQ"]),
                 )
-
+            else:
+                demo_public_post_id = demo_public_row[0]
+                if demo_public_row[1] != demo_public_live_body:
+                    cur.execute(
+                        "update source_post set post_body = %s, "
+                        "updated_at = '2026-01-13T09:00:00Z' "
+                        "where post_id = %s",
+                        (demo_public_live_body, demo_public_post_id),
+                    )
+                cur.execute(
+                    "update source_post set created_at = '2026-01-10T12:00:00Z' "
+                    "where post_id = %s",
+                    (demo_public_post_id,),
+                )
             cur.execute(
-                "update source_post set created_at = '2026-01-10T12:00:00Z', "
-                "updated_at = '2026-01-13T09:00:00Z' "
-                "where post_title = 'Demo public post'"
+                """
+                insert into source_post_revision (
+                    post_id, post_title, post_body, written_at, superseded_at
+                )
+                select %s, 'Demo public post', %s,
+                       '2026-01-10T12:00:00Z', '2026-01-13T09:00:00Z'
+                where not exists (
+                    select 1 from source_post_revision
+                     where post_id = %s
+                       and written_at <= '2026-01-12T12:00:00Z'
+                       and (superseded_at is null or superseded_at > '2026-01-12T12:00:00Z')
+                )
+                """,
+                (demo_public_post_id, demo_public_cutoff_body, demo_public_post_id),
             )
             cur.execute(
                 "update source_post set created_at = '2026-01-10T12:00:00Z', "
                 "updated_at = '2026-01-10T12:00:00Z' "
                 "where post_title = 'Demo private post'"
-            )
-            cur.execute("select post_id from source_post where post_title = 'Demo public post'")
-            demo_public_post_id = cur.fetchone()[0]
-            cur.execute(
-                "update source_post set post_body = %s where post_id = %s",
-                (
-                    "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
-                    demo_public_post_id,
-                ),
             )
             cur.execute(
                 "insert into post_counterparty_entity (post_id, counterparty_entity_name, relationship_type_code) "

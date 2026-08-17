@@ -6,6 +6,7 @@ buyer-facing control you can click before changing product CSS.
 | Story | Buyer next action | Token / module |
 |---|---|---|
 | `Evidence/CitationChip` | Click a cited title to open that source post. | `--color-chip-border`, `--radius-chip`, `CitationChip` |
+| `AnalysisRun/CutoffKnownBody` | Read the cutoff-known sentence, then compare it with the live body below. | `--color-accent-border`, `--space-panel-block`, `--radius-panel`, `CutoffKnownBody` |
 | `Chrome/PopupCloseButton` | Close the evidence panel or post popup. | `--space-close-inset`, `--font-size-close`, `PopupCloseButton` |
 
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module

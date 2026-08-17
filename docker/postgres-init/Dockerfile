@@ -29,6 +29,7 @@ COPY migrations/0020_analysis_run_retention_purge.sql /docker-entrypoint-initdb.
 COPY migrations/0021_analysis_run_reconstruction.sql /docker-entrypoint-initdb.d/22-analysis-run-reconstruction.sql
 COPY migrations/0022_analysis_source_snapshot_member.sql /docker-entrypoint-initdb.d/23-analysis-source-snapshot-member.sql
 COPY migrations/0023_analysis_run_outbox.sql /docker-entrypoint-initdb.d/24-analysis-run-outbox.sql
+COPY migrations/0024_source_post_revision.sql /docker-entrypoint-initdb.d/25-source-post-revision.sql
 # Official image already drops to this account at runtime; declare it so
 # the Dockerfile itself satisfies DS-0002 (explicit non-root USER).
 USER postgres

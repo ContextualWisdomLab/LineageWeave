@@ -60,6 +60,7 @@ import {
   type VocEvidence,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
+import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
@@ -1270,6 +1271,7 @@ function PostDetailPopup({
   canExtract,
   graph,
   liveBodyWarning,
+  knowledgeCutoff,
   focusEventLineage,
   onClose,
   onSelectPost,
@@ -1279,6 +1281,7 @@ function PostDetailPopup({
   canExtract: boolean;
   graph: LineageGraph | null;
   liveBodyWarning?: string | null;
+  knowledgeCutoff?: string | null;
   focusEventLineage?: boolean;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
@@ -1324,7 +1327,8 @@ function PostDetailPopup({
     setFocusPerson(null);
     setFocusEntity(null);
     setFocusTeam(null);
-    fetchPost(accessToken, postId).then(setPost).catch((err) => setError(String(err)));
+    const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
+    fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
     fetchPostEvaluation(accessToken, postId)
       .then((r) => setEvaluation(r.responses))
       .catch(() => setEvaluation([]));
@@ -1338,7 +1342,7 @@ function PostDetailPopup({
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
     fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
-  }, [postId, accessToken]);
+  }, [postId, accessToken, liveBodyWarning, knowledgeCutoff]);
 
   useEffect(() => {
     if (!focusEventLineage || !post) {
@@ -1363,6 +1367,14 @@ function PostDetailPopup({
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
+            {post.known_at ? (
+              <CutoffKnownBody
+                title={post.known_at.post_title}
+                body={post.known_at.post_body}
+                writtenAt={post.known_at.written_at}
+                cutoff={post.known_at.as_of}
+              />
+            ) : null}
             {liveBodyWarning ? (
               <p className="popup-live-body-warning" role="status" aria-label="Live body warning">
                 {liveBodyWarning}
@@ -1736,12 +1748,12 @@ type SelectPostOptions = {
 };
 
 /**
- * Next action when a cutoff title opens the live post (ADR 0016).
+ * Next action when a cutoff title opens the live post (ADR 0016 / 0025).
  *
  * Titles marked `live_after_cutoff` were rewritten after this run;
  * others still match the write clock the run knew. The popup then
- * states that the body is live. Cutoff body versioning stays later
- * work -- we never invent the earlier text.
+ * shows the stored cutoff-known body beside the live rewrite. A
+ * missing revision is omitted -- never an invented earlier sentence.
  */
 function analysisRunLivePostWarning(cutoffIso: string): string {
   const cutoffDate = cutoffIso.slice(0, 10);
@@ -1755,8 +1767,8 @@ function analysisRunLivePostWarning(cutoffIso: string): string {
 /**
  * Popup next action when a marked cutoff title opens the live body.
  *
- * ADR 0016 does not store a historical snapshot. This copy must not
- * invent the earlier text.
+ * ADR 0025 stores the earlier sentence on source_post_revision. This
+ * copy still names the live body so the operator compares two texts.
  */
 function analysisRunOpenedBodyWarning(cutoffIso?: string | null): string {
   const cutoffDate = cutoffIso?.slice(0, 10);
@@ -2735,6 +2747,7 @@ function PostList({ accessToken }: { accessToken: string }) {
           liveBodyWarning={
             openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
           }
+          knowledgeCutoff={openedAfterCutoff ? openedCutoffIso : null}
           focusEventLineage={openedFromReportMember}
           onClose={closeSelectedPost}
           onSelectPost={selectPost}

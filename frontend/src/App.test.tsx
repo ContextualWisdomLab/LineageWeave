@@ -976,7 +976,9 @@ describe("App, authenticated", () => {
           ]),
         );
       }
-      if (url.endsWith("/api/posts/post-1")) {
+      const postOneUrl = new URL(url, "https://backend.test");
+      if (postOneUrl.pathname === "/api/posts/post-1") {
+        const asOf = postOneUrl.searchParams.get("as_of");
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
@@ -987,6 +989,16 @@ describe("App, authenticated", () => {
             visibility_code: "public",
             visibility_label: "Public",
             created_at: "2026-01-01T00:00:00Z",
+            ...(asOf
+              ? {
+                  known_at: {
+                    post_title: "Public post",
+                    post_body: "The cutoff body this run knew.",
+                    written_at: "2026-01-10T12:00:00Z",
+                    as_of: asOf,
+                  },
+                }
+              : {}),
           }),
         );
       }
@@ -2099,6 +2111,9 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("status", { name: "Live body warning" })).toHaveTextContent(
       "This is the live body, not a cutoff snapshot. Compare it with this 2026-01-12 run before you treat it as reconstructed evidence.",
     );
+    expect(screen.getByRole("heading", { name: "Body this run knew" })).toBeInTheDocument();
+    expect(screen.getByText("The cutoff body this run knew.")).toBeInTheDocument();
+    expect(screen.getByText(/written 2026-01-10, known at cutoff 2026-01-12/)).toBeInTheDocument();
 
     const linkedPosts = screen.getAllByLabelText("Open post: Linked post");
     await userEvent.click(linkedPosts[linkedPosts.length - 1]);
@@ -2117,11 +2132,13 @@ describe("App, authenticated", () => {
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
     expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     await userEvent.click(screen.getByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
   });
 
   it("tells a running lineage run to refresh the durable outbox", async () => {

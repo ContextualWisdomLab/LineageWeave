@@ -10,8 +10,16 @@ export interface PostSummary {
   created_at: string;
 }
 
+export interface PostKnownAt {
+  post_title: string;
+  post_body: string;
+  written_at: string;
+  as_of: string;
+}
+
 export interface PostDetail extends PostSummary {
   post_body: string;
+  known_at?: PostKnownAt;
 }
 
 export interface Affiliation {
@@ -252,8 +260,13 @@ export function fetchPosts(accessToken: string): Promise<PostSummary[]> {
   return backendFetch<PostSummary[]>("/api/posts", accessToken);
 }
 
-export function fetchPost(accessToken: string, postId: string): Promise<PostDetail> {
-  return backendFetch<PostDetail>(`/api/posts/${postId}`, accessToken);
+export function fetchPost(
+  accessToken: string,
+  postId: string,
+  asOf?: string,
+): Promise<PostDetail> {
+  const query = asOf ? `?as_of=${encodeURIComponent(asOf)}` : "";
+  return backendFetch<PostDetail>(`/api/posts/${postId}${query}`, accessToken);
 }
 
 export function fetchPostKeymen(accessToken: string, postId: string): Promise<{ keymen: Keyman[] }> {
