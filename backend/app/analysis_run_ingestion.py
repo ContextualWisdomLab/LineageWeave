@@ -11,9 +11,10 @@ membership, run, scope, and the first Pending event atomically. It
 records lineage only. It does not reconstruct lineage, accept a TEPP
 kind, or invent a score. ``enqueue_pending_analysis_run`` then
 ``deliver_queued_analysis_run`` later reconstruct lineage (ADR 0021 /
-ADR 0023) or submit TEPP through ``tepp_client`` (ADR 0022 / ADR 0034).
-A persistable time / multilevel / multi-affiliation result is stored;
-neither path invents a TEPP score.
+ADR 0023) or submit TEPP through ``tepp_client`` (ADR 0022 / ADR 0035).
+A published accepted acknowledgement is stored as aggregate transport
+evidence; neither path invents a TEPP score or stamps Succeeded from
+that ack.
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ import asyncpg
 
 from backend.app.knowledge_graph import labels_for_codes
 from lineageweave import __version__ as PACKAGE_VERSION
+from lineageweave.tepp_result import tepp_accepted_evidence_sha256
 
 _LINEAGE_RUN_KIND = "analysis_run_lineage"
 _TEPP_RUN_KIND = "analysis_run_tepp"
@@ -184,23 +186,25 @@ def live_write_after_cutoff(updated_at: datetime, knowledge_cutoff: datetime) ->
     return _as_utc(updated_at) > _as_utc(knowledge_cutoff)
 
 
-async def _tepp_results_by_run(
+async def _tepp_accepted_by_run(
     conn: asyncpg.Connection,
     run_ids: list[str],
 ) -> dict[str, asyncpg.Record]:
-    """Load persistable TEPP aggregates for the given runs.
+    """Load published TEPP accepted evidence for the given authorized runs.
 
-    Missing ``analysis_run_tepp_result`` means migration 0028 is not
-    applied. Treat that as no stored measurement rather than 500.
+    Missing ``analysis_run_tepp_accepted`` means migration 0029 is not
+    applied. Treat that as no stored transport evidence rather than 500.
+    Hidden runs never appear in ``run_ids``.
     """
     if not run_ids:
         return {}
     try:
         rows = await conn.fetch(
             """
-            select analysis_run_id, result_sha256, interval_count,
-                   level_count, affiliation_count, measured_at
-            from analysis_run_tepp_result
+            select analysis_run_id, contract_version, accepted_run_id,
+                   run_state, idempotency_key, evidence_sha256,
+                   received_at, recorded_at
+            from analysis_run_tepp_accepted
             where analysis_run_id = any($1::uuid[])
             """,
             run_ids,
@@ -208,6 +212,34 @@ async def _tepp_results_by_run(
     except asyncpg.UndefinedTableError:
         return {}
     return {str(row["analysis_run_id"]): row for row in rows}
+
+
+def project_tepp_transport_evidence(row: Any) -> dict[str, Any] | None:
+    """Project accepted evidence only when the stored digest recomputes.
+
+    Counts, theta, topics, and completed-artifact identity stay omitted.
+    A digest mismatch fails closed so a substituted row is not shown.
+    """
+    expected = tepp_accepted_evidence_sha256(
+        contract_version=int(row["contract_version"]),
+        accepted_run_id=str(row["accepted_run_id"]),
+        run_state=str(row["run_state"]),
+        idempotency_key=str(row["idempotency_key"]),
+    )
+    stored = str(row["evidence_sha256"])
+    if stored != expected:
+        return None
+    return {
+        "tepp_evidence_kind": "aggregate transport evidence",
+        "tepp_contract_version": int(row["contract_version"]),
+        "tepp_accepted_run_id": str(row["accepted_run_id"]),
+        "tepp_run_state": str(row["run_state"]),
+        "tepp_idempotency_key": str(row["idempotency_key"]),
+        "tepp_evidence_sha256": stored,
+        "tepp_received_at": _iso(row["received_at"]),
+        "tepp_recorded_at": _iso(row["recorded_at"]),
+        "tepp_completed_artifact_available": False,
+    }
 
 
 async def _counts_by_run(
@@ -311,7 +343,7 @@ async def _serialize_runs(
         return []
     run_ids = [str(row["analysis_run_id"]) for row in rows]
     count_rows = await _counts_by_run(conn, run_ids)
-    tepp_rows = await _tepp_results_by_run(conn, run_ids)
+    tepp_rows = await _tepp_accepted_by_run(conn, run_ids)
     labels = await labels_for_codes(
         conn,
         [row["run_kind_code"] for row in rows]
@@ -359,11 +391,9 @@ async def _serialize_runs(
             item["scope_grouping_key"] = grouping_key
         tepp = tepp_rows.get(run_id)
         if tepp is not None:
-            item["tepp_result_sha256"] = tepp["result_sha256"]
-            item["tepp_interval_count"] = int(tepp["interval_count"])
-            item["tepp_level_count"] = int(tepp["level_count"])
-            item["tepp_affiliation_count"] = int(tepp["affiliation_count"])
-            item["tepp_measured_at"] = _iso(tepp["measured_at"])
+            projected = project_tepp_transport_evidence(tepp)
+            if projected is not None:
+                item.update(projected)
         payload.append(item)
     return payload
 

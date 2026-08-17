@@ -283,6 +283,7 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert "0025_role_person_catalog_identity.sql" in dockerfile
     assert "0026_report_leftover_pair.sql" in dockerfile
     assert "0028_analysis_run_tepp_result.sql" in dockerfile
+    assert "0029_analysis_run_tepp_accepted.sql" in dockerfile
     seed = (_ROOT / "scripts" / "seed_demo_data.py").read_text(encoding="utf-8")
     assert seed.index("0019_role_catalog_identity.sql") < seed.index(
         "0020_analysis_run_retention_purge.sql"
@@ -310,6 +311,9 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     )
     assert seed.index("0027_abbreviation_tree_corroboration.sql") < seed.index(
         "0028_analysis_run_tepp_result.sql"
+    )
+    assert seed.index("0028_analysis_run_tepp_result.sql") < seed.index(
+        "0029_analysis_run_tepp_accepted.sql"
     )
     assert "analysis_run_registry_not_empty" in rollback
     retention = _RETENTION_MIGRATION.read_text(encoding="utf-8")

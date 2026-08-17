@@ -4,6 +4,23 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.1] - 2026-08-17
+
+### Fixed
+
+- A published TEPP **accepted** acknowledgement is stored as
+  **aggregate transport evidence** and stays Failed /
+  `tepp_completed_result_unsupported` (ADR 0035). After `make seed`,
+  Demo Analyst opens that Failed Demo Corp row to read contract
+  version, accepted run id, clocks, and a copyable SHA-256. The
+  section says completed-artifact identity is unavailable until TEPP
+  publishes a versioned completed-result contract. A
+  LineageWeave-local `time_multilevel_multi_affiliation` envelope, or
+  any other unpublished completed shape, stays Failed /
+  `tepp_result_not_persisted` and must not stamp Succeeded. Missing
+  `TEPP_TRANSPORT_URL` stays Failed / `tepp_not_available`. Never
+  invent a theta.
+
 ## [2.12.0] - 2026-08-17
 
 ### Added

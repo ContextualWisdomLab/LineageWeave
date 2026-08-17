@@ -2,10 +2,11 @@
 
 ADR 0021 reconstructs lineage. ADR 0022 starts TEPP through
 ``tepp_client`` only. ADR 0023 enqueues that work on a durable outbox
-so a crash after Running does not lose the item. ADR 0034 persists a
-time / multilevel / multi-affiliation TEPP result and stamps Succeeded.
-Period-report stays another path. Neither start invents a theta or a
-calibrated report score.
+so a crash after Running does not lose the item. ADR 0035 stores a
+published TEPP accepted acknowledgement as aggregate transport
+evidence and never stamps Succeeded from that ack or from a
+LineageWeave-local completed envelope. Period-report stays another
+path. Neither start invents a theta or a calibrated report score.
 """
 
 from __future__ import annotations
@@ -32,7 +33,7 @@ from lineageweave.http_client import HttpClientError, post_json
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
-from lineageweave.tepp_result import TeppPersistableResult, parse_persistable_tepp_result
+from lineageweave.tepp_result import TeppAcceptedEvidence, parse_tepp_accepted_evidence
 
 _LINEAGE_KIND = "analysis_run_lineage"
 _TEPP_KIND = "analysis_run_tepp"
@@ -132,22 +133,27 @@ def tepp_run_request(
 def tepp_submit_outcome(
     client: TeppClient,
     request: AnalysisRunRequest,
-) -> tuple[str, str | None, TeppPersistableResult | None]:
+) -> tuple[str, str | None, TeppAcceptedEvidence | None]:
     """Submit through ``tepp_client``. Never invent or persist a theta.
 
-    A missing transport is ``tepp_not_available``. An accepted ack or
-    any envelope this product cannot store is Failed /
-    ``tepp_result_not_persisted``. A persistable time / multilevel /
-    multi-affiliation result is Succeeded and returned for storage.
+    A missing transport is ``tepp_not_available``. A published
+    ``AnalysisRunAccepted`` envelope is Failed /
+    ``tepp_completed_result_unsupported`` and returned as aggregate
+    transport evidence. A LineageWeave-local completed envelope or any
+    other unpublished shape is Failed / ``tepp_result_not_persisted``.
+    Succeeded is never stamped from an accepted ack.
     """
     try:
         envelope = client.submit_analysis_run(request)
     except TeppNotAvailable:
         return _FAILED, "tepp_not_available", None
-    parsed = parse_persistable_tepp_result(envelope)
+    parsed = parse_tepp_accepted_evidence(
+        envelope,
+        expected_idempotency_key=request.idempotency_key,
+    )
     if parsed is None:
         return _FAILED, "tepp_result_not_persisted", None
-    return _SUCCEEDED, None, parsed
+    return _FAILED, "tepp_completed_result_unsupported", parsed
 
 
 def start_write_conflict_error() -> AnalysisRunStartError:
@@ -512,9 +518,11 @@ async def deliver_queued_analysis_run(
     """Claim the outbox row and finish ThreadWeave or TEPP.
 
     A delivered row replays the stored result. Missing work is 409.
-    TEPP stays Failed when the transport is missing or the envelope is
-    not persistable. A persistable time / multilevel / multi-affiliation
-    result is stored and the run is Succeeded. No theta is invented.
+    TEPP stays Failed when the transport is missing, the envelope is
+    not the published accepted acknowledgement, or TEPP has not
+    published a completed-result contract. A published accepted
+    envelope is stored as aggregate transport evidence. No theta is
+    invented and Succeeded is never stamped.
     """
     try:
         UUID(analysis_run_id)
@@ -697,29 +705,28 @@ async def _deliver_lineage_reconstruction(
     )
 
 
-async def _persist_tepp_result(
+async def _persist_tepp_accepted(
     conn: asyncpg.Connection,
     analysis_run_id: str,
-    result: TeppPersistableResult,
+    evidence: TeppAcceptedEvidence,
     recorded_at: datetime,
 ) -> bool:
-    """Store persistable TEPP aggregates. Missing table is not success."""
-    if recorded_at < result.measured_at:
-        recorded_at = result.measured_at
+    """Store published accepted evidence. Missing table is not success."""
     try:
         await conn.execute(
             """
-            insert into analysis_run_tepp_result
-                (analysis_run_id, result_sha256, interval_count, level_count,
-                 affiliation_count, measured_at, recorded_at)
-            values ($1, $2, $3, $4, $5, $6, $7)
+            insert into analysis_run_tepp_accepted
+                (analysis_run_id, contract_version, accepted_run_id, run_state,
+                 idempotency_key, evidence_sha256, received_at, recorded_at)
+            values ($1, $2, $3, $4, $5, $6, $7, $8)
             """,
             analysis_run_id,
-            result.result_sha256(),
-            result.interval_count,
-            result.level_count,
-            result.affiliation_count,
-            result.measured_at,
+            evidence.contract_version,
+            evidence.accepted_run_id,
+            evidence.run_state,
+            evidence.idempotency_key,
+            evidence.evidence_sha256(),
+            recorded_at,
             recorded_at,
         )
     except asyncpg.UndefinedTableError:
@@ -742,13 +749,13 @@ async def _deliver_tepp_measurement(
         knowledge_cutoff=locked["knowledge_cutoff"],
         corporate_entity_id=str(locked["corporate_entity_id"]),
     )
-    status_code, failure_code, persistable = tepp_submit_outcome(tepp_client, request)
+    status_code, failure_code, accepted = tepp_submit_outcome(tepp_client, request)
     finished = datetime.now(timezone.utc)
     if finished < now:
         finished = now
-    if persistable is not None:
-        stored = await _persist_tepp_result(
-            conn, analysis_run_id, persistable, finished
+    if accepted is not None:
+        stored = await _persist_tepp_accepted(
+            conn, analysis_run_id, accepted, finished
         )
         if not stored:
             status_code, failure_code = _FAILED, "tepp_result_not_persisted"

@@ -34,6 +34,7 @@ COPY migrations/0025_role_person_catalog_identity.sql /docker-entrypoint-initdb.
 COPY migrations/0026_report_leftover_pair.sql /docker-entrypoint-initdb.d/27-report-leftover-pair.sql
 COPY migrations/0027_abbreviation_tree_corroboration.sql /docker-entrypoint-initdb.d/28-abbreviation-tree-corroboration.sql
 COPY migrations/0028_analysis_run_tepp_result.sql /docker-entrypoint-initdb.d/29-analysis-run-tepp-result.sql
+COPY migrations/0029_analysis_run_tepp_accepted.sql /docker-entrypoint-initdb.d/30-analysis-run-tepp-accepted.sql
 # Official image already drops to this account at runtime; declare it so
 # the Dockerfile itself satisfies DS-0002 (explicit non-root USER).
 USER postgres

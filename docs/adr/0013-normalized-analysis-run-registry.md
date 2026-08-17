@@ -253,11 +253,12 @@ Acceptance requires:
    contracts are present on reviewed main branches. Seed and
    `POST /api/analysis-runs/{id}/start` now record Failed TEPP through
    `tepp_client` on the frozen snapshot when the transport is missing
-   or the envelope is not persistable. A persistable time / multilevel /
-   multi-affiliation result is stored and Succeeded (ADR 0034). A
-   missing or unused TEPP envelope must stay
-   Failed (`tepp_not_available` / `tepp_result_not_persisted`) and must
-   not write a local psychometric substitute. Seed also records a
+   or the envelope is unpublished. A published accepted acknowledgement
+   is stored as aggregate transport evidence and stays Failed /
+   `tepp_completed_result_unsupported` (ADR 0035). A missing or
+   unpublished TEPP envelope must stay Failed (`tepp_not_available` /
+   `tepp_result_not_persisted`) and must not write a local psychometric
+   substitute or stamp Succeeded. Seed also records a
    Succeeded `analysis_run_report` on that snapshot after the
    period-report tables are written (ADR 0024); the registry row does
    not copy a theta.

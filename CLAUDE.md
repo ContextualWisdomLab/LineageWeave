@@ -19,17 +19,19 @@ identity on that role row is ADR 0027 (`cataloged_person_id`).
 
 ## Analysis-run seed (v0.96.0)
 
-`make seed` writes a Demo Corp lineage run, a Failed TEPP run, a
-Succeeded TEPP run, and a Succeeded period-report run on the same
-snapshot (ADR 0013 / ADR 0024 / ADR 0034). The TEPP path goes through
-`tepp_client`. A missing transport or an unused accepted envelope is
-Failed (`tepp_not_available` / `tepp_result_not_persisted`). A
-persistable time / multilevel / multi-affiliation envelope is
-Succeeded. Do not invent a theta or a local psychometric substitute.
+`make seed` writes a Demo Corp lineage run, a Failed missing-transport
+TEPP run, a Failed accepted-evidence TEPP run, and a Succeeded
+period-report run on the same snapshot (ADR 0013 / ADR 0024 / ADR 0035).
+The TEPP path goes through `tepp_client`. A missing transport or an
+unpublished envelope is Failed (`tepp_not_available` /
+`tepp_result_not_persisted`). A published accepted acknowledgement is
+Failed (`tepp_completed_result_unsupported`) and is shown as aggregate
+transport evidence. Do not stamp Succeeded from that ack. Do not invent
+a theta or a local psychometric substitute.
 The home list caption stays `kind · status · entity`; the machine
 failure code is detail-only (ADR 0014). Open a Failed TEPP row, then
-connect a live TEPP transport. Open a Succeeded TEPP row to read the
-measured clocks and affiliation counts. A failed lineage row retries reconstruction -- it does not
+connect a live TEPP transport or read aggregate transport evidence.
+Do not treat that row as a validated multilevel estimate. A failed lineage row retries reconstruction -- it does not
 mention TEPP. A failed period-report row rebuilds the report. A
 pending TEPP row does not claim a calibrated measurement and does
 not say reconstruction. The list button name includes the
@@ -47,9 +49,11 @@ are 422. The Request button waits until affiliated corps load; choose
 a corp if the token walks more than one. `POST /api/analysis-runs/{id}/start`
 commits Running plus a durable outbox row, then reconstructs that
 frozen cutoff bag (ADR 0021 / ADR 0023) or submits TEPP through
-`tepp_client` (ADR 0022). A missing transport or unused accepted
-envelope is Failed. Failed TEPP is terminal — connect a TEPP
-transport from that Failed row. Create does not invent a Pending
+`tepp_client` (ADR 0022 / ADR 0035). A missing transport or unpublished
+envelope is Failed. A published accepted acknowledgement is Failed
+transport evidence, not a completed measurement. Failed TEPP is
+terminal — connect a TEPP transport from that Failed row or read the
+stored evidence. Create does not invent a Pending
 TEPP row. Do not invent a theta. Hover the Result prefix to read
 the parent-choice digest.
 After `make seed`, open **Period report · Succeeded · Demo Corp**,

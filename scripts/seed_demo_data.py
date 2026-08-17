@@ -33,7 +33,11 @@ import psycopg2
 from lineageweave.http_client import get_json_list, post_form
 from lineageweave.post_summary import ACTOR_TYPE_PERSON
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
-from lineageweave.tepp_result import parse_persistable_tepp_result, persistable_tepp_seed_envelope
+from lineageweave.tepp_result import (
+    accepted_tepp_seed_envelope,
+    parse_tepp_accepted_evidence,
+    persistable_tepp_seed_envelope,
+)
 
 REALM = "lineageweave-demo"
 DEFAULT_POSTGRES_DSN = "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
@@ -134,6 +138,7 @@ def seed(
             cur.execute((migrations / "0026_report_leftover_pair.sql").read_text())
             cur.execute((migrations / "0027_abbreviation_tree_corroboration.sql").read_text())
             cur.execute((migrations / "0028_analysis_run_tepp_result.sql").read_text())
+            cur.execute((migrations / "0029_analysis_run_tepp_accepted.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -425,7 +430,7 @@ def seed(
                 account_ids["demo.analyst"],
                 corporate_entity_id,
             )
-            _seed_demo_succeeded_tepp_run(
+            _seed_demo_accepted_tepp_run(
                 cur,
                 account_ids["demo.analyst"],
                 corporate_entity_id,
@@ -1565,27 +1570,43 @@ def tepp_seed_request() -> AnalysisRunRequest:
     )
 
 
+def tepp_accepted_seed_client(idempotency_key: str | None = None) -> TeppClient:
+    """In-process transport that returns the Demo Corp accepted acknowledgement."""
+    key = idempotency_key or tepp_seed_request().idempotency_key
+    return TeppClient(
+        transport=lambda _payload: accepted_tepp_seed_envelope(idempotency_key=key)
+    )
+
+
 def tepp_persistable_seed_client() -> TeppClient:
-    """In-process transport that returns the Demo Corp persistable envelope."""
+    """In-process transport that returns the unsupported local envelope."""
     return TeppClient(transport=lambda _payload: persistable_tepp_seed_envelope())
 
 
-def tepp_seed_outcome(client: TeppClient | None = None) -> tuple[str, str | None]:
+def tepp_seed_outcome(
+    client: TeppClient | None = None,
+    request: AnalysisRunRequest | None = None,
+) -> tuple[str, str | None]:
     """Ask TEPP through the published client. A missing transport is Failed.
 
     Never invents a psychometric score. ``tepp_not_available`` means the
-    channel was dropped, not a calibrated negative result. An accepted
-    ack stays Failed / ``tepp_result_not_persisted``. A persistable
-    time / multilevel / multi-affiliation envelope is Succeeded.
+    channel was dropped, not a calibrated negative result. A published
+    accepted acknowledgement is Failed /
+    ``tepp_completed_result_unsupported``. A LineageWeave-local
+    completed envelope stays Failed / ``tepp_result_not_persisted``.
     """
+    payload = request or tepp_seed_request()
     try:
-        envelope = (client or TeppClient()).submit_analysis_run(tepp_seed_request())
+        envelope = (client or TeppClient()).submit_analysis_run(payload)
     except TeppNotAvailable:
         return "analysis_status_failed", "tepp_not_available"
-    parsed = parse_persistable_tepp_result(envelope)
+    parsed = parse_tepp_accepted_evidence(
+        envelope,
+        expected_idempotency_key=payload.idempotency_key,
+    )
     if parsed is None:
         return "analysis_status_failed", "tepp_result_not_persisted"
-    return "analysis_status_succeeded", None
+    return "analysis_status_failed", "tepp_completed_result_unsupported"
 
 
 def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> None:
@@ -1659,12 +1680,26 @@ def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> No
     _seed_demo_run_outbox(cur, run_id)
 
 
-def _seed_demo_succeeded_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> None:
-    """Insert one Demo-Corp Succeeded TEPP run from a persistable envelope.
+def tepp_accepted_seed_request() -> AnalysisRunRequest:
+    """Build the Demo Corp accepted-evidence TEPP request."""
+    return AnalysisRunRequest(
+        idempotency_key=DEMO_TEPP_SUCCEEDED_IDEMPOTENCY_KEY,
+        tenant_workspace_id="demo-workspace",
+        snapshot_id=demo_source_snapshot_sha256(),
+        knowledge_cutoff="2026-01-12T12:00:00Z",
+        model_contract_version="tepp-analysis-run-v1",
+        output_profile="calibrated_event_measurement",
+    )
+
+
+def _seed_demo_accepted_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> None:
+    """Insert one Demo-Corp TEPP run from a published accepted acknowledgement.
 
     Uses an in-process transport so CI and ``make seed`` do not need a
-    live TEPP HTTP endpoint. The envelope is time / multilevel /
-    multi-affiliation aggregates only -- never a fabricated theta.
+    live TEPP HTTP endpoint. The run stays Failed /
+    ``tepp_completed_result_unsupported``. The stored row is aggregate
+    transport evidence, never a fabricated theta or Succeeded
+    measurement.
     """
     snapshot_id = _ensure_demo_source_snapshot(cur)
     _ensure_demo_source_counts(cur, snapshot_id)
@@ -1711,24 +1746,32 @@ def _seed_demo_succeeded_tepp_run(cur, requested_by_account_id, corporate_entity
         """,
         (run_id, corporate_entity_id),
     )
-    status, failure = tepp_seed_outcome(tepp_persistable_seed_client())
-    persistable = parse_persistable_tepp_result(persistable_tepp_seed_envelope())
-    if persistable is not None:
+    request = tepp_accepted_seed_request()
+    status, failure = tepp_seed_outcome(
+        tepp_accepted_seed_client(request.idempotency_key),
+        request,
+    )
+    accepted = parse_tepp_accepted_evidence(
+        accepted_tepp_seed_envelope(idempotency_key=request.idempotency_key),
+        expected_idempotency_key=request.idempotency_key,
+    )
+    if accepted is not None:
         cur.execute(
             """
-            insert into analysis_run_tepp_result
-                (analysis_run_id, result_sha256, interval_count, level_count,
-                 affiliation_count, measured_at, recorded_at)
-            values (%s, %s, %s, %s, %s, %s, %s)
+            insert into analysis_run_tepp_accepted
+                (analysis_run_id, contract_version, accepted_run_id, run_state,
+                 idempotency_key, evidence_sha256, received_at, recorded_at)
+            values (%s, %s, %s, %s, %s, %s, %s, %s)
             on conflict do nothing
             """,
             (
                 run_id,
-                persistable.result_sha256(),
-                persistable.interval_count,
-                persistable.level_count,
-                persistable.affiliation_count,
-                persistable.measured_at,
+                accepted.contract_version,
+                accepted.accepted_run_id,
+                accepted.run_state,
+                accepted.idempotency_key,
+                accepted.evidence_sha256(),
+                "2026-01-12T12:45:00Z",
                 "2026-01-12T12:45:00Z",
             ),
         )
