@@ -2365,6 +2365,10 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert high_report["link_method"] == "fipc"
     assert high_report["selected_model"] in {"grm", "gpcm"}
     assert high_report["delta_mean_theta"] is None
+    leftover_kinds = {pair["pair_kind"] for pair in high_report.get("leftover_pairs", [])}
+    assert leftover_kinds <= {"closest", "farthest"}
+    assert all(pair["post_title"] for pair in high_report.get("leftover_pairs", []))
+    assert all(pair["leftover_distance"] >= 0 for pair in high_report.get("leftover_pairs", []))
 
     week3 = client.get(
         "/api/reports/process_unit/2026-W03",
