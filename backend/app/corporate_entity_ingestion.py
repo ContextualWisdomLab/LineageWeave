@@ -1,14 +1,15 @@
-
 """Resolve an organization mention to the corporate hierarchy catalog.
 
-Existing similarity matches are reused.  A previously unseen entity is
-created only after inference proposes its complete hierarchy placement
-and external verification corroborates that placement.  Parent failure,
-cycles, and excessive depth all fail closed.  See ADR 0010.
+Existing unique similarity matches are reused. A tied top score stays
+unbound and does not create a row (ADR 0026). A previously unseen entity
+-- no candidate at or above the similarity threshold -- is created only
+after inference proposes its complete hierarchy placement and external
+verification corroborates that placement. Parent failure, cycles, and
+excessive depth all fail closed. See ADR 0010.
 
 Creation writes take one named Postgres advisory transaction lock
 (``pg_advisory_xact_lock``) after network inference/verification, then
-reload catalog candidates before inserting.  See ADR 0012.
+reload catalog candidates before inserting. See ADR 0012.
 """
 
 from __future__ import annotations
@@ -23,8 +24,10 @@ from lineageweave.corporate_hierarchy_inference import (
     HierarchyProposal,
 )
 from lineageweave.corporate_hierarchy_resolution import (
+    RESOLUTION_TIE,
+    RESOLUTION_UNIQUE,
     CorporateEntityCandidate,
-    resolve_corporate_entity,
+    score_corporate_entity,
 )
 from lineageweave.relation_verification import (
     STATUS_CORROBORATED,
@@ -112,9 +115,13 @@ async def get_or_create_corporate_entity(
 ) -> str | None:
     """Return a verified catalog id, otherwise ``None``.
 
-    A proposed parent must independently corroborate and resolve before
-    the child can be inserted.  Repeated names in the recursion path are
-    cycles, including multi-node cycles such as A -> B -> A.
+    A unique similarity match is reused. A tied top score stays unbound
+    and does not create a third same-named row (ADR 0026). Only a genuine
+    miss -- no candidate at or above ``min_similarity`` -- may enter ADR
+    0010 inference. A proposed parent must independently corroborate and
+    resolve before the child can be inserted. Repeated names in the
+    recursion path are cycles, including multi-node cycles such as
+    A -> B -> A.
     """
     normalized_name = organization_name.strip()
     if not normalized_name:
@@ -123,9 +130,11 @@ async def get_or_create_corporate_entity(
     if visit_key in _visited_names:
         return None
 
-    existing_id = resolve_corporate_entity(normalized_name, candidates)
-    if existing_id is not None:
-        return existing_id
+    existing = score_corporate_entity(normalized_name, candidates)
+    if existing.kind == RESOLUTION_UNIQUE and existing.catalog_id is not None:
+        return existing.catalog_id
+    if existing.kind == RESOLUTION_TIE:
+        return None
     if _depth >= _MAX_HIERARCHY_DEPTH or not inference_client.available:
         return None
 
@@ -176,13 +185,15 @@ async def get_or_create_corporate_entity(
             "select pg_advisory_xact_lock(hashtext($1))",
             _CREATION_LOCK_KEY,
         )
-        fresh_existing_id = resolve_corporate_entity(
+        fresh = score_corporate_entity(
             normalized_name,
             await _reload_candidates(conn),
         )
-        if fresh_existing_id is not None:
-            _remember_candidate(candidates, fresh_existing_id, normalized_name)
-            return fresh_existing_id
+        if fresh.kind == RESOLUTION_UNIQUE and fresh.catalog_id is not None:
+            _remember_candidate(candidates, fresh.catalog_id, normalized_name)
+            return fresh.catalog_id
+        if fresh.kind == RESOLUTION_TIE:
+            return None
         new_id = await _create_entity(
             conn,
             normalized_name,
