@@ -107,7 +107,7 @@ function EvidencePanel({
 }: {
   postId: string;
   accessToken: string;
-  onClose: () => void;
+  onClose?: () => void;
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
 
@@ -118,7 +118,7 @@ function EvidencePanel({
 
   return (
     <div className="evidence-panel" role="complementary" aria-label="Evidence">
-      <PopupCloseButton onClose={onClose} label="Close evidence panel" />
+      {onClose ? <PopupCloseButton onClose={onClose} label="Close evidence panel" /> : null}
       <h3>Evidence</h3>
       {!post && <p>Loading source post...</p>}
       {post && (
@@ -183,6 +183,7 @@ function ChatPanel({
     setAnswer(null);
     setError(null);
     setSeededOnly(false);
+    setEvidencePostId(null);
     fetchPostChat(accessToken, postId)
       .then((history) => setExchanges(history.exchanges))
       .catch(() => setExchanges([]));
@@ -214,9 +215,12 @@ function ChatPanel({
     }
   }
 
+  const firstCitedPostId =
+    exchanges[0]?.cited_posts?.[0]?.post_id ?? exchanges[0]?.cited_post_ids[0] ?? null;
   const firstCitedTitle =
     exchanges[0]?.cited_posts?.[0]?.post_title ??
-    (exchanges[0]?.cited_post_ids[0] ? exchanges[0].cited_post_ids[0].slice(0, 8) : null);
+    (firstCitedPostId ? firstCitedPostId.slice(0, 8) : null);
+  const landedEvidencePostId = nameFirstAsk ? (evidencePostId ?? firstCitedPostId) : null;
 
   return (
     <section className="popup-section chat-section">
@@ -246,6 +250,17 @@ function ChatPanel({
         <p className="post-meta" role="status" aria-label="Ask citation next action">
           {firstCitedNextAction(firstCitedTitle)}
         </p>
+      ) : null}
+      {nameFirstAsk && landedEvidencePostId ? (
+        <EvidencePanel
+          postId={landedEvidencePostId}
+          accessToken={accessToken}
+          onClose={
+            evidencePostId && evidencePostId !== firstCitedPostId
+              ? () => setEvidencePostId(null)
+              : undefined
+          }
+        />
       ) : null}
       {!seededOnly && (
         <div className="chat-input-row">
@@ -314,13 +329,13 @@ function ChatPanel({
           />
         </div>
       )}
-      {evidencePostId && (
+      {!nameFirstAsk && evidencePostId ? (
         <EvidencePanel
           postId={evidencePostId}
           accessToken={accessToken}
           onClose={() => setEvidencePostId(null)}
         />
-      )}
+      ) : null}
     </section>
   );
 }

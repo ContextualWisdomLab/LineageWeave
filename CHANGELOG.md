@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members now puts the
+  first cited evidence immediately under the named citation next
+  action, ahead of the chat input. Home list opens still wait for a
+  citation click. No TEPP theta is invented. No cutoff body is
+  invented (ADR 0016).
+
 ## [2.7.2] - 2026-08-17
 
 ### Fixed
