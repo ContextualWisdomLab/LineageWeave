@@ -279,6 +279,7 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert "0021_analysis_run_reconstruction.sql" in dockerfile
     assert "0022_analysis_source_snapshot_member.sql" in dockerfile
     assert "0023_analysis_run_outbox.sql" in dockerfile
+    assert "0024_source_post_revision.sql" in dockerfile
     seed = (_ROOT / "scripts" / "seed_demo_data.py").read_text(encoding="utf-8")
     assert seed.index("0019_role_catalog_identity.sql") < seed.index(
         "0020_analysis_run_retention_purge.sql"
@@ -291,6 +292,9 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     )
     assert seed.index("0022_analysis_source_snapshot_member.sql") < seed.index(
         "0023_analysis_run_outbox.sql"
+    )
+    assert seed.index("0023_analysis_run_outbox.sql") < seed.index(
+        "0024_source_post_revision.sql"
     )
     assert "analysis_run_registry_not_empty" in rollback
     retention = _RETENTION_MIGRATION.read_text(encoding="utf-8")

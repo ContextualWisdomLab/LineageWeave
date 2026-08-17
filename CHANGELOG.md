@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-08-17
+
+### Added
+
+- Opening a title marked **Updated after cutoff** now shows the body
+  that run knew beside the live rewrite. After `make seed`, open Demo
+  public post from the Demo Corp lineage run: **Body this run knew** is
+  the January follow-up; the live body names the later delivery window.
+  `GET /api/posts/{id}?as_of=` reads `source_post_revision`. Analysis-run
+  detail stays titles and clocks. A missing revision is omitted — never
+  a fabricated cutoff sentence or a TEPP theta (ADR 0025).
+
 ## [2.0.0] - 2026-08-17
 
 ### Added

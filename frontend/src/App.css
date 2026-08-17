@@ -162,6 +162,18 @@
   font-size: var(--lw-font-size-meta);
 }
 
+.cutoff-known-body {
+  margin: var(--space-panel-block) 0;
+  padding: var(--space-panel-block);
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-accent-background);
+}
+
+.cutoff-known-body h3 {
+  margin: 0 0 var(--space-chip-gap);
+}
+
 .popup-section {
   margin-top: 1.5rem;
   padding-top: 1rem;

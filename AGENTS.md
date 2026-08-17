@@ -94,6 +94,9 @@ expose purge on a public HTTP route.
 `POST /api/analysis-runs/{id}/start` reconstructs a Pending lineage
 cutoff bag through `reconstruct()` / `lineage_edge_specs` (ADR 0021 /
 v0.88.0). TEPP and period-report start stay 422. Do not invent a theta.
+Opening a cutoff-rewritten title shows **Body this run knew** from
+`source_post_revision` beside the live rewrite (ADR 0025 / v2.1.0).
+Do not invent the earlier sentence when no revision covers the cutoff.
 
 ## CI gates
 
