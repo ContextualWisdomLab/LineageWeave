@@ -2,7 +2,7 @@
 --
 -- A live TEPP transport may return a time / multilevel / multi-affiliation
 -- result. This table stores those aggregates on the analysis run. It does
--- not store a theta, IRT item parameter, topic, or ALR payload.
+-- not store a psychometric score, IRT item parameter, topic, or ALR payload.
 
 create table if not exists analysis_run_tepp_result (
     analysis_run_id uuid primary key
@@ -27,7 +27,7 @@ create table if not exists analysis_run_tepp_result (
 
 comment on table analysis_run_tepp_result is
     'One immutable TEPP time / multilevel / multi-affiliation result per '
-    'analysis run; never a theta, item bank, topic, or ALR payload.';
+    'analysis run; never a psychometric score, item bank, topic, or ALR payload.';
 
 create or replace function reject_analysis_run_tepp_result_update()
 returns trigger
