@@ -1488,6 +1488,7 @@ describe("App, authenticated", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Keyman next action" })).not.toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Related next action" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Ask next action" })).not.toBeInTheDocument();
     expect(screen.queryByText("Related to Ada West")).not.toBeInTheDocument();
     expect(screen.queryByText("Related to Priya Nair")).not.toBeInTheDocument();
     const popup = document.querySelector(".popup-panel");
@@ -2368,7 +2369,14 @@ describe("App, authenticated", () => {
       expect(
         relatedNext.compareDocumentPosition(landedRelated) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).not.toBe(0);
-      expect(landedRelated.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
+      const askNext = await screen.findByRole("status", { name: "Ask next action" });
+      expect(askNext).toHaveTextContent(
+        "Related nodes for Priya Nair are current. Ask about this lineage next.",
+      );
+      expect(
+        landedRelated.compareDocumentPosition(askNext) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+      expect(askNext.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
         0,
       );
     } finally {
@@ -2646,6 +2654,9 @@ describe("App, authenticated", () => {
       "Priya Nair is the first related node. Read that person next.",
     );
     expect(await screen.findByRole("heading", { name: "Related to Priya Nair" })).toBeInTheDocument();
+    expect(await screen.findByRole("status", { name: "Ask next action" })).toHaveTextContent(
+      "Related nodes for Priya Nair are current. Ask about this lineage next.",
+    );
   });
 
   it("lets post_admin rebuild the period report", async () => {
