@@ -595,12 +595,38 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
     assert replay.status_code == 201
     assert replay.json()["analysis_run_id"] == body["analysis_run_id"]
 
-    conflict = client.post(
+    tepp = client.post(
         "/api/analysis-runs",
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
         json={
             "run_kind_code": "analysis_run_tepp",
             "corporate_entity_id": seeded_db["own_corp_id"],
+            "idempotency_key": "buyer-create-tepp",
+        },
+    )
+    assert tepp.status_code == 422
+    assert "invent a measurement" in tepp.json()["detail"]
+    assert "theta" not in tepp.json()["detail"].lower()
+
+    report = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_report",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "idempotency_key": "buyer-create-report",
+        },
+    )
+    assert report.status_code == 422
+    assert "Reports panel" in report.json()["detail"]
+
+    conflict = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_lineage",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "knowledge_cutoff": "2026-01-01T00:00:00Z",
             "idempotency_key": "buyer-create-2026-w02",
         },
     )
@@ -727,7 +753,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
     assert replay.status_code == 200
     assert replay.json()["reconstruction_result_sha256"] == body["reconstruction_result_sha256"]
 
-    tepp = client.post(
+    tepp_create = client.post(
         "/api/analysis-runs",
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
         json={
@@ -737,9 +763,66 @@ def test_start_analysis_run_recovers_the_a100_fork(
             "idempotency_key": "buyer-start-tepp-2026-w07",
         },
     )
-    assert tepp.status_code == 201
+    assert tepp_create.status_code == 422
+    assert "invent a measurement" in tepp_create.json()["detail"]
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select requested_by_account_id from analysis_run where analysis_run_id = %s",
+                (run_id,),
+            )
+            requester_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_source_snapshot
+                    (snapshot_sha256, source_contract_version,
+                     maximum_available_time, captured_at)
+                values (%s, 'source-contract-v1',
+                        '2026-02-15T00:00:00Z', '2026-02-15T00:05:00Z')
+                returning analysis_source_snapshot_id
+                """,
+                ("t" * 64,),
+            )
+            tepp_snapshot_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_run
+                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                     requested_by_account_id, knowledge_cutoff,
+                     configuration_schema_version, configuration_sha256,
+                     code_revision_sha, requested_at)
+                values (%s, 'analysis_run_tepp', 'buyer-start-tepp-seeded',
+                        %s, '2026-02-15T00:00:00Z', 'tepp-run-v1', %s, %s,
+                        '2026-02-15T12:30:00Z')
+                returning analysis_run_id
+                """,
+                (tepp_snapshot_id, requester_id, "u" * 64, "v" * 40),
+            )
+            tepp_run_id = str(cur.fetchone()[0])
+            cur.execute(
+                """
+                insert into analysis_run_scope
+                    (analysis_run_id, scope_kind_code, corporate_entity_id)
+                values (%s, 'analysis_scope_corporate_entity', %s)
+                """,
+                (tepp_run_id, seeded_db["own_corp_id"]),
+            )
+            cur.execute(
+                """
+                insert into analysis_run_status_event
+                    (analysis_run_id, status_ordinal, status_code, occurred_at)
+                values (%s, 1, 'analysis_status_pending', '2026-02-15T12:31:00Z')
+                """,
+                (tepp_run_id,),
+            )
+    finally:
+        admin_conn.close()
+
     measured = client.post(
-        f"/api/analysis-runs/{tepp.json()['analysis_run_id']}/start",
+        f"/api/analysis-runs/{tepp_run_id}/start",
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert measured.status_code == 200, measured.text
@@ -957,6 +1040,9 @@ def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> No
     body = response.json()
     assert body["display_name"] == "Test Analyst"
     assert "post_read" in body["permission_codes"]
+    assert any(
+        entity["entity_name"] == "Test Corp" for entity in body["corporate_entities"]
+    )
 
 
 def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, demo_analyst_token, seeded_db) -> None:

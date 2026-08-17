@@ -52,9 +52,10 @@ A pending or running TEPP row must not claim a calibrated
 measurement. A pending lineage row says reconstruction has not
 started yet. The detail now shows the legal
 lifecycle the registry already stored. `POST /api/analysis-runs` now
-records a Pending run on an authorized cutoff capture (ADR 0017).
-Reconstruction, a live TEPP transport, and a fuller Analysis Run
-Console remain later slices.
+records a Pending lineage run on an authorized cutoff capture
+(ADR 0017). TEPP and period-report kinds are 422. Reconstruction, a
+live TEPP transport, and a fuller Analysis Run Console remain later
+slices.
 
 ## References
 

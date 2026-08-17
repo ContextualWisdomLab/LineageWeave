@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.1] - 2026-08-17
+
+### Fixed
+
+- `POST /api/analysis-runs` records Pending lineage only (ADR 0017).
+  TEPP and period-report kinds are 422 so this path cannot invent a
+  measurement. Open Analysis runs and wait until affiliated corps
+  load; choose a corp if you walk more than one, then click
+  **Request a lineage reconstruction**. Preview the picker in
+  Storybook (`Analysis/LineageEntityPicker`). Failed TEPP stays
+  terminal on this write.
+
 ## [2.7.0] - 2026-08-17
 
 ### Added

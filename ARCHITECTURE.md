@@ -471,9 +471,12 @@ run's scope whose `created_at` is at or before `knowledge_cutoff`
 (ADR 0016) so a buyer can open a post the run was allowed to know
 without seeing later live rows or hidden bodies. Detail also returns
 revision and configuration digest prefixes.
-`POST /api/analysis-runs` records a Pending run on a new authorized
-cutoff capture (ADR 0017): snapshot, counts, frozen membership, run,
-scope, and the first status in one transaction.
+`POST /api/analysis-runs` records a Pending lineage run on a new
+authorized cutoff capture (ADR 0017): snapshot, counts, frozen
+membership, run, scope, and the first status in one transaction. TEPP
+and period-report kinds are 422. Request a lineage reconstruction from
+the home list after affiliated corps load (choose a corp if you walk
+more than one), then open the Pending row to confirm the cutoff corpus.
 `POST /api/analysis-runs/{id}/start` then commits Running plus a
 durable outbox row, wakes Valkey, and delivers ThreadWeave on that
 frozen bag (ADR 0021 / ADR 0023) or submits TEPP through
