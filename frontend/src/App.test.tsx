@@ -1504,6 +1504,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("status", { name: "Ask next action" })).not.toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Ask seed next action" })).not.toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Ask citation next action" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("complementary", { name: "Evidence" })).not.toBeInTheDocument();
     expect(screen.queryByText("Related to Ada West")).not.toBeInTheDocument();
     expect(screen.queryByText("Related to Priya Nair")).not.toBeInTheDocument();
     const popup = document.querySelector(".popup-panel");
@@ -1547,6 +1548,10 @@ describe("App, authenticated", () => {
     expect(homeInput.compareDocumentPosition(homeAnswer) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
       0,
     );
+    expect(screen.queryByRole("complementary", { name: "Evidence" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("The evidence panel should show exactly this text."),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /ask seeded question: what happened between these events/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /ask seeded question: who is involved/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /ask seeded question: what is the next commitment/i })).toBeInTheDocument();
@@ -2462,6 +2467,17 @@ describe("App, authenticated", () => {
       expect(
         within(popup as HTMLElement).getByRole("button", { name: "Open evidence: Linked post" }),
       ).toHaveAttribute("aria-current", "true");
+      const citedEvidence = await screen.findByRole("complementary", { name: "Evidence" });
+      expect(await within(citedEvidence).findByText("Linked post")).toBeInTheDocument();
+      expect(
+        await within(citedEvidence).findByText("The evidence panel should show exactly this text."),
+      ).toBeInTheDocument();
+      expect(
+        citedNext.compareDocumentPosition(citedEvidence) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+      expect(
+        citedEvidence.compareDocumentPosition(askInput) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
       await waitFor(() => expect(document.getElementById("post-ask")).toHaveFocus());
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
@@ -2820,9 +2836,20 @@ describe("App, authenticated", () => {
     expect(firstAskAnswer.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
       0,
     );
-    expect(await screen.findByRole("status", { name: "Ask citation next action" })).toHaveTextContent(
+    const citedNext = await screen.findByRole("status", { name: "Ask citation next action" });
+    expect(citedNext).toHaveTextContent(
       "Linked post is the first cited source. Open that evidence next.",
     );
+    const citedEvidence = await screen.findByRole("complementary", { name: "Evidence" });
+    expect(
+      await within(citedEvidence).findByText("The evidence panel should show exactly this text."),
+    ).toBeInTheDocument();
+    expect(
+      citedNext.compareDocumentPosition(citedEvidence) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
+    expect(
+      citedEvidence.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
     await waitFor(() => expect(document.getElementById("post-ask")).toHaveFocus());
   });
 

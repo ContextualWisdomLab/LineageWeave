@@ -65,6 +65,8 @@ related nodes. After those related nodes land, the popup names Ask
 about this lineage as the next read. After that next action, the
 popup lands Ask about this lineage. After landed chat, the popup names
 the first Ask. After that next action, the popup lands the first Ask
-answer. Changing the week first still
+answer. After landed first Ask answer, the popup names the first
+cited source. After that next action, the popup lands the first cited
+evidence. Changing the week first still
 focuses the report period field. Mean θ stays on the period-report
 panel.
