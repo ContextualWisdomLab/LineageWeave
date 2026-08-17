@@ -12,7 +12,9 @@ All notable changes to this project are documented here. Format follows
   `mode="auto"` rather than forcing a one-model route. The
   orchestrator owns the quality-sufficient route, verification, or
   conducted workflow. Citation-bearing post-chat and lineage
-  adjudication keep their explicit `verify` contracts.
+  adjudication keep their explicit `verify` contracts. Source-scan
+  regressions require those payload literals so a docstring mention
+  cannot satisfy ADR-0013.
 
 ## [0.75.0] - 2026-08-17
 
