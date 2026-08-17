@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.76.0] - 2026-08-17
+
+### Added
+
+- Home Identity panel probes Keyverse through `KeyverseClient`
+  (ADR 0025). After login with the port unconfigured or healthz
+  down, Demo Analyst sees **Identity · Keyverse not available**.
+  An accepted probe names readiness only. Never invent an issuer,
+  account, or token.
+
 ## [0.75.0] - 2026-08-17
 
 ### Added

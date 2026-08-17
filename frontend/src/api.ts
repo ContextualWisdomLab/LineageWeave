@@ -515,3 +515,14 @@ export interface RankingList {
 export function fetchRankings(accessToken: string): Promise<RankingList> {
   return backendFetch("/api/rankings", accessToken);
 }
+
+export interface IdentityStatus {
+  port: string;
+  status: "accepted" | "unavailable";
+  status_reason: string | null;
+  ready: boolean;
+}
+
+export function fetchIdentity(accessToken: string): Promise<IdentityStatus> {
+  return backendFetch("/api/identity", accessToken);
+}

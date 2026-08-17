@@ -67,6 +67,7 @@ flowchart LR
 | `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl) |
 | `tepp_client.py` | TEPP's published `AnalysisRunRequest` wire contract, pluggable transport |
 | `rankweave_client.py` | Fail-closed RankWeave ranking port (`weighted_reciprocal_rank_fuse` in-process; never invent a fused score or a theta) |
+| `keyverse_client.py` | Fail-closed Keyverse identity port (`GET /healthz`; never invent an issuer, account, or token) |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
 | `lineage_persistence.py` | Flattens reconstruct trees into `post_lineage_edge` row specs (parent, child, fused_score) |
 | `knowledge_graph.py` | Random-walk-with-restart relevance + per-node adaptive related-node cutoff (Tong et al., 2006) -- pure graph math, no Postgres |
@@ -123,6 +124,11 @@ flowchart LR
   `RankWeaveNotAvailable`. `GET /api/rankings` then returns
   `rankweave_not_available` and an empty ranking list. Hidden posts
   are omitted from every channel. See ADR 0024.
+- **Keyverse is a published healthz, not a second login.**
+  `keyverse_client.py`'s default transport raises
+  `KeyverseNotAvailable`. `GET /api/identity` then returns
+  `keyverse_not_available` and `ready=false`. Demo login stays on
+  the synthetic Keycloak realm. See ADR 0025.
 
 ## Standards and citations
 

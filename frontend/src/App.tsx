@@ -25,6 +25,7 @@ import {
   fetchPeriodReportIndex,
   fetchPeriodReports,
   fetchPosts,
+  fetchIdentity,
   fetchRankings,
   fetchRelatedEntity,
   fetchRelatedKeymen,
@@ -50,6 +51,7 @@ import {
   type PeriodReports,
   type PostLineage,
   type PostSummary,
+  type IdentityStatus,
   type RankingList,
   type RelatedNode,
   type VocEvidence,
@@ -1371,6 +1373,44 @@ function RankingsPanel({
   );
 }
 
+function IdentityPanel({ accessToken }: { accessToken: string }) {
+  const [identity, setIdentity] = useState<IdentityStatus | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setError(null);
+    fetchIdentity(accessToken)
+      .then(setIdentity)
+      .catch((err) => setError(String(err)));
+  }, [accessToken]);
+
+  return (
+    <section className="popup-section lineage-home" aria-label="Identity">
+      <div className="lineage-home-header">
+        <h2>Identity</h2>
+        {identity && (
+          <span className="post-badge">
+            {identity.status === "accepted"
+              ? "keyverse"
+              : `keyverse · ${identity.status_reason ?? "unavailable"}`}
+          </span>
+        )}
+      </div>
+      {error && <p className="error">{error}</p>}
+      {identity === null && !error && <p>Loading identity...</p>}
+      {identity && identity.status === "unavailable" && (
+        <p className="popup-placeholder">Identity · Keyverse not available</p>
+      )}
+      {identity && identity.status === "accepted" && identity.ready && (
+        <p>
+          <span className="ticket-title">Keyverse admin service is ready.</span>{" "}
+          <span className="post-badge">Identity · keyverse</span>
+        </p>
+      )}
+    </section>
+  );
+}
+
 function CalendarPanel({
   accessToken,
   onSelectPost,
@@ -1690,6 +1730,7 @@ function PostList({ accessToken }: { accessToken: string }) {
   return (
     <>
       <RankingsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
+      <IdentityPanel accessToken={accessToken} />
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
       <section className="popup-section lineage-home">

@@ -65,6 +65,11 @@ describe("App, authenticated", () => {
         fused_rank: number;
       }[];
     };
+    identity?: {
+      status?: "accepted" | "unavailable";
+      status_reason?: string | null;
+      ready?: boolean;
+    };
     chatUnavailable?: boolean;
     searchUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
@@ -176,6 +181,21 @@ describe("App, authenticated", () => {
         tickets.unshift(ticket);
         return Promise.resolve(
           jsonResponse({ post_id: "post-1", has_commitment: true, ticket }),
+        );
+      }
+      if (url.endsWith("/api/identity")) {
+        const identity = options?.identity ?? {
+          status: "unavailable" as const,
+          status_reason: "keyverse_not_available",
+          ready: false,
+        };
+        return Promise.resolve(
+          jsonResponse({
+            port: "keyverse",
+            status: identity.status,
+            status_reason: identity.status_reason,
+            ready: identity.ready ?? false,
+          }),
         );
       }
       if (url.endsWith("/api/calendar")) {
@@ -1305,6 +1325,30 @@ describe("App, authenticated", () => {
     await userEvent.click(rankingButton);
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
+  it("names Keyverse unavailability on home identity instead of inventing an account", async () => {
+    stubBackend();
+    render(<App />);
+
+    expect(await screen.findByText("Identity · Keyverse not available")).toBeInTheDocument();
+    expect(screen.queryByText("Keyverse admin service is ready.")).not.toBeInTheDocument();
+  });
+
+  it("names accepted Keyverse readiness without inventing an issuer", async () => {
+    stubBackend({
+      identity: {
+        status: "accepted",
+        status_reason: null,
+        ready: true,
+      },
+    });
+    render(<App />);
+
+    expect(await screen.findByText("Keyverse admin service is ready.")).toBeInTheDocument();
+    expect(screen.getByText("Identity · keyverse")).toBeInTheDocument();
+    expect(screen.queryByText(/issuer/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /keyverse/i })).not.toBeInTheDocument();
   });
 
   it("shows upcoming commitments on the home page calendar and opens the post on click", async () => {

@@ -36,6 +36,9 @@ reimplementing them:
 - [TEPP](https://github.com/ContextualWisdomLab/TEPP)'s published wire
   contract for calibrated measurement (`tepp_client.py`) -- never
   reimplement TEPP's model here.
+- [Keyverse](https://github.com/ContextualWisdomLab/keyverse) for the
+  ecosystem IdP readiness port (`keyverse_client.py`) -- never invent
+  an issuer, account, or token. Demo login stays on synthetic Keycloak.
 - [contextual-orchestrator](https://github.com/ContextualWisdomLab/contextual-orchestrator)
   for LLM adjudication (`adjudication_client.py`) -- never call a raw LLM
   API directly from this repo; go through the orchestrator so

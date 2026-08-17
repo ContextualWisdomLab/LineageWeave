@@ -52,6 +52,9 @@ class Settings:
     # RankWeaveNotAvailable -- never invent a fused score. Default false
     # uses the in-process library already required by reconstruct.py.
     rankweave_disabled: bool
+    # Keyverse identity port (ADR 0025). Empty = fail-closed
+    # KeyverseNotAvailable -- never invent an issuer or account.
+    keyverse_base_url: str
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -88,4 +91,5 @@ def load_settings() -> Settings:
         .strip()
         .lower()
         in {"1", "true", "yes", "on"},
+        keyverse_base_url=os.environ.get("KEYVERSE_BASE_URL", ""),
     )

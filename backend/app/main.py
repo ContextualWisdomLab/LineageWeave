@@ -55,6 +55,7 @@ from lineageweave.post_evaluation import (
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
 from lineageweave.rankweave_client import build_rankweave_client
+from lineageweave.keyverse_client import build_keyverse_client
 
 from backend.app.activity_stream import (
     create_valkey_client,
@@ -240,6 +241,11 @@ def _post_evaluation_client():
 def _rankweave_client():
     """In-process RankWeave unless RANKWEAVE_DISABLED=1 (ADR 0024)."""
     return build_rankweave_client(disabled=load_settings().rankweave_disabled)
+
+
+def _keyverse_client():
+    """Live Keyverse healthz client when configured; otherwise fail-closed."""
+    return build_keyverse_client(base_url=load_settings().keyverse_base_url)
 
 
 def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
@@ -1150,3 +1156,14 @@ async def read_rankings(
     return _rankweave_client().as_api_payload(
         posts, can_see_post=lambda _row: True
     )
+@app.get("/api/identity")
+async def read_identity(
+    account: CurrentAccount = Depends(get_current_account),
+) -> dict[str, Any]:
+    """Keyverse readiness (ADR 0025).
+
+    Never invents an issuer, account, or token. Fail-closed when
+    Keyverse is unconfigured or healthz is down.
+    """
+    _require_post_read(account)
+    return _keyverse_client().as_api_payload()

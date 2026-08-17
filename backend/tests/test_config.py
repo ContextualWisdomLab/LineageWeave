@@ -31,3 +31,11 @@ def test_rankweave_disabled_defaults_off(monkeypatch) -> None:
 def test_rankweave_disabled_flag_is_opt_in(monkeypatch) -> None:
     monkeypatch.setenv("RANKWEAVE_DISABLED", "1")
     assert load_settings().rankweave_disabled is True
+def test_keyverse_base_url_defaults_empty(monkeypatch) -> None:
+    monkeypatch.delenv("KEYVERSE_BASE_URL", raising=False)
+    assert load_settings().keyverse_base_url == ""
+
+
+def test_keyverse_base_url_is_opt_in(monkeypatch) -> None:
+    monkeypatch.setenv("KEYVERSE_BASE_URL", "https://keyverse.example")
+    assert load_settings().keyverse_base_url == "https://keyverse.example"
