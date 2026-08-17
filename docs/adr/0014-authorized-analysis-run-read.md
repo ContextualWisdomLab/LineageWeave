@@ -60,7 +60,14 @@ lifecycle the registry already stored. `POST /api/analysis-runs` now
 records a Pending lineage run on an authorized cutoff capture
 (ADR 0017). TEPP and period-report kinds are 422. Reconstruction, a
 live TEPP transport, and a fuller Analysis Run Console remain later
-slices.
+slices. A 404 on a hidden run (including a thread-group row that
+still lacks an in-cutoff visible post, ADR 0018) must stay generic:
+do not name the thread or the cutoff, and do not say the run is not
+visible. Tell the operator to open a visible run from the home list,
+or request a lineage reconstruction for a corporation they already
+walk. After that 404, re-read `GET /api/analysis-runs` so the stale
+list row does not stay clickable, and announce the status with
+`role="alert"` (WCAG 2.2 SC 4.1.3) without moving focus.
 
 ## References
 

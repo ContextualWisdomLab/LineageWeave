@@ -66,6 +66,7 @@ import { CitationChip } from "./components/CitationChip";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
+import { StatusAlert } from "./components/StatusAlert";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { subgraphForPost } from "./lineageLayout";
@@ -1820,6 +1821,17 @@ function analysisRunAccessibleName(run: AnalysisRun): string {
 }
 
 /**
+ * Next action when detail 404s. Stay generic: do not name the thread or the cutoff.
+ * Naming either would confirm a hidden row (ADR 0018).
+ */
+function analysisRunHiddenNextAction(): string {
+  return (
+    "This run is not on your list. Open a visible run from the home list, " +
+    "or request a lineage reconstruction for a corporation you already walk."
+  );
+}
+
+/**
  * Empty-corpus copy that tells the operator what to do next.
  */
 function analysisRunEmptyPostsHint(run: AnalysisRun): string {
@@ -2172,18 +2184,24 @@ function AnalysisRunsPanel({
     } catch (err) {
       setSelected(null);
       if (err instanceof BackendError && err.status === 404) {
-        setError("This analysis run is not visible.");
+        setError(analysisRunHiddenNextAction());
+        try {
+          setRuns((await fetchAnalysisRuns(accessToken)).analysis_runs);
+        } catch {
+          // Keep the last authorized list if the re-read fails.
+        }
         return;
       }
       setError(String(err));
     }
   }
 
-  if (error && runs === null) return <p className="error">{error}</p>;
+  if (error && runs === null) return <StatusAlert>{error}</StatusAlert>;
   if (runs === null) return <p>Loading analysis runs...</p>;
 
   const corpusHint = selected ? analysisRunCorpusHint(selected) : null;
   const selectedNextAction = selected ? analysisRunNextAction(selected) : null;
+  const statusMessage = error ?? entitiesLoadError;
 
   return (
     <section className="popup-section lineage-home">
@@ -2208,7 +2226,7 @@ function AnalysisRunsPanel({
           {requestLabel}
         </button>
       </div>
-      {(error || entitiesLoadError) && <p className="error">{error ?? entitiesLoadError}</p>}
+      {statusMessage ? <StatusAlert>{statusMessage}</StatusAlert> : null}
       {runs.length === 0 ? (
         <p className="popup-placeholder">
           No analysis runs visible to this account yet. Request a lineage

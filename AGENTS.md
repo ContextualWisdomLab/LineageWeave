@@ -122,6 +122,13 @@ R&R chips read the catalog id stored on `post_summary_role`
 backfill leaves a role unbound when two same-named mentions already
 exist on the post.
 
+A listed analysis-run that then 404s must stay generic: do not name
+the thread or the cutoff, and do not say the run is not visible
+(ADR 0014 / ADR 0018). After that 404, re-read the authorized list
+so the stale row does not stay clickable. Announce the next action
+with `role="alert"` without moving focus. Remaining visible runs
+stay clickable. Request remains the named reconstruction control.
+
 ## CI gates
 
 `.github/workflows/tests.yml` runs the full suite on every PR to `main`.

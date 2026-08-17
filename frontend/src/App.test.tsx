@@ -74,6 +74,7 @@ describe("App, authenticated", () => {
     succeededReportRun?: boolean;
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
+    hiddenAnalysisRun?: boolean;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
     meFailed?: boolean;
@@ -101,6 +102,7 @@ describe("App, authenticated", () => {
     let nextEventId = 1;
     let createdPendingLineage: Record<string, unknown> | null = null;
     let createdPendingTepp: Record<string, unknown> | null = null;
+    let analysisRunListCalls = 0;
 
     let releaseMe = () => {};
     const meReady = options?.deferMe
@@ -371,6 +373,14 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-lineage")) {
+        if (options?.hiddenAnalysisRun) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "Not found" }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-lineage",
@@ -623,12 +633,18 @@ describe("App, authenticated", () => {
         return Promise.resolve(new Response(JSON.stringify(created), { status: 201 }));
       }
       if (url.endsWith("/api/analysis-runs")) {
+        analysisRunListCalls += 1;
+        const includeStaleLineageRow = !(
+          options?.hiddenAnalysisRun && analysisRunListCalls > 1
+        );
         return Promise.resolve(
           jsonResponse({
             analysis_runs: [
               ...(createdPendingLineage ? [createdPendingLineage] : []),
               ...(createdPendingTepp ? [createdPendingTepp] : []),
-              {
+              ...(includeStaleLineageRow
+                ? [
+                    {
                 analysis_run_id: "run-demo-lineage",
                 run_kind_code: "analysis_run_lineage",
                 run_kind_label: "Lineage reconstruction",
@@ -657,7 +673,9 @@ describe("App, authenticated", () => {
                 code_revision_sha: "abcdef0123456789deadbeefcafebabe",
                 configuration_sha256:
                   "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-              },
+                    },
+                  ]
+                : []),
               {
                 analysis_run_id: "run-demo-tepp",
                 run_kind_code: "analysis_run_tepp",
@@ -2277,6 +2295,45 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
+  });
+
+  it("drops a stale listed run after its detail 404s and names the next action", async () => {
+    stubBackend({ hiddenAnalysisRun: true });
+    render(<App />);
+
+    await screen.findByRole("list", { name: "Analysis runs" });
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+      }),
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "This run is not on your list. Open a visible run from the home list, or request a lineage reconstruction for a corporation you already walk.",
+    );
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("button", {
+          name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+        }),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole("button", {
+        name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to see why it failed, then connect the measurement service and re-run.",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Open analysis run: Period report · Succeeded · Demo Corp",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Request a lineage reconstruction" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/not visible/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/thread-group/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/knowledge_cutoff/i)).not.toBeInTheDocument();
   });
 
   it("finds a failed TEPP list button by the next-action accessible name", async () => {

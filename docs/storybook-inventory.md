@@ -9,6 +9,7 @@ buyer-facing control you can click before changing product CSS.
 | `AnalysisRun/CutoffKnownBody` | Read the cutoff-known sentence, then compare it with the live body below. | `--color-accent-border`, `--space-panel-block`, `--radius-panel`, `CutoffKnownBody` |
 | `Analysis/LineageEntityPicker` | Choose which corp to reconstruct, then click Request a lineage reconstruction. | `--space-control-gap`, `--size-control-min`, `--radius-control`, `LineageEntityPicker` |
 | `Chrome/PopupCloseButton` | Close the evidence panel or post popup. | `--space-close-inset`, `--font-size-close`, `PopupCloseButton` |
+| `Chrome/StatusAlert` | Hear the next action after a hidden-run 404, then open a visible run or request a reconstruction. | `--color-status-alert`, `StatusAlert` |
 
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module
 under `frontend/src/components/`. Do not add a second Node package manager;
@@ -21,3 +22,7 @@ Design Tokens Community Group. (2025). *Design Tokens Format Module 1.0*
 
 Storybook. (2026). *Storybook for React & Vite*.
 https://storybook.js.org/docs/get-started/frameworks/react-vite
+
+World Wide Web Consortium. (2023). *Web content accessibility
+guidelines (WCAG) 2.2* (W3C Recommendation).
+https://www.w3.org/TR/WCAG22/

@@ -8,6 +8,7 @@
   --color-accent-background: rgba(170, 59, 255, 0.1);
   --color-accent-border: rgba(170, 59, 255, 0.5);
   --color-chip-border: #3335;
+  --color-status-alert: #b91c1c;
   --space-chip-inline: 0.6rem;
   --space-chip-block: 0.1rem;
   --space-chip-gap: 0.3rem;
@@ -34,5 +35,6 @@
     --color-accent-background: rgba(192, 132, 252, 0.15);
     --color-accent-border: rgba(192, 132, 252, 0.5);
     --color-chip-border: #9ca3af;
+    --color-status-alert: #f87171;
   }
 }
