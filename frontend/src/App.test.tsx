@@ -1474,6 +1474,18 @@ describe("App, authenticated", () => {
     expect(
       screen.queryByRole("status", { name: "Event Lineage next action" }),
     ).not.toBeInTheDocument();
+    const popup = document.querySelector(".popup-panel");
+    expect(popup).not.toBeNull();
+    const evaluation = within(popup as HTMLElement).getByRole("heading", {
+      name: "Post quality (IRT)",
+    });
+    const eventLineage = within(popup as HTMLElement).getByRole("heading", { name: "Event Lineage" });
+    const affiliate = within(popup as HTMLElement).getByRole("heading", { name: "Affiliate tree" });
+    const keyman = within(popup as HTMLElement).getByRole("heading", { name: "Keyman" });
+    expect(evaluation.compareDocumentPosition(eventLineage) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
+      0,
+    );
+    expect(affiliate.compareDocumentPosition(keyman) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
   });
 
   it("shows a seeded Ask exchange without an orchestrator round-trip", async () => {
@@ -2290,10 +2302,17 @@ describe("App, authenticated", () => {
       expect(
         currentNode.compareDocumentPosition(lineageNext) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).not.toBe(0);
+      const keyman = within(popup as HTMLElement).getByRole("heading", { name: "Keyman" });
+      const evaluation = within(popup as HTMLElement).getByRole("heading", {
+        name: "Post quality (IRT)",
+      });
+      const affiliate = within(popup as HTMLElement).getByRole("heading", { name: "Affiliate tree" });
+      expect(lineageNext.compareDocumentPosition(keyman) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
+        0,
+      );
+      expect(keyman.compareDocumentPosition(evaluation) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
       expect(
-        lineageNext.compareDocumentPosition(
-          within(popup as HTMLElement).getByRole("heading", { name: "Keyman" }),
-        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+        evaluation.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).not.toBe(0);
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
