@@ -1504,6 +1504,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("status", { name: "Ask next action" })).not.toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Ask seed next action" })).not.toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Ask citation next action" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Evidence next action" })).not.toBeInTheDocument();
     expect(screen.queryByRole("complementary", { name: "Evidence" })).not.toBeInTheDocument();
     expect(screen.queryByText("Related to Ada West")).not.toBeInTheDocument();
     expect(screen.queryByText("Related to Priya Nair")).not.toBeInTheDocument();
@@ -2478,6 +2479,16 @@ describe("App, authenticated", () => {
       expect(
         citedEvidence.compareDocumentPosition(askInput) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).not.toBe(0);
+      const evidenceNext = await screen.findByRole("status", { name: "Evidence next action" });
+      expect(evidenceNext).toHaveTextContent(
+        "Linked post evidence is current. Read Event Lineage on that post next.",
+      );
+      expect(
+        citedEvidence.compareDocumentPosition(evidenceNext) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+      expect(evidenceNext.compareDocumentPosition(askInput) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
+        0,
+      );
       await waitFor(() => expect(document.getElementById("post-ask")).toHaveFocus());
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
@@ -2850,6 +2861,9 @@ describe("App, authenticated", () => {
     expect(
       citedEvidence.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).not.toBe(0);
+    expect(await screen.findByRole("status", { name: "Evidence next action" })).toHaveTextContent(
+      "Linked post evidence is current. Read Event Lineage on that post next.",
+    );
     await waitFor(() => expect(document.getElementById("post-ask")).toHaveFocus());
   });
 

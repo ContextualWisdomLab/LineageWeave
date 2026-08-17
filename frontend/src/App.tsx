@@ -262,6 +262,11 @@ function ChatPanel({
           }
         />
       ) : null}
+      {nameFirstAsk && firstCitedTitle && landedEvidencePostId ? (
+        <p className="post-meta" role="status" aria-label="Evidence next action">
+          {landedEvidenceNextAction(firstCitedTitle)}
+        </p>
+      ) : null}
       {!seededOnly && (
         <div className="chat-input-row">
           <input
@@ -362,6 +367,10 @@ function firstAskNextAction(questionText: string): string {
 
 function firstCitedNextAction(postTitle: string): string {
   return `${postTitle} is the first cited source. Open that evidence next.`;
+}
+
+function landedEvidenceNextAction(postTitle: string): string {
+  return `${postTitle} evidence is current. Read Event Lineage on that post next.`;
 }
 
 function EventLineageSection({
