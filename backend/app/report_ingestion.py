@@ -490,10 +490,14 @@ async def fetch_period_reports(
         selected_by_group[row["grouping_key"]].append(row)
     payload: list[dict[str, Any]] = []
     for header in headers:
+        grouping_key = header["grouping_key"]
         payload.append(
             {
                 "grouping_kind": header["grouping_kind"],
-                "grouping_key": header["grouping_key"],
+                "grouping_key": grouping_key,
+                "grouping_label": await resolve_grouping_label(
+                    conn, header["grouping_kind"], grouping_key
+                ),
                 "period_code": header["period_code"],
                 "rubric_version": header["rubric_version"],
                 "selected_model": header["selected_model"],

@@ -189,6 +189,7 @@ describe("App, authenticated", () => {
             scope_kind_label: "Corporate entity",
             scope_entity_name: "Demo Corp",
             scope_key: "2026-W02",
+            scope_grouping_key: "corp-1",
             status_code: reportSucceeded ? "analysis_status_succeeded" : "analysis_status_failed",
             status_label: reportSucceeded ? "Succeeded" : "Failed",
             knowledge_cutoff: "2026-01-12T12:00:00Z",
@@ -674,6 +675,7 @@ describe("App, authenticated", () => {
                 scope_kind_label: "Corporate entity",
                 scope_entity_name: "Demo Corp",
                 scope_key: "2026-W02",
+                scope_grouping_key: "corp-1",
                 status_code: options?.failedReportRun
                   ? ("analysis_status_failed" as const)
                   : ("analysis_status_succeeded" as const),
@@ -743,7 +745,7 @@ describe("App, authenticated", () => {
               {
                 grouping_kind: "corporate_entity",
                 grouping_key: "corp-1",
-                grouping_label: "Test Corp",
+                grouping_label: "Demo Corp",
                 mean_theta: 0.01,
                 post_count: 8,
                 link_method: "fipc",
@@ -788,6 +790,59 @@ describe("App, authenticated", () => {
                 delta_mean_theta: 0.92,
                 selected_item_code: "sales_lead_specificity",
                 selected_item_information: 0.65,
+              },
+            ],
+          }),
+        );
+      }
+      if (url.includes("/api/reports/corporate_entity/") && method === "GET") {
+        return Promise.resolve(
+          jsonResponse({
+            grouping_kind: "corporate_entity",
+            period_code: url.includes("2026-W03") ? "2026-W03" : "2026-W02",
+            reports: [
+              {
+                grouping_key: "corp-other",
+                grouping_label: "Other Corp",
+                selected_model: "grm",
+                mean_theta: -0.2,
+                mean_theta_sd: 0.1,
+                post_count: 2,
+                item_count: 3,
+                fit_converged: true,
+                link_method: "fipc",
+                anchor_period_code: "2026-W02",
+                delta_mean_theta: null,
+                selected_items: [],
+                members: [],
+              },
+              {
+                grouping_key: "corp-1",
+                grouping_label: "Demo Corp",
+                selected_model: "grm",
+                mean_theta: 0.42,
+                mean_theta_sd: 0.1,
+                post_count: 8,
+                item_count: 3,
+                fit_converged: true,
+                link_method: "fipc",
+                anchor_period_code: "2026-W02",
+                delta_mean_theta: null,
+                selected_items: [
+                  { item_code: "sales_lead_specificity", rank: 1, information: 0.7 },
+                ],
+                members: [
+                  {
+                    post_id: "post-1",
+                    post_title: "Public post",
+                    theta_eap: 0.91,
+                    theta_sd: 0.2,
+                    ticket_due_date: "2026-01-12",
+                    ticket_title: "Send Northridge Grid the revised quote",
+                    ticket_status_code: "open",
+                    ticket_status_label: "Open",
+                  },
+                ],
               },
             ],
           }),
@@ -2119,9 +2174,20 @@ describe("App, authenticated", () => {
     await userEvent.clear(periodInput);
     await userEvent.type(periodInput, "2026-W03");
     expect(periodInput).toHaveValue("2026-W03");
+    const groupingSelect = screen.getByLabelText("Report grouping");
+    expect(groupingSelect).toHaveValue("process_unit");
     await userEvent.click(screen.getByRole("button", { name: "Open period report 2026-W02" }));
     expect(periodInput).toHaveValue("2026-W02");
+    expect(groupingSelect).toHaveValue("corporate_entity");
     expect(periodInput).toHaveFocus();
+    expect(
+      screen.getByRole("button", { name: "Compare corporate_entity: Demo Corp" }),
+    ).toHaveAttribute("aria-current", "true");
+    expect(
+      screen.getByRole("button", { name: "Compare process_unit: Demo Report High" }),
+    ).not.toHaveAttribute("aria-current");
+    expect(await screen.findByText(/Demo Corp: mean θ 0\.42/)).toBeInTheDocument();
+    expect(screen.queryByText(/corp-1: mean θ/)).not.toBeInTheDocument();
   });
 
   it("does not tell a failed period report to connect the measurement service", async () => {

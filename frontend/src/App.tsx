@@ -1689,6 +1689,28 @@ const REPORT_PERIOD_KEY = /^\d{4}-W\d{2}$/;
  * That key is a week label, not a theta. Missing or malformed keys
  * stay closed so we do not invent a period.
  */
+/**
+ * Report grouping that matches the run's authorized scope.
+ *
+ * A corporate-entity run must not leave the panel on process unit.
+ */
+function analysisRunReportGrouping(run: AnalysisRun): string | null {
+  switch (run.scope_kind_code) {
+    case "analysis_scope_corporate_entity":
+      return "corporate_entity";
+    case "analysis_scope_process_unit":
+      return "process_unit";
+    case "analysis_scope_thread_group":
+      return "thread_group";
+    default:
+      return null;
+  }
+}
+
+function analysisRunReportGroupingKey(run: AnalysisRun): string | undefined {
+  return run.scope_grouping_key || undefined;
+}
+
 function analysisRunReportPeriod(run: AnalysisRun): string | null {
   if (run.run_kind_code !== "analysis_run_report") {
     return null;
@@ -1725,7 +1747,12 @@ function AnalysisRunsPanel({
 }: {
   accessToken: string;
   onSelectPost: (postId: string, options?: SelectPostOptions) => void;
-  onSelectReportPeriod?: (periodCode: string) => void;
+  onSelectReportPeriod?: (
+    periodCode: string,
+    groupingKind?: string,
+    groupingKey?: string,
+    groupingLabel?: string,
+  ) => void;
 }) {
   const [runs, setRuns] = useState<AnalysisRun[] | null>(null);
   const [selected, setSelected] = useState<AnalysisRun | null>(null);
@@ -1903,7 +1930,12 @@ function AnalysisRunsPanel({
               onClick={() => {
                 const periodCode = analysisRunReportPeriod(selected);
                 if (periodCode) {
-                  onSelectReportPeriod(periodCode);
+                  onSelectReportPeriod(
+                    periodCode,
+                    analysisRunReportGrouping(selected) ?? undefined,
+                    analysisRunReportGroupingKey(selected),
+                    selected.scope_entity_name,
+                  );
                   document.getElementById("report-period")?.focus();
                 }
               }}
@@ -2061,14 +2093,23 @@ function ReportsPanel({
   onSelectPost,
   period,
   onSelectPeriod,
+  grouping,
+  onSelectGrouping,
+  openedGroupingKey,
+  openedGroupingLabel,
+  onOpenGrouping,
 }: {
   accessToken: string;
   canRebuild: boolean;
   onSelectPost: (postId: string) => void;
   period: string;
   onSelectPeriod: (periodCode: string) => void;
+  grouping: string;
+  onSelectGrouping: (groupingKind: string) => void;
+  openedGroupingKey?: string | null;
+  openedGroupingLabel?: string | null;
+  onOpenGrouping?: (groupingKey: string, groupingLabel: string) => void;
 }) {
-  const [grouping, setGrouping] = useState("process_unit");
   const [payload, setPayload] = useState<PeriodReports | null>(null);
   const [index, setIndex] = useState<PeriodReportIndex | null>(null);
   const [comparison, setComparison] = useState<PeriodComparison | null>(null);
@@ -2080,6 +2121,16 @@ function ReportsPanel({
     corporate_entity: "Corporate entity",
     thread_group: "Thread group",
   };
+
+  function groupingIsOpened(groupingKind: string, groupingKey: string, groupingLabel?: string) {
+    if (groupingKind !== grouping) {
+      return false;
+    }
+    if (openedGroupingKey && groupingKey === openedGroupingKey) {
+      return true;
+    }
+    return Boolean(openedGroupingLabel && groupingLabel && groupingLabel === openedGroupingLabel);
+  }
 
   useEffect(() => {
     setError(null);
@@ -2129,7 +2180,7 @@ function ReportsPanel({
       <div className="chat-input-row">
         <label>
           Grouping
-          <select aria-label="Report grouping" value={grouping} onChange={(event) => setGrouping(event.target.value)}>
+          <select aria-label="Report grouping" value={grouping} onChange={(event) => onSelectGrouping(event.target.value)}>
             <option value="process_unit">Process unit</option>
             <option value="corporate_entity">Corporate entity</option>
             <option value="thread_group">Thread group</option>
@@ -2152,7 +2203,15 @@ function ReportsPanel({
               <button
                 className="post-list-item"
                 aria-label={`Compare ${row.grouping_kind}: ${row.grouping_label}`}
-                onClick={() => setGrouping(row.grouping_kind)}
+                aria-current={
+                  groupingIsOpened(row.grouping_kind, row.grouping_key, row.grouping_label)
+                    ? "true"
+                    : undefined
+                }
+                onClick={() => {
+                  onSelectGrouping(row.grouping_kind);
+                  onOpenGrouping?.(row.grouping_key, row.grouping_label);
+                }}
               >
                 <span className="ticket-title">
                   {groupingLabels[row.grouping_kind] ?? row.grouping_kind}: {row.grouping_label}
@@ -2204,9 +2263,17 @@ function ReportsPanel({
       {payload && payload.reports.length > 0 && (
         <ul className="ticket-list">
           {payload.reports.map((report) => (
-            <li key={report.grouping_key} className="ticket-list-item">
+            <li
+              key={report.grouping_key}
+              className="ticket-list-item"
+              aria-current={
+                groupingIsOpened(grouping, report.grouping_key, report.grouping_label)
+                  ? "true"
+                  : undefined
+              }
+            >
               <span className="ticket-title">
-                {report.grouping_key}: mean θ {report.mean_theta.toFixed(2)} ({report.selected_model}
+                {report.grouping_label ?? report.grouping_key}: mean θ {report.mean_theta.toFixed(2)} ({report.selected_model}
                 {report.fit_converged ? ", converged" : ", not converged"})
               </span>
               <span className="post-badge">{report.post_count} posts</span>
@@ -2271,6 +2338,34 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
   const [reportPeriod, setReportPeriod] = useState("2026-W02");
+  const [reportGrouping, setReportGrouping] = useState("process_unit");
+  const [openedGroupingKey, setOpenedGroupingKey] = useState<string | null>(null);
+  const [openedGroupingLabel, setOpenedGroupingLabel] = useState<string | null>(null);
+
+  function openReportFromAnalysisRun(
+    periodCode: string,
+    groupingKind?: string,
+    groupingKey?: string,
+    groupingLabel?: string,
+  ) {
+    setReportPeriod(periodCode);
+    if (groupingKind) {
+      setReportGrouping(groupingKind);
+    }
+    setOpenedGroupingKey(groupingKey ?? null);
+    setOpenedGroupingLabel(groupingLabel ?? null);
+  }
+
+  function selectReportGrouping(groupingKind: string) {
+    setReportGrouping(groupingKind);
+    setOpenedGroupingKey(null);
+    setOpenedGroupingLabel(null);
+  }
+
+  function openComparedGrouping(groupingKey: string, groupingLabel: string) {
+    setOpenedGroupingKey(groupingKey);
+    setOpenedGroupingLabel(groupingLabel);
+  }
 
   function selectPost(postId: string, options?: SelectPostOptions) {
     setSelectedPostId(postId);
@@ -2315,7 +2410,7 @@ function PostList({ accessToken }: { accessToken: string }) {
       <AnalysisRunsPanel
         accessToken={accessToken}
         onSelectPost={selectPost}
-        onSelectReportPeriod={setReportPeriod}
+        onSelectReportPeriod={openReportFromAnalysisRun}
       />
       <ReportsPanel
         accessToken={accessToken}
@@ -2323,6 +2418,11 @@ function PostList({ accessToken }: { accessToken: string }) {
         onSelectPost={selectPost}
         period={reportPeriod}
         onSelectPeriod={setReportPeriod}
+        grouping={reportGrouping}
+        onSelectGrouping={selectReportGrouping}
+        openedGroupingKey={openedGroupingKey}
+        openedGroupingLabel={openedGroupingLabel}
+        onOpenGrouping={openComparedGrouping}
       />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
