@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.71.2] - 2026-08-17
+
+### Added
+
+- Period reports now persist closest and farthest leftover
+  post–criterion pairs after the IRT main effects (Jeon leftover
+  map). After `make seed`, leftover pairs sit above the member
+  list; clicking a pair opens that post. A leftover pair for a
+  hidden post is omitted the same way a hidden member is.
+
 ## [0.71.0] - 2026-08-14
 
 ### Added

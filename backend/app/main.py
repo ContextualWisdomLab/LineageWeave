@@ -758,7 +758,14 @@ async def read_period_reports(
         members = [member for member in report["members"] if _can_see_post(account, member)]
         if not members:
             continue
-        visible.append({**report, "members": members, "post_count": len(members)})
+        leftover_pairs = [
+            pair
+            for pair in report.get("leftover_pairs", [])
+            if _can_see_post(account, pair)
+        ]
+        visible.append(
+            {**report, "members": members, "leftover_pairs": leftover_pairs, "post_count": len(members)}
+        )
     return {"grouping_kind": grouping_kind, "period_code": period_code, "reports": visible}
 
 

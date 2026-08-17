@@ -1527,6 +1527,37 @@ function ReportsPanel({
                   {report.selected_items[0].information.toFixed(2)}
                 </span>
               )}
+              {report.leftover_pairs && report.leftover_pairs.length > 0 && (
+                <ul className="ticket-list" aria-label="Leftover pairs">
+                  {report.leftover_pairs.map((pair) => {
+                    const kindLabel =
+                      pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover";
+                    const nextAction =
+                      pair.pair_kind === "farthest"
+                        ? "Open this post to read the criterion it sat farthest from after main effects."
+                        : "Open this post to read the criterion it sat closest to after main effects.";
+                    const criterion = criterionShortLabel(pair.criterion_code);
+                    return (
+                    <li
+                      key={`${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
+                      className="ticket-list-item"
+                    >
+                      <button
+                        className="post-list-item"
+                        aria-label={`Open leftover ${pair.pair_kind} pair: ${pair.post_title} · ${criterion}`}
+                        onClick={() => onSelectPost(pair.post_id)}
+                      >
+                        <span className="ticket-title">
+                          {kindLabel}: {pair.post_title} · {criterion}
+                        </span>
+                        <span className="post-badge">{nextAction}</span>
+                        <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
+                      </button>
+                    </li>
+                    );
+                  })}
+                </ul>
+              )}
               {report.members.length > 0 && (
                 <ul className="ticket-list">
                   {report.members.map((member) => (
