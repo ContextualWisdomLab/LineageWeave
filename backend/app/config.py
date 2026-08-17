@@ -52,6 +52,11 @@ class Settings:
     # RankWeaveNotAvailable -- never invent a fused score. Default false
     # uses the in-process library already required by reconstruct.py.
     rankweave_disabled: bool
+    # naruon mailbox control plane (ADR 0020). Empty = fail-closed
+    # NaruonNotAvailable -- never invent a thread.
+    naruon_base_url: str
+    naruon_bearer: str
+
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -88,4 +93,7 @@ def load_settings() -> Settings:
         .strip()
         .lower()
         in {"1", "true", "yes", "on"},
+        naruon_base_url=os.environ.get("NARUON_BASE_URL", ""),
+        naruon_bearer=os.environ.get("NARUON_BEARER", ""),
+
     )

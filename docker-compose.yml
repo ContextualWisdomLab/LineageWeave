@@ -105,6 +105,9 @@ services:
       ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}
       VISION_MODEL: ${VISION_MODEL:-}
       SEARXNG_BASE_URL: http://searxng:8080
+      # Empty by default: mailbox port stays fail-closed (ADR 0020).
+      NARUON_BASE_URL: ${NARUON_BASE_URL:-}
+      NARUON_BEARER: ${NARUON_BEARER:-}
     ports:
       - "${BACKEND_PORT:-18420}:8000"
     depends_on:

@@ -65,6 +65,11 @@ describe("App, authenticated", () => {
         fused_rank: number;
       }[];
     };
+    mailbox?: {
+      status: "accepted" | "unavailable";
+      status_reason: string | null;
+      threads: { thread_id: string; subject: string; reply_count?: number }[];
+    };
     chatUnavailable?: boolean;
     searchUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
@@ -176,6 +181,22 @@ describe("App, authenticated", () => {
         tickets.unshift(ticket);
         return Promise.resolve(
           jsonResponse({ post_id: "post-1", has_commitment: true, ticket }),
+        );
+      }
+      if (url.endsWith("/api/mailbox")) {
+        const mailbox = options?.mailbox ?? {
+          port: "naruon",
+          status: "unavailable" as const,
+          status_reason: "naruon_not_available",
+          threads: [],
+        };
+        return Promise.resolve(
+          jsonResponse({
+            port: "naruon",
+            status: mailbox.status,
+            status_reason: mailbox.status_reason,
+            threads: mailbox.threads,
+          }),
         );
       }
       if (url.endsWith("/api/calendar")) {
@@ -1307,7 +1328,37 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });
 
-  it("shows upcoming commitments on the home page calendar and opens the post on click", async () => {
+  it("names naruon unavailability on the home mailbox instead of inventing a thread", async () => {
+    stubBackend();
+    render(<App />);
+
+    expect(await screen.findByText("Mailbox · naruon not available")).toBeInTheDocument();
+    expect(screen.queryByText("Quarterly plan")).not.toBeInTheDocument();
+  });
+
+  it("lists an accepted naruon thread subject without inventing a post", async () => {
+    stubBackend({
+      mailbox: {
+        status: "accepted",
+        status_reason: null,
+        threads: [
+          {
+            thread_id: "thread-root@example.com",
+            subject: "Quarterly plan",
+            reply_count: 3,
+          },
+        ],
+      },
+    });
+    render(<App />);
+
+    expect(await screen.findByText("Quarterly plan")).toBeInTheDocument();
+    expect(screen.getByText("Mailbox · naruon")).toBeInTheDocument();
+    expect(screen.getByText("3 replies")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /quarterly plan/i })).not.toBeInTheDocument();
+  });
+
+it("shows upcoming commitments on the home page calendar and opens the post on click", async () => {
     stubBackend();
     render(<App />);
 

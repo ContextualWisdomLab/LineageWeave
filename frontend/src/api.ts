@@ -515,3 +515,20 @@ export interface RankingList {
 export function fetchRankings(accessToken: string): Promise<RankingList> {
   return backendFetch("/api/rankings", accessToken);
 }
+
+export interface MailboxThread {
+  thread_id: string;
+  subject: string;
+  reply_count?: number;
+}
+
+export interface MailboxInbox {
+  port: string;
+  status: "accepted" | "unavailable";
+  status_reason: string | null;
+  threads: MailboxThread[];
+}
+
+export function fetchMailbox(accessToken: string): Promise<MailboxInbox> {
+  return backendFetch("/api/mailbox", accessToken);
+}

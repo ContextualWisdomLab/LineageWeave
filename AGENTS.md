@@ -27,6 +27,9 @@ a statistic, never a title, name, or id.
 This repo depends on real ContextualWisdomLab-org packages rather than
 reimplementing them:
 
+- [naruon](https://github.com/ContextualWisdomLab/naruon) for the
+  mailbox inbox (`naruon_client.py`, published `GET /api/emails`) --
+  never invent a thread or read naruon tables.
 - [ThreadWeave](https://github.com/ContextualWisdomLab/ThreadWeave) for
   tree assembly (`reconstruct.py`'s `_walk`/`thread_messages` calls).
 - [RankWeave](https://github.com/ContextualWisdomLab/RankWeave) for
@@ -53,7 +56,9 @@ does it (`gh repo list ContextualWisdomLab`).
 must set `available = False` and make their channel dropped +
 renormalized (`reconstruct.active_weights`), never silently return a
 placeholder score, invented Keyman, guessed relationship, fabricated
-summary/chat, or invented commitment. A missing signal and a
+summary/chat, or invented commitment. `NaruonClient` fails closed with
+`NaruonNotAvailable` and an empty thread list -- never an invented
+mailbox subject. A missing signal and a
 confidently-negative signal are different things. Keyman extraction,
 entity-relationship classification, post summary, in-popup chat, and
 commitment derivation go through contextual-orchestrator the same way

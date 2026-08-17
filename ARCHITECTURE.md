@@ -123,6 +123,11 @@ flowchart LR
   `RankWeaveNotAvailable`. `GET /api/rankings` then returns
   `rankweave_not_available` and an empty ranking list. Hidden posts
   are omitted from every channel. See ADR 0024.
+- **naruon is a mailbox wire contract, not a table read.**
+  `naruon_client.py`'s default transport raises `NaruonNotAvailable`.
+  `GET /api/mailbox` then returns `naruon_not_available` and an empty
+  thread list. Message bodies are never projected. See ADR 0020.
+
 
 ## Standards and citations
 

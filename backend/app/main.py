@@ -41,6 +41,7 @@ from lineageweave.keyman_extraction import (
     ContextualOrchestratorKeymanExtractionClient,
     NullKeymanExtractionClient,
 )
+from lineageweave.naruon_client import build_naruon_client
 from lineageweave.post_chat import (
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
@@ -240,6 +241,16 @@ def _post_evaluation_client():
 def _rankweave_client():
     """In-process RankWeave unless RANKWEAVE_DISABLED=1 (ADR 0024)."""
     return build_rankweave_client(disabled=load_settings().rankweave_disabled)
+
+
+def _naruon_client():
+    """Live naruon inbox client when configured; otherwise fail-closed."""
+    settings = load_settings()
+    return build_naruon_client(
+        base_url=settings.naruon_base_url,
+        bearer=settings.naruon_bearer,
+    )
+
 
 
 def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
@@ -1150,3 +1161,17 @@ async def read_rankings(
     return _rankweave_client().as_api_payload(
         posts, can_see_post=lambda _row: True
     )
+
+
+@app.get("/api/mailbox")
+async def read_mailbox(
+    account: CurrentAccount = Depends(get_current_account),
+) -> dict[str, Any]:
+    """naruon inbox projection. Fail-closed when the port is down (ADR 0020).
+
+    Never invents a thread or a message body. Click-through to a
+    ``source_post`` is a later mapping slice.
+    """
+    _require_post_read(account)
+    return _naruon_client().as_api_payload()
+

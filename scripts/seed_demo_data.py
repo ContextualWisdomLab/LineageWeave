@@ -29,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import psycopg2
 
 from lineageweave.http_client import get_json_list, post_form
+from lineageweave.naruon_client import build_naruon_client
 
 REALM = "lineageweave-demo"
 DEFAULT_POSTGRES_DSN = "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
@@ -1182,6 +1183,11 @@ def main() -> None:
     subjects = _fetch_demo_user_subjects(args.keycloak_base_url, args.keycloak_admin_user, args.keycloak_admin_password)
     seed(args.postgres_dsn, subjects, args.valkey_url)
     print(f"Seeded synthetic demo data for accounts: {subjects}")
+    mailbox = build_naruon_client().as_api_payload()
+    if mailbox["status"] == "accepted":
+        print(f"naruon mailbox accepted: {len(mailbox['threads'])} threads")
+    else:
+        print(f"naruon mailbox: {mailbox['status_reason']} (no invented messages)")
 
 
 if __name__ == "__main__":

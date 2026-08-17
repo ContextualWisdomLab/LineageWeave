@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.80.0] - 2026-08-17
+
+### Added
+
+- Home Mailbox panel lists naruon inbox threads through `NaruonClient`.
+  After login with naruon HTTP down, Demo Analyst sees
+  **Mailbox · naruon not available**. An accepted transport lists the
+  published thread subject. Seed never invents a message.
+
 ## [0.75.0] - 2026-08-17
 
 ### Added

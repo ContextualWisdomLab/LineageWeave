@@ -146,10 +146,13 @@ curl http://localhost:18420/healthz
 `GET /api/posts/{post_id}/keymen`, `GET /api/keymen/{person_id}/related`,
 `GET /api/posts/{post_id}/affiliate-tree`,
 `GET /api/posts/{post_id}/voc-evidence`,
+`GET /api/mailbox`,
 and `POST /api/posts/{post_id}/extract-keymen`
 require a real bearer token (RBAC: the account's role must grant
 `post_read`; ABAC: a private post is only visible to accounts affiliated
-with its owning corporate entity -- `backend/app/main.py`). A Keyman who
+with its owning corporate entity -- `backend/app/main.py`). `GET /api/mailbox`
+returns `naruon_not_available` when naruon HTTP is down and never invents
+a thread (ADR 0020). A Keyman who
 is only mentioned on a post the account cannot see is 403, same deny
 path. `backend/tests/test_api.py` proves both the allow and the deny
 path against a live Keycloak + throwaway Postgres database, including

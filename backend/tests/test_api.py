@@ -320,6 +320,18 @@ def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> No
     assert "post_read" in body["permission_codes"]
 
 
+def test_mailbox_fails_closed_when_naruon_is_unconfigured(client, demo_analyst_token) -> None:
+    os.environ.pop("NARUON_BASE_URL", None)
+    os.environ.pop("NARUON_BEARER", None)
+    response = client.get("/api/mailbox", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["port"] == "naruon"
+    assert body["status"] == "unavailable"
+    assert body["status_reason"] == "naruon_not_available"
+    assert body["threads"] == []
+
+
 def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, demo_analyst_token, seeded_db) -> None:
     response = client.get("/api/posts", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200

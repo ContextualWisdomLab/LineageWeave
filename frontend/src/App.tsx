@@ -10,6 +10,7 @@ import {
   fetchCalendar,
   fetchLineageGraph,
   fetchMe,
+  fetchMailbox,
   fetchPost,
   fetchPostActivity,
   fetchPostChat,
@@ -41,6 +42,7 @@ import {
   type EvaluationResponse,
   type IssueTicket,
   type LineageGraph,
+  type MailboxInbox,
   type Keyman,
   type LinkedPostRef,
   type PostAiSummary,
@@ -1371,6 +1373,52 @@ function RankingsPanel({
   );
 }
 
+function MailboxPanel({ accessToken }: { accessToken: string }) {
+  const [inbox, setInbox] = useState<MailboxInbox | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setError(null);
+    fetchMailbox(accessToken)
+      .then(setInbox)
+      .catch((err) => setError(String(err)));
+  }, [accessToken]);
+
+  return (
+    <section className="popup-section lineage-home" aria-label="Mailbox">
+      <div className="lineage-home-header">
+        <h2>Mailbox</h2>
+        {inbox && (
+          <span className="post-badge">
+            {inbox.status === "accepted" ? "naruon" : `naruon · ${inbox.status_reason ?? "unavailable"}`}
+          </span>
+        )}
+      </div>
+      {error && <p className="error">{error}</p>}
+      {inbox === null && !error && <p>Loading mailbox...</p>}
+      {inbox && inbox.status === "unavailable" && (
+        <p className="popup-placeholder">Mailbox · naruon not available</p>
+      )}
+      {inbox && inbox.status === "accepted" && inbox.threads.length === 0 && (
+        <p className="popup-placeholder">No mailbox threads from naruon.</p>
+      )}
+      {inbox && inbox.threads.length > 0 && (
+        <ul className="ticket-list" aria-label="Mailbox threads">
+          {inbox.threads.map((thread) => (
+            <li key={thread.thread_id} className="ticket-list-item">
+              <span className="ticket-title">{thread.subject}</span>
+              <span className="post-badge">Mailbox · naruon</span>
+              {thread.reply_count != null && (
+                <span className="post-badge">{thread.reply_count} replies</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function CalendarPanel({
   accessToken,
   onSelectPost,
@@ -1690,6 +1738,7 @@ function PostList({ accessToken }: { accessToken: string }) {
   return (
     <>
       <RankingsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
+      <MailboxPanel accessToken={accessToken} />
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
       <section className="popup-section lineage-home">
