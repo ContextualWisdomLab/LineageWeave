@@ -11,6 +11,8 @@ import psycopg2
 import pytest
 from psycopg2 import sql
 
+from backend.app.analysis_run_ingestion import _RUN_DETAIL_SQL, _RUN_LIST_SQL
+
 _ROOT = Path(__file__).resolve().parents[1]
 _INITIAL_MIGRATION = _ROOT / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = _ROOT / "migrations" / "0018_analysis_run_registry.sql"
@@ -18,6 +20,15 @@ _RETENTION_MIGRATION = _ROOT / "migrations" / "0020_analysis_run_retention_purge
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
 )
+
+
+def test_visible_run_sql_is_parameterized_literals() -> None:
+    """List and detail queries bind $1/$2/$3; they do not format user SQL."""
+    assert "$1" in _RUN_LIST_SQL
+    assert "$2" in _RUN_LIST_SQL
+    assert "$3" in _RUN_DETAIL_SQL
+    assert "{" not in _RUN_LIST_SQL
+    assert "{" not in _RUN_DETAIL_SQL
 
 
 def _postgres_available() -> bool:
