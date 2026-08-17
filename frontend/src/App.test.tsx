@@ -1483,6 +1483,7 @@ describe("App, authenticated", () => {
     expect(screen.getAllByLabelText("A-100 lineage").length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByLabelText("Open post: Pricing renegotiation follow-up").length).toBeGreaterThanOrEqual(2);
     expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(document.getElementById("post-ask")).not.toHaveFocus();
     expect(
       screen.queryByRole("status", { name: "Event Lineage next action" }),
     ).not.toBeInTheDocument();
@@ -2308,7 +2309,6 @@ describe("App, authenticated", () => {
       expect(
         screen.getAllByRole("heading", { name: "Event Lineage" }).length,
       ).toBeGreaterThanOrEqual(2);
-      expect(document.getElementById("post-event-lineage")).toHaveFocus();
       const popup = document.querySelector(".popup-panel");
       expect(popup).not.toBeNull();
       const currentNode = within(popup as HTMLElement).getByLabelText("Open post: Public post");
@@ -2379,6 +2379,7 @@ describe("App, authenticated", () => {
       expect(askNext.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
         0,
       );
+      await waitFor(() => expect(document.getElementById("post-ask")).toHaveFocus());
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
     }
@@ -2642,7 +2643,6 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Constructive stance: 2")).toBeInTheDocument();
     expect(screen.getAllByText(/Ada West/).length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText("A-100 lineage").length).toBeGreaterThanOrEqual(2);
-    expect(document.getElementById("post-event-lineage")).toHaveFocus();
     expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
       "Public post is current in Event Lineage. Read Keyman and evaluation next.",
     );
@@ -2657,6 +2657,7 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("status", { name: "Ask next action" })).toHaveTextContent(
       "Related nodes for Priya Nair are current. Ask about this lineage next.",
     );
+    await waitFor(() => expect(document.getElementById("post-ask")).toHaveFocus());
   });
 
   it("lets post_admin rebuild the period report", async () => {
