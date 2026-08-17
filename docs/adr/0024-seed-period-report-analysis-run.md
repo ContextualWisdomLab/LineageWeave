@@ -49,8 +49,9 @@ After `make seed`, Demo Analyst opens Analysis runs and sees
 rows. Opening it shows the cutoff posts and **Open period report
 2026-W02** (the week stored on `scope_key`). That click also switches
 Report grouping to Corporate entity and marks the Demo Corp grouping
-current, using the persisted scope grouping key. Mean θ remains on
-the period-report panel. Re-seed is idempotent on
+current, using the persisted scope grouping key. When the operator is
+already on that week, the comparison strip lands on Demo Corp. Mean θ
+remains on the period-report panel. Re-seed is idempotent on
 `demo-report-seed-2026-w02`.
 
 ## References — APA 7th
