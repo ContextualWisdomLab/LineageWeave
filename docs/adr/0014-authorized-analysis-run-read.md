@@ -49,8 +49,13 @@ service. A failed lineage row tells the operator to retry
 reconstruction, not to connect TEPP. A failed period-report row
 tells the operator to rebuild the report from a current snapshot.
 A pending or running TEPP row must not claim a calibrated
-measurement. A pending lineage row says reconstruction has not
-started yet. The detail now shows the legal
+measurement and must not say reconstruction. The list
+button accessible name is `Open analysis run: {caption}. {nextAction}`
+when a next action exists (WCAG 2.2 SC 4.1.2); otherwise the caption
+alone. `aria-label` replaces button contents (W3C Accessible Name and
+Description Computation 1.1), so the next-action sentence must live
+in that name. Detail repeats that sentence. A pending
+lineage row says reconstruction has not started yet. The detail now shows the legal
 lifecycle the registry already stored. `POST /api/analysis-runs` now
 records a Pending lineage run on an authorized cutoff capture
 (ADR 0017). TEPP and period-report kinds are 422. Reconstruction, a
@@ -67,3 +72,11 @@ Educational Research Association.
 Lebo, T., Sahoo, S., & McGuinness, D. (Eds.). (2013). *PROV-O: The PROV
 ontology* (W3C Recommendation). World Wide Web Consortium.
 https://www.w3.org/TR/2013/REC-prov-o-20130430/
+
+World Wide Web Consortium. (2018). *Accessible name and description
+computation 1.1* (W3C Recommendation).
+https://www.w3.org/TR/accname-1.1/
+
+World Wide Web Consortium. (2023). *Web content accessibility
+guidelines (WCAG) 2.2* (W3C Recommendation).
+https://www.w3.org/TR/WCAG22/

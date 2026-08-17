@@ -1802,6 +1802,24 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
 }
 
 /**
+ * Accessible name for an analysis-run list button (ADR 0014).
+ *
+ * `aria-label` replaces the button contents (W3C Accessible Name and
+ * Description Computation 1.1). When a next action exists, the name is
+ * `Open analysis run: {caption}. {nextAction}` so a screen reader hears
+ * what to do next, not only the run title (WCAG 2.2 SC 4.1.2). Succeeded
+ * and cancelled rows keep the caption alone.
+ */
+function analysisRunAccessibleName(run: AnalysisRun): string {
+  const caption = analysisRunCaption(run);
+  const nextAction = analysisRunNextAction(run);
+  if (nextAction === null) {
+    return `Open analysis run: ${caption}`;
+  }
+  return `Open analysis run: ${caption}. ${nextAction}`;
+}
+
+/**
  * Empty-corpus copy that tells the operator what to do next.
  */
 function analysisRunEmptyPostsHint(run: AnalysisRun): string {
@@ -2208,7 +2226,7 @@ function AnalysisRunsPanel({
               <li key={run.analysis_run_id} className="ticket-list-item">
                 <button
                   className="post-list-item"
-                  aria-label={`Open analysis run: ${caption}`}
+                  aria-label={analysisRunAccessibleName(run)}
                   onClick={() => void handleOpen(run.analysis_run_id)}
                 >
                   <span className="ticket-title">{caption}</span>

@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.1] - 2026-08-17
+
+### Fixed
+
+- Analysis-run list buttons now include the kind-specific next-action
+  sentence in the accessible name (WCAG 2.2 SC 4.1.2). Open a Failed
+  TEPP row: a screen reader hears connect the measurement service, not
+  only the run title. `aria-label` replaces button contents (ADR 0014).
+  No TEPP theta is invented.
+
 ## [2.10.0] - 2026-08-17
 
 ### Added
