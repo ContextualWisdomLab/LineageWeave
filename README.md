@@ -172,7 +172,9 @@ cd frontend && cp .env.example .env.local && pnpm install && pnpm run dev
 # Empty a run-bearing registry: insert analysis_run_retention_grant
 # for session_user, GRANT analysis_run_retention_admin, then
 # select purge_analysis_run_registry('approved-retention-purge').
-# The published token is not a grant (ADR 0020).
+# The published token is not a grant (ADR 0020). After a Succeeded
+# start, that same call also empties reconstruction children
+# (ADR 0032).
 # -> http://localhost:5173, click "Log in", redirects through the real
 #    Keycloak login page for demo.analyst / lineageweave-demo-only
 ```

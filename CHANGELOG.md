@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.4] - 2026-08-17
+
+### Fixed
+
+- After a Demo Corp lineage reconstruction has started, the same
+  granted retention purge empties `analysis_run_lineage_edge`,
+  `analysis_run_reconstruction`, and `analysis_source_snapshot_member`
+  when those tables exist, including their delete-reject triggers
+  (ADR 0032). Follow the same grant + admin + phrase path — do not
+  `DISABLE TRIGGER` as superuser.
+
 ## [2.10.3] - 2026-08-17
 
 ### Fixed
