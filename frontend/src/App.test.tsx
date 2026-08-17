@@ -1504,6 +1504,8 @@ describe("App, authenticated", () => {
       0,
     );
     expect(affiliate.compareDocumentPosition(keyman) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    const ask = within(popup as HTMLElement).getByRole("heading", { name: "Ask about this lineage" });
+    expect(keyman.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
   });
 
   it("shows a seeded Ask exchange without an orchestrator round-trip", async () => {
@@ -2379,6 +2381,9 @@ describe("App, authenticated", () => {
       expect(askNext.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
         0,
       );
+      const ask = within(popup as HTMLElement).getByRole("heading", { name: "Ask about this lineage" });
+      expect(askNext.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+      expect(ask.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
       await waitFor(() => expect(document.getElementById("post-ask")).toHaveFocus());
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
@@ -2657,6 +2662,13 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("status", { name: "Ask next action" })).toHaveTextContent(
       "Related nodes for Priya Nair are current. Ask about this lineage next.",
     );
+    const popup = document.querySelector(".popup-panel");
+    expect(popup).not.toBeNull();
+    const ask = within(popup as HTMLElement).getByRole("heading", { name: "Ask about this lineage" });
+    const affiliate = within(popup as HTMLElement).getByRole("heading", { name: "Affiliate tree" });
+    const askNext = screen.getByRole("status", { name: "Ask next action" });
+    expect(askNext.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(ask.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     await waitFor(() => expect(document.getElementById("post-ask")).toHaveFocus());
   });
 

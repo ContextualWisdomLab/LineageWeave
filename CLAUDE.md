@@ -58,6 +58,7 @@ evaluation, the popup names the first Keyman as the next read. After
 landed Ada West related, the popup names the first related node as
 the next read. After that next action, the popup lands Priya Nair
 related nodes. After those related nodes land, the popup names Ask
-about this lineage as the next read. Changing the week first still
+about this lineage as the next read. After that next action, the
+popup lands Ask about this lineage. Changing the week first still
 focuses the report period field. Mean θ stays on the period-report
 panel.

@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members now puts Ask
+  about this lineage immediately under the Ask next action, ahead of
+  Affiliate tree. Home list opens keep Ask after Keyman. No TEPP theta
+  is invented. No cutoff body is invented (ADR 0016).
+
 ## [2.3.0] - 2026-08-17
 
 ### Added
