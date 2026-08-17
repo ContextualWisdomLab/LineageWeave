@@ -73,6 +73,7 @@ describe("App, authenticated", () => {
     failedReportRun?: boolean;
     succeededReportRun?: boolean;
     succeededTeppRun?: boolean;
+    acceptedTeppRun?: boolean;
     pendingTeppRun?: boolean;
     hiddenAnalysisRun?: boolean;
     pluralAffiliations?: boolean;
@@ -315,6 +316,19 @@ describe("App, authenticated", () => {
           : options?.pendingTeppRun
             ? "Pending"
             : "Failed";
+        const teppEvidence = options?.acceptedTeppRun
+          ? {
+              tepp_evidence_kind: "aggregate transport evidence",
+              tepp_contract_version: 1,
+              tepp_accepted_run_id: "demo-tepp-accepted-opaque",
+              tepp_run_state: "accepted",
+              tepp_idempotency_key: "demo-tepp-seed-2026-w02-succeeded",
+              tepp_evidence_sha256: "a".repeat(64),
+              tepp_received_at: "2026-01-12T12:45:00Z",
+              tepp_recorded_at: "2026-01-12T12:45:00Z",
+              tepp_completed_artifact_available: false,
+            }
+          : {};
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-tepp",
@@ -327,15 +341,7 @@ describe("App, authenticated", () => {
             status_label: teppLabel,
             knowledge_cutoff: "2026-01-12T12:00:00Z",
             requested_at: "2026-01-12T12:34:00Z",
-            ...(options?.succeededTeppRun
-              ? {
-                  tepp_affiliation_count: 2,
-                  tepp_interval_count: 2,
-                  tepp_level_count: 3,
-                  tepp_measured_at: "2026-01-12T12:45:00Z",
-                  tepp_result_sha256: "a".repeat(64),
-                }
-              : {}),
+            ...teppEvidence,
             source_counts: [
               {
                 count_type_code: "analysis_count_document",
@@ -375,7 +381,11 @@ describe("App, authenticated", () => {
                     occurred_at: "2026-01-12T12:37:00Z",
                     ...(options?.succeededTeppRun
                       ? {}
-                      : { failure_code: "tepp_not_available" }),
+                      : {
+                          failure_code: options?.acceptedTeppRun
+                            ? "tepp_completed_result_unsupported"
+                            : "tepp_not_available",
+                        }),
                   },
                 ],
           }),
@@ -704,13 +714,16 @@ describe("App, authenticated", () => {
                     : "Failed",
                 knowledge_cutoff: "2026-01-12T12:00:00Z",
                 requested_at: "2026-01-12T12:34:00Z",
-                ...(options?.succeededTeppRun
+                ...(options?.acceptedTeppRun
                   ? {
-                      tepp_affiliation_count: 2,
-                      tepp_interval_count: 2,
-                      tepp_level_count: 3,
-                      tepp_measured_at: "2026-01-12T12:45:00Z",
-                      tepp_result_sha256: "a".repeat(64),
+                      tepp_evidence_kind: "aggregate transport evidence",
+                      tepp_contract_version: 1,
+                      tepp_accepted_run_id: "demo-tepp-accepted-opaque",
+                      tepp_run_state: "accepted",
+                      tepp_evidence_sha256: "a".repeat(64),
+                      tepp_received_at: "2026-01-12T12:45:00Z",
+                      tepp_recorded_at: "2026-01-12T12:45:00Z",
+                      tepp_completed_artifact_available: false,
                     }
                   : {}),
                 source_counts: [
@@ -2894,21 +2907,49 @@ describe("App, authenticated", () => {
     render(<App />);
 
     const succeeded = await screen.findByRole("button", {
-      name: "Open analysis run: TEPP measurement · Succeeded · Demo Corp. Open this run to read the measured clocks and affiliation counts.",
+      name: "Open analysis run: TEPP measurement · Succeeded · Demo Corp. Open this run to read aggregate transport evidence. This status is not a validated multilevel estimate. Completed TEPP measurement identity is unavailable until TEPP publishes a versioned completed-result contract.",
     });
-    expect(succeeded).toHaveAccessibleName(/measured clocks and affiliation counts/);
+    expect(succeeded).toHaveAccessibleName(/aggregate transport evidence/);
+    expect(succeeded).toHaveAccessibleName(/not a validated multilevel estimate/);
     const list = screen.getByRole("list", { name: "Analysis runs" });
-    expect(list).toHaveTextContent("2 affiliations");
-    expect(list).toHaveTextContent("Measured 2026-01-12");
+    expect(list).not.toHaveTextContent("2 affiliations");
+    expect(list).not.toHaveTextContent("Measured 2026-01-12");
     await userEvent.click(succeeded);
     expect(
-      await screen.findByText("These posts are the cutoff corpus this TEPP run measured."),
+      await screen.findByRole("heading", { name: "Measurement evidence" }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText(/2 affiliations/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/2 intervals/)).toBeInTheDocument();
-    expect(screen.getByText(/3 levels/)).toBeInTheDocument();
+    expect(screen.getByText(/not a validated multilevel estimate/i)).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/2 affiliations/)).not.toBeInTheDocument();
+  });
+
+  it("shows accepted TEPP transport evidence without claiming completion", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    stubBackend({ acceptedTeppRun: true });
+    render(<App />);
+
+    const accepted = await screen.findByRole("button", {
+      name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to read aggregate transport evidence. Completed TEPP measurement identity is unavailable until TEPP publishes a versioned completed-result contract.",
+    });
+    expect(accepted).toHaveAccessibleName(/aggregate transport evidence/);
+    const list = screen.getByRole("list", { name: "Analysis runs" });
+    expect(list).toHaveTextContent("aggregate transport evidence");
+    expect(list).not.toHaveTextContent("validated multilevel estimate");
+    await userEvent.click(accepted);
+    expect(
+      await screen.findByRole("heading", { name: "Measurement evidence" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("aggregate transport evidence")).toBeInTheDocument();
+    expect(screen.getByText("a".repeat(64))).toBeInTheDocument();
+    expect(screen.getByText(/accepted run demo-tepp-accepted-opaque/)).toBeInTheDocument();
+    expect(screen.getByText(/completed-artifact identity/i)).toBeInTheDocument();
+    expect(screen.queryByText(/validated multilevel estimate/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Copy evidence SHA-256" }));
+    expect(writeText).toHaveBeenCalledWith("a".repeat(64));
+    expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/2 affiliations/)).not.toBeInTheDocument();
   });
 
   it("records a pending lineage run and opens the authorized detail", async () => {

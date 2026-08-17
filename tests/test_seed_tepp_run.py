@@ -4,9 +4,11 @@ from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvai
 from lineageweave.tepp_result import persistable_tepp_seed_envelope
 from scripts.seed_demo_data import (
     _ensure_demo_source_counts,
-    _seed_demo_succeeded_tepp_run,
+    _seed_demo_accepted_tepp_run,
     _seed_demo_tepp_run,
     demo_source_snapshot_sha256,
+    tepp_accepted_seed_client,
+    tepp_accepted_seed_request,
     tepp_persistable_seed_client,
     tepp_seed_outcome,
     tepp_seed_request,
@@ -76,10 +78,20 @@ def test_tepp_seed_outcome_does_not_treat_an_empty_envelope_as_success() -> None
     assert failure == "tepp_result_not_persisted"
 
 
-def test_tepp_seed_outcome_succeeds_for_a_persistable_envelope() -> None:
+def test_tepp_seed_outcome_keeps_a_published_accepted_envelope_failed() -> None:
+    request = tepp_seed_request()
+    status, failure = tepp_seed_outcome(
+        tepp_accepted_seed_client(request.idempotency_key),
+        request,
+    )
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_completed_result_unsupported"
+
+
+def test_tepp_seed_outcome_rejects_a_local_completed_envelope() -> None:
     status, failure = tepp_seed_outcome(tepp_persistable_seed_client())
-    assert status == "analysis_status_succeeded"
-    assert failure is None
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_result_not_persisted"
     assert persistable_tepp_seed_envelope()["affiliation_count"] == 2
 
 
@@ -142,25 +154,30 @@ def test_seed_demo_tepp_run_inserts_failed_tepp_not_available() -> None:
     )
 
 
-def test_seed_demo_succeeded_tepp_run_persists_aggregates() -> None:
+def test_seed_demo_accepted_tepp_run_persists_transport_evidence() -> None:
     cursor = _TeppSeedCursor()
-    _seed_demo_succeeded_tepp_run(cursor, "account-1", "corp-1")
-    assert any("insert into analysis_run_tepp_result" in sql for sql in cursor.statements)
+    _seed_demo_accepted_tepp_run(cursor, "account-1", "corp-1")
+    assert any("insert into analysis_run_tepp_accepted" in sql for sql in cursor.statements)
+    assert not any("insert into analysis_run_tepp_result" in sql for sql in cursor.statements)
     status_params = [
         params
         for sql, params in zip(cursor.statements, cursor.params, strict=True)
         if "insert into analysis_run_status_event" in sql
     ]
     assert any(
-        params is not None and "analysis_status_succeeded" in params for params in status_params
+        params is not None
+        and "analysis_status_failed" in params
+        and "tepp_completed_result_unsupported" in params
+        for params in status_params
     )
     assert not any(
-        params is not None and "tepp_not_available" in params for params in status_params
+        params is not None and "analysis_status_succeeded" in params for params in status_params
     )
     result_params = [
         params
         for sql, params in zip(cursor.statements, cursor.params, strict=True)
-        if "insert into analysis_run_tepp_result" in sql
+        if "insert into analysis_run_tepp_accepted" in sql
     ]
     assert result_params
     assert all(params is not None and "theta" not in str(params).casefold() for params in result_params)
+    assert tepp_accepted_seed_request().idempotency_key == "demo-tepp-seed-2026-w02-succeeded"

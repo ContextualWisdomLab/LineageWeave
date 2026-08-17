@@ -19,7 +19,10 @@ from backend.app.lineage_ingestion import records_from_source_posts
 from lineageweave.fixtures import sample_records
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
-from lineageweave.tepp_result import persistable_tepp_seed_envelope
+from lineageweave.tepp_result import (
+    accepted_tepp_seed_envelope,
+    persistable_tepp_seed_envelope,
+)
 
 
 def test_reconstruction_digest_is_stable_and_ignores_edge_order() -> None:
@@ -136,7 +139,7 @@ def test_tepp_submit_outcome_drops_a_missing_transport() -> None:
 
 
 def test_tepp_submit_outcome_does_not_persist_an_empty_envelope() -> None:
-    """An accepted envelope is not a persistable measurement."""
+    """A bare accepted status is not TEPP's published acknowledgement."""
 
     class _Accepting(TeppClient):
         def __init__(self) -> None:
@@ -148,21 +151,38 @@ def test_tepp_submit_outcome_does_not_persist_an_empty_envelope() -> None:
     assert result is None
 
 
-def test_tepp_submit_outcome_succeeds_for_a_persistable_envelope() -> None:
-    """A time / multilevel / multi-affiliation result is Succeeded."""
+def test_tepp_submit_outcome_keeps_a_published_accepted_envelope_failed() -> None:
+    """A published accepted ack is transport evidence, never Succeeded."""
+    request = _tepp_request()
 
-    class _Persistable(TeppClient):
+    class _Accepted(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda _payload: accepted_tepp_seed_envelope(
+                    idempotency_key=request.idempotency_key
+                )
+            )
+
+    status, failure, result = tepp_submit_outcome(_Accepted(), request)
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_completed_result_unsupported"
+    assert result is not None
+    assert result.run_state == "accepted"
+    assert result.evidence_kind() == "aggregate transport evidence"
+    assert "theta" not in result.evidence_sha256()
+
+
+def test_tepp_submit_outcome_rejects_a_local_completed_envelope() -> None:
+    """A LineageWeave-local completed shape must not become Succeeded."""
+
+    class _Local(TeppClient):
         def __init__(self) -> None:
             super().__init__(transport=lambda _payload: persistable_tepp_seed_envelope())
 
-    status, failure, result = tepp_submit_outcome(_Persistable(), _tepp_request())
-    assert status == "analysis_status_succeeded"
-    assert failure is None
-    assert result is not None
-    assert result.affiliation_count == 2
-    assert result.interval_count == 2
-    assert result.level_count == 3
-    assert "theta" not in result.result_sha256()
+    status, failure, result = tepp_submit_outcome(_Local(), _tepp_request())
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_result_not_persisted"
+    assert result is None
 
 
 def test_configured_tepp_client_stays_unavailable_without_http() -> None:

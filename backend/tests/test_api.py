@@ -24,7 +24,10 @@ import redis
 from lineageweave.http_client import HttpClientError, get_json, post_form
 from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
 from lineageweave.tepp_client import TeppClient
-from lineageweave.tepp_result import persistable_tepp_seed_envelope
+from lineageweave.tepp_result import (
+    accepted_tepp_seed_envelope,
+    tepp_accepted_evidence_sha256,
+)
 
 _POSTGRES_ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
@@ -49,6 +52,9 @@ _REVISION_MIGRATION = (
 )
 _TEPP_RESULT_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0028_analysis_run_tepp_result.sql"
+)
+_TEPP_ACCEPTED_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0029_analysis_run_tepp_accepted.sql"
 )
 
 
@@ -139,6 +145,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_OUTBOX_MIGRATION.read_text())
             cur.execute(_REVISION_MIGRATION.read_text())
             cur.execute(_TEPP_RESULT_MIGRATION.read_text())
+            cur.execute(_TEPP_ACCEPTED_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -566,6 +573,9 @@ def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert hidden.status_code == 404
+    assert "tepp_evidence_sha256" not in hidden.text
+    assert "accepted_run_id" not in hidden.text
+    assert "aggregate transport evidence" not in hidden.text
 
     unauthenticated = client.get("/api/analysis-runs")
     assert unauthenticated.status_code == 401
@@ -1047,14 +1057,17 @@ def test_start_analysis_run_recovers_the_a100_fork(
     assert "Pricing renegotiation: revised quote sent" in children
 
 
-def test_tepp_start_persists_a_persistable_envelope(
+def test_tepp_start_persists_published_accepted_evidence(
     client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
-    """A persistable TEPP envelope is stored and the run is Succeeded."""
+    """A published accepted ack is stored as transport evidence, never Succeeded."""
+    idempotency_key = "buyer-start-tepp-accepted"
     monkeypatch.setattr(
         "backend.app.main.configured_tepp_client",
         lambda _url="": TeppClient(
-            transport=lambda _payload: persistable_tepp_seed_envelope()
+            transport=lambda _payload: accepted_tepp_seed_envelope(
+                idempotency_key=idempotency_key
+            )
         ),
     )
     admin_conn = psycopg2.connect(seeded_db["dsn"])
@@ -1086,7 +1099,7 @@ def test_tepp_start_persists_a_persistable_envelope(
                      requested_by_account_id, knowledge_cutoff,
                      configuration_schema_version, configuration_sha256,
                      code_revision_sha, requested_at)
-                values (%s, 'analysis_run_tepp', 'buyer-start-tepp-persistable',
+                values (%s, 'analysis_run_tepp', 'buyer-start-tepp-accepted',
                         %s, '2026-02-15T00:00:00Z', 'tepp-run-v1', %s, %s,
                         '2026-02-15T12:30:00Z')
                 returning analysis_run_id
@@ -1119,13 +1132,20 @@ def test_tepp_start_persists_a_persistable_envelope(
     )
     assert measured.status_code == 200, measured.text
     body = measured.json()
-    assert body["status_label"] == "Succeeded"
-    assert "failure_code" not in body
-    assert body["tepp_affiliation_count"] == 2
-    assert body["tepp_interval_count"] == 2
-    assert body["tepp_level_count"] == 3
-    assert body["tepp_measured_at"]
-    assert len(body["tepp_result_sha256"]) == 64
+    assert body["status_label"] == "Failed"
+    assert body["failure_code"] == "tepp_completed_result_unsupported"
+    assert body["tepp_evidence_kind"] == "aggregate transport evidence"
+    assert body["tepp_run_state"] == "accepted"
+    assert body["tepp_accepted_run_id"] == "demo-tepp-accepted-opaque"
+    assert body["tepp_completed_artifact_available"] is False
+    expected = tepp_accepted_evidence_sha256(
+        contract_version=1,
+        accepted_run_id="demo-tepp-accepted-opaque",
+        run_state="accepted",
+        idempotency_key=idempotency_key,
+    )
+    assert body["tepp_evidence_sha256"] == expected
+    assert "tepp_affiliation_count" not in body
     assert "theta" not in str(body).lower()
 
     listed = client.get(
@@ -1136,9 +1156,9 @@ def test_tepp_start_persists_a_persistable_envelope(
     listed_run = next(
         run for run in listed.json()["analysis_runs"] if run["analysis_run_id"] == tepp_run_id
     )
-    assert listed_run["status_label"] == "Succeeded"
-    assert listed_run["tepp_affiliation_count"] == 2
-    assert listed_run["tepp_measured_at"]
+    assert listed_run["status_label"] == "Failed"
+    assert listed_run["tepp_evidence_sha256"] == expected
+    assert "tepp_affiliation_count" not in listed_run
 
 
 def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> None:

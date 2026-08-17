@@ -1,10 +1,13 @@
-"""Persistable TEPP measurement envelope for LineageWeave.
+"""TEPP accepted-envelope evidence for LineageWeave.
 
-TEPP is consumed through :class:`lineageweave.tepp_client.TeppClient`
-only. This module does not estimate a theta, IRT item parameter, topic,
-or ALR. It accepts a **time / multilevel / multi-affiliation** result
-that a live transport already produced, or returns ``None`` so the run
-stays Failed / ``tepp_result_not_persisted``.
+TEPP main publishes ``AnalysisRunRequest`` v1 and
+``AnalysisRunAccepted`` (``contract_version``, opaque ``run_id``,
+``run_state=accepted``, ``idempotency_key``). It does not publish a
+completed-result DTO or a production HTTP service. This module stores
+that accepted acknowledgement as **aggregate transport evidence**. It
+does not estimate a theta, topic, item parameter, affiliation weight,
+or scientific estimand, and it never treats a LineageWeave-local
+envelope as a completed TEPP measurement.
 """
 
 from __future__ import annotations
@@ -12,10 +15,14 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from typing import Any
 
-_PERSISTABLE_KIND = "time_multilevel_multi_affiliation"
+_ACCEPTED_CONTRACT_VERSION = 1
+_ACCEPTED_RUN_STATE = "accepted"
+_ACCEPTED_FIELDS = frozenset(
+    {"contract_version", "run_id", "run_state", "idempotency_key"}
+)
+_EVIDENCE_KIND = "aggregate_transport_evidence"
 _FORBIDDEN_TOKENS = (
     "theta",
     "item_parameter",
@@ -24,55 +31,77 @@ _FORBIDDEN_TOKENS = (
     "topic",
     "alr",
     "topic_alr",
+    "affiliation_count",
+    "interval_count",
+    "level_count",
+    "membership_weight",
+    "uncertainty",
+    "time_multilevel_multi_affiliation",
 )
 
 
 @dataclass(frozen=True)
-class TeppPersistableResult:
-    """Aggregates a persistable TEPP result may store on an analysis run.
+class TeppAcceptedEvidence:
+    """Published TEPP accepted acknowledgement this product may store.
 
-    Counts and clocks only. No psychometric score, item bank, or topic
-    label is represented.
+    Transport identity only. No psychometric score, membership weight,
+    uncertainty, or completed-artifact identity is represented.
     """
 
     contract_version: int
-    result_kind: str
-    measured_at: datetime
-    interval_count: int
-    level_count: int
-    affiliation_count: int
+    accepted_run_id: str
+    run_state: str
+    idempotency_key: str
 
-    def result_sha256(self) -> str:
-        """Stable digest of the persistable aggregates. Never hashes a theta."""
-        material = json.dumps(
-            {
-                "affiliation_count": self.affiliation_count,
-                "contract_version": self.contract_version,
-                "interval_count": self.interval_count,
-                "level_count": self.level_count,
-                "measured_at": _utc_iso(self.measured_at),
-                "result_kind": self.result_kind,
-            },
-            separators=(",", ":"),
-            sort_keys=True,
+    def evidence_sha256(self) -> str:
+        """Stable digest of the published accepted fields. Never hashes a theta."""
+        return tepp_accepted_evidence_sha256(
+            contract_version=self.contract_version,
+            accepted_run_id=self.accepted_run_id,
+            run_state=self.run_state,
+            idempotency_key=self.idempotency_key,
         )
-        return hashlib.sha256(material.encode()).hexdigest()
+
+    def evidence_kind(self) -> str:
+        """Buyer-facing label for this stored acknowledgement."""
+        return _EVIDENCE_KIND
 
 
-def _utc_iso(value: datetime) -> str:
-    """Normalize a clock to UTC ISO-8601 with a ``Z`` suffix."""
-    if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+def tepp_accepted_evidence_sha256(
+    *,
+    contract_version: int,
+    accepted_run_id: str,
+    run_state: str,
+    idempotency_key: str,
+) -> str:
+    """Recompute the SHA-256 of a published accepted envelope.
+
+    Encoding is length-stable canonical JSON with sorted keys. The
+    digest is content-equality evidence (FIPS 180-4), not origin,
+    authority, or scientific completion.
+    """
+    material = json.dumps(
+        {
+            "accepted_run_id": accepted_run_id,
+            "contract_version": contract_version,
+            "idempotency_key": idempotency_key,
+            "run_state": run_state,
+        },
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    return hashlib.sha256(material.encode()).hexdigest()
 
 
 def _key_names_forbidden_measurement(token: str) -> bool:
-    """True when a wire key names a theta, IRT item, topic, or ALR field."""
+    """True when a wire key names a completed-measurement or invented field."""
     if token in _FORBIDDEN_TOKENS or "theta" in token or "item_parameter" in token:
         return True
     if token == "topic" or token.startswith("topic_") or token.endswith("_topic"):
         return True
     if token == "alr" or token.startswith("alr_") or token.endswith("_alr"):
+        return True
+    if "membership" in token or "uncertainty" in token:
         return True
     return False
 
@@ -92,75 +121,88 @@ def _walk_forbidden_tokens(value: Any) -> bool:
     return False
 
 
-def _parse_measured_at(raw: Any) -> datetime | None:
-    """Parse an ISO-8601 clock. Naive values are treated as UTC."""
-    if not isinstance(raw, str) or not raw.strip():
+def _nonempty_text(raw: Any) -> str | None:
+    """Return a stripped nonempty string, or ``None``."""
+    if not isinstance(raw, str):
         return None
     text = raw.strip()
-    if text.endswith("Z"):
-        text = text[:-1] + "+00:00"
-    try:
-        parsed = datetime.fromisoformat(text)
-    except ValueError:
+    if not text:
         return None
-    if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+    return text
 
 
-def _non_negative_int(raw: Any) -> int | None:
-    """Return a non-negative int, or ``None`` when the value is not one."""
-    if isinstance(raw, bool) or not isinstance(raw, int):
-        return None
-    if raw < 0:
-        return None
-    return raw
+def parse_tepp_accepted_evidence(
+    envelope: Any,
+    *,
+    expected_idempotency_key: str | None = None,
+) -> TeppAcceptedEvidence | None:
+    """Return published accepted evidence, or ``None`` when this product cannot store it.
 
-
-def parse_persistable_tepp_result(envelope: Any) -> TeppPersistableResult | None:
-    """Return a persistable TEPP result, or ``None`` when this product cannot store it.
-
-    An ``accepted`` ack, a theta, IRT item parameters, a topic/ALR
-    payload, or a missing time / multilevel / multi-affiliation field
-    is not persistable.
+    A LineageWeave-local ``time_multilevel_multi_affiliation`` envelope,
+    a theta, IRT item parameters, a topic/ALR payload, unknown fields,
+    or any run state other than ``accepted`` is not storeable evidence.
     """
     if not isinstance(envelope, dict):
         return None
+    if set(envelope) != _ACCEPTED_FIELDS:
+        return None
     if _walk_forbidden_tokens(envelope):
         return None
-    if envelope.get("contract_version") != 1:
+    if envelope.get("contract_version") != _ACCEPTED_CONTRACT_VERSION:
         return None
-    if envelope.get("result_kind") != _PERSISTABLE_KIND:
+    accepted_run_id = _nonempty_text(envelope.get("run_id"))
+    run_state = _nonempty_text(envelope.get("run_state"))
+    idempotency_key = _nonempty_text(envelope.get("idempotency_key"))
+    if accepted_run_id is None or run_state is None or idempotency_key is None:
         return None
-    measured_at = _parse_measured_at(envelope.get("measured_at"))
-    interval_count = _non_negative_int(envelope.get("interval_count"))
-    level_count = _non_negative_int(envelope.get("level_count"))
-    affiliation_count = _non_negative_int(envelope.get("affiliation_count"))
+    if run_state != _ACCEPTED_RUN_STATE:
+        return None
     if (
-        measured_at is None
-        or interval_count is None
-        or level_count is None
-        or affiliation_count is None
+        expected_idempotency_key is not None
+        and idempotency_key != expected_idempotency_key
     ):
         return None
-    return TeppPersistableResult(
-        contract_version=1,
-        result_kind=_PERSISTABLE_KIND,
-        measured_at=measured_at,
-        interval_count=interval_count,
-        level_count=level_count,
-        affiliation_count=affiliation_count,
+    return TeppAcceptedEvidence(
+        contract_version=_ACCEPTED_CONTRACT_VERSION,
+        accepted_run_id=accepted_run_id,
+        run_state=run_state,
+        idempotency_key=idempotency_key,
     )
 
 
-def persistable_tepp_seed_envelope() -> dict[str, Any]:
-    """Synthetic Demo Corp persistable envelope for seed and in-process tests.
+def parse_persistable_tepp_result(envelope: Any) -> None:
+    """LineageWeave-local completed envelopes are never persistable.
 
-    Aggregates only. No organization name, source table, or theta.
+    TEPP has not published a versioned completed-result contract. A
+    ``time_multilevel_multi_affiliation`` shape, an ``accepted`` ack,
+    or a theta payload must not become a Succeeded measurement.
+    """
+    del envelope
+    return None
+
+
+def accepted_tepp_seed_envelope(*, idempotency_key: str) -> dict[str, Any]:
+    """Synthetic Demo Corp accepted acknowledgement for seed and tests.
+
+    Published accepted fields only. No organization name, source table,
+    count, or theta.
     """
     return {
         "contract_version": 1,
-        "result_kind": _PERSISTABLE_KIND,
+        "run_id": "demo-tepp-accepted-opaque",
+        "run_state": "accepted",
+        "idempotency_key": idempotency_key,
+    }
+
+
+def persistable_tepp_seed_envelope() -> dict[str, Any]:
+    """Synthetic LineageWeave-local envelope that must not become Succeeded.
+
+    Kept so tests can prove the v2.12.0 shape is unsupported.
+    """
+    return {
+        "contract_version": 1,
+        "result_kind": "time_multilevel_multi_affiliation",
         "measured_at": "2026-01-12T12:45:00Z",
         "interval_count": 2,
         "level_count": 3,

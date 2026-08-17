@@ -657,11 +657,15 @@ export interface AnalysisRun {
   visible_posts?: AnalysisRunVisiblePost[];
   reconstructed_edges?: AnalysisRunReconstructedEdge[];
   reconstruction_result_sha256?: string;
-  tepp_result_sha256?: string;
-  tepp_interval_count?: number;
-  tepp_level_count?: number;
-  tepp_affiliation_count?: number;
-  tepp_measured_at?: string;
+  tepp_evidence_kind?: string;
+  tepp_contract_version?: number;
+  tepp_accepted_run_id?: string;
+  tepp_run_state?: string;
+  tepp_idempotency_key?: string;
+  tepp_evidence_sha256?: string;
+  tepp_received_at?: string;
+  tepp_recorded_at?: string;
+  tepp_completed_artifact_available?: boolean;
   code_revision_sha?: string;
   configuration_sha256?: string;
 }

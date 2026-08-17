@@ -58,11 +58,13 @@ confidently-negative signal are different things. Keyman extraction,
 entity-relationship classification, post summary, in-popup chat, and
 commitment derivation go through contextual-orchestrator the same way
 adjudication does -- never a raw LLM API. Demo TEPP seed goes through
-`tepp_client` the same way: a missing transport or an unused accepted
-envelope is Failed (`tepp_not_available` / `tepp_result_not_persisted`),
-never a fabricated theta or a local psychometric substitute. A
-persistable time / multilevel / multi-affiliation envelope is
-Succeeded (ADR 0034).
+`tepp_client` the same way: a missing transport or an unpublished
+envelope is Failed (`tepp_not_available` / `tepp_result_not_persisted`).
+A published accepted acknowledgement is Failed /
+`tepp_completed_result_unsupported` and may be shown as aggregate
+transport evidence (ADR 0035). Never stamp Succeeded from that ack or
+from a LineageWeave-local completed envelope, and never invent a theta
+or a local psychometric substitute.
 
 ## Tests
 

@@ -496,9 +496,9 @@ Event Lineage panel as that run's tree.
 `make seed` also records a TEPP measurement run through
 `tepp_client` on that same snapshot; the default transport is
 unavailable, so that run is Failed rather than a fabricated score.
-A second Demo Corp TEPP run uses an in-process persistable
-time / multilevel / multi-affiliation envelope and is Succeeded
-(ADR 0034).
+A second Demo Corp TEPP run uses an in-process published accepted
+acknowledgement and stays Failed / `tepp_completed_result_unsupported`
+with aggregate transport evidence (ADR 0035).
 The home list is clickable: `GET /api/analysis-runs/{id}` fills a
 labeled detail (cutoff, requested date, 12-character digest prefixes
 with full digests on hover, counts, status history)
@@ -526,8 +526,9 @@ Demo Corp" with "3 documents" and Pending / Running / Succeeded times,
 the designed A-100 fork as clickable reconstructed edges, Claimed
 then Delivered outbox times, "TEPP measurement · Failed · Demo
 Corp" whose detail history ends in Failed / `tepp_not_available`,
-and "TEPP measurement · Succeeded · Demo Corp" with measured clocks
-and affiliation counts (ADR 0034).
+and a second "TEPP measurement · Failed · Demo Corp" whose detail
+shows Measurement evidence for the published accepted acknowledgement
+(ADR 0035).
 Seed also records "Period report · Succeeded · Demo Corp" on that
 same snapshot after the calibrated report tables are written
 (ADR 0024). Open that row to confirm the cutoff posts; mean θ stays

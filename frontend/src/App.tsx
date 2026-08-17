@@ -1890,6 +1890,13 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
+          if (run.tepp_evidence_sha256) {
+            return (
+              "Open this run to read aggregate transport evidence. Completed " +
+              "TEPP measurement identity is unavailable until TEPP publishes a " +
+              "versioned completed-result contract."
+            );
+          }
           return "Open this run to see why it failed, then connect the measurement service and re-run.";
         case "analysis_run_lineage":
           return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
@@ -1905,7 +1912,12 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_succeeded":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
-          return "Open this run to read the measured clocks and affiliation counts.";
+          return (
+            "Open this run to read aggregate transport evidence. This status " +
+            "is not a validated multilevel estimate. Completed TEPP " +
+            "measurement identity is unavailable until TEPP publishes a " +
+            "versioned completed-result contract."
+          );
         case "analysis_run_lineage":
         case "analysis_run_report":
           return null;
@@ -1991,12 +2003,23 @@ function analysisRunCorpusHint(run: AnalysisRun): string | null {
   if (run.run_kind_code !== "analysis_run_tepp") return null;
   switch (run.status_code) {
     case "analysis_status_failed":
+      if (run.tepp_evidence_sha256) {
+        return (
+          "These posts are the cutoff corpus TEPP accepted for later " +
+          "measurement. Completed artifact identity is unavailable until TEPP " +
+          "publishes a versioned completed-result contract."
+        );
+      }
       return (
         "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
-        "transport, then re-run, to replace Failed with a calibrated result."
+        "transport, then re-run. An accepted acknowledgement is not a " +
+        "calibrated result."
       );
     case "analysis_status_succeeded":
-      return "These posts are the cutoff corpus this TEPP run measured.";
+      return (
+        "These posts are the cutoff corpus attached to this TEPP run. This " +
+        "status is not a validated multilevel estimate."
+      );
     case "analysis_status_pending":
     case "analysis_status_running":
       return "These posts are the cutoff corpus TEPP will measure once this run finishes.";
@@ -2012,6 +2035,68 @@ function analysisRunCorpusHint(run: AnalysisRun): string | null {
       return unexpected;
     }
   }
+}
+
+/**
+ * Authorized TEPP transport evidence. Never a validated multilevel estimate.
+ *
+ * Completed-artifact identity, membership weights, uncertainty, and
+ * scientific estimands stay unavailable until TEPP publishes a versioned
+ * completed-result contract.
+ */
+function TeppMeasurementEvidence({ run }: { run: AnalysisRun }) {
+  const evidenceKind = run.tepp_evidence_kind ?? "aggregate transport evidence";
+  const digest = run.tepp_evidence_sha256;
+  async function copyDigest() {
+    if (!digest || !navigator.clipboard?.writeText) {
+      return;
+    }
+    await navigator.clipboard.writeText(digest);
+  }
+  return (
+    <section aria-labelledby="tepp-measurement-evidence-heading">
+      <h4 id="tepp-measurement-evidence-heading">Measurement evidence</h4>
+      <p className="post-meta">{evidenceKind}</p>
+      <p className="post-meta">
+        TEPP completed-artifact identity, membership weights, uncertainty,
+        validation, and scientific estimands are unavailable until TEPP
+        publishes a versioned completed-result contract. Missing fields fail
+        closed. This is not a validated multilevel estimate.
+      </p>
+      {digest ? (
+        <>
+          <p className="post-meta">
+            Contract v{run.tepp_contract_version} · {run.tepp_run_state}
+            {run.tepp_accepted_run_id ? ` · accepted run ${run.tepp_accepted_run_id}` : ""}
+          </p>
+          {run.tepp_received_at && (
+            <p className="post-meta">
+              Received {run.tepp_received_at.slice(0, 16).replace("T", " ")}
+              {run.tepp_recorded_at
+                ? ` · recorded ${run.tepp_recorded_at.slice(0, 16).replace("T", " ")}`
+                : ""}
+            </p>
+          )}
+          <p className="post-meta">
+            <label htmlFor="tepp-evidence-sha256">Evidence SHA-256</label>
+          </p>
+          <code id="tepp-evidence-sha256">{digest}</code>
+          <button
+            type="button"
+            className="keyman-select"
+            aria-label="Copy evidence SHA-256"
+            onClick={() => void copyDigest()}
+          >
+            Copy evidence SHA-256
+          </button>
+        </>
+      ) : (
+        <p className="post-meta">
+          No published accepted acknowledgement is stored on this run.
+        </p>
+      )}
+    </section>
+  );
 }
 
 /** Git-style prefix. The full digest stays on `title` for verification. */
@@ -2073,12 +2158,12 @@ function AnalysisRunReproducibilityDigests({
   codeRevisionSha,
   configurationSha256,
   reconstructionResultSha256,
-  teppResultSha256,
+  teppEvidenceSha256,
 }: {
   codeRevisionSha?: string;
   configurationSha256?: string;
   reconstructionResultSha256?: string;
-  teppResultSha256?: string;
+  teppEvidenceSha256?: string;
 }) {
   const parts: { label: string; digest: string }[] = [];
   if (codeRevisionSha) {
@@ -2090,8 +2175,8 @@ function AnalysisRunReproducibilityDigests({
   if (reconstructionResultSha256) {
     parts.push({ label: "Result", digest: reconstructionResultSha256 });
   }
-  if (teppResultSha256) {
-    parts.push({ label: "TEPP", digest: teppResultSha256 });
+  if (teppEvidenceSha256) {
+    parts.push({ label: "TEPP", digest: teppEvidenceSha256 });
   }
   if (parts.length === 0) {
     return null;
@@ -2381,11 +2466,8 @@ function AnalysisRunsPanel({
                       {documentCount.count_value} {documentCount.count_type_label.toLowerCase()}
                     </span>
                   )}
-                  {run.tepp_affiliation_count != null && (
-                    <span className="post-badge">{run.tepp_affiliation_count} affiliations</span>
-                  )}
-                  {run.tepp_measured_at && (
-                    <span className="post-meta">Measured {run.tepp_measured_at.slice(0, 10)}</span>
+                  {run.tepp_evidence_kind && (
+                    <span className="post-badge">{run.tepp_evidence_kind}</span>
                   )}
                   {nextAction && <span className="post-meta">{nextAction}</span>}
                 </button>
@@ -2407,21 +2489,11 @@ function AnalysisRunsPanel({
             codeRevisionSha={selected.code_revision_sha}
             configurationSha256={selected.configuration_sha256}
             reconstructionResultSha256={selected.reconstruction_result_sha256}
-            teppResultSha256={selected.tepp_result_sha256}
+            teppEvidenceSha256={selected.tepp_evidence_sha256}
           />
-          {selected.run_kind_code === "analysis_run_tepp" &&
-            selected.tepp_measured_at &&
-            selected.tepp_affiliation_count != null && (
-              <p className="post-meta">
-                Measured {selected.tepp_measured_at.slice(0, 16).replace("T", " ")}
-                {" · "}
-                {selected.tepp_affiliation_count} affiliations
-                {selected.tepp_interval_count != null
-                  ? ` · ${selected.tepp_interval_count} intervals`
-                  : ""}
-                {selected.tepp_level_count != null ? ` · ${selected.tepp_level_count} levels` : ""}
-              </p>
-            )}
+          {selected.run_kind_code === "analysis_run_tepp" && (
+            <TeppMeasurementEvidence run={selected} />
+          )}
           {analysisRunCanStart(selected) && (
             <button
               className="keyman-select"
