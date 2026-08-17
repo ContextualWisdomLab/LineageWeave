@@ -1491,6 +1491,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("status", { name: "Related next action" })).not.toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Ask next action" })).not.toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Ask seed next action" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Ask citation next action" })).not.toBeInTheDocument();
     expect(screen.queryByText("Related to Ada West")).not.toBeInTheDocument();
     expect(screen.queryByText("Related to Priya Nair")).not.toBeInTheDocument();
     const popup = document.querySelector(".popup-panel");
@@ -2425,6 +2426,19 @@ describe("App, authenticated", () => {
       expect(
         within(popup as HTMLElement).getAllByText("The seeded follow-up after the site visit."),
       ).toHaveLength(1);
+      const citedNext = await screen.findByRole("status", { name: "Ask citation next action" });
+      expect(citedNext).toHaveTextContent(
+        "Linked post is the first cited source. Open that evidence next.",
+      );
+      expect(
+        firstAskAnswer.compareDocumentPosition(citedNext) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+      expect(citedNext.compareDocumentPosition(askInput) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
+        0,
+      );
+      expect(
+        within(popup as HTMLElement).getByRole("button", { name: "Open evidence: Linked post" }),
+      ).toHaveAttribute("aria-current", "true");
       await waitFor(() => expect(document.getElementById("post-ask")).toHaveFocus());
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
@@ -2722,6 +2736,9 @@ describe("App, authenticated", () => {
     ).not.toBe(0);
     expect(firstAskAnswer.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
       0,
+    );
+    expect(await screen.findByRole("status", { name: "Ask citation next action" })).toHaveTextContent(
+      "Linked post is the first cited source. Open that evidence next.",
     );
     await waitFor(() => expect(document.getElementById("post-ask")).toHaveFocus());
   });

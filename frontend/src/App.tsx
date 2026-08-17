@@ -133,10 +133,12 @@ function ChatCitations({
   citedPosts,
   citedPostIds,
   onOpenEvidence,
+  currentPostId,
 }: {
   citedPosts?: { post_id: string; post_title: string }[];
   citedPostIds: string[];
   onOpenEvidence: (postId: string) => void;
+  currentPostId?: string;
 }) {
   if ((citedPosts?.length ?? citedPostIds.length) === 0) return null;
   const chips =
@@ -150,6 +152,7 @@ function ChatCitations({
           postId={cited.post_id}
           postTitle={cited.post_title}
           onOpenEvidence={onOpenEvidence}
+          current={cited.post_id === currentPostId}
         />
       ))}
     </div>
@@ -209,6 +212,10 @@ function ChatPanel({
     }
   }
 
+  const firstCitedTitle =
+    exchanges[0]?.cited_posts?.[0]?.post_title ??
+    (exchanges[0]?.cited_post_ids[0] ? exchanges[0].cited_post_ids[0].slice(0, 8) : null);
+
   return (
     <section className="popup-section chat-section">
       <h3 id="post-ask" tabIndex={-1}>
@@ -227,8 +234,16 @@ function ChatPanel({
             citedPosts={exchanges[0].cited_posts}
             citedPostIds={exchanges[0].cited_post_ids}
             onOpenEvidence={setEvidencePostId}
+            currentPostId={
+              exchanges[0].cited_posts?.[0]?.post_id ?? exchanges[0].cited_post_ids[0]
+            }
           />
         </div>
+      ) : null}
+      {nameFirstAsk && firstCitedTitle ? (
+        <p className="post-meta" role="status" aria-label="Ask citation next action">
+          {firstCitedNextAction(firstCitedTitle)}
+        </p>
       ) : null}
       {!seededOnly && (
         <div className="chat-input-row">
@@ -326,6 +341,10 @@ function relatedNodesCurrentNextAction(personName: string): string {
 
 function firstAskNextAction(questionText: string): string {
   return `${questionText} is the first Ask. Read that answer next.`;
+}
+
+function firstCitedNextAction(postTitle: string): string {
+  return `${postTitle} is the first cited source. Open that evidence next.`;
 }
 
 function EventLineageSection({
