@@ -4,12 +4,12 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.72.0] - 2026-08-16
+## [0.76.0] - 2026-08-17
 
 ### Added
 
 - Additive analysis-run registry schema
-  (`migrations/0012_analysis_run_registry.sql`, ADR 0014). The tables can
+  (`migrations/0013_analysis_run_registry.sql`, ADR 0014). The tables can
   hold an immutable source snapshot, aggregate reconciliation counts, an
   authenticated Demo Corp requester, run-owned knowledge cutoff, product
   scope, and append-only legal status events. Current status is a view.
@@ -20,6 +20,26 @@ All notable changes to this project are documented here. Format follows
   stays fail-closed unless an HTTPS `POST /v1/analysis-runs` or
   in-process `tepp_api` is injected. New orchestrator helpers use
   `mode="auto"` only.
+
+## [0.75.0] - 2026-08-17
+
+### Added
+
+- Home Rankings panel fuses visible posts through `RankWeaveClient`
+  (ADR 0024). After login with the port disabled or the library
+  missing, Demo Analyst sees **Rankings · RankWeave not available**.
+  An accepted hit lists the title; click opens that post. A hidden
+  post is omitted. Never invent a fused score or a theta.
+
+## [0.71.2] - 2026-08-17
+
+### Added
+
+- Period reports now persist closest and farthest leftover
+  post–criterion pairs after the IRT main effects (Jeon leftover
+  map). After `make seed`, leftover pairs sit above the member
+  list; clicking a pair opens that post. A leftover pair for a
+  hidden post is omitted the same way a hidden member is.
 
 ## [0.71.0] - 2026-08-14
 

@@ -56,6 +56,15 @@ describe("App, authenticated", () => {
   function stubBackend(options?: {
     admin?: boolean;
     calendarCommitments?: unknown[];
+    rankings?: {
+      status?: "accepted" | "unavailable";
+      status_reason?: string | null;
+      rankings?: {
+        post_id: string;
+        post_title: string;
+        fused_rank: number;
+      }[];
+    };
     chatUnavailable?: boolean;
     searchUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
@@ -204,6 +213,21 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/rankings")) {
+        const rankings = options?.rankings ?? {
+          status: "unavailable" as const,
+          status_reason: "rankweave_not_available",
+          rankings: [],
+        };
+        return Promise.resolve(
+          jsonResponse({
+            port: "rankweave",
+            status: rankings.status,
+            status_reason: rankings.status_reason,
+            rankings: rankings.rankings ?? [],
+          }),
+        );
+      }
       if (url.includes("/api/reports/compare/") && method === "GET") {
         return Promise.resolve(
           jsonResponse({
@@ -291,6 +315,24 @@ describe("App, authenticated", () => {
                   { item_code: "sales_lead_specificity", rank: 1, information: 0.7 },
                   { item_code: "general_sentiment_positive", rank: 2, information: 0.4 },
                   { item_code: "general_sentiment_negative", rank: 3, information: 0.2 },
+                ],
+                leftover_pairs: [
+                  {
+                    pair_kind: "closest",
+                    post_id: "post-1",
+                    post_title: "Public post",
+                    criterion_code: "sales_lead_specificity",
+                    leftover_distance: 0.12,
+                    leftover_residual: 0.4,
+                  },
+                  {
+                    pair_kind: "farthest",
+                    post_id: "post-2",
+                    post_title: "Specification revision requested",
+                    criterion_code: "general_sentiment_negative",
+                    leftover_distance: 1.84,
+                    leftover_residual: -1.1,
+                  },
                 ],
                 members: [
                   {
@@ -1223,6 +1265,48 @@ describe("App, authenticated", () => {
     );
   });
 
+  it("names RankWeave unavailability on home rankings instead of inventing a fused score", async () => {
+    stubBackend();
+    render(<App />);
+
+    expect(await screen.findByText("Rankings · RankWeave not available")).toBeInTheDocument();
+    expect(screen.queryByText("Pricing renegotiation: revised quote sent")).not.toBeInTheDocument();
+  });
+
+  it("opens an accepted ranking hit without inventing a fused score", async () => {
+    stubBackend({
+      rankings: {
+        status: "accepted",
+        status_reason: null,
+        rankings: [
+          {
+            post_id: "post-1",
+            post_title: "Public post",
+            fused_rank: 1,
+          },
+          {
+            post_id: "post-2",
+            post_title: "Pricing renegotiation: revised quote sent",
+            fused_rank: 2,
+          },
+        ],
+      },
+    });
+    render(<App />);
+
+    const rankingButton = await screen.findByRole("button", {
+      name: /open ranking: public post/i,
+    });
+    expect(rankingButton).toHaveTextContent("Public post");
+    expect(rankingButton).toHaveTextContent("Rankings · rankweave");
+    expect(rankingButton).toHaveTextContent("rank 1");
+    expect(screen.queryByRole("button", { name: /open ranking: private parent/i })).not.toBeInTheDocument();
+
+    await userEvent.click(rankingButton);
+
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
   it("shows upcoming commitments on the home page calendar and opens the post on click", async () => {
     stubBackend();
     render(<App />);
@@ -1265,6 +1349,23 @@ describe("App, authenticated", () => {
     );
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("Open");
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
+    expect(screen.getByLabelText("Leftover pairs")).toBeInTheDocument();
+    const closestPair = screen.getByRole("button", { name: /open leftover closest pair: public post/i });
+    const farthestPair = screen.getByRole("button", {
+      name: /open leftover farthest pair: specification revision requested/i,
+    });
+    expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
+    expect(closestPair).toHaveTextContent(
+      "Open this post to read the criterion it sat closest to after main effects.",
+    );
+    expect(closestPair).toHaveTextContent("d 0.12");
+    expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
+    expect(farthestPair).toHaveTextContent(
+      "Open this post to read the criterion it sat farthest from after main effects.",
+    );
+    expect(farthestPair).toHaveTextContent("d 1.84");
+    const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
+    expect(closestPair.compareDocumentPosition(memberButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(
       screen.getByRole("button", { name: /open report post: specification revision requested/i }),
     ).toHaveTextContent("Send Westfield Power the revised specification");
@@ -1306,6 +1407,16 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /open report period 2026-W03/i }));
     const periodInput = screen.getByLabelText("Report period");
     expect(periodInput).toHaveValue("2026-W03");
+  });
+
+  it("opens a leftover pair post from the report panel", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: /open leftover closest pair: public post/i }),
+    );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });
 
   it("opens Event Lineage, Keyman, and evaluation from a report member click", async () => {

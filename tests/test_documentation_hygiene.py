@@ -42,17 +42,17 @@ def test_adr_numbers_are_unique_and_documents_are_not_placeholders() -> None:
     assert "0014" in counts, "the analysis-run registry must be ADR 0014"
 
 
-def test_registry_docs_use_migration_0012_and_version_072() -> None:
+def test_registry_docs_use_migration_0013_and_version_076() -> None:
     """The additive registry slice must not reuse stacked 0018 / 0.78.0 numbers."""
 
     adr = (_ADR_DIRECTORY / "0014-normalized-analysis-run-registry.md").read_text(
         encoding="utf-8"
     )
     changelog = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-    assert "0012_analysis_run_registry.sql" in adr
+    assert "0013_analysis_run_registry.sql" in adr
     assert "0018_analysis_run_registry.sql" not in adr
-    assert "## [0.72.0]" in changelog
+    assert "## [0.76.0]" in changelog
     assert "0.78.0" not in adr
     from lineageweave import __version__
 
-    assert __version__ == "0.72.0"
+    assert __version__ == "0.76.0"

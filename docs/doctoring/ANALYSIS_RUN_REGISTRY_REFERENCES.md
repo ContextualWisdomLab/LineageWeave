@@ -1,7 +1,7 @@
 # Analysis-run registry standards and research traceability
 
 **Status:** Active PR evidence; not protected-main truth until merge.
-**Scope:** Migration 0012, ADR 0014, rollback, and real-PostgreSQL contract tests.
+**Scope:** Migration 0013, ADR 0014, rollback, and real-PostgreSQL contract tests.
 
 ## Standards mapped to implementation
 

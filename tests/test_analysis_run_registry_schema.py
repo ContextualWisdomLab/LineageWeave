@@ -2,8 +2,8 @@
 
 TDD split:
 
-- After migrations ``0001``–``0011`` the registry objects must be absent.
-- After ``0012_analysis_run_registry.sql`` they must exist and enforce the
+- After migrations ``0001``–``0012`` the registry objects must be absent.
+- After ``0013_analysis_run_registry.sql`` they must exist and enforce the
   temporal, immutability, idempotency, orphan, and lifecycle contracts.
 
 Skipped unless a local PostgreSQL server is reachable
@@ -26,8 +26,8 @@ from psycopg2 import sql
 
 _ROOT = Path(__file__).resolve().parents[1]
 _MIGRATIONS_DIR = _ROOT / "migrations"
-_REGISTRY_MIGRATION = _MIGRATIONS_DIR / "0012_analysis_run_registry.sql"
-_REGISTRY_ROLLBACK = _MIGRATIONS_DIR / "rollback" / "0012_analysis_run_registry.sql"
+_REGISTRY_MIGRATION = _MIGRATIONS_DIR / "0013_analysis_run_registry.sql"
+_REGISTRY_ROLLBACK = _MIGRATIONS_DIR / "rollback" / "0013_analysis_run_registry.sql"
 _POSTGRES_IMAGE = _ROOT / "docker" / "postgres-init" / "Dockerfile"
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -78,7 +78,7 @@ def _database_dsn(database_name: str) -> str:
 
 
 def _forward_migrations() -> list[Path]:
-    """Return ``0001``–``0012`` (and any later peers) in lexical order."""
+    """Return ``0001``–``0013`` (and any later peers) in lexical order."""
 
     return sorted(
         path
@@ -168,11 +168,11 @@ def ephemeral_db():
 
 
 @pytest.fixture
-def schema_through_0011(ephemeral_db):
-    """Throwaway database migrated through the protected ``0001``–``0011`` chain."""
+def schema_through_0012(ephemeral_db):
+    """Throwaway database migrated through the protected ``0001``–``0012`` chain."""
 
     connection, dsn = ephemeral_db
-    _apply_sql_files(connection, _migrations_through("0011_post_chat_result.sql"))
+    _apply_sql_files(connection, _migrations_through("0012_report_leftover_pair.sql"))
     return connection, dsn
 
 
@@ -181,7 +181,7 @@ def registry_db(ephemeral_db):
     """Throwaway database migrated through the registry schema."""
 
     connection, dsn = ephemeral_db
-    _apply_sql_files(connection, _migrations_through("0012_analysis_run_registry.sql"))
+    _apply_sql_files(connection, _migrations_through("0013_analysis_run_registry.sql"))
     return connection, dsn
 
 
@@ -270,10 +270,10 @@ def _insert_all_visible_scope(cursor, run_id: str) -> None:
     )
 
 
-def test_registry_objects_are_absent_after_0011_upgrade(schema_through_0011) -> None:
-    """Protected main's 0001–0011 chain has no analysis-run registry yet."""
+def test_registry_objects_are_absent_after_0012_upgrade(schema_through_0012) -> None:
+    """Protected main's 0001–0012 chain has no analysis-run registry yet."""
 
-    connection, _dsn = schema_through_0011
+    connection, _dsn = schema_through_0012
     with connection.cursor() as cursor:
         tables = _public_tables(cursor)
         views = _public_views(cursor)
@@ -285,8 +285,8 @@ def test_registry_objects_are_absent_after_0011_upgrade(schema_through_0011) -> 
 def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> None:
     """Static contract rejects a second mutable status table and duplicated clocks."""
 
-    assert _REGISTRY_MIGRATION.is_file(), "0012_analysis_run_registry.sql must exist"
-    assert _REGISTRY_ROLLBACK.is_file(), "rollback/0012_analysis_run_registry.sql must exist"
+    assert _REGISTRY_MIGRATION.is_file(), "0013_analysis_run_registry.sql must exist"
+    assert _REGISTRY_ROLLBACK.is_file(), "rollback/0013_analysis_run_registry.sql must exist"
     migration = _REGISTRY_MIGRATION.read_text(encoding="utf-8")
     rollback = _REGISTRY_ROLLBACK.read_text(encoding="utf-8")
     dockerfile = _POSTGRES_IMAGE.read_text(encoding="utf-8")
@@ -301,7 +301,7 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert _REQUIRED_LOOKUP_CODES <= set(
         re.findall(r"'(analysis_[a-z0-9_]+)'", migration)
     )
-    assert "0012_analysis_run_registry.sql" in dockerfile
+    assert "0013_analysis_run_registry.sql" in dockerfile
     assert "analysis_run_registry_not_empty" in rollback
 
     snapshot_definition = _table_definition(migration, "analysis_source_snapshot")
@@ -333,10 +333,10 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
 
 
 def test_fresh_install_and_sequential_upgrade_converge(ephemeral_db) -> None:
-    """A new database and a 0001–0011 upgrade both reach the same registry."""
+    """A new database and a 0001–0012 upgrade both reach the same registry."""
 
     connection, _dsn = ephemeral_db
-    _apply_sql_files(connection, _migrations_through("0012_analysis_run_registry.sql"))
+    _apply_sql_files(connection, _migrations_through("0013_analysis_run_registry.sql"))
     with connection.cursor() as cursor:
         fresh_tables = _public_tables(cursor)
         fresh_views = _public_views(cursor)
@@ -357,7 +357,7 @@ def test_fresh_install_and_sequential_upgrade_converge(ephemeral_db) -> None:
         upgrade = psycopg2.connect(_database_dsn(connection2_name))
         try:
             upgrade.autocommit = True
-            _apply_sql_files(upgrade, _migrations_through("0011_post_chat_result.sql"))
+            _apply_sql_files(upgrade, _migrations_through("0012_report_leftover_pair.sql"))
             with upgrade.cursor() as cursor:
                 assert _REQUIRED_TABLES.isdisjoint(_public_tables(cursor))
             _apply_sql_files(upgrade, [_REGISTRY_MIGRATION])

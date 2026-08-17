@@ -66,6 +66,7 @@ flowchart LR
 | `adjudication_client.py` | Pluggable LLM-judgment channel (`Null` default, `ContextualOrchestrator` real impl) |
 | `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl) |
 | `tepp_client.py` | TEPP's published `AnalysisRunRequest` wire contract, pluggable transport |
+| `rankweave_client.py` | Fail-closed RankWeave ranking port (`weighted_reciprocal_rank_fuse` in-process; never invent a fused score or a theta) |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
 | `lineage_persistence.py` | Flattens reconstruct trees into `post_lineage_edge` row specs (parent, child, fused_score) |
 | `knowledge_graph.py` | Random-walk-with-restart relevance + per-node adaptive related-node cutoff (Tong et al., 2006) -- pure graph math, no Postgres |
@@ -117,6 +118,11 @@ flowchart LR
   (`AnalysisRunRequest.to_json()` mirrors TEPP's published JSON Schema
   exactly, `additionalProperties: false` and all) so wiring in a real
   transport is additive, not a rewrite.
+- **RankWeave is an in-process library, not an HTTP host.**
+  `rankweave_client.py`'s default transport raises
+  `RankWeaveNotAvailable`. `GET /api/rankings` then returns
+  `rankweave_not_available` and an empty ranking list. Hidden posts
+  are omitted from every channel. See ADR 0024.
 
 ## Standards and citations
 
@@ -141,7 +147,7 @@ identities and content) and `migrations/0001_initial_schema.sql` for the
 real-provider LLM tests).
 
 Milestone 2.1 adds an additive analysis-run registry schema in
-`migrations/0012_analysis_run_registry.sql` (ADR 0014): immutable source
+`migrations/0013_analysis_run_registry.sql` (ADR 0014): immutable source
 snapshots, aggregate counts, account-scoped runs, one product scope, and
 append-only status events with a derived current-status view. A raw insert
 can store a run with no scope, no counts, and no pending event until a
@@ -513,7 +519,9 @@ so PU/team/project thetas stay on one metric. Later periods EAP-score
 on those same fixed parameters (Kim, 2006 FIPC). After scoring,
 `information_polytomous` ranks the shared-bank items by Fisher
 information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
-persist to `report_item_information`. Results persist to
+persist to `report_item_information`. After those IRT main effects,
+residual SVD leftover pairs (Jeon et al., 2021; ADR 0017) persist to
+`report_leftover_pair`. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
@@ -524,7 +532,8 @@ post) that already have constructed IRT cells into the same shared
 bank as the dummy high/low band rows, so comparison-strip click
 through opens those DAG posts. Report members include the earliest
 open ticket title, status lookup label, and due date when one exists. The home page renders
-the actual mean θ, the FIPC delta, the CAT-selected item, and the
+the actual mean θ, the FIPC delta, the CAT-selected item, leftover
+closest/farthest pairs above the member list, and the
 PU / corp / thread comparison -- never a placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer

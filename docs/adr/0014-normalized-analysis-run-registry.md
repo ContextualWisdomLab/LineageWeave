@@ -6,7 +6,7 @@
 
 ## Context
 
-Protected `main` has migrations `0001`–`0011` and package version `0.71.0`.
+Protected `main` has migrations `0001`–`0012` and package version `0.75.0`.
 ADR 0013 is already taken by the merged adaptive-orchestrator default. Milestone 2
 must persist real analysis-run identity without merging the retained parallel
 application, without a second React app, and without a production Keyverse bind.
@@ -25,7 +25,7 @@ payloads, credentials, raw exceptions, or another service's application rows.
 
 ## Decision
 
-Migration `0012_analysis_run_registry.sql` introduces five normalized relations
+Migration `0013_analysis_run_registry.sql` introduces five normalized relations
 and one read projection.
 
 ```mermaid
@@ -159,8 +159,9 @@ authority.
 
 ### Reuse stacked migration 0018 or ADR 0013
 
-Rejected. Protected main ends at migration 0011. ADR 0013 is already the
-adaptive-orchestrator default. This slice is `0012` and ADR 0014.
+Rejected. Protected main ends at leftover-pair migration 0012. ADR 0013
+is already the adaptive-orchestrator default. This slice is `0013` and
+ADR 0014.
 
 ### Store one JSON document per run
 

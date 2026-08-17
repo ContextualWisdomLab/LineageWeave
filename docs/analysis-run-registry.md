@@ -1,7 +1,7 @@
 # Analysis-run registry (beginner guide)
 
 This page explains the Milestone 2.1 registry in plain language. The durable
-objects live in `migrations/0012_analysis_run_registry.sql`. See
+objects live in `migrations/0013_analysis_run_registry.sql`. See
 [ADR 0014](adr/0014-normalized-analysis-run-registry.md) for the decision
 record and [the APA 7th traceability note](doctoring/ANALYSIS_RUN_REGISTRY_REFERENCES.md)
 for the standards mapping.
