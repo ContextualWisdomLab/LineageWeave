@@ -275,6 +275,10 @@ function eventLineageCurrentNextAction(postTitle: string): string {
   return `${postTitle} is current in Event Lineage. Read Keyman and evaluation next.`;
 }
 
+function firstKeymanNextAction(personName: string): string {
+  return `${personName} is the first Keyman. Read that person next.`;
+}
+
 function EventLineageSection({
   lineage,
   graph,
@@ -1430,6 +1434,11 @@ function PostDetailPopup({
                   canExtract={canExtract}
                   onEvaluated={(rows) => setEvaluation(rows)}
                 />
+                {keymen?.[0] ? (
+                  <p className="post-meta" role="status" aria-label="Keyman next action">
+                    {firstKeymanNextAction(keymen[0].person_name)}
+                  </p>
+                ) : null}
               </>
             )}
 

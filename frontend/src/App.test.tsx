@@ -1474,6 +1474,7 @@ describe("App, authenticated", () => {
     expect(
       screen.queryByRole("status", { name: "Event Lineage next action" }),
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Keyman next action" })).not.toBeInTheDocument();
     const popup = document.querySelector(".popup-panel");
     expect(popup).not.toBeNull();
     const evaluation = within(popup as HTMLElement).getByRole("heading", {
@@ -2311,8 +2312,13 @@ describe("App, authenticated", () => {
         0,
       );
       expect(keyman.compareDocumentPosition(evaluation) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+      const keymanNext = await screen.findByRole("status", { name: "Keyman next action" });
+      expect(keymanNext).toHaveTextContent("Ada West is the first Keyman. Read that person next.");
       expect(
-        evaluation.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING,
+        evaluation.compareDocumentPosition(keymanNext) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+      expect(
+        keymanNext.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).not.toBe(0);
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
@@ -2580,6 +2586,9 @@ describe("App, authenticated", () => {
     expect(document.getElementById("post-event-lineage")).toHaveFocus();
     expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
       "Public post is current in Event Lineage. Read Keyman and evaluation next.",
+    );
+    expect(await screen.findByRole("status", { name: "Keyman next action" })).toHaveTextContent(
+      "Ada West is the first Keyman. Read that person next.",
     );
   });
 
