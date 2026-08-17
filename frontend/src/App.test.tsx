@@ -292,6 +292,24 @@ describe("App, authenticated", () => {
                   { item_code: "general_sentiment_positive", rank: 2, information: 0.4 },
                   { item_code: "general_sentiment_negative", rank: 3, information: 0.2 },
                 ],
+                leftover_pairs: [
+                  {
+                    pair_kind: "closest",
+                    post_id: "post-1",
+                    post_title: "Public post",
+                    criterion_code: "sales_lead_specificity",
+                    leftover_distance: 0.12,
+                    leftover_residual: 0.4,
+                  },
+                  {
+                    pair_kind: "farthest",
+                    post_id: "post-2",
+                    post_title: "Specification revision requested",
+                    criterion_code: "general_sentiment_negative",
+                    leftover_distance: 1.84,
+                    leftover_residual: -1.1,
+                  },
+                ],
                 members: [
                   {
                     post_id: "post-1",
@@ -1265,6 +1283,19 @@ describe("App, authenticated", () => {
     );
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("Open");
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
+    expect(screen.getByLabelText("Leftover pairs")).toBeInTheDocument();
+    const closestPair = screen.getByRole("button", { name: /open leftover closest pair: public post/i });
+    const farthestPair = screen.getByRole("button", {
+      name: /open leftover farthest pair: specification revision requested/i,
+    });
+    expect(closestPair).toHaveTextContent("Closest leftover: Public post");
+    expect(closestPair).toHaveTextContent("sales-lead");
+    expect(closestPair).toHaveTextContent("d 0.12");
+    expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested");
+    expect(farthestPair).toHaveTextContent("negative");
+    expect(farthestPair).toHaveTextContent("d 1.84");
+    const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
+    expect(closestPair.compareDocumentPosition(memberButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(
       screen.getByRole("button", { name: /open report post: specification revision requested/i }),
     ).toHaveTextContent("Send Westfield Power the revised specification");
@@ -1306,6 +1337,16 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /open report period 2026-W03/i }));
     const periodInput = screen.getByLabelText("Report period");
     expect(periodInput).toHaveValue("2026-W03");
+  });
+
+  it("opens a leftover pair post from the report panel", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: /open leftover closest pair: public post/i }),
+    );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });
 
   it("opens Event Lineage, Keyman, and evaluation from a report member click", async () => {

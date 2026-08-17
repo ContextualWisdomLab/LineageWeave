@@ -96,6 +96,7 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "report_member_score",
         "report_item_parameter",
         "report_item_information",
+        "report_leftover_pair",
         "post_summary_result",
         "post_summary_event",
         "post_summary_role",

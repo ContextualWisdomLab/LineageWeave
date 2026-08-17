@@ -504,7 +504,9 @@ so PU/team/project thetas stay on one metric. Later periods EAP-score
 on those same fixed parameters (Kim, 2006 FIPC). After scoring,
 `information_polytomous` ranks the shared-bank items by Fisher
 information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
-persist to `report_item_information`. Results persist to
+persist to `report_item_information`. After those IRT main effects,
+residual SVD leftover pairs (Jeon et al., 2021; ADR 0017) persist to
+`report_leftover_pair`. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
@@ -515,7 +517,8 @@ post) that already have constructed IRT cells into the same shared
 bank as the dummy high/low band rows, so comparison-strip click
 through opens those DAG posts. Report members include the earliest
 open ticket title, status lookup label, and due date when one exists. The home page renders
-the actual mean θ, the FIPC delta, the CAT-selected item, and the
+the actual mean θ, the FIPC delta, the CAT-selected item, leftover
+closest/farthest pairs above the member list, and the
 PU / corp / thread comparison -- never a placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer
