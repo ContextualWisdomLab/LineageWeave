@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.0] - 2026-08-17
+
+### Added
+
+- Opening **Open period report 2026-W02** when the operator is already
+  on that week lands the grouping comparison strip on Demo Corp. The
+  Demo Corp chip is current and focused. Changing the week still
+  focuses the report period field. Mean θ stays on the report panel.
+  No TEPP theta is invented.
+
 ## [0.98.1] - 2026-08-17
 
 ### Fixed

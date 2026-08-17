@@ -2190,6 +2190,38 @@ describe("App, authenticated", () => {
     expect(screen.queryByText(/corp-1: mean θ/)).not.toBeInTheDocument();
   });
 
+  it("lands the comparison strip on Demo Corp when already on that week", async () => {
+    stubBackend({ succeededReportRun: true });
+    const scrollIntoView = vi.fn();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    try {
+      render(<App />);
+
+      const periodInput = await screen.findByLabelText("Report period");
+      expect(periodInput).toHaveValue("2026-W02");
+      expect(screen.getByLabelText("Report grouping")).toHaveValue("process_unit");
+
+      await userEvent.click(
+        await screen.findByRole("button", {
+          name: "Open analysis run: Period report · Succeeded · Demo Corp",
+        }),
+      );
+      await userEvent.click(screen.getByRole("button", { name: "Open period report 2026-W02" }));
+
+      expect(periodInput).toHaveValue("2026-W02");
+      expect(screen.getByLabelText("Report grouping")).toHaveValue("corporate_entity");
+      const demoChip = screen.getByRole("button", { name: "Compare corporate_entity: Demo Corp" });
+      expect(demoChip).toHaveAttribute("aria-current", "true");
+      expect(demoChip).toHaveFocus();
+      expect(scrollIntoView).toHaveBeenCalled();
+      expect(periodInput).not.toHaveFocus();
+      expect(await screen.findByText(/Demo Corp: mean θ 0\.42/)).toBeInTheDocument();
+    } finally {
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    }
+  });
+
   it("does not tell a failed period report to connect the measurement service", async () => {
     stubBackend({ failedReportRun: true });
     render(<App />);

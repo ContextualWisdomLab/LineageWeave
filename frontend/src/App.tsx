@@ -1742,10 +1742,12 @@ function analysisRunPostOpenOptions(run: AnalysisRun, postId: string): SelectPos
 
 function AnalysisRunsPanel({
   accessToken,
+  currentReportPeriod,
   onSelectPost,
   onSelectReportPeriod,
 }: {
   accessToken: string;
+  currentReportPeriod?: string;
   onSelectPost: (postId: string, options?: SelectPostOptions) => void;
   onSelectReportPeriod?: (
     periodCode: string,
@@ -1930,13 +1932,16 @@ function AnalysisRunsPanel({
               onClick={() => {
                 const periodCode = analysisRunReportPeriod(selected);
                 if (periodCode) {
+                  const alreadyOnWeek = currentReportPeriod === periodCode;
                   onSelectReportPeriod(
                     periodCode,
                     analysisRunReportGrouping(selected) ?? undefined,
                     analysisRunReportGroupingKey(selected),
                     selected.scope_entity_name,
                   );
-                  document.getElementById("report-period")?.focus();
+                  if (!alreadyOnWeek) {
+                    document.getElementById("report-period")?.focus();
+                  }
                 }
               }}
             >
@@ -2098,6 +2103,7 @@ function ReportsPanel({
   openedGroupingKey,
   openedGroupingLabel,
   onOpenGrouping,
+  landOnComparison,
 }: {
   accessToken: string;
   canRebuild: boolean;
@@ -2109,12 +2115,14 @@ function ReportsPanel({
   openedGroupingKey?: string | null;
   openedGroupingLabel?: string | null;
   onOpenGrouping?: (groupingKey: string, groupingLabel: string) => void;
+  landOnComparison?: boolean;
 }) {
   const [payload, setPayload] = useState<PeriodReports | null>(null);
   const [index, setIndex] = useState<PeriodReportIndex | null>(null);
   const [comparison, setComparison] = useState<PeriodComparison | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rebuilding, setRebuilding] = useState(false);
+  const openedComparisonRef = useRef<HTMLButtonElement | null>(null);
 
   const groupingLabels: Record<string, string> = {
     process_unit: "Process unit",
@@ -2146,6 +2154,18 @@ function ReportsPanel({
       })
       .catch((err) => setError(String(err)));
   }, [accessToken, grouping, period]);
+
+  useEffect(() => {
+    if (!landOnComparison) {
+      return;
+    }
+    const current = openedComparisonRef.current;
+    if (!current) {
+      return;
+    }
+    current.scrollIntoView({ block: "nearest" });
+    current.focus();
+  }, [landOnComparison, grouping, openedGroupingKey, openedGroupingLabel, comparison]);
 
   async function handleRebuild() {
     setRebuilding(true);
@@ -2202,6 +2222,11 @@ function ReportsPanel({
             <li key={`${row.grouping_kind}:${row.grouping_key}`} className="ticket-list-item">
               <button
                 className="post-list-item"
+                ref={
+                  groupingIsOpened(row.grouping_kind, row.grouping_key, row.grouping_label)
+                    ? openedComparisonRef
+                    : undefined
+                }
                 aria-label={`Compare ${row.grouping_kind}: ${row.grouping_label}`}
                 aria-current={
                   groupingIsOpened(row.grouping_kind, row.grouping_key, row.grouping_label)
@@ -2341,6 +2366,7 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [reportGrouping, setReportGrouping] = useState("process_unit");
   const [openedGroupingKey, setOpenedGroupingKey] = useState<string | null>(null);
   const [openedGroupingLabel, setOpenedGroupingLabel] = useState<string | null>(null);
+  const [landOnComparison, setLandOnComparison] = useState(false);
 
   function openReportFromAnalysisRun(
     periodCode: string,
@@ -2348,6 +2374,7 @@ function PostList({ accessToken }: { accessToken: string }) {
     groupingKey?: string,
     groupingLabel?: string,
   ) {
+    setLandOnComparison(reportPeriod === periodCode);
     setReportPeriod(periodCode);
     if (groupingKind) {
       setReportGrouping(groupingKind);
@@ -2360,6 +2387,12 @@ function PostList({ accessToken }: { accessToken: string }) {
     setReportGrouping(groupingKind);
     setOpenedGroupingKey(null);
     setOpenedGroupingLabel(null);
+    setLandOnComparison(false);
+  }
+
+  function selectReportPeriod(periodCode: string) {
+    setReportPeriod(periodCode);
+    setLandOnComparison(false);
   }
 
   function openComparedGrouping(groupingKey: string, groupingLabel: string) {
@@ -2409,6 +2442,7 @@ function PostList({ accessToken }: { accessToken: string }) {
       <CalendarPanel accessToken={accessToken} onSelectPost={selectPost} />
       <AnalysisRunsPanel
         accessToken={accessToken}
+        currentReportPeriod={reportPeriod}
         onSelectPost={selectPost}
         onSelectReportPeriod={openReportFromAnalysisRun}
       />
@@ -2417,12 +2451,13 @@ function PostList({ accessToken }: { accessToken: string }) {
         canRebuild={canRebuild}
         onSelectPost={selectPost}
         period={reportPeriod}
-        onSelectPeriod={setReportPeriod}
+        onSelectPeriod={selectReportPeriod}
         grouping={reportGrouping}
         onSelectGrouping={selectReportGrouping}
         openedGroupingKey={openedGroupingKey}
         openedGroupingLabel={openedGroupingLabel}
         onOpenGrouping={openComparedGrouping}
+        landOnComparison={landOnComparison}
       />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">

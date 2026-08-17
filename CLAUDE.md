@@ -41,6 +41,8 @@ envelope is Failed. Failed TEPP is terminal — request a new run,
 then start. Do not invent a theta. Hover the Result prefix to read
 the parent-choice digest.
 After `make seed`, open **Period report · Succeeded · Demo Corp**,
-then **Open period report 2026-W02**. The report period field is
-focused. Report grouping is Corporate entity and Demo Corp is current.
-Mean θ stays on the period-report panel.
+then **Open period report 2026-W02**. The home week is already
+2026-W02, so the grouping comparison strip lands on Demo Corp. Report
+grouping is Corporate entity and Demo Corp is current. Changing the
+week first still focuses the report period field. Mean θ stays on the
+period-report panel.
