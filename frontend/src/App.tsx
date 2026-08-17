@@ -1163,6 +1163,7 @@ function PostDetailPopup({
   canExtract,
   graph,
   liveBodyWarning,
+  focusEventLineage,
   onClose,
   onSelectPost,
 }: {
@@ -1171,6 +1172,7 @@ function PostDetailPopup({
   canExtract: boolean;
   graph: LineageGraph | null;
   liveBodyWarning?: string | null;
+  focusEventLineage?: boolean;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
 }) {
@@ -1230,6 +1232,15 @@ function PostDetailPopup({
       .catch(() => setAffiliateTrees([]));
     fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
   }, [postId, accessToken]);
+
+  useEffect(() => {
+    if (!focusEventLineage || !post) {
+      return;
+    }
+    const heading = document.getElementById("post-event-lineage");
+    heading?.focus();
+    heading?.scrollIntoView?.({ block: "nearest" });
+  }, [focusEventLineage, post]);
 
   return (
     <div className="popup-backdrop" onClick={onClose}>
@@ -1372,7 +1383,9 @@ function PostDetailPopup({
             />
 
             <section className="popup-section">
-              <h3>Event Lineage</h3>
+              <h3 id="post-event-lineage" tabIndex={-1}>
+                Event Lineage
+              </h3>
               <EventLineageSection
                 lineage={lineage}
                 graph={graph}
@@ -1573,6 +1586,7 @@ function analysisRunDigestPrefix(digest: string): string {
 type SelectPostOptions = {
   liveAfterCutoff?: boolean;
   knowledgeCutoff?: string;
+  fromReportMember?: boolean;
 };
 
 /**
@@ -2153,7 +2167,7 @@ function ReportsPanel({
 }: {
   accessToken: string;
   canRebuild: boolean;
-  onSelectPost: (postId: string) => void;
+  onSelectPost: (postId: string, options?: SelectPostOptions) => void;
   period: string;
   onSelectPeriod: (periodCode: string) => void;
   grouping: string;
@@ -2295,7 +2309,7 @@ function ReportsPanel({
                           ? "true"
                           : undefined
                       }
-                      onClick={() => onSelectPost(member.post_id)}
+                      onClick={() => onSelectPost(member.post_id, { fromReportMember: true })}
                     >
                       <span className="ticket-title">{member.post_title}</span>
                       <span className="post-badge">θ {member.theta_eap.toFixed(2)}</span>
@@ -2442,6 +2456,7 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [openedGroupingKey, setOpenedGroupingKey] = useState<string | null>(null);
   const [openedGroupingLabel, setOpenedGroupingLabel] = useState<string | null>(null);
   const [landOnComparison, setLandOnComparison] = useState(false);
+  const [openedFromReportMember, setOpenedFromReportMember] = useState(false);
 
   function openReportFromAnalysisRun(
     periodCode: string,
@@ -2479,12 +2494,14 @@ function PostList({ accessToken }: { accessToken: string }) {
     setSelectedPostId(postId);
     setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
+    setOpenedFromReportMember(Boolean(options?.fromReportMember));
   }
 
   function closeSelectedPost() {
     setSelectedPostId(null);
     setOpenedAfterCutoff(false);
     setOpenedCutoffIso(null);
+    setOpenedFromReportMember(false);
   }
 
   useEffect(() => {
@@ -2572,6 +2589,7 @@ function PostList({ accessToken }: { accessToken: string }) {
           liveBodyWarning={
             openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
           }
+          focusEventLineage={openedFromReportMember}
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
         />

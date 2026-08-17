@@ -1470,6 +1470,7 @@ describe("App, authenticated", () => {
     // page, not a flat list -- two SVGs (home + popup) share the fork.
     expect(screen.getAllByLabelText("A-100 lineage").length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByLabelText("Open post: Pricing renegotiation follow-up").length).toBeGreaterThanOrEqual(2);
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
   });
 
   it("shows a seeded Ask exchange without an orchestrator round-trip", async () => {
@@ -2264,6 +2265,7 @@ describe("App, authenticated", () => {
       expect(
         screen.getAllByRole("heading", { name: "Event Lineage" }).length,
       ).toBeGreaterThanOrEqual(2);
+      expect(document.getElementById("post-event-lineage")).toHaveFocus();
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
     }
@@ -2527,6 +2529,7 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Constructive stance: 2")).toBeInTheDocument();
     expect(screen.getAllByText(/Ada West/).length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText("A-100 lineage").length).toBeGreaterThanOrEqual(2);
+    expect(document.getElementById("post-event-lineage")).toHaveFocus();
   });
 
   it("lets post_admin rebuild the period report", async () => {
