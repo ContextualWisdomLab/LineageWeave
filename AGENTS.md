@@ -30,7 +30,9 @@ reimplementing them:
 - [ThreadWeave](https://github.com/ContextualWisdomLab/ThreadWeave) for
   tree assembly (`reconstruct.py`'s `_walk`/`thread_messages` calls).
 - [RankWeave](https://github.com/ContextualWisdomLab/RankWeave) for
-  multi-channel score fusion (`weighted_convex_fuse`).
+  multi-channel score fusion (`weighted_convex_fuse` in
+  `reconstruct.py`) and the buyer-facing Rankings port
+  (`rankweave_client.py`) -- never invent a fused score or a theta.
 - [TEPP](https://github.com/ContextualWisdomLab/TEPP)'s published wire
   contract for calibrated measurement (`tepp_client.py`) -- never
   reimplement TEPP's model here.

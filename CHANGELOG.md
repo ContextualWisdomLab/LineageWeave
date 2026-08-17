@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.75.0] - 2026-08-17
+
+### Added
+
+- Home Rankings panel fuses visible posts through `RankWeaveClient`
+  (ADR 0024). After login with the port disabled or the library
+  missing, Demo Analyst sees **Rankings · RankWeave not available**.
+  An accepted hit lists the title; click opens that post. A hidden
+  post is omitted. Never invent a fused score or a theta.
+
 ## [0.71.2] - 2026-08-17
 
 ### Added
