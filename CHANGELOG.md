@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-08-17
+
+### Added
+
+- Opening **Open period report 2026-W02** now names the next action on
+  the landed Demo Corp report: read its mean θ and member posts, then
+  open a post. The focused comparison chip uses the visible
+  `Corporate entity: Demo Corp` caption and the persisted mean θ
+  (WCAG 2.5.3). Changing the week still focuses the report period
+  field. Mean θ stays on the report panel. No TEPP theta is invented.
+
 ## [0.99.0] - 2026-08-17
 
 ### Added

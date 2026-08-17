@@ -2092,6 +2092,30 @@ function CalendarPanel({
   );
 }
 
+const REPORT_GROUPING_LABELS: Record<string, string> = {
+  process_unit: "Process unit",
+  corporate_entity: "Corporate entity",
+  thread_group: "Thread group",
+};
+
+function comparisonGroupingTitle(groupingKind: string, groupingLabel: string): string {
+  return `${REPORT_GROUPING_LABELS[groupingKind] ?? groupingKind}: ${groupingLabel}`;
+}
+
+function comparisonChipAccessibleName(
+  groupingKind: string,
+  groupingLabel: string,
+  meanTheta: number,
+): string {
+  return `Compare ${comparisonGroupingTitle(groupingKind, groupingLabel)}, mean θ ${meanTheta.toFixed(2)}`;
+}
+
+function openedReportNextAction(groupingLabel: string): string {
+  return (
+    `${groupingLabel} is the opened grouping. Read its mean θ and member posts below, then open a post.`
+  );
+}
+
 function ReportsPanel({
   accessToken,
   canRebuild,
@@ -2123,12 +2147,6 @@ function ReportsPanel({
   const [error, setError] = useState<string | null>(null);
   const [rebuilding, setRebuilding] = useState(false);
   const openedComparisonRef = useRef<HTMLButtonElement | null>(null);
-
-  const groupingLabels: Record<string, string> = {
-    process_unit: "Process unit",
-    corporate_entity: "Corporate entity",
-    thread_group: "Thread group",
-  };
 
   function groupingIsOpened(groupingKind: string, groupingKey: string, groupingLabel?: string) {
     if (groupingKind !== grouping) {
@@ -2227,7 +2245,11 @@ function ReportsPanel({
                     ? openedComparisonRef
                     : undefined
                 }
-                aria-label={`Compare ${row.grouping_kind}: ${row.grouping_label}`}
+                aria-label={comparisonChipAccessibleName(
+                  row.grouping_kind,
+                  row.grouping_label,
+                  row.mean_theta,
+                )}
                 aria-current={
                   groupingIsOpened(row.grouping_kind, row.grouping_key, row.grouping_label)
                     ? "true"
@@ -2239,7 +2261,7 @@ function ReportsPanel({
                 }}
               >
                 <span className="ticket-title">
-                  {groupingLabels[row.grouping_kind] ?? row.grouping_kind}: {row.grouping_label}
+                  {comparisonGroupingTitle(row.grouping_kind, row.grouping_label)}
                 </span>
                 <span className="post-badge">mean θ {row.mean_theta.toFixed(2)}</span>
                 <span className="post-badge">{row.post_count} posts</span>
@@ -2247,6 +2269,11 @@ function ReportsPanel({
             </li>
           ))}
         </ul>
+      )}
+      {openedGroupingLabel && (
+        <p className="post-meta" role="status">
+          {openedReportNextAction(openedGroupingLabel)}
+        </p>
       )}
       {index && index.periods.length > 0 && (
         <ul className="ticket-list">

@@ -746,7 +746,7 @@ describe("App, authenticated", () => {
                 grouping_kind: "corporate_entity",
                 grouping_key: "corp-1",
                 grouping_label: "Demo Corp",
-                mean_theta: 0.01,
+                mean_theta: 0.42,
                 post_count: 8,
                 link_method: "fipc",
               },
@@ -2181,11 +2181,14 @@ describe("App, authenticated", () => {
     expect(groupingSelect).toHaveValue("corporate_entity");
     expect(periodInput).toHaveFocus();
     expect(
-      screen.getByRole("button", { name: "Compare corporate_entity: Demo Corp" }),
+      screen.getByRole("button", { name: "Compare Corporate entity: Demo Corp, mean θ 0.42" }),
     ).toHaveAttribute("aria-current", "true");
     expect(
-      screen.getByRole("button", { name: "Compare process_unit: Demo Report High" }),
+      screen.getByRole("button", { name: "Compare Process unit: Demo Report High, mean θ 0.81" }),
     ).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Demo Corp is the opened grouping. Read its mean θ and member posts below, then open a post.",
+    );
     expect(await screen.findByText(/Demo Corp: mean θ 0\.42/)).toBeInTheDocument();
     expect(screen.queryByText(/corp-1: mean θ/)).not.toBeInTheDocument();
   });
@@ -2211,11 +2214,18 @@ describe("App, authenticated", () => {
 
       expect(periodInput).toHaveValue("2026-W02");
       expect(screen.getByLabelText("Report grouping")).toHaveValue("corporate_entity");
-      const demoChip = screen.getByRole("button", { name: "Compare corporate_entity: Demo Corp" });
+      const demoChip = screen.getByRole("button", {
+        name: "Compare Corporate entity: Demo Corp, mean θ 0.42",
+      });
       expect(demoChip).toHaveAttribute("aria-current", "true");
       expect(demoChip).toHaveFocus();
+      expect(demoChip).toHaveAccessibleName(/Corporate entity: Demo Corp/);
+      expect(demoChip).toHaveAccessibleName(/mean θ 0\.42/);
       expect(scrollIntoView).toHaveBeenCalled();
       expect(periodInput).not.toHaveFocus();
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Demo Corp is the opened grouping. Read its mean θ and member posts below, then open a post.",
+      );
       expect(await screen.findByText(/Demo Corp: mean θ 0\.42/)).toBeInTheDocument();
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
@@ -2408,7 +2418,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
 
-    expect(await screen.findByText(/mean θ 0.42/)).toBeInTheDocument();
+    expect((await screen.findAllByText(/mean θ 0.42/)).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/8 posts/).length).toBeGreaterThan(0);
     expect(screen.getByText(/TEST-PU-REPORT/)).toBeInTheDocument();
     expect(screen.getAllByText("shared metric").length).toBeGreaterThan(0);
@@ -2445,10 +2455,15 @@ describe("App, authenticated", () => {
     render(<App />);
 
     expect(await screen.findByLabelText("Grouping comparison")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /compare process_unit: demo report high/i })).toHaveTextContent(
-      "mean θ 0.81",
+    expect(
+      screen.getByRole("button", { name: "Compare Process unit: Demo Report High, mean θ 0.81" }),
+    ).toHaveTextContent("mean θ 0.81");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Compare Thread group: A-100, mean θ 0.81" }),
     );
-    await userEvent.click(screen.getByRole("button", { name: /compare thread_group: a-100/i }));
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "A-100 is the opened grouping. Read its mean θ and member posts below, then open a post.",
+    );
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/reports/thread_group/2026-W02"),
