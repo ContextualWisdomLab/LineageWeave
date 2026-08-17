@@ -28,7 +28,9 @@ This repo depends on real ContextualWisdomLab-org packages rather than
 reimplementing them:
 
 - [ThreadWeave](https://github.com/ContextualWisdomLab/ThreadWeave) for
-  tree assembly (`reconstruct.py`'s `_walk`/`thread_messages` calls).
+  tree assembly (`reconstruct.py`'s `_walk`/`thread_messages` calls)
+  and the buyer-facing Conversations port (`threadweave_client.py`) --
+  never invent a parent.
 - [RankWeave](https://github.com/ContextualWisdomLab/RankWeave) for
   multi-channel score fusion (`weighted_convex_fuse` in
   `reconstruct.py`) and the buyer-facing Rankings port
@@ -53,7 +55,9 @@ does it (`gh repo list ContextualWisdomLab`).
 must set `available = False` and make their channel dropped +
 renormalized (`reconstruct.active_weights`), never silently return a
 placeholder score, invented Keyman, guessed relationship, fabricated
-summary/chat, or invented commitment. A missing signal and a
+summary/chat, or invented commitment. `ThreadWeaveClient` fails closed
+with `ThreadWeaveNotAvailable` and an empty conversation list -- never
+an invented parent. A missing signal and a
 confidently-negative signal are different things. Keyman extraction,
 entity-relationship classification, post summary, in-popup chat, and
 commitment derivation go through contextual-orchestrator the same way

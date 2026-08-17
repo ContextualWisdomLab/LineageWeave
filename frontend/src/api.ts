@@ -515,3 +515,20 @@ export interface RankingList {
 export function fetchRankings(accessToken: string): Promise<RankingList> {
   return backendFetch("/api/rankings", accessToken);
 }
+
+export interface ConversationNode {
+  post_id: string;
+  post_title: string;
+  children?: ConversationNode[];
+}
+
+export interface ConversationForest {
+  port: string;
+  status: "accepted" | "unavailable";
+  status_reason: string | null;
+  conversations: ConversationNode[];
+}
+
+export function fetchConversations(accessToken: string): Promise<ConversationForest> {
+  return backendFetch("/api/conversations", accessToken);
+}

@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.81.0] - 2026-08-17
+
+### Added
+
+- Home Conversations panel threads visible posts through ThreadWeave.
+  After login with the port disabled or the library missing, Demo
+  Analyst sees **Conversations · ThreadWeave not available**. An
+  accepted tree lists the root title; click opens that post. A hidden
+  parent is omitted. Never invent a parent.
+
 ## [0.75.0] - 2026-08-17
 
 ### Added

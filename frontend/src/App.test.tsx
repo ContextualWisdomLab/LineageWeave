@@ -65,6 +65,15 @@ describe("App, authenticated", () => {
         fused_rank: number;
       }[];
     };
+    conversations?: {
+      status: "accepted" | "unavailable";
+      status_reason: string | null;
+      conversations: {
+        post_id: string;
+        post_title: string;
+        children?: { post_id: string; post_title: string }[];
+      }[];
+    };
     chatUnavailable?: boolean;
     searchUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
@@ -176,6 +185,22 @@ describe("App, authenticated", () => {
         tickets.unshift(ticket);
         return Promise.resolve(
           jsonResponse({ post_id: "post-1", has_commitment: true, ticket }),
+        );
+      }
+      if (url.endsWith("/api/conversations")) {
+        const conversations = options?.conversations ?? {
+          port: "threadweave",
+          status: "unavailable" as const,
+          status_reason: "threadweave_not_available",
+          conversations: [],
+        };
+        return Promise.resolve(
+          jsonResponse({
+            port: "threadweave",
+            status: conversations.status,
+            status_reason: conversations.status_reason,
+            conversations: conversations.conversations,
+          }),
         );
       }
       if (url.endsWith("/api/calendar")) {
@@ -1303,6 +1328,48 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("button", { name: /open ranking: private parent/i })).not.toBeInTheDocument();
 
     await userEvent.click(rankingButton);
+
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
+  it("names ThreadWeave unavailability on home conversations instead of inventing a parent", async () => {
+    stubBackend();
+    render(<App />);
+
+    expect(await screen.findByText("Conversations · ThreadWeave not available")).toBeInTheDocument();
+    expect(screen.queryByText("Pricing renegotiation: revised quote sent")).not.toBeInTheDocument();
+  });
+
+  it("opens an accepted conversation tree root without inventing a parent", async () => {
+    stubBackend({
+      conversations: {
+        status: "accepted",
+        status_reason: null,
+        conversations: [
+          {
+            post_id: "post-1",
+            post_title: "Public post",
+            children: [
+              {
+                post_id: "post-2",
+                post_title: "Pricing renegotiation: revised quote sent",
+              },
+            ],
+          },
+        ],
+      },
+    });
+    render(<App />);
+
+    const conversationButton = await screen.findByRole("button", {
+      name: /open conversation: public post/i,
+    });
+    expect(conversationButton).toHaveTextContent("Public post");
+    expect(conversationButton).toHaveTextContent("Conversations · threadweave");
+    expect(conversationButton).toHaveTextContent("1 reply");
+    expect(screen.queryByRole("button", { name: /open conversation: private parent/i })).not.toBeInTheDocument();
+
+    await userEvent.click(conversationButton);
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });

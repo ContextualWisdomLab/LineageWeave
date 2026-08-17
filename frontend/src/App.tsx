@@ -8,6 +8,7 @@ import {
   evaluatePost,
   extractPostKeymen,
   fetchCalendar,
+  fetchConversations,
   fetchLineageGraph,
   fetchMe,
   fetchPost,
@@ -37,6 +38,8 @@ import {
   type CalendarEntry,
   type ChatAnswer,
   type ChatExchange,
+  type ConversationForest,
+  type ConversationNode,
   type Counterparty,
   type EvaluationResponse,
   type IssueTicket,
@@ -1371,6 +1374,83 @@ function RankingsPanel({
   );
 }
 
+function ConversationsPanel({
+  accessToken,
+  onSelectPost,
+}: {
+  accessToken: string;
+  onSelectPost: (postId: string) => void;
+}) {
+  const [forest, setForest] = useState<ConversationForest | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setError(null);
+    fetchConversations(accessToken)
+      .then(setForest)
+      .catch((err) => setError(String(err)));
+  }, [accessToken]);
+
+  return (
+    <section className="popup-section lineage-home" aria-label="Conversations">
+      <div className="lineage-home-header">
+        <h2>Conversations</h2>
+        {forest && (
+          <span className="post-badge">
+            {forest.status === "accepted"
+              ? "threadweave"
+              : `threadweave · ${forest.status_reason ?? "unavailable"}`}
+          </span>
+        )}
+      </div>
+      {error && <p className="error">{error}</p>}
+      {forest === null && !error && <p>Loading conversations...</p>}
+      {forest && forest.status === "unavailable" && (
+        <p className="popup-placeholder">Conversations · ThreadWeave not available</p>
+      )}
+      {forest && forest.status === "accepted" && forest.conversations.length === 0 && (
+        <p className="popup-placeholder">No conversation trees from ThreadWeave.</p>
+      )}
+      {forest && forest.conversations.length > 0 && (
+        <ul className="ticket-list" aria-label="Conversation trees">
+          {forest.conversations.map((tree) => (
+            <ConversationTreeItem
+              key={tree.post_id}
+              tree={tree}
+              onSelectPost={onSelectPost}
+            />
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function ConversationTreeItem({
+  tree,
+  onSelectPost,
+}: {
+  tree: ConversationNode;
+  onSelectPost: (postId: string) => void;
+}) {
+  const replyCount = tree.children?.length ?? 0;
+  return (
+    <li className="ticket-list-item">
+      <button
+        className="post-list-item"
+        aria-label={`Open conversation: ${tree.post_title}`}
+        onClick={() => onSelectPost(tree.post_id)}
+      >
+        <span className="ticket-title">{tree.post_title}</span>
+        <span className="post-badge">Conversations · threadweave</span>
+        {replyCount > 0 && (
+          <span className="post-badge">{replyCount === 1 ? "1 reply" : `${replyCount} replies`}</span>
+        )}
+      </button>
+    </li>
+  );
+}
+
 function CalendarPanel({
   accessToken,
   onSelectPost,
@@ -1690,6 +1770,8 @@ function PostList({ accessToken }: { accessToken: string }) {
   return (
     <>
       <RankingsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
+      <ConversationsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
+      <ConversationsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
       <section className="popup-section lineage-home">

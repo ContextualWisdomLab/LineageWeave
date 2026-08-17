@@ -55,6 +55,7 @@ from lineageweave.post_evaluation import (
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
 from lineageweave.rankweave_client import build_rankweave_client
+from lineageweave.threadweave_client import build_threadweave_client
 
 from backend.app.activity_stream import (
     create_valkey_client,
@@ -67,6 +68,7 @@ from backend.app.activity_stream import (
 from backend.app.affiliate_tree_ingestion import fetch_affiliate_forest, fetch_voc_evidence
 from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
+from backend.app.conversation_ingestion import load_visible_conversation_messages
 from backend.app.db import create_pool, get_pool
 from backend.app.entity_relationship_ingestion import (
     fetch_post_counterparties,
@@ -240,6 +242,11 @@ def _post_evaluation_client():
 def _rankweave_client():
     """In-process RankWeave unless RANKWEAVE_DISABLED=1 (ADR 0024)."""
     return build_rankweave_client(disabled=load_settings().rankweave_disabled)
+
+
+def _threadweave_client():
+    """In-process ThreadWeave when enabled; otherwise fail-closed."""
+    return build_threadweave_client(disabled=load_settings().threadweave_disabled)
 
 
 def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
@@ -1150,3 +1157,20 @@ async def read_rankings(
     return _rankweave_client().as_api_payload(
         posts, can_see_post=lambda _row: True
     )
+@app.get("/api/conversations")
+async def read_conversations(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """ThreadWeave forest of ABAC-visible posts (ADR 0021).
+
+    Hidden parents are omitted so the child becomes a root. Never
+    invents a parent. Fail-closed when ThreadWeave is disabled or
+    the library is missing.
+    """
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        messages = await load_visible_conversation_messages(
+            conn, lambda row: _can_see_post(account, row)
+        )
+    return _threadweave_client().as_api_payload(messages)

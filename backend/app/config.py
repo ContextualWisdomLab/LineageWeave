@@ -52,6 +52,10 @@ class Settings:
     # RankWeaveNotAvailable -- never invent a fused score. Default false
     # uses the in-process library already required by reconstruct.py.
     rankweave_disabled: bool
+    # ThreadWeave conversation port (ADR 0021). True = fail-closed
+    # ThreadWeaveNotAvailable -- never invent a parent. Default false
+    # uses the in-process library already required by reconstruct.py.
+    threadweave_disabled: bool
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -85,6 +89,7 @@ def load_settings() -> Settings:
         valkey_url=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
         searxng_base_url=os.environ.get("SEARXNG_BASE_URL", ""),
         rankweave_disabled=os.environ.get("RANKWEAVE_DISABLED", "")
+        threadweave_disabled=os.environ.get("THREADWEAVE_DISABLED", "")
         .strip()
         .lower()
         in {"1", "true", "yes", "on"},
