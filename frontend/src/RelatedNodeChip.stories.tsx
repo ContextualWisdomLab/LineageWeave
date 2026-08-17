@@ -1,5 +1,12 @@
 import type { RelatedNode } from "./api";
 import { RelatedNodeChip } from "./RelatedNodeChip";
+import type { RelatedNodeChipAction } from "./relatedNodeCaption";
+
+type RelatedNodeStoryArgs = {
+  action: RelatedNodeChipAction;
+  onSelect: (node: RelatedNode) => void;
+  node: RelatedNode;
+};
 
 /**
  * Storybook inventory for the repeating related-node chip.
@@ -39,7 +46,7 @@ export const UniqueAffiliation = {
       person_side_label: "Our side",
       affiliation_organization_name: "Demo Corp",
     }),
-  },
+  } satisfies RelatedNodeStoryArgs,
 };
 
 export const SideOnlyPluralAffiliations = {
@@ -51,7 +58,7 @@ export const SideOnlyPluralAffiliations = {
       label: "Priya Nair",
       person_side_label: "Counterparty",
     }),
-  },
+  } satisfies RelatedNodeStoryArgs,
 };
 
 export const OrganizationAndPost = {
