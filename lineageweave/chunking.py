@@ -179,7 +179,6 @@ class _BlockTextExtractor(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag in {"style", "script"}:
             self._skip_depth += 1
-            return
         if self._skip_depth:
             return
         if tag == "img":

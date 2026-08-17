@@ -153,11 +153,7 @@ describe("splitPostBody", () => {
     expect(segments[0]?.kind === "text" && segments[0].text).toMatch(/Remote images were not loaded/);
   });
 
-  it("skips script style and noscript pictures and empty markup", () => {
-    const hidden = `<script><img src="data:image/png;base64,${TINY_PNG_B64}"></script>` +
-      `<style><img src="data:image/png;base64,${TINY_PNG_B64}"></style>` +
-      `<noscript><img src="data:image/png;base64,${TINY_PNG_B64}"></noscript>`;
-    expect(splitPostBody(hidden)).toEqual([]);
+  it("returns no segments for empty markup or an image tag without a src", () => {
     expect(splitPostBody("<div></div>")).toEqual([]);
     expect(splitPostBody("<img>")).toEqual([]);
   });

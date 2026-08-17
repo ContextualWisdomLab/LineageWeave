@@ -76,7 +76,6 @@ class _EmbeddedImageExtractor(HTMLParser):
         """Record a raster ``<img>`` or enter a skipped ``style``/``script``."""
         if tag in {"style", "script"}:
             self._skip_depth += 1
-            return
         if self._skip_depth or tag != "img":
             return
         src = next((value for name, value in attrs if name == "src" and value), None)
