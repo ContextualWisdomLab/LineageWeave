@@ -303,7 +303,7 @@ function EventLineageSection({
   return (
     <>
       {scoped.nodes.length > 0 && onSelectPost && (
-        <LineageDag graph={scoped} onSelectPost={onSelectPost} />
+        <LineageDag graph={scoped} onSelectPost={onSelectPost} currentPostId={postId} />
       )}
       {hasLinks && (
         <ul className="lineage-list">

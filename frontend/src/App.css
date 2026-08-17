@@ -283,6 +283,11 @@
   stroke-width: 2.5;
 }
 
+.lineage-dag-node[aria-current="true"] circle {
+  stroke-width: 3;
+  stroke: canvastext;
+}
+
 .keyman-list {
   list-style: none;
   padding: 0;

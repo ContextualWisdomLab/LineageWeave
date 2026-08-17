@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members marks that
+  post current in the popup Event Lineage DAG, so the focused heading
+  has a you-are-here node. The home DAG stays unmarked. No TEPP theta
+  is invented. No cutoff body is invented (ADR 0016).
+
 ## [1.3.0] - 2026-08-17
 
 ### Added
