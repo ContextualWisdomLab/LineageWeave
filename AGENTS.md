@@ -97,8 +97,9 @@ pnpm run lint && pnpm run test && pnpm run build
 
 A run-bearing analysis-run registry empties only after an unrevoked
 `analysis_run_retention_grant` and `GRANT analysis_run_retention_admin`
-(ADR 0020 / v0.87.0). The documented phrase is not a secret. Do not
-expose purge on a public HTTP route.
+(ADR 0020 / v0.87.0). The documented phrase is not a secret. The same
+call empties reconstruction children when those tables exist
+(ADR 0032 / v2.10.4). Do not expose purge on a public HTTP route.
 
 `POST /api/analysis-runs` records Pending lineage only (ADR 0017 /
 v2.7.1). TEPP and period-report kinds 422 before any snapshot write.
