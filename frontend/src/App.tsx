@@ -156,7 +156,15 @@ function ChatCitations({
   );
 }
 
-function ChatPanel({ postId, accessToken }: { postId: string; accessToken: string }) {
+function ChatPanel({
+  postId,
+  accessToken,
+  nameFirstAsk,
+}: {
+  postId: string;
+  accessToken: string;
+  nameFirstAsk?: boolean;
+}) {
   const [question, setQuestion] = useState("");
   const [exchanges, setExchanges] = useState<ChatExchange[]>([]);
   const [answer, setAnswer] = useState<ChatAnswer | null>(null);
@@ -206,6 +214,11 @@ function ChatPanel({ postId, accessToken }: { postId: string; accessToken: strin
       <h3 id="post-ask" tabIndex={-1}>
         Ask about this lineage
       </h3>
+      {nameFirstAsk && exchanges[0] ? (
+        <p className="post-meta" role="status" aria-label="Ask seed next action">
+          {firstAskNextAction(exchanges[0].question_text)}
+        </p>
+      ) : null}
       {!seededOnly && (
         <div className="chat-input-row">
           <input
@@ -230,6 +243,11 @@ function ChatPanel({ postId, accessToken }: { postId: string; accessToken: strin
               key={exchange.question_text}
               className="chat-suggestion-chip"
               aria-label={`Ask seeded question: ${exchange.question_text}`}
+              aria-current={
+                nameFirstAsk && exchanges[0]?.question_text === exchange.question_text
+                  ? "true"
+                  : undefined
+              }
               onClick={() => {
                 if (seededOnly) return;
                 setQuestion(exchange.question_text);
@@ -288,6 +306,10 @@ function firstRelatedNextAction(nodeLabel: string): string {
 
 function relatedNodesCurrentNextAction(personName: string): string {
   return `Related nodes for ${personName} are current. Ask about this lineage next.`;
+}
+
+function firstAskNextAction(questionText: string): string {
+  return `${questionText} is the first Ask. Read that answer next.`;
 }
 
 function EventLineageSection({
@@ -931,7 +953,7 @@ function KeymanPanel({
         </p>
       ) : null}
       {afterList && landFirstRelated && landedRelatedName && landedRelated !== null ? (
-        <ChatPanel postId={postId} accessToken={accessToken} />
+        <ChatPanel postId={postId} accessToken={accessToken} nameFirstAsk />
       ) : null}
     </>
   );
