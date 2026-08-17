@@ -13,8 +13,10 @@ from backend.app import keyman_ingestion
 from backend.app import post_summary_ingestion as summary_ingestion
 from lineageweave.corporate_hierarchy_inference import HierarchyProposal
 from lineageweave.keyman_extraction import OUR_SIDE, PersonMention
+from lineageweave.knowledge_graph import NODE_PERSON
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
+    ACTOR_TYPE_PERSON,
     ACTOR_TYPE_TEAM,
     PostSummary,
     RoleResponsibility,
@@ -219,6 +221,7 @@ class _SummaryConnection:
                     "affiliated_organization_name": "Synthetic Energy",
                     "cataloged_team_id": None,
                     "cataloged_corporate_entity_id": None,
+                    "cataloged_person_id": None,
                 }
             ]
         raise AssertionError(f"unexpected fetch query: {compact}")
@@ -366,6 +369,7 @@ def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch
         and "insert into post_summary_role" in event[1]
     )
     assert "cataloged_corporate_entity_id" in role_insert
+    assert "cataloged_person_id" in role_insert
     assert resolve_index < enter_index < mention_index < exit_index
 
 
@@ -483,6 +487,161 @@ def test_release_notes_describe_balanced_outer_emphasis_stripping() -> None:
     assert "preserves Markdown emphasis in field values" not in content
 
 
+def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
+    """A persisted person role keeps catalog_node_id for the chip button."""
+
+    person_id = str(uuid.uuid4())
+    events: list[Any] = []
+
+    class _PersonFetchConnection:
+        """Return one stored person catalog id without a live database."""
+
+        async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
+            compact = " ".join(query.split())
+            events.append(("fetchrow", compact))
+            if compact.startswith("select korean_summary from post_summary_result"):
+                return {"korean_summary": "합성 요약"}
+            raise AssertionError(f"unexpected fetchrow query: {compact}")
+
+        async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
+            compact = " ".join(query.split())
+            events.append(("fetch", compact))
+            if "from post_summary_event" in compact:
+                return []
+            if "from post_summary_role" in compact:
+                assert "cataloged_person_id" in compact
+                return [
+                    {
+                        "actor_name": "Priya Nair",
+                        "responsibility": "고객 측 수신",
+                        "actor_type_code": ACTOR_TYPE_PERSON,
+                        "affiliated_organization_name": "Northridge Grid",
+                        "cataloged_team_id": None,
+                        "cataloged_corporate_entity_id": None,
+                        "cataloged_person_id": person_id,
+                    }
+                ]
+            raise AssertionError(f"unexpected fetch query: {compact}")
+
+    payload = asyncio.run(
+        summary_ingestion.fetch_persisted_summary(_PersonFetchConnection(), str(uuid.uuid4()))
+    )
+    assert payload is not None
+    role = payload["roles_and_responsibilities"][0]
+    assert role["catalog_node_id"] == person_id
+    assert role["catalog_node_type_code"] == NODE_PERSON
+    assert role["actor_name"] == "Priya Nair"
+
+
+class _PersonPersistConnection(_SummaryConnection):
+    """Resolve one existing catalog person during the write transaction."""
+
+    def __init__(self, events: list[Any], person_id: str) -> None:
+        super().__init__(events)
+        self._person_id = person_id
+
+    async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
+        compact = " ".join(query.split())
+        if compact.startswith("select person_id from cataloged_person"):
+            assert "order by created_at, person_id limit 1" in compact
+            assert self.in_transaction
+            self._events.append(("fetchrow", compact))
+            return {"person_id": self._person_id}
+        return await super().fetchrow(query, *args)
+
+
+def test_persist_stores_earliest_person_catalog_id(monkeypatch) -> None:
+    """Write-time person lookup stores the catalog id on the role row."""
+
+    events: list[Any] = []
+    person_id = str(uuid.uuid4())
+    connection = _PersonPersistConnection(events, person_id)
+
+    async def load_candidates(conn) -> list[Any]:
+        return []
+
+    async def persist_edges(conn, post_id) -> list[Any]:
+        return []
+
+    monkeypatch.setattr(summary_ingestion, "_load_corporate_entity_candidates", load_candidates)
+    monkeypatch.setattr(summary_ingestion, "persist_edges_for_post", persist_edges)
+
+    payload = asyncio.run(
+        summary_ingestion.persist_post_summary(
+            connection,
+            str(uuid.uuid4()),
+            PostSummary(
+                korean_summary="합성 요약",
+                roles_and_responsibilities=(
+                    RoleResponsibility(
+                        actor_name="Priya Nair",
+                        responsibility="고객 측 수신",
+                        actor_type_code=ACTOR_TYPE_PERSON,
+                    ),
+                ),
+            ),
+        )
+    )
+    role_insert = next(
+        event[1]
+        for event in events
+        if isinstance(event, tuple)
+        and event[0] == "execute"
+        and "insert into post_summary_role" in event[1]
+    )
+    mention_insert = next(
+        event[1]
+        for event in events
+        if isinstance(event, tuple)
+        and event[0] == "execute"
+        and "insert into post_summary_person_mention" in event[1]
+    )
+    assert "cataloged_person_id" in role_insert
+    assert "post_summary_person_mention" in mention_insert
+    assert payload["korean_summary"] == "합성 요약"
+
+
+def test_persist_leaves_uncataloged_person_unbound(monkeypatch) -> None:
+    """A person name with no catalog row stays unbound and has no mention."""
+
+    events: list[Any] = []
+    connection = _SummaryConnection(events)
+
+    async def load_candidates(conn) -> list[Any]:
+        return []
+
+    async def persist_edges(conn, post_id) -> list[Any]:
+        return []
+
+    monkeypatch.setattr(summary_ingestion, "_load_corporate_entity_candidates", load_candidates)
+    monkeypatch.setattr(summary_ingestion, "persist_edges_for_post", persist_edges)
+
+    asyncio.run(
+        summary_ingestion.persist_post_summary(
+            connection,
+            str(uuid.uuid4()),
+            PostSummary(
+                korean_summary="합성 요약",
+                roles_and_responsibilities=(
+                    RoleResponsibility(
+                        actor_name="Uncataloged Person",
+                        responsibility="후속",
+                        actor_type_code=ACTOR_TYPE_PERSON,
+                    ),
+                ),
+            ),
+        )
+    )
+    mention_inserts = [
+        event[1]
+        for event in events
+        if isinstance(event, tuple)
+        and event[0] == "execute"
+        and "insert into post_summary_person_mention" in event[1]
+    ]
+    assert mention_inserts == []
+
+
 def test_role_catalog_identity_is_stored_on_the_role_row() -> None:
     """ADR 0019: fetch must not reconstruct organization identity by name."""
     root = Path(__file__).resolve().parents[1]
@@ -495,6 +654,9 @@ def test_role_catalog_identity_is_stored_on_the_role_row() -> None:
     upgrade = (root / "migrations" / "0019_role_catalog_identity.sql").read_text(
         encoding="utf-8"
     )
+    person_upgrade = (
+        root / "migrations" / "0025_role_person_catalog_identity.sql"
+    ).read_text(encoding="utf-8")
     dockerfile = (
         root / "docker" / "postgres-init" / "Dockerfile"
     ).read_text(encoding="utf-8")
@@ -503,7 +665,11 @@ def test_role_catalog_identity_is_stored_on_the_role_row() -> None:
     fetch_sql = fetch_sql.split("async def persist_post_summary", 1)[0]
     assert "org.entity_name = role.actor_name" not in fetch_sql
     assert "cataloged_corporate_entity_id" in fetch_sql
+    assert "cataloged_person_id" in fetch_sql
     assert "cataloged_team_id" in initial
     assert "cataloged_corporate_entity_id" in upgrade
+    assert "cataloged_person_id" in person_upgrade
     assert "0019_role_catalog_identity.sql" in dockerfile
+    assert "0025_role_person_catalog_identity.sql" in dockerfile
     assert "ADR 0019" in changelog
+    assert "ADR 0027" in changelog

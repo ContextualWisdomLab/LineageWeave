@@ -107,6 +107,12 @@ resolution, hierarchy inference, and verification are available. Keyman
 must test the raw organization name before any abbreviation rewrite so a
 rewrite cannot turn an existing tie into an apparent creation miss.
 
+R&R chips read the catalog id stored on `post_summary_role`
+(ADR 0019 / 0027), including `cataloged_person_id`. Do not rejoin
+`corporate_entity` or `cataloged_person` by display name. Historical
+backfill leaves a role unbound when two same-named mentions already
+exist on the post.
+
 ## CI gates
 
 `.github/workflows/tests.yml` runs the full suite on every PR to `main`.

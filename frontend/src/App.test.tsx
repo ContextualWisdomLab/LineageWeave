@@ -1063,6 +1063,8 @@ describe("App, authenticated", () => {
                 responsibility: "고객 측 수신",
                 actor_type_code: "prov_person",
                 affiliated_organization_name: "Northridge Grid",
+                catalog_node_id: "person-priya",
+                catalog_node_type_code: "node_person",
               },
               {
                 actor_name: "당사",
@@ -1483,6 +1485,7 @@ describe("App, authenticated", () => {
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
     expect(screen.getByText(/우리 측 후속/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "R&R Keyman: Ada West" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "R&R person: Priya Nair" })).toBeInTheDocument();
     expect(screen.getByText("당사").closest("li")).toHaveTextContent("Organization");
     expect(screen.queryByRole("button", { name: "R&R Keyman: 당사" })).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByText("간접")).toBeInTheDocument());
@@ -1709,6 +1712,17 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     expect(screen.getByText("Related to Ada West").closest(".related-keymen")).toHaveTextContent(
       "Priya Nair (Counterparty)",
+    );
+  });
+
+  it("opens related nodes from an R&R person catalog id", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "R&R person: Priya Nair" }));
+    await waitFor(() => expect(screen.getByText("Related to Priya Nair")).toBeInTheDocument());
+    expect(screen.getByText("Related to Priya Nair").closest(".related-keymen")).toHaveTextContent(
+      "Ada West (Our side)",
     );
   });
 

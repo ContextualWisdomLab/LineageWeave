@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import psycopg2
 
 from lineageweave.http_client import get_json_list, post_form
+from lineageweave.post_summary import ACTOR_TYPE_PERSON
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 
 REALM = "lineageweave-demo"
@@ -127,6 +128,7 @@ def seed(
             cur.execute((migrations / "0022_analysis_source_snapshot_member.sql").read_text())
             cur.execute((migrations / "0023_analysis_run_outbox.sql").read_text())
             cur.execute((migrations / "0024_source_post_revision.sql").read_text())
+            cur.execute((migrations / "0025_role_person_catalog_identity.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -492,37 +494,37 @@ def _write_post_summary(cur, post_id, summary) -> None:
             (post_id, ordinal, event_text),
         )
     for role in summary.roles_and_responsibilities:
+        cataloged_person_id = None
+        if role.actor_type_code == ACTOR_TYPE_PERSON:
+            cur.execute(
+                "select person_id from cataloged_person "
+                "where person_name = %s "
+                "order by created_at, person_id limit 1",
+                (role.actor_name,),
+            )
+            person_row = cur.fetchone()
+            if person_row is not None:
+                cataloged_person_id = str(person_row[0])
         cur.execute(
             "insert into post_summary_role "
-            "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name) "
-            "values (%s, %s, %s, %s, %s)",
+            "(post_id, actor_name, responsibility, actor_type_code, "
+            "affiliated_organization_name, cataloged_person_id) "
+            "values (%s, %s, %s, %s, %s, %s)",
             (
                 post_id,
                 role.actor_name,
                 role.responsibility,
                 role.actor_type_code,
                 role.affiliated_organization_name,
+                cataloged_person_id,
             ),
         )
-
-    cur.execute(
-        """
-        insert into post_summary_person_mention (post_id, person_id)
-        select distinct role.post_id, matched_person.person_id
-          from post_summary_role role
-          join lateral (
-                select person.person_id
-                  from cataloged_person person
-                 where person.person_name = role.actor_name
-                 order by person.created_at, person.person_id
-                 limit 1
-          ) matched_person on true
-         where role.post_id = %s
-           and role.actor_type_code = 'prov_person'
-        on conflict do nothing
-        """,
-        (post_id,),
-    )
+        if cataloged_person_id is not None:
+            cur.execute(
+                "insert into post_summary_person_mention (post_id, person_id) "
+                "values (%s, %s) on conflict do nothing",
+                (post_id, cataloged_person_id),
+            )
 
 
 def _write_post_chat(cur, post_id, question: str, chat) -> None:
