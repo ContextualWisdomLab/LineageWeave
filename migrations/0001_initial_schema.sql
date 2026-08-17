@@ -399,6 +399,27 @@ create table issue_ticket (
 create index issue_ticket_post_idx on issue_ticket (post_id);
 create index issue_ticket_due_date_idx on issue_ticket (due_date) where due_date is not null;
 
+-- ADR 0014: connector outbox before Valkey publish (TEPP / orchestrator).
+create table connector_outbox_event (
+    outbox_event_id uuid primary key default uuid_generate_v4(),
+    connector_code text not null
+        references common_lookup_value (lookup_code),
+    delivery_status_code text not null
+        references common_lookup_value (lookup_code),
+    idempotency_key text not null,
+    payload_sha256 text not null,
+    payload_json jsonb not null,
+    stream_entry_id text,
+    failure_code text,
+    created_at timestamptz not null default now(),
+    published_at timestamptz,
+    unique (connector_code, idempotency_key)
+);
+
+create index connector_outbox_event_pending_idx
+    on connector_outbox_event (delivery_status_code, created_at)
+    where delivery_status_code = 'outbox_pending';
+
 -- ---------------------------------------------------------------------
 -- Post-to-post lineage: the persisted output of lineageweave.reconstruct
 -- (see lineageweave/reconstruct.py -- this table is where a real

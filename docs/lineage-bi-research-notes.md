@@ -28,6 +28,13 @@ this repo takes that instruction at face value: it never presents its
 lineage-graph output as TEPP's kind of measurement, and it consumes TEPP
 (when TEPP's HTTP layer exists) only as a request for TEPP's own analysis,
 never by reading TEPP's tables or reimplementing TEPP's model.
+ADR 0014 adds the HTTPS `/v1/analysis-runs` port and a 3NF
+`connector_outbox_event` so a submit is durable before Valkey
+`XADD`. The accepted envelope keeps lifecycle metadata only; an
+`error_code` is not a theta. The orchestrator chat envelope is
+fail-closed the same way (Jeon leftover residuals stay on the
+period-report IRT and are not TEPP scores).
+
 
 ## Why no single signal is trusted
 

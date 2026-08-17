@@ -28,6 +28,10 @@ _ALLOWED_SCHEMES = frozenset({"http", "https"})
 class HttpClientError(RuntimeError):
     """The remote endpoint returned a non-success status or invalid JSON."""
 
+    def __init__(self, message: str, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status
+
 
 def _request(
     method: str,
@@ -115,7 +119,7 @@ def post_json(
     )
     hostname = urlparse(url).hostname or url
     if status >= 400:
-        raise HttpClientError(f"HTTP {status} from {hostname}")
+        raise HttpClientError(f"HTTP {status} from {hostname}", status=status)
     return _decode_json_object(raw, hostname)
 
 
@@ -140,7 +144,7 @@ def post_form(
     )
     hostname = urlparse(url).hostname or url
     if status >= 400:
-        raise HttpClientError(f"HTTP {status} from {hostname}")
+        raise HttpClientError(f"HTTP {status} from {hostname}", status=status)
     return _decode_json_object(raw, hostname)
 
 
@@ -159,7 +163,7 @@ def get_json(
     status, raw = _request("GET", url, body=None, headers=headers or {}, timeout=timeout)
     hostname = urlparse(url).hostname or url
     if status >= 400:
-        raise HttpClientError(f"HTTP {status} from {hostname}")
+        raise HttpClientError(f"HTTP {status} from {hostname}", status=status)
     return _decode_json_object(raw, hostname)
 
 
@@ -181,5 +185,5 @@ def get_json_list(
     status, raw = _request("GET", url, body=None, headers=headers or {}, timeout=timeout)
     hostname = urlparse(url).hostname or url
     if status >= 400:
-        raise HttpClientError(f"HTTP {status} from {hostname}")
+        raise HttpClientError(f"HTTP {status} from {hostname}", status=status)
     return _decode_json_list(raw, hostname)

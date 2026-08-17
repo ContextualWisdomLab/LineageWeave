@@ -106,6 +106,7 @@ def seed(
             cur.execute((migrations / "0009_shared_metric_bank.sql").read_text())
             cur.execute((migrations / "0010_report_item_information.sql").read_text())
             cur.execute((migrations / "0011_post_chat_result.sql").read_text())
+            cur.execute((migrations / "0012_connector_outbox.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -134,7 +135,12 @@ def seed(
                     ('entity_relationship_type', 'rel_vos', 'Voice of Supplier', 5),
                     ('ticket_status', 'open', 'Open', 0),
                     ('ticket_status', 'in_progress', 'In progress', 1),
-                    ('ticket_status', 'closed', 'Closed', 2)
+                    ('ticket_status', 'closed', 'Closed', 2),
+                    ('connector_kind', 'connector_tepp', 'TEPP', 0),
+                    ('connector_kind', 'connector_orchestrator', 'contextual-orchestrator', 1),
+                    ('outbox_delivery_status', 'outbox_pending', 'Pending', 0),
+                    ('outbox_delivery_status', 'outbox_published', 'Published', 1),
+                    ('outbox_delivery_status', 'outbox_failed', 'Failed', 2)
                 on conflict (lookup_code) do nothing
                 """
             )

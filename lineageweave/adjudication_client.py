@@ -16,6 +16,7 @@ import re
 from typing import Protocol
 
 from .http_client import post_json
+from .orchestrator_envelope import OrchestratorEnvelopeError, parse_chat_completion
 
 
 class AdjudicationClient(Protocol):
@@ -74,8 +75,14 @@ class ContextualOrchestratorAdjudicationClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
+        try:
+            content = parse_chat_completion(body)
+        except OrchestratorEnvelopeError:
+            raise
         match = _CONFIDENCE_PATTERN.search(content)
         if match is None:
-            return 0.0
+            raise OrchestratorEnvelopeError(
+                "unusable_confidence",
+                "orchestrator reply is not a confidence number",
+            )
         return max(0.0, min(1.0, float(match.group(1))))

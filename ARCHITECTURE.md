@@ -112,11 +112,16 @@ flowchart LR
   instead of `O(n^2)` for large groups; raise it if recall against a labeled
   set ever shows true parents falling outside the window.
 - **TEPP is a wire contract, not an import.** `tepp_client.py`'s default
-  transport raises `TeppNotAvailable` rather than silently no-op'ing,
-  because TEPP has no live HTTP endpoint yet; the shape is validated
-  (`AnalysisRunRequest.to_json()` mirrors TEPP's published JSON Schema
-  exactly, `additionalProperties: false` and all) so wiring in a real
-  transport is additive, not a rewrite.
+  transport raises `TeppNotAvailable` rather than silently no-op'ing.
+  When `TEPP_BASE_URL` and `TEPP_API_TOKEN` are set, `http_transport`
+  POSTs the published seven-field body to `/v1/analysis-runs` (HTTPS
+  unless `LINEAGEWEAVE_DEV_MODE=1`) and keeps only lifecycle metadata
+  (ADR 0014). An `error_code` envelope is not a theta. Connector
+  submits land on `connector_outbox_event` before Valkey
+  `outbox:{connector_code}`.
+- **Orchestrator envelopes fail closed.** `parse_chat_completion`
+  raises on `error_code`, missing choices, or blank content.
+  Adjudication no longer treats an unusable reply as confidence 0.0.
 
 ## Standards and citations
 

@@ -33,11 +33,14 @@ reimplementing them:
   multi-channel score fusion (`weighted_convex_fuse`).
 - [TEPP](https://github.com/ContextualWisdomLab/TEPP)'s published wire
   contract for calibrated measurement (`tepp_client.py`) -- never
-  reimplement TEPP's model here.
+  reimplement TEPP's model here. HTTP submit is additive and fail-closed
+  (ADR 0014); unset TEPP stays `TeppNotAvailable`, never a fake θ.
 - [contextual-orchestrator](https://github.com/ContextualWisdomLab/contextual-orchestrator)
   for LLM adjudication (`adjudication_client.py`) -- never call a raw LLM
   API directly from this repo; go through the orchestrator so
   reasoning-effort allocation and cost attribution stay centralized.
+  Parse the fail-closed envelope (`orchestrator_envelope.py`); do not
+  treat `error_code` or missing choices as confidence 0.0.
 
 Before adding a new dependency, check whether an existing org repo already
 does it (`gh repo list ContextualWisdomLab`).

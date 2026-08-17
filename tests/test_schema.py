@@ -101,6 +101,7 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_role",
         "post_chat_result",
         "post_chat_citation",
+        "connector_outbox_event",
     }
     assert expected <= tables
 

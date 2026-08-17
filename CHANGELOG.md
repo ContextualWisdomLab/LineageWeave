@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.71.3] - 2026-08-17
+
+### Added
+
+- TEPP HTTP port, fail-closed orchestrator envelope, and Valkey
+  connector outbox (ADR 0014). After `make seed`, unset TEPP stays
+  unavailable — no invented θ. A malformed orchestrator reply drops
+  the llm channel instead of scoring 0.0. Connector submits persist
+  on `connector_outbox_event` before the Valkey `outbox:*` stream.
+
 ## [0.71.0] - 2026-08-14
 
 ### Added
