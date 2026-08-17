@@ -3,6 +3,7 @@ import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
   BackendError,
+  corroboratePostAbbreviations,
   createAnalysisRun,
   startAnalysisRun,
   createPostTicket,
@@ -12,10 +13,12 @@ import {
   fetchAnalysisRun,
   fetchAnalysisRuns,
   fetchCalendar,
+  fetchCustomerGroupTree,
   fetchLineageGraph,
   fetchMe,
   fetchPost,
   fetchPostActivity,
+  fetchPostAbbreviationTreeMatches,
   fetchPostChat,
   fetchPostAffiliateTree,
   fetchPostCounterparties,
@@ -37,6 +40,7 @@ import {
   rebuildPeriodReports,
   updateTicketStatus,
   verifyPostRelations,
+  type AbbreviationTreeMatch,
   type ActivityEvent,
   type AffiliateNode,
   type AnalysisRun,
@@ -45,6 +49,7 @@ import {
   type ChatExchange,
   type CorporateEntityRef,
   type Counterparty,
+  type CustomerGroupNode,
   type EvaluationResponse,
   type IssueTicket,
   type LineageGraph,
@@ -60,6 +65,7 @@ import {
   type RankingList,
   type RelatedNode,
   type RelatedNodeType,
+  type VerificationStatusCode,
   type VocEvidence,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
@@ -84,6 +90,32 @@ function searchUnavailableMessage(err: unknown): string {
     return "Verification unavailable (search is not configured).";
   }
   return String(err);
+}
+
+function abbreviationStatusLabel(code: VerificationStatusCode): string {
+  switch (code) {
+    case "verify_corroborated":
+      return "corroborated";
+    case "verify_uncorroborated":
+      return "uncorroborated";
+    case "verify_pending":
+      return "pending";
+    default: {
+      const _exhaustive: never = code;
+      return _exhaustive;
+    }
+  }
+}
+
+function parseVerificationStatus(code: string): VerificationStatusCode {
+  switch (code) {
+    case "verify_corroborated":
+    case "verify_uncorroborated":
+    case "verify_pending":
+      return code;
+    default:
+      return "verify_pending";
+  }
 }
 
 const CRITERION_SHORT_LABEL: Record<string, string> = {
@@ -1171,6 +1203,79 @@ function CounterpartyPanel({
   );
 }
 
+function AbbreviationCrossCheckPanel({
+  postId,
+  accessToken,
+  canExtract,
+}: {
+  postId: string;
+  accessToken: string;
+  canExtract: boolean;
+}) {
+  const [matches, setMatches] = useState<AbbreviationTreeMatch[] | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchOff, setSearchOff] = useState(false);
+
+  useEffect(() => {
+    setMatches(null);
+    setError(null);
+    setSearchOff(false);
+    fetchPostAbbreviationTreeMatches(accessToken, postId)
+      .then((payload) => setMatches(payload.matches))
+      .catch(() => setMatches([]));
+  }, [accessToken, postId]);
+
+  async function handleCorroborate() {
+    setChecking(true);
+    setError(null);
+    try {
+      const payload = await corroboratePostAbbreviations(accessToken, postId);
+      setMatches(payload.matches);
+    } catch (err) {
+      setError(searchUnavailableMessage(err));
+      if (err instanceof BackendError && err.status === 503) {
+        setSearchOff(true);
+      }
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  return (
+    <section className="popup-section">
+      <div className="lineage-home-header">
+        <h3>Abbreviation cross-check</h3>
+        {canExtract && !searchOff && (
+          <button onClick={handleCorroborate} disabled={checking}>
+            {checking ? "Checking..." : "Cross-check against customer group tree"}
+          </button>
+        )}
+      </div>
+      {error && <p className="error">{error}</p>}
+      {matches === null ? (
+        <p>Loading abbreviation cross-check...</p>
+      ) : matches.length === 0 ? (
+        <p className="popup-placeholder">
+          No abbreviations cross-checked against the customer group tree yet.
+        </p>
+      ) : (
+        <ul aria-label="Abbreviation tree matches">
+          {matches.map((match) => (
+            <li key={match.raw_organization_name}>
+              {match.raw_organization_name}
+              <span className="affiliate-level">
+                {" "}
+                ({abbreviationStatusLabel(parseVerificationStatus(match.verification_status_code))})
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 const TICKET_STATUS_OPTIONS = [
   { code: "open", fallback: "Open" },
   { code: "in_progress", fallback: "In progress" },
@@ -1675,6 +1780,12 @@ function PostDetailPopup({
                 }
               />
             )}
+
+            <AbbreviationCrossCheckPanel
+              postId={postId}
+              accessToken={accessToken}
+              canExtract={canExtract}
+            />
 
             <section className="popup-section">
               <h3>Affiliate tree</h3>
@@ -2411,6 +2522,91 @@ function AnalysisRunsPanel({
   );
 }
 
+function CustomerGroupTreeNode({
+  node,
+  onSelectEntity,
+}: {
+  node: CustomerGroupNode;
+  onSelectEntity: (entityId: string, entityName: string) => void;
+}) {
+  return (
+    <li>
+      <button
+        className="lineage-link-button"
+        aria-label={`Open customer group: ${node.entity_name}`}
+        onClick={() => onSelectEntity(node.entity_id, node.entity_name)}
+      >
+        {node.entity_name}
+      </button>
+      {(node.entity_level_label || node.entity_level_code) && (
+        <span className="affiliate-level"> ({node.entity_level_label ?? node.entity_level_code})</span>
+      )}
+      {node.abbreviations.length > 0 && (
+        <ul className="customer-group-abbreviations" aria-label={`${node.entity_name} abbreviations`}>
+          {node.abbreviations.map((alias) => (
+            <li key={alias.raw_organization_name}>
+              {alias.raw_organization_name}
+              <span className="affiliate-level">
+                {" "}
+                ({abbreviationStatusLabel(parseVerificationStatus(alias.verification_status_code))})
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {node.children.length > 0 && (
+        <ul>
+          {node.children.map((child) => (
+            <CustomerGroupTreeNode
+              key={child.entity_id}
+              node={child}
+              onSelectEntity={onSelectEntity}
+            />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
+function CustomerGroupTreePanel({
+  accessToken,
+  onSelectEntity,
+}: {
+  accessToken: string;
+  onSelectEntity: (entityId: string, entityName: string) => void;
+}) {
+  const [trees, setTrees] = useState<CustomerGroupNode[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setError(null);
+    fetchCustomerGroupTree(accessToken)
+      .then((payload) => setTrees(payload.trees))
+      .catch((err) => setError(String(err)));
+  }, [accessToken]);
+
+  return (
+    <section className="popup-section lineage-home" aria-label="Customer group tree">
+      <div className="lineage-home-header">
+        <h2>Customer group tree</h2>
+      </div>
+      {error && <p className="error">{error}</p>}
+      {trees === null && !error && <p>Loading customer group tree...</p>}
+      {trees && trees.length === 0 && (
+        <p className="popup-placeholder">No customer-group hierarchy for this account.</p>
+      )}
+      {trees && trees.length > 0 && (
+        <ul className="affiliate-tree" aria-label="Customer group hierarchy">
+          {trees.map((node) => (
+            <CustomerGroupTreeNode key={node.entity_id} node={node} onSelectEntity={onSelectEntity} />
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function RankingsPanel({
   accessToken,
   onSelectPost,
@@ -2985,6 +3181,13 @@ function PostList({ accessToken }: { accessToken: string }) {
 
   return (
     <>
+      <CustomerGroupTreePanel
+        accessToken={accessToken}
+        onSelectEntity={(entityId, entityName) => {
+          selectReportGrouping("corporate_entity");
+          openComparedGrouping(entityId, entityName);
+        }}
+      />
       <RankingsPanel accessToken={accessToken} onSelectPost={selectPost} />
       <CalendarPanel accessToken={accessToken} onSelectPost={selectPost} />
       <AnalysisRunsPanel

@@ -106,6 +106,7 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_role",
         "post_chat_result",
         "post_chat_citation",
+        "abbreviation_tree_corroboration",
     }
     assert expected <= tables
 

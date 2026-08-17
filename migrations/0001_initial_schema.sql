@@ -621,4 +621,24 @@ create table organization_name_resolution (
 comment on table organization_name_resolution is
     'Caches LLM-proposed canonical names for abbreviated/slang organization mentions (e.g. AGP -> Aurora Grid Power), cross-verified via external search before being trusted.';
 
+-- Searxng cross-check of a post abbreviation against an existing
+-- customer-group tree node (ADR 0033). This is not ADR 0008's LLM
+-- expansion and does not insert a corporate_entity row. A missing or
+-- tied Searxng result leaves corporate_entity_id null.
+create table abbreviation_tree_corroboration (
+    abbreviation_tree_corroboration_id uuid primary key default uuid_generate_v4(),
+    raw_organization_name text not null unique,
+    corporate_entity_id uuid references corporate_entity (corporate_entity_id),
+    verification_status_code text not null references common_lookup_value (lookup_code),
+    verification_evidence_url text,
+    corroborated_at timestamptz not null default now()
+);
+
+create index abbreviation_tree_corroboration_entity_idx
+    on abbreviation_tree_corroboration (corporate_entity_id)
+    where corporate_entity_id is not null;
+
+comment on table abbreviation_tree_corroboration is
+    'Caches Searxng corroboration of a raw organization mention against an existing customer-group tree node. Fail-closed: no parent and no AUTO row when search is down, empty, or tied.';
+
 commit;

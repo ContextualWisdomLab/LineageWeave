@@ -765,6 +765,84 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/customer-group-tree")) {
+        return Promise.resolve(
+          jsonResponse({
+            trees: [
+              {
+                entity_id: "group-1",
+                entity_name: "Demo Group",
+                entity_level_code: "group",
+                entity_level_label: "Group",
+                abbreviations: [],
+                children: [
+                  {
+                    entity_id: "corp-1",
+                    entity_name: "Demo Corp",
+                    entity_level_code: "company",
+                    entity_level_label: "Company",
+                    abbreviations: [
+                      {
+                        raw_organization_name: "DC",
+                        verification_status_code: "verify_corroborated",
+                        verification_evidence_url: "https://example.test/demo-corp-dc",
+                      },
+                    ],
+                    children: [
+                      {
+                        entity_id: "plant-1",
+                        entity_name: "Demo Plant",
+                        entity_level_code: "plant",
+                        entity_level_label: "Plant",
+                        abbreviations: [],
+                        children: [],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-1/abbreviation-tree-matches")) {
+        return Promise.resolve(
+          jsonResponse({
+            matches: [
+              {
+                raw_organization_name: "DC",
+                corporate_entity_id: "corp-1",
+                verification_status_code: "verify_corroborated",
+                verification_evidence_url: "https://example.test/demo-corp-dc",
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-1/corroborate-abbreviations") && method === "POST") {
+        if (options?.searchUnavailable) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                detail: "Abbreviation tree corroboration is unavailable: set SEARXNG_BASE_URL",
+              }),
+              { status: 503, headers: { "Content-Type": "application/json" } },
+            ),
+          );
+        }
+        return Promise.resolve(
+          jsonResponse({
+            matches: [
+              {
+                raw_organization_name: "DC",
+                corporate_entity_id: "corp-1",
+                verification_status_code: "verify_corroborated",
+                verification_evidence_url: "https://example.test/demo-corp-dc",
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/rankings")) {
         const rankings = options?.rankings ?? {
           status: "unavailable" as const,
@@ -1733,11 +1811,13 @@ describe("App, authenticated", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
-    await waitFor(() => expect(screen.getByText("Demo Group")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Affiliate org: Demo Group" })).toBeInTheDocument(),
+    );
     expect(screen.getByRole("button", { name: "Affiliate org: Demo Corp" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Counterparty org: Demo Corp" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Keyman affiliation: Demo Corp" })).toBeInTheDocument();
-    expect(screen.getByText("(Company)")).toBeInTheDocument();
+    expect(screen.getAllByText("(Company)").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/Ada West \(Our side\)/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Account manager")).toBeInTheDocument();
     expect(screen.queryByText(/our_side/)).not.toBeInTheDocument();
@@ -2072,6 +2152,47 @@ describe("App, authenticated", () => {
 
     expect(await screen.findByText("Rankings · RankWeave not available")).toBeInTheDocument();
     expect(screen.queryByText("Pricing renegotiation: revised quote sent")).not.toBeInTheDocument();
+  });
+
+  it("lets an operator navigate the customer group tree instead of a flat corp list", async () => {
+    stubBackend();
+    render(<App />);
+
+    const tree = await screen.findByRole("list", { name: "Customer group hierarchy" });
+    expect(within(tree).getByRole("button", { name: "Open customer group: Demo Group" })).toBeInTheDocument();
+    expect(within(tree).getByRole("button", { name: "Open customer group: Demo Corp" })).toBeInTheDocument();
+    expect(within(tree).getByRole("button", { name: "Open customer group: Demo Plant" })).toBeInTheDocument();
+    expect(within(tree).getByText("DC")).toBeInTheDocument();
+    expect(within(tree).getByText(/corroborated/)).toBeInTheDocument();
+
+    await userEvent.click(within(tree).getByRole("button", { name: "Open customer group: Demo Corp" }));
+    expect(screen.getByLabelText("Report grouping")).toHaveValue("corporate_entity");
+    expect(
+      screen.getByText(
+        "Demo Corp is the opened grouping. Read its mean θ and member posts below, then open a post.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a post abbreviation cross-check and fail-closes when Searxng is down", async () => {
+    stubBackend({ admin: true, searchUnavailable: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const popup = await waitFor(() => {
+      const panel = document.querySelector(".popup-panel");
+      expect(panel).not.toBeNull();
+      return panel as HTMLElement;
+    });
+    expect(within(popup).getByRole("heading", { name: "Abbreviation cross-check" })).toBeInTheDocument();
+    expect(within(popup).getByText("DC")).toBeInTheDocument();
+
+    await userEvent.click(
+      within(popup).getByRole("button", { name: "Cross-check against customer group tree" }),
+    );
+    expect(
+      await within(popup).findByText("Verification unavailable (search is not configured)."),
+    ).toBeInTheDocument();
   });
 
   it("opens an accepted ranking hit without inventing a fused score", async () => {

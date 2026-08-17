@@ -130,6 +130,7 @@ def seed(
             cur.execute((migrations / "0024_source_post_revision.sql").read_text())
             cur.execute((migrations / "0025_role_person_catalog_identity.sql").read_text())
             cur.execute((migrations / "0026_report_leftover_pair.sql").read_text())
+            cur.execute((migrations / "0027_abbreviation_tree_corroboration.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -181,6 +182,28 @@ def seed(
                 (group_entity_id,),
             )
             corporate_entity_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into corporate_entity (parent_entity_id, corporate_entity_code, entity_name, entity_level_code) "
+                "values (%s, 'DEMO-PLANT-01', 'Demo Plant', 'plant') "
+                "on conflict (corporate_entity_code) do update set "
+                "entity_name = excluded.entity_name, "
+                "entity_level_code = excluded.entity_level_code, "
+                "parent_entity_id = excluded.parent_entity_id",
+                (corporate_entity_id,),
+            )
+            cur.execute(
+                "insert into abbreviation_tree_corroboration "
+                "(raw_organization_name, corporate_entity_id, "
+                " verification_status_code, verification_evidence_url) "
+                "values ('DC', %s, 'verify_corroborated', "
+                "        'https://example.test/demo-corp-dc') "
+                "on conflict (raw_organization_name) do update set "
+                "corporate_entity_id = excluded.corporate_entity_id, "
+                "verification_status_code = excluded.verification_status_code, "
+                "verification_evidence_url = excluded.verification_evidence_url, "
+                "corroborated_at = now()",
+                (corporate_entity_id,),
+            )
 
             cur.execute(
                 "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) values "

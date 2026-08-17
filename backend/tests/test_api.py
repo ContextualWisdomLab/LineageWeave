@@ -185,6 +185,12 @@ def seeded_db(demo_analyst_token):
             )
             own_corp_id = cur.fetchone()[0]
             cur.execute(
+                "insert into corporate_entity (parent_entity_id, corporate_entity_code, entity_name, entity_level_code) "
+                "values (%s, 'TEST-PLANT', 'Test Plant', 'plant') returning corporate_entity_id",
+                (own_corp_id,),
+            )
+            own_plant_id = cur.fetchone()[0]
+            cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
                 "values ('OTHER-CORP', 'Other Corp', 'group') returning corporate_entity_id"
             )
@@ -454,6 +460,7 @@ def seeded_db(demo_analyst_token):
             "public_post_id": public_post_id,
             "own_group_id": str(own_group_id),
             "own_corp_id": str(own_corp_id),
+            "own_plant_id": str(own_plant_id),
             "other_corp_id": str(other_corp_id),
             "own_private_post_id": own_private_post_id,
             "late_own_private_post_id": late_own_private_post_id,
@@ -1577,6 +1584,122 @@ def test_affiliate_tree_walks_ancestors_and_keeps_unresolved_orgs(client, demo_a
     unresolved = [node for node in trees if node["resolved"] is False]
     assert {node["entity_name"] for node in unresolved} == {"Northridge Grid", "Northridge Holdings"}
     assert all(person["person_name"] == "Priya Nair" for node in unresolved for person in node["people"])
+
+
+def test_customer_group_tree_walks_authorized_ancestors_and_descendants(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Operators navigate Group → Company → Plant, not a flat corp list."""
+    response = client.get(
+        "/api/customer-group-tree",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    trees = response.json()["trees"]
+    assert [node["entity_name"] for node in trees] == ["Test Group"]
+    assert trees[0]["entity_id"] == seeded_db["own_group_id"]
+    assert trees[0]["entity_level_label"] == "Group"
+    children = trees[0]["children"]
+    assert [child["entity_name"] for child in children] == ["Test Corp"]
+    assert children[0]["entity_id"] == seeded_db["own_corp_id"]
+    assert children[0]["entity_level_label"] == "Company"
+    plants = children[0]["children"]
+    assert [plant["entity_name"] for plant in plants] == ["Test Plant"]
+    assert plants[0]["entity_id"] == seeded_db["own_plant_id"]
+    assert plants[0]["entity_level_label"] == "Plant"
+    assert "Other Corp" not in str(trees)
+
+
+def test_corroborate_abbreviations_requires_post_admin(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/corroborate-abbreviations",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_corroborate_abbreviations_is_unavailable_without_searxng(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    _grant_post_admin(seeded_db["dsn"])
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/corroborate-abbreviations",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 503
+    assert "SEARXNG_BASE_URL" in response.json()["detail"]
+
+
+def test_corroborate_abbreviations_binds_a_unique_tree_node(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Searxng must corroborate TC against Test Corp; a miss invents nothing."""
+    from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVerificationResult
+
+    _grant_post_admin(seeded_db["dsn"])
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into person_affiliation (person_id, affiliated_organization_name) "
+                "values (%s, 'TC')",
+                (seeded_db["our_person_id"],),
+            )
+    finally:
+        admin_conn.close()
+
+    class _FakeVerificationClient:
+        available = True
+
+        def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:
+            if organization_name == "Test Corp" and relationship_label == "TC":
+                return RelationVerificationResult(
+                    STATUS_CORROBORATED, "https://example.test/test-corp-tc"
+                )
+            return RelationVerificationResult("verify_uncorroborated", None)
+
+    monkeypatch.setattr("backend.app.main._relation_verification_client", lambda: _FakeVerificationClient())
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/corroborate-abbreviations",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    matches = {row["raw_organization_name"]: row for row in response.json()["matches"]}
+    assert matches["TC"]["corporate_entity_id"] == seeded_db["own_corp_id"]
+    assert matches["TC"]["verification_status_code"] == "verify_corroborated"
+    assert "Test Corp" not in matches
+    for unresolved_name in ("Northridge Grid", "Northridge Holdings"):
+        if unresolved_name in matches:
+            assert matches[unresolved_name]["corporate_entity_id"] is None
+            assert matches[unresolved_name]["verification_status_code"] == "verify_uncorroborated"
+
+    cached = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/abbreviation-tree-matches",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert cached.status_code == 200
+    cached_matches = {row["raw_organization_name"]: row for row in cached.json()["matches"]}
+    assert cached_matches["TC"]["corporate_entity_id"] == seeded_db["own_corp_id"]
+
+    tree = client.get(
+        "/api/customer-group-tree",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    company = tree.json()["trees"][0]["children"][0]
+    assert [alias["raw_organization_name"] for alias in company["abbreviations"]] == ["TC"]
+
+
+def test_other_corp_private_abbreviation_cross_check_is_forbidden(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    listed = client.get(
+        f"/api/posts/{seeded_db['other_private_post_id']}/abbreviation-tree-matches",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert listed.status_code == 403
 
 
 def test_other_corp_private_affiliate_tree_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
