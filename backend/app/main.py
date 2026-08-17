@@ -89,7 +89,12 @@ from backend.app.activity_stream import (
     ticket_created_summary,
     ticket_status_changed_summary,
 )
+from backend.app.abbreviation_tree_corroboration_ingestion import (
+    corroborate_post_abbreviations,
+    fetch_post_abbreviation_matches,
+)
 from backend.app.affiliate_tree_ingestion import fetch_affiliate_forest, fetch_voc_evidence
+from backend.app.customer_group_tree_ingestion import fetch_customer_group_forest
 from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
 from backend.app.db import create_pool, get_pool
@@ -363,6 +368,24 @@ async def read_me(
     }
 
 
+@app.get("/api/customer-group-tree")
+async def read_customer_group_tree(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Authorized Group / Company / Plant forest this token may navigate.
+
+    Affiliated corps pull in ancestors and descendants. A catalog row
+    the account does not touch is omitted -- a missing affiliation is
+    not a guessed parent. Corroborated abbreviations attach as
+    alternative labels; Searxng is not called on this read.
+    """
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        trees = await fetch_customer_group_forest(conn, list(account.corporate_entity_ids))
+    return {"trees": trees}
+
+
 @app.get("/api/lineage")
 async def read_lineage_graph(
     account: CurrentAccount = Depends(get_current_account),
@@ -607,6 +630,64 @@ async def read_post_affiliate_tree(
     async with pool.acquire() as conn:
         trees = await fetch_affiliate_forest(conn, post_id)
     return {"post_id": str(post["post_id"]), "trees": trees}
+
+
+@app.get("/api/posts/{post_id}/abbreviation-tree-matches")
+async def read_post_abbreviation_tree_matches(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Cached Searxng tree matches for organization names on this post.
+
+    Does not call Searxng. A missing cache row means the mention has
+    not been cross-checked yet, not that a parent was invented.
+    """
+    post = await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        matches = await fetch_post_abbreviation_matches(conn, post_id)
+    return {"post_id": str(post["post_id"]), "matches": matches}
+
+
+@app.post("/api/posts/{post_id}/corroborate-abbreviations")
+async def corroborate_post_abbreviation_tree(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Cross-check this post's abbreviations against the customer-group tree.
+
+    Reuses the existing Searxng client. Fail-closed: unavailable search
+    is 503, not an invented parent or AUTO row. A tied or empty result
+    stays unbound. post_admin only -- a real external-search write.
+    """
+    _require_post_admin(account)
+    post = await _load_visible_post(post_id, account, pool)
+    client = _relation_verification_client()
+    if not client.available:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Abbreviation tree corroboration is unavailable: set SEARXNG_BASE_URL",
+        )
+    async with pool.acquire() as conn:
+        matches = await corroborate_post_abbreviations(
+            conn,
+            client,
+            post_id,
+            list(account.corporate_entity_ids),
+        )
+    return {
+        "post_id": str(post["post_id"]),
+        "matches": [
+            {
+                "raw_organization_name": match.raw_organization_name,
+                "corporate_entity_id": match.corporate_entity_id,
+                "verification_status_code": match.verification_status_code,
+                "verification_evidence_url": match.verification_evidence_url,
+            }
+            for match in matches
+        ],
+    }
 
 
 @app.get("/api/posts/{post_id}/voc-evidence")

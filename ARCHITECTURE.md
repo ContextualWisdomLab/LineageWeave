@@ -962,3 +962,15 @@ so it also covers the multi-entity opposite-order case a per-name lock
 would still deadlock on. Every already-cataloged entity still resolves
 through the unchanged, lock-free similarity-matching fast path; only
 the rare creation branch serializes.
+
+## Phase 14: customer-group tree plus Searxng abbreviation cross-check
+
+Operators navigate the authorized Group / Company / Plant catalog
+(`GET /api/customer-group-tree`), not only the post-scoped affiliate
+tree or the flat `/api/me` corp list. Abbreviations on a post are
+cross-checked against that tree through the existing Searxng client
+(`abbreviation_tree_corroboration`). A unique corroborated node binds;
+a down, empty, or tied search stays unbound and does not invent a
+parent or AUTO row. See
+[ADR 0033](docs/adr/0033-customer-group-tree-abbreviation-corroboration.md).
+This path does not reimplement ADR 0008 or ADR 0010.

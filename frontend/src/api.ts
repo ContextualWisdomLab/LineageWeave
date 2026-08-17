@@ -293,6 +293,55 @@ export function fetchPostAffiliateTree(
   return backendFetch(`/api/posts/${postId}/affiliate-tree`, accessToken);
 }
 
+export type VerificationStatusCode =
+  | "verify_corroborated"
+  | "verify_uncorroborated"
+  | "verify_pending";
+
+export interface TreeAbbreviation {
+  raw_organization_name: string;
+  verification_status_code: VerificationStatusCode;
+  verification_evidence_url: string | null;
+}
+
+export interface CustomerGroupNode {
+  entity_id: string;
+  entity_name: string;
+  entity_level_code: string | null;
+  entity_level_label?: string | null;
+  abbreviations: TreeAbbreviation[];
+  children: CustomerGroupNode[];
+}
+
+export interface AbbreviationTreeMatch {
+  raw_organization_name: string;
+  corporate_entity_id: string | null;
+  verification_status_code: VerificationStatusCode;
+  verification_evidence_url: string | null;
+}
+
+export function fetchCustomerGroupTree(
+  accessToken: string,
+): Promise<{ trees: CustomerGroupNode[] }> {
+  return backendFetch("/api/customer-group-tree", accessToken);
+}
+
+export function fetchPostAbbreviationTreeMatches(
+  accessToken: string,
+  postId: string,
+): Promise<{ matches: AbbreviationTreeMatch[] }> {
+  return backendFetch(`/api/posts/${postId}/abbreviation-tree-matches`, accessToken);
+}
+
+export function corroboratePostAbbreviations(
+  accessToken: string,
+  postId: string,
+): Promise<{ matches: AbbreviationTreeMatch[] }> {
+  return backendFetch(`/api/posts/${postId}/corroborate-abbreviations`, accessToken, {
+    method: "POST",
+  });
+}
+
 export function fetchPostVocEvidence(accessToken: string, postId: string): Promise<VocEvidence> {
   return backendFetch(`/api/posts/${postId}/voc-evidence`, accessToken);
 }

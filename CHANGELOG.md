@@ -4,6 +4,20 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.11.0] - 2026-08-17
+
+### Added
+
+- Home now shows the authorized customer-group tree (Group / Company /
+  Plant) instead of only a flat corp list. After `make seed`, Demo
+  Analyst walks Demo Group → Demo Corp → Demo Plant; a click opens that
+  entity as the corporate-entity report grouping. The post-scoped
+  affiliate tree is unchanged (ADR 0033).
+- Abbreviations on a post are cross-checked against that tree through
+  the existing Searxng client. A unique corroborated hit binds; a down,
+  empty, or tied search stays unbound and does not invent a parent or
+  AUTO row. Seeded `DC` on Demo Corp is synthetic Demo Corp only.
+
 ## [2.10.4] - 2026-08-17
 
 ### Fixed
