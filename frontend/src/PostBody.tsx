@@ -13,7 +13,10 @@ function renderSegment(segment: PostBodySegment, index: number) {
         <figure key={`post-body-image-${index}`} className="post-embedded-image">
           <img
             src={segment.src}
-            alt={`Embedded image at character offset ${segment.position}`}
+            alt={
+              segment.alt ||
+              `Embedded image at character offset ${segment.position}`
+            }
           />
           <figcaption>
             Image from this post. Extract Keyman or ask a question to read text

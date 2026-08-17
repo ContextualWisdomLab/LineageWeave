@@ -40,11 +40,11 @@ character-count split:
 
 from __future__ import annotations
 
-import base64
-import binascii
 import re
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
+
+from .embedded_image_payload import decode_data_uri_image
 
 # WHATWG HTML Living Standard / W3C HTML5 sectioning-content and common
 # flow-content block elements -- boundaries a DOM-unit chunker should
@@ -152,20 +152,6 @@ def chunk_by_sentence(text: str) -> list[Chunk]:
     return [Chunk(text=s, unit_type="sentence", index=i) for i, s in enumerate(sentences)]
 
 
-def _decode_data_uri_image(src: str) -> tuple[str, bytes] | None:
-    """Parse a ``data:image/<mime>;base64,<data>`` src attribute value."""
-    if not src.lower().startswith("data:image/"):
-        return None
-    header, _, encoded = src.partition(",")
-    if ";base64" not in header:
-        return None
-    mime_type = header[len("data:") : header.index(";")]
-    try:
-        return mime_type, base64.b64decode(re.sub(r"\s+", "", encoded), validate=True)
-    except (binascii.Error, ValueError):
-        return None
-
-
 class _BlockTextExtractor(HTMLParser):
     """Attributes each piece of text to its innermost enclosing block tag,
     and records ``<img>`` data-URI occurrences in the same document-order
@@ -188,12 +174,17 @@ class _BlockTextExtractor(HTMLParser):
         # true document order, so an image's index among its siblings
         # reflects where it actually sat.
         self._finished: list[tuple[str, object, str, str | None]] = []
+        self._skip_depth = 0
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in {"style", "script"}:
+            self._skip_depth += 1
+        if self._skip_depth:
+            return
         if tag == "img":
             src = next((value for name, value in attrs if name == "src" and value), None)
             if src:
-                decoded = _decode_data_uri_image(src)
+                decoded = decode_data_uri_image(src)
                 if decoded is not None:
                     self._finished.append(("image", decoded, "", None))
             return
@@ -202,6 +193,9 @@ class _BlockTextExtractor(HTMLParser):
             self._stack.append((tag, [], style))
 
     def handle_endtag(self, tag: str) -> None:
+        if tag in {"style", "script"} and self._skip_depth:
+            self._skip_depth -= 1
+            return
         if tag in _DOM_BLOCK_TAGS and self._stack:
             tag_name, buffer, style = self._stack.pop()
             text = " ".join(buffer).strip()
@@ -209,6 +203,8 @@ class _BlockTextExtractor(HTMLParser):
                 self._finished.append(("text", text, tag_name, style))
 
     def handle_data(self, data: str) -> None:
+        if self._skip_depth:
+            return
         text = data.strip()
         if text and self._stack:
             self._stack[-1][1].append(text)
