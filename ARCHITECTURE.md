@@ -86,14 +86,19 @@ flowchart LR
 
 > **Known local-test-environment limitation:** `adjudication_client.py`
 > and `post_chat.py` send `mode="verify"` (ADR-0013). That call depends
-> on contextual-orchestrator's `TaskOrchestrator.route_and_verify`,
-> which as of this writing is still an open, unmerged upstream PR
-> (`ContextualWisdomLab/contextual-orchestrator#149`). Until it merges,
-> the live adjudication/chat tests that exercise `mode="verify"` against
-> a real orchestrator fail with `invalid_mode` (the deployed `main` only
-> accepts `auto`/`route`/`conduct`) -- confirmed by reproducing the same
-> `400` directly against the orchestrator's own `/v1/chat/completions`,
-> not caused by anything in this repo. Ordinary product adapters request
+> on contextual-orchestrator's `TaskOrchestrator.route_and_verify`.
+> Upstream `ContextualWisdomLab/contextual-orchestrator#149` closed
+> unmerged; verify-mode honesty continues on
+> `ContextualWisdomLab/contextual-orchestrator#622` and is not on
+> deployed orchestrator `main`. LineageWeave talks to that service over
+> HTTP (`ORCHESTRATOR_BASE_URL`) and cannot pin or ship an unmerged
+> sibling commit. Until a verify-capable orchestrator is deployed, live
+> adjudication/chat tests against a real instance fail with
+> `invalid_mode` (deployed `main` still accepts only
+> `auto`/`route`/`conduct`) -- confirmed by reproducing the same `400`
+> against the orchestrator's own `/v1/chat/completions`, not caused by
+> anything in this repo. This repo keeps the explicit `verify` contract
+> and does not fall back to `auto`. Ordinary product adapters request
 > `mode="auto"` and are unaffected.
 
 ## Design decisions worth naming
