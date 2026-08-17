@@ -563,6 +563,8 @@ function KeymanPanel({
   focusPerson,
   focusEntity,
   focusTeam,
+  landFirstKeyman,
+  afterList,
 }: {
   postId: string;
   accessToken: string;
@@ -573,6 +575,8 @@ function KeymanPanel({
   focusPerson?: { personId: string; personName: string } | null;
   focusEntity?: { entityId: string; entityName: string } | null;
   focusTeam?: { teamId: string; teamName: string } | null;
+  landFirstKeyman?: boolean;
+  afterList?: ReactNode;
 }) {
   const [related, setRelated] = useState<RelatedNode[] | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
@@ -621,6 +625,23 @@ function KeymanPanel({
       if (requestId === relatedRequest.current) setRelated([]);
     }
   }
+
+  useEffect(() => {
+    if (!landFirstKeyman || selectedName || !keymen?.[0]) {
+      return;
+    }
+    const first = keymen[0];
+    const requestId = ++relatedRequest.current;
+    setSelectedName(first.person_name);
+    setRelated(null);
+    fetchRelatedKeymen(accessToken, first.person_id)
+      .then((result) => {
+        if (requestId === relatedRequest.current) setRelated(result.related);
+      })
+      .catch(() => {
+        if (requestId === relatedRequest.current) setRelated([]);
+      });
+  }, [accessToken, landFirstKeyman, keymen, selectedName]);
 
   useEffect(() => {
     if (!focusPerson) return;
@@ -680,7 +701,86 @@ function KeymanPanel({
     }
   }
 
+  const relatedBlock = selectedName ? (
+    <div className="related-keymen">
+      <h4>Related to {selectedName}</h4>
+      {related === null ? (
+        <p>Loading related nodes...</p>
+      ) : related.length === 0 ? (
+        <p className="popup-placeholder">No related nodes in the visible graph.</p>
+      ) : (
+        <ul>
+          {related.map((node) => {
+            const caption = relatedNodeCaption(node);
+            const key = `${node.node_type_code}:${node.node_id}`;
+            if (!isKnownRelatedNodeType(node.node_type_code)) {
+              return <li key={key}>{caption}</li>;
+            }
+            switch (node.node_type_code) {
+              case NODE_POST:
+                if (!onSelectPost) {
+                  return <li key={key}>{caption}</li>;
+                }
+                return (
+                  <li key={key}>
+                    <button
+                      className="keyman-select"
+                      aria-label={`Open related post: ${node.label ?? node.node_id}`}
+                      onClick={() => onSelectPost(node.node_id)}
+                    >
+                      {caption}
+                    </button>
+                  </li>
+                );
+              case NODE_PERSON:
+                return (
+                  <li key={key}>
+                    <button
+                      className="keyman-select"
+                      aria-label={`Related nodes for ${caption}`}
+                      onClick={() => handleSelect(node.node_id, node.label ?? node.node_id)}
+                    >
+                      {caption}
+                    </button>
+                  </li>
+                );
+              case NODE_CORPORATE_ENTITY:
+                return (
+                  <li key={key}>
+                    <button
+                      className="keyman-select"
+                      aria-label={`Related nodes for ${node.label ?? node.node_id}`}
+                      onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
+                    >
+                      {caption}
+                    </button>
+                  </li>
+                );
+              case NODE_TEAM:
+                return (
+                  <li key={key}>
+                    <button
+                      className="keyman-select"
+                      aria-label={`Related nodes for ${node.label ?? node.node_id}`}
+                      onClick={() => handleSelectTeam(node.node_id, node.label ?? node.node_id)}
+                    >
+                      {caption}
+                    </button>
+                  </li>
+                );
+              default: {
+                const _exhaustive: never = node.node_type_code;
+                return <li key={key}>{_exhaustive}</li>;
+              }
+            }
+          })}
+        </ul>
+      )}
+    </div>
+  ) : null;
+
   return (
+    <>
     <section className="popup-section">
       <div className="lineage-home-header">
         <h3>Keyman</h3>
@@ -698,6 +798,9 @@ function KeymanPanel({
               <button
                 className="keyman-select"
                 aria-label={`Related nodes for ${person.person_name}`}
+                aria-current={
+                  landFirstKeyman && selectedName === person.person_name ? "true" : undefined
+                }
                 onClick={() => handleSelect(person.person_id, person.person_name)}
               >
                 <strong>{person.person_name}</strong> ({person.person_side_label ?? person.person_side_code})
@@ -740,84 +843,11 @@ function KeymanPanel({
       ) : (
         <p className="popup-placeholder">No Keyman extracted yet.</p>
       )}
-      {selectedName && (
-        <div className="related-keymen">
-          <h4>Related to {selectedName}</h4>
-          {related === null ? (
-            <p>Loading related nodes...</p>
-          ) : related.length === 0 ? (
-            <p className="popup-placeholder">No related nodes in the visible graph.</p>
-          ) : (
-            <ul>
-              {related.map((node) => {
-                const caption = relatedNodeCaption(node);
-                const key = `${node.node_type_code}:${node.node_id}`;
-                if (!isKnownRelatedNodeType(node.node_type_code)) {
-                  return <li key={key}>{caption}</li>;
-                }
-                switch (node.node_type_code) {
-                  case NODE_POST:
-                    if (!onSelectPost) {
-                      return <li key={key}>{caption}</li>;
-                    }
-                    return (
-                      <li key={key}>
-                        <button
-                          className="keyman-select"
-                          aria-label={`Open related post: ${node.label ?? node.node_id}`}
-                          onClick={() => onSelectPost(node.node_id)}
-                        >
-                          {caption}
-                        </button>
-                      </li>
-                    );
-                  case NODE_PERSON:
-                    return (
-                      <li key={key}>
-                        <button
-                          className="keyman-select"
-                          aria-label={`Related nodes for ${caption}`}
-                          onClick={() => handleSelect(node.node_id, node.label ?? node.node_id)}
-                        >
-                          {caption}
-                        </button>
-                      </li>
-                    );
-                  case NODE_CORPORATE_ENTITY:
-                    return (
-                      <li key={key}>
-                        <button
-                          className="keyman-select"
-                          aria-label={`Related nodes for ${node.label ?? node.node_id}`}
-                          onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
-                        >
-                          {caption}
-                        </button>
-                      </li>
-                    );
-                  case NODE_TEAM:
-                    return (
-                      <li key={key}>
-                        <button
-                          className="keyman-select"
-                          aria-label={`Related nodes for ${node.label ?? node.node_id}`}
-                          onClick={() => handleSelectTeam(node.node_id, node.label ?? node.node_id)}
-                        >
-                          {caption}
-                        </button>
-                      </li>
-                    );
-                  default: {
-                    const _exhaustive: never = node.node_type_code;
-                    return <li key={key}>{_exhaustive}</li>;
-                  }
-                }
-              })}
-            </ul>
-          )}
-        </div>
-      )}
+      {!afterList && relatedBlock}
     </section>
+      {afterList}
+      {afterList && relatedBlock}
+    </>
   );
 }
 
@@ -1415,31 +1445,34 @@ function PostDetailPopup({
             </section>
 
             {focusEventLineage && (
-              <>
-                <KeymanPanel
-                  postId={postId}
-                  accessToken={accessToken}
-                  keymen={keymen}
-                  canExtract={canExtract}
-                  onExtracted={reloadKeymen}
-                  onSelectPost={onSelectPost}
-                  focusPerson={focusPerson}
-                  focusEntity={focusEntity}
-                  focusTeam={focusTeam}
-                />
-                <EvaluationPanel
-                  postId={postId}
-                  accessToken={accessToken}
-                  responses={evaluation}
-                  canExtract={canExtract}
-                  onEvaluated={(rows) => setEvaluation(rows)}
-                />
-                {keymen?.[0] ? (
-                  <p className="post-meta" role="status" aria-label="Keyman next action">
-                    {firstKeymanNextAction(keymen[0].person_name)}
-                  </p>
-                ) : null}
-              </>
+              <KeymanPanel
+                postId={postId}
+                accessToken={accessToken}
+                keymen={keymen}
+                canExtract={canExtract}
+                onExtracted={reloadKeymen}
+                onSelectPost={onSelectPost}
+                focusPerson={focusPerson}
+                focusEntity={focusEntity}
+                focusTeam={focusTeam}
+                landFirstKeyman
+                afterList={
+                  <>
+                    <EvaluationPanel
+                      postId={postId}
+                      accessToken={accessToken}
+                      responses={evaluation}
+                      canExtract={canExtract}
+                      onEvaluated={(rows) => setEvaluation(rows)}
+                    />
+                    {keymen?.[0] ? (
+                      <p className="post-meta" role="status" aria-label="Keyman next action">
+                        {firstKeymanNextAction(keymen[0].person_name)}
+                      </p>
+                    ) : null}
+                  </>
+                }
+              />
             )}
 
             <section className="popup-section">
