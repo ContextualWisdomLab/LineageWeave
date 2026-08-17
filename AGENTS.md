@@ -75,7 +75,9 @@ against a live local stack (`make up`) and self-skip without one -- see
 
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a
-floating Node version):
+floating Node version). Related-node walk chips live in
+`RelatedNodeChip` (ADR 0014). Caption and accessible name stay in
+`relatedNodeCaption.ts`. Do not invent a primary organization.
 
 ```bash
 cd frontend && pnpm install
