@@ -55,8 +55,10 @@ focused chip name contains the visible Corporate entity caption and
 the persisted mean θ. The period-report panel names the next action:
 read that grouping's mean θ and member posts, then open a post. Those
 members land immediately under that next action, ahead of other
-groupings and the week strip. Mean θ remains on the period-report
-panel. Re-seed is idempotent on `demo-report-seed-2026-w02`.
+groupings and the week strip. Opening a member post names the next
+action: read Event Lineage, Keyman, and evaluation on that post. Mean
+θ remains on the period-report panel. Re-seed is idempotent on
+`demo-report-seed-2026-w02`.
 
 ## References — APA 7th
 

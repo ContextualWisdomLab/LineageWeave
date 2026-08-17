@@ -48,5 +48,7 @@ chip name contains `Corporate entity: Demo Corp` and the persisted
 mean θ. The period-report panel says Demo Corp is the opened grouping
 and to read its mean θ and member posts, then open a post. Those
 members land immediately under that next action, ahead of Other Corp
-and the week strip. Changing the week first still focuses the report
-period field. Mean θ stays on the period-report panel.
+and the week strip. Opening Public post names the next action: read
+Event Lineage, Keyman, and evaluation on that post. Changing the week
+first still focuses the report period field. Mean θ stays on the
+period-report panel.
