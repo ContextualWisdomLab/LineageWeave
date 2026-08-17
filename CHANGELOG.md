@@ -4,6 +4,14 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members focuses the
+  popup Event Lineage heading, matching the next-action copy. Home
+  post-list opens do not steal that focus. No TEPP theta is invented.
+
 ## [1.2.0] - 2026-08-17
 
 ### Added
