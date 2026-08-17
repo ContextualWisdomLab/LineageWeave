@@ -52,6 +52,7 @@ and the week strip. Opening Public post names the next action: read
 Event Lineage, Keyman, and evaluation on that post. The popup Event
 Lineage DAG marks that post current. After that current node, the
 popup names Keyman and evaluation as the next read. After landed
-evaluation, the popup names the first Keyman as the next read.
-Changing the week first still focuses the report period field. Mean θ
-stays on the period-report panel.
+evaluation, the popup names the first Keyman as the next read. After
+landed Ada West related, the popup names the first related node as
+the next read. Changing the week first still focuses the report
+period field. Mean θ stays on the period-report panel.

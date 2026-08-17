@@ -279,6 +279,10 @@ function firstKeymanNextAction(personName: string): string {
   return `${personName} is the first Keyman. Read that person next.`;
 }
 
+function firstRelatedNextAction(nodeLabel: string): string {
+  return `${nodeLabel} is the first related node. Read that person next.`;
+}
+
 function EventLineageSection({
   lineage,
   graph,
@@ -847,6 +851,11 @@ function KeymanPanel({
     </section>
       {afterList}
       {afterList && relatedBlock}
+      {afterList && related?.[0] ? (
+        <p className="post-meta" role="status" aria-label="Related next action">
+          {firstRelatedNextAction(related[0].label ?? related[0].node_id)}
+        </p>
+      ) : null}
     </>
   );
 }
