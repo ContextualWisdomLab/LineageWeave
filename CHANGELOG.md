@@ -25,6 +25,10 @@ All notable changes to this project are documented here. Format follows
 
 - JWT verification now requires a non-empty `kid` and a matching JWKS
   key. A token that omits `kid` no longer falls back to the first key.
+- CI installs rustc 1.97.1 through a SHA-pinned `dtolnay/rust-toolchain`
+  action instead of piping `https://sh.rustup.rs` into a shell. The
+  backend image fetches rustup-init 1.28.2 from the versioned archive
+  and checks its SHA-256 before running it.
 
 ## [0.75.0] - 2026-08-17
 

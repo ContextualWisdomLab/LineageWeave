@@ -14,10 +14,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends git build-essen
     && useradd --uid 1000 --gid appuser --create-home appuser
 
 # Pinned, non-interactive rustup install (minimal profile: no docs/clippy,
-# just rustc+cargo) -- same "pinned, reproducible install" discipline this
-# project already applies to rankweave/fast-mlsirm's own commit pins.
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
-    sh -s -- -y --profile minimal --default-toolchain 1.97.1
+# just rustc+cargo). Fetch rustup-init from the versioned archive and
+# verify SHA-256 so the image does not pipe https://sh.rustup.rs into a
+# shell. Checksum is rustup 1.28.2 for x86_64-unknown-linux-gnu.
+ARG RUSTUP_VERSION=1.28.2
+ARG RUSTUP_SHA256=20a06e644b0d9bd2fbdbfd52d42540bdde820ea7df86e92e533c073da0cdd43c
+RUN curl --proto '=https' --tlsv1.2 -sSfL \
+      "https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/x86_64-unknown-linux-gnu/rustup-init" \
+      -o /tmp/rustup-init \
+    && echo "${RUSTUP_SHA256}  /tmp/rustup-init" | sha256sum -c - \
+    && chmod +x /tmp/rustup-init \
+    && /tmp/rustup-init -y --profile minimal --default-toolchain 1.97.1 \
+    && rm /tmp/rustup-init
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 COPY pyproject.toml ./
