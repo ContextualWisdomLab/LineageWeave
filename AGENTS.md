@@ -37,9 +37,12 @@ reimplementing them:
   contract for calibrated measurement (`tepp_client.py`) -- never
   reimplement TEPP's model here.
 - [contextual-orchestrator](https://github.com/ContextualWisdomLab/contextual-orchestrator)
-  for LLM adjudication (`adjudication_client.py`) -- never call a raw LLM
+  for LLM adjudication (`adjudication_client.py`) and the buyer-facing
+  Orchestration port (`orchestrator_client.py`) -- never call a raw LLM
   API directly from this repo; go through the orchestrator so
   reasoning-effort allocation and cost attribution stay centralized.
+  A missing host or `invalid_mode` is fail-closed, never an invented
+  completion or a theta.
 
 Before adding a new dependency, check whether an existing org repo already
 does it (`gh repo list ContextualWisdomLab`).

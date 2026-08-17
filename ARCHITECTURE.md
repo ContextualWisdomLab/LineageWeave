@@ -66,6 +66,7 @@ flowchart LR
 | `adjudication_client.py` | Pluggable LLM-judgment channel (`Null` default, `ContextualOrchestrator` real impl) |
 | `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl) |
 | `tepp_client.py` | TEPP's published `AnalysisRunRequest` wire contract, pluggable transport |
+| `orchestrator_client.py` | Fail-closed portable task envelope (`auto` structured / `verify` checked; never invent a completion or a theta) |
 | `rankweave_client.py` | Fail-closed RankWeave ranking port (`weighted_reciprocal_rank_fuse` in-process; never invent a fused score or a theta) |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
 | `lineage_persistence.py` | Flattens reconstruct trees into `post_lineage_edge` row specs (parent, child, fused_score) |
@@ -89,12 +90,11 @@ flowchart LR
 > `TaskOrchestrator.route_and_verify`, which as of this writing is still
 > an open, unmerged upstream PR
 > (`ContextualWisdomLab/contextual-orchestrator#149`). Until it merges,
-> the four adjudication/chat tests that exercise `mode="verify"` against
-> a real orchestrator fail with `invalid_mode` (the deployed `main` only
-> accepts `auto`/`route`/`conduct`) -- confirmed by reproducing the same
-> `400` directly against the orchestrator's own `/v1/chat/completions`,
-> not caused by anything in this repo. `mode="route"` (every other
-> pluggable client) is unaffected.
+> a live `verify` submit can return `invalid_mode` (deployed `main`
+> accepts `auto`/`route`/`conduct`). The buyer-facing Orchestration port
+> (ADR 0025) fail-closes that as `orchestrator_invalid_mode` and never
+> invents a completion or a 0.0 confidence. `mode="auto"` structured
+> consumers are unaffected.
 
 ## Design decisions worth naming
 
@@ -123,6 +123,13 @@ flowchart LR
   `RankWeaveNotAvailable`. `GET /api/rankings` then returns
   `rankweave_not_available` and an empty ranking list. Hidden posts
   are omitted from every channel. See ADR 0024.
+- **contextual-orchestrator is a fail-closed envelope, not a raw LLM.**
+  `orchestrator_client.py`'s default transport raises
+  `OrchestratorNotAvailable`. `GET /api/orchestration` then returns
+  `orchestrator_not_available` and an empty envelope list. Home GET
+  never POSTs a completion. `invalid_mode` is
+  `orchestrator_invalid_mode`, never a fabricated 0.0 confidence.
+  See ADR 0025.
 
 ## Standards and citations
 

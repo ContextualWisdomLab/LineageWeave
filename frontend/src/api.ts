@@ -515,3 +515,21 @@ export interface RankingList {
 export function fetchRankings(accessToken: string): Promise<RankingList> {
   return backendFetch("/api/rankings", accessToken);
 }
+
+export interface OrchestrationEnvelope {
+  task_kind: string;
+  mode: string;
+  reasoning_effort: string;
+  next_action: string;
+}
+
+export interface OrchestrationStatus {
+  port: string;
+  status: "accepted" | "unavailable";
+  status_reason: string | null;
+  envelopes: OrchestrationEnvelope[];
+}
+
+export function fetchOrchestration(accessToken: string): Promise<OrchestrationStatus> {
+  return backendFetch("/api/orchestration", accessToken);
+}

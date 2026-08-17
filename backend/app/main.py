@@ -55,6 +55,7 @@ from lineageweave.post_evaluation import (
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
 from lineageweave.rankweave_client import build_rankweave_client
+from lineageweave.orchestrator_client import build_orchestrator_client
 
 from backend.app.activity_stream import (
     create_valkey_client,
@@ -240,6 +241,15 @@ def _post_evaluation_client():
 def _rankweave_client():
     """In-process RankWeave unless RANKWEAVE_DISABLED=1 (ADR 0024)."""
     return build_rankweave_client(disabled=load_settings().rankweave_disabled)
+
+
+def _orchestrator_status_client():
+    """Fail-closed envelope unless URL and key are both set (ADR 0025)."""
+    settings = load_settings()
+    return build_orchestrator_client(
+        base_url=settings.orchestrator_base_url,
+        api_key=settings.orchestrator_api_key,
+    )
 
 
 def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
@@ -1150,3 +1160,16 @@ async def read_rankings(
     return _rankweave_client().as_api_payload(
         posts, can_see_post=lambda _row: True
     )
+
+
+@app.get("/api/orchestration")
+async def read_orchestration(
+    account: CurrentAccount = Depends(get_current_account),
+) -> dict[str, Any]:
+    """Portable contextual-orchestrator envelope (ADR 0025).
+
+    Missing host or key is fail-closed. Never invents a completion, a
+    confidence, or a theta. Home GET does not POST a chat completion.
+    """
+    _require_post_read(account)
+    return _orchestrator_status_client().as_api_payload()

@@ -25,6 +25,7 @@ import {
   fetchPeriodReportIndex,
   fetchPeriodReports,
   fetchPosts,
+  fetchOrchestration,
   fetchRankings,
   fetchRelatedEntity,
   fetchRelatedKeymen,
@@ -50,6 +51,7 @@ import {
   type PeriodReports,
   type PostLineage,
   type PostSummary,
+  type OrchestrationStatus,
   type RankingList,
   type RelatedNode,
   type VocEvidence,
@@ -1313,6 +1315,51 @@ function PostDetailPopup({
   );
 }
 
+function OrchestrationPanel({ accessToken }: { accessToken: string }) {
+  const [status, setStatus] = useState<OrchestrationStatus | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setError(null);
+    fetchOrchestration(accessToken)
+      .then(setStatus)
+      .catch((err) => setError(String(err)));
+  }, [accessToken]);
+
+  return (
+    <section className="popup-section lineage-home" aria-label="Orchestration">
+      <div className="lineage-home-header">
+        <h2>Orchestration</h2>
+        {status && (
+          <span className="post-badge">
+            {status.status === "accepted"
+              ? "contextual-orchestrator"
+              : `contextual-orchestrator · ${status.status_reason ?? "unavailable"}`}
+          </span>
+        )}
+      </div>
+      {error && <p className="error">{error}</p>}
+      {status === null && !error && <p>Loading orchestration...</p>}
+      {status && status.status === "unavailable" && (
+        <p className="popup-placeholder">Orchestration · contextual-orchestrator not available</p>
+      )}
+      {status && status.status === "accepted" && status.envelopes.length === 0 && (
+        <p className="popup-placeholder">No accepted orchestration envelope.</p>
+      )}
+      {status && status.envelopes.length > 0 && (
+        <ul className="ticket-list" aria-label="Accepted orchestration envelopes">
+          {status.envelopes.map((envelope) => (
+            <li key={envelope.task_kind} className="ticket-list-item">
+              <span className="ticket-title">{envelope.next_action}</span>
+              <span className="post-badge">{envelope.mode}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function RankingsPanel({
   accessToken,
   onSelectPost,
@@ -1689,6 +1736,7 @@ function PostList({ accessToken }: { accessToken: string }) {
 
   return (
     <>
+      <OrchestrationPanel accessToken={accessToken} />
       <RankingsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />

@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.84.0] - 2026-08-17
+
+### Added
+
+- Home Orchestration panel publishes the portable task envelope
+  (ADR 0025). After login with the host unset, Demo Analyst sees
+  **Orchestration · contextual-orchestrator not available**. When the
+  port is configured, the next actions are **Structured work uses auto**
+  and **Checked judgment uses verify**. Never invent a completion or a
+  theta.
+
 ## [0.75.0] - 2026-08-17
 
 ### Added

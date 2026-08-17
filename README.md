@@ -43,7 +43,8 @@ this repo.
 
 The optional LLM-adjudication channel calls
 [contextual-orchestrator](https://github.com/ContextualWisdomLab/contextual-orchestrator)
-(`lineageweave/adjudication_client.py`). Tree assembly reuses
+(`lineageweave/adjudication_client.py` and the fail-closed
+Orchestration port in `orchestrator_client.py`). Tree assembly reuses
 [ThreadWeave](https://github.com/ContextualWisdomLab/ThreadWeave) (JWZ
 message threading) and channel fusion reuses
 [RankWeave](https://github.com/ContextualWisdomLab/RankWeave) (weighted

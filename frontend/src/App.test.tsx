@@ -65,6 +65,16 @@ describe("App, authenticated", () => {
         fused_rank: number;
       }[];
     };
+    orchestration?: {
+      status?: "accepted" | "unavailable";
+      status_reason?: string | null;
+      envelopes?: {
+        task_kind: string;
+        mode: string;
+        reasoning_effort: string;
+        next_action: string;
+      }[];
+    };
     chatUnavailable?: boolean;
     searchUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
@@ -225,6 +235,21 @@ describe("App, authenticated", () => {
             status: rankings.status,
             status_reason: rankings.status_reason,
             rankings: rankings.rankings ?? [],
+          }),
+        );
+      }
+      if (url.endsWith("/api/orchestration")) {
+        const orchestration = options?.orchestration ?? {
+          status: "unavailable" as const,
+          status_reason: "orchestrator_not_available",
+          envelopes: [],
+        };
+        return Promise.resolve(
+          jsonResponse({
+            port: "contextual_orchestrator",
+            status: orchestration.status,
+            status_reason: orchestration.status_reason,
+            envelopes: orchestration.envelopes ?? [],
           }),
         );
       }
@@ -1271,6 +1296,47 @@ describe("App, authenticated", () => {
 
     expect(await screen.findByText("Rankings · RankWeave not available")).toBeInTheDocument();
     expect(screen.queryByText("Pricing renegotiation: revised quote sent")).not.toBeInTheDocument();
+  });
+
+  it("names orchestrator unavailability instead of inventing a completion", async () => {
+    stubBackend();
+    render(<App />);
+
+    expect(
+      await screen.findByText("Orchestration · contextual-orchestrator not available"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Structured work uses auto")).not.toBeInTheDocument();
+    expect(screen.queryByText("Checked judgment uses verify")).not.toBeInTheDocument();
+  });
+
+  it("names the accepted auto and verify envelopes without inventing a completion", async () => {
+    stubBackend({
+      orchestration: {
+        status: "accepted",
+        status_reason: null,
+        envelopes: [
+          {
+            task_kind: "structured",
+            mode: "auto",
+            reasoning_effort: "medium",
+            next_action: "Structured work uses auto",
+          },
+          {
+            task_kind: "checked_judgment",
+            mode: "verify",
+            reasoning_effort: "high",
+            next_action: "Checked judgment uses verify",
+          },
+        ],
+      },
+    });
+    render(<App />);
+
+    expect(await screen.findByText("Structured work uses auto")).toBeInTheDocument();
+    expect(screen.getByText("Checked judgment uses verify")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Orchestration · contextual-orchestrator not available"),
+    ).not.toBeInTheDocument();
   });
 
   it("opens an accepted ranking hit without inventing a fused score", async () => {
