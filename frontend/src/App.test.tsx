@@ -1471,6 +1471,9 @@ describe("App, authenticated", () => {
     expect(screen.getAllByLabelText("A-100 lineage").length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByLabelText("Open post: Pricing renegotiation follow-up").length).toBeGreaterThanOrEqual(2);
     expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(
+      screen.queryByRole("status", { name: "Event Lineage next action" }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows a seeded Ask exchange without an orchestrator round-trip", async () => {
@@ -2258,24 +2261,40 @@ describe("App, authenticated", () => {
       await userEvent.click(member);
       await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
       expect(member).toHaveAttribute("aria-current", "true");
-      expect(screen.getByRole("status")).toHaveTextContent(
-        "Public post is open from Demo Corp. Read Event Lineage, Keyman, and evaluation on this post.",
-      );
-      expect(screen.getByRole("status")).not.toHaveTextContent("then open a post");
+      expect(
+        screen.getByText(
+          "Public post is open from Demo Corp. Read Event Lineage, Keyman, and evaluation on this post.",
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Public post is open from Demo Corp. Read Event Lineage, Keyman, and evaluation on this post.",
+        ),
+      ).not.toHaveTextContent("then open a post");
       expect(
         screen.getAllByRole("heading", { name: "Event Lineage" }).length,
       ).toBeGreaterThanOrEqual(2);
       expect(document.getElementById("post-event-lineage")).toHaveFocus();
       const popup = document.querySelector(".popup-panel");
       expect(popup).not.toBeNull();
-      expect(within(popup as HTMLElement).getByLabelText("Open post: Public post")).toHaveAttribute(
-        "aria-current",
-        "true",
-      );
+      const currentNode = within(popup as HTMLElement).getByLabelText("Open post: Public post");
+      expect(currentNode).toHaveAttribute("aria-current", "true");
       const homeNode = screen
         .getAllByLabelText("Open post: Public post")
         .find((node) => !popup?.contains(node));
       expect(homeNode).not.toHaveAttribute("aria-current");
+      const lineageNext = screen.getByRole("status", { name: "Event Lineage next action" });
+      expect(lineageNext).toHaveTextContent(
+        "Public post is current in Event Lineage. Read Keyman and evaluation next.",
+      );
+      expect(
+        currentNode.compareDocumentPosition(lineageNext) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+      expect(
+        lineageNext.compareDocumentPosition(
+          within(popup as HTMLElement).getByRole("heading", { name: "Keyman" }),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
     }
@@ -2540,6 +2559,9 @@ describe("App, authenticated", () => {
     expect(screen.getAllByText(/Ada West/).length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText("A-100 lineage").length).toBeGreaterThanOrEqual(2);
     expect(document.getElementById("post-event-lineage")).toHaveFocus();
+    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
+      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
+    );
   });
 
   it("lets post_admin rebuild the period report", async () => {

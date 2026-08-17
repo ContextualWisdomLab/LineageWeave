@@ -271,16 +271,22 @@ function ChatPanel({ postId, accessToken }: { postId: string; accessToken: strin
   );
 }
 
+function eventLineageCurrentNextAction(postTitle: string): string {
+  return `${postTitle} is current in Event Lineage. Read Keyman and evaluation next.`;
+}
+
 function EventLineageSection({
   lineage,
   graph,
   postId,
   onSelectPost,
+  currentNextAction,
 }: {
   lineage: PostLineage | null;
   graph: LineageGraph | null;
   postId: string;
   onSelectPost?: (postId: string) => void;
+  currentNextAction?: string | null;
 }) {
   if (!lineage) return <p>Loading lineage...</p>;
   const scoped = graph ? subgraphForPost(graph, postId) : { nodes: [], edges: [] };
@@ -305,6 +311,11 @@ function EventLineageSection({
       {scoped.nodes.length > 0 && onSelectPost && (
         <LineageDag graph={scoped} onSelectPost={onSelectPost} currentPostId={postId} />
       )}
+      {scoped.nodes.length > 0 && currentNextAction ? (
+        <p className="post-meta" role="status" aria-label="Event Lineage next action">
+          {currentNextAction}
+        </p>
+      ) : null}
       {hasLinks && (
         <ul className="lineage-list">
           {lineage.direct.map((post) => renderLink(post, "direct"))}
@@ -1391,6 +1402,9 @@ function PostDetailPopup({
                 graph={graph}
                 postId={postId}
                 onSelectPost={onSelectPost}
+                currentNextAction={
+                  focusEventLineage ? eventLineageCurrentNextAction(post.post_title) : null
+                }
               />
             </section>
 
