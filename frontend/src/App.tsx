@@ -2067,6 +2067,8 @@ function AnalysisRunsPanel({
   const [selectedEntityId, setSelectedEntityId] = useState("");
   const inFlightKeyRef = useRef<string | null>(null);
   const entitiesReady = corporateEntities !== null && entitiesLoadError === null;
+  const defaultEntityId = corporateEntities?.[0]?.corporate_entity_id ?? "";
+  const effectiveEntityId = selectedEntityId || defaultEntityId;
   const requestLabel = requesting
     ? "Recording the run..."
     : entitiesLoadError
@@ -2095,7 +2097,7 @@ function AnalysisRunsPanel({
       );
       return;
     }
-    if (corporateEntities.length > 1 && !selectedEntityId) {
+    if (corporateEntities.length > 1 && !effectiveEntityId) {
       setError("Choose which corporate entity to reconstruct.");
       return;
     }
@@ -2109,7 +2111,7 @@ function AnalysisRunsPanel({
       const created = await createAnalysisRun(accessToken, {
         run_kind_code: "analysis_run_lineage",
         idempotency_key: idempotencyKey,
-        ...(selectedEntityId ? { corporate_entity_id: selectedEntityId } : {}),
+        ...(effectiveEntityId ? { corporate_entity_id: effectiveEntityId } : {}),
       });
       const listed = await fetchAnalysisRuns(accessToken);
       setRuns(listed.analysis_runs);
@@ -2181,7 +2183,7 @@ function AnalysisRunsPanel({
           disabled={
             requesting ||
             !entitiesReady ||
-            (corporateEntities !== null && corporateEntities.length > 1 && !selectedEntityId)
+            (corporateEntities !== null && corporateEntities.length > 1 && !effectiveEntityId)
           }
           onClick={() => void handleRequestLineage()}
         >
