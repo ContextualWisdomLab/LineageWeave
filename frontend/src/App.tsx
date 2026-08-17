@@ -26,6 +26,7 @@ import {
   fetchPeriodReports,
   fetchPosts,
   fetchRankings,
+  fetchOutbox,
   fetchRelatedEntity,
   fetchRelatedKeymen,
   rebuildLineage,
@@ -51,6 +52,7 @@ import {
   type PostLineage,
   type PostSummary,
   type RankingList,
+  type OutboxList,
   type RelatedNode,
   type VocEvidence,
 } from "./api";
@@ -1371,6 +1373,64 @@ function RankingsPanel({
   );
 }
 
+function OutboxPanel({
+  accessToken,
+  onSelectPost,
+}: {
+  accessToken: string;
+  onSelectPost: (postId: string) => void;
+}) {
+  const [outbox, setOutbox] = useState<OutboxList | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setError(null);
+    fetchOutbox(accessToken)
+      .then(setOutbox)
+      .catch((err) => setError(String(err)));
+  }, [accessToken]);
+
+  return (
+    <section className="popup-section lineage-home" aria-label="Outbox">
+      <div className="lineage-home-header">
+        <h2>Outbox</h2>
+        {outbox && (
+          <span className="post-badge">
+            {outbox.status === "accepted"
+              ? "valkey"
+              : `valkey · ${outbox.status_reason ?? "unavailable"}`}
+          </span>
+        )}
+      </div>
+      {error && <p className="error">{error}</p>}
+      {outbox === null && !error && <p>Loading outbox...</p>}
+      {outbox && outbox.status === "unavailable" && (
+        <p className="popup-placeholder">Outbox · Valkey not available</p>
+      )}
+      {outbox && outbox.status === "accepted" && outbox.deliveries.length === 0 && (
+        <p className="popup-placeholder">No delivered ticket events on Valkey.</p>
+      )}
+      {outbox && outbox.deliveries.length > 0 && (
+        <ul className="ticket-list" aria-label="Outbox deliveries">
+          {outbox.deliveries.map((hit) => (
+            <li key={`${hit.post_id}:${hit.valkey_entry_id}`} className="ticket-list-item">
+              <button
+                className="post-list-item"
+                aria-label={`Open outbox: ${hit.event_summary}`}
+                onClick={() => onSelectPost(hit.post_id)}
+              >
+                <span className="ticket-title">{hit.event_summary}</span>
+                <span className="post-badge">Outbox · valkey</span>
+                <span className="post-badge">{hit.post_title}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function CalendarPanel({
   accessToken,
   onSelectPost,
@@ -1690,6 +1750,7 @@ function PostList({ accessToken }: { accessToken: string }) {
   return (
     <>
       <RankingsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
+      <OutboxPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
       <section className="popup-section lineage-home">

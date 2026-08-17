@@ -398,7 +398,19 @@ create, `ticket_status_changed` on a status-changing `PATCH`) as the
 first real producer, and surfaced in the popup as an `ActivityPanel`
 (list + manual refresh) as the first real consumer. `make seed` XADDs
 `ticket_created` for the seeded A-100 and calendar tickets so Activity
-is not empty after a report-member click. Verified against
+is not empty after a report-member click.
+
+v0.85.0 (ADR 0026) adds the transactional outbox those dual-writes
+were missing. `activity_outbox_event` is persisted as
+`outbox_pending` before any `XADD`; a successful stream id flips the
+row to `outbox_delivered`. `GET /api/outbox` fail-closes when
+`VALKEY_DISABLED=1` or Valkey does not answer. Home Outbox sits
+between Rankings and Calendar: unavailable copy is **Outbox · Valkey
+not available**; an accepted delivery lists the summary and opens
+that post. Hidden posts are omitted. Never invent a stream id or a
+theta. TEPP's measurement outbox stays on #214.
+
+Verified against
 the actual Docker Compose network, not just `pytest`: created and
 patched a ticket through the real `backend` container talking to the
 real `valkey` container over the internal `redis://valkey:6379/0` DNS

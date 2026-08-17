@@ -515,3 +515,22 @@ export interface RankingList {
 export function fetchRankings(accessToken: string): Promise<RankingList> {
   return backendFetch("/api/rankings", accessToken);
 }
+
+export interface OutboxDelivery {
+  post_id: string;
+  post_title: string;
+  event_summary: string;
+  delivery_status_code: string;
+  valkey_entry_id: string;
+}
+
+export interface OutboxList {
+  port: string;
+  status: "accepted" | "unavailable";
+  status_reason: string | null;
+  deliveries: OutboxDelivery[];
+}
+
+export function fetchOutbox(accessToken: string): Promise<OutboxList> {
+  return backendFetch("/api/outbox", accessToken);
+}

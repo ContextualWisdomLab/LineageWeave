@@ -138,7 +138,8 @@ no ORM, no file DB) and to Keycloak's live JWKS for OIDC verification:
 make up
 make seed   # scripts/seed_demo_data.py: inserts synthetic corp/account/post
             # rows keyed to the *real* Keycloak demo users' subject ids,
-            # plus Valkey ticket_created events so Activity is not empty
+            # plus Valkey ticket_created events and activity_outbox_event
+            # rows so Activity and home Outbox are not empty
 curl http://localhost:18420/healthz
 ```
 

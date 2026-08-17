@@ -82,6 +82,11 @@ Gabriel factorization. Closest and farthest post–criterion pairs
 persist to `report_leftover_pair` and sit above the member list so
 a click opens that post.
 
+Ticket activity is a transactional outbox (ADR 0026). Persist
+`activity_outbox_event` first, then `XADD`. `GET /api/outbox`
+fail-closes when Valkey is down. Never invent a stream id or a
+theta. A hidden post is omitted from the home list.
+
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a
 floating Node version):

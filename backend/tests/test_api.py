@@ -30,6 +30,7 @@ _KEYCLOAK_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL", "http
 _VALKEY_URL = os.environ.get("LINEAGEWEAVE_TEST_VALKEY_URL", "redis://localhost:16379/0")
 _REALM = "lineageweave-demo"
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
+_OUTBOX_MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0013_activity_outbox.sql"
 
 
 def _postgres_available() -> bool:
@@ -112,6 +113,7 @@ def seeded_db(demo_analyst_token):
     try:
         with conn.cursor() as cur:
             cur.execute(_MIGRATION_PATH.read_text())
+            cur.execute(_OUTBOX_MIGRATION_PATH.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "

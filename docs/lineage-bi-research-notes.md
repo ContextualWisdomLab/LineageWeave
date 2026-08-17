@@ -340,3 +340,21 @@ model answers using only those sources and reports which ones it actually
 drew from). This is the Agentic retrieve-reason-cite shape the product
 brief asks for without adding a full agent-framework dependency for what
 two functions and a structured prompt already do.
+
+## Transactional activity outbox (ADR 0026)
+
+Ticket create and status-change used to be a dual-write: Postgres
+committed the `issue_ticket` row, then Valkey received an `XADD`.
+Hohpe and Woolf (2003) document the Transactional Outbox so a
+message is not lost when the second write fails; Kleppmann (2017)
+describes the same dual-write hazard. `activity_outbox_event` is
+the durable row. A missing Valkey port is `valkey_not_available`,
+never an invented stream id or a theta. Hidden posts stay out of
+`GET /api/outbox`. TEPP measurement stays on TEPP's own contract.
+
+Hohpe, G., & Woolf, B. (2003). *Enterprise integration patterns:
+Designing, building, and deploying messaging solutions*.
+Addison-Wesley.
+
+Kleppmann, M. (2017). *Designing data-intensive applications*.
+O'Reilly Media.

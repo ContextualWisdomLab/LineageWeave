@@ -19,6 +19,7 @@ COPY migrations/0009_shared_metric_bank.sql /docker-entrypoint-initdb.d/10-share
 COPY migrations/0010_report_item_information.sql /docker-entrypoint-initdb.d/11-report-item-information.sql
 COPY migrations/0011_post_chat_result.sql /docker-entrypoint-initdb.d/12-post-chat-result.sql
 COPY migrations/0012_report_leftover_pair.sql /docker-entrypoint-initdb.d/13-report-leftover-pair.sql
+COPY migrations/0013_activity_outbox.sql /docker-entrypoint-initdb.d/14-activity-outbox.sql
 # Official image already drops to this account at runtime; declare it so
 # the Dockerfile itself satisfies DS-0002 (explicit non-root USER).
 USER postgres

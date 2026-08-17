@@ -107,6 +107,7 @@ def seed(
             cur.execute((migrations / "0010_report_item_information.sql").read_text())
             cur.execute((migrations / "0011_post_chat_result.sql").read_text())
             cur.execute((migrations / "0012_report_leftover_pair.sql").read_text())
+            cur.execute((migrations / "0013_activity_outbox.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -789,11 +790,11 @@ def _seed_fixture_tickets(cur) -> None:
 
 
 def _seed_fixture_ticket_activity(cur, actor_account_id, valkey_url: str) -> None:
-    """``XADD`` ticket_created onto each seeded ticket's post stream.
+    """Persist pending outbox rows, then ``XADD`` ticket_created.
 
-    Without this, GET /api/posts/{id}/activity is empty after ``make seed``
-    even though the ticket row exists -- Activity reads Valkey, not
-    Postgres. Idempotent: a matching summary on that stream is left alone.
+    Without the outbox row, GET /api/outbox is empty after ``make seed``
+    even though Activity can read Valkey. Without the stream write,
+    GET /api/posts/{id}/activity is empty. Idempotent on summary.
     """
     try:
         import redis
@@ -805,6 +806,10 @@ def _seed_fixture_ticket_activity(cur, actor_account_id, valkey_url: str) -> Non
     from backend.app.activity_stream import (
         publish_activity_event_sync,
         ticket_created_summary,
+    )
+    from backend.app.outbox_ingestion import (
+        mark_outbox_delivered_sync,
+        persist_pending_outbox_event_sync,
     )
     from lineageweave.fixtures import ambiguous_commitment_post
 
@@ -821,18 +826,31 @@ def _seed_fixture_ticket_activity(cur, actor_account_id, valkey_url: str) -> Non
             if row is None:
                 continue
             cur.execute(
-                "select 1 from issue_ticket where post_id = %s and ticket_title = %s",
+                "select issue_ticket_id from issue_ticket "
+                "where post_id = %s and ticket_title = %s",
                 (row[0], ticket_title),
             )
-            if cur.fetchone() is None:
+            ticket_row = cur.fetchone()
+            if ticket_row is None:
                 continue
-            publish_activity_event_sync(
+            summary = ticket_created_summary(ticket_title)
+            outbox_event_id = persist_pending_outbox_event_sync(
+                cur,
+                str(row[0]),
+                "ticket_created",
+                str(actor_account_id),
+                summary,
+                issue_ticket_id=str(ticket_row[0]),
+            )
+            entry_id = publish_activity_event_sync(
                 client,
                 str(row[0]),
                 "ticket_created",
                 str(actor_account_id),
-                ticket_created_summary(ticket_title),
+                summary,
             )
+            if entry_id:
+                mark_outbox_delivered_sync(cur, outbox_event_id, str(entry_id))
     except redis.RedisError as exc:
         raise SystemExit(
             f"Valkey at {valkey_url} is unreachable -- did you run `make up`? ({exc})"

@@ -65,6 +65,17 @@ describe("App, authenticated", () => {
         fused_rank: number;
       }[];
     };
+    outbox?: {
+      status?: "accepted" | "unavailable";
+      status_reason?: string | null;
+      deliveries?: {
+        post_id: string;
+        post_title: string;
+        event_summary: string;
+        delivery_status_code: string;
+        valkey_entry_id: string;
+      }[];
+    };
     chatUnavailable?: boolean;
     searchUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
@@ -225,6 +236,21 @@ describe("App, authenticated", () => {
             status: rankings.status,
             status_reason: rankings.status_reason,
             rankings: rankings.rankings ?? [],
+          }),
+        );
+      }
+      if (url.endsWith("/api/outbox")) {
+        const outbox = options?.outbox ?? {
+          status: "unavailable" as const,
+          status_reason: "valkey_not_available",
+          deliveries: [],
+        };
+        return Promise.resolve(
+          jsonResponse({
+            port: "valkey",
+            status: outbox.status,
+            status_reason: outbox.status_reason,
+            deliveries: outbox.deliveries ?? [],
           }),
         );
       }
@@ -1303,6 +1329,49 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("button", { name: /open ranking: private parent/i })).not.toBeInTheDocument();
 
     await userEvent.click(rankingButton);
+
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
+  it("names Valkey unavailability on home outbox instead of inventing a delivery", async () => {
+    stubBackend();
+    render(<App />);
+
+    expect(await screen.findByText("Outbox · Valkey not available")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Ticket created: Send Northridge Grid the revised quote"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens an accepted outbox delivery without inventing a stream id", async () => {
+    stubBackend({
+      outbox: {
+        status: "accepted",
+        status_reason: null,
+        deliveries: [
+          {
+            post_id: "post-1",
+            post_title: "Public post",
+            event_summary: "Ticket created: Send Northridge Grid the revised quote",
+            delivery_status_code: "outbox_delivered",
+            valkey_entry_id: "1-0",
+          },
+        ],
+      },
+    });
+    render(<App />);
+
+    const outboxButton = await screen.findByRole("button", {
+      name: /open outbox: ticket created: send northridge grid the revised quote/i,
+    });
+    expect(outboxButton).toHaveTextContent("Ticket created: Send Northridge Grid the revised quote");
+    expect(outboxButton).toHaveTextContent("Outbox · valkey");
+    expect(outboxButton).toHaveTextContent("Public post");
+    expect(
+      screen.queryByRole("button", { name: /open outbox: ticket created: hidden/i }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(outboxButton);
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });

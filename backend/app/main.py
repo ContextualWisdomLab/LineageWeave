@@ -55,6 +55,7 @@ from lineageweave.post_evaluation import (
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
 from lineageweave.rankweave_client import build_rankweave_client
+from lineageweave.valkey_outbox import ValkeyOutboxClient, build_valkey_outbox_client
 
 from backend.app.activity_stream import (
     create_valkey_client,
@@ -74,6 +75,11 @@ from backend.app.entity_relationship_ingestion import (
 )
 from backend.app.post_evaluation_ingestion import fetch_post_evaluation, ingest_post_evaluation
 from backend.app.ranking_ingestion import load_visible_ranking_posts
+from backend.app.outbox_ingestion import (
+    load_visible_outbox_rows,
+    mark_outbox_delivered,
+    persist_pending_outbox_event,
+)
 from backend.app.report_ingestion import (
     GROUPING_KINDS,
     fetch_period_comparison,
@@ -240,6 +246,46 @@ def _post_evaluation_client():
 def _rankweave_client():
     """In-process RankWeave unless RANKWEAVE_DISABLED=1 (ADR 0024)."""
     return build_rankweave_client(disabled=load_settings().rankweave_disabled)
+
+
+def _valkey_outbox_client(*, reachable: bool) -> ValkeyOutboxClient:
+    """Fail-closed unless Valkey answered this request (ADR 0026)."""
+    if load_settings().valkey_disabled or not reachable:
+        return build_valkey_outbox_client(disabled=True)
+    return ValkeyOutboxClient(ping=lambda: None)
+
+
+async def _publish_outbox_activity(
+    pool: asyncpg.Pool,
+    valkey: redis.Redis,
+    post_id: str,
+    event_type_code: str,
+    actor_account_id: str,
+    event_summary: str,
+    issue_ticket_id: str | None = None,
+) -> None:
+    """Persist pending, XADD, then mark delivered. Never invent an entry id."""
+    async with pool.acquire() as conn:
+        outbox_event_id = await persist_pending_outbox_event(
+            conn,
+            post_id,
+            event_type_code,
+            actor_account_id,
+            event_summary,
+            issue_ticket_id=issue_ticket_id,
+        )
+    if load_settings().valkey_disabled:
+        return
+    entry_id = await publish_activity_event(
+        valkey,
+        post_id,
+        event_type_code,
+        actor_account_id,
+        event_summary,
+    )
+    async with pool.acquire() as conn:
+        await mark_outbox_delivered(conn, outbox_event_id, str(entry_id))
+
 
 
 def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
@@ -971,12 +1017,14 @@ async def create_post_ticket(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,
                 f"due_date {request.due_date!r} is not a valid YYYY-MM-DD date",
             ) from exc
-    await publish_activity_event(
+    await _publish_outbox_activity(
+        pool,
         valkey,
         post_id,
         "ticket_created",
         account.user_account_id,
         ticket_created_summary(request.ticket_title),
+        issue_ticket_id=str(ticket["issue_ticket_id"]),
     )
     return ticket
 
@@ -1029,7 +1077,8 @@ async def patch_ticket(
     if ticket is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "ticket not found")
     if request.ticket_status_code is not None:
-        await publish_activity_event(
+        await _publish_outbox_activity(
+            pool,
             valkey,
             post_id,
             "ticket_status_changed",
@@ -1037,6 +1086,7 @@ async def patch_ticket(
             ticket_status_changed_summary(
                 ticket.get("ticket_status_label") or request.ticket_status_code
             ),
+            issue_ticket_id=issue_ticket_id,
         )
     return ticket
 
@@ -1102,12 +1152,14 @@ async def derive_post_commitment(
                 status.HTTP_422_UNPROCESSABLE_CONTENT,
                 f"due_date {commitment.due_date!r} is not a valid YYYY-MM-DD date",
             ) from exc
-    await publish_activity_event(
+    await _publish_outbox_activity(
+        pool,
         valkey,
         post_id,
         "commitment_derived",
         account.user_account_id,
         f"Commitment derived: {commitment.commitment_summary}",
+        issue_ticket_id=str(ticket["issue_ticket_id"]),
     )
     return {"post_id": str(post["post_id"]), "has_commitment": True, "ticket": ticket}
 
@@ -1149,4 +1201,32 @@ async def read_rankings(
         )
     return _rankweave_client().as_api_payload(
         posts, can_see_post=lambda _row: True
+    )
+
+
+@app.get("/api/outbox")
+async def read_outbox(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
+) -> dict[str, Any]:
+    """Durable ticket deliveries (ADR 0026).
+
+    Hidden posts are omitted. Never invents a stream id or a theta.
+    Fail-closed when Valkey is disabled or does not answer.
+    """
+    _require_post_read(account)
+    reachable = False
+    if not load_settings().valkey_disabled:
+        try:
+            await valkey.ping()
+            reachable = True
+        except Exception:
+            reachable = False
+    async with pool.acquire() as conn:
+        rows = await load_visible_outbox_rows(
+            conn, lambda row: _can_see_post(account, row)
+        )
+    return _valkey_outbox_client(reachable=reachable).as_api_payload(
+        rows, can_see_post=lambda _row: True
     )

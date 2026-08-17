@@ -31,3 +31,13 @@ def test_rankweave_disabled_defaults_off(monkeypatch) -> None:
 def test_rankweave_disabled_flag_is_opt_in(monkeypatch) -> None:
     monkeypatch.setenv("RANKWEAVE_DISABLED", "1")
     assert load_settings().rankweave_disabled is True
+
+
+def test_valkey_disabled_defaults_off(monkeypatch) -> None:
+    monkeypatch.delenv("VALKEY_DISABLED", raising=False)
+    assert load_settings().valkey_disabled is False
+
+
+def test_valkey_disabled_flag_is_opt_in(monkeypatch) -> None:
+    monkeypatch.setenv("VALKEY_DISABLED", "1")
+    assert load_settings().valkey_disabled is True
