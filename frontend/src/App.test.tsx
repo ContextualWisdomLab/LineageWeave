@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
@@ -2191,6 +2191,16 @@ describe("App, authenticated", () => {
     );
     expect(await screen.findByText(/Demo Corp: mean θ 0\.42/)).toBeInTheDocument();
     expect(screen.queryByText(/corp-1: mean θ/)).not.toBeInTheDocument();
+    const openedReport = screen.getByRole("list", { name: "Opened grouping report" });
+    expect(openedReport.textContent ?? "").toMatch(/Demo Corp: mean θ 0\.42[\s\S]*Other Corp: mean θ/);
+    expect(
+      within(openedReport).getByRole("button", { name: /open report post: public post/i }),
+    ).toBeInTheDocument();
+    const status = screen.getByRole("status");
+    const demoMean = screen.getByText(/Demo Corp: mean θ 0\.42/);
+    const weekChip = screen.getByRole("button", { name: /open report period 2026-W03/i });
+    expect(status.compareDocumentPosition(demoMean) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(demoMean.compareDocumentPosition(weekChip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
   });
 
   it("lands the comparison strip on Demo Corp when already on that week", async () => {
@@ -2227,6 +2237,24 @@ describe("App, authenticated", () => {
         "Demo Corp is the opened grouping. Read its mean θ and member posts below, then open a post.",
       );
       expect(await screen.findByText(/Demo Corp: mean θ 0\.42/)).toBeInTheDocument();
+      const openedReport = screen.getByRole("list", { name: "Opened grouping report" });
+      expect(within(openedReport).getByText(/Demo Corp: mean θ 0\.42/).closest("li")).toHaveAttribute(
+        "aria-current",
+        "true",
+      );
+      expect(openedReport.textContent ?? "").toMatch(/Demo Corp: mean θ 0\.42[\s\S]*Other Corp: mean θ/);
+      expect(openedReport.textContent ?? "").not.toMatch(/Other Corp: mean θ[\s\S]*Demo Corp: mean θ 0\.42/);
+      const member = within(openedReport).getByRole("button", {
+        name: /open report post: public post/i,
+      });
+      expect(member).toHaveTextContent("θ 0.91");
+      const status = screen.getByRole("status");
+      const demoMean = screen.getByText(/Demo Corp: mean θ 0\.42/);
+      const weekChip = screen.getByRole("button", { name: /open report period 2026-W03/i });
+      expect(status.compareDocumentPosition(demoMean) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+      expect(demoMean.compareDocumentPosition(weekChip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+      await userEvent.click(member);
+      await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
     }

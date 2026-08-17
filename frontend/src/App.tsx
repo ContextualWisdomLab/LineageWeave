@@ -2116,6 +2116,18 @@ function openedReportNextAction(groupingLabel: string): string {
   );
 }
 
+function openedReportsFirst<T extends { grouping_key: string; grouping_label?: string }>(
+  reports: T[],
+  isOpened: (groupingKey: string, groupingLabel?: string) => boolean,
+): T[] {
+  const opened = reports.filter((report) => isOpened(report.grouping_key, report.grouping_label));
+  if (opened.length === 0) {
+    return reports;
+  }
+  const rest = reports.filter((report) => !isOpened(report.grouping_key, report.grouping_label));
+  return [...opened, ...rest];
+}
+
 function ReportsPanel({
   accessToken,
   canRebuild,
@@ -2205,6 +2217,85 @@ function ReportsPanel({
     }
   }
 
+  const orderedReports = payload
+    ? openedReportsFirst(payload.reports, (groupingKey, groupingLabel) =>
+        groupingIsOpened(grouping, groupingKey, groupingLabel),
+      )
+    : [];
+  const reportList =
+    payload === null && !error ? (
+      <p>Loading reports...</p>
+    ) : payload && payload.reports.length === 0 ? (
+      <p className="popup-placeholder">
+        No calibrated report for this grouping and period. Evaluate posts, then rebuild.
+      </p>
+    ) : payload && payload.reports.length > 0 ? (
+      <ul
+        className="ticket-list"
+        aria-label={openedGroupingLabel ? "Opened grouping report" : "Period report groups"}
+      >
+        {orderedReports.map((report) => (
+          <li
+            key={report.grouping_key}
+            className="ticket-list-item"
+            aria-current={
+              groupingIsOpened(grouping, report.grouping_key, report.grouping_label)
+                ? "true"
+                : undefined
+            }
+          >
+            <span className="ticket-title">
+              {report.grouping_label ?? report.grouping_key}: mean θ {report.mean_theta.toFixed(2)} ({report.selected_model}
+              {report.fit_converged ? ", converged" : ", not converged"})
+            </span>
+            <span className="post-badge">{report.post_count} posts</span>
+            {report.link_method === "fipc" && report.anchor_period_code && report.delta_mean_theta != null && (
+              <span className="post-badge">
+                vs {report.anchor_period_code}: {report.delta_mean_theta >= 0 ? "+" : ""}
+                {report.delta_mean_theta.toFixed(2)}
+              </span>
+            )}
+            {report.link_method === "fipc" && report.delta_mean_theta == null && (
+              <span className="post-badge">shared metric</span>
+            )}
+            {report.selected_items?.[0] && (
+              <span className="post-badge">
+                CAT: {criterionShortLabel(report.selected_items[0].item_code)} I=
+                {report.selected_items[0].information.toFixed(2)}
+              </span>
+            )}
+            {report.members.length > 0 && (
+              <ul className="ticket-list">
+                {report.members.map((member) => (
+                  <li key={member.post_id} className="ticket-list-item">
+                    <button
+                      className="post-list-item"
+                      aria-label={`Open report post: ${member.post_title}`}
+                      onClick={() => onSelectPost(member.post_id)}
+                    >
+                      <span className="ticket-title">{member.post_title}</span>
+                      <span className="post-badge">θ {member.theta_eap.toFixed(2)}</span>
+                      {member.ticket_title && (
+                        <span className="post-badge">{member.ticket_title}</span>
+                      )}
+                      {(member.ticket_status_label ?? member.ticket_status_code) && (
+                        <span className="post-badge">
+                          {member.ticket_status_label ?? member.ticket_status_code}
+                        </span>
+                      )}
+                      {member.ticket_due_date && (
+                        <span className="post-badge">due {member.ticket_due_date}</span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ul>
+    ) : null;
+
   return (
     <section className="popup-section lineage-home">
       <div className="lineage-home-header">
@@ -2275,6 +2366,7 @@ function ReportsPanel({
           {openedReportNextAction(openedGroupingLabel)}
         </p>
       )}
+      {openedGroupingLabel && reportList}
       {index && index.periods.length > 0 && (
         <ul className="ticket-list">
           {index.periods.map((row) => (
@@ -2306,75 +2398,7 @@ function ReportsPanel({
         </ul>
       )}
       {error && <p className="error">{error}</p>}
-      {payload === null && !error && <p>Loading reports...</p>}
-      {payload && payload.reports.length === 0 && (
-        <p className="popup-placeholder">
-          No calibrated report for this grouping and period. Evaluate posts, then rebuild.
-        </p>
-      )}
-      {payload && payload.reports.length > 0 && (
-        <ul className="ticket-list">
-          {payload.reports.map((report) => (
-            <li
-              key={report.grouping_key}
-              className="ticket-list-item"
-              aria-current={
-                groupingIsOpened(grouping, report.grouping_key, report.grouping_label)
-                  ? "true"
-                  : undefined
-              }
-            >
-              <span className="ticket-title">
-                {report.grouping_label ?? report.grouping_key}: mean θ {report.mean_theta.toFixed(2)} ({report.selected_model}
-                {report.fit_converged ? ", converged" : ", not converged"})
-              </span>
-              <span className="post-badge">{report.post_count} posts</span>
-              {report.link_method === "fipc" && report.anchor_period_code && report.delta_mean_theta != null && (
-                <span className="post-badge">
-                  vs {report.anchor_period_code}: {report.delta_mean_theta >= 0 ? "+" : ""}
-                  {report.delta_mean_theta.toFixed(2)}
-                </span>
-              )}
-              {report.link_method === "fipc" && report.delta_mean_theta == null && (
-                <span className="post-badge">shared metric</span>
-              )}
-              {report.selected_items?.[0] && (
-                <span className="post-badge">
-                  CAT: {criterionShortLabel(report.selected_items[0].item_code)} I=
-                  {report.selected_items[0].information.toFixed(2)}
-                </span>
-              )}
-              {report.members.length > 0 && (
-                <ul className="ticket-list">
-                  {report.members.map((member) => (
-                    <li key={member.post_id} className="ticket-list-item">
-                      <button
-                        className="post-list-item"
-                        aria-label={`Open report post: ${member.post_title}`}
-                        onClick={() => onSelectPost(member.post_id)}
-                      >
-                        <span className="ticket-title">{member.post_title}</span>
-                        <span className="post-badge">θ {member.theta_eap.toFixed(2)}</span>
-                        {member.ticket_title && (
-                          <span className="post-badge">{member.ticket_title}</span>
-                        )}
-                        {(member.ticket_status_label ?? member.ticket_status_code) && (
-                          <span className="post-badge">
-                            {member.ticket_status_label ?? member.ticket_status_code}
-                          </span>
-                        )}
-                        {member.ticket_due_date && (
-                          <span className="post-badge">due {member.ticket_due_date}</span>
-                        )}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      {!openedGroupingLabel && reportList}
     </section>
   );
 }
