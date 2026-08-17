@@ -56,6 +56,15 @@ describe("App, authenticated", () => {
   function stubBackend(options?: {
     admin?: boolean;
     calendarCommitments?: unknown[];
+    rankings?: {
+      status?: "accepted" | "unavailable";
+      status_reason?: string | null;
+      rankings?: {
+        post_id: string;
+        post_title: string;
+        fused_rank: number;
+      }[];
+    };
     chatUnavailable?: boolean;
     searchUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
@@ -201,6 +210,21 @@ describe("App, authenticated", () => {
                   post_title: "Specification revision requested",
                 },
               ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/rankings")) {
+        const rankings = options?.rankings ?? {
+          status: "unavailable" as const,
+          status_reason: "rankweave_not_available",
+          rankings: [],
+        };
+        return Promise.resolve(
+          jsonResponse({
+            port: "rankweave",
+            status: rankings.status,
+            status_reason: rankings.status_reason,
+            rankings: rankings.rankings ?? [],
           }),
         );
       }
@@ -1239,6 +1263,48 @@ describe("App, authenticated", () => {
         screen.getByText(/no upcoming commitments\. derive one from a post/i),
       ).toBeInTheDocument(),
     );
+  });
+
+  it("names RankWeave unavailability on home rankings instead of inventing a fused score", async () => {
+    stubBackend();
+    render(<App />);
+
+    expect(await screen.findByText("Rankings · RankWeave not available")).toBeInTheDocument();
+    expect(screen.queryByText("Pricing renegotiation: revised quote sent")).not.toBeInTheDocument();
+  });
+
+  it("opens an accepted ranking hit without inventing a fused score", async () => {
+    stubBackend({
+      rankings: {
+        status: "accepted",
+        status_reason: null,
+        rankings: [
+          {
+            post_id: "post-1",
+            post_title: "Public post",
+            fused_rank: 1,
+          },
+          {
+            post_id: "post-2",
+            post_title: "Pricing renegotiation: revised quote sent",
+            fused_rank: 2,
+          },
+        ],
+      },
+    });
+    render(<App />);
+
+    const rankingButton = await screen.findByRole("button", {
+      name: /open ranking: public post/i,
+    });
+    expect(rankingButton).toHaveTextContent("Public post");
+    expect(rankingButton).toHaveTextContent("Rankings · rankweave");
+    expect(rankingButton).toHaveTextContent("rank 1");
+    expect(screen.queryByRole("button", { name: /open ranking: private parent/i })).not.toBeInTheDocument();
+
+    await userEvent.click(rankingButton);
+
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });
 
   it("shows upcoming commitments on the home page calendar and opens the post on click", async () => {
