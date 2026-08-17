@@ -47,7 +47,7 @@ The optional LLM-adjudication channel calls
 [ThreadWeave](https://github.com/ContextualWisdomLab/ThreadWeave) (JWZ
 message threading) and channel fusion reuses
 [RankWeave](https://github.com/ContextualWisdomLab/RankWeave) (weighted
-score fusion) -- both real dependencies, not reimplemented here.
+score fusion for reconstruction and the fail-closed Rankings port) -- both real dependencies, not reimplemented here.
 
 ## Run it
 

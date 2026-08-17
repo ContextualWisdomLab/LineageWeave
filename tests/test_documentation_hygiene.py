@@ -72,10 +72,15 @@ def test_role_catalog_identity_migration_is_wired() -> None:
     ).read_text(encoding="utf-8")
     assert "0019_role_catalog_identity.sql" in dockerfile
     assert "0025_role_person_catalog_identity.sql" in dockerfile
+    assert "0026_report_leftover_pair.sql" in dockerfile
     assert "0019_role_catalog_identity.sql" in seed
     assert "0025_role_person_catalog_identity.sql" in seed
+    assert "0026_report_leftover_pair.sql" in seed
     assert seed.index("0024_source_post_revision.sql") < seed.index(
         "0025_role_person_catalog_identity.sql"
+    )
+    assert seed.index("0025_role_person_catalog_identity.sql") < seed.index(
+        "0026_report_leftover_pair.sql"
     )
     assert "cataloged_person_id" in seed
     assert "order by created_at, person_id limit 1" in seed

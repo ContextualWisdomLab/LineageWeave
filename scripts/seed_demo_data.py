@@ -129,6 +129,7 @@ def seed(
             cur.execute((migrations / "0023_analysis_run_outbox.sql").read_text())
             cur.execute((migrations / "0024_source_post_revision.sql").read_text())
             cur.execute((migrations / "0025_role_person_catalog_identity.sql").read_text())
+            cur.execute((migrations / "0026_report_leftover_pair.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -1147,6 +1148,24 @@ def _persist_seed_period_report(
                 item.item_code,
                 item.rank,
                 item.information,
+            ),
+        )
+    for pair in report.leftover_pairs:
+        cur.execute(
+            "insert into report_leftover_pair ("
+            "grouping_kind, grouping_key, period_code, rubric_version, "
+            "pair_kind, post_id, criterion_code, leftover_distance, leftover_residual"
+            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            (
+                grouping_kind,
+                grouping_key,
+                period_code,
+                RUBRIC_VERSION,
+                pair.pair_kind,
+                pair.post_id,
+                pair.criterion_code,
+                pair.leftover_distance,
+                pair.leftover_residual,
             ),
         )
 

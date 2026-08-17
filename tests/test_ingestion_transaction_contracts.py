@@ -671,5 +671,6 @@ def test_role_catalog_identity_is_stored_on_the_role_row() -> None:
     assert "cataloged_person_id" in person_upgrade
     assert "0019_role_catalog_identity.sql" in dockerfile
     assert "0025_role_person_catalog_identity.sql" in dockerfile
+    assert "0026_report_leftover_pair.sql" in dockerfile
     assert "ADR 0019" in changelog
     assert "ADR 0027" in changelog

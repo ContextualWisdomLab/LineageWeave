@@ -4,6 +4,21 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.0] - 2026-08-17
+
+### Added
+
+- Home Rankings panel fuses visible posts through `RankWeaveClient`
+  (ADR 0030). After login with the port disabled or the library
+  missing, Demo Analyst sees **Rankings · RankWeave not available**.
+  An accepted hit lists the title; click opens that post. A hidden
+  post is omitted. Never invent a fused score or a theta.
+- Period reports now persist closest and farthest leftover
+  post–criterion pairs after the IRT main effects (Jeon leftover
+  map, ADR 0028 / 0029). After `make seed`, leftover pairs sit above
+  the member list; clicking a pair opens that post. A leftover pair
+  for a hidden post is omitted the same way a hidden member is.
+
 ## [2.9.0] - 2026-08-17
 
 ### Added

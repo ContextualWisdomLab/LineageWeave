@@ -59,3 +59,6 @@ def test_revision_migration_records_title_or_body_rewrites_only() -> None:
     assert seed.index("0024_source_post_revision.sql") < seed.index(
         "0025_role_person_catalog_identity.sql"
     )
+    assert seed.index("0025_role_person_catalog_identity.sql") < seed.index(
+        "0026_report_leftover_pair.sql"
+    )

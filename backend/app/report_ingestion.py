@@ -256,7 +256,7 @@ async def persist_period_report(
     period_code: str,
     report: PeriodReport,
 ) -> None:
-    """Replace the stored report, member scores, and item bank."""
+    """Replace the stored report, member scores, leftover pairs, and item bank."""
     await conn.execute(
         """
         delete from report_period_score
@@ -342,6 +342,24 @@ async def persist_period_report(
             item.item_code,
             item.rank,
             item.information,
+        )
+    for pair in report.leftover_pairs:
+        await conn.execute(
+            """
+            insert into report_leftover_pair (
+                grouping_kind, grouping_key, period_code, rubric_version,
+                pair_kind, post_id, criterion_code, leftover_distance, leftover_residual
+            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+            """,
+            grouping_kind,
+            grouping_key,
+            period_code,
+            RUBRIC_VERSION,
+            pair.pair_kind,
+            pair.post_id,
+            pair.criterion_code,
+            pair.leftover_distance,
+            pair.leftover_residual,
         )
 
 
@@ -478,6 +496,22 @@ async def fetch_period_reports(
         period_code,
         RUBRIC_VERSION,
     )
+    leftover = await conn.fetch(
+        """
+        select lp.grouping_key, lp.pair_kind, lp.post_id, lp.criterion_code,
+               lp.leftover_distance, lp.leftover_residual, p.post_title,
+               p.visibility_code, p.corporate_entity_id
+        from report_leftover_pair lp
+        join source_post p on p.post_id = lp.post_id
+        where lp.grouping_kind = $1 and lp.period_code = $2 and lp.rubric_version = $3
+        order by lp.grouping_key,
+                 case lp.pair_kind when 'closest' then 0 else 1 end,
+                 p.post_title
+        """,
+        grouping_kind,
+        period_code,
+        RUBRIC_VERSION,
+    )
     status_labels = await labels_for_codes(
         conn,
         [row["ticket_status_code"] for row in members if row["ticket_status_code"]],
@@ -488,6 +522,9 @@ async def fetch_period_reports(
     selected_by_group: dict[str, list[asyncpg.Record]] = defaultdict(list)
     for row in selected:
         selected_by_group[row["grouping_key"]].append(row)
+    leftover_by_group: dict[str, list[asyncpg.Record]] = defaultdict(list)
+    for row in leftover:
+        leftover_by_group[row["grouping_key"]].append(row)
     payload: list[dict[str, Any]] = []
     for header in headers:
         grouping_key = header["grouping_key"]
@@ -548,6 +585,19 @@ async def fetch_period_reports(
                         "information": float(row["information"]),
                     }
                     for row in selected_by_group.get(header["grouping_key"], [])
+                ],
+                "leftover_pairs": [
+                    {
+                        "pair_kind": str(row["pair_kind"]),
+                        "post_id": str(row["post_id"]),
+                        "post_title": row["post_title"],
+                        "criterion_code": str(row["criterion_code"]),
+                        "leftover_distance": float(row["leftover_distance"]),
+                        "leftover_residual": float(row["leftover_residual"]),
+                        "visibility_code": row["visibility_code"],
+                        "corporate_entity_id": str(row["corporate_entity_id"]),
+                    }
+                    for row in leftover_by_group.get(header["grouping_key"], [])
                 ],
             }
         )
