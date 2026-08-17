@@ -19,6 +19,7 @@ from backend.app.lineage_ingestion import records_from_source_posts
 from lineageweave.fixtures import sample_records
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
+from lineageweave.tepp_result import persistable_tepp_seed_envelope
 
 
 def test_reconstruction_digest_is_stable_and_ignores_edge_order() -> None:
@@ -128,9 +129,10 @@ def test_tepp_run_request_is_the_published_wire_shape() -> None:
 
 def test_tepp_submit_outcome_drops_a_missing_transport() -> None:
     """A missing TEPP transport is Failed, never a fabricated score."""
-    status, failure = tepp_submit_outcome(TeppClient(), _tepp_request())
+    status, failure, result = tepp_submit_outcome(TeppClient(), _tepp_request())
     assert status == "analysis_status_failed"
     assert failure == "tepp_not_available"
+    assert result is None
 
 
 def test_tepp_submit_outcome_does_not_persist_an_empty_envelope() -> None:
@@ -140,9 +142,27 @@ def test_tepp_submit_outcome_does_not_persist_an_empty_envelope() -> None:
         def __init__(self) -> None:
             super().__init__(transport=lambda _payload: {"status": "accepted"})
 
-    status, failure = tepp_submit_outcome(_Accepting(), _tepp_request())
+    status, failure, result = tepp_submit_outcome(_Accepting(), _tepp_request())
     assert status == "analysis_status_failed"
     assert failure == "tepp_result_not_persisted"
+    assert result is None
+
+
+def test_tepp_submit_outcome_succeeds_for_a_persistable_envelope() -> None:
+    """A time / multilevel / multi-affiliation result is Succeeded."""
+
+    class _Persistable(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(transport=lambda _payload: persistable_tepp_seed_envelope())
+
+    status, failure, result = tepp_submit_outcome(_Persistable(), _tepp_request())
+    assert status == "analysis_status_succeeded"
+    assert failure is None
+    assert result is not None
+    assert result.affiliation_count == 2
+    assert result.interval_count == 2
+    assert result.level_count == 3
+    assert "theta" not in result.result_sha256()
 
 
 def test_configured_tepp_client_stays_unavailable_without_http() -> None:

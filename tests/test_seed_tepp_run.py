@@ -1,10 +1,13 @@
 """Seeded TEPP analysis runs go through tepp_client, never a local model."""
 
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
+from lineageweave.tepp_result import persistable_tepp_seed_envelope
 from scripts.seed_demo_data import (
     _ensure_demo_source_counts,
+    _seed_demo_succeeded_tepp_run,
     _seed_demo_tepp_run,
     demo_source_snapshot_sha256,
+    tepp_persistable_seed_client,
     tepp_seed_outcome,
     tepp_seed_request,
 )
@@ -73,6 +76,13 @@ def test_tepp_seed_outcome_does_not_treat_an_empty_envelope_as_success() -> None
     assert failure == "tepp_result_not_persisted"
 
 
+def test_tepp_seed_outcome_succeeds_for_a_persistable_envelope() -> None:
+    status, failure = tepp_seed_outcome(tepp_persistable_seed_client())
+    assert status == "analysis_status_succeeded"
+    assert failure is None
+    assert persistable_tepp_seed_envelope()["affiliation_count"] == 2
+
+
 def test_ensure_demo_source_counts_skips_insert_when_counts_exist() -> None:
     cursor = _CountCursor(existing_counts=True)
     _ensure_demo_source_counts(cursor, "snapshot-1")
@@ -130,3 +140,27 @@ def test_seed_demo_tepp_run_inserts_failed_tepp_not_available() -> None:
     assert not any(
         params is not None and "analysis_status_succeeded" in params for params in status_params
     )
+
+
+def test_seed_demo_succeeded_tepp_run_persists_aggregates() -> None:
+    cursor = _TeppSeedCursor()
+    _seed_demo_succeeded_tepp_run(cursor, "account-1", "corp-1")
+    assert any("insert into analysis_run_tepp_result" in sql for sql in cursor.statements)
+    status_params = [
+        params
+        for sql, params in zip(cursor.statements, cursor.params, strict=True)
+        if "insert into analysis_run_status_event" in sql
+    ]
+    assert any(
+        params is not None and "analysis_status_succeeded" in params for params in status_params
+    )
+    assert not any(
+        params is not None and "tepp_not_available" in params for params in status_params
+    )
+    result_params = [
+        params
+        for sql, params in zip(cursor.statements, cursor.params, strict=True)
+        if "insert into analysis_run_tepp_result" in sql
+    ]
+    assert result_params
+    assert all(params is not None and "theta" not in str(params).casefold() for params in result_params)

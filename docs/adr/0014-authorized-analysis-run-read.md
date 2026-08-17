@@ -38,14 +38,15 @@ LineageWeave owns a fail-closed read projection of the #89 registry:
 
 ## Consequences
 
-`make seed` writes one synthetic Demo Corp lineage run, one TEPP
-run, and one Succeeded period-report run on the same snapshot so the
-existing React home page can show all three kinds without a second
-application (ADR 0024). The TEPP run is Failed /
-`tepp_not_available` when the default transport is missing -- the list
-keeps that machine code off the caption (this decision) and instead
-tells the operator to open the TEPP run, then connect the measurement
-service. A failed lineage row tells the operator to retry
+`make seed` writes one synthetic Demo Corp lineage run, one Failed
+TEPP run, one Succeeded TEPP run, and one Succeeded period-report run
+on the same snapshot so the existing React home page can show all
+three kinds without a second application (ADR 0024 / ADR 0034). The
+Failed TEPP run is `tepp_not_available` when the default transport is
+missing -- the list keeps that machine code off the caption (this
+decision) and instead tells the operator to open the TEPP run, then
+connect the measurement service. The Succeeded TEPP row tells the
+operator to read the measured clocks and affiliation counts. A failed lineage row tells the operator to retry
 reconstruction, not to connect TEPP. A failed period-report row
 tells the operator to rebuild the report from a current snapshot.
 A pending or running TEPP row must not claim a calibrated
@@ -58,9 +59,9 @@ in that name. Detail repeats that sentence. A pending
 lineage row says reconstruction has not started yet. The detail now shows the legal
 lifecycle the registry already stored. `POST /api/analysis-runs` now
 records a Pending lineage run on an authorized cutoff capture
-(ADR 0017). TEPP and period-report kinds are 422. Reconstruction, a
-live TEPP transport, and a fuller Analysis Run Console remain later
-slices. A 404 on a hidden run (including a thread-group row that
+(ADR 0017). TEPP and period-report kinds are 422. Reconstruction and
+a persistable TEPP result are ADR 0021 / ADR 0034. A fuller Analysis
+Run Console remains a later slice. A 404 on a hidden run (including a thread-group row that
 still lacks an in-cutoff visible post, ADR 0018) must stay generic:
 do not name the thread or the cutoff, and do not say the run is not
 visible. Tell the operator to open a visible run from the home list,

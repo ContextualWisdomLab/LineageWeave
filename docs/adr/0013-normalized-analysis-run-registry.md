@@ -252,8 +252,10 @@ Acceptance requires:
 4. Add TEPP and contextual-orchestrator adapters only after their versioned
    contracts are present on reviewed main branches. Seed and
    `POST /api/analysis-runs/{id}/start` now record Failed TEPP through
-   `tepp_client` on the frozen snapshot; a persistable measurement
-   remains a later slice. A missing or unused TEPP envelope must stay
+   `tepp_client` on the frozen snapshot when the transport is missing
+   or the envelope is not persistable. A persistable time / multilevel /
+   multi-affiliation result is stored and Succeeded (ADR 0034). A
+   missing or unused TEPP envelope must stay
    Failed (`tepp_not_available` / `tepp_result_not_persisted`) and must
    not write a local psychometric substitute. Seed also records a
    Succeeded `analysis_run_report` on that snapshot after the

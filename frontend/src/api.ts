@@ -657,6 +657,11 @@ export interface AnalysisRun {
   visible_posts?: AnalysisRunVisiblePost[];
   reconstructed_edges?: AnalysisRunReconstructedEdge[];
   reconstruction_result_sha256?: string;
+  tepp_result_sha256?: string;
+  tepp_interval_count?: number;
+  tepp_level_count?: number;
+  tepp_affiliation_count?: number;
+  tepp_measured_at?: string;
   code_revision_sha?: string;
   configuration_sha256?: string;
 }

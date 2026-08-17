@@ -1903,6 +1903,17 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_running":
       return "Refresh this run. Start already queued the work on the durable outbox.";
     case "analysis_status_succeeded":
+      switch (run.run_kind_code) {
+        case "analysis_run_tepp":
+          return "Open this run to read the measured clocks and affiliation counts.";
+        case "analysis_run_lineage":
+        case "analysis_run_report":
+          return null;
+        default: {
+          const unexpected: never = run.run_kind_code;
+          return unexpected;
+        }
+      }
     case "analysis_status_cancelled":
     case null:
       return null;
@@ -1920,7 +1931,8 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
  * Description Computation 1.1). When a next action exists, the name is
  * `Open analysis run: {caption}. {nextAction}` so a screen reader hears
  * what to do next, not only the run title (WCAG 2.2 SC 4.1.2). Succeeded
- * and cancelled rows keep the caption alone.
+ * TEPP rows keep a next action. Other succeeded and cancelled rows keep
+ * the caption alone.
  */
 function analysisRunAccessibleName(run: AnalysisRun): string {
   const caption = analysisRunCaption(run);
@@ -2061,10 +2073,12 @@ function AnalysisRunReproducibilityDigests({
   codeRevisionSha,
   configurationSha256,
   reconstructionResultSha256,
+  teppResultSha256,
 }: {
   codeRevisionSha?: string;
   configurationSha256?: string;
   reconstructionResultSha256?: string;
+  teppResultSha256?: string;
 }) {
   const parts: { label: string; digest: string }[] = [];
   if (codeRevisionSha) {
@@ -2075,6 +2089,9 @@ function AnalysisRunReproducibilityDigests({
   }
   if (reconstructionResultSha256) {
     parts.push({ label: "Result", digest: reconstructionResultSha256 });
+  }
+  if (teppResultSha256) {
+    parts.push({ label: "TEPP", digest: teppResultSha256 });
   }
   if (parts.length === 0) {
     return null;
@@ -2364,6 +2381,12 @@ function AnalysisRunsPanel({
                       {documentCount.count_value} {documentCount.count_type_label.toLowerCase()}
                     </span>
                   )}
+                  {run.tepp_affiliation_count != null && (
+                    <span className="post-badge">{run.tepp_affiliation_count} affiliations</span>
+                  )}
+                  {run.tepp_measured_at && (
+                    <span className="post-meta">Measured {run.tepp_measured_at.slice(0, 10)}</span>
+                  )}
                   {nextAction && <span className="post-meta">{nextAction}</span>}
                 </button>
               </li>
@@ -2384,7 +2407,21 @@ function AnalysisRunsPanel({
             codeRevisionSha={selected.code_revision_sha}
             configurationSha256={selected.configuration_sha256}
             reconstructionResultSha256={selected.reconstruction_result_sha256}
+            teppResultSha256={selected.tepp_result_sha256}
           />
+          {selected.run_kind_code === "analysis_run_tepp" &&
+            selected.tepp_measured_at &&
+            selected.tepp_affiliation_count != null && (
+              <p className="post-meta">
+                Measured {selected.tepp_measured_at.slice(0, 16).replace("T", " ")}
+                {" · "}
+                {selected.tepp_affiliation_count} affiliations
+                {selected.tepp_interval_count != null
+                  ? ` · ${selected.tepp_interval_count} intervals`
+                  : ""}
+                {selected.tepp_level_count != null ? ` · ${selected.tepp_level_count} levels` : ""}
+              </p>
+            )}
           {analysisRunCanStart(selected) && (
             <button
               className="keyman-select"

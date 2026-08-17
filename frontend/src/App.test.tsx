@@ -327,6 +327,15 @@ describe("App, authenticated", () => {
             status_label: teppLabel,
             knowledge_cutoff: "2026-01-12T12:00:00Z",
             requested_at: "2026-01-12T12:34:00Z",
+            ...(options?.succeededTeppRun
+              ? {
+                  tepp_affiliation_count: 2,
+                  tepp_interval_count: 2,
+                  tepp_level_count: 3,
+                  tepp_measured_at: "2026-01-12T12:45:00Z",
+                  tepp_result_sha256: "a".repeat(64),
+                }
+              : {}),
             source_counts: [
               {
                 count_type_code: "analysis_count_document",
@@ -695,6 +704,15 @@ describe("App, authenticated", () => {
                     : "Failed",
                 knowledge_cutoff: "2026-01-12T12:00:00Z",
                 requested_at: "2026-01-12T12:34:00Z",
+                ...(options?.succeededTeppRun
+                  ? {
+                      tepp_affiliation_count: 2,
+                      tepp_interval_count: 2,
+                      tepp_level_count: 3,
+                      tepp_measured_at: "2026-01-12T12:45:00Z",
+                      tepp_result_sha256: "a".repeat(64),
+                    }
+                  : {}),
                 source_counts: [
                   {
                     count_type_code: "analysis_count_document",
@@ -2875,15 +2893,22 @@ describe("App, authenticated", () => {
     stubBackend({ succeededTeppRun: true });
     render(<App />);
 
-    await userEvent.click(
-      await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Succeeded · Demo Corp",
-      }),
-    );
+    const succeeded = await screen.findByRole("button", {
+      name: "Open analysis run: TEPP measurement · Succeeded · Demo Corp. Open this run to read the measured clocks and affiliation counts.",
+    });
+    expect(succeeded).toHaveAccessibleName(/measured clocks and affiliation counts/);
+    const list = screen.getByRole("list", { name: "Analysis runs" });
+    expect(list).toHaveTextContent("2 affiliations");
+    expect(list).toHaveTextContent("Measured 2026-01-12");
+    await userEvent.click(succeeded);
     expect(
       await screen.findByText("These posts are the cutoff corpus this TEPP run measured."),
     ).toBeInTheDocument();
+    expect(screen.getAllByText(/2 affiliations/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/2 intervals/)).toBeInTheDocument();
+    expect(screen.getByText(/3 levels/)).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
   });
 
   it("records a pending lineage run and opens the authorized detail", async () => {
