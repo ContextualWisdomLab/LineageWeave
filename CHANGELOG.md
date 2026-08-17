@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.2] - 2026-08-17
+
+### Fixed
+
+- Opening a post whose embedded picture uses invoice-like HTML
+  (`alt="Invoice > 1000"`, unquoted `width`, newlines in the base64)
+  now shows the picture. The raw payload no longer returns when a
+  remote-only or SVG tag is the whole body. Re-export as PNG or JPEG
+  if the type is rejected. The popup, `extract_base64_images`, and
+  `chunk_by_dom` share one raster allowlist (ADR 0031).
+
 ## [2.10.1] - 2026-08-17
 
 ### Fixed

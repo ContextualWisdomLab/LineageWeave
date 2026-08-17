@@ -25,18 +25,14 @@ makes the channel unavailable, never returns a placeholder description.
 from __future__ import annotations
 
 import base64
-import binascii
 import re
 from dataclasses import dataclass
+from html.parser import HTMLParser
 from typing import Protocol
 from urllib.parse import urlparse
 
+from .embedded_image_payload import decode_data_uri_image, source_offset
 from .http_client import post_json
-
-_DATA_URI_IMG = re.compile(
-    r'<img\b[^>]*\bsrc\s*=\s*["\']data:(image/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)["\']',
-    re.IGNORECASE,
-)
 
 
 @dataclass(frozen=True)
@@ -60,23 +56,61 @@ class EmbeddedImage:
     data: bytes
 
 
-def extract_base64_images(html: str) -> list[EmbeddedImage]:
-    """Find every ``<img src="data:...;base64,...">`` in document order.
+class _EmbeddedImageExtractor(HTMLParser):
+    """Collect raster ``data:image`` ``<img>`` tags in document order.
 
-    Malformed base64 in a matched tag is skipped rather than raising --
-    one corrupt embedded image must not fail extraction of the rest of the
-    document.
+    Uses the HTML parser so ``alt="Invoice > 1000"`` and unquoted
+    attributes still find the picture. Comments, ``<style>``, and
+    ``<script>`` are ignored -- the same contract as
+    :func:`lineageweave.chunking.chunk_by_dom`.
     """
-    images: list[EmbeddedImage] = []
-    for match in _DATA_URI_IMG.finditer(html):
-        mime_type = match.group(1)
-        raw_b64 = re.sub(r"\s+", "", match.group(2))
-        try:
-            data = base64.b64decode(raw_b64, validate=True)
-        except (binascii.Error, ValueError):
-            continue
-        images.append(EmbeddedImage(position=match.start(), mime_type=mime_type, data=data))
-    return images
+
+    def __init__(self, source: str) -> None:
+        """Bind the original HTML so ``getpos()`` can become a character offset."""
+        super().__init__()
+        self._source = source
+        self._skip_depth = 0
+        self.images: list[EmbeddedImage] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        """Record a raster ``<img>`` or enter a skipped ``style``/``script``."""
+        if tag in {"style", "script"}:
+            self._skip_depth += 1
+            return
+        if self._skip_depth or tag != "img":
+            return
+        src = next((value for name, value in attrs if name == "src" and value), None)
+        if not src:
+            return
+        decoded = decode_data_uri_image(src)
+        if decoded is None:
+            return
+        mime_type, data = decoded
+        line, column = self.getpos()
+        self.images.append(
+            EmbeddedImage(
+                position=source_offset(self._source, line, column),
+                mime_type=mime_type,
+                data=data,
+            )
+        )
+
+    def handle_endtag(self, tag: str) -> None:
+        """Leave a skipped ``style`` or ``script`` region."""
+        if tag in {"style", "script"} and self._skip_depth:
+            self._skip_depth -= 1
+
+
+def extract_base64_images(html: str) -> list[EmbeddedImage]:
+    """Find every raster ``<img src="data:...;base64,...">`` in document order.
+
+    Malformed base64, SVG, remote ``http(s)`` tags, and commented-out
+    pictures are skipped rather than raising -- one corrupt embedded
+    image must not fail extraction of the rest of the document.
+    """
+    parser = _EmbeddedImageExtractor(html)
+    parser.feed(html)
+    return parser.images
 
 
 @dataclass(frozen=True)
