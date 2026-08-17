@@ -72,3 +72,7 @@ cited source. After that next action, the popup lands the first cited
 evidence. Changing the week first still
 focuses the report period field. Mean θ stays on the period-report
 panel.
+A listed analysis-run that then 404s stays generic: do not name the
+thread or the cutoff. After that 404, re-read the authorized list so
+the stale row does not stay clickable. Announce the next action with
+`role="alert"` without moving focus.
