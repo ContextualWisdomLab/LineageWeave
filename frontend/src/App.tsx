@@ -1375,13 +1375,15 @@ function PostDetailPopup({
               )}
             </section>
 
-            <EvaluationPanel
-              postId={postId}
-              accessToken={accessToken}
-              responses={evaluation}
-              canExtract={canExtract}
-              onEvaluated={(rows) => setEvaluation(rows)}
-            />
+            {!focusEventLineage && (
+              <EvaluationPanel
+                postId={postId}
+                accessToken={accessToken}
+                responses={evaluation}
+                canExtract={canExtract}
+                onEvaluated={(rows) => setEvaluation(rows)}
+              />
+            )}
 
             <VocEvidenceSection
               evidence={vocEvidence}
@@ -1407,6 +1409,29 @@ function PostDetailPopup({
                 }
               />
             </section>
+
+            {focusEventLineage && (
+              <>
+                <KeymanPanel
+                  postId={postId}
+                  accessToken={accessToken}
+                  keymen={keymen}
+                  canExtract={canExtract}
+                  onExtracted={reloadKeymen}
+                  onSelectPost={onSelectPost}
+                  focusPerson={focusPerson}
+                  focusEntity={focusEntity}
+                  focusTeam={focusTeam}
+                />
+                <EvaluationPanel
+                  postId={postId}
+                  accessToken={accessToken}
+                  responses={evaluation}
+                  canExtract={canExtract}
+                  onEvaluated={(rows) => setEvaluation(rows)}
+                />
+              </>
+            )}
 
             <section className="popup-section">
               <h3>Affiliate tree</h3>
@@ -1436,17 +1461,19 @@ function PostDetailPopup({
               )}
             </section>
 
-            <KeymanPanel
-              postId={postId}
-              accessToken={accessToken}
-              keymen={keymen}
-              canExtract={canExtract}
-              onExtracted={reloadKeymen}
-              onSelectPost={onSelectPost}
-              focusPerson={focusPerson}
-              focusEntity={focusEntity}
-              focusTeam={focusTeam}
-            />
+            {!focusEventLineage && (
+              <KeymanPanel
+                postId={postId}
+                accessToken={accessToken}
+                keymen={keymen}
+                canExtract={canExtract}
+                onExtracted={reloadKeymen}
+                onSelectPost={onSelectPost}
+                focusPerson={focusPerson}
+                focusEntity={focusEntity}
+                focusTeam={focusTeam}
+              />
+            )}
 
             {counterparties && counterparties.length > 0 && (
               <CounterpartyPanel
