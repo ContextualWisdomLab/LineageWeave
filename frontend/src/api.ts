@@ -401,6 +401,48 @@ export interface PeriodComparison {
   groupings: GroupingComparisonRow[];
 }
 
+export interface TeppOutboxEvent {
+  event_id: string;
+  channel_code: string;
+  outcome_code: string;
+  next_action: string;
+  idempotency_key: string;
+  snapshot_id: string;
+  knowledge_cutoff: string;
+}
+
+export interface TeppOutbox {
+  events: TeppOutboxEvent[];
+}
+
+export interface TeppSubmitEnvelope {
+  channel_code: string;
+  outcome_code: string;
+  next_action: string;
+  request?: Record<string, string | number>;
+  accepted?: Record<string, unknown>;
+  event_id?: string;
+}
+
+export function fetchTeppOutbox(accessToken: string): Promise<TeppOutbox> {
+  return backendFetch("/api/tepp/outbox", accessToken);
+}
+
+export function submitTeppAnalysisRun(
+  accessToken: string,
+  snapshotId: string,
+  knowledgeCutoff: string,
+): Promise<TeppSubmitEnvelope> {
+  return backendFetch("/api/tepp/analysis-runs", accessToken, {
+    method: "POST",
+    body: JSON.stringify({
+      snapshot_id: snapshotId,
+      knowledge_cutoff: knowledgeCutoff,
+      output_profile: "graphml",
+    }),
+  });
+}
+
 export function fetchPeriodComparison(
   accessToken: string,
   periodCode: string,

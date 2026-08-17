@@ -10,6 +10,8 @@ inserts user_account rows in Postgres keyed by those real subject ids --
 the same identity Keycloak issues in an access token's `sub` claim, which
 is exactly what backend.app.auth looks up. Seeded tickets also ``XADD``
 onto Valkey so the Activity panel is not empty after ``make seed``.
+A fail-closed TEPP outbox row is written so the Period reports panel
+shows the next action instead of an invented score.
 
 HTTP goes through ``lineageweave.http_client`` (http(s) allowlist).
 
@@ -309,6 +311,7 @@ def seed(
             _seed_fixture_keymen_and_voc(cur, corporate_entity_id)
             _seed_fixture_tickets(cur)
             _seed_fixture_ticket_activity(cur, account_ids["demo.analyst"], valkey_url)
+            _seed_demo_tepp_outbox(account_ids["demo.analyst"], corporate_entity_id, valkey_url)
             _seed_demo_period_report(
                 cur,
                 account_ids["demo.analyst"],
@@ -833,6 +836,45 @@ def _seed_fixture_ticket_activity(cur, actor_account_id, valkey_url: str) -> Non
                 str(actor_account_id),
                 ticket_created_summary(ticket_title),
             )
+    except redis.RedisError as exc:
+        raise SystemExit(
+            f"Valkey at {valkey_url} is unreachable -- did you run `make up`? ({exc})"
+        ) from exc
+    finally:
+        if client is not None:
+            client.close()
+
+
+def _seed_demo_tepp_outbox(actor_account_id, corporate_entity_id, valkey_url: str) -> None:
+    """``XADD`` one fail-closed TEPP envelope so the home panel is not empty.
+
+    Uses the default crate-only transport -- never invents a theta.
+    Idempotent on the seed idempotency key.
+    """
+    try:
+        import redis
+    except ImportError as exc:
+        raise SystemExit(
+            "redis is required to seed the TEPP outbox; install with pip install -e '.[dev,backend]'"
+        ) from exc
+
+    from backend.app.tepp_outbox import publish_tepp_outbox_sync
+    from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, submit_fail_closed
+
+    request = AnalysisRunRequest(
+        idempotency_key="seed-tepp-2026-w02",
+        tenant_workspace_id=str(corporate_entity_id),
+        snapshot_id="process_unit:2026-W02",
+        knowledge_cutoff="2026-W02",
+        model_contract_version="v1",
+        output_profile="graphml",
+    )
+    envelope = submit_fail_closed(TeppClient(), request)
+    client = None
+    try:
+        client = redis.from_url(valkey_url, decode_responses=True, socket_connect_timeout=2)
+        client.ping()
+        publish_tepp_outbox_sync(client, envelope, str(actor_account_id))
     except redis.RedisError as exc:
         raise SystemExit(
             f"Valkey at {valkey_url} is unreachable -- did you run `make up`? ({exc})"

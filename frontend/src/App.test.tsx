@@ -89,6 +89,25 @@ describe("App, authenticated", () => {
     let nextTicketId = 1;
     const events: { event_id: string; event_type: string; actor_account_id: string; summary: string }[] = [];
     let nextEventId = 1;
+    const teppEvents: {
+      event_id: string;
+      channel_code: string;
+      outcome_code: string;
+      next_action: string;
+      idempotency_key: string;
+      snapshot_id: string;
+      knowledge_cutoff: string;
+    }[] = [
+      {
+        event_id: "tepp-1",
+        channel_code: "tepp",
+        outcome_code: "tepp_not_available",
+        next_action: "Configure TEPP_BASE_URL to submit a real analysis run. No TEPP score was invented.",
+        idempotency_key: "seed-tepp-2026-w02",
+        snapshot_id: "process_unit:2026-W02",
+        knowledge_cutoff: "2026-W02",
+      },
+    ];
 
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -100,6 +119,28 @@ describe("App, authenticated", () => {
             user_account_id: options?.admin ? "acct-admin" : "acct-1",
             display_name: options?.admin ? "Demo Admin" : "Demo Analyst",
             permission_codes: options?.admin ? ["post_read", "post_admin"] : ["post_read"],
+          }),
+        );
+      }
+      if (url.endsWith("/api/tepp/outbox") && method === "GET") {
+        return Promise.resolve(jsonResponse({ events: teppEvents }));
+      }
+      if (url.endsWith("/api/tepp/analysis-runs") && method === "POST") {
+        teppEvents.unshift({
+          event_id: "tepp-live",
+          channel_code: "tepp",
+          outcome_code: "tepp_not_available",
+          next_action: "Configure TEPP_BASE_URL to submit a real analysis run. No TEPP score was invented.",
+          idempotency_key: "live-1",
+          snapshot_id: "process_unit:2026-W02",
+          knowledge_cutoff: "2026-W02",
+        });
+        return Promise.resolve(
+          jsonResponse({
+            channel_code: "tepp",
+            outcome_code: "tepp_not_available",
+            next_action: teppEvents[0].next_action,
+            event_id: "tepp-live",
           }),
         );
       }
@@ -1339,6 +1380,9 @@ describe("App, authenticated", () => {
     expect(screen.getByText(/TEST-PU-REPORT/)).toBeInTheDocument();
     expect(screen.getAllByText("shared metric").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/CAT: sales-lead I=0\.70/).length).toBeGreaterThan(0);
+    const teppOutcome = screen.getByLabelText("TEPP submit outcome");
+    expect(teppOutcome).toHaveTextContent("No TEPP score was invented");
+    expect(teppOutcome).not.toHaveTextContent("θ");
     expect(screen.getByRole("button", { name: /open report period 2026-W03/i })).toHaveTextContent(
       "vs 2026-W02: +0.92",
     );
@@ -1441,5 +1485,20 @@ describe("App, authenticated", () => {
         expect.objectContaining({ method: "POST" }),
       ),
     );
+  });
+
+  it("lets post_admin request a TEPP measurement without inventing a theta", async () => {
+    const fetchMock = stubBackend({ admin: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /request tepp measurement/i }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/tepp/analysis-runs"),
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    expect(screen.getByLabelText("TEPP submit outcome")).toHaveTextContent("No TEPP score was invented");
+    expect(screen.getByLabelText("TEPP submit outcome")).not.toHaveTextContent("θ");
   });
 });

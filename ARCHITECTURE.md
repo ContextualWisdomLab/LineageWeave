@@ -65,7 +65,7 @@ flowchart LR
 | `embedding_client.py` | Pluggable text-embedding channel (`Null` default, `OpenAiCompatible` real impl) + `chunked_max_similarity` |
 | `adjudication_client.py` | Pluggable LLM-judgment channel (`Null` default, `ContextualOrchestrator` real impl) |
 | `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl) |
-| `tepp_client.py` | TEPP's published `AnalysisRunRequest` wire contract, pluggable transport |
+| `tepp_client.py` | TEPP's published `AnalysisRunRequest` plus HTTP `/v1/analysis-runs` and a fail-closed envelope (ADR 0022). Never invents a theta. |
 | `rankweave_client.py` | Fail-closed RankWeave ranking port (`weighted_reciprocal_rank_fuse` in-process; never invent a fused score or a theta) |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
 | `lineage_persistence.py` | Flattens reconstruct trees into `post_lineage_edge` row specs (parent, child, fused_score) |
@@ -112,12 +112,12 @@ flowchart LR
   `ponytail`-tagged in `reconstruct.py`: keeps per-group cost `O(n * window)`
   instead of `O(n^2)` for large groups; raise it if recall against a labeled
   set ever shows true parents falling outside the window.
-- **TEPP is a wire contract, not an import.** `tepp_client.py`'s default
-  transport raises `TeppNotAvailable` rather than silently no-op'ing,
-  because TEPP has no live HTTP endpoint yet; the shape is validated
-  (`AnalysisRunRequest.to_json()` mirrors TEPP's published JSON Schema
-  exactly, `additionalProperties: false` and all) so wiring in a real
-  transport is additive, not a rewrite.
+- **TEPP is a wire contract, not an invented score.** `tepp_client.py`
+  POSTs the published `AnalysisRunRequest` to
+  `{TEPP_BASE_URL}/v1/analysis-runs` when that URL is set. Empty or
+  failing TEPP returns a fail-closed envelope (`tepp_not_available`)
+  and an `outbox:tepp` Valkey row (ADR 0022 / 0023). The envelope has
+  no theta.
 - **RankWeave is an in-process library, not an HTTP host.**
   `rankweave_client.py`'s default transport raises
   `RankWeaveNotAvailable`. `GET /api/rankings` then returns

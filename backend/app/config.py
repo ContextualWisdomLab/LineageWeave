@@ -52,6 +52,9 @@ class Settings:
     # RankWeaveNotAvailable -- never invent a fused score. Default false
     # uses the in-process library already required by reconstruct.py.
     rankweave_disabled: bool
+    # Target TEPP HTTP root (ADR 0022). Empty = crate-only default
+    # transport; submit stays fail-closed and never invents a theta.
+    tepp_base_url: str
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -88,4 +91,5 @@ def load_settings() -> Settings:
         .strip()
         .lower()
         in {"1", "true", "yes", "on"},
+        tepp_base_url=os.environ.get("TEPP_BASE_URL", ""),
     )

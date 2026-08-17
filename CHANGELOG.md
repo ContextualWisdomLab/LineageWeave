@@ -4,6 +4,19 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.79.0] - 2026-08-17
+
+### Added
+
+- TEPP HTTP port and a fail-closed submit envelope (ADR 0022 / 0023).
+  After `make seed`, Period reports shows the last Valkey outbox
+  row: TEPP is not available and no score was invented. post_admin
+  can Request TEPP measurement; LineageWeave POSTs the published
+  `AnalysisRunRequest` to `TEPP_BASE_URL/v1/analysis-runs` when that
+  URL is set, otherwise the same fail-closed envelope. Thetas still
+  come only from TEPP or from `calibrate_period_report` on the IRT
+  panel -- never copied into the TEPP envelope.
+
 ## [0.75.0] - 2026-08-17
 
 ### Added

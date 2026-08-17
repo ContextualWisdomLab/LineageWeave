@@ -97,3 +97,10 @@ pnpm run lint && pnpm run test && pnpm run build
 Do not weaken, skip, or `continue-on-error` a failing check -- fix the
 underlying cause or, for a genuine false positive in a third-party scanner,
 add a narrow, documented suppression referencing the specific finding.
+
+## TEPP measurement
+
+TEPP thetas come only from TEPP. `TeppClient.submit_fail_closed` and
+`outbox:tepp` never store a score. Empty `TEPP_BASE_URL` is
+`tepp_not_available`, not a guessed number. Do not copy IRT period-report
+θ into a TEPP envelope.

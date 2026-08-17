@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
+from lineageweave.fail_closed import OUTCOME_TEPP_NOT_AVAILABLE
+from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable, submit_fail_closed
 
 
 def _sample_request() -> AnalysisRunRequest:
@@ -49,3 +50,10 @@ def test_custom_transport_receives_the_exact_wire_payload() -> None:
     assert result == {"status": "accepted"}
     assert received["contract_version"] == 1
     assert received["snapshot_id"] == "demo-snapshot-1"
+
+
+def test_submit_fail_closed_has_no_theta() -> None:
+    payload = submit_fail_closed(TeppClient(), _sample_request()).to_json()
+    assert payload["outcome_code"] == OUTCOME_TEPP_NOT_AVAILABLE
+    assert "theta" not in payload
+    assert "invented" in payload["next_action"].lower()

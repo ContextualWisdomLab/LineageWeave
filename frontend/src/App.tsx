@@ -28,8 +28,10 @@ import {
   fetchRankings,
   fetchRelatedEntity,
   fetchRelatedKeymen,
+  fetchTeppOutbox,
   rebuildLineage,
   rebuildPeriodReports,
+  submitTeppAnalysisRun,
   updateTicketStatus,
   verifyPostRelations,
   type ActivityEvent,
@@ -52,6 +54,7 @@ import {
   type PostSummary,
   type RankingList,
   type RelatedNode,
+  type TeppOutboxEvent,
   type VocEvidence,
 } from "./api";
 import { LineageDag } from "./LineageDag";
@@ -1435,8 +1438,10 @@ function ReportsPanel({
   const [payload, setPayload] = useState<PeriodReports | null>(null);
   const [index, setIndex] = useState<PeriodReportIndex | null>(null);
   const [comparison, setComparison] = useState<PeriodComparison | null>(null);
+  const [teppOutbox, setTeppOutbox] = useState<TeppOutboxEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [rebuilding, setRebuilding] = useState(false);
+  const [requestingTepp, setRequestingTepp] = useState(false);
 
   const groupingLabels: Record<string, string> = {
     process_unit: "Process unit",
@@ -1450,11 +1455,13 @@ function ReportsPanel({
       fetchPeriodReports(accessToken, grouping, period),
       fetchPeriodReportIndex(accessToken, grouping),
       fetchPeriodComparison(accessToken, period),
+      fetchTeppOutbox(accessToken),
     ])
-      .then(([reports, periods, compared]) => {
+      .then(([reports, periods, compared, tepp]) => {
         setPayload(reports);
         setIndex(periods);
         setComparison(compared);
+        setTeppOutbox(tepp.events);
       })
       .catch((err) => setError(String(err)));
   }, [accessToken, grouping, period]);
@@ -1464,18 +1471,33 @@ function ReportsPanel({
     setError(null);
     try {
       await rebuildPeriodReports(accessToken, grouping, period);
-      const [reports, periods, compared] = await Promise.all([
+      const [reports, periods, compared, tepp] = await Promise.all([
         fetchPeriodReports(accessToken, grouping, period),
         fetchPeriodReportIndex(accessToken, grouping),
         fetchPeriodComparison(accessToken, period),
+        fetchTeppOutbox(accessToken),
       ]);
       setPayload(reports);
       setIndex(periods);
       setComparison(compared);
+      setTeppOutbox(tepp.events);
     } catch (err) {
       setError(String(err));
     } finally {
       setRebuilding(false);
+    }
+  }
+
+  async function handleRequestTepp() {
+    setRequestingTepp(true);
+    setError(null);
+    try {
+      await submitTeppAnalysisRun(accessToken, `${grouping}:${period}`, period);
+      setTeppOutbox((await fetchTeppOutbox(accessToken)).events);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setRequestingTepp(false);
     }
   }
 
@@ -1488,7 +1510,17 @@ function ReportsPanel({
             {rebuilding ? "Calibrating..." : "Rebuild report"}
           </button>
         )}
+        {canRebuild && (
+          <button onClick={handleRequestTepp} disabled={requestingTepp} aria-label="Request TEPP measurement">
+            {requestingTepp ? "Submitting TEPP..." : "Request TEPP measurement"}
+          </button>
+        )}
       </div>
+      {teppOutbox[0] && (
+        <p className="popup-placeholder" aria-label="TEPP submit outcome">
+          TEPP {teppOutbox[0].outcome_code.replace(/_/g, " ")}: {teppOutbox[0].next_action}
+        </p>
+      )}
       <div className="chat-input-row">
         <label>
           Grouping

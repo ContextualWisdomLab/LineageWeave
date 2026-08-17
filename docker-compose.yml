@@ -105,6 +105,8 @@ services:
       ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}
       VISION_MODEL: ${VISION_MODEL:-}
       SEARXNG_BASE_URL: http://searxng:8080
+      # Empty = TEPP submit stays fail-closed (ADR 0022). Never invents a theta.
+      TEPP_BASE_URL: ${TEPP_BASE_URL:-}
     ports:
       - "${BACKEND_PORT:-18420}:8000"
     depends_on:

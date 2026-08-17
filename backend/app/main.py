@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from typing import Any
+from uuid import uuid4
 
 import asyncpg
 import redis.asyncio as redis
@@ -55,6 +56,7 @@ from lineageweave.post_evaluation import (
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
 from lineageweave.rankweave_client import build_rankweave_client
+from lineageweave.tepp_client import AnalysisRunRequest, client_from_base_url, submit_fail_closed
 
 from backend.app.activity_stream import (
     create_valkey_client,
@@ -83,6 +85,7 @@ from backend.app.report_ingestion import (
     parse_period_code,
     rebuild_period_reports,
 )
+from backend.app.tepp_outbox import list_tepp_outbox, publish_tepp_outbox
 from backend.app.relation_verification_ingestion import verify_post_relations
 from backend.app.issue_ticket_ingestion import (
     create_ticket,
@@ -1150,3 +1153,57 @@ async def read_rankings(
     return _rankweave_client().as_api_payload(
         posts, can_see_post=lambda _row: True
     )
+class TeppAnalysisRunRequest(BaseModel):
+    snapshot_id: str
+    knowledge_cutoff: str
+    output_profile: str = "graphml"
+    idempotency_key: str | None = None
+    model_contract_version: str = "v1"
+
+
+def _tenant_workspace_id(account: CurrentAccount) -> str:
+    """Stable tenant identity from an affiliated corp, never a guessed score."""
+    if account.corporate_entity_ids:
+        return sorted(account.corporate_entity_ids)[0]
+    return account.user_account_id
+
+
+@app.get("/api/tepp/outbox")
+async def read_tepp_outbox(
+    account: CurrentAccount = Depends(get_current_account),
+    valkey: redis.Redis = Depends(get_valkey),
+) -> dict[str, Any]:
+    """Recent TEPP submit envelopes. post_read. No theta is stored."""
+    _require_post_read(account)
+    events = await list_tepp_outbox(valkey)
+    return {"events": events}
+
+
+@app.post("/api/tepp/analysis-runs")
+async def submit_tepp_analysis_run(
+    body: TeppAnalysisRunRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    valkey: redis.Redis = Depends(get_valkey),
+) -> dict[str, Any]:
+    """Submit TEPP's published request. post_admin. Fail-closed, no invented theta."""
+    _require_post_admin(account)
+    snapshot_id = body.snapshot_id.strip()
+    knowledge_cutoff = body.knowledge_cutoff.strip()
+    output_profile = body.output_profile.strip()
+    if not snapshot_id or not knowledge_cutoff or not output_profile:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "snapshot_id, knowledge_cutoff, and output_profile are required")
+    idempotency_key = (body.idempotency_key or "").strip() or str(uuid4())
+    request = AnalysisRunRequest(
+        idempotency_key=idempotency_key,
+        tenant_workspace_id=_tenant_workspace_id(account),
+        snapshot_id=snapshot_id,
+        knowledge_cutoff=knowledge_cutoff,
+        model_contract_version=(body.model_contract_version or "v1").strip() or "v1",
+        output_profile=output_profile,
+    )
+    envelope = submit_fail_closed(client_from_base_url(load_settings().tepp_base_url), request)
+    event_id = await publish_tepp_outbox(valkey, envelope, account.user_account_id)
+    payload = envelope.to_json()
+    payload["event_id"] = event_id
+    return payload
+

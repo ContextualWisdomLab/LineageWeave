@@ -8,18 +8,30 @@ database tables directly, and never present this repo's own heuristic
 lineage scores as TEPP's calibrated psychometric measurement (they answer
 different questions -- see docs/lineage-bi-research-notes.md).
 
-TEPP does not expose a live HTTP endpoint yet (as of this writing it is
-Rust-crate-only; see ``docs/API_CONTRACT.md`` in that repo). This client
-builds and validates the exact wire shape TEPP has published
-(``schemas/analysis_run_request_v1.json``) so wiring in a real transport is
-a one-line change (:meth:`TeppClient.__init__`'s ``transport`` argument) once
-that endpoint exists, instead of a redesign.
+TEPP does not expose a live HTTP endpoint on its protected main
+(Rust-crate-only as of this writing; see ``docs/API_CONTRACT.md``).
+This client builds the published request shape and, when
+``TEPP_BASE_URL`` is set, POSTs it to ``/v1/analysis-runs`` through
+``http_client.post_json``. A missing or failing service returns a
+fail-closed envelope -- never a fabricated theta.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Callable
+
+
+from .fail_closed import (
+    CHANNEL_TEPP,
+    OUTCOME_ACCEPTED,
+    OUTCOME_TEPP_NOT_AVAILABLE,
+    OUTCOME_TEPP_TRANSPORT_FAILED,
+    FailClosedEnvelope,
+    tepp_accepted_action,
+    tepp_transport_failed_action,
+    tepp_unavailable_action,
+)
 
 
 class TeppNotAvailable(RuntimeError):
@@ -29,8 +41,73 @@ class TeppNotAvailable(RuntimeError):
 def _no_transport(request: dict[str, Any]) -> dict[str, Any]:
     raise TeppNotAvailable(
         "TEPP has no live HTTP endpoint yet (Rust-crate-only as of this writing). "
-        "Pass a transport= callable to TeppClient once one exists, or consume TEPP "
-        "as a Rust crate directly per its own docs/API_CONTRACT.md."
+        "Pass a transport= callable to TeppClient, or set TEPP_BASE_URL."
+    )
+
+
+def http_tepp_transport(base_url: str, *, timeout: float = 10.0) -> Callable[[dict[str, Any]], dict[str, Any]]:
+    """POST the published request to TEPP's target ``/v1/analysis-runs``.
+
+    ``http_client.post_json`` allowlists ``http``/``https`` and never
+    opens ``file://``. A non-success HTTP status becomes
+    :class:`TeppNotAvailable` so callers stay fail-closed.
+    """
+    root = base_url.rstrip("/")
+
+    def send(payload: dict[str, Any]) -> dict[str, Any]:
+        from .http_client import HttpClientError, post_json
+
+        try:
+            return post_json(
+                f"{root}/v1/analysis-runs",
+                payload,
+                headers={"accept": "application/json"},
+                timeout=timeout,
+            )
+        except (HttpClientError, ValueError, OSError) as exc:
+            raise TeppNotAvailable(str(exc)) from exc
+
+    return send
+
+
+def client_from_base_url(base_url: str | None) -> TeppClient:
+    """HTTP client when ``base_url`` is set; otherwise the crate-only default."""
+    if base_url and base_url.strip():
+        return TeppClient(transport=http_tepp_transport(base_url.strip()))
+    return TeppClient()
+
+
+def submit_fail_closed(client: TeppClient, request: AnalysisRunRequest) -> FailClosedEnvelope:
+    """Submit a run and always return an envelope. Never invent a theta."""
+    try:
+        accepted = client.submit_analysis_run(request)
+    except TeppNotAvailable:
+        return FailClosedEnvelope(
+            channel_code=CHANNEL_TEPP,
+            outcome_code=OUTCOME_TEPP_NOT_AVAILABLE,
+            next_action=tepp_unavailable_action(),
+            request=request.to_json(),
+        )
+    except Exception:
+        return FailClosedEnvelope(
+            channel_code=CHANNEL_TEPP,
+            outcome_code=OUTCOME_TEPP_TRANSPORT_FAILED,
+            next_action=tepp_transport_failed_action(),
+            request=request.to_json(),
+        )
+    if not isinstance(accepted, dict):
+        return FailClosedEnvelope(
+            channel_code=CHANNEL_TEPP,
+            outcome_code=OUTCOME_TEPP_TRANSPORT_FAILED,
+            next_action=tepp_transport_failed_action(),
+            request=request.to_json(),
+        )
+    return FailClosedEnvelope(
+        channel_code=CHANNEL_TEPP,
+        outcome_code=OUTCOME_ACCEPTED,
+        next_action=tepp_accepted_action(),
+        request=request.to_json(),
+        accepted=accepted,
     )
 
 
