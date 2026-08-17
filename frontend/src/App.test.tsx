@@ -2266,6 +2266,16 @@ describe("App, authenticated", () => {
         screen.getAllByRole("heading", { name: "Event Lineage" }).length,
       ).toBeGreaterThanOrEqual(2);
       expect(document.getElementById("post-event-lineage")).toHaveFocus();
+      const popup = document.querySelector(".popup-panel");
+      expect(popup).not.toBeNull();
+      expect(within(popup as HTMLElement).getByLabelText("Open post: Public post")).toHaveAttribute(
+        "aria-current",
+        "true",
+      );
+      const homeNode = screen
+        .getAllByLabelText("Open post: Public post")
+        .find((node) => !popup?.contains(node));
+      expect(homeNode).not.toHaveAttribute("aria-current");
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
     }

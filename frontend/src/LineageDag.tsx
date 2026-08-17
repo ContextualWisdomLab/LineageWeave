@@ -8,9 +8,11 @@ function truncateLabel(label: string): string {
 export function LineageDag({
   graph,
   onSelectPost,
+  currentPostId,
 }: {
   graph: LineageGraph;
   onSelectPost: (postId: string) => void;
+  currentPostId?: string;
 }) {
   const groups = layoutLineageDag(graph);
   if (graph.nodes.length === 0) {
@@ -50,6 +52,7 @@ export function LineageDag({
               })}
               {group.nodes.map((node) => {
                 const kind = node.is_branch_point ? "branch" : node.is_root ? "root" : "node";
+                const isCurrent = node.id === currentPostId;
                 return (
                   <g
                     key={node.id}
@@ -58,6 +61,7 @@ export function LineageDag({
                     role="button"
                     tabIndex={0}
                     aria-label={`Open post: ${node.label}`}
+                    aria-current={isCurrent ? "true" : undefined}
                     onClick={() => onSelectPost(node.id)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
