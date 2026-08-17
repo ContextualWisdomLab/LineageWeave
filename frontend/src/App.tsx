@@ -219,6 +219,17 @@ function ChatPanel({
           {firstAskNextAction(exchanges[0].question_text)}
         </p>
       ) : null}
+      {nameFirstAsk && exchanges[0] ? (
+        <div key={`seeded-${exchanges[0].question_text}`} className="chat-answer">
+          <p className="chat-question">{exchanges[0].question_text}</p>
+          <p>{exchanges[0].answer_text}</p>
+          <ChatCitations
+            citedPosts={exchanges[0].cited_posts}
+            citedPostIds={exchanges[0].cited_post_ids}
+            onOpenEvidence={setEvidencePostId}
+          />
+        </div>
+      ) : null}
       {!seededOnly && (
         <div className="chat-input-row">
           <input
@@ -260,7 +271,12 @@ function ChatPanel({
         </div>
       )}
       {error && <p className="error">{error}</p>}
-      {exchanges.map((exchange) => (
+      {exchanges
+        .filter(
+          (exchange) =>
+            !(nameFirstAsk && exchange.question_text === exchanges[0]?.question_text),
+        )
+        .map((exchange) => (
         <div key={`seeded-${exchange.question_text}`} className="chat-answer">
           <p className="chat-question">{exchange.question_text}</p>
           <p>{exchange.answer_text}</p>
