@@ -309,6 +309,24 @@ def seed(
                 "updated_at = '2026-01-10T12:00:00Z' "
                 "where post_title = 'Demo private post'"
             )
+            # #110 counter-example: a later own-corp public post stays off
+            # the January 12 run list (created_at after knowledge_cutoff).
+            late_demo_post_created_at = "2026-01-13T09:00:00Z"
+            cur.execute("select post_id from source_post where post_title = 'Late Demo public post'")
+            if cur.fetchone() is None:
+                cur.execute(
+                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at, updated_at) "
+                    "values (%s, %s, %s, 'Late Demo public post', "
+                    "'Written after the Demo Corp lineage-run knowledge cutoff.', "
+                    "'voc', 'public', %s, %s)",
+                    (
+                        account_ids["demo.analyst"],
+                        corporate_entity_id,
+                        process_units["DEMO-PU-A"],
+                        late_demo_post_created_at,
+                        late_demo_post_created_at,
+                    ),
+                )
             cur.execute(
                 "insert into post_counterparty_entity (post_id, counterparty_entity_name, relationship_type_code) "
                 "values (%s, 'Northridge Grid', 'rel_voc'), (%s, 'Demo Corp', 'rel_voc') "

@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.1] - 2026-08-17
+
+### Added
+
+- `make seed` inserts Late Demo public post (2026-01-13) so the
+  January 12 Demo Corp run's knowledge cutoff is falsifiable: Demo
+  public post still opens; Late Demo does not. The cutoff filter
+  itself already lives on this stack (ADR 0016). TEPP seed already
+  landed through `tepp_client` (#118).
+
 ## [2.9.0] - 2026-08-17
 
 ### Added

@@ -45,8 +45,9 @@ run.
 ## Consequences
 
 - After `make seed`, the Demo Corp lineage run lists Demo public post
-  and other in-cutoff Demo Corp titles. The later fixture account-review
-  post (2026-02-10) does not appear.
+  and other in-cutoff Demo Corp titles. Late Demo public post
+  (2026-01-13) and the later fixture account-review post (2026-02-10)
+  do not appear.
 - Open the run: Demo public post is marked updated after cutoff
   (`updated_at` 2026-01-13). Demo private post is not.
 - Open a marked title: the popup shows **Body this run knew** from
