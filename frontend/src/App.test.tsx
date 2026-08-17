@@ -1475,6 +1475,7 @@ describe("App, authenticated", () => {
       screen.queryByRole("status", { name: "Event Lineage next action" }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Keyman next action" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Related to Ada West")).not.toBeInTheDocument();
     const popup = document.querySelector(".popup-panel");
     expect(popup).not.toBeNull();
     const evaluation = within(popup as HTMLElement).getByRole("heading", {
@@ -2314,12 +2315,22 @@ describe("App, authenticated", () => {
       expect(keyman.compareDocumentPosition(evaluation) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
       const keymanNext = await screen.findByRole("status", { name: "Keyman next action" });
       expect(keymanNext).toHaveTextContent("Ada West is the first Keyman. Read that person next.");
+      const related = await within(popup as HTMLElement).findByRole("heading", {
+        name: "Related to Ada West",
+      });
+      expect(within(related.closest(".related-keymen") as HTMLElement).getByText(/Priya Nair/)).toBeInTheDocument();
+      expect(
+        within(popup as HTMLElement).getByRole("button", { name: "Related nodes for Ada West" }),
+      ).toHaveAttribute("aria-current", "true");
       expect(
         evaluation.compareDocumentPosition(keymanNext) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).not.toBe(0);
-      expect(
-        keymanNext.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING,
-      ).not.toBe(0);
+      expect(keymanNext.compareDocumentPosition(related) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
+        0,
+      );
+      expect(related.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
+        0,
+      );
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
     }
@@ -2590,6 +2601,7 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("status", { name: "Keyman next action" })).toHaveTextContent(
       "Ada West is the first Keyman. Read that person next.",
     );
+    expect(await screen.findByRole("heading", { name: "Related to Ada West" })).toBeInTheDocument();
   });
 
   it("lets post_admin rebuild the period report", async () => {
