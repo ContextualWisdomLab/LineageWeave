@@ -568,6 +568,7 @@ function KeymanPanel({
   focusEntity,
   focusTeam,
   landFirstKeyman,
+  landFirstRelated,
   afterList,
 }: {
   postId: string;
@@ -580,10 +581,13 @@ function KeymanPanel({
   focusEntity?: { entityId: string; entityName: string } | null;
   focusTeam?: { teamId: string; teamName: string } | null;
   landFirstKeyman?: boolean;
+  landFirstRelated?: boolean;
   afterList?: ReactNode;
 }) {
   const [related, setRelated] = useState<RelatedNode[] | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [landedRelated, setLandedRelated] = useState<RelatedNode[] | null>(null);
+  const [landedRelatedName, setLandedRelatedName] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orchestratorOff, setOrchestratorOff] = useState(false);
@@ -646,6 +650,32 @@ function KeymanPanel({
         if (requestId === relatedRequest.current) setRelated([]);
       });
   }, [accessToken, landFirstKeyman, keymen, selectedName]);
+
+  useEffect(() => {
+    if (!landFirstRelated) {
+      setLandedRelatedName(null);
+      setLandedRelated(null);
+      return;
+    }
+    const first = related?.[0];
+    if (!first || first.node_type_code !== NODE_PERSON) {
+      return;
+    }
+    const name = first.label ?? first.node_id;
+    let cancelled = false;
+    setLandedRelatedName(name);
+    setLandedRelated(null);
+    fetchRelatedKeymen(accessToken, first.node_id)
+      .then((result) => {
+        if (!cancelled) setLandedRelated(result.related);
+      })
+      .catch(() => {
+        if (!cancelled) setLandedRelated([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, landFirstRelated, related]);
 
   useEffect(() => {
     if (!focusPerson) return;
@@ -742,6 +772,11 @@ function KeymanPanel({
                     <button
                       className="keyman-select"
                       aria-label={`Related nodes for ${caption}`}
+                      aria-current={
+                        landFirstRelated && related[0]?.node_id === node.node_id
+                          ? "true"
+                          : undefined
+                      }
                       onClick={() => handleSelect(node.node_id, node.label ?? node.node_id)}
                     >
                       {caption}
@@ -855,6 +890,24 @@ function KeymanPanel({
         <p className="post-meta" role="status" aria-label="Related next action">
           {firstRelatedNextAction(related[0].label ?? related[0].node_id)}
         </p>
+      ) : null}
+      {afterList && landFirstRelated && landedRelatedName ? (
+        <div className="related-keymen">
+          <h4>Related to {landedRelatedName}</h4>
+          {landedRelated === null ? (
+            <p>Loading related nodes...</p>
+          ) : landedRelated.length === 0 ? (
+            <p className="popup-placeholder">No related nodes in the visible graph.</p>
+          ) : (
+            <ul>
+              {landedRelated.map((node) => (
+                <li key={`${node.node_type_code}:${node.node_id}`}>
+                  {relatedNodeCaption(node)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       ) : null}
     </>
   );
@@ -1465,6 +1518,7 @@ function PostDetailPopup({
                 focusEntity={focusEntity}
                 focusTeam={focusTeam}
                 landFirstKeyman
+                landFirstRelated
                 afterList={
                   <>
                     <EvaluationPanel

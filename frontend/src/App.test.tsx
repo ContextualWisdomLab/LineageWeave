@@ -1477,6 +1477,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("status", { name: "Keyman next action" })).not.toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "Related next action" })).not.toBeInTheDocument();
     expect(screen.queryByText("Related to Ada West")).not.toBeInTheDocument();
+    expect(screen.queryByText("Related to Priya Nair")).not.toBeInTheDocument();
     const popup = document.querySelector(".popup-panel");
     expect(popup).not.toBeNull();
     const evaluation = within(popup as HTMLElement).getByRole("heading", {
@@ -2333,10 +2334,24 @@ describe("App, authenticated", () => {
       expect(relatedNext).toHaveTextContent(
         "Priya Nair is the first related node. Read that person next.",
       );
+      expect(
+        within(popup as HTMLElement).getByRole("button", {
+          name: "Related nodes for Priya Nair (Counterparty)",
+        }),
+      ).toHaveAttribute("aria-current", "true");
+      const landedRelated = await within(popup as HTMLElement).findByRole("heading", {
+        name: "Related to Priya Nair",
+      });
+      expect(
+        within(landedRelated.closest(".related-keymen") as HTMLElement).getByText(/Ada West/),
+      ).toBeInTheDocument();
       expect(related.compareDocumentPosition(relatedNext) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
         0,
       );
-      expect(relatedNext.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
+      expect(
+        relatedNext.compareDocumentPosition(landedRelated) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+      expect(landedRelated.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
         0,
       );
     } finally {
@@ -2613,6 +2628,7 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("status", { name: "Related next action" })).toHaveTextContent(
       "Priya Nair is the first related node. Read that person next.",
     );
+    expect(await screen.findByRole("heading", { name: "Related to Priya Nair" })).toBeInTheDocument();
   });
 
   it("lets post_admin rebuild the period report", async () => {

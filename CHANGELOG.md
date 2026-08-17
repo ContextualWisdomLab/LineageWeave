@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members now lands
+  Priya Nair related nodes under the first-related next action, ahead
+  of Affiliate tree. Home list opens still wait for a related click.
+  No TEPP theta is invented. No cutoff body is invented (ADR 0016).
+
 ## [1.9.0] - 2026-08-17
 
 ### Added
