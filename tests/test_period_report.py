@@ -13,9 +13,12 @@ import pytest
 from lineageweave.period_report import (
     LINK_METHOD_FIPC,
     LINK_METHOD_FREE,
+    PAIR_KIND_CLOSEST,
+    PAIR_KIND_FARTHEST,
     ItemBank,
     assemble_response_matrix,
     calibrate_period_report,
+    leftover_pairs_from_residual,
     link_or_calibrate_period_report,
     rank_items_by_information,
     score_groups_on_shared_metric,
@@ -196,6 +199,74 @@ def test_cat_selects_hard_item_at_high_theta() -> None:
     assert high[0].information > high[1].information
     assert low[0].information > low[1].information
     assert high[0].item_code != low[0].item_code
+
+
+def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
+    """A rank-1 leftover spike puts the aligned cell closest and the opposed cell farthest."""
+    post_ids = ["post-a", "post-b", "post-c"]
+    item_codes = ("item_near", "item_mid", "item_far")
+    matrix = np.array(
+        [
+            [2.0, 0.0, -2.0],
+            [0.0, 0.0, 0.0],
+            [-2.0, 0.0, 2.0],
+        ],
+        dtype=np.float64,
+    )
+    expected = np.zeros_like(matrix)
+    pairs = leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)
+    assert [pair.pair_kind for pair in pairs] == [PAIR_KIND_CLOSEST, PAIR_KIND_FARTHEST]
+    closest, farthest = pairs
+    assert closest.leftover_distance < farthest.leftover_distance
+    assert closest.leftover_distance == pytest.approx(0.0, abs=1e-9)
+    assert (farthest.post_id, farthest.criterion_code) in {
+        ("post-a", "item_far"),
+        ("post-c", "item_near"),
+    }
+    assert farthest.leftover_residual == pytest.approx(-2.0)
+    assert farthest.leftover_distance == pytest.approx(2.0 * np.sqrt(2.0), rel=1e-6)
+
+
+def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
+    post_ids = ["alpha-post", "beta-post"]
+    item_codes = ("item_one", "item_two")
+    matrix = np.ones((2, 2), dtype=np.float64)
+    expected = np.ones((2, 2), dtype=np.float64)
+    pairs = leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)
+    assert [pair.pair_kind for pair in pairs] == [PAIR_KIND_CLOSEST, PAIR_KIND_FARTHEST]
+    assert pairs[0].leftover_distance == pytest.approx(0.0)
+    assert pairs[1].leftover_distance == pytest.approx(0.0)
+    assert pairs[0].post_id == "alpha-post"
+    assert pairs[0].criterion_code == "item_one"
+    assert pairs[1].post_id == "beta-post"
+    assert pairs[1].criterion_code == "item_two"
+
+
+def test_calibrated_report_attaches_leftover_pairs() -> None:
+    items = CRITERION_CODES
+    high_ids = [f"high-{idx}" for idx in range(4)]
+    low_ids = [f"low-{idx}" for idx in range(4)]
+    rows: list[tuple[str, str, int]] = []
+    for post_id in high_ids:
+        for item in items:
+            rows.append((post_id, item, IRT_CATEGORY_COUNT - 1))
+    for post_id in low_ids:
+        for item in items:
+            category = 0 if item != "sales_lead_specificity" else IRT_CATEGORY_COUNT - 1
+            rows.append((post_id, item, category))
+    report = calibrate_period_report(high_ids + low_ids, rows)
+    assert len(report.leftover_pairs) == 2
+    kinds = {pair.pair_kind for pair in report.leftover_pairs}
+    assert kinds == {PAIR_KIND_CLOSEST, PAIR_KIND_FARTHEST}
+    by_kind = {pair.pair_kind: pair for pair in report.leftover_pairs}
+    assert by_kind[PAIR_KIND_CLOSEST].leftover_distance <= by_kind[PAIR_KIND_FARTHEST].leftover_distance
+    member_ids = {member.post_id for member in report.member_scores}
+    for pair in report.leftover_pairs:
+        assert pair.post_id in member_ids
+        assert pair.criterion_code in items
+        assert pair.leftover_distance >= 0.0
+        assert np.isfinite(pair.leftover_residual)
+
 
 
 def test_shared_metric_attaches_cat_ranking() -> None:

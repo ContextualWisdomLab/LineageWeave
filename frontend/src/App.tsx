@@ -25,6 +25,7 @@ import {
   fetchPeriodReportIndex,
   fetchPeriodReports,
   fetchPosts,
+  fetchRankings,
   fetchRelatedEntity,
   fetchRelatedKeymen,
   rebuildLineage,
@@ -49,6 +50,7 @@ import {
   type PeriodReports,
   type PostLineage,
   type PostSummary,
+  type RankingList,
   type RelatedNode,
   type VocEvidence,
 } from "./api";
@@ -1313,6 +1315,64 @@ function PostDetailPopup({
   );
 }
 
+function RankingsPanel({
+  accessToken,
+  onSelectPost,
+}: {
+  accessToken: string;
+  onSelectPost: (postId: string) => void;
+}) {
+  const [ranking, setRanking] = useState<RankingList | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setError(null);
+    fetchRankings(accessToken)
+      .then(setRanking)
+      .catch((err) => setError(String(err)));
+  }, [accessToken]);
+
+  return (
+    <section className="popup-section lineage-home" aria-label="Rankings">
+      <div className="lineage-home-header">
+        <h2>Rankings</h2>
+        {ranking && (
+          <span className="post-badge">
+            {ranking.status === "accepted"
+              ? "rankweave"
+              : `rankweave · ${ranking.status_reason ?? "unavailable"}`}
+          </span>
+        )}
+      </div>
+      {error && <p className="error">{error}</p>}
+      {ranking === null && !error && <p>Loading rankings...</p>}
+      {ranking && ranking.status === "unavailable" && (
+        <p className="popup-placeholder">Rankings · RankWeave not available</p>
+      )}
+      {ranking && ranking.status === "accepted" && ranking.rankings.length === 0 && (
+        <p className="popup-placeholder">No fused rankings from RankWeave.</p>
+      )}
+      {ranking && ranking.rankings.length > 0 && (
+        <ul className="ticket-list" aria-label="Fused rankings">
+          {ranking.rankings.map((hit) => (
+            <li key={hit.post_id} className="ticket-list-item">
+              <button
+                className="post-list-item"
+                aria-label={`Open ranking: ${hit.post_title}`}
+                onClick={() => onSelectPost(hit.post_id)}
+              >
+                <span className="ticket-title">{hit.post_title}</span>
+                <span className="post-badge">Rankings · rankweave</span>
+                <span className="post-badge">rank {hit.fused_rank}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function CalendarPanel({
   accessToken,
   onSelectPost,
@@ -1529,6 +1589,37 @@ function ReportsPanel({
                   {report.selected_items[0].information.toFixed(2)}
                 </span>
               )}
+              {report.leftover_pairs && report.leftover_pairs.length > 0 && (
+                <ul className="ticket-list" aria-label="Leftover pairs">
+                  {report.leftover_pairs.map((pair) => {
+                    const kindLabel =
+                      pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover";
+                    const nextAction =
+                      pair.pair_kind === "farthest"
+                        ? "Open this post to read the criterion it sat farthest from after main effects."
+                        : "Open this post to read the criterion it sat closest to after main effects.";
+                    const criterion = criterionShortLabel(pair.criterion_code);
+                    return (
+                    <li
+                      key={`${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
+                      className="ticket-list-item"
+                    >
+                      <button
+                        className="post-list-item"
+                        aria-label={`Open leftover ${pair.pair_kind} pair: ${pair.post_title} · ${criterion}`}
+                        onClick={() => onSelectPost(pair.post_id)}
+                      >
+                        <span className="ticket-title">
+                          {kindLabel}: {pair.post_title} · {criterion}
+                        </span>
+                        <span className="post-badge">{nextAction}</span>
+                        <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
+                      </button>
+                    </li>
+                    );
+                  })}
+                </ul>
+              )}
               {report.members.length > 0 && (
                 <ul className="ticket-list">
                   {report.members.map((member) => (
@@ -1600,6 +1691,7 @@ function PostList({ accessToken }: { accessToken: string }) {
 
   return (
     <>
+      <RankingsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
       <section className="popup-section lineage-home">

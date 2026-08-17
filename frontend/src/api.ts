@@ -342,6 +342,15 @@ export interface SelectedReportItem {
   information: number;
 }
 
+export interface LeftoverPair {
+  pair_kind: "closest" | "farthest" | string;
+  post_id: string;
+  post_title: string;
+  criterion_code: string;
+  leftover_distance: number;
+  leftover_residual: number;
+}
+
 export interface PeriodGroupReport {
   grouping_key: string;
   selected_model: string;
@@ -355,6 +364,7 @@ export interface PeriodGroupReport {
   delta_mean_theta: number | null;
   members: ReportMember[];
   selected_items: SelectedReportItem[];
+  leftover_pairs: LeftoverPair[];
 }
 
 export interface PeriodReports {
@@ -491,4 +501,21 @@ export function deriveCommitment(accessToken: string, postId: string): Promise<D
 
 export function fetchCalendar(accessToken: string): Promise<{ commitments: CalendarEntry[] }> {
   return backendFetch("/api/calendar", accessToken);
+}
+
+export interface RankedPost {
+  post_id: string;
+  post_title: string;
+  fused_rank: number;
+}
+
+export interface RankingList {
+  port: string;
+  status: "accepted" | "unavailable";
+  status_reason: string | null;
+  rankings: RankedPost[];
+}
+
+export function fetchRankings(accessToken: string): Promise<RankingList> {
+  return backendFetch("/api/rankings", accessToken);
 }

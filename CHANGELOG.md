@@ -15,19 +15,15 @@ All notable changes to this project are documented here. Format follows
   an invented primary. Click a chip to continue the walk or open
   that post.
 
-## [0.75.0] - 2026-08-16
+## [0.75.0] - 2026-08-17
 
-### Changed
+### Added
 
-- Related-node person chips include the affiliation organization when
-  exactly one distinct identity is known. After `make seed`, walking
-  from Demo Corp shows "Ada West, Demo Corp (Our side)". Priya Nair
-  has two unresolved orgs (Northridge Grid and Northridge Holdings),
-  so the chip stays "Priya Nair (Counterparty)" -- a second org is
-  never collapsed into an invented primary. When the one identity is
-  a resolved `corporate_entity`, the catalog `entity_name` is shown
-  rather than the raw extraction string. A person with no affiliation
-  keeps the side-only caption.
+- Home Rankings panel fuses visible posts through `RankWeaveClient`
+  (ADR 0024). After login with the port disabled or the library
+  missing, Demo Analyst sees **Rankings · RankWeave not available**.
+  An accepted hit lists the title; click opens that post. A hidden
+  post is omitted. Never invent a fused score or a theta.
 
 ## [0.74.0] - 2026-08-16
 
@@ -59,6 +55,16 @@ All notable changes to this project are documented here. Format follows
   already had `person_side_code`; it now also carries
   `person_side_label` from `common_lookup_value`. The same caption is
   the button accessible name.
+
+## [0.71.2] - 2026-08-17
+
+### Added
+
+- Period reports now persist closest and farthest leftover
+  post–criterion pairs after the IRT main effects (Jeon leftover
+  map). After `make seed`, leftover pairs sit above the member
+  list; clicking a pair opens that post. A leftover pair for a
+  hidden post is omitted the same way a hidden member is.
 
 ## [0.71.0] - 2026-08-14
 
