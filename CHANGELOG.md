@@ -4,6 +4,14 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.87.0] - 2026-08-17
+
+### Added
+
+- Report members that are leftover pairs name the leftover criterion
+  (ADR 0028). After `make seed`, the leftover member reads
+  **Closest leftover · sales-lead** next to θ; click opens that post.
+
 ## [0.75.0] - 2026-08-17
 
 ### Added

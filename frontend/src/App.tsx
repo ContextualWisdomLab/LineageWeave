@@ -1620,15 +1620,42 @@ function ReportsPanel({
               )}
               {report.members.length > 0 && (
                 <ul className="ticket-list">
-                  {report.members.map((member) => (
+                  {report.members.map((member) => {
+                    const leftoverForMember = (report.leftover_pairs ?? []).filter(
+                      (pair) => pair.post_id === member.post_id,
+                    );
+                    const leftoverCaption = leftoverForMember
+                      .map((pair) => {
+                        const kindLabel =
+                          pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover";
+                        return `${kindLabel} · ${criterionShortLabel(pair.criterion_code)}`;
+                      })
+                      .join("; ");
+                    return (
                     <li key={member.post_id} className="ticket-list-item">
                       <button
                         className="post-list-item"
-                        aria-label={`Open report post: ${member.post_title}`}
+                        aria-label={
+                          leftoverCaption
+                            ? `Open report post: ${member.post_title} (${leftoverCaption})`
+                            : `Open report post: ${member.post_title}`
+                        }
                         onClick={() => onSelectPost(member.post_id)}
                       >
                         <span className="ticket-title">{member.post_title}</span>
                         <span className="post-badge">θ {member.theta_eap.toFixed(2)}</span>
+                        {leftoverForMember.map((pair) => {
+                          const kindLabel =
+                            pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover";
+                          return (
+                            <span
+                              key={`${pair.pair_kind}:${pair.criterion_code}`}
+                              className="post-badge"
+                            >
+                              {kindLabel} · {criterionShortLabel(pair.criterion_code)}
+                            </span>
+                          );
+                        })}
                         {member.ticket_title && (
                           <span className="post-badge">{member.ticket_title}</span>
                         )}
@@ -1642,7 +1669,8 @@ function ReportsPanel({
                         )}
                       </button>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               )}
             </li>

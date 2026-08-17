@@ -1365,7 +1365,14 @@ describe("App, authenticated", () => {
     );
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
+    expect(memberButton).toHaveTextContent("Closest leftover · sales-lead");
+    expect(memberButton).toHaveAccessibleName(
+      "Open report post: Public post (Closest leftover · sales-lead)",
+    );
     expect(closestPair.compareDocumentPosition(memberButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /open report post: specification revision requested/i }),
+    ).toHaveTextContent("Farthest leftover · negative");
     expect(
       screen.getByRole("button", { name: /open report post: specification revision requested/i }),
     ).toHaveTextContent("Send Westfield Power the revised specification");
