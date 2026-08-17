@@ -331,6 +331,8 @@ unresolved aliases of that same org collapse into it. Related-node
 organization chips use the
 entity-level label (`Demo Corp (Company)`), not `Organization`.
 Related-node post chips show the post title only, not `(Post)`.
+`RelatedNodeChip` plus `RelatedNodeChip.stories.tsx` are the
+repeating walk inventory (ADR 0014).
 
 `GET /api/posts` and `GET /api/posts/{post_id}` include
 `voc_type_label` / `visibility_label` from `common_lookup_value` so

@@ -54,6 +54,13 @@ import {
 } from "./api";
 import { LineageDag } from "./LineageDag";
 import { subgraphForPost } from "./lineageLayout";
+import { RelatedNodeChip } from "./RelatedNodeChip";
+import {
+  NODE_CORPORATE_ENTITY,
+  NODE_PERSON,
+  NODE_POST,
+  relatedNodeCaption,
+} from "./relatedNodeCaption";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -465,34 +472,6 @@ function VocEvidenceSection({
   );
 }
 
-const NODE_PERSON = "node_person";
-const NODE_POST = "node_post";
-const NODE_CORPORATE_ENTITY = "node_corporate_entity";
-
-function relatedNodeCaption(node: RelatedNode): string {
-  const name = node.label ?? node.node_id;
-  if (node.node_type_code === NODE_PERSON) {
-    const side = node.person_side_label?.trim() || node.person_side_code?.trim();
-    const org = node.affiliation_organization_name?.trim();
-    if (side && org) {
-      return `${name}, ${org} (${side})`;
-    }
-    if (side) {
-      return `${name} (${side})`;
-    }
-  }
-  if (node.node_type_code === NODE_CORPORATE_ENTITY) {
-    const level = node.entity_level_label?.trim() || node.entity_level_code?.trim();
-    if (level) {
-      return `${name} (${level})`;
-    }
-  }
-  if (node.node_type_code === NODE_POST) {
-    return name;
-  }
-  return `${name} (${node.ontology_label ?? node.node_type_code})`;
-}
-
 const VERIFICATION_BADGE: Record<string, string> = {
   verify_pending: "Not yet checked",
   verify_corroborated: "Corroborated",
@@ -701,48 +680,47 @@ function KeymanPanel({
           ) : (
             <ul>
               {related.map((node) => {
-                const caption = relatedNodeCaption(node);
                 if (node.node_type_code === NODE_POST && onSelectPost) {
                   return (
                     <li key={`${node.node_type_code}:${node.node_id}`}>
-                      <button
-                        className="keyman-select"
-                        aria-label={`Open related post: ${node.label ?? node.node_id}`}
-                        onClick={() => onSelectPost(node.node_id)}
-                      >
-                        {caption}
-                      </button>
+                      <RelatedNodeChip
+                        node={node}
+                        action="open_post"
+                        onSelect={(selected) => onSelectPost(selected.node_id)}
+                      />
                     </li>
                   );
                 }
                 if (node.node_type_code === NODE_PERSON) {
                   return (
                     <li key={`${node.node_type_code}:${node.node_id}`}>
-                      <button
-                        className="keyman-select"
-                        aria-label={`Related nodes for ${caption}`}
-                        onClick={() => handleSelect(node.node_id, node.label ?? node.node_id)}
-                      >
-                        {caption}
-                      </button>
+                      <RelatedNodeChip
+                        node={node}
+                        action="walk_person"
+                        onSelect={(selected) =>
+                          handleSelect(selected.node_id, selected.label ?? selected.node_id)
+                        }
+                      />
                     </li>
                   );
                 }
                 if (node.node_type_code === NODE_CORPORATE_ENTITY) {
                   return (
                     <li key={`${node.node_type_code}:${node.node_id}`}>
-                      <button
-                        className="keyman-select"
-                        aria-label={`Related nodes for ${caption}`}
-                        onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
-                      >
-                        {caption}
-                      </button>
+                      <RelatedNodeChip
+                        node={node}
+                        action="walk_entity"
+                        onSelect={(selected) =>
+                          handleSelectEntity(selected.node_id, selected.label ?? selected.node_id)
+                        }
+                      />
                     </li>
                   );
                 }
                 return (
-                  <li key={`${node.node_type_code}:${node.node_id}`}>{caption}</li>
+                  <li key={`${node.node_type_code}:${node.node_id}`}>
+                    {relatedNodeCaption(node)}
+                  </li>
                 );
               })}
             </ul>

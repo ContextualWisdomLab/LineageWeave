@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.76.0] - 2026-08-17
+
+### Changed
+
+- Related-node walk chips share `RelatedNodeChip` and a Storybook
+  inventory (ADR 0014). After seed, walking from Demo Corp still
+  shows "Ada West, Demo Corp (Our side)". Priya Nair stays
+  "Priya Nair (Counterparty)" — two orgs are never collapsed into
+  an invented primary. Click a chip to continue the walk or open
+  that post.
+
 ## [0.75.0] - 2026-08-16
 
 ### Changed
