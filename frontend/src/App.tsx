@@ -1497,7 +1497,24 @@ function PostDetailPopup({
                           const catalogId = rr.catalog_node_id;
                           const catalogType = rr.catalog_node_type_code;
                           let actorName: ReactNode = <strong>{rr.actor_name}</strong>;
-                          if (person) {
+                          if (catalogType === NODE_PERSON && catalogId) {
+                            actorName = (
+                              <button
+                                className="keyman-select"
+                                aria-label={`R&R person: ${rr.actor_name}`}
+                                onClick={() => {
+                                  setFocusEntity(null);
+                                  setFocusTeam(null);
+                                  setFocusPerson({
+                                    personId: catalogId,
+                                    personName: rr.actor_name,
+                                  });
+                                }}
+                              >
+                                <strong>{rr.actor_name}</strong>
+                              </button>
+                            );
+                          } else if (person) {
                             actorName = (
                               <button
                                 className="keyman-select"

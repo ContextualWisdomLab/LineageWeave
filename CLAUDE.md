@@ -13,7 +13,8 @@ export `analysis_run_retention_event`, delete those rows, and roll
 back 0020 then 0018. The published phrase is not a secret. Do not
 `DISABLE TRIGGER` as superuser. Do not grant the admin role or a
 retention grant to the application `DATABASE_URL` login. ADR 0019
-is the R&R catalog-id bind, not this purge.
+is the R&R catalog-id bind, not this purge. Person catalog identity
+on that role row is ADR 0027 (`cataloged_person_id`).
 
 ## Analysis-run seed (v0.96.0)
 
