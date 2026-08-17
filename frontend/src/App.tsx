@@ -930,6 +930,9 @@ function KeymanPanel({
           {relatedNodesCurrentNextAction(landedRelatedName)}
         </p>
       ) : null}
+      {afterList && landFirstRelated && landedRelatedName && landedRelated !== null ? (
+        <ChatPanel postId={postId} accessToken={accessToken} />
+      ) : null}
     </>
   );
 }
@@ -1631,7 +1634,9 @@ function PostDetailPopup({
 
             <ActivityPanel postId={postId} accessToken={accessToken} />
 
-            <ChatPanel postId={postId} accessToken={accessToken} />
+            {!focusEventLineage && (
+              <ChatPanel postId={postId} accessToken={accessToken} />
+            )}
           </>
         )}
       </div>
