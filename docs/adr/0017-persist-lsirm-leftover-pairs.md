@@ -22,16 +22,23 @@ which pair is unexpectedly opposed?”
 
 After a real GRM/GPCM score, compute the residual matrix
 `R = Y − E[Y|θ, item]` from the already-fitted category
-probabilities. A Gabriel (1971) biplot of `R` supplies person
-positions `ξ` and item positions `ζ`. Persist exactly one `closest`
+probabilities. A Gabriel (1971) biplot of the **complete-case**
+submatrix of `R` supplies person positions `ξ` and item positions
+`ζ`. Missing response cells are excluded from the factorization;
+they are never filled with zero. Persist exactly one `closest`
 and one `farthest` observed cell per period report in
 `report_leftover_pair` (3NF, two-or-more-word `snake_case`).
 
-Cascade the rows with `report_period_score`. Do not store a second
-theta. Do not invent leftover numbers when the IRT matrix is
-unusable. A rank-0 residual still emits a stable pair so `make seed`
-is not empty; the stored distance is then zero, not a fabricated
-interaction.
+The biplot lives in `lineageweave/leftover_pairs.py` so leftover
+tests do not import `period_report` or `fast_mlsirm`.
+
+Cascade the rows with `report_period_score`. A leftover post must
+also be a `report_member_score` row, and the leftover criterion
+must be a `report_item_information` item on that same report.
+Do not store a second theta. Do not invent leftover numbers when
+the IRT matrix is unusable. A rank-0 residual still emits a
+stable pair so `make seed` is not empty; the stored distance is
+then zero, not a fabricated interaction.
 
 The UI contract is ADR 0018.
 

@@ -106,6 +106,23 @@ def test_migration_applies_cleanly(schema_db) -> None:
     assert expected <= tables
 
 
+def test_leftover_pair_references_member_and_item_rows(schema_db) -> None:
+    """A leftover pair cannot name a post or item from another report."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select confrelid::regclass::text
+            from pg_constraint
+            where conrelid = 'report_leftover_pair'::regclass and contype = 'f'
+            """
+        )
+        targets = {row[0] for row in cur.fetchall()}
+    assert "report_member_score" in targets
+    assert "report_item_information" in targets
+    assert "report_period_score" in targets
+
+
+
 def test_corporate_hierarchy_recursive_query_returns_correct_shape(schema_db) -> None:
     """The real product requirement: 'Acme Group -> Acme Electronics Korea
     -> Acme Electronics Gwangju Plant' must be walkable with one query,

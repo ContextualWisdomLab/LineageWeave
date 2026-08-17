@@ -10,9 +10,9 @@ All notable changes to this project are documented here. Format follows
 
 - Period reports now persist closest and farthest leftover
   post–criterion pairs after the IRT main effects (Jeon leftover
-  map). After `make seed`, closest and farthest leftover pairs sit
-  above the member list. Click a pair to open that post. A leftover
-  pair for a hidden post is omitted the same way a hidden member is.
+  map). After `make seed`, leftover pairs sit above the member
+  list; clicking a pair opens that post. A leftover pair for a
+  hidden post is omitted the same way a hidden member is.
 
 ## [0.71.0] - 2026-08-14
 

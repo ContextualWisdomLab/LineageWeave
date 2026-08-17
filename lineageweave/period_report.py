@@ -43,13 +43,13 @@ from fast_mlsirm import (
     validate_irt_response_matrix,
 )
 
+from .leftover_pairs import LeftoverPair, leftover_pairs_from_residual
+from .leftover_pairs import PAIR_KIND_CLOSEST as PAIR_KIND_CLOSEST
+from .leftover_pairs import PAIR_KIND_FARTHEST as PAIR_KIND_FARTHEST
 from .post_evaluation import CRITERION_CODES, IRT_CATEGORY_COUNT
 
 LINK_METHOD_FREE = "free"
 LINK_METHOD_FIPC = "fipc"
-PAIR_KIND_CLOSEST = "closest"
-PAIR_KIND_FARTHEST = "farthest"
-_LEFTOVER_SINGULAR_FLOOR = 1e-12
 
 
 @dataclass(frozen=True)
@@ -68,17 +68,6 @@ class SelectedItem:
     item_code: str
     information: float
     rank: int
-
-
-@dataclass(frozen=True)
-class LeftoverPair:
-    """One post–criterion pair on the leftover interaction map."""
-
-    pair_kind: str
-    post_id: str
-    criterion_code: str
-    leftover_distance: float
-    leftover_residual: float
 
 
 @dataclass(frozen=True)
@@ -254,82 +243,6 @@ def expected_category_matrix(matrix: np.ndarray, probs: np.ndarray) -> np.ndarra
     return np.where(np.isnan(matrix), np.nan, expected)
 
 
-def leftover_pairs_from_residual(
-    post_ids: list[str],
-    item_codes: tuple[str, ...],
-    matrix: np.ndarray,
-    expected: np.ndarray,
-) -> tuple[LeftoverPair, ...]:
-    """Closest and farthest leftover-map pairs from residual SVD biplot.
-
-    Jeon et al. (2021) leftover interaction is ``−γ‖ξ_p − ζ_i‖``. This
-    estimator places persons and items from the residual after IRT main
-    effects (Gabriel, 1971). Only observed cells become pairs. A rank-0
-    residual still emits a stable closest/farthest pair so seed is not
-    empty; it does not invent a leftover score.
-    """
-    if matrix.shape != (len(post_ids), len(item_codes)):
-        raise ValueError(
-            f"matrix shape {matrix.shape} does not match {len(post_ids)} posts × {len(item_codes)} items"
-        )
-    if expected.shape != matrix.shape:
-        raise ValueError(f"expected shape {expected.shape} does not match matrix {matrix.shape}")
-
-    residual = matrix.astype(np.float64) - expected.astype(np.float64)
-    observed: list[tuple[int, int]] = [
-        (person, item)
-        for person in range(matrix.shape[0])
-        for item in range(matrix.shape[1])
-        if not np.isnan(matrix[person, item]) and np.isfinite(residual[person, item])
-    ]
-    if not observed:
-        return ()
-
-    observed_values = np.asarray(
-        [residual[person, item] for person, item in observed], dtype=np.float64
-    )
-    center = float(np.mean(observed_values))
-    filled = np.zeros(matrix.shape, dtype=np.float64)
-    for person, item in observed:
-        filled[person, item] = residual[person, item] - center
-
-    person_pos, item_pos = _leftover_map_positions(filled)
-    candidates: list[tuple[float, str, str, float]] = []
-    for person, item in observed:
-        distance = float(np.linalg.norm(person_pos[person] - item_pos[item]))
-        if not np.isfinite(distance):
-            continue
-        candidates.append(
-            (
-                max(distance, 0.0),
-                post_ids[person],
-                item_codes[item],
-                float(residual[person, item]),
-            )
-        )
-    if not candidates:
-        return ()
-
-    closest = min(candidates, key=lambda row: (row[0], row[1], row[2]))
-    farthest = max(candidates, key=lambda row: (row[0], row[1], row[2]))
-    return (
-        LeftoverPair(
-            pair_kind=PAIR_KIND_CLOSEST,
-            post_id=closest[1],
-            criterion_code=closest[2],
-            leftover_distance=closest[0],
-            leftover_residual=closest[3],
-        ),
-        LeftoverPair(
-            pair_kind=PAIR_KIND_FARTHEST,
-            post_id=farthest[1],
-            criterion_code=farthest[2],
-            leftover_distance=farthest[0],
-            leftover_residual=farthest[3],
-        ),
-    )
-
-
 def leftover_pairs_for_fit(
     post_ids: list[str],
     item_codes: tuple[str, ...],
@@ -342,27 +255,6 @@ def leftover_pairs_for_fit(
     probs = _category_probabilities(model, theta, fit)
     expected = expected_category_matrix(matrix, probs)
     return leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)
-
-
-def _leftover_map_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Gabriel biplot coordinates; rank-0 residuals collapse to the origin."""
-    n_persons, n_items = filled.shape
-    if n_persons == 0 or n_items == 0 or not np.any(np.abs(filled) > _LEFTOVER_SINGULAR_FLOOR):
-        return (
-            np.zeros((n_persons, 1), dtype=np.float64),
-            np.zeros((n_items, 1), dtype=np.float64),
-        )
-    left, singular, right = np.linalg.svd(filled, full_matrices=False)
-    keep = singular > _LEFTOVER_SINGULAR_FLOOR
-    if not np.any(keep):
-        return (
-            np.zeros((n_persons, 1), dtype=np.float64),
-            np.zeros((n_items, 1), dtype=np.float64),
-        )
-    scale = np.sqrt(singular[keep])
-    person_pos = left[:, keep] * scale
-    item_pos = right[keep, :].T * scale
-    return person_pos, item_pos
 
 
 def _member_scores(post_ids: list[str], scores: dict[str, np.ndarray]) -> tuple[MemberScore, ...]:

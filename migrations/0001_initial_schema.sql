@@ -320,7 +320,9 @@ create table report_item_information (
 
 -- Leftover interaction map pairs after IRT main effects (ADR 0017).
 -- Closest / farthest post–criterion Euclidean distances on the residual
--- biplot (Jeon et al., 2021). Cascade with the period score.
+-- biplot (Jeon et al., 2021). Cascade with the period score. The pair
+-- post must be a member of this report; the criterion must be a CAT
+-- item on this report.
 create table report_leftover_pair (
     grouping_kind text not null,
     grouping_key text not null,
@@ -334,6 +336,12 @@ create table report_leftover_pair (
     primary key (grouping_kind, grouping_key, period_code, rubric_version, pair_kind),
     foreign key (grouping_kind, grouping_key, period_code, rubric_version)
         references report_period_score (grouping_kind, grouping_key, period_code, rubric_version)
+        on delete cascade,
+    foreign key (grouping_kind, grouping_key, period_code, rubric_version, post_id)
+        references report_member_score (grouping_kind, grouping_key, period_code, rubric_version, post_id)
+        on delete cascade,
+    foreign key (grouping_kind, grouping_key, period_code, rubric_version, criterion_code)
+        references report_item_information (grouping_kind, grouping_key, period_code, rubric_version, item_code)
         on delete cascade,
     check (pair_kind in ('closest', 'farthest')),
     check (leftover_distance >= 0)
