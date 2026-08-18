@@ -80,8 +80,8 @@ flowchart LR
 | `ontology.py` | Loads `docs/ontology/lineageweave-kg.ttl`, the formal OWL 2/RDFS/SKOS vocabulary for the Knowledge Graph's node/edge types (ADR 0004) |
 | `period_report.py` | Fit GRM/GPCM on persisted IRT rows, FIPC-select, EAP-score a period (ADR 0003 slice 3; Bock & Mislevy, 1982) |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
-| `server.py` | Stdlib HTTP server: `GET /api/lineage` (JSON graph) + static viewer |
-| `web/index.html` | Self-contained SVG DAG viewer, no build step, no external script dependency |
+| `server.py` | Legacy stdlib HTTP server for the library-level synthetic fixture demo; production uses FastAPI/PostgreSQL |
+| `web/index.html` | Legacy self-contained SVG DAG viewer; production UI is the React/Vite frontend |
 
 > **Known local-test-environment limitation:** `adjudication_client.py`'s
 > `mode="verify"` call depends on contextual-orchestrator's
