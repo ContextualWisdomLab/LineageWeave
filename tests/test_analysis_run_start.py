@@ -9,6 +9,7 @@ import pytest
 from backend.app.analysis_run_ingestion import reconstructed_edge_is_visible
 from backend.app.analysis_run_start import (
     AnalysisRunStartError,
+    _deliver_tepp_measurement,
     _persist_tepp_accepted,
     configured_tepp_client,
     reconstruction_member_ids,
@@ -306,12 +307,122 @@ def test_persist_tepp_accepted_fails_closed_without_the_table() -> None:
 
     class _Conn:
         async def execute(self, _sql: str, *_args: object) -> str:
-            raise asyncpg.UndefinedTableError()
+            raise asyncpg.UndefinedTableError("undefined_table")
 
     stored = asyncio.run(
         _persist_tepp_accepted(_Conn(), "run-id", _accepted_evidence(), instant, instant)
     )
     assert stored is False
+
+
+class _DeliverConn:
+    """In-memory start connection for TEPP persist and status append."""
+
+    def __init__(self, *, persist_ok: bool = True) -> None:
+        self.persist_ok = persist_ok
+        self.accepted_args: tuple[object, ...] | None = None
+        self.status_args: tuple[object, ...] | None = None
+
+    async def fetchval(self, _sql: str, *_args: object) -> int:
+        return 2
+
+    async def execute(self, sql: str, *args: object) -> str:
+        if "analysis_run_tepp_accepted" in sql:
+            if not self.persist_ok:
+                raise asyncpg.UndefinedTableError("undefined_table")
+            self.accepted_args = args
+            return "INSERT 0 1"
+        if "analysis_run_status_event" in sql:
+            self.status_args = args
+            return "INSERT 0 1"
+        raise AssertionError(sql)
+
+
+def _locked_tepp_row() -> dict[str, object]:
+    """Frozen Demo Corp TEPP start row. Never invents a theta."""
+    return {
+        "idempotency_key": "buyer-tepp-2026-w07",
+        "snapshot_sha256": "ab" * 32,
+        "knowledge_cutoff": datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc),
+        "corporate_entity_id": "11111111-1111-1111-1111-111111111111",
+    }
+
+
+def test_deliver_tepp_measurement_persists_distinct_clocks() -> None:
+    """Accepted evidence stores receipt then row-write, and stays Failed."""
+    request = _tepp_request()
+
+    class _Accepted(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda _payload: accepted_tepp_seed_envelope(
+                    idempotency_key=request.idempotency_key
+                )
+            )
+
+    conn = _DeliverConn()
+    asyncio.run(
+        _deliver_tepp_measurement(
+            conn,
+            analysis_run_id="run-id",
+            locked=_locked_tepp_row(),
+            tepp_client=_Accepted(),
+        )
+    )
+    assert conn.accepted_args is not None
+    received_at = conn.accepted_args[6]
+    recorded_at = conn.accepted_args[7]
+    assert isinstance(received_at, datetime)
+    assert isinstance(recorded_at, datetime)
+    assert received_at <= recorded_at
+    assert conn.status_args is not None
+    assert conn.status_args[2] == "analysis_status_failed"
+    assert conn.status_args[4] == "tepp_completed_result_unsupported"
+    assert conn.status_args[3] == recorded_at
+
+
+def test_deliver_tepp_measurement_fails_closed_when_table_is_missing() -> None:
+    """A missing accepted table is Failed, never a fabricated measurement."""
+    request = _tepp_request()
+
+    class _Accepted(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda _payload: accepted_tepp_seed_envelope(
+                    idempotency_key=request.idempotency_key
+                )
+            )
+
+    conn = _DeliverConn(persist_ok=False)
+    asyncio.run(
+        _deliver_tepp_measurement(
+            conn,
+            analysis_run_id="run-id",
+            locked=_locked_tepp_row(),
+            tepp_client=_Accepted(),
+        )
+    )
+    assert conn.accepted_args is None
+    assert conn.status_args is not None
+    assert conn.status_args[2] == "analysis_status_failed"
+    assert conn.status_args[4] == "tepp_result_not_persisted"
+
+
+def test_deliver_tepp_measurement_does_not_persist_a_missing_transport() -> None:
+    """A missing TEPP transport writes no accepted evidence row."""
+    conn = _DeliverConn()
+    asyncio.run(
+        _deliver_tepp_measurement(
+            conn,
+            analysis_run_id="run-id",
+            locked=_locked_tepp_row(),
+            tepp_client=TeppClient(),
+        )
+    )
+    assert conn.accepted_args is None
+    assert conn.status_args is not None
+    assert conn.status_args[2] == "analysis_status_failed"
+    assert conn.status_args[4] == "tepp_not_available"
 
 
 def test_hidden_run_start_is_not_found() -> None:
