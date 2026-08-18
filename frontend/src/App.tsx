@@ -1385,10 +1385,19 @@ function ConversationsPanel({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+    setForest(null);
     setError(null);
     fetchConversations(accessToken)
-      .then(setForest)
-      .catch((err) => setError(String(err)));
+      .then((result) => {
+        if (active) setForest(result);
+      })
+      .catch((err) => {
+        if (active) setError(String(err));
+      });
+    return () => {
+      active = false;
+    };
   }, [accessToken]);
 
   return (
