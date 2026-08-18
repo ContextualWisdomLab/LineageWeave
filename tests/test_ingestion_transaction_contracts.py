@@ -643,31 +643,34 @@ def test_persist_leaves_uncataloged_person_unbound(monkeypatch) -> None:
 
 
 def test_hidden_run_copy_stays_generic_and_drops_the_stale_row() -> None:
-    """ADR 0014/0018: a 404 must not confirm why a row is hidden."""
+    """ADR 0014/0018: a 404 must not confirm why a row is hidden.
 
-    app = (
-        Path(__file__).resolve().parents[1] / "frontend" / "src" / "App.tsx"
-    ).read_text(encoding="utf-8")
+    Buyer chrome (ADR 0036) no longer lists analysis-runs, so App.tsx
+    must not grow a 404 sentence that names the thread or cutoff.
+    The generic next-action sentence stays on StatusAlert for any
+    later operator surface. Do not put fetchAnalysisRuns back on
+    the buyer GNB.
+    """
+
+    root = Path(__file__).resolve().parents[1]
+    app = (root / "frontend" / "src" / "App.tsx").read_text(encoding="utf-8")
     alert = (
-        Path(__file__).resolve().parents[1]
-        / "frontend"
-        / "src"
-        / "components"
-        / "StatusAlert.tsx"
+        root / "frontend" / "src" / "components" / "StatusAlert.tsx"
     ).read_text(encoding="utf-8")
-    agents = (
-        Path(__file__).resolve().parents[1] / "AGENTS.md"
+    alert_story = (
+        root / "frontend" / "src" / "components" / "StatusAlert.stories.tsx"
     ).read_text(encoding="utf-8")
+    agents = (root / "AGENTS.md").read_text(encoding="utf-8")
     assert "This analysis run is not visible." not in app
-    assert "This run is not on your list. Open a visible run from the home list," in app
+    assert "fetchAnalysisRuns" not in app
+    assert "<StatusAlert>" not in app
+    assert "do not name the thread or the cutoff" not in app
+    assert "This run is not on your list. Open a visible run from the home list," in alert_story
     assert (
         "or request a lineage reconstruction for a corporation you already walk."
-        in app
+        in alert_story
     )
-    assert "do not name the thread or the cutoff" in app
-    assert "setRuns((await fetchAnalysisRuns(accessToken)).analysis_runs)" in app
     assert 'role="alert"' in alert
-    assert "<StatusAlert>{error}</StatusAlert>" in app
     assert "re-read the authorized list" in agents
     assert "do not name the thread or the cutoff" in agents
 
