@@ -375,6 +375,7 @@ export interface SourceCustomerHint {
   customer_code: string | null;
   customer_name: string | null;
   post_count: number;
+  related_posts: LinkedPostRef[];
   resolution_status: string;
   provenance: string;
 }

@@ -25,6 +25,9 @@ belong to a fictional organization.
   the resulting catalog id and provenance persisted separately.
 - Keep `기타` and unregistered customer values unresolved until corroborating
   evidence exists.
+- Include only ABAC-visible source-post references in each customer hint so a
+  buyer can open the original post, read its body, and inspect semantic
+  evidence without turning the hint into a customer binding.
 
 ## Consequences
 

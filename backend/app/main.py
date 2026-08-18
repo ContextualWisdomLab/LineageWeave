@@ -20,6 +20,7 @@ read is ``source_post`` -- two-or-more-word table names, per AGENTS.md.
 from __future__ import annotations
 
 import asyncio
+import json
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import datetime
@@ -534,7 +535,14 @@ async def read_customer_master(
             """
             select nullif(btrim(source_customer_code), '') as customer_code,
                    max(nullif(btrim(source_customer_name), '')) as customer_name,
-                   count(*) as post_count
+                   count(*) as post_count,
+                   json_agg(
+                       json_build_object(
+                           'post_id', post_id::text,
+                           'post_title', post_title
+                       )
+                       order by created_at desc, post_id desc
+                   ) as related_posts
               from source_post
              where (nullif(btrim(source_customer_code), '') is not null
                     or nullif(btrim(source_customer_name), '') is not null)
@@ -688,6 +696,11 @@ async def read_customer_master(
                 "customer_code": row["customer_code"],
                 "customer_name": row["customer_name"],
                 "post_count": row["post_count"],
+                "related_posts": (
+                    json.loads(row["related_posts"])
+                    if isinstance(row["related_posts"], str)
+                    else row["related_posts"] or []
+                ),
                 "resolution_status": "hint_only",
                 "provenance": "source_post.source_customer_code/source_post.source_customer_name",
             }

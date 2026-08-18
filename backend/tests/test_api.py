@@ -1124,6 +1124,9 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
             "customer_code": "TEST-CUSTOMER-001",
             "customer_name": None,
             "post_count": 1,
+            "related_posts": [
+                {"post_id": seeded_db["public_post_id"], "post_title": "Public post"}
+            ],
             "resolution_status": "hint_only",
             "provenance": "source_post.source_customer_code/source_post.source_customer_name",
         }
