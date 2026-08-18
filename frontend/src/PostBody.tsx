@@ -1,4 +1,5 @@
 import { splitPostBody, type PostBodySegment } from "./postBodyDisplay";
+import { t } from "./i18n";
 
 function renderSegment(segment: PostBodySegment, index: number) {
   switch (segment.kind) {
@@ -13,11 +14,10 @@ function renderSegment(segment: PostBodySegment, index: number) {
         <figure key={`post-body-image-${index}`} className="post-embedded-image">
           <img
             src={segment.src}
-            alt={`Embedded image at character offset ${segment.position}`}
+            alt={`${t("Embedded image at character offset")} ${segment.position}`}
           />
           <figcaption>
-            Image from this post. Extract Keyman or ask a question to read text
-            inside it.
+            {t("Image from this post. Extract Keyman or ask a question to read text inside it.")}
           </figcaption>
         </figure>
       );

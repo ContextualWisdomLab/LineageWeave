@@ -1016,9 +1016,12 @@ function KeymanPanel({
       <div className="lineage-home-header">
         <h3>{t("Keyman")}</h3>
         {canExtract && !orchestratorOff && (
-          <button onClick={handleExtract} disabled={extracting}>
-            {extracting ? "Extracting..." : "Extract Keymen"}
-          </button>
+          <details className="operator-action-tools">
+            <summary>{t("Evidence operations")}</summary>
+            <button onClick={handleExtract} disabled={extracting}>
+              {extracting ? t("Extracting...") : t("Extract Keymen")}
+            </button>
+          </details>
         )}
       </div>
       {error && <p className="error">{error}</p>}
@@ -1156,9 +1159,12 @@ function EvaluationPanel({
       <div className="lineage-home-header">
         <h3>{t("Post quality (IRT)")}</h3>
         {canExtract && !orchestratorOff && (
-          <button onClick={handleEvaluate} disabled={evaluating}>
-            {evaluating ? "Evaluating..." : "Evaluate post"}
-          </button>
+          <details className="operator-action-tools">
+            <summary>{t("Evidence operations")}</summary>
+            <button onClick={handleEvaluate} disabled={evaluating}>
+              {evaluating ? t("Evaluating...") : t("Evaluate post")}
+            </button>
+          </details>
         )}
       </div>
       {error && <p className="error">{error}</p>}
@@ -1227,9 +1233,12 @@ function CounterpartyPanel({
       <div className="lineage-home-header">
         <h3>{t("Counterparties")}</h3>
         {canExtract && hasPending && !searchOff && (
-          <button onClick={handleVerify} disabled={verifying}>
-            {verifying ? "Verifying..." : "Verify against web search"}
-          </button>
+          <details className="operator-action-tools">
+            <summary>{t("Evidence operations")}</summary>
+            <button onClick={handleVerify} disabled={verifying}>
+              {verifying ? t("Verifying...") : t("Verify against web search")}
+            </button>
+          </details>
         )}
       </div>
       {error && <p className="error">{error}</p>}
@@ -1367,9 +1376,12 @@ function IssueTicketPanel({
       <div className="lineage-home-header">
         <h3>{t("Issue tickets")}</h3>
         {canExtract && !orchestratorOff && (
-          <button onClick={handleDeriveCommitment} disabled={deriving}>
-            {deriving ? "Deriving..." : "Derive commitment"}
-          </button>
+          <details className="operator-action-tools">
+            <summary>{t("Evidence operations")}</summary>
+            <button onClick={handleDeriveCommitment} disabled={deriving}>
+              {deriving ? t("Deriving...") : t("Derive commitment")}
+            </button>
+          </details>
         )}
       </div>
       {error && <p className="error">{error}</p>}
@@ -1415,7 +1427,7 @@ function IssueTicketPanel({
           aria-label={t("Due date")}
         />
         <button onClick={handleCreate} disabled={creating || !newTitle.trim()}>
-          {creating ? "Creating..." : "Create ticket"}
+          {creating ? t("Creating...") : t("Create ticket")}
         </button>
       </div>
     </section>

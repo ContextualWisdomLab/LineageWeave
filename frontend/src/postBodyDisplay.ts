@@ -16,8 +16,7 @@ const DATA_URI_IMG =
 
 const HTML_TAG = /<\/?[a-zA-Z][^>]*>/g;
 
-const UNDECODEABLE_IMAGE =
-  "Embedded image could not be decoded. Re-export the source post and open it again.";
+import { t } from "./i18n";
 
 function stripHtmlTags(text: string): string {
   return text.replace(HTML_TAG, " ").replace(/\s+/g, " ").trim();
@@ -59,7 +58,10 @@ export function splitPostBody(body: string): PostBodySegment[] {
         position: match.index,
       });
     } else {
-      segments.push({ kind: "text", text: UNDECODEABLE_IMAGE });
+      segments.push({
+        kind: "text",
+        text: t("Embedded image could not be decoded. Re-export the source post and open it again."),
+      });
     }
     lastIndex = match.index + match[0].length;
     match = pattern.exec(body);

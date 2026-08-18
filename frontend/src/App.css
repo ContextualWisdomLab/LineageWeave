@@ -397,6 +397,21 @@
   margin: 1rem;
 }
 
+.operator-action-tools {
+  margin-left: auto;
+  color: var(--text-muted);
+}
+
+.operator-action-tools > summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.operator-action-tools > button {
+  margin-top: 0.45rem;
+}
+
 .buyer-gnb-item {
   min-height: 2.75rem;
   border: 0;

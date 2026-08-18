@@ -40,6 +40,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "예정된 약속이 없습니다. 글에서 약속을 찾거나 기한이 있는 티켓을 만드세요.",
     "Open commitment for:": "약속 열기:",
     "Advanced review tools": "고급 검토 도구",
+    "Evidence operations": "증거 처리",
     Board: "게시판",
     "Customer master": "고객 마스터",
     "Ask Agent": "Ask Agent",
@@ -130,6 +131,12 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Verify against web search": "외부 근거 확인",
     "Deriving...": "찾는 중...",
     "Derive commitment": "약속 찾기",
+    "Creating...": "생성하는 중...",
+    "Embedded image at character offset": "문자 위치의 첨부 이미지",
+    "Image from this post. Extract Keyman or ask a question to read text inside it.":
+      "이 글의 이미지입니다. Keyman을 추출하거나 질문해 이미지 안의 텍스트를 읽으세요.",
+    "Embedded image could not be decoded. Re-export the source post and open it again.":
+      "첨부 이미지를 해독할 수 없습니다. 원문을 다시 내보내고 다시 여세요.",
     "What happened between these events?": "이 사건들 사이에 무슨 일이 있었나요?",
     "Ask about this lineage": "이 계보에 대해 질문",
     Close: "닫기",
@@ -166,6 +173,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "没有即将到来的承诺。请从文章中查找承诺，或创建带截止日期的工单。",
     "Open commitment for:": "打开承诺：",
     "Advanced review tools": "高级审查工具",
+    "Evidence operations": "证据操作",
     Board: "看板",
     "Customer master": "客户主数据",
     "Ask Agent": "Ask Agent",
@@ -255,6 +263,12 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Verify against web search": "检查外部证据",
     "Deriving...": "正在查找...",
     "Derive commitment": "查找承诺",
+    "Creating...": "正在创建...",
+    "Embedded image at character offset": "字符位置的嵌入图像",
+    "Image from this post. Extract Keyman or ask a question to read text inside it.":
+      "此文章中的图像。提取关键联系人或提问，以读取图像中的文字。",
+    "Embedded image could not be decoded. Re-export the source post and open it again.":
+      "无法解码嵌入图像。请重新导出原始文章后再打开。",
     "What happened between these events?": "这些事件之间发生了什么？",
     "Ask about this lineage": "询问此谱系",
     Close: "关闭",
@@ -291,6 +305,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "今後のコミットメントはありません。投稿から検索するか、期限付きのチケットを作成してください。",
     "Open commitment for:": "コミットメントを開く：",
     "Advanced review tools": "高度なレビュー ツール",
+    "Evidence operations": "証拠操作",
     Board: "掲示板",
     "Customer master": "顧客マスター",
     "Ask Agent": "Ask Agent",
@@ -380,6 +395,12 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Verify against web search": "外部証拠を確認",
     "Deriving...": "検索中...",
     "Derive commitment": "コミットメントを検索",
+    "Creating...": "作成中...",
+    "Embedded image at character offset": "文字オフセットの埋め込み画像",
+    "Image from this post. Extract Keyman or ask a question to read text inside it.":
+      "この投稿の画像です。キーパーソンを抽出するか質問して、画像内の文字を読み取ってください。",
+    "Embedded image could not be decoded. Re-export the source post and open it again.":
+      "埋め込み画像をデコードできませんでした。原文を再エクスポートして、もう一度開いてください。",
     "What happened between these events?": "これらのイベントの間に何が起きましたか？",
     "Ask about this lineage": "この系譜について質問",
     Close: "閉じる",
@@ -416,6 +437,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Không có cam kết sắp tới. Hãy tìm cam kết từ bài viết hoặc tạo phiếu có hạn hoàn thành.",
     "Open commitment for:": "Mở cam kết:",
     "Advanced review tools": "Công cụ rà soát nâng cao",
+    "Evidence operations": "Thao tác bằng chứng",
     Board: "Bảng tin",
     "Customer master": "Danh mục khách hàng",
     "Ask Agent": "Ask Agent",
@@ -505,6 +527,12 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Verify against web search": "Kiểm tra bằng chứng bên ngoài",
     "Deriving...": "Đang tìm...",
     "Derive commitment": "Tìm cam kết",
+    "Creating...": "Đang tạo...",
+    "Embedded image at character offset": "Hình ảnh nhúng tại vị trí ký tự",
+    "Image from this post. Extract Keyman or ask a question to read text inside it.":
+      "Hình ảnh trong bài viết này. Hãy trích xuất người liên hệ chính hoặc đặt câu hỏi để đọc chữ bên trong.",
+    "Embedded image could not be decoded. Re-export the source post and open it again.":
+      "Không thể giải mã hình ảnh nhúng. Hãy xuất lại bài viết gốc rồi mở lại.",
     "What happened between these events?": "Điều gì đã xảy ra giữa các sự kiện này?",
     "Ask about this lineage": "Hỏi về dòng sự kiện này",
     Close: "Đóng",
