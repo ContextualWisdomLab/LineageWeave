@@ -110,7 +110,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--corporate-entity-name")
     parser.add_argument("--process-unit-code", required=True)
     parser.add_argument("--process-unit-name")
-    parser.add_argument("--embedding-model", default=os.environ.get("EMBEDDING_MODEL", ""))
+    parser.add_argument(
+        "--embedding-model",
+        default=os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", os.environ.get("EMBEDDING_MODEL", "")),
+    )
     return parser
 
 
