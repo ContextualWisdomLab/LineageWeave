@@ -234,6 +234,14 @@
   padding: 0.3rem 0;
 }
 
+.keyman-leftover {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, canvastext 72%, transparent);
+}
+
 .keyman-affiliations {
   opacity: 0.7;
   font-size: 0.85rem;

@@ -123,6 +123,8 @@ flowchart LR
   `RankWeaveNotAvailable`. `GET /api/rankings` then returns
   `rankweave_not_available` and an empty ranking list. Hidden posts
   are omitted from every channel. See ADR 0024.
+  A leftover post–criterion pair that already sits on the authorized
+  report payload names the matching Keyman chip (ADR 0033).
 
 ## Standards and citations
 

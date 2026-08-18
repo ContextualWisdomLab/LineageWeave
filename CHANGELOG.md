@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.92.0] - 2026-08-18
+
+### Added
+
+- Keyman chips on a leftover post name the leftover criterion
+  (ADR 0033). After `make seed`, Ada West on the leftover Public
+  post reads **Closest leftover · sales-lead**; click still opens
+  related nodes. A related leftover post chip reads **Farthest
+  leftover · negative**. A chip that is not a leftover pair stays
+  unmarked. Never invent a fused score or a theta.
+
 ## [0.75.0] - 2026-08-17
 
 ### Added

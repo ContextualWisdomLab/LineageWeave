@@ -67,6 +67,7 @@ describe("App, authenticated", () => {
     };
     chatUnavailable?: boolean;
     searchUnavailable?: boolean;
+    reportsUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
   }) {
     const statusLabel: Record<string, string> = {
@@ -292,6 +293,16 @@ describe("App, authenticated", () => {
               },
             ],
           }),
+        );
+      }
+      if (options?.reportsUnavailable && url.includes("/api/reports/") && method === "GET") {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              detail: "Period report is unavailable",
+            }),
+            { status: 503, headers: { "Content-Type": "application/json" } },
+          ),
         );
       }
       if (url.includes("/api/reports/") && method === "GET") {
@@ -1016,6 +1027,39 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
+  });
+
+  it("names leftover criterion on the matching Keyman chip", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const leftoverChip = await screen.findByRole("button", { name: "Related nodes for Ada West" });
+    await waitFor(() =>
+      expect(leftoverChip.closest("li")).toHaveTextContent("Closest leftover · sales-lead"),
+    );
+    expect(leftoverChip).toHaveAccessibleName("Related nodes for Ada West");
+
+    await userEvent.click(leftoverChip);
+    const leftoverRelated = await screen.findByRole("button", { name: "Open related post: Linked post" });
+    await waitFor(() => expect(leftoverRelated).toHaveTextContent("Farthest leftover · negative"));
+    expect(leftoverRelated).toHaveAccessibleName("Open related post: Linked post");
+    expect(screen.getByText("Priya Nair (Person)")).not.toHaveTextContent("leftover");
+
+    await userEvent.click(leftoverRelated);
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+  });
+
+  it("clears leftover badges on Keyman chips when the report fetch fails", async () => {
+    stubBackend({ reportsUnavailable: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const leftoverChip = await screen.findByRole("button", { name: "Related nodes for Ada West" });
+    expect(leftoverChip.closest("li")).not.toHaveTextContent("leftover");
+    expect(leftoverChip).toHaveAccessibleName("Related nodes for Ada West");
   });
 
   it("opens related Keyman nodes from an R&R person", async () => {

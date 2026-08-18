@@ -52,8 +52,10 @@ import {
   type PostSummary,
   type RankingList,
   type RelatedNode,
+  type LeftoverPair,
   type VocEvidence,
 } from "./api";
+import { leftoverBadgeText, leftoverPairsForPost } from "./leftoverCaption";
 import { LineageDag } from "./LineageDag";
 import { subgraphForPost } from "./lineageLayout";
 import "./App.css";
@@ -523,6 +525,7 @@ function KeymanPanel({
   canExtract,
   onExtracted,
   onSelectPost,
+  leftoverPairs,
   focusPerson,
   focusEntity,
 }: {
@@ -532,6 +535,7 @@ function KeymanPanel({
   canExtract: boolean;
   onExtracted: () => void;
   onSelectPost?: (postId: string) => void;
+  leftoverPairs?: LeftoverPair[];
   focusPerson?: { personId: string; personName: string } | null;
   focusEntity?: { entityId: string; entityName: string } | null;
 }) {
@@ -628,7 +632,9 @@ function KeymanPanel({
       {error && <p className="error">{error}</p>}
       {keymen && keymen.length > 0 ? (
         <ul className="keyman-list">
-          {keymen.map((person) => (
+          {keymen.map((person) => {
+            const leftoverForOpenedPost = leftoverPairsForPost(leftoverPairs, postId);
+            return (
             <li key={person.person_id}>
               <button
                 className="keyman-select"
@@ -637,6 +643,11 @@ function KeymanPanel({
               >
                 <strong>{person.person_name}</strong> ({person.person_side_label ?? person.person_side_code})
               </button>
+              {leftoverForOpenedPost.map((pair) => (
+                <span key={`${pair.pair_kind}:${pair.criterion_code}`} className="keyman-leftover">
+                  {leftoverBadgeText(pair)}
+                </span>
+              ))}
               {person.affiliations.length > 0 && (
                 <span className="keyman-affiliations">
                   {" -- "}
@@ -664,7 +675,8 @@ function KeymanPanel({
                 </span>
               )}
             </li>
-          ))}
+            );
+          })}
         </ul>
       ) : (
         <p className="popup-placeholder">No Keyman extracted yet.</p>
@@ -681,6 +693,7 @@ function KeymanPanel({
               {related.map((node) => {
                 const caption = `${node.label ?? node.node_id} (${node.ontology_label ?? node.node_type_code})`;
                 if (node.node_type_code === NODE_POST && onSelectPost) {
+                  const leftoverForRelated = leftoverPairsForPost(leftoverPairs, node.node_id);
                   return (
                     <li key={`${node.node_type_code}:${node.node_id}`}>
                       <button
@@ -689,6 +702,14 @@ function KeymanPanel({
                         onClick={() => onSelectPost(node.node_id)}
                       >
                         {caption}
+                        {leftoverForRelated.map((pair) => (
+                          <span
+                            key={`${pair.pair_kind}:${pair.criterion_code}`}
+                            className="keyman-leftover"
+                          >
+                            {leftoverBadgeText(pair)}
+                          </span>
+                        ))}
                       </button>
                     </li>
                   );
@@ -1087,6 +1108,7 @@ function PostDetailPopup({
   accessToken,
   canExtract,
   graph,
+  leftoverPairs,
   onClose,
   onSelectPost,
 }: {
@@ -1094,6 +1116,7 @@ function PostDetailPopup({
   accessToken: string;
   canExtract: boolean;
   graph: LineageGraph | null;
+  leftoverPairs?: LeftoverPair[];
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
 }) {
@@ -1283,6 +1306,7 @@ function PostDetailPopup({
               canExtract={canExtract}
               onExtracted={reloadKeymen}
               onSelectPost={onSelectPost}
+              leftoverPairs={leftoverPairs}
               focusPerson={focusPerson}
               focusEntity={focusEntity}
             />
@@ -1425,10 +1449,12 @@ function ReportsPanel({
   accessToken,
   canRebuild,
   onSelectPost,
+  onLeftoverPairsChange,
 }: {
   accessToken: string;
   canRebuild: boolean;
   onSelectPost: (postId: string) => void;
+  onLeftoverPairsChange: (pairs: LeftoverPair[]) => void;
 }) {
   const [grouping, setGrouping] = useState("process_unit");
   const [period, setPeriod] = useState("2026-W02");
@@ -1455,9 +1481,13 @@ function ReportsPanel({
         setPayload(reports);
         setIndex(periods);
         setComparison(compared);
+        onLeftoverPairsChange(reports.reports.flatMap((row) => row.leftover_pairs ?? []));
       })
-      .catch((err) => setError(String(err)));
-  }, [accessToken, grouping, period]);
+      .catch((err) => {
+        setError(String(err));
+        onLeftoverPairsChange([]);
+      });
+  }, [accessToken, grouping, period, onLeftoverPairsChange]);
 
   async function handleRebuild() {
     setRebuilding(true);
@@ -1472,8 +1502,10 @@ function ReportsPanel({
       setPayload(reports);
       setIndex(periods);
       setComparison(compared);
+      onLeftoverPairsChange(reports.reports.flatMap((row) => row.leftover_pairs ?? []));
     } catch (err) {
       setError(String(err));
+      onLeftoverPairsChange([]);
     } finally {
       setRebuilding(false);
     }
@@ -1658,6 +1690,7 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [graph, setGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [leftoverPairs, setLeftoverPairs] = useState<LeftoverPair[]>([]);
   const [canRebuild, setCanRebuild] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
@@ -1691,7 +1724,12 @@ function PostList({ accessToken }: { accessToken: string }) {
     <>
       <RankingsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
+      <ReportsPanel
+        accessToken={accessToken}
+        canRebuild={canRebuild}
+        onSelectPost={setSelectedPostId}
+        onLeftoverPairsChange={setLeftoverPairs}
+      />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
           <h2>Event Lineage</h2>
@@ -1726,6 +1764,7 @@ function PostList({ accessToken }: { accessToken: string }) {
           accessToken={accessToken}
           canExtract={canRebuild}
           graph={graph}
+          leftoverPairs={leftoverPairs}
           onClose={() => setSelectedPostId(null)}
           onSelectPost={setSelectedPostId}
         />
