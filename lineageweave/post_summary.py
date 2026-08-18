@@ -58,7 +58,7 @@ _VALID_ACTOR_TYPE_CODES = frozenset({ACTOR_TYPE_PERSON, ACTOR_TYPE_ORGANIZATION,
 PROJECT_MENTION_CONFIDENCE_THRESHOLD = 0.7
 # Stored rows without this contract version are legacy summaries and must be
 # regenerated from the current source body before the popup treats them as evidence.
-POST_SUMMARY_CONTRACT_VERSION = 1
+POST_SUMMARY_CONTRACT_VERSION = 2
 
 
 @dataclass(frozen=True)

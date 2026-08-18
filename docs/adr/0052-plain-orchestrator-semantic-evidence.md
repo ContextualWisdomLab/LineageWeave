@@ -37,6 +37,9 @@ The resulting `RoleResponsibility` and `ProjectMention` objects continue
 through the existing catalog/provenance persistence path. A malformed
 semantic response is an unavailable summary channel; the source body remains
 visible and no empty semantic result is presented as successful extraction.
+The persisted summary contract version is bumped so summaries written before
+this two-call semantic contract are regenerated instead of being served as
+current evidence.
 
 ## Consequences
 
