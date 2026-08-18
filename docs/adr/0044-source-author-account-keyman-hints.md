@@ -31,6 +31,8 @@ same cataloged Keyman.
 - Limit account affiliations returned to the requesting account's authorized
   corporate-entity scope. Preserve the distinction that process-unit codes are
   PU/business-unit context, not sales-pool identity.
+- Include only ABAC-visible source-post references with each author hint so a
+  buyer can open the original body and inspect the Keyman evidence directly.
 
 ## Consequences
 

@@ -1137,6 +1137,9 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
     assert author_hint[0]["author_name"] == "Test Author"
     assert author_hint[0]["author_account_id"]
     assert author_hint[0]["account_display_name"] == "Test Analyst"
+    assert author_hint[0]["related_posts"] == [
+        {"post_id": seeded_db["public_post_id"], "post_title": "Public post"}
+    ]
     assert author_hint[0]["resolution_status"] == "our_side_context_only"
     assert any(
         affiliation["entity_name"] == "Test Corp"

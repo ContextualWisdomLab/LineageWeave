@@ -570,7 +570,11 @@ async def read_customer_master(
                    ) as author_name,
                    post.author_account_id,
                    author.display_name as account_display_name,
-                   count(*) as post_count
+                   count(*) as post_count,
+                   json_agg(
+                       json_build_object('post_id', post.post_id::text, 'post_title', post.post_title)
+                       order by post.created_at desc, post.post_id desc
+                   ) as related_posts
               from source_post post
               join user_account author on author.user_account_id = post.author_account_id
              where post.source_author_code is not null
@@ -716,6 +720,11 @@ async def read_customer_master(
                     str(row["author_account_id"]), []
                 ),
                 "post_count": row["post_count"],
+                "related_posts": (
+                    json.loads(row["related_posts"])
+                    if isinstance(row["related_posts"], str)
+                    else row["related_posts"] or []
+                ),
                 "resolution_status": (
                     "our_side_context_only"
                     if source_author_affiliations.get(str(row["author_account_id"]), [])

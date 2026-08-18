@@ -3857,6 +3857,23 @@ function CustomerMasterPanel({
                   ) : null}
                 </details>
                 <span>{hint.post_count} {t("posts")}</span>
+                {hint.related_posts.length > 0 ? (
+                  <ul className="related-post-list">
+                    {hint.related_posts.map((post) => (
+                      <li key={post.post_id}>
+                        <button
+                          type="button"
+                          className="related-post-card"
+                          aria-label={tf("Open related post: {label}", { label: post.post_title })}
+                          onClick={() => onOpenPost(post.post_id)}
+                        >
+                          <strong>{post.post_title}</strong>
+                          <span>{t("Open record")}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </li>
             ))}
           </ul>

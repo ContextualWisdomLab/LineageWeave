@@ -404,6 +404,7 @@ export interface SourceAuthorHint {
   account_display_name: string;
   account_affiliations: SourceAuthorAffiliation[];
   post_count: number;
+  related_posts: LinkedPostRef[];
   resolution_status: string;
   provenance: string;
 }
