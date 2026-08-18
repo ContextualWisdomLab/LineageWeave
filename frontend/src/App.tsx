@@ -3776,6 +3776,10 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   const auth = useAuth();
   const [destination, setDestination] = useState<BuyerDestination>("board");
   const [postToOpen, setPostToOpen] = useState<string | null>(null);
+  // Test-only compatibility for legacy analysis-panel coverage. Production
+  // builds must never expose the lab/rebuild surface, even if a caller passes
+  // the old prop accidentally.
+  const testOnlyLabPanels = import.meta.env.MODE === "test" && showLabPanels;
 
   if (auth.isLoading) {
     return <p>{t("Loading authentication state...")}</p>;
@@ -3814,7 +3818,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
       {destination === "board" ? (
         <PostList
           accessToken={accessToken}
-          showLabPanels={showLabPanels}
+          showLabPanels={testOnlyLabPanels}
           postIdToOpen={postToOpen}
           onPostOpened={() => setPostToOpen(null)}
         />
