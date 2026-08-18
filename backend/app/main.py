@@ -412,9 +412,50 @@ async def read_customer_master(
     """Return the authorized customer catalog and its cataloged Keymen."""
     _require_post_read(account)
     if not account.corporate_entity_ids:
-        return {"corporate_entities": [], "keymen": []}
+        return {
+            "corporate_entities": [],
+            "keymen": [],
+            "source_customer_hints": [],
+            "source_author_hints": [],
+        }
 
     async with pool.acquire() as conn:
+        source_customer_rows = await conn.fetch(
+            """
+            select btrim(source_customer_code) as customer_code, count(*) as post_count
+              from source_post
+             where source_customer_code is not null
+               and btrim(source_customer_code) <> ''
+               and (visibility_code = 'public' or corporate_entity_id = any($1::uuid[]))
+             group by btrim(source_customer_code)
+             order by count(*) desc, customer_code
+             limit 100
+            """,
+            list(account.corporate_entity_ids),
+        )
+        source_author_rows = await conn.fetch(
+            """
+            select btrim(source_author_code) as author_code,
+                   max(
+                       case
+                           when source_author_name is null
+                             or btrim(source_author_name) = ''
+                             or lower(btrim(source_author_name)) = lower(btrim(source_author_code))
+                           then null
+                           else btrim(source_author_name)
+                       end
+                   ) as author_name,
+                   count(*) as post_count
+              from source_post
+             where source_author_code is not null
+               and btrim(source_author_code) <> ''
+               and (visibility_code = 'public' or corporate_entity_id = any($1::uuid[]))
+             group by btrim(source_author_code)
+             order by count(*) desc, author_code
+             limit 100
+            """,
+            list(account.corporate_entity_ids),
+        )
         entity_rows = await conn.fetch(
             """
             select corporate_entity_id, corporate_entity_code, entity_name,
@@ -425,6 +466,14 @@ async def read_customer_master(
             """,
             list(account.corporate_entity_ids),
         )
+        has_source_context = bool(source_customer_rows or source_author_rows)
+        if has_source_context:
+            entity_rows = [
+                row
+                for row in entity_rows
+                if not str(row["corporate_entity_code"]).startswith("DEMO-")
+            ]
+        entity_ids = [row["corporate_entity_id"] for row in entity_rows]
         keyman_rows = await conn.fetch(
             """
             select person.person_id, person.person_name, person.person_side_code,
@@ -440,7 +489,7 @@ async def read_customer_master(
              where affiliation.affiliated_corporate_entity_id = any($1::uuid[])
              order by person.person_name, affiliation.affiliated_organization_name
             """,
-            list(account.corporate_entity_ids),
+            entity_ids,
         )
 
     keymen_by_id: dict[str, dict[str, Any]] = {}
@@ -483,6 +532,25 @@ async def read_customer_master(
             for row in entity_rows
         ],
         "keymen": list(keymen_by_id.values()),
+        "source_customer_hints": [
+            {
+                "customer_code": row["customer_code"],
+                "post_count": row["post_count"],
+                "resolution_status": "hint_only",
+                "provenance": "source_post.source_customer_code",
+            }
+            for row in source_customer_rows
+        ],
+        "source_author_hints": [
+            {
+                "author_code": row["author_code"],
+                "author_name": row["author_name"],
+                "post_count": row["post_count"],
+                "resolution_status": "hint_only",
+                "provenance": "source_post.source_author_code/source_author_name",
+            }
+            for row in source_author_rows
+        ],
     }
 
 

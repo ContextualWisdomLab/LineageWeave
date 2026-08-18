@@ -321,9 +321,26 @@ export interface CustomerMasterKeyman {
   affiliations: CustomerMasterKeymanAffiliation[];
 }
 
+export interface SourceCustomerHint {
+  customer_code: string;
+  post_count: number;
+  resolution_status: string;
+  provenance: string;
+}
+
+export interface SourceAuthorHint {
+  author_code: string;
+  author_name: string | null;
+  post_count: number;
+  resolution_status: string;
+  provenance: string;
+}
+
 export interface CustomerMasterResponse {
   corporate_entities: CustomerMasterEntity[];
   keymen: CustomerMasterKeyman[];
+  source_customer_hints: SourceCustomerHint[];
+  source_author_hints: SourceAuthorHint[];
 }
 
 export interface CurrentUser {

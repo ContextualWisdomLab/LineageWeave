@@ -3537,6 +3537,37 @@ function CustomerMasterPanel({
           })}
         </ul>
       ) : null}
+      {master && master.source_customer_hints.length > 0 ? (
+        <section className="customer-keymen" aria-labelledby="observed-customer-evidence-heading">
+          <h3 id="observed-customer-evidence-heading">{t("Observed customer evidence")}</h3>
+          <p className="buyer-destination-intro">
+            {t("Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.")}
+          </p>
+          <ul className="customer-master-list">
+            {master.source_customer_hints.map((hint) => (
+              <li key={hint.customer_code}>
+                <strong>{hint.customer_code}</strong>
+                <span>{t("Unresolved source identifier")}</span>
+                <span>{hint.post_count} {t("posts")}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      {master && master.source_author_hints.length > 0 ? (
+        <section className="customer-keymen" aria-labelledby="source-author-evidence-heading">
+          <h3 id="source-author-evidence-heading">{t("Source author evidence")}</h3>
+          <ul className="customer-master-list">
+            {master.source_author_hints.map((hint) => (
+              <li key={hint.author_code}>
+                <strong>{hint.author_name ?? hint.author_code}</strong>
+                <span>{hint.author_code} · {t("Hint only")}</span>
+                <span>{hint.post_count} {t("posts")}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {master && master.keymen.length > 0 ? (
         <section className="customer-keymen" aria-labelledby="customer-keymen-heading">
           <h3 id="customer-keymen-heading">{t("Keyman")}</h3>
