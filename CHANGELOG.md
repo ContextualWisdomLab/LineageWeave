@@ -4,6 +4,19 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.2] - 2026-08-18
+
+### Fixed
+
+- Accepted TEPP transport evidence now stores **received** (transport
+  response) and **recorded** (row write) as distinct clocks when those
+  instants differ (ADR 0035 follow-up). After `make seed`, Demo Analyst
+  opens **TEPP measurement · Failed · Demo Corp** Measurement evidence
+  and sees one Received clock when seed receipt and persist share an
+  instant. A later start that persists in a later minute shows both
+  clocks. Digest recomputation is unchanged. Hidden runs stay 404.
+  Never invent a theta.
+
 ## [2.12.1] - 2026-08-17
 
 ### Fixed

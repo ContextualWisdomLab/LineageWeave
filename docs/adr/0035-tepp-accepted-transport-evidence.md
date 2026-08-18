@@ -98,6 +98,19 @@ Existing volumes apply `0029_analysis_run_tepp_accepted.sql` after
 0028. Granted retention purge empties the accepted table when it
 exists.
 
+## Follow-up — v2.12.2 distinct receipt and row-write clocks
+
+Decision 3 already named `received_at` (transport-response receipt)
+and `recorded_at` (row persistence). v2.12.1 bound one application
+instant into both columns, so Measurement evidence copy always showed
+two clocks. v2.12.2 passes the post-transport instant as
+`received_at` and the row-write instant as `recorded_at`, clamped so
+start ≤ receipt ≤ row-write (National Institute of Standards and
+Technology, 2015). Authorized copy shows the second clock only when
+the displayed instants differ. Digest recomputation is unchanged and
+still excludes clocks. Hidden runs stay 404 (ADR 0014). Migration
+0029 is not rewritten; the two columns already exist.
+
 ## References — APA 7th
 
 American Educational Research Association, American Psychological

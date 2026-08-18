@@ -74,6 +74,8 @@ describe("App, authenticated", () => {
     succeededReportRun?: boolean;
     succeededTeppRun?: boolean;
     acceptedTeppRun?: boolean;
+    distinctTeppClocks?: boolean;
+    omitTeppRecordedAt?: boolean;
     pendingTeppRun?: boolean;
     hiddenAnalysisRun?: boolean;
     pluralAffiliations?: boolean;
@@ -325,7 +327,13 @@ describe("App, authenticated", () => {
               tepp_idempotency_key: "demo-tepp-seed-2026-w02-succeeded",
               tepp_evidence_sha256: "a".repeat(64),
               tepp_received_at: "2026-01-12T12:45:00Z",
-              tepp_recorded_at: "2026-01-12T12:45:00Z",
+              ...(options?.omitTeppRecordedAt
+                ? {}
+                : {
+                    tepp_recorded_at: options?.distinctTeppClocks
+                      ? "2026-01-12T12:46:00Z"
+                      : "2026-01-12T12:45:00Z",
+                  }),
               tepp_completed_artifact_available: false,
             }
           : {};
@@ -722,7 +730,13 @@ describe("App, authenticated", () => {
                       tepp_run_state: "accepted",
                       tepp_evidence_sha256: "a".repeat(64),
                       tepp_received_at: "2026-01-12T12:45:00Z",
-                      tepp_recorded_at: "2026-01-12T12:45:00Z",
+                      ...(options?.omitTeppRecordedAt
+                        ? {}
+                        : {
+                            tepp_recorded_at: options?.distinctTeppClocks
+                              ? "2026-01-12T12:46:00Z"
+                              : "2026-01-12T12:45:00Z",
+                          }),
                       tepp_completed_artifact_available: false,
                     }
                   : {}),
@@ -2944,12 +2958,42 @@ describe("App, authenticated", () => {
     expect(screen.getAllByText("aggregate transport evidence").length).toBeGreaterThan(0);
     expect(screen.getByText("a".repeat(64))).toBeInTheDocument();
     expect(screen.getByText(/accepted run demo-tepp-accepted-opaque/)).toBeInTheDocument();
+    expect(screen.getByText("Received 2026-01-12 12:45")).toBeInTheDocument();
+    expect(screen.queryByText(/recorded 2026-01-12/)).not.toBeInTheDocument();
     expect(screen.getByText(/completed-artifact identity/i)).toBeInTheDocument();
     expect(screen.queryByText(/validated multilevel estimate/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Copy evidence SHA-256" }));
     expect(writeText).toHaveBeenCalledWith("a".repeat(64));
     expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/2 affiliations/)).not.toBeInTheDocument();
+  });
+
+  it("shows two TEPP clocks only when receipt and row-write differ", async () => {
+    stubBackend({ acceptedTeppRun: true, distinctTeppClocks: true });
+    render(<App />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to read aggregate transport evidence. Completed TEPP measurement identity is unavailable until TEPP publishes a versioned completed-result contract.",
+      }),
+    );
+    expect(
+      await screen.findByText("Received 2026-01-12 12:45 · recorded 2026-01-12 12:46"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
+  });
+
+  it("shows only the receipt clock when recorded time is absent", async () => {
+    stubBackend({ acceptedTeppRun: true, omitTeppRecordedAt: true });
+    render(<App />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to read aggregate transport evidence. Completed TEPP measurement identity is unavailable until TEPP publishes a versioned completed-result contract.",
+      }),
+    );
+    expect(await screen.findByText("Received 2026-01-12 12:45")).toBeInTheDocument();
+    expect(screen.queryByText(/recorded 2026-01-12/)).not.toBeInTheDocument();
   });
 
   it("records a pending lineage run and opens the authorized detail", async () => {

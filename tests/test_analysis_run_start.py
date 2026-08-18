@@ -1,17 +1,22 @@
 """Start-reconstruction contracts: digest, freeze, 422/409, designed tree."""
 
+import asyncio
 from datetime import datetime, timezone
 
+import asyncpg
 import pytest
 
 from backend.app.analysis_run_ingestion import reconstructed_edge_is_visible
 from backend.app.analysis_run_start import (
     AnalysisRunStartError,
+    _deliver_tepp_measurement,
+    _persist_tepp_accepted,
     configured_tepp_client,
     reconstruction_member_ids,
     reconstruction_result_digest,
     start_kind_rejection,
     start_write_conflict_error,
+    tepp_accepted_clocks,
     tepp_run_request,
     tepp_submit_outcome,
 )
@@ -20,7 +25,9 @@ from lineageweave.fixtures import sample_records
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 from lineageweave.tepp_result import (
+    TeppAcceptedEvidence,
     accepted_tepp_seed_envelope,
+    parse_tepp_accepted_evidence,
     persistable_tepp_seed_envelope,
 )
 
@@ -191,6 +198,231 @@ def test_configured_tepp_client_stays_unavailable_without_http() -> None:
     client = configured_tepp_client("file:///tmp/tepp.json")
     with pytest.raises(TeppNotAvailable):
         client.submit_analysis_run(_tepp_request())
+
+
+def test_tepp_accepted_clocks_keep_distinct_receipt_and_row_write() -> None:
+    """Transport receipt and row write stay two values when they differ."""
+    started = datetime(2026, 1, 12, 12, 44, tzinfo=timezone.utc)
+    received = datetime(2026, 1, 12, 12, 45, tzinfo=timezone.utc)
+    recorded = datetime(2026, 1, 12, 12, 46, tzinfo=timezone.utc)
+    assert tepp_accepted_clocks(
+        started_at=started,
+        received_at=received,
+        recorded_at=recorded,
+    ) == (received, recorded)
+
+
+def test_tepp_accepted_clocks_clamp_backward_receipt_to_start() -> None:
+    """A receipt earlier than start is not stored as a later invention."""
+    started = datetime(2026, 1, 12, 12, 45, tzinfo=timezone.utc)
+    earlier = datetime(2026, 1, 12, 12, 44, tzinfo=timezone.utc)
+    assert tepp_accepted_clocks(
+        started_at=started,
+        received_at=earlier,
+        recorded_at=earlier,
+    ) == (started, started)
+
+
+def test_tepp_accepted_clocks_clamp_backward_row_write_to_receipt() -> None:
+    """A row-write earlier than receipt stays the receipt, not invented later."""
+    started = datetime(2026, 1, 12, 12, 44, tzinfo=timezone.utc)
+    received = datetime(2026, 1, 12, 12, 45, tzinfo=timezone.utc)
+    earlier = datetime(2026, 1, 12, 12, 44, 30, tzinfo=timezone.utc)
+    assert tepp_accepted_clocks(
+        started_at=started,
+        received_at=received,
+        recorded_at=earlier,
+    ) == (received, received)
+
+
+def test_tepp_accepted_clocks_do_not_invent_a_second_instant() -> None:
+    """Equal receipt and persist stay one stored instant."""
+    instant = datetime(2026, 1, 12, 12, 45, tzinfo=timezone.utc)
+    assert tepp_accepted_clocks(
+        started_at=instant,
+        received_at=instant,
+        recorded_at=instant,
+    ) == (instant, instant)
+
+
+def _accepted_evidence() -> TeppAcceptedEvidence:
+    """Published Demo Corp accepted envelope used by persist-path tests."""
+    parsed = parse_tepp_accepted_evidence(
+        accepted_tepp_seed_envelope(idempotency_key="buyer-key"),
+        expected_idempotency_key="buyer-key",
+    )
+    assert parsed is not None
+    return parsed
+
+
+def test_persist_tepp_accepted_stores_two_clock_values() -> None:
+    """The insert binds transport receipt and row-write as distinct values."""
+    received = datetime(2026, 1, 12, 12, 45, tzinfo=timezone.utc)
+    recorded = datetime(2026, 1, 12, 12, 46, tzinfo=timezone.utc)
+
+    class _Conn:
+        def __init__(self) -> None:
+            self.bound: tuple[object, ...] | None = None
+
+        async def execute(self, _sql: str, *args: object) -> str:
+            self.bound = args
+            return "INSERT 0 1"
+
+    conn = _Conn()
+    stored = asyncio.run(
+        _persist_tepp_accepted(conn, "run-id", _accepted_evidence(), received, recorded)
+    )
+    assert stored is True
+    assert conn.bound is not None
+    assert conn.bound[6] == received
+    assert conn.bound[7] == recorded
+    assert conn.bound[6] != conn.bound[7]
+
+
+def test_persist_tepp_accepted_keeps_equal_clocks_equal() -> None:
+    """Same-instant receipt and persist are stored once each, not rewritten later."""
+    instant = datetime(2026, 1, 12, 12, 45, tzinfo=timezone.utc)
+
+    class _Conn:
+        def __init__(self) -> None:
+            self.bound: tuple[object, ...] | None = None
+
+        async def execute(self, _sql: str, *args: object) -> str:
+            self.bound = args
+            return "INSERT 0 1"
+
+    conn = _Conn()
+    stored = asyncio.run(
+        _persist_tepp_accepted(conn, "run-id", _accepted_evidence(), instant, instant)
+    )
+    assert stored is True
+    assert conn.bound is not None
+    assert conn.bound[6] == instant
+    assert conn.bound[7] == instant
+
+
+def test_persist_tepp_accepted_fails_closed_without_the_table() -> None:
+    """A missing accepted-evidence table is not success."""
+    instant = datetime(2026, 1, 12, 12, 45, tzinfo=timezone.utc)
+
+    class _Conn:
+        async def execute(self, _sql: str, *_args: object) -> str:
+            raise asyncpg.UndefinedTableError("undefined_table")
+
+    stored = asyncio.run(
+        _persist_tepp_accepted(_Conn(), "run-id", _accepted_evidence(), instant, instant)
+    )
+    assert stored is False
+
+
+class _DeliverConn:
+    """In-memory start connection for TEPP persist and status append."""
+
+    def __init__(self, *, persist_ok: bool = True) -> None:
+        self.persist_ok = persist_ok
+        self.accepted_args: tuple[object, ...] | None = None
+        self.status_args: tuple[object, ...] | None = None
+
+    async def fetchval(self, _sql: str, *_args: object) -> int:
+        return 2
+
+    async def execute(self, sql: str, *args: object) -> str:
+        if "analysis_run_tepp_accepted" in sql:
+            if not self.persist_ok:
+                raise asyncpg.UndefinedTableError("undefined_table")
+            self.accepted_args = args
+            return "INSERT 0 1"
+        if "analysis_run_status_event" in sql:
+            self.status_args = args
+            return "INSERT 0 1"
+        raise AssertionError(sql)
+
+
+def _locked_tepp_row() -> dict[str, object]:
+    """Frozen Demo Corp TEPP start row. Never invents a theta."""
+    return {
+        "idempotency_key": "buyer-tepp-2026-w07",
+        "snapshot_sha256": "ab" * 32,
+        "knowledge_cutoff": datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc),
+        "corporate_entity_id": "11111111-1111-1111-1111-111111111111",
+    }
+
+
+def test_deliver_tepp_measurement_persists_distinct_clocks() -> None:
+    """Accepted evidence stores receipt then row-write, and stays Failed."""
+    request = _tepp_request()
+
+    class _Accepted(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda _payload: accepted_tepp_seed_envelope(
+                    idempotency_key=request.idempotency_key
+                )
+            )
+
+    conn = _DeliverConn()
+    asyncio.run(
+        _deliver_tepp_measurement(
+            conn,
+            analysis_run_id="run-id",
+            locked=_locked_tepp_row(),
+            tepp_client=_Accepted(),
+        )
+    )
+    assert conn.accepted_args is not None
+    received_at = conn.accepted_args[6]
+    recorded_at = conn.accepted_args[7]
+    assert isinstance(received_at, datetime)
+    assert isinstance(recorded_at, datetime)
+    assert received_at <= recorded_at
+    assert conn.status_args is not None
+    assert conn.status_args[2] == "analysis_status_failed"
+    assert conn.status_args[4] == "tepp_completed_result_unsupported"
+    assert conn.status_args[3] == recorded_at
+
+
+def test_deliver_tepp_measurement_fails_closed_when_table_is_missing() -> None:
+    """A missing accepted table is Failed, never a fabricated measurement."""
+    request = _tepp_request()
+
+    class _Accepted(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda _payload: accepted_tepp_seed_envelope(
+                    idempotency_key=request.idempotency_key
+                )
+            )
+
+    conn = _DeliverConn(persist_ok=False)
+    asyncio.run(
+        _deliver_tepp_measurement(
+            conn,
+            analysis_run_id="run-id",
+            locked=_locked_tepp_row(),
+            tepp_client=_Accepted(),
+        )
+    )
+    assert conn.accepted_args is None
+    assert conn.status_args is not None
+    assert conn.status_args[2] == "analysis_status_failed"
+    assert conn.status_args[4] == "tepp_result_not_persisted"
+
+
+def test_deliver_tepp_measurement_does_not_persist_a_missing_transport() -> None:
+    """A missing TEPP transport writes no accepted evidence row."""
+    conn = _DeliverConn()
+    asyncio.run(
+        _deliver_tepp_measurement(
+            conn,
+            analysis_run_id="run-id",
+            locked=_locked_tepp_row(),
+            tepp_client=TeppClient(),
+        )
+    )
+    assert conn.accepted_args is None
+    assert conn.status_args is not None
+    assert conn.status_args[2] == "analysis_status_failed"
+    assert conn.status_args[4] == "tepp_not_available"
 
 
 def test_hidden_run_start_is_not_found() -> None:

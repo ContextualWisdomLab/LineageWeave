@@ -27,7 +27,8 @@ unpublished envelope is Failed (`tepp_not_available` /
 `tepp_result_not_persisted`). A published accepted acknowledgement is
 Failed (`tepp_completed_result_unsupported`) and is shown as aggregate
 transport evidence. Do not stamp Succeeded from that ack. Do not invent
-a theta or a local psychometric substitute.
+a theta or a local psychometric substitute. Measurement evidence shows
+Received, and recorded only when that row-write instant differs.
 The home list caption stays `kind · status · entity`; the machine
 failure code is detail-only (ADR 0014). Open a Failed TEPP row, then
 connect a live TEPP transport or read aggregate transport evidence.

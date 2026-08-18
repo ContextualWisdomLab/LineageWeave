@@ -13,6 +13,7 @@ _SCOPED_PATHS = (
     _ROOT / "migrations" / "0029_analysis_run_tepp_accepted.sql",
     _ROOT / "docs" / "adr" / "0035-tepp-accepted-transport-evidence.md",
     _ROOT / "CHANGELOG.d" / "2.12.1-tepp-accepted-transport-evidence.md",
+    _ROOT / "CHANGELOG.d" / "2.12.2-tepp-accepted-clocks.md",
     _ROOT / "tests" / "test_tepp_result.py",
     _ROOT / "tests" / "test_analysis_run_tepp_accepted_schema.py",
 )
