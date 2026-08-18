@@ -17,7 +17,7 @@ done
 for migration in /opt/lineageweave/migrations/*.sql; do
     migration_name=${migration##*/}
     case "$migration_name" in
-        0016_*|0017_*|0018_*|0019_*|0020_*|0021_*|0022_*|0023_*|0024_*|0025_*|0026_*|0027_*) ;;
+        0016_*|0017_*|0018_*|0019_*|0020_*|0021_*|0022_*|0023_*|0024_*|0025_*|0026_*|0027_*|0028_*) ;;
         *) continue ;;
     esac
     printf 'Applying %s\n' "$migration_name"

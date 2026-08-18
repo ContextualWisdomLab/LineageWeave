@@ -1093,6 +1093,7 @@ function CounterpartyPanel({
   canExtract,
   onVerified,
   onSelectEntity,
+  onSelectPost,
 }: {
   postId: string;
   accessToken: string;
@@ -1100,6 +1101,7 @@ function CounterpartyPanel({
   canExtract: boolean;
   onVerified: () => void;
   onSelectEntity?: (entityId: string, entityName: string) => void;
+  onSelectPost?: (postId: string) => void;
 }) {
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1161,6 +1163,15 @@ function CounterpartyPanel({
               evidenceUrl={c.verification_evidence_url}
               ariaLabel={`Counterparty verification: ${c.counterparty_entity_name}`}
             />
+            {c.verification_evidence_post_id && onSelectPost ? (
+              <button
+                type="button"
+                className="keyman-select"
+                onClick={() => onSelectPost(c.verification_evidence_post_id!)}
+              >
+                View internal evidence
+              </button>
+            ) : null}
           </li>
         ))}
       </ul>
@@ -1722,6 +1733,7 @@ function PostDetailPopup({
                 counterparties={counterparties}
                 canExtract={canExtract}
                 onVerified={reloadCounterparties}
+                onSelectPost={onSelectPost}
                 onSelectEntity={(entityId, entityName) => {
                   setFocusPerson(null);
                   setFocusTeam(null);

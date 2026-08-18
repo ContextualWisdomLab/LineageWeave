@@ -13,6 +13,15 @@ All notable changes to this project are documented here. Format follows
   provider's JWKS and verifies the issuer; Compose keeps local Keycloak only
   as an explicit development fallback and does not emulate Keyverse.
 
+## [2.11.0] - 2026-08-18
+
+### Added
+
+- Relation verification now preserves a separately authorized internal source
+  post containing the normalized organization and relationship context. The
+  counterparty popup can open that evidence without treating it as an
+  external-search URL or changing the external verification status.
+
 ## [2.9.0] - 2026-08-17
 
 ### Added

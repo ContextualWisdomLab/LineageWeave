@@ -33,6 +33,7 @@ COPY migrations/0024_source_post_revision.sql /docker-entrypoint-initdb.d/25-sou
 COPY migrations/0025_role_person_catalog_identity.sql /docker-entrypoint-initdb.d/26-role-person-catalog-identity.sql
 COPY migrations/0026_post_content_artifacts.sql /docker-entrypoint-initdb.d/27-post-content-artifacts.sql
 COPY migrations/0027_analysis_run_tepp_result.sql /docker-entrypoint-initdb.d/28-analysis-run-tepp-result.sql
+COPY migrations/0028_internal_relation_evidence.sql /docker-entrypoint-initdb.d/29-internal-relation-evidence.sql
 
 COPY migrations/ /opt/lineageweave/migrations/
 COPY docker/postgres-init/migrate.sh /usr/local/bin/lineageweave-migrate

@@ -56,6 +56,7 @@ async def ingest_post_entity_relationships(
                 -- see relation_verification.py.
                 verification_status_code = 'verify_pending',
                 verification_evidence_url = null,
+                verification_evidence_post_id = null,
                 verification_checked_at = null
             """,
             post_id,
@@ -93,7 +94,8 @@ async def fetch_post_counterparties(conn: asyncpg.Connection, post_id: str) -> l
     rows = await conn.fetch(
         """
         select c.counterparty_entity_name, c.relationship_type_code, v.lookup_label as relationship_label,
-               c.verification_status_code, c.verification_evidence_url
+               c.verification_status_code, c.verification_evidence_url,
+               c.verification_evidence_post_id
         from post_counterparty_entity c
         join common_lookup_value v on v.lookup_code = c.relationship_type_code
         where c.post_id = $1

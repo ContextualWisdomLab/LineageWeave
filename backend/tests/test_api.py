@@ -45,6 +45,15 @@ _OUTBOX_MIGRATION = (
 _REVISION_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0024_source_post_revision.sql"
 )
+_POST_CONTENT_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0026_post_content_artifacts.sql"
+)
+_TEPP_RESULT_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0027_analysis_run_tepp_result.sql"
+)
+_INTERNAL_RELATION_EVIDENCE_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0028_internal_relation_evidence.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -133,6 +142,9 @@ def seeded_db(demo_analyst_token):
             cur.execute(_SNAPSHOT_MEMBER_MIGRATION.read_text())
             cur.execute(_OUTBOX_MIGRATION.read_text())
             cur.execute(_REVISION_MIGRATION.read_text())
+            cur.execute(_POST_CONTENT_MIGRATION.read_text())
+            cur.execute(_TEPP_RESULT_MIGRATION.read_text())
+            cur.execute(_INTERNAL_RELATION_EVIDENCE_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "

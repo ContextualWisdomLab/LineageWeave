@@ -44,6 +44,7 @@ export interface Counterparty {
   relationship_label?: string;
   verification_status_code: string;
   verification_evidence_url: string | null;
+  verification_evidence_post_id: string | null;
   corporate_entity_id: string | null;
 }
 
@@ -329,6 +330,7 @@ export interface VerifiedRelation {
   counterparty_entity_name: string;
   verification_status_code: string;
   verification_evidence_url: string | null;
+  verification_evidence_post_id: string | null;
 }
 
 export function verifyPostRelations(

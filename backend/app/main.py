@@ -649,7 +649,12 @@ async def verify_post_entity_relationships(
             "Relation verification is unavailable: set SEARXNG_BASE_URL",
         )
     async with pool.acquire() as conn:
-        verified = await verify_post_relations(conn, client, post_id)
+        verified = await verify_post_relations(
+            conn,
+            client,
+            post_id,
+            visible_corporate_entity_ids=account.corporate_entity_ids,
+        )
     return {
         "post_id": str(post["post_id"]),
         "verified": [
@@ -657,6 +662,7 @@ async def verify_post_entity_relationships(
                 "counterparty_entity_name": row.counterparty_entity_name,
                 "verification_status_code": row.verification_status_code,
                 "verification_evidence_url": row.verification_evidence_url,
+                "verification_evidence_post_id": row.verification_evidence_post_id,
             }
             for row in verified
         ],
