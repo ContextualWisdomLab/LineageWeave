@@ -122,7 +122,9 @@ flowchart LR
   `rankweave_client.py`'s default transport raises
   `RankWeaveNotAvailable`. `GET /api/rankings` then returns
   `rankweave_not_available` and an empty ranking list. Hidden posts
-  are omitted from every channel. See ADR 0024.
+  are omitted from every channel. See ADR 0024. A calendar
+  commitment that is also a leftover pair names that criterion
+  (ADR 0030).
 
 ## Standards and citations
 

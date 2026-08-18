@@ -1330,6 +1330,76 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });
 
+  it("names leftover criterion on a matching calendar commitment", async () => {
+    stubBackend({
+      calendarCommitments: [
+        {
+          issue_ticket_id: "ticket-a100",
+          post_id: "post-1",
+          ticket_status_code: "open",
+          ticket_status_label: "Open",
+          ticket_title: "Send Northridge Grid the revised quote",
+          assigned_account_id: null,
+          due_date: "2026-01-12",
+          commitment_summary: null,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+          post_title: "Public post",
+        },
+        {
+          issue_ticket_id: "ticket-b200",
+          post_id: "post-2",
+          ticket_status_code: "open",
+          ticket_status_label: "Open",
+          ticket_title: "Send Westfield Power the revised specification",
+          assigned_account_id: null,
+          due_date: "2026-01-14",
+          commitment_summary: null,
+          created_at: "2026-01-02T00:00:00Z",
+          updated_at: "2026-01-02T00:00:00Z",
+          post_title: "Specification revision requested",
+        },
+        {
+          issue_ticket_id: "ticket-c300",
+          post_id: "post-9",
+          ticket_status_code: "open",
+          ticket_status_label: "Open",
+          ticket_title: "Confirm Riverbend delivery window",
+          assigned_account_id: null,
+          due_date: "2026-01-16",
+          commitment_summary: null,
+          created_at: "2026-01-03T00:00:00Z",
+          updated_at: "2026-01-03T00:00:00Z",
+          post_title: "Riverbend calendar commitment",
+        },
+      ],
+    });
+    render(<App />);
+
+    const leftoverCommitment = await screen.findByRole("button", {
+      name: /open commitment for: public post \(closest leftover · sales-lead\)/i,
+    });
+    expect(leftoverCommitment).toHaveTextContent("Send Northridge Grid the revised quote");
+    expect(leftoverCommitment).toHaveTextContent("Closest leftover · sales-lead");
+    expect(leftoverCommitment).toHaveAccessibleName(
+      "Open commitment for: Public post (Closest leftover · sales-lead)",
+    );
+    expect(
+      await screen.findByRole("button", {
+        name: /open commitment for: specification revision requested \(farthest leftover · negative\)/i,
+      }),
+    ).toHaveTextContent("Farthest leftover · negative");
+    const unmarked = screen.getByRole("button", {
+      name: /^open commitment for: riverbend calendar commitment$/i,
+    });
+    expect(unmarked).toHaveTextContent("due 2026-01-16");
+    expect(unmarked).not.toHaveTextContent("leftover");
+
+    await userEvent.click(leftoverCommitment);
+
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
   it("shows the calibrated period-report mean theta on the home page", async () => {
     stubBackend();
     render(<App />);

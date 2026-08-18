@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.89.0] - 2026-08-18
+
+### Added
+
+- Calendar commitments that are leftover pairs name the leftover
+  criterion (ADR 0030). After `make seed`, the leftover commitment
+  reads **Closest leftover · sales-lead** next to the due date;
+  click opens that post. An empty calendar stays fail-closed.
+  Never invent a fused score or a theta.
+
 ## [0.75.0] - 2026-08-17
 
 ### Added
