@@ -10,6 +10,11 @@ from backend.app.post_chat_ingestion import (
     normalize_chat_question,
     persist_post_chat,
 )
+from lineageweave.post_chat import (
+    ChatSourceDocument,
+    ContextualOrchestratorPostChatClient,
+    parse_chat_response,
+)
 
 
 class _Connection:
@@ -69,3 +74,53 @@ def test_fetch_chat_list_serializes_existing_exchange() -> None:
     exchanges = asyncio.run(fetch_persisted_chats(conn, "post-1"))
     assert len(exchanges) == 1
     assert exchanges[0]["cited_posts"][0]["post_title"] == "Evidence A"
+
+
+def test_parse_chat_response_strips_fence_and_drops_invalid_citations() -> None:
+    sources = [ChatSourceDocument("post-a", "Evidence A", "body")]
+    answer = parse_chat_response(
+        '```json\n{"answer_text":" answer ","cited_source_numbers":[1, 0, 2, "bad"]}\n```',
+        sources,
+    )
+    assert answer is not None
+    assert answer.answer_text == "answer"
+    assert answer.cited_post_ids == ("post-a",)
+    assert parse_chat_response("not json", sources) is None
+    assert parse_chat_response('{"answer_text":""}', sources) is None
+
+
+def test_contextual_chat_client_uses_auto_mode_and_evidence_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_post_json(url: str, payload: dict, *, headers: dict[str, str], timeout: float) -> dict:
+        captured.update({"url": url, "payload": payload, "headers": headers, "timeout": timeout})
+        return {
+            "choices": [
+                {"message": {"content": '{"answer_text":"supported", "cited_source_numbers":[1, 9]}'}},
+            ]
+        }
+
+    monkeypatch.setattr("lineageweave.post_chat.post_json", fake_post_json)
+    client = ContextualOrchestratorPostChatClient("https://orchestrator", "secret", reasoning_effort="low")
+    answer = client.answer(
+        "What happened?",
+        [ChatSourceDocument("post-a", "Evidence A", "body", graph_facts=("fact",))],
+    )
+
+    assert answer.answer_text == "supported"
+    assert answer.cited_post_ids == ("post-a",)
+    assert captured["url"] == "https://orchestrator/v1/chat/completions"
+    payload = captured["payload"]
+    assert payload["mode"] == "auto"
+    assert payload["reasoning_effort"] == "low"
+    assert "fact" in payload["messages"][0]["content"]
+
+
+def test_contextual_chat_client_rejects_malformed_provider_response(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "lineageweave.post_chat.post_json",
+        lambda *_args, **_kwargs: {"choices": [{"message": {"content": "{}"}}]},
+    )
+    client = ContextualOrchestratorPostChatClient("https://orchestrator", "secret")
+    with pytest.raises(ValueError, match="required format"):
+        client.answer("Question", [ChatSourceDocument("post-a", "Evidence A", "body")])
