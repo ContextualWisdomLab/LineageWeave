@@ -46,6 +46,7 @@ COPY migrations/0036_normalized_body_search.sql /docker-entrypoint-initdb.d/38-n
 COPY migrations/0037_source_record_identity.sql /docker-entrypoint-initdb.d/39-source-record-identity.sql
 COPY migrations/0038_source_named_hints.sql /docker-entrypoint-initdb.d/40-source-named-hints.sql
 COPY migrations/0039_source_org_named_hints.sql /docker-entrypoint-initdb.d/41-source-org-named-hints.sql
+COPY migrations/0040_post_summary_contract.sql /docker-entrypoint-initdb.d/42-post-summary-contract.sql
 
 COPY migrations/ /opt/lineageweave/migrations/
 COPY docker/postgres-init/migrate.sh /usr/local/bin/lineageweave-migrate

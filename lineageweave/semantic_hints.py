@@ -62,7 +62,13 @@ def format_semantic_hints(
     )
     customer = _value(None if source_context else customer_name)
     customer_trust = "low" if customer.casefold() in _WEAK_CUSTOMER_VALUES else "normal"
-    affiliations = sorted({_value(value) for value in author_affiliations if _value(value) != "none"})
+    affiliations = sorted(
+        {
+            _value(value)
+            for value in author_affiliations
+            if _value(value) != "none" and not source_context
+        }
+    )
     account_id = author_account_id
     if source_context:
         author_side_hint = (
@@ -75,9 +81,8 @@ def format_semantic_hints(
     effective_source_author_name = source_author_name
     if effective_source_author_name and effective_source_author_name == source_author_code:
         effective_source_author_name = None
-    effective_author_name = (
-        effective_source_author_name if source_context else author_name
-    )
+    effective_author_name = effective_source_author_name if source_context else author_name
+    effective_account_name = None if source_context else author_account_name
     order_pool = ": ".join(
         value for value in (_value(order_pool_code), _value(order_pool_name)) if value != "none"
     ) or "none"
@@ -86,7 +91,7 @@ def format_semantic_hints(
         if source_sales_pool_code is not None
         else "source_post.source_sales_pool_name"
         if source_sales_pool_name is not None
-        else "source_post.process_unit_id"
+        else "none"
     )
     source_customer_name_value = _value(source_customer_name)
     source_customer_name_trust = (
@@ -99,7 +104,7 @@ def format_semantic_hints(
     return "; ".join(
         (
             f"author_account_id={_value(account_id)} [source_field=source_post.author_account_id]",
-            f"author_account_name={_value(author_account_name)} [source_field=user_account.display_name]",
+            f"author_account_name={_value(effective_account_name)} [source_field=user_account.display_name]",
             f"author={_value(effective_author_name)} [source_field=source_post.author_code]",
             "author_affiliations="
             f"{', '.join(affiliations) or 'none'} [source_field=account_affiliation.corporate_entity_id]",

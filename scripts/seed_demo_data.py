@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import psycopg2
 
 from lineageweave.http_client import get_json_list, post_form
-from lineageweave.post_summary import ACTOR_TYPE_PERSON
+from lineageweave.post_summary import ACTOR_TYPE_PERSON, POST_SUMMARY_CONTRACT_VERSION
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 
 REALM = "lineageweave-demo"
@@ -523,8 +523,9 @@ def _write_post_summary(cur, post_id, summary) -> None:
     cur.execute("delete from post_summary_person_mention where post_id = %s", (post_id,))
     cur.execute("delete from post_summary_result where post_id = %s", (post_id,))
     cur.execute(
-        "insert into post_summary_result (post_id, korean_summary) values (%s, %s)",
-        (post_id, summary.korean_summary),
+        "insert into post_summary_result "
+        "(post_id, korean_summary, summary_contract_version) values (%s, %s, %s)",
+        (post_id, summary.korean_summary, POST_SUMMARY_CONTRACT_VERSION),
     )
     for ordinal, event_text in enumerate(summary.key_events):
         cur.execute(

@@ -23,6 +23,7 @@ import redis
 
 from lineageweave.http_client import HttpClientError, get_json, post_form
 from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
+from lineageweave.post_summary import POST_SUMMARY_CONTRACT_VERSION
 
 _POSTGRES_ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
@@ -181,6 +182,10 @@ def seeded_db(demo_analyst_token):
             cur.execute(_SOURCE_RECORD_IDENTITY_MIGRATION.read_text())
             cur.execute(_SOURCE_NAMED_HINTS_MIGRATION.read_text())
             cur.execute(_SOURCE_ORG_NAMED_HINTS_MIGRATION.read_text())
+            cur.execute(
+                (Path(__file__).resolve().parents[2] / "migrations" / "0040_post_summary_contract.sql")
+                .read_text()
+            )
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -1286,8 +1291,13 @@ def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token
     try:
         with admin_conn.cursor() as cur:
             cur.execute(
-                "insert into post_summary_result (post_id, korean_summary) values (%s, %s)",
-                (seeded_db["public_post_id"], "저장된 한국어 요약입니다."),
+                "insert into post_summary_result "
+                "(post_id, korean_summary, summary_contract_version) values (%s, %s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    "저장된 한국어 요약입니다.",
+                    POST_SUMMARY_CONTRACT_VERSION,
+                ),
             )
             cur.execute(
                 "insert into post_summary_event (post_id, event_ordinal, event_text) "

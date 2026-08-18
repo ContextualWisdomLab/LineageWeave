@@ -585,6 +585,34 @@ async def read_customer_master(
             list(account.corporate_entity_ids),
         )
         has_source_context = bool(source_customer_rows or source_author_rows)
+        if not has_source_context:
+            has_source_context = bool(
+                await conn.fetchval(
+                    """
+                    select exists (
+                        select 1
+                          from source_post
+                         where (visibility_code = 'public'
+                                or corporate_entity_id = any($1::uuid[]))
+                           and (
+                                nullif(btrim(source_author_code), '') is not null
+                                or nullif(btrim(source_author_name), '') is not null
+                                or nullif(btrim(source_company_code), '') is not null
+                                or nullif(btrim(source_company_name), '') is not null
+                                or nullif(btrim(source_process_unit_code), '') is not null
+                                or nullif(btrim(source_process_unit_name), '') is not null
+                                or nullif(btrim(source_sales_pool_code), '') is not null
+                                or nullif(btrim(source_sales_pool_name), '') is not null
+                                or nullif(btrim(source_customer_code), '') is not null
+                                or nullif(btrim(source_customer_name), '') is not null
+                                or nullif(btrim(source_project_code), '') is not null
+                                or nullif(btrim(source_project_name), '') is not null
+                           )
+                    )
+                    """,
+                    list(account.corporate_entity_ids),
+                )
+            )
         if has_source_context:
             entity_rows = [
                 row

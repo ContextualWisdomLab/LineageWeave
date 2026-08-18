@@ -1046,29 +1046,33 @@ function KeymanPanel({
       </div>
       {error && <p className="error">{error}</p>}
       {sourceAuthorContext ? (
-        <div className="keyman-source-context">
-          <h4>{t("Source author evidence")} · {t("Hint only")}</h4>
-          <strong>{sourceAuthorContext.account_display_name}</strong>
-          {sourceAuthorContext.source_author_code ? (
-            <span> · {sourceAuthorContext.source_author_code}</span>
-          ) : null}
-          {sourceAuthorContext.account_affiliations.length > 0 ? (
-            <span className="keyman-affiliations">
-              {" -- "}
-              {sourceAuthorContext.account_affiliations.map((affiliation, index) => (
-                <span key={`${affiliation.corporate_entity_id}:${affiliation.process_unit_code ?? index}`}>
-                  {index > 0 ? ", " : null}
-                  {affiliation.entity_name}
-                  {affiliation.process_unit_name
-                    ? ` (${affiliation.process_unit_name})`
-                    : affiliation.process_unit_code
-                      ? ` (${affiliation.process_unit_code})`
-                      : null}
-                </span>
-              ))}
-            </span>
-          ) : null}
-        </div>
+        <details className="keyman-source-context">
+          <summary>{t("Source author evidence")} · {t("Hint only")}</summary>
+          <p>
+            <strong>
+              {sourceAuthorContext.source_author_name || sourceAuthorContext.source_author_code || t("Unknown")}
+            </strong>
+          </p>
+          <p>
+            {t("Authorization context")}: {sourceAuthorContext.account_display_name}
+            {sourceAuthorContext.account_affiliations.length > 0 ? (
+              <span className="keyman-affiliations">
+                {" -- "}
+                {sourceAuthorContext.account_affiliations.map((affiliation, index) => (
+                  <span key={`${affiliation.corporate_entity_id}:${affiliation.process_unit_code ?? index}`}>
+                    {index > 0 ? ", " : null}
+                    {affiliation.entity_name}
+                    {affiliation.process_unit_name
+                      ? ` (${affiliation.process_unit_name})`
+                      : affiliation.process_unit_code
+                        ? ` (${affiliation.process_unit_code})`
+                        : null}
+                  </span>
+                ))}
+              </span>
+            ) : null}
+          </p>
+        </details>
       ) : null}
       {keymen && keymen.length > 0 ? (
         <ul className="keyman-list">
@@ -3807,10 +3811,13 @@ function CustomerMasterPanel({
             {master.source_author_hints.map((hint) => (
               <li key={`${hint.author_code}:${hint.author_account_id}`}>
                 <strong>{hint.author_name ?? hint.author_code}</strong>
-                <span>{hint.author_code} · {hint.account_display_name} · {t("Hint only")}</span>
-                {hint.account_affiliations.length > 0 ? (
-                  <span>{hint.account_affiliations.map((affiliation) => affiliation.entity_name).join(", ")}</span>
-                ) : null}
+                <details>
+                  <summary>{hint.author_code} · {t("Hint only")}</summary>
+                  <span>{t("Authorization context")}: {hint.account_display_name}</span>
+                  {hint.account_affiliations.length > 0 ? (
+                    <span>{hint.account_affiliations.map((affiliation) => affiliation.entity_name).join(", ")}</span>
+                  ) : null}
+                </details>
                 <span>{hint.post_count} {t("posts")}</span>
               </li>
             ))}

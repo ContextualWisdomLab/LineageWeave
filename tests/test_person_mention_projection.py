@@ -55,6 +55,9 @@ _MIGRATION_PATH = Path(__file__).resolve().parents[1] / "migrations" / "0001_ini
 _SEMANTIC_PROJECT_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0031_semantic_project_mentions.sql"
 )
+_POST_SUMMARY_CONTRACT_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0040_post_summary_contract.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -110,6 +113,7 @@ def projection_database() -> str:
             with connection.cursor() as cursor:
                 cursor.execute(_MIGRATION_PATH.read_text(encoding="utf-8"))
                 cursor.execute(_SEMANTIC_PROJECT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_POST_SUMMARY_CONTRACT_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(
                     """
                     insert into common_lookup_value
@@ -350,8 +354,9 @@ def test_cross_post_identity_upgrade_keeps_keyman_mention_context(
                 ),
             )
             cursor.execute(
-                "insert into post_summary_result (post_id, korean_summary) values (%s, %s)",
-                (post_id, "합성 요약"),
+                "insert into post_summary_result "
+                "(post_id, korean_summary, summary_contract_version) values (%s, %s, %s)",
+                (post_id, "합성 요약", 1),
             )
             cursor.execute(
                 """

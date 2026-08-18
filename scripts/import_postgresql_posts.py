@@ -162,6 +162,18 @@ def _source_code_matches(
     return normalized in {item.strip().casefold() for item in excluded_values}
 
 
+def _validate_source_mapping(
+    sales_pool_column: str | None,
+    process_unit_column: str | None,
+) -> None:
+    """Reject the common PU-to-sales-pool mapping error at the import boundary."""
+    if sales_pool_column and process_unit_column and sales_pool_column == process_unit_column:
+        raise ValueError(
+            "source sales pool and PU/business-unit columns must be distinct; "
+            "PU is source_process_unit_code, not source_sales_pool_code"
+        )
+
+
 async def _ensure_scope(conn: asyncpg.Connection, args: argparse.Namespace) -> tuple[str, str, str]:
     """Resolve the existing target account, company, and process unit."""
     account_id = await conn.fetchval(
@@ -236,6 +248,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
         thread_group=args.thread_group_column,
         secondary_group=args.secondary_group_column,
     )
+    _validate_source_mapping(mapping.sales_pool, mapping.source_business_unit)
     query = args.query_file.read_text(encoding="utf-8")
     source = await asyncpg.connect(args.source_dsn)
     target = await asyncpg.connect(args.target_dsn)

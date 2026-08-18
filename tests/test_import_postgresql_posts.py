@@ -1,4 +1,6 @@
-from scripts.import_postgresql_posts import _parser, _source_code_matches
+import pytest
+
+from scripts.import_postgresql_posts import _parser, _source_code_matches, _validate_source_mapping
 
 
 def test_source_state_exclusion_uses_only_explicit_caller_values() -> None:
@@ -14,6 +16,11 @@ def test_source_state_exclusion_does_not_guess_when_mapping_is_absent() -> None:
 
     assert not _source_code_matches(row, None, ["draft"])
     assert not _source_code_matches(row, "draft_state", [])
+
+
+def test_importer_rejects_mapping_the_pu_column_as_sales_pool() -> None:
+    with pytest.raises(ValueError, match="PU is source_process_unit_code"):
+        _validate_source_mapping("pu_code", "pu_code")
 
 
 def test_importer_prefers_canonical_gateway_embedding_model(monkeypatch) -> None:

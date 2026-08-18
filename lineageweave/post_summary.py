@@ -56,6 +56,9 @@ ACTOR_TYPE_ORGANIZATION = "prov_organization"
 ACTOR_TYPE_TEAM = "prov_team"
 _VALID_ACTOR_TYPE_CODES = frozenset({ACTOR_TYPE_PERSON, ACTOR_TYPE_ORGANIZATION, ACTOR_TYPE_TEAM})
 PROJECT_MENTION_CONFIDENCE_THRESHOLD = 0.7
+# Stored rows without this contract version are legacy summaries and must be
+# regenerated from the current source body before the popup treats them as evidence.
+POST_SUMMARY_CONTRACT_VERSION = 1
 
 
 @dataclass(frozen=True)

@@ -22,7 +22,7 @@ def test_semantic_hints_keep_explicit_project_pool_and_author_sources() -> None:
     assert "project_field=PROJECT-42" in hints
     assert "source_field=source_post.secondary_grouping_key" in hints
     assert "order_pool=POOL-7: Synthetic bids" in hints
-    assert "author_affiliations=Synthetic Corp" in hints
+    assert "author_affiliations=none" in hints
     assert "author_account_id=synthetic-author-account" in hints
     assert "author_side_hint=our_side_context_only" in hints
     assert "customer_hint_trust=normal" in hints
@@ -103,7 +103,7 @@ def test_source_context_keeps_authorization_identity_as_non_binding_keyman_conte
 
     assert "author_account_id=demo-account" in hints
     assert "author_account_name=none" in hints
-    assert "author_affiliations=Demo Corp" in hints
+    assert "author_affiliations=none" in hints
     assert "customer=none" in hints
     assert "author_side_hint=our_side_context_only" in hints
-    assert "Demo Corp" in hints
+    assert "Demo Corp" not in hints

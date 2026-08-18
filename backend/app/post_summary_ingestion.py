@@ -48,6 +48,7 @@ from lineageweave.post_summary import (
     ACTOR_TYPE_PERSON,
     ACTOR_TYPE_TEAM,
     PostSummary,
+    POST_SUMMARY_CONTRACT_VERSION,
     normalize_project_key,
     RoleResponsibility,
 )
@@ -85,10 +86,13 @@ async def fetch_persisted_summary(
     by ``entity_name``. Person chips read ``cataloged_person_id``.
     """
     header = await conn.fetchrow(
-        "select korean_summary from post_summary_result where post_id = $1",
+        "select korean_summary, summary_contract_version "
+        "from post_summary_result where post_id = $1",
         post_id,
     )
     if header is None:
+        return None
+    if header["summary_contract_version"] != POST_SUMMARY_CONTRACT_VERSION:
         return None
     events = await conn.fetch(
         "select event_text from post_summary_event where post_id = $1 order by event_ordinal",
@@ -267,9 +271,11 @@ async def _replace_summary_projection(
     await conn.execute("delete from post_summary_result where post_id = $1", post_id)
     await conn.execute("delete from post_project_mention where post_id = $1", post_id)
     await conn.execute(
-        "insert into post_summary_result (post_id, korean_summary) values ($1, $2)",
+        "insert into post_summary_result "
+        "(post_id, korean_summary, summary_contract_version) values ($1, $2, $3)",
         post_id,
         summary.korean_summary,
+        POST_SUMMARY_CONTRACT_VERSION,
     )
     for project in summary.project_mentions:
         project_key = normalize_project_key(project.canonical_name)

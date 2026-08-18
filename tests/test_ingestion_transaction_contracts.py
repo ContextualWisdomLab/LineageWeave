@@ -19,6 +19,7 @@ from lineageweave.post_summary import (
     ACTOR_TYPE_PERSON,
     ACTOR_TYPE_TEAM,
     PostSummary,
+    POST_SUMMARY_CONTRACT_VERSION,
     RoleResponsibility,
 )
 from lineageweave.relation_verification import STATUS_CORROBORATED
@@ -196,9 +197,12 @@ class _SummaryConnection:
     async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
         compact = " ".join(query.split())
         self._events.append(("fetchrow", compact))
-        if compact.startswith("select korean_summary from post_summary_result"):
+        if compact.startswith("select korean_summary, summary_contract_version from post_summary_result"):
             assert not self.in_transaction
-            return {"korean_summary": "합성 요약"}
+            return {
+                "korean_summary": "합성 요약",
+                "summary_contract_version": POST_SUMMARY_CONTRACT_VERSION,
+            }
         if compact.startswith("select person_id from cataloged_person"):
             assert self.in_transaction
             return None
@@ -501,8 +505,11 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
         async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
             compact = " ".join(query.split())
             events.append(("fetchrow", compact))
-            if compact.startswith("select korean_summary from post_summary_result"):
-                return {"korean_summary": "합성 요약"}
+            if compact.startswith("select korean_summary, summary_contract_version from post_summary_result"):
+                return {
+                    "korean_summary": "합성 요약",
+                    "summary_contract_version": POST_SUMMARY_CONTRACT_VERSION,
+                }
             raise AssertionError(f"unexpected fetchrow query: {compact}")
 
         async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
@@ -535,6 +542,26 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
     assert role["catalog_node_id"] == person_id
     assert role["catalog_node_type_code"] == NODE_PERSON
     assert role["actor_name"] == "Priya Nair"
+
+
+def test_stale_summary_is_not_returned_as_current_evidence() -> None:
+    """Legacy generic summaries must yield to current body-grounded extraction."""
+
+    class _StaleSummaryConnection:
+        async def fetchrow(self, query: str, *args: Any) -> dict[str, Any]:
+            assert "summary_contract_version" in query
+            return {
+                "korean_summary": "오래된 일반화 요약",
+                "summary_contract_version": POST_SUMMARY_CONTRACT_VERSION - 1,
+            }
+
+        async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
+            raise AssertionError("stale summary must be rejected before loading projections")
+
+    payload = asyncio.run(
+        summary_ingestion.fetch_persisted_summary(_StaleSummaryConnection(), str(uuid.uuid4()))
+    )
+    assert payload is None
 
 
 class _PersonPersistConnection(_SummaryConnection):
