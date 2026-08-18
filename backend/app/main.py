@@ -779,8 +779,23 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
     if not rows:
         return "no structured hints available"
     first = rows[0]
+    source_context_present = any(
+        first[field] is not None
+        for field in (
+            "source_author_code",
+            "source_author_name",
+            "source_company_code",
+            "source_process_unit_code",
+            "source_sales_pool_code",
+            "source_customer_code",
+            "source_project_code",
+        )
+    )
+    source_author_name = first["source_author_name"]
+    if source_author_name and source_author_name == first["source_author_code"]:
+        source_author_name = None
     return format_semantic_hints(
-        author_name=first["source_author_name"] or first["author_name"],
+        author_name=source_author_name or (None if source_context_present else first["author_name"]),
         author_account_id=str(first["author_account_id"]),
         author_affiliations=(
             str(row["author_affiliation_name"])
@@ -792,12 +807,13 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
         project_field=first["source_project_code"] or first["project_field"],
         customer_name=first["customer_name"],
         source_author_code=first["source_author_code"],
-        source_author_name=first["source_author_name"],
+        source_author_name=source_author_name,
         source_company_code=first["source_company_code"],
         source_business_unit_code=first["source_process_unit_code"],
         source_sales_pool_code=first["source_sales_pool_code"],
         source_customer_code=first["source_customer_code"],
         source_project_code=first["source_project_code"],
+        source_context_present=source_context_present,
     )
 
 

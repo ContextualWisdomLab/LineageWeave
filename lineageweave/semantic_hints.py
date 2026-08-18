@@ -34,27 +34,52 @@ def format_semantic_hints(
     source_sales_pool_code: str | None = None,
     source_customer_code: str | None = None,
     source_project_code: str | None = None,
+    source_context_present: bool = False,
 ) -> str:
     """Render source-field hints without upgrading them into assertions."""
-    customer = _value(customer_name)
+    source_context = source_context_present or any(
+        value is not None
+        for value in (
+            source_author_code,
+            source_author_name,
+            source_company_code,
+            source_business_unit_code,
+            source_sales_pool_code,
+            source_customer_code,
+            source_project_code,
+        )
+    )
+    customer = _value(None if source_context else customer_name)
     customer_trust = "low" if customer.casefold() in _WEAK_CUSTOMER_VALUES else "normal"
-    affiliations = sorted({_value(value) for value in author_affiliations if _value(value) != "none"})
+    affiliations = (
+        []
+        if source_context
+        else sorted({_value(value) for value in author_affiliations if _value(value) != "none"})
+    )
+    account_id = None if source_context else author_account_id
+    author_side_hint = "unresolved_source_author" if source_context else "our_side_candidate"
+    effective_source_author_name = source_author_name
+    if effective_source_author_name and effective_source_author_name == source_author_code:
+        effective_source_author_name = None
+    effective_author_name = (
+        effective_source_author_name if source_context else author_name
+    )
     order_pool = ": ".join(
         value for value in (_value(order_pool_code), _value(order_pool_name)) if value != "none"
     ) or "none"
     return "; ".join(
         (
-            f"author_account_id={_value(author_account_id)} [source_field=source_post.author_account_id]",
-            f"author={_value(author_name)} [source_field=source_post.author_account_id]",
+            f"author_account_id={_value(account_id)} [source_field=source_post.author_account_id]",
+            f"author={_value(effective_author_name)} [source_field=source_post.author_code]",
             "author_affiliations="
             f"{', '.join(affiliations) or 'none'} [source_field=account_affiliation.corporate_entity_id]",
-            "author_side_hint=our_side_candidate [source_rule=source_post.author_account_id]",
+            f"author_side_hint={author_side_hint} [source_rule=source_post.author_code]",
             f"order_pool={order_pool} [source_field=source_post.process_unit_id]",
             f"project_field={_value(project_field)} [source_field=source_post.secondary_grouping_key]",
             f"customer={customer} [source_field=source_post.corporate_entity_id]",
             f"customer_hint_trust={customer_trust}",
             f"source_author_code={_value(source_author_code)} [source_field=source_post.source_author_code]",
-            f"source_author_name={_value(source_author_name)} [source_field=source_post.source_author_name]",
+            f"source_author_name={_value(effective_source_author_name)} [source_field=source_post.source_author_name]",
             f"source_company_code={_value(source_company_code)} [source_field=source_post.source_company_code]",
             f"source_business_unit_code={_value(source_business_unit_code)} [source_field=source_post.source_process_unit_code]",
             f"source_sales_pool_code={_value(source_sales_pool_code)} [source_field=source_post.source_sales_pool_code]",
