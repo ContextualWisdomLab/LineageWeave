@@ -8,25 +8,27 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
-- Buyer chrome is three GNB destinations only (ADR 0036 /
-  `docs/ux/buyer-ia.md`): **게시판 / 고객 마스터 / Ask Cubee**.
+- Buyer chrome is four GNB destinations (ADR 0036 /
+  `docs/ux/buyer-ia.md`): **게시판 / 고객 마스터 / 달력 / Ask Agent**.
   Weekly VOC is a board filter. Weekly/monthly newspapers are
   scheduled board posts (team / PU / corporate sections) consumed
   from fast-mlsirm member ranks and Orgmetra — never a 생성 / 실행 /
   내보내기 control, never an invented theta. Opening a post or
   newspaper shows 원문, 5W1H, Keymen (both sides), 지식그래프,
   고객 그룹, VOC 근거, 할 일, attachments, Event Lineage, and Ask
-  Cubee. Issue / commitment work stays the post To Do module — no
-  calendar screen on GNB or post detail. Corp / PU are Keyverse
-  attributes on the existing OIDC login. This Cloud slice does not
-  attach Figma; tokens and Storybook frames stay on Remote (ADR
-  0002). Empty copy names the next human
+  Agent. Issue / commitment work stays the post To Do module — no
+  second calendar on the post. 달력 consumes an independent CalDAV
+  module and fail-closes (이 범위의 일정을 아직 받을 수 없습니다)
+  when that module is not wired; it does not invent events or pull
+  할 일 rows. Corp / PU are Keyverse attributes on the existing OIDC
+  login. This Cloud slice does not attach Figma; tokens and Storybook
+  frames stay on Remote (ADR 0002). Empty copy names the next human
   action. Posts are submitted on the existing Valkey activity stream
   so fast-mlsirm can score them; the newspaper still reads only
   persisted ranks. TEPP time / multilevel / topic / KG is consumed
   from clues on the opened post (no clue form, no receipt). Event
   Lineage edges show same Keyman / win-pool / ontology-object join
-  keys. Searxng hits stay 미검증 후보 in Ask Cubee until attached on
+  keys. Searxng hits stay 미검증 후보 in Ask Agent until attached on
   고객 마스터. Similar-topic scrape is a scheduler hook; live
   Camoufox / article scrape is Remote-only. This Cloud slice
   fail-closes (유사 토픽 글을 아직 받을 수 없습니다) and does not

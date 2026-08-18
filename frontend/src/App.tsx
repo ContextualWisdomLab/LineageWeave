@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askCubee,
   attachOntologyObject,
+  fetchCaldavEvents,
   fetchKeymenCatalog,
   fetchLineageGraph,
   fetchMe,
@@ -18,6 +19,7 @@ import {
   fetchRelatedKeymen,
   searchBoard,
   type AffiliateNode,
+  type CalDavEvent,
   type CurrentUser,
   type FiveW1HSlot,
   type IssueTicket,
@@ -36,6 +38,7 @@ import { AskCubee } from "./components/AskCubee";
 import { Attachments } from "./components/Attachments";
 import { Board } from "./components/Board";
 import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
+import { Calendar } from "./components/Calendar";
 import { CustomerMaster } from "./components/CustomerMaster";
 import { EventLineagePanel } from "./components/EventLineagePanel";
 import { FiveW1H } from "./components/FiveW1H";
@@ -161,7 +164,7 @@ function PostEventScreen({
             />
             <p>
               <button type="button" onClick={() => onOpenAskCubee(postId)}>
-                Ask Cubee에서 열기
+                Ask Agent에서 열기
               </button>
             </p>
           </>
@@ -186,6 +189,9 @@ function BuyerHome({ accessToken }: { accessToken: string }) {
   const [pendingAttach, setPendingAttach] = useState<UnverifiedCandidate | null>(null);
   const [attachError, setAttachError] = useState<string | null>(null);
   const [attachBusy, setAttachBusy] = useState(false);
+  const [calendarAvailable, setCalendarAvailable] = useState(false);
+  const [calendarEvents, setCalendarEvents] = useState<CalDavEvent[] | null>(null);
+  const [calendarEmpty, setCalendarEmpty] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPosts(accessToken).then(setPosts).catch((err) => setError(String(err)));
@@ -212,6 +218,23 @@ function BuyerHome({ accessToken }: { accessToken: string }) {
   }, [destination, accessToken]);
 
   useEffect(() => {
+    if (destination !== "calendar") {
+      return;
+    }
+    fetchCaldavEvents(accessToken)
+      .then((payload) => {
+        setCalendarAvailable(payload.available);
+        setCalendarEvents(payload.events);
+        setCalendarEmpty(payload.empty_next_action);
+      })
+      .catch(() => {
+        setCalendarAvailable(false);
+        setCalendarEvents([]);
+        setCalendarEmpty("이 범위의 일정을 아직 받을 수 없습니다");
+      });
+  }, [destination, accessToken]);
+
+  useEffect(() => {
     if (destination !== "ask" || !askPostId) {
       return;
     }
@@ -222,10 +245,10 @@ function BuyerHome({ accessToken }: { accessToken: string }) {
 
   const askTitle = posts?.find((post) => post.post_id === askPostId)?.post_title ?? null;
 
-  return (
-    <>
-      <BuyerNav destination={destination} onChange={setDestination} />
-      {destination === "board" ? (
+  let destinationView: ReactElement;
+  switch (destination) {
+    case "board":
+      destinationView = (
         <Board
           items={posts}
           error={error}
@@ -235,8 +258,10 @@ function BuyerHome({ accessToken }: { accessToken: string }) {
             return result.posts;
           }}
         />
-      ) : null}
-      {destination === "customers" ? (
+      );
+      break;
+    case "customers":
+      destinationView = (
         <CustomerMaster
           me={me}
           orgmetraAvailable={orgAvailable}
@@ -266,8 +291,19 @@ function BuyerHome({ accessToken }: { accessToken: string }) {
               : undefined
           }
         />
-      ) : null}
-      {destination === "ask" ? (
+      );
+      break;
+    case "calendar":
+      destinationView = (
+        <Calendar
+          available={calendarAvailable}
+          events={calendarEvents}
+          emptyNextAction={calendarEmpty}
+        />
+      );
+      break;
+    case "ask":
+      destinationView = (
         <AskCubee
           postId={askPostId}
           postTitle={askTitle}
@@ -284,8 +320,19 @@ function BuyerHome({ accessToken }: { accessToken: string }) {
             setDestination("customers");
           }}
         />
-      ) : null}
-      {selectedPostId && destination !== "ask" ? (
+      );
+      break;
+    default: {
+      const _exhaustive: never = destination;
+      return _exhaustive;
+    }
+  }
+
+  return (
+    <>
+      <BuyerNav destination={destination} onChange={setDestination} />
+      {destinationView}
+      {selectedPostId && destination === "board" ? (
         <PostEventScreen
           postId={selectedPostId}
           accessToken={accessToken}

@@ -23,6 +23,11 @@ def test_frontend_origins_drop_blank_entries(monkeypatch) -> None:
     assert load_settings().frontend_origins == ["http://localhost:5173"]
 
 
+def test_caldav_base_url_defaults_empty(monkeypatch) -> None:
+    monkeypatch.delenv("CALDAV_BASE_URL", raising=False)
+    assert load_settings().caldav_base_url == ""
+
+
 def test_camoufox_base_url_defaults_empty(monkeypatch) -> None:
     monkeypatch.delenv("CAMOUFOX_BASE_URL", raising=False)
     assert load_settings().camoufox_base_url == ""

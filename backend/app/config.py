@@ -61,6 +61,9 @@ class Settings:
     # Orgmetra org-grain port (team / PU / corporate). Empty keeps
     # NullOrgmetraClient -- never invent a team/PU/corp tree.
     orgmetra_base_url: str
+    # Independent CalDAV consume port. Empty keeps NullCalDavClient.
+    # This setting does not plant a calendar kernel or event store.
+    caldav_base_url: str
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -100,4 +103,5 @@ def load_settings() -> Settings:
         .lower()
         in {"1", "true", "yes", "on"},
         orgmetra_base_url=os.environ.get("ORGMETRA_BASE_URL", ""),
+        caldav_base_url=os.environ.get("CALDAV_BASE_URL", ""),
     )

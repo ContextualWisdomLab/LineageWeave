@@ -156,6 +156,10 @@ from backend.app.ask_cubee_ingestion import answer_ask_cubee
 from backend.app.board_search_ingestion import search_authorized_board
 from lineageweave.newspaper_edition import edition_from_row
 from backend.app.post_summary_ingestion import fetch_persisted_summary, persist_post_summary
+from lineageweave.caldav_client import (
+    CALDAV_UNAVAILABLE_NEXT_ACTION,
+    build_caldav_client,
+)
 from lineageweave.orgmetra_client import (
     ORGMETRA_GRAINS,
     ORGMETRA_UNAVAILABLE_NEXT_ACTION,
@@ -504,6 +508,27 @@ async def read_orgmetra_units(
         "grain_code": grain,
         "units": units,
         "empty_next_action": None if units else ORGMETRA_UNAVAILABLE_NEXT_ACTION,
+    }
+
+
+@app.get("/api/caldav/events")
+async def read_caldav_events(
+    account: CurrentAccount = Depends(get_current_account),
+) -> dict[str, Any]:
+    """Consume CalDAV events. Unconfigured port fail-closes empty.
+
+    Does not plant a calendar kernel and does not read post 할 일 rows.
+    """
+    _require_post_read(account)
+    client = build_caldav_client(load_settings().caldav_base_url)
+    events = [
+        {"event_id": event.event_id, "summary": event.summary, "starts_at": event.starts_at}
+        for event in client.list_events()
+    ]
+    return {
+        "available": client.available and bool(events),
+        "events": events,
+        "empty_next_action": None if events else CALDAV_UNAVAILABLE_NEXT_ACTION,
     }
 
 
@@ -1253,7 +1278,7 @@ async def ask_cubee(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Source-grounded Ask Cubee. Not a tutor menu and not an LLM guess."""
+    """Source-grounded Ask Agent. Not a tutor menu and not an LLM guess."""
     question = request.question.strip()
     if not question:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")

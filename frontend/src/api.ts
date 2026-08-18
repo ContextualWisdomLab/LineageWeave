@@ -649,6 +649,22 @@ export function fetchOrgmetraUnits(
   return backendFetch(`/api/orgmetra/units?grain=${encodeURIComponent(grain)}`, accessToken);
 }
 
+export interface CalDavEvent {
+  event_id: string;
+  summary: string;
+  starts_at: string;
+}
+
+export interface CalDavEventsPayload {
+  available: boolean;
+  events: CalDavEvent[];
+  empty_next_action: string | null;
+}
+
+export function fetchCaldavEvents(accessToken: string): Promise<CalDavEventsPayload> {
+  return backendFetch("/api/caldav/events", accessToken);
+}
+
 export function fetchKeymenCatalog(accessToken: string): Promise<{ keymen: Keyman[] }> {
   return backendFetch("/api/keymen", accessToken);
 }

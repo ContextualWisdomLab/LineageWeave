@@ -1,28 +1,31 @@
-export type BuyerDestination = "board" | "customers" | "ask";
+export type BuyerDestination = "board" | "customers" | "calendar" | "ask";
 
 export type BuyerNavProps = {
   destination: BuyerDestination;
   onChange: (destination: BuyerDestination) => void;
 };
 
-const ITEMS: { id: BuyerDestination; label: string }[] = [
-  { id: "board", label: "게시판" },
-  { id: "customers", label: "고객 마스터" },
-  { id: "ask", label: "Ask Cubee" },
-];
+const LABELS: Record<BuyerDestination, string> = {
+  board: "게시판",
+  customers: "고객 마스터",
+  calendar: "달력",
+  ask: "Ask Agent",
+};
+
+const ITEMS: BuyerDestination[] = ["board", "customers", "calendar", "ask"];
 
 export function BuyerNav({ destination, onChange }: BuyerNavProps) {
   return (
     <nav className="buyer-gnb" aria-label="Buyer">
-      {ITEMS.map((item) => (
+      {ITEMS.map((id) => (
         <button
-          key={item.id}
+          key={id}
           type="button"
           className="buyer-gnb-item"
-          aria-current={destination === item.id ? "page" : undefined}
-          onClick={() => onChange(item.id)}
+          aria-current={destination === id ? "page" : undefined}
+          onClick={() => onChange(id)}
         >
-          {item.label}
+          {LABELS[id]}
         </button>
       ))}
     </nav>

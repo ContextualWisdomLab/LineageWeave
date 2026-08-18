@@ -1,4 +1,4 @@
-"""Ask Cubee answers from authorized source + lineage + ontology query."""
+"""Ask Agent answers from authorized source + lineage + ontology query."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ async def answer_ask_cubee(
     can_see_post: Any,
     tepp_client: TeppClient | None = None,
 ) -> dict[str, object]:
-    """Grounded Ask Cubee. Missing post or unbound question fail-closes."""
+    """Grounded Ask Agent. Missing post or unbound question fail-closes."""
     if post_id and post_created_at is not None:
         return await answer_authorized_lineage_question(
             conn,

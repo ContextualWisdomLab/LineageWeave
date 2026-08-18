@@ -22,13 +22,13 @@ export function AskCubee({
   onPromoteCandidate,
 }: AskCubeeProps) {
   return (
-    <section className="popup-section lineage-home" aria-label="Ask Cubee">
-      <h2>Ask Cubee</h2>
+    <section className="popup-section lineage-home" aria-label="Ask Agent">
+      <h2>Ask Agent</h2>
       {postTitle ? <p className="post-meta">Event · {postTitle}</p> : null}
       {postId && lineage ? (
         <EventLineagePanel lineage={lineage} graph={graph} postId={postId} onSelectNode={onSelectNode} />
       ) : null}
-      <GroundedQa heading="Ask Cubee" onAsk={onAsk} onPromoteCandidate={onPromoteCandidate} />
+      <GroundedQa heading="Ask Agent" onAsk={onAsk} onPromoteCandidate={onPromoteCandidate} />
     </section>
   );
 }

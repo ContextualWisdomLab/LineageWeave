@@ -19,7 +19,7 @@ export type GroundedQaProps = {
   onPromoteCandidate?: (candidate: UnverifiedCandidate) => void;
 };
 
-export function GroundedQa({ heading = "Ask Cubee", onAsk, onPromoteCandidate }: GroundedQaProps) {
+export function GroundedQa({ heading = "Ask Agent", onAsk, onPromoteCandidate }: GroundedQaProps) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<GroundedQaAnswer | null>(null);
   const [error, setError] = useState<string | null>(null);

@@ -2042,6 +2042,15 @@ describe("App, authenticated", () => {
       if (/\/api\/posts\/[^/]+\/affiliate-tree$/.test(url)) {
         return Promise.resolve(jsonResponse({ trees: [] }));
       }
+      if (url.endsWith("/api/caldav/events")) {
+        return Promise.resolve(
+          jsonResponse({
+            available: false,
+            events: [],
+            empty_next_action: "이 범위의 일정을 아직 받을 수 없습니다",
+          }),
+        );
+      }
       if (/\/api\/posts\/[^/]+\/voc-evidence$/.test(url)) {
         return Promise.resolve(
           jsonResponse({
@@ -2067,7 +2076,9 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("navigation", { name: "Buyer" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "게시판" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("button", { name: "고객 마스터" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ask Cubee" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "달력" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ask Agent" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ask Cubee" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "주간 VOC" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /주간 리포트|월간 리포트|내보내기|생성|지금 만들기|지금 긁기|검색 홈|캘린더|Calendar/ })).not.toBeInTheDocument();
     expect(screen.getByText("유사 토픽 글을 아직 받을 수 없습니다")).toBeInTheDocument();
@@ -2092,7 +2103,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("heading", { name: "Calendar" })).not.toBeInTheDocument();
     expect(screen.queryByText(/Figma/i)).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "사건 lineage" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Ask Cubee" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Ask Agent" })).toBeInTheDocument();
     expect(screen.queryByText(/is current in Event Lineage/)).not.toBeInTheDocument();
     expect(screen.queryByText(/TEPP/)).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
@@ -2148,7 +2159,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByText(new RegExp(tinyPng))).not.toBeInTheDocument();
   });
 
-  it("answers Ask Cubee from the semantic-layer query and fail-closes why", async () => {
+  it("answers Ask Agent from the semantic-layer query and fail-closes why", async () => {
     stubBackend();
     render(<App />);
     await userEvent.click(await screen.findByRole("button", { name: "Open post: Public post" }));
@@ -2165,12 +2176,12 @@ describe("App, authenticated", () => {
     );
   });
 
-  it("opens Ask Cubee from a post and keeps the lineage graph", async () => {
+  it("opens Ask Agent from a post and keeps the lineage graph", async () => {
     stubBackend();
     render(<App />);
     await userEvent.click(await screen.findByRole("button", { name: "Open post: Public post" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Ask Cubee에서 열기" }));
-    expect(await screen.findByRole("heading", { level: 2, name: "Ask Cubee" })).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent에서 열기" }));
+    expect(await screen.findByRole("heading", { level: 2, name: "Ask Agent" })).toBeInTheDocument();
     expect(await screen.findByLabelText("A-100 lineage")).toBeInTheDocument();
   });
 
@@ -2187,6 +2198,16 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("heading", { name: "지식그래프" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "고객 약속" })).not.toBeInTheDocument();
     expect(screen.queryByRole("form", { name: /login|corp|PU/i })).not.toBeInTheDocument();
+  });
+
+  it("shows fail-closed 달력 consume copy and does not invent 할 일 events", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "달력" }));
+    expect(await screen.findByRole("heading", { name: "달력" })).toBeInTheDocument();
+    expect(screen.getByText("이 범위의 일정을 아직 받을 수 없습니다")).toBeInTheDocument();
+    expect(screen.queryByText(/Send Northridge Grid the revised quote/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "할 일" })).not.toBeInTheDocument();
   });
 
   it("shows fail-closed empty lineage and Keymen on an opened item", async () => {

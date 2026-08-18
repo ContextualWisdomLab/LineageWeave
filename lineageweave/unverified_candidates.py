@@ -1,6 +1,6 @@
 """Searxng hits stay 미검증 후보 until attached on 고객 마스터.
 
-Candidates appear only in Ask Cubee / grounded Q&A. They are never
+Candidates appear only in Ask Agent / grounded Q&A. They are never
 drawn as Event Lineage parents. Promote sends the buyer to 고객
 마스터. Attach unique-matches an existing catalog row and never
 creates an AUTO- row from a search hit (ADR 0026).
@@ -59,7 +59,7 @@ class OntologyAttachResult:
 
 
 def wants_outside_verification(question: str) -> bool:
-    """True when Ask Cubee should check a 5W1H / lineage inference outside."""
+    """True when Ask Agent should check a 5W1H / lineage inference outside."""
     folded = _TRAILING_PUNCT.sub("", " ".join(question.strip().lower().split()))
     return any(token in folded for token in _OUTSIDE_TOKENS)
 
@@ -117,7 +117,7 @@ def attach_unverified_candidate(
 
 
 def candidate_payloads(candidates: Sequence[UnverifiedCandidate]) -> list[dict[str, object]]:
-    """Buyer JSON for Ask Cubee. Status stays 미검증 후보."""
+    """Buyer JSON for Ask Agent. Status stays 미검증 후보."""
     return [
         {
             "label": row.label,

@@ -1,7 +1,7 @@
 # Storybook inventory
 
 Open the catalog after `cd frontend && pnpm run storybook`. Inventory is
-the three buyer GNB destinations only. Modules attach to that flow.
+the four buyer GNB destinations. Modules attach to that flow.
 Tokens and Storybook frames live on the operator Remote machine. This
 Cloud slice does not attach Figma and does not invent a fourth screen
 from a missing frame (ADR 0002).
@@ -13,7 +13,8 @@ from a missing frame (ADR 0002).
 | `게시판/FiveW1H` | Read grounded 누가/무엇을/언제/어디서/왜/어떻게, or the empty next action. | `--space-control-gap`, `FiveW1H` |
 | `게시판/EventLineagePanel` | Select a node on the Event Lineage DAG. | `--color-accent-border`, `EventLineagePanel`, `LineageDag` |
 | `고객 마스터/CustomerMaster` | Read Orgmetra customers and Keymen, or the fail-closed next action. Corp / PU stay Keyverse attributes. | `--space-panel-block`, `CustomerMaster` |
-| `Ask Cubee/GroundedQa` | Ask what happened on this lineage; read the grounded slot, 미검증 후보, or the fail-closed next action. Promote a candidate to 고객 마스터. | `--space-control-gap`, `GroundedQa` |
+| `달력/Calendar` | Read CalDAV consume events, or the fail-closed next action. Do not invent events. | `--space-panel-block`, `Calendar` |
+| `Ask Agent/GroundedQa` | Ask what happened on this lineage; read the grounded slot, 미검증 후보, or the fail-closed next action. Promote a candidate to 고객 마스터. | `--space-control-gap`, `GroundedQa` |
 
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module
 under `frontend/src/components/`. Do not add a second Node package manager;
