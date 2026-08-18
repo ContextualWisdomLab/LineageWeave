@@ -278,15 +278,52 @@ def seed(
                 demo_public_post_id = demo_public_row[0]
                 if demo_public_row[1] != demo_public_live_body:
                     cur.execute(
-                        "update source_post set post_body = %s, "
-                        "updated_at = '2026-01-13T09:00:00Z' "
-                        "where post_id = %s",
+                        "update source_post set post_body = %s where post_id = %s",
                         (demo_public_live_body, demo_public_post_id),
                     )
+                    cur.execute(
+                        "update source_post set created_at = '2026-01-10T12:00:00Z' "
+                        "where post_id = %s",
+                        (demo_public_post_id,),
+                    )
+            from base64 import b64encode
+            from io import BytesIO
+
+            from PIL import Image, ImageDraw
+
+            synthetic_image = Image.new("RGBA", (128, 96), (0, 0, 0, 0))
+            ImageDraw.Draw(synthetic_image).rectangle(
+                (8, 8, 120, 88), fill=(44, 98, 168, 255)
+            )
+            image_bytes = BytesIO()
+            synthetic_image.save(image_bytes, format="TIFF")
+            demo_image_body = (
+                '<p>Synthetic raster evidence: '
+                '<img alt="Synthetic blue panel" src="data:image/tiff;base64,'
+                f'{b64encode(image_bytes.getvalue()).decode("ascii")}"'
+                ' /></p>'
+            )
+            cur.execute(
+                "select post_id, post_body from source_post where post_title = 'Demo image post'"
+            )
+            demo_image_row = cur.fetchone()
+            if demo_image_row is None:
                 cur.execute(
-                    "update source_post set created_at = '2026-01-10T12:00:00Z' "
-                    "where post_id = %s",
-                    (demo_public_post_id,),
+                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, "
+                    "post_title, post_body, voc_type_code, visibility_code, created_at, updated_at) "
+                    "values (%s, %s, %s, 'Demo image post', %s, 'voc', 'public', "
+                    "'2026-01-11T12:00:00Z', '2026-01-11T12:00:00Z')",
+                    (
+                        account_ids["demo.analyst"],
+                        corporate_entity_id,
+                        process_units["DEMO-PU-A"],
+                        demo_image_body,
+                    ),
+                )
+            elif demo_image_row[1] != demo_image_body:
+                cur.execute(
+                    "update source_post set post_body = %s where post_id = %s",
+                    (demo_image_body, demo_image_row[0]),
                 )
             cur.execute(
                 """
@@ -1420,20 +1457,24 @@ def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -
         """,
         (run_id, corporate_entity_id),
     )
-    for ordinal, status, occurred in (
-        (1, "analysis_status_pending", "2026-01-12T12:31:00Z"),
-        (2, "analysis_status_running", "2026-01-12T12:32:00Z"),
-        (3, "analysis_status_succeeded", "2026-01-12T12:33:00Z"),
-    ):
-        cur.execute(
-            """
-            insert into analysis_run_status_event
-                (analysis_run_id, status_ordinal, status_code, occurred_at)
-            values (%s, %s, %s, %s)
-            on conflict do nothing
-            """,
-            (run_id, ordinal, status, occurred),
-        )
+    cur.execute(
+        "select 1 from analysis_run_status_event where analysis_run_id = %s limit 1",
+        (run_id,),
+    )
+    if cur.fetchone() is None:
+        for ordinal, status, occurred in (
+            (1, "analysis_status_pending", "2026-01-12T12:31:00Z"),
+            (2, "analysis_status_running", "2026-01-12T12:32:00Z"),
+            (3, "analysis_status_succeeded", "2026-01-12T12:33:00Z"),
+        ):
+            cur.execute(
+                """
+                insert into analysis_run_status_event
+                    (analysis_run_id, status_ordinal, status_code, occurred_at)
+                values (%s, %s, %s, %s)
+                """,
+                (run_id, ordinal, status, occurred),
+            )
     _seed_demo_run_reconstruction(cur, run_id, corporate_entity_id)
     _seed_demo_run_outbox(cur, run_id)
 
@@ -1589,16 +1630,20 @@ def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> No
         (2, "analysis_status_running", "2026-01-12T12:36:00Z", None),
         (3, final_status, "2026-01-12T12:37:00Z", failure_code),
     ]
-    for ordinal, status, occurred, fail in events:
-        cur.execute(
-            """
-            insert into analysis_run_status_event
-                (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
-            values (%s, %s, %s, %s, %s)
-            on conflict do nothing
-            """,
-            (run_id, ordinal, status, occurred, fail),
-        )
+    cur.execute(
+        "select 1 from analysis_run_status_event where analysis_run_id = %s limit 1",
+        (run_id,),
+    )
+    if cur.fetchone() is None:
+        for ordinal, status, occurred, fail in events:
+            cur.execute(
+                """
+                insert into analysis_run_status_event
+                    (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
+                values (%s, %s, %s, %s, %s)
+                """,
+                (run_id, ordinal, status, occurred, fail),
+            )
     _seed_demo_run_outbox(cur, run_id)
 
 
@@ -1650,27 +1695,30 @@ def _seed_demo_report_run(cur, requested_by_account_id, corporate_entity_id) -> 
     cur.execute(
         """
         insert into analysis_run_scope
-            (analysis_run_id, scope_kind_code, corporate_entity_id, scope_key)
-        values (%s, 'analysis_scope_corporate_entity', %s, %s)
-        on conflict (analysis_run_id) do update
-            set scope_key = excluded.scope_key
+            (analysis_run_id, scope_kind_code, corporate_entity_id)
+        values (%s, 'analysis_scope_corporate_entity', %s)
+        on conflict (analysis_run_id) do nothing
         """,
-        (run_id, corporate_entity_id, "2026-W02"),
+        (run_id, corporate_entity_id),
     )
-    for ordinal, status, occurred in (
-        (1, "analysis_status_pending", "2026-01-12T12:39:00Z"),
-        (2, "analysis_status_running", "2026-01-12T12:40:00Z"),
-        (3, "analysis_status_succeeded", "2026-01-12T12:41:00Z"),
-    ):
-        cur.execute(
-            """
-            insert into analysis_run_status_event
-                (analysis_run_id, status_ordinal, status_code, occurred_at)
-            values (%s, %s, %s, %s)
-            on conflict do nothing
-            """,
-            (run_id, ordinal, status, occurred),
-        )
+    cur.execute(
+        "select 1 from analysis_run_status_event where analysis_run_id = %s limit 1",
+        (run_id,),
+    )
+    if cur.fetchone() is None:
+        for ordinal, status, occurred in (
+            (1, "analysis_status_pending", "2026-01-12T12:39:00Z"),
+            (2, "analysis_status_running", "2026-01-12T12:40:00Z"),
+            (3, "analysis_status_succeeded", "2026-01-12T12:41:00Z"),
+        ):
+            cur.execute(
+                """
+                insert into analysis_run_status_event
+                    (analysis_run_id, status_ordinal, status_code, occurred_at)
+                values (%s, %s, %s, %s)
+                """,
+                (run_id, ordinal, status, occurred),
+            )
 
 
 def _seed_demo_run_outbox(cur, analysis_run_id) -> None:
