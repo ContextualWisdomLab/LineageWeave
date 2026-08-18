@@ -534,55 +534,114 @@ async def read_customer_master(
     async with pool.acquire() as conn:
         source_customer_rows = await conn.fetch(
             """
-            select nullif(btrim(source_customer_code), '') as customer_code,
-                   max(nullif(btrim(source_customer_name), '')) as customer_name,
-                   count(*) as post_count,
-                   json_agg(
-                       json_build_object(
-                           'post_id', post_id::text,
-                           'post_title', post_title
-                       )
-                       order by created_at desc, post_id desc
-                   ) as related_posts
-              from source_post
-             where (nullif(btrim(source_customer_code), '') is not null
-                    or nullif(btrim(source_customer_name), '') is not null)
-               and (visibility_code = 'public' or corporate_entity_id = any($1::uuid[]))
-             group by nullif(btrim(source_customer_code), ''),
-                      case when nullif(btrim(source_customer_code), '') is null
-                           then nullif(btrim(source_customer_name), '')
-                           else null end
-             order by count(*) desc, customer_code, customer_name
+            with scoped as (
+                select post_id, post_title, created_at,
+                       nullif(btrim(source_customer_code), '') as customer_code,
+                       nullif(btrim(source_customer_name), '') as customer_name,
+                       case when nullif(btrim(source_customer_code), '') is null
+                            then nullif(btrim(source_customer_name), '')
+                            else null end as customer_name_group
+                  from source_post
+                 where (nullif(btrim(source_customer_code), '') is not null
+                        or nullif(btrim(source_customer_name), '') is not null)
+                   and (visibility_code = 'public' or corporate_entity_id = any($1::uuid[]))
+            ), ranked as (
+                select scoped.*,
+                       row_number() over (
+                           partition by customer_code, customer_name_group
+                           order by created_at desc, post_id desc
+                       ) as related_rank
+                  from scoped
+            ), groups as (
+                select customer_code, customer_name_group,
+                       max(customer_name) as customer_name,
+                       count(*) as post_count
+                  from ranked
+                 group by customer_code, customer_name_group
+            ), related as (
+                select ranked.customer_code, ranked.customer_name_group,
+                       json_agg(
+                           json_build_object(
+                               'post_id', post.post_id::text,
+                               'post_title', post.post_title,
+                               'post_body_excerpt', btrim(left(source_post_search_text(post.post_body), 420)),
+                               'post_body_truncated', char_length(coalesce(post.post_body, '')) > 420
+                           )
+                           order by ranked.created_at desc, ranked.post_id desc
+                       ) as related_posts
+                  from ranked
+                  join source_post post on post.post_id = ranked.post_id
+                 where ranked.related_rank <= 20
+                 group by ranked.customer_code, ranked.customer_name_group
+            )
+            select groups.customer_code, groups.customer_name, groups.post_count,
+                   coalesce(related.related_posts, '[]'::json) as related_posts
+              from groups
+              left join related
+                on related.customer_code is not distinct from groups.customer_code
+               and related.customer_name_group is not distinct from groups.customer_name_group
+             order by groups.post_count desc, groups.customer_code, groups.customer_name
              limit 100
             """,
             list(account.corporate_entity_ids),
         )
         source_author_rows = await conn.fetch(
             """
-            select btrim(post.source_author_code) as author_code,
-                   max(
+            with scoped as (
+                select post.post_id, post.post_title, post.created_at,
+                       btrim(post.source_author_code) as author_code,
                        case
                            when post.source_author_name is null
                              or btrim(post.source_author_name) = ''
                              or lower(btrim(post.source_author_name)) = lower(btrim(post.source_author_code))
                            then null
                            else btrim(post.source_author_name)
-                       end
-                   ) as author_name,
-                   post.author_account_id,
-                   author.display_name as account_display_name,
-                   count(*) as post_count,
-                   json_agg(
-                       json_build_object('post_id', post.post_id::text, 'post_title', post.post_title)
-                       order by post.created_at desc, post.post_id desc
-                   ) as related_posts
-              from source_post post
-              join user_account author on author.user_account_id = post.author_account_id
-             where post.source_author_code is not null
-               and btrim(post.source_author_code) <> ''
-               and (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
-             group by btrim(post.source_author_code), post.author_account_id, author.display_name
-             order by count(*) desc, author_code
+                       end as source_author_name,
+                       post.author_account_id,
+                       author.display_name as account_display_name
+                  from source_post post
+                  join user_account author on author.user_account_id = post.author_account_id
+                 where post.source_author_code is not null
+                   and btrim(post.source_author_code) <> ''
+                   and (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
+            ), ranked as (
+                select scoped.*,
+                       row_number() over (
+                           partition by author_code, author_account_id, account_display_name
+                           order by created_at desc, post_id desc
+                       ) as related_rank
+                  from scoped
+            ), groups as (
+                select author_code, author_account_id, account_display_name,
+                       max(source_author_name) as author_name,
+                       count(*) as post_count
+                  from ranked
+                 group by author_code, author_account_id, account_display_name
+            ), related as (
+                select ranked.author_code, ranked.author_account_id, ranked.account_display_name,
+                       json_agg(
+                           json_build_object(
+                               'post_id', post.post_id::text,
+                               'post_title', post.post_title,
+                               'post_body_excerpt', btrim(left(source_post_search_text(post.post_body), 420)),
+                               'post_body_truncated', char_length(coalesce(post.post_body, '')) > 420
+                           )
+                           order by ranked.created_at desc, ranked.post_id desc
+                       ) as related_posts
+                  from ranked
+                  join source_post post on post.post_id = ranked.post_id
+                 where ranked.related_rank <= 20
+                 group by ranked.author_code, ranked.author_account_id, ranked.account_display_name
+            )
+            select groups.author_code, groups.author_name, groups.author_account_id,
+                   groups.account_display_name, groups.post_count,
+                   coalesce(related.related_posts, '[]'::json) as related_posts
+              from groups
+              left join related
+                on related.author_code = groups.author_code
+               and related.author_account_id = groups.author_account_id
+               and related.account_display_name = groups.account_display_name
+             order by groups.post_count desc, groups.author_code
              limit 100
             """,
             list(account.corporate_entity_ids),

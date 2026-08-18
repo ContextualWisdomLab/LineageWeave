@@ -1125,7 +1125,12 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
             "customer_name": None,
             "post_count": 1,
             "related_posts": [
-                {"post_id": seeded_db["public_post_id"], "post_title": "Public post"}
+                {
+                    "post_id": seeded_db["public_post_id"],
+                    "post_title": "Public post",
+                    "post_body_excerpt": "body",
+                    "post_body_truncated": False,
+                }
             ],
             "resolution_status": "hint_only",
             "provenance": "source_post.source_customer_code/source_post.source_customer_name",
@@ -1138,7 +1143,12 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
     assert author_hint[0]["author_account_id"]
     assert author_hint[0]["account_display_name"] == "Test Analyst"
     assert author_hint[0]["related_posts"] == [
-        {"post_id": seeded_db["public_post_id"], "post_title": "Public post"}
+        {
+            "post_id": seeded_db["public_post_id"],
+            "post_title": "Public post",
+            "post_body_excerpt": "body",
+            "post_body_truncated": False,
+        }
     ]
     assert author_hint[0]["resolution_status"] == "our_side_context_only"
     assert any(

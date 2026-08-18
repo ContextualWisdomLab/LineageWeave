@@ -130,6 +130,8 @@ export interface RelatedNode {
   node_type_code: RelatedNodeType | string;
   relevance: number;
   label?: string;
+  post_body_excerpt?: string | null;
+  post_body_truncated?: boolean;
   person_side_code?: string;
   person_side_label?: string;
   ontology_iri?: string;

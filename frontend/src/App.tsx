@@ -3760,6 +3760,38 @@ function PostList({
   );
 }
 
+function CustomerRelatedPostCard({
+  postId,
+  postTitle,
+  postBodyExcerpt,
+  postBodyTruncated,
+  onOpenPost,
+}: {
+  postId: string;
+  postTitle: string;
+  postBodyExcerpt?: string | null;
+  postBodyTruncated?: boolean;
+  onOpenPost: (postId: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="related-post-card"
+      aria-label={tf("Open related post: {label}", { label: postTitle })}
+      onClick={() => onOpenPost(postId)}
+    >
+      <span className="related-post-content">
+        <strong>{postTitle}</strong>
+        <span className="post-body-excerpt" aria-label={t("Post body preview")}>
+          {postBodyExcerpt || t("No post body.")}
+          {postBodyTruncated ? " ..." : ""}
+        </span>
+      </span>
+      <span>{t("Open record")}</span>
+    </button>
+  );
+}
+
 function CustomerMasterPanel({
   accessToken,
   onOpenPost,
@@ -3833,13 +3865,16 @@ function CustomerMasterPanel({
                     <p className="popup-placeholder">{t("No linked posts yet.")}</p>
                   ) : null}
                   {relatedPosts.length > 0 ? (
-                    <ul aria-label={`${t("Related posts")}: ${entity.entity_name}`}>
+                      <ul aria-label={`${t("Related posts")}: ${entity.entity_name}`}>
                       {relatedPosts.map((node) => (
                         <li key={node.node_id}>
-                          <button type="button" className="related-post-card" onClick={() => onOpenPost(node.node_id)}>
-                            <strong>{node.label ?? node.node_id}</strong>
-                            <span>{t("Open record")}</span>
-                          </button>
+                          <CustomerRelatedPostCard
+                            postId={node.node_id}
+                            postTitle={node.label ?? node.node_id}
+                            postBodyExcerpt={node.post_body_excerpt}
+                            postBodyTruncated={node.post_body_truncated}
+                            onOpenPost={onOpenPost}
+                          />
                         </li>
                       ))}
                     </ul>
@@ -3868,15 +3903,13 @@ function CustomerMasterPanel({
                   <ul aria-label={`${t("Related posts")}: ${hint.customer_name ?? hint.customer_code ?? t("Unresolved source identifier")}`}>
                     {hint.related_posts.map((post) => (
                       <li key={post.post_id}>
-                        <button
-                          type="button"
-                          className="related-post-card"
-                          aria-label={tf("Open related post: {label}", { label: post.post_title })}
-                          onClick={() => onOpenPost(post.post_id)}
-                        >
-                          <strong>{post.post_title}</strong>
-                          <span>{t("Open record")}</span>
-                        </button>
+                        <CustomerRelatedPostCard
+                          postId={post.post_id}
+                          postTitle={post.post_title}
+                          postBodyExcerpt={post.post_body_excerpt}
+                          postBodyTruncated={post.post_body_truncated}
+                          onOpenPost={onOpenPost}
+                        />
                       </li>
                     ))}
                   </ul>
@@ -3905,15 +3938,13 @@ function CustomerMasterPanel({
                   <ul className="related-post-list">
                     {hint.related_posts.map((post) => (
                       <li key={post.post_id}>
-                        <button
-                          type="button"
-                          className="related-post-card"
-                          aria-label={tf("Open related post: {label}", { label: post.post_title })}
-                          onClick={() => onOpenPost(post.post_id)}
-                        >
-                          <strong>{post.post_title}</strong>
-                          <span>{t("Open record")}</span>
-                        </button>
+                        <CustomerRelatedPostCard
+                          postId={post.post_id}
+                          postTitle={post.post_title}
+                          postBodyExcerpt={post.post_body_excerpt}
+                          postBodyTruncated={post.post_body_truncated}
+                          onOpenPost={onOpenPost}
+                        />
                       </li>
                     ))}
                   </ul>

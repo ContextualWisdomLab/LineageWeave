@@ -478,7 +478,10 @@ async def hydrate_related_nodes(
     posts = {
         str(row["post_id"]): row
         for row in await conn.fetch(
-            "select post_id, post_title from source_post where post_id = any($1::uuid[])",
+            "select post_id, post_title, "
+            "btrim(left(source_post_search_text(post_body), 420)) as post_body_excerpt, "
+            "char_length(coalesce(post_body, '')) > 420 as post_body_truncated "
+            "from source_post where post_id = any($1::uuid[])",
             post_ids,
         )
     } if post_ids else {}
@@ -516,6 +519,8 @@ async def hydrate_related_nodes(
             item["person_side_label"] = side_labels.get(side, side)
         elif node_type_code == NODE_POST and node_id in posts:
             item["label"] = posts[node_id]["post_title"]
+            item["post_body_excerpt"] = posts[node_id]["post_body_excerpt"]
+            item["post_body_truncated"] = posts[node_id]["post_body_truncated"]
         elif node_type_code == NODE_CORPORATE_ENTITY and node_id in corps:
             item["label"] = corps[node_id]["entity_name"]
         elif node_type_code == NODE_TEAM and node_id in teams:
