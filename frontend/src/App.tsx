@@ -24,6 +24,7 @@ import {
   fetchPostEvaluation,
   fetchPostKeymen,
   fetchPostLineage,
+  fetchPostFiveW1H,
   fetchPostSummary,
   fetchPostTickets,
   fetchPostVocEvidence,
@@ -54,6 +55,7 @@ import {
   type Keyman,
   type SourceAuthorContext,
   type PostAiSummary,
+  type PostFiveW1H,
   type PostDetail,
   type PostFilterOption,
   type PeriodComparison,
@@ -72,6 +74,7 @@ import { PopupCloseButton } from "./components/PopupCloseButton";
 import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
+import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
 import { LOCALE_LABELS, SUPPORTED_LOCALES, setLocale, t, tf, useLocale } from "./i18n";
 import "./App.css";
@@ -1551,6 +1554,7 @@ function PostDetailPopup({
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<PostAiSummary | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [fiveW1H, setFiveW1H] = useState<PostFiveW1H | null>(null);
   const [keymen, setKeymen] = useState<Keyman[] | null>(null);
   const [sourceAuthorContext, setSourceAuthorContext] = useState<SourceAuthorContext | null>(null);
   const [counterparties, setCounterparties] = useState<Counterparty[] | null>(null);
@@ -1590,6 +1594,7 @@ function PostDetailPopup({
     setError(null);
     setSummary(null);
     setSummaryError(null);
+    setFiveW1H(null);
     setKeymen(null);
     setSourceAuthorContext(null);
     setCounterparties(null);
@@ -1611,6 +1616,9 @@ function PostDetailPopup({
         setSummary(null);
         setSummaryError(summaryFetchError(err));
       });
+    fetchPostFiveW1H(accessToken, postId)
+      .then(setFiveW1H)
+      .catch(() => setFiveW1H(null));
     fetchPostKeymen(accessToken, postId)
       .then((r) => {
         setKeymen(r.keymen);
@@ -1759,9 +1767,11 @@ function PostDetailPopup({
 			      {t("Source body was not imported; summary and semantic extraction are unavailable.")}
 			    </p>
 			  )}
-			</section>
+				</section>
 
-            {post.project_evidence && post.project_evidence.length > 0 ? (
+				<FiveW1H slots={fiveW1H?.slots ?? null} />
+
+				{post.project_evidence && post.project_evidence.length > 0 ? (
               <section className="popup-section" aria-label={t("Projects / semantic evidence")}>
                 <h3>{t("Projects / semantic evidence")}</h3>
                 <ul>

@@ -166,6 +166,24 @@ export interface PostAiSummary {
   project_mentions?: PostProjectMention[];
 }
 
+export interface FiveW1HValue {
+  text: string;
+  source: string;
+  ontology_codes: string[];
+  ontology_annotations: Record<string, string>;
+}
+
+export interface FiveW1HSlot {
+  slot_code: "who" | "what" | "when" | "where" | "why" | "how";
+  values: FiveW1HValue[];
+  empty_next_action_code: string;
+}
+
+export interface PostFiveW1H {
+  post_id: string;
+  slots: FiveW1HSlot[];
+}
+
 export interface LinkedPostRef {
   post_id: string;
   post_title: string;
@@ -638,6 +656,10 @@ export function rebuildPeriodReports(
 
 export function fetchPostSummary(accessToken: string, postId: string): Promise<PostAiSummary> {
   return backendFetch(`/api/posts/${postId}/summary`, accessToken);
+}
+
+export function fetchPostFiveW1H(accessToken: string, postId: string): Promise<PostFiveW1H> {
+  return backendFetch(`/api/posts/${postId}/five-w1h`, accessToken);
 }
 
 export function fetchPostLineage(accessToken: string, postId: string): Promise<PostLineage> {

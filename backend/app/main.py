@@ -105,6 +105,7 @@ from backend.app.entity_relationship_ingestion import (
     fetch_post_counterparties,
     ingest_post_entity_relationships,
 )
+from backend.app.five_w1h_ingestion import load_five_w1h_slots
 from backend.app.post_evaluation_ingestion import fetch_post_evaluation, ingest_post_evaluation
 from backend.app.report_ingestion import (
     GROUPING_KINDS,
@@ -1650,6 +1651,23 @@ async def read_post_summary(
             post_body=normalized_body,
             hierarchy_inference_client=_corporate_hierarchy_inference_client(),
             verification_client=_relation_verification_client(),
+        )
+
+
+@app.get("/api/posts/{post_id}/five-w1h")
+async def read_post_five_w1h(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return an evidence-only 5W1H projection for an authorized post."""
+    post = await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        return await load_five_w1h_slots(
+            conn,
+            post_id,
+            post["created_at"],
+            lambda row: _can_see_post(account, row),
         )
 
 
