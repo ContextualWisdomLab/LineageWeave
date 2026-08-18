@@ -3095,6 +3095,15 @@ def test_post_chat_cites_a_post_linked_only_via_a_shared_keyman(client, demo_ana
     assert post_b in body_json["cited_post_ids"]
     cited_by_id = {row["post_id"]: row["post_title"] for row in body_json["cited_posts"]}
     assert cited_by_id[post_b] == "Bid follow-up"
+    cited_evidence = next(row for row in body_json["cited_post_evidence"] if row["post_id"] == post_b)
+    assert any(
+        fact["kind"] == "semantic_keyman" and "Shared Keyman" in fact["text"]
+        for fact in cited_evidence["facts"]
+    )
+    assert all(
+        "ontology_iri" not in fact["text"] and "contextual_orchestrator" not in fact["text"]
+        for fact in cited_evidence["facts"]
+    )
 
 
 def test_rebuild_lineage_requires_post_admin(client, demo_analyst_token) -> None:

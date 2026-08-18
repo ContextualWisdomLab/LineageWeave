@@ -43,6 +43,12 @@ current evidence. The Buyer UI renders the localized ontology label and
 localized extraction/provenance labels; it never renders the ontology IRI or
 contextual-orchestrator/storage identifiers as user-facing text.
 
+Ask Agent citations expose the persisted source and semantic facts associated
+with each cited post through a Buyer-safe projection. Prompt metadata such as
+ontology IRIs, provider names, extraction identifiers, and storage provenance
+is removed from that projection; the cited post remains the authoritative path
+for reading the complete body and related evidence.
+
 ## Consequences
 
 - Semantic roles and projects are no longer silently dropped when the summary

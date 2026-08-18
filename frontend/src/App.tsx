@@ -720,6 +720,17 @@ function projectProvenanceLabel(provenance: string): string {
   return t(PROJECT_PROVENANCE_LABELS[provenance] ?? "Recorded evidence");
 }
 
+const CHAT_EVIDENCE_KIND_LABELS: Record<string, string> = {
+  source_field: "Source field hint",
+  semantic_project: "Semantic project",
+  semantic_role: "Semantic role",
+  semantic_keyman: "Semantic Keyman",
+};
+
+function chatEvidenceKindLabel(kind: string): string {
+  return t(CHAT_EVIDENCE_KIND_LABELS[kind] ?? "Evidence");
+}
+
 const VERIFICATION_BADGE: Record<string, string> = {
   verify_pending: "Not yet checked",
   verify_corroborated: "Corroborated",
@@ -3956,6 +3967,18 @@ function AskAgentPanel({
                     <button className="post-list-item" onClick={() => onOpenPost(post.post_id)}>
                       <strong>{post.post_title}</strong>
                     </button>
+                    {answer.cited_post_evidence?.find((item) => item.post_id === post.post_id)?.facts.length ? (
+                      <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
+                        {answer.cited_post_evidence
+                          .find((item) => item.post_id === post.post_id)
+                          ?.facts.map((fact, index) => (
+                            <li key={`${fact.kind}:${fact.text}:${index}`}>
+                              <span>{chatEvidenceKindLabel(fact.kind)}</span>
+                              <span>{fact.text}</span>
+                            </li>
+                          ))}
+                      </ul>
+                    ) : null}
                   </li>
                 ))}
               </ul>

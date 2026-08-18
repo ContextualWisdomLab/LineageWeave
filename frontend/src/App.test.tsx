@@ -1467,11 +1467,44 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/ask") && method === "POST") {
+        return Promise.resolve(
+          jsonResponse({
+            answer_text: "The cited project is supported by the stored semantic evidence.",
+            cited_post_ids: ["post-2"],
+            cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
+            cited_post_evidence: [
+              {
+                post_id: "post-2",
+                facts: [
+                  { kind: "semantic_project", text: "project: Semantic project | evidence: Body evidence" },
+                  { kind: "semantic_keyman", text: "Keyman mention: Ada West | context: account lead" },
+                ],
+              },
+            ],
+            source_post_ids: ["post-1", "post-2"],
+          }),
+        );
+      }
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
     return Object.assign(fetchMock, { releaseMe });
   }
+
+  it("renders safe Ask Agent evidence under each cited post", async () => {
+    stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByRole("list", { name: "Evidence facts" })).toBeInTheDocument();
+    expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
+    expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
+    expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
 
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
     stubBackend();

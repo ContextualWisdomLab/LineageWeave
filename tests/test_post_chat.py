@@ -34,6 +34,7 @@ from lineageweave.post_chat import (
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
     _render_sources_block,
+    cited_post_evidence,
     cited_post_summaries,
     normalize_chat_question,
     parse_chat_response,
@@ -163,6 +164,30 @@ def test_cited_post_summaries_keep_citation_order_and_drop_unknown_ids() -> None
     assert chips == [
         {"post_id": "post-2", "post_title": "Bid revision"},
         {"post_id": "post-1", "post_title": "Bid workshop"},
+    ]
+
+
+def test_cited_post_evidence_hides_prompt_metadata_but_keeps_semantic_facts() -> None:
+    source = ChatSourceDocument(
+        "post-evidence",
+        "Evidence post",
+        "body",
+        evidence_facts=(
+            "project: Semantic project | evidence: Body evidence | ontology_iri: https://example.test/ontology#Project | extraction_method: contextual_orchestrator_semantic | confidence: 0.9 [provenance=post_project_mention]",
+            "Keyman mention: Ada West | context: account lead [provenance=post_person_mention]",
+        ),
+    )
+
+    evidence = cited_post_evidence((source,), ("post-evidence", "missing"))
+
+    assert evidence == [
+        {
+            "post_id": "post-evidence",
+            "facts": [
+                {"kind": "semantic_project", "text": "project: Semantic project | evidence: Body evidence"},
+                {"kind": "semantic_keyman", "text": "Keyman mention: Ada West | context: account lead"},
+            ],
+        }
     ]
 
 

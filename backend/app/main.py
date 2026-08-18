@@ -62,6 +62,7 @@ from lineageweave.organization_name_resolution import (
 from lineageweave.post_chat import (
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
+    cited_post_evidence,
     cited_post_summaries,
 )
 from lineageweave.post_content_normalization import normalize_post_body
@@ -1929,6 +1930,7 @@ async def ask_agent(
             "cited_post_ids": [],
             "cited_posts": [],
             "source_post_ids": [],
+            "cited_post_evidence": [],
             "next_action": "No authorized source posts are available for this question.",
         }
     try:
@@ -1943,6 +1945,7 @@ async def ask_agent(
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
         "cited_posts": cited_post_summaries(sources, cited_ids),
+        "cited_post_evidence": cited_post_evidence(sources, cited_ids),
         "source_post_ids": [source.post_id for source in sources],
     }
 

@@ -209,6 +209,16 @@ export interface CitedPostRef {
   post_title: string;
 }
 
+export interface CitedPostEvidenceFact {
+  kind: string;
+  text: string;
+}
+
+export interface CitedPostEvidence {
+  post_id: string;
+  facts: CitedPostEvidenceFact[];
+}
+
 export interface ChatAnswer {
   post_id: string;
   answer_text: string;
@@ -233,6 +243,7 @@ export interface AskAgentResponse {
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
+  cited_post_evidence?: CitedPostEvidence[];
   source_post_ids: string[];
   next_action?: string;
 }

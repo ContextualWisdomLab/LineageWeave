@@ -93,6 +93,50 @@ def cited_post_summaries(
     ]
 
 
+def _buyer_evidence_kind(fact: str) -> str:
+    if fact.startswith("project:"):
+        return "semantic_project"
+    if fact.startswith("actor:"):
+        return "semantic_role"
+    if fact.startswith("Keyman mention:"):
+        return "semantic_keyman"
+    return "source_field"
+
+
+def _buyer_evidence_text(fact: str) -> str:
+    cleaned = re.sub(r"\s*\|\s*(?:ontology_iri|extraction_method|confidence):\s*[^|\[]+", "", fact)
+    cleaned = re.sub(r"\s*\[provenance=[^]]+\]", "", cleaned)
+    return " ".join(cleaned.split())
+
+
+def cited_post_evidence(
+    sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
+    cited_post_ids: tuple[str, ...] | list[str],
+) -> list[dict[str, object]]:
+    """Return buyer-safe persisted evidence for cited posts.
+
+    Provider names, ontology IRIs, and storage provenance are prompt metadata,
+    not Buyer UI content. The evidence value itself remains visible so the
+    cited post can be opened and checked against its full body.
+    """
+    by_id = {source.post_id: source for source in sources}
+    result: list[dict[str, object]] = []
+    for post_id in cited_post_ids:
+        source = by_id.get(post_id)
+        if source is None:
+            continue
+        facts: list[dict[str, str]] = []
+        seen: set[str] = set()
+        for fact in source.evidence_facts:
+            text = _buyer_evidence_text(fact)
+            if not text or text in seen:
+                continue
+            seen.add(text)
+            facts.append({"kind": _buyer_evidence_kind(fact), "text": text})
+        result.append({"post_id": post_id, "facts": facts})
+    return result
+
+
 class PostChatClient(Protocol):
     """Answers a question using only the given numbered source documents."""
 
