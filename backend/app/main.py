@@ -66,6 +66,7 @@ from lineageweave.post_evaluation import (
 )
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
+from lineageweave.semantic_hints import format_semantic_hints
 
 from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
@@ -514,7 +515,9 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
     rows = await conn.fetch(
         """
         select author.display_name as author_name,
+               process.process_unit_code as order_pool_code,
                process.process_unit_name as sales_pool_name,
+               post.secondary_grouping_key as project_field,
                customer.entity_name as customer_name,
                affiliated.entity_name as author_affiliation_name
           from source_post post
@@ -532,25 +535,17 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
     if not rows:
         return "no structured hints available"
     first = rows[0]
-    affiliations = sorted(
-        {
-            str(row["author_affiliation_name"]).strip()
+    return format_semantic_hints(
+        author_name=first["author_name"],
+        author_affiliations=(
+            str(row["author_affiliation_name"])
             for row in rows
-            if row["author_affiliation_name"] and str(row["author_affiliation_name"]).strip()
-        }
-    )
-    customer_name = str(first["customer_name"] or "").strip()
-    customer_quality = (
-        "low"
-        if customer_name.casefold()
-        in {"기타", "미등록", "미등록고객", "unknown", "unregistered", "other"}
-        else "normal"
-    )
-    return (
-        f"author={first['author_name'] or 'unknown'}; "
-        f"author_affiliations={', '.join(affiliations) or 'none'}; "
-        f"sales_pool={first['sales_pool_name'] or 'none'}; "
-        f"customer={customer_name or 'none'}; customer_hint_trust={customer_quality}"
+            if row["author_affiliation_name"]
+        ),
+        order_pool_code=first["order_pool_code"],
+        order_pool_name=first["sales_pool_name"],
+        project_field=first["project_field"],
+        customer_name=first["customer_name"],
     )
 
 
