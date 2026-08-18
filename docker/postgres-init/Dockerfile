@@ -37,6 +37,10 @@ COPY migrations/0028_internal_relation_evidence.sql /docker-entrypoint-initdb.d/
 COPY migrations/0029_report_team_grouping.sql /docker-entrypoint-initdb.d/30-report-team-grouping.sql
 COPY migrations/0030_report_project_grouping.sql /docker-entrypoint-initdb.d/31-report-project-grouping.sql
 COPY migrations/0031_semantic_project_mentions.sql /docker-entrypoint-initdb.d/32-semantic-project-mentions.sql
+COPY migrations/0032_semantic_search_trigram.sql /docker-entrypoint-initdb.d/33-semantic-search-trigram.sql
+COPY migrations/0033_source_state_provenance.sql /docker-entrypoint-initdb.d/34-source-state-provenance.sql
+COPY migrations/0034_source_context_provenance.sql /docker-entrypoint-initdb.d/35-source-context-provenance.sql
+COPY migrations/0035_body_search_prefix.sql /docker-entrypoint-initdb.d/36-body-search-prefix.sql
 
 COPY migrations/ /opt/lineageweave/migrations/
 COPY docker/postgres-init/migrate.sh /usr/local/bin/lineageweave-migrate

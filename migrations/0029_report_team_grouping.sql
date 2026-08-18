@@ -10,7 +10,7 @@ alter table report_period_score
 alter table report_period_score
     add constraint report_period_score_grouping_kind_check
     check (grouping_kind in (
-        'process_unit', 'corporate_entity', 'thread_group', 'team', 'shared_metric'
+        'process_unit', 'corporate_entity', 'thread_group', 'team', 'project', 'shared_metric'
     ));
 
 comment on table report_member_score is

@@ -351,6 +351,8 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "source_sales_pool_code": post.get("source_sales_pool_code"),
         "source_customer_code": post.get("source_customer_code"),
         "source_project_code": post.get("source_project_code"),
+        "post_body_excerpt": post.get("post_body_excerpt"),
+        "post_body_truncated": post.get("post_body_truncated", False),
         "created_at": post["created_at"].isoformat(),
     }
 
@@ -600,6 +602,20 @@ async def list_posts(
     _require_post_read(account)
     search_term = search.strip() if search and search.strip() else None
     async with pool.acquire() as conn:
+        body_search_ids: list[str] = []
+        if search_term:
+            body_rows = await conn.fetch(
+                """
+                select post_id
+                  from source_post
+                 where lower(left(coalesce(post_body, ''), 16384))
+                           like '%' || lower($1) || '%'
+                    or to_tsvector('simple', coalesce(post_body, ''))
+                           @@ plainto_tsquery('simple', $1)
+                """,
+                search_term,
+            )
+            body_search_ids = [str(row["post_id"]) for row in body_rows]
         rows = await conn.fetch(
             """
             select post.post_id, post.post_title, post.voc_type_code, post.visibility_code,
@@ -609,6 +625,14 @@ async def list_posts(
                    post.source_company_code, post.source_process_unit_code,
                    post.source_sales_pool_code, post.source_customer_code,
                    post.source_project_code,
+                   btrim(left(regexp_replace(
+                       regexp_replace(
+                           regexp_replace(coalesce(post.post_body, ''), '<img[^>]*>', ' [embedded image] ', 'gi'),
+                           '<[^>]+>', ' ', 'g'
+                       ),
+                       '\\s+', ' ', 'g'
+                   ), 420)) as post_body_excerpt,
+                   char_length(coalesce(post.post_body, '')) > 420 as post_body_truncated,
                    post.corporate_entity_id, post.created_at,
                    count(*) over() as total_count
               from source_post post
@@ -617,7 +641,6 @@ async def list_posts(
                and (
                     $1::text is null
                     or post.post_title ilike '%' || $1 || '%'
-                    or post.post_body ilike '%' || $1 || '%'
                     or post.thread_group_key ilike '%' || $1 || '%'
                     or post.secondary_grouping_key ilike '%' || $1 || '%'
                     or concat_ws(' ',
@@ -639,7 +662,6 @@ async def list_posts(
                         and (
                             similarity(replace(post.post_id::text, '-', ''), lower($1)) >= 0.78
                             or word_similarity(lower($1), lower(post.post_title)) >= 0.45
-                            or word_similarity(lower($1), lower(post.post_body)) >= 0.45
                             or word_similarity(lower($1), lower(post.secondary_grouping_key)) >= 0.45
                             or word_similarity(
                                 lower($1),
@@ -659,6 +681,7 @@ async def list_posts(
                             ) >= 0.45
                         )
                     )
+                    or post.post_id = any($5::uuid[])
                     or exists (
                         select 1 from post_project_mention project
                          where project.post_id = post.post_id
@@ -726,13 +749,14 @@ async def list_posts(
                and ($3::text is null or post.voc_type_code = $3)
                and ($4::text is null or post.visibility_code = $4)
              order by created_at desc, post_id desc
-             offset $5
-             limit $6
+               offset $6
+               limit $7
             """,
             search_term,
             list(account.corporate_entity_ids),
             voc_type.strip() if voc_type and voc_type.strip() else None,
             visibility.strip() if visibility and visibility.strip() else None,
+            body_search_ids,
             offset,
             limit,
         )

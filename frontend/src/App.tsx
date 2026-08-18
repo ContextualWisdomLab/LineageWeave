@@ -3331,6 +3331,13 @@ function PostList({
                     >
                       <span className="post-card-main">
                         <span className="post-title">{post.post_title}</span>
+                        <span
+                          className="post-body-excerpt"
+                          aria-label={t("Post body preview")}
+                        >
+                          {post.post_body_excerpt || t("No post body.")}
+                          {post.post_body_truncated ? " ..." : ""}
+                        </span>
                         <span className="post-meta">
                           <time dateTime={post.created_at}>{post.created_at.slice(0, 10)}</time>
                         </span>

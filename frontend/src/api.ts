@@ -18,6 +18,8 @@ export interface PostSummary {
   source_sales_pool_code?: string | null;
   source_customer_code?: string | null;
   source_project_code?: string | null;
+  post_body_excerpt?: string | null;
+  post_body_truncated?: boolean;
   created_at: string;
 }
 

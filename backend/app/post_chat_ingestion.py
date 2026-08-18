@@ -277,29 +277,41 @@ async def gather_global_chat_sources(
             }
         )
     )[:8]
+    candidate_ids: list[str] = []
+    for term in search_terms:
+        candidate_rows = await conn.fetch(
+            """
+            select post_id
+              from source_post
+             where post_title ilike '%' || $1 || '%'
+                or lower(left(coalesce(post_body, ''), 16384))
+                       like '%' || lower($1) || '%'
+                or to_tsvector('simple', coalesce(post_body, ''))
+                       @@ plainto_tsquery('simple', $1)
+             order by created_at desc, post_id desc
+             limit 32
+            """,
+            term,
+        )
+        candidate_ids.extend(str(row["post_id"]) for row in candidate_rows)
+    candidate_ids = list(dict.fromkeys(candidate_ids))
     rows = await conn.fetch(
         """
         select post_id, post_title, post_body, visibility_code, corporate_entity_id
           from source_post
          where visibility_code = 'public'
             or corporate_entity_id::text = any($1::text[])
-         order by case when cardinality($2::text[]) = 0 then 1
-                       when exists (
-                           select 1
-                             from unnest($2::text[]) as term
-                            where source_post.post_title ilike '%' || term || '%'
-                               or source_post.post_body ilike '%' || term || '%'
-                       ) then 0 else 1 end,
+         order by case when post_id = any($2::uuid[]) then 0 else 1 end,
                   created_at desc, post_id desc
          limit $3
         """,
         list(authorized_corporate_entity_ids),
-        list(search_terms),
+        candidate_ids,
         limit,
     )
     visible_rows = [row for row in rows if can_see_post(row)]
     visible_ids = [str(row["post_id"]) for row in visible_rows]
-    graph_facts = await _graph_facts_for_posts(conn, visible_ids)
+    graph_facts = (await _graph_facts_for_posts(conn, visible_ids))[:16]
     sources: list[ChatSourceDocument] = []
     for index, row in enumerate(visible_rows):
         normalized_body = normalize_post_body(

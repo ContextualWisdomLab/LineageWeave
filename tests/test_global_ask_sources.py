@@ -81,8 +81,13 @@ def test_global_sources_prioritize_question_terms_and_bound_long_bodies() -> Non
         )
     )
 
-    source_query, source_args = calls[0]
-    assert "unnest($2::text[])" in source_query
-    assert source_args[1] == ["mention", "uam"]
+    candidate_query, candidate_args = calls[0]
+    source_query, source_args = next(
+        (query, args) for query, args in calls if "post_id = any($2::uuid[])" in query
+    )
+    assert "to_tsvector('simple'" in candidate_query
+    assert candidate_args[0] == "mention"
+    assert "post_id = any($2::uuid[])" in source_query
+    assert source_args[2] == 8
     assert sources[1].post_body.startswith("x" * 4000)
     assert "Source body truncated for Global Ask" in sources[1].post_body

@@ -108,7 +108,7 @@ services:
     environment:
       AGENTS_FILE: /app/agents.json
       PORT: 8000
-      CONTEXTUAL_ORCHESTRATOR_TOKEN: ${ORCHESTRATOR_API_KEY:-lineageweave-orchestrator-dev-only}
+      CONTEXTUAL_ORCHESTRATOR_TOKEN: ${CONTEXTUAL_ORCHESTRATOR_TOKEN:-${ORCHESTRATOR_API_KEY:-lineageweave-orchestrator-dev-only}}
       # Canonical gateway variables win. The LLM_API_* fallback is only for
       # the operator's ~/.env compatibility contract; GitHub injects the
       # canonical names directly.
@@ -154,7 +154,7 @@ services:
       # to turn the channels on. Provider credentials use LLM_GATEWAY_URL /
       # LLM_GATEWAY_API_KEY in the orchestrator's private env file.
       ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8000}
-      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-lineageweave-orchestrator-dev-only}
+      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
       VISION_MODEL: ${VISION_MODEL:-${LLM_GATEWAY_MODEL:-mlx-community/gemma-4-e4b-it-4bit}}
       LLM_GATEWAY_EMBEDDING_MODEL: ${LLM_GATEWAY_EMBEDDING_MODEL:-}
       SEARXNG_BASE_URL: http://searxng:8080
