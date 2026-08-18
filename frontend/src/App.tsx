@@ -1697,7 +1697,13 @@ function PostDetailPopup({
                 {liveBodyWarning}
               </p>
             ) : null}
-            <PostBody body={post.post_body} />
+            {post.post_body.trim() ? (
+              <PostBody body={post.post_body} />
+            ) : (
+              <p className="popup-placeholder" role="status">
+                {t("Source body was not imported; summary and semantic extraction are unavailable.")}
+              </p>
+            )}
 
             <section className="popup-section">
               <h3>{t("Summary")}</h3>

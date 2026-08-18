@@ -552,6 +552,19 @@ async def list_posts(
                     or post.post_body ilike '%' || $1 || '%'
                     or post.thread_group_key ilike '%' || $1 || '%'
                     or post.secondary_grouping_key ilike '%' || $1 || '%'
+                    or concat_ws(' ',
+                        post.source_stage_code,
+                        post.source_detail_state_code,
+                        post.source_draft_code,
+                        post.source_deleted_flag,
+                        post.source_author_code,
+                        post.source_author_name,
+                        post.source_company_code,
+                        post.source_process_unit_code,
+                        post.source_sales_pool_code,
+                        post.source_customer_code,
+                        post.source_project_code
+                    ) ilike '%' || $1 || '%'
                     or replace(post.post_id::text, '-', '') ilike '%' || lower($1) || '%'
                     or (
                         char_length($1) >= 3
@@ -560,6 +573,22 @@ async def list_posts(
                             or word_similarity(lower($1), lower(post.post_title)) >= 0.45
                             or word_similarity(lower($1), lower(post.post_body)) >= 0.45
                             or word_similarity(lower($1), lower(post.secondary_grouping_key)) >= 0.45
+                            or word_similarity(
+                                lower($1),
+                                lower(concat_ws(' ',
+                                    post.source_stage_code,
+                                    post.source_detail_state_code,
+                                    post.source_draft_code,
+                                    post.source_deleted_flag,
+                                    post.source_author_code,
+                                    post.source_author_name,
+                                    post.source_company_code,
+                                    post.source_process_unit_code,
+                                    post.source_sales_pool_code,
+                                    post.source_customer_code,
+                                    post.source_project_code
+                                ))
+                            ) >= 0.45
                         )
                     )
                     or exists (

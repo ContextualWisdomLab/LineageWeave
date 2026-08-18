@@ -73,6 +73,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source company code": "원천 법인 코드",
     "Source business unit": "원천 사업부(PU)",
     "Source sales pool": "원천 수주풀",
+    "Source body was not imported; summary and semantic extraction are unavailable.":
+      "원천 본문이 수집되지 않아 요약과 Semantic 추출을 사용할 수 없습니다.",
     "Source customer code": "원천 고객 코드",
     "Source project code": "원천 프로젝트 코드",
     "Raw source codes are shown; no state label was inferred.": "원천 코드를 그대로 표시하며 상태 라벨은 추정하지 않습니다.",
@@ -260,6 +262,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source company code": "来源公司代码",
     "Source business unit": "来源事业部 (PU)",
     "Source sales pool": "来源销售池",
+    "Source body was not imported; summary and semantic extraction are unavailable.":
+      "尚未导入来源正文，因此无法进行摘要和语义提取。",
     "Source customer code": "来源客户代码",
     "Source project code": "来源项目代码",
     "Raw source codes are shown; no state label was inferred.": "显示原始来源代码；未推断状态标签。",
@@ -446,6 +450,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source company code": "原典の法人コード",
     "Source business unit": "原典の事業部 (PU)",
     "Source sales pool": "原典の受注プール",
+    "Source body was not imported; summary and semantic extraction are unavailable.":
+      "原典本文が取り込まれていないため、要約とセマンティック抽出は利用できません。",
     "Source customer code": "原典の顧客コード",
     "Source project code": "原典のプロジェクトコード",
     "Raw source codes are shown; no state label was inferred.": "原典コードをそのまま表示し、状態ラベルは推定していません。",
@@ -632,6 +638,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source company code": "Mã công ty nguồn",
     "Source business unit": "Đơn vị kinh doanh nguồn (PU)",
     "Source sales pool": "Nhóm bán hàng nguồn",
+    "Source body was not imported; summary and semantic extraction are unavailable.":
+      "Nội dung nguồn chưa được nhập nên không thể tóm tắt hoặc trích xuất ngữ nghĩa.",
     "Source customer code": "Mã khách hàng nguồn",
     "Source project code": "Mã dự án nguồn",
     "Raw source codes are shown; no state label was inferred.": "Hiển thị mã nguồn gốc; không suy đoán nhãn trạng thái.",
