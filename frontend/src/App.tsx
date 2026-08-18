@@ -1706,6 +1706,33 @@ function PostDetailPopup({
               </p>
             )}
 
+            {post.project_evidence && post.project_evidence.length > 0 ? (
+              <section className="popup-section" aria-label={t("Projects / semantic evidence")}>
+                <h3>{t("Projects / semantic evidence")}</h3>
+                <ul>
+                  {post.project_evidence.map((project) => (
+                    <li key={`${project.resolution_status}:${project.project_key}`}>
+                      <strong>{project.project_name}</strong>{" "}
+                      {project.confidence === null
+                        ? `(${t("Hint only")})`
+                        : `(${Math.round(project.confidence * 100)}%)`}
+                      : {project.evidence}
+                      <details className="semantic-provenance">
+                        <summary>{t("Evidence provenance")}</summary>
+                        <span className="post-badge">
+                          {t("Ontology class")}: {t(project.ontology_label ?? "Project")}
+                        </span>
+                        <span className="post-badge">
+                          {t("Extraction source")}: {project.extraction_method}
+                        </span>
+                        <span className="post-badge">{project.provenance}</span>
+                      </details>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
             <section className="popup-section">
               <h3>{t("Summary")}</h3>
               {summary ? (
@@ -1717,28 +1744,6 @@ function PostDetailPopup({
                       <ul>
                         {summary.key_events.map((event, i) => (
                           <li key={i}>{event}</li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                  {summary.project_mentions && summary.project_mentions.length > 0 && (
-                    <>
-                      <h4>{t("Projects / semantic evidence")}</h4>
-                      <ul>
-                        {summary.project_mentions.map((project) => (
-                          <li key={project.project_key}>
-                            <strong>{project.project_name}</strong>{" "}
-                            ({Math.round(project.confidence * 100)}%): {project.evidence}
-                            <details className="semantic-provenance">
-                              <summary>{t("Evidence provenance")}</summary>
-                              <span className="post-badge">
-                                {t("Ontology class")}: {project.ontology_iri}
-                              </span>
-                              <span className="post-badge">
-                                {t("Extraction source")}: {project.extraction_method}
-                              </span>
-                            </details>
-                          </li>
                         ))}
                       </ul>
                     </>

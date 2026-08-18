@@ -1164,6 +1164,50 @@ def test_post_detail_uses_lookup_labels_not_raw_codes(client, demo_analyst_token
     assert body["visibility_label"] == "Public"
 
 
+def test_post_detail_exposes_explicit_and_semantic_project_evidence(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "update source_post set source_project_code = %s where post_id = %s",
+                ("SOURCE-PROJECT-001", seeded_db["public_post_id"]),
+            )
+            cur.execute(
+                """
+                insert into post_project_mention
+                    (post_id, project_key, project_name, evidence_text, confidence,
+                     ontology_iri, extraction_method)
+                values (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    seeded_db["public_post_id"],
+                    "semantic-project",
+                    "Semantic project",
+                    "project was described in the body",
+                    0.82,
+                    "https://contextualwisdomlab.github.io/lineageweave/ontology#Project",
+                    "contextual_orchestrator_semantic",
+                ),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+    response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    evidence = response.json()["project_evidence"]
+    source = next(row for row in evidence if row["extraction_method"] == "source_field_hint")
+    semantic = next(row for row in evidence if row["extraction_method"] == "contextual_orchestrator_semantic")
+    assert source["resolution_status"] == "hint_only"
+    assert source["confidence"] is None
+    assert semantic["resolution_status"] == "semantic_candidate"
+    assert semantic["ontology_label"] == "Project"
+
+
 def test_post_detail_as_of_returns_the_cutoff_known_body(
     client, demo_analyst_token, seeded_db
 ) -> None:

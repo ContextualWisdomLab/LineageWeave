@@ -72,6 +72,7 @@ from lineageweave.post_evaluation import (
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
 from lineageweave.semantic_hints import format_semantic_hints
+from lineageweave.ontology import LW
 
 from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
@@ -355,6 +356,53 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "post_body_truncated": post.get("post_body_truncated", False),
         "created_at": post["created_at"].isoformat(),
     }
+
+
+async def _load_project_evidence(
+    conn: asyncpg.Connection, post_id: str, source_project_code: str | None
+) -> list[dict[str, Any]]:
+    """Merge explicit source hints and stored semantic project candidates."""
+    evidence: list[dict[str, Any]] = []
+    source_code = source_project_code.strip() if source_project_code else ""
+    if source_code:
+        evidence.append(
+            {
+                "project_key": source_code,
+                "project_name": source_code,
+                "evidence": "source_post.source_project_code",
+                "confidence": None,
+                "ontology_iri": str(LW.Project),
+                "ontology_label": "Project",
+                "extraction_method": "source_field_hint",
+                "resolution_status": "hint_only",
+                "provenance": "source_post.source_project_code",
+            }
+        )
+    rows = await conn.fetch(
+        """
+        select project_key, project_name, evidence_text, confidence,
+               ontology_iri, extraction_method
+          from post_project_mention
+         where post_id = $1
+         order by confidence desc, project_name, project_key
+        """,
+        post_id,
+    )
+    evidence.extend(
+        {
+            "project_key": row["project_key"],
+            "project_name": row["project_name"],
+            "evidence": row["evidence_text"],
+            "confidence": float(row["confidence"]),
+            "ontology_iri": row["ontology_iri"],
+            "ontology_label": "Project",
+            "extraction_method": row["extraction_method"],
+            "resolution_status": "semantic_candidate",
+            "provenance": "post_project_mention.evidence_text",
+        }
+        for row in rows
+    )
+    return evidence
 
 
 async def _lookup_post_labels(conn: asyncpg.Connection, rows: list[asyncpg.Record]) -> dict[str, str]:
@@ -853,10 +901,17 @@ async def read_post(
         if not _can_see_post(account, row):
             raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
         labels = await _lookup_post_labels(conn, [row])
+        project_evidence = await _load_project_evidence(
+            conn, post_id, row["source_project_code"]
+        )
         known_at = None
         if as_of_clock is not None:
             known_at = await fetch_known_at_revision(conn, post_id, as_of_clock)
-    payload = {**_serialize_post(row, labels), "post_body": row["post_body"]}
+    payload = {
+        **_serialize_post(row, labels),
+        "post_body": row["post_body"],
+        "project_evidence": project_evidence,
+    }
     if known_at is not None:
         payload["known_at"] = known_at
     return payload

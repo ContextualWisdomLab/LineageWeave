@@ -1002,6 +1002,19 @@ describe("App, authenticated", () => {
             voc_type_label: "Voice of Customer",
             visibility_code: "public",
             visibility_label: "Public",
+            project_evidence: [
+              {
+                project_key: "source-project",
+                project_name: "Source project",
+                evidence: "source_post.source_project_code",
+                confidence: null,
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Project",
+                ontology_label: "Project",
+                extraction_method: "source_field_hint",
+                resolution_status: "hint_only",
+                provenance: "source_post.source_project_code",
+              },
+            ],
             created_at: "2026-01-01T00:00:00Z",
             ...(asOf
               ? {

@@ -46,6 +46,7 @@ export interface PostKnownAt {
 
 export interface PostDetail extends PostSummary {
   post_body: string;
+  project_evidence?: ProjectEvidence[];
   known_at?: PostKnownAt;
 }
 
@@ -141,7 +142,20 @@ export interface PostProjectMention {
   evidence: string;
   confidence: number;
   ontology_iri: string;
+  ontology_label?: string;
   extraction_method: string;
+}
+
+export interface ProjectEvidence {
+  project_key: string;
+  project_name: string;
+  evidence: string;
+  confidence: number | null;
+  ontology_iri: string;
+  ontology_label?: string;
+  extraction_method: string;
+  resolution_status: string;
+  provenance: string;
 }
 
 export interface PostAiSummary {
