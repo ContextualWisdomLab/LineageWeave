@@ -617,6 +617,40 @@ async def read_customer_master(
                        count(*) as post_count
                   from ranked
                  group by author_code, author_account_id, account_display_name
+            ), keyman_groups as (
+                select ranked.author_code, ranked.author_account_id,
+                       ranked.account_display_name,
+                       person.person_id, person.person_name,
+                       person.person_side_code, person.last_known_job_title,
+                       count(distinct ranked.post_id) as mention_count
+                  from ranked
+                  join post_summary_role role
+                    on role.post_id = ranked.post_id
+                   and role.actor_type_code = 'prov_person'
+                  join cataloged_person person
+                    on person.person_id = role.cataloged_person_id
+                   and person.person_side_code = 'our_side'
+                 where role.cataloged_person_id is not null
+                 group by ranked.author_code, ranked.author_account_id,
+                          ranked.account_display_name, person.person_id,
+                          person.person_name, person.person_side_code,
+                          person.last_known_job_title
+            ), keyman_related as (
+                select author_code, author_account_id, account_display_name,
+                       json_agg(
+                           json_build_object(
+                               'person_id', person_id::text,
+                               'person_name', person_name,
+                               'person_side_code', person_side_code,
+                               'last_known_job_title', last_known_job_title,
+                               'mention_count', mention_count,
+                               'provenance',
+                               'post_summary_role.cataloged_person_id/source_post.author_account_id'
+                           )
+                           order by mention_count desc, person_name, person_id
+                       ) as keyman_hints
+                  from keyman_groups
+                 group by author_code, author_account_id, account_display_name
             ), related as (
                 select ranked.author_code, ranked.author_account_id, ranked.account_display_name,
                        json_agg(
@@ -635,8 +669,13 @@ async def read_customer_master(
             )
             select groups.author_code, groups.author_name, groups.author_account_id,
                    groups.account_display_name, groups.post_count,
+                   coalesce(keyman_related.keyman_hints, '[]'::json) as keyman_hints,
                    coalesce(related.related_posts, '[]'::json) as related_posts
               from groups
+              left join keyman_related
+                on keyman_related.author_code = groups.author_code
+               and keyman_related.author_account_id = groups.author_account_id
+               and keyman_related.account_display_name = groups.account_display_name
               left join related
                 on related.author_code = groups.author_code
                and related.author_account_id = groups.author_account_id
@@ -780,6 +819,11 @@ async def read_customer_master(
                     str(row["author_account_id"]), []
                 ),
                 "post_count": row["post_count"],
+                "keyman_hints": (
+                    json.loads(row["keyman_hints"])
+                    if isinstance(row["keyman_hints"], str)
+                    else row["keyman_hints"] or []
+                ),
                 "related_posts": (
                     json.loads(row["related_posts"])
                     if isinstance(row["related_posts"], str)

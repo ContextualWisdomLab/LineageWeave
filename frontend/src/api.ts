@@ -412,6 +412,15 @@ export interface SourceAuthorContext {
   provenance: string;
 }
 
+export interface SourceAuthorKeymanHint {
+  person_id: string;
+  person_name: string;
+  person_side_code: string;
+  last_known_job_title: string | null;
+  mention_count: number;
+  provenance: string;
+}
+
 export interface SourceAuthorHint {
   author_code: string;
   author_name: string | null;
@@ -419,6 +428,7 @@ export interface SourceAuthorHint {
   account_display_name: string;
   account_affiliations: SourceAuthorAffiliation[];
   post_count: number;
+  keyman_hints: SourceAuthorKeymanHint[];
   related_posts: LinkedPostRef[];
   resolution_status: string;
   provenance: string;

@@ -3932,6 +3932,13 @@ function CustomerMasterPanel({
                   {hint.account_affiliations.length > 0 ? (
                     <span>{hint.account_affiliations.map((affiliation) => affiliation.entity_name).join(", ")}</span>
                   ) : null}
+                  {hint.keyman_hints.length > 0 ? (
+                    <span>
+                      {t("Our-side Keyman hints")}: {hint.keyman_hints.map((person) => (
+                        `${person.person_name}${person.last_known_job_title ? ` (${person.last_known_job_title})` : ""}`
+                      )).join(", ")}
+                    </span>
+                  ) : null}
                 </details>
                 <span>{hint.post_count} {t("posts")}</span>
                 {hint.related_posts.length > 0 ? (

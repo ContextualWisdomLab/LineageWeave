@@ -1106,6 +1106,24 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
                 "update source_post set source_customer_code = %s, source_author_code = %s, source_author_name = %s where post_id = %s",
                 ("TEST-CUSTOMER-001", "TEST-AUTHOR-001", "Test Author", seeded_db["public_post_id"]),
             )
+            cur.execute(
+                "insert into post_summary_result (post_id, korean_summary, summary_contract_version) "
+                "values (%s, %s, %s)",
+                (seeded_db["public_post_id"], "stored summary", POST_SUMMARY_CONTRACT_VERSION),
+            )
+            cur.execute(
+                "insert into post_summary_role "
+                "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name, cataloged_person_id) "
+                "values (%s, %s, %s, %s, %s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    "Ada West",
+                    "account lead",
+                    "prov_person",
+                    "Test Corp",
+                    seeded_db["our_person_id"],
+                ),
+            )
         admin_conn.commit()
     finally:
         admin_conn.close()
@@ -1142,6 +1160,16 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
     assert author_hint[0]["author_name"] == "Test Author"
     assert author_hint[0]["author_account_id"]
     assert author_hint[0]["account_display_name"] == "Test Analyst"
+    assert author_hint[0]["keyman_hints"] == [
+        {
+            "person_id": seeded_db["our_person_id"],
+            "person_name": "Ada West",
+            "person_side_code": "our_side",
+            "last_known_job_title": None,
+            "mention_count": 1,
+            "provenance": "post_summary_role.cataloged_person_id/source_post.author_account_id",
+        }
+    ]
     assert author_hint[0]["related_posts"] == [
         {
             "post_id": seeded_db["public_post_id"],
