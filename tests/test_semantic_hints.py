@@ -4,6 +4,7 @@ from lineageweave.semantic_hints import format_semantic_hints
 def test_semantic_hints_keep_explicit_project_pool_and_author_sources() -> None:
     hints = format_semantic_hints(
         author_name="Synthetic Author",
+        author_account_id="synthetic-author-account",
         author_affiliations=["Synthetic Corp"],
         order_pool_code="POOL-7",
         order_pool_name="Synthetic bids",
@@ -15,6 +16,8 @@ def test_semantic_hints_keep_explicit_project_pool_and_author_sources() -> None:
     assert "source_field=source_post.secondary_grouping_key" in hints
     assert "order_pool=POOL-7: Synthetic bids" in hints
     assert "author_affiliations=Synthetic Corp" in hints
+    assert "author_account_id=synthetic-author-account" in hints
+    assert "author_side_hint=our_side_candidate" in hints
     assert "customer_hint_trust=normal" in hints
 
 

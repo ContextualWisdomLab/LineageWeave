@@ -96,7 +96,8 @@ async def fetch_persisted_summary(
     )
     projects = await conn.fetch(
         """
-        select project_key, project_name, evidence_text, confidence, ontology_iri
+        select project_key, project_name, evidence_text, confidence, ontology_iri,
+               extraction_method
           from post_project_mention
          where post_id = $1
          order by project_name, project_key
@@ -139,6 +140,7 @@ async def fetch_persisted_summary(
                 "evidence": row["evidence_text"],
                 "confidence": float(row["confidence"]),
                 "ontology_iri": row["ontology_iri"],
+                "extraction_method": row["extraction_method"],
             }
             for row in projects
         ],

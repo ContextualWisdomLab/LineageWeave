@@ -21,14 +21,16 @@ Keyman.
 
 1. Keep imported project fields as explicit evidence, not as the only source
    of project identity.
-2. Send project field, sales-pool, customer, author display name, and author
-   affiliation hints to `contextual-orchestrator` together with normalized
-   title/body text. Hints are priors, never proof.
+2. Send project field, sales-pool, customer, author account id, author display
+   name, and author affiliation hints to `contextual-orchestrator` together
+   with normalized title/body text. The author/account data may produce an
+   `our_side_candidate` Keyman prior, but hints are never proof.
 3. Treat generic or unregistered customer values as weak hints. They cannot
    raise an unsupported project or Keyman assertion to a confirmed result.
 4. Extract semantic project mentions through the existing post-summary
-   orchestrator path. Persist canonical key, display name, evidence phrase,
-   confidence, ontology IRI, and extraction method in `post_project_mention`.
+   orchestrator path. Persist and expose canonical key, display name, evidence
+   phrase, confidence, ontology IRI, and extraction method in
+   `post_project_mention` and the summary API.
 5. Project period reports union non-empty imported project keys with semantic
    project mentions whose confidence is at least `0.7`. A post may belong to
    multiple project groups. Lower-confidence candidates remain visible as

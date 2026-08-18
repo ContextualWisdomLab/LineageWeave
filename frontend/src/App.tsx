@@ -1615,6 +1615,8 @@ function PostDetailPopup({
                           <li key={project.project_key}>
                             <strong>{project.project_name}</strong>{" "}
                             ({Math.round(project.confidence * 100)}%): {project.evidence}
+                            <span className="post-badge">ontology: {project.ontology_iri}</span>
+                            <span className="post-badge">source: {project.extraction_method}</span>
                           </li>
                         ))}
                       </ul>

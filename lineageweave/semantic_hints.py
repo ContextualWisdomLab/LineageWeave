@@ -26,6 +26,7 @@ def format_semantic_hints(
     order_pool_name: str | None,
     project_field: str | None,
     customer_name: str | None,
+    author_account_id: str | None = None,
 ) -> str:
     """Render source-field hints without upgrading them into assertions."""
     customer = _value(customer_name)
@@ -36,9 +37,11 @@ def format_semantic_hints(
     ) or "none"
     return "; ".join(
         (
+            f"author_account_id={_value(author_account_id)} [source_field=source_post.author_account_id]",
             f"author={_value(author_name)} [source_field=source_post.author_account_id]",
             "author_affiliations="
             f"{', '.join(affiliations) or 'none'} [source_field=account_affiliation.corporate_entity_id]",
+            "author_side_hint=our_side_candidate [source_rule=source_post.author_account_id]",
             f"order_pool={order_pool} [source_field=source_post.process_unit_id]",
             f"project_field={_value(project_field)} [source_field=source_post.secondary_grouping_key]",
             f"customer={customer} [source_field=source_post.corporate_entity_id]",

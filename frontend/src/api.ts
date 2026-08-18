@@ -114,6 +114,7 @@ export interface PostProjectMention {
   evidence: string;
   confidence: number;
   ontology_iri: string;
+  extraction_method: string;
 }
 
 export interface PostAiSummary {

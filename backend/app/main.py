@@ -603,7 +603,8 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
     """Render author, sales-pool, and customer hints without treating them as proof."""
     rows = await conn.fetch(
         """
-        select author.display_name as author_name,
+        select author.user_account_id as author_account_id,
+               author.display_name as author_name,
                process.process_unit_code as order_pool_code,
                process.process_unit_name as sales_pool_name,
                post.secondary_grouping_key as project_field,
@@ -626,6 +627,7 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
     first = rows[0]
     return format_semantic_hints(
         author_name=first["author_name"],
+        author_account_id=str(first["author_account_id"]),
         author_affiliations=(
             str(row["author_affiliation_name"])
             for row in rows
@@ -891,6 +893,7 @@ async def extract_post_keymen(
                 "person_name": mention.person_name,
                 "person_side_code": mention.person_side_code,
                 "affiliated_organization_names": list(mention.affiliated_organization_names),
+                "job_title": mention.job_title,
             }
             for mention in mentions
         ],
