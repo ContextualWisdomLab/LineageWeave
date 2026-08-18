@@ -1,6 +1,8 @@
 # Buyer information architecture
 
-**Status:** Spec (docs only; this change does not implement the screens)
+**Status:** Implemented on this stacked PR (v2.12.5). Buyer chrome is
+the three screens below. Not a grant to put bot chrome, leftover-pair
+sandbox, or TEPP receipts on #74.
 **Date:** 2026-08-18
 
 Enterprise buyer chrome is exactly three screens. Nothing else is
@@ -66,17 +68,31 @@ home copy, and tutor sentences of the form “X is current. Read Y next.”
 ## 2. 사건 lineage
 
 The buyer follows the branch / DAG of the VOC item just opened. This
-is the Event Lineage panel already named in the popup and on the home
-DAG (`LineageDag`, `GET /api/posts/{id}/lineage`,
-`GET /api/lineage`).
+is the Event Lineage panel (`LineageDag`, `GET /api/posts/{id}/lineage`,
+`GET /api/lineage`) plus three first-class modules on the **same**
+screen -- not a fourth page.
 
 **Shows**
 
+- **원문** — the selected node's source text. Pictures stay pictures
+  (`PostBody` / `splitPostBody`); never a raw base64 dump.
 - The reconstruct DAG for that item: nodes are posts, edges are
   persisted lineage edges (`lineage_edge_specs` / `post_lineage_edge`).
 - Direct versus indirect links when those links exist (today's 직접 /
   간접 badges).
 - Which node is current after the buyer selects it.
+- **5W1H** slots on the summary (`GET /api/posts/{id}/five-w1h`).
+  Values come from authorized lineage + source through the ontology
+  (ADR 0004 / `lineageweave/five_w1h.py`). A missing slot is
+  fail-closed empty and names the next human action, e.g.
+  이 사건의 누가/언제가 아직 없습니다. Never invent copy.
+- **이 사건 lineage에 묻기** — source-grounded Q&A on this screen
+  (`POST /api/posts/{id}/lineage-qa`). Questions about what happened
+  on this lineage are this screen's question, not a tutor. While
+  answering, the lineage graph stays on this screen. 5W1H questions
+  are answered only via that ontology / semantic-layer query. If the
+  query cannot ground a slot, fail-closed. This is not Ask-as-product-
+  chrome and does not use next-action tutor copy.
 
 **Primary action**
 
@@ -188,14 +204,14 @@ the file has no popup / Event Lineage frame. The popup was built from
 a textual brief (Korean summary, key events, R&R, Event Lineage).
 Cite ADR 0002 if a later change mentions Figma.
 
-## Not an implementation grant
+## Implementation (v2.12.5)
 
-This file is buyer IA only. It must not be read as permission to put
-bot chrome, leftover-pair sandbox, Rankings-unavailable home chrome,
+The three screens are buyer chrome on `App.tsx` (ADR 0036). 사건
+lineage carries 원문, the DAG, 5W1H, and grounded Q&A on that same
+screen. This file still must not be read as permission to put bot
+chrome, leftover-pair sandbox, Rankings-unavailable home chrome,
 analysis-run internals, TEPP receipts, or θ / IRT / CAT / FIPC on
-`feat/role-responsibility-agent-ontology` (PR #74). Implementing the
-three screens is a later, explicit change. Do not treat this spec as
-a request to hide or rewrite those internals in the same commit.
+`feat/role-responsibility-agent-ontology` (PR #74).
 
 ## Related
 

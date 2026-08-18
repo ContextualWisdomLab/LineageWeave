@@ -64,6 +64,22 @@
   text-transform: uppercase;
 }
 
+.five-w1h {
+  margin: 0;
+}
+
+.five-w1h-slot {
+  display: grid;
+  grid-template-columns: 6rem 1fr;
+  gap: var(--space-control-gap);
+  margin-bottom: var(--space-panel-block);
+}
+
+.five-w1h-slot dt {
+  font-weight: 600;
+  color: var(--color-text-heading);
+}
+
 .popup-backdrop {
   position: fixed;
   inset: 0;

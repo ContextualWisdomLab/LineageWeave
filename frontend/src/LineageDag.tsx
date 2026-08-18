@@ -16,7 +16,7 @@ export function LineageDag({
 }) {
   const groups = layoutLineageDag(graph);
   if (graph.nodes.length === 0) {
-    return <p className="lineage-empty">No reconstructed lineage yet. Rebuild after seeding posts.</p>;
+    return <p className="lineage-empty">연결된 사건이 없습니다</p>;
   }
 
   return (

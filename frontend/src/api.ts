@@ -525,6 +525,43 @@ export function fetchPostSummary(accessToken: string, postId: string): Promise<P
   return backendFetch(`/api/posts/${postId}/summary`, accessToken);
 }
 
+export interface FiveW1HSlot {
+  slot_code: string;
+  slot_label: string;
+  values: string[];
+  ontology_iris?: string[];
+  empty_next_action: string | null;
+}
+
+export interface FiveW1HPayload {
+  post_id: string;
+  slots: FiveW1HSlot[];
+}
+
+export function fetchPostFiveW1H(accessToken: string, postId: string): Promise<FiveW1HPayload> {
+  return backendFetch(`/api/posts/${postId}/five-w1h`, accessToken);
+}
+
+export interface LineageQaAnswer {
+  post_id: string;
+  question: string;
+  slot_code: string | null;
+  values: string[];
+  grounded: boolean;
+  empty_next_action: string | null;
+}
+
+export function askLineageQa(
+  accessToken: string,
+  postId: string,
+  question: string,
+): Promise<LineageQaAnswer> {
+  return backendFetch(`/api/posts/${postId}/lineage-qa`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({ question }),
+  });
+}
+
 export function fetchPostLineage(accessToken: string, postId: string): Promise<PostLineage> {
   return backendFetch(`/api/posts/${postId}/lineage`, accessToken);
 }

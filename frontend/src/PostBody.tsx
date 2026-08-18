@@ -19,8 +19,7 @@ function renderSegment(segment: PostBodySegment, index: number) {
             }
           />
           <figcaption>
-            Image from this post. Extract Keyman or ask a question to read text
-            inside it.
+            Image from this post.
           </figcaption>
         </figure>
       );

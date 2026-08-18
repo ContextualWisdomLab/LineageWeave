@@ -1,15 +1,16 @@
 # Storybook inventory
 
-Open the catalog after `cd frontend && pnpm run storybook`. Each story is a
-buyer-facing control you can click before changing product CSS.
+Open the catalog after `cd frontend && pnpm run storybook`. Inventory is
+the three buyer screens only. Modules attach to that flow.
 
 | Story | Buyer next action | Token / module |
 |---|---|---|
-| `Evidence/CitationChip` | Click a cited title to open that source post. | `--color-chip-border`, `--radius-chip`, `CitationChip` |
-| `AnalysisRun/CutoffKnownBody` | Read the cutoff-known sentence, then compare it with the live body below. | `--color-accent-border`, `--space-panel-block`, `--radius-panel`, `CutoffKnownBody` |
-| `Analysis/LineageEntityPicker` | Choose which corp to reconstruct, then click Request a lineage reconstruction. | `--space-control-gap`, `--size-control-min`, `--radius-control`, `LineageEntityPicker` |
-| `Chrome/PopupCloseButton` | Close the evidence panel or post popup. | `--space-close-inset`, `--font-size-close`, `PopupCloseButton` |
-| `Chrome/StatusAlert` | Hear the next action after a hidden-run 404, then open a visible run or request a reconstruction. | `--color-status-alert`, `StatusAlert` |
+| `주간 VOC/WeeklyVoc` | Open one VOC item for this week. | `--space-panel-block`, `--radius-panel`, `WeeklyVoc` |
+| `사건 lineage/EventLineagePanel` | Select a node on the Event Lineage DAG. | `--color-accent-border`, `EventLineagePanel`, `LineageDag` |
+| `사건 lineage/OriginalSource` | Read the selected node's source text (pictures stay pictures). | `--space-panel-block`, `OriginalSource`, `PostBody` |
+| `사건 lineage/FiveW1H` | Read grounded 누가/무엇을/언제/어디서/왜/어떻게, or the empty next action. | `--space-control-gap`, `--color-text-heading`, `FiveW1H` |
+| `사건 lineage/GroundedQa` | Ask what happened on this lineage; read the grounded slot or the fail-closed next action. | `--space-control-gap`, `GroundedQa` |
+| `역할·책임/RolesResponsibilities` | Decide the next human action from named Person / Organization / Team actors. | `--font-size-badge`, `RolesResponsibilities` |
 
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module
 under `frontend/src/components/`. Do not add a second Node package manager;

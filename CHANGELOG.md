@@ -4,6 +4,22 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.5] - 2026-08-18
+
+### Changed
+
+- Buyer chrome is three screens only (ADR 0036 / `docs/ux/buyer-ia.md`):
+  **주간 VOC → 사건 lineage → 역할·책임**. After `make seed`, Demo
+  Analyst opens this week's VOC items, then the selected node's
+  original source, Event Lineage DAG, 5W1H slots, and source-grounded
+  Q&A on the same lineage screen, then decides from Person /
+  Organization / Team. Empty copy is 이번 주 감사할 VOC가 없습니다 /
+  연결된 사건이 없습니다 / 역할·책임이 아직 없습니다. Missing 5W1H
+  slots name the next human action (이 사건의 누가/언제가 아직
+  없습니다). Analysis-run list, Ask-tutor chrome, TEPP receipts,
+  leftover-pair sandbox, agent logs, and RankWeave as a home module
+  stay off buyer chrome. Never invent a theta.
+
 ## [2.12.4] - 2026-08-18
 
 ### Fixed

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
@@ -82,6 +82,9 @@ describe("App, authenticated", () => {
     deferMe?: boolean;
     meFailed?: boolean;
     postBody?: string;
+    emptyPosts?: boolean;
+    emptyLineage?: boolean;
+    emptyRoles?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -1093,6 +1096,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ group_count: 1 }));
       }
       if (url.endsWith("/api/lineage")) {
+        if (options?.emptyLineage) {
+          return Promise.resolve(jsonResponse({ nodes: [], edges: [] }));
+        }
         return Promise.resolve(
           jsonResponse({
             nodes: [
@@ -1154,6 +1160,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts")) {
+        if (options?.emptyPosts) {
+          return Promise.resolve(jsonResponse([]));
+        }
         return Promise.resolve(
           jsonResponse([
             {
@@ -1228,13 +1237,86 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/posts/post-1/five-w1h")) {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-1",
+            slots: [
+              {
+                slot_code: "who",
+                slot_label: "누가",
+                values: options?.emptyRoles ? [] : ["Ada West", "당사", "설계팀"],
+                empty_next_action: options?.emptyRoles ? "이 사건의 누가 아직 없습니다" : null,
+              },
+              {
+                slot_code: "what",
+                slot_label: "무엇을",
+                values: ["첫 번째 이벤트"],
+                empty_next_action: null,
+              },
+              {
+                slot_code: "when",
+                slot_label: "언제",
+                values: ["2026-01-01"],
+                empty_next_action: null,
+              },
+              {
+                slot_code: "where",
+                slot_label: "어디서",
+                values: ["Demo Corp", "Northridge Grid"],
+                empty_next_action: null,
+              },
+              {
+                slot_code: "why",
+                slot_label: "왜",
+                values: [],
+                empty_next_action: "이 사건의 왜가 아직 없습니다",
+              },
+              {
+                slot_code: "how",
+                slot_label: "어떻게",
+                values: [],
+                empty_next_action: "이 사건의 어떻게가 아직 없습니다",
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-1/lineage-qa") && method === "POST") {
+        const body = JSON.parse(String(init?.body));
+        const question = String(body.question ?? "");
+        if (question.includes("왜") || question.toLowerCase().includes("why")) {
+          return Promise.resolve(
+            jsonResponse({
+              post_id: "post-1",
+              question,
+              slot_code: "why",
+              values: [],
+              grounded: false,
+              empty_next_action: "이 사건의 왜가 아직 없습니다",
+            }),
+          );
+        }
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-1",
+            question,
+            slot_code: "who",
+            values: ["Ada West", "당사", "설계팀"],
+            grounded: true,
+            empty_next_action: null,
+          }),
+        );
+      }
       if (url.endsWith("/api/posts/post-1/summary")) {
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
             korean_summary: "이것은 요약입니다.",
             key_events: ["첫 번째 이벤트"],
-            roles_and_responsibilities: [
+            roles_and_responsibilities: options?.emptyRoles
+              ? []
+              : [
               {
                 actor_name: "Ada West",
                 responsibility: "우리 측 후속",
@@ -1523,11 +1605,85 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ verified: [] }));
       }
       if (url.endsWith("/api/posts/post-1/lineage")) {
+        if (options?.emptyLineage) {
+          return Promise.resolve(jsonResponse({ post_id: "post-1", direct: [], indirect: [] }));
+        }
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
             direct: [],
             indirect: [{ post_id: "post-2", post_title: "Linked post" }],
+          }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-2/summary")) {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-2",
+            korean_summary: "연결된 사건의 요약입니다.",
+            key_events: [],
+            roles_and_responsibilities: [
+              {
+                actor_name: "Priya Nair",
+                responsibility: "고객 측 수신",
+                actor_type_code: "prov_person",
+                affiliated_organization_name: "Northridge Grid",
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-2/lineage")) {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-2",
+            direct: [],
+            indirect: [{ post_id: "post-1", post_title: "Public post" }],
+          }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-2/five-w1h")) {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-2",
+            slots: [
+              {
+                slot_code: "who",
+                slot_label: "누가",
+                values: ["Priya Nair"],
+                empty_next_action: null,
+              },
+              {
+                slot_code: "what",
+                slot_label: "무엇을",
+                values: ["Linked post"],
+                empty_next_action: null,
+              },
+              {
+                slot_code: "when",
+                slot_label: "언제",
+                values: ["2026-01-02"],
+                empty_next_action: null,
+              },
+              {
+                slot_code: "where",
+                slot_label: "어디서",
+                values: ["Northridge Grid"],
+                empty_next_action: null,
+              },
+              {
+                slot_code: "why",
+                slot_label: "왜",
+                values: [],
+                empty_next_action: "이 사건의 왜가 아직 없습니다",
+              },
+              {
+                slot_code: "how",
+                slot_label: "어떻게",
+                values: [],
+                empty_next_action: "이 사건의 어떻게가 아직 없습니다",
+              },
+            ],
           }),
         );
       }
@@ -1586,1721 +1742,117 @@ describe("App, authenticated", () => {
     return Object.assign(fetchMock, { releaseMe });
   }
 
-  it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
+
+  it("lets Demo Analyst walk 주간 VOC to 사건 lineage to 역할·책임 after seed-shaped data", async () => {
     stubBackend();
     render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "주간 VOC" })).toBeInTheDocument();
+    const voc = await screen.findByRole("button", { name: "Open VOC item: Public post" });
+    expect(voc).toHaveTextContent("Voice of Customer");
+    expect(screen.queryByText("Rankings · RankWeave not available")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Open analysis run/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/leftover/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/mean θ/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Request a lineage/)).not.toBeInTheDocument();
+
+    await userEvent.click(voc);
+
+    expect(await screen.findByRole("heading", { name: "사건 lineage" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "원문" })).toBeInTheDocument();
+    expect(screen.getByText("The full body text.")).toBeInTheDocument();
+    expect(screen.getByLabelText("A-100 lineage")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "5W1H" })).toBeInTheDocument();
+    expect(screen.getByText("누가").closest("div")).toHaveTextContent("Ada West");
+    expect(screen.getByText("이 사건의 왜가 아직 없습니다")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "이 사건 lineage에 묻기" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "역할·책임" })).toBeInTheDocument();
+    const roles = screen.getByRole("region", { name: "역할·책임" });
+    expect(roles).toHaveTextContent("Person");
+    expect(roles).toHaveTextContent("Ada West");
+    expect(roles).toHaveTextContent("Organization");
+    expect(roles).toHaveTextContent("당사");
+    expect(roles).toHaveTextContent("Team");
+    expect(roles).toHaveTextContent("설계팀");
+    expect(roles).toHaveTextContent("우리 측 후속");
+    expect(screen.getByLabelText("R&R next decision")).toHaveTextContent(
+      "다음 사람 조치를 이 행위자에서 결정하세요.",
+    );
+
+    expect(screen.queryByRole("heading", { name: "Ask about this lineage" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/is current in Event Lineage/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Read Keyman and evaluation next/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/TEPP/)).not.toBeInTheDocument();
+  });
+
+  it("selects a lineage node and shows that node's R&R", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Open VOC item: Public post" }));
+    await userEvent.click(await screen.findByLabelText("Open post: Linked post"));
+    expect(await screen.findByRole("heading", { name: "Linked post" })).toBeInTheDocument();
+    const roles = screen.getByRole("region", { name: "역할·책임" });
+    expect(roles).toHaveTextContent("Person");
+    expect(roles).toHaveTextContent("Priya Nair");
+  });
+
+  it("renders the A-100 fork on the opened VOC item, not as a home module", async () => {
+    stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("heading", { name: "주간 VOC" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("A-100 lineage")).not.toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "Open VOC item: Public post" }));
     expect(await screen.findByLabelText("A-100 lineage")).toBeInTheDocument();
     expect(screen.getByLabelText("Open post: Pricing renegotiation follow-up")).toHaveClass(
       "lineage-dag-branch",
     );
-    expect(screen.getByLabelText("Open post: Unrelated: annual account review")).toHaveClass(
-      "lineage-dag-root",
-    );
-    expect(screen.queryByText("Public post → Linked post")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /rebuild lineage/i })).not.toBeInTheDocument();
   });
 
-  it("opens a post from a DAG node click", async () => {
-    stubBackend();
-    render(<App />);
-    await userEvent.click(await screen.findByLabelText("Open post: Public post"));
-    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-  });
-
-  it("shows an embedded invoice image instead of the raw base64 string", async () => {
+  it("shows the source picture instead of dumping raw base64", async () => {
     const tinyPng =
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
     stubBackend({
       postBody: `<p>Quote attached.</p><img src="data:image/png;base64,${tinyPng}" alt=""><p>Please confirm.</p>`,
     });
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-
+    await userEvent.click(await screen.findByRole("button", { name: "Open VOC item: Public post" }));
     const image = await screen.findByRole("img", { name: /embedded image at character offset/i });
     expect(image).toHaveAttribute("src", `data:image/png;base64,${tinyPng}`);
     expect(screen.getByText("Quote attached.")).toBeInTheDocument();
-    expect(screen.getByText("Please confirm.")).toBeInTheDocument();
-    expect(screen.getByText(/Extract Keyman or ask a question/)).toBeInTheDocument();
     expect(screen.queryByText(new RegExp(tinyPng))).not.toBeInTheDocument();
   });
 
-  it("fetches and renders the post list, then opens a detail popup on click", async () => {
-    const fetchMock = stubBackend();
-
-    render(<App />);
-
-    const listButton = await screen.findByRole("button", { name: "View post: Public post" });
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/api/posts"),
-      expect.objectContaining({ headers: expect.objectContaining({ Authorization: "Bearer test-access-token" }) }),
-    );
-    expect(listButton).toHaveTextContent("Voice of Customer");
-    expect(listButton).toHaveTextContent("Public");
-
-    await userEvent.click(listButton);
-
-    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(screen.getByText(/Voice of Customer ·/)).toBeInTheDocument();
-    expect(screen.getByText("Constructive stance: 2")).toBeInTheDocument();
-    expect(screen.getByText("Sales-lead specificity: 3")).toBeInTheDocument();
-    expect(screen.queryByText("Not yet evaluated.")).not.toBeInTheDocument();
-  });
-
-  it("rebuilds lineage when the account has post_admin", async () => {
-    const fetchMock = stubBackend({ admin: true });
-    render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: /rebuild lineage/i }));
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining("/api/lineage/rebuild"),
-        expect.objectContaining({ method: "POST" }),
-      ),
-    );
-  });
-
-  it("renders the Korean summary, key events, R&R, and Event Lineage panels", async () => {
+  it("answers a 5W1H question from the semantic-layer query and fail-closes why", async () => {
     stubBackend();
     render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Open VOC item: Public post" }));
+    await userEvent.type(await screen.findByLabelText("Lineage question"), "누가 관련되었나요?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    expect(await screen.findByLabelText("Grounded lineage answer")).toHaveTextContent("Ada West");
+    expect(screen.getByLabelText("A-100 lineage")).toBeInTheDocument();
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-
-    await waitFor(() => expect(screen.getByText("이것은 요약입니다.")).toBeInTheDocument());
-    expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
-    expect(screen.getByText(/우리 측 후속/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "R&R Keyman: Ada West" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "R&R person: Priya Nair" })).toBeInTheDocument();
-    expect(screen.getByText("당사").closest("li")).toHaveTextContent("Organization");
-    expect(screen.queryByRole("button", { name: "R&R Keyman: 당사" })).not.toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText("간접")).toBeInTheDocument());
-    expect(screen.getByText("간접").closest("li")).toHaveTextContent("Linked post");
-    // The popup Event Lineage is the same A-100 reconstruct DAG as the home
-    // page, not a flat list -- two SVGs (home + popup) share the fork.
-    expect(screen.getAllByLabelText("A-100 lineage").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByLabelText("Open post: Pricing renegotiation follow-up").length).toBeGreaterThanOrEqual(2);
-    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
-    expect(document.getElementById("post-ask")).not.toHaveFocus();
-    expect(
-      screen.queryByRole("status", { name: "Event Lineage next action" }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole("status", { name: "Keyman next action" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("status", { name: "Related next action" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("status", { name: "Ask next action" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("status", { name: "Ask seed next action" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("status", { name: "Ask citation next action" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("status", { name: "Evidence next action" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("complementary", { name: "Evidence" })).not.toBeInTheDocument();
-    expect(screen.queryByText("Related to Ada West")).not.toBeInTheDocument();
-    expect(screen.queryByText("Related to Priya Nair")).not.toBeInTheDocument();
-    const popup = document.querySelector(".popup-panel");
-    expect(popup).not.toBeNull();
-    const evaluation = within(popup as HTMLElement).getByRole("heading", {
-      name: "Post quality (IRT)",
-    });
-    const eventLineage = within(popup as HTMLElement).getByRole("heading", { name: "Event Lineage" });
-    const affiliate = within(popup as HTMLElement).getByRole("heading", { name: "Affiliate tree" });
-    const keyman = within(popup as HTMLElement).getByRole("heading", { name: "Keyman" });
-    expect(evaluation.compareDocumentPosition(eventLineage) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
-      0,
+    await userEvent.clear(screen.getByLabelText("Lineage question"));
+    await userEvent.type(screen.getByLabelText("Lineage question"), "왜 이 일이 일어났나요?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    expect(await screen.findByLabelText("Ungrounded lineage answer")).toHaveTextContent(
+      "이 사건의 왜가 아직 없습니다",
     );
-    expect(affiliate.compareDocumentPosition(keyman) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-    const ask = within(popup as HTMLElement).getByRole("heading", { name: "Ask about this lineage" });
-    expect(keyman.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
   });
 
-  it("shows a seeded Ask exchange without an orchestrator round-trip", async () => {
-    stubBackend();
+  it("shows fail-closed empty copy on the three screens", async () => {
+    stubBackend({ emptyPosts: true });
     render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await waitFor(() =>
-      expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument(),
-    );
-    expect(screen.getByText("Ada West and Priya Nair are the Keymen on this thread.")).toBeInTheDocument();
-    expect(
-      screen.getByText("The next commitment is Send Northridge Grid the revised quote, due 2026-01-12."),
-    ).toBeInTheDocument();
-    const homePopup = document.querySelector(".popup-panel");
-    expect(homePopup).not.toBeNull();
-    const homeAsk = within(homePopup as HTMLElement).getByRole("heading", {
-      name: "Ask about this lineage",
-    });
-    const homeInput = within(homePopup as HTMLElement).getByPlaceholderText(/what happened/i);
-    const homeAnswer = within(homePopup as HTMLElement).getByText(
-      "The seeded follow-up after the site visit.",
-    );
-    expect(homeAsk.compareDocumentPosition(homeInput) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-    expect(homeInput.compareDocumentPosition(homeAnswer) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
-      0,
-    );
-    expect(screen.queryByRole("complementary", { name: "Evidence" })).not.toBeInTheDocument();
-    expect(
-      screen.queryByText("The evidence panel should show exactly this text."),
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /ask seeded question: what happened between these events/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /ask seeded question: who is involved/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /ask seeded question: what is the next commitment/i })).toBeInTheDocument();
+    expect(await screen.findByText("이번 주 감사할 VOC가 없습니다")).toBeInTheDocument();
   });
 
-  it("asks a chat question and slides in the evidence panel for a cited source on click", async () => {
-    stubBackend();
+  it("shows fail-closed empty lineage and R&R on an opened item", async () => {
+    stubBackend({ emptyLineage: true, emptyRoles: true });
     render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await waitFor(() => expect(screen.getByPlaceholderText(/what happened/i)).toBeInTheDocument());
-
-    await userEvent.type(screen.getByPlaceholderText(/what happened/i), "What happened?");
-    await userEvent.click(screen.getByRole("button", { name: /^ask$/i }));
-
-    await waitFor(() =>
-      expect(screen.getByText("Here is what happened, drawing on the linked post.")).toBeInTheDocument(),
-    );
-
-    // The evidence panel is not shown until a citation is clicked.
-    expect(screen.queryByText("The evidence panel should show exactly this text.")).not.toBeInTheDocument();
-
-    const evidenceChips = screen.getAllByRole("button", { name: "Open evidence: Linked post" });
-    await userEvent.click(evidenceChips[evidenceChips.length - 1]);
-
-    await waitFor(() =>
-      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
-    );
-  });
-
-  it("shows a clear empty state when chat is 503 without an orchestrator", async () => {
-    stubBackend({ chatUnavailable: true });
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await waitFor(() => expect(screen.getByPlaceholderText(/what happened/i)).toBeInTheDocument());
-    await userEvent.type(screen.getByPlaceholderText(/what happened/i), "What happened?");
-    await userEvent.click(screen.getByRole("button", { name: /^ask$/i }));
-
-    await waitFor(() =>
-      expect(screen.getByText("Chat unavailable (LLM orchestrator not configured).")).toBeInTheDocument(),
-    );
-    expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
-    expect(screen.queryByPlaceholderText(/what happened/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^ask$/i })).not.toBeInTheDocument();
-    expect(
-      screen.getByText("Only seeded questions can be answered without an orchestrator."),
-    ).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /ask seeded question/i })).toHaveLength(3);
-    expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument();
-    expect(screen.getByText("Ada West and Priya Nair are the Keymen on this thread.")).toBeInTheDocument();
-    expect(
-      screen.getByText("The next commitment is Send Northridge Grid the revised quote, due 2026-01-12."),
-    ).toBeInTheDocument();
-  });
-
-  it("shows a clear empty state when evaluate is 503 without an orchestrator", async () => {
-    stubBackend({ admin: true, chatUnavailable: true });
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(await screen.findByRole("button", { name: /evaluate post/i }));
-
-    await waitFor(() =>
-      expect(screen.getByText("Evaluation unavailable (LLM orchestrator not configured).")).toBeInTheDocument(),
-    );
-    expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /evaluate post/i })).not.toBeInTheDocument();
-  });
-
-  it("shows a clear empty state when extract Keymen is 503 without an orchestrator", async () => {
-    stubBackend({ admin: true, chatUnavailable: true });
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(await screen.findByRole("button", { name: /extract keymen/i }));
-
-    await waitFor(() =>
-      expect(screen.getByText("Keyman extraction unavailable (LLM orchestrator not configured).")).toBeInTheDocument(),
-    );
-    expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /extract keymen/i })).not.toBeInTheDocument();
-  });
-
-  it("shows a clear empty state when derive commitment is 503 without an orchestrator", async () => {
-    stubBackend({ admin: true, chatUnavailable: true });
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(await screen.findByRole("button", { name: /derive commitment/i }));
-
-    await waitFor(() =>
-      expect(
-        screen.getByText("Commitment derivation unavailable (LLM orchestrator not configured)."),
-      ).toBeInTheDocument(),
-    );
-    expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /derive commitment/i })).not.toBeInTheDocument();
-  });
-
-  it("shows a clear empty state when verify is 503 without search", async () => {
-    stubBackend({ admin: true, searchUnavailable: true });
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(await screen.findByRole("button", { name: /verify against web search/i }));
-
-    await waitFor(() =>
-      expect(screen.getByText("Verification unavailable (search is not configured).")).toBeInTheDocument(),
-    );
-    expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /verify against web search/i })).not.toBeInTheDocument();
-  });
-
-  it("shows the affiliate tree, VOC excerpt, and related Keyman nodes on click", async () => {
-    stubBackend();
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Affiliate org: Demo Group" })).toBeInTheDocument(),
-    );
-    expect(screen.getByRole("button", { name: "Affiliate org: Demo Corp" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Counterparty org: Demo Corp" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Keyman affiliation: Demo Corp" })).toBeInTheDocument();
-    expect(screen.getAllByText("(Company)").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/Ada West \(Our side\)/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("Account manager")).toBeInTheDocument();
-    expect(screen.queryByText(/our_side/)).not.toBeInTheDocument();
-    expect(screen.getByText("unresolved")).toBeInTheDocument();
-    expect(screen.getByText(/Voice of Customer\s*\(voc\)/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "VOC Keyman: Northridge Grid" })).toBeInTheDocument();
-    expect(screen.getByLabelText("VOC verification: Northridge Grid")).toHaveTextContent("Not yet checked");
-    expect(
-      screen.getByText(
-        "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
-      ),
-    ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
-    await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
-    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).toHaveTextContent(
-      "Priya Nair (Counterparty)",
-    );
-    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).not.toHaveTextContent(
-      "Priya Nair (Person)",
-    );
-    expect(
-      screen.getByRole("button", {
-        name: "Related nodes for Priya Nair (Counterparty)",
-      }),
-    ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Open related post: Linked post" }));
-    await waitFor(() =>
-      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
-    );
-  });
-
-  it("opens related Keyman nodes from an R&R person", async () => {
-    stubBackend();
-    render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(await screen.findByRole("button", { name: "R&R Keyman: Ada West" }));
-    await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
-    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).toHaveTextContent(
-      "Priya Nair (Counterparty)",
-    );
-  });
-
-  it("opens related nodes from an R&R person catalog id", async () => {
-    stubBackend();
-    render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(await screen.findByRole("button", { name: "R&R person: Priya Nair" }));
-    await waitFor(() => expect(screen.getByText("Related to Priya Nair")).toBeInTheDocument());
-    expect(screen.getByText("Related to Priya Nair").closest(".related-keymen")).toHaveTextContent(
-      "Ada West (Our side)",
-    );
-  });
-
-  it("opens related nodes from an R&R team", async () => {
-    stubBackend();
-    render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(await screen.findByRole("button", { name: "R&R team: 설계팀" }));
-    await waitFor(() => expect(screen.getByText("Related to 설계팀")).toBeInTheDocument());
-    expect(screen.getByText("Related to 설계팀").closest(".related-keymen")).toHaveTextContent(
-      "Linked post",
-    );
-  });
-
-  it("opens related nodes from a related team chip", async () => {
-    stubBackend();
-    render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
-    await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for 설계팀" }));
-    await waitFor(() => expect(screen.getByText("Related to 설계팀")).toBeInTheDocument());
-    expect(screen.getByText("Related to 설계팀").closest(".related-keymen")).toHaveTextContent(
-      "Linked post",
-    );
-  });
-
-  it("opens related nodes from a related corporate entity", async () => {
-    stubBackend();
-    render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
-    await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Demo Corp" }));
-    await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
-    expect(screen.getByText("Related to Demo Corp").closest(".related-keymen")).toHaveTextContent(
-      "Ada West (Our side)",
-    );
-  });
-
-  it("shows the VOC excerpt under its counterparty, not a detached list", async () => {
-    stubBackend();
-    render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    const name = await screen.findByRole("button", { name: "VOC Keyman: Northridge Grid" });
-    const excerpt = screen.getByText(
-      "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
-    );
-    expect(excerpt.tagName).toBe("BLOCKQUOTE");
-    expect(name.closest(".voc-counterparty")).toContainElement(excerpt);
-    expect(
-      screen.getAllByText(
-        "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
-      ),
-    ).toHaveLength(1);
-    const unassigned = screen.getByText("The weekly recap listed the delay against the open ticket.");
-    expect(unassigned.closest(".voc-excerpt-list")).not.toBeNull();
-    expect(unassigned.closest(".voc-counterparty")).toBeNull();
-  });
-
-  it("opens related Keyman nodes from a VOC counterparty organization", async () => {
-    stubBackend();
-    render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(await screen.findByRole("button", { name: "VOC Keyman: Northridge Grid" }));
-    await waitFor(() => expect(screen.getByText("Related to Priya Nair")).toBeInTheDocument());
-    expect(screen.getByText("Related to Priya Nair").closest(".related-keymen")).toHaveTextContent(
-      "Ada West (Our side)",
-    );
-  });
-
-  it("opens related Keyman nodes from an affiliate-tree person", async () => {
-    stubBackend();
-    render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Affiliate Keyman: Priya Nair" }));
-    await waitFor(() => expect(screen.getByText("Related to Priya Nair")).toBeInTheDocument());
-    expect(screen.getByText("Related to Priya Nair").closest(".related-keymen")).toHaveTextContent(
-      "Ada West (Our side)",
-    );
-  });
-
-  it("opens related nodes from a Keyman affiliation organization", async () => {
-    stubBackend();
-    render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Keyman affiliation: Demo Corp" }));
-    await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
-    expect(screen.getByText("Related to Demo Corp").closest(".related-keymen")).toHaveTextContent(
-      "Ada West (Our side)",
-    );
-  });
-
-  it("opens related nodes from an affiliate-tree organization", async () => {
-    stubBackend();
-    render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Affiliate org: Demo Corp" }));
-    await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
-    expect(screen.getByText("Related to Demo Corp").closest(".related-keymen")).toHaveTextContent(
-      "Ada West (Our side)",
-    );
-    expect(screen.queryByRole("button", { name: "Affiliate org: Northridge Grid" })).not.toBeInTheDocument();
-  });
-
-  it("opens related nodes from a classified counterparty organization", async () => {
-    stubBackend();
-    render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Counterparty org: Demo Corp" }));
-    await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
-    expect(screen.getByText("Related to Demo Corp").closest(".related-keymen")).toHaveTextContent(
-      "Ada West (Our side)",
-    );
-    expect(screen.queryByRole("button", { name: "Counterparty org: Northridge Grid" })).not.toBeInTheDocument();
-  });
-
-  it("links a verification badge only for http(s) evidence URLs", async () => {
-    stubBackend({ verificationEvidenceUrl: "https://example.test/searxng?q=Northridge" });
-    render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    const badge = await screen.findByRole("link", { name: "VOC verification: Northridge Grid" });
-    expect(badge).toHaveAttribute("href", "https://example.test/searxng?q=Northridge");
-  });
-
-  it("does not turn a javascript: evidence URL into a verification link", async () => {
-    stubBackend({ verificationEvidenceUrl: "javascript:alert(1)" });
-    render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await waitFor(() =>
-      expect(screen.getByLabelText("VOC verification: Northridge Grid")).toBeInTheDocument(),
-    );
-    expect(screen.queryByRole("link", { name: "VOC verification: Northridge Grid" })).not.toBeInTheDocument();
-    expect(screen.getByLabelText("VOC verification: Northridge Grid").tagName).toBe("SPAN");
-  });
-
-  it("lets post_admin verify pending counterparties against web search", async () => {
-    const fetchMock = stubBackend({ admin: true });
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await waitFor(() =>
-      expect(screen.getByLabelText("VOC verification: Northridge Grid")).toHaveTextContent("Not yet checked"),
-    );
-    expect(screen.getByLabelText("Counterparty verification: Northridge Grid")).toHaveTextContent(
-      "Not yet checked",
-    );
-    await userEvent.click(screen.getByRole("button", { name: /verify against web search/i }));
-
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining("/api/posts/post-1/verify-relations"),
-        expect.objectContaining({ method: "POST" }),
-      ),
-    );
-  });
-
-  it("lets post_admin extract Keymen from the popup", async () => {
-    const fetchMock = stubBackend({ admin: true });
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await userEvent.click(await screen.findByRole("button", { name: /extract keymen/i }));
-
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining("/api/posts/post-1/extract-keymen"),
-        expect.objectContaining({ method: "POST" }),
-      ),
-    );
-  });
-
-  it("creates an issue ticket and updates its status via the real endpoints", async () => {
-    stubBackend();
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await waitFor(() => expect(screen.getByText("No tickets yet.")).toBeInTheDocument());
-
-    await userEvent.type(screen.getByPlaceholderText(/new ticket title/i), "Confirm delivery window");
-    await userEvent.click(screen.getByRole("button", { name: /create ticket/i }));
-
-    await waitFor(() => expect(screen.getByText("Confirm delivery window")).toBeInTheDocument());
-
-    const statusSelect = screen.getByLabelText(/status for confirm delivery window/i);
-    expect(statusSelect).toHaveValue("open");
-    expect(screen.getByRole("option", { name: "Open" })).toHaveValue("open");
-    expect(screen.queryByRole("option", { name: "open" })).not.toBeInTheDocument();
-
-    await userEvent.selectOptions(statusSelect, "closed");
-
-    await waitFor(() => expect(statusSelect).toHaveValue("closed"));
-    expect(screen.getByRole("option", { name: "Closed" })).toHaveValue("closed");
-  });
-
-  it("creates a dated ticket and shows the due date on the ticket list", async () => {
-    stubBackend();
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await waitFor(() => expect(screen.getByText("No tickets yet.")).toBeInTheDocument());
-
-    await userEvent.type(screen.getByPlaceholderText(/new ticket title/i), "Ship the sample kit");
-    fireEvent.change(screen.getByLabelText(/due date/i), { target: { value: "2026-03-15" } });
-    await userEvent.click(screen.getByRole("button", { name: /create ticket/i }));
-
-    await waitFor(() => expect(screen.getByText("Ship the sample kit")).toBeInTheDocument());
-    expect(screen.getByText("due 2026-03-15")).toBeInTheDocument();
-  });
-
-  it("shows real ticket mutations on the activity feed after a refresh", async () => {
-    stubBackend();
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await waitFor(() => expect(screen.getByText("No activity yet.")).toBeInTheDocument());
-
-    await userEvent.type(screen.getByPlaceholderText(/new ticket title/i), "Confirm freight terms");
-    await userEvent.click(screen.getByRole("button", { name: /create ticket/i }));
-    await waitFor(() => expect(screen.getByText("Confirm freight terms")).toBeInTheDocument());
-
-    await userEvent.click(screen.getByRole("button", { name: /^refresh$/i }));
-
-    await waitFor(() =>
-      expect(screen.getByText("Ticket created: Confirm freight terms")).toBeInTheDocument(),
-    );
-    expect(screen.getByText("Ticket created")).toBeInTheDocument();
-    expect(screen.queryByText("ticket_created")).not.toBeInTheDocument();
-
-    await userEvent.selectOptions(
-      screen.getByLabelText(/status for confirm freight terms/i),
-      "closed",
-    );
-    await userEvent.click(screen.getByRole("button", { name: /^refresh$/i }));
-    await waitFor(() =>
-      expect(screen.getByText("Ticket status changed to Closed")).toBeInTheDocument(),
-    );
-    expect(screen.queryByText("Ticket status changed to closed")).not.toBeInTheDocument();
-    expect(screen.getByText("Status changed")).toBeInTheDocument();
-    expect(screen.queryByText("ticket_status_changed")).not.toBeInTheDocument();
-  });
-
-  it("hides derive commitment for accounts without post_admin", async () => {
-    stubBackend();
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await waitFor(() => expect(screen.getByText("No tickets yet.")).toBeInTheDocument());
-    expect(screen.queryByRole("button", { name: /derive commitment/i })).not.toBeInTheDocument();
-  });
-
-  it("derives a customer commitment and shows its due date on the ticket list", async () => {
-    stubBackend({ admin: true });
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    await waitFor(() => expect(screen.getByText("No tickets yet.")).toBeInTheDocument());
-
-    await userEvent.click(screen.getByRole("button", { name: /derive commitment/i }));
-
-    await waitFor(() =>
-      expect(screen.getByText("Send the revised delivery schedule")).toBeInTheDocument(),
-    );
-    expect(screen.getByText("due 2026-01-09")).toBeInTheDocument();
-  });
-
-  it("tells the buyer how to populate an empty calendar", async () => {
-    stubBackend({ calendarCommitments: [] });
-    render(<App />);
-
-    await waitFor(() =>
-      expect(
-        screen.getByText(/no upcoming commitments\. derive one from a post/i),
-      ).toBeInTheDocument(),
-    );
-  });
-
-  it("names RankWeave unavailability on home rankings instead of inventing a fused score", async () => {
-    stubBackend();
-    render(<App />);
-
-    expect(await screen.findByText("Rankings · RankWeave not available")).toBeInTheDocument();
-    expect(screen.queryByText("Pricing renegotiation: revised quote sent")).not.toBeInTheDocument();
-  });
-
-  it("lets an operator navigate the customer group tree instead of a flat corp list", async () => {
-    stubBackend();
-    render(<App />);
-
-    const tree = await screen.findByRole("list", { name: "Customer group hierarchy" });
-    expect(within(tree).getByRole("button", { name: "Open customer group: Demo Group" })).toBeInTheDocument();
-    expect(within(tree).getByRole("button", { name: "Open customer group: Demo Corp" })).toBeInTheDocument();
-    expect(within(tree).getByRole("button", { name: "Open customer group: Demo Plant" })).toBeInTheDocument();
-    expect(within(tree).getByText("DC")).toBeInTheDocument();
-    expect(within(tree).getByText(/corroborated/)).toBeInTheDocument();
-
-    await userEvent.click(within(tree).getByRole("button", { name: "Open customer group: Demo Corp" }));
-    expect(screen.getByLabelText("Report grouping")).toHaveValue("corporate_entity");
-    expect(
-      screen.getByText(
-        "Demo Corp is the opened grouping. Read its mean θ and member posts below, then open a post.",
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it("shows a post abbreviation cross-check and fail-closes when Searxng is down", async () => {
-    stubBackend({ admin: true, searchUnavailable: true });
-    render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-
-    const popup = await waitFor(() => {
-      const panel = document.querySelector(".popup-panel");
-      expect(panel).not.toBeNull();
-      return panel as HTMLElement;
-    });
-    expect(within(popup).getByRole("heading", { name: "Abbreviation cross-check" })).toBeInTheDocument();
-    expect(within(popup).getByText("DC")).toBeInTheDocument();
-
-    await userEvent.click(
-      within(popup).getByRole("button", { name: "Cross-check against customer group tree" }),
-    );
-    expect(
-      await within(popup).findByText("Verification unavailable (search is not configured)."),
-    ).toBeInTheDocument();
-  });
-
-  it("opens an accepted ranking hit without inventing a fused score", async () => {
-    stubBackend({
-      rankings: {
-        status: "accepted",
-        status_reason: null,
-        rankings: [
-          {
-            post_id: "post-1",
-            post_title: "Public post",
-            fused_rank: 1,
-          },
-          {
-            post_id: "post-2",
-            post_title: "Pricing renegotiation: revised quote sent",
-            fused_rank: 2,
-          },
-        ],
-      },
-    });
-    render(<App />);
-
-    const rankingButton = await screen.findByRole("button", {
-      name: /open ranking: public post/i,
-    });
-    expect(rankingButton).toHaveTextContent("Public post");
-    expect(rankingButton).toHaveTextContent("Rankings · rankweave");
-    expect(rankingButton).toHaveTextContent("rank 1");
-    expect(screen.queryByRole("button", { name: /open ranking: private parent/i })).not.toBeInTheDocument();
-
-    await userEvent.click(rankingButton);
-
-    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-  });
-
-  it("shows upcoming commitments on the home page calendar and opens the post on click", async () => {
-    stubBackend();
-    render(<App />);
-
-    const calendarButton = await screen.findByRole("button", {
-      name: /open commitment for: public post/i,
-    });
-    expect(calendarButton).toHaveTextContent("Send Northridge Grid the revised quote");
-    expect(calendarButton).toHaveTextContent("Public post");
-    expect(calendarButton).toHaveTextContent("Open");
-    expect(calendarButton).toHaveTextContent("due 2026-01-12");
-    const betaCalendar = screen.getByRole("button", {
-      name: /open commitment for: specification revision requested/i,
-    });
-    expect(betaCalendar).toHaveTextContent("Send Westfield Power the revised specification");
-    expect(betaCalendar).toHaveTextContent("Open");
-    expect(betaCalendar).toHaveTextContent("due 2026-01-14");
-
-    await userEvent.click(calendarButton);
-
-    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-  });
-
-  it("shows the seeded analysis run on the home page", async () => {
-    stubBackend();
-    render(<App />);
-
-    expect(await screen.findByRole("heading", { name: "Analysis runs" })).toBeInTheDocument();
-    const list = screen.getByRole("list", { name: "Analysis runs" });
-    expect(list).toHaveTextContent("Lineage reconstruction · Succeeded · Demo Corp");
-    expect(list).toHaveTextContent("TEPP measurement · Failed · Demo Corp");
-    expect(list).toHaveTextContent("Period report · Succeeded · Demo Corp");
-    expect(list).toHaveTextContent(
-      "Open this run to see why it failed, then connect the measurement service and re-run.",
-    );
-    expect(list).toHaveTextContent("3 documents");
-    expect(list).not.toHaveTextContent("postgresql://");
-    expect(list).not.toHaveTextContent("select ");
-    expect(list).not.toHaveTextContent("Claimed");
-    expect(list).not.toHaveTextContent("Delivered");
-    expect(list).not.toHaveTextContent("Code abcdef012345");
-    expect(list).not.toHaveTextContent("Config 0123456789ab");
-    expect(list).not.toHaveTextContent("abcdef0123456789deadbeefcafebabe");
-    expect(list).not.toHaveTextContent(
-      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-    );
-
-    expect(
-      screen.getByRole("button", {
-        name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to see why it failed, then connect the measurement service and re-run.",
-      }),
-    ).toBeInTheDocument();
-
-    await userEvent.click(
-      screen.getByRole("button", {
-        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
-      }),
-    );
-    expect(await screen.findByRole("heading", { name: "Lineage reconstruction · Succeeded · Demo Corp" })).toBeInTheDocument();
-    expect(screen.getByText(/Cutoff 2026-01-12/)).toBeInTheDocument();
-    expect(screen.getByText(/Requested 2026-01-12/)).toBeInTheDocument();
-    const digests = screen.getByLabelText("Analysis run reproducibility digests");
-    expect(digests).toHaveTextContent("Hover a prefix to read the full digest for verification.");
-    expect(digests).toHaveTextContent("Code abcdef012345");
-    expect(digests).toHaveTextContent("Config 0123456789ab");
-    expect(digests).not.toHaveTextContent("abcdef0123456789deadbeefcafebabe");
-    expect(digests).not.toHaveTextContent(
-      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-    );
-    expect(screen.getByTitle("abcdef0123456789deadbeefcafebabe")).toHaveTextContent("Code abcdef012345");
-    expect(
-      screen.getByTitle("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"),
-    ).toHaveTextContent("Config 0123456789ab");
-    const history = screen.getByRole("list", { name: "Analysis run status history" });
-    expect(history).toHaveTextContent("Pending 2026-01-12 12:31");
-    expect(history).toHaveTextContent("Running 2026-01-12 12:32");
-    expect(history).toHaveTextContent("Succeeded 2026-01-12 12:33");
-    const outbox = screen.getByRole("list", { name: "Analysis run outbox delivery" });
-    expect(outbox).toHaveTextContent("Claimed 2026-01-12 12:32");
-    expect(outbox).toHaveTextContent("Delivered 2026-01-12 12:33");
-    expect(outbox).not.toHaveTextContent("valkey");
-    expect(outbox).not.toHaveTextContent("stream");
-    expect(screen.getByRole("list", { name: "Posts known at this run cutoff" })).toBeInTheDocument();
-    const seededFork = screen.getByRole("list", { name: "Reconstructed lineage edges" });
-    expect(seededFork).toHaveTextContent(
-      "Pricing renegotiation: revised quote sent follows Pricing renegotiation follow-up",
-    );
-    expect(seededFork).toHaveTextContent(
-      "Delivery schedule question raised follows Pricing renegotiation follow-up",
-    );
-    await userEvent.click(
-      screen.getByRole("button", {
-        name: "Open reconstructed child: Pricing renegotiation: revised quote sent",
-      }),
-    );
-    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: "Close" }));
-    expect(screen.getByRole("list", { name: "Posts known at this run cutoff" })).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Opening a title shows the live post. Titles marked updated after cutoff were rewritten after 2026-01-12. Compare those bodies with this run before you treat them as reconstructed evidence.",
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", {
-        name: "Open live post (updated after cutoff): Public post",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", {
-        name: "Open live post: Private post",
-      }),
-    ).toBeInTheDocument();
-    const cutoffPosts = screen.getByRole("list", { name: "Posts known at this run cutoff" });
-    expect(cutoffPosts).toHaveTextContent("Updated after cutoff");
-    expect(screen.getByRole("button", { name: "Open live post: Private post" }).closest("li")).not.toHaveTextContent(
-      "Updated after cutoff",
-    );
-    expect(screen.queryByText(/postgresql:\/\//)).not.toBeInTheDocument();
-
-    await userEvent.click(
-      screen.getByRole("button", {
-        name: "Open live post (updated after cutoff): Public post",
-      }),
-    );
-    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-
-    await userEvent.click(
-      screen.getByRole("button", {
-        name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to see why it failed, then connect the measurement service and re-run.",
-      }),
-    );
-    expect(
-      await screen.findByRole("heading", { name: "TEPP measurement · Failed · Demo Corp" }),
-    ).toBeInTheDocument();
-    const teppHistory = screen.getByRole("list", { name: "Analysis run status history" });
-    expect(teppHistory).toHaveTextContent("Failed 2026-01-12 12:37 · tepp_not_available");
-    expect(screen.getByText(/cutoff corpus TEPP would measure/i)).toBeInTheDocument();
-    expect(teppHistory).not.toHaveTextContent("Succeeded");
-  });
-
-  it("warns that a cutoff-rewritten title opens the live body, not a snapshot", async () => {
-    stubBackend();
-    render(<App />);
-
-    await userEvent.click(
-      await screen.findByRole("button", {
-        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
-      }),
-    );
-    await userEvent.click(
-      await screen.findByRole("button", {
-        name: "Open live post (updated after cutoff): Public post",
-      }),
-    );
-    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(screen.getByRole("status", { name: "Live body warning" })).toHaveTextContent(
-      "This is the live body, not a cutoff snapshot. Compare it with this 2026-01-12 run before you treat it as reconstructed evidence.",
-    );
-    expect(screen.getByRole("heading", { name: "Body this run knew" })).toBeInTheDocument();
-    expect(screen.getByText("The cutoff body this run knew.")).toBeInTheDocument();
-    expect(screen.getByText(/written 2026-01-10, known at cutoff 2026-01-12/)).toBeInTheDocument();
-
-    const linkedPosts = screen.getAllByLabelText("Open post: Linked post");
-    await userEvent.click(linkedPosts[linkedPosts.length - 1]);
-    await waitFor(() =>
-      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
-    );
-    expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: "Close" }));
-    await userEvent.click(
-      screen.getByRole("button", {
-        name: "Open live post: Private post",
-      }),
-    );
-    await waitFor(() =>
-      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
-    );
-    expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: "Close" }));
-    await userEvent.click(screen.getByRole("button", { name: "View post: Public post" }));
-    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
-  });
-
-  it("drops a stale listed run after its detail 404s and names the next action", async () => {
-    stubBackend({ hiddenAnalysisRun: true });
-    render(<App />);
-
-    await screen.findByRole("list", { name: "Analysis runs" });
-    await userEvent.click(
-      screen.getByRole("button", {
-        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
-      }),
-    );
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "This run is not on your list. Open a visible run from the home list, or request a lineage reconstruction for a corporation you already walk.",
-    );
-    await waitFor(() => {
-      expect(
-        screen.queryByRole("button", {
-          name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
-        }),
-      ).not.toBeInTheDocument();
-    });
-    expect(
-      screen.getByRole("button", {
-        name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to see why it failed, then connect the measurement service and re-run.",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", {
-        name: "Open analysis run: Period report · Succeeded · Demo Corp",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Request a lineage reconstruction" }),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/not visible/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/thread-group/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/knowledge_cutoff/i)).not.toBeInTheDocument();
-  });
-
-  it("finds a failed TEPP list button by the next-action accessible name", async () => {
-    stubBackend();
-    render(<App />);
-
-    const teppButton = await screen.findByRole("button", {
-      name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to see why it failed, then connect the measurement service and re-run.",
-    });
-    expect(teppButton).toHaveAccessibleName(
-      "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to see why it failed, then connect the measurement service and re-run.",
-    );
-    expect(
-      screen.getByRole("button", {
-        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
-      }),
-    ).toHaveAccessibleName("Open analysis run: Lineage reconstruction · Succeeded · Demo Corp");
-  });
-
-  it("tells a running lineage run to refresh the durable outbox", async () => {
-    stubBackend({ runningLineageRun: true });
-    render(<App />);
-
-    const lineageButton = await screen.findByRole("button", {
-      name: "Open analysis run: Lineage reconstruction · Running · Demo Corp. Refresh this run. Start already queued the work on the durable outbox.",
-    });
-    expect(lineageButton).toHaveTextContent(
-      "Refresh this run. Start already queued the work on the durable outbox.",
-    );
-    await userEvent.click(lineageButton);
-    expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeInTheDocument();
-    expect(
-      screen.getAllByText("Refresh this run. Start already queued the work on the durable outbox."),
-    ).not.toHaveLength(0);
-  });
-
-  it("does not tell a failed lineage run to connect the measurement service", async () => {
-    stubBackend({ failedLineageRun: true });
-    render(<App />);
-
-    await screen.findByRole("list", { name: "Analysis runs" });
-    const lineageButton = screen.getByRole("button", {
-      name: "Open analysis run: Lineage reconstruction · Failed · Demo Corp. Open this run to see why it failed, then retry reconstruction from a current snapshot.",
-    });
-    const teppButton = screen.getByRole("button", {
-      name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to see why it failed, then connect the measurement service and re-run.",
-    });
-    expect(lineageButton).toHaveTextContent(
-      "Open this run to see why it failed, then retry reconstruction from a current snapshot.",
-    );
-    expect(lineageButton).not.toHaveTextContent("measurement service");
-    expect(teppButton).toHaveTextContent(
-      "Open this run to see why it failed, then connect the measurement service and re-run.",
-    );
-    expect(teppButton).not.toHaveTextContent("reconstruction");
-  });
-
-  it("does not tell a succeeded period report to rebuild, reconstruct, or measure", async () => {
-    stubBackend({ succeededReportRun: true });
-    render(<App />);
-
-    const reportButton = await screen.findByRole("button", {
-      name: "Open analysis run: Period report · Succeeded · Demo Corp",
-    });
-    expect(reportButton).not.toHaveTextContent("rebuild the period report");
-    expect(reportButton).not.toHaveTextContent("Reconstruction has not started yet");
-    expect(reportButton).not.toHaveTextContent("The report has not been built yet");
-    expect(reportButton).not.toHaveTextContent("measurement service");
-    expect(reportButton).not.toHaveTextContent("θ");
-
-    await userEvent.click(reportButton);
-    expect(
-      await screen.findByRole("heading", { name: "Period report · Succeeded · Demo Corp" }),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/rebuild the period report/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Reconstruction has not started yet/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/The report has not been built yet/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", {
-        name: "Open live post: Public post",
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open period report 2026-W02" })).toBeInTheDocument();
-
-    const periodInput = screen.getByLabelText("Report period");
-    await userEvent.clear(periodInput);
-    await userEvent.type(periodInput, "2026-W03");
-    expect(periodInput).toHaveValue("2026-W03");
-    const groupingSelect = screen.getByLabelText("Report grouping");
-    expect(groupingSelect).toHaveValue("process_unit");
-    await userEvent.click(screen.getByRole("button", { name: "Open period report 2026-W02" }));
-    expect(periodInput).toHaveValue("2026-W02");
-    expect(groupingSelect).toHaveValue("corporate_entity");
-    expect(periodInput).toHaveFocus();
-    expect(
-      screen.getByRole("button", { name: "Compare Corporate entity: Demo Corp, mean θ 0.42" }),
-    ).toHaveAttribute("aria-current", "true");
-    expect(
-      screen.getByRole("button", { name: "Compare Process unit: Demo Report High, mean θ 0.81" }),
-    ).not.toHaveAttribute("aria-current");
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Demo Corp is the opened grouping. Read its mean θ and member posts below, then open a post.",
-    );
-    expect(await screen.findByText(/Demo Corp: mean θ 0\.42/)).toBeInTheDocument();
-    expect(screen.queryByText(/corp-1: mean θ/)).not.toBeInTheDocument();
-    const openedReport = screen.getByRole("list", { name: "Opened grouping report" });
-    expect(openedReport.textContent ?? "").toMatch(/Demo Corp: mean θ 0\.42[\s\S]*Other Corp: mean θ/);
-    expect(
-      within(openedReport).getByRole("button", { name: /open report post: public post/i }),
-    ).toBeInTheDocument();
-    const status = screen.getByRole("status");
-    const demoMean = screen.getByText(/Demo Corp: mean θ 0\.42/);
-    const weekChip = screen.getByRole("button", { name: /open report period 2026-W03/i });
-    expect(status.compareDocumentPosition(demoMean) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-    expect(demoMean.compareDocumentPosition(weekChip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-  });
-
-  it("lands the comparison strip on Demo Corp when already on that week", async () => {
-    stubBackend({ succeededReportRun: true });
-    const scrollIntoView = vi.fn();
-    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
-    HTMLElement.prototype.scrollIntoView = scrollIntoView;
-    try {
-      render(<App />);
-
-      const periodInput = await screen.findByLabelText("Report period");
-      expect(periodInput).toHaveValue("2026-W02");
-      expect(screen.getByLabelText("Report grouping")).toHaveValue("process_unit");
-
-      await userEvent.click(
-        await screen.findByRole("button", {
-          name: "Open analysis run: Period report · Succeeded · Demo Corp",
-        }),
-      );
-      await userEvent.click(screen.getByRole("button", { name: "Open period report 2026-W02" }));
-
-      expect(periodInput).toHaveValue("2026-W02");
-      expect(screen.getByLabelText("Report grouping")).toHaveValue("corporate_entity");
-      const demoChip = screen.getByRole("button", {
-        name: "Compare Corporate entity: Demo Corp, mean θ 0.42",
-      });
-      expect(demoChip).toHaveAttribute("aria-current", "true");
-      expect(demoChip).toHaveFocus();
-      expect(demoChip).toHaveAccessibleName(/Corporate entity: Demo Corp/);
-      expect(demoChip).toHaveAccessibleName(/mean θ 0\.42/);
-      expect(scrollIntoView).toHaveBeenCalled();
-      expect(periodInput).not.toHaveFocus();
-      expect(screen.getByRole("status")).toHaveTextContent(
-        "Demo Corp is the opened grouping. Read its mean θ and member posts below, then open a post.",
-      );
-      expect(await screen.findByText(/Demo Corp: mean θ 0\.42/)).toBeInTheDocument();
-      const openedReport = screen.getByRole("list", { name: "Opened grouping report" });
-      expect(within(openedReport).getByText(/Demo Corp: mean θ 0\.42/).closest("li")).toHaveAttribute(
-        "aria-current",
-        "true",
-      );
-      expect(openedReport.textContent ?? "").toMatch(/Demo Corp: mean θ 0\.42[\s\S]*Other Corp: mean θ/);
-      expect(openedReport.textContent ?? "").not.toMatch(/Other Corp: mean θ[\s\S]*Demo Corp: mean θ 0\.42/);
-      const member = within(openedReport).getByRole("button", {
-        name: /open report post: public post/i,
-      });
-      expect(member).toHaveTextContent("θ 0.91");
-      expect(member).not.toHaveAttribute("aria-current");
-      const status = screen.getByRole("status");
-      const demoMean = screen.getByText(/Demo Corp: mean θ 0\.42/);
-      const weekChip = screen.getByRole("button", { name: /open report period 2026-W03/i });
-      expect(status.compareDocumentPosition(demoMean) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-      expect(demoMean.compareDocumentPosition(weekChip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-      await userEvent.click(member);
-      await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-      expect(member).toHaveAttribute("aria-current", "true");
-      expect(
-        screen.getByText(
-          "Public post is open from Demo Corp. Read Event Lineage, Keyman, and evaluation on this post.",
-        ),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          "Public post is open from Demo Corp. Read Event Lineage, Keyman, and evaluation on this post.",
-        ),
-      ).not.toHaveTextContent("then open a post");
-      expect(
-        screen.getAllByRole("heading", { name: "Event Lineage" }).length,
-      ).toBeGreaterThanOrEqual(2);
-      const popup = document.querySelector(".popup-panel");
-      expect(popup).not.toBeNull();
-      const currentNode = within(popup as HTMLElement).getByLabelText("Open post: Public post");
-      expect(currentNode).toHaveAttribute("aria-current", "true");
-      const homeNode = screen
-        .getAllByLabelText("Open post: Public post")
-        .find((node) => !popup?.contains(node));
-      expect(homeNode).not.toHaveAttribute("aria-current");
-      const lineageNext = screen.getByRole("status", { name: "Event Lineage next action" });
-      expect(lineageNext).toHaveTextContent(
-        "Public post is current in Event Lineage. Read Keyman and evaluation next.",
-      );
-      expect(
-        currentNode.compareDocumentPosition(lineageNext) & Node.DOCUMENT_POSITION_FOLLOWING,
-      ).not.toBe(0);
-      const keyman = within(popup as HTMLElement).getByRole("heading", { name: "Keyman" });
-      const evaluation = within(popup as HTMLElement).getByRole("heading", {
-        name: "Post quality (IRT)",
-      });
-      const affiliate = within(popup as HTMLElement).getByRole("heading", { name: "Affiliate tree" });
-      expect(lineageNext.compareDocumentPosition(keyman) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
-        0,
-      );
-      expect(keyman.compareDocumentPosition(evaluation) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-      const keymanNext = await screen.findByRole("status", { name: "Keyman next action" });
-      expect(keymanNext).toHaveTextContent("Ada West is the first Keyman. Read that person next.");
-      const related = await within(popup as HTMLElement).findByRole("heading", {
-        name: "Related to Ada West",
-      });
-      expect(within(related.closest(".related-keymen") as HTMLElement).getByText(/Priya Nair/)).toBeInTheDocument();
-      expect(
-        within(popup as HTMLElement).getByRole("button", { name: "Related nodes for Ada West" }),
-      ).toHaveAttribute("aria-current", "true");
-      expect(
-        evaluation.compareDocumentPosition(keymanNext) & Node.DOCUMENT_POSITION_FOLLOWING,
-      ).not.toBe(0);
-      expect(keymanNext.compareDocumentPosition(related) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
-        0,
-      );
-      const relatedNext = await screen.findByRole("status", { name: "Related next action" });
-      expect(relatedNext).toHaveTextContent(
-        "Priya Nair is the first related node. Read that person next.",
-      );
-      expect(
-        within(popup as HTMLElement).getByRole("button", {
-          name: "Related nodes for Priya Nair (Counterparty)",
-        }),
-      ).toHaveAttribute("aria-current", "true");
-      const landedRelated = await within(popup as HTMLElement).findByRole("heading", {
-        name: "Related to Priya Nair",
-      });
-      expect(
-        within(landedRelated.closest(".related-keymen") as HTMLElement).getByText(/Ada West/),
-      ).toBeInTheDocument();
-      expect(related.compareDocumentPosition(relatedNext) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
-        0,
-      );
-      expect(
-        relatedNext.compareDocumentPosition(landedRelated) & Node.DOCUMENT_POSITION_FOLLOWING,
-      ).not.toBe(0);
-      const askNext = await screen.findByRole("status", { name: "Ask next action" });
-      expect(askNext).toHaveTextContent(
-        "Related nodes for Priya Nair are current. Ask about this lineage next.",
-      );
-      expect(
-        landedRelated.compareDocumentPosition(askNext) & Node.DOCUMENT_POSITION_FOLLOWING,
-      ).not.toBe(0);
-      expect(askNext.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
-        0,
-      );
-      const ask = within(popup as HTMLElement).getByRole("heading", { name: "Ask about this lineage" });
-      expect(askNext.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-      expect(ask.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-      const askSeed = await screen.findByRole("status", { name: "Ask seed next action" });
-      expect(askSeed).toHaveTextContent(
-        "What happened between these events? is the first Ask. Read that answer next.",
-      );
-      expect(ask.compareDocumentPosition(askSeed) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-      expect(askSeed.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-      expect(
-        within(popup as HTMLElement).getByRole("button", {
-          name: "Ask seeded question: What happened between these events?",
-        }),
-      ).toHaveAttribute("aria-current", "true");
-      const firstAskAnswer = within(popup as HTMLElement).getByText(
-        "The seeded follow-up after the site visit.",
-      );
-      const askInput = within(popup as HTMLElement).getByPlaceholderText(/what happened/i);
-      expect(
-        askSeed.compareDocumentPosition(firstAskAnswer) & Node.DOCUMENT_POSITION_FOLLOWING,
-      ).not.toBe(0);
-      expect(
-        firstAskAnswer.compareDocumentPosition(askInput) & Node.DOCUMENT_POSITION_FOLLOWING,
-      ).not.toBe(0);
-      expect(
-        firstAskAnswer.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING,
-      ).not.toBe(0);
-      expect(
-        within(popup as HTMLElement).getAllByText("The seeded follow-up after the site visit."),
-      ).toHaveLength(1);
-      const citedNext = await screen.findByRole("status", { name: "Ask citation next action" });
-      expect(citedNext).toHaveTextContent(
-        "Linked post is the first cited source. Open that evidence next.",
-      );
-      expect(
-        firstAskAnswer.compareDocumentPosition(citedNext) & Node.DOCUMENT_POSITION_FOLLOWING,
-      ).not.toBe(0);
-      expect(citedNext.compareDocumentPosition(askInput) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
-        0,
-      );
-      expect(
-        within(popup as HTMLElement).getByRole("button", { name: "Open evidence: Linked post" }),
-      ).toHaveAttribute("aria-current", "true");
-      const citedEvidence = await screen.findByRole("complementary", { name: "Evidence" });
-      expect(await within(citedEvidence).findByText("Linked post")).toBeInTheDocument();
-      expect(
-        await within(citedEvidence).findByText("The evidence panel should show exactly this text."),
-      ).toBeInTheDocument();
-      expect(
-        citedNext.compareDocumentPosition(citedEvidence) & Node.DOCUMENT_POSITION_FOLLOWING,
-      ).not.toBe(0);
-      expect(
-        citedEvidence.compareDocumentPosition(askInput) & Node.DOCUMENT_POSITION_FOLLOWING,
-      ).not.toBe(0);
-      const evidenceNext = await screen.findByRole("status", { name: "Evidence next action" });
-      expect(evidenceNext).toHaveTextContent(
-        "Linked post evidence is current. Read Event Lineage on that post next.",
-      );
-      expect(
-        citedEvidence.compareDocumentPosition(evidenceNext) & Node.DOCUMENT_POSITION_FOLLOWING,
-      ).not.toBe(0);
-      expect(evidenceNext.compareDocumentPosition(askInput) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
-        0,
-      );
-      await waitFor(() => expect(document.getElementById("post-ask")).toHaveFocus());
-    } finally {
-      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
-    }
-  });
-
-  it("does not tell a failed period report to connect the measurement service", async () => {
-    stubBackend({ failedReportRun: true });
-    render(<App />);
-
-    const reportButton = await screen.findByRole("button", {
-      name: "Open analysis run: Period report · Failed · Demo Corp. Open this run to see why it failed, then rebuild the period report from a current snapshot.",
-    });
-    expect(reportButton).toHaveTextContent(
-      "Open this run to see why it failed, then rebuild the period report from a current snapshot.",
-    );
-    expect(reportButton).not.toHaveTextContent("measurement service");
-    expect(reportButton).not.toHaveTextContent("reconstruction");
-
-    await userEvent.click(reportButton);
-    expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Open period report 2026-W02" }),
-    ).not.toBeInTheDocument();
-    expect(
-      await screen.findByText(
-        "No posts were available at this cutoff for the period report. Open a later run, or ask an administrator to capture a newer snapshot.",
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it("does not tell a pending TEPP run that it already measured", async () => {
-    stubBackend({ pendingTeppRun: true });
-    render(<App />);
-
-    const teppButton = await screen.findByRole("button", {
-      name: "Open analysis run: TEPP measurement · Pending · Demo Corp. Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.",
-    });
-    expect(teppButton).not.toHaveAccessibleName(/Reconstruction/);
-    expect(teppButton).not.toHaveAccessibleName(/measured/);
-
-    await userEvent.click(teppButton);
-    expect(
-      await screen.findByText("These posts are the cutoff corpus TEPP will measure once this run finishes."),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/this TEPP run measured/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Reconstruction has not started yet/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Start TEPP measurement" })).toBeInTheDocument();
-  });
-
-  it("starts a pending TEPP run through tepp_client and does not invent a theta", async () => {
-    const fetchMock = stubBackend({ pendingTeppRun: true });
-    render(<App />);
-
-    await userEvent.click(
-      await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Pending · Demo Corp. Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.",
-      }),
-    );
-    await userEvent.click(screen.getByRole("button", { name: "Start TEPP measurement" }));
-    expect(
-      await screen.findByRole("heading", { name: "TEPP measurement · Failed · Demo Corp" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/tepp_not_available/)).toBeInTheDocument();
-    expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
-    const startCall = fetchMock.mock.calls.find((call) =>
-      String(call[0]).endsWith("/api/analysis-runs/run-demo-tepp/start"),
-    );
-    expect(startCall?.[1]?.method).toBe("POST");
-  });
-
-  it("does not invent a Pending TEPP row from a Failed TEPP run", async () => {
-    const fetchMock = stubBackend();
-    render(<App />);
-
-    await userEvent.click(
-      await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to see why it failed, then connect the measurement service and re-run.",
-      }),
-    );
-    expect(
-      await screen.findByText(
-        "Connect a TEPP transport from this Failed row. Request a lineage reconstruction does not invent a measurement.",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Request a new TEPP measurement" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "TEPP measurement · Pending · Demo Corp" })).not.toBeInTheDocument();
-    expect(
-      fetchMock.mock.calls.some(
-        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
-      ),
-    ).toBe(false);
-  });
-
-  it("does not tell a succeeded TEPP run to replace Failed", async () => {
-    stubBackend({ succeededTeppRun: true });
-    render(<App />);
-
-    const succeeded = await screen.findByRole("button", {
-      name: "Open analysis run: TEPP measurement · Succeeded · Demo Corp. Open this run to read aggregate transport evidence. This status is not a validated multilevel estimate. Completed TEPP measurement identity is unavailable until TEPP publishes a versioned completed-result contract.",
-    });
-    expect(succeeded).toHaveAccessibleName(/aggregate transport evidence/);
-    expect(succeeded).toHaveAccessibleName(/not a validated multilevel estimate/);
-    const list = screen.getByRole("list", { name: "Analysis runs" });
-    expect(list).not.toHaveTextContent("2 affiliations");
-    expect(list).not.toHaveTextContent("Measured 2026-01-12");
-    await userEvent.click(succeeded);
-    expect(
-      await screen.findByRole("heading", { name: "Measurement evidence" }),
-    ).toBeInTheDocument();
-    expect(screen.getAllByText(/not a validated multilevel estimate/i).length).toBeGreaterThan(0);
-    expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/2 affiliations/)).not.toBeInTheDocument();
-  });
-
-  it("shows accepted TEPP transport evidence without claiming completion", async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.assign(navigator, { clipboard: { writeText } });
-    stubBackend({ acceptedTeppRun: true });
-    render(<App />);
-
-    const accepted = await screen.findByRole("button", {
-      name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to read aggregate transport evidence. Completed TEPP measurement identity is unavailable until TEPP publishes a versioned completed-result contract.",
-    });
-    expect(accepted).toHaveAccessibleName(/aggregate transport evidence/);
-    const list = screen.getByRole("list", { name: "Analysis runs" });
-    expect(list).toHaveTextContent("aggregate transport evidence");
-    expect(list).not.toHaveTextContent("validated multilevel estimate");
-    await userEvent.click(accepted);
-    expect(
-      await screen.findByRole("heading", { name: "Measurement evidence" }),
-    ).toBeInTheDocument();
-    expect(screen.getAllByText("aggregate transport evidence").length).toBeGreaterThan(0);
-    expect(screen.getByText("a".repeat(64))).toBeInTheDocument();
-    expect(screen.getByText(/accepted run demo-tepp-accepted-opaque/)).toBeInTheDocument();
-    expect(screen.getByText("Received 2026-01-12 12:45")).toBeInTheDocument();
-    expect(screen.queryByText(/recorded 2026-01-12/)).not.toBeInTheDocument();
-    expect(screen.getByText(/completed-artifact identity/i)).toBeInTheDocument();
-    expect(screen.queryByText(/validated multilevel estimate/i)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Copy evidence SHA-256" }));
-    expect(writeText).toHaveBeenCalledWith("a".repeat(64));
-    expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/2 affiliations/)).not.toBeInTheDocument();
-  });
-
-  it("shows two TEPP clocks only when receipt and row-write differ", async () => {
-    stubBackend({ acceptedTeppRun: true, distinctTeppClocks: true });
-    render(<App />);
-
-    await userEvent.click(
-      await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to read aggregate transport evidence. Completed TEPP measurement identity is unavailable until TEPP publishes a versioned completed-result contract.",
-      }),
-    );
-    expect(
-      await screen.findByText("Received 2026-01-12 12:45 · recorded 2026-01-12 12:46"),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
-  });
-
-  it("shows only the receipt clock when recorded time is absent", async () => {
-    stubBackend({ acceptedTeppRun: true, omitTeppRecordedAt: true });
-    render(<App />);
-
-    await userEvent.click(
-      await screen.findByRole("button", {
-        name: "Open analysis run: TEPP measurement · Failed · Demo Corp. Open this run to read aggregate transport evidence. Completed TEPP measurement identity is unavailable until TEPP publishes a versioned completed-result contract.",
-      }),
-    );
-    expect(await screen.findByText("Received 2026-01-12 12:45")).toBeInTheDocument();
-    expect(screen.queryByText(/recorded 2026-01-12/)).not.toBeInTheDocument();
-  });
-
-  it("records a pending lineage run and opens the authorized detail", async () => {
-    const fetchMock = stubBackend();
-    render(<App />);
-
-    await userEvent.click(
-      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
-    );
-    expect(
-      await screen.findByRole("heading", { name: "Lineage reconstruction · Pending · Demo Corp" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", {
-        name: "Open analysis run: Lineage reconstruction · Pending · Demo Corp. Open this run, then start reconstruction. Reconstruction has not started yet.",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getAllByText(
-        "Open this run, then start reconstruction. Reconstruction has not started yet.",
-      ),
-    ).toHaveLength(2);
-    expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeInTheDocument();
-    const postCall = fetchMock.mock.calls.find(
-      (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
-    );
-    expect(postCall).toBeDefined();
-    const body = JSON.parse(String(postCall?.[1]?.body));
-    expect(body.run_kind_code).toBe("analysis_run_lineage");
-    expect(body.corporate_entity_id).toBe("corp-demo");
-    expect(body.idempotency_key).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-    );
-  });
-
-  it("lets a multi-affiliation operator choose which corp to reconstruct", async () => {
-    const fetchMock = stubBackend({ pluralAffiliations: true });
-    render(<App />);
-
-    const picker = await screen.findByRole("combobox", {
-      name: "Corporate entity to reconstruct",
-    });
-    await userEvent.selectOptions(picker, "corp-north");
-    await userEvent.click(screen.getByRole("button", { name: "Request a lineage reconstruction" }));
-    await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.some(
-          (call) =>
-            String(call[0]).endsWith("/api/analysis-runs") &&
-            call[1]?.method === "POST" &&
-            JSON.parse(String(call[1]?.body)).corporate_entity_id === "corp-north",
-        ),
-      ).toBe(true),
-    );
-  });
-
-  it("does not record a lineage run before affiliated corps load", async () => {
-    const fetchMock = stubBackend({ deferMe: true, pluralAffiliations: true });
-    render(<App />);
-
-    const loading = await screen.findByRole("button", { name: "Loading affiliated entities..." });
-    expect(loading).toBeDisabled();
-    await userEvent.click(loading);
-    expect(
-      fetchMock.mock.calls.some(
-        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
-      ),
-    ).toBe(false);
-    expect(screen.queryByRole("combobox", { name: "Corporate entity to reconstruct" })).toBeNull();
-
-    fetchMock.releaseMe();
-    expect(
-      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
-    ).toBeEnabled();
-    expect(
-      await screen.findByRole("combobox", { name: "Corporate entity to reconstruct" }),
-    ).toBeInTheDocument();
-  });
-
-  it("keeps Request disabled when affiliated corps fail to load", async () => {
-    const fetchMock = stubBackend({ meFailed: true });
-    render(<App />);
-
-    expect(
-      await screen.findByText("Reload to load the corporate entities this account may reconstruct."),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reload to choose a corporate entity" })).toBeDisabled();
-    expect(
-      fetchMock.mock.calls.some(
-        (call) => String(call[0]).endsWith("/api/analysis-runs") && call[1]?.method === "POST",
-      ),
-    ).toBe(false);
-  });
-
-  it("starts reconstruction and shows the designed A-100 fork", async () => {
-    const fetchMock = stubBackend();
-    render(<App />);
-
-    await userEvent.click(
-      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
-    );
-    await userEvent.click(await screen.findByRole("button", { name: "Start reconstruction" }));
-    expect(
-      await screen.findByRole("heading", { name: "Lineage reconstruction · Succeeded · Demo Corp" }),
-    ).toBeInTheDocument();
-    const fork = screen.getByRole("list", { name: "Reconstructed lineage edges" });
-    expect(fork).toHaveTextContent(
-      "Pricing renegotiation: revised quote sent follows Pricing renegotiation follow-up",
-    );
-    expect(fork).toHaveTextContent(
-      "Delivery schedule question raised follows Pricing renegotiation follow-up",
-    );
-    const digests = screen.getByLabelText("Analysis run reproducibility digests");
-    expect(digests).toHaveTextContent("Result aaaaaaaaaaaa");
-    expect(screen.getByTitle("aa".repeat(32))).toHaveTextContent("Result aaaaaaaaaaaa");
-    const startCall = fetchMock.mock.calls.find((call) =>
-      String(call[0]).endsWith("/api/analysis-runs/run-demo-lineage-pending/start"),
-    );
-    expect(startCall?.[1]?.method).toBe("POST");
-
-    await userEvent.click(
-      screen.getByRole("button", {
-        name: "Open reconstructed child: Pricing renegotiation: revised quote sent",
-      }),
-    );
-    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(screen.getByRole("status", { name: "Live body warning" })).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: "Close" }));
-    await userEvent.click(
-      screen.getAllByRole("button", {
-        name: "Open reconstructed parent: Pricing renegotiation follow-up",
-      })[0],
-    );
-    await waitFor(() =>
-      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
-    );
-    expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
-  });
-
-  it("shows the calibrated period-report mean theta on the home page", async () => {
-    stubBackend();
-    render(<App />);
-
-    expect((await screen.findAllByText(/mean θ 0.42/)).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/8 posts/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/TEST-PU-REPORT/)).toBeInTheDocument();
-    expect(screen.getAllByText("shared metric").length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/CAT: sales-lead I=0\.70/).length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: /open report period 2026-W03/i })).toHaveTextContent(
-      "vs 2026-W02: +0.92",
-    );
-    expect(screen.queryByRole("button", { name: /rebuild report/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("θ 0.91");
-    expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent(
-      "Send Northridge Grid the revised quote",
-    );
-    expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("Open");
-    expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
-    expect(screen.getByLabelText("Leftover pairs")).toBeInTheDocument();
-    const closestPair = screen.getByRole("button", { name: /open leftover closest pair: public post/i });
-    const farthestPair = screen.getByRole("button", {
-      name: /open leftover farthest pair: specification revision requested/i,
-    });
-    expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
-    expect(closestPair).toHaveTextContent(
-      "Open this post to read the criterion it sat closest to after main effects.",
-    );
-    expect(closestPair).toHaveTextContent("d 0.12");
-    expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
-    expect(farthestPair).toHaveTextContent(
-      "Open this post to read the criterion it sat farthest from after main effects.",
-    );
-    expect(farthestPair).toHaveTextContent("d 1.84");
-    const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
-    expect(closestPair.compareDocumentPosition(memberButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: /open report post: specification revision requested/i }),
-    ).toHaveTextContent("Send Westfield Power the revised specification");
-    expect(
-      screen.getByRole("button", { name: /open report post: specification revision requested/i }),
-    ).toHaveTextContent("Open");
-    expect(
-      screen.getByRole("button", { name: /open report post: specification revision requested/i }),
-    ).toHaveTextContent("due 2026-01-14");
-    expect(screen.getByRole("button", { name: /open commitment for: public post/i })).toHaveTextContent(
-      "Send Northridge Grid the revised quote",
-    );
-    expect(screen.getByRole("button", { name: /open commitment for: public post/i })).toHaveTextContent(
-      "due 2026-01-12",
-    );
-  });
-
-  it("shows the grouping comparison strip and switches grouping on click", async () => {
-    const fetchMock = stubBackend();
-    render(<App />);
-
-    expect(await screen.findByLabelText("Grouping comparison")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Compare Process unit: Demo Report High, mean θ 0.81" }),
-    ).toHaveTextContent("mean θ 0.81");
-    await userEvent.click(
-      screen.getByRole("button", { name: "Compare Thread group: A-100, mean θ 0.81" }),
-    );
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "A-100 is the opened grouping. Read its mean θ and member posts below, then open a post.",
-    );
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining("/api/reports/thread_group/2026-W02"),
-        expect.anything(),
-      ),
-    );
-  });
-
-  it("selects a linked week from the FIPC trend strip", async () => {
-    stubBackend();
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: /open report period 2026-W03/i }));
-    const periodInput = screen.getByLabelText("Report period");
-    expect(periodInput).toHaveValue("2026-W03");
-  });
-
-  it("opens a leftover pair post from the report panel", async () => {
-    stubBackend();
-    render(<App />);
-
-    await userEvent.click(
-      await screen.findByRole("button", { name: /open leftover closest pair: public post/i }),
-    );
-    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-  });
-
-  it("opens Event Lineage, Keyman, and evaluation from a report member click", async () => {
-    stubBackend();
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: /open report post: public post/i }));
-    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(screen.getByText("Constructive stance: 2")).toBeInTheDocument();
-    expect(screen.getAllByText(/Ada West/).length).toBeGreaterThan(0);
-    expect(screen.getAllByLabelText("A-100 lineage").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
-    expect(await screen.findByRole("status", { name: "Keyman next action" })).toHaveTextContent(
-      "Ada West is the first Keyman. Read that person next.",
-    );
-    expect(await screen.findByRole("heading", { name: "Related to Ada West" })).toBeInTheDocument();
-    expect(await screen.findByRole("status", { name: "Related next action" })).toHaveTextContent(
-      "Priya Nair is the first related node. Read that person next.",
-    );
-    expect(await screen.findByRole("heading", { name: "Related to Priya Nair" })).toBeInTheDocument();
-    expect(await screen.findByRole("status", { name: "Ask next action" })).toHaveTextContent(
-      "Related nodes for Priya Nair are current. Ask about this lineage next.",
-    );
-    const popup = document.querySelector(".popup-panel");
-    expect(popup).not.toBeNull();
-    const ask = within(popup as HTMLElement).getByRole("heading", { name: "Ask about this lineage" });
-    const affiliate = within(popup as HTMLElement).getByRole("heading", { name: "Affiliate tree" });
-    const askNext = screen.getByRole("status", { name: "Ask next action" });
-    expect(askNext.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-    expect(ask.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-    const askSeed = await screen.findByRole("status", { name: "Ask seed next action" });
-    expect(askSeed).toHaveTextContent(
-      "What happened between these events? is the first Ask. Read that answer next.",
-    );
-    const firstAskAnswer = within(popup as HTMLElement).getByText(
-      "The seeded follow-up after the site visit.",
-    );
-    expect(
-      askSeed.compareDocumentPosition(firstAskAnswer) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).not.toBe(0);
-    expect(firstAskAnswer.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
-      0,
-    );
-    const citedNext = await screen.findByRole("status", { name: "Ask citation next action" });
-    expect(citedNext).toHaveTextContent(
-      "Linked post is the first cited source. Open that evidence next.",
-    );
-    const citedEvidence = await screen.findByRole("complementary", { name: "Evidence" });
-    expect(
-      await within(citedEvidence).findByText("The evidence panel should show exactly this text."),
-    ).toBeInTheDocument();
-    expect(
-      citedNext.compareDocumentPosition(citedEvidence) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).not.toBe(0);
-    expect(
-      citedEvidence.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).not.toBe(0);
-    expect(await screen.findByRole("status", { name: "Evidence next action" })).toHaveTextContent(
-      "Linked post evidence is current. Read Event Lineage on that post next.",
-    );
-    await waitFor(() => expect(document.getElementById("post-ask")).toHaveFocus());
-  });
-
-  it("lets post_admin rebuild the period report", async () => {
-    const fetchMock = stubBackend({ admin: true });
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: /rebuild report/i }));
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining("/api/reports/process_unit/2026-W02/rebuild"),
-        expect.objectContaining({ method: "POST" }),
-      ),
-    );
+    await userEvent.click(await screen.findByRole("button", { name: "Open VOC item: Public post" }));
+    expect(await screen.findByText("연결된 사건이 없습니다")).toBeInTheDocument();
+    expect(screen.getByText("역할·책임이 아직 없습니다")).toBeInTheDocument();
+    expect(screen.getByText("이 사건의 누가 아직 없습니다")).toBeInTheDocument();
   });
 });

@@ -145,6 +145,10 @@ from backend.app.post_chat_ingestion import (
     gather_chat_sources,
     persist_post_chat,
 )
+from backend.app.five_w1h_ingestion import (
+    answer_authorized_lineage_question,
+    load_five_w1h_slots,
+)
 from backend.app.post_summary_ingestion import fetch_persisted_summary, persist_post_summary
 
 _POST_READ = "post_read"
@@ -1058,6 +1062,62 @@ async def read_post_summary(
             post_body=normalized_body,
             hierarchy_inference_client=_corporate_hierarchy_inference_client(),
             verification_client=_relation_verification_client(),
+        )
+
+
+@app.get("/api/posts/{post_id}/five-w1h")
+async def read_post_five_w1h(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """5W1H slots for the 사건 lineage screen.
+
+    Values come from authorized summary, source clocks, and lineage
+    neighbors through the semantic layer. Empty slots name the next
+    human action. Never invents a theta or guessed prose.
+    """
+    post = await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        payload = await load_five_w1h_slots(
+            conn,
+            post_id,
+            post["created_at"],
+            lambda row: _can_see_post(account, row),
+        )
+    return {"post_id": payload["post_id"], "slots": payload["slots"]}
+
+
+class LineageQaRequest(BaseModel):
+    """JSON body for ``POST /api/posts/{post_id}/lineage-qa``."""
+
+    question: str
+
+
+@app.post("/api/posts/{post_id}/lineage-qa")
+async def answer_post_lineage_qa(
+    post_id: str,
+    request: LineageQaRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Source-grounded 5W1H Q&A on the 사건 lineage screen.
+
+    Answers only via the ontology-bound slot query over authorized
+    lineage and source. Ungrounded questions fail-closed. Does not
+    call the LLM Ask path and does not invent prose.
+    """
+    question = request.question.strip()
+    if not question:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
+    post = await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        return await answer_authorized_lineage_question(
+            conn,
+            post_id,
+            post["created_at"],
+            question,
+            lambda row: _can_see_post(account, row),
         )
 
 

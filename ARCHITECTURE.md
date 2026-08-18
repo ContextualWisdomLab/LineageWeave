@@ -293,7 +293,9 @@ and an in-popup chat whose cited sources
 open a sliding evidence panel (`EvidencePanel`, CSS
 `slide-in-from-right`) showing that source post's actual content.
 Buyer product chrome is the three-screen path in
-[`docs/ux/buyer-ia.md`](docs/ux/buyer-ia.md). Built from the product
+[`docs/ux/buyer-ia.md`](docs/ux/buyer-ia.md) (v2.12.5 / ADR 0036):
+주간 VOC, 사건 lineage (원문 + DAG + 5W1H + grounded Q&A), 역할·책임.
+Built from the product
 brief's text, not the referenced Figma frame's pixel layout -- see
 [ADR 0002](docs/adr/0002-figma-access-boundary.md) for why. Served in
 `docker compose` via a two-stage build (`frontend/Dockerfile`):
