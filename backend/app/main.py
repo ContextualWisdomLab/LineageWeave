@@ -1529,6 +1529,7 @@ async def ask_agent(
             lambda row: _can_see_post(account, row),
             account.corporate_entity_ids,
             vision_client=_vision_client(),
+            question=question,
         )
     if not sources:
         return {
