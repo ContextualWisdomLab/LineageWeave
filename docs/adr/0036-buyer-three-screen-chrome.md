@@ -31,6 +31,30 @@ not GNB items and not click-to-export.
 6. Analysis-run list/start, tutor copy, TEPP receipts, leftover-pair
    sandbox, agent logs, and RankWeave as a home module stay off buyer
    chrome.
+7. Every post is submitted on the existing Valkey activity stream so
+   fast-mlsirm can score it. The newspaper still reads only persisted
+   ranks. Missing scores stay `이번 주 신문을 아직 받을 수 없습니다`.
+   No Valkey body or queue-status UI.
+8. TEPP time / multilevel / topic / KG is consumed from clues on the
+   opened post and 고객 마스터. Buyer chrome does not start an
+   analysis-run and does not persist a receipt. A missing clue
+   fail-closes (이 글의 시간창을 아직 받을 수 없습니다). This Cloud
+   slice also fail-closes after clues (`이 글의 시간·다층·토픽을 아직
+   받을 수 없습니다`) and never invents a theta.
+9. Same Keyman, same win-pool, and same ontology object are join-key
+   labels on the Event Lineage graph only. An object not in the
+   ontology fail-closes that branch (`그 객체는 온톨로지에 아직
+   없습니다`). Clicking an edge stays on that graph.
+10. Searxng hits appear only in Ask Cubee / grounded Q&A as `미검증
+    후보`. Promote sends the buyer to 고객 마스터 to attach. Until
+    attached they are not lineage parents. This Cloud slice labels the
+    opened-post org as `미검증 후보` and does not search the public
+    web.
+11. Similar-topic scrape is a scheduler hook. Live Camoufox / article
+    scrape is Remote-only. This Cloud slice fail-closes
+    (`유사 토픽 글을 아직 받을 수 없습니다`) and does not plant a
+    Camoufox or Searxng server or fetch the public web. Buyer chrome
+    has no scrape console.
 
 ## Consequences
 

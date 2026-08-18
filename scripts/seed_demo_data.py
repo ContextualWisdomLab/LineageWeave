@@ -447,6 +447,13 @@ def seed(
                 corporate_entity_id,
                 process_units["DEMO-PU-LINEAGE"],
             )
+            _seed_similar_topic_scrape(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+                process_units["DEMO-PU-LINEAGE"],
+            )
+            _seed_post_scoring_queue(cur, account_ids["demo.analyst"], valkey_url)
             _seed_demo_analysis_run(
                 cur,
                 account_ids["demo.analyst"],
@@ -1270,6 +1277,63 @@ def _persist_seed_period_report(
                 pair.leftover_residual,
             ),
         )
+
+
+def _seed_similar_topic_scrape(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:
+    """Scheduler-shaped similar-topic scrape. Null channels write no posts."""
+    from datetime import datetime, timezone
+
+    from backend.app.config import load_settings
+    from backend.app.similar_topic_ingestion import publish_similar_topic_scrape
+    from lineageweave.camoufox_client import build_camoufox_client
+
+    settings = load_settings()
+    publish_similar_topic_scrape(
+        cur,
+        searxng_base_url=settings.searxng_base_url,
+        camoufox=build_camoufox_client(settings.camoufox_base_url),
+        author_account_id=author_account_id,
+        corporate_entity_id=corporate_entity_id,
+        process_unit_id=process_unit_id,
+        created_at=datetime(2026, 1, 13, 10, 0, tzinfo=timezone.utc),
+    )
+
+
+def _seed_post_scoring_queue(cur, actor_account_id, valkey_url: str) -> None:
+    """XADD every source_post onto the existing Valkey activity stream."""
+    try:
+        import redis
+    except ImportError as exc:
+        raise SystemExit(
+            "redis is required to enqueue posts for scoring; install with pip install -e '.[dev,backend]'"
+        ) from exc
+
+    from backend.app.activity_stream import (
+        POST_SUBMITTED_FOR_SCORING,
+        post_submitted_for_scoring_summary,
+        publish_activity_event_sync,
+    )
+
+    client = None
+    try:
+        client = redis.from_url(valkey_url, decode_responses=True, socket_connect_timeout=2)
+        client.ping()
+        cur.execute("select post_id, post_title from source_post")
+        for post_id, post_title in cur.fetchall():
+            publish_activity_event_sync(
+                client,
+                str(post_id),
+                POST_SUBMITTED_FOR_SCORING,
+                str(actor_account_id),
+                post_submitted_for_scoring_summary(post_title),
+            )
+    except redis.RedisError as exc:
+        raise SystemExit(
+            f"Valkey at {valkey_url} is unreachable -- did you run `make up`? ({exc})"
+        ) from exc
+    finally:
+        if client is not None:
+            client.close()
 
 
 def _seed_demo_newspapers(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:

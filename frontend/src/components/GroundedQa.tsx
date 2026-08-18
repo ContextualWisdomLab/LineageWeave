@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import type { UnverifiedCandidate } from "../api";
 
 export type GroundedQaAnswer = {
   question: string;
@@ -9,14 +10,16 @@ export type GroundedQaAnswer = {
   who?: string[];
   what_happened?: string[];
   chronology?: { occurred_at: string; label: string }[];
+  unverified_candidates?: UnverifiedCandidate[];
 };
 
 export type GroundedQaProps = {
   heading?: string;
   onAsk: (question: string) => Promise<GroundedQaAnswer>;
+  onPromoteCandidate?: (candidate: UnverifiedCandidate) => void;
 };
 
-export function GroundedQa({ heading = "Ask Cubee", onAsk }: GroundedQaProps) {
+export function GroundedQa({ heading = "Ask Cubee", onAsk, onPromoteCandidate }: GroundedQaProps) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<GroundedQaAnswer | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +83,20 @@ export function GroundedQa({ heading = "Ask Cubee", onAsk }: GroundedQaProps) {
         <p className="popup-placeholder" role="status" aria-label="Ungrounded lineage answer">
           {answer.empty_next_action}
         </p>
+      ) : null}
+      {answer?.unverified_candidates && answer.unverified_candidates.length > 0 ? (
+        <ul className="unverified-candidates" aria-label="미검증 후보">
+          {answer.unverified_candidates.map((candidate) => (
+            <li key={`${candidate.label}:${candidate.evidence_url ?? ""}`}>
+              <span>{candidate.status_label} · {candidate.label}</span>
+              {onPromoteCandidate ? (
+                <button type="button" onClick={() => onPromoteCandidate(candidate)}>
+                  고객 마스터에 붙이기
+                </button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
       ) : null}
     </section>
   );

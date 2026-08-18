@@ -68,10 +68,21 @@ fusion, or a theta.
 
 Open one post or newspaper.
 
+**Scoring and similar-topic consume**
+
+Every post is submitted on the existing Valkey activity stream so
+fast-mlsirm can score it. The newspaper still reads only already
+persisted ranks. Similar-topic scrape is a scheduler hook, not a
+buyer button. Live Camoufox / article scrape is Remote-only. This
+Cloud slice fail-closes: 유사 토픽 글을 아직 받을 수 없습니다. It
+does not plant a Camoufox or Searxng server and does not fetch the
+public web. No 실행 / 지금 긁기 / 검색 홈.
+
 **Not this screen**
 
 주간 리포트 / 월간 리포트 as GNB, a generate/export button, leftover
-sandbox, analysis-run list, RankWeave as a home module, or tutor copy.
+sandbox, analysis-run list, RankWeave as a home module, a scrape
+console, or tutor copy.
 
 ## 2. 고객 마스터
 
@@ -79,6 +90,10 @@ Manage customers, Keymen, and commitments. Tenant identity is
 Keyverse / Orgmetra when wired; this demo uses the existing OIDC
 login. Do not invent an IdP or plant an org-chart kernel. Unavailable
 Orgmetra fail-closes: 이 범위의 조직 단위를 아직 받을 수 없습니다.
+A 미검증 후보 promoted from Ask Cubee lands here so the buyer can
+attach it to the ontology. A unique existing catalog row binds. A
+tie or miss stays unbound (`그 객체는 온톨로지에 아직 없습니다`).
+Do not create an AUTO- row from a Searxng hit.
 
 ## 3. Ask Cubee
 
@@ -86,7 +101,14 @@ The chat interface. Open globally or from a post. Answers only via
 ontology / semantic-layer query over authorized source + lineage.
 When answering about an event, the lineage graph stays on this
 destination with who / what happened / chronology. Fail-closed if
-ungrounded. Not a tutor menu. Not a fourth product page.
+ungrounded. Project / customer / org / time-window clues come from
+the opened post and 고객 마스터 — no clue form. TEPP time /
+multilevel / topic / KG is consumed from those clues; buyer chrome
+does not start an analysis-run. A missing clue or this Cloud
+fail-closed consume names the next action and does not invent a
+theta. Outside checks stay `미검증 후보` in Ask Cubee / grounded
+Q&A until attached on 고객 마스터. This Cloud slice does not hit
+live Searxng. Not a tutor menu. Not a fourth product page.
 
 ## Out of product chrome
 

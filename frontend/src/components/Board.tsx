@@ -6,6 +6,8 @@ import { NewspaperCard } from "./NewspaperCard";
 export const BOARD_EMPTY = "게시판에 사건이 없습니다";
 export const WEEKLY_VOC_EMPTY = "이번 주 감사할 VOC가 없습니다";
 export const SEARCH_EMPTY = "이 검색을 근거할 수 있는 사건이 아직 없습니다";
+export const SIMILAR_TOPIC_EMPTY = "유사 토픽 글을 아직 받을 수 없습니다";
+const SIMILAR_TOPIC_THREAD = "similar-topic";
 
 export type BoardProps = {
   items: PostSummary[] | null;
@@ -68,6 +70,9 @@ export function Board({ items, error, searchError, onOpenItem, onSearch }: Board
   const newspapers = visible?.filter(isNewspaper) ?? [];
   const events = visible?.filter((post) => !isNewspaper(post)) ?? [];
   const searchFailed = Boolean(hits && hits.length === 0 && query.trim());
+  const hasSimilarTopic = Boolean(
+    listed?.some((post) => (post.thread_group_key ?? "") === SIMILAR_TOPIC_THREAD),
+  );
 
   return (
     <section className="popup-section lineage-home" aria-label="게시판">
@@ -116,6 +121,9 @@ export function Board({ items, error, searchError, onOpenItem, onSearch }: Board
       ) : null}
       {visible && visible.length === 0 && !vocOnly && !searchFailed ? (
         <p className="popup-placeholder">{BOARD_EMPTY}</p>
+      ) : null}
+      {visible && visible.length > 0 && !hasSimilarTopic && !vocOnly ? (
+        <p className="popup-placeholder">{SIMILAR_TOPIC_EMPTY}</p>
       ) : null}
       {newspapers.map((post) => (
         <NewspaperCard key={post.post_id} post={post} onOpen={onOpenItem} />

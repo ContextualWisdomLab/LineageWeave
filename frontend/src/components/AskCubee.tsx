@@ -1,4 +1,4 @@
-import type { LineageGraph, PostLineage } from "../api";
+import type { LineageGraph, PostLineage, UnverifiedCandidate } from "../api";
 import { EventLineagePanel } from "./EventLineagePanel";
 import { GroundedQa, type GroundedQaAnswer } from "./GroundedQa";
 
@@ -9,9 +9,18 @@ export type AskCubeeProps = {
   graph: LineageGraph | null;
   onAsk: (question: string) => Promise<GroundedQaAnswer>;
   onSelectNode?: (postId: string) => void;
+  onPromoteCandidate?: (candidate: UnverifiedCandidate) => void;
 };
 
-export function AskCubee({ postId, postTitle, lineage, graph, onAsk, onSelectNode }: AskCubeeProps) {
+export function AskCubee({
+  postId,
+  postTitle,
+  lineage,
+  graph,
+  onAsk,
+  onSelectNode,
+  onPromoteCandidate,
+}: AskCubeeProps) {
   return (
     <section className="popup-section lineage-home" aria-label="Ask Cubee">
       <h2>Ask Cubee</h2>
@@ -19,7 +28,7 @@ export function AskCubee({ postId, postTitle, lineage, graph, onAsk, onSelectNod
       {postId && lineage ? (
         <EventLineagePanel lineage={lineage} graph={graph} postId={postId} onSelectNode={onSelectNode} />
       ) : null}
-      <GroundedQa heading="Ask Cubee" onAsk={onAsk} />
+      <GroundedQa heading="Ask Cubee" onAsk={onAsk} onPromoteCandidate={onPromoteCandidate} />
     </section>
   );
 }

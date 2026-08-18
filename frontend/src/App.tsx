@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askCubee,
+  attachOntologyObject,
   fetchCalendar,
   fetchKeymenCatalog,
   fetchLineageGraph,
@@ -24,6 +25,7 @@ import {
   type PostDetail,
   type PostLineage,
   type PostSummary,
+  type UnverifiedCandidate,
 } from "./api";
 import { AskCubee } from "./components/AskCubee";
 import { Attachments } from "./components/Attachments";
@@ -46,6 +48,7 @@ function PostEventScreen({
   onClose,
   onSelectNode,
   onOpenAskCubee,
+  onPromoteCandidate,
 }: {
   postId: string;
   accessToken: string;
@@ -53,6 +56,7 @@ function PostEventScreen({
   onClose: () => void;
   onSelectNode: (postId: string) => void;
   onOpenAskCubee: (postId: string) => void;
+  onPromoteCandidate: (candidate: UnverifiedCandidate) => void;
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +112,10 @@ function PostEventScreen({
               postId={postId}
               onSelectNode={onSelectNode}
             />
-            <GroundedQa onAsk={(question) => askCubee(accessToken, question, postId)} />
+            <GroundedQa
+              onAsk={(question) => askCubee(accessToken, question, postId)}
+              onPromoteCandidate={onPromoteCandidate}
+            />
             <p>
               <button type="button" onClick={() => onOpenAskCubee(postId)}>
                 Ask Cubee에서 열기
@@ -134,6 +141,9 @@ function BuyerHome({ accessToken }: { accessToken: string }) {
   const [orgAvailable, setOrgAvailable] = useState(false);
   const [catalogKeymen, setCatalogKeymen] = useState<Keyman[] | null>(null);
   const [commitments, setCommitments] = useState<CalendarEntry[] | null>(null);
+  const [pendingAttach, setPendingAttach] = useState<UnverifiedCandidate | null>(null);
+  const [attachError, setAttachError] = useState<string | null>(null);
+  const [attachBusy, setAttachBusy] = useState(false);
 
   useEffect(() => {
     fetchPosts(accessToken).then(setPosts).catch((err) => setError(String(err)));
@@ -194,6 +204,29 @@ function BuyerHome({ accessToken }: { accessToken: string }) {
           units={orgUnits}
           keymen={catalogKeymen}
           commitments={commitments}
+          pendingAttach={pendingAttach}
+          attachError={attachError}
+          attachBusy={attachBusy}
+          onAttachPending={
+            pendingAttach
+              ? async () => {
+                  setAttachBusy(true);
+                  setAttachError(null);
+                  try {
+                    const result = await attachOntologyObject(accessToken, pendingAttach.label);
+                    if (result.attached) {
+                      setPendingAttach(null);
+                    } else {
+                      setAttachError(result.empty_next_action);
+                    }
+                  } catch (err) {
+                    setAttachError(String(err));
+                  } finally {
+                    setAttachBusy(false);
+                  }
+                }
+              : undefined
+          }
         />
       ) : null}
       {destination === "ask" ? (
@@ -206,6 +239,11 @@ function BuyerHome({ accessToken }: { accessToken: string }) {
           onSelectNode={(postId) => {
             setAskPostId(postId);
             setSelectedPostId(postId);
+          }}
+          onPromoteCandidate={(candidate) => {
+            setPendingAttach(candidate);
+            setAttachError(null);
+            setDestination("customers");
           }}
         />
       ) : null}
@@ -220,6 +258,12 @@ function BuyerHome({ accessToken }: { accessToken: string }) {
             setAskPostId(postId);
             setSelectedPostId(null);
             setDestination("ask");
+          }}
+          onPromoteCandidate={(candidate) => {
+            setPendingAttach(candidate);
+            setAttachError(null);
+            setSelectedPostId(null);
+            setDestination("customers");
           }}
         />
       ) : null}

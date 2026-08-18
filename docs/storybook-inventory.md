@@ -10,7 +10,7 @@ the three buyer GNB destinations only. Modules attach to that flow.
 | `게시판/FiveW1H` | Read grounded 누가/무엇을/언제/어디서/왜/어떻게, or the empty next action. | `--space-control-gap`, `FiveW1H` |
 | `게시판/EventLineagePanel` | Select a node on the Event Lineage DAG. | `--color-accent-border`, `EventLineagePanel`, `LineageDag` |
 | `고객 마스터/CustomerMaster` | Read Orgmetra customers, Keymen, and commitments, or the fail-closed next action. | `--space-panel-block`, `CustomerMaster` |
-| `Ask Cubee/GroundedQa` | Ask what happened on this lineage; read the grounded slot or the fail-closed next action. | `--space-control-gap`, `GroundedQa` |
+| `Ask Cubee/GroundedQa` | Ask what happened on this lineage; read the grounded slot, 미검증 후보, or the fail-closed next action. Promote a candidate to 고객 마스터. | `--space-control-gap`, `GroundedQa` |
 
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module
 under `frontend/src/components/`. Do not add a second Node package manager;

@@ -8,6 +8,8 @@ to prove the shared field shape and the idempotent re-seed skip.
 from __future__ import annotations
 
 from backend.app.activity_stream import (
+    POST_SUBMITTED_FOR_SCORING,
+    post_submitted_for_scoring_summary,
     publish_activity_event_sync,
     ticket_created_summary,
     ticket_status_changed_summary,
@@ -40,6 +42,21 @@ def test_ticket_status_changed_summary_uses_the_lookup_label() -> None:
         "Ticket status changed to In progress"
     )
     assert "in_progress" not in ticket_status_changed_summary("In progress")
+
+
+def test_post_submitted_for_scoring_uses_the_existing_stream() -> None:
+    client = _FakeStream()
+    first = publish_activity_event_sync(
+        client,
+        "post-1",
+        POST_SUBMITTED_FOR_SCORING,
+        "acct-1",
+        post_submitted_for_scoring_summary("Demo public post"),
+    )
+    assert first == "1-0"
+    assert client.entries[0][1]["event_type"] == POST_SUBMITTED_FOR_SCORING
+    assert "Demo public post" in client.entries[0][1]["summary"]
+    assert "theta" not in client.entries[0][1]["summary"].lower()
 
 
 def test_publish_activity_event_sync_skips_a_matching_summary() -> None:

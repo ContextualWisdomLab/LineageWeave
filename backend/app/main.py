@@ -64,8 +64,10 @@ from lineageweave.post_evaluation import (
     RUBRIC_VERSION,
 )
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
+from lineageweave.corporate_hierarchy_resolution import CorporateEntityCandidate
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
 from lineageweave.rankweave_client import build_rankweave_client
+from lineageweave.unverified_candidates import attach_unverified_candidate
 
 from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
@@ -515,6 +517,39 @@ async def list_keymen(
     async with pool.acquire() as conn:
         keymen = await fetch_visible_keymen(conn, lambda row: _can_see_post(account, row))
     return {"keymen": keymen}
+
+
+class AttachOntologyRequest(BaseModel):
+    """JSON body for ``POST /api/customer-master/attach-ontology``."""
+
+    organization_name: str
+
+
+@app.post("/api/customer-master/attach-ontology")
+async def attach_ontology_object(
+    request: AttachOntologyRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Unique-match a 미검증 후보 to the existing catalog. Never AUTO-create."""
+    _require_post_read(account)
+    name = request.organization_name.strip()
+    if not name:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "organization_name is required")
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("select corporate_entity_id, entity_name from corporate_entity")
+    result = attach_unverified_candidate(
+        name,
+        [
+            CorporateEntityCandidate(str(row["corporate_entity_id"]), row["entity_name"])
+            for row in rows
+        ],
+    )
+    return {
+        "attached": result.attached,
+        "catalog_id": result.catalog_id,
+        "empty_next_action": result.empty_next_action,
+    }
 
 
 @app.get("/api/posts/{post_id}")

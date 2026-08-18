@@ -16,9 +16,19 @@ All notable changes to this project are documented here. Format follows
   내보내기 control, never an invented theta. Opening a post or
   newspaper shows 원문, 5W1H, Keymen, commitments, attachments,
   Event Lineage, and Ask Cubee. Empty copy names the next human
-  action. Analysis-run list, Ask-tutor chrome, TEPP receipts,
-  leftover-pair sandbox, agent logs, and RankWeave as a home module
-  stay off buyer chrome.
+  action. Posts are submitted on the existing Valkey activity stream
+  so fast-mlsirm can score them; the newspaper still reads only
+  persisted ranks. TEPP time / multilevel / topic / KG is consumed
+  from clues on the opened post (no clue form, no receipt). Event
+  Lineage edges show same Keyman / win-pool / ontology-object join
+  keys. Searxng hits stay 미검증 후보 in Ask Cubee until attached on
+  고객 마스터. Similar-topic scrape is a scheduler hook; live
+  Camoufox / article scrape is Remote-only. This Cloud slice
+  fail-closes (유사 토픽 글을 아직 받을 수 없습니다) and does not
+  plant a Camoufox or Searxng server or fetch the public web.
+  Analysis-run list, Ask-tutor chrome, TEPP receipts, leftover-pair
+  sandbox, agent logs, scrape console, and RankWeave as a home
+  module stay off buyer chrome.
 
 ## [2.12.4] - 2026-08-18
 

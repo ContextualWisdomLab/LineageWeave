@@ -8,6 +8,7 @@ import asyncpg
 
 from lineageweave.board_search import classify_board_query
 from lineageweave.five_w1h import ungrounded_question_next_action
+from lineageweave.tepp_client import TeppClient
 
 from backend.app.five_w1h_ingestion import answer_authorized_lineage_question
 
@@ -19,6 +20,7 @@ async def answer_ask_cubee(
     post_id: str | None,
     post_created_at: object | None,
     can_see_post: Any,
+    tepp_client: TeppClient | None = None,
 ) -> dict[str, object]:
     """Grounded Ask Cubee. Missing post or unbound question fail-closes."""
     if post_id and post_created_at is not None:
@@ -28,6 +30,7 @@ async def answer_ask_cubee(
             post_created_at,
             question,
             can_see_post,
+            tepp_client=tepp_client,
         )
     people = await conn.fetch("select person_name from cataloged_person")
     orgs = await conn.fetch("select entity_name from corporate_entity")
@@ -48,6 +51,7 @@ async def answer_ask_cubee(
             "what_happened": [],
             "chronology": [],
             "show_lineage": False,
+            "unverified_candidates": [],
         }
     mentions = await conn.fetch(
         """
@@ -68,6 +72,7 @@ async def answer_ask_cubee(
                 row["created_at"],
                 question,
                 can_see_post,
+                tepp_client=tepp_client,
             )
     return {
         "post_id": None,
@@ -80,4 +85,5 @@ async def answer_ask_cubee(
         "what_happened": [],
         "chronology": [],
         "show_lineage": False,
+        "unverified_candidates": [],
     }

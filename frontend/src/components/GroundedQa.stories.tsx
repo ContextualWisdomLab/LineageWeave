@@ -20,3 +20,24 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Ready: Story = {};
+
+export const UnverifiedCandidates: Story = {
+  args: {
+    onAsk: async (question: string) => ({
+      question,
+      slot_code: "where",
+      values: [],
+      grounded: false,
+      empty_next_action: "이 사건의 어디가 아직 없습니다",
+      unverified_candidates: [
+        {
+          label: "Demo Corp parent candidate",
+          evidence_url: "https://example.test/demo-corp",
+          status_label: "미검증 후보",
+          promote_destination: "customers",
+        },
+      ],
+    }),
+    onPromoteCandidate: () => undefined,
+  },
+};

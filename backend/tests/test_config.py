@@ -23,6 +23,11 @@ def test_frontend_origins_drop_blank_entries(monkeypatch) -> None:
     assert load_settings().frontend_origins == ["http://localhost:5173"]
 
 
+def test_camoufox_base_url_defaults_empty(monkeypatch) -> None:
+    monkeypatch.delenv("CAMOUFOX_BASE_URL", raising=False)
+    assert load_settings().camoufox_base_url == ""
+
+
 def test_tepp_transport_url_defaults_empty_and_is_not_a_score(monkeypatch) -> None:
     """Missing TEPP_TRANSPORT_URL keeps the channel dropped."""
     monkeypatch.delenv("TEPP_TRANSPORT_URL", raising=False)

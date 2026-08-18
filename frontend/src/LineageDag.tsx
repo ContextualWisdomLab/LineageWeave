@@ -40,14 +40,36 @@ export function LineageDag({
                 const to = byId[edge.target];
                 if (!from || !to) return null;
                 const midX = (from.x + to.x) / 2;
+                const midY = (from.y + to.y) / 2;
+                const joinLabel =
+                  edge.join_keys && edge.join_keys.length > 0
+                    ? edge.join_keys.map((key) => key.label).join(" · ")
+                    : edge.empty_next_action ?? "";
+                const nextId = currentPostId === edge.source ? edge.target : edge.source;
                 return (
-                  <path
-                    key={`${edge.source}-${edge.target}`}
-                    className="lineage-dag-edge"
-                    d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
-                  >
-                    <title>{`${from.label} → ${to.label} (${edge.fused_score.toFixed(2)})`}</title>
-                  </path>
+                  <g key={`${edge.source}-${edge.target}`}>
+                    <path
+                      className="lineage-dag-edge"
+                      d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Open linked post via ${joinLabel || "lineage edge"}`}
+                      onClick={() => onSelectPost(nextId)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          onSelectPost(nextId);
+                        }
+                      }}
+                    >
+                      <title>{`${from.label} → ${to.label}${joinLabel ? ` (${joinLabel})` : ""}`}</title>
+                    </path>
+                    {joinLabel ? (
+                      <text className="lineage-dag-edge-label" x={midX} y={midY - 6} textAnchor="middle">
+                        {joinLabel}
+                      </text>
+                    ) : null}
+                  </g>
                 );
               })}
               {group.nodes.map((node) => {

@@ -1172,7 +1172,12 @@ describe("App, authenticated", () => {
               },
             ],
             edges: [
-              { source: "post-1", target: "post-2", fused_score: 0.8 },
+              {
+                source: "post-1",
+                target: "post-2",
+                fused_score: 0.8,
+                join_keys: [{ code: "same_keyman", label: "같은 Keyman" }],
+              },
               { source: "rec-002", target: "rec-003", fused_score: 0.9 },
               { source: "rec-002", target: "rec-004", fused_score: 0.85 },
             ],
@@ -1239,9 +1244,47 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/customer-master/attach-ontology") && method === "POST") {
+        const body = JSON.parse(String(init?.body));
+        const name = String(body.organization_name ?? "");
+        if (name.includes("Demo Corp")) {
+          return Promise.resolve(jsonResponse({ attached: true, catalog_id: "corp-1", empty_next_action: null }));
+        }
+        return Promise.resolve(
+          jsonResponse({
+            attached: false,
+            catalog_id: null,
+            empty_next_action: "그 객체는 온톨로지에 아직 없습니다",
+          }),
+        );
+      }
       if (url.endsWith("/api/ask-cubee") && method === "POST") {
         const body = JSON.parse(String(init?.body));
         const question = String(body.question ?? "");
+        if (question.includes("부모") || question.includes("실제")) {
+          return Promise.resolve(
+            jsonResponse({
+              post_id: body.post_id ?? "post-1",
+              question,
+              slot_code: "where",
+              values: [],
+              grounded: false,
+              empty_next_action: "이 사건의 어디가 아직 없습니다",
+              who: [],
+              what_happened: [],
+              chronology: [],
+              show_lineage: true,
+              unverified_candidates: [
+                {
+                  label: "Demo Corp parent candidate",
+                  evidence_url: "https://example.test/demo-corp",
+                  status_label: "미검증 후보",
+                  promote_destination: "customers",
+                },
+              ],
+            }),
+          );
+        }
         if (question.includes("왜") || question.toLowerCase().includes("why")) {
           return Promise.resolve(
             jsonResponse({
@@ -2010,7 +2053,8 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: "고객 마스터" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ask Cubee" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "주간 VOC" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /주간 리포트|월간 리포트|내보내기|생성|지금 만들기/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /주간 리포트|월간 리포트|내보내기|생성|지금 만들기|지금 긁기|검색 홈/ })).not.toBeInTheDocument();
+    expect(screen.getByText("유사 토픽 글을 아직 받을 수 없습니다")).toBeInTheDocument();
     expect(screen.queryByText("Rankings · RankWeave not available")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Open analysis run/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/leftover/i)).not.toBeInTheDocument();
@@ -2117,6 +2161,31 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Open post: Public post" }));
     expect(await screen.findByText("연결된 사건이 없습니다")).toBeInTheDocument();
     expect(screen.getByText("이 사건의 누가 아직 없습니다")).toBeInTheDocument();
+  });
+
+  it("promotes a 미검증 후보 to 고객 마스터 without drawing a lineage parent", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Open post: Public post" }));
+    await userEvent.type(await screen.findByLabelText("Lineage question"), "실제 부모 조직은 무엇인가요?");
+    await userEvent.click(screen.getByRole("button", { name: "묻기" }));
+    expect(await screen.findByLabelText("미검증 후보")).toHaveTextContent("Demo Corp parent candidate");
+    expect(screen.queryByLabelText("Open post: Demo Corp parent candidate")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터에 붙이기" }));
+    expect(await screen.findByRole("heading", { name: "고객 마스터" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "온톨로지에 붙이기" })).toBeInTheDocument();
+    expect(screen.getByText(/Demo Corp parent candidate/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "지금 긁기" })).not.toBeInTheDocument();
+  });
+
+  it("opens the next post when a lineage join-key edge is clicked", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Open post: Public post" }));
+    expect(await screen.findByText("같은 Keyman")).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText("Open linked post via 같은 Keyman"));
+    expect(await screen.findByRole("heading", { name: "Linked post" })).toBeInTheDocument();
+    expect(screen.getByLabelText("A-100 lineage")).toBeInTheDocument();
   });
 
   it("uses 주간 VOC as a board filter, not a GNB item", async () => {

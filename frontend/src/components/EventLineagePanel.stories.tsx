@@ -31,7 +31,14 @@ const meta = {
           is_branch_point: false,
         },
       ],
-      edges: [{ source: "post-1", target: "post-2", fused_score: 0.8 }],
+      edges: [
+        {
+          source: "post-1",
+          target: "post-2",
+          fused_score: 0.8,
+          join_keys: [{ code: "same_keyman", label: "같은 Keyman" }],
+        },
+      ],
     },
   },
 } satisfies Meta<typeof EventLineagePanel>;

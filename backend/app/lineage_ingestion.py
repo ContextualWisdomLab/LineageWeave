@@ -15,6 +15,7 @@ from typing import Any, Mapping
 
 import asyncpg
 
+from lineageweave.lineage_join_keys import PostJoinFacts, annotate_lineage_edges
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge, Record
 
@@ -120,7 +121,7 @@ async def visible_lineage_graph(
                 "is_branch_point": len(children_of.get(post_id, [])) >= 2,
             }
         )
-    edges = [
+    raw_edges = [
         {
             "source": str(row["parent_post_id"]),
             "target": str(row["child_post_id"]),
@@ -128,4 +129,65 @@ async def visible_lineage_graph(
         }
         for row in visible_edges
     ]
+    facts = await _join_facts_for_posts(conn, visible)
+    edges = annotate_lineage_edges(raw_edges, facts)
     return {"nodes": nodes, "edges": edges}
+
+
+async def _join_facts_for_posts(
+    conn: asyncpg.Connection,
+    posts: list[Mapping[str, Any]],
+) -> dict[str, PostJoinFacts]:
+    """Keyman, win-pool, and cataloged ontology objects already on the posts."""
+    post_ids = [str(row["post_id"]) for row in posts]
+    keymen_rows = await conn.fetch(
+        "select post_id, person_id from post_person_mention where post_id = any($1::uuid[])",
+        post_ids,
+    )
+    org_rows = await conn.fetch(
+        "select post_id, corporate_entity_id from post_organization_mention "
+        "where post_id = any($1::uuid[])",
+        post_ids,
+    )
+    counterparties = await conn.fetch(
+        """
+        select post_id, counterparty_entity_name
+        from post_counterparty_entity
+        where post_id = any($1::uuid[])
+        """,
+        post_ids,
+    )
+    role_orgs = await conn.fetch(
+        """
+        select post_id, cataloged_corporate_entity_id
+        from post_summary_role
+        where post_id = any($1::uuid[])
+          and cataloged_corporate_entity_id is not null
+        """,
+        post_ids,
+    )
+    keymen: dict[str, set[str]] = {post_id: set() for post_id in post_ids}
+    objects: dict[str, set[str]] = {post_id: set() for post_id in post_ids}
+    unbound: dict[str, set[str]] = {post_id: set() for post_id in post_ids}
+    for row in keymen_rows:
+        keymen[str(row["post_id"])].add(str(row["person_id"]))
+    for row in org_rows:
+        objects[str(row["post_id"])].add(str(row["corporate_entity_id"]))
+    for row in role_orgs:
+        objects[str(row["post_id"])].add(str(row["cataloged_corporate_entity_id"]))
+    for row in counterparties:
+        unbound[str(row["post_id"])].add(str(row["counterparty_entity_name"]))
+    facts: dict[str, PostJoinFacts] = {}
+    for row in posts:
+        post_id = str(row["post_id"])
+        corp = row.get("corporate_entity_id")
+        if corp is not None:
+            objects[post_id].add(str(corp))
+        facts[post_id] = PostJoinFacts(
+            post_id=post_id,
+            win_pool=str(row.get("thread_group_key") or ""),
+            keyman_ids=frozenset(keymen[post_id]),
+            ontology_object_ids=frozenset(objects[post_id]),
+            unbound_object_names=frozenset(unbound[post_id]),
+        )
+    return facts

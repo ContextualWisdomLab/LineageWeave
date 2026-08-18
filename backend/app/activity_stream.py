@@ -45,6 +45,18 @@ def ticket_status_changed_summary(status_label: str) -> str:
     return f"Ticket status changed to {status_label}"
 
 
+POST_SUBMITTED_FOR_SCORING = "post_submitted_for_scoring"
+
+
+def post_submitted_for_scoring_summary(post_title: str) -> str:
+    """The ``summary`` field scoring producers must share.
+
+    This is a wake-up on the existing per-post stream so fast-mlsirm
+    can score the post. It is not a theta and not a queue-admin body.
+    """
+    return f"Submitted for scoring: {post_title}"
+
+
 def _activity_fields(event_type: str, actor_account_id: str, summary: str) -> dict[str, str]:
     return {
         "event_type": event_type,

@@ -245,10 +245,17 @@ export interface LineageGraphNode {
   is_branch_point: boolean;
 }
 
+export interface LineageJoinKey {
+  code: string;
+  label: string;
+}
+
 export interface LineageGraphEdge {
   source: string;
   target: string;
   fused_score: number;
+  join_keys?: LineageJoinKey[];
+  empty_next_action?: string | null;
 }
 
 export interface LineageGraph {
@@ -565,6 +572,13 @@ export interface LineageChronologyRow {
   label: string;
 }
 
+export interface UnverifiedCandidate {
+  label: string;
+  evidence_url: string | null;
+  status_label: string;
+  promote_destination: "customers";
+}
+
 export interface LineageQaAnswer {
   post_id: string | null;
   question: string;
@@ -576,6 +590,7 @@ export interface LineageQaAnswer {
   what_happened?: string[];
   chronology?: LineageChronologyRow[];
   show_lineage?: boolean;
+  unverified_candidates?: UnverifiedCandidate[];
 }
 
 export function askLineageQa(
@@ -636,6 +651,22 @@ export function fetchOrgmetraUnits(
 
 export function fetchKeymenCatalog(accessToken: string): Promise<{ keymen: Keyman[] }> {
   return backendFetch("/api/keymen", accessToken);
+}
+
+export interface OntologyAttachResult {
+  attached: boolean;
+  catalog_id: string | null;
+  empty_next_action: string | null;
+}
+
+export function attachOntologyObject(
+  accessToken: string,
+  organizationName: string,
+): Promise<OntologyAttachResult> {
+  return backendFetch("/api/customer-master/attach-ontology", accessToken, {
+    method: "POST",
+    body: JSON.stringify({ organization_name: organizationName }),
+  });
 }
 
 export function fetchPostLineage(accessToken: string, postId: string): Promise<PostLineage> {
