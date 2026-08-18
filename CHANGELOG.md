@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.0] - 2026-08-19
+
+### Added
+
+- Board now has a named **Weekly VOC** list filter. Click it to keep
+  Voice of Customer posts for the latest authorized ISO week (Public
+  post is `2026-W01` after seed) and read Event Lineage next. The
+  filter does not use the operator laptop clock and does not invent a
+  TEPP theta.
+
 ## [2.10.0] - 2026-08-18
 
 ### Added

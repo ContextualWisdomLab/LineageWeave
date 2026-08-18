@@ -3,6 +3,13 @@
 Tool-specific pointer. Policy lives in [AGENTS.md](AGENTS.md) and the
 ADRs under `docs/adr/`. Do not fork those rules here.
 
+## Board Weekly VOC (v2.12.0)
+
+Board **Weekly VOC** keeps Voice of Customer posts for the latest
+authorized ISO week and names Event Lineage as the next action
+(ADR 0051). Do not use the operator laptop clock. Seed Public post
+is `2026-W01`. Do not invent a theta.
+
 ## Analysis-run retention (v0.87.0)
 
 To empty a run-bearing registry, insert an unrevoked

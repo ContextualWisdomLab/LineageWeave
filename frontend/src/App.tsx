@@ -80,6 +80,7 @@ import { PostBody } from "./PostBody";
 import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
 import { LOCALE_LABELS, SUPPORTED_LOCALES, setLocale, t, tf, useLocale } from "./i18n";
+import { isoWeekFromCreatedAt, latestIsoWeek } from "./isoWeek";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -3273,6 +3274,7 @@ function PostList({
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [weekFilter, setWeekFilter] = useState("all");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [typeFilterOptions, setTypeFilterOptions] = useState<PostFilterOption[]>([]);
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
@@ -3408,7 +3410,9 @@ function PostList({
     .filter((post) => {
       const matchesType = typeFilter === "all" || post.voc_type_code === typeFilter;
       const matchesVisibility = visibilityFilter === "all" || post.visibility_code === visibilityFilter;
-      return matchesType && matchesVisibility;
+      const matchesWeek =
+        weekFilter === "all" || isoWeekFromCreatedAt(post.created_at) === weekFilter;
+      return matchesType && matchesVisibility && matchesWeek;
     })
     .sort((left, right) => {
       if (sortOrder === "title") {
@@ -3417,7 +3421,29 @@ function PostList({
       const direction = sortOrder === "newest" ? -1 : 1;
       return direction * left.created_at.localeCompare(right.created_at);
     });
-  const hasBoardFilters = Boolean(searchInput.trim()) || Boolean(searchQuery) || typeFilter !== "all" || visibilityFilter !== "all";
+  const weeklyVocActive = typeFilter === "voc" && weekFilter !== "all";
+  const weekOptions = Array.from(
+    new Set(
+      loadedPosts
+        .map((post) => isoWeekFromCreatedAt(post.created_at))
+        .filter((week): week is string => Boolean(week)),
+    ),
+  ).sort((left, right) => right.localeCompare(left));
+  const applyWeeklyVoc = () => {
+    const vocWeek = latestIsoWeek(
+      loadedPosts
+        .filter((post) => post.voc_type_code === "voc")
+        .map((post) => isoWeekFromCreatedAt(post.created_at)),
+    );
+    setTypeFilter("voc");
+    setWeekFilter(vocWeek ?? "all");
+  };
+  const hasBoardFilters =
+    Boolean(searchInput.trim()) ||
+    Boolean(searchQuery) ||
+    typeFilter !== "all" ||
+    visibilityFilter !== "all" ||
+    weekFilter !== "all";
   const totalPages = Math.max(1, Math.ceil(totalPosts / POST_PAGE_SIZE));
   const pageItems: Array<number | "ellipsis"> =
     totalPages <= 7
@@ -3467,6 +3493,7 @@ function PostList({
               setSearchInput("");
               setSearchQuery("");
               setTypeFilter("all");
+              setWeekFilter("all");
               setVisibilityFilter("all");
               setSortOrder("newest");
             }}
@@ -3494,6 +3521,29 @@ function PostList({
                 {typeOptions.map((option) => (
                   <option key={option.code} value={option.code}>
                     {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="board-weekly-voc"
+              aria-pressed={weeklyVocActive}
+              onClick={applyWeeklyVoc}
+            >
+              {t("Weekly VOC")}
+            </button>
+            <label>
+              {t("Filter by ISO week")}
+              <select
+                value={weekFilter}
+                onChange={(event) => setWeekFilter(event.target.value)}
+                aria-label={t("Filter by ISO week")}
+              >
+                <option value="all">{t("All weeks")}</option>
+                {weekOptions.map((week) => (
+                  <option key={week} value={week}>
+                    {week}
                   </option>
                 ))}
               </select>
@@ -3531,6 +3581,14 @@ function PostList({
               </button>
             )}
           </form>
+          {weeklyVocActive ? (
+            <p className="board-next-action" role="status" aria-label={t("Next action")}>
+              {tf(
+                "Voice of Customer posts for {week} are current. Open a post to read Event Lineage.",
+                { week: weekFilter },
+              )}
+            </p>
+          ) : null}
           {posts.length === 0 ? (
             <p className="board-empty" role="status">
               {hasBoardFilters

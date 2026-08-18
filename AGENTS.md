@@ -95,6 +95,10 @@ pnpm run lint && pnpm run test && pnpm run build
 # Storybook inventory (ADR 0020 tokens): pnpm run build-storybook
 ```
 
+Board **Weekly VOC** (ADR 0051 / v2.12.0) names the latest authorized
+ISO week among Voice of Customer posts. Do not substitute the operator
+laptop clock. Seed Public post is `2026-W01`. Do not invent a theta.
+
 A run-bearing analysis-run registry empties only after an unrevoked
 `analysis_run_retention_grant` and `GRANT analysis_run_retention_admin`
 (ADR 0020 / v0.87.0). The documented phrase is not a secret. Do not

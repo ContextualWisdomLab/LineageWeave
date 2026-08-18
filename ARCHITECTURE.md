@@ -276,7 +276,11 @@ Person, team, and organization mention channels load independently
 React + Vite + TypeScript, pinned Node via `mise.toml`, pnpm via Corepack.
 `react-oidc-context` drives a real Authorization Code redirect through
 Keycloak (`src/main.tsx`'s `AuthProvider`) -- no mocked auth, no static
-HTML. `src/api.ts` calls the FastAPI backend directly with the token
+HTML. The authenticated buyer GNB is Board, Customer master, Calendar,
+and Ask Agent (ADR 0037). Board **Weekly VOC** (ADR 0051) keeps Voice
+of Customer posts for the latest authorized ISO week and names Event
+Lineage as the next action; it does not use the wall-clock week.
+`src/api.ts` calls the FastAPI backend directly with the token
 Keycloak issued; `src/App.tsx` renders a git-branch SVG of
 `GET /api/lineage` (click a node to open that post; `post_admin` can
 rebuild), the post list, and a full detail popup: Korean

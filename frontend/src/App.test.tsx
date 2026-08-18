@@ -78,6 +78,15 @@ describe("App, authenticated", () => {
     deferMe?: boolean;
     meFailed?: boolean;
     postBody?: string;
+    boardPosts?: {
+      post_id: string;
+      post_title: string;
+      voc_type_code: string;
+      voc_type_label?: string;
+      visibility_code?: string;
+      visibility_label?: string;
+      created_at: string;
+    }[];
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -1028,6 +1037,7 @@ describe("App, authenticated", () => {
                     visibility_label: "Public",
                     created_at: "2026-01-01T00:00:00Z",
                   },
+                  ...(options?.boardPosts ?? []),
                 ],
           ),
         );
@@ -1511,6 +1521,56 @@ describe("App, authenticated", () => {
     expect(within(board).getByRole("status")).toHaveTextContent("No posts match the current filters.");
     await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
     expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+  });
+
+  it("clicking Weekly VOC keeps the 2026-W01 Voice of Customer post and names Event Lineage as the next action", async () => {
+    stubBackend({
+      boardPosts: [
+        {
+          post_id: "post-vom-w01",
+          post_title: "Internal memo",
+          voc_type_code: "vom",
+          voc_type_label: "Voice of Market",
+          visibility_code: "internal",
+          visibility_label: "Internal",
+          created_at: "2026-01-02T00:00:00Z",
+        },
+        {
+          post_id: "post-voc-w52",
+          post_title: "Older Voice of Customer",
+          voc_type_code: "voc",
+          voc_type_label: "Voice of Customer",
+          visibility_code: "public",
+          visibility_label: "Public",
+          created_at: "2025-12-22T00:00:00Z",
+        },
+      ],
+    });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(within(board).getByRole("button", { name: "View post: Internal memo" })).toBeInTheDocument();
+    expect(within(board).getByRole("button", { name: "View post: Older Voice of Customer" })).toBeInTheDocument();
+
+    const weeklyVoc = within(board).getByRole("button", { name: "Weekly VOC" });
+    expect(weeklyVoc).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(weeklyVoc);
+
+    expect(weeklyVoc).toHaveAttribute("aria-pressed", "true");
+    expect(within(board).getByLabelText("Filter by ISO week")).toHaveValue("2026-W01");
+    expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    expect(within(board).queryByRole("button", { name: "View post: Internal memo" })).not.toBeInTheDocument();
+    expect(
+      within(board).queryByRole("button", { name: "View post: Older Voice of Customer" }),
+    ).not.toBeInTheDocument();
+    expect(within(board).getByLabelText("Next action")).toHaveTextContent(
+      "Voice of Customer posts for 2026-W01 are current. Open a post to read Event Lineage.",
+    );
+
+    await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
+    expect(weeklyVoc).toHaveAttribute("aria-pressed", "false");
+    expect(within(board).getByRole("button", { name: "View post: Internal memo" })).toBeInTheDocument();
+    expect(within(board).getByRole("button", { name: "View post: Older Voice of Customer" })).toBeInTheDocument();
   });
 
   it("opens a post from a DAG node click", async () => {
