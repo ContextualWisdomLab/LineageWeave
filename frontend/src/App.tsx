@@ -1514,6 +1514,19 @@ function PostDetailPopup({
                       </ul>
                     </>
                   )}
+                  {summary.project_mentions && summary.project_mentions.length > 0 && (
+                    <>
+                      <h4>Projects / semantic evidence</h4>
+                      <ul>
+                        {summary.project_mentions.map((project) => (
+                          <li key={project.project_key}>
+                            <strong>{project.project_name}</strong>{" "}
+                            ({Math.round(project.confidence * 100)}%): {project.evidence}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
                   {summary.roles_and_responsibilities.length > 0 && (
                     <>
                       <h4>R&amp;R</h4>
@@ -2438,6 +2451,7 @@ const REPORT_GROUPING_LABELS: Record<string, string> = {
   corporate_entity: "Corporate entity",
   thread_group: "Thread group",
   team: "Team",
+  project: "Project",
 };
 
 function comparisonGroupingTitle(groupingKind: string, groupingLabel: string): string {
@@ -2680,6 +2694,7 @@ function ReportsPanel({
             <option value="corporate_entity">Corporate entity</option>
             <option value="thread_group">Thread group</option>
             <option value="team">Team</option>
+            <option value="project">Project</option>
           </select>
         </label>
         <label>

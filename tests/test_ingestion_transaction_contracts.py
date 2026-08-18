@@ -210,6 +210,8 @@ class _SummaryConnection:
         assert not self.in_transaction
         if "from post_summary_event" in compact:
             return [{"event_text": "검토 완료"}]
+        if "from post_project_mention" in compact:
+            return []
         if "from post_summary_role" in compact:
             assert "entity_name" not in compact
             assert "cataloged_corporate_entity_id" in compact
@@ -507,6 +509,8 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
             compact = " ".join(query.split())
             events.append(("fetch", compact))
             if "from post_summary_event" in compact:
+                return []
+            if "from post_project_mention" in compact:
                 return []
             if "from post_summary_role" in compact:
                 assert "cataloged_person_id" in compact

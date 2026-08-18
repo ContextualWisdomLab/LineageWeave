@@ -80,6 +80,11 @@ class NullKeymanExtractionClient:
     def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
         raise RuntimeError("NullKeymanExtractionClient cannot extract; check .available first")
 
+    def extract_with_hints(
+        self, post_title: str, post_body: str, context_hints: str
+    ) -> list[PersonMention]:
+        raise RuntimeError("NullKeymanExtractionClient cannot extract; check .available first")
+
 
 _EXTRACTION_PROMPT_TEMPLATE = """\
 Read the post below and list every named person it mentions. For each
@@ -90,6 +95,14 @@ job title or position if the text states one. Two different real people
 can share the same name -- a stated title/position (e.g. "sales
 manager," "purchasing lead") is real evidence for telling them apart, so
 report it whenever the text gives one rather than leaving it out.
+
+Use the author/account and organization hints below to resolve whether a
+named person is on our side, but treat them as prior context rather than
+proof. A generic or unregistered customer is a weak hint; never use it to
+turn an unsupported person into a Keyman. The person's own textual role or
+affiliation must still support the result.
+
+Author/account context hints (not proof): {context_hints}
 
 Reply with ONLY a JSON array (no markdown fences, no prose), where each
 element has exactly these fields:
@@ -171,7 +184,16 @@ class ContextualOrchestratorKeymanExtractionClient:
         self._timeout = timeout
 
     def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
-        prompt = _EXTRACTION_PROMPT_TEMPLATE.format(title=post_title, body=post_body)
+        return self.extract_with_hints(post_title, post_body, "")
+
+    def extract_with_hints(
+        self, post_title: str, post_body: str, context_hints: str
+    ) -> list[PersonMention]:
+        prompt = _EXTRACTION_PROMPT_TEMPLATE.format(
+            title=post_title,
+            body=post_body,
+            context_hints=context_hints.strip() or "none available",
+        )
         body = post_json(
             f"{self._base_url}/v1/chat/completions",
             {

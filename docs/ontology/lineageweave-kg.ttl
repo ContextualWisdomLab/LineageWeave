@@ -250,3 +250,24 @@
 # exactly this) and `resolved_organization_name` to `skos:prefLabel`
 # (the single preferred/canonical label), per Miles & Bechhofer (2009).
 #################################################################
+# Semantic project extraction (ADR 0036). These resources are distinct from
+# imported grouping fields: a post may mention a project without carrying a
+# project field, and the mention keeps evidence/confidence for review.
+:Project a owl:Class ;
+    rdfs:label "Project"@en ;
+    rdfs:comment "A business project referred to by a source post."@en .
+
+:ProjectMention a owl:Class ;
+    rdfs:label "Project mention"@en ;
+    rdfs:comment "An evidence-backed semantic assertion that a post refers to a project."@en .
+
+:mentionsProject a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range :Project .
+
+:projectEvidence a owl:DatatypeProperty ;
+    rdfs:domain :ProjectMention ;
+    rdfs:range xsd:string .
+
+:semanticConfidence a owl:DatatypeProperty ;
+    rdfs:range xsd:decimal .

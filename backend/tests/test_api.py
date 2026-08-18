@@ -54,6 +54,12 @@ _TEPP_RESULT_MIGRATION = (
 _INTERNAL_RELATION_EVIDENCE_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0028_internal_relation_evidence.sql"
 )
+_PROJECT_GROUPING_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0030_report_project_grouping.sql"
+)
+_SEMANTIC_PROJECT_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0031_semantic_project_mentions.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -145,6 +151,8 @@ def seeded_db(demo_analyst_token):
             cur.execute(_POST_CONTENT_MIGRATION.read_text())
             cur.execute(_TEPP_RESULT_MIGRATION.read_text())
             cur.execute(_INTERNAL_RELATION_EVIDENCE_MIGRATION.read_text())
+            cur.execute(_PROJECT_GROUPING_MIGRATION.read_text())
+            cur.execute(_SEMANTIC_PROJECT_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "

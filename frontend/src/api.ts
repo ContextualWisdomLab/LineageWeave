@@ -108,11 +108,20 @@ export interface PostRoleResponsibility {
   catalog_node_type_code?: string | null;
 }
 
+export interface PostProjectMention {
+  project_key: string;
+  project_name: string;
+  evidence: string;
+  confidence: number;
+  ontology_iri: string;
+}
+
 export interface PostAiSummary {
   post_id: string;
   korean_summary: string;
   key_events: string[];
   roles_and_responsibilities: PostRoleResponsibility[];
+  project_mentions?: PostProjectMention[];
 }
 
 export interface LinkedPostRef {

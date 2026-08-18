@@ -216,6 +216,7 @@ async def ingest_post_keymen(
     resolution_client: OrganizationNameResolutionClient | None = None,
     verification_client: RelationVerificationClient | None = None,
     hierarchy_inference_client: CorporateHierarchyInferenceClient | None = None,
+    context_hints: str = "",
     persist_graph: bool = True,
 ) -> list[PersonMention]:
     """Extracts, persists, and returns the `PersonMention`s found in one post.
@@ -240,7 +241,13 @@ async def ingest_post_keymen(
     resolution_client = resolution_client or NullOrganizationNameResolutionClient()
     verification_client = verification_client or NullRelationVerificationClient()
     hierarchy_inference_client = hierarchy_inference_client or NullCorporateHierarchyInferenceClient()
-    mentions = await asyncio.to_thread(client.extract, post_title, post_body)
+    extract_with_hints = getattr(client, "extract_with_hints", None)
+    if callable(extract_with_hints):
+        mentions = await asyncio.to_thread(
+            extract_with_hints, post_title, post_body, context_hints
+        )
+    else:
+        mentions = await asyncio.to_thread(client.extract, post_title, post_body)
     candidates = await _load_corporate_entity_candidates(conn)
     resolved_by_mention: list[tuple[PersonMention, list[tuple[str, str, str | None]]]] = []
     for mention in mentions:

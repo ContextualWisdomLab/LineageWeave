@@ -35,6 +35,8 @@ COPY migrations/0026_post_content_artifacts.sql /docker-entrypoint-initdb.d/27-p
 COPY migrations/0027_analysis_run_tepp_result.sql /docker-entrypoint-initdb.d/28-analysis-run-tepp-result.sql
 COPY migrations/0028_internal_relation_evidence.sql /docker-entrypoint-initdb.d/29-internal-relation-evidence.sql
 COPY migrations/0029_report_team_grouping.sql /docker-entrypoint-initdb.d/30-report-team-grouping.sql
+COPY migrations/0030_report_project_grouping.sql /docker-entrypoint-initdb.d/31-report-project-grouping.sql
+COPY migrations/0031_semantic_project_mentions.sql /docker-entrypoint-initdb.d/32-semantic-project-mentions.sql
 
 COPY migrations/ /opt/lineageweave/migrations/
 COPY docker/postgres-init/migrate.sh /usr/local/bin/lineageweave-migrate

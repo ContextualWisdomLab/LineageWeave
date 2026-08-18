@@ -509,6 +509,51 @@ async def _load_visible_post(
     return row
 
 
+async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> str:
+    """Render author, sales-pool, and customer hints without treating them as proof."""
+    rows = await conn.fetch(
+        """
+        select author.display_name as author_name,
+               process.process_unit_name as sales_pool_name,
+               customer.entity_name as customer_name,
+               affiliated.entity_name as author_affiliation_name
+          from source_post post
+          join user_account author on author.user_account_id = post.author_account_id
+          left join process_unit process on process.process_unit_id = post.process_unit_id
+          left join corporate_entity customer on customer.corporate_entity_id = post.corporate_entity_id
+          left join account_affiliation account_aff
+            on account_aff.user_account_id = post.author_account_id
+          left join corporate_entity affiliated
+            on affiliated.corporate_entity_id = account_aff.corporate_entity_id
+         where post.post_id = $1
+        """,
+        post_id,
+    )
+    if not rows:
+        return "no structured hints available"
+    first = rows[0]
+    affiliations = sorted(
+        {
+            str(row["author_affiliation_name"]).strip()
+            for row in rows
+            if row["author_affiliation_name"] and str(row["author_affiliation_name"]).strip()
+        }
+    )
+    customer_name = str(first["customer_name"] or "").strip()
+    customer_quality = (
+        "low"
+        if customer_name.casefold()
+        in {"기타", "미등록", "미등록고객", "unknown", "unregistered", "other"}
+        else "normal"
+    )
+    return (
+        f"author={first['author_name'] or 'unknown'}; "
+        f"author_affiliations={', '.join(affiliations) or 'none'}; "
+        f"sales_pool={first['sales_pool_name'] or 'none'}; "
+        f"customer={customer_name or 'none'}; customer_hint_trust={customer_quality}"
+    )
+
+
 @app.get("/api/posts/{post_id}/keymen")
 async def read_post_keymen(
     post_id: str,
@@ -730,6 +775,7 @@ async def extract_post_keymen(
         # literal text either blows the token budget or is silently
         # ignored (see lineageweave/post_content_normalization.py).
         post_body = normalize_post_body(raw_body, vision_client=_vision_client()).text
+        context_hints = await _load_post_semantic_hints(conn, post_id)
         mentions = await ingest_post_keymen(
             conn,
             keyman_client,
@@ -739,6 +785,7 @@ async def extract_post_keymen(
             resolution_client=_organization_name_resolution_client(),
             verification_client=_relation_verification_client(),
             hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+            context_hints=context_hints,
             persist_graph=False,
         )
         organization_names = sorted(
@@ -1016,9 +1063,14 @@ async def read_post_summary(
                 normalized_result=normalized,
             )
         normalized_body = normalized.text
-        summary = await asyncio.to_thread(
-            client.summarize, post["post_title"], normalized_body
-        )
+        context_hints = await _load_post_semantic_hints(conn, post_id)
+        summarize_with_hints = getattr(client, "summarize_with_hints", None)
+        if callable(summarize_with_hints):
+            summary = await asyncio.to_thread(
+                summarize_with_hints, post["post_title"], normalized_body, context_hints
+            )
+        else:
+            summary = await asyncio.to_thread(client.summarize, post["post_title"], normalized_body)
         return await persist_post_summary(
             conn,
             post_id,

@@ -42,12 +42,13 @@ from lineageweave.knowledge_graph import (
     NODE_PERSON,
     NODE_TEAM,
 )
-from lineageweave.ontology import ontology_annotations
+from lineageweave.ontology import LW, ontology_annotations
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
     ACTOR_TYPE_PERSON,
     ACTOR_TYPE_TEAM,
     PostSummary,
+    normalize_project_key,
     RoleResponsibility,
 )
 from lineageweave.relation_verification import (
@@ -93,6 +94,15 @@ async def fetch_persisted_summary(
         """,
         post_id,
     )
+    projects = await conn.fetch(
+        """
+        select project_key, project_name, evidence_text, confidence, ontology_iri
+          from post_project_mention
+         where post_id = $1
+         order by project_name, project_key
+        """,
+        post_id,
+    )
     payload_roles: list[dict[str, Any]] = []
     for row in roles:
         catalog_node_id = None
@@ -122,6 +132,16 @@ async def fetch_persisted_summary(
         "korean_summary": header["korean_summary"],
         "key_events": [row["event_text"] for row in events],
         "roles_and_responsibilities": payload_roles,
+        "project_mentions": [
+            {
+                "project_key": row["project_key"],
+                "project_name": row["project_name"],
+                "evidence": row["evidence_text"],
+                "confidence": float(row["confidence"]),
+                "ontology_iri": row["ontology_iri"],
+            }
+            for row in projects
+        ],
     }
 
 
@@ -227,11 +247,36 @@ async def _replace_summary_projection(
     await conn.execute("delete from post_team_mention where post_id = $1", post_id)
     await conn.execute("delete from post_organization_mention where post_id = $1", post_id)
     await conn.execute("delete from post_summary_result where post_id = $1", post_id)
+    await conn.execute("delete from post_project_mention where post_id = $1", post_id)
     await conn.execute(
         "insert into post_summary_result (post_id, korean_summary) values ($1, $2)",
         post_id,
         summary.korean_summary,
     )
+    for project in summary.project_mentions:
+        project_key = normalize_project_key(project.canonical_name)
+        if not project_key:
+            continue
+        await conn.execute(
+            """
+            insert into post_project_mention
+                (post_id, project_key, project_name, evidence_text, confidence,
+                 ontology_iri, extraction_method)
+            values ($1, $2, $3, $4, $5, $6, 'contextual_orchestrator_semantic')
+            on conflict (post_id, project_key) do update set
+                project_name = excluded.project_name,
+                evidence_text = excluded.evidence_text,
+                confidence = excluded.confidence,
+                ontology_iri = excluded.ontology_iri,
+                extraction_method = excluded.extraction_method
+            """,
+            post_id,
+            project_key,
+            project.canonical_name,
+            project.evidence,
+            project.confidence,
+            str(LW.Project),
+        )
     for ordinal, event_text in enumerate(summary.key_events):
         await conn.execute(
             "insert into post_summary_event (post_id, event_ordinal, event_text) "

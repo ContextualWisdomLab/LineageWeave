@@ -37,7 +37,9 @@ unavailable, never invents a summary.
 from __future__ import annotations
 
 import json
+import math
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from typing import Protocol
 
@@ -53,6 +55,7 @@ ACTOR_TYPE_PERSON = "prov_person"
 ACTOR_TYPE_ORGANIZATION = "prov_organization"
 ACTOR_TYPE_TEAM = "prov_team"
 _VALID_ACTOR_TYPE_CODES = frozenset({ACTOR_TYPE_PERSON, ACTOR_TYPE_ORGANIZATION, ACTOR_TYPE_TEAM})
+PROJECT_MENTION_CONFIDENCE_THRESHOLD = 0.7
 
 
 @dataclass(frozen=True)
@@ -91,16 +94,39 @@ class RoleResponsibility:
 
 
 @dataclass(frozen=True)
+class ProjectMention:
+    """One project supported by post text and semantic context."""
+
+    project_name: str
+    canonical_name: str
+    evidence: str
+    confidence: float
+
+    def __post_init__(self) -> None:
+        if not self.project_name.strip() or not self.canonical_name.strip() or not self.evidence.strip():
+            raise ValueError("project mentions require names and evidence")
+        if not math.isfinite(self.confidence) or not 0 <= self.confidence <= 1:
+            raise ValueError("project mention confidence must be between 0 and 1")
+
+
+def normalize_project_key(project_name: str) -> str:
+    """Stable comparison key; raw/canonical labels and evidence stay separate."""
+    normalized = unicodedata.normalize("NFKC", project_name).casefold()
+    return re.sub(r"[^\w]+", "-", normalized, flags=re.UNICODE).strip("-")
+
+
+@dataclass(frozen=True)
 class PostSummary:
     """The popup summary panel's full content for one post."""
 
     korean_summary: str
     key_events: tuple[str, ...] = field(default_factory=tuple)
     roles_and_responsibilities: tuple[RoleResponsibility, ...] = field(default_factory=tuple)
+    project_mentions: tuple[ProjectMention, ...] = field(default_factory=tuple)
 
 
 class PostSummaryClient(Protocol):
-    """Derives a Korean summary, key events, and R&R from a post's text."""
+    """Derives summary, R&R, and evidence-backed project mentions."""
 
     available: bool
 
@@ -122,10 +148,15 @@ class NullPostSummaryClient:
     def summarize(self, post_title: str, post_body: str) -> PostSummary:
         raise RuntimeError("NullPostSummaryClient cannot summarize; check .available first")
 
+    def summarize_with_hints(
+        self, post_title: str, post_body: str, context_hints: str
+    ) -> PostSummary:
+        raise RuntimeError("NullPostSummaryClient cannot summarize; check .available first")
+
 
 _SUMMARY_PROMPT_TEMPLATE = """\
 Read the post below (it may be in English, Korean, or mixed) and produce
-three things:
+four things:
 
 1. A Korean-language summary (2-4 sentences) of what the post is about --
    genuinely condensed and re-worded, not copied sentences from the text.
@@ -149,6 +180,18 @@ three things:
    Korean company's internal 설계팀 -- infer the parent company from
    context when the text supports it).
 
+4. A list of project mentions. A project may be stated directly in the
+   post body/title or described indirectly in a way supported by the
+   structured hints below. For each candidate return the name as written,
+   a canonical comparison name, the shortest supporting evidence phrase,
+   and a confidence from 0 to 1. Do not invent a project from a generic
+   topic. Keep ambiguous candidates with confidence below 0.7 so the UI can
+   show uncertainty, but they must not be used as a report grouping.
+
+Structured context hints (hints, not proof): {context_hints}
+Treat a customer value such as 기타, 미등록고객, unknown, or other as a
+weak hint; it cannot confirm a project by itself.
+
 Reply with ONLY a JSON object (no markdown fences, no prose) with exactly
 these fields:
   "korean_summary": string
@@ -160,6 +203,9 @@ these fields:
     "affiliated_organization_name": string, or null when the actor is an
       organization, or when the text gives no affiliation to infer for a
       person or team actor
+  "project_mentions": array of objects, each with:
+    "project_name": string, "canonical_name": string, "evidence": string,
+    "confidence": number
 
 Post title: {title}
 Post body: {body}
@@ -233,10 +279,41 @@ def parse_summary_response(content: str) -> PostSummary | None:
                     )
                 )
 
+    project_mentions_raw = parsed.get("project_mentions") or []
+    project_mentions: list[ProjectMention] = []
+    if isinstance(project_mentions_raw, list):
+        for entry in project_mentions_raw:
+            if not isinstance(entry, dict):
+                continue
+            project_name = entry.get("project_name")
+            canonical_name = entry.get("canonical_name")
+            evidence = entry.get("evidence")
+            confidence = entry.get("confidence")
+            if not (
+                isinstance(project_name, str)
+                and isinstance(canonical_name, str)
+                and isinstance(evidence, str)
+                and isinstance(confidence, (int, float))
+                and not isinstance(confidence, bool)
+            ):
+                continue
+            try:
+                project_mentions.append(
+                    ProjectMention(
+                        project_name=project_name.strip(),
+                        canonical_name=canonical_name.strip(),
+                        evidence=evidence.strip(),
+                        confidence=float(confidence),
+                    )
+                )
+            except ValueError:
+                continue
+
     return PostSummary(
         korean_summary=korean_summary.strip(),
         key_events=key_events,
         roles_and_responsibilities=tuple(roles),
+        project_mentions=tuple(project_mentions),
     )
 
 
@@ -254,7 +331,16 @@ class ContextualOrchestratorPostSummaryClient:
         self._timeout = timeout
 
     def summarize(self, post_title: str, post_body: str) -> PostSummary:
-        prompt = _SUMMARY_PROMPT_TEMPLATE.format(title=post_title, body=post_body)
+        return self.summarize_with_hints(post_title, post_body, "")
+
+    def summarize_with_hints(
+        self, post_title: str, post_body: str, context_hints: str
+    ) -> PostSummary:
+        prompt = _SUMMARY_PROMPT_TEMPLATE.format(
+            title=post_title,
+            body=post_body,
+            context_hints=context_hints.strip() or "none available",
+        )
         body = post_json(
             f"{self._base_url}/v1/chat/completions",
             {

@@ -18,7 +18,7 @@ from lineageweave.post_evaluation import CRITERION_CODES, RUBRIC_VERSION
 
 from .knowledge_graph import labels_for_codes
 
-GROUPING_KINDS = frozenset({"process_unit", "corporate_entity", "thread_group", "team"})
+GROUPING_KINDS = frozenset({"process_unit", "corporate_entity", "thread_group", "team", "project"})
 SHARED_METRIC_KIND = "shared_metric"
 SHARED_METRIC_KEY = "all"
 _WEEK_PERIOD = re.compile(r"^(\d{4})-W(\d{2})$")
@@ -52,6 +52,8 @@ def grouping_value(kind: str, row: asyncpg.Record) -> str | None:
         value = row["thread_group_key"]
     elif kind == "team":
         value = row["team_id"]
+    elif kind == "project":
+        value = row["secondary_grouping_key"]
     else:
         return None
     if value is None:
@@ -63,6 +65,7 @@ def grouping_value(kind: str, row: asyncpg.Record) -> str | None:
 _EVAL_ROWS_WEEK = """
         select e.post_id, e.criterion_code, e.response_category,
                p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               p.secondary_grouping_key,
                p.visibility_code, p.post_title
         from post_evaluation_response e
         join source_post p on p.post_id = e.post_id
@@ -72,6 +75,7 @@ _EVAL_ROWS_WEEK = """
 _EVAL_ROWS_MONTH = """
         select e.post_id, e.criterion_code, e.response_category,
                p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               p.secondary_grouping_key,
                p.visibility_code, p.post_title
         from post_evaluation_response e
         join source_post p on p.post_id = e.post_id
@@ -81,6 +85,7 @@ _EVAL_ROWS_MONTH = """
 _EVAL_ROWS_TEAM_WEEK = """
         select e.post_id, e.criterion_code, e.response_category,
                p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               p.secondary_grouping_key,
                p.visibility_code, p.post_title, team.team_id
         from post_evaluation_response e
         join source_post p on p.post_id = e.post_id
@@ -92,11 +97,62 @@ _EVAL_ROWS_TEAM_WEEK = """
 _EVAL_ROWS_TEAM_MONTH = """
         select e.post_id, e.criterion_code, e.response_category,
                p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               p.secondary_grouping_key,
                p.visibility_code, p.post_title, team.team_id
         from post_evaluation_response e
         join source_post p on p.post_id = e.post_id
         join post_team_mention mention on mention.post_id = p.post_id
         join cataloged_team team on team.team_id = mention.team_id
+        where e.rubric_version = $1
+          and to_char(p.created_at at time zone 'UTC', 'YYYY-MM') = $2
+        """
+_EVAL_ROWS_PROJECT_WEEK = """
+        select e.post_id, e.criterion_code, e.response_category,
+               p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               p.secondary_grouping_key,
+               p.visibility_code, p.post_title
+        from post_evaluation_response e
+        join source_post p on p.post_id = e.post_id
+        left join corporate_entity customer on customer.corporate_entity_id = p.corporate_entity_id
+        where e.rubric_version = $1
+          and to_char(p.created_at at time zone 'UTC', 'IYYY-"W"IW') = $2
+          and nullif(p.secondary_grouping_key, '') is not null
+          and replace(lower(coalesce(customer.entity_name, '')), ' ', '') not in
+              ('기타', '기타고객', '미등록', '미등록고객', 'unknown', 'unregistered', 'other')
+        union all
+        select e.post_id, e.criterion_code, e.response_category,
+               p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               mention.project_key as secondary_grouping_key,
+               p.visibility_code, p.post_title
+        from post_evaluation_response e
+        join source_post p on p.post_id = e.post_id
+        join post_project_mention mention on mention.post_id = p.post_id
+                                           and mention.confidence >= 0.7
+        where e.rubric_version = $1
+          and to_char(p.created_at at time zone 'UTC', 'IYYY-"W"IW') = $2
+        """
+_EVAL_ROWS_PROJECT_MONTH = """
+        select e.post_id, e.criterion_code, e.response_category,
+               p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               p.secondary_grouping_key,
+               p.visibility_code, p.post_title
+        from post_evaluation_response e
+        join source_post p on p.post_id = e.post_id
+        left join corporate_entity customer on customer.corporate_entity_id = p.corporate_entity_id
+        where e.rubric_version = $1
+          and to_char(p.created_at at time zone 'UTC', 'YYYY-MM') = $2
+          and nullif(p.secondary_grouping_key, '') is not null
+          and replace(lower(coalesce(customer.entity_name, '')), ' ', '') not in
+              ('기타', '기타고객', '미등록', '미등록고객', 'unknown', 'unregistered', 'other')
+        union all
+        select e.post_id, e.criterion_code, e.response_category,
+               p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               mention.project_key as secondary_grouping_key,
+               p.visibility_code, p.post_title
+        from post_evaluation_response e
+        join source_post p on p.post_id = e.post_id
+        join post_project_mention mention on mention.post_id = p.post_id
+                                           and mention.confidence >= 0.7
         where e.rubric_version = $1
           and to_char(p.created_at at time zone 'UTC', 'YYYY-MM') = $2
         """
@@ -167,6 +223,8 @@ async def load_period_evaluation_rows(
     kind, _, _ = parse_period_code(period_code)
     if grouping_kind == "team":
         query = _EVAL_ROWS_TEAM_WEEK if kind == "week" else _EVAL_ROWS_TEAM_MONTH
+    elif grouping_kind == "project":
+        query = _EVAL_ROWS_PROJECT_WEEK if kind == "week" else _EVAL_ROWS_PROJECT_MONTH
     else:
         query = _EVAL_ROWS_WEEK if kind == "week" else _EVAL_ROWS_MONTH
     return await conn.fetch(query, RUBRIC_VERSION, period_code)
@@ -415,7 +473,7 @@ async def rebuild_period_reports(
     parse_period_code(period_code)
     item_bank = await load_shared_item_bank(conn, period_code)
     reports: list[PeriodReport] = []
-    for kind in ("process_unit", "corporate_entity", "thread_group", "team"):
+    for kind in ("process_unit", "corporate_entity", "thread_group", "team", "project"):
         rows = await load_period_evaluation_rows(conn, kind, period_code)
         groups = _groups_from_rows(kind, rows)
         if not groups:
@@ -668,7 +726,7 @@ async def list_period_report_summaries(
 
 
 async def resolve_grouping_label(conn: asyncpg.Connection, grouping_kind: str, grouping_key: str) -> str:
-    """Human-readable name for a process unit, corp, thread, or team key."""
+    """Human-readable name for a process unit, corp, thread, team, or project key."""
     if grouping_kind == "process_unit":
         row = await conn.fetchrow(
             "select process_unit_name from process_unit where process_unit_id::text = $1",
@@ -690,6 +748,14 @@ async def resolve_grouping_label(conn: asyncpg.Connection, grouping_kind: str, g
         )
         if row is not None:
             return str(row["team_name"])
+    elif grouping_kind == "project":
+        row = await conn.fetchrow(
+            "select project_name from post_project_mention "
+            "where project_key = $1 order by confidence desc, project_name limit 1",
+            grouping_key,
+        )
+        if row is not None:
+            return str(row["project_name"])
     return grouping_key
 
 
@@ -697,7 +763,7 @@ async def fetch_period_comparison(
     conn: asyncpg.Connection,
     period_code: str,
 ) -> list[dict[str, Any]]:
-    """Every PU / corp / thread / team scored on the shared metric for one period."""
+    """Every PU / corp / thread / team / project scored on the shared metric."""
     parse_period_code(period_code)
     rows = await conn.fetch(
         """

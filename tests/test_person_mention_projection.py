@@ -52,6 +52,9 @@ _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
 )
 _MIGRATION_PATH = Path(__file__).resolve().parents[1] / "migrations" / "0001_initial_schema.sql"
+_SEMANTIC_PROJECT_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0031_semantic_project_mentions.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -106,6 +109,7 @@ def projection_database() -> str:
         try:
             with connection.cursor() as cursor:
                 cursor.execute(_MIGRATION_PATH.read_text(encoding="utf-8"))
+                cursor.execute(_SEMANTIC_PROJECT_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(
                     """
                     insert into common_lookup_value
