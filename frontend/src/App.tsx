@@ -143,7 +143,7 @@ function EvidencePanel({
 
   return (
     <div className="evidence-panel" role="complementary" aria-label={t("Evidence")}>
-      {onClose ? <PopupCloseButton onClose={onClose} label="Close evidence panel" /> : null}
+      {onClose ? <PopupCloseButton onClose={onClose} label={t("Close evidence panel")} /> : null}
       <h3>{t("Evidence")}</h3>
       {!post && <p>{t("Loading source post...")}</p>}
       {post && (
@@ -1566,9 +1566,9 @@ function PostDetailPopup({
   return (
     <div className="popup-backdrop" onClick={onClose}>
       <div className="popup-panel" onClick={(event) => event.stopPropagation()}>
-        <PopupCloseButton onClose={onClose} label="Close" />
+        <PopupCloseButton onClose={onClose} label={t("Close")} />
         {error && <p className="error">{error}</p>}
-        {!post && !error && <p>Loading...</p>}
+        {!post && !error && <p>{t("Loading...")}</p>}
         {post && (
           <>
             <h2>{post.post_title}</h2>
@@ -1586,7 +1586,7 @@ function PostDetailPopup({
               />
             ) : null}
             {liveBodyWarning ? (
-              <p className="popup-live-body-warning" role="status" aria-label="Live body warning">
+              <p className="popup-live-body-warning" role="status" aria-label={t("Live body warning")}>
                 {liveBodyWarning}
               </p>
             ) : null}
@@ -2478,7 +2478,7 @@ function AnalysisRunsPanel({
                       {post.post_title}
                     </button>
                     {post.live_after_cutoff && (
-                      <span className="post-badge">Updated after cutoff</span>
+                      <span className="post-badge">{t("Updated after cutoff")}</span>
                     )}
                   </li>
                 ))}
@@ -3090,7 +3090,7 @@ function PostList({
           <h2>{t("Event Lineage")}</h2>
           {canRebuild && (
             <button onClick={handleRebuild} disabled={rebuilding}>
-              {rebuilding ? "Rebuilding..." : "Rebuild lineage"}
+              {rebuilding ? t("Rebuilding...") : t("Rebuild lineage")}
             </button>
           )}
         </div>
@@ -3099,7 +3099,7 @@ function PostList({
         {graph && <LineageDag graph={graph} onSelectPost={selectPost} />}
         {graph?.truncated && (
           <p className="post-meta" role="status">
-            Showing the newest Event Lineage nodes. Open a post to read its complete linked lineage.
+            {t("Showing the newest Event Lineage nodes. Open a post to read its complete linked lineage.")}
           </p>
         )}
       </section>
@@ -3108,7 +3108,7 @@ function PostList({
           <li key={post.post_id}>
             <button
               className="post-list-item"
-              aria-label={`View post: ${post.post_title}`}
+              aria-label={`${t("View post:")} ${post.post_title}`}
               onClick={() => selectPost(post.post_id)}
             >
               <span className="post-title">{post.post_title}</span>

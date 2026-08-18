@@ -17,6 +17,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   ko: {
     Language: "언어",
     unresolved: "미해결",
+    "Close evidence panel": "근거 패널 닫기",
+    "Live body warning": "현재 본문 경고",
+    "Rebuilding...": "계보를 다시 만드는 중...",
+    "Showing the newest Event Lineage nodes. Open a post to read its complete linked lineage.":
+      "최신 이벤트 계보 노드만 표시합니다. 전체 연결 계보를 보려면 글을 여세요.",
+    "View post:": "글 보기:",
+    "Updated after cutoff": "기준 시각 이후 업데이트됨",
     "Loading...": "불러오는 중...",
     "Loading more posts...": "글을 더 불러오는 중...",
     "Loading authentication state...": "인증 상태를 불러오는 중...",
@@ -136,6 +143,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   zh: {
     Language: "语言",
     unresolved: "未解决",
+    "Close evidence panel": "关闭证据面板",
+    "Live body warning": "当前正文警告",
+    "Rebuilding...": "正在重建谱系...",
+    "Showing the newest Event Lineage nodes. Open a post to read its complete linked lineage.":
+      "仅显示最新的事件谱系节点。打开文章以查看完整的关联谱系。",
+    "View post:": "查看文章：",
+    "Updated after cutoff": "截止时间后更新",
     "Loading...": "正在加载...",
     "Loading more posts...": "正在加载更多文章...",
     "Loading authentication state...": "正在加载身份验证状态...",
@@ -254,6 +268,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   ja: {
     Language: "言語",
     unresolved: "未解決",
+    "Close evidence panel": "証拠パネルを閉じる",
+    "Live body warning": "現在本文の警告",
+    "Rebuilding...": "系譜を再構築しています...",
+    "Showing the newest Event Lineage nodes. Open a post to read its complete linked lineage.":
+      "最新のイベント系譜ノードを表示しています。完全な関連系譜を見るには投稿を開いてください。",
+    "View post:": "投稿を見る：",
+    "Updated after cutoff": "基準時刻後に更新",
     "Loading...": "読み込み中...",
     "Loading more posts...": "投稿をさらに読み込んでいます...",
     "Loading authentication state...": "認証状態を読み込んでいます...",
@@ -372,6 +393,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   vi: {
     Language: "Ngôn ngữ",
     unresolved: "chưa giải quyết",
+    "Close evidence panel": "Đóng bảng bằng chứng",
+    "Live body warning": "Cảnh báo nội dung hiện tại",
+    "Rebuilding...": "Đang xây dựng lại dòng sự kiện...",
+    "Showing the newest Event Lineage nodes. Open a post to read its complete linked lineage.":
+      "Đang hiển thị các nút Dòng sự kiện mới nhất. Mở bài viết để đọc toàn bộ dòng liên kết.",
+    "View post:": "Xem bài viết:",
+    "Updated after cutoff": "Đã cập nhật sau thời điểm cắt",
     "Loading...": "Đang tải...",
     "Loading more posts...": "Đang tải thêm bài viết...",
     "Loading authentication state...": "Đang tải trạng thái xác thực...",
