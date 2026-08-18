@@ -5,8 +5,10 @@ ADR 0021 reconstructs lineage. ADR 0022 starts TEPP through
 so a crash after Running does not lose the item. ADR 0035 stores a
 published TEPP accepted acknowledgement as aggregate transport
 evidence and never stamps Succeeded from that ack or from a
-LineageWeave-local completed envelope. Period-report stays another
-path. Neither start invents a theta or a calibrated report score.
+LineageWeave-local completed envelope. Accepted evidence stores
+transport-response receipt and row-write time as distinct clocks
+when those instants differ. Period-report stays another path.
+Neither start invents a theta or a calibrated report score.
 """
 
 from __future__ import annotations
@@ -128,6 +130,25 @@ def tepp_run_request(
         model_contract_version=_TEPP_MODEL_CONTRACT,
         output_profile=_TEPP_OUTPUT_PROFILE,
     )
+
+
+def tepp_accepted_clocks(
+    *,
+    started_at: datetime,
+    received_at: datetime,
+    recorded_at: datetime,
+) -> tuple[datetime, datetime]:
+    """Return receipt then row-write clocks, monotonic versus start.
+
+    ``received_at`` is the transport-response receipt. ``recorded_at``
+    is the later row-write instant. A clock that runs backward is
+    clamped forward so ``started_at <= received_at <= recorded_at``.
+    Equal instants stay equal; this helper does not invent a later
+    recorded clock.
+    """
+    receipt = received_at if received_at >= started_at else started_at
+    recorded = recorded_at if recorded_at >= receipt else receipt
+    return receipt, recorded
 
 
 def tepp_submit_outcome(
@@ -709,9 +730,16 @@ async def _persist_tepp_accepted(
     conn: asyncpg.Connection,
     analysis_run_id: str,
     evidence: TeppAcceptedEvidence,
+    received_at: datetime,
     recorded_at: datetime,
 ) -> bool:
-    """Store published accepted evidence. Missing table is not success."""
+    """Store published accepted evidence with receipt and row-write clocks.
+
+    Missing table is not success. Callers pass transport-response
+    receipt as ``received_at`` and the row-write instant as
+    ``recorded_at``. This function binds those two values as given and
+    does not invent a later recorded clock when they are equal.
+    """
     try:
         await conn.execute(
             """
@@ -726,7 +754,7 @@ async def _persist_tepp_accepted(
             evidence.run_state,
             evidence.idempotency_key,
             evidence.evidence_sha256(),
-            recorded_at,
+            received_at,
             recorded_at,
         )
     except asyncpg.UndefinedTableError:
@@ -742,7 +770,7 @@ async def _deliver_tepp_measurement(
     tepp_client: TeppClient,
 ) -> None:
     """Submit the frozen snapshot through ``tepp_client``. Never persist a theta."""
-    now = datetime.now(timezone.utc)
+    started_at = datetime.now(timezone.utc)
     request = tepp_run_request(
         idempotency_key=str(locked["idempotency_key"]),
         snapshot_sha256=str(locked["snapshot_sha256"]),
@@ -750,12 +778,16 @@ async def _deliver_tepp_measurement(
         corporate_entity_id=str(locked["corporate_entity_id"]),
     )
     status_code, failure_code, accepted = tepp_submit_outcome(tepp_client, request)
-    finished = datetime.now(timezone.utc)
-    if finished < now:
-        finished = now
+    received_at = datetime.now(timezone.utc)
+    recorded_at = datetime.now(timezone.utc)
+    receipt, recorded = tepp_accepted_clocks(
+        started_at=started_at,
+        received_at=received_at,
+        recorded_at=recorded_at,
+    )
     if accepted is not None:
         stored = await _persist_tepp_accepted(
-            conn, analysis_run_id, accepted, finished
+            conn, analysis_run_id, accepted, receipt, recorded
         )
         if not stored:
             status_code, failure_code = _FAILED, "tepp_result_not_persisted"
@@ -764,6 +796,6 @@ async def _deliver_tepp_measurement(
         analysis_run_id,
         await _next_status_ordinal(conn, analysis_run_id),
         status_code,
-        finished,
+        recorded,
         failure_code,
     )

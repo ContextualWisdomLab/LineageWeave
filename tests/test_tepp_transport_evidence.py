@@ -12,6 +12,30 @@ from lineageweave.tepp_result import (
 )
 
 
+def test_project_tepp_transport_evidence_keeps_digest_independent_of_clocks() -> None:
+    """Clock split must not change the published accepted-field digest."""
+    expected = tepp_accepted_evidence_sha256(
+        contract_version=1,
+        accepted_run_id="demo-tepp-accepted-opaque",
+        run_state="accepted",
+        idempotency_key="buyer-key",
+    )
+    later = {
+        "contract_version": 1,
+        "accepted_run_id": "demo-tepp-accepted-opaque",
+        "run_state": "accepted",
+        "idempotency_key": "buyer-key",
+        "evidence_sha256": expected,
+        "received_at": "2026-01-12T12:45:00Z",
+        "recorded_at": "2026-01-12T12:46:00Z",
+    }
+    projected = project_tepp_transport_evidence(later)
+    assert projected is not None
+    assert projected["tepp_evidence_sha256"] == expected
+    assert projected["tepp_received_at"] == "2026-01-12T12:45:00Z"
+    assert projected["tepp_recorded_at"] == "2026-01-12T12:46:00Z"
+
+
 def test_project_tepp_transport_evidence_recomputes_the_exact_digest() -> None:
     """The API digest must match an independent SHA-256 recomputation."""
     parsed = parse_tepp_accepted_evidence(
@@ -55,6 +79,18 @@ def test_project_tepp_transport_evidence_fails_closed_on_digest_mismatch() -> No
         "recorded_at": "2026-01-12T12:45:00Z",
     }
     assert project_tepp_transport_evidence(row) is None
+
+
+def test_persist_path_binds_received_and_recorded_as_distinct_arguments() -> None:
+    """Start must not write one timestamp into both accepted-evidence clocks."""
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "backend"
+        / "app"
+        / "analysis_run_start.py"
+    ).read_text(encoding="utf-8")
+    assert "received_at,\n            recorded_at," in source
+    assert source.count("recorded_at,\n            recorded_at,") == 0
 
 
 def test_tepp_accepted_query_binds_authorized_run_ids_only() -> None:

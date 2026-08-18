@@ -2038,6 +2038,34 @@ function analysisRunCorpusHint(run: AnalysisRun): string | null {
 }
 
 /**
+ * Buyer-visible TEPP receipt clock. Minute precision matches other run clocks.
+ */
+function formatTeppEvidenceClock(iso: string): string {
+  return iso.slice(0, 16).replace("T", " ");
+}
+
+/**
+ * Authorized TEPP clocks. A second clock appears only when instants differ.
+ *
+ * Equal receipt and row-write values stay one sentence so the copy does
+ * not invent a second clock. Missing recorded time is receipt only.
+ */
+function teppAcceptedClockCopy(
+  receivedAt: string,
+  recordedAt: string | undefined,
+): string {
+  const received = formatTeppEvidenceClock(receivedAt);
+  if (recordedAt === undefined) {
+    return `Received ${received}`;
+  }
+  const recorded = formatTeppEvidenceClock(recordedAt);
+  if (recorded === received) {
+    return `Received ${received}`;
+  }
+  return `Received ${received} · recorded ${recorded}`;
+}
+
+/**
  * Authorized TEPP transport evidence. Never a validated multilevel estimate.
  *
  * Completed-artifact identity, membership weights, uncertainty, and
@@ -2071,10 +2099,7 @@ function TeppMeasurementEvidence({ run }: { run: AnalysisRun }) {
           </p>
           {run.tepp_received_at && (
             <p className="post-meta">
-              Received {run.tepp_received_at.slice(0, 16).replace("T", " ")}
-              {run.tepp_recorded_at
-                ? ` · recorded ${run.tepp_recorded_at.slice(0, 16).replace("T", " ")}`
-                : ""}
+              {teppAcceptedClockCopy(run.tepp_received_at, run.tepp_recorded_at)}
             </p>
           )}
           <p className="post-meta">
