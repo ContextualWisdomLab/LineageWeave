@@ -215,6 +215,12 @@
   fill: canvastext;
 }
 
+.lineage-dag-leftover {
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  fill: color-mix(in srgb, canvastext 72%, transparent);
+}
+
 .lineage-dag-node:focus {
   outline: none;
 }

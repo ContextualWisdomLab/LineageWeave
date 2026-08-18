@@ -1,4 +1,5 @@
-import type { LineageGraph } from "./api";
+import type { LeftoverPair, LineageGraph } from "./api";
+import { leftoverBadgeText, leftoverPairsForPost } from "./leftoverCaption";
 import { layoutLineageDag } from "./lineageLayout";
 
 function truncateLabel(label: string): string {
@@ -8,9 +9,11 @@ function truncateLabel(label: string): string {
 export function LineageDag({
   graph,
   onSelectPost,
+  leftoverPairs,
 }: {
   graph: LineageGraph;
   onSelectPost: (postId: string) => void;
+  leftoverPairs?: LeftoverPair[];
 }) {
   const groups = layoutLineageDag(graph);
   if (graph.nodes.length === 0) {
@@ -50,6 +53,8 @@ export function LineageDag({
               })}
               {group.nodes.map((node) => {
                 const kind = node.is_branch_point ? "branch" : node.is_root ? "root" : "node";
+                const leftoverForNode = leftoverPairsForPost(leftoverPairs, node.id);
+                const leftoverTitles = leftoverForNode.map(leftoverBadgeText);
                 return (
                   <g
                     key={node.id}
@@ -70,7 +75,21 @@ export function LineageDag({
                     <text x={12} y={4}>
                       {truncateLabel(node.label)}
                     </text>
-                    <title>{`${node.label} — ${node.occurred_at.slice(0, 10)}`}</title>
+                    {leftoverForNode.map((pair, index) => (
+                      <text
+                        key={`${pair.pair_kind}:${pair.criterion_code}`}
+                        className="lineage-dag-leftover"
+                        x={12}
+                        y={16 + index * 12}
+                      >
+                        {leftoverBadgeText(pair)}
+                      </text>
+                    ))}
+                    <title>
+                      {leftoverTitles.length > 0
+                        ? `${node.label} — ${node.occurred_at.slice(0, 10)} — ${leftoverTitles.join(" · ")}`
+                        : `${node.label} — ${node.occurred_at.slice(0, 10)}`}
+                    </title>
                   </g>
                 );
               })}

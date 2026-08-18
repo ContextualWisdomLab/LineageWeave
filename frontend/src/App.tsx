@@ -52,6 +52,7 @@ import {
   type PostSummary,
   type RankingList,
   type RelatedNode,
+  type LeftoverPair,
   type VocEvidence,
 } from "./api";
 import { LineageDag } from "./LineageDag";
@@ -272,11 +273,13 @@ function EventLineageSection({
   graph,
   postId,
   onSelectPost,
+  leftoverPairs,
 }: {
   lineage: PostLineage | null;
   graph: LineageGraph | null;
   postId: string;
   onSelectPost?: (postId: string) => void;
+  leftoverPairs?: LeftoverPair[];
 }) {
   if (!lineage) return <p>Loading lineage...</p>;
   const scoped = graph ? subgraphForPost(graph, postId) : { nodes: [], edges: [] };
@@ -299,7 +302,7 @@ function EventLineageSection({
   return (
     <>
       {scoped.nodes.length > 0 && onSelectPost && (
-        <LineageDag graph={scoped} onSelectPost={onSelectPost} />
+        <LineageDag graph={scoped} onSelectPost={onSelectPost} leftoverPairs={leftoverPairs} />
       )}
       {hasLinks && (
         <ul className="lineage-list">
@@ -1087,6 +1090,7 @@ function PostDetailPopup({
   accessToken,
   canExtract,
   graph,
+  leftoverPairs,
   onClose,
   onSelectPost,
 }: {
@@ -1094,6 +1098,7 @@ function PostDetailPopup({
   accessToken: string;
   canExtract: boolean;
   graph: LineageGraph | null;
+  leftoverPairs?: LeftoverPair[];
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
 }) {
@@ -1247,6 +1252,7 @@ function PostDetailPopup({
                 graph={graph}
                 postId={postId}
                 onSelectPost={onSelectPost}
+                leftoverPairs={leftoverPairs}
               />
             </section>
 
@@ -1425,10 +1431,12 @@ function ReportsPanel({
   accessToken,
   canRebuild,
   onSelectPost,
+  onLeftoverPairsChange,
 }: {
   accessToken: string;
   canRebuild: boolean;
   onSelectPost: (postId: string) => void;
+  onLeftoverPairsChange: (pairs: LeftoverPair[]) => void;
 }) {
   const [grouping, setGrouping] = useState("process_unit");
   const [period, setPeriod] = useState("2026-W02");
@@ -1455,9 +1463,13 @@ function ReportsPanel({
         setPayload(reports);
         setIndex(periods);
         setComparison(compared);
+        onLeftoverPairsChange(reports.reports.flatMap((row) => row.leftover_pairs ?? []));
       })
-      .catch((err) => setError(String(err)));
-  }, [accessToken, grouping, period]);
+      .catch((err) => {
+        setError(String(err));
+        onLeftoverPairsChange([]);
+      });
+  }, [accessToken, grouping, period, onLeftoverPairsChange]);
 
   async function handleRebuild() {
     setRebuilding(true);
@@ -1472,8 +1484,10 @@ function ReportsPanel({
       setPayload(reports);
       setIndex(periods);
       setComparison(compared);
+      onLeftoverPairsChange(reports.reports.flatMap((row) => row.leftover_pairs ?? []));
     } catch (err) {
       setError(String(err));
+      onLeftoverPairsChange([]);
     } finally {
       setRebuilding(false);
     }
@@ -1658,6 +1672,7 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [graph, setGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [leftoverPairs, setLeftoverPairs] = useState<LeftoverPair[]>([]);
   const [canRebuild, setCanRebuild] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
@@ -1691,7 +1706,12 @@ function PostList({ accessToken }: { accessToken: string }) {
     <>
       <RankingsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
+      <ReportsPanel
+        accessToken={accessToken}
+        canRebuild={canRebuild}
+        onSelectPost={setSelectedPostId}
+        onLeftoverPairsChange={setLeftoverPairs}
+      />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
           <h2>Event Lineage</h2>
@@ -1703,7 +1723,13 @@ function PostList({ accessToken }: { accessToken: string }) {
         </div>
         {rebuildError && <p className="error">{rebuildError}</p>}
         {!graph && <p>Loading lineage graph...</p>}
-        {graph && <LineageDag graph={graph} onSelectPost={setSelectedPostId} />}
+        {graph && (
+          <LineageDag
+            graph={graph}
+            onSelectPost={setSelectedPostId}
+            leftoverPairs={leftoverPairs}
+          />
+        )}
       </section>
       <ul className="post-list">
         {posts.map((post) => (
@@ -1726,6 +1752,7 @@ function PostList({ accessToken }: { accessToken: string }) {
           accessToken={accessToken}
           canExtract={canRebuild}
           graph={graph}
+          leftoverPairs={leftoverPairs}
           onClose={() => setSelectedPostId(null)}
           onSelectPost={setSelectedPostId}
         />

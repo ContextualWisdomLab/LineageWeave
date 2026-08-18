@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.91.0] - 2026-08-18
+
+### Added
+
+- Event Lineage nodes that are leftover pairs name the leftover
+  criterion (ADR 0032). After `make seed`, the leftover node reads
+  **Closest leftover · sales-lead** under the title; click opens
+  that post. A node that is not a leftover pair stays unmarked.
+  Never invent a fused score or a theta.
+
 ## [0.75.0] - 2026-08-17
 
 ### Added

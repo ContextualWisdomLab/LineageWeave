@@ -56,6 +56,7 @@ describe("App, authenticated", () => {
   function stubBackend(options?: {
     admin?: boolean;
     calendarCommitments?: unknown[];
+    reportsUnavailable?: boolean;
     rankings?: {
       status?: "accepted" | "unavailable";
       status_reason?: string | null;
@@ -225,6 +226,14 @@ describe("App, authenticated", () => {
             status: rankings.status,
             status_reason: rankings.status_reason,
             rankings: rankings.rankings ?? [],
+          }),
+        );
+      }
+      if (options?.reportsUnavailable && url.includes("/api/reports/")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ detail: "Period report unavailable" }), {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
           }),
         );
       }
@@ -806,6 +815,31 @@ describe("App, authenticated", () => {
     render(<App />);
     await userEvent.click(await screen.findByLabelText("Open post: Public post"));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
+  it("names leftover criterion on the matching Event Lineage node", async () => {
+    stubBackend();
+    render(<App />);
+
+    const leftoverNode = await screen.findByLabelText("Open post: Public post");
+    await waitFor(() => expect(leftoverNode).toHaveTextContent("Closest leftover · sales-lead"));
+    expect(leftoverNode).toHaveAccessibleName("Open post: Public post");
+    const unmarked = screen.getByLabelText("Open post: Unrelated: annual account review");
+    expect(unmarked).not.toHaveTextContent("leftover");
+
+    await userEvent.click(leftoverNode);
+
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
+  it("clears leftover badges on the DAG when the report fetch fails", async () => {
+    stubBackend({ reportsUnavailable: true });
+    render(<App />);
+
+    const leftoverNode = await screen.findByLabelText("Open post: Public post");
+    await waitFor(() => expect(screen.getByLabelText("A-100 lineage")).toBeInTheDocument());
+    expect(leftoverNode).not.toHaveTextContent("leftover");
+    expect(leftoverNode).toHaveAccessibleName("Open post: Public post");
   });
 
   it("fetches and renders the post list, then opens a detail popup on click", async () => {
