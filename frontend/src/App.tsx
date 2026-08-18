@@ -1661,6 +1661,19 @@ function PostDetailPopup({
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
+            {post.known_at ? (
+              <CutoffKnownBody
+                title={post.known_at.post_title}
+                body={post.known_at.post_body}
+                writtenAt={post.known_at.written_at}
+                cutoff={post.known_at.as_of}
+              />
+            ) : null}
+            {liveBodyWarning ? (
+              <p className="popup-live-body-warning" role="status" aria-label={t("Live body warning")}>
+                {liveBodyWarning}
+              </p>
+            ) : null}
             <section className="popup-section post-source-body" aria-label={t("Post body")}>
               <h3>{t("Post body")}</h3>
               {post.post_body.trim() ? (
@@ -1769,19 +1782,6 @@ function PostDetailPopup({
                 <p className="post-meta">{t("Raw source codes are shown; no state label was inferred.")}</p>
               </section>
             )}
-            {post.known_at ? (
-              <CutoffKnownBody
-                title={post.known_at.post_title}
-                body={post.known_at.post_body}
-                writtenAt={post.known_at.written_at}
-                cutoff={post.known_at.as_of}
-              />
-            ) : null}
-            {liveBodyWarning ? (
-              <p className="popup-live-body-warning" role="status" aria-label={t("Live body warning")}>
-                {liveBodyWarning}
-              </p>
-            ) : null}
 
 					<FiveW1H slots={fiveW1H?.slots ?? null} />
 
