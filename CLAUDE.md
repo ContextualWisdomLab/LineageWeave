@@ -44,6 +44,9 @@ after cutoff were rewritten after the run; the opened body names
 both clocks and shows **Body this run knew** beside the live
 rewrite. Compare those two texts before treating the live body as
 reconstructed evidence (ADR 0016 / 0025).
+The January 12 Demo Corp lineage and TEPP runs list Demo public post
+and do not list Late Demo public post (2026-01-13). The live post
+list still shows Late Demo.
 `POST /api/analysis-runs` records Pending lineage only on an
 authorized cutoff capture (ADR 0017). TEPP and period-report kinds
 are 422. The Request button waits until affiliated corps load; choose
