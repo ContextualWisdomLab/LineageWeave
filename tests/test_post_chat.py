@@ -174,6 +174,7 @@ def test_chat_render_includes_persisted_graph_facts_with_source_evidence() -> No
             'node_person "Ada West" --edge_affiliation--> '
             'node_corporate_entity "Demo Corp" [evidence_post_id=post-graph]',
         ),
+        evidence_facts=("source project code=PROJECT-HINT [hint_only]",),
     )
 
     rendered = _render_sources_block([source])
@@ -181,6 +182,8 @@ def test_chat_render_includes_persisted_graph_facts_with_source_evidence() -> No
     assert "Persisted Knowledge Graph facts" in rendered
     assert "Demo Corp" in rendered
     assert "evidence_post_id=post-graph" in rendered
+    assert "Persisted source/semantic evidence" in rendered
+    assert "PROJECT-HINT" in rendered
 
 
 def test_graph_facts_are_hydrated_from_visible_evidence_posts(monkeypatch) -> None:

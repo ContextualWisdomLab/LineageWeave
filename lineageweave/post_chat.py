@@ -57,12 +57,13 @@ def normalize_chat_question(question: str) -> str:
 
 @dataclass(frozen=True)
 class ChatSourceDocument:
-    """One numbered post and its persisted graph facts for chat reasoning."""
+    """One numbered post and its persisted evidence for chat reasoning."""
 
     post_id: str
     post_title: str
     post_body: str
     graph_facts: tuple[str, ...] = field(default_factory=tuple)
+    evidence_facts: tuple[str, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
@@ -150,15 +151,22 @@ def _render_sources_block(sources: list[ChatSourceDocument]) -> str:
     blocks: list[str] = []
     for i, source in enumerate(sources, start=1):
         graph_block = ""
+        evidence_block = ""
         if source.graph_facts:
             graph_block = (
                 "\nPersisted Knowledge Graph facts (use only as evidence; each fact "
                 "names its evidence post_id):\n"
                 + "\n".join(f"- {fact}" for fact in source.graph_facts)
             )
+        if source.evidence_facts:
+            evidence_block = (
+                "\nPersisted source/semantic evidence (use as evidence; do not treat "
+                "raw source hints as resolved ontology assertions):\n"
+                + "\n".join(f"- {fact}" for fact in source.evidence_facts)
+            )
         blocks.append(
             f"[Source {i}] (post_id={source.post_id})\n"
-            f"Title: {source.post_title}\n{source.post_body}{graph_block}"
+            f"Title: {source.post_title}\n{source.post_body}{graph_block}{evidence_block}"
         )
     return "\n\n".join(blocks)
 

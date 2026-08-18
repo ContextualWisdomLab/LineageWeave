@@ -123,6 +123,74 @@ async def _graph_facts_for_posts(
     return tuple(dict.fromkeys(facts))
 
 
+_SOURCE_HINT_FIELDS = (
+    ("source_system_code", "source system"),
+    ("source_record_key", "source record key"),
+    ("source_author_code", "source author code"),
+    ("source_author_name", "source author name"),
+    ("source_company_code", "source company code"),
+    ("source_process_unit_code", "source business unit (PU)"),
+    ("source_sales_pool_code", "source sales pool"),
+    ("source_customer_code", "source customer code"),
+    ("source_project_code", "source project code"),
+)
+
+
+def _source_hint_facts(row: Any) -> tuple[str, ...]:
+    """Render raw source fields as explicitly weak, column-level evidence."""
+    facts: list[str] = []
+    for field_name, label in _SOURCE_HINT_FIELDS:
+        value = row.get(field_name)
+        if value is not None and str(value).strip():
+            facts.append(
+                f"{label}={str(value).strip()} [provenance=source_post.{field_name}; hint_only]"
+            )
+    return tuple(facts)
+
+
+async def _semantic_facts_for_posts(
+    conn: asyncpg.Connection, post_ids: list[str]
+) -> dict[str, tuple[str, ...]]:
+    """Load persisted project/role/Keyman facts for already-visible posts."""
+    if not post_ids:
+        return {}
+    rows = await conn.fetch(
+        """
+        select post_id::text as post_id,
+               'project: ' || left(project_name, 200)
+                   || ' | evidence: ' || left(evidence_text, 500)
+                   || ' | ontology_iri: ' || ontology_iri
+                   || ' | extraction_method: ' || extraction_method
+                   || ' | confidence: ' || confidence::text
+                   || ' [provenance=post_project_mention]' as fact
+          from post_project_mention
+         where post_id = any($1::uuid[])
+        union all
+        select post_id::text as post_id,
+               'actor: ' || left(actor_name, 200)
+                   || ' | responsibility: ' || left(responsibility, 500)
+                   || coalesce(' | affiliation: ' || left(affiliated_organization_name, 200), '')
+                   || ' [provenance=post_summary_role]' as fact
+          from post_summary_role
+         where post_id = any($1::uuid[])
+        union all
+        select mention.post_id::text as post_id,
+               'Keyman mention: ' || left(person.person_name, 200)
+                   || coalesce(' | context: ' || left(mention.mention_context, 500), '')
+                   || ' [provenance=post_person_mention]' as fact
+          from post_person_mention mention
+          join cataloged_person person on person.person_id = mention.person_id
+         where mention.post_id = any($1::uuid[])
+         order by post_id, fact
+        """,
+        post_ids,
+    )
+    facts: dict[str, list[str]] = {}
+    for row in rows:
+        facts.setdefault(str(row["post_id"]), []).append(row["fact"])
+    return {post_id: tuple(dict.fromkeys(values)) for post_id, values in facts.items()}
+
+
 async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> LinkedPostIds:
     """Both link kinds for `post_id`, NOT yet ABAC-filtered -- callers must
     check `can_see_post` on each id before showing or using it as chat
@@ -187,15 +255,22 @@ async def gather_chat_sources(
         vision_client = NullImageContentClient()
 
     this_post = await conn.fetchrow(
-        "select post_id, post_title, post_body from source_post where post_id = $1", post_id
+        "select post_id, post_title, post_body, source_system_code, source_record_key, "
+        "source_author_code, source_author_name, source_company_code, "
+        "source_process_unit_code, source_sales_pool_code, source_customer_code, "
+        "source_project_code from source_post where post_id = $1",
+        post_id,
     )
     if this_post is None:
         return []
+    source_id = str(this_post["post_id"])
+    semantic_facts = await _semantic_facts_for_posts(conn, [source_id])
     sources = [
         ChatSourceDocument(
-            str(this_post["post_id"]),
+            source_id,
             this_post["post_title"],
             normalize_post_body(this_post["post_body"], vision_client=vision_client).text,
+            evidence_facts=_source_hint_facts(this_post) + semantic_facts.get(source_id, ()),
         )
     ]
 
@@ -205,7 +280,10 @@ async def gather_chat_sources(
         return sources
 
     rows = await conn.fetch(
-        "select post_id, post_title, post_body, visibility_code, corporate_entity_id "
+        "select post_id, post_title, post_body, visibility_code, corporate_entity_id, "
+        "source_system_code, source_record_key, source_author_code, source_author_name, "
+        "source_company_code, source_process_unit_code, source_sales_pool_code, "
+        "source_customer_code, source_project_code "
         "from source_post where post_id = any($1::uuid[])",
         list(candidate_ids),
     )
@@ -216,12 +294,14 @@ async def gather_chat_sources(
             visible_rows.append(row)
             visible_source_ids.append(str(row["post_id"]))
 
+    semantic_facts = await _semantic_facts_for_posts(conn, visible_source_ids)
     graph_facts = await _graph_facts_for_posts(conn, visible_source_ids)
     sources[0] = ChatSourceDocument(
         sources[0].post_id,
         sources[0].post_title,
         sources[0].post_body,
         graph_facts=graph_facts,
+        evidence_facts=sources[0].evidence_facts,
     )
     for row in visible_rows:
         sources.append(
@@ -229,6 +309,8 @@ async def gather_chat_sources(
                 str(row["post_id"]),
                 row["post_title"],
                 normalize_post_body(row["post_body"], vision_client=vision_client).text,
+                evidence_facts=_source_hint_facts(row)
+                + semantic_facts.get(str(row["post_id"]), ()),
             )
         )
 
@@ -283,11 +365,41 @@ async def gather_global_chat_sources(
             """
             select post_id
               from source_post
-             where post_title ilike '%' || $1 || '%'
-                or lower(left(source_post_search_text(post_body), 16384))
+            where post_title ilike '%' || $1 || '%'
+               or lower(left(source_post_search_text(post_body), 16384))
                        like '%' || lower($1) || '%'
-                or to_tsvector('simple', source_post_search_text(post_body))
+               or to_tsvector('simple', source_post_search_text(post_body))
                        @@ plainto_tsquery('simple', $1)
+               or concat_ws(' ', source_system_code, source_record_key,
+                                source_author_code, source_author_name,
+                                source_company_code, source_process_unit_code,
+                                source_sales_pool_code, source_customer_code,
+                                source_project_code) ilike '%' || $1 || '%'
+               or similarity(lower(coalesce(source_record_key, '')), lower($1)) >= 0.78
+               or exists (
+                    select 1 from post_project_mention project
+                     where project.post_id = source_post.post_id
+                       and (project.project_name ilike '%' || $1 || '%'
+                            or project.evidence_text ilike '%' || $1 || '%'
+                            or project.ontology_iri ilike '%' || $1 || '%'
+                            or (char_length($1) >= 3 and word_similarity(lower($1), lower(project.project_name)) >= 0.45))
+               )
+               or exists (
+                    select 1 from post_summary_role role
+                     where role.post_id = source_post.post_id
+                       and (role.actor_name ilike '%' || $1 || '%'
+                            or role.responsibility ilike '%' || $1 || '%'
+                            or coalesce(role.affiliated_organization_name, '') ilike '%' || $1 || '%'
+                            or (char_length($1) >= 3 and word_similarity(lower($1), lower(role.actor_name)) >= 0.45))
+               )
+               or exists (
+                    select 1
+                      from post_person_mention mention
+                      join cataloged_person person on person.person_id = mention.person_id
+                     where mention.post_id = source_post.post_id
+                       and (person.person_name ilike '%' || $1 || '%'
+                            or (char_length($1) >= 3 and word_similarity(lower($1), lower(person.person_name)) >= 0.45))
+               )
              order by created_at desc, post_id desc
              limit 32
             """,
@@ -297,7 +409,10 @@ async def gather_global_chat_sources(
     candidate_ids = list(dict.fromkeys(candidate_ids))
     rows = await conn.fetch(
         """
-        select post_id, post_title, post_body, visibility_code, corporate_entity_id
+        select post_id, post_title, post_body, visibility_code, corporate_entity_id,
+               source_system_code, source_record_key, source_author_code, source_author_name,
+               source_company_code, source_process_unit_code, source_sales_pool_code,
+               source_customer_code, source_project_code
           from source_post
          where visibility_code = 'public'
             or corporate_entity_id::text = any($1::text[])
@@ -311,6 +426,7 @@ async def gather_global_chat_sources(
     )
     visible_rows = [row for row in rows if can_see_post(row)]
     visible_ids = [str(row["post_id"]) for row in visible_rows]
+    semantic_facts = await _semantic_facts_for_posts(conn, visible_ids)
     graph_facts = (await _graph_facts_for_posts(conn, visible_ids))[:16]
     sources: list[ChatSourceDocument] = []
     for index, row in enumerate(visible_rows):
@@ -328,6 +444,8 @@ async def gather_global_chat_sources(
                 row["post_title"],
                 normalized_body,
                 graph_facts=graph_facts if index == 0 else (),
+                evidence_facts=_source_hint_facts(row)
+                + semantic_facts.get(str(row["post_id"]), ()),
             )
         )
     return sources

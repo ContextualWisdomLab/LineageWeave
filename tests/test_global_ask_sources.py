@@ -91,3 +91,42 @@ def test_global_sources_prioritize_question_terms_and_bound_long_bodies() -> Non
     assert source_args[2] == 8
     assert sources[1].post_body.startswith("x" * 4000)
     assert "Source body truncated for Global Ask" in sources[1].post_body
+
+
+def test_global_sources_carry_source_and_semantic_evidence() -> None:
+    rows = [
+        {
+            "post_id": "semantic-post",
+            "post_title": "Operational note",
+            "post_body": "No project name in this body.",
+            "visibility_code": "public",
+            "corporate_entity_id": None,
+            "source_project_code": "PROJECT-HINT",
+            "source_record_key": "SYNTHETIC-KEY-001",
+        }
+    ]
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            if "from source_post" in query:
+                return rows
+            if "from post_project_mention" in query:
+                return [
+                    {
+                        "post_id": "semantic-post",
+                        "fact": "project: semantic project | ontology_iri: urn:test",
+                    }
+                ]
+            return []
+
+    sources = __import__("asyncio").run(
+        gather_global_chat_sources(
+            FakeConnection(), lambda row: True, question="PROJECT-HINT", limit=1
+        )
+    )
+
+    assert len(sources) == 1
+    assert any(
+        "source project code=PROJECT-HINT" in fact for fact in sources[0].evidence_facts
+    )
+    assert sources[0].evidence_facts[-1].startswith("project: semantic project")
