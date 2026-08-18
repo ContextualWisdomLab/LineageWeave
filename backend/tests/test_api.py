@@ -1065,6 +1065,19 @@ def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> No
     )
 
 
+def test_customer_master_returns_authorized_catalog_contract(client, demo_analyst_token) -> None:
+    response = client.get(
+        "/api/customer-master",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body) == {"corporate_entities", "keymen"}
+    entity = next(item for item in body["corporate_entities"] if item["entity_name"] == "Test Corp")
+    assert {"corporate_entity_id", "corporate_entity_code", "entity_name", "entity_level_code", "parent_entity_id"} <= set(entity)
+    assert isinstance(body["keymen"], list)
+
+
 def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, demo_analyst_token, seeded_db) -> None:
     response = client.get("/api/posts", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200

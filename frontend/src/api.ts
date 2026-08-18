@@ -258,6 +258,32 @@ export interface CorporateEntityRef {
   entity_name: string;
 }
 
+export interface CustomerMasterEntity extends CorporateEntityRef {
+  corporate_entity_code: string;
+  entity_level_code: string;
+  parent_entity_id: string | null;
+}
+
+export interface CustomerMasterKeymanAffiliation {
+  organization_name: string;
+  corporate_entity_id: string | null;
+  entity_name: string | null;
+  role_title: string | null;
+}
+
+export interface CustomerMasterKeyman {
+  person_id: string;
+  person_name: string;
+  person_side_code: string;
+  last_known_job_title: string | null;
+  affiliations: CustomerMasterKeymanAffiliation[];
+}
+
+export interface CustomerMasterResponse {
+  corporate_entities: CustomerMasterEntity[];
+  keymen: CustomerMasterKeyman[];
+}
+
 export interface CurrentUser {
   user_account_id: string;
   display_name: string;
@@ -267,6 +293,10 @@ export interface CurrentUser {
 
 export function fetchMe(accessToken: string): Promise<CurrentUser> {
   return backendFetch<CurrentUser>("/api/me", accessToken);
+}
+
+export function fetchCustomerMaster(accessToken: string): Promise<CustomerMasterResponse> {
+  return backendFetch<CustomerMasterResponse>("/api/customer-master", accessToken);
 }
 
 export function rebuildLineage(accessToken: string): Promise<{ edge_count: number }> {

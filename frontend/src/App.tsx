@@ -12,6 +12,7 @@ import {
   fetchAnalysisRun,
   fetchAnalysisRuns,
   fetchCalendar,
+  fetchCustomerMaster,
   fetchLineageGraph,
   fetchMe,
   fetchPost,
@@ -43,6 +44,7 @@ import {
   type ChatAnswer,
   type ChatExchange,
   type CorporateEntityRef,
+  type CustomerMasterResponse,
   type Counterparty,
   type EvaluationResponse,
   type IssueTicket,
@@ -3105,17 +3107,44 @@ function PostList({
   );
 }
 
-function CustomerMasterPanel({ accessToken }: { accessToken: string }) {
-  const [entities, setEntities] = useState<CorporateEntityRef[] | null>(null);
+function CustomerMasterPanel({
+  accessToken,
+  onOpenPost,
+}: {
+  accessToken: string;
+  onOpenPost: (postId: string) => void;
+}) {
+  const [master, setMaster] = useState<CustomerMasterResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
+  const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
+  const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
 
   useEffect(() => {
-    setEntities(null);
+    setMaster(null);
     setError(null);
-    fetchMe(accessToken)
-      .then((me) => setEntities(me.corporate_entities ?? []))
+    fetchCustomerMaster(accessToken)
+      .then(setMaster)
       .catch(() => setError(t("Customer master could not be loaded.")));
   }, [accessToken]);
+
+  async function toggleEntity(entityId: string) {
+    if (expandedEntityId === entityId) {
+      setExpandedEntityId(null);
+      return;
+    }
+    setExpandedEntityId(entityId);
+    if (relatedByEntity[entityId]) return;
+    setRelatedLoading(entityId);
+    try {
+      const response = await fetchRelatedEntity(accessToken, entityId);
+      setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
+    } catch {
+      setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
+    } finally {
+      setRelatedLoading(null);
+    }
+  }
 
   return (
     <section className="buyer-destination" aria-labelledby="customer-master-heading">
@@ -3123,17 +3152,65 @@ function CustomerMasterPanel({ accessToken }: { accessToken: string }) {
       <h2 id="customer-master-heading">{t("Customer master")}</h2>
       <p className="buyer-destination-intro">{t("Customer entities available to this account.")}</p>
       {error ? <p className="error">{error}</p> : null}
-      {entities === null && !error ? <p>{t("Loading customer master...")}</p> : null}
-      {entities?.length === 0 ? <p className="popup-placeholder">{t("No customer entities are connected to this account.")}</p> : null}
-      {entities && entities.length > 0 ? (
+      {master === null && !error ? <p>{t("Loading customer master...")}</p> : null}
+      {master?.corporate_entities.length === 0 ? (
+        <p className="popup-placeholder">{t("No customer entities are connected to this account.")}</p>
+      ) : null}
+      {master && master.corporate_entities.length > 0 ? (
         <ul className="customer-master-list">
-          {entities.map((entity) => (
+          {master.corporate_entities.map((entity) => {
+            const relatedPosts = (relatedByEntity[entity.corporate_entity_id] ?? []).filter(
+              (node) => node.node_type_code === NODE_POST,
+            );
+            return (
             <li key={entity.corporate_entity_id}>
-              <strong>{entity.entity_name}</strong>
-              <span>{t("Authorized customer entity")}</span>
+              <button
+                type="button"
+                className="customer-entity-button"
+                aria-expanded={expandedEntityId === entity.corporate_entity_id}
+                onClick={() => toggleEntity(entity.corporate_entity_id)}
+              >
+                <strong>{entity.entity_name}</strong>
+                <span>{entity.corporate_entity_code} · {entity.entity_level_code}</span>
+              </button>
+              {expandedEntityId === entity.corporate_entity_id ? (
+                <div className="customer-related-posts">
+                  {relatedLoading === entity.corporate_entity_id ? <p>{t("Loading related posts...")}</p> : null}
+                  {relatedLoading !== entity.corporate_entity_id && relatedPosts.length === 0 ? (
+                    <p className="popup-placeholder">{t("No linked posts yet.")}</p>
+                  ) : null}
+                  {relatedPosts.length > 0 ? (
+                    <ul aria-label={`${t("Related posts")}: ${entity.entity_name}`}>
+                      {relatedPosts.map((node) => (
+                        <li key={node.node_id}>
+                          <button type="button" className="related-post-card" onClick={() => onOpenPost(node.node_id)}>
+                            <strong>{node.label ?? node.node_id}</strong>
+                            <span>{t("Open record")}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
             </li>
-          ))}
+            );
+          })}
         </ul>
+      ) : null}
+      {master && master.keymen.length > 0 ? (
+        <section className="customer-keymen" aria-labelledby="customer-keymen-heading">
+          <h3 id="customer-keymen-heading">{t("Keyman")}</h3>
+          <ul className="customer-master-list">
+            {master.keymen.map((person) => (
+              <li key={person.person_id}>
+                <strong>{person.person_name}</strong>
+                <span>{person.last_known_job_title ?? person.person_side_code}</span>
+                <span>{person.affiliations.map((affiliation) => affiliation.entity_name ?? affiliation.organization_name).join(", ")}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
     </section>
   );
@@ -3225,7 +3302,15 @@ export default function App() {
           onPostOpened={() => setPostToOpen(null)}
         />
       ) : null}
-      {destination === "customers" ? <CustomerMasterPanel accessToken={accessToken} /> : null}
+      {destination === "customers" ? (
+        <CustomerMasterPanel
+          accessToken={accessToken}
+          onOpenPost={(postId) => {
+            setPostToOpen(postId);
+            setDestination("board");
+          }}
+        />
+      ) : null}
       {destination === "calendar" ? (
         <CalendarPanel
           accessToken={accessToken}

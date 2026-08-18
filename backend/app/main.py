@@ -382,6 +382,88 @@ async def read_me(
     }
 
 
+@app.get("/api/customer-master")
+async def read_customer_master(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return the authorized customer catalog and its cataloged Keymen."""
+    _require_post_read(account)
+    if not account.corporate_entity_ids:
+        return {"corporate_entities": [], "keymen": []}
+
+    async with pool.acquire() as conn:
+        entity_rows = await conn.fetch(
+            """
+            select corporate_entity_id, corporate_entity_code, entity_name,
+                   entity_level_code, parent_entity_id
+              from corporate_entity
+             where corporate_entity_id = any($1::uuid[])
+             order by entity_name
+            """,
+            list(account.corporate_entity_ids),
+        )
+        keyman_rows = await conn.fetch(
+            """
+            select person.person_id, person.person_name, person.person_side_code,
+                   person.last_known_job_title,
+                   affiliation.affiliated_organization_name,
+                   affiliation.affiliated_corporate_entity_id,
+                   affiliation.role_title,
+                   entity.entity_name
+              from cataloged_person person
+              join person_affiliation affiliation on affiliation.person_id = person.person_id
+              left join corporate_entity entity
+                on entity.corporate_entity_id = affiliation.affiliated_corporate_entity_id
+             where affiliation.affiliated_corporate_entity_id = any($1::uuid[])
+             order by person.person_name, affiliation.affiliated_organization_name
+            """,
+            list(account.corporate_entity_ids),
+        )
+
+    keymen_by_id: dict[str, dict[str, Any]] = {}
+    for row in keyman_rows:
+        person_id = str(row["person_id"])
+        keyman = keymen_by_id.setdefault(
+            person_id,
+            {
+                "person_id": person_id,
+                "person_name": row["person_name"],
+                "person_side_code": row["person_side_code"],
+                "last_known_job_title": row["last_known_job_title"],
+                "affiliations": [],
+            },
+        )
+        keyman["affiliations"].append(
+            {
+                "organization_name": row["affiliated_organization_name"],
+                "corporate_entity_id": (
+                    str(row["affiliated_corporate_entity_id"])
+                    if row["affiliated_corporate_entity_id"] is not None
+                    else None
+                ),
+                "entity_name": row["entity_name"],
+                "role_title": row["role_title"],
+            }
+        )
+
+    return {
+        "corporate_entities": [
+            {
+                "corporate_entity_id": str(row["corporate_entity_id"]),
+                "corporate_entity_code": row["corporate_entity_code"],
+                "entity_name": row["entity_name"],
+                "entity_level_code": row["entity_level_code"],
+                "parent_entity_id": (
+                    str(row["parent_entity_id"]) if row["parent_entity_id"] is not None else None
+                ),
+            }
+            for row in entity_rows
+        ],
+        "keymen": list(keymen_by_id.values()),
+    }
+
+
 @app.get("/api/lineage")
 async def read_lineage_graph(
     limit: int = Query(500, ge=1, le=2000),
