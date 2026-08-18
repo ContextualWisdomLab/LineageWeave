@@ -96,7 +96,7 @@ def test_contextual_chat_client_uses_route_mode_and_evidence_prompt(monkeypatch:
         captured.update({"url": url, "payload": payload, "headers": headers, "timeout": timeout})
         return {
             "choices": [
-                {"message": {"content": '{"answer_text":"supported", "cited_source_numbers":[1, 9]}'}},
+                {"message": {"content": "supported\nCITED SOURCES: 1, 9"}},
             ]
         }
 

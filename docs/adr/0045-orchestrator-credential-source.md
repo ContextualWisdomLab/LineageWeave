@@ -26,14 +26,14 @@ the canonical gateway variables; local Compose reads `~/.env` and accepts the
 compatibility aliases. No raw provider credential or token is printed or
 committed.
 
-The pinned orchestrator's provider output budget is 2048 tokens by default for
-external gateways. When the provider URL is exactly the explicitly permitted
-local MLX endpoint `http://host.docker.internal:8080` (with or without `/v1`)
-and `LINEAGEWEAVE_ALLOW_LOCAL_LLM_HTTP=1` is enabled, the bootstrap defaults to
-256 tokens so cold-start inference does not occupy the single provider worker
-until the request times out. `LLM_GATEWAY_MAX_OUTPUT_TOKENS` may override either
-default within 64-4096; the call still crosses contextual-orchestrator and is
-never sent directly from LineageWeave.
+The pinned orchestrator's product Compose default is 4096 output tokens for
+external and local gateways. This is required because Buyer summary and Ask
+contracts return evidence arrays, and a 256-token local-MLX response can be
+cut off before its JSON closes. `LLM_GATEWAY_MAX_OUTPUT_TOKENS` may override
+the default within 64-4096; the call still crosses contextual-orchestrator and
+is never sent directly from LineageWeave. A deployment that intentionally
+chooses a lower budget must accept an unavailable structured result rather
+than treating truncated prose as evidence.
 
 The explicitly permitted local MLX Gemma route also receives
 `chat_template_kwargs.enable_thinking=false` at the orchestrator provider

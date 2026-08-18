@@ -1747,12 +1747,18 @@ async def read_post_summary(
         normalized_body = normalized.text
         context_hints = await _load_post_semantic_hints(conn, post_id)
         summarize_with_hints = getattr(client, "summarize_with_hints", None)
-        if callable(summarize_with_hints):
-            summary = await asyncio.to_thread(
-                summarize_with_hints, post["post_title"], normalized_body, context_hints
-            )
-        else:
-            summary = await asyncio.to_thread(client.summarize, post["post_title"], normalized_body)
+        try:
+            if callable(summarize_with_hints):
+                summary = await asyncio.to_thread(
+                    summarize_with_hints, post["post_title"], normalized_body, context_hints
+                )
+            else:
+                summary = await asyncio.to_thread(client.summarize, post["post_title"], normalized_body)
+        except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
         return await persist_post_summary(
             conn,
             post_id,
@@ -1852,7 +1858,13 @@ async def chat_about_post(
         sources = await gather_chat_sources(
             conn, post_id, lambda row: _can_see_post(account, row), vision_client=_vision_client()
         )
-    answer = client.answer(question, sources)
+    try:
+        answer = await asyncio.to_thread(client.answer, question, sources)
+    except (HttpClientError, KeyError, OSError, ValueError) as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
+        ) from exc
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:
         await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
@@ -1887,7 +1899,6 @@ async def ask_agent(
             conn,
             lambda row: _can_see_post(account, row),
             account.corporate_entity_ids,
-            vision_client=_vision_client(),
             question=question,
         )
     if not sources:

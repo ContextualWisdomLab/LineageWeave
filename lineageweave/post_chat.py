@@ -123,6 +123,8 @@ Answer the question below using ONLY the numbered source documents
 provided -- do not use outside knowledge, and do not answer if the
 sources don't actually support an answer (say so instead of guessing).
 
+Do not output a reasoning trace. Return the JSON object immediately.
+
 For every part of your answer, track which source number(s) it came from.
 
 Reply with ONLY a JSON object (no markdown fences, no prose) with exactly
@@ -139,6 +141,19 @@ Question: {question}
 
 _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 
+_CHAT_REQUEST_PROMPT_TEMPLATE = """\
+Answer the question using ONLY the numbered source documents below. Do not
+use outside knowledge or guess. Be concise and preserve the evidence facts.
+Write the answer first, then a new line exactly beginning CITED SOURCES:
+followed by the 1-based source numbers separated by commas. Cite every
+source the answer used; write NONE when the sources do not support an answer.
+
+Sources:
+{sources_block}
+
+Question: {question}
+"""
+
 
 def _strip_code_fence(content: str) -> str:
     """Implement the _strip_code_fence operation for this channel."""
@@ -150,6 +165,9 @@ def _render_sources_block(sources: list[ChatSourceDocument]) -> str:
     """Implement the _render_sources_block operation for this channel."""
     blocks: list[str] = []
     for i, source in enumerate(sources, start=1):
+        body = source.post_body
+        if len(body) > 4000:
+            body = body[:4000] + "\n[Source body truncated; open the cited post for the full body.]"
         graph_block = ""
         evidence_block = ""
         if source.graph_facts:
@@ -166,9 +184,32 @@ def _render_sources_block(sources: list[ChatSourceDocument]) -> str:
             )
         blocks.append(
             f"[Source {i}] (post_id={source.post_id})\n"
-            f"Title: {source.post_title}\n{source.post_body}{graph_block}{evidence_block}"
+            f"Title: {source.post_title}\n{body}{graph_block}{evidence_block}"
         )
     return "\n\n".join(blocks)
+
+
+def _parse_plain_chat_response(
+    content: str, sources: list[ChatSourceDocument]
+) -> ChatAnswer | None:
+    """Parse the provider-compatible answer/citation marker."""
+    plain = _strip_code_fence(content).strip()
+    match = re.search(r"(?im)^\s*CITED SOURCES\s*:\s*(.*)$", plain)
+    if match is None:
+        return None
+    answer_text = re.sub(r"(?im)^\s*ANSWER\s*:\s*", "", plain[: match.start()]).strip()
+    if not answer_text:
+        return None
+    cited_post_ids: list[str] = []
+    raw_citations = match.group(1).strip()
+    if raw_citations.upper() != "NONE":
+        for raw_number in re.findall(r"\d+", raw_citations):
+            source_index = int(raw_number) - 1
+            if 0 <= source_index < len(sources):
+                post_id = sources[source_index].post_id
+                if post_id not in cited_post_ids:
+                    cited_post_ids.append(post_id)
+    return ChatAnswer(answer_text=answer_text, cited_post_ids=tuple(cited_post_ids))
 
 
 def parse_chat_response(content: str, sources: list[ChatSourceDocument]) -> ChatAnswer | None:
@@ -214,7 +255,7 @@ class ContextualOrchestratorPostChatClient:
     available = True
 
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "high", timeout: float = 180.0
+        self, base_url: str, api_key: str, *, reasoning_effort: str = "none", timeout: float = 180.0
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -223,7 +264,7 @@ class ContextualOrchestratorPostChatClient:
 
     def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:
         """Answer the question using the supplied source documents."""
-        prompt = _CHAT_PROMPT_TEMPLATE.format(
+        prompt = _CHAT_REQUEST_PROMPT_TEMPLATE.format(
             sources_block=_render_sources_block(sources), question=question
         )
         body = post_json(
@@ -237,7 +278,7 @@ class ContextualOrchestratorPostChatClient:
             timeout=self._timeout,
         )
         content = body["choices"][0]["message"]["content"]
-        answer = parse_chat_response(content, sources)
+        answer = _parse_plain_chat_response(content, sources)
         if answer is None:
             raise ValueError(f"chat response did not match the required format: {content!r}")
         return answer

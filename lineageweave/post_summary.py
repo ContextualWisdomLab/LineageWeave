@@ -163,6 +163,8 @@ _SUMMARY_PROMPT_TEMPLATE = """\
 Read the post below (it may be in English, Korean, or mixed) and produce
 four things:
 
+Do not output a reasoning trace. Return the JSON object immediately.
+
 1. A Korean-language, evidence-grounded summary in 3-5 sentences. It must
    answer the supported parts of 5W1H: who acted, what happened, when and
    where it happened, why or what goal was involved, and how it progressed or
@@ -202,6 +204,10 @@ Structured context hints (hints, not proof): {context_hints}
 Treat a customer value such as 기타, 미등록고객, unknown, or other as a
 weak hint; it cannot confirm a project by itself.
 
+Keep the response compact: use at most 5 summary sentences, 6 key events, 8
+roles, and 8 project mentions. Keep every event, responsibility, and evidence
+phrase short. Return an empty array when the post supports no item.
+
 Reply with ONLY a JSON object (no markdown fences, no prose) with exactly
 these fields:
   "korean_summary": string
@@ -223,11 +229,53 @@ Post body: {body}
 
 _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 
+# The full legacy contract remains parseable for persisted/test responses. The
+# local provider is more reliable when the two nested-array groups are split.
+_SUMMARY_REQUEST_PROMPT_TEMPLATE = """\
+Write a concise Korean 5W1H summary in at most four sentences using only
+the evidence below. State who, what, when, where, why, and how when
+supported; write "본문에 없음" for a missing dimension. Do not invent
+facts or a generic report sentence.
+
+Then write a new line beginning KEY EVENTS: followed by up to four short
+event phrases separated by semicolons. If there are no events, write NONE.
+Context hints are weak evidence only: {context_hints}
+Post title: {title}
+Post body: {body}
+"""
+
+_DETAILS_REQUEST_PROMPT_TEMPLATE = """\
+Return JSON immediately, with no analysis, markdown, or prose. Use only the
+post evidence below. Return exactly two string arrays: roles and projects.
+Each roles item: actor | responsibility | person or organization or team | affiliation or NONE
+Each projects item: name | canonical name | shortest evidence phrase | confidence from 0 to 1
+Use empty arrays when unsupported. Do not invent actors or projects.
+Post title: {title}
+Post body: {body}
+Context hints: {context_hints}
+"""
+
 
 def _strip_code_fence(content: str) -> str:
     """Implement the _strip_code_fence operation for this channel."""
     match = _CODE_FENCE_PATTERN.search(content)
     return match.group(1) if match else content
+
+
+def _parse_plain_summary_response(content: str) -> tuple[str, tuple[str, ...]] | None:
+    """Parse the provider-compatible plain summary and event marker."""
+    plain = _strip_code_fence(content).strip()
+    match = re.search(r"(?im)^\s*KEY EVENTS\s*:\s*", plain)
+    if match is None:
+        return (plain, ()) if plain else None
+    summary = plain[: match.start()].strip()
+    raw_events = plain[match.end() :].strip()
+    events = tuple(
+        event.strip(" -*\t")
+        for event in re.split(r";|\n", raw_events)
+        if event.strip(" -*\t") and event.strip(" -*\t").upper() != "NONE"
+    )
+    return (summary, events) if summary else None
 
 
 def parse_summary_response(content: str) -> PostSummary | None:
@@ -328,13 +376,94 @@ def parse_summary_response(content: str) -> PostSummary | None:
     )
 
 
+def _parse_summary_details(
+    content: str,
+) -> tuple[tuple[RoleResponsibility, ...], tuple[ProjectMention, ...]]:
+    """Parse compact string-array details without nested JSON objects."""
+    try:
+        parsed = json.loads(_strip_code_fence(content).strip())
+    except json.JSONDecodeError:
+        return (), ()
+    if not isinstance(parsed, dict):
+        return (), ()
+
+    roles: list[RoleResponsibility] = []
+    raw_roles = parsed.get("roles") or parsed.get("roles_and_responsibilities") or []
+    if isinstance(raw_roles, list):
+        for entry in raw_roles:
+            if isinstance(entry, dict):
+                name = entry.get("actor_name")
+                responsibility = entry.get("responsibility")
+                actor_type = entry.get("actor_type", "person")
+                affiliation = entry.get("affiliated_organization_name")
+            elif isinstance(entry, str):
+                parts = [part.strip() for part in entry.split("|", 3)]
+                if len(parts) != 4:
+                    continue
+                name, responsibility, actor_type, affiliation = parts
+            else:
+                continue
+            if not isinstance(name, str) or not isinstance(responsibility, str):
+                continue
+            actor_type_code = {
+                "organization": ACTOR_TYPE_ORGANIZATION,
+                "team": ACTOR_TYPE_TEAM,
+            }.get(str(actor_type).strip().lower(), ACTOR_TYPE_PERSON)
+            affiliation_text = affiliation.strip() if isinstance(affiliation, str) else ""
+            if affiliation_text.casefold() in {"", "none", "null", "없음"}:
+                affiliation_text = None
+            if name.strip() and responsibility.strip():
+                roles.append(
+                    RoleResponsibility(
+                        actor_name=name.strip(),
+                        responsibility=responsibility.strip(),
+                        actor_type_code=actor_type_code,
+                        affiliated_organization_name=affiliation_text,
+                    )
+                )
+
+    projects: list[ProjectMention] = []
+    raw_projects = parsed.get("projects") or parsed.get("project_mentions") or []
+    if isinstance(raw_projects, list):
+        for entry in raw_projects:
+            if isinstance(entry, dict):
+                values = (
+                    entry.get("project_name"),
+                    entry.get("canonical_name"),
+                    entry.get("evidence"),
+                    entry.get("confidence"),
+                )
+            elif isinstance(entry, str):
+                parts = [part.strip() for part in entry.split("|", 3)]
+                if len(parts) != 4:
+                    continue
+                values = (*parts[:3], parts[3])
+            else:
+                continue
+            project_name, canonical_name, evidence, confidence = values
+            if not all(isinstance(value, str) for value in (project_name, canonical_name, evidence)):
+                continue
+            try:
+                projects.append(
+                    ProjectMention(
+                        project_name=project_name.strip(),
+                        canonical_name=canonical_name.strip(),
+                        evidence=evidence.strip(),
+                        confidence=float(confidence),
+                    )
+                )
+            except (TypeError, ValueError):
+                continue
+    return tuple(roles), tuple(projects)
+
+
 class ContextualOrchestratorPostSummaryClient:
     """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="auto"``."""
 
     available = True
 
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "medium", timeout: float = 60.0
+        self, base_url: str, api_key: str, *, reasoning_effort: str = "none", timeout: float = 60.0
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -349,7 +478,7 @@ class ContextualOrchestratorPostSummaryClient:
         self, post_title: str, post_body: str, context_hints: str
     ) -> PostSummary:
         """Summarize the post while using contextual hints as non-authoritative priors."""
-        prompt = _SUMMARY_PROMPT_TEMPLATE.format(
+        prompt = _SUMMARY_REQUEST_PROMPT_TEMPLATE.format(
             title=post_title,
             body=post_body,
             context_hints=context_hints.strip() or "none available",
@@ -358,14 +487,18 @@ class ContextualOrchestratorPostSummaryClient:
             f"{self._base_url}/v1/chat/completions",
             {
                 "messages": [{"role": "user", "content": prompt}],
-                "mode": "auto",
+                "mode": "route",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
         content = body["choices"][0]["message"]["content"]
-        summary = parse_summary_response(content)
-        if summary is None:
+        parsed = _parse_plain_summary_response(content)
+        if parsed is None:
             raise ValueError(f"summary response did not match the required format: {content!r}")
-        return summary
+        korean_summary, key_events = parsed
+        return PostSummary(
+            korean_summary=korean_summary,
+            key_events=key_events,
+        )

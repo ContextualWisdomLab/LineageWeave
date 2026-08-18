@@ -365,6 +365,12 @@ async def gather_global_chat_sources(
                 "게시글",
                 "질문",
                 "관련",
+                "확인되는",
+                "핵심",
+                "사실",
+                "무엇",
+                "무엇인가요",
+                "인가요",
             }
         )
     )[:8]
@@ -373,46 +379,38 @@ async def gather_global_chat_sources(
         candidate_rows = await conn.fetch(
             """
             select post_id
-              from source_post
-            where post_title ilike '%' || $1 || '%'
-               or lower(left(source_post_search_text(post_body), 16384))
-                       like '%' || lower($1) || '%'
-               or to_tsvector('simple', source_post_search_text(post_body))
-                       @@ plainto_tsquery('simple', $1)
-               or concat_ws(' ', source_system_code, source_record_key,
-                                source_author_code, source_author_name,
-                                source_company_code, source_company_name,
-                                source_process_unit_code, source_process_unit_name,
-                                source_sales_pool_code, source_sales_pool_name,
-                                source_customer_code, source_customer_name,
-                                source_project_code, source_project_name) ilike '%' || $1 || '%'
-               or similarity(lower(coalesce(source_record_key, '')), lower($1)) >= 0.78
-               or exists (
-                    select 1 from post_project_mention project
-                     where project.post_id = source_post.post_id
-                       and (project.project_name ilike '%' || $1 || '%'
-                            or project.evidence_text ilike '%' || $1 || '%'
-                            or project.ontology_iri ilike '%' || $1 || '%'
-                            or (char_length($1) >= 3 and word_similarity(lower($1), lower(project.project_name)) >= 0.45))
-               )
-               or exists (
-                    select 1 from post_summary_role role
-                     where role.post_id = source_post.post_id
-                       and (role.actor_name ilike '%' || $1 || '%'
-                            or role.responsibility ilike '%' || $1 || '%'
-                            or coalesce(role.affiliated_organization_name, '') ilike '%' || $1 || '%'
-                            or (char_length($1) >= 3 and word_similarity(lower($1), lower(role.actor_name)) >= 0.45))
-               )
-               or exists (
-                    select 1
-                      from post_person_mention mention
-                      join cataloged_person person on person.person_id = mention.person_id
-                     where mention.post_id = source_post.post_id
-                       and (person.person_name ilike '%' || $1 || '%'
-                            or (char_length($1) >= 3 and word_similarity(lower($1), lower(person.person_name)) >= 0.45))
-               )
+              from (
+                   (select post_id, created_at
+                      from source_post
+                     where post_title ilike '%' || $1 || '%'
+                     limit 32)
+                    union all
+                   (select post_id, created_at
+                      from source_post
+                     where lower(left(source_post_search_text(post_body), 16384))
+                               like '%' || lower($1) || '%'
+                     limit 32)
+                    union all
+                   (select post_id, created_at
+                      from source_post
+                     where to_tsvector('simple', source_post_search_text(post_body))
+                               @@ plainto_tsquery('simple', $1)
+                     limit 32)
+                    union all
+                   (select post_id, created_at
+                      from source_post
+                     where concat_ws(' ', source_system_code, source_record_key,
+                                      source_author_code, source_author_name,
+                                      source_company_code, source_company_name,
+                                      source_process_unit_code, source_process_unit_name,
+                                      source_sales_pool_code, source_sales_pool_name,
+                                      source_customer_code, source_customer_name,
+                                      source_project_code, source_project_name)
+                               ilike '%' || $1 || '%'
+                     limit 32)
+                   ) matches
              order by created_at desc, post_id desc
-             limit 32
+            limit 32
             """,
             term,
         )

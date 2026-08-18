@@ -90,7 +90,8 @@ def test_structured_consumers_request_auto_mode(
 
     invoke(client_factory())
 
-    assert observed["payload"]["mode"] == "auto"
+    expected_mode = "route" if module_name == "lineageweave.post_summary" else "auto"
+    assert observed["payload"]["mode"] == expected_mode
 
 
 def test_post_evaluation_judge_defaults_to_auto(monkeypatch) -> None:

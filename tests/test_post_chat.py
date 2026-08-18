@@ -9,6 +9,7 @@ which source(s) contributed, not just that the model produced prose.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 
 import pytest
@@ -303,3 +304,29 @@ def test_contextual_orchestrator_does_not_cite_an_irrelevant_source() -> None:
 
     assert "post-a" in answer.cited_post_ids
     assert "post-b" not in answer.cited_post_ids
+
+
+def test_contextual_orchestrator_chat_requests_plain_citations(monkeypatch) -> None:
+    observed = {}
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        observed["payload"] = payload
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": "근거 답변\nCITED SOURCES: 1"
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr("lineageweave.post_chat.post_json", fake_post_json)
+    answer = ContextualOrchestratorPostChatClient("https://orchestrator.test", "token").answer(
+        "What happened?", _SOURCES
+    )
+
+    assert answer.answer_text == "근거 답변"
+    assert observed["payload"]["reasoning_effort"] == "none"
+    assert observed["payload"]["mode"] == "route"
+    assert "CITED SOURCES" in observed["payload"]["messages"][0]["content"]

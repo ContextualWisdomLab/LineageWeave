@@ -11,6 +11,7 @@ warranty language messy), which is exactly the "non-trivial" shape Phase
 from __future__ import annotations
 
 import os
+import json
 
 import pytest
 
@@ -162,6 +163,33 @@ def test_malformed_roles_entries_are_skipped_not_crashed_on() -> None:
     summary = parse_summary_response(content)
     assert summary is not None
     assert summary.roles_and_responsibilities == ()
+
+
+def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None:
+    observed: list[dict[str, object]] = []
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        observed.append(payload)
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": "본문 근거 요약\n\nKEY EVENTS: 후속 확인"
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr("lineageweave.post_summary.post_json", fake_post_json)
+    summary = ContextualOrchestratorPostSummaryClient("https://orchestrator.test", "token").summarize(
+        "Synthetic title", "Synthetic body"
+    )
+
+    assert summary.korean_summary == "본문 근거 요약"
+    assert summary.key_events == ("후속 확인",)
+    assert len(observed) == 1
+    assert observed[0]["mode"] == "route"
+    assert "KEY EVENTS" in observed[0]["messages"][0]["content"]
 
 
 _ORCHESTRATOR_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL")
