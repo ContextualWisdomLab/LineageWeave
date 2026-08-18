@@ -146,7 +146,27 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ edge_count: 4 }));
       }
       if (url.endsWith("/api/posts/post-1/tickets") && method === "GET") {
-        return Promise.resolve(jsonResponse({ tickets }));
+        return Promise.resolve(
+          jsonResponse({
+            tickets:
+              tickets.length > 0
+                ? tickets
+                : [
+                    {
+                      issue_ticket_id: "ticket-a100",
+                      post_id: "post-1",
+                      ticket_status_code: "open",
+                      ticket_status_label: "Open",
+                      ticket_title: "Send Northridge Grid the revised quote",
+                      assigned_account_id: null,
+                      due_date: "2026-01-12",
+                      commitment_summary: "Send Northridge Grid the revised quote",
+                      created_at: "2026-01-01T00:00:00Z",
+                      updated_at: "2026-01-01T00:00:00Z",
+                    },
+                  ],
+          }),
+        );
       }
       if (url.endsWith("/api/posts/post-1/tickets") && method === "POST") {
         const body = JSON.parse(String(init?.body));
@@ -1159,12 +1179,145 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.includes("/api/board-search")) {
+        const parsed = new URL(url, "https://backend.test");
+        const q = parsed.searchParams.get("q") ?? "";
+        if (q.toLowerCase().includes("ada west") || q.includes("누가") || q === "voc") {
+          return Promise.resolve(
+            jsonResponse({
+              query: q,
+              grounded: true,
+              bind: { kind: "person", lookup_code: "node_person", matched_label: "Ada West" },
+              posts: [
+                {
+                  post_id: "post-1",
+                  post_title: "Public post",
+                  voc_type_code: "voc",
+                  voc_type_label: "Voice of Customer",
+                  visibility_code: "public",
+                  created_at: "2026-01-01T00:00:00Z",
+                },
+              ],
+              empty_next_action: null,
+            }),
+          );
+        }
+        return Promise.resolve(
+          jsonResponse({
+            query: q,
+            grounded: false,
+            bind: null,
+            posts: [],
+            empty_next_action: "이 검색을 근거할 수 있는 사건이 아직 없습니다",
+          }),
+        );
+      }
+      if (url.includes("/api/orgmetra/units")) {
+        return Promise.resolve(
+          jsonResponse({
+            available: false,
+            grain_code: "corporate",
+            units: [],
+            empty_next_action: "이 범위의 조직 단위를 아직 받을 수 없습니다",
+          }),
+        );
+      }
+      if (url.endsWith("/api/keymen")) {
+        return Promise.resolve(
+          jsonResponse({
+            keymen: [
+              {
+                person_id: "person-ada",
+                person_name: "Ada West",
+                person_side_code: "our_side",
+                person_side_label: "Our side",
+                mention_context: null,
+                last_known_job_title: "Account manager",
+                affiliations: [],
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/ask-cubee") && method === "POST") {
+        const body = JSON.parse(String(init?.body));
+        const question = String(body.question ?? "");
+        if (question.includes("왜") || question.toLowerCase().includes("why")) {
+          return Promise.resolve(
+            jsonResponse({
+              post_id: body.post_id ?? "post-1",
+              question,
+              slot_code: "why",
+              values: [],
+              grounded: false,
+              empty_next_action: "이 사건의 왜가 아직 없습니다",
+              who: [],
+              what_happened: [],
+              chronology: [],
+              show_lineage: true,
+            }),
+          );
+        }
+        return Promise.resolve(
+          jsonResponse({
+            post_id: body.post_id ?? "post-1",
+            question,
+            slot_code: "who",
+            values: ["Ada West"],
+            grounded: true,
+            empty_next_action: null,
+            who: ["Ada West"],
+            what_happened: ["첫 번째 이벤트"],
+            chronology: [{ occurred_at: "2026-01-01", label: "2026-01-01" }],
+            show_lineage: true,
+          }),
+        );
+      }
       if (url.endsWith("/api/posts")) {
         if (options?.emptyPosts) {
           return Promise.resolve(jsonResponse([]));
         }
         return Promise.resolve(
           jsonResponse([
+            {
+              post_id: "post-news",
+              post_title: "주간 신문 2026-W02",
+              voc_type_code: "voc",
+              voc_type_label: "Voice of Customer",
+              visibility_code: "public",
+              visibility_label: "Public",
+              created_at: "2026-01-13T10:00:00Z",
+              thread_group_key: "newspaper-week",
+              secondary_grouping_key: "2026-W02",
+              edition: {
+                kind: "week",
+                period_code: "2026-W02",
+                sections: [
+                  {
+                    grain_code: "corporate",
+                    unit_id: "corp-1",
+                    unit_label: "Demo Corp",
+                    titles: ["Public post"],
+                    empty_next_action: null,
+                  },
+                  {
+                    grain_code: "process_unit",
+                    unit_id: "pu-1",
+                    unit_label: "Demo Lineage PU",
+                    titles: ["Public post"],
+                    empty_next_action: null,
+                  },
+                  {
+                    grain_code: "team",
+                    unit_id: "",
+                    unit_label: "",
+                    titles: [],
+                    empty_next_action: "이 범위의 조직 단위를 아직 받을 수 없습니다",
+                  },
+                ],
+                empty_next_action: null,
+              },
+            },
             {
               post_id: "post-1",
               post_title: "Public post",
@@ -1173,6 +1326,7 @@ describe("App, authenticated", () => {
               visibility_code: "public",
               visibility_label: "Public",
               created_at: "2026-01-01T00:00:00Z",
+              thread_group_key: "A-100",
             },
           ]),
         );
@@ -1202,6 +1356,90 @@ describe("App, authenticated", () => {
               : {}),
           }),
         );
+      }
+      if (url.endsWith("/api/posts/post-news")) {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-news",
+            post_title: "주간 신문 2026-W02",
+            post_body:
+              '<article class="newspaper-edition" data-kind="week" data-period="2026-W02"><section data-grain="corporate"><h2>Corporate · Demo Corp</h2><ul><li>Public post</li></ul></section></article>',
+            voc_type_code: "voc",
+            voc_type_label: "Voice of Customer",
+            visibility_code: "public",
+            created_at: "2026-01-13T10:00:00Z",
+            thread_group_key: "newspaper-week",
+            secondary_grouping_key: "2026-W02",
+            edition: {
+              kind: "week",
+              period_code: "2026-W02",
+              sections: [
+                {
+                  grain_code: "corporate",
+                  unit_id: "corp-1",
+                  unit_label: "Demo Corp",
+                  titles: ["Public post"],
+                  empty_next_action: null,
+                },
+              ],
+              empty_next_action: null,
+            },
+          }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-news/lineage")) {
+        return Promise.resolve(jsonResponse({ post_id: "post-news", direct: [], indirect: [] }));
+      }
+      if (url.endsWith("/api/posts/post-news/five-w1h")) {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-news",
+            slots: [
+              {
+                slot_code: "who",
+                slot_label: "누가",
+                values: [],
+                empty_next_action: "이 사건의 누가 아직 없습니다",
+              },
+              {
+                slot_code: "what",
+                slot_label: "무엇을",
+                values: ["Public post"],
+                empty_next_action: null,
+              },
+              {
+                slot_code: "when",
+                slot_label: "언제",
+                values: ["2026-01-13"],
+                empty_next_action: null,
+              },
+              {
+                slot_code: "where",
+                slot_label: "어디서",
+                values: [],
+                empty_next_action: "이 사건의 어디서가 아직 없습니다",
+              },
+              {
+                slot_code: "why",
+                slot_label: "왜",
+                values: [],
+                empty_next_action: "이 사건의 왜가 아직 없습니다",
+              },
+              {
+                slot_code: "how",
+                slot_label: "어떻게",
+                values: [],
+                empty_next_action: "이 사건의 어떻게가 아직 없습니다",
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-news/keymen")) {
+        return Promise.resolve(jsonResponse({ keymen: [] }));
+      }
+      if (url.endsWith("/api/posts/post-news/tickets")) {
+        return Promise.resolve(jsonResponse({ tickets: [] }));
       }
       if (url.endsWith("/api/posts/post-2")) {
         return Promise.resolve(
@@ -1633,6 +1871,26 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/posts/post-2/keymen")) {
+        return Promise.resolve(
+          jsonResponse({
+            keymen: [
+              {
+                person_id: "person-priya",
+                person_name: "Priya Nair",
+                person_side_code: "counterparty",
+                person_side_label: "Counterparty",
+                mention_context: null,
+                last_known_job_title: null,
+                affiliations: [],
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-2/tickets")) {
+        return Promise.resolve(jsonResponse({ tickets: [] }));
+      }
       if (url.endsWith("/api/posts/post-2/lineage")) {
         return Promise.resolve(
           jsonResponse({
@@ -1743,71 +2001,65 @@ describe("App, authenticated", () => {
   }
 
 
-  it("lets Demo Analyst walk 주간 VOC to 사건 lineage to 역할·책임 after seed-shaped data", async () => {
+  it("lets Demo Analyst walk 게시판 newspaper and post modules after seed-shaped data", async () => {
     stubBackend();
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "주간 VOC" })).toBeInTheDocument();
-    const voc = await screen.findByRole("button", { name: "Open VOC item: Public post" });
-    expect(voc).toHaveTextContent("Voice of Customer");
+    expect(await screen.findByRole("navigation", { name: "Buyer" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "게시판" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: "고객 마스터" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ask Cubee" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "주간 VOC" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /주간 리포트|월간 리포트|내보내기|생성|지금 만들기/ })).not.toBeInTheDocument();
     expect(screen.queryByText("Rankings · RankWeave not available")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Open analysis run/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/leftover/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/mean θ/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Request a lineage/)).not.toBeInTheDocument();
 
-    await userEvent.click(voc);
+    expect(await screen.findByRole("heading", { name: "주간 신문 2026-W02" })).toBeInTheDocument();
+    expect(screen.getByText("Corporate · Demo Corp")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open post: Public post" })).toBeInTheDocument();
 
-    expect(await screen.findByRole("heading", { name: "사건 lineage" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "원문" })).toBeInTheDocument();
-    expect(screen.getByText("The full body text.")).toBeInTheDocument();
-    expect(screen.getByLabelText("A-100 lineage")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Open newspaper: 주간 신문 2026-W02" }));
+    expect(await screen.findByRole("heading", { name: "원문" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "5W1H" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Keymen" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "고객 약속" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "첨부파일" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "사건 lineage" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Ask Cubee" })).toBeInTheDocument();
+    expect(screen.queryByText(/is current in Event Lineage/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/TEPP/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    await userEvent.click(await screen.findByRole("button", { name: "Open post: Public post" }));
+    expect(await screen.findByText("The full body text.")).toBeInTheDocument();
+    expect(screen.getByLabelText("A-100 lineage")).toBeInTheDocument();
     expect(screen.getByText("누가").closest("div")).toHaveTextContent("Ada West");
     expect(screen.getByText("이 사건의 왜가 아직 없습니다")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "이 사건 lineage에 묻기" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "역할·책임" })).toBeInTheDocument();
-    const roles = screen.getByRole("region", { name: "역할·책임" });
-    expect(roles).toHaveTextContent("Person");
-    expect(roles).toHaveTextContent("Ada West");
-    expect(roles).toHaveTextContent("Organization");
-    expect(roles).toHaveTextContent("당사");
-    expect(roles).toHaveTextContent("Team");
-    expect(roles).toHaveTextContent("설계팀");
-    expect(roles).toHaveTextContent("우리 측 후속");
-    expect(screen.getByLabelText("R&R next decision")).toHaveTextContent(
-      "다음 사람 조치를 이 행위자에서 결정하세요.",
-    );
-
-    expect(screen.queryByRole("heading", { name: "Ask about this lineage" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
-    expect(screen.queryByText(/is current in Event Lineage/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Read Keyman and evaluation next/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/TEPP/)).not.toBeInTheDocument();
+    expect(screen.getByText("Ada West")).toBeInTheDocument();
+    expect(screen.getByText(/Send Northridge Grid the revised quote/)).toBeInTheDocument();
   });
 
-  it("selects a lineage node and shows that node's R&R", async () => {
+  it("selects a lineage node and shows that node's Keymen", async () => {
     stubBackend();
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "Open VOC item: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Open post: Public post" }));
     await userEvent.click(await screen.findByLabelText("Open post: Linked post"));
     expect(await screen.findByRole("heading", { name: "Linked post" })).toBeInTheDocument();
-    const roles = screen.getByRole("region", { name: "역할·책임" });
-    expect(roles).toHaveTextContent("Person");
-    expect(roles).toHaveTextContent("Priya Nair");
+    expect(screen.getByRole("region", { name: "Keymen" })).toHaveTextContent("Priya Nair");
   });
 
-  it("renders the A-100 fork on the opened VOC item, not as a home module", async () => {
+  it("keeps the A-100 fork on the opened post, not as a home module", async () => {
     stubBackend();
     render(<App />);
-    expect(await screen.findByRole("heading", { name: "주간 VOC" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "게시판" })).toBeInTheDocument();
     expect(screen.queryByLabelText("A-100 lineage")).not.toBeInTheDocument();
-    await userEvent.click(await screen.findByRole("button", { name: "Open VOC item: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Open post: Public post" }));
     expect(await screen.findByLabelText("A-100 lineage")).toBeInTheDocument();
     expect(screen.getByLabelText("Open post: Pricing renegotiation follow-up")).toHaveClass(
       "lineage-dag-branch",
     );
-    expect(screen.queryByRole("button", { name: /rebuild lineage/i })).not.toBeInTheDocument();
   });
 
   it("shows the source picture instead of dumping raw base64", async () => {
@@ -1817,42 +2069,62 @@ describe("App, authenticated", () => {
       postBody: `<p>Quote attached.</p><img src="data:image/png;base64,${tinyPng}" alt=""><p>Please confirm.</p>`,
     });
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "Open VOC item: Public post" }));
-    const image = await screen.findByRole("img", { name: /embedded image at character offset/i });
-    expect(image).toHaveAttribute("src", `data:image/png;base64,${tinyPng}`);
+    await userEvent.click(await screen.findByRole("button", { name: "Open post: Public post" }));
+    const images = await screen.findAllByRole("img", { name: /embedded image at character offset/i });
+    expect(images.length).toBeGreaterThanOrEqual(1);
+    expect(images[0]).toHaveAttribute("src", `data:image/png;base64,${tinyPng}`);
     expect(screen.getByText("Quote attached.")).toBeInTheDocument();
     expect(screen.queryByText(new RegExp(tinyPng))).not.toBeInTheDocument();
   });
 
-  it("answers a 5W1H question from the semantic-layer query and fail-closes why", async () => {
+  it("answers Ask Cubee from the semantic-layer query and fail-closes why", async () => {
     stubBackend();
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "Open VOC item: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Open post: Public post" }));
     await userEvent.type(await screen.findByLabelText("Lineage question"), "누가 관련되었나요?");
-    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await userEvent.click(screen.getByRole("button", { name: "묻기" }));
     expect(await screen.findByLabelText("Grounded lineage answer")).toHaveTextContent("Ada West");
     expect(screen.getByLabelText("A-100 lineage")).toBeInTheDocument();
 
     await userEvent.clear(screen.getByLabelText("Lineage question"));
     await userEvent.type(screen.getByLabelText("Lineage question"), "왜 이 일이 일어났나요?");
-    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await userEvent.click(screen.getByRole("button", { name: "묻기" }));
     expect(await screen.findByLabelText("Ungrounded lineage answer")).toHaveTextContent(
       "이 사건의 왜가 아직 없습니다",
     );
   });
 
-  it("shows fail-closed empty copy on the three screens", async () => {
-    stubBackend({ emptyPosts: true });
+  it("opens Ask Cubee from a post and keeps the lineage graph", async () => {
+    stubBackend();
     render(<App />);
-    expect(await screen.findByText("이번 주 감사할 VOC가 없습니다")).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "Open post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Cubee에서 열기" }));
+    expect(await screen.findByRole("heading", { level: 2, name: "Ask Cubee" })).toBeInTheDocument();
+    expect(await screen.findByLabelText("A-100 lineage")).toBeInTheDocument();
   });
 
-  it("shows fail-closed empty lineage and R&R on an opened item", async () => {
+  it("shows fail-closed Orgmetra copy on 고객 마스터 and empty board copy", async () => {
+    stubBackend({ emptyPosts: true });
+    render(<App />);
+    expect(await screen.findByText("게시판에 사건이 없습니다")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
+    expect(await screen.findByText("이 범위의 조직 단위를 아직 받을 수 없습니다")).toBeInTheDocument();
+  });
+
+  it("shows fail-closed empty lineage and Keymen on an opened item", async () => {
     stubBackend({ emptyLineage: true, emptyRoles: true });
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "Open VOC item: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Open post: Public post" }));
     expect(await screen.findByText("연결된 사건이 없습니다")).toBeInTheDocument();
-    expect(screen.getByText("역할·책임이 아직 없습니다")).toBeInTheDocument();
     expect(screen.getByText("이 사건의 누가 아직 없습니다")).toBeInTheDocument();
+  });
+
+  it("uses 주간 VOC as a board filter, not a GNB item", async () => {
+    stubBackend();
+    render(<App />);
+    expect(screen.queryByRole("button", { name: "주간 VOC" })).not.toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("checkbox", { name: /주간 VOC/ }));
+    expect(screen.queryByRole("heading", { name: "주간 신문 2026-W02" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open post: Public post" })).toBeInTheDocument();
   });
 });

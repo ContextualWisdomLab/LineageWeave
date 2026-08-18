@@ -55,6 +55,9 @@ class Settings:
     # RankWeaveNotAvailable -- never invent a fused score. Default false
     # uses the in-process library already required by reconstruct.py.
     rankweave_disabled: bool
+    # Orgmetra org-grain port (team / PU / corporate). Empty keeps
+    # NullOrgmetraClient -- never invent a team/PU/corp tree.
+    orgmetra_base_url: str
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -92,4 +95,5 @@ def load_settings() -> Settings:
         .strip()
         .lower()
         in {"1", "true", "yes", "on"},
+        orgmetra_base_url=os.environ.get("ORGMETRA_BASE_URL", ""),
     )

@@ -8,17 +8,17 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
-- Buyer chrome is three screens only (ADR 0036 / `docs/ux/buyer-ia.md`):
-  **주간 VOC → 사건 lineage → 역할·책임**. After `make seed`, Demo
-  Analyst opens this week's VOC items, then the selected node's
-  original source, Event Lineage DAG, 5W1H slots, and source-grounded
-  Q&A on the same lineage screen, then decides from Person /
-  Organization / Team. Empty copy is 이번 주 감사할 VOC가 없습니다 /
-  연결된 사건이 없습니다 / 역할·책임이 아직 없습니다. Missing 5W1H
-  slots name the next human action (이 사건의 누가/언제가 아직
-  없습니다). Analysis-run list, Ask-tutor chrome, TEPP receipts,
+- Buyer chrome is three GNB destinations only (ADR 0036 /
+  `docs/ux/buyer-ia.md`): **게시판 / 고객 마스터 / Ask Cubee**.
+  Weekly VOC is a board filter. Weekly/monthly newspapers are
+  scheduled board posts (team / PU / corporate sections) consumed
+  from fast-mlsirm member ranks and Orgmetra — never a 생성 / 실행 /
+  내보내기 control, never an invented theta. Opening a post or
+  newspaper shows 원문, 5W1H, Keymen, commitments, attachments,
+  Event Lineage, and Ask Cubee. Empty copy names the next human
+  action. Analysis-run list, Ask-tutor chrome, TEPP receipts,
   leftover-pair sandbox, agent logs, and RankWeave as a home module
-  stay off buyer chrome. Never invent a theta.
+  stay off buyer chrome.
 
 ## [2.12.4] - 2026-08-18
 

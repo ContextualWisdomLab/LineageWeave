@@ -39,8 +39,9 @@ def test_seed_calls_report_run_after_period_report_tables() -> None:
     """``seed()`` must persist scored tables before the Succeeded registry row."""
     source = inspect.getsource(seed)
     period_at = source.index("_seed_demo_period_report(")
+    newspaper_at = source.index("_seed_demo_newspapers(")
     report_at = source.index("_seed_demo_report_run(")
-    assert period_at < report_at
+    assert period_at < newspaper_at < report_at
     assert "theta" not in source[period_at:report_at].lower()
     assert "θ" not in source[period_at:report_at]
 

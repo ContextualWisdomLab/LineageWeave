@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { GroundedQa } from "./GroundedQa";
 
 const meta = {
-  title: "사건 lineage/GroundedQa",
+  title: "Ask Cubee/GroundedQa",
   component: GroundedQa,
   args: {
     onAsk: async (question: string) => ({

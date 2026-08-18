@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { EventLineagePanel } from "./EventLineagePanel";
 
 const meta = {
-  title: "사건 lineage/EventLineagePanel",
+  title: "게시판/EventLineagePanel",
   component: EventLineagePanel,
   args: {
     postId: "post-1",

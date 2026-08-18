@@ -169,12 +169,20 @@ def classify_lineage_question(question: str) -> QuestionKind | None:
     return None
 
 
+def chronology_from_slots(slots: dict[SlotCode, tuple[str, ...]]) -> list[dict[str, str]]:
+    """Authorized When clocks only. Never invents a missing date."""
+    return [{"occurred_at": clock, "label": clock} for clock in slots.get("when", ())]
+
+
 def answer_lineage_question(
     question: str,
     slots: dict[SlotCode, tuple[str, ...]],
 ) -> dict[str, object]:
     """Answer from assembled slots only. Never invent a sentence."""
     kind = classify_lineage_question(question)
+    chronology = chronology_from_slots(slots)
+    who = list(slots.get("who", ()))
+    what_happened = list(slots.get("what", ()))
     if kind is None:
         return {
             "question": question.strip(),
@@ -182,6 +190,9 @@ def answer_lineage_question(
             "values": [],
             "grounded": False,
             "empty_next_action": ungrounded_question_next_action(),
+            "who": who,
+            "what_happened": what_happened,
+            "chronology": chronology,
         }
     slot: SlotCode = "what" if kind == "what_happened" else kind
     values = list(slots.get(slot, ()))
@@ -192,6 +203,9 @@ def answer_lineage_question(
             "values": values,
             "grounded": True,
             "empty_next_action": None,
+            "who": who,
+            "what_happened": what_happened,
+            "chronology": chronology,
         }
     return {
         "question": question.strip(),
@@ -199,6 +213,9 @@ def answer_lineage_question(
         "values": [],
         "grounded": False,
         "empty_next_action": empty_slot_next_action(slot),
+        "who": who,
+        "what_happened": what_happened,
+        "chronology": chronology,
     }
 
 

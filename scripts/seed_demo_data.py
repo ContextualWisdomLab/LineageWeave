@@ -441,6 +441,12 @@ def seed(
                 corporate_entity_id,
                 process_units["DEMO-PU-LINEAGE"],
             )
+            _seed_demo_newspapers(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+                process_units["DEMO-PU-LINEAGE"],
+            )
             _seed_demo_analysis_run(
                 cur,
                 account_ids["demo.analyst"],
@@ -1264,6 +1270,49 @@ def _persist_seed_period_report(
                 pair.leftover_residual,
             ),
         )
+
+
+def _seed_demo_newspapers(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:
+    """Publish pre-built weekly/monthly newspaper posts after scores exist.
+
+    Scheduler-shaped: the buyer never generates this. Orgmetra units are
+    the synthetic Demo Corp / PU already seeded -- not a production
+    org-chart fallback. Monthly 2026-01 stays empty when no monthly
+    member ranks were persisted.
+    """
+    from datetime import datetime, timezone
+
+    from backend.app.newspaper_ingestion import publish_newspaper_edition
+    from lineageweave.newspaper_edition import SeedOrgmetraClient
+    from lineageweave.orgmetra_client import OrgmetraUnit
+
+    orgmetra = SeedOrgmetraClient(
+        [
+            OrgmetraUnit("corporate", str(corporate_entity_id), "Demo Corp"),
+            OrgmetraUnit("process_unit", str(process_unit_id), "Demo Lineage PU"),
+        ]
+    )
+    clock = datetime(2026, 1, 13, 10, 0, tzinfo=timezone.utc)
+    publish_newspaper_edition(
+        cur,
+        kind="week",
+        period_code="2026-W02",
+        orgmetra=orgmetra,
+        author_account_id=author_account_id,
+        corporate_entity_id=corporate_entity_id,
+        process_unit_id=process_unit_id,
+        created_at=clock,
+    )
+    publish_newspaper_edition(
+        cur,
+        kind="month",
+        period_code="2026-01",
+        orgmetra=orgmetra,
+        author_account_id=author_account_id,
+        corporate_entity_id=corporate_entity_id,
+        process_unit_id=process_unit_id,
+        created_at=clock,
+    )
 
 
 def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:

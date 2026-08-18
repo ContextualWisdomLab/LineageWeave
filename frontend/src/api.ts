@@ -1,5 +1,20 @@
 import { config } from "./config";
 
+export interface NewspaperSection {
+  grain_code: "team" | "process_unit" | "corporate";
+  unit_id: string;
+  unit_label: string;
+  titles: string[];
+  empty_next_action: string | null;
+}
+
+export interface NewspaperEdition {
+  kind: "week" | "month";
+  period_code: string;
+  sections: NewspaperSection[];
+  empty_next_action: string | null;
+}
+
 export interface PostSummary {
   post_id: string;
   post_title: string;
@@ -8,6 +23,9 @@ export interface PostSummary {
   visibility_code: string;
   visibility_label?: string;
   created_at: string;
+  thread_group_key?: string;
+  secondary_grouping_key?: string;
+  edition?: NewspaperEdition;
 }
 
 export interface PostKnownAt {
@@ -542,13 +560,22 @@ export function fetchPostFiveW1H(accessToken: string, postId: string): Promise<F
   return backendFetch(`/api/posts/${postId}/five-w1h`, accessToken);
 }
 
+export interface LineageChronologyRow {
+  occurred_at: string;
+  label: string;
+}
+
 export interface LineageQaAnswer {
-  post_id: string;
+  post_id: string | null;
   question: string;
   slot_code: string | null;
   values: string[];
   grounded: boolean;
   empty_next_action: string | null;
+  who?: string[];
+  what_happened?: string[];
+  chronology?: LineageChronologyRow[];
+  show_lineage?: boolean;
 }
 
 export function askLineageQa(
@@ -560,6 +587,55 @@ export function askLineageQa(
     method: "POST",
     body: JSON.stringify({ question }),
   });
+}
+
+export function askCubee(
+  accessToken: string,
+  question: string,
+  postId?: string | null,
+): Promise<LineageQaAnswer> {
+  return backendFetch("/api/ask-cubee", accessToken, {
+    method: "POST",
+    body: JSON.stringify({ question, post_id: postId ?? null }),
+  });
+}
+
+export interface BoardSearchResult {
+  query: string;
+  grounded: boolean;
+  bind: { kind: string; lookup_code: string; matched_label: string } | null;
+  posts: PostSummary[];
+  empty_next_action: string | null;
+}
+
+export function searchBoard(accessToken: string, query: string): Promise<BoardSearchResult> {
+  return backendFetch(`/api/board-search?q=${encodeURIComponent(query)}`, accessToken);
+}
+
+export type OrgmetraGrain = "team" | "process_unit" | "corporate";
+
+export interface OrgmetraUnit {
+  grain_code: OrgmetraGrain;
+  unit_id: string;
+  unit_label: string;
+}
+
+export interface OrgmetraUnitsPayload {
+  available: boolean;
+  grain_code: OrgmetraGrain;
+  units: OrgmetraUnit[];
+  empty_next_action: string | null;
+}
+
+export function fetchOrgmetraUnits(
+  accessToken: string,
+  grain: OrgmetraGrain,
+): Promise<OrgmetraUnitsPayload> {
+  return backendFetch(`/api/orgmetra/units?grain=${encodeURIComponent(grain)}`, accessToken);
+}
+
+export function fetchKeymenCatalog(accessToken: string): Promise<{ keymen: Keyman[] }> {
+  return backendFetch("/api/keymen", accessToken);
 }
 
 export function fetchPostLineage(accessToken: string, postId: string): Promise<PostLineage> {

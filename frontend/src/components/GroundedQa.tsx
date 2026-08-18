@@ -6,13 +6,17 @@ export type GroundedQaAnswer = {
   values: string[];
   grounded: boolean;
   empty_next_action: string | null;
+  who?: string[];
+  what_happened?: string[];
+  chronology?: { occurred_at: string; label: string }[];
 };
 
 export type GroundedQaProps = {
+  heading?: string;
   onAsk: (question: string) => Promise<GroundedQaAnswer>;
 };
 
-export function GroundedQa({ onAsk }: GroundedQaProps) {
+export function GroundedQa({ heading = "Ask Cubee", onAsk }: GroundedQaProps) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<GroundedQaAnswer | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,8 +41,8 @@ export function GroundedQa({ onAsk }: GroundedQaProps) {
   }
 
   return (
-    <section className="popup-section" aria-label="이 사건 lineage에 묻기">
-      <h3>이 사건 lineage에 묻기</h3>
+    <section className="popup-section" aria-label={heading}>
+      <h3>{heading}</h3>
       <form className="chat-input-row" onSubmit={handleSubmit}>
         <label>
           질문
@@ -50,14 +54,27 @@ export function GroundedQa({ onAsk }: GroundedQaProps) {
           />
         </label>
         <button type="submit" disabled={pending}>
-          {pending ? "Querying..." : "Ask"}
+          {pending ? "Querying..." : "묻기"}
         </button>
       </form>
       {error ? <p className="error">{error}</p> : null}
       {answer && answer.grounded ? (
-        <p role="status" aria-label="Grounded lineage answer">
-          {answer.values.join(" · ")}
-        </p>
+        <div role="status" aria-label="Grounded lineage answer">
+          <p>{answer.values.join(" · ")}</p>
+          {answer.who && answer.who.length > 0 ? <p>누가 · {answer.who.join(" · ")}</p> : null}
+          {answer.what_happened && answer.what_happened.length > 0 ? (
+            <p>무엇을 · {answer.what_happened.join(" · ")}</p>
+          ) : null}
+          {answer.chronology && answer.chronology.length > 0 ? (
+            <ol>
+              {answer.chronology.map((row) => (
+                <li key={`${row.occurred_at}:${row.label}`}>
+                  {row.occurred_at} · {row.label}
+                </li>
+              ))}
+            </ol>
+          ) : null}
+        </div>
       ) : null}
       {answer && !answer.grounded ? (
         <p className="popup-placeholder" role="status" aria-label="Ungrounded lineage answer">

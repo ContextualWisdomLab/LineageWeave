@@ -119,6 +119,55 @@ async def fetch_post_keymen(conn: asyncpg.Connection, post_id: str) -> list[dict
     ]
 
 
+async def fetch_visible_keymen(
+    conn: asyncpg.Connection,
+    can_see_post: Any,
+) -> list[dict[str, Any]]:
+    """Cataloged people mentioned on at least one visible post."""
+    rows = await conn.fetch(
+        """
+        select p.person_id, p.person_name, p.person_side_code, p.last_known_job_title,
+               ppm.mention_context, sp.post_id, sp.post_title,
+               sp.visibility_code, sp.corporate_entity_id
+        from cataloged_person p
+        join post_person_mention ppm on ppm.person_id = p.person_id
+        join source_post sp on sp.post_id = ppm.post_id
+        order by p.person_name, sp.created_at desc
+        """
+    )
+    by_person: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        if not can_see_post(row):
+            continue
+        person_id = str(row["person_id"])
+        current = by_person.get(person_id)
+        if current is None:
+            by_person[person_id] = {
+                "person_id": person_id,
+                "person_name": row["person_name"],
+                "person_side_code": row["person_side_code"],
+                "last_known_job_title": row["last_known_job_title"],
+                "mention_context": row["mention_context"],
+                "affiliations": [],
+                "post_titles": [row["post_title"]],
+            }
+        elif row["post_title"] not in current["post_titles"]:
+            current["post_titles"].append(row["post_title"])
+    if not by_person:
+        return []
+    side_labels = await labels_for_codes(
+        conn,
+        [row["person_side_code"] for row in by_person.values()],
+    )
+    people = list(by_person.values())
+    for person in people:
+        person["person_side_label"] = side_labels.get(
+            person["person_side_code"],
+            person["person_side_code"],
+        )
+    return people
+
+
 async def persist_edges_for_post(
     conn: asyncpg.Connection, post_id: str
 ) -> list[KnowledgeGraphEdgeSpec]:

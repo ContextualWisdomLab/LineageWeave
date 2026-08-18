@@ -95,6 +95,29 @@ def all_declared_lookup_codes() -> set[str]:
     return {str(value) for value in ONTOLOGY.objects(None, LOOKUP_CODE)}
 
 
+def ontology_term_index() -> tuple[dict[str, str], ...]:
+    """Lookup code, rdfs:label, and IRI for every declared term.
+
+    Board search binds a buyer query to these terms. An undeclared
+    string is not a term -- callers fail-closed instead of treating
+    leftover title text as a hit.
+    """
+    rows: list[dict[str, str]] = []
+    for subject in ONTOLOGY.subjects(LOOKUP_CODE, None):
+        code = str(ONTOLOGY.value(subject, LOOKUP_CODE) or "").strip()
+        if not code:
+            continue
+        label = ONTOLOGY.value(subject, RDFS.label)
+        rows.append(
+            {
+                "lookup_code": code,
+                "label": str(label) if label is not None else "",
+                "iri": str(subject),
+            }
+        )
+    return tuple(rows)
+
+
 __all__ = [
     "LOOKUP_CODE",
     "LW",
@@ -107,4 +130,5 @@ __all__ = [
     "iri_for_lookup_code",
     "load_ontology",
     "ontology_annotations",
+    "ontology_term_index",
 ]

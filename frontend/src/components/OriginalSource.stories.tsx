@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { OriginalSource } from "./OriginalSource";
 
 const meta = {
-  title: "사건 lineage/OriginalSource",
+  title: "게시판/OriginalSource",
   component: OriginalSource,
 } satisfies Meta<typeof OriginalSource>;
 

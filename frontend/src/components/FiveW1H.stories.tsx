@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { FiveW1H } from "./FiveW1H";
 
 const meta = {
-  title: "사건 lineage/FiveW1H",
+  title: "게시판/FiveW1H",
   component: FiveW1H,
 } satisfies Meta<typeof FiveW1H>;
 

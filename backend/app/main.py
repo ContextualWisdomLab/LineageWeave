@@ -126,6 +126,7 @@ from backend.app.keyman_ingestion import ingest_post_keymen
 from backend.app.knowledge_graph import (
     corporate_entity_exists,
     fetch_post_keymen,
+    fetch_visible_keymen,
     labels_for_codes,
     person_exists,
     persist_edges_for_post,
@@ -149,7 +150,15 @@ from backend.app.five_w1h_ingestion import (
     answer_authorized_lineage_question,
     load_five_w1h_slots,
 )
+from backend.app.ask_cubee_ingestion import answer_ask_cubee
+from backend.app.board_search_ingestion import search_authorized_board
+from lineageweave.newspaper_edition import edition_from_row
 from backend.app.post_summary_ingestion import fetch_persisted_summary, persist_post_summary
+from lineageweave.orgmetra_client import (
+    ORGMETRA_GRAINS,
+    ORGMETRA_UNAVAILABLE_NEXT_ACTION,
+    build_orgmetra_client,
+)
 
 _POST_READ = "post_read"
 _POST_ADMIN = "post_admin"
@@ -312,7 +321,7 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
     resolved = labels or {}
     voc = post["voc_type_code"]
     visibility = post["visibility_code"]
-    return {
+    payload: dict[str, Any] = {
         "post_id": str(post["post_id"]),
         "post_title": post["post_title"],
         "voc_type_code": voc,
@@ -321,6 +330,20 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "visibility_label": resolved.get(visibility, visibility),
         "created_at": post["created_at"].isoformat(),
     }
+    keys = set(post.keys())
+    if "thread_group_key" in keys:
+        payload["thread_group_key"] = post["thread_group_key"]
+    if "secondary_grouping_key" in keys:
+        payload["secondary_grouping_key"] = post["secondary_grouping_key"]
+    if "thread_group_key" in keys and "post_body" in keys:
+        edition = edition_from_row(
+            post["thread_group_key"],
+            post["secondary_grouping_key"] if "secondary_grouping_key" in keys else "",
+            post["post_body"],
+        )
+        if edition is not None:
+            payload["edition"] = edition
+    return payload
 
 
 async def _lookup_post_labels(conn: asyncpg.Connection, rows: list[asyncpg.Record]) -> dict[str, str]:
@@ -426,12 +449,72 @@ async def list_posts(
     _require_post_read(account)
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            "select post_id, post_title, voc_type_code, visibility_code, corporate_entity_id, created_at "
+            "select post_id, post_title, post_body, voc_type_code, visibility_code, "
+            "corporate_entity_id, created_at, thread_group_key, secondary_grouping_key "
             "from source_post order by created_at desc"
         )
         visible = [row for row in rows if _can_see_post(account, row)]
         labels = await _lookup_post_labels(conn, visible)
     return [_serialize_post(row, labels) for row in visible]
+
+
+@app.get("/api/board-search")
+async def search_board(
+    q: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Ontology / semantic-layer 게시판 search. Not a title keyword scan."""
+    _require_post_read(account)
+    query = q.strip()
+    if not query:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "q is required")
+    async with pool.acquire() as conn:
+        return await search_authorized_board(
+            conn,
+            query,
+            lambda row: _can_see_post(account, row),
+            _serialize_post,
+            _lookup_post_labels,
+        )
+
+
+@app.get("/api/orgmetra/units")
+async def read_orgmetra_units(
+    grain: str,
+    account: CurrentAccount = Depends(get_current_account),
+) -> dict[str, Any]:
+    """Orgmetra org-grain units. Unconfigured port fail-closes empty."""
+    _require_post_read(account)
+    if grain not in ORGMETRA_GRAINS:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "grain must be team, process_unit, or corporate",
+        )
+    client = build_orgmetra_client(load_settings().orgmetra_base_url)
+    grain_code = grain if grain in ORGMETRA_GRAINS else "corporate"
+    units = [
+        {"grain_code": unit.grain_code, "unit_id": unit.unit_id, "unit_label": unit.unit_label}
+        for unit in client.list_units(grain_code)
+    ]
+    return {
+        "available": client.available and bool(units),
+        "grain_code": grain,
+        "units": units,
+        "empty_next_action": None if units else ORGMETRA_UNAVAILABLE_NEXT_ACTION,
+    }
+
+
+@app.get("/api/keymen")
+async def list_keymen(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Authorized Keymen mentioned on at least one visible post."""
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        keymen = await fetch_visible_keymen(conn, lambda row: _can_see_post(account, row))
+    return {"keymen": keymen}
 
 
 @app.get("/api/posts/{post_id}")
@@ -462,7 +545,8 @@ async def read_post(
             ) from exc
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "select post_id, post_title, post_body, voc_type_code, visibility_code, corporate_entity_id, created_at "
+            "select post_id, post_title, post_body, voc_type_code, visibility_code, "
+            "corporate_entity_id, created_at, thread_group_key, secondary_grouping_key "
             "from source_post where post_id = $1",
             post_id,
         )
@@ -1094,6 +1178,13 @@ class LineageQaRequest(BaseModel):
     question: str
 
 
+class AskCubeeRequest(BaseModel):
+    """JSON body for ``POST /api/ask-cubee``."""
+
+    question: str
+    post_id: str | None = None
+
+
 @app.post("/api/posts/{post_id}/lineage-qa")
 async def answer_post_lineage_qa(
     post_id: str,
@@ -1118,6 +1209,30 @@ async def answer_post_lineage_qa(
             post["created_at"],
             question,
             lambda row: _can_see_post(account, row),
+        )
+
+
+@app.post("/api/ask-cubee")
+async def ask_cubee(
+    request: AskCubeeRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Source-grounded Ask Cubee. Not a tutor menu and not an LLM guess."""
+    question = request.question.strip()
+    if not question:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
+    created_at = None
+    if request.post_id:
+        post = await _load_visible_post(request.post_id, account, pool)
+        created_at = post["created_at"]
+    async with pool.acquire() as conn:
+        return await answer_ask_cubee(
+            conn,
+            question=question,
+            post_id=request.post_id,
+            post_created_at=created_at,
+            can_see_post=lambda row: _can_see_post(account, row),
         )
 
 

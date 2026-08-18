@@ -76,4 +76,8 @@ async def answer_authorized_lineage_question(
         "values": answer["values"],
         "grounded": answer["grounded"],
         "empty_next_action": answer["empty_next_action"],
+        "who": answer["who"],
+        "what_happened": answer["what_happened"],
+        "chronology": answer["chronology"],
+        "show_lineage": True,
     }
