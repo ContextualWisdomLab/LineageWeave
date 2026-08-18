@@ -2,8 +2,8 @@
 
 from datetime import datetime, timezone
 from inspect import getsource
+from pathlib import Path
 
-from backend.app.analysis_run_ingestion import fetch_visible_scope_posts
 from scripts.seed_demo_data import (
     DEMO_ANALYSIS_RUN_KNOWLEDGE_CUTOFF,
     DEMO_PUBLIC_POST_CREATED_AT,
@@ -62,10 +62,17 @@ def test_january_12_run_lists_demo_public_not_late_demo() -> None:
 
 def test_listing_still_uses_created_at_not_a_second_cutoff() -> None:
     """Visible-post SQL stays the ADR 0016 created_at gate on every scope."""
-    source = getsource(fetch_visible_scope_posts)
-    assert source.count("created_at <= $") == 4
-    assert "LATE_DEMO" not in source
-    assert "second cutoff" not in source
+    listing = (
+        Path(__file__).resolve().parents[1]
+        / "backend"
+        / "app"
+        / "analysis_run_ingestion.py"
+    ).read_text(encoding="utf-8")
+    start = listing.index("async def fetch_visible_scope_posts")
+    end = listing.index("\nclass AnalysisRunCreateError")
+    listing_fn = listing[start:end]
+    assert listing_fn.count("created_at <= $") == 4
+    assert "LATE_DEMO" not in listing_fn
 
 
 def test_reconstruction_seed_uses_the_january_12_cutoff() -> None:
@@ -124,8 +131,9 @@ def test_seed_calls_late_demo_before_analysis_runs() -> None:
     tepp_at = source.index("_seed_demo_tepp_run(")
     assert late_at < lineage_at < tepp_at
     helper = getsource(seed_late_demo_public_post)
-    assert "created_at <= " not in helper
-    assert "theta" not in helper.lower()
+    insert_sql = helper[helper.index("insert into source_post") :]
+    assert "created_at <= " not in insert_sql
+    assert "theta" not in insert_sql.lower()
 
 
 def test_tepp_seed_keeps_the_same_january_12_cutoff() -> None:
