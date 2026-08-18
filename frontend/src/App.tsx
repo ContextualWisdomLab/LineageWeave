@@ -73,7 +73,7 @@ import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { subgraphForPost } from "./lineageLayout";
-import { LOCALE_LABELS, SUPPORTED_LOCALES, setLocale, t, useLocale } from "./i18n";
+import { LOCALE_LABELS, SUPPORTED_LOCALES, setLocale, t, tf, useLocale } from "./i18n";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -252,10 +252,10 @@ function ChatPanel({
   return (
     <section className="popup-section chat-section">
       <h3 id="post-ask" tabIndex={-1}>
-        Ask about this lineage
+        {t("Ask about this lineage")}
       </h3>
       {nameFirstAsk && exchanges[0] ? (
-        <p className="post-meta" role="status" aria-label="Ask seed next action">
+        <p className="post-meta" role="status" aria-label={t("Ask seed next action")}>
           {firstAskNextAction(exchanges[0].question_text)}
         </p>
       ) : null}
@@ -274,7 +274,7 @@ function ChatPanel({
         </div>
       ) : null}
       {nameFirstAsk && firstCitedTitle ? (
-        <p className="post-meta" role="status" aria-label="Ask citation next action">
+        <p className="post-meta" role="status" aria-label={t("Ask citation next action")}>
           {firstCitedNextAction(firstCitedTitle)}
         </p>
       ) : null}
@@ -290,7 +290,7 @@ function ChatPanel({
         />
       ) : null}
       {nameFirstAsk && firstCitedTitle && landedEvidencePostId ? (
-        <p className="post-meta" role="status" aria-label="Evidence next action">
+        <p className="post-meta" role="status" aria-label={t("Evidence next action")}>
           {landedEvidenceNextAction(firstCitedTitle)}
         </p>
       ) : null}
@@ -304,13 +304,13 @@ function ChatPanel({
             placeholder={t("What happened between these events?")}
           />
           <button onClick={() => handleAsk()} disabled={loading || !question.trim()}>
-            {loading ? "Asking..." : "Ask"}
+            {loading ? t("Asking...") : t("Ask")}
           </button>
         </div>
       )}
       {seededOnly && exchanges.length > 0 && (
         <p className="popup-placeholder">
-          Interactive questions are unavailable right now; saved evidence remains available.
+          {t("Interactive questions are unavailable right now; saved evidence remains available.")}
         </p>
       )}
       {exchanges.length > 0 && (
@@ -319,7 +319,7 @@ function ChatPanel({
             <button
               key={exchange.question_text}
               className="chat-suggestion-chip"
-              aria-label={`Ask seeded question: ${exchange.question_text}`}
+              aria-label={tf("Ask seeded question: {question}", { question: exchange.question_text })}
               aria-current={
                 nameFirstAsk && exchanges[0]?.question_text === exchange.question_text
                   ? "true"
@@ -375,31 +375,37 @@ function ChatPanel({
 }
 
 function eventLineageCurrentNextAction(postTitle: string): string {
-  return `${postTitle} is current in Event Lineage. Read Keyman and evaluation next.`;
+  return tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", {
+    post: postTitle,
+  });
 }
 
 function firstKeymanNextAction(personName: string): string {
-  return `${personName} is the first Keyman. Read that person next.`;
+  return tf("{person} is the first Keyman. Read that person next.", { person: personName });
 }
 
 function firstRelatedNextAction(nodeLabel: string): string {
-  return `${nodeLabel} is the first related node. Read that person next.`;
+  return tf("{node} is the first related node. Read that person next.", { node: nodeLabel });
 }
 
 function relatedNodesCurrentNextAction(personName: string): string {
-  return `Related nodes for ${personName} are current. Ask about this lineage next.`;
+  return tf("Related nodes for {person} are current. Ask about this lineage next.", {
+    person: personName,
+  });
 }
 
 function firstAskNextAction(questionText: string): string {
-  return `${questionText} is the first Ask. Read that answer next.`;
+  return tf("{question} is the first Ask. Read that answer next.", { question: questionText });
 }
 
 function firstCitedNextAction(postTitle: string): string {
-  return `${postTitle} is the first cited source. Open that evidence next.`;
+  return tf("{post} is the first cited source. Open that evidence next.", { post: postTitle });
 }
 
 function landedEvidenceNextAction(postTitle: string): string {
-  return `${postTitle} evidence is current. Read Event Lineage on that post next.`;
+  return tf("{post} evidence is current. Read Event Lineage on that post next.", {
+    post: postTitle,
+  });
 }
 
 function EventLineageSection({
@@ -422,7 +428,7 @@ function EventLineageSection({
     return (
       <p className="lineage-empty">
         {hasLinks
-          ? "The linked records are listed above. The graph is not available for this view."
+          ? t("The linked records are listed above. The graph is not available for this view.")
           : t("No linked posts yet.")}
       </p>
     );
@@ -433,7 +439,7 @@ function EventLineageSection({
         <LineageDag graph={scoped} onSelectPost={onSelectPost} currentPostId={postId} />
       )}
       {scoped.nodes.length > 0 && currentNextAction ? (
-        <p className="post-meta" role="status" aria-label="Event Lineage next action">
+        <p className="post-meta" role="status" aria-label={t("Event Lineage next action")}>
           {currentNextAction}
         </p>
       ) : null}
@@ -1115,7 +1121,7 @@ function KeymanPanel({
       {afterList}
       {afterList && relatedBlock}
       {afterList && related?.[0] ? (
-        <p className="post-meta" role="status" aria-label="Related next action">
+        <p className="post-meta" role="status" aria-label={t("Related next action")}>
           {firstRelatedNextAction(related[0].label ?? related[0].node_id)}
         </p>
       ) : null}
@@ -1138,7 +1144,7 @@ function KeymanPanel({
         </div>
       ) : null}
       {afterList && landFirstRelated && landedRelatedName && landedRelated !== null ? (
-        <p className="post-meta" role="status" aria-label="Ask next action">
+          <p className="post-meta" role="status" aria-label={t("Ask next action")}>
           {relatedNodesCurrentNextAction(landedRelatedName)}
         </p>
       ) : null}
@@ -1964,7 +1970,7 @@ function PostDetailPopup({
                       onEvaluated={(rows) => setEvaluation(rows)}
                     />
                     {keymen?.[0] ? (
-                      <p className="post-meta" role="status" aria-label="Keyman next action">
+                      <p className="post-meta" role="status" aria-label={t("Keyman next action")}>
                         {firstKeymanNextAction(keymen[0].person_name)}
                       </p>
                     ) : null}

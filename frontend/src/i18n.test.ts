@@ -5,6 +5,7 @@ import {
   getLocale,
   setLocale,
   t,
+  tf,
 } from "./i18n";
 
 afterEach(() => {
@@ -27,5 +28,15 @@ describe("i18n", () => {
     expect(getLocale()).toBe(locale);
     expect(t("Related posts")).toBe(expected);
     expect(document.documentElement.lang).toBe(locale);
+  });
+
+  it.each([
+    ["ko", "DEMO은(는) 이벤트 계보의 현재 항목입니다. 다음으로 Keyman과 평가를 읽으세요."],
+    ["zh", "DEMO 是事件谱系中的当前记录。接下来查看关键联系人和评估。"],
+    ["ja", "DEMOはイベント系譜の現在の記録です。次にキーパーソンと評価を確認してください。"],
+    ["vi", "DEMO là bản ghi hiện tại trong Dòng sự kiện. Hãy xem người liên hệ chính và đánh giá tiếp theo."],
+  ] as const)("formats dynamic buyer guidance in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", { post: "DEMO" })).toBe(expected);
   });
 });

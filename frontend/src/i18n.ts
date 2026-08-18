@@ -206,6 +206,39 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "첨부 이미지를 해독할 수 없습니다. 원문을 다시 내보내고 다시 여세요.",
     "What happened between these events?": "이 사건들 사이에 무슨 일이 있었나요?",
     "Ask about this lineage": "이 계보에 대해 질문",
+    "No reconstructed lineage yet. Rebuild after seeding posts.":
+      "아직 재구성된 계보가 없습니다. 글을 시드한 뒤 다시 만드세요.",
+    "Reconstructed lineage": "재구성된 계보",
+    "{group} ({records} records, {edges} lineage edges)":
+      "{group} ({records}개 기록, 계보 연결 {edges}개)",
+    "{group} lineage": "{group} 계보",
+    "Open post: {label}": "글 열기: {label}",
+    "{from} follows {to} ({score})": "{from}이(가) {to}을(를) 따름 ({score})",
+    "{label} — {date}": "{label} — {date}",
+    "Corporate entity to reconstruct": "재구성할 법인",
+    "Next action": "다음 작업",
+    "Ask seed next action": "Ask 시작 다음 작업",
+    "Ask citation next action": "Ask 인용 다음 작업",
+    "Evidence next action": "근거 다음 작업",
+    "Event Lineage next action": "이벤트 계보 다음 작업",
+    "Related next action": "관련 대상 다음 작업",
+    "Ask next action": "Ask 다음 작업",
+    "Keyman next action": "Keyman 다음 작업",
+    "Ask seeded question: {question}": "시드 질문: {question}",
+    "{post} is current in Event Lineage. Read Keyman and evaluation next.":
+      "{post}은(는) 이벤트 계보의 현재 항목입니다. 다음으로 Keyman과 평가를 읽으세요.",
+    "{person} is the first Keyman. Read that person next.":
+      "{person}은(는) 첫 번째 Keyman입니다. 다음으로 이 사람을 읽으세요.",
+    "{node} is the first related node. Read that person next.":
+      "{node}은(는) 첫 번째 관련 노드입니다. 다음으로 해당 대상을 읽으세요.",
+    "Related nodes for {person} are current. Ask about this lineage next.":
+      "{person} 관련 노드가 현재 표시되어 있습니다. 다음으로 이 계보에 대해 질문하세요.",
+    "{question} is the first Ask. Read that answer next.":
+      "{question}이(가) 첫 번째 Ask입니다. 다음으로 그 답변을 읽으세요.",
+    "{post} is the first cited source. Open that evidence next.":
+      "{post}이(가) 첫 번째 인용 원문입니다. 다음으로 해당 근거를 여세요.",
+    "{post} evidence is current. Read Event Lineage on that post next.":
+      "{post} 근거가 현재 표시되어 있습니다. 다음으로 해당 글의 이벤트 계보를 읽으세요.",
     Close: "닫기",
     Refresh: "새로 고침",
     "Open post": "글 열기",
@@ -405,6 +438,39 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "无法解码嵌入图像。请重新导出原始文章后再打开。",
     "What happened between these events?": "这些事件之间发生了什么？",
     "Ask about this lineage": "询问此谱系",
+    "No reconstructed lineage yet. Rebuild after seeding posts.":
+      "尚未重建事件谱系。生成文章种子后再重建。",
+    "Reconstructed lineage": "已重建的事件谱系",
+    "{group} ({records} records, {edges} lineage edges)":
+      "{group}（{records} 条记录，{edges} 条谱系边）",
+    "{group} lineage": "{group} 谱系",
+    "Open post: {label}": "打开文章：{label}",
+    "{from} follows {to} ({score})": "{from} 接续 {to}（{score}）",
+    "{label} — {date}": "{label} — {date}",
+    "Corporate entity to reconstruct": "要重建的法人实体",
+    "Next action": "下一步操作",
+    "Ask seed next action": "Ask 起始操作",
+    "Ask citation next action": "Ask 引用操作",
+    "Evidence next action": "证据操作",
+    "Event Lineage next action": "事件谱系操作",
+    "Related next action": "相关节点操作",
+    "Ask next action": "Ask 操作",
+    "Keyman next action": "关键联系人操作",
+    "Ask seeded question: {question}": "种子问题：{question}",
+    "{post} is current in Event Lineage. Read Keyman and evaluation next.":
+      "{post} 是事件谱系中的当前记录。接下来查看关键联系人和评估。",
+    "{person} is the first Keyman. Read that person next.":
+      "{person} 是第一个关键联系人。接下来查看此人。",
+    "{node} is the first related node. Read that person next.":
+      "{node} 是第一个相关节点。接下来查看该对象。",
+    "Related nodes for {person} are current. Ask about this lineage next.":
+      "{person} 的相关节点已显示。接下来询问此谱系。",
+    "{question} is the first Ask. Read that answer next.":
+      "{question} 是第一个问题。接下来查看该回答。",
+    "{post} is the first cited source. Open that evidence next.":
+      "{post} 是第一个引用来源。接下来打开该证据。",
+    "{post} evidence is current. Read Event Lineage on that post next.":
+      "{post} 的证据已显示。接下来查看该文章的事件谱系。",
     Close: "关闭",
     Refresh: "刷新",
     "Open post": "打开文章",
@@ -604,6 +670,39 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "埋め込み画像をデコードできませんでした。原文を再エクスポートして、もう一度開いてください。",
     "What happened between these events?": "これらのイベントの間に何が起きましたか？",
     "Ask about this lineage": "この系譜について質問",
+    "No reconstructed lineage yet. Rebuild after seeding posts.":
+      "再構成された系譜はまだありません。投稿をシードしてから再構成してください。",
+    "Reconstructed lineage": "再構成された系譜",
+    "{group} ({records} records, {edges} lineage edges)":
+      "{group}（{records}件の記録、系譜エッジ{edges}件）",
+    "{group} lineage": "{group}の系譜",
+    "Open post: {label}": "投稿を開く: {label}",
+    "{from} follows {to} ({score})": "{from}は{to}に続く（{score}）",
+    "{label} — {date}": "{label} — {date}",
+    "Corporate entity to reconstruct": "再構成する法人",
+    "Next action": "次の操作",
+    "Ask seed next action": "Ask開始の操作",
+    "Ask citation next action": "Ask引用の操作",
+    "Evidence next action": "証拠の操作",
+    "Event Lineage next action": "イベント系譜の操作",
+    "Related next action": "関連ノードの操作",
+    "Ask next action": "Askの操作",
+    "Keyman next action": "キーパーソンの操作",
+    "Ask seeded question: {question}": "シードされた質問: {question}",
+    "{post} is current in Event Lineage. Read Keyman and evaluation next.":
+      "{post}はイベント系譜の現在の記録です。次にキーパーソンと評価を確認してください。",
+    "{person} is the first Keyman. Read that person next.":
+      "{person}は最初のキーパーソンです。次にこの人物を確認してください。",
+    "{node} is the first related node. Read that person next.":
+      "{node}は最初の関連ノードです。次にこの対象を確認してください。",
+    "Related nodes for {person} are current. Ask about this lineage next.":
+      "{person}の関連ノードが表示されています。次にこの系譜について質問してください。",
+    "{question} is the first Ask. Read that answer next.":
+      "{question}は最初の質問です。次にその回答を確認してください。",
+    "{post} is the first cited source. Open that evidence next.":
+      "{post}は最初に引用された原文です。次にその証拠を開いてください。",
+    "{post} evidence is current. Read Event Lineage on that post next.":
+      "{post}の証拠が表示されています。次にその投稿のイベント系譜を確認してください。",
     Close: "閉じる",
     Refresh: "更新",
     "Open post": "投稿を開く",
@@ -803,6 +902,39 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Không thể giải mã hình ảnh nhúng. Hãy xuất lại bài viết gốc rồi mở lại.",
     "What happened between these events?": "Điều gì đã xảy ra giữa các sự kiện này?",
     "Ask about this lineage": "Hỏi về dòng sự kiện này",
+    "No reconstructed lineage yet. Rebuild after seeding posts.":
+      "Chưa có dòng sự kiện được tái dựng. Hãy tạo dữ liệu mồi rồi tái dựng lại.",
+    "Reconstructed lineage": "Dòng sự kiện đã tái dựng",
+    "{group} ({records} records, {edges} lineage edges)":
+      "{group} ({records} bản ghi, {edges} liên kết dòng sự kiện)",
+    "{group} lineage": "Dòng sự kiện {group}",
+    "Open post: {label}": "Mở bài viết: {label}",
+    "{from} follows {to} ({score})": "{from} tiếp nối {to} ({score})",
+    "{label} — {date}": "{label} — {date}",
+    "Corporate entity to reconstruct": "Pháp nhân cần tái dựng",
+    "Next action": "Thao tác tiếp theo",
+    "Ask seed next action": "Thao tác bắt đầu Ask",
+    "Ask citation next action": "Thao tác trích dẫn Ask",
+    "Evidence next action": "Thao tác bằng chứng",
+    "Event Lineage next action": "Thao tác Dòng sự kiện",
+    "Related next action": "Thao tác nút liên quan",
+    "Ask next action": "Thao tác Ask",
+    "Keyman next action": "Thao tác người liên hệ chính",
+    "Ask seeded question: {question}": "Câu hỏi mồi: {question}",
+    "{post} is current in Event Lineage. Read Keyman and evaluation next.":
+      "{post} là bản ghi hiện tại trong Dòng sự kiện. Hãy xem người liên hệ chính và đánh giá tiếp theo.",
+    "{person} is the first Keyman. Read that person next.":
+      "{person} là người liên hệ chính đầu tiên. Hãy xem người này tiếp theo.",
+    "{node} is the first related node. Read that person next.":
+      "{node} là nút liên quan đầu tiên. Hãy xem đối tượng này tiếp theo.",
+    "Related nodes for {person} are current. Ask about this lineage next.":
+      "Các nút liên quan đến {person} đang được hiển thị. Hãy hỏi về dòng sự kiện này tiếp theo.",
+    "{question} is the first Ask. Read that answer next.":
+      "{question} là câu hỏi đầu tiên. Hãy xem câu trả lời đó tiếp theo.",
+    "{post} is the first cited source. Open that evidence next.":
+      "{post} là nguồn được trích dẫn đầu tiên. Hãy mở bằng chứng đó tiếp theo.",
+    "{post} evidence is current. Read Event Lineage on that post next.":
+      "Bằng chứng của {post} đang được hiển thị. Hãy xem Dòng sự kiện của bài viết đó tiếp theo.",
     Close: "Đóng",
     Refresh: "Làm mới",
     "Open post": "Mở bài viết",
@@ -867,4 +999,11 @@ export function useLocale(): Locale {
 
 export function t(key: string): string {
   return TRANSLATIONS[currentLocale]?.[key] ?? key;
+}
+
+export function tf(key: string, values: Record<string, string | number>): string {
+  return Object.entries(values).reduce(
+    (message, [name, value]) => message.replaceAll(`{${name}}`, String(value)),
+    t(key),
+  );
 }

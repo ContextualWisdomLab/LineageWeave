@@ -1,4 +1,5 @@
 import type { LineageGraph } from "./api";
+import { t, tf } from "./i18n";
 import { layoutLineageDag } from "./lineageLayout";
 
 function truncateLabel(label: string): string {
@@ -16,17 +17,21 @@ export function LineageDag({
 }) {
   const groups = layoutLineageDag(graph);
   if (graph.nodes.length === 0) {
-    return <p className="lineage-empty">No reconstructed lineage yet. Rebuild after seeding posts.</p>;
+    return <p className="lineage-empty">{t("No reconstructed lineage yet. Rebuild after seeding posts.")}</p>;
   }
 
   return (
-    <div className="lineage-dag" aria-label="Reconstructed lineage">
+    <div className="lineage-dag" aria-label={t("Reconstructed lineage")}>
       {groups.map((group) => {
         const byId = Object.fromEntries(group.nodes.map((node) => [node.id, node]));
         return (
           <figure key={group.group} className="lineage-dag-group">
             <figcaption>
-              {group.heading} ({group.nodes.length} records, {group.edges.length} lineage edges)
+              {tf("{group} ({records} records, {edges} lineage edges)", {
+                group: group.heading,
+                records: group.nodes.length,
+                edges: group.edges.length,
+              })}
             </figcaption>
             <svg
               viewBox={`0 0 ${group.width} ${group.height}`}
@@ -46,7 +51,13 @@ export function LineageDag({
                     className="lineage-dag-edge"
                     d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
                   >
-                    <title>{`${from.label} → ${to.label} (${edge.fused_score.toFixed(2)})`}</title>
+                    <title>
+                      {tf("{from} follows {to} ({score})", {
+                        from: from.label,
+                        to: to.label,
+                        score: edge.fused_score.toFixed(2),
+                      })}
+                    </title>
                   </path>
                 );
               })}
@@ -60,7 +71,7 @@ export function LineageDag({
                     transform={`translate(${node.x}, ${node.y})`}
                     role="button"
                     tabIndex={0}
-                    aria-label={`Open post: ${node.label}`}
+                    aria-label={tf("Open post: {label}", { label: node.label })}
                     aria-current={isCurrent ? "true" : undefined}
                     onClick={() => onSelectPost(node.id)}
                     onKeyDown={(event) => {
@@ -74,7 +85,12 @@ export function LineageDag({
                     <text x={12} y={4}>
                       {truncateLabel(node.label)}
                     </text>
-                    <title>{`${node.label} — ${node.occurred_at.slice(0, 10)}`}</title>
+                    <title>
+                      {tf("{label} — {date}", {
+                        label: node.label,
+                        date: node.occurred_at.slice(0, 10),
+                      })}
+                    </title>
                   </g>
                 );
               })}
