@@ -11,7 +11,7 @@ not that the requesting account may see both.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any, Callable, Iterable
 
 import asyncpg
 
@@ -237,6 +237,7 @@ async def gather_chat_sources(
 async def gather_global_chat_sources(
     conn: asyncpg.Connection,
     can_see_post: Callable[[asyncpg.Record], bool],
+    authorized_corporate_entity_ids: Iterable[str] = (),
     vision_client: ImageContentClient | None = None,
     *,
     limit: int = 50,
@@ -253,9 +254,12 @@ async def gather_global_chat_sources(
         """
         select post_id, post_title, post_body, visibility_code, corporate_entity_id
           from source_post
+         where visibility_code = 'public'
+            or corporate_entity_id::text = any($1::text[])
          order by created_at desc, post_id desc
-         limit $1
+         limit $2
         """,
+        list(authorized_corporate_entity_ids),
         limit,
     )
     visible_rows = [row for row in rows if can_see_post(row)]

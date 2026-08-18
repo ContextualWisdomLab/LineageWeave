@@ -39,6 +39,7 @@ def test_global_sources_apply_visibility_before_normalization() -> None:
             FakeConnection(),
             lambda row: row["visibility_code"] == "public"
             or row["corporate_entity_id"] == "corp-demo",
+            {"corp-demo"},
         )
     )
 

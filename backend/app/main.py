@@ -1274,6 +1274,7 @@ async def ask_agent(
         sources = await gather_global_chat_sources(
             conn,
             lambda row: _can_see_post(account, row),
+            account.corporate_entity_ids,
             vision_client=_vision_client(),
         )
     if not sources:
