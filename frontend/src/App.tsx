@@ -1661,6 +1661,16 @@ function PostDetailPopup({
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
+            <section className="popup-section post-source-body" aria-label={t("Post body")}>
+              <h3>{t("Post body")}</h3>
+              {post.post_body.trim() ? (
+                <PostBody body={post.post_body} />
+              ) : (
+                <p className="popup-placeholder" role="status">
+                  {t("Source body was not imported; summary and semantic extraction are unavailable.")}
+                </p>
+              )}
+            </section>
             {(post.source_stage_code ||
               post.source_detail_state_code ||
               post.source_draft_code ||
@@ -1772,18 +1782,8 @@ function PostDetailPopup({
                 {liveBodyWarning}
               </p>
             ) : null}
-			<section className="popup-section post-source-body" aria-label={t("Post body")}>
-			  <h3>{t("Post body")}</h3>
-			  {post.post_body.trim() ? (
-			    <PostBody body={post.post_body} />
-			  ) : (
-			    <p className="popup-placeholder" role="status">
-			      {t("Source body was not imported; summary and semantic extraction are unavailable.")}
-			    </p>
-			  )}
-				</section>
 
-				<FiveW1H slots={fiveW1H?.slots ?? null} />
+					<FiveW1H slots={fiveW1H?.slots ?? null} />
 
 				{post.project_evidence && post.project_evidence.length > 0 ? (
               <section className="popup-section" aria-label={t("Projects / semantic evidence")}>
@@ -3436,6 +3436,7 @@ function PostList({
                     >
                       <span className="post-card-main">
                         <span className="post-title">{post.post_title}</span>
+                        <span className="post-meta">{t("Post body")}</span>
                         <span
                           className="post-body-excerpt"
                           aria-label={t("Post body preview")}
