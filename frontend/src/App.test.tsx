@@ -1492,7 +1492,7 @@ describe("App, authenticated", () => {
   });
 
   it("renders the board landmark and functional post controls", async () => {
-    stubBackend();
+    const fetchMock = stubBackend();
     render(<App showLabPanels />);
 
     const board = await screen.findByRole("region", { name: "Board" });
@@ -1500,6 +1500,11 @@ describe("App, authenticated", () => {
     expect(within(board).getByLabelText("Search semantic evidence")).toHaveAttribute("type", "search");
     expect(within(board).getByRole("list", { name: "Board posts" })).toBeInTheDocument();
     expect(within(board).getByText(/Posts shown:/)).toBeInTheDocument();
+
+    await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "title");
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes("sort=title"))).toBe(true),
+    );
 
     await userEvent.type(within(board).getByLabelText("Search semantic evidence"), "not found");
     await userEvent.click(within(board).getByRole("button", { name: "Search" }));

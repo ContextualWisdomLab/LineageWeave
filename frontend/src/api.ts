@@ -39,6 +39,8 @@ export interface PostFilterOption {
   label: string;
 }
 
+export type PostSortOrder = "newest" | "oldest" | "title";
+
 export interface PostKnownAt {
   post_title: string;
   post_body: string;
@@ -432,6 +434,7 @@ export function fetchPosts(
   search?: string,
   vocType?: string,
   visibility?: string,
+  sort?: PostSortOrder,
 ): Promise<PostPage> {
   const params = new URLSearchParams();
   if (limit !== undefined) {
@@ -446,6 +449,9 @@ export function fetchPosts(
   }
   if (visibility) {
     params.set("visibility", visibility);
+  }
+  if (sort) {
+    params.set("sort", sort);
   }
   const query = params.toString();
   return backendFetch<PostPage | PostSummary[]>(`/api/posts${query ? `?${query}` : ""}`, accessToken).then(

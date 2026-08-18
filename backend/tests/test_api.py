@@ -1157,6 +1157,19 @@ def test_post_list_supports_bounded_offset_pages(client, demo_analyst_token, see
     assert len(response.json()["posts"]) == 1
     assert response.json()["total_count"] == 4
 
+    title_sorted = client.get(
+        "/api/posts?limit=1&offset=0&sort=title",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert title_sorted.status_code == 200, title_sorted.text
+    assert title_sorted.json()["posts"][0]["post_title"] == "Edited own-corp private post"
+
+    invalid_sort = client.get(
+        "/api/posts?sort=unsupported",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert invalid_sort.status_code == 422
+
 
 def test_post_detail_uses_lookup_labels_not_raw_codes(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(

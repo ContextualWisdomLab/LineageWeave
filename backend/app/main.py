@@ -23,7 +23,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 import asyncpg
@@ -709,6 +709,7 @@ async def list_posts(
     search: str | None = Query(None, max_length=200),
     voc_type: str | None = Query(None, max_length=80),
     visibility: str | None = Query(None, max_length=80),
+    sort: Literal["newest", "oldest", "title"] = Query("newest"),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
@@ -862,7 +863,11 @@ async def list_posts(
                )
                and ($3::text is null or post.voc_type_code = $3)
                and ($4::text is null or post.visibility_code = $4)
-                 order by created_at desc, post_id desc
+                 order by
+                    case when $8::text = 'title' then lower(coalesce(post.post_title, '')) end asc,
+                    case when $8::text = 'oldest' then post.created_at end asc,
+                    case when $8::text in ('newest', 'title') then post.created_at end desc,
+                    post.post_id desc
                    offset $6
                    limit $7
             )
@@ -871,7 +876,11 @@ async def list_posts(
                    char_length(coalesce(post.post_body, '')) > 420 as post_body_truncated
               from page
               join source_post post on post.post_id = page.post_id
-             order by page.created_at desc, page.post_id desc
+             order by
+                case when $8::text = 'title' then lower(coalesce(page.post_title, '')) end asc,
+                case when $8::text = 'oldest' then page.created_at end asc,
+                case when $8::text in ('newest', 'title') then page.created_at end desc,
+                page.post_id desc
             """,
             search_term,
             list(account.corporate_entity_ids),
@@ -880,6 +889,7 @@ async def list_posts(
             body_search_ids,
             offset,
             limit,
+            sort,
         )
         visible = [row for row in rows if _can_see_post(account, row)]
         labels = await _lookup_post_labels(conn, visible)

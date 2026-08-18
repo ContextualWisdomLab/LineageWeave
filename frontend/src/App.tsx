@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
@@ -64,6 +64,7 @@ import {
   type PeriodReports,
   type PostLineage,
   type PostSummary,
+  type PostSortOrder,
   type RankingList,
   type RelatedNode,
   type RelatedNodeType,
@@ -3215,7 +3216,7 @@ function ReportsPanel({
 }
 
 const POST_PAGE_SIZE = 50;
-type BoardSortOrder = "newest" | "oldest" | "title";
+type BoardSortOrder = PostSortOrder;
 
 function PostList({
   accessToken,
@@ -3308,7 +3309,7 @@ function PostList({
     setOpenedFromReportMember(false);
   }
 
-  async function loadPostPage(page: number, query = searchQuery) {
+  const loadPostPage = useCallback(async (page: number, query = searchQuery, sort = sortOrder) => {
     setLoadingPage(true);
     setError(null);
     try {
@@ -3319,6 +3320,7 @@ function PostList({
         query,
         typeFilter === "all" ? undefined : typeFilter,
         visibilityFilter === "all" ? undefined : visibilityFilter,
+        sort,
       );
       setPosts(response.posts);
       setTotalPosts(response.total_count);
@@ -3330,11 +3332,11 @@ function PostList({
     } finally {
       setLoadingPage(false);
     }
-  }
+  }, [accessToken, searchQuery, sortOrder, typeFilter, visibilityFilter]);
 
   useEffect(() => {
-    void loadPostPage(1, searchQuery);
-  }, [accessToken, searchQuery, typeFilter, visibilityFilter]);
+    void loadPostPage(1);
+  }, [loadPostPage]);
 
   useEffect(() => {
     fetchLineageGraph(accessToken).then(setGraph).catch(() => setGraph({ nodes: [], edges: [] }));
