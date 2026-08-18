@@ -21,6 +21,8 @@ All notable changes to this project are documented here. Format follows
   post containing the normalized organization and relationship context. The
   counterparty popup can open that evidence without treating it as an
   external-search URL or changing the external verification status.
+- Large corpora now use bounded post and Event Lineage landing projections so
+  the React screen remains usable before opening complete post-specific detail.
 
 ## [2.9.0] - 2026-08-17
 

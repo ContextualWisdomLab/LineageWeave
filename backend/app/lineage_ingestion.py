@@ -86,14 +86,25 @@ async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
 async def visible_lineage_graph(
     conn: asyncpg.Connection,
     can_see_post,
+    limit: int = 500,
 ) -> dict[str, Any]:
-    """ABAC-filtered ``{nodes, edges}`` matching the stdlib demo graph shape."""
+    """ABAC-filtered graph bounded for the browser's initial viewport.
+
+    The persisted graph can contain tens of thousands of posts. The UI opens
+    individual posts for complete lineage, while this landing projection keeps
+    only the newest ``limit`` visible nodes and edges between them.
+    """
     posts = await conn.fetch(
         "select post_id, post_title, voc_type_code, visibility_code, "
         "corporate_entity_id, process_unit_id, thread_group_key, created_at "
         "from source_post"
     )
-    visible = [row for row in posts if can_see_post(row)]
+    visible_all = [row for row in posts if can_see_post(row)]
+    visible = sorted(
+        visible_all,
+        key=lambda row: (row["created_at"], str(row["post_id"])),
+        reverse=True,
+    )[:limit]
     visible_ids = {str(row["post_id"]) for row in visible}
     edge_rows = await conn.fetch(
         "select parent_post_id, child_post_id, fused_score from post_lineage_edge"
@@ -128,4 +139,4 @@ async def visible_lineage_graph(
         }
         for row in visible_edges
     ]
-    return {"nodes": nodes, "edges": edges}
+    return {"nodes": nodes, "edges": edges, "truncated": len(visible_all) > len(visible)}

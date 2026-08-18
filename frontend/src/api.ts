@@ -237,6 +237,7 @@ export interface LineageGraphEdge {
 export interface LineageGraph {
   nodes: LineageGraphNode[];
   edges: LineageGraphEdge[];
+  truncated?: boolean;
 }
 
 export function fetchLineageGraph(accessToken: string): Promise<LineageGraph> {
@@ -263,8 +264,13 @@ export function rebuildLineage(accessToken: string): Promise<{ edge_count: numbe
   return backendFetch("/api/lineage/rebuild", accessToken, { method: "POST" });
 }
 
-export function fetchPosts(accessToken: string): Promise<PostSummary[]> {
-  return backendFetch<PostSummary[]>("/api/posts", accessToken);
+export function fetchPosts(
+  accessToken: string,
+  limit?: number,
+  offset?: number,
+): Promise<PostSummary[]> {
+  const query = limit === undefined ? "" : `?limit=${limit}&offset=${offset ?? 0}`;
+  return backendFetch<PostSummary[]>(`/api/posts${query}`, accessToken);
 }
 
 export function fetchPost(

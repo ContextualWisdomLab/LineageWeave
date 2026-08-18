@@ -1072,6 +1072,16 @@ def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, 
     assert public["visibility_label"] == "Public"
 
 
+def test_post_list_supports_bounded_offset_pages(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        "/api/posts?limit=1&offset=1",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 200, response.text
+    assert len(response.json()) == 1
+
+
 def test_post_detail_uses_lookup_labels_not_raw_codes(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         f"/api/posts/{seeded_db['public_post_id']}",

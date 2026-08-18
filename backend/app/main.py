@@ -27,7 +27,7 @@ from uuid import UUID
 
 import asyncpg
 import redis.asyncio as redis
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -370,13 +370,18 @@ async def read_me(
 
 @app.get("/api/lineage")
 async def read_lineage_graph(
+    limit: int = Query(500, ge=1, le=2000),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """ABAC-filtered reconstruct graph for the product UI (same shape as the demo server)."""
+    """ABAC-filtered reconstruct graph bounded for browser rendering."""
     _require_post_read(account)
     async with pool.acquire() as conn:
-        return await visible_lineage_graph(conn, lambda row: _can_see_post(account, row))
+        return await visible_lineage_graph(
+            conn,
+            lambda row: _can_see_post(account, row),
+            limit=limit,
+        )
 
 
 @app.post("/api/lineage/rebuild")
@@ -397,15 +402,28 @@ async def rebuild_lineage_graph(
 
 @app.get("/api/posts")
 async def list_posts(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> list[dict[str, Any]]:
-    """List source_post rows the account is allowed to see (RBAC then ABAC)."""
+    """List a bounded page of source_post rows allowed by RBAC and ABAC."""
     _require_post_read(account)
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            "select post_id, post_title, voc_type_code, visibility_code, corporate_entity_id, created_at "
-            "from source_post order by created_at desc"
+            """
+            select post_id, post_title, voc_type_code, visibility_code,
+                   corporate_entity_id, created_at
+              from source_post
+             where visibility_code = 'public'
+                or corporate_entity_id::text = any($1::text[])
+             order by created_at desc, post_id desc
+             offset $2
+             limit $3
+            """,
+            list(account.corporate_entity_ids),
+            offset,
+            limit,
         )
         visible = [row for row in rows if _can_see_post(account, row)]
         labels = await _lookup_post_labels(conn, visible)

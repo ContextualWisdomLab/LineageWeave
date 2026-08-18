@@ -2768,6 +2768,8 @@ function ReportsPanel({
   );
 }
 
+const POST_PAGE_SIZE = 50;
+
 function PostList({ accessToken }: { accessToken: string }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
@@ -2786,6 +2788,9 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [openedFromReportMember, setOpenedFromReportMember] = useState(false);
   const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
   const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
+  const [postOffset, setPostOffset] = useState(0);
+  const [hasMorePosts, setHasMorePosts] = useState(false);
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
 
   function openReportFromAnalysisRun(
     periodCode: string,
@@ -2834,7 +2839,13 @@ function PostList({ accessToken }: { accessToken: string }) {
   }
 
   useEffect(() => {
-    fetchPosts(accessToken).then(setPosts).catch((err) => setError(String(err)));
+    fetchPosts(accessToken)
+      .then((page) => {
+        setPosts(page);
+        setPostOffset(page.length);
+        setHasMorePosts(page.length === POST_PAGE_SIZE);
+      })
+      .catch((err) => setError(String(err)));
     fetchLineageGraph(accessToken).then(setGraph).catch(() => setGraph({ nodes: [], edges: [] }));
     fetchMe(accessToken)
       .then((me) => {
@@ -2848,6 +2859,23 @@ function PostList({ accessToken }: { accessToken: string }) {
         setEntitiesLoadError("Reload to load the corporate entities this account may reconstruct.");
       });
   }, [accessToken]);
+
+  async function loadMorePosts() {
+    if (loadingMorePosts || !hasMorePosts) {
+      return;
+    }
+    setLoadingMorePosts(true);
+    try {
+      const page = await fetchPosts(accessToken, POST_PAGE_SIZE, postOffset);
+      setPosts((previous) => [...(previous ?? []), ...page]);
+      setPostOffset((previous) => previous + page.length);
+      setHasMorePosts(page.length === POST_PAGE_SIZE);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setLoadingMorePosts(false);
+    }
+  }
 
   async function handleRebuild() {
     setRebuilding(true);
@@ -2903,6 +2931,11 @@ function PostList({ accessToken }: { accessToken: string }) {
         {rebuildError && <p className="error">{rebuildError}</p>}
         {!graph && <p>Loading lineage graph...</p>}
         {graph && <LineageDag graph={graph} onSelectPost={selectPost} />}
+        {graph?.truncated && (
+          <p className="post-meta" role="status">
+            Showing the newest Event Lineage nodes. Open a post to read its complete linked lineage.
+          </p>
+        )}
       </section>
       <ul className="post-list">
         {posts.map((post) => (
@@ -2919,6 +2952,11 @@ function PostList({ accessToken }: { accessToken: string }) {
           </li>
         ))}
       </ul>
+      {hasMorePosts && (
+        <button type="button" onClick={loadMorePosts} disabled={loadingMorePosts}>
+          {loadingMorePosts ? "Loading more posts..." : "Load more posts"}
+        </button>
+      )}
       {selectedPostId && (
         <PostDetailPopup
           postId={selectedPostId}
