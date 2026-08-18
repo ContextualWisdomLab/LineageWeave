@@ -3041,7 +3041,7 @@ type BoardSortOrder = "newest" | "oldest" | "title";
 
 function PostList({
   accessToken,
-  showLabPanels = true,
+  showLabPanels = false,
   postIdToOpen = null,
   onPostOpened,
 }: {
@@ -3625,7 +3625,7 @@ function AskAgentPanel({
   );
 }
 
-export default function App() {
+export default function App({ showLabPanels = false }: { showLabPanels?: boolean } = {}) {
   useLocale();
   const auth = useAuth();
   const [destination, setDestination] = useState<BuyerDestination>("board");
@@ -3668,7 +3668,7 @@ export default function App() {
       {destination === "board" ? (
         <PostList
           accessToken={accessToken}
-          showLabPanels
+          showLabPanels={showLabPanels}
           postIdToOpen={postToOpen}
           onPostOpened={() => setPostToOpen(null)}
         />

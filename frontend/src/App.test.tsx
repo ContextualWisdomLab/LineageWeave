@@ -30,7 +30,7 @@ afterEach(() => {
 
 describe("App, unauthenticated", () => {
   it("shows a login button that starts the real OIDC redirect", async () => {
-    render(<App />);
+    render(<App showLabPanels />);
     const button = screen.getByRole("button", { name: /log in/i });
     await userEvent.click(button);
     expect(signinRedirect).toHaveBeenCalledTimes(1);
@@ -1420,7 +1420,7 @@ describe("App, authenticated", () => {
 
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
     expect(screen.queryByLabelText("A-100 lineage")).not.toBeInTheDocument();
     expect(screen.queryByText("Public post → Linked post")).not.toBeInTheDocument();
@@ -1438,7 +1438,7 @@ describe("App, authenticated", () => {
 
   it("renders the board landmark and functional post controls", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     const board = await screen.findByRole("region", { name: "Board" });
     expect(within(board).getByRole("search", { name: "Search and filter posts" })).toBeInTheDocument();
@@ -1455,7 +1455,7 @@ describe("App, authenticated", () => {
 
   it("opens a post from a DAG node click", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByLabelText("Open post: Linked post"));
     await waitFor(() =>
@@ -1469,7 +1469,7 @@ describe("App, authenticated", () => {
     stubBackend({
       postBody: `<p>Quote attached.</p><img src="data:image/png;base64,${tinyPng}" alt=""><p>Please confirm.</p>`,
     });
-    render(<App />);
+    render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
     const image = await screen.findByRole("img", { name: /embedded image at character offset/i });
@@ -1483,7 +1483,7 @@ describe("App, authenticated", () => {
   it("fetches and renders the post list, then opens a detail popup on click", async () => {
     const fetchMock = stubBackend();
 
-    render(<App />);
+    render(<App showLabPanels />);
 
     const listButton = await screen.findByRole("button", { name: "View post: Public post" });
     expect(fetchMock).toHaveBeenCalledWith(
@@ -1506,7 +1506,7 @@ describe("App, authenticated", () => {
 
   it("switches the product surface between supported languages", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
     const language = screen.getByRole("combobox", { name: "Language" });
@@ -1520,7 +1520,7 @@ describe("App, authenticated", () => {
 
   it("rebuilds lineage when the account has post_admin", async () => {
     const fetchMock = stubBackend({ admin: true });
-    render(<App />);
+    render(<App showLabPanels />);
     await userEvent.click(await screen.findByText("Advanced review tools"));
     await userEvent.click(await screen.findByRole("button", { name: /rebuild lineage/i }));
     await waitFor(() =>
@@ -1533,7 +1533,7 @@ describe("App, authenticated", () => {
 
   it("renders the Korean summary, key events, R&R, and Event Lineage panels", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
@@ -1590,7 +1590,7 @@ describe("App, authenticated", () => {
 
   it("shows a seeded Ask exchange without an orchestrator round-trip", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await waitFor(() =>
@@ -1624,7 +1624,7 @@ describe("App, authenticated", () => {
 
   it("asks a chat question and slides in the evidence panel for a cited source on click", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByPlaceholderText(/what happened/i)).toBeInTheDocument());
@@ -1649,7 +1649,7 @@ describe("App, authenticated", () => {
 
   it("shows a clear empty state when chat is 503 without an orchestrator", async () => {
     stubBackend({ chatUnavailable: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByPlaceholderText(/what happened/i)).toBeInTheDocument());
@@ -1675,7 +1675,7 @@ describe("App, authenticated", () => {
 
   it("shows a clear empty state when evaluate is 503 without an orchestrator", async () => {
     stubBackend({ admin: true, chatUnavailable: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: /evaluate post/i }));
@@ -1689,7 +1689,7 @@ describe("App, authenticated", () => {
 
   it("shows a clear empty state when extract Keymen is 503 without an orchestrator", async () => {
     stubBackend({ admin: true, chatUnavailable: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: /extract keymen/i }));
@@ -1703,7 +1703,7 @@ describe("App, authenticated", () => {
 
   it("shows a clear empty state when derive commitment is 503 without an orchestrator", async () => {
     stubBackend({ admin: true, chatUnavailable: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: /derive commitment/i }));
@@ -1719,7 +1719,7 @@ describe("App, authenticated", () => {
 
   it("shows a clear empty state when verify is 503 without search", async () => {
     stubBackend({ admin: true, searchUnavailable: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: /verify against web search/i }));
@@ -1733,7 +1733,7 @@ describe("App, authenticated", () => {
 
   it("shows the affiliate tree, VOC excerpt, and related Keyman nodes on click", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
@@ -1783,7 +1783,7 @@ describe("App, authenticated", () => {
 
   it("opens related Keyman nodes from an R&R person", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: "R&R Keyman: Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
@@ -1800,7 +1800,7 @@ describe("App, authenticated", () => {
 
   it("opens related nodes from an R&R person catalog id", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: "R&R person: Priya Nair" }));
     await waitFor(() => expect(screen.getByText("Related to Priya Nair")).toBeInTheDocument());
@@ -1811,7 +1811,7 @@ describe("App, authenticated", () => {
 
   it("opens related nodes from an R&R team", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: "R&R team: 설계팀" }));
     await waitFor(() => expect(screen.getByText("Related to 설계팀")).toBeInTheDocument());
@@ -1822,7 +1822,7 @@ describe("App, authenticated", () => {
 
   it("opens related nodes from a related team chip", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
@@ -1835,7 +1835,7 @@ describe("App, authenticated", () => {
 
   it("opens related nodes from a related corporate entity", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
@@ -1848,7 +1848,7 @@ describe("App, authenticated", () => {
 
   it("shows the VOC excerpt under its counterparty, not a detached list", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     const name = await screen.findByRole("button", { name: "VOC Keyman: Northridge Grid" });
     const excerpt = screen.getByText(
@@ -1868,7 +1868,7 @@ describe("App, authenticated", () => {
 
   it("opens related Keyman nodes from a VOC counterparty organization", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: "VOC Keyman: Northridge Grid" }));
     await waitFor(() => expect(screen.getByText("Related to Priya Nair")).toBeInTheDocument());
@@ -1879,7 +1879,7 @@ describe("App, authenticated", () => {
 
   it("opens related Keyman nodes from an affiliate-tree person", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: "Affiliate Keyman: Priya Nair" }));
     await waitFor(() => expect(screen.getByText("Related to Priya Nair")).toBeInTheDocument());
@@ -1890,7 +1890,7 @@ describe("App, authenticated", () => {
 
   it("opens related nodes from a Keyman affiliation organization", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: "Keyman affiliation: Demo Corp" }));
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
@@ -1901,7 +1901,7 @@ describe("App, authenticated", () => {
 
   it("opens related nodes from an affiliate-tree organization", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: "Affiliate org: Demo Corp" }));
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
@@ -1913,7 +1913,7 @@ describe("App, authenticated", () => {
 
   it("opens related nodes from a classified counterparty organization", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: "Counterparty org: Demo Corp" }));
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
@@ -1925,7 +1925,7 @@ describe("App, authenticated", () => {
 
   it("links a verification badge only for http(s) evidence URLs", async () => {
     stubBackend({ verificationEvidenceUrl: "https://example.test/searxng?q=Northridge" });
-    render(<App />);
+    render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     const badge = await screen.findByRole("link", { name: "VOC verification: Northridge Grid" });
     expect(badge).toHaveAttribute("href", "https://example.test/searxng?q=Northridge");
@@ -1933,7 +1933,7 @@ describe("App, authenticated", () => {
 
   it("does not turn a javascript: evidence URL into a verification link", async () => {
     stubBackend({ verificationEvidenceUrl: "javascript:alert(1)" });
-    render(<App />);
+    render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await waitFor(() =>
       expect(screen.getByLabelText("VOC verification: Northridge Grid")).toBeInTheDocument(),
@@ -1944,7 +1944,7 @@ describe("App, authenticated", () => {
 
   it("lets post_admin verify pending counterparties against web search", async () => {
     const fetchMock = stubBackend({ admin: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await waitFor(() =>
@@ -1965,7 +1965,7 @@ describe("App, authenticated", () => {
 
   it("lets post_admin extract Keymen from the popup", async () => {
     const fetchMock = stubBackend({ admin: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await userEvent.click(await screen.findByRole("button", { name: /extract keymen/i }));
@@ -1980,7 +1980,7 @@ describe("App, authenticated", () => {
 
   it("creates an issue ticket and updates its status via the real endpoints", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("No tickets yet.")).toBeInTheDocument());
@@ -2003,7 +2003,7 @@ describe("App, authenticated", () => {
 
   it("creates a dated ticket and shows the due date on the ticket list", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("No tickets yet.")).toBeInTheDocument());
@@ -2018,7 +2018,7 @@ describe("App, authenticated", () => {
 
   it("shows real ticket mutations on the activity feed after a refresh", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("No activity yet.")).toBeInTheDocument());
@@ -2050,7 +2050,7 @@ describe("App, authenticated", () => {
 
   it("hides derive commitment for accounts without post_admin", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("No tickets yet.")).toBeInTheDocument());
@@ -2059,7 +2059,7 @@ describe("App, authenticated", () => {
 
   it("derives a customer commitment and shows its due date on the ticket list", async () => {
     stubBackend({ admin: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("No tickets yet.")).toBeInTheDocument());
@@ -2074,7 +2074,7 @@ describe("App, authenticated", () => {
 
   it("tells the buyer how to populate an empty calendar", async () => {
     stubBackend({ calendarCommitments: [] });
-    render(<App />);
+    render(<App showLabPanels />);
 
     await waitFor(() =>
       expect(
@@ -2085,7 +2085,7 @@ describe("App, authenticated", () => {
 
   it("shows upcoming commitments on the home page calendar and opens the post on click", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     const calendarButton = await screen.findByRole("button", {
       name: /open commitment for: public post/i,
@@ -2108,7 +2108,7 @@ describe("App, authenticated", () => {
 
   it("shows the seeded analysis run on the home page", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     expect(await screen.findByRole("heading", { name: "Analysis runs" })).toBeInTheDocument();
     const list = screen.getByRole("list", { name: "Analysis runs" });
@@ -2220,7 +2220,7 @@ describe("App, authenticated", () => {
 
   it("warns that a cutoff-rewritten title opens the live body, not a snapshot", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(
       await screen.findByRole("button", {
@@ -2268,7 +2268,7 @@ describe("App, authenticated", () => {
 
   it("tells a running lineage run to refresh the durable outbox", async () => {
     stubBackend({ runningLineageRun: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     const lineageButton = await screen.findByRole("button", {
       name: "Open analysis run: Lineage reconstruction · Running · Demo Corp",
@@ -2285,7 +2285,7 @@ describe("App, authenticated", () => {
 
   it("does not tell a failed lineage run to connect the measurement service", async () => {
     stubBackend({ failedLineageRun: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     await screen.findByRole("list", { name: "Analysis runs" });
     const lineageButton = screen.getByRole("button", {
@@ -2306,7 +2306,7 @@ describe("App, authenticated", () => {
 
   it("does not tell a succeeded period report to rebuild, reconstruct, or measure", async () => {
     stubBackend({ succeededReportRun: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     const reportButton = await screen.findByRole("button", {
       name: "Open analysis run: Period report · Succeeded · Demo Corp",
@@ -2371,7 +2371,7 @@ describe("App, authenticated", () => {
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
     HTMLElement.prototype.scrollIntoView = scrollIntoView;
     try {
-      render(<App />);
+      render(<App showLabPanels />);
 
       const periodInput = await screen.findByLabelText("Report period");
       expect(periodInput).toHaveValue("2026-W02");
@@ -2570,7 +2570,7 @@ describe("App, authenticated", () => {
 
   it("does not tell a failed period report to connect the measurement service", async () => {
     stubBackend({ failedReportRun: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     const reportButton = await screen.findByRole("button", {
       name: "Open analysis run: Period report · Failed · Demo Corp",
@@ -2595,7 +2595,7 @@ describe("App, authenticated", () => {
 
   it("does not tell a pending TEPP run that it already measured", async () => {
     stubBackend({ pendingTeppRun: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(
       await screen.findByRole("button", {
@@ -2614,7 +2614,7 @@ describe("App, authenticated", () => {
 
   it("starts a pending TEPP run through tepp_client and does not invent a theta", async () => {
     const fetchMock = stubBackend({ pendingTeppRun: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(
       await screen.findByRole("button", {
@@ -2636,7 +2636,7 @@ describe("App, authenticated", () => {
 
   it("does not invent a Pending TEPP row from a Failed TEPP run", async () => {
     const fetchMock = stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(
       await screen.findByRole("button", {
@@ -2659,7 +2659,7 @@ describe("App, authenticated", () => {
 
   it("does not tell a succeeded TEPP run to replace Failed", async () => {
     stubBackend({ succeededTeppRun: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(
       await screen.findByRole("button", {
@@ -2674,7 +2674,7 @@ describe("App, authenticated", () => {
 
   it("records a pending lineage run and opens the authorized detail", async () => {
     const fetchMock = stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(
       await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
@@ -2707,7 +2707,7 @@ describe("App, authenticated", () => {
 
   it("lets a multi-affiliation operator choose which corp to reconstruct", async () => {
     const fetchMock = stubBackend({ pluralAffiliations: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     const picker = await screen.findByRole("combobox", {
       name: "Corporate entity to reconstruct",
@@ -2728,7 +2728,7 @@ describe("App, authenticated", () => {
 
   it("does not record a lineage run before affiliated corps load", async () => {
     const fetchMock = stubBackend({ deferMe: true, pluralAffiliations: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     const loading = await screen.findByRole("button", { name: "Loading affiliated entities..." });
     expect(loading).toBeDisabled();
@@ -2753,7 +2753,7 @@ describe("App, authenticated", () => {
 
   it("keeps Request disabled when affiliated corps fail to load", async () => {
     const fetchMock = stubBackend({ meFailed: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     expect(
       await screen.findByText("Reload to load the corporate entities this account may reconstruct."),
@@ -2768,7 +2768,7 @@ describe("App, authenticated", () => {
 
   it("starts reconstruction and shows the designed A-100 fork", async () => {
     const fetchMock = stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(
       await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
@@ -2814,7 +2814,7 @@ describe("App, authenticated", () => {
 
   it("shows the calibrated period-report mean theta on the home page", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     expect((await screen.findAllByText(/mean θ 0.42/)).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/8 posts/).length).toBeGreaterThan(0);
@@ -2850,7 +2850,7 @@ describe("App, authenticated", () => {
 
   it("shows the grouping comparison strip and switches grouping on click", async () => {
     const fetchMock = stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     expect(await screen.findByLabelText("Grouping comparison")).toBeInTheDocument();
     expect(
@@ -2872,7 +2872,7 @@ describe("App, authenticated", () => {
 
   it("selects a linked week from the FIPC trend strip", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: /open report period 2026-W03/i }));
     const periodInput = screen.getByLabelText("Report period");
@@ -2881,7 +2881,7 @@ describe("App, authenticated", () => {
 
   it("opens Event Lineage, Keyman, and evaluation from a report member click", async () => {
     stubBackend();
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: /open report post: public post/i }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
@@ -2944,7 +2944,7 @@ describe("App, authenticated", () => {
 
   it("lets post_admin rebuild the period report", async () => {
     const fetchMock = stubBackend({ admin: true });
-    render(<App />);
+    render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: /rebuild report/i }));
     await waitFor(() =>
@@ -2953,5 +2953,14 @@ describe("App, authenticated", () => {
         expect.objectContaining({ method: "POST" }),
       ),
     );
+  });
+
+  it("keeps advanced review tools out of the buyer board", async () => {
+    stubBackend();
+    render(<App />);
+
+    expect(await screen.findByRole("navigation", { name: "Buyer navigation" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Board" })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
   });
 });
