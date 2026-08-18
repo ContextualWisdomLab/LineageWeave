@@ -1698,13 +1698,16 @@ function PostDetailPopup({
                 {liveBodyWarning}
               </p>
             ) : null}
-            {post.post_body.trim() ? (
-              <PostBody body={post.post_body} />
-            ) : (
-              <p className="popup-placeholder" role="status">
-                {t("Source body was not imported; summary and semantic extraction are unavailable.")}
-              </p>
-            )}
+			<section className="popup-section post-source-body" aria-label={t("Post body")}>
+			  <h3>{t("Post body")}</h3>
+			  {post.post_body.trim() ? (
+			    <PostBody body={post.post_body} />
+			  ) : (
+			    <p className="popup-placeholder" role="status">
+			      {t("Source body was not imported; summary and semantic extraction are unavailable.")}
+			    </p>
+			  )}
+			</section>
 
             {post.project_evidence && post.project_evidence.length > 0 ? (
               <section className="popup-section" aria-label={t("Projects / semantic evidence")}>
