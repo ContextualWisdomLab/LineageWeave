@@ -11,9 +11,9 @@ import os
 import sys
 import json
 from pathlib import Path
-from urllib.parse import urlparse
 
 from embedding_compat import install_provider_embedding_support
+from provider_policy import is_local_mlx_provider
 from vision_compat import install_multimodal_chat_support
 
 
@@ -31,12 +31,7 @@ def _allow_local_mlx_provider() -> None:
     upstream_validate = ModelClient._validate_provider
 
     def validate_provider(self, agent):
-        parsed = urlparse(agent.base_url)
-        if (
-            parsed.scheme == "http"
-            and parsed.hostname == "host.docker.internal"
-            and parsed.port == 8080
-        ):
+        if is_local_mlx_provider(agent.base_url):
             if get_credential(agent.credential_name) is None:
                 raise RuntimeError(f"{agent.id} requires a resolvable KV credential")
             return
@@ -45,11 +40,10 @@ def _allow_local_mlx_provider() -> None:
     ModelClient._validate_provider = validate_provider
 
 
-def _configure_provider_output_budget() -> None:
+def _configure_provider_output_budget(*, local_mlx: bool) -> None:
     """Keep local MLX generation bounded without changing external defaults."""
     from contextual_orchestrator.orchestrator import ModelClient
 
-    local_mlx = os.environ.get("LINEAGEWEAVE_ALLOW_LOCAL_LLM_HTTP") == "1"
     default = "256" if local_mlx else "2048"
     raw_limit = os.environ.get("LLM_GATEWAY_MAX_OUTPUT_TOKENS", default).strip()
     try:
@@ -96,6 +90,7 @@ def main() -> None:
         provider_url = "https://integrate.api.nvidia.com/v1"
     if not provider_url.rstrip("/").endswith("/v1"):
         provider_url = provider_url.rstrip("/") + "/v1"
+    local_mlx = is_local_mlx_provider(provider_url)
     provider_model = os.environ.pop("LLM_GATEWAY_MODEL", "").strip()
     embedding_model = os.environ.pop("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
 
@@ -113,7 +108,7 @@ def main() -> None:
     register_credential("NVIDIA_NIM_API_KEY", provider_key)
     register_credential("LLM_GATEWAY_API_KEY", provider_key)
     _allow_local_mlx_provider()
-    _configure_provider_output_budget()
+    _configure_provider_output_budget(local_mlx=local_mlx)
     install_provider_embedding_support(provider_url, embedding_model)
     install_multimodal_chat_support()
     del provider_url

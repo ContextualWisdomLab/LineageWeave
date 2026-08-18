@@ -14,6 +14,7 @@ RUN mkdir /tmp/contextual-orchestrator \
 
 COPY agents.json /app/agents.json
 COPY start.py /app/start.py
+COPY provider_policy.py /app/provider_policy.py
 COPY vision_compat.py /app/vision_compat.py
 COPY embedding_compat.py /app/embedding_compat.py
 
