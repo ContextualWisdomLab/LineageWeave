@@ -109,10 +109,13 @@ services:
       AGENTS_FILE: /app/agents.json
       PORT: 8000
       CONTEXTUAL_ORCHESTRATOR_TOKEN: ${ORCHESTRATOR_API_KEY:-lineageweave-orchestrator-dev-only}
-      LLM_GATEWAY_URL: ${LLM_GATEWAY_URL:-http://host.docker.internal:8080/v1}
+      # Canonical gateway variables win. The LLM_API_* fallback is only for
+      # the operator's ~/.env compatibility contract; GitHub injects the
+      # canonical names directly.
+      LLM_GATEWAY_URL: ${LLM_GATEWAY_URL:-${LLM_API_GATEWAY:-http://host.docker.internal:8080/v1}}
       LLM_GATEWAY_MODEL: ${LLM_GATEWAY_MODEL:-mlx-community/gemma-4-e4b-it-4bit}
       LLM_GATEWAY_EMBEDDING_MODEL: ${LLM_GATEWAY_EMBEDDING_MODEL:-}
-      LLM_GATEWAY_API_KEY: ${LLM_GATEWAY_API_KEY:-lineageweave-local-mlx-dev-only}
+      LLM_GATEWAY_API_KEY: ${LLM_GATEWAY_API_KEY:-${LLM_API_KEY:-lineageweave-local-mlx-dev-only}}
       CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS: ${CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS:-host.docker.internal}
       LINEAGEWEAVE_ALLOW_LOCAL_LLM_HTTP: "1"
     command: ["python", "/app/start.py"]

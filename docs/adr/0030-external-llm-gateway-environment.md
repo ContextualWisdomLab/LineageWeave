@@ -22,19 +22,21 @@ boundary; the second is the provider credential.
 
 ## Decision
 
-For local and other non-GitHub runtimes, the provider variables are read from
-`~/.env` using these exact names:
+For GitHub Actions and any deployment that injects canonical secrets, the
+provider variables use these exact names:
 
 ```text
 LLM_GATEWAY_URL
 LLM_GATEWAY_API_KEY
 ```
 
-`make up`, `make down`, `make logs`, and `make ps` pass that file to Compose
-with `--env-file`, so its variable interpolation and the orchestrator's
-`env_file` use the same source. The API key remains process/container
-environment data and is never logged, rendered into frontend assets, or
-checked in.
+For the operator's local `~/.env`, Compose also accepts the existing names
+`LLM_API_GATEWAY` and `LLM_API_KEY` and maps them to the canonical provider
+variables. Canonical values win when both names are present. `make up`,
+`make down`, `make logs`, and `make ps` pass that file to Compose with
+`--env-file`, so its interpolation and the orchestrator's `env_file` use the
+same source. The API key remains process/container environment data and is
+never logged, rendered into frontend assets, or checked in.
 
 GitHub Actions must not depend on a developer's `~/.env`. If a workflow needs
 the provider, it must inject the same two names from GitHub-managed secrets at
@@ -56,8 +58,9 @@ local score, summary, extraction, or answer when the gateway is unavailable.
 - `LLM_GATEWAY_EMBEDDING_MODEL` is the explicit allowlisted semantic embedding
   model. If it is absent, contextual-orchestrator rejects embedding work
   instead of returning its standalone eight-dimensional heuristic vector.
-- `LLM_API_KEY` and `LLM_API_GATEWAY` are not supported aliases in this repo;
-  using the canonical names avoids silently selecting the wrong hop.
+- `LLM_API_KEY` and `LLM_API_GATEWAY` are local compatibility aliases only;
+  `LLM_GATEWAY_API_KEY` and `LLM_GATEWAY_URL` are the canonical names for
+  GitHub and deployment automation.
 
 Vision follows the same boundary. LineageWeave sends image content blocks only
 to contextual-orchestrator's internal OpenAI-compatible endpoint; it never
