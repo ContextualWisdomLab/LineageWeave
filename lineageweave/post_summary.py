@@ -160,11 +160,16 @@ _SUMMARY_PROMPT_TEMPLATE = """\
 Read the post below (it may be in English, Korean, or mixed) and produce
 four things:
 
-1. A Korean-language summary (2-4 sentences) of what the post is about --
-   genuinely condensed and re-worded, not copied sentences from the text.
-2. A list of key events: discrete, datable occurrences mentioned in the
-   post (e.g. "a bid was submitted", "a delivery date was confirmed"),
-   each as a short phrase.
+1. A Korean-language, evidence-grounded summary in 3-5 sentences. It must
+   answer the supported parts of 5W1H: who acted, what happened, when and
+   where it happened, why or what goal was involved, and how it progressed or
+   what happens next. If a dimension is absent from the post, say "본문에
+   없음" rather than inventing it. Do not write a generic sentence such as
+   "이 게시물은 ... 보고를 담고 있다" when the body contains more detail.
+2. A list of key events: discrete occurrences mentioned in the post (e.g.
+   "a bid was submitted", "a delivery date was confirmed"), each as a short
+   phrase with the actor, action, time/place, or result when the body states
+   it.
 3. A list of roles & responsibilities: for each named actor in the post
    -- a person, an organization acting in its own name (e.g. "당사"
    [our company], "Demo Corp"), OR a named team/department inside an

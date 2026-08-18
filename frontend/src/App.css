@@ -64,6 +64,123 @@
   font-size: 1rem;
 }
 
+.board-surface {
+  display: block;
+}
+
+.board-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.board-header h2 {
+  margin: 0.2rem 0 0.35rem;
+}
+
+.board-header p {
+  margin: 0;
+}
+
+.board-result-count {
+  color: var(--text-muted);
+  font-size: var(--lw-font-size-meta);
+  white-space: nowrap;
+}
+
+.board-controls {
+  display: grid;
+  grid-template-columns: minmax(12rem, 2fr) repeat(3, minmax(8rem, 1fr)) auto;
+  gap: 0.75rem;
+  align-items: end;
+  margin-bottom: 1.25rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-muted);
+}
+
+.board-controls label {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--text-muted);
+  font-size: var(--lw-font-size-meta);
+  font-weight: 700;
+}
+
+.board-search-help {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.board-controls input,
+.board-controls select {
+  min-height: var(--size-control-min);
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.board-reset {
+  min-height: var(--size-control-min);
+  white-space: nowrap;
+}
+
+.board-empty {
+  padding: 1.25rem;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--text-muted);
+}
+
+.board-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.board-pagination button {
+  min-width: 2.25rem;
+  min-height: var(--size-control-min);
+}
+
+.board-pagination button[aria-current="page"] {
+  border-color: var(--color-accent-border);
+  background: var(--color-accent-background);
+  color: var(--text-h);
+  font-weight: 700;
+}
+
+.post-card {
+  margin-bottom: 0.5rem;
+}
+
+.post-card .post-list-item {
+  margin-bottom: 0;
+}
+
+.post-card-main {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.post-card-badges {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .post-list-item[aria-current="true"],
 .ticket-list-item[aria-current="true"] {
   border-color: #2563eb;
@@ -537,6 +654,19 @@
 
   .buyer-destination {
     padding: 1rem;
+  }
+
+  .board-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .board-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .board-result-count {
+    white-space: normal;
   }
 }
 

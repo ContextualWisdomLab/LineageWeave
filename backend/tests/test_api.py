@@ -60,6 +60,12 @@ _PROJECT_GROUPING_MIGRATION = (
 _SEMANTIC_PROJECT_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0031_semantic_project_mentions.sql"
 )
+_SEMANTIC_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0032_semantic_search_trigram.sql"
+)
+_SOURCE_STATE_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0033_source_state_provenance.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -153,6 +159,8 @@ def seeded_db(demo_analyst_token):
             cur.execute(_INTERNAL_RELATION_EVIDENCE_MIGRATION.read_text())
             cur.execute(_PROJECT_GROUPING_MIGRATION.read_text())
             cur.execute(_SEMANTIC_PROJECT_MIGRATION.read_text())
+            cur.execute(_SEMANTIC_SEARCH_MIGRATION.read_text())
+            cur.execute(_SOURCE_STATE_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -1081,14 +1089,15 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
 def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, demo_analyst_token, seeded_db) -> None:
     response = client.get("/api/posts", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200
-    titles = {post["post_title"] for post in response.json()}
+    payload = response.json()
+    titles = {post["post_title"] for post in payload["posts"]}
     assert titles == {
         "Public post",
         "Own-corp private post",
         "Late own-corp private post",
         "Edited own-corp private post",
     }
-    public = next(post for post in response.json() if post["post_title"] == "Public post")
+    public = next(post for post in payload["posts"] if post["post_title"] == "Public post")
     assert public["voc_type_label"] == "Voice of Customer"
     assert public["visibility_label"] == "Public"
 
@@ -1100,7 +1109,8 @@ def test_post_list_supports_bounded_offset_pages(client, demo_analyst_token, see
     )
 
     assert response.status_code == 200, response.text
-    assert len(response.json()) == 1
+    assert len(response.json()["posts"]) == 1
+    assert response.json()["total_count"] == 4
 
 
 def test_post_detail_uses_lookup_labels_not_raw_codes(client, demo_analyst_token, seeded_db) -> None:

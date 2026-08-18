@@ -439,6 +439,10 @@ function EventLineageSection({
   );
 }
 
+function summaryFetchError(err: unknown): string {
+  return err instanceof BackendError ? err.message : String(err);
+}
+
 function RelatedPostsSection({
   lineage,
   onSelectPost,
@@ -1511,6 +1515,7 @@ function PostDetailPopup({
   const [post, setPost] = useState<PostDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<PostAiSummary | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
   const [keymen, setKeymen] = useState<Keyman[] | null>(null);
   const [counterparties, setCounterparties] = useState<Counterparty[] | null>(null);
   const [lineage, setLineage] = useState<PostLineage | null>(null);
@@ -1540,6 +1545,7 @@ function PostDetailPopup({
     setPost(null);
     setError(null);
     setSummary(null);
+    setSummaryError(null);
     setKeymen(null);
     setCounterparties(null);
     setLineage(null);
@@ -1554,7 +1560,12 @@ function PostDetailPopup({
     fetchPostEvaluation(accessToken, postId)
       .then((r) => setEvaluation(r.responses))
       .catch(() => setEvaluation([]));
-    fetchPostSummary(accessToken, postId).then(setSummary).catch(() => setSummary(null));
+    fetchPostSummary(accessToken, postId)
+      .then(setSummary)
+      .catch((err) => {
+        setSummary(null);
+        setSummaryError(summaryFetchError(err));
+      });
     fetchPostKeymen(accessToken, postId).then((r) => setKeymen(r.keymen)).catch(() => setKeymen([]));
     fetchPostCounterparties(accessToken, postId)
       .then((r) => setCounterparties(r.counterparties))
@@ -1589,6 +1600,41 @@ function PostDetailPopup({
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
+            {(post.source_stage_code ||
+              post.source_detail_state_code ||
+              post.source_draft_code ||
+              post.source_deleted_flag) && (
+              <section className="popup-section" aria-label={t("Original source state")}>
+                <h3>{t("Original source state")}</h3>
+                <dl>
+                  {post.source_stage_code ? (
+                    <>
+                      <dt>{t("Source stage")}</dt>
+                      <dd>{post.source_stage_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_detail_state_code ? (
+                    <>
+                      <dt>{t("Source detail state")}</dt>
+                      <dd>{post.source_detail_state_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_draft_code ? (
+                    <>
+                      <dt>{t("Source draft marker")}</dt>
+                      <dd>{post.source_draft_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_deleted_flag ? (
+                    <>
+                      <dt>{t("Source deletion marker")}</dt>
+                      <dd>{post.source_deleted_flag}</dd>
+                    </>
+                  ) : null}
+                </dl>
+                <p className="post-meta">{t("Raw source codes are shown; no state label was inferred.")}</p>
+              </section>
+            )}
             {post.known_at ? (
               <CutoffKnownBody
                 title={post.known_at.post_title}
@@ -1627,8 +1673,15 @@ function PostDetailPopup({
                           <li key={project.project_key}>
                             <strong>{project.project_name}</strong>{" "}
                             ({Math.round(project.confidence * 100)}%): {project.evidence}
-                            <span className="post-badge">ontology: {project.ontology_iri}</span>
-                            <span className="post-badge">source: {project.extraction_method}</span>
+                            <details className="semantic-provenance">
+                              <summary>{t("Evidence provenance")}</summary>
+                              <span className="post-badge">
+                                {t("Ontology class")}: {project.ontology_iri}
+                              </span>
+                              <span className="post-badge">
+                                {t("Extraction source")}: {project.extraction_method}
+                              </span>
+                            </details>
                           </li>
                         ))}
                       </ul>
@@ -1733,6 +1786,8 @@ function PostDetailPopup({
                     </>
                   )}
                 </>
+              ) : summaryError ? (
+                <p className="error">{summaryError}</p>
               ) : (
                 <p className="popup-placeholder">{t("No summary is available for this record yet.")}</p>
               )}
@@ -2927,6 +2982,7 @@ function ReportsPanel({
 }
 
 const POST_PAGE_SIZE = 50;
+type BoardSortOrder = "newest" | "oldest" | "title";
 
 function PostList({
   accessToken,
@@ -2956,9 +3012,14 @@ function PostList({
   const [openedFromReportMember, setOpenedFromReportMember] = useState(false);
   const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
   const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
-  const [postOffset, setPostOffset] = useState(0);
-  const [hasMorePosts, setHasMorePosts] = useState(false);
-  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
+  const [totalPosts, setTotalPosts] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loadingPage, setLoadingPage] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [visibilityFilter, setVisibilityFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
 
   function openReportFromAnalysisRun(
     periodCode: string,
@@ -3012,14 +3073,33 @@ function PostList({
     setOpenedFromReportMember(false);
   }
 
+  async function loadPostPage(page: number, query = searchQuery) {
+    setLoadingPage(true);
+    setError(null);
+    try {
+      const response = await fetchPosts(
+        accessToken,
+        POST_PAGE_SIZE,
+        (page - 1) * POST_PAGE_SIZE,
+        query,
+        typeFilter === "all" ? undefined : typeFilter,
+        visibilityFilter === "all" ? undefined : visibilityFilter,
+      );
+      setPosts(response.posts);
+      setTotalPosts(response.total_count);
+      setCurrentPage(page);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setLoadingPage(false);
+    }
+  }
+
   useEffect(() => {
-    fetchPosts(accessToken)
-      .then((page) => {
-        setPosts(page);
-        setPostOffset(page.length);
-        setHasMorePosts(page.length === POST_PAGE_SIZE);
-      })
-      .catch((err) => setError(String(err)));
+    void loadPostPage(1, searchQuery);
+  }, [accessToken, searchQuery, typeFilter, visibilityFilter]);
+
+  useEffect(() => {
     fetchLineageGraph(accessToken).then(setGraph).catch(() => setGraph({ nodes: [], edges: [] }));
     fetchMe(accessToken)
       .then((me) => {
@@ -3034,23 +3114,6 @@ function PostList({
       });
   }, [accessToken]);
 
-  async function loadMorePosts() {
-    if (loadingMorePosts || !hasMorePosts) {
-      return;
-    }
-    setLoadingMorePosts(true);
-    try {
-      const page = await fetchPosts(accessToken, POST_PAGE_SIZE, postOffset);
-      setPosts((previous) => [...(previous ?? []), ...page]);
-      setPostOffset((previous) => previous + page.length);
-      setHasMorePosts(page.length === POST_PAGE_SIZE);
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setLoadingMorePosts(false);
-    }
-  }
-
   async function handleRebuild() {
     setRebuilding(true);
     setRebuildError(null);
@@ -3064,15 +3127,226 @@ function PostList({
     }
   }
 
-  if (error) return <p className="error">{error}</p>;
-  if (!posts) return <p>{t("Loading posts...")}</p>;
-  if (posts.length === 0) return <p>{t("No posts visible to this account yet -- try `make seed`.")}</p>;
+  const loadedPosts = posts ?? [];
+  const typeOptions = Array.from(new Set(loadedPosts.map((post) => post.voc_type_code))).sort();
+  const visibilityOptions = Array.from(new Set(loadedPosts.map((post) => post.visibility_code))).sort();
+  const filteredPosts = loadedPosts
+    .filter((post) => {
+      const matchesType = typeFilter === "all" || post.voc_type_code === typeFilter;
+      const matchesVisibility = visibilityFilter === "all" || post.visibility_code === visibilityFilter;
+      return matchesType && matchesVisibility;
+    })
+    .sort((left, right) => {
+      if (sortOrder === "title") {
+        return left.post_title.localeCompare(right.post_title);
+      }
+      const direction = sortOrder === "newest" ? -1 : 1;
+      return direction * left.created_at.localeCompare(right.created_at);
+    });
+  const hasBoardFilters = Boolean(searchInput.trim()) || Boolean(searchQuery) || typeFilter !== "all" || visibilityFilter !== "all";
+  const totalPages = Math.max(1, Math.ceil(totalPosts / POST_PAGE_SIZE));
+  const pageItems: Array<number | "ellipsis"> =
+    totalPages <= 7
+      ? Array.from({ length: totalPages }, (_, index) => index + 1)
+      : Array.from(new Set([1, 2, currentPage - 1, currentPage, currentPage + 1, totalPages - 1, totalPages]))
+          .filter((page) => page >= 1 && page <= totalPages)
+          .sort((left, right) => left - right)
+          .flatMap((page, index, pages) => [
+            ...(index > 0 && page - pages[index - 1] > 1 ? ["ellipsis" as const] : []),
+            page,
+          ]);
 
   return (
-    <>
+    <section className="board-surface" aria-labelledby="board-title">
+      <header className="board-header">
+        <div>
+          <p className="post-meta">{t("Board")}</p>
+          <h2 id="board-title">{t("Board")}</h2>
+          <p>{t("Authorized posts in this board.")}</p>
+        </div>
+        {posts && !error && (
+          <p className="board-result-count" aria-live="polite">
+            {t("Posts shown:")} {filteredPosts.length} / {totalPosts}
+          </p>
+        )}
+      </header>
+      {error ? (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      ) : !posts ? (
+        <p role="status">{t("Loading posts...")}</p>
+      ) : (
+        <>
+          <form
+            className="board-controls"
+            role="search"
+            aria-label={t("Search and filter posts")}
+            onSubmit={(event) => {
+              event.preventDefault();
+              setSearchQuery(searchInput.trim());
+            }}
+            onReset={() => {
+              setSearchInput("");
+              setSearchQuery("");
+              setTypeFilter("all");
+              setVisibilityFilter("all");
+              setSortOrder("newest");
+            }}
+          >
+            <label>
+              {t("Search semantic evidence")}
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder={t("Search semantic evidence")}
+                aria-label={t("Search semantic evidence")}
+              />
+            </label>
+            <button type="submit">{t("Search")}</button>
+            <p className="board-search-help post-meta">{t("Search includes post text and semantic evidence.")}</p>
+            <label>
+              {t("Filter by VOC type")}
+              <select
+                value={typeFilter}
+                onChange={(event) => setTypeFilter(event.target.value)}
+                aria-label={t("Filter by VOC type")}
+              >
+                <option value="all">{t("All VOC types")}</option>
+                {typeOptions.map((value) => (
+                  <option key={value} value={value}>
+                    {loadedPosts.find((post) => post.voc_type_code === value)?.voc_type_label ?? value}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t("Filter by visibility")}
+              <select
+                value={visibilityFilter}
+                onChange={(event) => setVisibilityFilter(event.target.value)}
+                aria-label={t("Filter by visibility")}
+              >
+                <option value="all">{t("All visibility")}</option>
+                {visibilityOptions.map((value) => (
+                  <option key={value} value={value}>
+                    {loadedPosts.find((post) => post.visibility_code === value)?.visibility_label ?? value}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t("Sort posts")}
+              <select
+                value={sortOrder}
+                onChange={(event) => setSortOrder(event.target.value as BoardSortOrder)}
+                aria-label={t("Sort posts")}
+              >
+                <option value="newest">{t("Newest first")}</option>
+                <option value="oldest">{t("Oldest first")}</option>
+                <option value="title">{t("Title A-Z")}</option>
+              </select>
+            </label>
+            {hasBoardFilters && (
+              <button type="reset" className="board-reset">
+                {t("Reset filters")}
+              </button>
+            )}
+          </form>
+          {posts.length === 0 ? (
+            <p className="board-empty" role="status">
+              {hasBoardFilters
+                ? t("No posts match the current filters.")
+                : t("No posts visible to this account yet -- try `make seed`.")}
+            </p>
+          ) : filteredPosts.length === 0 ? (
+            <p className="board-empty" role="status">
+              {t("No posts match the current filters.")}
+            </p>
+          ) : (
+            <ul className="post-list" aria-label={t("Board posts")}>
+              {filteredPosts.map((post) => (
+                <li key={post.post_id}>
+                  <article className="post-card">
+                    <button
+                      className="post-list-item"
+                      aria-label={`${t("View post:")} ${post.post_title}`}
+                      onClick={() => selectPost(post.post_id)}
+                    >
+                      <span className="post-card-main">
+                        <span className="post-title">{post.post_title}</span>
+                        <span className="post-meta">
+                          <time dateTime={post.created_at}>{post.created_at.slice(0, 10)}</time>
+                        </span>
+                      </span>
+                      <span className="post-card-badges">
+                        <span className="post-badge">{post.voc_type_label ?? post.voc_type_code}</span>
+                        <span className="post-badge">{post.visibility_label ?? post.visibility_code}</span>
+                        {post.source_detail_state_code ? (
+                          <span className="post-badge">
+                            {t("Source detail state")}: {post.source_detail_state_code}
+                          </span>
+                        ) : null}
+                      </span>
+                    </button>
+                  </article>
+                </li>
+              ))}
+            </ul>
+          )}
+          {totalPages > 1 && (
+            <nav className="board-pagination" aria-label={t("Board pages")}>
+              <button
+                type="button"
+                onClick={() => void loadPostPage(currentPage - 1)}
+                disabled={loadingPage || currentPage === 1}
+              >
+                {t("Previous page")}
+              </button>
+              {pageItems.map((page, index) =>
+                page === "ellipsis" ? (
+                  <span key={`ellipsis-${index}`} aria-hidden="true">
+                    ...
+                  </span>
+                ) : (
+                  <button
+                    key={page}
+                    type="button"
+                    aria-label={`${t("Page")} ${page}`}
+                    aria-current={page === currentPage ? "page" : undefined}
+                    onClick={() => void loadPostPage(page)}
+                    disabled={loadingPage}
+                  >
+                    {page}
+                  </button>
+                ),
+              )}
+              <button
+                type="button"
+                onClick={() => void loadPostPage(currentPage + 1)}
+                disabled={loadingPage || currentPage === totalPages}
+              >
+                {t("Next page")}
+              </button>
+            </nav>
+          )}
+        </>
+      )}
       {showLabPanels && (
         <details className="advanced-review-tools">
           <summary>{t("Advanced review tools")}</summary>
+          {canRebuild && (
+            <section className="popup-section">
+              <div className="lineage-home-header">
+                <h3>{t("Lineage maintenance")}</h3>
+                <button onClick={handleRebuild} disabled={rebuilding}>
+                  {rebuilding ? t("Rebuilding...") : t("Rebuild lineage")}
+                </button>
+              </div>
+              {rebuildError && <p className="error">{rebuildError}</p>}
+            </section>
+          )}
           <CalendarPanel accessToken={accessToken} onSelectPost={selectPost} />
           <AnalysisRunsPanel
             accessToken={accessToken}
@@ -3098,44 +3372,6 @@ function PostList({
           />
         </details>
       )}
-      <section className="popup-section lineage-home">
-        <div className="lineage-home-header">
-          <h2>{t("Event Lineage")}</h2>
-          {canRebuild && (
-            <button onClick={handleRebuild} disabled={rebuilding}>
-              {rebuilding ? t("Rebuilding...") : t("Rebuild lineage")}
-            </button>
-          )}
-        </div>
-        {rebuildError && <p className="error">{rebuildError}</p>}
-        {!graph && <p>{t("Loading lineage graph...")}</p>}
-        {graph && <LineageDag graph={graph} onSelectPost={selectPost} />}
-        {graph?.truncated && (
-          <p className="post-meta" role="status">
-            {t("Showing the newest Event Lineage nodes. Open a post to read its complete linked lineage.")}
-          </p>
-        )}
-      </section>
-      <ul className="post-list">
-        {posts.map((post) => (
-          <li key={post.post_id}>
-            <button
-              className="post-list-item"
-              aria-label={`${t("View post:")} ${post.post_title}`}
-              onClick={() => selectPost(post.post_id)}
-            >
-              <span className="post-title">{post.post_title}</span>
-              <span className="post-badge">{post.voc_type_label ?? post.voc_type_code}</span>
-              <span className="post-badge">{post.visibility_label ?? post.visibility_code}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      {hasMorePosts && (
-        <button type="button" onClick={loadMorePosts} disabled={loadingMorePosts}>
-          {loadingMorePosts ? t("Loading more posts...") : t("Load more posts")}
-        </button>
-      )}
       {selectedPostId && (
         <PostDetailPopup
           postId={selectedPostId}
@@ -3151,7 +3387,7 @@ function PostList({
           onSelectPost={selectPost}
         />
       )}
-    </>
+    </section>
   );
 }
 

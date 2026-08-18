@@ -14,7 +14,7 @@ import os
 
 import pytest
 
-from backend.app.post_summary_ingestion import seeded_fixture_summary
+from backend.app.post_summary_ingestion import require_summary_source_body, seeded_fixture_summary
 from lineageweave.fixtures import (
     ambiguous_commitment_post,
     ambiguous_keyman_post,
@@ -34,6 +34,12 @@ def test_null_summary_client_is_unavailable_not_empty_summary() -> None:
     assert client.available is False
     with pytest.raises(RuntimeError):
         client.summarize("any title", "any body")
+
+
+def test_summary_requires_imported_source_body() -> None:
+    assert require_summary_source_body("  body  ") == "  body  "
+    with pytest.raises(ValueError, match="source post body is empty"):
+        require_summary_source_body("")
 
 
 def test_parses_a_well_formed_json_object() -> None:

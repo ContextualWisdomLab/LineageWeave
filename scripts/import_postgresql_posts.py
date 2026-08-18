@@ -46,6 +46,10 @@ class ColumnMapping:
     updated_at: str | None
     voc_type: str | None
     visibility: str | None
+    stage: str | None
+    detail_state: str | None
+    draft: str | None
+    deleted: str | None
     thread_group: str | None
     secondary_group: str | None
 
@@ -63,6 +67,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--updated-at-column")
     parser.add_argument("--voc-type-column")
     parser.add_argument("--visibility-column")
+    parser.add_argument("--stage-column")
+    parser.add_argument("--detail-state-column")
+    parser.add_argument("--draft-column")
+    parser.add_argument("--deleted-column")
     parser.add_argument("--thread-group-column")
     parser.add_argument("--secondary-group-column")
     parser.add_argument("--author-subject-id", required=True)
@@ -145,6 +153,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
         updated_at=args.updated_at_column,
         voc_type=args.voc_type_column,
         visibility=args.visibility_column,
+        stage=args.stage_column,
+        detail_state=args.detail_state_column,
+        draft=args.draft_column,
+        deleted=args.deleted_column,
         thread_group=args.thread_group_column,
         secondary_group=args.secondary_group_column,
     )
@@ -174,13 +186,17 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             post_id = uuid.uuid5(SOURCE_NAMESPACE, f"{args.source_system_code}:{record_key}")
             title = str(_value(row, mapping.title, "") or "")
             body = str(_value(row, mapping.body, "") or "")
+            if not body.strip():
+                raise ValueError("source post body cannot be empty; import the source record body")
             await target.execute(
                 """
                 insert into source_post
                     (post_id, author_account_id, corporate_entity_id, process_unit_id,
                      post_title, post_body, voc_type_code, visibility_code,
+                     source_stage_code, source_detail_state_code,
+                     source_draft_code, source_deleted_flag,
                      thread_group_key, secondary_grouping_key, created_at, updated_at)
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
                 on conflict (post_id) do update set
                     author_account_id = excluded.author_account_id,
                     corporate_entity_id = excluded.corporate_entity_id,
@@ -189,6 +205,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                     post_body = excluded.post_body,
                     voc_type_code = excluded.voc_type_code,
                     visibility_code = excluded.visibility_code,
+                    source_stage_code = excluded.source_stage_code,
+                    source_detail_state_code = excluded.source_detail_state_code,
+                    source_draft_code = excluded.source_draft_code,
+                    source_deleted_flag = excluded.source_deleted_flag,
                     thread_group_key = excluded.thread_group_key,
                     secondary_grouping_key = excluded.secondary_grouping_key,
                     created_at = excluded.created_at,
@@ -202,6 +222,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 body,
                 str(_value(row, mapping.voc_type, "voc") or "voc"),
                 str(_value(row, mapping.visibility, "public") or "public"),
+                str(_value(row, mapping.stage) or "").strip() or None,
+                str(_value(row, mapping.detail_state) or "").strip() or None,
+                str(_value(row, mapping.draft) or "").strip() or None,
+                str(_value(row, mapping.deleted) or "").strip() or None,
                 str(_value(row, mapping.thread_group, args.process_unit_code) or args.process_unit_code),
                 str(_value(row, mapping.secondary_group, "") or ""),
                 created_at,

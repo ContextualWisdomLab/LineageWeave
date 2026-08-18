@@ -7,7 +7,18 @@ export interface PostSummary {
   voc_type_label?: string;
   visibility_code: string;
   visibility_label?: string;
+  source_stage_code?: string | null;
+  source_detail_state_code?: string | null;
+  source_draft_code?: string | null;
+  source_deleted_flag?: string | null;
   created_at: string;
+}
+
+export interface PostPage {
+  posts: PostSummary[];
+  total_count: number;
+  limit: number;
+  offset: number;
 }
 
 export interface PostKnownAt {
@@ -331,9 +342,31 @@ export function fetchPosts(
   accessToken: string,
   limit?: number,
   offset?: number,
-): Promise<PostSummary[]> {
-  const query = limit === undefined ? "" : `?limit=${limit}&offset=${offset ?? 0}`;
-  return backendFetch<PostSummary[]>(`/api/posts${query}`, accessToken);
+  search?: string,
+  vocType?: string,
+  visibility?: string,
+): Promise<PostPage> {
+  const params = new URLSearchParams();
+  if (limit !== undefined) {
+    params.set("limit", String(limit));
+    params.set("offset", String(offset ?? 0));
+  }
+  if (search?.trim()) {
+    params.set("search", search.trim());
+  }
+  if (vocType) {
+    params.set("voc_type", vocType);
+  }
+  if (visibility) {
+    params.set("visibility", visibility);
+  }
+  const query = params.toString();
+  return backendFetch<PostPage | PostSummary[]>(`/api/posts${query ? `?${query}` : ""}`, accessToken).then(
+    (payload) =>
+      Array.isArray(payload)
+        ? { posts: payload, total_count: payload.length, limit: limit ?? payload.length, offset: offset ?? 0 }
+        : payload,
+  );
 }
 
 export function fetchPost(

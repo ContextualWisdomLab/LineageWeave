@@ -62,6 +62,19 @@ from .knowledge_graph import persist_edges_for_post
 from .team_ingestion import upsert_team
 
 
+SUMMARY_SOURCE_BODY_MISSING = (
+    "Post summary is unavailable: the source post body is empty. "
+    "Re-import the source record with its body before requesting a summary."
+)
+
+
+def require_summary_source_body(body: str | None) -> str:
+    """Reject summary derivation when the evidence body was not imported."""
+    if not isinstance(body, str) or not body.strip():
+        raise ValueError(SUMMARY_SOURCE_BODY_MISSING)
+    return body
+
+
 async def fetch_persisted_summary(
     conn: asyncpg.Connection, post_id: str
 ) -> dict[str, Any] | None:
@@ -171,6 +184,9 @@ async def persist_post_summary(
     summary replacement transaction while all post-owned rows still commit or
     roll back together.
     """
+    if post_body is not None:
+        require_summary_source_body(post_body)
+
     hierarchy_inference_client = (
         hierarchy_inference_client or NullCorporateHierarchyInferenceClient()
     )

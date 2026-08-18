@@ -147,7 +147,11 @@ from backend.app.post_chat_ingestion import (
     gather_global_chat_sources,
     persist_post_chat,
 )
-from backend.app.post_summary_ingestion import fetch_persisted_summary, persist_post_summary
+from backend.app.post_summary_ingestion import (
+    fetch_persisted_summary,
+    persist_post_summary,
+    require_summary_source_body,
+)
 from lineageweave.post_content_persistence import persist_post_content
 from lineageweave.http_client import HttpClientError
 
@@ -336,6 +340,10 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "voc_type_label": resolved.get(voc, voc),
         "visibility_code": visibility,
         "visibility_label": resolved.get(visibility, visibility),
+        "source_stage_code": post.get("source_stage_code"),
+        "source_detail_state_code": post.get("source_detail_state_code"),
+        "source_draft_code": post.get("source_draft_code"),
+        "source_deleted_flag": post.get("source_deleted_flag"),
         "created_at": post["created_at"].isoformat(),
     }
 
@@ -507,30 +515,128 @@ async def rebuild_lineage_graph(
 async def list_posts(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
+    search: str | None = Query(None, max_length=200),
+    voc_type: str | None = Query(None, max_length=80),
+    visibility: str | None = Query(None, max_length=80),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
-) -> list[dict[str, Any]]:
-    """List a bounded page of source_post rows allowed by RBAC and ABAC."""
+) -> dict[str, Any]:
+    """List authorized posts, with semantic evidence search when requested."""
     _require_post_read(account)
+    search_term = search.strip() if search and search.strip() else None
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            select post_id, post_title, voc_type_code, visibility_code,
-                   corporate_entity_id, created_at
-              from source_post
-             where visibility_code = 'public'
-                or corporate_entity_id::text = any($1::text[])
+            select post.post_id, post.post_title, post.voc_type_code, post.visibility_code,
+                   post.source_stage_code, post.source_detail_state_code,
+                   post.source_draft_code, post.source_deleted_flag,
+                   post.corporate_entity_id, post.created_at,
+                   count(*) over() as total_count
+              from source_post post
+             where (post.visibility_code = 'public'
+                or post.corporate_entity_id::text = any($2::text[]))
+               and (
+                    $1::text is null
+                    or post.post_title ilike '%' || $1 || '%'
+                    or post.post_body ilike '%' || $1 || '%'
+                    or post.thread_group_key ilike '%' || $1 || '%'
+                    or post.secondary_grouping_key ilike '%' || $1 || '%'
+                    or replace(post.post_id::text, '-', '') ilike '%' || lower($1) || '%'
+                    or (
+                        char_length($1) >= 3
+                        and (
+                            similarity(replace(post.post_id::text, '-', ''), lower($1)) >= 0.78
+                            or word_similarity(lower($1), lower(post.post_title)) >= 0.45
+                            or word_similarity(lower($1), lower(post.post_body)) >= 0.45
+                            or word_similarity(lower($1), lower(post.secondary_grouping_key)) >= 0.45
+                        )
+                    )
+                    or exists (
+                        select 1 from post_project_mention project
+                         where project.post_id = post.post_id
+                           and (project.project_name ilike '%' || $1 || '%'
+                                or project.evidence_text ilike '%' || $1 || '%'
+                                or project.ontology_iri ilike '%' || $1 || '%'
+                                or (char_length($1) >= 3 and word_similarity(lower($1), lower(project.project_name)) >= 0.45))
+                    )
+                    or exists (
+                        select 1 from post_summary_role role
+                         where role.post_id = post.post_id
+                           and (role.actor_name ilike '%' || $1 || '%'
+                                or role.responsibility ilike '%' || $1 || '%'
+                                or coalesce(role.affiliated_organization_name, '') ilike '%' || $1 || '%'
+                                or (char_length($1) >= 3 and word_similarity(lower($1), lower(role.actor_name)) >= 0.45))
+                    )
+                    or exists (
+                        select 1
+                          from post_person_mention mention
+                          join cataloged_person person on person.person_id = mention.person_id
+                         where mention.post_id = post.post_id
+                           and (
+                               person.person_name ilike '%' || $1 || '%'
+                               or (char_length($1) >= 3 and word_similarity(lower($1), lower(person.person_name)) >= 0.45)
+                           )
+                    )
+                    or exists (
+                        select 1 from post_summary_result summary
+                         where summary.post_id = post.post_id
+                           and summary.korean_summary ilike '%' || $1 || '%'
+                    )
+                    or exists (
+                        select 1 from post_summary_event event
+                         where event.post_id = post.post_id
+                           and event.event_text ilike '%' || $1 || '%'
+                    )
+                    or exists (
+                        select 1 from corporate_entity customer
+                         where customer.corporate_entity_id = post.corporate_entity_id
+                           and (customer.entity_name ilike '%' || $1 || '%'
+                                or customer.corporate_entity_code ilike '%' || $1 || '%')
+                    )
+                    or exists (
+                        select 1 from process_unit process
+                         where process.process_unit_id = post.process_unit_id
+                           and (process.process_unit_name ilike '%' || $1 || '%'
+                                or process.process_unit_code ilike '%' || $1 || '%')
+                    )
+                    or exists (
+                        select 1 from user_account author
+                         where author.user_account_id = post.author_account_id
+                           and (author.display_name ilike '%' || $1 || '%'
+                                or author.email_address ilike '%' || $1 || '%')
+                    )
+                    or exists (
+                        select 1
+                          from account_affiliation affiliation
+                          join corporate_entity affiliated
+                            on affiliated.corporate_entity_id = affiliation.corporate_entity_id
+                         where affiliation.user_account_id = post.author_account_id
+                           and (affiliated.entity_name ilike '%' || $1 || '%'
+                                or affiliated.corporate_entity_code ilike '%' || $1 || '%')
+                    )
+               )
+               and ($3::text is null or post.voc_type_code = $3)
+               and ($4::text is null or post.visibility_code = $4)
              order by created_at desc, post_id desc
-             offset $2
-             limit $3
+             offset $5
+             limit $6
             """,
+            search_term,
             list(account.corporate_entity_ids),
+            voc_type.strip() if voc_type and voc_type.strip() else None,
+            visibility.strip() if visibility and visibility.strip() else None,
             offset,
             limit,
         )
         visible = [row for row in rows if _can_see_post(account, row)]
         labels = await _lookup_post_labels(conn, visible)
-    return [_serialize_post(row, labels) for row in visible]
+    total_count = int(rows[0]["total_count"]) if rows else 0
+    return {
+        "posts": [_serialize_post(row, labels) for row in visible],
+        "total_count": total_count,
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 @app.get("/api/posts/{post_id}")
@@ -561,7 +667,9 @@ async def read_post(
             ) from exc
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "select post_id, post_title, post_body, voc_type_code, visibility_code, corporate_entity_id, created_at "
+            "select post_id, post_title, post_body, voc_type_code, visibility_code, "
+            "source_stage_code, source_detail_state_code, source_draft_code, source_deleted_flag, "
+            "corporate_entity_id, created_at "
             "from source_post where post_id = $1",
             post_id,
         )
@@ -1125,6 +1233,15 @@ async def read_post_summary(
     """
     post = await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
+        body_row = await conn.fetchrow(
+            "select post_body from source_post where post_id = $1", post_id
+        )
+        try:
+            raw_body = require_summary_source_body(
+                None if body_row is None else body_row["post_body"]
+            )
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
         stored = await fetch_persisted_summary(conn, post_id)
         if stored is not None:
             return stored
@@ -1134,16 +1251,15 @@ async def read_post_summary(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
             )
-        body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
         vision_client = _vision_client()
-        normalized = normalize_post_body(body_row["post_body"], vision_client=vision_client)
+        normalized = normalize_post_body(raw_body, vision_client=vision_client)
         settings = load_settings()
         embedding_client = _embedding_client()
         if vision_client.available or embedding_client.available:
             await persist_post_content(
                 conn,
                 post_id,
-                body_row["post_body"],
+                raw_body,
                 vision_client=vision_client,
                 embedding_client=embedding_client,
                 embedding_model_code=settings.embedding_model or None,

@@ -970,19 +970,24 @@ describe("App, authenticated", () => {
           }),
         );
       }
-      if (url.endsWith("/api/posts")) {
+      const postsUrl = new URL(url, "https://backend.test");
+      if (postsUrl.pathname === "/api/posts") {
         return Promise.resolve(
-          jsonResponse([
-            {
-              post_id: "post-1",
-              post_title: "Public post",
-              voc_type_code: "voc",
-              voc_type_label: "Voice of Customer",
-              visibility_code: "public",
-              visibility_label: "Public",
-              created_at: "2026-01-01T00:00:00Z",
-            },
-          ]),
+          jsonResponse(
+            postsUrl.searchParams.get("search")
+              ? []
+              : [
+                  {
+                    post_id: "post-1",
+                    post_title: "Public post",
+                    voc_type_code: "voc",
+                    voc_type_label: "Voice of Customer",
+                    visibility_code: "public",
+                    visibility_label: "Public",
+                    created_at: "2026-01-01T00:00:00Z",
+                  },
+                ],
+          ),
         );
       }
       const postOneUrl = new URL(url, "https://backend.test");
@@ -1079,6 +1084,16 @@ describe("App, authenticated", () => {
                 affiliated_organization_name: "Demo Corp",
                 catalog_node_id: "team-1",
                 catalog_node_type_code: "node_team",
+              },
+            ],
+            project_mentions: [
+              {
+                project_key: "sample-project",
+                project_name: "Sample project",
+                evidence: "post body",
+                confidence: 0.9,
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Project",
+                extraction_method: "contextual_orchestrator_semantic",
               },
             ],
           }),
@@ -1406,6 +1421,12 @@ describe("App, authenticated", () => {
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
     stubBackend();
     render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("A-100 lineage")).not.toBeInTheDocument();
+    expect(screen.queryByText("Public post → Linked post")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /rebuild lineage/i })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "View post: Public post" }));
     expect(await screen.findByLabelText("A-100 lineage")).toBeInTheDocument();
     expect(screen.getByLabelText("Open post: Pricing renegotiation follow-up")).toHaveClass(
       "lineage-dag-branch",
@@ -1413,15 +1434,33 @@ describe("App, authenticated", () => {
     expect(screen.getByLabelText("Open post: Unrelated: annual account review")).toHaveClass(
       "lineage-dag-root",
     );
-    expect(screen.queryByText("Public post → Linked post")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /rebuild lineage/i })).not.toBeInTheDocument();
+  });
+
+  it("renders the board landmark and functional post controls", async () => {
+    stubBackend();
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(within(board).getByRole("search", { name: "Search and filter posts" })).toBeInTheDocument();
+    expect(within(board).getByLabelText("Search semantic evidence")).toHaveAttribute("type", "search");
+    expect(within(board).getByRole("list", { name: "Board posts" })).toBeInTheDocument();
+    expect(within(board).getByText(/Posts shown:/)).toBeInTheDocument();
+
+    await userEvent.type(within(board).getByLabelText("Search semantic evidence"), "not found");
+    await userEvent.click(within(board).getByRole("button", { name: "Search" }));
+    expect(within(board).getByRole("status")).toHaveTextContent("No posts match the current filters.");
+    await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
+    expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
   });
 
   it("opens a post from a DAG node click", async () => {
     stubBackend();
     render(<App />);
-    await userEvent.click(await screen.findByLabelText("Open post: Public post"));
-    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByLabelText("Open post: Linked post"));
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
   });
 
   it("shows an embedded invoice image instead of the raw base64 string", async () => {
@@ -1482,6 +1521,7 @@ describe("App, authenticated", () => {
   it("rebuilds lineage when the account has post_admin", async () => {
     const fetchMock = stubBackend({ admin: true });
     render(<App />);
+    await userEvent.click(await screen.findByText("Advanced review tools"));
     await userEvent.click(await screen.findByRole("button", { name: /rebuild lineage/i }));
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
@@ -1498,6 +1538,11 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
     await waitFor(() => expect(screen.getByText("이것은 요약입니다.")).toBeInTheDocument());
+    const provenance = screen.getByText("Evidence provenance").closest("details");
+    expect(provenance).not.toBeNull();
+    expect(provenance).not.toHaveAttribute("open");
+    await userEvent.click(screen.getByText("Evidence provenance"));
+    expect(screen.getByText(/Ontology class:/)).toBeInTheDocument();
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
     expect(screen.getByText(/우리 측 후속/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "R&R Keyman: Ada West" })).toBeInTheDocument();
@@ -1510,10 +1555,9 @@ describe("App, authenticated", () => {
     expect(relatedPosts).not.toBeNull();
     expect(within(relatedPosts as HTMLElement).getByText("Indirect relation")).toBeInTheDocument();
     expect(relatedPosts).toHaveTextContent("Linked post");
-    // The popup Event Lineage is the same A-100 reconstruct DAG as the home
-    // page, not a flat list -- two SVGs (home + popup) share the fork.
-    expect(screen.getAllByLabelText("A-100 lineage").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByLabelText("Open post: Pricing renegotiation follow-up").length).toBeGreaterThanOrEqual(2);
+    // The Event Lineage DAG belongs to the opened post, not the list surface.
+    expect(screen.getAllByLabelText("A-100 lineage")).toHaveLength(1);
+    expect(screen.getAllByLabelText("Open post: Pricing renegotiation follow-up")).toHaveLength(1);
     expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
     expect(document.getElementById("post-ask")).not.toHaveFocus();
     expect(
@@ -2386,16 +2430,12 @@ describe("App, authenticated", () => {
         ),
       ).not.toHaveTextContent("then open a post");
       expect(
-        screen.getAllByRole("heading", { name: "Event Lineage" }).length,
-      ).toBeGreaterThanOrEqual(2);
+        screen.getAllByRole("heading", { name: "Event Lineage" }),
+      ).toHaveLength(1);
       const popup = document.querySelector(".popup-panel");
       expect(popup).not.toBeNull();
       const currentNode = within(popup as HTMLElement).getByLabelText("Open post: Public post");
       expect(currentNode).toHaveAttribute("aria-current", "true");
-      const homeNode = screen
-        .getAllByLabelText("Open post: Public post")
-        .find((node) => !popup?.contains(node));
-      expect(homeNode).not.toHaveAttribute("aria-current");
       const lineageNext = screen.getByRole("status", { name: "Event Lineage next action" });
       expect(lineageNext).toHaveTextContent(
         "Public post is current in Event Lineage. Read Keyman and evaluation next.",
@@ -2847,7 +2887,7 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(screen.getByText("Constructive stance: 2")).toBeInTheDocument();
     expect(screen.getAllByText(/Ada West/).length).toBeGreaterThan(0);
-    expect(screen.getAllByLabelText("A-100 lineage").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByLabelText("A-100 lineage")).toHaveLength(1);
     expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
       "Public post is current in Event Lineage. Read Keyman and evaluation next.",
     );
