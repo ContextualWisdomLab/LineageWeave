@@ -23,15 +23,19 @@ The reproducibility seed for the summarization/evidence experiments is:
 With Zotero running and the Connector HTTP server enabled:
 
 ```bash
+SESSION_ID="lineageweave-p17-1099-$(date +%s)"
 curl -fsS -X POST http://127.0.0.1:23119/connector/saveItems \
   -H 'Content-Type: application/json' \
-  --data '{"lineageweave-p17-1099":{"itemType":"journalArticle","title":"Get to the Point: Summarization with Pointer-Generator Networks","DOI":"10.18653/v1/P17-1099","url":"https://aclanthology.org/P17-1099.pdf","publicationTitle":"Proceedings of the 55th Annual Meeting of the Association for Computational Linguistics","attachments":[{"title":"Open PDF","mimeType":"application/pdf","url":"https://aclanthology.org/P17-1099.pdf"}]}}'
+  -H 'X-Zotero-Connector-API-Version: 3' \
+  --data "$(jq -cn --arg session_id \"$SESSION_ID\" '{items:[{itemType:\"journalArticle\",title:\"Get to the Point: Summarization with Pointer-Generator Networks\",DOI:\"10.18653/v1/P17-1099\",url:\"https://aclanthology.org/P17-1099.pdf\",publicationTitle:\"Proceedings of the 55th Annual Meeting of the Association for Computational Linguistics\"}],uri:\"https://aclanthology.org/P17-1099/\",sessionID:$session_id}')"
 
 curl -fsS 'http://127.0.0.1:23119/api/users/0/items?limit=100' \
   | jq '.[] | select(.data.DOI == "10.18653/v1/P17-1099") | {key, title: .data.title, DOI: .data.DOI, url: .data.url}'
 ```
 
-The first command may return an empty `201` response; the second command is
+The first command may return an empty `201` response. Connector `items` is an
+array, not the keyed object accepted by older examples; a unique `sessionID`
+prevents replay collisions. The second command is
 the persisted-library check. A missing Zotero instance does not disable the
 product or fabricate literature evidence.
 
