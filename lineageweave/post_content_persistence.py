@@ -70,10 +70,10 @@ async def persist_post_content(
                 embedded = await asyncio.to_thread(embed_many, [text for _, text in embeddable])
                 candidates = zip((index for index, _ in embeddable), embedded, strict=True)
             else:
-                candidates = (
-                    (index, await asyncio.to_thread(embedding_client.embed, text))
-                    for index, text in embeddable
-                )
+                candidates = []
+                for index, text in embeddable:
+                    vector = await asyncio.to_thread(embedding_client.embed, text)
+                    candidates.append((index, vector))
             for unit_index, vector in candidates:
                 if isinstance(vector, list) and vector and all(
                     isinstance(value, (int, float)) and math.isfinite(float(value))
