@@ -608,9 +608,9 @@ async def list_posts(
                 """
                 select post_id
                   from source_post
-                 where lower(left(coalesce(post_body, ''), 16384))
+                where lower(left(source_post_search_text(post_body), 16384))
                            like '%' || lower($1) || '%'
-                    or to_tsvector('simple', coalesce(post_body, ''))
+                    or to_tsvector('simple', source_post_search_text(post_body))
                            @@ plainto_tsquery('simple', $1)
                 """,
                 search_term,
@@ -618,24 +618,17 @@ async def list_posts(
             body_search_ids = [str(row["post_id"]) for row in body_rows]
         rows = await conn.fetch(
             """
-            select post.post_id, post.post_title, post.voc_type_code, post.visibility_code,
-                   post.source_stage_code, post.source_detail_state_code,
-                   post.source_draft_code, post.source_deleted_flag,
-                   post.source_author_code, post.source_author_name,
-                   post.source_company_code, post.source_process_unit_code,
-                   post.source_sales_pool_code, post.source_customer_code,
-                   post.source_project_code,
-                   btrim(left(regexp_replace(
-                       regexp_replace(
-                           regexp_replace(coalesce(post.post_body, ''), '<img[^>]*>', ' [embedded image] ', 'gi'),
-                           '<[^>]+>', ' ', 'g'
-                       ),
-                       '\\s+', ' ', 'g'
-                   ), 420)) as post_body_excerpt,
-                   char_length(coalesce(post.post_body, '')) > 420 as post_body_truncated,
-                   post.corporate_entity_id, post.created_at,
-                   count(*) over() as total_count
-              from source_post post
+            with page as (
+                select post.post_id, post.post_title, post.voc_type_code, post.visibility_code,
+                       post.source_stage_code, post.source_detail_state_code,
+                       post.source_draft_code, post.source_deleted_flag,
+                       post.source_author_code, post.source_author_name,
+                       post.source_company_code, post.source_process_unit_code,
+                       post.source_sales_pool_code, post.source_customer_code,
+                       post.source_project_code,
+                       post.corporate_entity_id, post.created_at,
+                       count(*) over() as total_count
+                  from source_post post
              where (post.visibility_code = 'public'
                 or post.corporate_entity_id::text = any($2::text[]))
                and (
@@ -748,9 +741,16 @@ async def list_posts(
                )
                and ($3::text is null or post.voc_type_code = $3)
                and ($4::text is null or post.visibility_code = $4)
-             order by created_at desc, post_id desc
-               offset $6
-               limit $7
+                 order by created_at desc, post_id desc
+                   offset $6
+                   limit $7
+            )
+            select page.*,
+                   btrim(left(source_post_search_text(post.post_body), 420)) as post_body_excerpt,
+                   char_length(coalesce(post.post_body, '')) > 420 as post_body_truncated
+              from page
+              join source_post post on post.post_id = page.post_id
+             order by page.created_at desc, page.post_id desc
             """,
             search_term,
             list(account.corporate_entity_ids),

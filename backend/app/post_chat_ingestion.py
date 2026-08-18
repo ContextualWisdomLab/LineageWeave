@@ -284,9 +284,9 @@ async def gather_global_chat_sources(
             select post_id
               from source_post
              where post_title ilike '%' || $1 || '%'
-                or lower(left(coalesce(post_body, ''), 16384))
+                or lower(left(source_post_search_text(post_body), 16384))
                        like '%' || lower($1) || '%'
-                or to_tsvector('simple', coalesce(post_body, ''))
+                or to_tsvector('simple', source_post_search_text(post_body))
                        @@ plainto_tsquery('simple', $1)
              order by created_at desc, post_id desc
              limit 32

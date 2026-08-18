@@ -196,11 +196,11 @@ def parse_chat_response(content: str, sources: list[ChatSourceDocument]) -> Chat
 
 
 class ContextualOrchestratorPostChatClient:
-    """Calls the orchestrator's ``mode="auto"`` chat boundary.
+    """Calls the orchestrator's evidence-preserving ``mode="route"`` boundary.
 
-    The pinned orchestrator allocates the interactive route and may attach
-    its own verification metadata; ``verify`` is not a supported public chat
-    mode. The prompt still enforces evidence-only answers and citations.
+    Interactive chat must not run a multi-step workflow for every question;
+    the route still crosses contextual-orchestrator and the prompt enforces
+    evidence-only answers and citations.
     """
 
     available = True
@@ -222,7 +222,7 @@ class ContextualOrchestratorPostChatClient:
             f"{self._base_url}/v1/chat/completions",
             {
                 "messages": [{"role": "user", "content": prompt}],
-                "mode": "auto",
+                "mode": "route",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},

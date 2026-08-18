@@ -41,6 +41,7 @@ COPY migrations/0032_semantic_search_trigram.sql /docker-entrypoint-initdb.d/33-
 COPY migrations/0033_source_state_provenance.sql /docker-entrypoint-initdb.d/34-source-state-provenance.sql
 COPY migrations/0034_source_context_provenance.sql /docker-entrypoint-initdb.d/35-source-context-provenance.sql
 COPY migrations/0035_body_search_prefix.sql /docker-entrypoint-initdb.d/36-body-search-prefix.sql
+COPY migrations/0036_normalized_body_search.sql /docker-entrypoint-initdb.d/37-normalized-body-search.sql
 
 COPY migrations/ /opt/lineageweave/migrations/
 COPY docker/postgres-init/migrate.sh /usr/local/bin/lineageweave-migrate

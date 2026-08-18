@@ -45,6 +45,41 @@ def _allow_local_mlx_provider() -> None:
     ModelClient._validate_provider = validate_provider
 
 
+def _configure_provider_output_budget() -> None:
+    """Keep local MLX generation bounded without changing external defaults."""
+    from contextual_orchestrator.orchestrator import ModelClient
+
+    local_mlx = os.environ.get("LINEAGEWEAVE_ALLOW_LOCAL_LLM_HTTP") == "1"
+    default = "256" if local_mlx else "2048"
+    raw_limit = os.environ.get("LLM_GATEWAY_MAX_OUTPUT_TOKENS", default).strip()
+    try:
+        max_output_tokens = int(raw_limit)
+    except ValueError as exc:
+        raise SystemExit("LLM_GATEWAY_MAX_OUTPUT_TOKENS must be an integer") from exc
+    if not 64 <= max_output_tokens <= 4096:
+        raise SystemExit("LLM_GATEWAY_MAX_OUTPUT_TOKENS must be between 64 and 4096")
+
+    if getattr(ModelClient, "_lineageweave_output_budget", None) is not None:
+        return
+    original_init = ModelClient.__init__
+
+    def init(self, *args, **kwargs):
+        kwargs.setdefault("max_output_tokens", max_output_tokens)
+        original_init(self, *args, **kwargs)
+
+    ModelClient.__init__ = init
+    ModelClient._lineageweave_output_budget = max_output_tokens
+    if local_mlx:
+        original_send = ModelClient._send
+
+        def send(self, agent, payload):
+            payload = {**payload, "chat_template_kwargs": {"enable_thinking": False}}
+            return original_send(self, agent, payload)
+
+        ModelClient._send = send
+        ModelClient._lineageweave_disable_thinking = True
+
+
 def main() -> None:
     """Register the provider credential and delegate to the upstream server."""
     provider_key = os.environ.pop("LLM_GATEWAY_API_KEY", "").strip()
@@ -78,6 +113,7 @@ def main() -> None:
     register_credential("NVIDIA_NIM_API_KEY", provider_key)
     register_credential("LLM_GATEWAY_API_KEY", provider_key)
     _allow_local_mlx_provider()
+    _configure_provider_output_budget()
     install_provider_embedding_support(provider_url, embedding_model)
     install_multimodal_chat_support()
     del provider_url

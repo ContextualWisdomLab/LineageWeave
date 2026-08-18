@@ -25,3 +25,18 @@ are never used as the internal service credential. GitHub/external runs inject
 the canonical gateway variables; local Compose reads `~/.env` and accepts the
 compatibility aliases. No raw provider credential or token is printed or
 committed.
+
+The pinned orchestrator's provider output budget is 2048 tokens by default for
+external gateways. When the explicitly permitted local MLX HTTP provider is in
+use (`LINEAGEWEAVE_ALLOW_LOCAL_LLM_HTTP=1`), the bootstrap defaults to 256
+tokens so cold-start inference does not occupy the single provider worker until
+the request times out. `LLM_GATEWAY_MAX_OUTPUT_TOKENS` may override either
+default within 64-4096; the call still crosses contextual-orchestrator and is
+never sent directly from LineageWeave.
+
+The explicitly permitted local MLX Gemma route also receives
+`chat_template_kwargs.enable_thinking=false` at the orchestrator provider
+adapter. Without that compatibility field the provider can return only a
+`message.reasoning` field, while the OpenAI-compatible contract requires the
+answer in `message.content`; external gateway requests do not receive this
+local-only field.
