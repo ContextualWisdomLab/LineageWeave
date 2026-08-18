@@ -358,8 +358,11 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "source_company_code": post.get("source_company_code"),
         "source_process_unit_code": post.get("source_process_unit_code"),
         "source_sales_pool_code": post.get("source_sales_pool_code"),
+        "source_sales_pool_name": post.get("source_sales_pool_name"),
         "source_customer_code": post.get("source_customer_code"),
+        "source_customer_name": post.get("source_customer_name"),
         "source_project_code": post.get("source_project_code"),
+        "source_project_name": post.get("source_project_name"),
         "source_system_code": post.get("source_system_code"),
         "source_record_key": post.get("source_record_key"),
         "post_body_excerpt": post.get("post_body_excerpt"),
@@ -369,23 +372,32 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
 
 
 async def _load_project_evidence(
-    conn: asyncpg.Connection, post_id: str, source_project_code: str | None
+    conn: asyncpg.Connection,
+    post_id: str,
+    source_project_code: str | None,
+    source_project_name: str | None,
 ) -> list[dict[str, Any]]:
     """Merge explicit source hints and stored semantic project candidates."""
     evidence: list[dict[str, Any]] = []
     source_code = source_project_code.strip() if source_project_code else ""
-    if source_code:
+    source_name = source_project_name.strip() if source_project_name else ""
+    if source_code or source_name:
+        source_field = (
+            "source_post.source_project_name"
+            if source_name
+            else "source_post.source_project_code"
+        )
         evidence.append(
             {
-                "project_key": source_code,
-                "project_name": source_code,
-                "evidence": "source_post.source_project_code",
+                "project_key": source_code or source_name,
+                "project_name": source_name or source_code,
+                "evidence": source_field,
                 "confidence": None,
                 "ontology_iri": str(LW.Project),
                 "ontology_label": "Project",
                 "extraction_method": "source_field_hint",
                 "resolution_status": "hint_only",
-                "provenance": "source_post.source_project_code",
+                "provenance": source_field,
             }
         )
     rows = await conn.fetch(
@@ -518,13 +530,18 @@ async def read_customer_master(
     async with pool.acquire() as conn:
         source_customer_rows = await conn.fetch(
             """
-            select btrim(source_customer_code) as customer_code, count(*) as post_count
+            select nullif(btrim(source_customer_code), '') as customer_code,
+                   max(nullif(btrim(source_customer_name), '')) as customer_name,
+                   count(*) as post_count
               from source_post
-             where source_customer_code is not null
-               and btrim(source_customer_code) <> ''
+             where (nullif(btrim(source_customer_code), '') is not null
+                    or nullif(btrim(source_customer_name), '') is not null)
                and (visibility_code = 'public' or corporate_entity_id = any($1::uuid[]))
-             group by btrim(source_customer_code)
-             order by count(*) desc, customer_code
+             group by nullif(btrim(source_customer_code), ''),
+                      case when nullif(btrim(source_customer_code), '') is null
+                           then nullif(btrim(source_customer_name), '')
+                           else null end
+             order by count(*) desc, customer_code, customer_name
              limit 100
             """,
             list(account.corporate_entity_ids),
@@ -639,9 +656,10 @@ async def read_customer_master(
         "source_customer_hints": [
             {
                 "customer_code": row["customer_code"],
+                "customer_name": row["customer_name"],
                 "post_count": row["post_count"],
                 "resolution_status": "hint_only",
-                "provenance": "source_post.source_customer_code",
+                "provenance": "source_post.source_customer_code/source_post.source_customer_name",
             }
             for row in source_customer_rows
         ],
@@ -742,8 +760,10 @@ async def list_posts(
                        post.source_draft_code, post.source_deleted_flag,
                        post.source_author_code, post.source_author_name,
                        post.source_company_code, post.source_process_unit_code,
-                       post.source_sales_pool_code, post.source_customer_code,
-                       post.source_project_code, post.source_system_code,
+                       post.source_sales_pool_code, post.source_sales_pool_name,
+                       post.source_customer_code, post.source_customer_name,
+                       post.source_project_code, post.source_project_name,
+                       post.source_system_code,
                        post.source_record_key,
                        post.corporate_entity_id, post.created_at,
                        count(*) over() as total_count
@@ -765,8 +785,11 @@ async def list_posts(
                         post.source_company_code,
                         post.source_process_unit_code,
                         post.source_sales_pool_code,
+                        post.source_sales_pool_name,
                         post.source_customer_code,
+                        post.source_customer_name,
                         post.source_project_code,
+                        post.source_project_name,
                         post.source_system_code,
                         post.source_record_key
                     ) ilike '%' || $1 || '%'
@@ -790,8 +813,11 @@ async def list_posts(
                                     post.source_company_code,
                                     post.source_process_unit_code,
                                     post.source_sales_pool_code,
+                                    post.source_sales_pool_name,
                                     post.source_customer_code,
-                                    post.source_project_code
+                                    post.source_customer_name,
+                                    post.source_project_code,
+                                    post.source_project_name
                                 ))
                             ) >= 0.45
                         )
@@ -935,7 +961,8 @@ async def read_post(
             "select post_id, post_title, post_body, voc_type_code, visibility_code, "
             "source_stage_code, source_detail_state_code, source_draft_code, source_deleted_flag, "
             "source_author_code, source_author_name, source_company_code, "
-                "source_process_unit_code, source_sales_pool_code, source_customer_code, source_project_code, "
+                "source_process_unit_code, source_sales_pool_code, source_sales_pool_name, "
+                "source_customer_code, source_customer_name, source_project_code, source_project_name, "
                 "source_system_code, source_record_key, "
             "corporate_entity_id, created_at "
             "from source_post where post_id = $1",
@@ -947,7 +974,7 @@ async def read_post(
             raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
         labels = await _lookup_post_labels(conn, [row])
         project_evidence = await _load_project_evidence(
-            conn, post_id, row["source_project_code"]
+            conn, post_id, row["source_project_code"], row["source_project_name"]
         )
         known_at = None
         if as_of_clock is not None:
@@ -993,8 +1020,11 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
                post.source_company_code,
                post.source_process_unit_code,
                post.source_sales_pool_code,
+               post.source_sales_pool_name,
                post.source_customer_code,
+               post.source_customer_name,
                post.source_project_code,
+               post.source_project_name,
                post.secondary_grouping_key as project_field,
                customer.entity_name as customer_name,
                affiliated.entity_name as author_affiliation_name
@@ -1020,8 +1050,11 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
             "source_company_code",
             "source_process_unit_code",
             "source_sales_pool_code",
+            "source_sales_pool_name",
             "source_customer_code",
+            "source_customer_name",
             "source_project_code",
+            "source_project_name",
         )
     )
     source_author_name = first["source_author_name"]
@@ -1037,7 +1070,7 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
             if row["author_affiliation_name"]
         ),
         order_pool_code=first["source_sales_pool_code"],
-        order_pool_name=None,
+        order_pool_name=first["source_sales_pool_name"],
         project_field=first["project_field"],
         customer_name=first["customer_name"],
         source_author_code=first["source_author_code"],
@@ -1045,8 +1078,11 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
         source_company_code=first["source_company_code"],
         source_business_unit_code=first["source_process_unit_code"],
         source_sales_pool_code=first["source_sales_pool_code"],
+        source_sales_pool_name=first["source_sales_pool_name"],
         source_customer_code=first["source_customer_code"],
+        source_customer_name=first["source_customer_name"],
         source_project_code=first["source_project_code"],
+        source_project_name=first["source_project_name"],
         source_context_present=source_context_present,
     )
 

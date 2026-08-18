@@ -63,6 +63,26 @@ def test_source_pool_and_project_code_keep_distinct_provenance() -> None:
     assert "source_project_code=SOURCE-PROJECT [source_field=source_post.source_project_code]" in hints
 
 
+def test_explicit_source_names_are_hints_with_name_provenance_and_customer_trust() -> None:
+    hints = format_semantic_hints(
+        author_name=None,
+        author_affiliations=[],
+        order_pool_code=None,
+        order_pool_name="Named sales pool",
+        project_field=None,
+        customer_name=None,
+        source_sales_pool_name="Named sales pool",
+        source_customer_name="미등록고객",
+        source_project_name="Named project",
+        source_context_present=True,
+    )
+
+    assert "order_pool=Named sales pool [source_field=source_post.source_sales_pool_name]" in hints
+    assert "source_customer_name=미등록고객 [source_field=source_post.source_customer_name]" in hints
+    assert "source_customer_name_hint_trust=low" in hints
+    assert "source_project_name=Named project [source_field=source_post.source_project_name]" in hints
+
+
 def test_source_context_keeps_authorization_identity_as_non_binding_keyman_context() -> None:
     hints = format_semantic_hints(
         author_name="Demo Analyst",

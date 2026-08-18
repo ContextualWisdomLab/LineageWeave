@@ -16,8 +16,11 @@ export interface PostSummary {
   source_company_code?: string | null;
   source_process_unit_code?: string | null;
   source_sales_pool_code?: string | null;
+  source_sales_pool_name?: string | null;
   source_customer_code?: string | null;
+  source_customer_name?: string | null;
   source_project_code?: string | null;
+  source_project_name?: string | null;
   source_system_code?: string | null;
   source_record_key?: string | null;
   post_body_excerpt?: string | null;
@@ -367,7 +370,8 @@ export interface CustomerMasterKeyman {
 }
 
 export interface SourceCustomerHint {
-  customer_code: string;
+  customer_code: string | null;
+  customer_name: string | null;
   post_count: number;
   resolution_status: string;
   provenance: string;

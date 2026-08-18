@@ -1696,8 +1696,11 @@ function PostDetailPopup({
               post.source_company_code ||
               post.source_process_unit_code ||
               post.source_sales_pool_code ||
+              post.source_sales_pool_name ||
               post.source_customer_code ||
+              post.source_customer_name ||
               post.source_project_code ||
+              post.source_project_name ||
               post.source_system_code ||
               post.source_record_key) && (
               <section className="popup-section" aria-label={t("Original source state")}>
@@ -1757,16 +1760,34 @@ function PostDetailPopup({
                       <dd>{post.source_sales_pool_code}</dd>
                     </>
                   ) : null}
+                  {post.source_sales_pool_name ? (
+                    <>
+                      <dt>{t("Source sales pool name")}</dt>
+                      <dd>{post.source_sales_pool_name}</dd>
+                    </>
+                  ) : null}
                   {post.source_customer_code ? (
                     <>
                       <dt>{t("Source customer code")}</dt>
                       <dd>{post.source_customer_code}</dd>
                     </>
                   ) : null}
+                  {post.source_customer_name ? (
+                    <>
+                      <dt>{t("Source customer name")}</dt>
+                      <dd>{post.source_customer_name}</dd>
+                    </>
+                  ) : null}
                   {post.source_project_code ? (
                     <>
                       <dt>{t("Source project code")}</dt>
                       <dd>{post.source_project_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_project_name ? (
+                    <>
+                      <dt>{t("Source project name")}</dt>
+                      <dd>{post.source_project_name}</dd>
                     </>
                   ) : null}
                   {post.source_system_code ? (
@@ -3755,8 +3776,9 @@ function CustomerMasterPanel({
           </p>
           <ul className="customer-master-list">
             {master.source_customer_hints.map((hint) => (
-              <li key={hint.customer_code}>
-                <strong>{hint.customer_code}</strong>
+              <li key={`${hint.customer_code ?? "name"}:${hint.customer_name ?? "unknown"}`}>
+                <strong>{hint.customer_name ?? hint.customer_code ?? t("Unresolved source identifier")}</strong>
+                {hint.customer_name && hint.customer_code ? <span>{hint.customer_code}</span> : null}
                 <span>{t("Unresolved source identifier")}</span>
                 <span>{hint.post_count} {t("posts")}</span>
               </li>

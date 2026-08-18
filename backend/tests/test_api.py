@@ -75,6 +75,9 @@ _NORMALIZED_BODY_SEARCH_MIGRATION = (
 _SOURCE_RECORD_IDENTITY_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0037_source_record_identity.sql"
 )
+_SOURCE_NAMED_HINTS_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0038_source_named_hints.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -173,6 +176,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_SOURCE_CONTEXT_MIGRATION.read_text())
             cur.execute(_NORMALIZED_BODY_SEARCH_MIGRATION.read_text())
             cur.execute(_SOURCE_RECORD_IDENTITY_MIGRATION.read_text())
+            cur.execute(_SOURCE_NAMED_HINTS_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -1109,9 +1113,10 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
     assert body["source_customer_hints"] == [
         {
             "customer_code": "TEST-CUSTOMER-001",
+            "customer_name": None,
             "post_count": 1,
             "resolution_status": "hint_only",
-            "provenance": "source_post.source_customer_code",
+            "provenance": "source_post.source_customer_code/source_post.source_customer_name",
         }
     ]
     author_hint = body["source_author_hints"]

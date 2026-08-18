@@ -33,8 +33,11 @@ def format_semantic_hints(
     source_company_code: str | None = None,
     source_business_unit_code: str | None = None,
     source_sales_pool_code: str | None = None,
+    source_sales_pool_name: str | None = None,
     source_customer_code: str | None = None,
+    source_customer_name: str | None = None,
     source_project_code: str | None = None,
+    source_project_name: str | None = None,
     source_context_present: bool = False,
 ) -> str:
     """Render source-field hints without upgrading them into assertions."""
@@ -46,8 +49,11 @@ def format_semantic_hints(
             source_company_code,
             source_business_unit_code,
             source_sales_pool_code,
+            source_sales_pool_name,
             source_customer_code,
+            source_customer_name,
             source_project_code,
+            source_project_name,
         )
     )
     customer = _value(None if source_context else customer_name)
@@ -74,7 +80,17 @@ def format_semantic_hints(
     order_pool_source = (
         "source_post.source_sales_pool_code"
         if source_sales_pool_code is not None
+        else "source_post.source_sales_pool_name"
+        if source_sales_pool_name is not None
         else "source_post.process_unit_id"
+    )
+    source_customer_name_value = _value(source_customer_name)
+    source_customer_name_trust = (
+        "none"
+        if source_customer_name_value == "none"
+        else "low"
+        if source_customer_name_value.casefold() in _WEAK_CUSTOMER_VALUES
+        else "normal"
     )
     return "; ".join(
         (
@@ -93,7 +109,11 @@ def format_semantic_hints(
             f"source_company_code={_value(source_company_code)} [source_field=source_post.source_company_code]",
             f"source_business_unit_code={_value(source_business_unit_code)} [source_field=source_post.source_process_unit_code]",
             f"source_sales_pool_code={_value(source_sales_pool_code)} [source_field=source_post.source_sales_pool_code]",
+            f"source_sales_pool_name={_value(source_sales_pool_name)} [source_field=source_post.source_sales_pool_name]",
             f"source_customer_code={_value(source_customer_code)} [source_field=source_post.source_customer_code]",
+            f"source_customer_name={source_customer_name_value} [source_field=source_post.source_customer_name]",
+            f"source_customer_name_hint_trust={source_customer_name_trust}",
             f"source_project_code={_value(source_project_code)} [source_field=source_post.source_project_code]",
+            f"source_project_name={_value(source_project_name)} [source_field=source_post.source_project_name]",
         )
     )

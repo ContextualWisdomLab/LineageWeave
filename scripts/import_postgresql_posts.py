@@ -57,8 +57,11 @@ class ColumnMapping:
     # The source sales-pool column is optional and must not be mapped from a
     # PU field such as voc_pucode without an authoritative source definition.
     sales_pool: str | None
+    sales_pool_name: str | None
     customer_code: str | None
+    customer_name: str | None
     project_code: str | None
+    project_name: str | None
     thread_group: str | None
     secondary_group: str | None
 
@@ -101,8 +104,11 @@ def _parser() -> argparse.ArgumentParser:
         dest="source_business_unit_column",
     )
     parser.add_argument("--source-sales-pool-column")
+    parser.add_argument("--source-sales-pool-name-column")
     parser.add_argument("--source-customer-code-column")
+    parser.add_argument("--source-customer-name-column")
     parser.add_argument("--source-project-code-column")
+    parser.add_argument("--source-project-name-column")
     parser.add_argument("--thread-group-column")
     parser.add_argument("--secondary-group-column")
     parser.add_argument("--author-subject-id", required=True)
@@ -212,8 +218,11 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
         company_code=args.source_company_code_column,
         source_business_unit=args.source_business_unit_column,
         sales_pool=args.source_sales_pool_column,
+        sales_pool_name=args.source_sales_pool_name_column,
         customer_code=args.source_customer_code_column,
+        customer_name=args.source_customer_name_column,
         project_code=args.source_project_code_column,
+        project_name=args.source_project_name_column,
         thread_group=args.thread_group_column,
         secondary_group=args.secondary_group_column,
     )
@@ -259,11 +268,12 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                      source_stage_code, source_detail_state_code,
                      source_draft_code, source_deleted_flag,
                      source_author_code, source_author_name, source_company_code,
-                     source_process_unit_code, source_sales_pool_code,
-                     source_customer_code, source_project_code,
+                     source_process_unit_code, source_sales_pool_code, source_sales_pool_name,
+                     source_customer_code, source_customer_name,
+                     source_project_code, source_project_name,
                      source_system_code, source_record_key,
                      thread_group_key, secondary_grouping_key, created_at, updated_at)
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
                 on conflict (post_id) do update set
                     author_account_id = excluded.author_account_id,
                     corporate_entity_id = excluded.corporate_entity_id,
@@ -281,8 +291,11 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                     source_company_code = excluded.source_company_code,
                     source_process_unit_code = excluded.source_process_unit_code,
                     source_sales_pool_code = excluded.source_sales_pool_code,
+                    source_sales_pool_name = excluded.source_sales_pool_name,
                     source_customer_code = excluded.source_customer_code,
+                    source_customer_name = excluded.source_customer_name,
                     source_project_code = excluded.source_project_code,
+                    source_project_name = excluded.source_project_name,
                     source_system_code = excluded.source_system_code,
                     source_record_key = excluded.source_record_key,
                     thread_group_key = excluded.thread_group_key,
@@ -307,8 +320,11 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 str(_value(row, mapping.company_code) or "").strip() or None,
                 str(_value(row, mapping.source_business_unit) or "").strip() or None,
                 str(_value(row, mapping.sales_pool) or "").strip() or None,
+                str(_value(row, mapping.sales_pool_name) or "").strip() or None,
                 str(_value(row, mapping.customer_code) or "").strip() or None,
+                str(_value(row, mapping.customer_name) or "").strip() or None,
                 str(_value(row, mapping.project_code) or "").strip() or None,
+                str(_value(row, mapping.project_name) or "").strip() or None,
                 args.source_system_code,
                 record_key,
                 str(_value(row, mapping.thread_group, args.process_unit_code) or args.process_unit_code),

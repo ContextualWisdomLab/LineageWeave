@@ -131,8 +131,11 @@ _SOURCE_HINT_FIELDS = (
     ("source_company_code", "source company code"),
     ("source_process_unit_code", "source business unit (PU)"),
     ("source_sales_pool_code", "source sales pool"),
+    ("source_sales_pool_name", "source sales pool name"),
     ("source_customer_code", "source customer code"),
+    ("source_customer_name", "source customer name"),
     ("source_project_code", "source project code"),
+    ("source_project_name", "source project name"),
 )
 
 
@@ -257,8 +260,9 @@ async def gather_chat_sources(
     this_post = await conn.fetchrow(
         "select post_id, post_title, post_body, source_system_code, source_record_key, "
         "source_author_code, source_author_name, source_company_code, "
-        "source_process_unit_code, source_sales_pool_code, source_customer_code, "
-        "source_project_code from source_post where post_id = $1",
+        "source_process_unit_code, source_sales_pool_code, source_sales_pool_name, "
+        "source_customer_code, source_customer_name, source_project_code, "
+        "source_project_name from source_post where post_id = $1",
         post_id,
     )
     if this_post is None:
@@ -283,7 +287,8 @@ async def gather_chat_sources(
         "select post_id, post_title, post_body, visibility_code, corporate_entity_id, "
         "source_system_code, source_record_key, source_author_code, source_author_name, "
         "source_company_code, source_process_unit_code, source_sales_pool_code, "
-        "source_customer_code, source_project_code "
+        "source_sales_pool_name, source_customer_code, source_customer_name, "
+        "source_project_code, source_project_name "
         "from source_post where post_id = any($1::uuid[])",
         list(candidate_ids),
     )
@@ -373,8 +378,9 @@ async def gather_global_chat_sources(
                or concat_ws(' ', source_system_code, source_record_key,
                                 source_author_code, source_author_name,
                                 source_company_code, source_process_unit_code,
-                                source_sales_pool_code, source_customer_code,
-                                source_project_code) ilike '%' || $1 || '%'
+                                source_sales_pool_code, source_sales_pool_name,
+                                source_customer_code, source_customer_name,
+                                source_project_code, source_project_name) ilike '%' || $1 || '%'
                or similarity(lower(coalesce(source_record_key, '')), lower($1)) >= 0.78
                or exists (
                     select 1 from post_project_mention project
@@ -412,7 +418,8 @@ async def gather_global_chat_sources(
         select post_id, post_title, post_body, visibility_code, corporate_entity_id,
                source_system_code, source_record_key, source_author_code, source_author_name,
                source_company_code, source_process_unit_code, source_sales_pool_code,
-               source_customer_code, source_project_code
+               source_sales_pool_name, source_customer_code, source_customer_name,
+               source_project_code, source_project_name
           from source_post
          where visibility_code = 'public'
             or corporate_entity_id::text = any($1::text[])
