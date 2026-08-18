@@ -38,6 +38,19 @@ _AUTO_CODE_PREFIX = "AUTO-"
 _MAX_HIERARCHY_DEPTH = 4
 _CREATION_LOCK_KEY = "lineageweave:corporate_entity_creation"
 
+# The post-lock re-check exists only to catch a genuine concurrent
+# duplicate CREATE of this exact name (see get_or_create_corporate_entity's
+# docstring) -- never a fuzzy resolution against an unrelated-but-similar
+# sibling or parent. score_corporate_entity's default 0.6 threshold is
+# deliberately loose for real mention resolution (an abbreviation, a
+# trailing legal suffix), but that same looseness is wrong here: a child
+# whose name contains its own just-created parent's name as a prefix
+# ("Acme" -> "Acme Gwangju Plant") scores ~0.7 against that parent alone,
+# so a loose re-check would silently bind the child TO the parent instead
+# of creating its own row. 1.0 (post-normalization exact match) is the
+# only threshold that means "this really is the same entity."
+_EXACT_MATCH_SIMILARITY = 1.0
+
 
 def _auto_entity_code(organization_name: str) -> str:
     """Return a deterministic, namespace-separated code."""
@@ -185,9 +198,15 @@ async def get_or_create_corporate_entity(
             "select pg_advisory_xact_lock(hashtext($1))",
             _CREATION_LOCK_KEY,
         )
+        # Exact match only (see _EXACT_MATCH_SIMILARITY): this re-check's
+        # sole purpose is catching a genuine concurrent duplicate CREATE of
+        # THIS name, not re-resolving against a merely-similar candidate --
+        # the parent this call may have just created above is now in the
+        # reloaded pool and must not be mistaken for this (distinct) entity.
         fresh = score_corporate_entity(
             normalized_name,
             await _reload_candidates(conn),
+            min_similarity=_EXACT_MATCH_SIMILARITY,
         )
         if fresh.kind == RESOLUTION_UNIQUE and fresh.catalog_id is not None:
             _remember_candidate(candidates, fresh.catalog_id, normalized_name)

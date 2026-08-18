@@ -4,6 +4,34 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.4] - 2026-08-18
+
+### Fixed
+
+- `get_or_create_corporate_entity`'s post-lock duplicate-create re-check
+  fuzzy-matched against every cataloged entity, not just an exact
+  concurrent duplicate of the entity being created. A newly-created
+  parent whose name is a prefix of the child now being created (e.g.
+  "Acme" as parent of "Acme Gwangju Plant") scored ~0.7 similarity
+  against that child under the shared 0.6 threshold, so the child was
+  silently bound to its own parent's id instead of getting its own
+  catalog row -- undermining exactly the "통합 고객사 계열 tree AI"
+  (integrated customer affiliate tree) hierarchy the feature exists
+  for. The re-check now requires an exact post-normalization match
+  (`min_similarity=1.0`); real mention resolution against the full
+  candidate set is unchanged. Caught locally by
+  `test_first_mention_of_a_new_counterparty_creates_a_real_corporate_entity`,
+  which requires a live PostgreSQL/Keycloak/Valkey stack and is
+  therefore skipped in CI (`make up` required) -- confirmed CI's own
+  "Full test suite" run has never actually executed this assertion.
+- `test_start_analysis_run_recovers_the_a100_fork` seeded
+  `snapshot_sha256`/`configuration_sha256`/`code_revision_sha` with
+  `"t"`/`"u"`/`"v"`-repeated literals; none are valid hex characters,
+  so the very first insert failed its own `analysis_source_snapshot`
+  check constraint every time this test actually ran. Same CI-blind
+  gap as above -- fixed to valid hex placeholders matching this file's
+  existing convention.
+
 ## [2.12.3] - 2026-08-18
 
 ### Added
