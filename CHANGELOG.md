@@ -14,8 +14,13 @@ All notable changes to this project are documented here. Format follows
   scheduled board posts (team / PU / corporate sections) consumed
   from fast-mlsirm member ranks and Orgmetra — never a 생성 / 실행 /
   내보내기 control, never an invented theta. Opening a post or
-  newspaper shows 원문, 5W1H, Keymen, commitments, attachments,
-  Event Lineage, and Ask Cubee. Empty copy names the next human
+  newspaper shows 원문, 5W1H, Keymen (both sides), 지식그래프,
+  고객 그룹, VOC 근거, 할 일, attachments, Event Lineage, and Ask
+  Cubee. Issue / commitment work stays the post To Do module — no
+  calendar screen on GNB or post detail. Corp / PU are Keyverse
+  attributes on the existing OIDC login. This Cloud slice does not
+  attach Figma; tokens and Storybook frames stay on Remote (ADR
+  0002). Empty copy names the next human
   action. Posts are submitted on the existing Valkey activity stream
   so fast-mlsirm can score them; the newspaper still reads only
   persisted ranks. TEPP time / multilevel / topic / KG is consumed

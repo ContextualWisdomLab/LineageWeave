@@ -27,7 +27,10 @@ not GNB items and not click-to-export.
    없습니다 / 이 범위의 조직 단위를 아직 받을 수 없습니다). Never
    invent a theta or an org-chart kernel.
 5. Opening a regular post or a newspaper uses the same modules: 원문,
-   5W1H, Keymen, commitments, attachments, Event Lineage, Ask Cubee.
+   5W1H, Keymen (both sides), 지식그래프 depth, 고객 그룹 tree, VOC
+   근거 slide, 할 일 (issue / commitment To Do), attachments, Event
+   Lineage, Ask Cubee. Those post-detail modules do not become GNB
+   items. There is no calendar screen on GNB or post detail.
 6. Analysis-run list/start, tutor copy, TEPP receipts, leftover-pair
    sandbox, agent logs, and RankWeave as a home module stay off buyer
    chrome.
@@ -55,6 +58,15 @@ not GNB items and not click-to-export.
     (`유사 토픽 글을 아직 받을 수 없습니다`) and does not plant a
     Camoufox or Searxng server or fetch the public web. Buyer chrome
     has no scrape console.
+12. Do not attach Figma from this Cloud VM. Tokens and Storybook
+    frames live on the operator Remote machine. ADR 0002 still
+    forbids pixel-matching. A missing Figma frame is not a fourth
+    GNB destination.
+13. Corp / PU are Keyverse attributes on the existing OIDC login, not
+    a second login form.
+14. Do not copy scraped articles or ontology promotions into mail or
+    calendar. Calendar, if used later, is an independent consume
+    module — not this slice.
 
 ## Consequences
 

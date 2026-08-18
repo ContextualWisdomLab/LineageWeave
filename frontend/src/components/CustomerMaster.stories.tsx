@@ -21,7 +21,6 @@ export const PendingOntologyAttach: Story = {
     orgmetraAvailable: false,
     units: [],
     keymen: [],
-    commitments: [],
     pendingAttach: {
       label: "Demo Corp parent candidate",
       evidence_url: "https://example.test/demo-corp",
@@ -43,6 +42,5 @@ export const OrgmetraUnavailable: Story = {
     orgmetraAvailable: false,
     units: [],
     keymen: [],
-    commitments: [],
   },
 };

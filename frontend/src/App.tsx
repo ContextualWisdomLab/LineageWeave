@@ -3,19 +3,21 @@ import { useAuth } from "react-oidc-context";
 import {
   askCubee,
   attachOntologyObject,
-  fetchCalendar,
   fetchKeymenCatalog,
   fetchLineageGraph,
   fetchMe,
   fetchOrgmetraUnits,
   fetchPost,
+  fetchPostAffiliateTree,
   fetchPostFiveW1H,
   fetchPostKeymen,
   fetchPostLineage,
   fetchPostTickets,
+  fetchPostVocEvidence,
   fetchPosts,
+  fetchRelatedKeymen,
   searchBoard,
-  type CalendarEntry,
+  type AffiliateNode,
   type CurrentUser,
   type FiveW1HSlot,
   type IssueTicket,
@@ -25,20 +27,25 @@ import {
   type PostDetail,
   type PostLineage,
   type PostSummary,
+  type RelatedNode,
   type UnverifiedCandidate,
+  type VocEvidence,
 } from "./api";
+import { AffiliateTreePanel } from "./components/AffiliateTreePanel";
 import { AskCubee } from "./components/AskCubee";
 import { Attachments } from "./components/Attachments";
 import { Board } from "./components/Board";
 import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
-import { CommitmentsPanel } from "./components/CommitmentsPanel";
 import { CustomerMaster } from "./components/CustomerMaster";
 import { EventLineagePanel } from "./components/EventLineagePanel";
 import { FiveW1H } from "./components/FiveW1H";
 import { GroundedQa } from "./components/GroundedQa";
 import { KeymenPanel } from "./components/KeymenPanel";
+import { KnowledgeGraphDepth } from "./components/KnowledgeGraphDepth";
 import { OriginalSource } from "./components/OriginalSource";
 import { PopupCloseButton } from "./components/PopupCloseButton";
+import { ToDoPanel } from "./components/ToDoPanel";
+import { VocEvidenceSlide } from "./components/VocEvidenceSlide";
 import "./App.css";
 
 function PostEventScreen({
@@ -65,6 +72,9 @@ function PostEventScreen({
   const [slotsError, setSlotsError] = useState<string | null>(null);
   const [keymen, setKeymen] = useState<Keyman[] | null>(null);
   const [tickets, setTickets] = useState<IssueTicket[] | null>(null);
+  const [trees, setTrees] = useState<AffiliateNode[] | null>(null);
+  const [related, setRelated] = useState<RelatedNode[] | null>(null);
+  const [vocEvidence, setVocEvidence] = useState<VocEvidence | null>(null);
 
   useEffect(() => {
     setPost(null);
@@ -74,6 +84,9 @@ function PostEventScreen({
     setSlotsError(null);
     setKeymen(null);
     setTickets(null);
+    setTrees(null);
+    setRelated(null);
+    setVocEvidence(null);
     fetchPost(accessToken, postId)
       .then(setPost)
       .catch((err) => setError(String(err)));
@@ -84,11 +97,38 @@ function PostEventScreen({
       .then((payload) => setSlots(payload.slots))
       .catch((err) => setSlotsError(String(err)));
     fetchPostKeymen(accessToken, postId)
-      .then((payload) => setKeymen(payload.keymen))
-      .catch(() => setKeymen([]));
+      .then((payload) => {
+        setKeymen(payload.keymen);
+        const first = payload.keymen[0];
+        if (!first) {
+          setRelated([]);
+          return;
+        }
+        fetchRelatedKeymen(accessToken, first.person_id)
+          .then((row) => setRelated(row.related))
+          .catch(() => setRelated([]));
+      })
+      .catch(() => {
+        setKeymen([]);
+        setRelated([]);
+      });
     fetchPostTickets(accessToken, postId)
       .then((payload) => setTickets(payload.tickets))
       .catch(() => setTickets([]));
+    fetchPostAffiliateTree(accessToken, postId)
+      .then((payload) => setTrees(payload.trees))
+      .catch(() => setTrees([]));
+    fetchPostVocEvidence(accessToken, postId)
+      .then(setVocEvidence)
+      .catch(() =>
+        setVocEvidence({
+          post_id: postId,
+          voc_type_code: "",
+          voc_type_label: "",
+          excerpts: [],
+          counterparties: [],
+        }),
+      );
   }, [postId, accessToken]);
 
   return (
@@ -104,7 +144,10 @@ function PostEventScreen({
             <OriginalSource body={post.post_body} />
             <FiveW1H slots={slots} error={slotsError} />
             <KeymenPanel keymen={keymen} />
-            <CommitmentsPanel tickets={tickets} />
+            <KnowledgeGraphDepth related={related} onSelectPost={onSelectNode} />
+            <AffiliateTreePanel trees={trees} />
+            <VocEvidenceSlide evidence={vocEvidence} />
+            <ToDoPanel tickets={tickets} />
             <Attachments body={post.post_body} />
             <EventLineagePanel
               lineage={lineage}
@@ -140,7 +183,6 @@ function BuyerHome({ accessToken }: { accessToken: string }) {
   const [orgUnits, setOrgUnits] = useState<OrgmetraUnit[] | null>(null);
   const [orgAvailable, setOrgAvailable] = useState(false);
   const [catalogKeymen, setCatalogKeymen] = useState<Keyman[] | null>(null);
-  const [commitments, setCommitments] = useState<CalendarEntry[] | null>(null);
   const [pendingAttach, setPendingAttach] = useState<UnverifiedCandidate | null>(null);
   const [attachError, setAttachError] = useState<string | null>(null);
   const [attachBusy, setAttachBusy] = useState(false);
@@ -167,9 +209,6 @@ function BuyerHome({ accessToken }: { accessToken: string }) {
     fetchKeymenCatalog(accessToken)
       .then((payload) => setCatalogKeymen(payload.keymen))
       .catch(() => setCatalogKeymen([]));
-    fetchCalendar(accessToken)
-      .then((payload) => setCommitments(payload.commitments))
-      .catch(() => setCommitments([]));
   }, [destination, accessToken]);
 
   useEffect(() => {
@@ -203,7 +242,6 @@ function BuyerHome({ accessToken }: { accessToken: string }) {
           orgmetraAvailable={orgAvailable}
           units={orgUnits}
           keymen={catalogKeymen}
-          commitments={commitments}
           pendingAttach={pendingAttach}
           attachError={attachError}
           attachBusy={attachBusy}

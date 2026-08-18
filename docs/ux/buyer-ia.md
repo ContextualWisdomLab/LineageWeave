@@ -21,7 +21,7 @@ the ontology (ADR 0004). It does not invent a fourth GNB item.
 | Buyer label | Product name already in this repo | Primary action | Fail-closed empty |
 |---|---|---|---|
 | 게시판 | Home board (`GET /api/posts`). Each post is an event. Weekly VOC is a list filter. Scheduled weekly/monthly newspapers appear as newspaper cards with team / PU / corporate sections. | Open one post or newspaper | 게시판에 사건이 없습니다 / 이번 주 감사할 VOC가 없습니다 / 이번 주 신문을 아직 받을 수 없습니다 |
-| 고객 마스터 | Customers (Orgmetra grain), Keymen catalog, commitments calendar | Manage customers, Keymen, and commitments | 이 범위의 조직 단위를 아직 받을 수 없습니다 |
+| 고객 마스터 | Customers (Orgmetra grain) and Keymen catalog. Corp / PU are Keyverse attributes on the existing OIDC login. | Manage customers and Keymen | 이 범위의 조직 단위를 아직 받을 수 없습니다 |
 | Ask Cubee | Source-grounded Q&A (`POST /api/ask-cubee`) | Ask what happened on a lineage | 이 사건 lineage에서 근거할 수 있는 질문이 아직 없습니다 |
 
 Buyer-facing headings use the Korean labels except **Ask Cubee**.
@@ -46,9 +46,12 @@ search.
   ranks when the scheduler published the edition. Theta stays off
   the card.
 - Opening any post (regular or newspaper) shows the same modules:
-  원문, 5W1H, Keymen, 고객 약속, 첨부파일, 사건 lineage graph,
-  Ask Cubee. Pictures stay pictures. Missing 5W1H slots fail-closed
-  (이 사건의 누가/언제가 아직 없습니다).
+  원문, 5W1H, Keymen (both sides), 지식그래프 depth, 고객 그룹 tree,
+  VOC 근거 slide, 할 일 (issue / commitment To Do), 첨부파일, 사건
+  lineage graph, Ask Cubee. Pictures stay pictures. Missing 5W1H
+  slots fail-closed (이 사건의 누가/언제가 아직 없습니다). Issue /
+  commitment work stays this To Do module. There is no calendar
+  screen on GNB or post detail.
 
 **Scheduled newspaper**
 
@@ -86,14 +89,18 @@ console, or tutor copy.
 
 ## 2. 고객 마스터
 
-Manage customers, Keymen, and commitments. Tenant identity is
-Keyverse / Orgmetra when wired; this demo uses the existing OIDC
-login. Do not invent an IdP or plant an org-chart kernel. Unavailable
-Orgmetra fail-closes: 이 범위의 조직 단위를 아직 받을 수 없습니다.
+Manage customers and Keymen. Tenant identity is Keyverse / Orgmetra
+when wired; this demo uses the existing OIDC login. Corp / PU are
+Keyverse attributes on that login — not a second login form. Do not
+invent an IdP or plant an org-chart kernel. Unavailable Orgmetra
+fail-closes: 이 범위의 조직 단위를 아직 받을 수 없습니다.
 A 미검증 후보 promoted from Ask Cubee lands here so the buyer can
 attach it to the ontology. A unique existing catalog row binds. A
 tie or miss stays unbound (`그 객체는 온톨로지에 아직 없습니다`).
-Do not create an AUTO- row from a Searxng hit.
+Do not create an AUTO- row from a Searxng hit. Do not copy that
+promotion into mail or calendar. Keyman both-sides, KG depth,
+customer-group tree, and VOC evidence stay on the opened post, not
+here.
 
 ## 3. Ask Cubee
 
@@ -115,11 +122,17 @@ live Searxng. Not a tutor menu. Not a fourth product page.
 Analysis-run internals, TEPP receipts, leftover-pair sandbox,
 next-action tutor copy (“X is current. Read Y next.”), agent logs,
 RankWeave as a home module, θ / IRT / CAT / FIPC numbers on buyer
-chrome, and any 생성 / 실행 / 내보내기 / 지금 만들기 control.
+chrome, a calendar screen, a mail outbox, a scrape console, and any
+생성 / 실행 / 내보내기 / 지금 만들기 control. Calendar, if used
+later, is an independent module LineageWeave will consume — not this
+slice. Do not copy scraped articles or ontology promotions into mail
+or calendar.
 
 ## Design reference
 
-Do not pixel-match or import the referenced Figma file.
+Do not attach or pixel-match the referenced Figma file from this
+Cloud VM. Tokens and Storybook frames live on the operator Remote
+machine. A missing Figma frame is not a fourth GNB destination.
 [ADR 0002](../adr/0002-figma-access-boundary.md).
 
 ## Implementation (v2.12.5)
@@ -127,5 +140,5 @@ Do not pixel-match or import the referenced Figma file.
 The three GNB destinations are buyer chrome on `App.tsx` (ADR 0036).
 This file still must not be read as permission to put bot chrome,
 leftover-pair sandbox, Rankings-unavailable home chrome, analysis-run
-internals, TEPP receipts, or θ / IRT / CAT / FIPC on
+internals, TEPP receipts, a calendar screen, or θ / IRT / CAT / FIPC on
 `feat/role-responsibility-agent-ontology` (PR #74).

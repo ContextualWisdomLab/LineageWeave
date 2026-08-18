@@ -1,15 +1,13 @@
-import type { CalendarEntry, CurrentUser, Keyman, OrgmetraUnit, UnverifiedCandidate } from "../api";
+import type { CurrentUser, Keyman, OrgmetraUnit, UnverifiedCandidate } from "../api";
 
 export const CUSTOMERS_EMPTY = "이 범위의 조직 단위를 아직 받을 수 없습니다";
 export const MASTER_KEYMEN_EMPTY = "Keyman이 아직 없습니다";
-export const MASTER_COMMITMENTS_EMPTY = "고객 약속이 아직 없습니다";
 
 export type CustomerMasterProps = {
   me: CurrentUser | null;
   orgmetraAvailable: boolean;
   units: OrgmetraUnit[] | null;
   keymen: Keyman[] | null;
-  commitments: CalendarEntry[] | null;
   pendingAttach?: UnverifiedCandidate | null;
   attachError?: string | null;
   attachBusy?: boolean;
@@ -21,7 +19,6 @@ export function CustomerMaster({
   orgmetraAvailable,
   units,
   keymen,
-  commitments,
   pendingAttach = null,
   attachError = null,
   attachBusy = false,
@@ -32,8 +29,9 @@ export function CustomerMaster({
     <section className="popup-section lineage-home" aria-label="고객 마스터">
       <h2>고객 마스터</h2>
       <p className="post-meta" aria-label="Tenant identity">
-        {tenant ? `Tenant · ${tenant}` : "Tenant identity from Keyverse / Orgmetra when wired."}{" "}
-        This demo uses the existing OIDC login. No local IdP.
+        {tenant ? `Tenant · ${tenant}` : "Tenant identity from Keyverse when wired."} Corp / PU
+        are Keyverse attributes on this login. This demo uses the existing OIDC login. No
+        second login form.
       </p>
       {pendingAttach ? (
         <section className="popup-section" aria-label="온톨로지에 붙이기">
@@ -71,22 +69,6 @@ export function CustomerMaster({
           <ul>
             {keymen.map((person) => (
               <li key={person.person_id}>{person.person_name}</li>
-            ))}
-          </ul>
-        ) : null}
-      </section>
-      <section className="popup-section" aria-label="고객 약속">
-        <h3>고객 약속</h3>
-        {commitments && commitments.length === 0 ? (
-          <p className="popup-placeholder">{MASTER_COMMITMENTS_EMPTY}</p>
-        ) : null}
-        {commitments && commitments.length > 0 ? (
-          <ul>
-            {commitments.map((row) => (
-              <li key={row.issue_ticket_id}>
-                {row.commitment_summary ?? row.ticket_title}
-                {row.due_date ? ` · ${row.due_date}` : ""}
-              </li>
             ))}
           </ul>
         ) : null}

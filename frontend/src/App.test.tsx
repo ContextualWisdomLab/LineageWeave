@@ -32,6 +32,8 @@ describe("App, unauthenticated", () => {
   it("shows a login button that starts the real OIDC redirect", async () => {
     render(<App />);
     const button = screen.getByRole("button", { name: /log in/i });
+    expect(screen.queryByRole("form")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/corporate|process unit|PU/i)).not.toBeInTheDocument();
     await userEvent.click(button);
     expect(signinRedirect).toHaveBeenCalledTimes(1);
   });
@@ -2037,6 +2039,20 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (/\/api\/posts\/[^/]+\/affiliate-tree$/.test(url)) {
+        return Promise.resolve(jsonResponse({ trees: [] }));
+      }
+      if (/\/api\/posts\/[^/]+\/voc-evidence$/.test(url)) {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: url.split("/").at(-2),
+            voc_type_code: "",
+            voc_type_label: "",
+            excerpts: [],
+            counterparties: [],
+          }),
+        );
+      }
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -2053,7 +2069,7 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: "고객 마스터" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ask Cubee" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "주간 VOC" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /주간 리포트|월간 리포트|내보내기|생성|지금 만들기|지금 긁기|검색 홈/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /주간 리포트|월간 리포트|내보내기|생성|지금 만들기|지금 긁기|검색 홈|캘린더|Calendar/ })).not.toBeInTheDocument();
     expect(screen.getByText("유사 토픽 글을 아직 받을 수 없습니다")).toBeInTheDocument();
     expect(screen.queryByText("Rankings · RankWeave not available")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Open analysis run/i })).not.toBeInTheDocument();
@@ -2068,8 +2084,13 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("heading", { name: "원문" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "5W1H" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Keymen" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "고객 약속" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "지식그래프" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "고객 그룹" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "VOC 근거" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "할 일" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "첨부파일" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Calendar" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Figma/i)).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "사건 lineage" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Ask Cubee" })).toBeInTheDocument();
     expect(screen.queryByText(/is current in Event Lineage/)).not.toBeInTheDocument();
@@ -2083,6 +2104,12 @@ describe("App, authenticated", () => {
     expect(screen.getByText("이 사건의 왜가 아직 없습니다")).toBeInTheDocument();
     expect(screen.getByText("Ada West")).toBeInTheDocument();
     expect(screen.getByText(/Send Northridge Grid the revised quote/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Our side" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Counterparty" })).toBeInTheDocument();
+    expect(screen.getByText(/Demo Group/)).toBeInTheDocument();
+    expect(screen.getByText("Person · Priya Nair · Counterparty")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "VOC 근거 열기" }));
+    expect(screen.getByLabelText("VOC 근거 슬라이드")).toHaveTextContent("delayed shipment");
   });
 
   it("selects a lineage node and shows that node's Keymen", async () => {
@@ -2153,6 +2180,13 @@ describe("App, authenticated", () => {
     expect(await screen.findByText("게시판에 사건이 없습니다")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
     expect(await screen.findByText("이 범위의 조직 단위를 아직 받을 수 없습니다")).toBeInTheDocument();
+    expect(screen.getByText(/Corp \/ PU are Keyverse attributes/)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "할 일" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "VOC 근거" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "고객 그룹" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "지식그래프" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "고객 약속" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("form", { name: /login|corp|PU/i })).not.toBeInTheDocument();
   });
 
   it("shows fail-closed empty lineage and Keymen on an opened item", async () => {
