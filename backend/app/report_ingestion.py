@@ -18,7 +18,7 @@ from lineageweave.post_evaluation import CRITERION_CODES, RUBRIC_VERSION
 
 from .knowledge_graph import labels_for_codes
 
-GROUPING_KINDS = frozenset({"process_unit", "corporate_entity", "thread_group"})
+GROUPING_KINDS = frozenset({"process_unit", "corporate_entity", "thread_group", "team"})
 SHARED_METRIC_KIND = "shared_metric"
 SHARED_METRIC_KEY = "all"
 _WEEK_PERIOD = re.compile(r"^(\d{4})-W(\d{2})$")
@@ -48,8 +48,12 @@ def grouping_value(kind: str, row: asyncpg.Record) -> str | None:
         value = row["process_unit_id"]
     elif kind == "corporate_entity":
         value = row["corporate_entity_id"]
-    else:
+    elif kind == "thread_group":
         value = row["thread_group_key"]
+    elif kind == "team":
+        value = row["team_id"]
+    else:
+        return None
     if value is None:
         return None
     text = str(value).strip()
@@ -71,6 +75,28 @@ _EVAL_ROWS_MONTH = """
                p.visibility_code, p.post_title
         from post_evaluation_response e
         join source_post p on p.post_id = e.post_id
+        where e.rubric_version = $1
+          and to_char(p.created_at at time zone 'UTC', 'YYYY-MM') = $2
+        """
+_EVAL_ROWS_TEAM_WEEK = """
+        select e.post_id, e.criterion_code, e.response_category,
+               p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               p.visibility_code, p.post_title, team.team_id
+        from post_evaluation_response e
+        join source_post p on p.post_id = e.post_id
+        join post_team_mention mention on mention.post_id = p.post_id
+        join cataloged_team team on team.team_id = mention.team_id
+        where e.rubric_version = $1
+          and to_char(p.created_at at time zone 'UTC', 'IYYY-"W"IW') = $2
+        """
+_EVAL_ROWS_TEAM_MONTH = """
+        select e.post_id, e.criterion_code, e.response_category,
+               p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               p.visibility_code, p.post_title, team.team_id
+        from post_evaluation_response e
+        join source_post p on p.post_id = e.post_id
+        join post_team_mention mention on mention.post_id = p.post_id
+        join cataloged_team team on team.team_id = mention.team_id
         where e.rubric_version = $1
           and to_char(p.created_at at time zone 'UTC', 'YYYY-MM') = $2
         """
@@ -139,7 +165,10 @@ async def load_period_evaluation_rows(
 ) -> list[asyncpg.Record]:
     """Evaluation cells whose post falls in ``period_code``."""
     kind, _, _ = parse_period_code(period_code)
-    query = _EVAL_ROWS_WEEK if kind == "week" else _EVAL_ROWS_MONTH
+    if grouping_kind == "team":
+        query = _EVAL_ROWS_TEAM_WEEK if kind == "week" else _EVAL_ROWS_TEAM_MONTH
+    else:
+        query = _EVAL_ROWS_WEEK if kind == "week" else _EVAL_ROWS_MONTH
     return await conn.fetch(query, RUBRIC_VERSION, period_code)
 
 
@@ -348,7 +377,11 @@ async def persist_period_report(
 def _groups_from_rows(
     kind: str, rows: list[asyncpg.Record]
 ) -> dict[str, tuple[list[str], list[tuple[str, str, int]]]]:
-    """Partition evaluation rows into FIPC groups for one grouping kind."""
+    """Partition evaluation rows into FIPC groups for one grouping kind.
+
+    Team rows come from ``post_team_mention``. A post may therefore occur in
+    more than one returned group without being duplicated inside one group.
+    """
     by_group: dict[str, list[asyncpg.Record]] = defaultdict(list)
     for row in rows:
         key = grouping_value(kind, row)
@@ -380,10 +413,10 @@ async def rebuild_period_reports(
     if grouping_kind not in GROUPING_KINDS:
         raise ValueError(f"unknown grouping_kind {grouping_kind!r}")
     parse_period_code(period_code)
-    rows = await load_period_evaluation_rows(conn, grouping_kind, period_code)
     item_bank = await load_shared_item_bank(conn, period_code)
     reports: list[PeriodReport] = []
-    for kind in ("process_unit", "corporate_entity", "thread_group"):
+    for kind in ("process_unit", "corporate_entity", "thread_group", "team"):
+        rows = await load_period_evaluation_rows(conn, kind, period_code)
         groups = _groups_from_rows(kind, rows)
         if not groups:
             continue
@@ -635,7 +668,7 @@ async def list_period_report_summaries(
 
 
 async def resolve_grouping_label(conn: asyncpg.Connection, grouping_kind: str, grouping_key: str) -> str:
-    """Human-readable name for a grouping key (process unit / corp / thread)."""
+    """Human-readable name for a process unit, corp, thread, or team key."""
     if grouping_kind == "process_unit":
         row = await conn.fetchrow(
             "select process_unit_name from process_unit where process_unit_id::text = $1",
@@ -650,6 +683,13 @@ async def resolve_grouping_label(conn: asyncpg.Connection, grouping_kind: str, g
         )
         if row is not None:
             return str(row["entity_name"])
+    elif grouping_kind == "team":
+        row = await conn.fetchrow(
+            "select team_name from cataloged_team where team_id::text = $1",
+            grouping_key,
+        )
+        if row is not None:
+            return str(row["team_name"])
     return grouping_key
 
 
@@ -657,7 +697,7 @@ async def fetch_period_comparison(
     conn: asyncpg.Connection,
     period_code: str,
 ) -> list[dict[str, Any]]:
-    """Every PU / corp / thread scored on the shared metric for one period."""
+    """Every PU / corp / thread / team scored on the shared metric for one period."""
     parse_period_code(period_code)
     rows = await conn.fetch(
         """

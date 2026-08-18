@@ -2437,6 +2437,7 @@ const REPORT_GROUPING_LABELS: Record<string, string> = {
   process_unit: "Process unit",
   corporate_entity: "Corporate entity",
   thread_group: "Thread group",
+  team: "Team",
 };
 
 function comparisonGroupingTitle(groupingKind: string, groupingLabel: string): string {
@@ -2678,6 +2679,7 @@ function ReportsPanel({
             <option value="process_unit">Process unit</option>
             <option value="corporate_entity">Corporate entity</option>
             <option value="thread_group">Thread group</option>
+            <option value="team">Team</option>
           </select>
         </label>
         <label>
