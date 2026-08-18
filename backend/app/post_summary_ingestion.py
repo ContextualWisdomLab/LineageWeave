@@ -272,7 +272,7 @@ async def _replace_summary_projection(
             """,
             post_id,
             project_key,
-            project.canonical_name,
+            project.project_name,
             project.evidence,
             project.confidence,
             str(LW.Project),
