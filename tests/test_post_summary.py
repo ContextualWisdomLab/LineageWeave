@@ -202,6 +202,12 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
     assert len(observed) == 2
     assert all(payload["mode"] == "route" for payload in observed)
     assert "KEY EVENTS" in observed[0]["messages"][0]["content"]
+    details_prompt = observed[1]["messages"][0]["content"]
+    assert "source_process_unit_name are PU/business-unit hints only" in details_prompt
+    assert "must never be" in details_prompt
+    assert "sales-pool/order-pool value" in details_prompt
+    assert "source_sales_pool_name are sales-pool/order-pool hints only" in details_prompt
+    assert "PU/business-unit value" in details_prompt
     assert summary.roles_and_responsibilities[0].actor_name == "Jordan Hale"
     assert summary.project_mentions[0].canonical_name == "hvdc-pilot"
 

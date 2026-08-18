@@ -258,6 +258,12 @@ Use NONE on the line after a marker when the evidence supports no item. Keep
 each row short. Do not invent actors, projects, affiliations, or confidence.
 Treat structured context hints as weak priors, not facts. A customer value
 such as 기타, 미등록고객, unknown, or other cannot confirm a project by itself.
+Field roles are strict: source_business_unit_code and
+source_process_unit_name are PU/business-unit hints only and must never be
+used as a sales-pool/order-pool value. source_sales_pool_code and
+source_sales_pool_name are sales-pool/order-pool hints only and must never be
+used as a PU/business-unit value. Source project fields remain project hints,
+not catalog bindings, unless the post evidence supports them.
 Post title: {title}
 Post body: {body}
 Context hints: {context_hints}
