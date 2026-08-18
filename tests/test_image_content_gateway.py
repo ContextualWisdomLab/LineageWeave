@@ -1,0 +1,58 @@
+import base64
+from io import BytesIO
+
+from PIL import Image
+
+import lineageweave.image_content as image_content
+from lineageweave.image_content import (
+    NullImageContentClient,
+    OpenAiCompatibleVisionClient,
+    orchestrator_vision_client,
+)
+
+
+def _transparent_png() -> bytes:
+    image = Image.new("RGBA", (1, 1), (12, 34, 56, 0))
+    output = BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def test_vision_gateway_normalizes_image_and_preserves_structured_response(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    def post_json(url, payload, *, headers, timeout):
+        captured.update(url=url, payload=payload, headers=headers, timeout=timeout)
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": "TEXT: synthetic label\nCAPTION: a synthetic diagram\nTAGS: diagram, test"
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr(image_content, "post_json", post_json)
+    client = OpenAiCompatibleVisionClient(
+        "http://orchestrator/v1", "gateway-key", "vision-model", allow_insecure_http=True
+    )
+
+    description = client.describe(_transparent_png(), "image/tiff")
+
+    assert description.extracted_text == "synthetic label"
+    assert description.caption == "a synthetic diagram"
+    assert description.tags == ("diagram", "test")
+    assert captured["url"] == "http://orchestrator/v1/chat/completions"
+    assert captured["headers"] == {"authorization": "Bearer gateway-key"}
+    payload = captured["payload"]
+    image_url = payload["messages"][0]["content"][1]["image_url"]["url"]
+    assert image_url.startswith("data:image/png;base64,")
+    normalized = Image.open(BytesIO(base64.b64decode(image_url.split(",", 1)[1])))
+    assert normalized.convert("RGB").getpixel((0, 0)) == (255, 255, 255)
+
+
+def test_vision_factory_fails_closed_for_unsupported_url_scheme() -> None:
+    client = orchestrator_vision_client("ftp://orchestrator", "gateway-key", "vision-model")
+    assert isinstance(client, NullImageContentClient)
+    assert client.available is False
