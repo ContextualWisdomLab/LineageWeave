@@ -142,10 +142,10 @@ function EvidencePanel({
   }, [postId, accessToken]);
 
   return (
-    <div className="evidence-panel" role="complementary" aria-label="Evidence">
+    <div className="evidence-panel" role="complementary" aria-label={t("Evidence")}>
       {onClose ? <PopupCloseButton onClose={onClose} label="Close evidence panel" /> : null}
       <h3>{t("Evidence")}</h3>
-      {!post && <p>Loading source post...</p>}
+      {!post && <p>{t("Loading source post...")}</p>}
       {post && (
         <>
           <h4>{post.post_title}</h4>
@@ -172,7 +172,7 @@ function ChatCitations({
     citedPosts ?? citedPostIds.map((post_id) => ({ post_id, post_title: post_id.slice(0, 8) }));
   return (
     <div className="chat-citations">
-      <span>Sources: </span>
+      <span>{t("Sources:")} </span>
       {chips.map((cited) => (
         <CitationChip
           key={cited.post_id}
@@ -299,7 +299,7 @@ function ChatPanel({
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && handleAsk()}
-            placeholder="What happened between these events?"
+            placeholder={t("What happened between these events?")}
           />
           <button onClick={() => handleAsk()} disabled={loading || !question.trim()}>
             {loading ? "Asking..." : "Ask"}
@@ -413,7 +413,7 @@ function EventLineageSection({
   onSelectPost?: (postId: string) => void;
   currentNextAction?: string | null;
 }) {
-  if (!lineage) return <p>Loading lineage...</p>;
+  if (!lineage) return <p>{t("Loading lineage...")}</p>;
   const scoped = graph ? subgraphForPost(graph, postId) : { nodes: [], edges: [] };
   const hasLinks = lineage.direct.length > 0 || lineage.indirect.length > 0;
   if (scoped.nodes.length === 0) {
@@ -451,7 +451,7 @@ function RelatedPostsSection({
       <section className="popup-section related-posts-section" aria-labelledby="related-posts-heading">
         <div className="related-posts-header">
           <div>
-            <p className="section-eyebrow">Evidence trail</p>
+            <p className="section-eyebrow">{t("Evidence trail")}</p>
             <h3 id="related-posts-heading">{t("Related posts")}</h3>
           </div>
         </div>
@@ -469,7 +469,7 @@ function RelatedPostsSection({
     <section className="popup-section related-posts-section" aria-labelledby="related-posts-heading">
       <div className="related-posts-header">
         <div>
-          <p className="section-eyebrow">Evidence trail</p>
+          <p className="section-eyebrow">{t("Evidence trail")}</p>
           <h3 id="related-posts-heading">{t("Related posts")}</h3>
         </div>
         {related.length > 0 && <span className="related-post-count">{related.length} {t("linked")}</span>}
@@ -477,7 +477,7 @@ function RelatedPostsSection({
       {related.length === 0 ? (
         <p className="popup-placeholder">{t("No linked posts have been established for this record.")}</p>
       ) : (
-        <ul className="related-post-list" aria-label="Related posts">
+        <ul className="related-post-list" aria-label={t("Related posts")}>
           {related.map(({ post, kind }) => (
             <li key={`${kind}:${post.post_id}`}>
               {onSelectPost ? (
@@ -534,7 +534,7 @@ function AffiliateTreeNode({
       {(node.entity_level_label || node.entity_level_code) && (
         <span className="affiliate-level"> ({node.entity_level_label ?? node.entity_level_code})</span>
       )}
-      {!node.resolved && <span className="affiliate-unresolved-mark"> unresolved</span>}
+      {!node.resolved && <span className="affiliate-unresolved-mark"> {t("unresolved")}</span>}
       {node.people.length > 0 && (
         <span className="keyman-affiliations">
           {" -- "}
@@ -601,7 +601,7 @@ function VocEvidenceSection({
   affiliateTrees: AffiliateNode[] | null;
   onSelectPerson: (personId: string, personName: string) => void;
 }) {
-  if (!evidence) return <p>Loading VOC evidence...</p>;
+  if (!evidence) return <p>{t("Loading VOC evidence...")}</p>;
   const assignedExcerpts = new Set(
     evidence.counterparties
       .map((row) => row.evidence_excerpt)
@@ -616,7 +616,7 @@ function VocEvidenceSection({
         {evidence.voc_type_label} ({evidence.voc_type_code})
       </p>
       {!hasExcerpt ? (
-        <p className="popup-placeholder">No extractive excerpt -- no named organization appears in this post.</p>
+        <p className="popup-placeholder">{t("No extractive excerpt -- no named organization appears in this post.")}</p>
       ) : unassignedExcerpts.length > 0 ? (
         <ul className="voc-excerpt-list">
           {unassignedExcerpts.map((excerpt) => (
@@ -1072,7 +1072,7 @@ function KeymanPanel({
           ))}
         </ul>
       ) : (
-        <p className="popup-placeholder">No Keyman extracted yet.</p>
+        <p className="popup-placeholder">{t("No Keyman extracted yet.")}</p>
       )}
       {!afterList && relatedBlock}
     </section>
@@ -1087,9 +1087,9 @@ function KeymanPanel({
         <div className="related-keymen">
           <h4>Related to {landedRelatedName}</h4>
           {landedRelated === null ? (
-            <p>Loading related nodes...</p>
+            <p>{t("Loading related nodes...")}</p>
           ) : landedRelated.length === 0 ? (
-            <p className="popup-placeholder">No related nodes in the visible graph.</p>
+            <p className="popup-placeholder">{t("No related nodes in the visible graph.")}</p>
           ) : (
             <ul>
               {landedRelated.map((node) => (
@@ -1163,9 +1163,9 @@ function EvaluationPanel({
       </div>
       {error && <p className="error">{error}</p>}
       {responses === null ? (
-        <p>Loading evaluation...</p>
+        <p>{t("Loading evaluation...")}</p>
       ) : responses.length === 0 ? (
-        <p className="popup-placeholder">Not yet evaluated.</p>
+        <p className="popup-placeholder">{t("Not yet evaluated.")}</p>
       ) : (
         <ul>
           {responses.map((row) => (
@@ -1374,9 +1374,9 @@ function IssueTicketPanel({
       </div>
       {error && <p className="error">{error}</p>}
       {tickets === null ? (
-        <p>Loading tickets...</p>
+        <p>{t("Loading tickets...")}</p>
       ) : tickets.length === 0 ? (
-        <p className="popup-placeholder">No tickets yet.</p>
+        <p className="popup-placeholder">{t("No tickets yet.")}</p>
       ) : (
         <ul className="ticket-list">
           {tickets.map((ticket) => (
@@ -1406,13 +1406,13 @@ function IssueTicketPanel({
           value={newTitle}
           onChange={(event) => setNewTitle(event.target.value)}
           onKeyDown={(event) => event.key === "Enter" && handleCreate()}
-          placeholder="New ticket title"
+          placeholder={t("New ticket title")}
         />
         <input
           type="date"
           value={newDueDate}
           onChange={(event) => setNewDueDate(event.target.value)}
-          aria-label="Due date"
+          aria-label={t("Due date")}
         />
         <button onClick={handleCreate} disabled={creating || !newTitle.trim()}>
           {creating ? "Creating..." : "Create ticket"}
@@ -1454,13 +1454,13 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
     <section className="popup-section">
       <div className="lineage-home-header">
         <h3>{t("Activity")}</h3>
-        <button onClick={reload}>Refresh</button>
+        <button onClick={reload}>{t("Refresh")}</button>
       </div>
       {error && <p className="error">{error}</p>}
       {events === null ? (
-        <p>Loading activity...</p>
+        <p>{t("Loading activity...")}</p>
       ) : events.length === 0 ? (
-        <p className="popup-placeholder">No activity yet.</p>
+        <p className="popup-placeholder">{t("No activity yet.")}</p>
       ) : (
         <ul className="ticket-list">
           {events.map((event) => (
@@ -1721,7 +1721,7 @@ function PostDetailPopup({
                   )}
                 </>
               ) : (
-                <p className="popup-placeholder">No summary is available for this record yet.</p>
+                <p className="popup-placeholder">{t("No summary is available for this record yet.")}</p>
               )}
             </section>
 
@@ -1797,9 +1797,9 @@ function PostDetailPopup({
             <section className="popup-section">
               <h3>{t("Affiliate tree")}</h3>
               {affiliateTrees === null ? (
-                <p>Loading affiliate tree...</p>
+                <p>{t("Loading affiliate tree...")}</p>
               ) : affiliateTrees.length === 0 ? (
-                <p className="popup-placeholder">No affiliations on this post yet.</p>
+                <p className="popup-placeholder">{t("No affiliations on this post yet.")}</p>
               ) : (
                 <ul className="affiliate-tree">
                   {affiliateTrees.map((node) => (
@@ -3052,8 +3052,8 @@ function PostList({
   }
 
   if (error) return <p className="error">{error}</p>;
-  if (!posts) return <p>Loading posts...</p>;
-  if (posts.length === 0) return <p>No posts visible to this account yet -- try `make seed`.</p>;
+  if (!posts) return <p>{t("Loading posts...")}</p>;
+  if (posts.length === 0) return <p>{t("No posts visible to this account yet -- try `make seed`.")}</p>;
 
   return (
     <>
@@ -3095,7 +3095,7 @@ function PostList({
           )}
         </div>
         {rebuildError && <p className="error">{rebuildError}</p>}
-        {!graph && <p>Loading lineage graph...</p>}
+        {!graph && <p>{t("Loading lineage graph...")}</p>}
         {graph && <LineageDag graph={graph} onSelectPost={selectPost} />}
         {graph?.truncated && (
           <p className="post-meta" role="status">
@@ -3120,7 +3120,7 @@ function PostList({
       </ul>
       {hasMorePosts && (
         <button type="button" onClick={loadMorePosts} disabled={loadingMorePosts}>
-          {loadingMorePosts ? "Loading more posts..." : "Load more posts"}
+          {loadingMorePosts ? t("Loading more posts...") : t("Load more posts")}
         </button>
       )}
       {selectedPostId && (
@@ -3328,7 +3328,7 @@ export default function App() {
   const [postToOpen, setPostToOpen] = useState<string | null>(null);
 
   if (auth.isLoading) {
-    return <p>Loading authentication state...</p>;
+    return <p>{t("Loading authentication state...")}</p>;
   }
 
   if (auth.error) {
@@ -3347,7 +3347,7 @@ export default function App() {
 
   const accessToken = auth.user?.access_token;
   if (!accessToken) {
-    return <p className="error">Authenticated, but no access token was returned.</p>;
+    return <p className="error">{t("Authenticated, but no access token was returned.")}</p>;
   }
 
   return (

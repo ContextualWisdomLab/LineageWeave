@@ -16,6 +16,11 @@ const STORAGE_KEY = "lineageweave.locale";
 const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   ko: {
     Language: "언어",
+    unresolved: "미해결",
+    "Loading...": "불러오는 중...",
+    "Loading more posts...": "글을 더 불러오는 중...",
+    "Loading authentication state...": "인증 상태를 불러오는 중...",
+    "Authenticated, but no access token was returned.": "인증되었지만 액세스 토큰이 반환되지 않았습니다.",
     "Log in": "로그인",
     "Log out": "로그아웃",
     Calendar: "캘린더",
@@ -130,6 +135,11 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   },
   zh: {
     Language: "语言",
+    unresolved: "未解决",
+    "Loading...": "正在加载...",
+    "Loading more posts...": "正在加载更多文章...",
+    "Loading authentication state...": "正在加载身份验证状态...",
+    "Authenticated, but no access token was returned.": "已完成身份验证，但未返回访问令牌。",
     "Log in": "登录",
     "Log out": "退出登录",
     Calendar: "日历",
@@ -243,6 +253,11 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   },
   ja: {
     Language: "言語",
+    unresolved: "未解決",
+    "Loading...": "読み込み中...",
+    "Loading more posts...": "投稿をさらに読み込んでいます...",
+    "Loading authentication state...": "認証状態を読み込んでいます...",
+    "Authenticated, but no access token was returned.": "認証済みですが、アクセストークンが返されませんでした。",
     "Log in": "ログイン",
     "Log out": "ログアウト",
     Calendar: "カレンダー",
@@ -356,6 +371,11 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   },
   vi: {
     Language: "Ngôn ngữ",
+    unresolved: "chưa giải quyết",
+    "Loading...": "Đang tải...",
+    "Loading more posts...": "Đang tải thêm bài viết...",
+    "Loading authentication state...": "Đang tải trạng thái xác thực...",
+    "Authenticated, but no access token was returned.": "Đã xác thực nhưng không nhận được mã thông báo truy cập.",
     "Log in": "Đăng nhập",
     "Log out": "Đăng xuất",
     Calendar: "Lịch",
