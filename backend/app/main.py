@@ -1038,7 +1038,7 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
         ),
         order_pool_code=first["source_sales_pool_code"],
         order_pool_name=None,
-        project_field=first["source_project_code"] or first["project_field"],
+        project_field=first["project_field"],
         customer_name=first["customer_name"],
         source_author_code=first["source_author_code"],
         source_author_name=source_author_name,

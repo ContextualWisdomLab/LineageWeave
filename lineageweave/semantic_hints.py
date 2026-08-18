@@ -71,6 +71,11 @@ def format_semantic_hints(
     order_pool = ": ".join(
         value for value in (_value(order_pool_code), _value(order_pool_name)) if value != "none"
     ) or "none"
+    order_pool_source = (
+        "source_post.source_sales_pool_code"
+        if source_sales_pool_code is not None
+        else "source_post.process_unit_id"
+    )
     return "; ".join(
         (
             f"author_account_id={_value(account_id)} [source_field=source_post.author_account_id]",
@@ -79,7 +84,7 @@ def format_semantic_hints(
             "author_affiliations="
             f"{', '.join(affiliations) or 'none'} [source_field=account_affiliation.corporate_entity_id]",
             f"author_side_hint={author_side_hint} [source_rule=source_post.author_code]",
-            f"order_pool={order_pool} [source_field=source_post.process_unit_id]",
+            f"order_pool={order_pool} [source_field={order_pool_source}]",
             f"project_field={_value(project_field)} [source_field=source_post.secondary_grouping_key]",
             f"customer={customer} [source_field=source_post.corporate_entity_id]",
             f"customer_hint_trust={customer_trust}",

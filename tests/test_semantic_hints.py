@@ -45,6 +45,24 @@ def test_unknown_customer_is_a_weak_hint_not_project_evidence() -> None:
     assert "project_field=none" in hints
 
 
+def test_source_pool_and_project_code_keep_distinct_provenance() -> None:
+    hints = format_semantic_hints(
+        author_name=None,
+        author_affiliations=[],
+        order_pool_code="SOURCE-POOL",
+        order_pool_name=None,
+        project_field="SECONDARY-PROJECT",
+        customer_name="Demo Corp",
+        source_sales_pool_code="SOURCE-POOL",
+        source_project_code="SOURCE-PROJECT",
+        source_context_present=True,
+    )
+
+    assert "order_pool=SOURCE-POOL [source_field=source_post.source_sales_pool_code]" in hints
+    assert "project_field=SECONDARY-PROJECT [source_field=source_post.secondary_grouping_key]" in hints
+    assert "source_project_code=SOURCE-PROJECT [source_field=source_post.source_project_code]" in hints
+
+
 def test_source_context_keeps_authorization_identity_as_non_binding_keyman_context() -> None:
     hints = format_semantic_hints(
         author_name="Demo Analyst",
