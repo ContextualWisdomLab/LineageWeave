@@ -15,6 +15,8 @@ def test_semantic_hints_keep_explicit_project_pool_and_author_sources() -> None:
         source_business_unit_code="SOURCE-BU",
         source_customer_code="SOURCE-CUSTOMER",
         source_project_code="SOURCE-PROJECT",
+        source_company_name="Named company",
+        source_process_unit_name="Named PU",
     )
 
     assert "project_field=PROJECT-42" in hints
@@ -28,6 +30,8 @@ def test_semantic_hints_keep_explicit_project_pool_and_author_sources() -> None:
     assert "source_company_code=SOURCE-COMPANY" in hints
     assert "source_customer_code=SOURCE-CUSTOMER" in hints
     assert "source_project_code=SOURCE-PROJECT" in hints
+    assert "source_company_name=Named company [source_field=source_post.source_company_name]" in hints
+    assert "source_process_unit_name=Named PU [source_field=source_post.source_process_unit_name]" in hints
 
 
 def test_unknown_customer_is_a_weak_hint_not_project_evidence() -> None:

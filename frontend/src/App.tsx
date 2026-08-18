@@ -1694,7 +1694,9 @@ function PostDetailPopup({
               post.source_author_code ||
               post.source_author_name ||
               post.source_company_code ||
+              post.source_company_name ||
               post.source_process_unit_code ||
+              post.source_process_unit_name ||
               post.source_sales_pool_code ||
               post.source_sales_pool_name ||
               post.source_customer_code ||
@@ -1746,6 +1748,18 @@ function PostDetailPopup({
                     <>
                       <dt>{t("Source company code")}</dt>
                       <dd>{post.source_company_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_company_name ? (
+                    <>
+                      <dt>{t("Source company name")}</dt>
+                      <dd>{post.source_company_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_process_unit_name ? (
+                    <>
+                      <dt>{t("Source process unit name")}</dt>
+                      <dd>{post.source_process_unit_name}</dd>
                     </>
                   ) : null}
                   {post.source_process_unit_code ? (

@@ -56,9 +56,13 @@ def test_importer_accepts_explicit_source_name_mappings() -> None:
             "--source-sales-pool-name-column", "sales_pool_name",
             "--source-customer-name-column", "customer_name",
             "--source-project-name-column", "project_name",
+            "--source-company-name-column", "company_name",
+            "--source-process-unit-name-column", "process_unit_name",
         ]
     )
 
     assert args.source_sales_pool_name_column == "sales_pool_name"
     assert args.source_customer_name_column == "customer_name"
     assert args.source_project_name_column == "project_name"
+    assert args.source_company_name_column == "company_name"
+    assert args.source_business_unit_name_column == "process_unit_name"

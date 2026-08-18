@@ -78,6 +78,9 @@ _SOURCE_RECORD_IDENTITY_MIGRATION = (
 _SOURCE_NAMED_HINTS_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0038_source_named_hints.sql"
 )
+_SOURCE_ORG_NAMED_HINTS_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0039_source_org_named_hints.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -177,6 +180,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_NORMALIZED_BODY_SEARCH_MIGRATION.read_text())
             cur.execute(_SOURCE_RECORD_IDENTITY_MIGRATION.read_text())
             cur.execute(_SOURCE_NAMED_HINTS_MIGRATION.read_text())
+            cur.execute(_SOURCE_ORG_NAMED_HINTS_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "

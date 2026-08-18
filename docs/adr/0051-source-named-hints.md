@@ -13,11 +13,13 @@ unverified catalog identity.
 
 ## Decision
 
-- Preserve caller-mapped `source_project_name`, `source_sales_pool_name`, and
-  `source_customer_name` beside their raw code fields on `source_post`.
+- Preserve caller-mapped `source_project_name`, `source_sales_pool_name`,
+  `source_customer_name`, `source_company_name`, and
+  `source_process_unit_name` beside their raw code fields on `source_post`.
 - Include names in authorized detail, board search, customer evidence, Ask
   source facts, and contextual-orchestrator semantic hints with column-level
-  provenance.
+  provenance. `source_process_unit_name` is explicitly a PU/business-unit
+  hint and is never treated as a sales-pool name.
 - Keep every name hint non-binding. `기타`, `미등록`, `unknown`, and equivalent
   customer names remain low-trust hints and never create or bind a catalog row.
 - The importer accepts explicit column mappings only; it never guesses a name

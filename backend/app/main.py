@@ -356,7 +356,9 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "source_author_code": post.get("source_author_code"),
         "source_author_name": post.get("source_author_name"),
         "source_company_code": post.get("source_company_code"),
+        "source_company_name": post.get("source_company_name"),
         "source_process_unit_code": post.get("source_process_unit_code"),
+        "source_process_unit_name": post.get("source_process_unit_name"),
         "source_sales_pool_code": post.get("source_sales_pool_code"),
         "source_sales_pool_name": post.get("source_sales_pool_name"),
         "source_customer_code": post.get("source_customer_code"),
@@ -759,7 +761,8 @@ async def list_posts(
                        post.source_stage_code, post.source_detail_state_code,
                        post.source_draft_code, post.source_deleted_flag,
                        post.source_author_code, post.source_author_name,
-                       post.source_company_code, post.source_process_unit_code,
+                       post.source_company_code, post.source_company_name,
+                       post.source_process_unit_code, post.source_process_unit_name,
                        post.source_sales_pool_code, post.source_sales_pool_name,
                        post.source_customer_code, post.source_customer_name,
                        post.source_project_code, post.source_project_name,
@@ -783,7 +786,9 @@ async def list_posts(
                         post.source_author_code,
                         post.source_author_name,
                         post.source_company_code,
+                        post.source_company_name,
                         post.source_process_unit_code,
+                        post.source_process_unit_name,
                         post.source_sales_pool_code,
                         post.source_sales_pool_name,
                         post.source_customer_code,
@@ -811,7 +816,9 @@ async def list_posts(
                                     post.source_author_code,
                                     post.source_author_name,
                                     post.source_company_code,
+                                    post.source_company_name,
                                     post.source_process_unit_code,
+                                    post.source_process_unit_name,
                                     post.source_sales_pool_code,
                                     post.source_sales_pool_name,
                                     post.source_customer_code,
@@ -960,8 +967,9 @@ async def read_post(
         row = await conn.fetchrow(
             "select post_id, post_title, post_body, voc_type_code, visibility_code, "
             "source_stage_code, source_detail_state_code, source_draft_code, source_deleted_flag, "
-            "source_author_code, source_author_name, source_company_code, "
-                "source_process_unit_code, source_sales_pool_code, source_sales_pool_name, "
+                "source_author_code, source_author_name, source_company_code, source_company_name, "
+                "source_process_unit_code, source_process_unit_name, "
+                "source_sales_pool_code, source_sales_pool_name, "
                 "source_customer_code, source_customer_name, source_project_code, source_project_name, "
                 "source_system_code, source_record_key, "
             "corporate_entity_id, created_at "
@@ -1018,7 +1026,9 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
                post.source_author_code,
                post.source_author_name,
                post.source_company_code,
+               post.source_company_name,
                post.source_process_unit_code,
+               post.source_process_unit_name,
                post.source_sales_pool_code,
                post.source_sales_pool_name,
                post.source_customer_code,
@@ -1048,7 +1058,9 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
             "source_author_code",
             "source_author_name",
             "source_company_code",
+            "source_company_name",
             "source_process_unit_code",
+            "source_process_unit_name",
             "source_sales_pool_code",
             "source_sales_pool_name",
             "source_customer_code",
@@ -1076,7 +1088,9 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
         source_author_code=first["source_author_code"],
         source_author_name=source_author_name,
         source_company_code=first["source_company_code"],
+        source_company_name=first["source_company_name"],
         source_business_unit_code=first["source_process_unit_code"],
+        source_process_unit_name=first["source_process_unit_name"],
         source_sales_pool_code=first["source_sales_pool_code"],
         source_sales_pool_name=first["source_sales_pool_name"],
         source_customer_code=first["source_customer_code"],

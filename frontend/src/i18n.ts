@@ -77,7 +77,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source author code": "원천 작성자 코드",
     "Source author name": "원천 작성자 이름",
     "Source company code": "원천 법인 코드",
+    "Source company name": "원천 법인 이름",
     "Source business unit": "원천 사업부(PU)",
+    "Source process unit name": "원천 사업부(PU) 이름",
     "Source sales pool": "원천 수주풀",
     "Source sales pool name": "원천 수주풀 이름",
     "Source body was not imported; summary and semantic extraction are unavailable.":
@@ -339,7 +341,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source author code": "来源作者代码",
     "Source author name": "来源作者姓名",
     "Source company code": "来源公司代码",
+    "Source company name": "来源公司名称",
     "Source business unit": "来源事业部 (PU)",
+    "Source process unit name": "来源事业部名称 (PU)",
     "Source sales pool": "来源销售池",
     "Source sales pool name": "来源销售池名称",
     "Source body was not imported; summary and semantic extraction are unavailable.":
@@ -624,7 +628,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source author code": "原典の作成者コード",
     "Source author name": "原典の作成者名",
     "Source company code": "原典の法人コード",
+    "Source company name": "原典の法人名",
     "Source business unit": "原典の事業部 (PU)",
+    "Source process unit name": "原典の事業部名 (PU)",
     "Source sales pool": "原典の受注プール",
     "Source sales pool name": "原典の受注プール名",
     "Source body was not imported; summary and semantic extraction are unavailable.":
@@ -885,7 +891,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source author code": "Mã tác giả nguồn",
     "Source author name": "Tên tác giả nguồn",
     "Source company code": "Mã công ty nguồn",
+    "Source company name": "Tên công ty nguồn",
     "Source business unit": "Đơn vị kinh doanh nguồn (PU)",
+    "Source process unit name": "Tên đơn vị kinh doanh nguồn (PU)",
     "Source sales pool": "Nhóm bán hàng nguồn",
     "Source sales pool name": "Tên nhóm bán hàng nguồn",
     "Source body was not imported; summary and semantic extraction are unavailable.":

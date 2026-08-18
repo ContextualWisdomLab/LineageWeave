@@ -129,7 +129,9 @@ _SOURCE_HINT_FIELDS = (
     ("source_author_code", "source author code"),
     ("source_author_name", "source author name"),
     ("source_company_code", "source company code"),
+    ("source_company_name", "source company name"),
     ("source_process_unit_code", "source business unit (PU)"),
+    ("source_process_unit_name", "source business unit name (PU)"),
     ("source_sales_pool_code", "source sales pool"),
     ("source_sales_pool_name", "source sales pool name"),
     ("source_customer_code", "source customer code"),
@@ -259,8 +261,9 @@ async def gather_chat_sources(
 
     this_post = await conn.fetchrow(
         "select post_id, post_title, post_body, source_system_code, source_record_key, "
-        "source_author_code, source_author_name, source_company_code, "
-        "source_process_unit_code, source_sales_pool_code, source_sales_pool_name, "
+        "source_author_code, source_author_name, source_company_code, source_company_name, "
+        "source_process_unit_code, source_process_unit_name, "
+        "source_sales_pool_code, source_sales_pool_name, "
         "source_customer_code, source_customer_name, source_project_code, "
         "source_project_name from source_post where post_id = $1",
         post_id,
@@ -286,8 +289,9 @@ async def gather_chat_sources(
     rows = await conn.fetch(
         "select post_id, post_title, post_body, visibility_code, corporate_entity_id, "
         "source_system_code, source_record_key, source_author_code, source_author_name, "
-        "source_company_code, source_process_unit_code, source_sales_pool_code, "
-        "source_sales_pool_name, source_customer_code, source_customer_name, "
+        "source_company_code, source_company_name, source_process_unit_code, "
+        "source_process_unit_name, source_sales_pool_code, source_sales_pool_name, "
+        "source_customer_code, source_customer_name, "
         "source_project_code, source_project_name "
         "from source_post where post_id = any($1::uuid[])",
         list(candidate_ids),
@@ -377,7 +381,8 @@ async def gather_global_chat_sources(
                        @@ plainto_tsquery('simple', $1)
                or concat_ws(' ', source_system_code, source_record_key,
                                 source_author_code, source_author_name,
-                                source_company_code, source_process_unit_code,
+                                source_company_code, source_company_name,
+                                source_process_unit_code, source_process_unit_name,
                                 source_sales_pool_code, source_sales_pool_name,
                                 source_customer_code, source_customer_name,
                                 source_project_code, source_project_name) ilike '%' || $1 || '%'
@@ -417,8 +422,9 @@ async def gather_global_chat_sources(
         """
         select post_id, post_title, post_body, visibility_code, corporate_entity_id,
                source_system_code, source_record_key, source_author_code, source_author_name,
-               source_company_code, source_process_unit_code, source_sales_pool_code,
-               source_sales_pool_name, source_customer_code, source_customer_name,
+               source_company_code, source_company_name, source_process_unit_code,
+               source_process_unit_name, source_sales_pool_code, source_sales_pool_name,
+               source_customer_code, source_customer_name,
                source_project_code, source_project_name
           from source_post
          where visibility_code = 'public'

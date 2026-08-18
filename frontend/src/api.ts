@@ -14,7 +14,9 @@ export interface PostSummary {
   source_author_code?: string | null;
   source_author_name?: string | null;
   source_company_code?: string | null;
+  source_company_name?: string | null;
   source_process_unit_code?: string | null;
+  source_process_unit_name?: string | null;
   source_sales_pool_code?: string | null;
   source_sales_pool_name?: string | null;
   source_customer_code?: string | null;

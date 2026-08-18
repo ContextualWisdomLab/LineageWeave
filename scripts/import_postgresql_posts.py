@@ -53,7 +53,9 @@ class ColumnMapping:
     author_code: str | None
     author_name: str | None
     company_code: str | None
+    company_name: str | None
     source_business_unit: str | None
+    source_business_unit_name: str | None
     # The source sales-pool column is optional and must not be mapped from a
     # PU field such as voc_pucode without an authoritative source definition.
     sales_pool: str | None
@@ -98,10 +100,16 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--source-author-code-column")
     parser.add_argument("--source-author-name-column")
     parser.add_argument("--source-company-code-column")
+    parser.add_argument("--source-company-name-column")
     parser.add_argument(
         "--source-business-unit-column",
         "--source-process-unit-column",
         dest="source_business_unit_column",
+    )
+    parser.add_argument(
+        "--source-business-unit-name-column",
+        "--source-process-unit-name-column",
+        dest="source_business_unit_name_column",
     )
     parser.add_argument("--source-sales-pool-column")
     parser.add_argument("--source-sales-pool-name-column")
@@ -216,7 +224,9 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
         author_code=args.source_author_code_column,
         author_name=args.source_author_name_column,
         company_code=args.source_company_code_column,
+        company_name=args.source_company_name_column,
         source_business_unit=args.source_business_unit_column,
+        source_business_unit_name=args.source_business_unit_name_column,
         sales_pool=args.source_sales_pool_column,
         sales_pool_name=args.source_sales_pool_name_column,
         customer_code=args.source_customer_code_column,
@@ -267,13 +277,14 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                      post_title, post_body, voc_type_code, visibility_code,
                      source_stage_code, source_detail_state_code,
                      source_draft_code, source_deleted_flag,
-                     source_author_code, source_author_name, source_company_code,
-                     source_process_unit_code, source_sales_pool_code, source_sales_pool_name,
+                     source_author_code, source_author_name, source_company_code, source_company_name,
+                     source_process_unit_code, source_process_unit_name,
+                     source_sales_pool_code, source_sales_pool_name,
                      source_customer_code, source_customer_name,
                      source_project_code, source_project_name,
                      source_system_code, source_record_key,
                      thread_group_key, secondary_grouping_key, created_at, updated_at)
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)
                 on conflict (post_id) do update set
                     author_account_id = excluded.author_account_id,
                     corporate_entity_id = excluded.corporate_entity_id,
@@ -289,7 +300,9 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                     source_author_code = excluded.source_author_code,
                     source_author_name = excluded.source_author_name,
                     source_company_code = excluded.source_company_code,
+                    source_company_name = excluded.source_company_name,
                     source_process_unit_code = excluded.source_process_unit_code,
+                    source_process_unit_name = excluded.source_process_unit_name,
                     source_sales_pool_code = excluded.source_sales_pool_code,
                     source_sales_pool_name = excluded.source_sales_pool_name,
                     source_customer_code = excluded.source_customer_code,
@@ -318,7 +331,9 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 str(_value(row, mapping.author_code) or "").strip() or None,
                 str(_value(row, mapping.author_name) or "").strip() or None,
                 str(_value(row, mapping.company_code) or "").strip() or None,
+                str(_value(row, mapping.company_name) or "").strip() or None,
                 str(_value(row, mapping.source_business_unit) or "").strip() or None,
+                str(_value(row, mapping.source_business_unit_name) or "").strip() or None,
                 str(_value(row, mapping.sales_pool) or "").strip() or None,
                 str(_value(row, mapping.sales_pool_name) or "").strip() or None,
                 str(_value(row, mapping.customer_code) or "").strip() or None,
