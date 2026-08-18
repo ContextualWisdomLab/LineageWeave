@@ -3511,7 +3511,7 @@ function PostList({
                 <option value="all">{t("All VOC types")}</option>
                 {typeOptions.map((option) => (
                   <option key={option.code} value={option.code}>
-                    {option.label}
+                    {t(option.label)}
                   </option>
                 ))}
               </select>
@@ -3526,7 +3526,7 @@ function PostList({
                 <option value="all">{t("All visibility")}</option>
                 {visibilityOptions.map((option) => (
                   <option key={option.code} value={option.code}>
-                    {option.label}
+                    {t(option.label)}
                   </option>
                 ))}
               </select>
@@ -3584,8 +3584,8 @@ function PostList({
                         </span>
                       </span>
                       <span className="post-card-badges">
-                        <span className="post-badge">{post.voc_type_label ?? post.voc_type_code}</span>
-                        <span className="post-badge">{post.visibility_label ?? post.visibility_code}</span>
+                        <span className="post-badge">{t(post.voc_type_label ?? post.voc_type_code)}</span>
+                        <span className="post-badge">{t(post.visibility_label ?? post.visibility_code)}</span>
                         {post.source_detail_state_code ? (
                           <span className="post-badge">
                             {t("Source detail state")}: {post.source_detail_state_code}
