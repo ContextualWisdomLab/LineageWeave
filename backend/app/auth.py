@@ -86,6 +86,7 @@ def _decode_access_token(token: str, settings: Settings) -> dict:
             key=signing_key,
             algorithms=["RS256"],
             issuer=settings.oidc_issuer,
+            leeway=settings.oidc_clock_skew_seconds,
             options={"verify_aud": False},
         )
     except jwt.PyJWTError as exc:

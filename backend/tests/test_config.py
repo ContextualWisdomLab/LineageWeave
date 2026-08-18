@@ -23,6 +23,19 @@ def test_frontend_origins_drop_blank_entries(monkeypatch) -> None:
     assert load_settings().frontend_origins == ["http://localhost:5173"]
 
 
+def test_oidc_clock_skew_is_bounded(monkeypatch) -> None:
+    monkeypatch.setenv("OIDC_CLOCK_SKEW_SECONDS", "12")
+    assert load_settings().oidc_clock_skew_seconds == 12
+
+    monkeypatch.setenv("OIDC_CLOCK_SKEW_SECONDS", "61")
+    try:
+        load_settings()
+    except ValueError as exc:
+        assert "between 0 and 60" in str(exc)
+    else:
+        raise AssertionError("clock skew above the bound must be rejected")
+
+
 def test_tepp_transport_url_defaults_empty_and_is_not_a_score(monkeypatch) -> None:
     """Missing TEPP_TRANSPORT_URL keeps the channel dropped."""
     monkeypatch.delenv("TEPP_TRANSPORT_URL", raising=False)

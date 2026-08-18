@@ -31,6 +31,7 @@ class Settings:
     oidc_client_id: str
     oidc_discovery_uri: str
     oidc_jwks_uri_override: str
+    oidc_clock_skew_seconds: int
     # Exact browser origins allowed by CORS. Comma-separated FRONTEND_ORIGINS;
     # never a wildcard -- the backend only serves the product UI.
     frontend_origins: list[str]
@@ -92,6 +93,12 @@ def load_settings() -> Settings:
             if not (keyverse_issuer or generic_oidc_issuer)
             else f"{discovery_base.rstrip('/')}/.well-known/openid-configuration"
         )
+    try:
+        oidc_clock_skew_seconds = int(os.environ.get("OIDC_CLOCK_SKEW_SECONDS", "5"))
+    except ValueError as exc:
+        raise ValueError("OIDC_CLOCK_SKEW_SECONDS must be an integer") from exc
+    if not 0 <= oidc_clock_skew_seconds <= 60:
+        raise ValueError("OIDC_CLOCK_SKEW_SECONDS must be between 0 and 60")
     return Settings(
         database_url=os.environ.get(
             "DATABASE_URL",
@@ -117,6 +124,7 @@ def load_settings() -> Settings:
                 else ""
             )
         ),
+        oidc_clock_skew_seconds=oidc_clock_skew_seconds,
         frontend_origins=[
             origin.strip()
             for origin in os.environ.get("FRONTEND_ORIGINS", "http://localhost:5173").split(",")
