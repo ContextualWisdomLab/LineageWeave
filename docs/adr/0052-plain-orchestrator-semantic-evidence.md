@@ -39,7 +39,9 @@ semantic response is an unavailable summary channel; the source body remains
 visible and no empty semantic result is presented as successful extraction.
 The persisted summary contract version is bumped so summaries written before
 this two-call semantic contract are regenerated instead of being served as
-current evidence.
+current evidence. The Buyer UI renders the localized ontology label and
+localized extraction/provenance labels; it never renders the ontology IRI or
+contextual-orchestrator/storage identifiers as user-facing text.
 
 ## Consequences
 

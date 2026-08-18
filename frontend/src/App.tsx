@@ -701,6 +701,25 @@ function relatedNodeCaption(node: RelatedNode): string {
   return `${name} (${node.ontology_label ?? node.node_type_code})`;
 }
 
+const PROJECT_EXTRACTION_LABELS: Record<string, string> = {
+  source_field_hint: "Explicit source field",
+  contextual_orchestrator_semantic: "Semantic extraction",
+};
+
+const PROJECT_PROVENANCE_LABELS: Record<string, string> = {
+  "source_post.source_project_code": "Source project code",
+  "source_post.source_project_name": "Source project name",
+  "post_project_mention.evidence_text": "Stored semantic evidence",
+};
+
+function projectExtractionLabel(method: string): string {
+  return t(PROJECT_EXTRACTION_LABELS[method] ?? "Recorded extraction");
+}
+
+function projectProvenanceLabel(provenance: string): string {
+  return t(PROJECT_PROVENANCE_LABELS[provenance] ?? "Recorded evidence");
+}
+
 const VERIFICATION_BADGE: Record<string, string> = {
   verify_pending: "Not yet checked",
   verify_corroborated: "Corroborated",
@@ -1844,9 +1863,11 @@ function PostDetailPopup({
                           {t("Ontology class")}: {t(project.ontology_label ?? "Project")}
                         </span>
                         <span className="post-badge">
-                          {t("Extraction source")}: {project.extraction_method}
+                          {t("Extraction source")}: {projectExtractionLabel(project.extraction_method)}
                         </span>
-                        <span className="post-badge">{project.provenance}</span>
+                        <span className="post-badge">
+                          {t("Evidence provenance")}: {projectProvenanceLabel(project.provenance)}
+                        </span>
                       </details>
                     </li>
                   ))}

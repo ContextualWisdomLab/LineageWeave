@@ -1047,14 +1047,14 @@ describe("App, authenticated", () => {
             project_evidence: [
               {
                 project_key: "source-project",
-                project_name: "Source project",
-                evidence: "source_post.source_project_code",
-                confidence: null,
+                project_name: "Semantic project",
+                evidence: "project was described in the body",
+                confidence: 0.9,
                 ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Project",
                 ontology_label: "Project",
-                extraction_method: "source_field_hint",
-                resolution_status: "hint_only",
-                provenance: "source_post.source_project_code",
+                extraction_method: "contextual_orchestrator_semantic",
+                resolution_status: "semantic_candidate",
+                provenance: "post_project_mention.evidence_text",
               },
             ],
             created_at: "2026-01-01T00:00:00Z",
@@ -1603,6 +1603,10 @@ describe("App, authenticated", () => {
     expect(provenance).not.toHaveAttribute("open");
     await userEvent.click(screen.getByText("Evidence provenance"));
     expect(screen.getByText(/Ontology class:/)).toBeInTheDocument();
+    expect(screen.getByText(/Extraction source: Semantic extraction/)).toBeInTheDocument();
+    expect(screen.getByText(/Evidence provenance: Stored semantic evidence/)).toBeInTheDocument();
+    expect(screen.queryByText("contextual_orchestrator_semantic")).not.toBeInTheDocument();
+    expect(screen.queryByText("https://contextualwisdomlab.github.io/lineageweave/ontology#Project")).not.toBeInTheDocument();
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
     expect(screen.getByText(/우리 측 후속/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "R&R Keyman: Ada West" })).toBeInTheDocument();
