@@ -80,6 +80,7 @@ from backend.app.analysis_run_start import (
     deliver_queued_analysis_run,
     enqueue_pending_analysis_run,
 )
+from backend.app.analysis_run_worker import run_analysis_run_worker
 from backend.app.source_post_revision import fetch_known_at_revision, parse_as_of_clock
 from backend.app.activity_stream import (
     create_valkey_client,
@@ -153,9 +154,21 @@ async def lifespan(app: FastAPI):
     settings = load_settings()
     app.state.pool = await create_pool(settings.database_url)
     app.state.valkey = create_valkey_client(settings.valkey_url)
+    app.state.analysis_run_worker = asyncio.create_task(
+        run_analysis_run_worker(
+            app.state.valkey,
+            app.state.pool,
+            tepp_client=configured_tepp_client(
+                settings.tepp_transport_url,
+                settings.tepp_api_key,
+            ),
+        )
+    )
     try:
         yield
     finally:
+        app.state.analysis_run_worker.cancel()
+        await asyncio.gather(app.state.analysis_run_worker, return_exceptions=True)
         await app.state.pool.close()
         await app.state.valkey.aclose()
 
