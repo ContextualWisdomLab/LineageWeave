@@ -10,6 +10,11 @@ def test_semantic_hints_keep_explicit_project_pool_and_author_sources() -> None:
         order_pool_name="Synthetic bids",
         project_field="PROJECT-42",
         customer_name="Synthetic Customer",
+        source_author_code="source-author",
+        source_company_code="SOURCE-COMPANY",
+        source_business_unit_code="SOURCE-BU",
+        source_customer_code="SOURCE-CUSTOMER",
+        source_project_code="SOURCE-PROJECT",
     )
 
     assert "project_field=PROJECT-42" in hints
@@ -19,6 +24,10 @@ def test_semantic_hints_keep_explicit_project_pool_and_author_sources() -> None:
     assert "author_account_id=synthetic-author-account" in hints
     assert "author_side_hint=our_side_candidate" in hints
     assert "customer_hint_trust=normal" in hints
+    assert "source_author_code=source-author" in hints
+    assert "source_company_code=SOURCE-COMPANY" in hints
+    assert "source_customer_code=SOURCE-CUSTOMER" in hints
+    assert "source_project_code=SOURCE-PROJECT" in hints
 
 
 def test_unknown_customer_is_a_weak_hint_not_project_evidence() -> None:

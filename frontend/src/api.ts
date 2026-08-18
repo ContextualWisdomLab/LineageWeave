@@ -11,6 +11,13 @@ export interface PostSummary {
   source_detail_state_code?: string | null;
   source_draft_code?: string | null;
   source_deleted_flag?: string | null;
+  source_author_code?: string | null;
+  source_author_name?: string | null;
+  source_company_code?: string | null;
+  source_process_unit_code?: string | null;
+  source_sales_pool_code?: string | null;
+  source_customer_code?: string | null;
+  source_project_code?: string | null;
   created_at: string;
 }
 

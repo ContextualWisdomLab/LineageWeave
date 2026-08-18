@@ -66,6 +66,9 @@ _SEMANTIC_SEARCH_MIGRATION = (
 _SOURCE_STATE_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0033_source_state_provenance.sql"
 )
+_SOURCE_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0034_source_context_provenance.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -161,6 +164,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_SEMANTIC_PROJECT_MIGRATION.read_text())
             cur.execute(_SEMANTIC_SEARCH_MIGRATION.read_text())
             cur.execute(_SOURCE_STATE_MIGRATION.read_text())
+            cur.execute(_SOURCE_CONTEXT_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "

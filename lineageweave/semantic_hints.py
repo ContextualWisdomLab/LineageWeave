@@ -27,6 +27,13 @@ def format_semantic_hints(
     project_field: str | None,
     customer_name: str | None,
     author_account_id: str | None = None,
+    source_author_code: str | None = None,
+    source_author_name: str | None = None,
+    source_company_code: str | None = None,
+    source_business_unit_code: str | None = None,
+    source_sales_pool_code: str | None = None,
+    source_customer_code: str | None = None,
+    source_project_code: str | None = None,
 ) -> str:
     """Render source-field hints without upgrading them into assertions."""
     customer = _value(customer_name)
@@ -46,5 +53,12 @@ def format_semantic_hints(
             f"project_field={_value(project_field)} [source_field=source_post.secondary_grouping_key]",
             f"customer={customer} [source_field=source_post.corporate_entity_id]",
             f"customer_hint_trust={customer_trust}",
+            f"source_author_code={_value(source_author_code)} [source_field=source_post.source_author_code]",
+            f"source_author_name={_value(source_author_name)} [source_field=source_post.source_author_name]",
+            f"source_company_code={_value(source_company_code)} [source_field=source_post.source_company_code]",
+            f"source_business_unit_code={_value(source_business_unit_code)} [source_field=source_post.source_process_unit_code]",
+            f"source_sales_pool_code={_value(source_sales_pool_code)} [source_field=source_post.source_sales_pool_code]",
+            f"source_customer_code={_value(source_customer_code)} [source_field=source_post.source_customer_code]",
+            f"source_project_code={_value(source_project_code)} [source_field=source_post.source_project_code]",
         )
     )

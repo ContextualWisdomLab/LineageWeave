@@ -1603,7 +1603,14 @@ function PostDetailPopup({
             {(post.source_stage_code ||
               post.source_detail_state_code ||
               post.source_draft_code ||
-              post.source_deleted_flag) && (
+              post.source_deleted_flag ||
+              post.source_author_code ||
+              post.source_author_name ||
+              post.source_company_code ||
+              post.source_process_unit_code ||
+              post.source_sales_pool_code ||
+              post.source_customer_code ||
+              post.source_project_code) && (
               <section className="popup-section" aria-label={t("Original source state")}>
                 <h3>{t("Original source state")}</h3>
                 <dl>
@@ -1629,6 +1636,48 @@ function PostDetailPopup({
                     <>
                       <dt>{t("Source deletion marker")}</dt>
                       <dd>{post.source_deleted_flag}</dd>
+                    </>
+                  ) : null}
+                  {post.source_author_code ? (
+                    <>
+                      <dt>{t("Source author code")}</dt>
+                      <dd>{post.source_author_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_author_name ? (
+                    <>
+                      <dt>{t("Source author name")}</dt>
+                      <dd>{post.source_author_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_company_code ? (
+                    <>
+                      <dt>{t("Source company code")}</dt>
+                      <dd>{post.source_company_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_process_unit_code ? (
+                    <>
+                      <dt>{t("Source business unit")}</dt>
+                      <dd>{post.source_process_unit_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_sales_pool_code ? (
+                    <>
+                      <dt>{t("Source sales pool")}</dt>
+                      <dd>{post.source_sales_pool_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_customer_code ? (
+                    <>
+                      <dt>{t("Source customer code")}</dt>
+                      <dd>{post.source_customer_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_project_code ? (
+                    <>
+                      <dt>{t("Source project code")}</dt>
+                      <dd>{post.source_project_code}</dd>
                     </>
                   ) : null}
                 </dl>

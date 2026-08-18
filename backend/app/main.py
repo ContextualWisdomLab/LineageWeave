@@ -344,6 +344,13 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "source_detail_state_code": post.get("source_detail_state_code"),
         "source_draft_code": post.get("source_draft_code"),
         "source_deleted_flag": post.get("source_deleted_flag"),
+        "source_author_code": post.get("source_author_code"),
+        "source_author_name": post.get("source_author_name"),
+        "source_company_code": post.get("source_company_code"),
+        "source_process_unit_code": post.get("source_process_unit_code"),
+        "source_sales_pool_code": post.get("source_sales_pool_code"),
+        "source_customer_code": post.get("source_customer_code"),
+        "source_project_code": post.get("source_project_code"),
         "created_at": post["created_at"].isoformat(),
     }
 
@@ -530,6 +537,10 @@ async def list_posts(
             select post.post_id, post.post_title, post.voc_type_code, post.visibility_code,
                    post.source_stage_code, post.source_detail_state_code,
                    post.source_draft_code, post.source_deleted_flag,
+                   post.source_author_code, post.source_author_name,
+                   post.source_company_code, post.source_process_unit_code,
+                   post.source_sales_pool_code, post.source_customer_code,
+                   post.source_project_code,
                    post.corporate_entity_id, post.created_at,
                    count(*) over() as total_count
               from source_post post
@@ -669,6 +680,8 @@ async def read_post(
         row = await conn.fetchrow(
             "select post_id, post_title, post_body, voc_type_code, visibility_code, "
             "source_stage_code, source_detail_state_code, source_draft_code, source_deleted_flag, "
+            "source_author_code, source_author_name, source_company_code, "
+            "source_process_unit_code, source_sales_pool_code, source_customer_code, source_project_code, "
             "corporate_entity_id, created_at "
             "from source_post where post_id = $1",
             post_id,
@@ -708,19 +721,23 @@ async def _load_visible_post(
 
 
 async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> str:
-    """Render author, sales-pool, and customer hints without treating them as proof."""
+    """Render author, business-unit, sales-pool, and customer hints without treating them as proof."""
     rows = await conn.fetch(
         """
         select author.user_account_id as author_account_id,
                author.display_name as author_name,
-               process.process_unit_code as order_pool_code,
-               process.process_unit_name as sales_pool_name,
+               post.source_author_code,
+               post.source_author_name,
+               post.source_company_code,
+               post.source_process_unit_code,
+               post.source_sales_pool_code,
+               post.source_customer_code,
+               post.source_project_code,
                post.secondary_grouping_key as project_field,
                customer.entity_name as customer_name,
                affiliated.entity_name as author_affiliation_name
           from source_post post
           join user_account author on author.user_account_id = post.author_account_id
-          left join process_unit process on process.process_unit_id = post.process_unit_id
           left join corporate_entity customer on customer.corporate_entity_id = post.corporate_entity_id
           left join account_affiliation account_aff
             on account_aff.user_account_id = post.author_account_id
@@ -734,17 +751,24 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
         return "no structured hints available"
     first = rows[0]
     return format_semantic_hints(
-        author_name=first["author_name"],
+        author_name=first["source_author_name"] or first["author_name"],
         author_account_id=str(first["author_account_id"]),
         author_affiliations=(
             str(row["author_affiliation_name"])
             for row in rows
             if row["author_affiliation_name"]
         ),
-        order_pool_code=first["order_pool_code"],
-        order_pool_name=first["sales_pool_name"],
-        project_field=first["project_field"],
+        order_pool_code=first["source_sales_pool_code"],
+        order_pool_name=None,
+        project_field=first["source_project_code"] or first["project_field"],
         customer_name=first["customer_name"],
+        source_author_code=first["source_author_code"],
+        source_author_name=first["source_author_name"],
+        source_company_code=first["source_company_code"],
+        source_business_unit_code=first["source_process_unit_code"],
+        source_sales_pool_code=first["source_sales_pool_code"],
+        source_customer_code=first["source_customer_code"],
+        source_project_code=first["source_project_code"],
     )
 
 
