@@ -66,6 +66,10 @@ class Settings:
     # Independent CalDAV event source for the buyer calendar. Empty keeps the
     # source unavailable while internal commitments remain visible.
     caldav_base_url: str
+    # RankWeave ranking port (ADR 0024). True = fail-closed
+    # RankWeaveNotAvailable -- never invent a fused score. Default false
+    # uses the in-process library already required by reconstruct.py.
+    rankweave_disabled: bool
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -142,4 +146,8 @@ def load_settings() -> Settings:
         tepp_transport_url=os.environ.get("TEPP_TRANSPORT_URL", ""),
         tepp_api_key=os.environ.get("TEPP_API_KEY", ""),
         caldav_base_url=os.environ.get("CALDAV_BASE_URL", "").strip(),
+        rankweave_disabled=os.environ.get("RANKWEAVE_DISABLED", "")
+        .strip()
+        .lower()
+        in {"1", "true", "yes", "on"},
     )

@@ -79,3 +79,13 @@ def test_local_keycloak_discovery_uses_backend_reachable_base_url(monkeypatch) -
     assert settings.oidc_jwks_uri_override == (
         "http://keycloak:8080/realms/lineageweave-demo/protocol/openid-connect/certs"
     )
+
+
+def test_rankweave_disabled_defaults_off(monkeypatch) -> None:
+    monkeypatch.delenv("RANKWEAVE_DISABLED", raising=False)
+    assert load_settings().rankweave_disabled is False
+
+
+def test_rankweave_disabled_flag_is_opt_in(monkeypatch) -> None:
+    monkeypatch.setenv("RANKWEAVE_DISABLED", "1")
+    assert load_settings().rankweave_disabled is True

@@ -73,6 +73,7 @@ from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, N
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
 from lineageweave.semantic_hints import format_semantic_hints
 from lineageweave.ontology import LW
+from lineageweave.rankweave_client import build_rankweave_client
 
 from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
@@ -107,6 +108,7 @@ from backend.app.entity_relationship_ingestion import (
 )
 from backend.app.five_w1h_ingestion import load_five_w1h_slots
 from backend.app.post_evaluation_ingestion import fetch_post_evaluation, ingest_post_evaluation
+from backend.app.ranking_ingestion import load_visible_ranking_posts
 from backend.app.report_ingestion import (
     GROUPING_KINDS,
     fetch_period_comparison,
@@ -321,6 +323,11 @@ def _post_evaluation_client():
     return ContextualOrchestratorPostEvaluationClient(
         base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
     )
+
+
+def _rankweave_client():
+    """In-process RankWeave unless RANKWEAVE_DISABLED=1 (ADR 0024)."""
+    return build_rankweave_client(disabled=load_settings().rankweave_disabled)
 
 
 def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
@@ -1565,7 +1572,14 @@ async def read_period_reports(
         members = [member for member in report["members"] if _can_see_post(account, member)]
         if not members:
             continue
-        visible.append({**report, "members": members, "post_count": len(members)})
+        leftover_pairs = [
+            pair
+            for pair in report.get("leftover_pairs", [])
+            if _can_see_post(account, pair)
+        ]
+        visible.append(
+            {**report, "members": members, "leftover_pairs": leftover_pairs, "post_count": len(members)}
+        )
     return {"grouping_kind": grouping_kind, "period_code": period_code, "reports": visible}
 
 
@@ -2204,3 +2218,24 @@ async def read_calendar(
             "caldav_next_action": caldav_next_action,
         },
     }
+
+
+@app.get("/api/rankings")
+async def read_rankings(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """RankWeave fusion of ABAC-visible posts (ADR 0024).
+
+    Hidden posts are omitted from every channel. Never invents a fused
+    score or a theta. Fail-closed when RankWeave is disabled or the
+    library is missing.
+    """
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        posts = await load_visible_ranking_posts(
+            conn, lambda row: _can_see_post(account, row)
+        )
+    return _rankweave_client().as_api_payload(
+        posts, can_see_post=lambda _row: True
+    )

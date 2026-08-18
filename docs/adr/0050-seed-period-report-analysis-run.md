@@ -1,4 +1,4 @@
-# ADR 0024 — Seed records the built period report on the shared snapshot
+# ADR 0050 — Seed records the built period report on the shared snapshot
 
 **Decision status:** Accepted on this active PR; not protected-main truth until merge
 **Date:** 2026-08-17

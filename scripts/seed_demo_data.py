@@ -116,6 +116,7 @@ def seed(
             cur.execute((migrations / "0009_shared_metric_bank.sql").read_text())
             cur.execute((migrations / "0010_report_item_information.sql").read_text())
             cur.execute((migrations / "0011_post_chat_result.sql").read_text())
+            cur.execute((migrations / "0012_report_leftover_pair.sql").read_text())
             cur.execute((migrations / "0012_role_responsibility_agent_type.sql").read_text())
             cur.execute((migrations / "0013_person_job_title.sql").read_text())
             cur.execute((migrations / "0014_role_responsibility_team_actor_type.sql").read_text())
@@ -1184,6 +1185,24 @@ def _persist_seed_period_report(
                 item.item_code,
                 item.rank,
                 item.information,
+            ),
+        )
+    for pair in report.leftover_pairs:
+        cur.execute(
+            "insert into report_leftover_pair ("
+            "grouping_kind, grouping_key, period_code, rubric_version, "
+            "pair_kind, post_id, criterion_code, leftover_distance, leftover_residual"
+            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            (
+                grouping_kind,
+                grouping_key,
+                period_code,
+                RUBRIC_VERSION,
+                pair.pair_kind,
+                pair.post_id,
+                pair.criterion_code,
+                pair.leftover_distance,
+                pair.leftover_residual,
             ),
         )
 

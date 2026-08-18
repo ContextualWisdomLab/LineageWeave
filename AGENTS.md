@@ -30,7 +30,9 @@ reimplementing them:
 - [ThreadWeave](https://github.com/ContextualWisdomLab/ThreadWeave) for
   tree assembly (`reconstruct.py`'s `_walk`/`thread_messages` calls).
 - [RankWeave](https://github.com/ContextualWisdomLab/RankWeave) for
-  multi-channel score fusion (`weighted_convex_fuse`).
+  multi-channel score fusion (`weighted_convex_fuse` in
+  `reconstruct.py`) and the buyer-facing Rankings port
+  (`rankweave_client.py`) -- never invent a fused score or a theta.
 - [TEPP](https://github.com/ContextualWisdomLab/TEPP)'s published wire
   contract for calibrated measurement (`tepp_client.py`) -- never
   reimplement TEPP's model here.
@@ -75,6 +77,13 @@ in the same spirit) -- never against real data, per the hard rule above.
 `backend/tests/` and `tests/test_schema.py` are real-integration tests
 against a live local stack (`make up`) and self-skip without one -- see
 [README.md](README.md#local-product-stack-docker-compose).
+
+Period leftover pairs (ADR 0017 / 0018) are computed in
+`lineageweave/leftover_pairs.py` from the residual after a real
+GRM/GPCM score, never invented. Missing cells stay out of the
+Gabriel factorization. Closest and farthest post–criterion pairs
+persist to `report_leftover_pair` and sit above the member list so
+a click opens that post.
 
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a
