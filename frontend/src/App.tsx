@@ -499,7 +499,7 @@ function RelatedPostsSection({
                 <button
                   type="button"
                   className="related-post-card"
-                  aria-label={`Open related post: ${post.post_title}`}
+                  aria-label={tf("Open related post: {label}", { label: post.post_title })}
                   onClick={() => onSelectPost(post.post_id)}
                 >
                   <span className="related-post-kind">{t(kind)}</span>
@@ -535,7 +535,7 @@ function AffiliateTreeNode({
         {node.resolved && node.entity_id && onSelectEntity ? (
           <button
             className="keyman-select"
-            aria-label={`Affiliate org: ${node.entity_name}`}
+            aria-label={tf("Affiliate org: {name}", { name: node.entity_name })}
             onClick={() => {
               if (node.entity_id) onSelectEntity(node.entity_id, node.entity_name);
             }}
@@ -559,7 +559,7 @@ function AffiliateTreeNode({
               {onSelectPerson ? (
                 <button
                   className="keyman-select"
-                  aria-label={`Affiliate Keyman: ${person.person_name}`}
+                  aria-label={tf("Affiliate Keyman: {name}", { name: person.person_name })}
                   onClick={() => onSelectPerson(person.person_id, person.person_name)}
                 >
                   {person.person_name} ({person.person_side_label ?? person.person_side_code})
@@ -650,7 +650,7 @@ function VocEvidenceSection({
               {person ? (
                 <button
                   className="keyman-select"
-                  aria-label={`VOC Keyman: ${row.counterparty_entity_name}`}
+                  aria-label={tf("VOC Keyman: {name}", { name: row.counterparty_entity_name })}
                   onClick={() => onSelectPerson(person.personId, person.personName)}
                 >
                   {row.counterparty_entity_name}
@@ -663,7 +663,7 @@ function VocEvidenceSection({
               <VerificationBadge
                 statusCode={row.verification_status_code ?? "verify_pending"}
                 evidenceUrl={row.verification_evidence_url}
-                ariaLabel={`VOC verification: ${row.counterparty_entity_name}`}
+                  ariaLabel={tf("VOC verification: {name}", { name: row.counterparty_entity_name })}
               />
             </p>
             {row.evidence_excerpt ? (
@@ -952,7 +952,7 @@ function KeymanPanel({
                     <button
                       type="button"
                       className="related-post-card"
-                      aria-label={`Open related post: ${node.label ?? node.node_id}`}
+                      aria-label={tf("Open related post: {label}", { label: node.label ?? node.node_id })}
                       onClick={() => onSelectPost(node.node_id)}
                     >
                       <span className="related-post-kind">{t("Graph relation")}</span>
@@ -979,7 +979,7 @@ function KeymanPanel({
                   <li key={key}>
                     <button
                       className="keyman-select"
-                      aria-label={`Related nodes for ${caption}`}
+                      aria-label={tf("Related nodes for {name}", { name: caption })}
                       aria-current={
                         landFirstRelated && related[0]?.node_id === node.node_id
                           ? "true"
@@ -996,7 +996,7 @@ function KeymanPanel({
                   <li key={key}>
                     <button
                       className="keyman-select"
-                      aria-label={`Related nodes for ${node.label ?? node.node_id}`}
+                      aria-label={tf("Related nodes for {name}", { name: node.label ?? node.node_id })}
                       onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
                     >
                       {caption}
@@ -1008,7 +1008,7 @@ function KeymanPanel({
                   <li key={key}>
                     <button
                       className="keyman-select"
-                      aria-label={`Related nodes for ${node.label ?? node.node_id}`}
+                      aria-label={tf("Related nodes for {name}", { name: node.label ?? node.node_id })}
                       onClick={() => handleSelectTeam(node.node_id, node.label ?? node.node_id)}
                     >
                       {caption}
@@ -1073,7 +1073,7 @@ function KeymanPanel({
             <li key={person.person_id}>
               <button
                 className="keyman-select"
-                aria-label={`Related nodes for ${person.person_name}`}
+                aria-label={tf("Related nodes for {name}", { name: person.person_name })}
                 aria-current={
                   landFirstKeyman && selectedName === person.person_name ? "true" : undefined
                 }
@@ -1093,7 +1093,7 @@ function KeymanPanel({
                       {affiliation.corporate_entity_id ? (
                         <button
                           className="keyman-select"
-                          aria-label={`Keyman affiliation: ${affiliation.organization_name}`}
+                          aria-label={tf("Keyman affiliation: {name}", { name: affiliation.organization_name })}
                           onClick={() =>
                             handleSelectEntity(
                               affiliation.corporate_entity_id as string,
@@ -1290,7 +1290,7 @@ function CounterpartyPanel({
             {c.corporate_entity_id && onSelectEntity ? (
               <button
                 className="keyman-select"
-                aria-label={`Counterparty org: ${c.counterparty_entity_name}`}
+                aria-label={tf("Counterparty org: {name}", { name: c.counterparty_entity_name })}
                 onClick={() => {
                   if (c.corporate_entity_id) onSelectEntity(c.corporate_entity_id, c.counterparty_entity_name);
                 }}
@@ -1305,7 +1305,7 @@ function CounterpartyPanel({
             <VerificationBadge
               statusCode={c.verification_status_code}
               evidenceUrl={c.verification_evidence_url}
-              ariaLabel={`Counterparty verification: ${c.counterparty_entity_name}`}
+              ariaLabel={tf("Counterparty verification: {name}", { name: c.counterparty_entity_name })}
             />
             {c.verification_evidence_post_id && onSelectPost ? (
               <button
@@ -1442,7 +1442,7 @@ function IssueTicketPanel({
               <select
                 value={ticket.ticket_status_code}
                 onChange={(event) => handleStatusChange(ticket, event.target.value)}
-                aria-label={`Status for ${ticket.ticket_title}`}
+                aria-label={tf("Status for {title}", { title: ticket.ticket_title })}
               >
                 {TICKET_STATUS_OPTIONS.map((row) => (
                   <option key={row.code} value={row.code}>
@@ -1836,7 +1836,7 @@ function PostDetailPopup({
                             actorName = (
                               <button
                                 className="keyman-select"
-                                aria-label={`R&R person: ${rr.actor_name}`}
+                                aria-label={tf("R&R person: {name}", { name: rr.actor_name })}
                                 onClick={() => {
                                   setFocusEntity(null);
                                   setFocusTeam(null);
@@ -1853,7 +1853,7 @@ function PostDetailPopup({
                             actorName = (
                               <button
                                 className="keyman-select"
-                                aria-label={`R&R Keyman: ${rr.actor_name}`}
+                                aria-label={tf("R&R Keyman: {name}", { name: rr.actor_name })}
                                 onClick={() => {
                                   setFocusEntity(null);
                                   setFocusTeam(null);
@@ -1870,7 +1870,7 @@ function PostDetailPopup({
                             actorName = (
                               <button
                                 className="keyman-select"
-                                aria-label={`R&R team: ${rr.actor_name}`}
+                                aria-label={tf("R&R team: {name}", { name: rr.actor_name })}
                                 onClick={() => {
                                   setFocusPerson(null);
                                   setFocusEntity(null);
@@ -1884,7 +1884,7 @@ function PostDetailPopup({
                             actorName = (
                               <button
                                 className="keyman-select"
-                                aria-label={`R&R organization: ${rr.actor_name}`}
+                                aria-label={tf("R&R organization: {name}", { name: rr.actor_name })}
                                 onClick={() => {
                                   setFocusPerson(null);
                                   setFocusTeam(null);
@@ -2759,7 +2759,7 @@ function CalendarPanel({
                   <span className="post-badge">
                     {entry.ticket_status_label ?? entry.ticket_status_code}
                   </span>
-                  <span className="post-badge">due {entry.due_date}</span>
+                  <span className="post-badge">{t("due")} {entry.due_date}</span>
                 </button>
               </li>
             ))}
