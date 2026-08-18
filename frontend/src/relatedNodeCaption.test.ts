@@ -51,6 +51,28 @@ describe("relatedNodeCaption", () => {
     ).toBe("Demo Corp (Company)");
   });
 
+  it("falls back to raw authorized codes when lookup labels are absent", () => {
+    expect(
+      relatedNodeCaption(
+        node({
+          node_type_code: "node_person",
+          label: "Synthetic Person",
+          person_side_code: "SIDE_EXTERNAL",
+        }),
+      ),
+    ).toBe("Synthetic Person (SIDE_EXTERNAL)");
+
+    expect(
+      relatedNodeCaption(
+        node({
+          node_type_code: "node_corporate_entity",
+          label: "Synthetic Organization",
+          entity_level_code: "LEVEL_COMPANY",
+        }),
+      ),
+    ).toBe("Synthetic Organization (LEVEL_COMPANY)");
+  });
+
   it("shows a post title only", () => {
     expect(
       relatedNodeCaption(
