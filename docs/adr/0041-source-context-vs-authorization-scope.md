@@ -16,6 +16,12 @@ made real records appear to belong to the demo identity.
 - Preserve caller-mapped raw source context separately from the authenticated
   account and authorization scope: author code/name, company code, business
   unit (PU), sales pool, customer code, and project code.
+- Treat `ZCRHT811.VOCCTS` (`voccts_field`) as the source post body when that
+  column is available. A missing body remains missing; do not summarize a
+  title-only row.
+- Treat `pucode_field` and `voc_pucode` as PU/business-unit evidence. They are
+  not sales-pool evidence. Populate `source_sales_pool_code` only from an
+  explicitly mapped authoritative sales-pool column; otherwise keep it null.
 - Feed those raw values to semantic hints with explicit provenance and keep
   unresolved customer/project codes as weak hints.
 - Display raw source context in the authorized post detail without replacing

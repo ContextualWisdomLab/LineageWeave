@@ -54,6 +54,8 @@ class ColumnMapping:
     author_name: str | None
     company_code: str | None
     source_business_unit: str | None
+    # The source sales-pool column is optional and must not be mapped from a
+    # PU field such as voc_pucode without an authoritative source definition.
     sales_pool: str | None
     customer_code: str | None
     project_code: str | None
