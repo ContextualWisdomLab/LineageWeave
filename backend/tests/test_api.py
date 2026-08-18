@@ -1110,15 +1110,18 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
             "provenance": "source_post.source_customer_code",
         }
     ]
-    assert body["source_author_hints"] == [
-        {
-            "author_code": "TEST-AUTHOR-001",
-            "author_name": "Test Author",
-            "post_count": 1,
-            "resolution_status": "hint_only",
-            "provenance": "source_post.source_author_code/source_author_name",
-        }
-    ]
+    author_hint = body["source_author_hints"]
+    assert len(author_hint) == 1
+    assert author_hint[0]["author_code"] == "TEST-AUTHOR-001"
+    assert author_hint[0]["author_name"] == "Test Author"
+    assert author_hint[0]["author_account_id"]
+    assert author_hint[0]["account_display_name"] == "Test Analyst"
+    assert author_hint[0]["resolution_status"] == "our_side_context_only"
+    assert any(
+        affiliation["entity_name"] == "Test Corp"
+        for affiliation in author_hint[0]["account_affiliations"]
+    )
+    assert "account_affiliation.corporate_entity_id" in author_hint[0]["provenance"]
 
 
 def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, demo_analyst_token, seeded_db) -> None:
@@ -1681,6 +1684,10 @@ def test_own_corp_post_keymen_are_readable(client, demo_analyst_token, seeded_db
         "Northridge Grid",
         "Northridge Holdings",
     }
+    context = response.json()["source_author_context"]
+    assert context["account_display_name"] == "Test Analyst"
+    assert context["resolution_status"] == "our_side_context_only"
+    assert any(affiliation["entity_name"] == "Test Corp" for affiliation in context["account_affiliations"])
 
 
 def test_other_corp_private_post_keymen_are_forbidden(client, demo_analyst_token, seeded_db) -> None:

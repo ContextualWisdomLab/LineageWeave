@@ -27,6 +27,7 @@ def format_semantic_hints(
     project_field: str | None,
     customer_name: str | None,
     author_account_id: str | None = None,
+    author_account_name: str | None = None,
     source_author_code: str | None = None,
     source_author_name: str | None = None,
     source_company_code: str | None = None,
@@ -51,13 +52,16 @@ def format_semantic_hints(
     )
     customer = _value(None if source_context else customer_name)
     customer_trust = "low" if customer.casefold() in _WEAK_CUSTOMER_VALUES else "normal"
-    affiliations = (
-        []
-        if source_context
-        else sorted({_value(value) for value in author_affiliations if _value(value) != "none"})
-    )
-    account_id = None if source_context else author_account_id
-    author_side_hint = "unresolved_source_author" if source_context else "our_side_candidate"
+    affiliations = sorted({_value(value) for value in author_affiliations if _value(value) != "none"})
+    account_id = author_account_id
+    if source_context:
+        author_side_hint = (
+            "our_side_context_only"
+            if account_id or affiliations
+            else "unresolved_source_author"
+        )
+    else:
+        author_side_hint = "our_side_candidate"
     effective_source_author_name = source_author_name
     if effective_source_author_name and effective_source_author_name == source_author_code:
         effective_source_author_name = None
@@ -70,6 +74,7 @@ def format_semantic_hints(
     return "; ".join(
         (
             f"author_account_id={_value(account_id)} [source_field=source_post.author_account_id]",
+            f"author_account_name={_value(author_account_name)} [source_field=user_account.display_name]",
             f"author={_value(effective_author_name)} [source_field=source_post.author_code]",
             "author_affiliations="
             f"{', '.join(affiliations) or 'none'} [source_field=account_affiliation.corporate_entity_id]",

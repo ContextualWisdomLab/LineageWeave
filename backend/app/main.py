@@ -521,22 +521,25 @@ async def read_customer_master(
         )
         source_author_rows = await conn.fetch(
             """
-            select btrim(source_author_code) as author_code,
+            select btrim(post.source_author_code) as author_code,
                    max(
                        case
-                           when source_author_name is null
-                             or btrim(source_author_name) = ''
-                             or lower(btrim(source_author_name)) = lower(btrim(source_author_code))
+                           when post.source_author_name is null
+                             or btrim(post.source_author_name) = ''
+                             or lower(btrim(post.source_author_name)) = lower(btrim(post.source_author_code))
                            then null
-                           else btrim(source_author_name)
+                           else btrim(post.source_author_name)
                        end
                    ) as author_name,
+                   post.author_account_id,
+                   author.display_name as account_display_name,
                    count(*) as post_count
-              from source_post
-             where source_author_code is not null
-               and btrim(source_author_code) <> ''
-               and (visibility_code = 'public' or corporate_entity_id = any($1::uuid[]))
-             group by btrim(source_author_code)
+              from source_post post
+              join user_account author on author.user_account_id = post.author_account_id
+             where post.source_author_code is not null
+               and btrim(post.source_author_code) <> ''
+               and (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
+             group by btrim(post.source_author_code), post.author_account_id, author.display_name
              order by count(*) desc, author_code
              limit 100
             """,
@@ -560,6 +563,11 @@ async def read_customer_master(
                 if not str(row["corporate_entity_code"]).startswith("DEMO-")
             ]
         entity_ids = [row["corporate_entity_id"] for row in entity_rows]
+        source_author_affiliations = await _load_account_affiliation_hints(
+            conn,
+            [str(row["author_account_id"]) for row in source_author_rows],
+            [str(entity_id) for entity_id in entity_ids],
+        )
         keyman_rows = await conn.fetch(
             """
             select person.person_id, person.person_name, person.person_side_code,
@@ -631,9 +639,21 @@ async def read_customer_master(
             {
                 "author_code": row["author_code"],
                 "author_name": row["author_name"],
+                "author_account_id": str(row["author_account_id"]),
+                "account_display_name": row["account_display_name"],
+                "account_affiliations": source_author_affiliations.get(
+                    str(row["author_account_id"]), []
+                ),
                 "post_count": row["post_count"],
-                "resolution_status": "hint_only",
-                "provenance": "source_post.source_author_code/source_author_name",
+                "resolution_status": (
+                    "our_side_context_only"
+                    if source_author_affiliations.get(str(row["author_account_id"]), [])
+                    else "source_author_hint_only"
+                ),
+                "provenance": (
+                    "source_post.author_account_id/user_account.display_name/"
+                    "account_affiliation.corporate_entity_id/source_post.source_author_code/source_post.source_author_name"
+                ),
             }
             for row in source_author_rows
         ],
@@ -983,8 +1003,9 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
     if source_author_name and source_author_name == first["source_author_code"]:
         source_author_name = None
     return format_semantic_hints(
-        author_name=source_author_name or (None if source_context_present else first["author_name"]),
+        author_name=source_author_name or first["author_name"],
         author_account_id=str(first["author_account_id"]),
+        author_account_name=first["author_name"],
         author_affiliations=(
             str(row["author_affiliation_name"])
             for row in rows
@@ -1005,6 +1026,90 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
     )
 
 
+async def _load_account_affiliation_hints(
+    conn: asyncpg.Connection,
+    account_ids: list[str],
+    corporate_entity_ids: list[str],
+) -> dict[str, list[dict[str, Any]]]:
+    """Load authorized account affiliations as non-binding Keyman context."""
+    if not account_ids or not corporate_entity_ids:
+        return {}
+    rows = await conn.fetch(
+        """
+        select affiliation.user_account_id,
+               entity.corporate_entity_id,
+               entity.entity_name,
+               process.process_unit_code,
+               process.process_unit_name
+          from account_affiliation affiliation
+          join corporate_entity entity
+            on entity.corporate_entity_id = affiliation.corporate_entity_id
+          left join process_unit process
+            on process.process_unit_id = affiliation.process_unit_id
+         where affiliation.user_account_id = any($1::uuid[])
+           and affiliation.corporate_entity_id = any($2::uuid[])
+         order by entity.entity_name, process.process_unit_code
+        """,
+        account_ids,
+        corporate_entity_ids,
+    )
+    affiliations: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        account_id = str(row["user_account_id"])
+        affiliations.setdefault(account_id, []).append(
+            {
+                "corporate_entity_id": str(row["corporate_entity_id"]),
+                "entity_name": row["entity_name"],
+                "process_unit_code": row["process_unit_code"],
+                "process_unit_name": row["process_unit_name"],
+            }
+        )
+    return affiliations
+
+
+async def _load_source_author_context(
+    conn: asyncpg.Connection,
+    post_id: str,
+    corporate_entity_ids: list[str],
+) -> dict[str, Any] | None:
+    """Return source-author/account context without binding a cataloged person."""
+    row = await conn.fetchrow(
+        """
+        select post.author_account_id,
+               author.display_name as account_display_name,
+               nullif(btrim(post.source_author_code), '') as source_author_code,
+               nullif(btrim(post.source_author_name), '') as source_author_name
+          from source_post post
+          join user_account author on author.user_account_id = post.author_account_id
+         where post.post_id = $1
+        """,
+        post_id,
+    )
+    if row is None:
+        return None
+    account_id = str(row["author_account_id"])
+    affiliations = (
+        await _load_account_affiliation_hints(conn, [account_id], corporate_entity_ids)
+    ).get(account_id, [])
+    source_author_name = row["source_author_name"]
+    if source_author_name and source_author_name.casefold() == str(row["source_author_code"] or '').casefold():
+        source_author_name = None
+    return {
+        "author_account_id": account_id,
+        "account_display_name": row["account_display_name"],
+        "source_author_code": row["source_author_code"],
+        "source_author_name": source_author_name,
+        "account_affiliations": affiliations,
+        "resolution_status": (
+            "our_side_context_only" if affiliations else "source_author_hint_only"
+        ),
+        "provenance": (
+            "source_post.author_account_id/user_account.display_name/"
+            "account_affiliation.corporate_entity_id/source_post.source_author_code/source_post.source_author_name"
+        ),
+    }
+
+
 @app.get("/api/posts/{post_id}/keymen")
 async def read_post_keymen(
     post_id: str,
@@ -1015,7 +1120,14 @@ async def read_post_keymen(
     post = await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
         keymen = await fetch_post_keymen(conn, post_id)
-    return {"post_id": str(post["post_id"]), "keymen": keymen}
+        source_author_context = await _load_source_author_context(
+            conn, post_id, list(account.corporate_entity_ids)
+        )
+    return {
+        "post_id": str(post["post_id"]),
+        "keymen": keymen,
+        "source_author_context": source_author_context,
+    }
 
 
 @app.get("/api/keymen/{person_id}/related")

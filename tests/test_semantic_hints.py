@@ -20,9 +20,9 @@ def test_semantic_hints_keep_explicit_project_pool_and_author_sources() -> None:
     assert "project_field=PROJECT-42" in hints
     assert "source_field=source_post.secondary_grouping_key" in hints
     assert "order_pool=POOL-7: Synthetic bids" in hints
-    assert "author_affiliations=none" in hints
-    assert "author_account_id=none" in hints
-    assert "author_side_hint=unresolved_source_author" in hints
+    assert "author_affiliations=Synthetic Corp" in hints
+    assert "author_account_id=synthetic-author-account" in hints
+    assert "author_side_hint=our_side_context_only" in hints
     assert "customer_hint_trust=normal" in hints
     assert "source_author_code=source-author" in hints
     assert "source_company_code=SOURCE-COMPANY" in hints
@@ -45,7 +45,7 @@ def test_unknown_customer_is_a_weak_hint_not_project_evidence() -> None:
     assert "project_field=none" in hints
 
 
-def test_source_context_does_not_promote_authorization_identity() -> None:
+def test_source_context_keeps_authorization_identity_as_non_binding_keyman_context() -> None:
     hints = format_semantic_hints(
         author_name="Demo Analyst",
         author_account_id="demo-account",
@@ -59,9 +59,9 @@ def test_source_context_does_not_promote_authorization_identity() -> None:
         source_context_present=True,
     )
 
-    assert "author_account_id=none" in hints
-    assert "author_affiliations=none" in hints
+    assert "author_account_id=demo-account" in hints
+    assert "author_account_name=none" in hints
+    assert "author_affiliations=Demo Corp" in hints
     assert "customer=none" in hints
-    assert "author_side_hint=unresolved_source_author" in hints
-    assert "Demo Analyst" not in hints
-    assert "Demo Corp" not in hints
+    assert "author_side_hint=our_side_context_only" in hints
+    assert "Demo Corp" in hints

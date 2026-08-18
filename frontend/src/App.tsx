@@ -52,6 +52,7 @@ import {
   type IssueTicket,
   type LineageGraph,
   type Keyman,
+  type SourceAuthorContext,
   type PostAiSummary,
   type PostDetail,
   type PostFilterOption,
@@ -737,6 +738,7 @@ function KeymanPanel({
   postId,
   accessToken,
   keymen,
+  sourceAuthorContext,
   canExtract,
   onExtracted,
   onSelectPost,
@@ -750,6 +752,7 @@ function KeymanPanel({
   postId: string;
   accessToken: string;
   keymen: Keyman[] | null;
+  sourceAuthorContext?: SourceAuthorContext | null;
   canExtract: boolean;
   onExtracted: () => void;
   onSelectPost?: (postId: string) => void;
@@ -1030,6 +1033,31 @@ function KeymanPanel({
         )}
       </div>
       {error && <p className="error">{error}</p>}
+      {sourceAuthorContext ? (
+        <div className="keyman-source-context">
+          <h4>{t("Source author evidence")} · {t("Hint only")}</h4>
+          <strong>{sourceAuthorContext.account_display_name}</strong>
+          {sourceAuthorContext.source_author_code ? (
+            <span> · {sourceAuthorContext.source_author_code}</span>
+          ) : null}
+          {sourceAuthorContext.account_affiliations.length > 0 ? (
+            <span className="keyman-affiliations">
+              {" -- "}
+              {sourceAuthorContext.account_affiliations.map((affiliation, index) => (
+                <span key={`${affiliation.corporate_entity_id}:${affiliation.process_unit_code ?? index}`}>
+                  {index > 0 ? ", " : null}
+                  {affiliation.entity_name}
+                  {affiliation.process_unit_name
+                    ? ` (${affiliation.process_unit_name})`
+                    : affiliation.process_unit_code
+                      ? ` (${affiliation.process_unit_code})`
+                      : null}
+                </span>
+              ))}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       {keymen && keymen.length > 0 ? (
         <ul className="keyman-list">
           {keymen.map((person) => (
@@ -1518,6 +1546,7 @@ function PostDetailPopup({
   const [summary, setSummary] = useState<PostAiSummary | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [keymen, setKeymen] = useState<Keyman[] | null>(null);
+  const [sourceAuthorContext, setSourceAuthorContext] = useState<SourceAuthorContext | null>(null);
   const [counterparties, setCounterparties] = useState<Counterparty[] | null>(null);
   const [lineage, setLineage] = useState<PostLineage | null>(null);
   const [affiliateTrees, setAffiliateTrees] = useState<AffiliateNode[] | null>(null);
@@ -1528,7 +1557,15 @@ function PostDetailPopup({
   const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
 
   function reloadKeymen() {
-    fetchPostKeymen(accessToken, postId).then((r) => setKeymen(r.keymen)).catch(() => setKeymen([]));
+    fetchPostKeymen(accessToken, postId)
+      .then((r) => {
+        setKeymen(r.keymen);
+        setSourceAuthorContext(r.source_author_context ?? null);
+      })
+      .catch(() => {
+        setKeymen([]);
+        setSourceAuthorContext(null);
+      });
     fetchPostAffiliateTree(accessToken, postId)
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
@@ -1548,6 +1585,7 @@ function PostDetailPopup({
     setSummary(null);
     setSummaryError(null);
     setKeymen(null);
+    setSourceAuthorContext(null);
     setCounterparties(null);
     setLineage(null);
     setAffiliateTrees(null);
@@ -1567,7 +1605,15 @@ function PostDetailPopup({
         setSummary(null);
         setSummaryError(summaryFetchError(err));
       });
-    fetchPostKeymen(accessToken, postId).then((r) => setKeymen(r.keymen)).catch(() => setKeymen([]));
+    fetchPostKeymen(accessToken, postId)
+      .then((r) => {
+        setKeymen(r.keymen);
+        setSourceAuthorContext(r.source_author_context ?? null);
+      })
+      .catch(() => {
+        setKeymen([]);
+        setSourceAuthorContext(null);
+      });
     fetchPostCounterparties(accessToken, postId)
       .then((r) => setCounterparties(r.counterparties))
       .catch(() => setCounterparties([]));
@@ -1899,6 +1945,7 @@ function PostDetailPopup({
                 postId={postId}
                 accessToken={accessToken}
                 keymen={keymen}
+                sourceAuthorContext={sourceAuthorContext}
                 canExtract={canExtract}
                 onExtracted={reloadKeymen}
                 onSelectPost={onSelectPost}
@@ -1959,6 +2006,7 @@ function PostDetailPopup({
                 postId={postId}
                 accessToken={accessToken}
                 keymen={keymen}
+                sourceAuthorContext={sourceAuthorContext}
                 canExtract={canExtract}
                 onExtracted={reloadKeymen}
                 onSelectPost={onSelectPost}
@@ -3593,9 +3641,12 @@ function CustomerMasterPanel({
           <h3 id="source-author-evidence-heading">{t("Source author evidence")}</h3>
           <ul className="customer-master-list">
             {master.source_author_hints.map((hint) => (
-              <li key={hint.author_code}>
+              <li key={`${hint.author_code}:${hint.author_account_id}`}>
                 <strong>{hint.author_name ?? hint.author_code}</strong>
-                <span>{hint.author_code} · {t("Hint only")}</span>
+                <span>{hint.author_code} · {hint.account_display_name} · {t("Hint only")}</span>
+                {hint.account_affiliations.length > 0 ? (
+                  <span>{hint.account_affiliations.map((affiliation) => affiliation.entity_name).join(", ")}</span>
+                ) : null}
                 <span>{hint.post_count} {t("posts")}</span>
               </li>
             ))}

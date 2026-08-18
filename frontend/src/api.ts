@@ -351,9 +351,29 @@ export interface SourceCustomerHint {
   provenance: string;
 }
 
+export interface SourceAuthorAffiliation {
+  corporate_entity_id: string;
+  entity_name: string;
+  process_unit_code: string | null;
+  process_unit_name: string | null;
+}
+
+export interface SourceAuthorContext {
+  author_account_id: string;
+  account_display_name: string;
+  source_author_code: string | null;
+  source_author_name: string | null;
+  account_affiliations: SourceAuthorAffiliation[];
+  resolution_status: string;
+  provenance: string;
+}
+
 export interface SourceAuthorHint {
   author_code: string;
   author_name: string | null;
+  author_account_id: string;
+  account_display_name: string;
+  account_affiliations: SourceAuthorAffiliation[];
   post_count: number;
   resolution_status: string;
   provenance: string;
@@ -425,7 +445,10 @@ export function fetchPost(
   return backendFetch<PostDetail>(`/api/posts/${postId}${query}`, accessToken);
 }
 
-export function fetchPostKeymen(accessToken: string, postId: string): Promise<{ keymen: Keyman[] }> {
+export function fetchPostKeymen(
+  accessToken: string,
+  postId: string,
+): Promise<{ keymen: Keyman[]; source_author_context?: SourceAuthorContext | null }> {
   return backendFetch(`/api/posts/${postId}/keymen`, accessToken);
 }
 
