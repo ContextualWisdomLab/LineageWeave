@@ -80,6 +80,18 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--detail-state-column")
     parser.add_argument("--draft-column")
     parser.add_argument("--deleted-column")
+    parser.add_argument(
+        "--exclude-draft-value",
+        action="append",
+        default=[],
+        help="authoritative source draft value to skip; repeat for multiple values",
+    )
+    parser.add_argument(
+        "--exclude-deleted-value",
+        action="append",
+        default=[],
+        help="authoritative source deletion value to skip; repeat for multiple values",
+    )
     parser.add_argument("--source-author-code-column")
     parser.add_argument("--source-author-name-column")
     parser.add_argument("--source-company-code-column")
@@ -116,6 +128,21 @@ def _timestamp(value: Any) -> datetime:
     if not isinstance(value, datetime):
         raise TypeError("created/updated source values must be datetime instances")
     return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+
+
+def _source_code_matches(
+    row: Any,
+    column: str | None,
+    excluded_values: list[str],
+) -> bool:
+    """Match only caller-supplied source codes, never guessed lifecycle labels."""
+    if column is None or not excluded_values:
+        return False
+    value = _value(row, column)
+    if value is None:
+        return False
+    normalized = str(value).strip().casefold()
+    return normalized in {item.strip().casefold() for item in excluded_values}
 
 
 async def _ensure_scope(conn: asyncpg.Connection, args: argparse.Namespace) -> tuple[str, str, str]:
@@ -191,6 +218,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
     source = await asyncpg.connect(args.source_dsn)
     target = await asyncpg.connect(args.target_dsn)
     imported = 0
+    skipped = 0
     try:
         account_id, corporate_id, process_unit_id = await _ensure_scope(target, args)
         rows = await source.fetch(query)
@@ -205,6 +233,11 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             args.embedding_model,
         )
         for row in rows:
+            if _source_code_matches(row, mapping.draft, args.exclude_draft_value) or _source_code_matches(
+                row, mapping.deleted, args.exclude_deleted_value
+            ):
+                skipped += 1
+                continue
             record_key = str(_value(row, mapping.record_key)).strip()
             if not record_key:
                 raise ValueError("source record key cannot be empty")
@@ -304,7 +337,12 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             )
             imported += 1
         edges = await rebuild_lineage(target)
-        return {"source_rows": len(rows), "imported_rows": imported, "lineage_edges": len(edges)}
+        return {
+            "source_rows": len(rows),
+            "imported_rows": imported,
+            "skipped_rows": skipped,
+            "lineage_edges": len(edges),
+        }
     finally:
         await source.close()
         await target.close()

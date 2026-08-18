@@ -21,7 +21,11 @@ codes but no authoritative code-to-label table for these fields.
 - Do not infer `published`, `draft`, or `temporary save` from an unverified
   code, and do not filter a record out based on that inference.
 - Add a source-specific label mapping or exclusion rule only when the source
-  system supplies an authoritative lookup or an explicit caller mapping.
+  system supplies an authoritative lookup or an explicit caller mapping. The
+  PostgreSQL importer accepts repeated `--exclude-draft-value` and
+  `--exclude-deleted-value` arguments for this purpose, compares them only to
+  the caller-mapped raw fields, and reports skipped rows in its aggregate
+  output. It never deletes a previously imported target row as a side effect.
 
 ## Consequences
 
