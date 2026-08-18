@@ -74,6 +74,17 @@ FIXTURE_TICKET_SPECS = (
 )
 CALENDAR_TICKET_TITLE = "Send Riverbend the revised delivery schedule."
 
+# ADR 0016: Demo Corp lineage/TEPP runs use this analysis clock. Late Demo
+# public post is the own-corp counter-example dated after that clock.
+DEMO_PUBLIC_POST_TITLE = "Demo public post"
+DEMO_PUBLIC_POST_CREATED_AT = "2026-01-10T12:00:00Z"
+DEMO_ANALYSIS_RUN_KNOWLEDGE_CUTOFF = "2026-01-12T12:00:00Z"
+LATE_DEMO_PUBLIC_POST_TITLE = "Late Demo public post"
+LATE_DEMO_PUBLIC_POST_CREATED_AT = "2026-01-13T09:00:00Z"
+LATE_DEMO_PUBLIC_POST_BODY = (
+    "Written after the Demo Corp lineage-run knowledge cutoff."
+)
+
 
 def _fetch_demo_user_subjects(base_url: str, admin_user: str, admin_password: str) -> dict[str, str]:
     """Return {username: Keycloak subject id} for the two synthetic demo users."""
@@ -278,12 +289,15 @@ def seed(
                 "the January cutoff: Priya Nair at Northridge Grid now expects "
                 "a later delivery window."
             )
-            cur.execute("select post_id, post_body from source_post where post_title = 'Demo public post'")
+            cur.execute(
+                "select post_id, post_body from source_post where post_title = %s",
+                (DEMO_PUBLIC_POST_TITLE,),
+            )
             demo_public_row = cur.fetchone()
             if demo_public_row is None:
                 cur.execute(
                     "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at, updated_at) "
-                    "values (%s, %s, %s, 'Demo public post', "
+                    "values (%s, %s, %s, %s, "
                     "%s, "
                     "'voc', 'public', '2026-01-10T12:00:00Z', '2026-01-10T12:00:00Z') "
                     "returning post_id",
@@ -291,6 +305,7 @@ def seed(
                         account_ids["demo.analyst"],
                         corporate_entity_id,
                         process_units["DEMO-PU-A"],
+                        DEMO_PUBLIC_POST_TITLE,
                         demo_public_cutoff_body,
                     ),
                 )
@@ -340,6 +355,12 @@ def seed(
                 "update source_post set created_at = '2026-01-10T12:00:00Z', "
                 "updated_at = '2026-01-10T12:00:00Z' "
                 "where post_title = 'Demo private post'"
+            )
+            seed_late_demo_public_post(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+                process_units["DEMO-PU-A"],
             )
             cur.execute(
                 "insert into post_counterparty_entity (post_id, counterparty_entity_name, relationship_type_code) "
@@ -444,6 +465,45 @@ def seed(
         conn.commit()
     finally:
         conn.close()
+
+
+def seed_late_demo_public_post(
+    cur,
+    author_account_id,
+    corporate_entity_id,
+    process_unit_id,
+) -> None:
+    """Insert Late Demo public post after the January 12 knowledge cutoff.
+
+    ADR 0016 already filters ``source_post.created_at <= knowledge_cutoff``.
+    This own-corp public post is the falsifiable counter-example: Demo
+    public post stays on the January 12 Demo Corp lineage and TEPP run
+    lists; Late Demo does not. The live post list still shows Late Demo.
+    Does not implement a second cutoff, invent a theta, or stamp TEPP
+    Succeeded.
+    """
+    cur.execute(
+        "select post_id from source_post where post_title = %s",
+        (LATE_DEMO_PUBLIC_POST_TITLE,),
+    )
+    if cur.fetchone() is not None:
+        return
+    cur.execute(
+        "insert into source_post ("
+        "author_account_id, corporate_entity_id, process_unit_id, "
+        "post_title, post_body, voc_type_code, visibility_code, "
+        "created_at, updated_at"
+        ") values (%s, %s, %s, %s, %s, 'voc', 'public', %s, %s)",
+        (
+            author_account_id,
+            corporate_entity_id,
+            process_unit_id,
+            LATE_DEMO_PUBLIC_POST_TITLE,
+            LATE_DEMO_PUBLIC_POST_BODY,
+            LATE_DEMO_PUBLIC_POST_CREATED_AT,
+            LATE_DEMO_PUBLIC_POST_CREATED_AT,
+        ),
+    )
 
 
 def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, process_unit_id):
@@ -707,7 +767,7 @@ def _seed_fixture_evaluations(cur) -> None:
     from lineageweave.fixtures import ambiguous_commitment_post, sample_records
     from lineageweave.post_evaluation import RUBRIC_VERSION
 
-    titles = ["Demo public post", ambiguous_commitment_post()[0]]
+    titles = [DEMO_PUBLIC_POST_TITLE, ambiguous_commitment_post()[0]]
     titles.extend(rec.label for rec in sample_records())
     for title in titles:
         cur.execute("select post_id from source_post where post_title = %s", (title,))
@@ -1451,7 +1511,7 @@ def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -
                  configuration_schema_version, configuration_sha256,
                  code_revision_sha, requested_at)
             values (%s, 'analysis_run_lineage', %s,
-                    %s, '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
+                    %s, %s, 'lineage-run-v1', %s, %s,
                     '2026-01-12T12:30:00Z')
             returning analysis_run_id
             """,
@@ -1459,6 +1519,7 @@ def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -
                 snapshot_id,
                 DEMO_LINEAGE_IDEMPOTENCY_KEY,
                 requested_by_account_id,
+                DEMO_ANALYSIS_RUN_KNOWLEDGE_CUTOFF,
                 "b" * 64,
                 "c" * 40,
             ),
@@ -1528,7 +1589,7 @@ def _seed_demo_run_reconstruction(cur, analysis_run_id, corporate_entity_id) -> 
           and created_at <= %s
         order by created_at, post_title
         """,
-        (corporate_entity_id, datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc)),
+        (corporate_entity_id, DEMO_ANALYSIS_RUN_KNOWLEDGE_CUTOFF),
     )
     columns = [desc[0] for desc in cur.description]
     rows = [dict(zip(columns, row)) for row in cur.fetchall()]
@@ -1564,7 +1625,7 @@ def tepp_seed_request() -> AnalysisRunRequest:
         idempotency_key=DEMO_TEPP_IDEMPOTENCY_KEY,
         tenant_workspace_id="demo-workspace",
         snapshot_id=demo_source_snapshot_sha256(),
-        knowledge_cutoff="2026-01-12T12:00:00Z",
+        knowledge_cutoff=DEMO_ANALYSIS_RUN_KNOWLEDGE_CUTOFF,
         model_contract_version="tepp-analysis-run-v1",
         output_profile="calibrated_event_measurement",
     )
@@ -1637,7 +1698,7 @@ def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> No
                  configuration_schema_version, configuration_sha256,
                  code_revision_sha, requested_at)
             values (%s, 'analysis_run_tepp', %s,
-                    %s, '2026-01-12T12:00:00Z', 'tepp-run-v1', %s, %s,
+                    %s, %s, 'tepp-run-v1', %s, %s,
                     '2026-01-12T12:34:00Z')
             returning analysis_run_id
             """,
@@ -1645,6 +1706,7 @@ def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> No
                 snapshot_id,
                 DEMO_TEPP_IDEMPOTENCY_KEY,
                 requested_by_account_id,
+                DEMO_ANALYSIS_RUN_KNOWLEDGE_CUTOFF,
                 "d" * 64,
                 "e" * 40,
             ),
@@ -1686,7 +1748,7 @@ def tepp_accepted_seed_request() -> AnalysisRunRequest:
         idempotency_key=DEMO_TEPP_SUCCEEDED_IDEMPOTENCY_KEY,
         tenant_workspace_id="demo-workspace",
         snapshot_id=demo_source_snapshot_sha256(),
-        knowledge_cutoff="2026-01-12T12:00:00Z",
+        knowledge_cutoff=DEMO_ANALYSIS_RUN_KNOWLEDGE_CUTOFF,
         model_contract_version="tepp-analysis-run-v1",
         output_profile="calibrated_event_measurement",
     )
@@ -1722,7 +1784,7 @@ def _seed_demo_accepted_tepp_run(cur, requested_by_account_id, corporate_entity_
                  configuration_schema_version, configuration_sha256,
                  code_revision_sha, requested_at)
             values (%s, 'analysis_run_tepp', %s,
-                    %s, '2026-01-12T12:00:00Z', 'tepp-run-v1', %s, %s,
+                    %s, %s, 'tepp-run-v1', %s, %s,
                     '2026-01-12T12:42:00Z')
             returning analysis_run_id
             """,
@@ -1730,6 +1792,7 @@ def _seed_demo_accepted_tepp_run(cur, requested_by_account_id, corporate_entity_
                 snapshot_id,
                 DEMO_TEPP_SUCCEEDED_IDEMPOTENCY_KEY,
                 requested_by_account_id,
+                DEMO_ANALYSIS_RUN_KNOWLEDGE_CUTOFF,
                 "c" * 64,
                 "b" * 40,
             ),
@@ -1823,7 +1886,7 @@ def _seed_demo_report_run(cur, requested_by_account_id, corporate_entity_id) -> 
                  configuration_schema_version, configuration_sha256,
                  code_revision_sha, requested_at)
             values (%s, 'analysis_run_report', %s,
-                    %s, '2026-01-12T12:00:00Z', 'report-run-v1', %s, %s,
+                    %s, %s, 'report-run-v1', %s, %s,
                     '2026-01-12T12:38:00Z')
             returning analysis_run_id
             """,
@@ -1831,6 +1894,7 @@ def _seed_demo_report_run(cur, requested_by_account_id, corporate_entity_id) -> 
                 snapshot_id,
                 DEMO_REPORT_IDEMPOTENCY_KEY,
                 requested_by_account_id,
+                DEMO_ANALYSIS_RUN_KNOWLEDGE_CUTOFF,
                 "f" * 64,
                 "a" * 40,
             ),

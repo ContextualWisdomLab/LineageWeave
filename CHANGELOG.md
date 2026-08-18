@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.3] - 2026-08-18
+
+### Added
+
+- `make seed` inserts Late Demo public post (2026-01-13) so the
+  January 12 Demo Corp lineage and TEPP runs' knowledge cutoff is
+  falsifiable: Demo public post still opens; Late Demo does not.
+  The live post list still shows Late Demo. The cutoff filter
+  itself already lives on this stack (ADR 0016). TEPP honesty is
+  unchanged: accepted acks stay Failed transport evidence, not
+  Succeeded. Never invent a theta.
+
 ## [2.12.2] - 2026-08-18
 
 ### Fixed

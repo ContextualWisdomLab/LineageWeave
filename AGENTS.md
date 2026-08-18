@@ -113,6 +113,9 @@ v0.88.0). Do not invent a theta.
 Opening a cutoff-rewritten title shows **Body this run knew** from
 `source_post_revision` beside the live rewrite (ADR 0025 / v2.1.0).
 Do not invent the earlier sentence when no revision covers the cutoff.
+After `make seed`, the January 12 Demo Corp lineage and TEPP runs list
+Demo public post and do not list Late Demo public post (2026-01-13).
+The live post list still shows Late Demo (ADR 0016).
 
 A corporate-entity similarity result has three outcomes: unique, miss,
 or tie (ADR 0026). A tie is not a miss. Keep the organization name
