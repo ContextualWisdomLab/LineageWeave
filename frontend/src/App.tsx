@@ -52,8 +52,10 @@ import {
   type PostSummary,
   type RankingList,
   type RelatedNode,
+  type LeftoverPair,
   type VocEvidence,
 } from "./api";
+import { leftoverBadgeText, leftoverPairsForPost } from "./leftoverCaption";
 import { LineageDag } from "./LineageDag";
 import { subgraphForPost } from "./lineageLayout";
 import "./App.css";
@@ -313,13 +315,20 @@ function EventLineageSection({
 
 function AffiliateTreeNode({
   node,
+  leftoverPairs,
+  leftoverPostId,
   onSelectPerson,
   onSelectEntity,
 }: {
   node: AffiliateNode;
+  leftoverPairs?: LeftoverPair[];
+  leftoverPostId?: string;
   onSelectPerson?: (personId: string, personName: string) => void;
   onSelectEntity?: (entityId: string, entityName: string) => void;
 }) {
+  const leftoverForOpenedPost = leftoverPostId
+    ? leftoverPairsForPost(leftoverPairs, leftoverPostId)
+    : [];
   return (
     <li>
       <span className={node.resolved ? "affiliate-resolved" : "affiliate-unresolved"}>
@@ -358,6 +367,11 @@ function AffiliateTreeNode({
               ) : (
                 `${person.person_name} (${person.person_side_label ?? person.person_side_code})`
               )}
+              {leftoverForOpenedPost.map((pair) => (
+                <span key={`${pair.pair_kind}:${pair.criterion_code}`} className="affiliate-leftover">
+                  {leftoverBadgeText(pair)}
+                </span>
+              ))}
             </span>
           ))}
         </span>
@@ -368,6 +382,8 @@ function AffiliateTreeNode({
             <AffiliateTreeNode
               key={child.entity_id ?? child.entity_name}
               node={child}
+              leftoverPairs={leftoverPairs}
+              leftoverPostId={leftoverPostId}
               onSelectPerson={onSelectPerson}
               onSelectEntity={onSelectEntity}
             />
@@ -1087,6 +1103,7 @@ function PostDetailPopup({
   accessToken,
   canExtract,
   graph,
+  leftoverPairs,
   onClose,
   onSelectPost,
 }: {
@@ -1094,6 +1111,7 @@ function PostDetailPopup({
   accessToken: string;
   canExtract: boolean;
   graph: LineageGraph | null;
+  leftoverPairs?: LeftoverPair[];
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
 }) {
@@ -1262,6 +1280,8 @@ function PostDetailPopup({
                     <AffiliateTreeNode
                       key={node.entity_id ?? node.entity_name}
                       node={node}
+                      leftoverPairs={leftoverPairs}
+                      leftoverPostId={postId}
                       onSelectPerson={(personId, personName) => {
                         setFocusEntity(null);
                         setFocusPerson({ personId, personName });
@@ -1425,10 +1445,12 @@ function ReportsPanel({
   accessToken,
   canRebuild,
   onSelectPost,
+  onLeftoverPairsChange,
 }: {
   accessToken: string;
   canRebuild: boolean;
   onSelectPost: (postId: string) => void;
+  onLeftoverPairsChange: (pairs: LeftoverPair[]) => void;
 }) {
   const [grouping, setGrouping] = useState("process_unit");
   const [period, setPeriod] = useState("2026-W02");
@@ -1455,9 +1477,13 @@ function ReportsPanel({
         setPayload(reports);
         setIndex(periods);
         setComparison(compared);
+        onLeftoverPairsChange(reports.reports.flatMap((row) => row.leftover_pairs ?? []));
       })
-      .catch((err) => setError(String(err)));
-  }, [accessToken, grouping, period]);
+      .catch((err) => {
+        setError(String(err));
+        onLeftoverPairsChange([]);
+      });
+  }, [accessToken, grouping, period, onLeftoverPairsChange]);
 
   async function handleRebuild() {
     setRebuilding(true);
@@ -1472,8 +1498,10 @@ function ReportsPanel({
       setPayload(reports);
       setIndex(periods);
       setComparison(compared);
+      onLeftoverPairsChange(reports.reports.flatMap((row) => row.leftover_pairs ?? []));
     } catch (err) {
       setError(String(err));
+      onLeftoverPairsChange([]);
     } finally {
       setRebuilding(false);
     }
@@ -1658,6 +1686,7 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [graph, setGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [leftoverPairs, setLeftoverPairs] = useState<LeftoverPair[]>([]);
   const [canRebuild, setCanRebuild] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
@@ -1691,7 +1720,12 @@ function PostList({ accessToken }: { accessToken: string }) {
     <>
       <RankingsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
+      <ReportsPanel
+        accessToken={accessToken}
+        canRebuild={canRebuild}
+        onSelectPost={setSelectedPostId}
+        onLeftoverPairsChange={setLeftoverPairs}
+      />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
           <h2>Event Lineage</h2>
@@ -1726,6 +1760,7 @@ function PostList({ accessToken }: { accessToken: string }) {
           accessToken={accessToken}
           canExtract={canRebuild}
           graph={graph}
+          leftoverPairs={leftoverPairs}
           onClose={() => setSelectedPostId(null)}
           onSelectPost={setSelectedPostId}
         />

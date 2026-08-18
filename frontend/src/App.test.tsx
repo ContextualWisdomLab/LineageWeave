@@ -67,6 +67,7 @@ describe("App, authenticated", () => {
     };
     chatUnavailable?: boolean;
     searchUnavailable?: boolean;
+    reportsUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
   }) {
     const statusLabel: Record<string, string> = {
@@ -292,6 +293,16 @@ describe("App, authenticated", () => {
               },
             ],
           }),
+        );
+      }
+      if (options?.reportsUnavailable && url.includes("/api/reports/") && method === "GET") {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              detail: "Period report is unavailable",
+            }),
+            { status: 503, headers: { "Content-Type": "application/json" } },
+          ),
         );
       }
       if (url.includes("/api/reports/") && method === "GET") {
@@ -1016,6 +1027,34 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
+  });
+
+  it("names leftover criterion on the matching affiliate-tree Keyman", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const leftoverChip = await screen.findByRole("button", { name: "Affiliate Keyman: Priya Nair" });
+    await waitFor(() =>
+      expect(leftoverChip.parentElement).toHaveTextContent("Closest leftover · sales-lead"),
+    );
+    expect(leftoverChip).toHaveAccessibleName("Affiliate Keyman: Priya Nair");
+    expect(screen.getByRole("button", { name: "Affiliate org: Demo Corp" })).not.toHaveTextContent(
+      "leftover",
+    );
+
+    await userEvent.click(leftoverChip);
+    await waitFor(() => expect(screen.getByText("Related to Priya Nair")).toBeInTheDocument());
+  });
+
+  it("clears leftover badges on the affiliate tree when the report fetch fails", async () => {
+    stubBackend({ reportsUnavailable: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const leftoverChip = await screen.findByRole("button", { name: "Affiliate Keyman: Priya Nair" });
+    expect(leftoverChip.parentElement).not.toHaveTextContent("leftover");
+    expect(leftoverChip).toHaveAccessibleName("Affiliate Keyman: Priya Nair");
   });
 
   it("opens related Keyman nodes from an R&R person", async () => {
