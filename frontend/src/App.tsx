@@ -2234,7 +2234,7 @@ const REPORT_PERIOD_KEY = /^\d{4}-W\d{2}$/;
 /**
  * Report grouping that matches the run's authorized scope.
  *
- * A corporate-entity run must not leave the panel on process unit.
+ * A corporate-entity run must not leave the panel on business unit (PU).
  */
 function analysisRunReportGrouping(run: AnalysisRun): string | null {
   switch (run.scope_kind_code) {
@@ -2698,7 +2698,7 @@ function CalendarPanel({
 }
 
 const REPORT_GROUPING_LABELS: Record<string, string> = {
-  process_unit: "Process unit",
+  process_unit: "Business unit (PU)",
   corporate_entity: "Corporate entity",
   thread_group: "Thread group",
   team: "Team",
@@ -2706,7 +2706,7 @@ const REPORT_GROUPING_LABELS: Record<string, string> = {
 };
 
 function comparisonGroupingTitle(groupingKind: string, groupingLabel: string): string {
-  return `${REPORT_GROUPING_LABELS[groupingKind] ?? groupingKind}: ${groupingLabel}`;
+  return `${t(REPORT_GROUPING_LABELS[groupingKind] ?? groupingKind)}: ${groupingLabel}`;
 }
 
 function comparisonChipAccessibleName(
@@ -2941,7 +2941,7 @@ function ReportsPanel({
         <label>
           Grouping
           <select aria-label="Report grouping" value={grouping} onChange={(event) => onSelectGrouping(event.target.value)}>
-            <option value="process_unit">Process unit</option>
+            <option value="process_unit">{t("Business unit (PU)")}</option>
             <option value="corporate_entity">Corporate entity</option>
             <option value="thread_group">Thread group</option>
             <option value="team">Team</option>

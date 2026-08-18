@@ -2346,7 +2346,7 @@ describe("App, authenticated", () => {
       screen.getByRole("button", { name: "Compare Corporate entity: Demo Corp, mean θ 0.42" }),
     ).toHaveAttribute("aria-current", "true");
     expect(
-      screen.getByRole("button", { name: "Compare Process unit: Demo Report High, mean θ 0.81" }),
+      screen.getByRole("button", { name: "Compare Business unit (PU): Demo Report High, mean θ 0.81" }),
     ).not.toHaveAttribute("aria-current");
     expect(screen.getByRole("status")).toHaveTextContent(
       "Demo Corp is the opened grouping. Read its mean θ and member posts below, then open a post.",
@@ -2854,7 +2854,7 @@ describe("App, authenticated", () => {
 
     expect(await screen.findByLabelText("Grouping comparison")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Compare Process unit: Demo Report High, mean θ 0.81" }),
+      screen.getByRole("button", { name: "Compare Business unit (PU): Demo Report High, mean θ 0.81" }),
     ).toHaveTextContent("mean θ 0.81");
     await userEvent.click(
       screen.getByRole("button", { name: "Compare Thread group: A-100, mean θ 0.81" }),
