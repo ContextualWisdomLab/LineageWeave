@@ -291,7 +291,9 @@ or `GET /api/teams/{id}/related`;
 `post_admin` can extract),
 and an in-popup chat whose cited sources
 open a sliding evidence panel (`EvidencePanel`, CSS
-`slide-in-from-right`) showing that source post's actual content. Built from the product
+`slide-in-from-right`) showing that source post's actual content.
+Buyer product chrome is the three-screen path in
+[`docs/ux/buyer-ia.md`](docs/ux/buyer-ia.md). Built from the product
 brief's text, not the referenced Figma frame's pixel layout -- see
 [ADR 0002](docs/adr/0002-figma-access-boundary.md) for why. Served in
 `docker compose` via a two-stage build (`frontend/Dockerfile`):
