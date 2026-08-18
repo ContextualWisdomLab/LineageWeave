@@ -1506,6 +1506,20 @@ describe("App, authenticated", () => {
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
   });
 
+  it("searches the board from a semantic project mention", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Search related posts for: Semantic project" }),
+    );
+
+    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
+    expect(searchInput).toHaveValue("Semantic project");
+    expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+  });
+
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
     stubBackend();
     render(<App showLabPanels />);

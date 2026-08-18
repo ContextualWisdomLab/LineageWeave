@@ -1576,6 +1576,7 @@ function PostDetailPopup({
   focusEventLineage,
   onClose,
   onSelectPost,
+  onSearch,
 }: {
   postId: string;
   accessToken: string;
@@ -1586,6 +1587,7 @@ function PostDetailPopup({
   focusEventLineage?: boolean;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
+  onSearch?: (query: string) => void;
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1863,7 +1865,16 @@ function PostDetailPopup({
                 <ul>
                   {post.project_evidence.map((project) => (
                     <li key={`${project.resolution_status}:${project.project_key}`}>
-                      <strong>{project.project_name}</strong>{" "}
+                      <button
+                        type="button"
+                        className="related-post-card"
+                        aria-label={tf("Search related posts for: {name}", { name: project.project_name })}
+                        onClick={() => onSearch?.(project.project_name)}
+                        disabled={!onSearch}
+                      >
+                        <strong>{project.project_name}</strong>
+                        <span>{t("Search related posts")}</span>
+                      </button>{" "}
                       {project.confidence === null
                         ? `(${t("Hint only")})`
                         : `(${Math.round(project.confidence * 100)}%)`}
@@ -3380,6 +3391,15 @@ function PostList({
     setOpenedFromReportMember(false);
   }
 
+  function searchBoard(query: string) {
+    const normalized = query.trim();
+    if (!normalized) return;
+    setSearchInput(normalized);
+    setSearchQuery(normalized);
+    setCurrentPage(1);
+    closeSelectedPost();
+  }
+
   const loadPostPage = useCallback(async (page: number, query = searchQuery, sort = sortOrder) => {
     setLoadingPage(true);
     setError(null);
@@ -3721,6 +3741,7 @@ function PostList({
           focusEventLineage={openedFromReportMember}
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
+          onSearch={searchBoard}
         />
       )}
     </section>
