@@ -1,0 +1,71 @@
+from __future__ import annotations
+
+import asyncio
+
+import pytest
+
+from backend.app.post_chat_ingestion import (
+    fetch_persisted_chat,
+    fetch_persisted_chats,
+    normalize_chat_question,
+    persist_post_chat,
+)
+
+
+class _Connection:
+    def __init__(self, *, header: dict[str, str] | None, citations: list[dict[str, str]]) -> None:
+        self.header = header
+        self.citations = citations
+        self.executed: list[tuple[str, tuple[object, ...]]] = []
+
+    async def execute(self, query: str, *args: object) -> str:
+        self.executed.append((query, args))
+        return "OK"
+
+    async def fetchrow(self, _query: str, *_args: object):
+        return self.header
+
+    async def fetch(self, query: str, *_args: object):
+        if "question_norm from post_chat_result" in query:
+            return [{"question_norm": "question"}]
+        return self.citations
+
+
+def test_normalize_question_rejects_empty_and_collapses_whitespace() -> None:
+    assert normalize_chat_question("  What   happened? ") == "what happened between these events"
+    assert normalize_chat_question(" \t ") == ""
+
+
+def test_persist_chat_deduplicates_citations_and_serializes_result() -> None:
+    conn = _Connection(
+        header={"question_text": "What happened?", "answer_text": "A synthetic answer."},
+        citations=[
+            {"cited_post_id": "post-a", "post_title": "Evidence A"},
+            {"cited_post_id": "post-b", "post_title": "Evidence B"},
+        ],
+    )
+
+    payload = asyncio.run(
+        persist_post_chat(conn, "post-1", "  What   happened? ", "A synthetic answer.", ["post-a", "post-a", "post-b"])
+    )
+
+    assert payload["cited_post_ids"] == ["post-a", "post-b"]
+    assert len([query for query, _args in conn.executed if "post_chat_citation" in query]) == 2
+    assert any("post_chat_result" in query and "delete" in query.lower() for query, _args in conn.executed)
+
+
+def test_fetch_chat_handles_empty_and_missing_rows() -> None:
+    missing = _Connection(header=None, citations=[])
+    assert asyncio.run(fetch_persisted_chat(missing, "post-1", " ")) is None
+    assert asyncio.run(fetch_persisted_chat(missing, "post-1", "question")) is None
+    assert asyncio.run(fetch_persisted_chats(missing, "post-1")) == []
+
+
+def test_fetch_chat_list_serializes_existing_exchange() -> None:
+    conn = _Connection(
+        header={"question_text": "Question", "answer_text": "Answer"},
+        citations=[{"cited_post_id": "post-a", "post_title": "Evidence A"}],
+    )
+    exchanges = asyncio.run(fetch_persisted_chats(conn, "post-1"))
+    assert len(exchanges) == 1
+    assert exchanges[0]["cited_posts"][0]["post_title"] == "Evidence A"
