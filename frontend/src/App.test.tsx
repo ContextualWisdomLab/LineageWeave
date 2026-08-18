@@ -56,6 +56,15 @@ describe("App, authenticated", () => {
   function stubBackend(options?: {
     admin?: boolean;
     calendarCommitments?: unknown[];
+    homePosts?: {
+      post_id: string;
+      post_title: string;
+      voc_type_code: string;
+      voc_type_label?: string;
+      visibility_code: string;
+      visibility_label?: string;
+      created_at: string;
+    }[];
     rankings?: {
       status?: "accepted" | "unavailable";
       status_reason?: string | null;
@@ -427,17 +436,19 @@ describe("App, authenticated", () => {
       }
       if (url.endsWith("/api/posts")) {
         return Promise.resolve(
-          jsonResponse([
-            {
-              post_id: "post-1",
-              post_title: "Public post",
-              voc_type_code: "voc",
-              voc_type_label: "Voice of Customer",
-              visibility_code: "public",
-              visibility_label: "Public",
-              created_at: "2026-01-01T00:00:00Z",
-            },
-          ]),
+          jsonResponse(
+            options?.homePosts ?? [
+              {
+                post_id: "post-1",
+                post_title: "Public post",
+                voc_type_code: "voc",
+                voc_type_label: "Voice of Customer",
+                visibility_code: "public",
+                visibility_label: "Public",
+                created_at: "2026-01-01T00:00:00Z",
+              },
+            ],
+          ),
         );
       }
       if (url.endsWith("/api/posts/post-1")) {
@@ -828,6 +839,43 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Constructive stance: 2")).toBeInTheDocument();
     expect(screen.getByText("Sales-lead specificity: 3")).toBeInTheDocument();
     expect(screen.queryByText("Not yet evaluated.")).not.toBeInTheDocument();
+  });
+
+  it("names leftover criterion on the matching home post row", async () => {
+    stubBackend({
+      homePosts: [
+        {
+          post_id: "post-1",
+          post_title: "Public post",
+          voc_type_code: "voc",
+          voc_type_label: "Voice of Customer",
+          visibility_code: "public",
+          visibility_label: "Public",
+          created_at: "2026-01-01T00:00:00Z",
+        },
+        {
+          post_id: "post-9",
+          post_title: "Riverbend calendar commitment",
+          voc_type_code: "voc",
+          voc_type_label: "Voice of Customer",
+          visibility_code: "public",
+          visibility_label: "Public",
+          created_at: "2026-01-03T00:00:00Z",
+        },
+      ],
+    });
+    render(<App />);
+
+    const leftoverRow = await screen.findByRole("button", { name: "View post: Public post" });
+    await waitFor(() => expect(leftoverRow).toHaveTextContent("Closest leftover · sales-lead"));
+    expect(leftoverRow).toHaveAccessibleName("View post: Public post");
+    const unmarked = screen.getByRole("button", { name: "View post: Riverbend calendar commitment" });
+    expect(unmarked).toHaveTextContent("Voice of Customer");
+    expect(unmarked).not.toHaveTextContent("leftover");
+
+    await userEvent.click(leftoverRow);
+
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });
 
   it("rebuilds lineage when the account has post_admin", async () => {

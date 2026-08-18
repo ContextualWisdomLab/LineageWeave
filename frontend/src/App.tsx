@@ -52,6 +52,7 @@ import {
   type PostSummary,
   type RankingList,
   type RelatedNode,
+  type LeftoverPair,
   type VocEvidence,
 } from "./api";
 import { LineageDag } from "./LineageDag";
@@ -80,6 +81,10 @@ const CRITERION_SHORT_LABEL: Record<string, string> = {
 
 function criterionShortLabel(itemCode: string): string {
   return CRITERION_SHORT_LABEL[itemCode] ?? itemCode;
+}
+
+function leftoverRowLabel(pairKind: string): string {
+  return pairKind === "farthest" ? "Farthest leftover" : "Closest leftover";
 }
 
 // This popup's layout follows the textual product brief (Korean summary,
@@ -1425,10 +1430,12 @@ function ReportsPanel({
   accessToken,
   canRebuild,
   onSelectPost,
+  onLeftoverPairsChange,
 }: {
   accessToken: string;
   canRebuild: boolean;
   onSelectPost: (postId: string) => void;
+  onLeftoverPairsChange: (pairs: LeftoverPair[]) => void;
 }) {
   const [grouping, setGrouping] = useState("process_unit");
   const [period, setPeriod] = useState("2026-W02");
@@ -1455,9 +1462,13 @@ function ReportsPanel({
         setPayload(reports);
         setIndex(periods);
         setComparison(compared);
+        onLeftoverPairsChange(reports.reports.flatMap((row) => row.leftover_pairs ?? []));
       })
-      .catch((err) => setError(String(err)));
-  }, [accessToken, grouping, period]);
+      .catch((err) => {
+        setError(String(err));
+        onLeftoverPairsChange([]);
+      });
+  }, [accessToken, grouping, period, onLeftoverPairsChange]);
 
   async function handleRebuild() {
     setRebuilding(true);
@@ -1472,8 +1483,10 @@ function ReportsPanel({
       setPayload(reports);
       setIndex(periods);
       setComparison(compared);
+      onLeftoverPairsChange(reports.reports.flatMap((row) => row.leftover_pairs ?? []));
     } catch (err) {
       setError(String(err));
+      onLeftoverPairsChange([]);
     } finally {
       setRebuilding(false);
     }
@@ -1658,6 +1671,7 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [graph, setGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [leftoverPairs, setLeftoverPairs] = useState<LeftoverPair[]>([]);
   const [canRebuild, setCanRebuild] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
@@ -1691,7 +1705,12 @@ function PostList({ accessToken }: { accessToken: string }) {
     <>
       <RankingsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
+      <ReportsPanel
+        accessToken={accessToken}
+        canRebuild={canRebuild}
+        onSelectPost={setSelectedPostId}
+        onLeftoverPairsChange={setLeftoverPairs}
+      />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
           <h2>Event Lineage</h2>
@@ -1706,7 +1725,9 @@ function PostList({ accessToken }: { accessToken: string }) {
         {graph && <LineageDag graph={graph} onSelectPost={setSelectedPostId} />}
       </section>
       <ul className="post-list">
-        {posts.map((post) => (
+        {posts.map((post) => {
+          const leftoverForPost = leftoverPairs.filter((pair) => pair.post_id === post.post_id);
+          return (
           <li key={post.post_id}>
             <button
               className="post-list-item"
@@ -1716,9 +1737,18 @@ function PostList({ accessToken }: { accessToken: string }) {
               <span className="post-title">{post.post_title}</span>
               <span className="post-badge">{post.voc_type_label ?? post.voc_type_code}</span>
               <span className="post-badge">{post.visibility_label ?? post.visibility_code}</span>
+              {leftoverForPost.map((pair) => (
+                <span
+                  key={`${pair.pair_kind}:${pair.criterion_code}`}
+                  className="post-badge"
+                >
+                  {leftoverRowLabel(pair.pair_kind)} · {criterionShortLabel(pair.criterion_code)}
+                </span>
+              ))}
             </button>
           </li>
-        ))}
+          );
+        })}
       </ul>
       {selectedPostId && (
         <PostDetailPopup

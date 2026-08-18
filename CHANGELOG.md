@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.90.0] - 2026-08-18
+
+### Added
+
+- Home post rows that are leftover pairs name the leftover
+  criterion (ADR 0031). After `make seed`, the leftover row reads
+  **Closest leftover · sales-lead** next to visibility; click
+  opens that post. A row that is not a leftover pair stays unmarked.
+  Never invent a fused score or a theta.
+
 ## [0.75.0] - 2026-08-17
 
 ### Added
