@@ -47,7 +47,7 @@ class _Valkey:
             (
                 "analysis-run-outbox",
                 [
-                    ("1-0", {"analysis_run_id": "synthetic-run"}),
+                    ("1-0", {"analysis_run_id": "00000000-0000-0000-0000-000000000001"}),
                     ("1-1", {}),
                 ],
             )
@@ -74,7 +74,7 @@ async def test_consumer_forwards_valid_event_and_skips_malformed_event(monkeypat
     assert last_id == "1-1"
     assert calls == [
         {
-            "analysis_run_id": "synthetic-run",
+            "analysis_run_id": "00000000-0000-0000-0000-000000000001",
             "account_id": "synthetic-account",
             "affiliated_entity_ids": [],
             "tepp_client": calls[0]["tepp_client"],

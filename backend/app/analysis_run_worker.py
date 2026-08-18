@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncpg
 import redis.asyncio as redis
+from uuid import UUID
 
 from lineageweave.tepp_client import TeppClient
 
@@ -32,6 +33,10 @@ async def consume_analysis_run_stream_once(
     for _stream_name, entries in batches:
         for entry_id, fields in entries:
             analysis_run_id = str(fields.get("analysis_run_id", "")).strip()
+            try:
+                UUID(analysis_run_id)
+            except ValueError:
+                analysis_run_id = ""
             if analysis_run_id:
                 async with pool.acquire() as conn:
                     async with conn.transaction():
