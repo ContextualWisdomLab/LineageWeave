@@ -54,6 +54,7 @@ import {
   type Keyman,
   type PostAiSummary,
   type PostDetail,
+  type PostFilterOption,
   type PeriodComparison,
   type PeriodReportIndex,
   type PeriodReports,
@@ -3074,6 +3075,8 @@ function PostList({
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
+  const [typeFilterOptions, setTypeFilterOptions] = useState<PostFilterOption[]>([]);
+  const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
 
   function openReportFromAnalysisRun(
@@ -3142,6 +3145,8 @@ function PostList({
       );
       setPosts(response.posts);
       setTotalPosts(response.total_count);
+      setTypeFilterOptions(response.voc_type_options ?? []);
+      setVisibilityFilterOptions(response.visibility_options ?? []);
       setCurrentPage(page);
     } catch (err) {
       setError(String(err));
@@ -3183,8 +3188,22 @@ function PostList({
   }
 
   const loadedPosts = posts ?? [];
-  const typeOptions = Array.from(new Set(loadedPosts.map((post) => post.voc_type_code))).sort();
-  const visibilityOptions = Array.from(new Set(loadedPosts.map((post) => post.visibility_code))).sort();
+  const typeOptions = typeFilterOptions.length
+    ? typeFilterOptions
+    : Array.from(new Set(loadedPosts.map((post) => post.voc_type_code)))
+        .sort()
+        .map((code) => ({
+          code,
+          label: loadedPosts.find((post) => post.voc_type_code === code)?.voc_type_label ?? code,
+        }));
+  const visibilityOptions = visibilityFilterOptions.length
+    ? visibilityFilterOptions
+    : Array.from(new Set(loadedPosts.map((post) => post.visibility_code)))
+        .sort()
+        .map((code) => ({
+          code,
+          label: loadedPosts.find((post) => post.visibility_code === code)?.visibility_label ?? code,
+        }));
   const filteredPosts = loadedPosts
     .filter((post) => {
       const matchesType = typeFilter === "all" || post.voc_type_code === typeFilter;
@@ -3269,9 +3288,9 @@ function PostList({
                 aria-label={t("Filter by VOC type")}
               >
                 <option value="all">{t("All VOC types")}</option>
-                {typeOptions.map((value) => (
-                  <option key={value} value={value}>
-                    {loadedPosts.find((post) => post.voc_type_code === value)?.voc_type_label ?? value}
+                {typeOptions.map((option) => (
+                  <option key={option.code} value={option.code}>
+                    {option.label}
                   </option>
                 ))}
               </select>
@@ -3284,9 +3303,9 @@ function PostList({
                 aria-label={t("Filter by visibility")}
               >
                 <option value="all">{t("All visibility")}</option>
-                {visibilityOptions.map((value) => (
-                  <option key={value} value={value}>
-                    {loadedPosts.find((post) => post.visibility_code === value)?.visibility_label ?? value}
+                {visibilityOptions.map((option) => (
+                  <option key={option.code} value={option.code}>
+                    {option.label}
                   </option>
                 ))}
               </select>

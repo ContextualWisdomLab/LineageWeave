@@ -363,6 +363,42 @@ async def _lookup_post_labels(conn: asyncpg.Connection, rows: list[asyncpg.Recor
     return await labels_for_codes(conn, codes)
 
 
+async def _post_filter_options(
+    conn: asyncpg.Connection, corporate_entity_ids: frozenset[str]
+) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    """Return every authorized filter value, not only values on the current page."""
+    visibility_sql = """
+        select distinct post.visibility_code as code,
+               coalesce(lookup.lookup_label, post.visibility_code) as label,
+               coalesce(lookup.display_order, 2147483647) as display_order
+          from source_post post
+          left join common_lookup_value lookup
+            on lookup.lookup_category = 'post_visibility'
+           and lookup.lookup_code = post.visibility_code
+         where (post.visibility_code = 'public'
+            or post.corporate_entity_id::text = any($1::text[]))
+         order by display_order, code
+    """
+    type_sql = """
+        select distinct post.voc_type_code as code,
+               coalesce(lookup.lookup_label, post.voc_type_code) as label,
+               coalesce(lookup.display_order, 2147483647) as display_order
+          from source_post post
+          left join common_lookup_value lookup
+            on lookup.lookup_category = 'voc_type'
+           and lookup.lookup_code = post.voc_type_code
+         where (post.visibility_code = 'public'
+            or post.corporate_entity_id::text = any($1::text[]))
+         order by display_order, code
+    """
+    visibility_rows = await conn.fetch(visibility_sql, list(corporate_entity_ids))
+    type_rows = await conn.fetch(type_sql, list(corporate_entity_ids))
+    return (
+        [{"code": row["code"], "label": row["label"]} for row in type_rows],
+        [{"code": row["code"], "label": row["label"]} for row in visibility_rows],
+    )
+
+
 @app.get("/healthz")
 async def healthz() -> dict[str, str]:
     """Liveness probe: the process is up. Does not touch Postgres."""
@@ -602,6 +638,9 @@ async def list_posts(
     _require_post_read(account)
     search_term = search.strip() if search and search.strip() else None
     async with pool.acquire() as conn:
+        voc_type_options, visibility_options = await _post_filter_options(
+            conn, account.corporate_entity_ids
+        )
         body_search_ids: list[str] = []
         if search_term:
             body_rows = await conn.fetch(
@@ -768,6 +807,8 @@ async def list_posts(
         "total_count": total_count,
         "limit": limit,
         "offset": offset,
+        "voc_type_options": voc_type_options,
+        "visibility_options": visibility_options,
     }
 
 

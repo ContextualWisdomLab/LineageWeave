@@ -69,6 +69,9 @@ _SOURCE_STATE_MIGRATION = (
 _SOURCE_CONTEXT_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0034_source_context_provenance.sql"
 )
+_NORMALIZED_BODY_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0036_normalized_body_search.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -165,6 +168,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_SEMANTIC_SEARCH_MIGRATION.read_text())
             cur.execute(_SOURCE_STATE_MIGRATION.read_text())
             cur.execute(_SOURCE_CONTEXT_MIGRATION.read_text())
+            cur.execute(_NORMALIZED_BODY_SEARCH_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -1131,6 +1135,9 @@ def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, 
     public = next(post for post in payload["posts"] if post["post_title"] == "Public post")
     assert public["voc_type_label"] == "Voice of Customer"
     assert public["visibility_label"] == "Public"
+    assert {option["code"] for option in payload["voc_type_options"]} == {"voc"}
+    assert {option["code"] for option in payload["visibility_options"]} == {"public", "private"}
+    assert next(option for option in payload["visibility_options"] if option["code"] == "public")["label"] == "Public"
 
 
 def test_post_list_supports_bounded_offset_pages(client, demo_analyst_token, seeded_db) -> None:

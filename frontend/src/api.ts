@@ -28,6 +28,13 @@ export interface PostPage {
   total_count: number;
   limit: number;
   offset: number;
+  voc_type_options?: PostFilterOption[];
+  visibility_options?: PostFilterOption[];
+}
+
+export interface PostFilterOption {
+  code: string;
+  label: string;
 }
 
 export interface PostKnownAt {
