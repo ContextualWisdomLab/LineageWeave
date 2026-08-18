@@ -48,7 +48,6 @@ import {
   type IssueTicket,
   type LineageGraph,
   type Keyman,
-  type LinkedPostRef,
   type PostAiSummary,
   type PostDetail,
   type PeriodComparison,
@@ -64,16 +63,38 @@ import { CitationChip } from "./components/CitationChip";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
+import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { subgraphForPost } from "./lineageLayout";
+import { LOCALE_LABELS, SUPPORTED_LOCALES, setLocale, t, useLocale } from "./i18n";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
   if (err instanceof BackendError && err.status === 503) {
-    return `${action} unavailable (LLM orchestrator not configured).`;
+    return `${action} ${t("is temporarily unavailable.")} ${t("Saved evidence is still available.")}`;
   }
   return String(err);
+}
+
+function LanguageSwitcher() {
+  const locale = useLocale();
+  return (
+    <label className="language-switcher">
+      <span className="visually-hidden">{t("Language")}</span>
+      <select
+        aria-label={t("Language")}
+        value={locale}
+        onChange={(event) => setLocale(event.target.value as (typeof SUPPORTED_LOCALES)[number])}
+      >
+        {SUPPORTED_LOCALES.map((option) => (
+          <option key={option} value={option}>
+            {LOCALE_LABELS[option]}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 }
 
 function searchUnavailableMessage(err: unknown): string {
@@ -119,7 +140,7 @@ function EvidencePanel({
   return (
     <div className="evidence-panel" role="complementary" aria-label="Evidence">
       {onClose ? <PopupCloseButton onClose={onClose} label="Close evidence panel" /> : null}
-      <h3>Evidence</h3>
+      <h3>{t("Evidence")}</h3>
       {!post && <p>Loading source post...</p>}
       {post && (
         <>
@@ -282,7 +303,9 @@ function ChatPanel({
         </div>
       )}
       {seededOnly && exchanges.length > 0 && (
-        <p className="popup-placeholder">Only seeded questions can be answered without an orchestrator.</p>
+        <p className="popup-placeholder">
+          Interactive questions are unavailable right now; saved evidence remains available.
+        </p>
       )}
       {exchanges.length > 0 && (
         <div className="chat-suggestions">
@@ -388,21 +411,15 @@ function EventLineageSection({
 }) {
   if (!lineage) return <p>Loading lineage...</p>;
   const scoped = graph ? subgraphForPost(graph, postId) : { nodes: [], edges: [] };
-  const renderLink = (post: LinkedPostRef, kind: "direct" | "indirect") => (
-    <li key={post.post_id} className={`lineage-link lineage-link-${kind}`}>
-      <span className="lineage-badge">{kind === "direct" ? "직접" : "간접"}</span>
-      {onSelectPost ? (
-        <button className="lineage-link-button" onClick={() => onSelectPost(post.post_id)}>
-          {post.post_title}
-        </button>
-      ) : (
-        post.post_title
-      )}
-    </li>
-  );
   const hasLinks = lineage.direct.length > 0 || lineage.indirect.length > 0;
-  if (scoped.nodes.length === 0 && !hasLinks) {
-    return <p className="lineage-empty">No linked posts yet.</p>;
+  if (scoped.nodes.length === 0) {
+    return (
+      <p className="lineage-empty">
+        {hasLinks
+          ? "The linked records are listed above. The graph is not available for this view."
+          : "No linked posts yet."}
+      </p>
+    );
   }
   return (
     <>
@@ -414,13 +431,73 @@ function EventLineageSection({
           {currentNextAction}
         </p>
       ) : null}
-      {hasLinks && (
-        <ul className="lineage-list">
-          {lineage.direct.map((post) => renderLink(post, "direct"))}
-          {lineage.indirect.map((post) => renderLink(post, "indirect"))}
+    </>
+  );
+}
+
+function RelatedPostsSection({
+  lineage,
+  onSelectPost,
+}: {
+  lineage: PostLineage | null;
+  onSelectPost?: (postId: string) => void;
+}) {
+  if (!lineage) {
+    return (
+      <section className="popup-section related-posts-section" aria-labelledby="related-posts-heading">
+        <div className="related-posts-header">
+          <div>
+            <p className="section-eyebrow">Evidence trail</p>
+            <h3 id="related-posts-heading">{t("Related posts")}</h3>
+          </div>
+        </div>
+        <p>{t("Loading related posts...")}</p>
+      </section>
+    );
+  }
+
+  const related = [
+    ...lineage.direct.map((post) => ({ post, kind: "Direct relation" })),
+    ...lineage.indirect.map((post) => ({ post, kind: "Indirect relation" })),
+  ];
+
+  return (
+    <section className="popup-section related-posts-section" aria-labelledby="related-posts-heading">
+      <div className="related-posts-header">
+        <div>
+          <p className="section-eyebrow">Evidence trail</p>
+          <h3 id="related-posts-heading">{t("Related posts")}</h3>
+        </div>
+        {related.length > 0 && <span className="related-post-count">{related.length} {t("linked")}</span>}
+      </div>
+      {related.length === 0 ? (
+        <p className="popup-placeholder">{t("No linked posts have been established for this record.")}</p>
+      ) : (
+        <ul className="related-post-list" aria-label="Related posts">
+          {related.map(({ post, kind }) => (
+            <li key={`${kind}:${post.post_id}`}>
+              {onSelectPost ? (
+                <button
+                  type="button"
+                  className="related-post-card"
+                  aria-label={`Open related post: ${post.post_title}`}
+                  onClick={() => onSelectPost(post.post_id)}
+                >
+                  <span className="related-post-kind">{t(kind)}</span>
+                  <strong>{post.post_title}</strong>
+                  <span className="related-post-cta">{t("Open record")}</span>
+                </button>
+              ) : (
+                <div className="related-post-card related-post-card-static">
+                  <span className="related-post-kind">{t(kind)}</span>
+                  <strong>{post.post_title}</strong>
+                </div>
+              )}
+            </li>
+          ))}
         </ul>
       )}
-    </>
+    </section>
   );
 }
 
@@ -530,7 +607,7 @@ function VocEvidenceSection({
   const hasExcerpt = evidence.excerpts.length > 0 || assignedExcerpts.size > 0;
   return (
     <section className="popup-section">
-      <h3>VOC evidence</h3>
+      <h3>{t("VOC evidence")}</h3>
       <p className="post-meta">
         {evidence.voc_type_label} ({evidence.voc_type_code})
       </p>
@@ -834,15 +911,39 @@ function KeymanPanel({
     }
   }
 
+  const relatedPosts = related?.filter((node) => node.node_type_code === NODE_POST) ?? [];
   const relatedBlock = selectedName ? (
     <div className="related-keymen">
-      <h4>Related to {selectedName}</h4>
+      <h4>{t("Related to")} {selectedName}</h4>
       {related === null ? (
-        <p>Loading related nodes...</p>
+        <p>{t("Loading related nodes...")}</p>
       ) : related.length === 0 ? (
-        <p className="popup-placeholder">No related nodes in the visible graph.</p>
+        <p className="popup-placeholder">{t("No related nodes in the visible graph.")}</p>
       ) : (
-        <ul>
+        <>
+          {relatedPosts.length > 0 && onSelectPost ? (
+            <div className="related-posts-context">
+              <p className="section-eyebrow">{t("Evidence trail")}</p>
+              <h5>{t("Related posts")}</h5>
+              <ul className="related-post-list" aria-label={`${t("Related posts")}: ${selectedName}`}>
+                {relatedPosts.map((node) => (
+                  <li key={`context-post:${node.node_id}`}>
+                    <button
+                      type="button"
+                      className="related-post-card"
+                      aria-label={`Open related post: ${node.label ?? node.node_id}`}
+                      onClick={() => onSelectPost(node.node_id)}
+                    >
+                      <span className="related-post-kind">{t("Graph relation")}</span>
+                      <strong>{node.label ?? node.node_id}</strong>
+                      <span className="related-post-cta">{t("Open record")}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <ul>
           {related.map((node) => {
             const caption = relatedNodeCaption(node);
             const key = `${node.node_type_code}:${node.node_id}`;
@@ -851,20 +952,7 @@ function KeymanPanel({
             }
             switch (node.node_type_code) {
               case NODE_POST:
-                if (!onSelectPost) {
-                  return <li key={key}>{caption}</li>;
-                }
-                return (
-                  <li key={key}>
-                    <button
-                      className="keyman-select"
-                      aria-label={`Open related post: ${node.label ?? node.node_id}`}
-                      onClick={() => onSelectPost(node.node_id)}
-                    >
-                      {caption}
-                    </button>
-                  </li>
-                );
+                return null;
               case NODE_PERSON:
                 return (
                   <li key={key}>
@@ -912,7 +1000,8 @@ function KeymanPanel({
               }
             }
           })}
-        </ul>
+          </ul>
+        </>
       )}
     </div>
   ) : null;
@@ -921,7 +1010,7 @@ function KeymanPanel({
     <>
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>Keyman</h3>
+        <h3>{t("Keyman")}</h3>
         {canExtract && !orchestratorOff && (
           <button onClick={handleExtract} disabled={extracting}>
             {extracting ? "Extracting..." : "Extract Keymen"}
@@ -1061,7 +1150,7 @@ function EvaluationPanel({
   return (
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>Post quality (IRT)</h3>
+        <h3>{t("Post quality (IRT)")}</h3>
         {canExtract && !orchestratorOff && (
           <button onClick={handleEvaluate} disabled={evaluating}>
             {evaluating ? "Evaluating..." : "Evaluate post"}
@@ -1132,7 +1221,7 @@ function CounterpartyPanel({
   return (
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>Counterparties</h3>
+        <h3>{t("Counterparties")}</h3>
         {canExtract && hasPending && !searchOff && (
           <button onClick={handleVerify} disabled={verifying}>
             {verifying ? "Verifying..." : "Verify against web search"}
@@ -1272,7 +1361,7 @@ function IssueTicketPanel({
   return (
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>이슈 티켓 (Issue tickets)</h3>
+        <h3>{t("Issue tickets")}</h3>
         {canExtract && !orchestratorOff && (
           <button onClick={handleDeriveCommitment} disabled={deriving}>
             {deriving ? "Deriving..." : "Derive commitment"}
@@ -1360,7 +1449,7 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
   return (
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>Activity</h3>
+        <h3>{t("Activity")}</h3>
         <button onClick={reload}>Refresh</button>
       </div>
       {error && <p className="error">{error}</p>}
@@ -1500,13 +1589,13 @@ function PostDetailPopup({
             <PostBody body={post.post_body} />
 
             <section className="popup-section">
-              <h3>요약 (Summary)</h3>
+              <h3>{t("Summary")}</h3>
               {summary ? (
                 <>
                   <p>{summary.korean_summary}</p>
                   {summary.key_events.length > 0 && (
                     <>
-                      <h4>주요 이벤트 (Key events)</h4>
+                      <h4>{t("Key events")}</h4>
                       <ul>
                         {summary.key_events.map((event, i) => (
                           <li key={i}>{event}</li>
@@ -1516,7 +1605,7 @@ function PostDetailPopup({
                   )}
                   {summary.project_mentions && summary.project_mentions.length > 0 && (
                     <>
-                      <h4>Projects / semantic evidence</h4>
+                      <h4>{t("Projects / semantic evidence")}</h4>
                       <ul>
                         {summary.project_mentions.map((project) => (
                           <li key={project.project_key}>
@@ -1529,7 +1618,7 @@ function PostDetailPopup({
                   )}
                   {summary.roles_and_responsibilities.length > 0 && (
                     <>
-                      <h4>R&amp;R</h4>
+                      <h4>{t("R&R")}</h4>
                       <ul>
                         {summary.roles_and_responsibilities.map((rr, i) => {
                           const isPerson = rr.actor_type_code === "prov_person";
@@ -1626,7 +1715,7 @@ function PostDetailPopup({
                   )}
                 </>
               ) : (
-                <p className="popup-placeholder">Summary unavailable (LLM orchestrator not configured).</p>
+                <p className="popup-placeholder">No summary is available for this record yet.</p>
               )}
             </section>
 
@@ -1650,9 +1739,11 @@ function PostDetailPopup({
               }}
             />
 
+            <RelatedPostsSection lineage={lineage} onSelectPost={onSelectPost} />
+
             <section className="popup-section">
-              <h3 id="post-event-lineage" tabIndex={-1}>
-                Event Lineage
+                <h3 id="post-event-lineage" tabIndex={-1}>
+                {t("Event Lineage")}
               </h3>
               <EventLineageSection
                 lineage={lineage}
@@ -1698,7 +1789,7 @@ function PostDetailPopup({
             )}
 
             <section className="popup-section">
-              <h3>Affiliate tree</h3>
+              <h3>{t("Affiliate tree")}</h3>
               {affiliateTrees === null ? (
                 <p>Loading affiliate tree...</p>
               ) : affiliateTrees.length === 0 ? (
@@ -2191,7 +2282,7 @@ function AnalysisRunsPanel({
   return (
     <section className="popup-section lineage-home">
       <div className="lineage-home-header">
-        <h2>Analysis runs</h2>
+        <h2>{t("Analysis runs")}</h2>
         <LineageEntityPicker
           entities={corporateEntities ?? []}
           selectedEntityId={selectedEntityId}
@@ -2417,7 +2508,7 @@ function CalendarPanel({
 
   return (
     <section className="popup-section lineage-home">
-      <h2>Calendar</h2>
+      <h2>{t("Calendar")}</h2>
       {commitments.length === 0 ? (
         <p className="popup-placeholder">
           No upcoming commitments. Derive one from a post, or create a ticket with a due date.
@@ -2679,7 +2770,7 @@ function ReportsPanel({
   return (
     <section className="popup-section lineage-home">
       <div className="lineage-home-header">
-        <h2>Period reports</h2>
+        <h2>{t("Period reports")}</h2>
         {canRebuild && (
           <button onClick={handleRebuild} disabled={rebuilding}>
             {rebuilding ? "Calibrating..." : "Rebuild report"}
@@ -2787,7 +2878,17 @@ function ReportsPanel({
 
 const POST_PAGE_SIZE = 50;
 
-function PostList({ accessToken }: { accessToken: string }) {
+function PostList({
+  accessToken,
+  showLabPanels = true,
+  postIdToOpen = null,
+  onPostOpened,
+}: {
+  accessToken: string;
+  showLabPanels?: boolean;
+  postIdToOpen?: string | null;
+  onPostOpened?: () => void;
+}) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -2847,6 +2948,12 @@ function PostList({ accessToken }: { accessToken: string }) {
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
   }
+
+  useEffect(() => {
+    if (!postIdToOpen) return;
+    selectPost(postIdToOpen);
+    onPostOpened?.();
+  }, [onPostOpened, postIdToOpen]);
 
   function closeSelectedPost() {
     setSelectedPostId(null);
@@ -2913,32 +3020,37 @@ function PostList({ accessToken }: { accessToken: string }) {
 
   return (
     <>
-      <CalendarPanel accessToken={accessToken} onSelectPost={selectPost} />
-      <AnalysisRunsPanel
-        accessToken={accessToken}
-        currentReportPeriod={reportPeriod}
-        onSelectPost={selectPost}
-        onSelectReportPeriod={openReportFromAnalysisRun}
-        corporateEntities={corporateEntities}
-        entitiesLoadError={entitiesLoadError}
-      />
-      <ReportsPanel
-        accessToken={accessToken}
-        canRebuild={canRebuild}
-        onSelectPost={selectPost}
-        period={reportPeriod}
-        onSelectPeriod={selectReportPeriod}
-        grouping={reportGrouping}
-        onSelectGrouping={selectReportGrouping}
-        openedGroupingKey={openedGroupingKey}
-        openedGroupingLabel={openedGroupingLabel}
-        onOpenGrouping={openComparedGrouping}
-        landOnComparison={landOnComparison}
-        selectedPostId={selectedPostId}
-      />
+      {showLabPanels && (
+        <details className="advanced-review-tools">
+          <summary>{t("Advanced review tools")}</summary>
+          <CalendarPanel accessToken={accessToken} onSelectPost={selectPost} />
+          <AnalysisRunsPanel
+            accessToken={accessToken}
+            currentReportPeriod={reportPeriod}
+            onSelectPost={selectPost}
+            onSelectReportPeriod={openReportFromAnalysisRun}
+            corporateEntities={corporateEntities}
+            entitiesLoadError={entitiesLoadError}
+          />
+          <ReportsPanel
+            accessToken={accessToken}
+            canRebuild={canRebuild}
+            onSelectPost={selectPost}
+            period={reportPeriod}
+            onSelectPeriod={selectReportPeriod}
+            grouping={reportGrouping}
+            onSelectGrouping={selectReportGrouping}
+            openedGroupingKey={openedGroupingKey}
+            openedGroupingLabel={openedGroupingLabel}
+            onOpenGrouping={openComparedGrouping}
+            landOnComparison={landOnComparison}
+            selectedPostId={selectedPostId}
+          />
+        </details>
+      )}
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
-          <h2>Event Lineage</h2>
+          <h2>{t("Event Lineage")}</h2>
           {canRebuild && (
             <button onClick={handleRebuild} disabled={rebuilding}>
               {rebuilding ? "Rebuilding..." : "Rebuild lineage"}
@@ -2993,8 +3105,83 @@ function PostList({ accessToken }: { accessToken: string }) {
   );
 }
 
+function CustomerMasterPanel({ accessToken }: { accessToken: string }) {
+  const [entities, setEntities] = useState<CorporateEntityRef[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setEntities(null);
+    setError(null);
+    fetchMe(accessToken)
+      .then((me) => setEntities(me.corporate_entities ?? []))
+      .catch(() => setError(t("Customer master could not be loaded.")));
+  }, [accessToken]);
+
+  return (
+    <section className="buyer-destination" aria-labelledby="customer-master-heading">
+      <p className="section-eyebrow">{t("Authorized customer scope")}</p>
+      <h2 id="customer-master-heading">{t("Customer master")}</h2>
+      <p className="buyer-destination-intro">{t("Customer entities available to this account.")}</p>
+      {error ? <p className="error">{error}</p> : null}
+      {entities === null && !error ? <p>{t("Loading customer master...")}</p> : null}
+      {entities?.length === 0 ? <p className="popup-placeholder">{t("No customer entities are connected to this account.")}</p> : null}
+      {entities && entities.length > 0 ? (
+        <ul className="customer-master-list">
+          {entities.map((entity) => (
+            <li key={entity.corporate_entity_id}>
+              <strong>{entity.entity_name}</strong>
+              <span>{t("Authorized customer entity")}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
+function AskAgentPanel({ accessToken }: { accessToken: string }) {
+  const [posts, setPosts] = useState<PostSummary[] | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPosts(null);
+    setError(null);
+    fetchPosts(accessToken)
+      .then(setPosts)
+      .catch(() => setError(t("Source posts could not be loaded.")));
+  }, [accessToken]);
+
+  return (
+    <section className="buyer-destination" aria-labelledby="ask-agent-heading">
+      <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
+      <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
+      <p className="buyer-destination-intro">{t("Choose an authorized post before asking a question.")}</p>
+      {error ? <p className="error">{error}</p> : null}
+      {posts === null && !error ? <p>{t("Loading source posts...")}</p> : null}
+      {posts ? (
+        <label className="ask-agent-source">
+          <span>{t("Select a source post")}</span>
+          <select value={selectedPostId} onChange={(event) => setSelectedPostId(event.target.value)}>
+            <option value="">{t("Choose a post")}</option>
+            {posts.map((post) => (
+              <option key={post.post_id} value={post.post_id}>
+                {post.post_title}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      {selectedPostId ? <ChatPanel postId={selectedPostId} accessToken={accessToken} /> : null}
+    </section>
+  );
+}
+
 export default function App() {
+  useLocale();
   const auth = useAuth();
+  const [destination, setDestination] = useState<BuyerDestination>("board");
+  const [postToOpen, setPostToOpen] = useState<string | null>(null);
 
   if (auth.isLoading) {
     return <p>Loading authentication state...</p>;
@@ -3008,7 +3195,8 @@ export default function App() {
     return (
       <main className="centered">
         <h1>LineageWeave</h1>
-        <button onClick={() => auth.signinRedirect()}>Log in</button>
+        <LanguageSwitcher />
+        <button onClick={() => auth.signinRedirect()}>{t("Log in")}</button>
       </main>
     );
   }
@@ -3024,10 +3212,30 @@ export default function App() {
         <h1>LineageWeave</h1>
         <div>
           <span>{auth.user?.profile.preferred_username}</span>
-          <button onClick={() => auth.signoutRedirect()}>Log out</button>
+          <LanguageSwitcher />
+          <button onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
         </div>
       </header>
-      <PostList accessToken={accessToken} />
+      <BuyerNav destination={destination} onChange={setDestination} />
+      {destination === "board" ? (
+        <PostList
+          accessToken={accessToken}
+          showLabPanels
+          postIdToOpen={postToOpen}
+          onPostOpened={() => setPostToOpen(null)}
+        />
+      ) : null}
+      {destination === "customers" ? <CustomerMasterPanel accessToken={accessToken} /> : null}
+      {destination === "calendar" ? (
+        <CalendarPanel
+          accessToken={accessToken}
+          onSelectPost={(postId) => {
+            setPostToOpen(postId);
+            setDestination("board");
+          }}
+        />
+      ) : null}
+      {destination === "ask" ? <AskAgentPanel accessToken={accessToken} /> : null}
     </main>
   );
 }

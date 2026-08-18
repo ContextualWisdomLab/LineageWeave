@@ -1460,7 +1460,23 @@ describe("App, authenticated", () => {
     expect(screen.getByText(/Voice of Customer ·/)).toBeInTheDocument();
     expect(screen.getByText("Constructive stance: 2")).toBeInTheDocument();
     expect(screen.getByText("Sales-lead specificity: 3")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Related posts" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open related post: Linked post" })).toBeInTheDocument();
     expect(screen.queryByText("Not yet evaluated.")).not.toBeInTheDocument();
+  });
+
+  it("switches the product surface between supported languages", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const language = screen.getByRole("combobox", { name: "Language" });
+    await userEvent.selectOptions(language, "ko");
+    expect(screen.getByRole("heading", { name: "관련 글" })).toBeInTheDocument();
+    expect(document.documentElement.lang).toBe("ko");
+
+    await userEvent.selectOptions(language, "en");
+    expect(screen.getByRole("heading", { name: "Related posts" })).toBeInTheDocument();
   });
 
   it("rebuilds lineage when the account has post_admin", async () => {
@@ -1488,8 +1504,12 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: "R&R person: Priya Nair" })).toBeInTheDocument();
     expect(screen.getByText("당사").closest("li")).toHaveTextContent("Organization");
     expect(screen.queryByRole("button", { name: "R&R Keyman: 당사" })).not.toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText("간접")).toBeInTheDocument());
-    expect(screen.getByText("간접").closest("li")).toHaveTextContent("Linked post");
+    const relatedPosts = screen.getByRole("heading", { name: "Related posts", level: 3 }).closest(
+      ".related-posts-section",
+    );
+    expect(relatedPosts).not.toBeNull();
+    expect(within(relatedPosts as HTMLElement).getByText("Indirect relation")).toBeInTheDocument();
+    expect(relatedPosts).toHaveTextContent("Linked post");
     // The popup Event Lineage is the same A-100 reconstruct DAG as the home
     // page, not a flat list -- two SVGs (home + popup) share the fork.
     expect(screen.getAllByLabelText("A-100 lineage").length).toBeGreaterThanOrEqual(2);
@@ -1593,13 +1613,13 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: /^ask$/i }));
 
     await waitFor(() =>
-      expect(screen.getByText("Chat unavailable (LLM orchestrator not configured).")).toBeInTheDocument(),
+      expect(screen.getByText("Chat is temporarily unavailable. Saved evidence is still available.")).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/what happened/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^ask$/i })).not.toBeInTheDocument();
     expect(
-      screen.getByText("Only seeded questions can be answered without an orchestrator."),
+      screen.getByText("Interactive questions are unavailable right now; saved evidence remains available."),
     ).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /ask seeded question/i })).toHaveLength(3);
     expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument();
@@ -1617,7 +1637,7 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /evaluate post/i }));
 
     await waitFor(() =>
-      expect(screen.getByText("Evaluation unavailable (LLM orchestrator not configured).")).toBeInTheDocument(),
+      expect(screen.getByText("Evaluation is temporarily unavailable. Saved evidence is still available.")).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /evaluate post/i })).not.toBeInTheDocument();
@@ -1631,7 +1651,7 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /extract keymen/i }));
 
     await waitFor(() =>
-      expect(screen.getByText("Keyman extraction unavailable (LLM orchestrator not configured).")).toBeInTheDocument(),
+      expect(screen.getByText("Keyman extraction is temporarily unavailable. Saved evidence is still available.")).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /extract keymen/i })).not.toBeInTheDocument();
@@ -1646,7 +1666,7 @@ describe("App, authenticated", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText("Commitment derivation unavailable (LLM orchestrator not configured)."),
+        screen.getByText("Commitment derivation is temporarily unavailable. Saved evidence is still available."),
       ).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
@@ -1704,7 +1724,14 @@ describe("App, authenticated", () => {
         name: "Related nodes for Priya Nair (Counterparty)",
       }),
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Open related post: Linked post" }));
+    const relatedPosts = screen.getByRole("heading", { name: "Related posts", level: 3 }).closest(
+      ".related-posts-section",
+    );
+    await userEvent.click(
+      within(relatedPosts as HTMLElement).getByRole("button", {
+        name: "Open related post: Linked post",
+      }),
+    );
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
@@ -1718,6 +1745,12 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     expect(screen.getByText("Related to Ada West").closest(".related-keymen")).toHaveTextContent(
       "Priya Nair (Counterparty)",
+    );
+    const relatedPosts = screen.getByRole("list", { name: "Related posts: Ada West" });
+    expect(within(relatedPosts).getByRole("button", { name: "Open related post: Linked post" })).toBeInTheDocument();
+    await userEvent.click(within(relatedPosts).getByText("Linked post", { selector: "strong" }));
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
   });
 
@@ -2668,12 +2701,14 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("combobox", { name: "Corporate entity to reconstruct" })).toBeNull();
 
     fetchMock.releaseMe();
-    expect(
-      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
-    ).toBeEnabled();
-    expect(
-      await screen.findByRole("combobox", { name: "Corporate entity to reconstruct" }),
-    ).toBeInTheDocument();
+    const picker = await screen.findByRole("combobox", {
+      name: "Corporate entity to reconstruct",
+    });
+    expect(picker).toBeInTheDocument();
+    await userEvent.selectOptions(picker, "corp-demo");
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Request a lineage reconstruction" })).toBeEnabled(),
+    );
   });
 
   it("keeps Request disabled when affiliated corps fail to load", async () => {
