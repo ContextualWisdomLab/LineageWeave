@@ -40,7 +40,7 @@ import {
   type ActivityEvent,
   type AffiliateNode,
   type AnalysisRun,
-  type CalendarEntry,
+  type CalendarResponse,
   type ChatAnswer,
   type ChatExchange,
   type CorporateEntityRef,
@@ -2496,45 +2496,76 @@ function CalendarPanel({
   accessToken: string;
   onSelectPost: (postId: string) => void;
 }) {
-  const [commitments, setCommitments] = useState<CalendarEntry[] | null>(null);
+  const [calendar, setCalendar] = useState<CalendarResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCalendar(accessToken)
-      .then((r) => setCommitments(r.commitments))
+      .then(setCalendar)
       .catch((err) => setError(String(err)));
   }, [accessToken]);
 
   if (error) return <p className="error">{error}</p>;
-  if (commitments === null) return <p>Loading calendar...</p>;
+  if (calendar === null) return <p>{t("Loading calendar...")}</p>;
+
+  const events = calendar.events ?? [];
+  const commitments = calendar.commitments ?? [];
+  const caldavAvailable = calendar.calendar_sources?.caldav_available ?? false;
+  const caldavNextAction = calendar.calendar_sources?.caldav_next_action;
 
   return (
     <section className="popup-section lineage-home">
       <h2>{t("Calendar")}</h2>
-      {commitments.length === 0 ? (
-        <p className="popup-placeholder">
-          No upcoming commitments. Derive one from a post, or create a ticket with a due date.
-        </p>
-      ) : (
-        <ul className="ticket-list">
-          {commitments.map((entry) => (
-            <li key={entry.issue_ticket_id} className="ticket-list-item">
-              <button
-                className="post-list-item"
-                aria-label={`Open commitment for: ${entry.post_title}`}
-                onClick={() => onSelectPost(entry.post_id)}
-              >
-                <span className="ticket-title">{entry.commitment_summary ?? entry.ticket_title}</span>
-                <span className="post-badge">{entry.post_title}</span>
-                <span className="post-badge">
-                  {entry.ticket_status_label ?? entry.ticket_status_code}
-                </span>
-                <span className="post-badge">due {entry.due_date}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <section className="popup-section">
+        <h3>{t("CalDAV events")}</h3>
+        {events.length === 0 ? (
+          <p className="popup-placeholder">
+            {caldavAvailable
+              ? t("No CalDAV events are available.")
+              : caldavNextAction ?? t("CalDAV is not connected.")}
+          </p>
+        ) : (
+          <ul className="ticket-list">
+            {events.map((event) => (
+              <li key={event.event_id} className="ticket-list-item">
+                <div className="post-list-item">
+                  <span className="ticket-title">{event.summary}</span>
+                  <span className="post-badge">{event.starts_at}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      <section className="popup-section">
+        <h3>{t("Upcoming commitments")}</h3>
+        {commitments.length === 0 ? (
+          <p className="popup-placeholder">
+            {t("No upcoming commitments. Derive one from a post, or create a ticket with a due date.")}
+          </p>
+        ) : (
+          <ul className="ticket-list">
+            {commitments.map((entry) => (
+              <li key={entry.issue_ticket_id} className="ticket-list-item">
+                <button
+                  className="post-list-item"
+                  aria-label={`${t("Open commitment for:")} ${entry.post_title}`}
+                  onClick={() => onSelectPost(entry.post_id)}
+                >
+                  <span className="ticket-title">
+                    {entry.commitment_summary ?? entry.ticket_title}
+                  </span>
+                  <span className="post-badge">{entry.post_title}</span>
+                  <span className="post-badge">
+                    {entry.ticket_status_label ?? entry.ticket_status_code}
+                  </span>
+                  <span className="post-badge">due {entry.due_date}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </section>
   );
 }

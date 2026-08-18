@@ -63,6 +63,9 @@ class Settings:
     # unavailable transport. Never a local psychometric substitute.
     tepp_transport_url: str
     tepp_api_key: str
+    # Independent CalDAV event source for the buyer calendar. Empty keeps the
+    # source unavailable while internal commitments remain visible.
+    caldav_base_url: str
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -138,4 +141,5 @@ def load_settings() -> Settings:
         searxng_base_url=os.environ.get("SEARXNG_BASE_URL", ""),
         tepp_transport_url=os.environ.get("TEPP_TRANSPORT_URL", ""),
         tepp_api_key=os.environ.get("TEPP_API_KEY", ""),
+        caldav_base_url=os.environ.get("CALDAV_BASE_URL", "").strip(),
     )

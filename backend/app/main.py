@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
+from dataclasses import asdict
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -34,6 +35,10 @@ from pydantic import BaseModel
 from lineageweave.commitment_extraction import (
     ContextualOrchestratorCommitmentExtractionClient,
     NullCommitmentExtractionClient,
+)
+from lineageweave.caldav_client import (
+    CALDAV_UNAVAILABLE_NEXT_ACTION,
+    build_caldav_client,
 )
 from lineageweave.entity_relationship_classification import (
     ContextualOrchestratorEntityRelationshipClient,
@@ -143,6 +148,7 @@ from backend.app.post_chat_ingestion import (
 )
 from backend.app.post_summary_ingestion import fetch_persisted_summary, persist_post_summary
 from lineageweave.post_content_persistence import persist_post_content
+from lineageweave.http_client import HttpClientError
 
 _POST_READ = "post_read"
 _POST_ADMIN = "post_admin"
@@ -1598,15 +1604,34 @@ async def read_calendar(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Every dated, not-closed commitment/ticket the account may see,
-    soonest first -- the to-do/calendar surface (no Outlook sync yet;
-    this is the internal data model that a future Outlook connector
-    would read from).
+    """Return independent CalDAV events alongside authorized commitments.
+
+    An unavailable optional CalDAV source never hides the internal to-do
+    projection and never creates a synthetic event.
     """
     _require_post_read(account)
+    caldav = build_caldav_client(load_settings().caldav_base_url)
+    events = []
+    caldav_available = caldav.available
+    caldav_next_action = None
+    if caldav.available:
+        try:
+            events = [asdict(event) for event in caldav.list_events()]
+        except (HttpClientError, OSError, ValueError):
+            caldav_available = False
+            caldav_next_action = CALDAV_UNAVAILABLE_NEXT_ACTION
+    else:
+        caldav_next_action = CALDAV_UNAVAILABLE_NEXT_ACTION
     async with pool.acquire() as conn:
         commitments = await fetch_upcoming_commitments(conn)
     visible = [c for c in commitments if _can_see_post(account, c)]
     for c in visible:
         del c["visibility_code"], c["corporate_entity_id"]
-    return {"commitments": visible}
+    return {
+        "events": events,
+        "commitments": visible,
+        "calendar_sources": {
+            "caldav_available": caldav_available,
+            "caldav_next_action": caldav_next_action,
+        },
+    }

@@ -177,6 +177,21 @@ export interface CalendarEntry extends IssueTicket {
   post_title: string;
 }
 
+export interface CalDavEvent {
+  event_id: string;
+  summary: string;
+  starts_at: string;
+}
+
+export interface CalendarResponse {
+  events: CalDavEvent[];
+  commitments: CalendarEntry[];
+  calendar_sources: {
+    caldav_available: boolean;
+    caldav_next_action: string | null;
+  };
+}
+
 export interface DerivedCommitment {
   post_id: string;
   has_commitment: boolean;
@@ -571,7 +586,7 @@ export function deriveCommitment(accessToken: string, postId: string): Promise<D
   return backendFetch(`/api/posts/${postId}/derive-commitment`, accessToken, { method: "POST" });
 }
 
-export function fetchCalendar(accessToken: string): Promise<{ commitments: CalendarEntry[] }> {
+export function fetchCalendar(accessToken: string): Promise<CalendarResponse> {
   return backendFetch("/api/calendar", accessToken);
 }
 

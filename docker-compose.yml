@@ -160,6 +160,7 @@ services:
       SEARXNG_BASE_URL: http://searxng:8080
       TEPP_TRANSPORT_URL: ${TEPP_TRANSPORT_URL:-}
       TEPP_API_KEY: ${TEPP_API_KEY:-}
+      CALDAV_BASE_URL: ${CALDAV_BASE_URL:-}
     ports:
       - "${BACKEND_PORT:-18420}:8000"
     depends_on:
