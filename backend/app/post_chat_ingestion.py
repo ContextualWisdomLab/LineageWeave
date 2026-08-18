@@ -234,6 +234,46 @@ async def gather_chat_sources(
     return sources
 
 
+async def gather_global_chat_sources(
+    conn: asyncpg.Connection,
+    can_see_post: Callable[[asyncpg.Record], bool],
+    vision_client: ImageContentClient | None = None,
+    *,
+    limit: int = 50,
+) -> list[ChatSourceDocument]:
+    """Assemble a bounded, ABAC-filtered source set for Global Ask.
+
+    The source set is intentionally bounded until retrieval/reranking is
+    needed for a much larger corpus; every selected body still uses the same
+    image normalization and persisted graph evidence as post-scoped chat.
+    """
+    if vision_client is None:
+        vision_client = NullImageContentClient()
+    rows = await conn.fetch(
+        """
+        select post_id, post_title, post_body, visibility_code, corporate_entity_id
+          from source_post
+         order by created_at desc, post_id desc
+         limit $1
+        """,
+        limit,
+    )
+    visible_rows = [row for row in rows if can_see_post(row)]
+    visible_ids = [str(row["post_id"]) for row in visible_rows]
+    graph_facts = await _graph_facts_for_posts(conn, visible_ids)
+    sources: list[ChatSourceDocument] = []
+    for index, row in enumerate(visible_rows):
+        sources.append(
+            ChatSourceDocument(
+                str(row["post_id"]),
+                row["post_title"],
+                normalize_post_body(row["post_body"], vision_client=vision_client).text,
+                graph_facts=graph_facts if index == 0 else (),
+            )
+        )
+    return sources
+
+
 @dataclass(frozen=True)
 class SeededChat:
     """Synthetic Q&A for a reconstruct/calendar/demo fixture -- not an LLM."""

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
+  askAgent,
   BackendError,
   createAnalysisRun,
   startAnalysisRun,
@@ -38,6 +39,7 @@ import {
   updateTicketStatus,
   verifyPostRelations,
   type ActivityEvent,
+  type AskAgentResponse,
   type AffiliateNode,
   type AnalysisRun,
   type CalendarResponse,
@@ -3247,40 +3249,72 @@ function CustomerMasterPanel({
   );
 }
 
-function AskAgentPanel({ accessToken }: { accessToken: string }) {
-  const [posts, setPosts] = useState<PostSummary[] | null>(null);
-  const [selectedPostId, setSelectedPostId] = useState("");
+function AskAgentPanel({
+  accessToken,
+  onOpenPost,
+}: {
+  accessToken: string;
+  onOpenPost: (postId: string) => void;
+}) {
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
 
-  useEffect(() => {
-    setPosts(null);
+  async function handleAsk() {
+    const normalized = question.trim();
+    if (!normalized) return;
+    setAsking(true);
     setError(null);
-    fetchPosts(accessToken)
-      .then(setPosts)
-      .catch(() => setError(t("Source posts could not be loaded.")));
-  }, [accessToken]);
+    try {
+      setAnswer(await askAgent(accessToken, normalized));
+    } catch (err) {
+      setAnswer(null);
+      setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
+    } finally {
+      setAsking(false);
+    }
+  }
 
   return (
     <section className="buyer-destination" aria-labelledby="ask-agent-heading">
       <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
       <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
-      <p className="buyer-destination-intro">{t("Choose an authorized post before asking a question.")}</p>
+      <p className="buyer-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
       {error ? <p className="error">{error}</p> : null}
-      {posts === null && !error ? <p>{t("Loading source posts...")}</p> : null}
-      {posts ? (
-        <label className="ask-agent-source">
-          <span>{t("Select a source post")}</span>
-          <select value={selectedPostId} onChange={(event) => setSelectedPostId(event.target.value)}>
-            <option value="">{t("Choose a post")}</option>
-            {posts.map((post) => (
-              <option key={post.post_id} value={post.post_id}>
-                {post.post_title}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
-      {selectedPostId ? <ChatPanel postId={selectedPostId} accessToken={accessToken} /> : null}
+      <label className="ask-agent-source">
+        <span>{t("Ask a question")}</span>
+        <textarea
+          aria-label={t("Ask a question")}
+          value={question}
+          onChange={(event) => setQuestion(event.target.value)}
+          rows={4}
+        />
+      </label>
+      <button className="keyman-select" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
+        {asking ? t("Asking...") : t("Ask")}
+      </button>
+      {answer && (
+        <section className="popup-section" aria-label={t("Answer")}>
+          <h3>{t("Answer")}</h3>
+          {answer.answer_text ? <p>{answer.answer_text}</p> : null}
+          {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
+          {answer.cited_posts && answer.cited_posts.length > 0 && (
+            <>
+              <h4>{t("Cited posts")}</h4>
+              <ul className="related-post-list">
+                {answer.cited_posts.map((post) => (
+                  <li key={post.post_id}>
+                    <button className="post-list-item" onClick={() => onOpenPost(post.post_id)}>
+                      <strong>{post.post_title}</strong>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+      )}
     </section>
   );
 }
@@ -3351,7 +3385,15 @@ export default function App() {
           }}
         />
       ) : null}
-      {destination === "ask" ? <AskAgentPanel accessToken={accessToken} /> : null}
+      {destination === "ask" ? (
+        <AskAgentPanel
+          accessToken={accessToken}
+          onOpenPost={(postId) => {
+            setPostToOpen(postId);
+            setDestination("board");
+          }}
+        />
+      ) : null}
     </main>
   );
 }

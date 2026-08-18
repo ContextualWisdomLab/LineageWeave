@@ -144,6 +144,7 @@ from backend.app.post_chat_ingestion import (
     fetch_persisted_chats,
     find_linked_post_ids,
     gather_chat_sources,
+    gather_global_chat_sources,
     persist_post_chat,
 )
 from backend.app.post_summary_ingestion import fetch_persisted_summary, persist_post_summary
@@ -1170,6 +1171,12 @@ class ChatRequest(BaseModel):
     question: str
 
 
+class GlobalAskRequest(BaseModel):
+    """JSON body for the buyer's source-grounded Global Ask Agent."""
+
+    question: str
+
+
 @app.get("/api/posts/{post_id}/chat")
 async def read_post_chat(
     post_id: str,
@@ -1236,6 +1243,53 @@ async def chat_about_post(
         await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
     return {
         "post_id": post_id,
+        "answer_text": answer.answer_text,
+        "cited_post_ids": cited_ids,
+        "cited_posts": cited_post_summaries(sources, cited_ids),
+        "source_post_ids": [source.post_id for source in sources],
+    }
+
+
+@app.post("/api/ask")
+async def ask_agent(
+    request: GlobalAskRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Answer a buyer question from authorized post and graph evidence."""
+    question = request.question.strip()
+    if not question:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
+    _require_post_read(account)
+    client = _post_chat_client()
+    if not client.available:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+        )
+    async with pool.acquire() as conn:
+        sources = await gather_global_chat_sources(
+            conn,
+            lambda row: _can_see_post(account, row),
+            vision_client=_vision_client(),
+        )
+    if not sources:
+        return {
+            "answer_text": "",
+            "cited_post_ids": [],
+            "cited_posts": [],
+            "source_post_ids": [],
+            "next_action": "No authorized source posts are available for this question.",
+        }
+    try:
+        answer = await asyncio.to_thread(client.answer, question, sources)
+    except (HttpClientError, KeyError, OSError, ValueError) as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            f"Ask Agent is unavailable: {exc}",
+        ) from exc
+    cited_ids = list(answer.cited_post_ids)
+    return {
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
         "cited_posts": cited_post_summaries(sources, cited_ids),

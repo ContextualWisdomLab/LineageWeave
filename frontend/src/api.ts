@@ -160,6 +160,14 @@ export interface ChatHistory {
   exchanges: ChatExchange[];
 }
 
+export interface AskAgentResponse {
+  answer_text: string;
+  cited_post_ids: string[];
+  cited_posts?: CitedPostRef[];
+  source_post_ids: string[];
+  next_action?: string;
+}
+
 export interface IssueTicket {
   issue_ticket_id: string;
   post_id: string;
@@ -538,6 +546,13 @@ export function fetchPostChat(accessToken: string, postId: string): Promise<Chat
 
 export function askPostChat(accessToken: string, postId: string, question: string): Promise<ChatAnswer> {
   return backendFetch(`/api/posts/${postId}/chat`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({ question }),
+  });
+}
+
+export function askAgent(accessToken: string, question: string): Promise<AskAgentResponse> {
+  return backendFetch("/api/ask", accessToken, {
     method: "POST",
     body: JSON.stringify({ question }),
   });
