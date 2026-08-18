@@ -1771,7 +1771,6 @@ function PostList({ accessToken }: { accessToken: string }) {
     <>
       <RankingsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <ConversationsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <ConversationsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
       <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
       <section className="popup-section lineage-home">

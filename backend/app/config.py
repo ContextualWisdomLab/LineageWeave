@@ -89,6 +89,9 @@ def load_settings() -> Settings:
         valkey_url=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
         searxng_base_url=os.environ.get("SEARXNG_BASE_URL", ""),
         rankweave_disabled=os.environ.get("RANKWEAVE_DISABLED", "")
+        .strip()
+        .lower()
+        in {"1", "true", "yes", "on"},
         threadweave_disabled=os.environ.get("THREADWEAVE_DISABLED", "")
         .strip()
         .lower()
