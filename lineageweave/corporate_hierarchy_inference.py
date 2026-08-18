@@ -88,6 +88,7 @@ class NullCorporateHierarchyInferenceClient:
     available = False
 
     def infer(self, organization_name: str, context_text: str) -> HierarchyProposal | None:
+        """Infer a corporate hierarchy proposal from the supplied context."""
         raise RuntimeError(
             "NullCorporateHierarchyInferenceClient cannot infer; check .available first"
         )
@@ -156,6 +157,7 @@ class ContextualOrchestratorHierarchyInferenceClient:
         self._timeout = timeout
 
     def infer(self, organization_name: str, context_text: str) -> HierarchyProposal | None:
+        """Infer a corporate hierarchy proposal from the supplied context."""
         prompt = _INFERENCE_PROMPT_TEMPLATE.format(
             organization_name=organization_name, context=context_text
         )

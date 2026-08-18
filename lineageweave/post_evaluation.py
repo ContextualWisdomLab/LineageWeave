@@ -72,6 +72,7 @@ class NullPostEvaluationClient:
     available = False
 
     def evaluate(self, post_title: str, post_body: str) -> LLMJudgeResult:  # pragma: no cover
+        """Evaluate the post with the configured adjudication channel."""
         raise RuntimeError("NullPostEvaluationClient has no judge channel; check .available first")
 
 
@@ -86,6 +87,7 @@ class _OrchestratorCompleteAdapter:
         self._timeout = timeout
 
     def complete(self, messages: list[dict[str, Any]], mode: str = "auto") -> dict[str, Any]:
+        """Complete the configured gateway request and return its response."""
         body = post_json(
             f"{self._base_url}/v1/chat/completions",
             {
@@ -116,6 +118,7 @@ class ContextualOrchestratorPostEvaluationClient:
         )
 
     def evaluate(self, post_title: str, post_body: str) -> LLMJudgeResult:
+        """Evaluate the post with the configured adjudication channel."""
         return self._judge.judge(
             task="Score this customer-facing business post against the rubric.",
             answer=f"Title: {post_title}\n\n{post_body}",

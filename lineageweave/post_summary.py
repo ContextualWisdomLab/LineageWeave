@@ -146,11 +146,13 @@ class NullPostSummaryClient:
     available = False
 
     def summarize(self, post_title: str, post_body: str) -> PostSummary:
+        """Summarize the post and extract its supported semantic signals."""
         raise RuntimeError("NullPostSummaryClient cannot summarize; check .available first")
 
     def summarize_with_hints(
         self, post_title: str, post_body: str, context_hints: str
     ) -> PostSummary:
+        """Summarize the post while using contextual hints as non-authoritative priors."""
         raise RuntimeError("NullPostSummaryClient cannot summarize; check .available first")
 
 
@@ -215,6 +217,7 @@ _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 
 
 def _strip_code_fence(content: str) -> str:
+    """Implement the _strip_code_fence operation for this channel."""
     match = _CODE_FENCE_PATTERN.search(content)
     return match.group(1) if match else content
 
@@ -331,11 +334,13 @@ class ContextualOrchestratorPostSummaryClient:
         self._timeout = timeout
 
     def summarize(self, post_title: str, post_body: str) -> PostSummary:
+        """Summarize the post and extract its supported semantic signals."""
         return self.summarize_with_hints(post_title, post_body, "")
 
     def summarize_with_hints(
         self, post_title: str, post_body: str, context_hints: str
     ) -> PostSummary:
+        """Summarize the post while using contextual hints as non-authoritative priors."""
         prompt = _SUMMARY_PROMPT_TEMPLATE.format(
             title=post_title,
             body=post_body,

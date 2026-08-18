@@ -190,6 +190,7 @@ class _BlockTextExtractor(HTMLParser):
         self._finished: list[tuple[str, object, str, str | None]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        """Collect relevant text state when an HTML start tag is encountered."""
         if tag == "img":
             src = next((value for name, value in attrs if name == "src" and value), None)
             if src:
@@ -202,6 +203,7 @@ class _BlockTextExtractor(HTMLParser):
             self._stack.append((tag, [], style))
 
     def handle_endtag(self, tag: str) -> None:
+        """Close the relevant text state when an HTML end tag is encountered."""
         if tag in _DOM_BLOCK_TAGS and self._stack:
             tag_name, buffer, style = self._stack.pop()
             text = " ".join(buffer).strip()
@@ -209,11 +211,13 @@ class _BlockTextExtractor(HTMLParser):
                 self._finished.append(("text", text, tag_name, style))
 
     def handle_data(self, data: str) -> None:
+        """Collect character data from the current HTML text region."""
         text = data.strip()
         if text and self._stack:
             self._stack[-1][1].append(text)
 
     def finished(self) -> list[tuple[str, object, str, str | None]]:
+        """Return the normalized records collected from the HTML fragment."""
         return self._finished
 
 

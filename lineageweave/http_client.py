@@ -37,6 +37,7 @@ def _request(
     headers: dict[str, str],
     timeout: float,
 ) -> tuple[int, bytes]:
+    """Implement the _request operation for this channel."""
     parsed = urlparse(url)
     if parsed.scheme not in _ALLOWED_SCHEMES:
         raise ValueError(f"refusing non-http(s) URL scheme: {parsed.scheme!r}")
@@ -73,6 +74,7 @@ def _request(
 
 
 def _decode_json(raw: bytes, hostname: str) -> object:
+    """Implement the _decode_json operation for this channel."""
     try:
         return json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -80,6 +82,7 @@ def _decode_json(raw: bytes, hostname: str) -> object:
 
 
 def _decode_json_object(raw: bytes, hostname: str) -> dict:
+    """Implement the _decode_json_object operation for this channel."""
     decoded = _decode_json(raw, hostname)
     if not isinstance(decoded, dict):
         raise HttpClientError(f"JSON object expected from {hostname}")
@@ -87,6 +90,7 @@ def _decode_json_object(raw: bytes, hostname: str) -> dict:
 
 
 def _decode_json_list(raw: bytes, hostname: str) -> list:
+    """Implement the _decode_json_list operation for this channel."""
     decoded = _decode_json(raw, hostname)
     if not isinstance(decoded, list):
         raise HttpClientError(f"JSON array expected from {hostname}")

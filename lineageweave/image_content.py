@@ -117,6 +117,7 @@ class NullImageContentClient:
     available = False
 
     def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:  # pragma: no cover
+        """Describe the supplied image through the configured vision channel."""
         raise RuntimeError("NullImageContentClient has no image channel; check .available first")
 
 
@@ -166,6 +167,7 @@ def _strip_outer_markdown_emphasis(value: str) -> str:
 
 
 def _parse_description(content: str) -> ImageDescription:
+    """Implement the _parse_description operation for this channel."""
     fields: dict[str, list[str]] = {"TEXT": [], "CAPTION": [], "TAGS": []}
     multiline_field: str | None = None
     for line in content.splitlines():
@@ -238,6 +240,7 @@ class OpenAiCompatibleVisionClient:
         self._timeout = timeout
 
     def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
+        """Describe the supplied image through the configured vision channel."""
         from .vision_image import normalize_vision_image
 
         image_bytes, mime_type = normalize_vision_image(image_bytes, mime_type)

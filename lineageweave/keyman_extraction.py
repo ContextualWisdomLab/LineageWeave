@@ -78,11 +78,13 @@ class NullKeymanExtractionClient:
     available = False
 
     def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
+        """Extract the structured signal supported by the post content."""
         raise RuntimeError("NullKeymanExtractionClient cannot extract; check .available first")
 
     def extract_with_hints(
         self, post_title: str, post_body: str, context_hints: str
     ) -> list[PersonMention]:
+        """Implement the extract_with_hints operation for this channel."""
         raise RuntimeError("NullKeymanExtractionClient cannot extract; check .available first")
 
 
@@ -124,6 +126,7 @@ _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 
 
 def _strip_code_fence(content: str) -> str:
+    """Implement the _strip_code_fence operation for this channel."""
     match = _CODE_FENCE_PATTERN.search(content)
     return match.group(1) if match else content
 
@@ -184,11 +187,13 @@ class ContextualOrchestratorKeymanExtractionClient:
         self._timeout = timeout
 
     def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
+        """Extract the structured signal supported by the post content."""
         return self.extract_with_hints(post_title, post_body, "")
 
     def extract_with_hints(
         self, post_title: str, post_body: str, context_hints: str
     ) -> list[PersonMention]:
+        """Implement the extract_with_hints operation for this channel."""
         prompt = _EXTRACTION_PROMPT_TEMPLATE.format(
             title=post_title,
             body=post_body,

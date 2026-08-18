@@ -224,6 +224,7 @@ def observed_response_loglik(matrix: np.ndarray, probs: np.ndarray) -> float:
 
 
 def _member_scores(post_ids: list[str], scores: dict[str, np.ndarray]) -> tuple[MemberScore, ...]:
+    """Implement the _member_scores operation for this channel."""
     theta = np.asarray(scores["theta_eap"], dtype=np.float64)
     theta_sd = np.asarray(scores["theta_sd"], dtype=np.float64)
     return tuple(
@@ -233,6 +234,7 @@ def _member_scores(post_ids: list[str], scores: dict[str, np.ndarray]) -> tuple[
 
 
 def _category_probabilities(model: str, theta: np.ndarray, fit: PolytomousFit) -> np.ndarray:
+    """Implement the _category_probabilities operation for this channel."""
     if model == "grm":
         return grm_category_probabilities(theta, fit.slope, fit.cat_params)
     return gpcm_category_probabilities(theta, fit.slope, fit.cat_params)

@@ -108,6 +108,7 @@ class NullRelationVerificationClient:
     available = False
 
     def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:  # pragma: no cover
+        """Verify whether the relationship has supporting external evidence."""
         raise RuntimeError(
             "NullRelationVerificationClient has no search channel; check .available first"
         )
@@ -138,6 +139,7 @@ class SearxngRelationVerificationClient:
         self._timeout = timeout
 
     def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:
+        """Verify whether the relationship has supporting external evidence."""
         query = f"{organization_name} {relationship_label}"
         body = get_json(
             f"{self._base_url}/search?q={quote(query, safe='')}&format=json",

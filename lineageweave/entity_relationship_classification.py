@@ -81,6 +81,7 @@ class NullEntityRelationshipClient:
     def classify(
         self, post_title: str, post_body: str, organization_names: list[str]
     ) -> list[OrganizationRelationship]:
+        """Classify the relationship expressed by the supplied context."""
         raise RuntimeError(
             "NullEntityRelationshipClient cannot classify; check .available first"
         )
@@ -119,6 +120,7 @@ _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 
 
 def _strip_code_fence(content: str) -> str:
+    """Implement the _strip_code_fence operation for this channel."""
     match = _CODE_FENCE_PATTERN.search(content)
     return match.group(1) if match else content
 
@@ -172,6 +174,7 @@ class ContextualOrchestratorEntityRelationshipClient:
     def classify(
         self, post_title: str, post_body: str, organization_names: list[str]
     ) -> list[OrganizationRelationship]:
+        """Classify the relationship expressed by the supplied context."""
         if not organization_names:
             return []
         prompt = _CLASSIFICATION_PROMPT_TEMPLATE.format(

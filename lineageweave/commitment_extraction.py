@@ -65,6 +65,7 @@ class NullCommitmentExtractionClient:
     available = False
 
     def extract(self, post_title: str, post_body: str, reference_date: str) -> CustomerCommitment:
+        """Extract the structured signal supported by the post content."""
         raise RuntimeError("NullCommitmentExtractionClient cannot extract; check .available first")
 
 
@@ -98,6 +99,7 @@ _ISO_DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def _strip_code_fence(content: str) -> str:
+    """Implement the _strip_code_fence operation for this channel."""
     match = _CODE_FENCE_PATTERN.search(content)
     return match.group(1) if match else content
 
@@ -149,6 +151,7 @@ class ContextualOrchestratorCommitmentExtractionClient:
         self._timeout = timeout
 
     def extract(self, post_title: str, post_body: str, reference_date: str) -> CustomerCommitment:
+        """Extract the structured signal supported by the post content."""
         prompt = _COMMITMENT_PROMPT_TEMPLATE.format(
             reference_date=reference_date, title=post_title, body=post_body
         )

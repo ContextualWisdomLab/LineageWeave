@@ -83,6 +83,7 @@ class NullOrganizationNameResolutionClient:
     available = False
 
     def resolve(self, raw_name: str, context_text: str) -> str | None:
+        """Resolve the raw organization name against the available evidence."""
         raise RuntimeError(
             "NullOrganizationNameResolutionClient cannot resolve; check .available first"
         )
@@ -137,6 +138,7 @@ class ContextualOrchestratorOrganizationNameResolutionClient:
         self._timeout = timeout
 
     def resolve(self, raw_name: str, context_text: str) -> str | None:
+        """Resolve the raw organization name against the available evidence."""
         prompt = _RESOLUTION_PROMPT_TEMPLATE.format(raw_name=raw_name, context=context_text)
         body = post_json(
             f"{self._base_url}/v1/chat/completions",

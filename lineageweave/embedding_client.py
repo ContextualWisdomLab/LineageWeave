@@ -23,7 +23,9 @@ class EmbeddingClient(Protocol):
 
     available: bool
 
-    def embed(self, text: str) -> list[float]: ...
+    def embed(self, text: str) -> list[float]:
+        """Return an embedding for the supplied text."""
+        ...
 
 
 class NullEmbeddingClient:
@@ -32,6 +34,7 @@ class NullEmbeddingClient:
     available = False
 
     def embed(self, text: str) -> list[float]:  # pragma: no cover
+        """Return an embedding for the supplied text."""
         raise RuntimeError("NullEmbeddingClient has no embedding channel; check .available first")
 
 
@@ -46,6 +49,7 @@ class OpenAiCompatibleEmbeddingClient:
         )
 
     def embed(self, text: str) -> list[float]:
+        """Return an embedding for the supplied text."""
         return self._delegate.embed(text)
 
 
@@ -72,9 +76,11 @@ class ContextualOrchestratorEmbeddingClient:
         self._poll_interval = poll_interval
 
     def embed(self, text: str) -> list[float]:
+        """Return an embedding for the supplied text."""
         return self.embed_many([text])[0]
 
     def embed_many(self, texts: list[str]) -> list[list[float]]:
+        """Return embeddings for the supplied texts."""
         if not texts:
             return []
         headers = {"authorization": f"Bearer {self._api_key}"}
@@ -114,6 +120,7 @@ class ContextualOrchestratorEmbeddingClient:
 
     @staticmethod
     def _vectors(response: dict, expected_count: int) -> list[list[float]] | None:
+        """Implement the _vectors operation for this channel."""
         raw_vectors = response.get("embeddings")
         if not isinstance(raw_vectors, list) or len(raw_vectors) != expected_count:
             return None

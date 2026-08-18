@@ -23,7 +23,9 @@ class AdjudicationClient(Protocol):
 
     available: bool
 
-    def judge(self, candidate_label: str, record_label: str) -> float: ...
+    def judge(self, candidate_label: str, record_label: str) -> float:
+        """Score the candidate and record labels for semantic adjudication."""
+        ...
 
 
 class NullAdjudicationClient:
@@ -32,6 +34,7 @@ class NullAdjudicationClient:
     available = False
 
     def judge(self, candidate_label: str, record_label: str) -> float:  # pragma: no cover
+        """Score the candidate and record labels for semantic adjudication."""
         raise RuntimeError("NullAdjudicationClient has no llm channel; check .available first")
 
 
@@ -58,6 +61,7 @@ class ContextualOrchestratorAdjudicationClient:
         self._timeout = timeout
 
     def judge(self, candidate_label: str, record_label: str) -> float:
+        """Score the candidate and record labels for semantic adjudication."""
         prompt = (
             "On a scale from 0.0 (definitely unrelated) to 1.0 (definitely the same "
             "thread, B directly follows from A), how confident are you that record B "

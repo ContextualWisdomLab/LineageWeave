@@ -113,6 +113,7 @@ class NullPostChatClient:
     available = False
 
     def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:
+        """Answer the question using the supplied source documents."""
         raise RuntimeError("NullPostChatClient cannot answer; check .available first")
 
 
@@ -139,11 +140,13 @@ _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 
 
 def _strip_code_fence(content: str) -> str:
+    """Implement the _strip_code_fence operation for this channel."""
     match = _CODE_FENCE_PATTERN.search(content)
     return match.group(1) if match else content
 
 
 def _render_sources_block(sources: list[ChatSourceDocument]) -> str:
+    """Implement the _render_sources_block operation for this channel."""
     blocks: list[str] = []
     for i, source in enumerate(sources, start=1):
         graph_block = ""
@@ -211,6 +214,7 @@ class ContextualOrchestratorPostChatClient:
         self._timeout = timeout
 
     def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:
+        """Answer the question using the supplied source documents."""
         prompt = _CHAT_PROMPT_TEMPLATE.format(
             sources_block=_render_sources_block(sources), question=question
         )
