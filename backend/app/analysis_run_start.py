@@ -507,7 +507,7 @@ async def enqueue_pending_analysis_run(
             "or TEPP measurement.",
         )
 
-    now = datetime.now(timezone.utc)
+    now = await conn.fetchval("select clock_timestamp()")
     digest = outbox_request_digest(
         analysis_run_id=str(locked["analysis_run_id"]),
         work_kind_code=str(locked["run_kind_code"]),
@@ -708,13 +708,12 @@ async def _deliver_lineage_reconstruction(
     await conn.execute(
         """
         insert into analysis_run_reconstruction
-            (analysis_run_id, result_sha256, edge_count, reconstructed_at)
-        values ($1, $2, $3, $4)
+            (analysis_run_id, result_sha256, edge_count, reconstructed_at, recorded_at)
+        values ($1, $2, $3, clock_timestamp(), clock_timestamp())
         """,
         analysis_run_id,
         digest,
         len(edges),
-        finished,
     )
     for edge in edges:
         await conn.execute(

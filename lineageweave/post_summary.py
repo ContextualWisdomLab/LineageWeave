@@ -245,11 +245,19 @@ Post body: {body}
 """
 
 _DETAILS_REQUEST_PROMPT_TEMPLATE = """\
-Return JSON immediately, with no analysis, markdown, or prose. Use only the
-post evidence below. Return exactly two string arrays: roles and projects.
-Each roles item: actor | responsibility | person or organization or team | affiliation or NONE
-Each projects item: name | canonical name | shortest evidence phrase | confidence from 0 to 1
-Use empty arrays when unsupported. Do not invent actors or projects.
+Use only the post evidence below. Do not output analysis or markdown.
+Write exactly these two section markers, each on its own line:
+
+ROLES:
+actor | responsibility | person, organization, or team | affiliation or NONE
+
+PROJECTS:
+project name | canonical name | shortest supporting evidence | confidence from 0 to 1
+
+Use NONE on the line after a marker when the evidence supports no item. Keep
+each row short. Do not invent actors, projects, affiliations, or confidence.
+Treat structured context hints as weak priors, not facts. A customer value
+such as 기타, 미등록고객, unknown, or other cannot confirm a project by itself.
 Post title: {title}
 Post body: {body}
 Context hints: {context_hints}
@@ -276,6 +284,94 @@ def _parse_plain_summary_response(content: str) -> tuple[str, tuple[str, ...]] |
         if event.strip(" -*\t") and event.strip(" -*\t").upper() != "NONE"
     )
     return (summary, events) if summary else None
+
+
+def _parse_plain_summary_details(
+    content: str,
+    *,
+    post_title: str = "",
+) -> tuple[tuple[RoleResponsibility, ...], tuple[ProjectMention, ...]] | None:
+    """Parse the compact semantic extraction contract without nested JSON."""
+    plain = _strip_code_fence(content).strip()
+    markers = list(re.finditer(r"(?im)^\s*(ROLES|PROJECTS)\s*:\s*(.*)$", plain))
+    if not markers:
+        return None
+
+    sections: dict[str, str] = {}
+    for index, marker in enumerate(markers):
+        end = markers[index + 1].start() if index + 1 < len(markers) else len(plain)
+        inline = marker.group(2).strip()
+        body = plain[marker.end() : end].strip()
+        sections[marker.group(1).upper()] = "\n".join(part for part in (inline, body) if part)
+    if "ROLES" not in sections or "PROJECTS" not in sections:
+        return None
+
+    empty_values = frozenset({"", "none", "null", "n/a", "unknown", "없음", "미상"})
+    roles: list[RoleResponsibility] = []
+    for raw_row in sections["ROLES"].splitlines():
+        row = raw_row.strip().lstrip("-* ").strip()
+        if not row or row.casefold() in empty_values:
+            continue
+        parts = [part.strip() for part in row.split("|", 3)]
+        if len(parts) == 3:
+            actor_name, responsibility, affiliation = parts
+            actor_type = "person"
+        elif len(parts) == 4:
+            actor_name, responsibility, actor_type, affiliation = parts
+        else:
+            continue
+        actor_type_code = {
+            "person": ACTOR_TYPE_PERSON,
+            "organization": ACTOR_TYPE_ORGANIZATION,
+            "team": ACTOR_TYPE_TEAM,
+            ACTOR_TYPE_PERSON: ACTOR_TYPE_PERSON,
+            ACTOR_TYPE_ORGANIZATION: ACTOR_TYPE_ORGANIZATION,
+            ACTOR_TYPE_TEAM: ACTOR_TYPE_TEAM,
+        }.get(actor_type.casefold())
+        if not actor_type_code or not actor_name or not responsibility:
+            continue
+        roles.append(
+            RoleResponsibility(
+                actor_name=actor_name,
+                responsibility=responsibility,
+                actor_type_code=actor_type_code,
+                affiliated_organization_name=(
+                    None if affiliation.casefold() in empty_values else affiliation
+                ),
+            )
+        )
+
+    projects: list[ProjectMention] = []
+    for raw_row in sections["PROJECTS"].splitlines():
+        row = raw_row.strip().lstrip("-* ").strip()
+        if not row or row.casefold() in empty_values:
+            continue
+        parts = [part.strip() for part in row.split("|", 3)]
+        if len(parts) == 3:
+            project_name, evidence, confidence_raw = parts
+            canonical_name = normalize_project_key(project_name)
+        elif len(parts) == 4:
+            project_name, canonical_name, evidence, confidence_raw = parts
+        else:
+            continue
+        if evidence.casefold() in empty_values:
+            title = post_title.strip()
+            if not title or project_name.casefold() not in title.casefold():
+                continue
+            evidence = title
+        try:
+            confidence = float(confidence_raw)
+            projects.append(
+                ProjectMention(
+                    project_name=project_name,
+                    canonical_name=canonical_name,
+                    evidence=evidence,
+                    confidence=confidence,
+                )
+            )
+        except (TypeError, ValueError):
+            continue
+    return tuple(roles), tuple(projects)
 
 
 def parse_summary_response(content: str) -> PostSummary | None:
@@ -458,7 +554,7 @@ def _parse_summary_details(
 
 
 class ContextualOrchestratorPostSummaryClient:
-    """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="auto"``."""
+    """Derive summary and semantic evidence through two ``mode="route"`` calls."""
 
     available = True
 
@@ -498,7 +594,38 @@ class ContextualOrchestratorPostSummaryClient:
         if parsed is None:
             raise ValueError(f"summary response did not match the required format: {content!r}")
         korean_summary, key_events = parsed
+        details_body = post_json(
+            f"{self._base_url}/v1/chat/completions",
+            {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": _DETAILS_REQUEST_PROMPT_TEMPLATE.format(
+                            title=post_title,
+                            body=post_body,
+                            context_hints=context_hints.strip() or "none available",
+                        ),
+                    }
+                ],
+                "mode": "route",
+                "reasoning_effort": self._reasoning_effort,
+            },
+            headers={"authorization": f"Bearer {self._api_key}"},
+            timeout=self._timeout,
+        )
+        details = _parse_plain_summary_details(
+            details_body["choices"][0]["message"]["content"],
+            post_title=post_title,
+        )
+        if details is None:
+            raise ValueError(
+                "summary semantic response did not match the required format: "
+                f"{details_body['choices'][0]['message']['content']!r}"
+            )
+        roles, projects = details
         return PostSummary(
             korean_summary=korean_summary,
             key_events=key_events,
+            roles_and_responsibilities=roles,
+            project_mentions=projects,
         )

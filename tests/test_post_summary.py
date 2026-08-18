@@ -26,6 +26,7 @@ from lineageweave.post_summary import (
     ContextualOrchestratorPostSummaryClient,
     NullPostSummaryClient,
     RoleResponsibility,
+    _parse_plain_summary_details,
     parse_summary_response,
 )
 
@@ -170,11 +171,22 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
 
     def fake_post_json(url, payload, *, headers, timeout):
         observed.append(payload)
+        prompt = payload["messages"][0]["content"]
+        if "ROLES:" in prompt:
+            content = (
+                "ROLES:\n"
+                "Jordan Hale | 입찰 일정 안내 | Westfield Power\n"
+                "PROJECTS:\n"
+                "HVDC pilot | pilot bid workshop | 0.9\n"
+                "Unsupported project | NONE | 1"
+            )
+        else:
+            content = "본문 근거 요약\n\nKEY EVENTS: 후속 확인"
         return {
             "choices": [
                 {
                     "message": {
-                        "content": "본문 근거 요약\n\nKEY EVENTS: 후속 확인"
+                        "content": content
                     }
                 }
             ]
@@ -187,9 +199,26 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
 
     assert summary.korean_summary == "본문 근거 요약"
     assert summary.key_events == ("후속 확인",)
-    assert len(observed) == 1
-    assert observed[0]["mode"] == "route"
+    assert len(observed) == 2
+    assert all(payload["mode"] == "route" for payload in observed)
     assert "KEY EVENTS" in observed[0]["messages"][0]["content"]
+    assert summary.roles_and_responsibilities[0].actor_name == "Jordan Hale"
+    assert summary.project_mentions[0].canonical_name == "hvdc-pilot"
+
+
+def test_title_match_can_supply_explicit_project_evidence_but_not_a_guess() -> None:
+    details = _parse_plain_summary_details(
+        "ROLES:\nNONE\nPROJECTS:\nNorthridge transformer bid | NONE | 1",
+        post_title="Follow-up after the Northridge transformer bid workshop",
+    )
+    assert details is not None
+    assert details[1][0].evidence == "Follow-up after the Northridge transformer bid workshop"
+
+    unrelated = _parse_plain_summary_details(
+        "ROLES:\nNONE\nPROJECTS:\nUnrelated project | NONE | 1",
+        post_title="Follow-up after the Northridge transformer bid workshop",
+    )
+    assert unrelated == ((), ())
 
 
 _ORCHESTRATOR_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL")

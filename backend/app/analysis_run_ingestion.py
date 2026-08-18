@@ -742,12 +742,12 @@ async def create_pending_analysis_run(
             "Request a corporate-entity run. Other scopes are not available yet.",
         )
     cutoff_explicit = knowledge_cutoff is not None
+    database_now = await conn.fetchval("select clock_timestamp()")
     if knowledge_cutoff is None:
-        knowledge_cutoff = datetime.now(timezone.utc)
+        knowledge_cutoff = database_now
     elif knowledge_cutoff.tzinfo is None:
         knowledge_cutoff = knowledge_cutoff.replace(tzinfo=timezone.utc)
-    now = datetime.now(timezone.utc)
-    if knowledge_cutoff > now:
+    if knowledge_cutoff > database_now:
         raise AnalysisRunCreateError(
             422,
             "Choose a knowledge cutoff at or before now, then request the run again.",
