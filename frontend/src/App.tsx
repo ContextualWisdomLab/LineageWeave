@@ -103,7 +103,7 @@ function LanguageSwitcher() {
 
 function searchUnavailableMessage(err: unknown): string {
   if (err instanceof BackendError && err.status === 503) {
-    return "Verification unavailable (search is not configured).";
+    return t("Verification unavailable (search is not configured).");
   }
   return String(err);
 }
@@ -421,7 +421,7 @@ function EventLineageSection({
       <p className="lineage-empty">
         {hasLinks
           ? "The linked records are listed above. The graph is not available for this view."
-          : "No linked posts yet."}
+          : t("No linked posts yet.")}
       </p>
     );
   }
@@ -711,7 +711,7 @@ function VerificationBadge({
   evidenceUrl?: string | null;
   ariaLabel: string;
 }) {
-  const label = VERIFICATION_BADGE[statusCode] ?? statusCode;
+  const label = t(VERIFICATION_BADGE[statusCode] ?? statusCode);
   const className = `verification-badge verification-${statusCode}`;
   const href = safeHttpUrl(evidenceUrl);
   if (href) {
@@ -1088,7 +1088,7 @@ function KeymanPanel({
       ) : null}
       {afterList && landFirstRelated && landedRelatedName ? (
         <div className="related-keymen">
-          <h4>Related to {landedRelatedName}</h4>
+          <h4>{t("Related to")} {landedRelatedName}</h4>
           {landedRelated === null ? (
             <p>{t("Loading related nodes...")}</p>
           ) : landedRelated.length === 0 ? (
@@ -1291,7 +1291,7 @@ function ticketStatusLabel(code: string, ticket: IssueTicket): string {
   if (ticket.ticket_status_code === code && ticket.ticket_status_label) {
     return ticket.ticket_status_label;
   }
-  return TICKET_STATUS_OPTIONS.find((row) => row.code === code)?.fallback ?? code;
+  return t(TICKET_STATUS_OPTIONS.find((row) => row.code === code)?.fallback ?? code);
 }
 
 function IssueTicketPanel({
@@ -1359,7 +1359,7 @@ function IssueTicketPanel({
       if (result.has_commitment) {
         reload();
       } else {
-        setError("No customer commitment found in this post.");
+        setError(t("No customer commitment found in this post."));
       }
     } catch (err) {
       setError(orchestratorUnavailableMessage(err, "Commitment derivation"));
@@ -1395,7 +1395,7 @@ function IssueTicketPanel({
             <li key={ticket.issue_ticket_id} className="ticket-list-item">
               <span className="ticket-title">
                 {ticket.ticket_title}
-                {ticket.due_date && <span className="post-badge"> due {ticket.due_date}</span>}
+                {ticket.due_date && <span className="post-badge"> {t("due")} {ticket.due_date}</span>}
               </span>
               <select
                 value={ticket.ticket_status_code}
@@ -1441,7 +1441,7 @@ const ACTIVITY_TYPE_LABELS: Record<string, string> = {
 };
 
 function activityTypeLabel(eventType: string): string {
-  return ACTIVITY_TYPE_LABELS[eventType] ?? eventType;
+  return t(ACTIVITY_TYPE_LABELS[eventType] ?? eventType);
 }
 
 function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: string }) {
@@ -1640,12 +1640,13 @@ function PostDetailPopup({
                       <ul>
                         {summary.roles_and_responsibilities.map((rr, i) => {
                           const isPerson = rr.actor_type_code === "prov_person";
-                          const actorTypeLabel =
+                          const actorTypeLabel = t(
                             rr.actor_type_code === "prov_team"
                               ? "Team"
                               : isPerson
                                 ? "Person"
-                                : "Organization";
+                                : "Organization",
+                          );
                           const person = isPerson
                             ? keymen?.find((row) => row.person_name === rr.actor_name)
                             : undefined;
