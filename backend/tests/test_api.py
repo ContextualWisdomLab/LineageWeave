@@ -2963,6 +2963,8 @@ def test_post_lineage_surfaces_indirect_link_via_shared_keyman(client, demo_anal
     assert body["direct"] == []
     indirect_ids = {post["post_id"] for post in body["indirect"]}
     assert indirect_ids == {seeded_db["public_post_id"]}
+    assert body["indirect"][0]["post_body_excerpt"]
+    assert "post_body_truncated" in body["indirect"][0]
 
 
 def test_other_corp_private_post_summary_is_forbidden(client, demo_analyst_token, seeded_db) -> None:

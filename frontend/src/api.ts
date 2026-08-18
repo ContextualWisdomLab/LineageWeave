@@ -196,6 +196,8 @@ export interface PostFiveW1H {
 export interface LinkedPostRef {
   post_id: string;
   post_title: string;
+  post_body_excerpt?: string | null;
+  post_body_truncated?: boolean;
 }
 
 export interface PostLineage {

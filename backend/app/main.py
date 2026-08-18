@@ -1529,7 +1529,9 @@ async def read_post_lineage(
         rows = {}
         if candidate_ids:
             fetched = await conn.fetch(
-                "select post_id, post_title, visibility_code, corporate_entity_id "
+                "select post_id, post_title, visibility_code, corporate_entity_id, "
+                "btrim(left(source_post_search_text(post_body), 420)) as post_body_excerpt, "
+                "char_length(coalesce(post_body, '')) > 420 as post_body_truncated "
                 "from source_post where post_id = any($1::uuid[])",
                 list(candidate_ids),
             )
@@ -1537,7 +1539,12 @@ async def read_post_lineage(
 
     def _visible_summaries(ids: frozenset[str]) -> list[dict[str, Any]]:
         return [
-            {"post_id": post_id_, "post_title": rows[post_id_]["post_title"]}
+            {
+                "post_id": post_id_,
+                "post_title": rows[post_id_]["post_title"],
+                "post_body_excerpt": rows[post_id_].get("post_body_excerpt"),
+                "post_body_truncated": rows[post_id_].get("post_body_truncated", False),
+            }
             for post_id_ in ids
             if post_id_ in rows and _can_see_post(account, rows[post_id_])
         ]

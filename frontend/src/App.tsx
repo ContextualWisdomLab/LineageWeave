@@ -498,23 +498,35 @@ function RelatedPostsSection({
         <ul className="related-post-list" aria-label={t("Related posts")}>
           {related.map(({ post, kind }) => (
             <li key={`${kind}:${post.post_id}`}>
-              {onSelectPost ? (
-                <button
-                  type="button"
-                  className="related-post-card"
-                  aria-label={tf("Open related post: {label}", { label: post.post_title })}
-                  onClick={() => onSelectPost(post.post_id)}
-                >
-                  <span className="related-post-kind">{t(kind)}</span>
-                  <strong>{post.post_title}</strong>
-                  <span className="related-post-cta">{t("Open record")}</span>
-                </button>
-              ) : (
-                <div className="related-post-card related-post-card-static">
-                  <span className="related-post-kind">{t(kind)}</span>
-                  <strong>{post.post_title}</strong>
-                </div>
-              )}
+              {(() => {
+                const cardContent = (
+                  <>
+                    <span className="related-post-kind">{t(kind)}</span>
+                    <span className="related-post-content">
+                      <strong>{post.post_title}</strong>
+                      <span className="post-body-excerpt" aria-label={t("Post body preview")}>
+                        {post.post_body_excerpt || t("No post body.")}
+                        {post.post_body_truncated ? " ..." : ""}
+                      </span>
+                    </span>
+                  </>
+                );
+                return onSelectPost ? (
+                  <button
+                    type="button"
+                    className="related-post-card"
+                    aria-label={tf("Open related post: {label}", { label: post.post_title })}
+                    onClick={() => onSelectPost(post.post_id)}
+                  >
+                    {cardContent}
+                    <span className="related-post-cta">{t("Open record")}</span>
+                  </button>
+                ) : (
+                  <div className="related-post-card related-post-card-static">
+                    {cardContent}
+                  </div>
+                );
+              })()}
             </li>
           ))}
         </ul>

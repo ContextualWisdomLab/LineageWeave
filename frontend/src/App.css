@@ -466,6 +466,12 @@
   white-space: nowrap;
 }
 
+.related-post-content {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+}
+
 .related-post-cta {
   color: var(--accent);
   font-weight: 700;
