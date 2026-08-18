@@ -52,6 +52,7 @@ import {
   type PostSummary,
   type RankingList,
   type RelatedNode,
+  type LeftoverPair,
   type VocEvidence,
 } from "./api";
 import { LineageDag } from "./LineageDag";
@@ -80,6 +81,16 @@ const CRITERION_SHORT_LABEL: Record<string, string> = {
 
 function criterionShortLabel(itemCode: string): string {
   return CRITERION_SHORT_LABEL[itemCode] ?? itemCode;
+}
+
+function leftoverRowLabel(pairKind: string): string {
+  return pairKind === "farthest" ? "Farthest leftover" : "Closest leftover";
+}
+
+function leftoverCaptionForPairs(pairs: LeftoverPair[]): string {
+  return pairs
+    .map((pair) => `${leftoverRowLabel(pair.pair_kind)} · ${criterionShortLabel(pair.criterion_code)}`)
+    .join("; ");
 }
 
 // This popup's layout follows the textual product brief (Korean summary,
@@ -1315,9 +1326,11 @@ function PostDetailPopup({
 
 function RankingsPanel({
   accessToken,
+  leftoverPairs,
   onSelectPost,
 }: {
   accessToken: string;
+  leftoverPairs: LeftoverPair[];
   onSelectPost: (postId: string) => void;
 }) {
   const [ranking, setRanking] = useState<RankingList | null>(null);
@@ -1352,19 +1365,35 @@ function RankingsPanel({
       )}
       {ranking && ranking.rankings.length > 0 && (
         <ul className="ticket-list" aria-label="Fused rankings">
-          {ranking.rankings.map((hit) => (
+          {ranking.rankings.map((hit) => {
+            const leftoverForHit = leftoverPairs.filter((pair) => pair.post_id === hit.post_id);
+            const leftoverCaption = leftoverCaptionForPairs(leftoverForHit);
+            return (
             <li key={hit.post_id} className="ticket-list-item">
               <button
                 className="post-list-item"
-                aria-label={`Open ranking: ${hit.post_title}`}
+                aria-label={
+                  leftoverCaption
+                    ? `Open ranking: ${hit.post_title} (${leftoverCaption})`
+                    : `Open ranking: ${hit.post_title}`
+                }
                 onClick={() => onSelectPost(hit.post_id)}
               >
                 <span className="ticket-title">{hit.post_title}</span>
                 <span className="post-badge">Rankings · rankweave</span>
                 <span className="post-badge">rank {hit.fused_rank}</span>
+                {leftoverForHit.map((pair) => (
+                  <span
+                    key={`${pair.pair_kind}:${pair.criterion_code}`}
+                    className="post-badge"
+                  >
+                    {leftoverRowLabel(pair.pair_kind)} · {criterionShortLabel(pair.criterion_code)}
+                  </span>
+                ))}
               </button>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </section>
@@ -1425,10 +1454,12 @@ function ReportsPanel({
   accessToken,
   canRebuild,
   onSelectPost,
+  onLeftoverPairsChange,
 }: {
   accessToken: string;
   canRebuild: boolean;
   onSelectPost: (postId: string) => void;
+  onLeftoverPairsChange: (pairs: LeftoverPair[]) => void;
 }) {
   const [grouping, setGrouping] = useState("process_unit");
   const [period, setPeriod] = useState("2026-W02");
@@ -1455,9 +1486,13 @@ function ReportsPanel({
         setPayload(reports);
         setIndex(periods);
         setComparison(compared);
+        onLeftoverPairsChange(reports.reports.flatMap((row) => row.leftover_pairs ?? []));
       })
-      .catch((err) => setError(String(err)));
-  }, [accessToken, grouping, period]);
+      .catch((err) => {
+        setError(String(err));
+        onLeftoverPairsChange([]);
+      });
+  }, [accessToken, grouping, period, onLeftoverPairsChange]);
 
   async function handleRebuild() {
     setRebuilding(true);
@@ -1472,8 +1507,10 @@ function ReportsPanel({
       setPayload(reports);
       setIndex(periods);
       setComparison(compared);
+      onLeftoverPairsChange(reports.reports.flatMap((row) => row.leftover_pairs ?? []));
     } catch (err) {
       setError(String(err));
+      onLeftoverPairsChange([]);
     } finally {
       setRebuilding(false);
     }
@@ -1658,6 +1695,7 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [graph, setGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [leftoverPairs, setLeftoverPairs] = useState<LeftoverPair[]>([]);
   const [canRebuild, setCanRebuild] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
@@ -1689,9 +1727,18 @@ function PostList({ accessToken }: { accessToken: string }) {
 
   return (
     <>
-      <RankingsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
+      <RankingsPanel
+        accessToken={accessToken}
+        leftoverPairs={leftoverPairs}
+        onSelectPost={setSelectedPostId}
+      />
       <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
+      <ReportsPanel
+        accessToken={accessToken}
+        canRebuild={canRebuild}
+        onSelectPost={setSelectedPostId}
+        onLeftoverPairsChange={setLeftoverPairs}
+      />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
           <h2>Event Lineage</h2>

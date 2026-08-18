@@ -1289,17 +1289,31 @@ describe("App, authenticated", () => {
             post_title: "Pricing renegotiation: revised quote sent",
             fused_rank: 2,
           },
+          {
+            post_id: "post-9",
+            post_title: "Riverbend calendar commitment",
+            fused_rank: 3,
+          },
         ],
       },
     });
     render(<App />);
 
     const rankingButton = await screen.findByRole("button", {
-      name: /open ranking: public post/i,
+      name: /open ranking: public post \(closest leftover · sales-lead\)/i,
     });
     expect(rankingButton).toHaveTextContent("Public post");
     expect(rankingButton).toHaveTextContent("Rankings · rankweave");
     expect(rankingButton).toHaveTextContent("rank 1");
+    expect(rankingButton).toHaveTextContent("Closest leftover · sales-lead");
+    expect(rankingButton).toHaveAccessibleName(
+      "Open ranking: Public post (Closest leftover · sales-lead)",
+    );
+    const unmarked = await screen.findByRole("button", {
+      name: /^open ranking: riverbend calendar commitment$/i,
+    });
+    expect(unmarked).toHaveTextContent("rank 3");
+    expect(unmarked).not.toHaveTextContent("leftover");
     expect(screen.queryByRole("button", { name: /open ranking: private parent/i })).not.toBeInTheDocument();
 
     await userEvent.click(rankingButton);

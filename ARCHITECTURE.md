@@ -122,7 +122,8 @@ flowchart LR
   `rankweave_client.py`'s default transport raises
   `RankWeaveNotAvailable`. `GET /api/rankings` then returns
   `rankweave_not_available` and an empty ranking list. Hidden posts
-  are omitted from every channel. See ADR 0024.
+  are omitted from every channel. An accepted hit that is also a
+  leftover pair names that criterion (ADR 0029). See ADR 0024.
 
 ## Standards and citations
 
@@ -524,7 +525,8 @@ bank as the dummy high/low band rows, so comparison-strip click
 through opens those DAG posts. Report members include the earliest
 open ticket title, status lookup label, and due date when one exists. The home page renders
 the actual mean θ, the FIPC delta, the CAT-selected item, leftover
-closest/farthest pairs above the member list, and the
+closest/farthest pairs above the member list, leftover criterion
+badges on matching Rankings hits, and the
 PU / corp / thread comparison -- never a placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer
