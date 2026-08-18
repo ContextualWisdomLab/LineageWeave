@@ -28,3 +28,6 @@ RUN sed -i 's,/run/nginx.pid,/tmp/nginx.pid,' /etc/nginx/nginx.conf \
     && chown -R nginx:nginx /usr/share/nginx/html /var/cache/nginx /var/log/nginx
 USER nginx
 EXPOSE 8080
+# Process liveness -- GET /healthz is a static 200 from nginx.conf.
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD wget -qO- http://127.0.0.1:8080/healthz >/dev/null || exit 1

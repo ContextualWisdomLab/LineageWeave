@@ -4,3 +4,6 @@ COPY settings.yml /etc/searxng/settings.yml
 # Dockerfile itself satisfies DS-0002 (explicit non-root USER), matching
 # docker/keycloak/Dockerfile's own USER declaration.
 USER searxng
+# Same readiness probe as docker-compose.yml's searxng healthcheck.
+HEALTHCHECK --interval=5s --timeout=5s --retries=10 \
+    CMD wget -qO- http://127.0.0.1:8080/healthz >/dev/null || exit 1

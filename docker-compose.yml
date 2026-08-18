@@ -4,9 +4,10 @@ services:
     # product schema migration ship inside the image itself -- portable
     # across hosts/CI runners that don't share a filesystem with the
     # Docker daemon. Context is the repo root so the Dockerfile can COPY
-    # migrations/0001_initial_schema.sql plus later 0002-0012 upgrades
+    # migrations/0001_initial_schema.sql plus later 0002-0013 upgrades
     # (single source of truth -- tests/test_schema.py applies 0001;
-    # the registry contract applies 0001-0012).
+    # the leftover-pair contract applies through 0012; the registry
+    # contract applies through 0013).
     build:
       context: .
       dockerfile: docker/postgres-init/Dockerfile
@@ -108,6 +109,12 @@ services:
       SEARXNG_BASE_URL: http://searxng:8080
     ports:
       - "${BACKEND_PORT:-18420}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     depends_on:
       postgres:
         condition: service_healthy
@@ -127,6 +134,11 @@ services:
         VITE_BACKEND_BASE_URL: http://localhost:${BACKEND_PORT:-18420}
     ports:
       - "${FRONTEND_PORT:-15173}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     depends_on:
       - backend
 

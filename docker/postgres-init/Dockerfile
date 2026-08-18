@@ -23,3 +23,6 @@ COPY migrations/0013_analysis_run_registry.sql /docker-entrypoint-initdb.d/14-an
 # Official image already drops to this account at runtime; declare it so
 # the Dockerfile itself satisfies DS-0002 (explicit non-root USER).
 USER postgres
+# Local socket readiness. Compose still passes user/db on its own probe.
+HEALTHCHECK --interval=5s --timeout=5s --retries=10 \
+    CMD pg_isready
