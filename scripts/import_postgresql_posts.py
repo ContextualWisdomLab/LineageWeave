@@ -225,8 +225,9 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                      source_author_code, source_author_name, source_company_code,
                      source_process_unit_code, source_sales_pool_code,
                      source_customer_code, source_project_code,
+                     source_system_code, source_record_key,
                      thread_group_key, secondary_grouping_key, created_at, updated_at)
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
                 on conflict (post_id) do update set
                     author_account_id = excluded.author_account_id,
                     corporate_entity_id = excluded.corporate_entity_id,
@@ -246,6 +247,8 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                     source_sales_pool_code = excluded.source_sales_pool_code,
                     source_customer_code = excluded.source_customer_code,
                     source_project_code = excluded.source_project_code,
+                    source_system_code = excluded.source_system_code,
+                    source_record_key = excluded.source_record_key,
                     thread_group_key = excluded.thread_group_key,
                     secondary_grouping_key = excluded.secondary_grouping_key,
                     created_at = excluded.created_at,
@@ -270,6 +273,8 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 str(_value(row, mapping.sales_pool) or "").strip() or None,
                 str(_value(row, mapping.customer_code) or "").strip() or None,
                 str(_value(row, mapping.project_code) or "").strip() or None,
+                args.source_system_code,
+                record_key,
                 str(_value(row, mapping.thread_group, args.process_unit_code) or args.process_unit_code),
                 str(_value(row, mapping.secondary_group, "") or ""),
                 created_at,

@@ -1671,7 +1671,9 @@ function PostDetailPopup({
               post.source_process_unit_code ||
               post.source_sales_pool_code ||
               post.source_customer_code ||
-              post.source_project_code) && (
+              post.source_project_code ||
+              post.source_system_code ||
+              post.source_record_key) && (
               <section className="popup-section" aria-label={t("Original source state")}>
                 <h3>{t("Original source state")}</h3>
                 <dl>
@@ -1739,6 +1741,18 @@ function PostDetailPopup({
                     <>
                       <dt>{t("Source project code")}</dt>
                       <dd>{post.source_project_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_system_code ? (
+                    <>
+                      <dt>{t("Source system")}</dt>
+                      <dd>{post.source_system_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_record_key ? (
+                    <>
+                      <dt>{t("Source record key")}</dt>
+                      <dd>{post.source_record_key}</dd>
                     </>
                   ) : null}
                 </dl>

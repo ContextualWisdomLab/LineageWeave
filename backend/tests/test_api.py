@@ -72,6 +72,9 @@ _SOURCE_CONTEXT_MIGRATION = (
 _NORMALIZED_BODY_SEARCH_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0036_normalized_body_search.sql"
 )
+_SOURCE_RECORD_IDENTITY_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0037_source_record_identity.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -169,6 +172,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_SOURCE_STATE_MIGRATION.read_text())
             cur.execute(_SOURCE_CONTEXT_MIGRATION.read_text())
             cur.execute(_NORMALIZED_BODY_SEARCH_MIGRATION.read_text())
+            cur.execute(_SOURCE_RECORD_IDENTITY_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -4300,3 +4304,35 @@ def test_shared_metric_ranks_two_process_units(client, demo_analyst_token, seede
         assert [item["rank"] for item in selected] == [1, 2, 3]
         assert all(item["information"] > 0.0 for item in selected)
         assert {item["item_code"] for item in selected} == set(CRITERION_CODES)
+
+
+def test_post_search_matches_source_record_key_and_one_character_typo(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """The board searches preserved source identity, not only the internal UUID."""
+    source_system = "synthetic-source"
+    source_key = "SYNTHETIC-SOURCE-REC-001"
+    conn = psycopg2.connect(seeded_db["dsn"])
+    conn.autocommit = True
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "update source_post set source_system_code = %s, source_record_key = %s where post_id = %s",
+                (source_system, source_key, seeded_db["own_private_post_id"]),
+            )
+    finally:
+        conn.close()
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    exact = client.get("/api/posts", params={"search": source_key}, headers=headers)
+    assert exact.status_code == 200, exact.text
+    exact_row = next(
+        post for post in exact.json()["posts"] if post["post_id"] == seeded_db["own_private_post_id"]
+    )
+    assert exact_row["source_system_code"] == source_system
+    assert exact_row["source_record_key"] == source_key
+
+    typo = source_key[:-1] + "2"
+    fuzzy = client.get("/api/posts", params={"search": typo}, headers=headers)
+    assert fuzzy.status_code == 200, fuzzy.text
+    assert any(post["post_id"] == seeded_db["own_private_post_id"] for post in fuzzy.json()["posts"])

@@ -353,6 +353,8 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "source_sales_pool_code": post.get("source_sales_pool_code"),
         "source_customer_code": post.get("source_customer_code"),
         "source_project_code": post.get("source_project_code"),
+        "source_system_code": post.get("source_system_code"),
+        "source_record_key": post.get("source_record_key"),
         "post_body_excerpt": post.get("post_body_excerpt"),
         "post_body_truncated": post.get("post_body_truncated", False),
         "created_at": post["created_at"].isoformat(),
@@ -733,7 +735,8 @@ async def list_posts(
                        post.source_author_code, post.source_author_name,
                        post.source_company_code, post.source_process_unit_code,
                        post.source_sales_pool_code, post.source_customer_code,
-                       post.source_project_code,
+                       post.source_project_code, post.source_system_code,
+                       post.source_record_key,
                        post.corporate_entity_id, post.created_at,
                        count(*) over() as total_count
                   from source_post post
@@ -755,13 +758,16 @@ async def list_posts(
                         post.source_process_unit_code,
                         post.source_sales_pool_code,
                         post.source_customer_code,
-                        post.source_project_code
+                        post.source_project_code,
+                        post.source_system_code,
+                        post.source_record_key
                     ) ilike '%' || $1 || '%'
                     or replace(post.post_id::text, '-', '') ilike '%' || lower($1) || '%'
                     or (
                         char_length($1) >= 3
                         and (
                             similarity(replace(post.post_id::text, '-', ''), lower($1)) >= 0.78
+                            or similarity(lower(coalesce(post.source_record_key, '')), lower($1)) >= 0.78
                             or word_similarity(lower($1), lower(post.post_title)) >= 0.45
                             or word_similarity(lower($1), lower(post.secondary_grouping_key)) >= 0.45
                             or word_similarity(
@@ -912,7 +918,8 @@ async def read_post(
             "select post_id, post_title, post_body, voc_type_code, visibility_code, "
             "source_stage_code, source_detail_state_code, source_draft_code, source_deleted_flag, "
             "source_author_code, source_author_name, source_company_code, "
-            "source_process_unit_code, source_sales_pool_code, source_customer_code, source_project_code, "
+                "source_process_unit_code, source_sales_pool_code, source_customer_code, source_project_code, "
+                "source_system_code, source_record_key, "
             "corporate_entity_id, created_at "
             "from source_post where post_id = $1",
             post_id,
