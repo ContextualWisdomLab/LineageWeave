@@ -1,8 +1,10 @@
 # DB design: searchable, position-preserving image content
 
-**Status:** proposed schema, not yet backed by a persistence layer in this
-repo (LineageWeave's own demo server is in-memory/stdlib -- this document
-is the design a real deployment's persistence layer should implement).
+**Status:** proposed normalized schema reference. The running product persists
+position-preserving image units, OCR/captions, and embeddings in PostgreSQL
+through `post_content_unit` (`migrations/0026_post_content_artifacts.sql`);
+this document keeps the richer source-document/image decomposition available
+for a future migration rather than describing an in-memory demo server.
 All object names are snake_case, two or more words, per this project's
 naming convention.
 
