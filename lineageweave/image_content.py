@@ -238,6 +238,9 @@ class OpenAiCompatibleVisionClient:
         self._timeout = timeout
 
     def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
+        from .vision_image import normalize_vision_image
+
+        image_bytes, mime_type = normalize_vision_image(image_bytes, mime_type)
         data_uri = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
         body = post_json(
             f"{self._base_url}/chat/completions",

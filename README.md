@@ -109,6 +109,12 @@ make smoke   # real login as the synthetic demo user + JWT signature
 make down
 ```
 
+Outside GitHub, `make up` reads `~/.env` through Compose's `--env-file`.
+Configure the contextual-orchestrator provider there with
+`LLM_GATEWAY_URL` and `LLM_GATEWAY_API_KEY`; the key is never committed or
+printed. `ORCHESTRATOR_BASE_URL` and `ORCHESTRATOR_API_KEY` are separate,
+internal LineageWeave-to-orchestrator settings.
+
 Postgres and Keycloak are built (`docker/postgres-init/`, `docker/keycloak/`)
 rather than bind-mounted, so the keycloak database's init script and the
 realm seed ship inside the images themselves -- portable to any Docker host

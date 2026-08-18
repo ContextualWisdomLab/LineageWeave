@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.0] - 2026-08-18
+
+### Added
+
+- Production OIDC can now use a real Keyverse issuer through
+  `KEYVERSE_ISSUER` and `KEYVERSE_CLIENT_ID`. The backend discovers the
+  provider's JWKS and verifies the issuer; Compose keeps local Keycloak only
+  as an explicit development fallback and does not emulate Keyverse.
+
 ## [2.9.0] - 2026-08-17
 
 ### Added

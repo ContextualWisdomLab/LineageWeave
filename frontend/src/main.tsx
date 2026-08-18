@@ -6,8 +6,8 @@ import App from "./App.tsx";
 import { config } from "./config";
 
 const oidcConfig = {
-  authority: config.keycloakIssuer,
-  client_id: config.keycloakClientId,
+  authority: config.oidcIssuer,
+  client_id: config.oidcClientId,
   redirect_uri: window.location.origin,
   post_logout_redirect_uri: window.location.origin,
   onSigninCallback: () => {

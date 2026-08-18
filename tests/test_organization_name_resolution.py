@@ -11,11 +11,31 @@ module's own resolve-then-verify orchestration logic.
 from __future__ import annotations
 
 from lineageweave.organization_name_resolution import (
+    ContextualOrchestratorOrganizationNameResolutionClient,
     NullOrganizationNameResolutionClient,
     OrganizationNameResolution,
     parse_resolution_response,
     resolve_and_verify_organization_name,
 )
+
+
+def test_live_resolution_client_uses_adaptive_orchestrator_mode(monkeypatch) -> None:
+    seen: dict[str, object] = {}
+
+    def fake_post_json(url, body, *, headers, timeout):
+        seen.update(url=url, body=body, headers=headers, timeout=timeout)
+        return {"choices": [{"message": {"content": "Aurora Grid Power"}}]}
+
+    monkeypatch.setattr("lineageweave.organization_name_resolution.post_json", fake_post_json)
+    client = ContextualOrchestratorOrganizationNameResolutionClient(
+        "http://orchestrator", "secret", reasoning_effort="high", timeout=11.0
+    )
+
+    assert client.resolve("AGP", "AGP joined the synthetic meeting") == "Aurora Grid Power"
+    assert seen["url"] == "http://orchestrator/v1/chat/completions"
+    assert seen["body"]["mode"] == "auto"
+    assert seen["body"]["reasoning_effort"] == "high"
+    assert seen["timeout"] == 11.0
 from lineageweave.relation_verification import (
     STATUS_CORROBORATED,
     STATUS_PENDING,

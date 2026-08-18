@@ -1,12 +1,14 @@
-"""OIDC-validated login. A bearer access token is verified against
-Keycloak's own live JWKS (real signature verification, not a shared-secret
-shortcut) and resolved to a user_account row via external_subject_id --
+"""OIDC-validated login. A bearer access token is verified against the
+configured provider's live JWKS (Keyverse in production, local Keycloak in
+Compose development; never a shared-secret shortcut) and resolved to a
+user_account row via external_subject_id --
 corp_code/pu_code are attributes read from the DB's account_affiliation,
 never trusted directly off the token, per the schema's design (see
 migrations/0001_initial_schema.sql).
 
-JWKS is fetched through ``lineageweave.http_client.get_json`` (http(s)
-allowlist) so a mis-set KEYCLOAK_BASE_URL cannot become a file-scheme read.
+JWKS is fetched through OIDC discovery or an explicit JWKS URI using
+``lineageweave.http_client.get_json``. The HTTP client rejects non-http(s)
+schemes, so provider configuration cannot become a file-scheme read.
 """
 
 from __future__ import annotations
@@ -29,17 +31,25 @@ _jwks_cache: dict[str, dict] = {}
 
 
 def _jwks(settings: Settings) -> dict:
-    """Return the realm JWKS, cached per URI for the process lifetime."""
-    cached = _jwks_cache.get(settings.keycloak_jwks_uri)
+    """Return the configured OIDC provider's JWKS, cached by issuer."""
+    cache_key = settings.oidc_issuer
+    cached = _jwks_cache.get(cache_key)
     if cached is None:
         try:
-            cached = get_json(settings.keycloak_jwks_uri, timeout=10)
+            if settings.oidc_jwks_uri_override:
+                jwks_uri = settings.oidc_jwks_uri_override
+            else:
+                metadata = get_json(settings.oidc_discovery_uri, timeout=10)
+                jwks_uri = metadata.get("jwks_uri")
+                if not isinstance(jwks_uri, str) or not jwks_uri.strip():
+                    raise ValueError("OIDC discovery document has no jwks_uri")
+            cached = get_json(jwks_uri, timeout=10)
         except (HttpClientError, OSError, ValueError) as exc:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                f"could not fetch JWKS from {settings.keycloak_jwks_uri}: {exc}",
+                f"could not fetch OIDC JWKS for {settings.oidc_issuer}: {exc}",
             ) from exc
-        _jwks_cache[settings.keycloak_jwks_uri] = cached
+        _jwks_cache[cache_key] = cached
     return cached
 
 
@@ -75,7 +85,7 @@ def _decode_access_token(token: str, settings: Settings) -> dict:
             token,
             key=signing_key,
             algorithms=["RS256"],
-            issuer=settings.keycloak_issuer,
+            issuer=settings.oidc_issuer,
             options={"verify_aud": False},
         )
     except jwt.PyJWTError as exc:

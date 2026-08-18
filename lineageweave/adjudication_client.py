@@ -4,8 +4,8 @@
 The default :class:`NullAdjudicationClient` makes the channel unavailable.
 :class:`ContextualOrchestratorAdjudicationClient` calls a running
 `contextual-orchestrator <https://github.com/ContextualWisdomLab/contextual-orchestrator>`_
-instance's ``mode="verify"`` completion (one worker call plus one checked
-verifier judgment -- see that repo's ``TaskOrchestrator.route_and_verify``)
+instance's ``mode="auto"`` completion. The orchestrator selects the supported
+route and records its verification metadata
 so this channel gets a reasoned, checked verdict rather than a bare
 similarity score, without paying for a full multi-step workflow per pair.
 """
@@ -39,7 +39,7 @@ _CONFIDENCE_PATTERN = re.compile(r"([01](?:\.\d+)?)")
 
 
 class ContextualOrchestratorAdjudicationClient:
-    """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="verify"``.
+    """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="auto"``.
 
     Reasoning effort defaults to ``"high"`` -- an adjudication call is
     exactly the low-volume, judgment-heavy case Fugu/Conductor/TRINITY-style
@@ -50,7 +50,7 @@ class ContextualOrchestratorAdjudicationClient:
     available = True
 
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "high", timeout: float = 60.0
+        self, base_url: str, api_key: str, *, reasoning_effort: str = "high", timeout: float = 180.0
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -68,7 +68,7 @@ class ContextualOrchestratorAdjudicationClient:
             f"{self._base_url}/v1/chat/completions",
             {
                 "messages": [{"role": "user", "content": prompt}],
-                "mode": "verify",
+                "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},

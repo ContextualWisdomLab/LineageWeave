@@ -185,9 +185,14 @@ async def get_or_create_corporate_entity(
             "select pg_advisory_xact_lock(hashtext($1))",
             _CREATION_LOCK_KEY,
         )
+        # ponytail: the lock recheck is exact-only; fuzzy matching here can
+        # mistake an inferred child for the parent just created above. The
+        # initial lookup remains fuzzy, while this check only prevents a
+        # concurrent insert of the same normalized name.
         fresh = score_corporate_entity(
             normalized_name,
             await _reload_candidates(conn),
+            min_similarity=1.0,
         )
         if fresh.kind == RESOLUTION_UNIQUE and fresh.catalog_id is not None:
             _remember_candidate(candidates, fresh.catalog_id, normalized_name)

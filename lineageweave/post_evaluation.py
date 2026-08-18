@@ -88,7 +88,12 @@ class _OrchestratorCompleteAdapter:
     def complete(self, messages: list[dict[str, Any]], mode: str = "auto") -> dict[str, Any]:
         body = post_json(
             f"{self._base_url}/v1/chat/completions",
-            {"messages": messages, "mode": mode, "reasoning_effort": "medium"},
+            {
+                "messages": messages,
+                "mode": mode,
+                "reasoning_effort": "medium",
+                "response_format": {"type": "json_object"},
+            },
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )

@@ -183,7 +183,8 @@ message id and a reference list per item.
 When configured (`lineageweave.adjudication_client.ContextualOrchestratorAdjudicationClient`),
 the `llm` channel calls a running
 [contextual-orchestrator](https://github.com/ContextualWisdomLab/contextual-orchestrator)
-instance with `mode="verify"` and `reasoning_effort="high"` -- one worker
+instance with `mode="auto"` and `reasoning_effort="high"`; the orchestrator
+selects the supported route and records any verification metadata -- one worker
 call plus one checked verifier judgment, rather than either a bare
 unverified guess or the full four-step thinker/worker/verifier/synthesizer
 workflow. This follows the test-time-compute allocation argument
@@ -254,8 +255,8 @@ classified into the closed `{our_side, counterparty}` set is dropped
 rather than guessed. N:N organization attachments are slot-filling on
 that mention (a person may have zero, one, or several affiliations in
 the same post), not a second independent NER pass. The live client
-calls contextual-orchestrator (`mode="route"`) rather than a raw LLM
-API so reasoning-effort allocation stays centralized with the
+calls contextual-orchestrator (`mode="auto"`) rather than a raw LLM
+API so adaptive reasoning-effort allocation stays centralized with the
 adjudication channel. Proven for real during development against
 `fixtures.ambiguous_keyman_post` when orchestrator credentials are set;
 the default suite asserts the parser and the never-fake null client.

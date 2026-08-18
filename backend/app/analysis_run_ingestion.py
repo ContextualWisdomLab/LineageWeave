@@ -818,14 +818,13 @@ async def create_pending_analysis_run(
         insert into analysis_source_snapshot
             (snapshot_sha256, source_contract_version,
              maximum_available_time, captured_at, created_at)
-        values ($1, $2, $3, $4, $4)
+        values ($1, $2, $3, clock_timestamp(), clock_timestamp())
         on conflict (snapshot_sha256) do nothing
         returning analysis_source_snapshot_id
         """,
         capture.snapshot_sha256,
         _CAPTURE_CONTRACT_VERSION,
         capture.maximum_available_time,
-        now,
     )
     if snapshot_id is None:
         snapshot_id = await conn.fetchval(
@@ -867,7 +866,7 @@ async def create_pending_analysis_run(
                  requested_by_account_id, knowledge_cutoff,
                  configuration_schema_version, configuration_sha256,
                  code_revision_sha, requested_at)
-            values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            values ($1, $2, $3, $4, $5, $6, $7, $8, clock_timestamp())
             returning analysis_run_id
             """,
             snapshot_id,
@@ -878,7 +877,6 @@ async def create_pending_analysis_run(
             capture.configuration_schema_version,
             capture.configuration_sha256,
             capture.code_revision_sha,
-            now,
         )
     except asyncpg.UniqueViolationError:
         raced = await conn.fetchrow(
@@ -919,10 +917,9 @@ async def create_pending_analysis_run(
         """
         insert into analysis_run_status_event
             (analysis_run_id, status_ordinal, status_code, occurred_at)
-        values ($1, 1, 'analysis_status_pending', $2)
+        values ($1, 1, 'analysis_status_pending', clock_timestamp())
         """,
         run_id,
-        now,
     )
     created = await fetch_visible_analysis_run(
         conn,

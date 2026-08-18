@@ -52,6 +52,16 @@ class FormattingHint:
 
 
 @dataclass(frozen=True)
+class ImageContentResult:
+    """One embedded image's document-order result, including failures."""
+
+    chunk_index: int
+    mime_type: str
+    status_code: str
+    description: ImageDescription | None = None
+
+
+@dataclass(frozen=True)
 class NormalizedPostContent:
     """The result of normalizing one post body.
 
@@ -70,11 +80,14 @@ class NormalizedPostContent:
         image_descriptions: every embedded image's real OCR text,
             caption, and tags, in document order -- empty when the input
             had no images or no vision client was available.
+        image_results: every embedded image's outcome, including unavailable
+            and failed outcomes, keyed by the original document-order index.
     """
 
     text: str
     formatting_hints: tuple[FormattingHint, ...] = field(default_factory=tuple)
     image_descriptions: tuple[ImageDescription, ...] = field(default_factory=tuple)
+    image_results: tuple[ImageContentResult, ...] = field(default_factory=tuple)
 
 
 def _looks_like_html(body: str) -> bool:
@@ -115,6 +128,7 @@ def normalize_post_body(
     text_parts: list[str] = []
     formatting_hints: list[FormattingHint] = []
     image_descriptions: list[ImageDescription] = []
+    image_results: list[ImageContentResult] = []
 
     for chunk in chunks:
         if chunk.unit_type == "dom":
@@ -124,19 +138,37 @@ def normalize_post_body(
                     FormattingHint(chunk_index=chunk.index, tag=chunk.label, style=chunk.style)
                 )
         elif chunk.unit_type == "image":
+            result = ImageContentResult(
+                chunk_index=chunk.index,
+                mime_type=chunk.label,
+                status_code="unavailable",
+            )
             if vision_client.available and chunk.image_data is not None:
                 try:
                     description = vision_client.describe(chunk.image_data, chunk.label)
                 except Exception:  # noqa: BLE001 - a provider failure must not drop the whole post.
                     text_parts.append("[image: content unavailable]")
+                    result = ImageContentResult(
+                        chunk_index=chunk.index,
+                        mime_type=chunk.label,
+                        status_code="failed",
+                    )
                 else:
                     image_descriptions.append(description)
+                    result = ImageContentResult(
+                        chunk_index=chunk.index,
+                        mime_type=chunk.label,
+                        status_code="described",
+                        description=description,
+                    )
                     text_parts.append(_image_placeholder(description))
             else:
                 text_parts.append("[image: content unavailable]")
+            image_results.append(result)
 
     return NormalizedPostContent(
         text="\n\n".join(part for part in text_parts if part),
         formatting_hints=tuple(formatting_hints),
         image_descriptions=tuple(image_descriptions),
+        image_results=tuple(image_results),
     )

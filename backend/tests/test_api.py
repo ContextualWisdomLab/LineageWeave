@@ -784,7 +784,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
                         '2026-02-15T00:00:00Z', '2026-02-15T00:05:00Z')
                 returning analysis_source_snapshot_id
                 """,
-                ("t" * 64,),
+                ("f" * 64,),
             )
             tepp_snapshot_id = cur.fetchone()[0]
             cur.execute(
@@ -799,7 +799,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
                         '2026-02-15T12:30:00Z')
                 returning analysis_run_id
                 """,
-                (tepp_snapshot_id, requester_id, "u" * 64, "v" * 40),
+                (tepp_snapshot_id, requester_id, "a" * 64, "b" * 40),
             )
             tepp_run_id = str(cur.fetchone()[0])
             cur.execute(

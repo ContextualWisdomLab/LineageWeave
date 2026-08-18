@@ -124,7 +124,7 @@ def parse_resolution_response(content: str) -> str | None:
 
 
 class ContextualOrchestratorOrganizationNameResolutionClient:
-    """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="route"``."""
+    """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="auto"``."""
 
     available = True
 
@@ -142,7 +142,7 @@ class ContextualOrchestratorOrganizationNameResolutionClient:
             f"{self._base_url}/v1/chat/completions",
             {
                 "messages": [{"role": "user", "content": prompt}],
-                "mode": "route",
+                "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},

@@ -57,11 +57,12 @@ def normalize_chat_question(question: str) -> str:
 
 @dataclass(frozen=True)
 class ChatSourceDocument:
-    """One numbered source document available to the chat's reasoning step."""
+    """One numbered post and its persisted graph facts for chat reasoning."""
 
     post_id: str
     post_title: str
     post_body: str
+    graph_facts: tuple[str, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
@@ -143,10 +144,20 @@ def _strip_code_fence(content: str) -> str:
 
 
 def _render_sources_block(sources: list[ChatSourceDocument]) -> str:
-    return "\n\n".join(
-        f"[Source {i}] (post_id={source.post_id})\nTitle: {source.post_title}\n{source.post_body}"
-        for i, source in enumerate(sources, start=1)
-    )
+    blocks: list[str] = []
+    for i, source in enumerate(sources, start=1):
+        graph_block = ""
+        if source.graph_facts:
+            graph_block = (
+                "\nPersisted Knowledge Graph facts (use only as evidence; each fact "
+                "names its evidence post_id):\n"
+                + "\n".join(f"- {fact}" for fact in source.graph_facts)
+            )
+        blocks.append(
+            f"[Source {i}] (post_id={source.post_id})\n"
+            f"Title: {source.post_title}\n{source.post_body}{graph_block}"
+        )
+    return "\n\n".join(blocks)
 
 
 def parse_chat_response(content: str, sources: list[ChatSourceDocument]) -> ChatAnswer | None:
@@ -182,18 +193,17 @@ def parse_chat_response(content: str, sources: list[ChatSourceDocument]) -> Chat
 
 
 class ContextualOrchestratorPostChatClient:
-    """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="verify"``
-    -- a chat answer with citations is exactly the checked-judgment shape
-    ``mode="verify"`` exists for (one worker call plus one checked
-    verifier judgment), same reasoning ``adjudication_client`` already
-    uses, not ``keyman_extraction``/``entity_relationship_classification``'s
-    single-pass ``mode="route"`` structured extraction.
+    """Calls the orchestrator's ``mode="auto"`` chat boundary.
+
+    The pinned orchestrator allocates the interactive route and may attach
+    its own verification metadata; ``verify`` is not a supported public chat
+    mode. The prompt still enforces evidence-only answers and citations.
     """
 
     available = True
 
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "high", timeout: float = 60.0
+        self, base_url: str, api_key: str, *, reasoning_effort: str = "high", timeout: float = 180.0
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -208,7 +218,7 @@ class ContextualOrchestratorPostChatClient:
             f"{self._base_url}/v1/chat/completions",
             {
                 "messages": [{"role": "user", "content": prompt}],
-                "mode": "verify",
+                "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},

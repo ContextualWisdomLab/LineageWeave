@@ -8,11 +8,13 @@ which source(s) contributed, not just that the model produced prose.
 
 from __future__ import annotations
 
+import asyncio
 import os
 
 import pytest
 
 from backend.app.post_chat_ingestion import (
+    _graph_facts_for_posts,
     seeded_demo_chat,
     seeded_demo_commitment_chat,
     seeded_demo_exchanges,
@@ -30,6 +32,7 @@ from lineageweave.post_chat import (
     ChatSourceDocument,
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
+    _render_sources_block,
     cited_post_summaries,
     normalize_chat_question,
     parse_chat_response,
@@ -160,6 +163,59 @@ def test_cited_post_summaries_keep_citation_order_and_drop_unknown_ids() -> None
         {"post_id": "post-2", "post_title": "Bid revision"},
         {"post_id": "post-1", "post_title": "Bid workshop"},
     ]
+
+
+def test_chat_render_includes_persisted_graph_facts_with_source_evidence() -> None:
+    source = ChatSourceDocument(
+        "post-graph",
+        "Graph-backed post",
+        "A customer asked for a revised quote.",
+        graph_facts=(
+            'node_person "Ada West" --edge_affiliation--> '
+            'node_corporate_entity "Demo Corp" [evidence_post_id=post-graph]',
+        ),
+    )
+
+    rendered = _render_sources_block([source])
+
+    assert "Persisted Knowledge Graph facts" in rendered
+    assert "Demo Corp" in rendered
+    assert "evidence_post_id=post-graph" in rendered
+
+
+def test_graph_facts_are_hydrated_from_visible_evidence_posts(monkeypatch) -> None:
+    class _Connection:
+        async def fetch(self, _query, _visible_post_ids):
+            return [
+                {
+                    "source_node_type_code": "node_person",
+                    "source_node_id": "person-ada",
+                    "target_node_type_code": "node_corporate_entity",
+                    "target_node_id": "corp-demo",
+                    "edge_type_code": "edge_affiliation",
+                    "edge_weight": 1.0,
+                    "evidence_post_ids": ["post-graph"],
+                }
+            ]
+
+    async def fake_hydrate(_conn, _node_keys):
+        return [
+            {"node_type_code": "node_person", "node_id": "person-ada", "label": "Ada West"},
+            {
+                "node_type_code": "node_corporate_entity",
+                "node_id": "corp-demo",
+                "label": "Demo Corp",
+            },
+        ]
+
+    monkeypatch.setattr("backend.app.post_chat_ingestion.hydrate_related_nodes", fake_hydrate)
+    facts = asyncio.run(_graph_facts_for_posts(_Connection(), ["post-graph"]))
+
+    assert facts == (
+        'node_person "Ada West" --edge_affiliation '
+        '(https://contextualwisdomlab.github.io/lineageweave/ontology#affiliatedWith)--> '
+        'node_corporate_entity "Demo Corp" [evidence_post_id=post-graph]',
+    )
 
 
 def test_parses_a_well_formed_json_object() -> None:

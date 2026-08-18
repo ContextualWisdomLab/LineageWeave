@@ -33,7 +33,8 @@ from lineageweave.post_chat import (
 )
 from lineageweave.post_content_normalization import normalize_post_body
 
-from .knowledge_graph import load_visible_subgraph
+from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
+from lineageweave.ontology import ontology_annotations
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,80 @@ class LinkedPostIds:
 
     direct: frozenset[str]
     indirect: frozenset[str]
+
+
+async def _graph_facts_for_posts(
+    conn: asyncpg.Connection,
+    visible_post_ids: list[str],
+) -> tuple[str, ...]:
+    """Render persisted, ontology-annotated graph facts for visible posts.
+
+    The evidence join is deliberate: a graph edge without a visible evidence
+    post must never enter an LLM prompt. This is the chat-side trust boundary
+    in addition to the post-level ABAC check.
+    """
+    if not visible_post_ids:
+        return ()
+    edge_rows = await conn.fetch(
+        """
+        select edge.source_node_type_code, edge.source_node_id,
+               edge.target_node_type_code, edge.target_node_id,
+               edge.edge_type_code, edge.edge_weight,
+               array_agg(distinct evidence.evidence_post_id::text) as evidence_post_ids
+          from knowledge_graph_edge edge
+          join knowledge_graph_edge_evidence evidence
+            on evidence.knowledge_graph_edge_id = edge.knowledge_graph_edge_id
+         where evidence.evidence_post_id = any($1::uuid[])
+         group by edge.source_node_type_code, edge.source_node_id,
+                  edge.target_node_type_code, edge.target_node_id,
+                  edge.edge_type_code, edge.edge_weight
+         order by min(edge.edge_type_code), min(edge.source_node_id::text),
+                  min(edge.target_node_id::text)
+         limit 64
+        """,
+        visible_post_ids,
+    )
+    if not edge_rows:
+        return ()
+
+    endpoint_keys = {
+        node_key(row["source_node_type_code"], str(row["source_node_id"]))
+        for row in edge_rows
+    }
+    endpoint_keys.update(
+        node_key(row["target_node_type_code"], str(row["target_node_id"]))
+        for row in edge_rows
+    )
+    hydrated = await hydrate_related_nodes(
+        conn, [(key, 1.0) for key in sorted(endpoint_keys)]
+    )
+    labels = {
+        (item["node_type_code"], item["node_id"]): item
+        for item in hydrated
+    }
+
+    facts: list[str] = []
+    for row in edge_rows:
+        source_type = row["source_node_type_code"]
+        source_id = str(row["source_node_id"])
+        target_type = row["target_node_type_code"]
+        target_id = str(row["target_node_id"])
+        source = labels.get((source_type, source_id))
+        target = labels.get((target_type, target_id))
+        if source is None or target is None:
+            continue
+        edge_annotation = ontology_annotations(row["edge_type_code"])
+        ontology_iri = edge_annotation.get("ontology_iri")
+        edge_name = row["edge_type_code"]
+        if ontology_iri:
+            edge_name = f"{edge_name} ({ontology_iri})"
+        evidence_ids = ",".join(sorted(str(value) for value in row["evidence_post_ids"]))
+        facts.append(
+            f'{source_type} "{source["label"]}" '
+            f'--{edge_name}--> {target_type} "{target["label"]}" '
+            f"[evidence_post_id={evidence_ids}]"
+        )
+    return tuple(dict.fromkeys(facts))
 
 
 async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> LinkedPostIds:
@@ -133,15 +208,28 @@ async def gather_chat_sources(
         "from source_post where post_id = any($1::uuid[])",
         list(candidate_ids),
     )
+    visible_source_ids = [post_id]
+    visible_rows: list[asyncpg.Record] = []
     for row in rows:
         if can_see_post(row):
-            sources.append(
-                ChatSourceDocument(
-                    str(row["post_id"]),
-                    row["post_title"],
-                    normalize_post_body(row["post_body"], vision_client=vision_client).text,
-                )
+            visible_rows.append(row)
+            visible_source_ids.append(str(row["post_id"]))
+
+    graph_facts = await _graph_facts_for_posts(conn, visible_source_ids)
+    sources[0] = ChatSourceDocument(
+        sources[0].post_id,
+        sources[0].post_title,
+        sources[0].post_body,
+        graph_facts=graph_facts,
+    )
+    for row in visible_rows:
+        sources.append(
+            ChatSourceDocument(
+                str(row["post_id"]),
+                row["post_title"],
+                normalize_post_body(row["post_body"], vision_client=vision_client).text,
             )
+        )
 
     return sources
 

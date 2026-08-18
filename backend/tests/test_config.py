@@ -29,3 +29,40 @@ def test_tepp_transport_url_defaults_empty_and_is_not_a_score(monkeypatch) -> No
     assert load_settings().tepp_transport_url == ""
     monkeypatch.setenv("TEPP_TRANSPORT_URL", "https://tepp.example/v1/analysis-runs")
     assert load_settings().tepp_transport_url == "https://tepp.example/v1/analysis-runs"
+
+
+def test_keyverse_issuer_overrides_local_keycloak_and_uses_oidc_discovery(monkeypatch) -> None:
+    """Production Keyverse configuration is standard OIDC, not a local mock."""
+    monkeypatch.setenv("KEYVERSE_ISSUER", "https://keyverse.example/tenant/acme")
+    monkeypatch.setenv("KEYVERSE_CLIENT_ID", "lineageweave-production")
+    monkeypatch.delenv("KEYVERSE_DISCOVERY_URI", raising=False)
+    monkeypatch.delenv("KEYVERSE_JWKS_URI", raising=False)
+
+    settings = load_settings()
+
+    assert settings.oidc_issuer == "https://keyverse.example/tenant/acme"
+    assert settings.oidc_client_id == "lineageweave-production"
+    assert settings.oidc_discovery_uri == (
+        "https://keyverse.example/tenant/acme/.well-known/openid-configuration"
+    )
+    assert settings.oidc_jwks_uri_override == ""
+
+
+def test_local_keycloak_discovery_uses_backend_reachable_base_url(monkeypatch) -> None:
+    """Compose discovery uses service DNS, not the browser's localhost issuer."""
+    monkeypatch.delenv("KEYVERSE_ISSUER", raising=False)
+    monkeypatch.delenv("OIDC_ISSUER", raising=False)
+    monkeypatch.delenv("KEYVERSE_DISCOVERY_URI", raising=False)
+    monkeypatch.delenv("OIDC_DISCOVERY_URI", raising=False)
+    monkeypatch.setenv("KEYCLOAK_BASE_URL", "http://keycloak:8080")
+    monkeypatch.setenv("KEYCLOAK_ISSUER", "http://localhost:18080/realms/lineageweave-demo")
+
+    settings = load_settings()
+
+    assert settings.oidc_issuer == "http://localhost:18080/realms/lineageweave-demo"
+    assert settings.oidc_discovery_uri == (
+        "http://keycloak:8080/realms/lineageweave-demo/.well-known/openid-configuration"
+    )
+    assert settings.oidc_jwks_uri_override == (
+        "http://keycloak:8080/realms/lineageweave-demo/protocol/openid-connect/certs"
+    )

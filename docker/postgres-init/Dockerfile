@@ -31,6 +31,14 @@ COPY migrations/0022_analysis_source_snapshot_member.sql /docker-entrypoint-init
 COPY migrations/0023_analysis_run_outbox.sql /docker-entrypoint-initdb.d/24-analysis-run-outbox.sql
 COPY migrations/0024_source_post_revision.sql /docker-entrypoint-initdb.d/25-source-post-revision.sql
 COPY migrations/0025_role_person_catalog_identity.sql /docker-entrypoint-initdb.d/26-role-person-catalog-identity.sql
+COPY migrations/0026_post_content_artifacts.sql /docker-entrypoint-initdb.d/27-post-content-artifacts.sql
+COPY migrations/0027_analysis_run_tepp_result.sql /docker-entrypoint-initdb.d/28-analysis-run-tepp-result.sql
+
+COPY migrations/ /opt/lineageweave/migrations/
+COPY docker/postgres-init/migrate.sh /usr/local/bin/lineageweave-migrate
+USER root
+RUN chmod 0755 /usr/local/bin/lineageweave-migrate
+
 # Official image already drops to this account at runtime; declare it so
 # the Dockerfile itself satisfies DS-0002 (explicit non-root USER).
 USER postgres

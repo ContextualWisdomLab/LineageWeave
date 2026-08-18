@@ -3,18 +3,19 @@
 The default :class:`NullEmbeddingClient` makes the channel unavailable
 rather than faking a score -- ``reconstruct.active_weights`` drops and
 renormalizes around any channel whose client reports ``available = False``.
-:class:`OpenAiCompatibleEmbeddingClient` calls any OpenAI-compatible
-``/v1/embeddings`` endpoint (contextual-orchestrator's ``/v1/batch/embeddings``,
-a company LLM gateway, or a hosted provider) once a credential is set.
+:class:`ContextualOrchestratorEmbeddingClient` calls the authenticated
+contextual-orchestrator ``/v1/batch/embeddings`` boundary once a credential is
+set. No client in this repository calls a provider embedding endpoint directly.
 """
 
 from __future__ import annotations
 
 import math
+import time
 from typing import Protocol
 
 from .chunking import Chunk, chunk_by_paragraph
-from .http_client import post_json
+from .http_client import get_json, post_json
 
 
 class EmbeddingClient(Protocol):
@@ -35,24 +36,108 @@ class NullEmbeddingClient:
 
 
 class OpenAiCompatibleEmbeddingClient:
-    """Calls an OpenAI-compatible ``POST {base_url}/embeddings`` endpoint."""
+    """Backward-compatible name for the orchestrator-only embedding client."""
 
     available = True
 
     def __init__(self, base_url: str, api_key: str, model: str, *, timeout: float = 30.0) -> None:
+        self._delegate = ContextualOrchestratorEmbeddingClient(
+            base_url, api_key, model, timeout=timeout
+        )
+
+    def embed(self, text: str) -> list[float]:
+        return self._delegate.embed(text)
+
+
+class ContextualOrchestratorEmbeddingClient:
+    """Submit embeddings through contextual-orchestrator's batch boundary."""
+
+    available = True
+
+    def __init__(
+        self,
+        base_url: str,
+        api_key: str,
+        model: str,
+        *,
+        timeout: float = 60.0,
+        poll_interval: float = 0.25,
+    ) -> None:
         self._base_url = base_url.rstrip("/")
+        if not self._base_url.endswith("/v1"):
+            self._base_url = f"{self._base_url}/v1"
         self._api_key = api_key
         self._model = model
         self._timeout = timeout
+        self._poll_interval = poll_interval
 
     def embed(self, text: str) -> list[float]:
-        body = post_json(
-            f"{self._base_url}/embeddings",
-            {"model": self._model, "input": text},
-            headers={"authorization": f"Bearer {self._api_key}"},
+        return self.embed_many([text])[0]
+
+    def embed_many(self, texts: list[str]) -> list[list[float]]:
+        if not texts:
+            return []
+        headers = {"authorization": f"Bearer {self._api_key}"}
+        response = post_json(
+            f"{self._base_url}/batch/embeddings",
+            {
+                "model": self._model,
+                "inputs": texts,
+                "endpoint": "/v1/embeddings",
+                "metadata": {"service": "lineageweave", "channel": "post_content_embedding"},
+            },
+            headers=headers,
             timeout=self._timeout,
         )
-        return body["data"][0]["embedding"]
+        batch_id = response.get("batch_id")
+        if isinstance(batch_id, str) and batch_id:
+            deadline = time.monotonic() + self._timeout
+            while True:
+                vectors = self._vectors(response, len(texts))
+                if vectors is not None:
+                    return vectors
+                if response.get("status") in {"failed", "cancelled", "rejected"}:
+                    raise RuntimeError("embedding batch did not complete")
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("embedding batch timed out")
+                time.sleep(self._poll_interval)
+                response = get_json(
+                    f"{self._base_url}/batch/embeddings/{batch_id}",
+                    headers=headers,
+                    timeout=self._timeout,
+                )
+            
+        vectors = self._vectors(response, len(texts))
+        if vectors is None:
+            raise ValueError("embedding response did not contain a complete vector batch")
+        return vectors
+
+    @staticmethod
+    def _vectors(response: dict, expected_count: int) -> list[list[float]] | None:
+        raw_vectors = response.get("embeddings")
+        if not isinstance(raw_vectors, list) or len(raw_vectors) != expected_count:
+            return None
+        ordered: list[list[float] | None] = [None] * expected_count
+        for item in raw_vectors:
+            if not isinstance(item, dict) or not isinstance(item.get("index"), int):
+                return None
+            index = item["index"]
+            vector = item.get("embedding")
+            if not 0 <= index < expected_count or not isinstance(vector, list) or not vector:
+                return None
+            if not all(isinstance(value, (int, float)) and math.isfinite(float(value)) for value in vector):
+                return None
+            ordered[index] = [float(value) for value in vector]
+        if any(vector is None for vector in ordered):
+            return None
+        return [vector for vector in ordered if vector is not None]
+
+
+def orchestrator_embedding_client(base_url: str, api_key: str, model: str):
+    """Build the batch embedding channel, or the unavailable null client."""
+    if not (base_url and api_key and model):
+        return NullEmbeddingClient()
+    return ContextualOrchestratorEmbeddingClient(base_url, api_key, model)
 
 
 def cosine_similarity(a: list[float], b: list[float]) -> float:

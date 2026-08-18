@@ -52,7 +52,7 @@ update post_summary_role role
   from (
         select mention.post_id,
                person.person_name,
-               min(person.person_id) as person_id
+               min(person.person_id::text)::uuid as person_id
           from post_summary_person_mention mention
           join cataloged_person person
             on person.person_id = mention.person_id

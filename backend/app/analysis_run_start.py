@@ -86,7 +86,7 @@ def start_kind_rejection(run_kind_code: str) -> AnalysisRunStartError | None:
     )
 
 
-def configured_tepp_client(transport_url: str = "") -> TeppClient:
+def configured_tepp_client(transport_url: str = "", api_key: str = "") -> TeppClient:
     """Build a TEPP client from an optional HTTP transport URL.
 
     An empty URL keeps the default unavailable transport. A set URL
@@ -99,8 +99,9 @@ def configured_tepp_client(transport_url: str = "") -> TeppClient:
 
     def transport(payload: dict[str, Any]) -> dict[str, Any]:
         try:
-            return post_json(url, payload, headers={}, timeout=30.0)
-        except (HttpClientError, ValueError, TypeError) as exc:
+            headers = {"authorization": f"Bearer {api_key}"} if api_key.strip() else {}
+            return post_json(url, payload, headers=headers, timeout=30.0)
+        except (HttpClientError, OSError, ValueError, TypeError) as exc:
             raise TeppNotAvailable(str(exc)) from exc
 
     return TeppClient(transport=transport)
@@ -127,21 +128,70 @@ def tepp_run_request(
     )
 
 
+def _tepp_submission(
+    client: TeppClient,
+    request: AnalysisRunRequest,
+) -> tuple[str, str, dict[str, Any] | None]:
+    """Submit through ``tepp_client`` and require a completed result envelope.
+
+    TEPP's target HTTP contract is asynchronous. An ``accepted`` response is
+    therefore not a measurement and remains ``tepp_result_not_persisted``.
+    Only a provider-authoritative completed envelope can enter the database.
+    """
+    try:
+        response = client.submit_analysis_run(request)
+    except TeppNotAvailable:
+        return _FAILED, "tepp_not_available", None
+    if not isinstance(response, dict):
+        return _FAILED, "tepp_result_not_persisted", None
+    if response.get("status") not in {"completed", "succeeded"}:
+        return _FAILED, "tepp_result_not_persisted", None
+    if not isinstance(response.get("result"), dict):
+        return _FAILED, "tepp_result_not_persisted", None
+    remote_run_id = response.get("analysis_run_id") or response.get("run_id")
+    if not isinstance(remote_run_id, str) or not remote_run_id.strip():
+        return _FAILED, "tepp_result_not_persisted", None
+    return _SUCCEEDED, "", response
+
+
 def tepp_submit_outcome(
     client: TeppClient,
     request: AnalysisRunRequest,
 ) -> tuple[str, str]:
-    """Submit through ``tepp_client``. Never invent or persist a theta.
+    """Compatibility projection of the TEPP submission outcome."""
+    status_code, failure_code, _ = _tepp_submission(client, request)
+    return status_code, failure_code
 
-    A missing transport is ``tepp_not_available``. An accepted envelope
-    is not a persistable measurement until TEPP publishes one, so the
-    run stays Failed / ``tepp_result_not_persisted``.
-    """
+
+async def _persist_tepp_result(
+    conn: asyncpg.Connection,
+    *,
+    analysis_run_id: str,
+    envelope: dict[str, Any],
+) -> bool:
+    """Persist only a validated, remote-completed TEPP envelope."""
+    remote_run_id = envelope.get("analysis_run_id") or envelope.get("run_id")
+    if not isinstance(remote_run_id, str) or not remote_run_id.strip():
+        return False
+    result_json = json.dumps(envelope, separators=(",", ":"), sort_keys=True)
+    result_sha256 = hashlib.sha256(result_json.encode("utf-8")).hexdigest()
     try:
-        client.submit_analysis_run(request)
-    except TeppNotAvailable:
-        return _FAILED, "tepp_not_available"
-    return _FAILED, "tepp_result_not_persisted"
+        async with conn.transaction():
+            await conn.execute(
+                """
+                insert into analysis_run_tepp_result
+                    (analysis_run_id, remote_run_id, result_json, result_sha256)
+                values ($1, $2, $3::jsonb, $4)
+                on conflict (analysis_run_id) do nothing
+                """,
+                analysis_run_id,
+                remote_run_id,
+                result_json,
+                result_sha256,
+            )
+    except (asyncpg.PostgresError, TypeError, ValueError):
+        return False
+    return True
 
 
 def start_write_conflict_error() -> AnalysisRunStartError:
@@ -234,12 +284,11 @@ async def _append_status(
         """
         insert into analysis_run_status_event
             (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
-        values ($1, $2, $3, $4, $5)
+        values ($1, $2, $3, clock_timestamp(), $4)
         """,
         analysis_run_id,
         status_ordinal,
         status_code,
-        occurred_at,
         failure_code,
     )
 
@@ -705,7 +754,15 @@ async def _deliver_tepp_measurement(
         knowledge_cutoff=locked["knowledge_cutoff"],
         corporate_entity_id=str(locked["corporate_entity_id"]),
     )
-    status_code, failure_code = tepp_submit_outcome(tepp_client, request)
+    status_code, failure_code, envelope = _tepp_submission(tepp_client, request)
+    if status_code == _SUCCEEDED and envelope is not None:
+        if not await _persist_tepp_result(
+            conn,
+            analysis_run_id=analysis_run_id,
+            envelope=envelope,
+        ):
+            status_code = _FAILED
+            failure_code = "tepp_result_not_persisted"
     finished = datetime.now(timezone.utc)
     if finished < now:
         finished = now

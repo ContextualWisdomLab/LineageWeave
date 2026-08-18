@@ -40,6 +40,7 @@ from lineageweave.entity_relationship_classification import (
     NullEntityRelationshipClient,
 )
 from lineageweave.image_content import orchestrator_vision_client
+from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.corporate_hierarchy_inference import (
     ContextualOrchestratorHierarchyInferenceClient,
     NullCorporateHierarchyInferenceClient,
@@ -139,6 +140,7 @@ from backend.app.post_chat_ingestion import (
     persist_post_chat,
 )
 from backend.app.post_summary_ingestion import fetch_persisted_summary, persist_post_summary
+from lineageweave.post_content_persistence import persist_post_content
 
 _POST_READ = "post_read"
 _POST_ADMIN = "post_admin"
@@ -271,6 +273,16 @@ def _vision_client():
         settings.orchestrator_base_url,
         settings.orchestrator_api_key,
         settings.vision_model,
+    )
+
+
+def _embedding_client():
+    """Build the orchestrator embedding client, or an unavailable channel."""
+    settings = load_settings()
+    return orchestrator_embedding_client(
+        settings.orchestrator_base_url,
+        settings.orchestrator_api_key,
+        settings.embedding_model,
     )
 
 
@@ -952,7 +964,21 @@ async def read_post_summary(
                 "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
             )
         body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-        normalized_body = normalize_post_body(body_row["post_body"], vision_client=_vision_client()).text
+        vision_client = _vision_client()
+        normalized = normalize_post_body(body_row["post_body"], vision_client=vision_client)
+        settings = load_settings()
+        embedding_client = _embedding_client()
+        if vision_client.available or embedding_client.available:
+            await persist_post_content(
+                conn,
+                post_id,
+                body_row["post_body"],
+                vision_client=vision_client,
+                embedding_client=embedding_client,
+                embedding_model_code=settings.embedding_model or None,
+                normalized_result=normalized,
+            )
+        normalized_body = normalized.text
         summary = await asyncio.to_thread(
             client.summarize, post["post_title"], normalized_body
         )
@@ -1363,7 +1389,10 @@ async def start_analysis_run(
                     analysis_run_id=analysis_run_id,
                     account_id=account.user_account_id,
                     affiliated_entity_ids=list(account.corporate_entity_ids),
-                    tepp_client=configured_tepp_client(settings.tepp_transport_url),
+                    tepp_client=configured_tepp_client(
+                        settings.tepp_transport_url,
+                        settings.tepp_api_key,
+                    ),
                     valkey_stream_entry_id=stream_id,
                 )
             except AnalysisRunStartError as exc:
