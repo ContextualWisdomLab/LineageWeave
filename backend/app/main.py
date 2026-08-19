@@ -1784,6 +1784,7 @@ async def verify_post_entity_relationships(
     post_id: str,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Checks this post's `verify_pending` counterparty relationships
     (entity_relationship_classification's LLM output) against external
@@ -1818,6 +1819,13 @@ async def verify_post_entity_relationships(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Relation verification is unavailable: the search provider did not respond",
             ) from exc
+    await publish_activity_event(
+        valkey,
+        post_id,
+        "relations_verified",
+        account.user_account_id,
+        f"Relations verified: {len(verified)} counterparty relationship(s) checked",
+    )
     return {
         "post_id": str(post["post_id"]),
         "verified": [
@@ -1837,6 +1845,7 @@ async def extract_post_keymen(
     post_id: str,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Runs Keyman extraction over a post's own title+body and persists the
     result (cataloged_person / person_affiliation / post_person_mention /
@@ -1885,6 +1894,13 @@ async def extract_post_keymen(
             )
             async with conn.transaction():
                 await persist_edges_for_post(conn, post_id)
+    await publish_activity_event(
+        valkey,
+        post_id,
+        "keymen_extracted",
+        account.user_account_id,
+        f"Keymen extracted: {len(mentions)} mention(s) found",
+    )
     return {
         "post_id": str(post["post_id"]),
         "extracted_count": len(mentions),

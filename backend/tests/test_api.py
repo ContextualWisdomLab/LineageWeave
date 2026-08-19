@@ -2233,6 +2233,66 @@ def test_extract_keymen_requires_post_admin(client, demo_analyst_token, seeded_d
     assert response.status_code == 403
 
 
+def test_extract_keymen_and_verify_relations_publish_activity_events(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Live gap (2026-08-19): extract-keymen and verify-relations are real,
+    consequential write actions (an LLM call, an external-search call) but
+    never published anything to the post's activity feed -- only ticket
+    mutations did. An operator reviewing a post's history had no way to
+    see that Keymen extraction or relation verification ever ran on it.
+    """
+    from lineageweave.keyman_extraction import OUR_SIDE, PersonMention
+    from lineageweave.relation_verification import STATUS_UNCORROBORATED, RelationVerificationResult
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeKeymanClient:
+        available = True
+
+        def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
+            return [PersonMention(person_name="Kim Cheolsu", person_side_code=OUR_SIDE)]
+
+    class _FakeRelationshipClient:
+        available = True
+
+        def classify(self, post_title: str, post_body: str, organization_names: list[str]):
+            return []
+
+    class _FakeVerificationClient:
+        available = True
+
+        def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:
+            return RelationVerificationResult(status_code=STATUS_UNCORROBORATED, evidence_url=None)
+
+    monkeypatch.setattr("backend.app.main._keyman_extraction_client", lambda: _FakeKeymanClient())
+    monkeypatch.setattr("backend.app.main._entity_relationship_client", lambda: _FakeRelationshipClient())
+    monkeypatch.setattr("backend.app.main._relation_verification_client", lambda: _FakeVerificationClient())
+
+    post_id = seeded_db["own_private_post_id"]
+    extract_response = client.post(
+        f"/api/posts/{post_id}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert extract_response.status_code == 200, extract_response.text
+
+    verify_response = client.post(
+        f"/api/posts/{post_id}/verify-relations",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert verify_response.status_code == 200, verify_response.text
+
+    activity_response = client.get(
+        f"/api/posts/{post_id}/activity",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    events = activity_response.json()["events"]
+    event_types = [event["event_type"] for event in events]
+    # XREVRANGE returns newest first: verify-relations ran second.
+    assert event_types == ["relations_verified", "keymen_extracted"]
+    assert "1 mention" in events[1]["summary"]
+
+
 _ORCHESTRATOR_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL")
 _ORCHESTRATOR_API_KEY = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY")
 
