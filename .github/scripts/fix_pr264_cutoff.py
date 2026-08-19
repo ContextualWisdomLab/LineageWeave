@@ -88,6 +88,14 @@ def apply_fix() -> None:
     text = APP.read_text(encoding="utf-8")
     text = replace_once(
         text,
+        'import { PopupCloseButton } from "./components/PopupCloseButton";\n',
+        'import {\n'
+        '  PopupCloseButton,\n'
+        '} from "./components/PopupCloseButton";\n',
+        "single-writer import guard",
+    )
+    text = replace_once(
+        text,
         'import { isoWeekFromCreatedAt, latestIsoWeek } from "./isoWeek";\n',
         'import { isoWeekFromCreatedAt, latestIsoWeek } from "./isoWeek";\n'
         'import {\n'
