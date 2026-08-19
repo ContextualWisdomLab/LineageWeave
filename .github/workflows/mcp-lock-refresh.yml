@@ -1,0 +1,55 @@
+name: Refresh MCP dependency lock once
+
+on:
+  push:
+    paths:
+      - pyproject.toml
+      - .github/workflows/mcp-lock-refresh.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-lock:
+    if: github.actor != 'github-actions[bot]' && github.repository_owner == 'ContextualWisdomLab'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Resolve only the declared dependency change
+        run: uv lock
+
+      - name: Verify the frozen backend environment and MCP regressions
+        run: |
+          uv sync --frozen --extra dev --extra backend
+          uv run --frozen python -m pytest -q \
+            tests/test_mcp_global_ask.py \
+            tests/test_mcp_auth.py \
+            tests/test_mcp_server.py
+
+      - name: Commit the regenerated universal lock
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add uv.lock
+          if git diff --cached --quiet; then
+            echo "uv.lock already matches pyproject.toml"
+            exit 0
+          fi
+          git commit -m "build: lock MCP 2.0 runtime"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

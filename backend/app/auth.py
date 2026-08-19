@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from typing import Any
 
 import asyncpg
 import jwt
@@ -25,32 +26,93 @@ from backend.app.db import get_pool
 from lineageweave.http_client import HttpClientError, get_json
 
 _bearer_scheme = HTTPBearer(auto_error=True)
-_jwks_cache: dict[str, dict] = {}
+_jwks_cache: dict[str, dict[str, Any]] = {}
 
 
-def _jwks(settings: Settings) -> dict:
+class _SigningKeyNotFound(ValueError):
+    """No unique RSA signing key matches a structurally valid token header."""
+
+
+def _jwks(settings: Settings) -> dict[str, Any]:
     """Return the realm JWKS, cached per URI for the process lifetime."""
     cached = _jwks_cache.get(settings.keycloak_jwks_uri)
     if cached is None:
         try:
-            cached = get_json(settings.keycloak_jwks_uri, timeout=10)
+            payload = get_json(settings.keycloak_jwks_uri, timeout=10)
         except (HttpClientError, OSError, ValueError) as exc:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 f"could not fetch JWKS from {settings.keycloak_jwks_uri}: {exc}",
             ) from exc
+        if not isinstance(payload, dict):
+            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "issuer JWKS is not an object")
+        cached = payload
         _jwks_cache[settings.keycloak_jwks_uri] = cached
     return cached
 
 
-def _signing_key_from_jwks(jwks: dict, token: str):
-    """Pick the JWKS RSA key that matches the JWT kid, without urllib."""
-    header = jwt.get_unverified_header(token)
+def _signing_key_from_jwks(jwks: dict[str, Any], token: str):
+    """Return the sole RSA signing key matching the token's mandatory ``kid``."""
+    try:
+        header = jwt.get_unverified_header(token)
+    except jwt.PyJWTError as exc:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"invalid token header: {exc}") from exc
     kid = header.get("kid")
-    for key in jwks.get("keys", []):
-        if kid is None or key.get("kid") == kid:
-            return RSAAlgorithm.from_jwk(json.dumps(key))
-    raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"no JWKS key matched kid={kid!r}")
+    if not isinstance(kid, str) or not kid:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid token: missing kid")
+    matches = [
+        key
+        for key in jwks.get("keys", [])
+        if isinstance(key, dict)
+        and key.get("kid") == kid
+        and key.get("kty") == "RSA"
+        and key.get("use") in {None, "sig"}
+    ]
+    if len(matches) != 1:
+        raise _SigningKeyNotFound(f"expected one RSA signing key for kid={kid!r}")
+    try:
+        return RSAAlgorithm.from_jwk(json.dumps(matches[0]))
+    except (KeyError, TypeError, ValueError, jwt.PyJWTError) as exc:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid token signing key") from exc
+
+
+def decode_access_token(
+    token: str,
+    settings: Settings,
+    *,
+    audience: str | None = None,
+) -> dict[str, Any]:
+    """Validate signature, issuer, time claims, and an optional resource audience."""
+    try:
+        try:
+            signing_key = _signing_key_from_jwks(_jwks(settings), token)
+        except _SigningKeyNotFound:
+            # A new issuer key may have appeared after this process cached JWKS.
+            # Refresh exactly once; persistent ambiguity/miss is still a 401.
+            _jwks_cache.pop(settings.keycloak_jwks_uri, None)
+            try:
+                signing_key = _signing_key_from_jwks(_jwks(settings), token)
+            except _SigningKeyNotFound as exc:
+                raise HTTPException(
+                    status.HTTP_401_UNAUTHORIZED, f"invalid token: {exc}"
+                ) from exc
+        return jwt.decode(
+            token,
+            key=signing_key,
+            algorithms=["RS256"],
+            issuer=settings.keycloak_issuer,
+            audience=audience,
+            options={"verify_aud": audience is not None},
+        )
+    except HTTPException:
+        raise
+    except jwt.PyJWTError as exc:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"invalid token: {exc}") from exc
+
+
+def _decode_access_token(token: str, settings: Settings) -> dict[str, Any]:
+    """Backward-compatible REST decoder; MCP uses an exact audience instead."""
+    return decode_access_token(token, settings)
 
 
 @dataclass(frozen=True)
@@ -68,29 +130,10 @@ class CurrentAccount:
         return permission_code in self.permission_codes
 
 
-def _decode_access_token(token: str, settings: Settings) -> dict:
-    try:
-        signing_key = _signing_key_from_jwks(_jwks(settings), token)
-        return jwt.decode(
-            token,
-            key=signing_key,
-            algorithms=["RS256"],
-            issuer=settings.keycloak_issuer,
-            options={"verify_aud": False},
-        )
-    except jwt.PyJWTError as exc:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"invalid token: {exc}") from exc
-
-
-async def get_current_account(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
-    pool: asyncpg.Pool = Depends(get_pool),
-) -> CurrentAccount:
-    """Resolve the bearer token to a provisioned ``user_account`` row."""
-    settings = load_settings()
-    claims = _decode_access_token(credentials.credentials, settings)
-    subject = claims["sub"]
-
+async def resolve_current_account(pool: asyncpg.Pool, subject: str) -> CurrentAccount:
+    """Resolve one verified subject to DB-owned affiliations and permissions."""
+    if not subject:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "token has no subject")
     async with pool.acquire() as conn:
         account_row = await conn.fetchrow(
             "select user_account_id, display_name from user_account where external_subject_id = $1",
@@ -102,7 +145,6 @@ async def get_current_account(
                 "token is valid but no user_account is provisioned for this subject "
                 "(run scripts/seed_demo_data.py, or provision the account, first)",
             )
-
         entity_rows = await conn.fetch(
             "select corporate_entity_id from account_affiliation where user_account_id = $1",
             account_row["user_account_id"],
@@ -116,11 +158,23 @@ async def get_current_account(
             """,
             account_row["user_account_id"],
         )
-
     return CurrentAccount(
         user_account_id=str(account_row["user_account_id"]),
         external_subject_id=subject,
         display_name=account_row["display_name"],
         corporate_entity_ids=frozenset(str(row["corporate_entity_id"]) for row in entity_rows),
-        permission_codes=frozenset(row["permission_code"] for row in permission_rows),
+        permission_codes=frozenset(str(row["permission_code"]) for row in permission_rows),
     )
+
+
+async def get_current_account(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> CurrentAccount:
+    """Resolve the REST bearer token to a provisioned ``user_account`` row."""
+    settings = load_settings()
+    claims = _decode_access_token(credentials.credentials, settings)
+    subject = claims.get("sub")
+    if not isinstance(subject, str):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "token has no subject")
+    return await resolve_current_account(pool, subject)

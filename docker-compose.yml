@@ -117,6 +117,35 @@ services:
       searxng:
         condition: service_healthy
 
+  mcp:
+    # Dedicated Streamable HTTP process: same image and domain contracts as
+    # the REST backend, but no UI CORS surface and no inbound-token forwarding.
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["uvicorn", "backend.app.mcp_server:app", "--host", "0.0.0.0", "--port", "8001"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lineageweave}:${POSTGRES_PASSWORD:-lineageweave_dev_only}@postgres:5432/${POSTGRES_DB:-lineageweave}
+      KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_ISSUER: http://localhost:${KEYCLOAK_PORT:-18080}/realms/lineageweave-demo
+      KEYCLOAK_REALM: lineageweave-demo
+      KEYCLOAK_CLIENT_ID: lineageweave-frontend
+      MCP_RESOURCE_URL: http://localhost:${MCP_PORT:-18001}/mcp
+      MCP_AUDIENCE: http://localhost:${MCP_PORT:-18001}/mcp
+      MCP_REQUIRED_SCOPES: ${MCP_REQUIRED_SCOPES:-}
+      MCP_ALLOWED_HOSTS: localhost:${MCP_PORT:-18001},127.0.0.1:${MCP_PORT:-18001},mcp:8001
+      MCP_ALLOWED_ORIGINS: ${MCP_ALLOWED_ORIGINS:-}
+      ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-}
+      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}
+      VISION_MODEL: ${VISION_MODEL:-}
+    ports:
+      - "${MCP_PORT:-18001}:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+
   frontend:
     build:
       context: ./frontend

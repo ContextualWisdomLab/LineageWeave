@@ -1,15 +1,23 @@
 """Environment-driven settings. No file-based config, no defaults that
 silently point at a real deployment -- every value is either a genuinely
-safe local-dev default or must be set explicitly."""
+safe local-dev default or must be set explicitly.
+"""
 
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+
+def _csv_setting(name: str, default: str = "") -> list[str]:
+    """Return one comma-separated setting as stripped, non-empty values."""
+    return [value.strip() for value in os.environ.get(name, default).split(",") if value.strip()]
 
 
 @dataclass(frozen=True)
 class Settings:
+    """Runtime settings shared by the REST API and MCP resource server."""
+
     database_url: str
     # Reachable *from this backend process* -- used only to fetch JWKS
     # signing keys. Inside docker-compose this is the internal service DNS
@@ -55,6 +63,19 @@ class Settings:
     # RankWeaveNotAvailable -- never invent a fused score. Default false
     # uses the in-process library already required by reconstruct.py.
     rankweave_disabled: bool
+    # Public Streamable HTTP MCP resource URL. It is also the default JWT
+    # audience, so tokens issued for the REST frontend cannot be replayed
+    # unless the IdP explicitly includes this resource audience.
+    mcp_resource_url: str = "http://localhost:18001/mcp"
+    mcp_audience: str = "http://localhost:18001/mcp"
+    # Optional OAuth scopes are enforced by the MCP SDK. Product RBAC and
+    # ABAC are always enforced in addition, even when this list is empty.
+    mcp_required_scopes: list[str] = field(default_factory=list)
+    # Exact Host/Origin allowlists for MCP DNS-rebinding protection.
+    mcp_allowed_hosts: list[str] = field(
+        default_factory=lambda: ["localhost:*", "127.0.0.1:*", "mcp:8001"]
+    )
+    mcp_allowed_origins: list[str] = field(default_factory=list)
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -66,6 +87,7 @@ def load_settings() -> Settings:
     """Read Settings from the environment, with local-dev defaults only."""
     keycloak_base_url = os.environ.get("KEYCLOAK_BASE_URL", "http://localhost:18080")
     keycloak_realm = os.environ.get("KEYCLOAK_REALM", "lineageweave-demo")
+    mcp_resource_url = os.environ.get("MCP_RESOURCE_URL", "http://localhost:18001/mcp")
     return Settings(
         database_url=os.environ.get(
             "DATABASE_URL",
@@ -77,11 +99,7 @@ def load_settings() -> Settings:
         keycloak_issuer=os.environ.get(
             "KEYCLOAK_ISSUER", f"{keycloak_base_url}/realms/{keycloak_realm}"
         ),
-        frontend_origins=[
-            origin.strip()
-            for origin in os.environ.get("FRONTEND_ORIGINS", "http://localhost:5173").split(",")
-            if origin.strip()
-        ],
+        frontend_origins=_csv_setting("FRONTEND_ORIGINS", "http://localhost:5173"),
         orchestrator_base_url=os.environ.get("ORCHESTRATOR_BASE_URL", ""),
         orchestrator_api_key=os.environ.get("ORCHESTRATOR_API_KEY", ""),
         vision_model=os.environ.get("VISION_MODEL", ""),
@@ -92,4 +110,11 @@ def load_settings() -> Settings:
         .strip()
         .lower()
         in {"1", "true", "yes", "on"},
+        mcp_resource_url=mcp_resource_url,
+        mcp_audience=os.environ.get("MCP_AUDIENCE", mcp_resource_url),
+        mcp_required_scopes=_csv_setting("MCP_REQUIRED_SCOPES"),
+        mcp_allowed_hosts=_csv_setting(
+            "MCP_ALLOWED_HOSTS", "localhost:*,127.0.0.1:*,mcp:8001"
+        ),
+        mcp_allowed_origins=_csv_setting("MCP_ALLOWED_ORIGINS"),
     )

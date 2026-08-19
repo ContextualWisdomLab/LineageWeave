@@ -48,6 +48,17 @@
             "access.token.claim": "true",
             "userinfo.token.claim": "true"
           }
+        },
+        {
+          "name": "lineageweave-mcp-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "http://localhost:18001/mcp",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "lightweight.claim": "false"
+          }
         }
       ]
     }
