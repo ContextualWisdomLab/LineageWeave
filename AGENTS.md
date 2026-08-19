@@ -171,6 +171,8 @@ Opening that filtered post focuses Event Lineage (ADR 0093). Do not
 invent a week, a theta, or a cutoff body.
 Opening a Calendar commitment uses the same focus path (ADR 0072). Do not
 invent a week, a theta, a cutoff body, or a CalDAV event.
+Opening a Customer master related post uses the same focus path (ADR 0073).
+Do not invent a week, a theta, a cutoff body, a CalDAV event, or a customer.
 
 
 ## Tests

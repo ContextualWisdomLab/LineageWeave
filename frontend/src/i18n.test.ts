@@ -39,6 +39,7 @@ describe("i18n", () => {
     "Filter by ISO week",
     "All weeks",
     "Authorized commitments are current. Open a commitment to read Event Lineage.",
+    "Authorized customer entities are current. Open a related post to read Event Lineage.",
   ] as const;
 
   it("supports the five product locales", () => {
