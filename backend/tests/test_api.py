@@ -2297,6 +2297,58 @@ _ORCHESTRATOR_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL
 _ORCHESTRATOR_API_KEY = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY")
 
 
+def test_extract_keymen_never_classifies_an_org_named_only_by_our_side_mentions(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Live bug (2026-08-19): an organization affiliated ONLY with an
+    our_side person (our own factory, our own affiliate) got fed into the
+    counterparty-relationship classifier the same as any external org --
+    forced to pick from six codes that all assume an external
+    counterparty, it had no correct answer and landed on the closest
+    wrong one (observed live as "Partner"). Only a counterparty-side
+    mention's affiliated organizations may reach that classifier.
+    """
+    from lineageweave.keyman_extraction import COUNTERPARTY, OUR_SIDE, PersonMention
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeKeymanClient:
+        available = True
+
+        def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
+            return [
+                PersonMention(
+                    person_name="Kim Cheolsu",
+                    person_side_code=OUR_SIDE,
+                    affiliated_organization_names=("Our Own Factory",),
+                ),
+                PersonMention(
+                    person_name="Lee Younghee",
+                    person_side_code=COUNTERPARTY,
+                    affiliated_organization_names=("Acme Corp",),
+                ),
+            ]
+
+    classified_names: list[str] = []
+
+    class _FakeRelationshipClient:
+        available = True
+
+        def classify(self, post_title: str, post_body: str, organization_names: list[str]):
+            classified_names.extend(organization_names)
+            return []
+
+    monkeypatch.setattr("backend.app.main._keyman_extraction_client", lambda: _FakeKeymanClient())
+    monkeypatch.setattr("backend.app.main._entity_relationship_client", lambda: _FakeRelationshipClient())
+
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    assert classified_names == ["Acme Corp"]
+
+
 def test_extract_keymen_does_not_merge_same_name_people_with_conflicting_titles(
     client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
