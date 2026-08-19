@@ -358,6 +358,7 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "source_detail_state_code": post.get("source_detail_state_code"),
         "source_draft_code": post.get("source_draft_code"),
         "source_deleted_flag": post.get("source_deleted_flag"),
+        "publication_state_code": _publication_state_code(post),
         "source_author_code": post.get("source_author_code"),
         "source_author_name": post.get("source_author_name"),
         "source_company_code": post.get("source_company_code"),
@@ -377,6 +378,15 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "project_evidence": project_evidence,
         "created_at": post["created_at"].isoformat(),
     }
+
+
+def _publication_state_code(post: asyncpg.Record) -> str:
+    """Expose raw lifecycle evidence without guessing its source semantics."""
+    if str(post.get("source_deleted_flag") or "").strip():
+        return "source_deletion_marker"
+    if str(post.get("source_draft_code") or "").strip():
+        return "source_draft_marker"
+    return "publication_state_unknown"
 
 
 async def _load_project_evidence(

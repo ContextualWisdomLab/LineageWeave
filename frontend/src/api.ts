@@ -25,6 +25,7 @@ export interface PostSummary {
   source_project_name?: string | null;
   source_system_code?: string | null;
   source_record_key?: string | null;
+  publication_state_code?: string;
   post_body_excerpt?: string | null;
   post_body_truncated?: boolean;
   project_evidence?: ProjectEvidence[];

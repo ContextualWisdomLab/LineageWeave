@@ -30,6 +30,7 @@ def test_source_state_codes_are_serialized_without_inference() -> None:
     assert payload["source_detail_state_code"] == "A"
     assert payload["source_draft_code"] is None
     assert payload["source_deleted_flag"] is None
+    assert payload["publication_state_code"] == "publication_state_unknown"
     assert payload["source_author_code"] == "author-1"
     assert payload["source_customer_code"] == "CUSTOMER-1"
     assert payload["source_project_code"] == "PROJECT-1"
