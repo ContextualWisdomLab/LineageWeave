@@ -12,17 +12,18 @@ normative research-grounding policy, and
 [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md) for
 supporting literature and aggregate evidence.
 
-## Hard rule: no real data, ever
+## Hard rule: no real data in repository artifacts
 
-This repo ships **synthetic data only** (`lineageweave/fixtures.py`) and
-must never reference, by name or otherwise identifiably, any real
-organization whose data motivated this design. Never add a fixture, test
-case, screenshot, or example derived from a real organization's records. If you are extending this repo to validate against
-real data, do that validation entirely outside this repository (a private
-scratch script against a local database is fine) and only bring back
-**aggregate, non-identifying findings** -- see how
-`docs/lineage-bi-research-notes.md`'s "2.6%" validation number is phrased:
-a statistic, never a title, name, or id.
+This repository ships **synthetic fixtures only** (`lineageweave/fixtures.py`)
+and must never commit or expose, by name or otherwise identifiably, any real
+organization's records. Never add a real record to a fixture, test case,
+screenshot, example, log, benchmark artifact, or documentation.
+
+The private runtime is different: the product is expected to read an
+authorized real PostgreSQL source through its configured import/data boundary.
+Keep those records outside git and return only authorized, provenance-bearing
+product evidence. Validation results brought back into this repository must be
+aggregate and non-identifying -- a statistic, never a title, name, or id.
 
 ## Reuse before you build
 
