@@ -299,6 +299,7 @@ class _BlockTextExtractor(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
         self._stack: list[tuple[str, list[str], str | None, int]] = []
+        self._unscoped_buffer: list[str] = []
         # Each entry is ("text", str, tag_name, style) or
         # ("image", (mime_type, bytes), "", None) -- a single sequence in
         # true document order, so an image's index among its siblings
@@ -366,9 +367,15 @@ class _BlockTextExtractor(HTMLParser):
         text = text.replace("\xa0", " ")
         if self._stack and (text.strip() or had_nbsp):
             self._stack[-1][1].append(text)
+        elif text.strip() or had_nbsp:
+            self._unscoped_buffer.append(text)
 
     def finished(self) -> list[tuple[str, object, str, str | None, int]]:
         """Return the normalized records collected from the HTML fragment."""
+        if not self._finished:
+            fallback = normalize_semantic_text("".join(self._unscoped_buffer))
+            if fallback:
+                return [("text", fallback, "", None, _source_indent_width(fallback))]
         return self._finished
 
 
@@ -418,7 +425,7 @@ def chunk_by_dom(html: str) -> list[Chunk]:
             chunks.append(
                 Chunk(
                     text=value,
-                    unit_type="dom",
+                    unit_type="plain_text" if not tag_name else "dom",
                     index=index,
                     label=tag_name,
                     style=style,

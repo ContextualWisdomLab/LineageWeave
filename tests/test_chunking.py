@@ -198,6 +198,14 @@ def test_chunk_by_dom_empty_html_yields_no_chunks() -> None:
     assert chunk_by_dom("") == []
 
 
+def test_chunk_by_dom_falls_back_for_inline_only_markup() -> None:
+    chunks = chunk_by_dom("<span>First inline block.</span><span>Second inline block.</span>")
+
+    assert len(chunks) == 1
+    assert chunks[0].unit_type == "plain_text"
+    assert chunks[0].text == "First inline block.Second inline block."
+
+
 def test_chunk_by_dom_interleaves_images_with_text_in_document_order() -> None:
     tiny_png_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
     html = (
