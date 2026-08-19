@@ -204,6 +204,9 @@ describe("App, authenticated", () => {
       if (url.endsWith("/api/posts/post-1/activity") && method === "GET") {
         return Promise.resolve(jsonResponse({ events }));
       }
+      if (url.endsWith("/api/posts/post-2/activity") && method === "GET") {
+        return Promise.resolve(jsonResponse({ events: [] }));
+      }
       if (url.endsWith("/api/posts/post-1/derive-commitment") && method === "POST") {
         if (options?.chatUnavailable) {
           return Promise.resolve(
@@ -1191,6 +1194,17 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/posts/post-2/summary")) {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-2",
+            korean_summary: "연결된 글입니다.",
+            key_events: [],
+            roles_and_responsibilities: [],
+            project_mentions: [],
+          }),
+        );
+      }
       if (url.endsWith("/api/posts/post-1/keymen")) {
         return Promise.resolve(
           jsonResponse({
@@ -1489,6 +1503,15 @@ describe("App, authenticated", () => {
             post_id: "post-1",
             direct: [],
             indirect: [{ post_id: "post-2", post_title: "Linked post" }],
+          }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-2/lineage")) {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-2",
+            direct: [{ post_id: "post-1", post_title: "Public post" }],
+            indirect: [],
           }),
         );
       }
@@ -1940,6 +1963,35 @@ describe("App, authenticated", () => {
     await userEvent.click(
       within(boardAfterCustomer).getByRole("button", { name: "View post: Public post" }),
     );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+  });
+
+  it("opening an Ask Agent cited post focuses Event Lineage; a home list open does not", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+    expect(await within(ask).findByLabelText("Next action")).toHaveTextContent(
+      "Authorized cited posts are current. Open a cited post to read Event Lineage.",
+    );
+    await userEvent.click(within(ask).getByRole("button", { name: "Open cited post: Linked post" }));
+
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    expect(document.getElementById("post-event-lineage")).toHaveFocus();
+    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
+      "Linked post is current in Event Lineage. Read Keyman and evaluation next.",
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    const boardAfterAsk = screen.getByRole("region", { name: "Board" });
+    await userEvent.click(within(boardAfterAsk).getByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
     expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
