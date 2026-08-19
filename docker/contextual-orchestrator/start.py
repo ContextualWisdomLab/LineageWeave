@@ -10,6 +10,8 @@ from __future__ import annotations
 import os
 import sys
 import json
+import urllib.error
+import urllib.request
 from pathlib import Path
 from urllib.parse import urlparse, urlunparse
 
@@ -23,6 +25,29 @@ def _pop_first_env(*names: str) -> str:
         if value:
             return value
     return ""
+
+
+def _discover_chat_model(provider_url: str, provider_key: str) -> str:
+    """Select the first provider model that is usable for chat and Vision."""
+    request = urllib.request.Request(
+        provider_url.rstrip("/") + "/models",
+        headers={"authorization": f"Bearer {provider_key}"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=15.0) as response:  # noqa: S310 - configured gateway
+            payload = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        raise SystemExit("LLM gateway model discovery failed") from exc
+    rows = payload.get("data") if isinstance(payload, dict) else None
+    for row in rows if isinstance(rows, list) else []:
+        model = row.get("id") if isinstance(row, dict) else None
+        lowered = model.lower() if isinstance(model, str) else ""
+        if model and not any(
+            marker in lowered for marker in ("embedding", "moderation", "whisper", "tts", "dall-e")
+        ):
+            return model
+    raise SystemExit("LLM gateway returned no chat-capable model")
 
 
 def main() -> None:
@@ -39,6 +64,7 @@ def main() -> None:
         provider_url = "https://integrate.api.nvidia.com/v1"
     if not provider_url.rstrip("/").endswith("/v1"):
         provider_url = provider_url.rstrip("/") + "/v1"
+    discovered_chat_model = _discover_chat_model(provider_url, provider_key)
     embedding_provider_url = provider_url
     local_mlx = is_local_mlx_provider(provider_url)
     if local_mlx:
@@ -57,6 +83,8 @@ def main() -> None:
     agents = json.loads(Path("/app/agents.json").read_text(encoding="utf-8"))
     for agent in agents["agents"]:
         agent["base_url"] = provider_url
+        if not str(agent.get("model", "")).strip():
+            agent["model"] = discovered_chat_model
         agent["credential_key"] = "LLM_GATEWAY_API_KEY"
         if local_mlx:
             agent["local_credential_key"] = "LLM_GATEWAY_API_KEY"
