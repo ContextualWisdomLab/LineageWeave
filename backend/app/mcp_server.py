@@ -51,7 +51,6 @@ _META_SERVER_INFO = "io.modelcontextprotocol/serverInfo"
 
 _HEADER_MISMATCH = -32020
 _UNSUPPORTED_PROTOCOL_VERSION = -32022
-
 _SERVER_INFO = {"name": _SERVER_NAME, "version": _SERVER_VERSION}
 
 _GLOBAL_ASK_OUTPUT_SCHEMA: dict[str, Any] = {
@@ -146,18 +145,22 @@ def load_mcp_settings() -> McpRuntimeSettings:
     )
 
 
-def _resource_metadata_url(request: Request) -> str:
-    """Return the RFC 9728 metadata URL advertised in 401 challenges."""
-    return str(request.base_url).rstrip("/") + "/.well-known/oauth-protected-resource/mcp"
+def _resource_metadata_url(mcp_settings: McpRuntimeSettings) -> str:
+    """Return the canonical RFC 9728 metadata URL for the configured resource."""
+    parsed = urlsplit(mcp_settings.resource_uri)
+    path = parsed.path if parsed.path.startswith("/") else f"/{parsed.path}"
+    return f"{parsed.scheme}://{parsed.netloc}/.well-known/oauth-protected-resource{path}"
 
 
-def _validate_origin(request: Request, mcp_settings: McpRuntimeSettings) -> None:
-    """Reject browser origins not explicitly authorized for this MCP server."""
+def _validate_transport_target(request: Request, mcp_settings: McpRuntimeSettings) -> None:
+    """Validate browser Origin and canonical Host to bound DNS-rebinding surface."""
     origin = request.headers.get("origin")
-    if origin is None:
-        return
-    if origin not in mcp_settings.allowed_origins:
+    if origin is not None and origin not in mcp_settings.allowed_origins:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "MCP Origin is not allowed")
+    canonical_host = urlsplit(mcp_settings.resource_uri).netloc.lower()
+    request_host = request.headers.get("host", "").lower()
+    if request_host and request_host != canonical_host:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "MCP Host does not match the configured resource")
 
 
 def _mcp_jwks(settings: Settings) -> dict[str, Any]:
@@ -391,6 +394,16 @@ def _jsonrpc_error(
     return {"jsonrpc": "2.0", "id": request_id, "error": error}
 
 
+def _unsupported_version_error(request_id: Any, requested: Any) -> dict[str, Any]:
+    """Build the final 2026 UnsupportedProtocolVersion wire shape."""
+    return _jsonrpc_error(
+        request_id,
+        _UNSUPPORTED_PROTOCOL_VERSION,
+        "Unsupported protocol version",
+        data={"supported": [_PROTOCOL_VERSION], "requested": str(requested or "")},
+    )
+
+
 def _request_envelope(message: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     """Validate the stateless per-request MCP metadata envelope."""
     params = message.get("params")
@@ -403,7 +416,7 @@ def _request_envelope(message: dict[str, Any]) -> tuple[dict[str, Any], dict[str
         raise ValueError("params._meta is required")
     protocol_version = meta.get(_META_PROTOCOL_VERSION)
     if protocol_version != _PROTOCOL_VERSION:
-        raise RuntimeError(str(protocol_version))
+        raise RuntimeError(str(protocol_version or ""))
     client_capabilities = meta.get(_META_CLIENT_CAPABILITIES)
     if not isinstance(client_capabilities, dict):
         raise ValueError("clientCapabilities must be an object")
@@ -422,8 +435,8 @@ def _expected_mcp_name(method: Any, params: dict[str, Any]) -> str | None:
         name = params.get("name")
         return name if isinstance(name, str) else None
     if method in {"resources/read", "prompts/get"}:
-        uri_or_name = params.get("uri") if method == "resources/read" else params.get("name")
-        return uri_or_name if isinstance(uri_or_name, str) else None
+        source = params.get("uri") if method == "resources/read" else params.get("name")
+        return source if isinstance(source, str) else None
     return None
 
 
@@ -434,21 +447,18 @@ def _validate_transport_headers(request: Request, message: dict[str, Any]) -> JS
     meta = params.get("_meta") if isinstance(params, dict) else None
     body_version = meta.get(_META_PROTOCOL_VERSION) if isinstance(meta, dict) else None
     header_version = request.headers.get("mcp-protocol-version")
-    if header_version != _PROTOCOL_VERSION or body_version != _PROTOCOL_VERSION:
-        return JSONResponse(
-            _jsonrpc_error(
-                request_id,
-                _UNSUPPORTED_PROTOCOL_VERSION,
-                "Unsupported protocol version",
-                data={"supportedVersions": [_PROTOCOL_VERSION]},
-            ),
-            status_code=status.HTTP_400_BAD_REQUEST,
-        )
+
     if header_version != body_version:
         return JSONResponse(
             _jsonrpc_error(request_id, _HEADER_MISMATCH, "MCP-Protocol-Version header mismatch"),
             status_code=status.HTTP_400_BAD_REQUEST,
         )
+    if header_version != _PROTOCOL_VERSION:
+        return JSONResponse(
+            _unsupported_version_error(request_id, header_version),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
     method = message.get("method")
     method_header = request.headers.get("mcp-method")
     if not isinstance(method, str) or method_header != method:
@@ -489,16 +499,8 @@ async def _dispatch_message(
         return None, status.HTTP_202_ACCEPTED
     try:
         params, _meta = _request_envelope(message)
-    except RuntimeError:
-        return (
-            _jsonrpc_error(
-                request_id,
-                _UNSUPPORTED_PROTOCOL_VERSION,
-                "Unsupported protocol version",
-                data={"supportedVersions": [_PROTOCOL_VERSION]},
-            ),
-            status.HTTP_400_BAD_REQUEST,
-        )
+    except RuntimeError as exc:
+        return _unsupported_version_error(request_id, str(exc)), status.HTTP_400_BAD_REQUEST
     except ValueError as exc:
         return _jsonrpc_error(request_id, -32602, str(exc)), status.HTTP_200_OK
 
@@ -616,7 +618,7 @@ async def mcp_get() -> Response:
 async def mcp_post(request: Request) -> Response:
     """Handle one authenticated MCP 2026-07-28 Streamable HTTP request."""
     mcp_settings = load_mcp_settings()
-    _validate_origin(request, mcp_settings)
+    _validate_transport_target(request, mcp_settings)
     try:
         message = await request.json()
     except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
@@ -640,7 +642,7 @@ async def mcp_post(request: Request) -> Response:
                 status_code=exc.status_code,
                 headers={
                     "WWW-Authenticate": (
-                        'Bearer resource_metadata="' + _resource_metadata_url(request) + '"'
+                        'Bearer resource_metadata="' + _resource_metadata_url(mcp_settings) + '"'
                     )
                 },
             )
