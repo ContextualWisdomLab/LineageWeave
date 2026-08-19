@@ -2455,6 +2455,7 @@ type SelectPostOptions = {
   fromWeeklyVoc?: boolean;
   fromCalendar?: boolean;
   fromCustomerMaster?: boolean;
+  fromAskAgent?: boolean;
 };
 
 /**
@@ -3499,6 +3500,7 @@ function PostList({
   postIdToOpen = null,
   postOpenFromCalendar = false,
   postOpenFromCustomerMaster = false,
+  postOpenFromAskAgent = false,
   onPostOpened,
 }: {
   accessToken: string;
@@ -3506,6 +3508,7 @@ function PostList({
   postIdToOpen?: string | null;
   postOpenFromCalendar?: boolean;
   postOpenFromCustomerMaster?: boolean;
+  postOpenFromAskAgent?: boolean;
   onPostOpened?: () => void;
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
@@ -3527,6 +3530,7 @@ function PostList({
   const [openedFromWeeklyVoc, setOpenedFromWeeklyVoc] = useState(false);
   const [openedFromCalendar, setOpenedFromCalendar] = useState(false);
   const [openedFromCustomerMaster, setOpenedFromCustomerMaster] = useState(false);
+  const [openedFromAskAgent, setOpenedFromAskAgent] = useState(false);
   const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
   const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
   const [totalPosts, setTotalPosts] = useState(0);
@@ -3583,6 +3587,7 @@ function PostList({
     setOpenedFromWeeklyVoc(Boolean(options?.fromWeeklyVoc));
     setOpenedFromCalendar(Boolean(options?.fromCalendar));
     setOpenedFromCustomerMaster(Boolean(options?.fromCustomerMaster));
+    setOpenedFromAskAgent(Boolean(options?.fromAskAgent));
   }
 
   useEffect(() => {
@@ -3590,9 +3595,16 @@ function PostList({
     selectPost(postIdToOpen, {
       fromCalendar: postOpenFromCalendar,
       fromCustomerMaster: postOpenFromCustomerMaster,
+      fromAskAgent: postOpenFromAskAgent,
     });
     onPostOpened?.();
-  }, [onPostOpened, postIdToOpen, postOpenFromCalendar, postOpenFromCustomerMaster]);
+  }, [
+    onPostOpened,
+    postIdToOpen,
+    postOpenFromCalendar,
+    postOpenFromCustomerMaster,
+    postOpenFromAskAgent,
+  ]);
 
   function closeSelectedPost() {
     setSelectedPostId(null);
@@ -3602,6 +3614,7 @@ function PostList({
     setOpenedFromWeeklyVoc(false);
     setOpenedFromCalendar(false);
     setOpenedFromCustomerMaster(false);
+    setOpenedFromAskAgent(false);
     const url = new URL(window.location.href);
     if (url.searchParams.has("post")) {
       url.searchParams.delete("post");
@@ -4071,7 +4084,8 @@ function PostList({
             openedFromReportMember ||
             openedFromWeeklyVoc ||
             openedFromCalendar ||
-            openedFromCustomerMaster
+            openedFromCustomerMaster ||
+            openedFromAskAgent
           }
           focusAskOnLand={openedFromReportMember}
           onClose={closeSelectedPost}
@@ -4532,11 +4546,18 @@ function AskAgentPanel({
           {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
           {answer.cited_posts && answer.cited_posts.length > 0 && (
             <>
+              <p className="board-next-action" role="status" aria-label={t("Next action")}>
+                {t("Authorized cited posts are current. Open a cited post to read Event Lineage.")}
+              </p>
               <h4>{t("Cited posts")}</h4>
               <ul className="related-post-list">
                 {answer.cited_posts.map((post) => (
                   <li key={post.post_id}>
-                    <button className="post-list-item" onClick={() => onOpenPost(post.post_id)}>
+                    <button
+                      className="post-list-item"
+                      aria-label={`${t("Open cited post:")} ${post.post_title}`}
+                      onClick={() => onOpenPost(post.post_id)}
+                    >
                       <strong>{post.post_title}</strong>
                     </button>
                     {answer.cited_post_evidence?.find((item) => item.post_id === post.post_id)?.facts.length ? (
@@ -4572,6 +4593,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   });
   const [postOpenFromCalendar, setPostOpenFromCalendar] = useState(false);
   const [postOpenFromCustomerMaster, setPostOpenFromCustomerMaster] = useState(false);
+  const [postOpenFromAskAgent, setPostOpenFromAskAgent] = useState(false);
   // Test-only compatibility for legacy analysis-panel coverage; this prop
   // never forces the panels open outside Vitest. In a real build the
   // advanced-review section (ADR 0037) is gated on PostList's own
@@ -4653,10 +4675,12 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           postIdToOpen={postToOpen}
           postOpenFromCalendar={postOpenFromCalendar}
           postOpenFromCustomerMaster={postOpenFromCustomerMaster}
+          postOpenFromAskAgent={postOpenFromAskAgent}
           onPostOpened={() => {
             setPostToOpen(null);
             setPostOpenFromCalendar(false);
             setPostOpenFromCustomerMaster(false);
+            setPostOpenFromAskAgent(false);
           }}
         />
       ) : null}
@@ -4667,6 +4691,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             setPostToOpen(postId);
             setPostOpenFromCalendar(false);
             setPostOpenFromCustomerMaster(true);
+            setPostOpenFromAskAgent(false);
             setDestination("board");
           }}
         />
@@ -4679,6 +4704,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             setPostToOpen(postId);
             setPostOpenFromCalendar(true);
             setPostOpenFromCustomerMaster(false);
+            setPostOpenFromAskAgent(false);
             setDestination("board");
           }}
         />
@@ -4688,6 +4714,9 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           accessToken={accessToken}
           onOpenPost={(postId) => {
             setPostToOpen(postId);
+            setPostOpenFromCalendar(false);
+            setPostOpenFromCustomerMaster(false);
+            setPostOpenFromAskAgent(true);
             setDestination("board");
           }}
         />
