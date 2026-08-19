@@ -107,22 +107,25 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
             for row in rows:
                 post_id = str(row["post_id"])
                 try:
-                    with use_llm_metadata(build_post_llm_metadata(post_id, dict(row))):
-                        normalized = normalize_post_body(row["post_body"] or "", vision_client)
-                        context_hints = await _load_post_semantic_hints(conn, post_id)
-                        mentions = await ingest_post_keymen(
-                            conn,
-                            keyman_client,
-                            post_id,
-                            row["post_title"] or "",
-                            normalized.text,
-                            resolution_client=resolution_client,
-                            verification_client=verification_client,
-                            hierarchy_inference_client=hierarchy_client,
-                            context_hints=context_hints,
-                        )
+                    async with asyncio.timeout(args.post_timeout):
+                        with use_llm_metadata(build_post_llm_metadata(post_id, dict(row))):
+                            normalized = normalize_post_body(row["post_body"] or "", vision_client)
+                            context_hints = await _load_post_semantic_hints(conn, post_id)
+                            mentions = await ingest_post_keymen(
+                                conn,
+                                keyman_client,
+                                post_id,
+                                row["post_title"] or "",
+                                normalized.text,
+                                resolution_client=resolution_client,
+                                verification_client=verification_client,
+                                hierarchy_inference_client=hierarchy_client,
+                                context_hints=context_hints,
+                            )
                     processed += 1
                     mention_count += len(mentions)
+                except TimeoutError:
+                    failures["TimeoutError"] += 1
                 except (HttpClientError, OSError, RuntimeError, ValueError, asyncpg.PostgresError) as exc:
                     failures[type(exc).__name__] += 1
         return {
@@ -142,9 +145,17 @@ def main() -> None:
     selector.add_argument("--post-id", help="Re-extract one eligible post")
     selector.add_argument("--all", action="store_true", help="Process the explicit --limit batch")
     parser.add_argument("--limit", type=int, default=1, help="Maximum posts for --all (default: 1)")
+    parser.add_argument(
+        "--post-timeout",
+        type=float,
+        default=240.0,
+        help="Maximum seconds per post including provider calls (default: 240)",
+    )
     args = parser.parse_args()
     if args.limit < 1:
         parser.error("--limit must be positive")
+    if args.post_timeout <= 0:
+        parser.error("--post-timeout must be positive")
     print(json.dumps(asyncio.run(_run(args)), ensure_ascii=False, sort_keys=True))
 
 

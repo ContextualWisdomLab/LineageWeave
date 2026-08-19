@@ -28,6 +28,8 @@ It will:
 - carry `build_post_llm_metadata` and `use_llm_metadata` across all LLM/VISION
   calls for one post, yielding the same deterministic post session id;
 - default to one post and require explicit `--all --limit N` for a batch.
+- enforce a per-post timeout, returning a typed failure count instead of
+  allowing a provider workflow to hold an operator process indefinitely.
 
 Gateway credentials are read from runtime-injected environment variables. The
 script never reads or copies `~/.env`, and it is not exposed as a buyer HTTP
@@ -42,3 +44,5 @@ route. No analysis-run registry tables are modified.
 - Re-running a selected post is idempotent through `ingest_post_keymen`'s
   replacement semantics, while the default selector may revisit an empty
   extraction because no evidence row exists.
+- A provider workflow that exceeds the timeout is recorded as unavailable for
+  that attempt; it is not converted into an empty Keyman result.
