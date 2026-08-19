@@ -27,6 +27,7 @@ export interface PostSummary {
   source_record_key?: string | null;
   post_body_excerpt?: string | null;
   post_body_truncated?: boolean;
+  project_evidence?: ProjectEvidence[];
   created_at: string;
 }
 
@@ -55,7 +56,6 @@ export interface PostKnownAt {
 
 export interface PostDetail extends PostSummary {
   post_body: string;
-  project_evidence?: ProjectEvidence[];
   known_at?: PostKnownAt;
 }
 

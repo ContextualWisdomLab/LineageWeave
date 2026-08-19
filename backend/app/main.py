@@ -344,6 +344,9 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
     resolved = labels or {}
     voc = post["voc_type_code"]
     visibility = post["visibility_code"]
+    project_evidence = post.get("project_evidence") or []
+    if isinstance(project_evidence, str):
+        project_evidence = json.loads(project_evidence)
     return {
         "post_id": str(post["post_id"]),
         "post_title": post["post_title"],
@@ -371,6 +374,7 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "source_record_key": post.get("source_record_key"),
         "post_body_excerpt": post.get("post_body_excerpt"),
         "post_body_truncated": post.get("post_body_truncated", False),
+        "project_evidence": project_evidence,
         "created_at": post["created_at"].isoformat(),
     }
 
@@ -1060,9 +1064,34 @@ async def list_posts(
             )
             select page.*,
                    btrim(left(source_post_search_text(post.post_body), 420)) as post_body_excerpt,
-                   char_length(coalesce(post.post_body, '')) > 420 as post_body_truncated
+                   char_length(coalesce(post.post_body, '')) > 420 as post_body_truncated,
+                   coalesce(projects.project_evidence, '[]'::json) as project_evidence
               from page
               join source_post post on post.post_id = page.post_id
+              left join lateral (
+                  select json_agg(
+                             json_build_object(
+                                 'project_key', project.project_key,
+                                 'project_name', project.project_name,
+                                 'evidence', project.evidence_text,
+                                 'confidence', project.confidence,
+                                 'ontology_iri', project.ontology_iri,
+                                 'ontology_label', 'Project',
+                                 'extraction_method', project.extraction_method,
+                                 'resolution_status', 'semantic_candidate',
+                                 'provenance', 'post_project_mention.evidence_text'
+                             )
+                             order by project.confidence desc, project.project_name, project.project_key
+                         ) as project_evidence
+                    from (
+                        select project_key, project_name, evidence_text, confidence,
+                               ontology_iri, extraction_method
+                          from post_project_mention
+                         where post_id = page.post_id
+                         order by confidence desc, project_name, project_key
+                         limit 5
+                    ) project
+              ) projects on true
              order by
                 case when $8::text = 'title' then lower(coalesce(page.post_title, '')) end asc,
                 case when $8::text = 'oldest' then page.created_at end asc,

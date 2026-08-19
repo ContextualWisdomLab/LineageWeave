@@ -1285,6 +1285,17 @@ def test_post_detail_exposes_explicit_and_semantic_project_evidence(
     assert semantic["resolution_status"] == "semantic_candidate"
     assert semantic["ontology_label"] == "Project"
 
+    listed = client.get(
+        "/api/posts?search=semantic-project",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert listed.status_code == 200, listed.text
+    listed_post = next(
+        post for post in listed.json()["posts"] if post["post_id"] == seeded_db["public_post_id"]
+    )
+    assert listed_post["project_evidence"][0]["project_name"] == "Semantic project"
+    assert listed_post["project_evidence"][0]["provenance"] == "post_project_mention.evidence_text"
+
 
 def test_post_detail_as_of_returns_the_cutoff_known_body(
     client, demo_analyst_token, seeded_db

@@ -3643,6 +3643,21 @@ function PostList({
                           {post.post_body_excerpt || t("No post body.")}
                           {post.post_body_truncated ? " ..." : ""}
                         </span>
+                        {post.source_project_code ? (
+                          <span className="post-meta">
+                            {t("Source project code")}: {post.source_project_code}
+                          </span>
+                        ) : null}
+                        {post.source_project_name ? (
+                          <span className="post-meta">
+                            {t("Source project name")}: {post.source_project_name}
+                          </span>
+                        ) : null}
+                        {post.project_evidence && post.project_evidence.length > 0 ? (
+                          <span className="post-meta">
+                            {t("Semantic project")}: {post.project_evidence.map((project) => project.project_name).join(", ")}
+                          </span>
+                        ) : null}
                         <span className="post-meta">
                           <time dateTime={post.created_at}>{post.created_at.slice(0, 10)}</time>
                         </span>
