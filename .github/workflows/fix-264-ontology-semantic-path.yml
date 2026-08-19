@@ -1,0 +1,124 @@
+name: Repair PR 264 ontology semantic path
+
+on:
+  push:
+    branches:
+      - feat/event-lineage-node-keeps-gnb-focus-v2170
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-pr-264-ontology-semantic-path
+  cancel-in-progress: false
+
+jobs:
+  red-green-fix:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+      REPAIR_BRANCH: feat/event-lineage-node-keeps-gnb-focus-v2170
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/event-lineage-node-keeps-gnb-focus-v2170
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Fetch live stack parent for collision-free ADR numbering
+        run: git fetch origin feat/analysis-run-name-evidence-lineage:refs/remotes/origin/feat/analysis-run-name-evidence-lineage
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install locked dependencies
+        run: |
+          corepack enable
+          uv sync --frozen --extra dev --extra backend
+          pnpm --dir frontend install --frozen-lockfile
+          python -m compileall -q .github/scripts/fix_pr264_semantic_path.py
+
+      - name: Write RED regressions
+        run: python .github/scripts/fix_pr264_semantic_path.py red
+
+      - name: Prove RED failures
+        shell: bash
+        run: |
+          set +e
+          uv run --frozen python -m pytest -q tests/test_semantic_relationship_paths.py
+          python_status=$?
+          pnpm --dir frontend exec vitest run src/components/RelatedSemanticPath.test.tsx
+          frontend_status=$?
+          set -e
+          if [ "$python_status" -eq 0 ] || [ "$frontend_status" -eq 0 ]; then
+            echo "A semantic-path regression unexpectedly passed before implementation." >&2
+            exit 1
+          fi
+
+      - name: Apply the narrow GREEN repair
+        run: python .github/scripts/fix_pr264_semantic_path.py apply
+
+      - name: Verify focused Python contracts
+        run: |
+          uv run --frozen python -m pytest -q \
+            tests/test_semantic_relationship_paths.py \
+            tests/test_ontology.py \
+            tests/test_knowledge_graph.py \
+            tests/test_person_mention_projection.py \
+            tests/test_documentation_hygiene.py
+
+      - name: Verify focused frontend contract
+        run: pnpm --dir frontend exec vitest run src/components/RelatedSemanticPath.test.tsx src/App.test.tsx
+
+      - name: Verify complete Python contract
+        run: uv run --frozen python -m pytest -q
+
+      - name: Verify complete frontend contract
+        run: |
+          pnpm --dir frontend run lint
+          pnpm --dir frontend run test
+          pnpm --dir frontend run build
+          pnpm --dir frontend run build-storybook
+
+      - name: Publish the verified repair without overwriting concurrent work
+        shell: bash
+        run: |
+          rm -f .github/workflows/fix-264-ontology-semantic-path.yml
+          rm -f .github/scripts/fix_pr264_semantic_path.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix: expose ontology-grounded semantic relationship paths"
+          git push origin "HEAD:${REPAIR_BRANCH}"
