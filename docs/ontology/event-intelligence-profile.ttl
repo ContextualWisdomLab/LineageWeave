@@ -1,0 +1,227 @@
+@prefix : <https://contextualwisdomlab.github.io/lineageweave/event-intelligence#> .
+@prefix lw: <https://contextualwisdomlab.github.io/lineageweave/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix time: <http://www.w3.org/2006/time#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://contextualwisdomlab.github.io/lineageweave/event-intelligence>
+    a owl:Ontology ;
+    owl:versionInfo "1.0.0" ;
+    rdfs:label "LineageWeave Event Intelligence Profile"@en ;
+    rdfs:comment "A consumer-side profile joining LineageWeave graph evidence, TEPP temporal/topic artifacts, fast-mlsirm psychometric artifacts, and contextual-orchestrator judgments without transferring scientific authority."@en .
+
+#################################################################
+# Core classes
+#################################################################
+
+:EventEpisode
+    a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Event episode"@en ;
+    rdfs:comment "A bounded or open-ended real-world episode represented as a first-class entity rather than a post label."@en .
+
+:EvidenceBundle
+    a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Evidence bundle"@en ;
+    rdfs:comment "The immutable, cutoff-eligible evidence manifest used to produce one event-intelligence dossier."@en .
+
+:KnowledgeGraphProjection
+    a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Knowledge-graph projection"@en .
+
+:TemporalTopicArtifact
+    a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "TEPP temporal-topic artifact"@en ;
+    rdfs:comment "A provider-authoritative TEPP artifact bound to a snapshot, cutoff, model contract, engine version, and digest."@en .
+
+:PsychometricArtifact
+    a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "fast-mlsirm psychometric artifact"@en ;
+    rdfs:comment "A calibrated estimate with uncertainty; never a raw language-model score."@en .
+
+:JudgeDecision
+    a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Contextual-orchestrator judge decision"@en ;
+    rdfs:comment "A structured evidence-bounded verdict that cannot replace TEPP or fast-mlsirm numerical authority."@en .
+
+:EventIntelligenceDossier
+    a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Event-intelligence dossier"@en ;
+    rdfs:comment "A deterministic buyer artifact that composes, but does not average, its scientific and semantic channels."@en .
+
+:RelevanceMeasurement
+    a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Relevance measurement"@en ;
+    rdfs:comment "A method- and version-labelled relevance estimate with an uncertainty interval and evidence references."@en .
+
+:GroundedClaim
+    a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Grounded claim"@en ;
+    rdfs:comment "A buyer-facing statement whose complete evidence set is explicit."@en .
+
+#################################################################
+# Composition properties
+#################################################################
+
+:describesEvent
+    a owl:ObjectProperty ;
+    rdfs:domain :EventIntelligenceDossier ;
+    rdfs:range :EventEpisode ;
+    rdfs:label "describes event"@en .
+
+:usesEvidenceBundle
+    a owl:ObjectProperty ;
+    rdfs:subPropertyOf prov:used ;
+    rdfs:domain :EventIntelligenceDossier ;
+    rdfs:range :EvidenceBundle ;
+    rdfs:label "uses evidence bundle"@en .
+
+:hasKnowledgeGraphProjection
+    a owl:ObjectProperty ;
+    rdfs:domain :EventIntelligenceDossier ;
+    rdfs:range :KnowledgeGraphProjection ;
+    rdfs:label "has knowledge-graph projection"@en .
+
+:hasTemporalTopicArtifact
+    a owl:ObjectProperty ;
+    rdfs:domain :EventIntelligenceDossier ;
+    rdfs:range :TemporalTopicArtifact ;
+    rdfs:label "has temporal-topic artifact"@en .
+
+:hasPsychometricArtifact
+    a owl:ObjectProperty ;
+    rdfs:domain :EventIntelligenceDossier ;
+    rdfs:range :PsychometricArtifact ;
+    rdfs:label "has psychometric artifact"@en .
+
+:hasJudgeDecision
+    a owl:ObjectProperty ;
+    rdfs:domain :EventIntelligenceDossier ;
+    rdfs:range :JudgeDecision ;
+    rdfs:label "has judge decision"@en .
+
+:hasGroundedClaim
+    a owl:ObjectProperty ;
+    rdfs:domain :EventIntelligenceDossier ;
+    rdfs:range :GroundedClaim ;
+    rdfs:label "has grounded claim"@en .
+
+:hasRelevanceMeasurement
+    a owl:ObjectProperty ;
+    rdfs:domain :EventIntelligenceDossier ;
+    rdfs:range :RelevanceMeasurement ;
+    rdfs:label "has relevance measurement"@en .
+
+:hasTemporalExtent
+    a owl:ObjectProperty ;
+    rdfs:domain :EventEpisode ;
+    rdfs:range time:TemporalEntity ;
+    rdfs:label "has temporal extent"@en .
+
+:evidencesEvent
+    a owl:ObjectProperty ;
+    rdfs:domain lw:Post ;
+    rdfs:range :EventEpisode ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    rdfs:label "evidences event"@en ;
+    rdfs:comment "The source post is evidence for the event episode; it is not itself the event."@en .
+
+:supportsClaim
+    a owl:ObjectProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range :GroundedClaim ;
+    rdfs:label "supports claim"@en .
+
+#################################################################
+# Typed temporal relations
+#################################################################
+
+:forwardTransition
+    a owl:ObjectProperty ;
+    rdfs:domain :EventEpisode ;
+    rdfs:range :EventEpisode ;
+    rdfs:label "forward transition"@en ;
+    rdfs:comment "A state/process transition whose event-time ordering must be forward-only."@en .
+
+:retrospectivelyReports
+    a owl:ObjectProperty ;
+    rdfs:domain lw:Post ;
+    rdfs:range :EventEpisode ;
+    rdfs:label "retrospectively reports"@en ;
+    rdfs:comment "A later assertion may report an earlier event without becoming a reverse state transition."@en .
+
+#################################################################
+# Exact-value properties
+#################################################################
+
+:knowledgeCutoff
+    a owl:DatatypeProperty ;
+    rdfs:domain :EvidenceBundle ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "knowledge cutoff"@en .
+
+:availableTime
+    a owl:DatatypeProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "available time"@en .
+
+:methodCode
+    a owl:DatatypeProperty ;
+    rdfs:domain :RelevanceMeasurement ;
+    rdfs:range xsd:string ;
+    rdfs:label "method code"@en .
+
+:methodVersion
+    a owl:DatatypeProperty ;
+    rdfs:domain :RelevanceMeasurement ;
+    rdfs:range xsd:string ;
+    rdfs:label "method version"@en .
+
+:estimate
+    a owl:DatatypeProperty ;
+    rdfs:domain :RelevanceMeasurement ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "estimate"@en .
+
+:uncertaintyLower
+    a owl:DatatypeProperty ;
+    rdfs:domain :RelevanceMeasurement ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "uncertainty lower bound"@en .
+
+:uncertaintyUpper
+    a owl:DatatypeProperty ;
+    rdfs:domain :RelevanceMeasurement ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "uncertainty upper bound"@en .
+
+:artifactDigestSha256
+    a owl:DatatypeProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range xsd:string ;
+    rdfs:label "artifact SHA-256"@en .
+
+:verdictCode
+    a owl:DatatypeProperty ;
+    rdfs:domain :JudgeDecision ;
+    rdfs:range xsd:string ;
+    rdfs:label "verdict code"@en .
+
+:confidence
+    a owl:DatatypeProperty ;
+    rdfs:domain :JudgeDecision ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "confidence"@en .
