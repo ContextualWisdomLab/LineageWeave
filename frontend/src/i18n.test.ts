@@ -13,10 +13,43 @@ afterEach(() => {
 });
 
 describe("i18n", () => {
+  const requiredBuyerLabels = [
+    "Language",
+    "Evidence",
+    "Ask",
+    "linked",
+    "Post body preview",
+    "unresolved",
+    "Keyman",
+    "Unknown",
+    "Counterparties",
+    "due",
+    "Activity",
+    "Refresh",
+    "Close",
+    "Post body",
+    "Summary",
+    "Calendar",
+    "Board",
+    "Search",
+    "Page",
+    "Answer",
+  ] as const;
+
   it("supports the five product locales", () => {
     expect(SUPPORTED_LOCALES).toEqual(["en", "ko", "zh", "ja", "vi"]);
     expect(Object.keys(LOCALE_LABELS)).toHaveLength(5);
   });
+
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "translates all shared Buyer labels in %s",
+    (locale) => {
+      setLocale(locale);
+      for (const key of requiredBuyerLabels) {
+        expect(t(key), `${locale}:${key}`).not.toBe(key);
+      }
+    },
+  );
 
   it.each([
     ["ko", "관련 글"],

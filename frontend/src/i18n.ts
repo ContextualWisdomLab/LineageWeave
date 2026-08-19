@@ -15,6 +15,7 @@ const STORAGE_KEY = "lineageweave.locale";
 
 const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   ko: {
+    "Unknown": "알 수 없음",
     Language: "언어",
     unresolved: "미해결",
     "Close evidence panel": "근거 패널 닫기",
@@ -303,6 +304,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "대화형 질문을 지금 사용할 수 없습니다. 저장된 근거는 계속 확인할 수 있습니다.",
   },
   zh: {
+    "Unknown": "未知",
     Language: "语言",
     unresolved: "未解决",
     "Close evidence panel": "关闭证据面板",
@@ -590,6 +592,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "交互式提问暂不可用；已保存的证据仍可查看。",
   },
   ja: {
+    "Unknown": "不明",
     "5W1H": "5W1H",
     Who: "誰が",
     What: "何を",
@@ -877,6 +880,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "対話形式の質問は現在利用できません。保存された証拠は確認できます。",
   },
   vi: {
+    "Unknown": "Không rõ",
     "5W1H": "5W1H",
     Who: "Ai",
     What: "Điều gì",
