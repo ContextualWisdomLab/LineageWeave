@@ -3419,17 +3419,6 @@ function ReportsPanel({
 const POST_PAGE_SIZE = 50;
 type BoardSortOrder = PostSortOrder;
 
-// The five source VOC type codes (ADR 0060) -- declared directly rather
-// than derived from the board's authorized-values response, since the
-// checkbox filter is a fixed, known vocabulary.
-const VOC_TYPE_CHECKBOXES = [
-  { code: "voc", label: "VOC" },
-  { code: "vocc", label: "VOCC" },
-  { code: "voco", label: "VOCO" },
-  { code: "vop", label: "VOP" },
-  { code: "vom", label: "VOM" },
-];
-
 function PostList({
   accessToken,
   showLabPanels = false,
@@ -3464,6 +3453,7 @@ function PostList({
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
+  const [vocTypeFilterOptions, setVocTypeFilterOptions] = useState<PostFilterOption[]>([]);
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
@@ -3549,6 +3539,7 @@ function PostList({
       );
       setPosts(response.posts);
       setTotalPosts(response.total_count);
+      setVocTypeFilterOptions(response.voc_type_options ?? []);
       setVisibilityFilterOptions(response.visibility_options ?? []);
       setCurrentPage(page);
     } catch (err) {
@@ -3598,6 +3589,14 @@ function PostList({
         .map((code) => ({
           code,
           label: loadedPosts.find((post) => post.visibility_code === code)?.visibility_label ?? code,
+        }));
+  const vocTypeOptions = vocTypeFilterOptions.length
+    ? vocTypeFilterOptions
+    : Array.from(new Set(loadedPosts.map((post) => post.voc_type_code)))
+        .sort()
+        .map((code) => ({
+          code,
+          label: loadedPosts.find((post) => post.voc_type_code === code)?.voc_type_label ?? code,
         }));
   const filteredPosts = loadedPosts
     .filter((post) => {
@@ -3680,7 +3679,7 @@ function PostList({
             <p className="board-search-help post-meta">{t("Search includes post text and semantic evidence.")}</p>
             <fieldset className="board-voc-type-filter">
               <legend>{t("Filter by VOC type")}</legend>
-              {VOC_TYPE_CHECKBOXES.map((option) => (
+              {vocTypeOptions.map((option) => (
                 <label key={option.code}>
                   <input
                     type="checkbox"

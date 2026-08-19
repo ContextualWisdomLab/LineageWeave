@@ -1018,17 +1018,27 @@ describe("App, authenticated", () => {
           jsonResponse(
             postsUrl.searchParams.get("search")
               ? []
-              : [
-                  {
-                    post_id: "post-1",
-                    post_title: "Public post",
-                    voc_type_code: "voc",
-                    voc_type_label: "Voice of Customer",
-                    visibility_code: "public",
-                    visibility_label: "Public",
-                    created_at: "2026-01-01T00:00:00Z",
-                  },
-                ],
+              : {
+                  posts: [
+                    {
+                      post_id: "post-1",
+                      post_title: "Public post",
+                      voc_type_code: "voc",
+                      voc_type_label: "Voice of Customer",
+                      visibility_code: "public",
+                      visibility_label: "Public",
+                      created_at: "2026-01-01T00:00:00Z",
+                    },
+                  ],
+                  total_count: 1,
+                  limit: 50,
+                  offset: 0,
+                  voc_type_options: [
+                    { code: "voc", label: "Voice of Customer" },
+                    { code: "vop", label: "Voice of Partner" },
+                  ],
+                  visibility_options: [{ code: "public", label: "Public" }],
+                },
           ),
         );
       }
@@ -1550,6 +1560,7 @@ describe("App, authenticated", () => {
     expect(within(board).getByLabelText("Search semantic evidence")).toHaveAttribute("type", "search");
     expect(within(board).getByRole("list", { name: "Board posts" })).toBeInTheDocument();
     expect(within(board).getByText(/Posts shown:/)).toBeInTheDocument();
+    expect(within(board).getByLabelText("Voice of Partner")).toBeInTheDocument();
 
     await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "title");
     await waitFor(() =>
