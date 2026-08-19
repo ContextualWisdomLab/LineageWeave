@@ -450,6 +450,7 @@ function EventLineageSection({
   currentNextAction?: string | null;
 }) {
   if (!lineage) return <p>{t("Loading lineage...")}</p>;
+  if (!graph) return <p>{t("Loading lineage...")}</p>;
   const scoped = graph ? subgraphForPost(graph, postId) : { nodes: [], edges: [] };
   const hasLinks = lineage.direct.length > 0 || lineage.indirect.length > 0;
   if (scoped.nodes.length === 0) {
@@ -3488,6 +3489,7 @@ function PostList({
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
+  const [focusedGraph, setFocusedGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [openedAfterCutoff, setOpenedAfterCutoff] = useState(false);
@@ -3548,6 +3550,7 @@ function PostList({
 
   function selectPost(postId: string, options?: SelectPostOptions) {
     setSelectedPostId(postId);
+    setFocusedGraph(null);
     setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
@@ -3623,6 +3626,24 @@ function PostList({
         setEntitiesLoadError("Reload to load the corporate entities this account may reconstruct.");
       });
   }, [accessToken]);
+
+  useEffect(() => {
+    if (!selectedPostId) {
+      setFocusedGraph(null);
+      return;
+    }
+    let active = true;
+    fetchLineageGraph(accessToken, selectedPostId)
+      .then((nextGraph) => {
+        if (active) setFocusedGraph(nextGraph);
+      })
+      .catch(() => {
+        if (active) setFocusedGraph({ nodes: [], edges: [] });
+      });
+    return () => {
+      active = false;
+    };
+  }, [accessToken, selectedPostId]);
 
   async function handleRebuild() {
     setRebuilding(true);
@@ -3941,7 +3962,7 @@ function PostList({
           postId={selectedPostId}
           accessToken={accessToken}
           canExtract={canRebuild}
-          graph={graph}
+          graph={focusedGraph ?? graph}
           liveBodyWarning={
             openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
           }

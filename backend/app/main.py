@@ -1017,6 +1017,7 @@ async def resolve_customer_master_hint(
 @app.get("/api/lineage")
 async def read_lineage_graph(
     limit: int = Query(500, ge=1, le=2000),
+    post_id: str | None = Query(None, min_length=1),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
@@ -1027,6 +1028,7 @@ async def read_lineage_graph(
             conn,
             lambda row: _can_see_post(account, row),
             limit=limit,
+            focus_post_id=post_id,
         )
 
 

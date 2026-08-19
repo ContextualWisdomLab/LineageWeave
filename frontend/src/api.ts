@@ -394,8 +394,9 @@ export interface LineageGraph {
   truncated?: boolean;
 }
 
-export function fetchLineageGraph(accessToken: string): Promise<LineageGraph> {
-  return backendFetch<LineageGraph>("/api/lineage", accessToken);
+export function fetchLineageGraph(accessToken: string, postId?: string): Promise<LineageGraph> {
+  const query = postId ? `?post_id=${encodeURIComponent(postId)}` : "";
+  return backendFetch<LineageGraph>(`/api/lineage${query}`, accessToken);
 }
 
 export interface CorporateEntityRef {
