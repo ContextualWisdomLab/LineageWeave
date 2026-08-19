@@ -576,6 +576,11 @@ async def read_customer_master(
                        count(*) as post_count
                   from ranked
                  group by customer_code, customer_name_group
+            ), top_groups as (
+                select *
+                  from groups
+                 order by post_count desc, customer_code, customer_name
+                 limit 100
             ), related as (
                 select ranked.customer_code, ranked.customer_name_group,
                        json_agg(
@@ -588,18 +593,20 @@ async def read_customer_master(
                            order by ranked.created_at desc, ranked.post_id desc
                        ) as related_posts
                   from ranked
+                  join top_groups
+                    on top_groups.customer_code is not distinct from ranked.customer_code
+                   and top_groups.customer_name_group is not distinct from ranked.customer_name_group
                   join source_post post on post.post_id = ranked.post_id
                  where ranked.related_rank <= 20
                  group by ranked.customer_code, ranked.customer_name_group
             )
-            select groups.customer_code, groups.customer_name, groups.post_count,
+            select top_groups.customer_code, top_groups.customer_name, top_groups.post_count,
                    coalesce(related.related_posts, '[]'::json) as related_posts
-              from groups
+              from top_groups
               left join related
-                on related.customer_code is not distinct from groups.customer_code
-               and related.customer_name_group is not distinct from groups.customer_name_group
-             order by groups.post_count desc, groups.customer_code, groups.customer_name
-             limit 100
+                on related.customer_code is not distinct from top_groups.customer_code
+               and related.customer_name_group is not distinct from top_groups.customer_name_group
+             order by top_groups.post_count desc, top_groups.customer_code, top_groups.customer_name
             """,
             list(account.corporate_entity_ids),
         )
@@ -636,6 +643,11 @@ async def read_customer_master(
                        count(*) as post_count
                   from ranked
                  group by author_code, author_account_id, account_display_name
+            ), top_groups as (
+                select *
+                  from groups
+                 order by post_count desc, author_code
+                 limit 100
             ), keyman_groups as (
                 select ranked.author_code, ranked.author_account_id,
                        ranked.account_display_name,
@@ -643,6 +655,10 @@ async def read_customer_master(
                        person.person_side_code, person.last_known_job_title,
                        count(distinct ranked.post_id) as mention_count
                   from ranked
+                  join top_groups
+                    on top_groups.author_code = ranked.author_code
+                   and top_groups.author_account_id = ranked.author_account_id
+                   and top_groups.account_display_name = ranked.account_display_name
                   join post_summary_role role
                     on role.post_id = ranked.post_id
                    and role.actor_type_code = 'prov_person'
@@ -682,25 +698,28 @@ async def read_customer_master(
                            order by ranked.created_at desc, ranked.post_id desc
                        ) as related_posts
                   from ranked
+                  join top_groups
+                    on top_groups.author_code = ranked.author_code
+                   and top_groups.author_account_id = ranked.author_account_id
+                   and top_groups.account_display_name = ranked.account_display_name
                   join source_post post on post.post_id = ranked.post_id
                  where ranked.related_rank <= 20
                  group by ranked.author_code, ranked.author_account_id, ranked.account_display_name
             )
-            select groups.author_code, groups.author_name, groups.author_account_id,
-                   groups.account_display_name, groups.post_count,
+            select top_groups.author_code, top_groups.author_name, top_groups.author_account_id,
+                   top_groups.account_display_name, top_groups.post_count,
                    coalesce(keyman_related.keyman_hints, '[]'::json) as keyman_hints,
                    coalesce(related.related_posts, '[]'::json) as related_posts
-              from groups
+              from top_groups
               left join keyman_related
-                on keyman_related.author_code = groups.author_code
-               and keyman_related.author_account_id = groups.author_account_id
-               and keyman_related.account_display_name = groups.account_display_name
+                on keyman_related.author_code = top_groups.author_code
+               and keyman_related.author_account_id = top_groups.author_account_id
+               and keyman_related.account_display_name = top_groups.account_display_name
               left join related
-                on related.author_code = groups.author_code
-               and related.author_account_id = groups.author_account_id
-               and related.account_display_name = groups.account_display_name
-             order by groups.post_count desc, groups.author_code
-             limit 100
+                on related.author_code = top_groups.author_code
+               and related.author_account_id = top_groups.author_account_id
+               and related.account_display_name = top_groups.account_display_name
+             order by top_groups.post_count desc, top_groups.author_code
             """,
             list(account.corporate_entity_ids),
         )
