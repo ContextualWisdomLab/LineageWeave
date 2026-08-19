@@ -3,8 +3,9 @@ FROM python:3.12-slim@sha256:423ed6ab25b1921a477529254bfeeabf5855151dc2c3141699a
 WORKDIR /app
 
 # Reuse the upstream implementation without copying it into LineageWeave.
-# The archive is pinned to the reviewed provider-pool + local-discovery commit.
-ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/b5436e0.tar.gz /tmp/contextual-orchestrator.tar.gz
+# Pin the runtime to PR #761's pushed commit until that protected PR merges;
+# this keeps reasoning_effort=auto ownership in contextual-orchestrator itself.
+ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/af228e5.tar.gz /tmp/contextual-orchestrator.tar.gz
 RUN mkdir /tmp/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 -C /tmp/contextual-orchestrator \
     && cp -R /tmp/contextual-orchestrator/contextual_orchestrator /app/contextual_orchestrator \
