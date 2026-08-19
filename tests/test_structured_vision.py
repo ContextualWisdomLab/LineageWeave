@@ -55,5 +55,5 @@ def test_structured_vision_uses_json_schema_and_returns_regions(monkeypatch) -> 
     body = seen["body"]
     assert body["mode"] == "auto"
     assert body["reasoning_effort"] == "auto"
-    assert body["response_format"]["type"] == "json_schema"
+    assert body["response_format"]["type"] == "json_object"
     assert "temperature" not in body

@@ -178,39 +178,7 @@ _REGION_EVIDENCE_PROMPT = (
     "subregions can be identified. Never invent text or entities."
 )
 _REGION_EVIDENCE_RESPONSE_FORMAT = {
-    "type": "json_schema",
-    "json_schema": {
-        "name": "lineageweave_image_evidence",
-        "strict": True,
-        "schema": {
-            "type": "object",
-            "additionalProperties": False,
-            "properties": {
-                "text": {"type": "string"},
-                "caption": {"type": "string"},
-                "tags": {"type": "array", "items": {"type": "string"}},
-                "regions": {
-                    "type": "array",
-                    "maxItems": 12,
-                    "items": {
-                        "type": "object",
-                        "additionalProperties": False,
-                        "properties": {
-                            "x": {"type": "number"},
-                            "y": {"type": "number"},
-                            "width": {"type": "number"},
-                            "height": {"type": "number"},
-                            "text": {"type": "string"},
-                            "caption": {"type": "string"},
-                            "tags": {"type": "array", "items": {"type": "string"}},
-                        },
-                        "required": ["x", "y", "width", "height", "text", "caption", "tags"],
-                    },
-                },
-            },
-            "required": ["text", "caption", "tags", "regions"],
-        },
-    },
+    "type": "json_object",
 }
 _VISION_SYSTEM_ROLE = (
     "You are the LineageWeave visual-evidence agent. Extract only evidence "
