@@ -118,7 +118,7 @@ def build_mcp_server(
         ),
         annotations=ToolAnnotations(read_only_hint=True, idempotent_hint=True),
     )
-    async def global_ask(question: str, ctx: Context[McpAppContext]) -> GlobalAskResult:
+    async def global_ask(question: str, ctx: Context[McpAppContext, Any]) -> GlobalAskResult:
         """Run authorization-preserving Global Ask for the current MCP principal."""
         token = access_token_provider()
         if token is None or not token.subject:
