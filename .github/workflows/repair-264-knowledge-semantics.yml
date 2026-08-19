@@ -110,6 +110,72 @@ jobs:
         if: steps.repair-state.outputs.already != 'true'
         run: python /tmp/fix_264_knowledge_semantics.py green
 
+      - name: Align PostgreSQL fixture migrations and ADR index hygiene
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          projection = Path('tests/test_person_mention_projection.py')
+          text = projection.read_text(encoding='utf-8')
+          old_constants = '''_POST_SUMMARY_CONTRACT_MIGRATION = (
+              Path(__file__).resolve().parents[1] / "migrations" / "0040_post_summary_contract.sql"
+          )
+          '''
+          new_constants = '''_SOURCE_STATE_PROVENANCE_MIGRATION = (
+              Path(__file__).resolve().parents[1] / "migrations" / "0033_source_state_provenance.sql"
+          )
+          _NORMALIZED_BODY_SEARCH_MIGRATION = (
+              Path(__file__).resolve().parents[1] / "migrations" / "0036_normalized_body_search.sql"
+          )
+          _POST_SUMMARY_CONTRACT_MIGRATION = (
+              Path(__file__).resolve().parents[1] / "migrations" / "0040_post_summary_contract.sql"
+          )
+          '''
+          if new_constants not in text:
+              if text.count(old_constants) != 1:
+                  raise SystemExit('projection fixture migration constants anchor drifted')
+              text = text.replace(old_constants, new_constants, 1)
+
+          old_apply = '''                cursor.execute(_MIGRATION_PATH.read_text(encoding="utf-8"))
+                          cursor.execute(_SEMANTIC_PROJECT_MIGRATION.read_text(encoding="utf-8"))
+                          cursor.execute(_POST_SUMMARY_CONTRACT_MIGRATION.read_text(encoding="utf-8"))
+          '''
+          new_apply = '''                cursor.execute(_MIGRATION_PATH.read_text(encoding="utf-8"))
+                          cursor.execute(_SEMANTIC_PROJECT_MIGRATION.read_text(encoding="utf-8"))
+                          cursor.execute(_SOURCE_STATE_PROVENANCE_MIGRATION.read_text(encoding="utf-8"))
+                          # Production installs pg_trgm in an earlier search migration. This
+                          # focused fixture creates the same prerequisite before applying the
+                          # exact normalized-body migration consumed by hydration queries.
+                          cursor.execute("create extension if not exists pg_trgm")
+                          cursor.execute(_NORMALIZED_BODY_SEARCH_MIGRATION.read_text(encoding="utf-8"))
+                          cursor.execute(_POST_SUMMARY_CONTRACT_MIGRATION.read_text(encoding="utf-8"))
+          '''
+          if new_apply not in text:
+              if text.count(old_apply) != 1:
+                  raise SystemExit('projection fixture migration application anchor drifted')
+              text = text.replace(old_apply, new_apply, 1)
+          projection.write_text(text, encoding='utf-8')
+
+          hygiene = Path('tests/test_documentation_hygiene.py')
+          text = hygiene.read_text(encoding='utf-8')
+          old_paths = '''    paths = sorted(_ADR_DIRECTORY.glob("*.md"))
+              assert paths, "the repository must contain architecture-decision records"
+          '''
+          new_paths = '''    readme = _ADR_DIRECTORY / "README.md"
+              assert readme.exists(), "the ADR directory must retain its normative index"
+              assert readme.read_text(encoding="utf-8").strip(), "the ADR index must not be empty"
+
+              paths = sorted(path for path in _ADR_DIRECTORY.glob("*.md") if path != readme)
+              assert paths, "the repository must contain numbered architecture-decision records"
+          '''
+          if new_paths not in text:
+              if text.count(old_paths) != 1:
+                  raise SystemExit('ADR hygiene path anchor drifted')
+              text = text.replace(old_paths, new_paths, 1)
+          hygiene.write_text(text, encoding='utf-8')
+          PY
+
       - name: Keep the ADR number collision-free across the moving stack
         shell: bash
         run: |
@@ -207,6 +273,7 @@ jobs:
             tests/test_ontology.py \
             tests/test_knowledge_graph_semantic_contract.py \
             tests/test_person_mention_projection.py \
+            tests/test_documentation_hygiene.py \
             frontend/src/api.ts \
             frontend/src/App.tsx \
             frontend/src/i18n.ts \
