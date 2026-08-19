@@ -46,13 +46,13 @@ jobs:
       - name: Install committed dependencies
         run: uv sync --frozen --extra dev --extra backend
 
-      - name: Add the semantic-only candidate regression
+      - name: Add semantic-only candidate regression
         run: |
           cat >> tests/test_global_ask_sources.py <<'PY'
 
 
           def test_global_sources_discover_posts_from_persisted_semantic_evidence() -> None:
-              """A semantic fact can nominate a post even when source text cannot."""
+              """A semantic fact can nominate a post when source text cannot."""
               source_row = {
                   "post_id": "semantic-only-post",
                   "post_title": "Operational note",
@@ -104,7 +104,7 @@ jobs:
               assert "cataloged_person" in semantic_query
           PY
 
-      - name: Prove the regression is red
+      - name: Prove regression is red
         run: |
           set +e
           uv run --frozen python -m pytest -q \
@@ -114,13 +114,13 @@ jobs:
           set -e
           cat /tmp/global-ask-red.log
           if [ "$status" -eq 0 ]; then
-            echo "Expected semantic-only Global Ask retrieval to fail before implementation." >&2
+            echo "Expected semantic-only retrieval to fail before implementation." >&2
             exit 1
           fi
           grep -F "test_global_sources_discover_posts_from_persisted_semantic_evidence" \
             /tmp/global-ask-red.log
 
-      - name: Add bounded semantic candidate retrieval
+      - name: Implement bounded semantic candidate retrieval
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -128,7 +128,7 @@ jobs:
           path = Path("backend/app/post_chat_ingestion.py")
           text = path.read_text()
           old = '''        candidate_ids.extend(str(row["post_id"]) for row in candidate_rows)
-              candidate_ids = list(dict.fromkeys(candidate_ids))
+          candidate_ids = list(dict.fromkeys(candidate_ids))
           '''
           new = '''        candidate_ids.extend(str(row["post_id"]) for row in candidate_rows)
               semantic_candidate_rows = await conn.fetch(
@@ -179,10 +179,10 @@ jobs:
           path.write_text(text.replace(old, new, 1))
           PY
 
-      - name: Verify focused Global Ask source tests
+      - name: Verify focused regression and source contract
         run: uv run --frozen python -m pytest -q tests/test_global_ask_sources.py
 
-      - name: Record the buyer contract and release
+      - name: Record version, buyer contract, and release notes
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -196,11 +196,7 @@ jobs:
               path.write_text(text.replace(old, new, 1))
 
           replace_once("pyproject.toml", 'version = "2.17.0"', 'version = "2.18.0"')
-          replace_once(
-              "frontend/package.json",
-              '"version": "2.17.0"',
-              '"version": "2.18.0"',
-          )
+          replace_once("frontend/package.json", '"version": "2.17.0"', '"version": "2.18.0"')
 
           changelog = Path("CHANGELOG.md")
           text = changelog.read_text()
@@ -212,9 +208,9 @@ jobs:
 - Global Ask candidate retrieval now searches persisted project mentions,
   role/responsibility/affiliation evidence, and cataloged Keyman mentions in
   addition to title, normalized body, and raw source hints. A buyer can ask
-  with a semantic fact that is absent from the source text and still receive
-  the authorized cited post. Candidate discovery never bypasses the existing
-  post visibility and ABAC gates (ADR 0090 / ADR 0047 / ADR 0039).
+  with a semantic fact absent from source text and still receive the
+  authorized cited post. Candidate discovery never bypasses post visibility
+  or ABAC (ADR 0090 / ADR 0047 / ADR 0039).
 
 '''
           if text.count(marker) != 1:
@@ -232,69 +228,61 @@ jobs:
 
           ## Context
 
-          ADR 0047 says Global Ask should retrieve from the same authorized
-          buyer evidence that Board search exposes: source identity, project
-          mentions, role/responsibility facts, affiliation, and cataloged
-          Keymen. The implementation only nominated candidates from title,
-          normalized body, full-text body, and raw `source_post` hints. It
-          loaded persisted semantic facts only *after* a post was selected.
+          ADR 0047 requires Global Ask to retrieve the same authorized buyer
+          evidence exposed by Board: source identity, project mentions, stored
+          roles, affiliations, cataloged Keymen, title, and normalized body.
+          The implementation loaded persisted semantic facts only after a post
+          had already been selected from lexical text or raw source hints.
 
-          A buyer therefore could see “Phoenix transformation” or an owner in
-          the evidence drawer, ask Global Ask with that exact semantic fact,
-          and receive no cited post when those words were absent from the raw
-          source text. This was a source-contract mismatch, not a model-quality
-          problem.
+          A buyer could therefore see a project or owner in an evidence drawer,
+          ask Global Ask with that exact semantic fact, and receive no cited
+          post when the words were absent from raw source text. This was a
+          source-contract mismatch, not a model-quality problem.
 
           ## Decision
 
-          For each bounded question term, Global Ask gathers candidate post IDs
-          from both existing lexical/source-hint retrieval and these persisted
-          semantic channels:
+          Each bounded question term nominates candidates from both the
+          existing lexical/source-hint channels and these persisted channels:
 
-          - `post_project_mention`: project name, evidence text, ontology IRI;
+          - `post_project_mention`: project name, evidence, ontology IRI;
           - `post_summary_role`: actor, responsibility, affiliation;
-          - `post_person_mention` + `cataloged_person`: Keyman name, job title,
-            mention context.
+          - `post_person_mention` plus `cataloged_person`: Keyman name, job
+            title, and mention context.
 
           Candidate IDs are not evidence and grant no access. The existing
           authorized `source_post` query and application ABAC predicate still
-          run before bodies, graph facts, or semantic facts enter the
-          orchestrator prompt. The term count, per-channel candidate count,
-          final source count, body length, and graph-fact count remain bounded.
+          run before body, graph, or semantic facts enter contextual-orchestrator.
+          Question terms, per-channel candidates, final sources, body length,
+          and graph facts remain bounded.
 
           ## Consequences
 
-          - Semantic-only buyer questions can discover the cited source post.
-          - Global Ask and Board now honor the same persisted semantic evidence
-            boundary promised by ADR 0047.
-          - Hidden semantic matches remain hidden because candidate nomination
-            cannot bypass visibility or ABAC.
-          - This change does not claim embedding similarity, reranking quality,
-            exhaustive recall, causal inference, or an answer unsupported by
-            the selected source set.
+          - Semantic-only buyer questions can discover their cited source post.
+          - Global Ask and Board honor the same persisted evidence boundary.
+          - Hidden semantic matches remain hidden behind visibility and ABAC.
+          - This does not claim embedding similarity, exhaustive recall,
+            causal inference, or an answer unsupported by selected sources.
 
           ## Verification
 
-          `tests/test_global_ask_sources.py` includes a regression whose source
-          title, body, and raw hints omit the buyer term. Only persisted semantic
-          evidence nominates the post, and the authorized cited source carries
-          that evidence into Global Ask.
+          `tests/test_global_ask_sources.py` contains a regression whose title,
+          body, and raw hints omit the buyer term. Persisted semantic evidence
+          alone nominates the authorized source and accompanies the citation.
           MD
 
-          mkdir -p docs/releases
+          mkdir -p docs/releases CHANGELOG.d
           cat > docs/releases/2.18.0.md <<'MD'
           # 2.18.0 Global Ask finds semantic-only evidence
 
-          Global Ask now finds an authorized post when the buyer's term exists
-          only in stored project, responsibility, affiliation, or Keyman
-          evidence. The cited post still passes the same visibility and ABAC
-          boundary before any content reaches contextual-orchestrator.
+          Global Ask now finds an authorized post when a buyer term exists only
+          in persisted project, responsibility, affiliation, or Keyman evidence.
+          The cited post still crosses the same visibility and ABAC boundary
+          before any content reaches contextual-orchestrator.
 
           This release does not claim exhaustive semantic search or invent a
           source, relationship, customer, cutoff body, or TEPP result.
           MD
 
-          mkdir -p CHANGELOG.d
           cat > CHANGELOG.d/2.18.0.md <<'MD'
           # 2.18.0 Global Ask semantic candidate retrieval
 
@@ -307,8 +295,11 @@ jobs:
         run: |
           uv run --frozen python -m pytest -q \
             tests/test_global_ask_sources.py \
-            tests/test_global_ask_api.py \
-            tests/test_post_chat_evidence.py
+            tests/test_post_chat.py \
+            tests/test_post_chat_ingestion.py \
+            tests/test_semantic_hints.py \
+            tests/test_semantic_keyman_context.py \
+            tests/test_semantic_project_evidence.py
           uv run --frozen python -m compileall -q backend lineageweave tests
           git diff --check
 
@@ -318,21 +309,7 @@ jobs:
           rm -f .github/workflows/repair-analysis-run-dag-context.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            backend/app/post_chat_ingestion.py \
-            tests/test_global_ask_sources.py \
-            pyproject.toml \
-            frontend/package.json \
-            CHANGELOG.md \
-            CHANGELOG.d/2.18.0.md \
-            docs/adr/0090-global-ask-semantic-candidate-retrieval.md \
-            docs/releases/2.18.0.md \
-            .github/workflows/implement-global-ask-semantic-retrieval.yml
-          if [ -e .github/workflows/repair-analysis-run-dag-context.yml ]; then
-            git add .github/workflows/repair-analysis-run-dag-context.yml
-          else
-            git add -u .github/workflows/repair-analysis-run-dag-context.yml || true
-          fi
+          git add -A
           git diff --cached --check
           git commit -m "feat: retrieve Global Ask semantic evidence (v2.18.0)"
           git push origin HEAD:feat/global-ask-semantic-evidence-retrieval-v2180
