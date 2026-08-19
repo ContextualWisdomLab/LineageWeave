@@ -62,6 +62,7 @@ import {
   type PostAiSummary,
   type PostFiveW1H,
   type PostDetail,
+  type PostContentUnit,
   type PostImageContent,
   type PostFilterOption,
   type PeriodComparison,
@@ -1622,6 +1623,7 @@ function PostDetailPopup({
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [imageContent, setImageContent] = useState<PostImageContent[]>([]);
+  const [structureUnits, setStructureUnits] = useState<PostContentUnit[]>([]);
   const [bookmarked, setBookmarked] = useState<boolean | null>(null);
   const [bookmarkSaving, setBookmarkSaving] = useState(false);
   const [postActionStatus, setPostActionStatus] = useState<string | null>(null);
@@ -1665,6 +1667,7 @@ function PostDetailPopup({
 
   useEffect(() => {
     setPost(null);
+    setStructureUnits([]);
     setBookmarked(null);
     setBookmarkSaving(false);
     setPostActionStatus(null);
@@ -1686,8 +1689,14 @@ function PostDetailPopup({
     fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
-        .then((content) => setImageContent(content.images))
-        .catch(() => setImageContent([]));
+        .then((content) => {
+          setImageContent(content.images);
+          setStructureUnits(content.units);
+        })
+        .catch(() => {
+          setImageContent([]);
+          setStructureUnits([]);
+        });
     reloadContent();
     fetchPostBookmark(accessToken, postId)
       .then((r) => setBookmarked(r.bookmarked))
@@ -1826,7 +1835,7 @@ function PostDetailPopup({
             <section className="popup-section post-source-body" aria-label={t("Post body")}>
               <h3>{t("Post body")}</h3>
               {post.post_body.trim() ? (
-                <PostBody body={post.post_body} imageContent={imageContent} />
+                <PostBody body={post.post_body} imageContent={imageContent} structureUnits={structureUnits} />
               ) : (
                 <p className="popup-placeholder" role="status">
                   {t("Source body was not imported; summary and semantic extraction are unavailable.")}

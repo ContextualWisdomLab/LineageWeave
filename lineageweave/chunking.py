@@ -308,8 +308,9 @@ class _BlockTextExtractor(HTMLParser):
             for raw_unit, source_indent in _split_dom_units(raw_text):
                 text = normalize_semantic_text(raw_unit)
                 if text:
+                    indent_width = declared_width + source_indent
                     self._finished.append(
-                        ("text", text, tag_name, style, declared_width + source_indent)
+                        ("text", text, tag_name, style, indent_width)
                     )
 
     def handle_data(self, data: str) -> None:

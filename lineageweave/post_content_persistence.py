@@ -16,6 +16,7 @@ from .chunking import Chunk, chunk_by_dom, normalize_semantic_text
 from .embedding_client import EmbeddingClient
 from .image_content import ImageContentClient
 from .post_content_normalization import ImageContentResult, normalize_post_body
+from .post_structure import NullPostStructureClient, PostStructureClient, StructureDecision
 
 
 def _render_image_text(result: ImageContentResult | None) -> str:
@@ -38,6 +39,8 @@ async def persist_post_content(
     embedding_client: EmbeddingClient | None = None,
     embedding_model_code: str | None = None,
     normalized_result: Any | None = None,
+    structure_client: PostStructureClient | None = None,
+    post_title: str = "",
 ) -> int:
     """Replace one post's normalized content artifacts and return unit count.
 
@@ -60,6 +63,52 @@ async def persist_post_content(
         else:
             unit_text = chunk.text
         prepared.append((chunk, unit_text, formatting.get(chunk.index)))
+
+    text_chunks = [
+        chunk for chunk, unit_text, _style in prepared
+        if chunk.unit_type != "image" and unit_text
+    ]
+    explicit_widths = [
+        int(chunk.indent_width) for chunk in text_chunks if int(chunk.indent_width) > 0
+    ]
+    indent_unit = math.gcd(*explicit_widths) if explicit_widths else 0
+    unresolved = [chunk for chunk in text_chunks if int(chunk.indent_width) <= 0]
+    unresolved_indexes = {chunk.index for chunk in unresolved}
+    structure_by_index: dict[int, StructureDecision] = {}
+    for chunk in text_chunks:
+        width = int(chunk.indent_width)
+        if width > 0:
+            structure_by_index[chunk.index] = StructureDecision(
+                unit_index=chunk.index,
+                indent_level=max(1, round(width / indent_unit)) if indent_unit else 1,
+                confidence=1.0,
+                evidence="Explicit HTML, CSS, or OOXML indentation.",
+                source_code="explicit",
+            )
+    client = structure_client or NullPostStructureClient()
+    if unresolved and client.available:
+        try:
+            decisions = await asyncio.to_thread(
+                client.infer,
+                post_title,
+                [{"unit_index": chunk.index, "text": chunk.text} for chunk in text_chunks],
+            )
+            for decision in decisions:
+                if decision.unit_index in unresolved_indexes:
+                    structure_by_index[decision.unit_index] = decision
+        except Exception:  # noqa: BLE001 - unresolved structure must not alter source content.
+            pass
+    for chunk in unresolved:
+        structure_by_index.setdefault(
+            chunk.index,
+            StructureDecision(
+                unit_index=chunk.index,
+                indent_level=0,
+                confidence=0.0,
+                evidence="No explicit indentation and no complete adjudication evidence.",
+                source_code="unresolved",
+            ),
+        )
 
     vectors: list[tuple[int, list[float]]] = []
     if embedding_client is not None and embedding_client.available and embedding_model_code:
@@ -102,6 +151,21 @@ async def persist_post_content(
                 style,
             )
             unit_ids[chunk.index] = str(unit_id)
+            structure = structure_by_index.get(chunk.index)
+            if structure is not None:
+                await conn.execute(
+                    """
+                    insert into post_content_unit_structure
+                        (post_content_unit_id, indent_level, decision_source_code,
+                         confidence, evidence_text)
+                    values ($1, $2, $3, $4, $5)
+                    """,
+                    unit_id,
+                    structure.indent_level,
+                    structure.source_code,
+                    structure.confidence,
+                    structure.evidence,
+                )
             if chunk.unit_type != "image" or chunk.image_data is None:
                 continue
             result = image_results.get(chunk.index)

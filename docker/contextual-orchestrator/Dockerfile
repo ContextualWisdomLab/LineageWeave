@@ -3,8 +3,8 @@ FROM python:3.12-slim@sha256:423ed6ab25b1921a477529254bfeeabf5855151dc2c3141699a
 WORKDIR /app
 
 # Reuse the upstream implementation without copying it into LineageWeave.
-# The archive is pinned to the main commit used by this integration.
-ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/f16c751.tar.gz /tmp/contextual-orchestrator.tar.gz
+# The archive is pinned to the reviewed multi-agent provider-feature commit.
+ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/c064db5.tar.gz /tmp/contextual-orchestrator.tar.gz
 RUN mkdir /tmp/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 -C /tmp/contextual-orchestrator \
     && cp -R /tmp/contextual-orchestrator/contextual_orchestrator /app/contextual_orchestrator \

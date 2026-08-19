@@ -83,7 +83,18 @@ export interface PostImageRegion {
 }
 
 export interface PostContentResponse {
+  units: PostContentUnit[];
   images: PostImageContent[];
+}
+
+export interface PostContentUnit {
+  unit_index: number;
+  unit_kind_code: string;
+  unit_text: string;
+  indent_level: number;
+  indent_source_code: "explicit" | "llm" | "unresolved";
+  indent_confidence: number;
+  indent_evidence: string;
 }
 
 export interface Affiliation {

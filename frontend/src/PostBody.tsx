@@ -1,6 +1,6 @@
 import { splitPostBody, type PostBodySegment } from "./postBodyDisplay";
 import { t } from "./i18n";
-import type { PostImageContent } from "./api";
+import type { PostContentUnit, PostImageContent } from "./api";
 
 function renderSegment(segment: PostBodySegment, index: number, imageContent?: PostImageContent) {
   switch (segment.kind) {
@@ -54,13 +54,29 @@ function renderSegment(segment: PostBodySegment, index: number, imageContent?: P
   }
 }
 
-export function PostBody({ body, imageContent = [] }: { body: string; imageContent?: PostImageContent[] }) {
+export function PostBody({
+  body,
+  imageContent = [],
+  structureUnits = [],
+}: {
+  body: string;
+  imageContent?: PostImageContent[];
+  structureUnits?: PostContentUnit[];
+}) {
   let imageOrdinal = 0;
+  let textOrdinal = 0;
+  const textUnits = structureUnits.filter((unit) => unit.unit_kind_code !== "image");
   return (
     <div className="post-body">
       {splitPostBody(body).map((segment, index) => {
         const content = segment.kind === "image" ? imageContent[imageOrdinal++] : undefined;
-        return renderSegment(segment, index, content);
+        if (segment.kind !== "text") return renderSegment(segment, index, content);
+        const structure = textUnits[textOrdinal++];
+        return renderSegment(
+          structure ? { ...segment, indentLevel: structure.indent_level || undefined } : segment,
+          index,
+          content,
+        );
       })}
     </div>
   );

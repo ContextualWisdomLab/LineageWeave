@@ -27,6 +27,7 @@ from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
+from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -54,11 +55,18 @@ async def backfill_post_content(target_dsn: str, raw_post_ids: list[str]) -> dic
         os.environ.get("ORCHESTRATOR_API_KEY", ""),
         embedding_model,
     )
+    orchestrator_base_url = os.environ.get("ORCHESTRATOR_BASE_URL", "")
+    orchestrator_api_key = os.environ.get("ORCHESTRATOR_API_KEY", "")
+    structure_client = (
+        ContextualOrchestratorPostStructureClient(orchestrator_base_url, orchestrator_api_key)
+        if orchestrator_base_url and orchestrator_api_key
+        else NullPostStructureClient()
+    )
     conn = await asyncpg.connect(target_dsn)
     try:
         rows = await conn.fetch(
             """
-            select post.post_id, post.post_body, post.author_account_id,
+            select post.post_id, post.post_title, post.post_body, post.author_account_id,
                    post.source_process_unit_code, post.source_author_code,
                    post.source_company_code, post.source_customer_code,
                    post.source_project_code, post.source_sales_pool_code,
@@ -86,18 +94,20 @@ async def backfill_post_content(target_dsn: str, raw_post_ids: list[str]) -> dic
             with use_llm_metadata(build_post_llm_metadata(str(row["post_id"]), row)):
                 normalized = normalize_post_body(row["post_body"], vision_client=vision_client)
                 described_images = sum(item.status_code == "described" for item in normalized.image_results)
-            if described_images == 0 and not normalized.text.strip():
-                result["skipped_posts"] += 1
-                continue
-            await persist_post_content(
-                conn,
-                str(row["post_id"]),
-                row["post_body"],
-                vision_client=vision_client,
-                embedding_client=embedding_client,
-                embedding_model_code=embedding_model or None,
-                normalized_result=normalized,
-            )
+                if described_images == 0 and not normalized.text.strip():
+                    result["skipped_posts"] += 1
+                    continue
+                await persist_post_content(
+                    conn,
+                    str(row["post_id"]),
+                    row["post_body"],
+                    vision_client=vision_client,
+                    embedding_client=embedding_client,
+                    embedding_model_code=embedding_model or None,
+                    normalized_result=normalized,
+                    structure_client=structure_client,
+                    post_title=row["post_title"],
+                )
             result["processed_posts"] += 1
             if described_images:
                 result["described_posts"] += 1

@@ -649,7 +649,7 @@ class ContextualOrchestratorPostSummaryClient:
     available = True
 
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "none", timeout: float = 60.0
+        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 60.0
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -673,7 +673,7 @@ class ContextualOrchestratorPostSummaryClient:
             f"{self._base_url}/v1/chat/completions",
             {
                 "messages": [{"role": "user", "content": prompt}],
-                "mode": "route",
+                "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},
@@ -697,7 +697,7 @@ class ContextualOrchestratorPostSummaryClient:
                         ),
                     }
                 ],
-                "mode": "route",
+                "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},

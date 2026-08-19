@@ -11,7 +11,6 @@ warranty language messy), which is exactly the "non-trivial" shape Phase
 from __future__ import annotations
 
 import os
-import json
 
 import pytest
 
@@ -200,7 +199,7 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
     assert summary.korean_summary == "본문 근거 요약"
     assert summary.key_events == ("후속 확인",)
     assert len(observed) == 2
-    assert all(payload["mode"] == "route" for payload in observed)
+    assert all(payload["mode"] == "auto" for payload in observed)
     assert "KEY EVENTS" in observed[0]["messages"][0]["content"]
     details_prompt = observed[1]["messages"][0]["content"]
     assert "source_process_unit_name are PU/business-unit hints only" in details_prompt

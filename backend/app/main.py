@@ -72,6 +72,7 @@ from lineageweave.post_evaluation import (
     NullPostEvaluationClient,
     RUBRIC_VERSION,
 )
+from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
 from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hints
@@ -273,6 +274,15 @@ def _post_summary_client():
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullPostSummaryClient()
     return ContextualOrchestratorPostSummaryClient(
+        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+    )
+
+
+def _post_structure_client():
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
+        return NullPostStructureClient()
+    return ContextualOrchestratorPostStructureClient(
         base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
     )
 
@@ -1227,9 +1237,23 @@ async def read_post_content(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Return persisted image evidence; never derive or invent buyer copy."""
+    """Return persisted content evidence; never derive or invent buyer copy."""
     await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
+        unit_rows = await conn.fetch(
+            """
+            select unit.unit_index, unit.unit_kind_code, unit.unit_text,
+                   coalesce(structure.indent_level, 0) as indent_level,
+                   structure.decision_source_code, structure.confidence,
+                   structure.evidence_text
+              from post_content_unit unit
+              left join post_content_unit_structure structure
+                on structure.post_content_unit_id = unit.post_content_unit_id
+             where unit.post_id = $1
+             order by unit.unit_index
+            """,
+            post_id,
+        )
         rows = await conn.fetch(
             """
             select image.post_content_image_id, unit.unit_index, image.mime_type, image.description_status_code,
@@ -1290,6 +1314,18 @@ async def read_post_content(
             }
         )
     return {
+        "units": [
+            {
+                "unit_index": row["unit_index"],
+                "unit_kind_code": row["unit_kind_code"],
+                "unit_text": row["unit_text"],
+                "indent_level": row["indent_level"],
+                "indent_source_code": row["decision_source_code"] or "unresolved",
+                "indent_confidence": float(row["confidence"] or 0),
+                "indent_evidence": row["evidence_text"] or "",
+            }
+            for row in unit_rows
+        ],
         "images": [
             {
                 "unit_index": row["unit_index"],
@@ -2061,7 +2097,8 @@ async def read_post_summary(
             normalized = normalize_post_body(raw_body, vision_client=vision_client)
             settings = load_settings()
             embedding_client = _embedding_client()
-            if vision_client.available or embedding_client.available:
+            structure_client = _post_structure_client()
+            if vision_client.available or embedding_client.available or structure_client.available:
                 await persist_post_content(
                     conn,
                     post_id,
@@ -2070,6 +2107,8 @@ async def read_post_summary(
                     embedding_client=embedding_client,
                     embedding_model_code=settings.embedding_model or None,
                     normalized_result=normalized,
+                    structure_client=structure_client,
+                    post_title=post["post_title"],
                 )
             normalized_body = normalized.text
             context_hints = await _load_post_semantic_hints(conn, post_id)

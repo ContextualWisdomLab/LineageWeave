@@ -108,6 +108,13 @@ def test_chunk_by_dom_joins_visual_continuation_lines_but_keeps_list_items() -> 
     assert [chunk.indent_width for chunk in chunks] == [0, 4, 4]
 
 
+def test_chunk_by_dom_does_not_infer_marker_depth_without_source_whitespace() -> None:
+    chunks = chunk_by_dom("<p>1. Root<br>1) Child<br>- Detail</p>")
+
+    assert [chunk.text for chunk in chunks] == ["1. Root", "1) Child", "- Detail"]
+    assert [chunk.indent_width for chunk in chunks] == [0, 0, 0]
+
+
 def test_chunk_by_dom_empty_html_yields_no_chunks() -> None:
     assert chunk_by_dom("<div></div>") == []
     assert chunk_by_dom("") == []

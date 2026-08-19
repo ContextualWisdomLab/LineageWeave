@@ -32,6 +32,7 @@ from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_persistence import persist_post_content
+from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
 
 
 SOURCE_NAMESPACE = uuid.UUID("b6e4b1d6-5fd0-4ca1-92b0-8f7a4e2df83e")
@@ -358,6 +359,13 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             os.environ.get("ORCHESTRATOR_API_KEY", ""),
             args.embedding_model,
         )
+        orchestrator_base_url = os.environ.get("ORCHESTRATOR_BASE_URL", "")
+        orchestrator_api_key = os.environ.get("ORCHESTRATOR_API_KEY", "")
+        structure_client = (
+            ContextualOrchestratorPostStructureClient(orchestrator_base_url, orchestrator_api_key)
+            if orchestrator_base_url and orchestrator_api_key
+            else NullPostStructureClient()
+        )
         for row in rows:
             if _source_code_matches(row, mapping.draft, args.exclude_draft_value) or _source_code_matches(
                 row, mapping.deleted, args.exclude_deleted_value
@@ -485,6 +493,8 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                     vision_client=vision_client,
                     embedding_client=embedding_client,
                     embedding_model_code=args.embedding_model or None,
+                    structure_client=structure_client,
+                    post_title=title,
                 )
             imported += 1
         cleanup = await cleanup_synthetic_seed(target, apply=True)

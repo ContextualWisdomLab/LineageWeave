@@ -171,11 +171,11 @@ function indentationLevel(text: string, unit: number): number {
   const withoutMarkers = stripIndentMarkers(text);
   const firstLine = withoutMarkers.split("\n").find((line) => line.trim()) ?? "";
   const width = indentationWidth(firstLine);
-  if (unit <= 0) return 0;
-  return Math.max(
-    width > 0 ? Math.round(width / unit) : 0,
-    declaredWidth > 0 ? Math.round(declaredWidth / unit) : 0,
+  const explicitLevel = Math.max(
+    unit > 0 && width > 0 ? Math.round(width / unit) : 0,
+    unit > 0 && declaredWidth > 0 ? Math.round(declaredWidth / unit) : 0,
   );
+  return explicitLevel;
 }
 
 function isDecodableBase64(raw: string): boolean {
