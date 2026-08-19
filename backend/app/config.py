@@ -29,39 +29,25 @@ class Settings:
     # keycloak fields above remain the explicit local-development fallback.
     oidc_issuer: str
     oidc_client_id: str
+    # Resource audience the backend accepts. This is deliberately separate
+    # from the browser OAuth client id: an access token issued for another
+    # resource at the same trusted issuer must not become a LineageWeave API
+    # credential merely because its signature is valid.
+    oidc_audience: str
     oidc_discovery_uri: str
     oidc_jwks_uri_override: str
     oidc_clock_skew_seconds: int
     # Exact browser origins allowed by CORS. Comma-separated FRONTEND_ORIGINS;
     # never a wildcard -- the backend only serves the product UI.
     frontend_origins: list[str]
-    # Keyman extraction is a hard dependency of POST /api/posts/{id}/extract-keymen
-    # only -- every other endpoint works with these unset. Empty string, not
-    # a fabricated default, when unconfigured (see keyman_ingestion.py).
     orchestrator_base_url: str
     orchestrator_api_key: str
-    # Explicit semantic embedding model routed through contextual-orchestrator.
-    # Empty means the embedding channel stays unavailable rather than using a
-    # local heuristic vector.
     embedding_model: str
-    # Event queue for post/ticket activity (XADD/XRANGE), per the brief's
-    # "Event Queue, not MQ" requirement -- see backend/app/activity_stream.py.
     valkey_url: str
-    # Self-hosted Searxng instance relation_verification.py's real client
-    # checks Knowledge Graph relation inferences against (ADR 0005). Empty
-    # means the verification channel is unavailable, same "no fake
-    # channel" discipline as every other pluggable client.
     searxng_base_url: str
-    # Optional TEPP HTTP transport. Empty keeps TeppClient's default
-    # unavailable transport. Never a local psychometric substitute.
     tepp_transport_url: str
     tepp_api_key: str
-    # Independent CalDAV event source for the buyer calendar. Empty keeps the
-    # source unavailable while internal commitments remain visible.
     caldav_base_url: str
-    # RankWeave ranking port (ADR 0024). True = fail-closed
-    # RankWeaveNotAvailable -- never invent a fused score. Default false
-    # uses the in-process library already required by reconstruct.py.
     rankweave_disabled: bool
 
     @property
@@ -81,12 +67,22 @@ def load_settings() -> Settings:
     keyverse_issuer = os.environ.get("KEYVERSE_ISSUER", "").strip()
     generic_oidc_issuer = os.environ.get("OIDC_ISSUER", "").strip()
     oidc_issuer = (keyverse_issuer or generic_oidc_issuer or keycloak_issuer).rstrip("/")
+    oidc_client_id = (
+        os.environ.get("KEYVERSE_CLIENT_ID", "").strip()
+        or os.environ.get("OIDC_CLIENT_ID", "").strip()
+        or keycloak_client_id
+    )
+    oidc_audience = (
+        os.environ.get("KEYVERSE_AUDIENCE", "").strip()
+        or os.environ.get("OIDC_AUDIENCE", "").strip()
+        or (oidc_client_id if (keyverse_issuer or generic_oidc_issuer) else "lineageweave-api")
+    )
+    if not oidc_audience:
+        raise ValueError("OIDC audience must not be empty")
     oidc_discovery_uri = os.environ.get("KEYVERSE_DISCOVERY_URI", "").strip() or os.environ.get(
         "OIDC_DISCOVERY_URI", ""
     ).strip()
     if not oidc_discovery_uri:
-        # The browser-facing issuer may be localhost in Compose, while this
-        # backend must use the service DNS name to reach the same provider.
         discovery_base = oidc_issuer if (keyverse_issuer or generic_oidc_issuer) else keycloak_base_url
         oidc_discovery_uri = (
             f"{discovery_base.rstrip('/')}/realms/{keycloak_realm}/.well-known/openid-configuration"
@@ -109,11 +105,8 @@ def load_settings() -> Settings:
         keycloak_client_id=keycloak_client_id,
         keycloak_issuer=keycloak_issuer,
         oidc_issuer=oidc_issuer,
-        oidc_client_id=(
-            os.environ.get("KEYVERSE_CLIENT_ID", "").strip()
-            or os.environ.get("OIDC_CLIENT_ID", "").strip()
-            or keycloak_client_id
-        ),
+        oidc_client_id=oidc_client_id,
+        oidc_audience=oidc_audience,
         oidc_discovery_uri=oidc_discovery_uri,
         oidc_jwks_uri_override=(
             os.environ.get("KEYVERSE_JWKS_URI", "").strip()
