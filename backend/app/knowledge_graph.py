@@ -13,6 +13,7 @@ from uuid import UUID
 
 import asyncpg
 
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.ontology import ontology_annotations
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
@@ -256,11 +257,12 @@ async def visible_mention_post_ids(
 ) -> list[str]:
     """Visible post ids supported by Keyman or R&R person evidence."""
     rows = await conn.fetch(
-        """
+        f"""
         select post.post_id, post.visibility_code, post.corporate_entity_id
           from combined_post_person_mention mention
           join source_post post on post.post_id = mention.post_id
          where mention.person_id = $1
+           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by post.created_at, post.post_id
         """,
         person_id,
@@ -274,11 +276,12 @@ async def visible_affiliation_post_ids(
 ) -> list[str]:
     """Visible posts that mention an entity via a person or a direct org mention."""
     rows = await conn.fetch(
-        """
+        f"""
         select distinct post.post_id, post.visibility_code,
                         post.corporate_entity_id, post.created_at
           from source_post post
-         where post.post_id in (
+         where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+           and post.post_id in (
             select mention.post_id
               from person_affiliation affiliation
               join combined_post_person_mention mention
@@ -303,11 +306,12 @@ async def visible_team_mention_post_ids(
 ) -> list[str]:
     """Visible post ids supported by a cataloged team mention."""
     rows = await conn.fetch(
-        """
+        f"""
         select post.post_id, post.visibility_code, post.corporate_entity_id
           from post_team_mention mention
           join source_post post on post.post_id = mention.post_id
          where mention.team_id = $1
+           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by post.created_at, post.post_id
         """,
         team_id,
@@ -478,10 +482,10 @@ async def hydrate_related_nodes(
     posts = {
         str(row["post_id"]): row
         for row in await conn.fetch(
-            "select post_id, post_title, "
+            f"select post_id, post_title, "
             "btrim(left(source_post_search_text(post_body), 420)) as post_body_excerpt, "
             "char_length(coalesce(post_body, '')) > 420 as post_body_truncated "
-            "from source_post where post_id = any($1::uuid[])",
+            f"from source_post where post_id = any($1::uuid[]) and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
             post_ids,
         )
     } if post_ids else {}

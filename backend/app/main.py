@@ -158,6 +158,7 @@ from backend.app.post_summary_ingestion import (
     persist_post_summary,
     require_summary_source_body,
 )
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.post_content_persistence import persist_post_content
 from lineageweave.http_client import HttpClientError
 
@@ -380,12 +381,6 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
     }
 
 
-_SOURCE_POST_ELIGIBILITY_SQL = (
-    "nullif(btrim({alias}.source_draft_code), '') is null "
-    "and nullif(btrim({alias}.source_deleted_flag), '') is null"
-)
-
-
 def _publication_state_code(post: asyncpg.Record) -> str:
     """Expose raw lifecycle evidence without guessing its source semantics."""
     if str(post.get("source_deleted_flag") or "").strip():
@@ -461,7 +456,7 @@ async def _post_filter_options(
     conn: asyncpg.Connection, corporate_entity_ids: frozenset[str]
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     """Return every authorized filter value, not only values on the current page."""
-    visibility_sql = """
+    visibility_sql = f"""
         select distinct post.visibility_code as code,
                coalesce(lookup.lookup_label, post.visibility_code) as label,
                coalesce(lookup.display_order, 2147483647) as display_order
@@ -471,9 +466,10 @@ async def _post_filter_options(
            and lookup.lookup_code = post.visibility_code
          where (post.visibility_code = 'public'
             or post.corporate_entity_id::text = any($1::text[]))
+           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
-    type_sql = """
+    type_sql = f"""
         select distinct post.voc_type_code as code,
                coalesce(lookup.lookup_label, post.voc_type_code) as label,
                coalesce(lookup.display_order, 2147483647) as display_order
@@ -483,6 +479,7 @@ async def _post_filter_options(
            and lookup.lookup_code = post.voc_type_code
          where (post.visibility_code = 'public'
             or post.corporate_entity_id::text = any($1::text[]))
+           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
     visibility_rows = await conn.fetch(visibility_sql, list(corporate_entity_ids))
@@ -553,7 +550,7 @@ async def read_customer_master(
 
     async with pool.acquire() as conn:
         source_customer_rows = await conn.fetch(
-            """
+            f"""
             with scoped as (
                 select post_id, post_title, created_at,
                        nullif(btrim(source_customer_code), '') as customer_code,
@@ -565,6 +562,7 @@ async def read_customer_master(
                  where (nullif(btrim(source_customer_code), '') is not null
                         or nullif(btrim(source_customer_name), '') is not null)
                    and (visibility_code = 'public' or corporate_entity_id = any($1::uuid[]))
+                   and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
             ), ranked as (
                 select scoped.*,
                        row_number() over (
@@ -606,7 +604,7 @@ async def read_customer_master(
             list(account.corporate_entity_ids),
         )
         source_author_rows = await conn.fetch(
-            """
+            f"""
             with scoped as (
                 select post.post_id, post.post_title, post.created_at,
                        btrim(post.source_author_code) as author_code,
@@ -624,6 +622,7 @@ async def read_customer_master(
                  where post.source_author_code is not null
                    and btrim(post.source_author_code) <> ''
                    and (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
+                   and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
             ), ranked as (
                 select scoped.*,
                        row_number() over (
@@ -920,7 +919,7 @@ async def list_posts(
                 f"""
                 select post_id
                   from source_post
-                where {_SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
+                where {SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
                   and (lower(left(source_post_search_text(post_body), 16384))
                            like '%' || lower($1) || '%'
                     or to_tsvector('simple', source_post_search_text(post_body))
@@ -948,7 +947,7 @@ async def list_posts(
                   from source_post post
              where (post.visibility_code = 'public'
                 or post.corporate_entity_id::text = any($2::text[]))
-               and {_SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
                and (
                     $1::text is null
                     or post.post_title ilike '%' || $1 || '%'
@@ -1174,7 +1173,7 @@ async def read_post(
                 "source_customer_code, source_customer_name, source_project_code, source_project_name, "
                 "source_system_code, source_record_key, "
             "corporate_entity_id, created_at "
-            f"from source_post where post_id = $1 and {_SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
+            f"from source_post where post_id = $1 and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
             post_id,
         )
         if row is None:
@@ -1208,7 +1207,7 @@ async def _load_visible_post(
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "select post_id, post_title, voc_type_code, visibility_code, corporate_entity_id, created_at "
-            f"from source_post where post_id = $1 and {_SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
+            f"from source_post where post_id = $1 and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
             post_id,
         )
     if row is None:
@@ -1682,7 +1681,7 @@ async def read_post_lineage(
                 "select post_id, post_title, visibility_code, corporate_entity_id, "
                 "btrim(left(source_post_search_text(post_body), 420)) as post_body_excerpt, "
                 "char_length(coalesce(post_body, '')) > 420 as post_body_truncated "
-                "from source_post where post_id = any($1::uuid[])",
+                f"from source_post where post_id = any($1::uuid[]) and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
                 list(candidate_ids),
             )
             rows = {str(row["post_id"]): row for row in fetched}
