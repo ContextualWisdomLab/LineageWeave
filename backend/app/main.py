@@ -159,7 +159,11 @@ from backend.app.post_summary_ingestion import (
     require_summary_source_body,
 )
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
-from backend.app.demo_scope import has_real_source_context, is_demo_scope
+from backend.app.demo_scope import (
+    fetch_demo_corporate_entity_ids,
+    has_real_source_context,
+    is_demo_scope,
+)
 from lineageweave.post_content_persistence import persist_post_content
 from lineageweave.http_client import HttpClientError
 
@@ -339,6 +343,16 @@ def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
     if post["visibility_code"] == "public":
         return True
     return str(post["corporate_entity_id"]) in account.corporate_entity_ids
+
+
+def _is_demo_only_group(members: list[dict[str, Any]], demo_entity_ids: set[str]) -> bool:
+    """True when every visible member of a report group is the synthetic
+    Demo Corp narrative -- dropped once real evidence exists (ADR 0001 /
+    ADR 0042), same rule for the comparison strip, the FIPC trend strip,
+    and one grouping/period's calibrated report."""
+    return bool(demo_entity_ids) and all(
+        member["corporate_entity_id"] in demo_entity_ids for member in members
+    )
 
 
 def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) -> dict[str, Any]:
@@ -1778,10 +1792,15 @@ async def compare_period_groupings(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
     async with pool.acquire() as conn:
         rows = await fetch_period_comparison(conn, period_code)
+        demo_entity_ids: set[str] = set()
+        if rows and await has_real_source_context(conn, list(account.corporate_entity_ids)):
+            demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
     visible: list[dict[str, Any]] = []
     for row in rows:
         members = [member for member in row["members"] if _can_see_post(account, member)]
         if not members:
+            continue
+        if _is_demo_only_group(members, demo_entity_ids):
             continue
         visible.append({**row, "members": [], "post_count": len(members)})
     return {"period_code": period_code, "groupings": visible}
@@ -1799,10 +1818,15 @@ async def list_period_reports(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "unknown grouping_kind")
     async with pool.acquire() as conn:
         summaries = await list_period_report_summaries(conn, grouping_kind)
+        demo_entity_ids: set[str] = set()
+        if summaries and await has_real_source_context(conn, list(account.corporate_entity_ids)):
+            demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
     visible: list[dict[str, Any]] = []
     for summary in summaries:
         members = [member for member in summary["members"] if _can_see_post(account, member)]
         if not members:
+            continue
+        if _is_demo_only_group(members, demo_entity_ids):
             continue
         visible.append({**summary, "members": [], "post_count": len(members)})
     return {"grouping_kind": grouping_kind, "periods": visible}
@@ -1825,10 +1849,15 @@ async def read_period_reports(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
     async with pool.acquire() as conn:
         reports = await fetch_period_reports(conn, grouping_kind, period_code)
+        demo_entity_ids: set[str] = set()
+        if reports and await has_real_source_context(conn, list(account.corporate_entity_ids)):
+            demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
     visible: list[dict[str, Any]] = []
     for report in reports:
         members = [member for member in report["members"] if _can_see_post(account, member)]
         if not members:
+            continue
+        if _is_demo_only_group(members, demo_entity_ids):
             continue
         leftover_pairs = [
             pair

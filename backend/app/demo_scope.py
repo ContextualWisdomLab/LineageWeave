@@ -54,3 +54,15 @@ async def has_real_source_context(
             list(corporate_entity_ids),
         )
     )
+
+
+async def fetch_demo_corporate_entity_ids(conn: asyncpg.Connection) -> set[str]:
+    """The `make seed` Demo Corp tree's corporate_entity_ids.
+
+    Small, cacheable-by-caller lookup, not an ABAC gate on its own -- callers
+    still apply `has_real_source_context` before treating a row as hideable.
+    """
+    rows = await conn.fetch(
+        "select corporate_entity_id from corporate_entity where corporate_entity_code like 'DEMO-%'"
+    )
+    return {str(row["corporate_entity_id"]) for row in rows}
