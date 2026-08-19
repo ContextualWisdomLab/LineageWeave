@@ -827,8 +827,11 @@ async def read_customer_master(
                 conn, list(account.corporate_entity_ids)
             )
         if has_source_context:
+            synthetic_only_entity_ids = await fetch_demo_corporate_entity_ids(conn)
             entity_rows = [
-                row for row in entity_rows if not is_demo_scope(row["corporate_entity_code"])
+                row
+                for row in entity_rows
+                if str(row["corporate_entity_id"]) not in synthetic_only_entity_ids
             ]
         entity_ids = [row["corporate_entity_id"] for row in entity_rows]
         source_author_affiliations = await _load_account_affiliation_hints(
