@@ -85,3 +85,10 @@ Open Calendar. Authorized commitments are current. Open a commitment:
 Event Lineage takes focus and names Keyman and evaluation next
 (ADR 0094). A home-list open does not. Do not invent a theta or a
 CalDAV event.
+
+## Customer master open (v2.15.0)
+
+Open Customer master. Authorized customer entities are current. Open a
+related post: Event Lineage takes focus and names Keyman and evaluation
+next (ADR 0095). A home-list open does not. Do not invent a theta or a
+customer.
