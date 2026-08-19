@@ -758,6 +758,9 @@ async def read_customer_master(
                   join cataloged_person person
                     on person.person_id = mention.person_id
                    and person.person_side_code = 'our_side'
+            ), keyman_authors as (
+                select distinct author_code, author_account_id, account_display_name
+                  from keyman_mentions
             ), top_groups as materialized (
                 select groups.*
                   from groups
@@ -1084,6 +1087,14 @@ async def list_posts(
                            like '%' || lower($1) || '%'
                     or to_tsvector('simple', source_post_search_text(post_body))
                            @@ plainto_tsquery('simple', $1))
+                order by
+                    case when lower(left(source_post_search_text(post_body), 16384))
+                              like '%' || lower($1) || '%' then 0 else 1 end,
+                    ts_rank(
+                        to_tsvector('simple', source_post_search_text(post_body)),
+                        plainto_tsquery('simple', $1)
+                    ) desc,
+                    post_id
                 """,
                 search_term,
             )
@@ -1103,6 +1114,12 @@ async def list_posts(
                        post.source_system_code,
                        post.source_record_key,
                        post.corporate_entity_id, post.created_at,
+                       case
+                           when $1::text is null then 0
+                           when lower(coalesce(post.post_title, '')) like '%' || lower($1) || '%' then 0
+                           when post.post_id = any($5::uuid[]) then 1
+                           else 2
+                       end as search_priority,
                        count(*) over() as total_count
                   from source_post post
              where (post.visibility_code = 'public'
@@ -1232,6 +1249,11 @@ async def list_posts(
                and ($3::text[] is null or post.voc_type_code = any($3::text[]))
                and ($4::text is null or post.visibility_code = $4)
                  order by
+                    search_priority asc,
+                    case
+                        when $1::text is not null and post.post_id = any($5::uuid[])
+                        then array_position($5::uuid[], post.post_id)
+                    end asc,
                     case when $8::text = 'title' then lower(coalesce(post.post_title, '')) end asc,
                     case when $8::text = 'oldest' then post.created_at end asc,
                     case when $8::text in ('newest', 'title') then post.created_at end desc,
@@ -1240,7 +1262,18 @@ async def list_posts(
                    limit $7
             )
             select page.*,
-                   btrim(left(source_post_search_text(post.post_body), 420)) as post_body_excerpt,
+                   case
+                       when $1::text is not null
+                            and strpos(lower(source_post_search_text(post.post_body)), lower($1)) > 0
+                       then btrim(substring(
+                           source_post_search_text(post.post_body)
+                           from greatest(
+                               1,
+                               strpos(lower(source_post_search_text(post.post_body)), lower($1)) - 140
+                           ) for 420
+                       ))
+                       else btrim(left(source_post_search_text(post.post_body), 420))
+                   end as post_body_excerpt,
                    char_length(coalesce(post.post_body, '')) > 420 as post_body_truncated,
                    coalesce(projects.project_evidence, '[]'::json) as project_evidence
               from page
@@ -1270,6 +1303,11 @@ async def list_posts(
                     ) project
               ) projects on true
              order by
+                case when $1::text is not null then page.search_priority end asc,
+                case
+                    when $1::text is not null and page.search_priority = 1
+                    then array_position($5::uuid[], page.post_id)
+                end asc,
                 case when $8::text = 'title' then lower(coalesce(page.post_title, '')) end asc,
                 case when $8::text = 'oldest' then page.created_at end asc,
                 case when $8::text in ('newest', 'title') then page.created_at end desc,
@@ -2056,6 +2094,7 @@ async def evaluate_post(
     post_id: str,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """LLM-as-a-Judge a post through fast-mlsirm and persist the IRT row.
 
@@ -2081,6 +2120,13 @@ async def evaluate_post(
             rows = await ingest_post_evaluation(
                 conn, client, post_id, post["post_title"], normalized_body
             )
+    await publish_activity_event(
+        valkey,
+        post_id,
+        "post_evaluated",
+        account.user_account_id,
+        f"Post evaluated: {len(rows)} rubric criterion response(s)",
+    )
     return {
         "post_id": str(post["post_id"]),
         "rubric_version": RUBRIC_VERSION,
