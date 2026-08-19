@@ -1,29 +1,71 @@
 name: Tests
 
-'on':
+on:
   push:
-    branches:
-      - feat/event-lineage-node-keeps-gnb-focus-v2170
-  workflow_dispatch:
+    branches: [main]
+  pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: repair-pr-264-cutoff-context
-  cancel-in-progress: false
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  repair:
-    name: Repair target-specific cutoff context
+  pytest:
+    name: Full test suite
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
-      - name: Checkout pull request branch
+      - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
-          ref: feat/event-lineage-node-keeps-gnb-focus-v2170
-          fetch-depth: 0
-          persist-credentials: true
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Install the committed universal lock
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Run full test suite against PostgreSQL
+        run: uv run --frozen python -m pytest -q
+
+  frontend:
+    name: Frontend lint, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Set up Node
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
@@ -33,49 +75,22 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
-      - name: Install locked frontend dependencies
+      - name: Install dependencies
         working-directory: frontend
         run: pnpm install --frozen-lockfile
 
-      - name: Write the RED regression
-        run: python .github/scripts/fix_pr264_cutoff.py red
-
-      - name: Prove the RED regression fails
-        shell: bash
-        run: |
-          set +e
-          pnpm --dir frontend exec vitest run src/analysisRunNavigation.test.ts > /tmp/red.log 2>&1
-          status=$?
-          set -e
-          cat /tmp/red.log
-          if [ "$status" -eq 0 ]; then
-            echo "The regression unexpectedly passed before the production fix." >&2
-            exit 1
-          fi
-          grep -Eq 'analysisRunNavigation|Cannot find|Failed to resolve|ENOENT' /tmp/red.log
-
-      - name: Apply the narrow GREEN fix
-        run: python .github/scripts/fix_pr264_cutoff.py apply
-
-      - name: Verify focused and complete frontend contracts
+      - name: Lint
         working-directory: frontend
-        run: |
-          pnpm exec vitest run src/analysisRunNavigation.test.ts src/App.test.tsx
-          pnpm run lint
-          pnpm run test
-          pnpm run build
-          pnpm run build-storybook
+        run: pnpm run lint
 
-      - name: Restore canonical workflows and publish the verified fix
-        shell: bash
-        run: |
-          git show '0aaf992fab65a2e1ad6d41d5de8a7cad1825e04c:.github/workflows/tests.yml' > .github/workflows/tests.yml
-          rm -f .github/workflows/fix-264-cutoff-context.yml
-          rm -f .github/workflows/fix-264-ontology-semantic-path.yml
-          rm -f .github/scripts/fix_pr264_cutoff.py
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add frontend/src/App.tsx frontend/src/App.test.tsx frontend/src/analysisRunNavigation.ts frontend/src/analysisRunNavigation.test.ts .github/workflows/tests.yml .github/workflows/fix-264-cutoff-context.yml .github/workflows/fix-264-ontology-semantic-path.yml .github/scripts/fix_pr264_cutoff.py
-          git diff --cached --check
-          git commit -m "fix(ui): preserve analysis-run cutoff across DAG navigation"
-          git push origin HEAD:feat/event-lineage-node-keeps-gnb-focus-v2170
+      - name: Test
+        working-directory: frontend
+        run: pnpm run test
+
+      - name: Build
+        working-directory: frontend
+        run: pnpm run build
+
+      - name: Build Storybook
+        working-directory: frontend
+        run: pnpm run build-storybook
