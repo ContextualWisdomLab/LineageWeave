@@ -128,6 +128,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "권한이 있는 일정이 현재 표시되어 있습니다. 이벤트 계보를 읽으려면 일정을 여세요.",
     "Authorized customer entities are current. Open a related post to read Event Lineage.":
       "권한이 있는 고객 엔터티가 현재 표시되어 있습니다. 이벤트 계보를 읽으려면 관련 글을 여세요.",
+    "Authorized cited posts are current. Open a cited post to read Event Lineage.":
+      "권한이 있는 인용 글이 현재 표시되어 있습니다. 이벤트 계보를 읽으려면 인용 글을 여세요.",
+    "Open cited post:": "인용 글 열기:",
     "Filter by visibility": "공개 여부로 필터",
     "Sort posts": "글 정렬",
     "All VOC types": "모든 VOC 유형",
@@ -461,6 +464,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "已授权承诺为当前内容。打开一项承诺阅读事件谱系。",
     "Authorized customer entities are current. Open a related post to read Event Lineage.":
       "已授权客户实体为当前内容。打开一篇相关文章阅读事件谱系。",
+    "Authorized cited posts are current. Open a cited post to read Event Lineage.":
+      "已授权引用文章为当前内容。打开一篇引用文章阅读事件谱系。",
+    "Open cited post:": "打开引用文章：",
     "Filter by visibility": "按公开状态筛选",
     "Sort posts": "排序文章",
     "All VOC types": "所有 VOC 类型",
@@ -817,6 +823,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "権限のある約束が現在表示されています。イベント系譜を読むには約束を開いてください。",
     "Authorized customer entities are current. Open a related post to read Event Lineage.":
       "権限のある顧客エンティティが現在表示されています。イベント系譜を読むには関連投稿を開いてください。",
+    "Authorized cited posts are current. Open a cited post to read Event Lineage.":
+      "権限のある引用投稿が現在表示されています。イベント系譜を読むには引用投稿を開いてください。",
+    "Open cited post:": "引用投稿を開く:",
     "Filter by visibility": "公開状態で絞り込み",
     "Sort posts": "投稿を並べ替え",
     "All VOC types": "すべての VOC 種類",
@@ -1149,6 +1158,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Các cam kết được phép đang hiện tại. Hãy mở một cam kết để đọc Dòng sự kiện.",
     "Authorized customer entities are current. Open a related post to read Event Lineage.":
       "Các thực thể khách hàng được cấp quyền đang hiện tại. Hãy mở một bài liên quan để đọc Dòng sự kiện.",
+    "Authorized cited posts are current. Open a cited post to read Event Lineage.":
+      "Các bài được trích dẫn được cấp quyền đang hiện tại. Hãy mở một bài trích dẫn để đọc Dòng sự kiện.",
+    "Open cited post:": "Mở bài trích dẫn:",
     "Filter by visibility": "Lọc theo trạng thái hiển thị",
     "Sort posts": "Sắp xếp bài viết",
     "All VOC types": "Tất cả loại VOC",
