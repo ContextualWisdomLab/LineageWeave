@@ -60,6 +60,32 @@ export interface PostDetail extends PostSummary {
   known_at?: PostKnownAt;
 }
 
+export interface PostImageContent {
+  unit_index: number;
+  mime_type: string;
+  status_code: string;
+  extracted_text: string | null;
+  caption: string | null;
+  tags: string[];
+  regions?: PostImageRegion[];
+}
+
+export interface PostImageRegion {
+  region_index: number;
+  x_ratio: number;
+  y_ratio: number;
+  width_ratio: number;
+  height_ratio: number;
+  status_code: string;
+  extracted_text: string | null;
+  caption: string | null;
+  tags: string[];
+}
+
+export interface PostContentResponse {
+  images: PostImageContent[];
+}
+
 export interface Affiliation {
   organization_name: string;
   corporate_entity_id: string | null;
@@ -448,10 +474,18 @@ export interface CurrentUser {
   display_name: string;
   permission_codes: string[];
   corporate_entities?: CorporateEntityRef[];
+  preferred_locale?: string | null;
 }
 
 export function fetchMe(accessToken: string): Promise<CurrentUser> {
   return backendFetch<CurrentUser>("/api/me", accessToken);
+}
+
+export function setPreferredLocale(accessToken: string, preferredLocale: string): Promise<CurrentUser> {
+  return backendFetch<CurrentUser>("/api/me/preferences", accessToken, {
+    method: "PATCH",
+    body: JSON.stringify({ preferred_locale: preferredLocale }),
+  });
 }
 
 export function fetchCustomerMaster(accessToken: string): Promise<CustomerMasterResponse> {
@@ -504,6 +538,10 @@ export function fetchPost(
 ): Promise<PostDetail> {
   const query = asOf ? `?as_of=${encodeURIComponent(asOf)}` : "";
   return backendFetch<PostDetail>(`/api/posts/${postId}${query}`, accessToken);
+}
+
+export function fetchPostContent(accessToken: string, postId: string): Promise<PostContentResponse> {
+  return backendFetch<PostContentResponse>(`/api/posts/${postId}/content`, accessToken);
 }
 
 export interface PostBookmark {

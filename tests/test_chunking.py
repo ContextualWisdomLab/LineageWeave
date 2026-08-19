@@ -70,6 +70,24 @@ def test_chunk_by_dom_nested_blocks_do_not_duplicate_text() -> None:
     assert chunks[0].label == "p"
 
 
+def test_chunk_by_dom_preserves_source_indentation_for_semantic_units() -> None:
+    html = "<p>&nbsp;&nbsp;Level one</p><p>&nbsp;&nbsp;&nbsp;&nbsp;Level two</p>"
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.text for chunk in chunks] == ["  Level one", "    Level two"]
+
+
+def test_chunk_by_dom_reads_html_and_word_indentation_declarations() -> None:
+    html = (
+        '<p style="margin-left: 32px">HTML</p>'
+        '<w:p><w:pPr><w:ind w:left="480"/></w:pPr>'
+        "<w:r><w:t>Word</w:t></w:r></w:p>"
+    )
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.text for chunk in chunks] == ["    HTML", "    Word"]
+
+
 def test_chunk_by_dom_empty_html_yields_no_chunks() -> None:
     assert chunk_by_dom("<div></div>") == []
     assert chunk_by_dom("") == []

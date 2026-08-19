@@ -20,7 +20,7 @@ describe("i18n", () => {
     "linked",
     "Post body preview",
     "unresolved",
-    "Keyman",
+    "Keymen",
     "Unknown",
     "Counterparties",
     "due",

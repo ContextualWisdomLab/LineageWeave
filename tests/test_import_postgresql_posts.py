@@ -8,6 +8,7 @@ from scripts.import_postgresql_posts import (
     _source_code_matches,
     _validate_source_mapping,
     _validate_source_rows,
+    _validate_corporate_entity_scope,
 )
 
 
@@ -89,6 +90,12 @@ def test_importer_always_requires_verified_publication_state() -> None:
 def test_importer_has_no_unknown_publication_state_bypass() -> None:
     with pytest.raises(SystemExit):
         _parser().parse_args(["--allow-unknown-publication-state"])
+
+
+def test_importer_rejects_demo_scope_without_explicit_test_override() -> None:
+    with pytest.raises(ValueError, match="non-DEMO corporate entity code"):
+        _validate_corporate_entity_scope("DEMO-CORP-01", allow_demo=False)
+    _validate_corporate_entity_scope("DEMO-CORP-01", allow_demo=True)
 
 
 def test_importer_prefers_canonical_gateway_embedding_model(monkeypatch) -> None:

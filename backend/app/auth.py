@@ -70,6 +70,7 @@ class CurrentAccount:
     user_account_id: str
     external_subject_id: str
     display_name: str
+    preferred_locale: str | None
     corporate_entity_ids: frozenset[str]
     permission_codes: frozenset[str]
 
@@ -104,7 +105,7 @@ async def get_current_account(
 
     async with pool.acquire() as conn:
         account_row = await conn.fetchrow(
-            "select user_account_id, display_name from user_account where external_subject_id = $1",
+            "select user_account_id, display_name, preferred_locale from user_account where external_subject_id = $1",
             subject,
         )
         if account_row is None:
@@ -132,6 +133,7 @@ async def get_current_account(
         user_account_id=str(account_row["user_account_id"]),
         external_subject_id=subject,
         display_name=account_row["display_name"],
+        preferred_locale=account_row["preferred_locale"],
         corporate_entity_ids=frozenset(str(row["corporate_entity_id"]) for row in entity_rows),
         permission_codes=frozenset(row["permission_code"] for row in permission_rows),
     )

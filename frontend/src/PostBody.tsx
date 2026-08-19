@@ -1,11 +1,21 @@
 import { splitPostBody, type PostBodySegment } from "./postBodyDisplay";
 import { t } from "./i18n";
+import type { PostImageContent } from "./api";
 
-function renderSegment(segment: PostBodySegment, index: number) {
+function renderSegment(segment: PostBodySegment, index: number, imageContent?: PostImageContent) {
   switch (segment.kind) {
     case "text":
       return (
-        <p key={`post-body-text-${index}`} className="post-body-text">
+        <p
+          key={`post-body-text-${index}`}
+          className="post-body-text"
+          data-indent-level={segment.indentLevel ?? 0}
+          style={
+            segment.indentLevel
+              ? { paddingInlineStart: `${segment.indentLevel}em` }
+              : undefined
+          }
+        >
           {segment.text}
         </p>
       );
@@ -16,9 +26,25 @@ function renderSegment(segment: PostBodySegment, index: number) {
             src={segment.src}
             alt={`${t("Embedded image at character offset")} ${segment.position}`}
           />
-          <figcaption>
-            {t("Image from this post. Extract Keyman or ask a question to read text inside it.")}
-          </figcaption>
+          {imageContent?.caption ? <figcaption>{imageContent.caption}</figcaption> : null}
+          {imageContent?.extracted_text ? (
+            <details className="post-image-text">
+              <summary>{t("Text detected in image")}</summary>
+              <p>{imageContent.extracted_text}</p>
+            </details>
+          ) : null}
+          {imageContent?.regions?.length ? (
+            <details className="post-image-regions">
+              <summary>{t("Image regions")}</summary>
+              <ol>
+                {imageContent.regions.map((region) => (
+                  <li key={region.region_index}>
+                    {region.caption || region.extracted_text || t("Unknown")}
+                  </li>
+                ))}
+              </ol>
+            </details>
+          ) : null}
         </figure>
       );
     default: {
@@ -28,6 +54,14 @@ function renderSegment(segment: PostBodySegment, index: number) {
   }
 }
 
-export function PostBody({ body }: { body: string }) {
-  return <div className="post-body">{splitPostBody(body).map(renderSegment)}</div>;
+export function PostBody({ body, imageContent = [] }: { body: string; imageContent?: PostImageContent[] }) {
+  let imageOrdinal = 0;
+  return (
+    <div className="post-body">
+      {splitPostBody(body).map((segment, index) => {
+        const content = segment.kind === "image" ? imageContent[imageOrdinal++] : undefined;
+        return renderSegment(segment, index, content);
+      })}
+    </div>
+  );
 }

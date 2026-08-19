@@ -72,8 +72,52 @@ _DOM_BLOCK_TAGS = frozenset(
         "h4",
         "h5",
         "h6",
+        "w:p",
+        "w:tbl",
+        "w:tr",
+        "w:tc",
     }
 )
+
+
+def _length_to_indent_units(value: str) -> int:
+    """Convert common CSS/XML lengths to a comparable eight-pixel unit."""
+    match = re.fullmatch(r"\s*([+-]?(?:\d+\.?\d*|\.\d+))\s*(px|pt|em|rem|in|cm|mm|%)?\s*", value, re.I)
+    if match is None:
+        return 0
+    amount = float(match.group(1))
+    if amount <= 0:
+        return 0
+    scale = {
+        "px": 1.0,
+        "pt": 96 / 72,
+        "em": 16.0,
+        "rem": 16.0,
+        "in": 96.0,
+        "cm": 96 / 2.54,
+        "mm": 96 / 25.4,
+        "%": 16 / 100,
+    }.get((match.group(2) or "px").lower(), 1.0)
+    return max(0, round(amount * scale / 8))
+
+
+def _declared_indent_width(tag: str, attrs: list[tuple[str, str | None]]) -> int:
+    """Read HTML CSS and WordprocessingML paragraph indentation declarations."""
+    width = 4 if tag in {"blockquote", "ul", "ol"} else 0
+    style = next((value or "" for name, value in attrs if name == "style"), "")
+    for match in re.finditer(
+        r"(?:^|;)\s*(?:margin-left|padding-left|padding-inline-start|text-indent)\s*:\s*([^;]+)",
+        style,
+        re.I,
+    ):
+        width += _length_to_indent_units(match.group(1))
+    for name, value in attrs:
+        if name in {"w:left", "w:start", "w:firstline"} and value:
+            try:
+                width += max(0, round(int(value) / 120))
+            except ValueError:
+                continue
+    return width
 
 
 @dataclass(frozen=True)
@@ -183,7 +227,7 @@ class _BlockTextExtractor(HTMLParser):
 
     def __init__(self) -> None:
         super().__init__()
-        self._stack: list[tuple[str, list[str], str | None]] = []
+        self._stack: list[tuple[str, list[str], str | None, int]] = []
         # Each entry is ("text", str, tag_name, style) or
         # ("image", (mime_type, bytes), "", None) -- a single sequence in
         # true document order, so an image's index among its siblings
@@ -199,15 +243,31 @@ class _BlockTextExtractor(HTMLParser):
                 if decoded is not None:
                     self._finished.append(("image", decoded, "", None))
             return
+        if tag == "w:ind" and self._stack:
+            tag_name, buffer, style, indent_width = self._stack[-1]
+            self._stack[-1] = (
+                tag_name,
+                buffer,
+                style,
+                indent_width + _declared_indent_width(tag, attrs),
+            )
+            return
         if tag in _DOM_BLOCK_TAGS:
             style = next((value for name, value in attrs if name == "style" and value), None)
-            self._stack.append((tag, [], style))
+            self._stack.append((tag, [], style, _declared_indent_width(tag, attrs)))
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        """Handle self-closing block tags without losing XML indentation state."""
+        self.handle_starttag(tag, attrs)
+        if tag in _DOM_BLOCK_TAGS:
+            self.handle_endtag(tag)
 
     def handle_endtag(self, tag: str) -> None:
         """Close the relevant text state when an HTML end tag is encountered."""
         if tag in _DOM_BLOCK_TAGS and self._stack:
-            tag_name, buffer, style = self._stack.pop()
-            text = " ".join(buffer).strip()
+            declared_width = sum(entry[3] for entry in self._stack)
+            tag_name, buffer, style, _ = self._stack.pop()
+            text = " " * declared_width + "".join(buffer).strip("\r\n").rstrip()
             if text:
                 self._finished.append(("text", text, tag_name, style))
 
@@ -219,8 +279,9 @@ class _BlockTextExtractor(HTMLParser):
             if decoded == text:
                 break
             text = decoded
-        text = text.replace("\xa0", " ").strip()
-        if text and self._stack:
+        had_nbsp = "\xa0" in text
+        text = text.replace("\xa0", " ")
+        if self._stack and (text.strip() or had_nbsp):
             self._stack[-1][1].append(text)
 
     def finished(self) -> list[tuple[str, object, str, str | None]]:

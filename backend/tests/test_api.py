@@ -82,6 +82,12 @@ _SOURCE_NAMED_HINTS_MIGRATION = (
 _SOURCE_ORG_NAMED_HINTS_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0039_source_org_named_hints.sql"
 )
+_MEMBER_LOCALE_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0044_member_locale_preference.sql"
+)
+_IMAGE_REGION_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0045_post_content_image_regions.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -186,6 +192,8 @@ def seeded_db(demo_analyst_token):
                 (Path(__file__).resolve().parents[2] / "migrations" / "0040_post_summary_contract.sql")
                 .read_text()
             )
+            cur.execute(_MEMBER_LOCALE_MIGRATION.read_text())
+            cur.execute(_IMAGE_REGION_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "

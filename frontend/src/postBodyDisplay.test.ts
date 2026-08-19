@@ -14,6 +14,27 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("evaluates nbsp indentation levels from the document's observed unit", () => {
+    expect(
+      splitPostBody("<p>&nbsp;&nbsp;Level one</p><p>&nbsp;&nbsp;&nbsp;&nbsp;Level two</p><p>Root</p>"),
+    ).toEqual([
+      { kind: "text", text: "Level one", indentLevel: 1 },
+      { kind: "text", text: "Level two", indentLevel: 2 },
+      { kind: "text", text: "Root" },
+    ]);
+  });
+
+  it("includes HTML and Word XML indentation declarations", () => {
+    expect(
+      splitPostBody(
+        '<p style="margin-left: 32px">HTML</p><w:p><w:pPr><w:ind w:left="480"/></w:pPr><w:r><w:t>Word</w:t></w:r></w:p>',
+      ),
+    ).toEqual([
+      { kind: "text", text: "HTML", indentLevel: 1 },
+      { kind: "text", text: "Word", indentLevel: 1 },
+    ]);
+  });
+
   it("leaves a plain-text post unchanged so existing popups keep their wording", () => {
     expect(splitPostBody("The full body text.")).toEqual([
       { kind: "text", text: "The full body text." },

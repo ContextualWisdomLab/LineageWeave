@@ -17,6 +17,7 @@ import {
   fetchLineageGraph,
   fetchMe,
   fetchPost,
+  fetchPostContent,
   fetchPostActivity,
   fetchPostBookmark,
   fetchPostChat,
@@ -40,6 +41,7 @@ import {
   rebuildLineage,
   rebuildPeriodReports,
   setPostBookmark,
+  setPreferredLocale,
   updateTicketStatus,
   verifyPostRelations,
   type ActivityEvent,
@@ -60,6 +62,7 @@ import {
   type PostAiSummary,
   type PostFiveW1H,
   type PostDetail,
+  type PostImageContent,
   type PostFilterOption,
   type PeriodComparison,
   type PeriodReportIndex,
@@ -81,7 +84,15 @@ import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
-import { LOCALE_LABELS, SUPPORTED_LOCALES, setLocale, t, tf, useLocale } from "./i18n";
+import {
+  isSupportedLocale,
+  LOCALE_LABELS,
+  SUPPORTED_LOCALES,
+  setLocale,
+  t,
+  tf,
+  useLocale,
+} from "./i18n";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -91,7 +102,7 @@ function orchestratorUnavailableMessage(err: unknown, action: string): string {
   return String(err);
 }
 
-function LanguageSwitcher() {
+function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
   const locale = useLocale();
   return (
     <label className="language-switcher">
@@ -99,7 +110,12 @@ function LanguageSwitcher() {
       <select
         aria-label={t("Language")}
         value={locale}
-        onChange={(event) => setLocale(event.target.value as (typeof SUPPORTED_LOCALES)[number])}
+        onChange={(event) => {
+          const nextLocale = event.target.value;
+          if (!isSupportedLocale(nextLocale)) return;
+          setLocale(nextLocale);
+          if (accessToken) void setPreferredLocale(accessToken, nextLocale).catch(() => undefined);
+        }}
       >
         {SUPPORTED_LOCALES.map((option) => (
           <option key={option} value={option}>
@@ -970,7 +986,7 @@ function KeymanPanel({
       await extractPostKeymen(accessToken, postId);
       onExtracted();
     } catch (err) {
-      setError(orchestratorUnavailableMessage(err, "Keyman extraction"));
+      setError(orchestratorUnavailableMessage(err, "Keymen extraction"));
       if (err instanceof BackendError && err.status === 503) {
         setOrchestratorOff(true);
       }
@@ -1078,7 +1094,7 @@ function KeymanPanel({
     <>
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>{t("Keyman")}</h3>
+        <h3>{t("Keymen")}</h3>
         {canExtract && !orchestratorOff && (
           <details className="operator-action-tools">
             <summary>{t("Evidence operations")}</summary>
@@ -1168,7 +1184,7 @@ function KeymanPanel({
           ))}
         </ul>
       ) : (
-        <p className="popup-placeholder">{t("No Keyman extracted yet.")}</p>
+        <p className="popup-placeholder">{t("No Keymen extracted yet.")}</p>
       )}
       {!afterList && relatedBlock}
     </section>
@@ -1604,6 +1620,7 @@ function PostDetailPopup({
   onSearch?: (query: string) => void;
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
+  const [imageContent, setImageContent] = useState<PostImageContent[]>([]);
   const [bookmarked, setBookmarked] = useState<boolean | null>(null);
   const [bookmarkSaving, setBookmarkSaving] = useState(false);
   const [postActionStatus, setPostActionStatus] = useState<string | null>(null);
@@ -1666,6 +1683,11 @@ function PostDetailPopup({
     setFocusTeam(null);
     const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
     fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
+    const reloadContent = () =>
+      fetchPostContent(accessToken, postId)
+        .then((content) => setImageContent(content.images))
+        .catch(() => setImageContent([]));
+    reloadContent();
     fetchPostBookmark(accessToken, postId)
       .then((r) => setBookmarked(r.bookmarked))
       .catch(() => {
@@ -1675,7 +1697,10 @@ function PostDetailPopup({
       .then((r) => setEvaluation(r.responses))
       .catch(() => setEvaluation([]));
     fetchPostSummary(accessToken, postId)
-      .then(setSummary)
+      .then((value) => {
+        setSummary(value);
+        reloadContent();
+      })
       .catch((err) => {
         setSummary(null);
         setSummaryError(summaryFetchError(err));
@@ -1763,8 +1788,7 @@ function PostDetailPopup({
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
-            <nav className="post-actions" aria-label={t("Post actions")}>
-              <a href={permanentLink}>{t("Permanent link")}</a>
+            <div className="post-actions" role="group" aria-label={t("Post actions")}>
               <button type="button" onClick={() => void sharePost()}>
                 {t("Share")}
               </button>
@@ -1779,7 +1803,7 @@ function PostDetailPopup({
               >
                 {bookmarked ? t("Bookmarked") : t("Bookmark")}
               </button>
-            </nav>
+            </div>
             {postActionStatus && (
               <p className="post-action-status" role="status">
                 {postActionStatus}
@@ -1801,7 +1825,7 @@ function PostDetailPopup({
             <section className="popup-section post-source-body" aria-label={t("Post body")}>
               <h3>{t("Post body")}</h3>
               {post.post_body.trim() ? (
-                <PostBody body={post.post_body} />
+                <PostBody body={post.post_body} imageContent={imageContent} />
               ) : (
                 <p className="popup-placeholder" role="status">
                   {t("Source body was not imported; summary and semantic extraction are unavailable.")}
@@ -4055,7 +4079,7 @@ function CustomerMasterPanel({
                   ) : null}
                   {hint.keyman_hints.length > 0 ? (
                     <span>
-                      {t("Our-side Keyman hints")}: {hint.keyman_hints.map((person) => (
+                      {t("Our-side Keymen hints")}: {hint.keyman_hints.map((person) => (
                         `${person.person_name}${person.last_known_job_title ? ` (${person.last_known_job_title})` : ""}`
                       )).join(", ")}
                     </span>
@@ -4087,7 +4111,7 @@ function CustomerMasterPanel({
       ) : null}
       {master && master.keymen.length > 0 ? (
         <section className="customer-keymen" aria-labelledby="customer-keymen-heading">
-          <h3 id="customer-keymen-heading">{t("Keyman")}</h3>
+          <h3 id="customer-keymen-heading">{t("Keymen")}</h3>
           <ul className="customer-master-list">
             {master.keymen.map((person) => (
               <li key={person.person_id}>
@@ -4198,6 +4222,20 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   // advanced-review section (ADR 0037) is gated on PostList's own
   // post_admin check (`canRebuild`), not on this caller-supplied prop.
   const testOnlyLabPanels = import.meta.env.MODE === "test" && showLabPanels;
+  const accessToken = auth.user?.access_token;
+
+  useEffect(() => {
+    if (!accessToken) return;
+    let active = true;
+    fetchMe(accessToken)
+      .then((member) => {
+        if (active && isSupportedLocale(member.preferred_locale)) setLocale(member.preferred_locale);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [accessToken]);
 
   if (auth.isLoading) {
     return <p>{t("Loading authentication state...")}</p>;
@@ -4217,7 +4255,6 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
     );
   }
 
-  const accessToken = auth.user?.access_token;
   if (!accessToken) {
     return <p className="error">{t("Authenticated, but no access token was returned.")}</p>;
   }
@@ -4228,11 +4265,14 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         <h1>LineageWeave</h1>
         <div>
           <span>{auth.user?.profile.preferred_username}</span>
-          <LanguageSwitcher />
           <button onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
         </div>
       </header>
-      <BuyerNav destination={destination} onChange={setDestination} />
+      <BuyerNav
+        destination={destination}
+        onChange={setDestination}
+        tools={<LanguageSwitcher accessToken={accessToken} />}
+      />
       {destination === "board" ? (
         <PostList
           accessToken={accessToken}

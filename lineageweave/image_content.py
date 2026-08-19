@@ -26,10 +26,15 @@ from __future__ import annotations
 
 import base64
 import binascii
+import json
+import math
 import re
 from dataclasses import dataclass
+from io import BytesIO
 from typing import Protocol
 from urllib.parse import urlparse
+
+from PIL import Image
 
 from .http_client import post_json
 
@@ -58,6 +63,31 @@ class EmbeddedImage:
     position: int
     mime_type: str
     data: bytes
+
+
+@dataclass(frozen=True)
+class ImageRegion:
+    """A normalized visual region returned by the VISION locator."""
+
+    x: float
+    y: float
+    width: float
+    height: float
+
+
+def crop_image_region(image_bytes: bytes, mime_type: str, region: ImageRegion) -> tuple[bytes, str]:
+    """Normalize an image and crop one bounded region as opaque PNG."""
+    from .vision_image import normalize_vision_image
+
+    normalized, _ = normalize_vision_image(image_bytes, mime_type)
+    with Image.open(BytesIO(normalized)) as source:
+        left = max(0, min(source.width - 1, round(region.x * source.width)))
+        top = max(0, min(source.height - 1, round(region.y * source.height)))
+        right = max(left + 1, min(source.width, round((region.x + region.width) * source.width)))
+        bottom = max(top + 1, min(source.height, round((region.y + region.height) * source.height)))
+        output = BytesIO()
+        source.crop((left, top, right, bottom)).save(output, format="PNG")
+    return output.getvalue(), "image/png"
 
 
 def extract_base64_images(html: str) -> list[EmbeddedImage]:
@@ -126,6 +156,12 @@ _RESPONSE_FORMAT = (
     "TEXT: <all legible text in the image, verbatim, or NONE if there is none>\n"
     "CAPTION: <one sentence describing what the image shows>\n"
     "TAGS: <comma-separated short tags for the main objects/subjects>"
+)
+_REGION_RESPONSE_FORMAT = (
+    "Find distinct meaningful visual regions in this image for separate OCR and description. "
+    "Return JSON only in this exact shape: "
+    '{"regions":[{"x":0.0,"y":0.0,"width":1.0,"height":1.0}]} . '
+    "Coordinates are normalized to 0..1, omit decorative borders, and return at most 12 regions."
 )
 # TEXT may legitimately span multiple lines because OCR output is often
 # multi-line. CAPTION and TAGS are explicitly single-line fields. Synthetic
@@ -266,6 +302,57 @@ class OpenAiCompatibleVisionClient:
         )
         content = body["choices"][0]["message"]["content"]
         return _parse_description(content)
+
+    def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
+        """Locate meaningful visual panels through the same orchestrator VISION model."""
+        from .vision_image import normalize_vision_image
+
+        image_bytes, mime_type = normalize_vision_image(image_bytes, mime_type)
+        data_uri = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
+        body = post_json(
+            f"{self._base_url}/chat/completions",
+            {
+                "model": self._model,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": _REGION_RESPONSE_FORMAT},
+                            {"type": "image_url", "image_url": {"url": data_uri}},
+                        ],
+                    }
+                ],
+                "max_tokens": 700,
+                "temperature": 0.0,
+                "response_format": {"type": "json_object"},
+            },
+            headers={"authorization": f"Bearer {self._api_key}"},
+            timeout=self._timeout,
+        )
+        content = body["choices"][0]["message"]["content"]
+        if not isinstance(content, str):
+            raise ValueError("vision region response was not text JSON")
+        fenced = re.sub(r"^\s*```(?:json)?\s*|\s*```\s*$", "", content, flags=re.IGNORECASE)
+        document = json.loads(fenced)
+        regions = document.get("regions") if isinstance(document, dict) else None
+        if not isinstance(regions, list):
+            raise ValueError("vision region response had no regions list")
+        accepted: list[ImageRegion] = []
+        seen: set[tuple[int, int, int, int]] = set()
+        for candidate in regions[:12]:
+            if not isinstance(candidate, dict):
+                continue
+            values = tuple(candidate.get(name) for name in ("x", "y", "width", "height"))
+            if not all(isinstance(value, (int, float)) and math.isfinite(float(value)) for value in values):
+                continue
+            x, y, width, height = (float(value) for value in values)
+            if x < 0 or y < 0 or width <= 0 or height <= 0 or x + width > 1 or y + height > 1:
+                continue
+            key = tuple(round(value * 1000) for value in (x, y, width, height))
+            if key not in seen:
+                accepted.append(ImageRegion(x, y, width, height))
+                seen.add(key)
+        return tuple(accepted)
 
 
 def orchestrator_vision_client(base_url: str, api_key: str, model: str) -> ImageContentClient:

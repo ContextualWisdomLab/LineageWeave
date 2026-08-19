@@ -27,6 +27,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from backend.app.lineage_ingestion import rebuild_lineage
+from lineageweave.synthetic_seed_cleanup import cleanup_synthetic_seed
 from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.post_content_persistence import persist_post_content
@@ -141,6 +142,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--secondary-group-column")
     parser.add_argument("--author-subject-id", required=True)
     parser.add_argument("--corporate-entity-code", required=True)
+    parser.add_argument(
+        "--allow-demo-corporate-entity",
+        action="store_true",
+        help="explicitly allow the synthetic DEMO-* scope for a test import",
+    )
     parser.add_argument("--corporate-entity-name")
     parser.add_argument("--process-unit-code", required=True)
     parser.add_argument("--process-unit-name")
@@ -149,6 +155,18 @@ def _parser() -> argparse.ArgumentParser:
         default=os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", os.environ.get("EMBEDDING_MODEL", "")),
     )
     return parser
+
+
+def _validate_corporate_entity_scope(code: str, *, allow_demo: bool) -> None:
+    """Prevent real imports from silently sharing the synthetic Demo scope."""
+    normalized = code.strip()
+    if not normalized:
+        raise ValueError("corporate entity code cannot be empty")
+    if normalized.startswith("DEMO-") and not allow_demo:
+        raise ValueError(
+            "real imports must use a non-DEMO corporate entity code; "
+            "use --allow-demo-corporate-entity only for an explicit synthetic test"
+        )
 
 
 def _value(row: Any, column: str | None, default: Any = None) -> Any:
@@ -284,6 +302,10 @@ async def _ensure_scope(conn: asyncpg.Connection, args: argparse.Namespace) -> t
 
 async def import_rows(args: argparse.Namespace) -> dict[str, int]:
     """Import rows and return aggregate evidence only."""
+    _validate_corporate_entity_scope(
+        args.corporate_entity_code,
+        allow_demo=args.allow_demo_corporate_entity,
+    )
     mapping = ColumnMapping(
         record_key=args.record_key_column,
         title=args.title_column,
@@ -452,12 +474,14 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 embedding_model_code=args.embedding_model or None,
             )
             imported += 1
+        cleanup = await cleanup_synthetic_seed(target, apply=True)
         edges = await rebuild_lineage(target)
         return {
             "source_rows": len(rows),
             "imported_rows": imported,
             "skipped_rows": skipped,
             "lineage_edges": len(edges),
+            **cleanup,
         }
     finally:
         await source.close()

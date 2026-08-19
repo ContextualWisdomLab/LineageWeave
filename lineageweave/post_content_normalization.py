@@ -25,7 +25,13 @@ import re
 from dataclasses import dataclass, field
 
 from .chunking import Chunk, chunk_by_dom
-from .image_content import ImageContentClient, ImageDescription, NullImageContentClient
+from .image_content import (
+    ImageContentClient,
+    ImageDescription,
+    ImageRegion,
+    NullImageContentClient,
+    crop_image_region,
+)
 
 # Real HTML tags only -- a VOC body like "qty < 50 and price > 10" is
 # still plain text and must pass through unchanged. Listed tags match
@@ -57,6 +63,17 @@ class ImageContentResult:
 
     chunk_index: int
     mime_type: str
+    status_code: str
+    description: ImageDescription | None = None
+    regions: tuple["ImageRegionResult", ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class ImageRegionResult:
+    """One visual subregion and its independently obtained description."""
+
+    region_index: int
+    region: ImageRegion
     status_code: str
     description: ImageDescription | None = None
 
@@ -104,6 +121,14 @@ def _image_placeholder(description: ImageDescription) -> str:
     return f"[image: {caption}]"
 
 
+def _merge_region_descriptions(descriptions: list[ImageDescription]) -> ImageDescription:
+    """Keep all successful region evidence in the parent image unit."""
+    extracted_text = "\n".join(item.extracted_text.strip() for item in descriptions if item.extracted_text.strip())
+    captions = " ".join(item.caption.strip() for item in descriptions if item.caption.strip())
+    tags = tuple(dict.fromkeys(tag for item in descriptions for tag in item.tags))
+    return ImageDescription(extracted_text=extracted_text, caption=captions, tags=tags)
+
+
 def normalize_post_body(
     body: str, vision_client: ImageContentClient | None = None
 ) -> NormalizedPostContent:
@@ -144,8 +169,31 @@ def normalize_post_body(
                 status_code="unavailable",
             )
             if vision_client.available and chunk.image_data is not None:
+                region_results: list[ImageRegionResult] = []
                 try:
-                    description = vision_client.describe(chunk.image_data, chunk.label)
+                    locator = getattr(vision_client, "locate_regions", None)
+                    try:
+                        regions = locator(chunk.image_data, chunk.label) if callable(locator) else ()
+                    except Exception:  # noqa: BLE001 - locator failure falls back to whole-image evidence.
+                        regions = ()
+                    for region_index, region in enumerate(regions):
+                        try:
+                            cropped, cropped_mime = crop_image_region(chunk.image_data, chunk.label, region)
+                            region_description = vision_client.describe(cropped, cropped_mime)
+                        except Exception:  # noqa: BLE001 - one bad region must not drop other evidence.
+                            region_results.append(ImageRegionResult(region_index, region, "failed"))
+                        else:
+                            region_results.append(
+                                ImageRegionResult(region_index, region, "described", region_description)
+                            )
+                    successful_regions = [
+                        result.description for result in region_results if result.description is not None
+                    ]
+                    description = (
+                        _merge_region_descriptions(successful_regions)
+                        if successful_regions
+                        else vision_client.describe(chunk.image_data, chunk.label)
+                    )
                 except Exception:  # noqa: BLE001 - a provider failure must not drop the whole post.
                     text_parts.append("[image: content unavailable]")
                     result = ImageContentResult(
@@ -160,6 +208,7 @@ def normalize_post_body(
                         mime_type=chunk.label,
                         status_code="described",
                         description=description,
+                        regions=tuple(region_results),
                     )
                     text_parts.append(_image_placeholder(description))
             else:

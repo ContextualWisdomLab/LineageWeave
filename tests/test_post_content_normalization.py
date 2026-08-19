@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import base64
 
-from lineageweave.image_content import ImageDescription
+from lineageweave.image_content import ImageDescription, ImageRegion
 from lineageweave.post_content_normalization import normalize_post_body
 
 _PNG_1X1 = base64.b64decode(
@@ -33,6 +33,11 @@ class _FailingVisionClient:
 
     def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
         raise RuntimeError("provider is down")
+
+
+class _RegionVisionClient(_FakeVisionClient):
+    def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
+        return (ImageRegion(0.0, 0.0, 1.0, 1.0),)
 
 
 def test_plain_text_passes_through_unchanged() -> None:
@@ -84,6 +89,21 @@ def test_image_is_described_and_placed_at_its_document_position_not_dropped() ->
     after_index = result.text.index("After the image.")
     assert before_index < image_index < after_index
     assert result.image_descriptions == (description,)
+
+
+def test_image_regions_are_cropped_and_described_as_independent_evidence() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    html = f'<p>Before.</p><img src="data:image/png;base64,{b64}"/><p>After.</p>'
+    description = ImageDescription(
+        extracted_text="panel text", caption="one visual panel", tags=("panel",)
+    )
+
+    result = normalize_post_body(html, vision_client=_RegionVisionClient(description))
+
+    assert result.image_results[0].status_code == "described"
+    assert result.image_results[0].regions[0].region == ImageRegion(0.0, 0.0, 1.0, 1.0)
+    assert result.image_results[0].regions[0].description == description
+    assert "panel text" in result.text
 
 
 def test_comparison_operators_in_plain_text_are_not_treated_as_html() -> None:

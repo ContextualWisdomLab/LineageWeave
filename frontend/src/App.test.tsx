@@ -1071,6 +1071,9 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (postOneUrl.pathname === "/api/posts/post-1/content") {
+        return Promise.resolve(jsonResponse({ images: [] }));
+      }
       if (url.endsWith("/api/posts/post-2")) {
         return Promise.resolve(
           jsonResponse({
@@ -1176,7 +1179,7 @@ describe("App, authenticated", () => {
           return Promise.resolve(
             new Response(
               JSON.stringify({
-                detail: "Keyman extraction is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                detail: "Keymen extraction is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
               }),
               { status: 503, headers: { "Content-Type": "application/json" } },
             ),
@@ -1583,7 +1586,7 @@ describe("App, authenticated", () => {
     expect(image).toHaveAttribute("src", `data:image/png;base64,${tinyPng}`);
     expect(screen.getByText("Quote attached.")).toBeInTheDocument();
     expect(screen.getByText("Please confirm.")).toBeInTheDocument();
-    expect(screen.getByText(/Extract Keyman or ask a question/)).toBeInTheDocument();
+    expect(screen.queryByText(/Extract Keyman or ask a question/)).not.toBeInTheDocument();
     expect(screen.queryByText(new RegExp(tinyPng))).not.toBeInTheDocument();
   });
 
@@ -1704,7 +1707,7 @@ describe("App, authenticated", () => {
     });
     const eventLineage = within(popup as HTMLElement).getByRole("heading", { name: "Event Lineage" });
     const affiliate = within(popup as HTMLElement).getByRole("heading", { name: "Affiliate tree" });
-    const keyman = within(popup as HTMLElement).getByRole("heading", { name: "Keyman" });
+    const keyman = within(popup as HTMLElement).getByRole("heading", { name: "Keymen" });
     expect(evaluation.compareDocumentPosition(eventLineage) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
       0,
     );
@@ -1820,7 +1823,7 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /extract keymen/i }));
 
     await waitFor(() =>
-      expect(screen.getByText("Keyman extraction is temporarily unavailable. Saved evidence is still available.")).toBeInTheDocument(),
+      expect(screen.getByText("Keymen extraction is temporarily unavailable. Saved evidence is still available.")).toBeInTheDocument(),
     );
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /extract keymen/i })).not.toBeInTheDocument();
@@ -2610,7 +2613,7 @@ describe("App, authenticated", () => {
       expect(
         currentNode.compareDocumentPosition(lineageNext) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).not.toBe(0);
-      const keyman = within(popup as HTMLElement).getByRole("heading", { name: "Keyman" });
+      const keyman = within(popup as HTMLElement).getByRole("heading", { name: "Keymen" });
       const evaluation = within(popup as HTMLElement).getByRole("heading", {
         name: "Post quality (IRT)",
       });

@@ -11,6 +11,10 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   vi: "Tiếng Việt",
 };
 
+export function isSupportedLocale(value: unknown): value is Locale {
+  return typeof value === "string" && (SUPPORTED_LOCALES as readonly string[]).includes(value);
+}
+
 const STORAGE_KEY = "lineageweave.locale";
 
 const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
@@ -136,7 +140,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source author evidence": "원본 작성자 증거",
     "Hint only": "힌트 전용",
     "Authorization context": "권한 계정 맥락",
-    "Our-side Keyman hints": "우리측 Keyman 힌트",
+    "Our-side Keymen hints": "우리측 Keymen 힌트",
     "posts": "개 글",
     "Authorized customer entity": "권한이 있는 고객 엔터티",
     "Evidence-grounded questions": "근거 기반 질문",
@@ -178,7 +182,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No linked posts yet.": "아직 연결된 글이 없습니다.",
     "VOC evidence": "VOC 근거",
     "Affiliate tree": "소속 트리",
-    Keyman: "핵심 담당자",
+    Keymen: "핵심 담당자",
     Activity: "활동",
     Tickets: "티켓",
 	    Summary: "요약",
@@ -206,7 +210,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Loading VOC evidence...": "VOC 근거를 불러오는 중...",
     "No extractive excerpt -- no named organization appears in this post.":
       "추출된 발췌문이 없습니다. 이 글에 이름이 있는 조직이 없습니다.",
-    "No Keyman extracted yet.": "아직 핵심 담당자가 추출되지 않았습니다.",
+    "No Keymen extracted yet.": "아직 핵심 담당자가 추출되지 않았습니다.",
     "Loading evaluation...": "평가를 불러오는 중...",
     "Not yet evaluated.": "아직 평가되지 않았습니다.",
     "Loading tickets...": "티켓을 불러오는 중...",
@@ -241,6 +245,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Derive commitment": "약속 찾기",
     "Creating...": "생성하는 중...",
     "Embedded image at character offset": "문자 위치의 첨부 이미지",
+    "Text detected in image": "이미지에서 인식된 텍스트",
+    "Image regions": "이미지 영역",
     "Image from this post. Extract Keyman or ask a question to read text inside it.":
       "이 글의 이미지입니다. Keyman을 추출하거나 질문해 이미지 안의 텍스트를 읽으세요.",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
@@ -436,7 +442,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source author evidence": "源作者证据",
     "Hint only": "仅作提示",
     "Authorization context": "授权账户上下文",
-    "Our-side Keyman hints": "我方关键联系人提示",
+    "Our-side Keymen hints": "我方关键联系人提示",
     "posts": "篇帖子",
     "Authorized customer entity": "已授权客户实体",
     "Evidence-grounded questions": "基于证据的问题",
@@ -478,7 +484,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No linked posts yet.": "暂时没有关联文章。",
     "VOC evidence": "客户之声证据",
     "Affiliate tree": "关联组织树",
-    Keyman: "关键联系人",
+    Keymen: "关键联系人",
     Activity: "活动",
     Tickets: "工单",
 	    Summary: "摘要",
@@ -506,7 +512,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Loading VOC evidence...": "正在加载客户之声证据...",
     "No extractive excerpt -- no named organization appears in this post.":
       "没有提取出的摘录。此文章中没有出现组织名称。",
-    "No Keyman extracted yet.": "尚未提取关键联系人。",
+    "No Keymen extracted yet.": "尚未提取关键联系人。",
     "Loading evaluation...": "正在加载评估...",
     "Not yet evaluated.": "尚未评估。",
     "Loading tickets...": "正在加载工单...",
@@ -540,6 +546,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Derive commitment": "查找承诺",
     "Creating...": "正在创建...",
     "Embedded image at character offset": "字符位置的嵌入图像",
+    "Text detected in image": "图像中识别的文字",
+    "Image regions": "图像区域",
     "Image from this post. Extract Keyman or ask a question to read text inside it.":
       "此文章中的图像。提取关键联系人或提问，以读取图像中的文字。",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
@@ -759,7 +767,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source author evidence": "ソース作成者の証拠",
     "Hint only": "ヒントのみ",
     "Authorization context": "認証アカウントのコンテキスト",
-    "Our-side Keyman hints": "自社側キーパーソンのヒント",
+    "Our-side Keymen hints": "自社側キーパーソンのヒント",
     "posts": "件の投稿",
     "Authorized customer entity": "許可された顧客エンティティ",
     "Evidence-grounded questions": "証拠に基づく質問",
@@ -801,7 +809,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No linked posts yet.": "関連する投稿はまだありません。",
     "VOC evidence": "VOCの証拠",
     "Affiliate tree": "所属ツリー",
-    Keyman: "キーパーソン",
+    Keymen: "キーパーソン",
     Activity: "アクティビティ",
     Tickets: "チケット",
     Summary: "概要",
@@ -820,7 +828,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Loading VOC evidence...": "VOCの証拠を読み込んでいます...",
     "No extractive excerpt -- no named organization appears in this post.":
       "抽出された抜粋はありません。この投稿には組織名がありません。",
-    "No Keyman extracted yet.": "キーパーソンはまだ抽出されていません。",
+    "No Keymen extracted yet.": "キーパーソンはまだ抽出されていません。",
     "Loading evaluation...": "評価を読み込んでいます...",
     "Not yet evaluated.": "まだ評価されていません。",
     "Loading tickets...": "チケットを読み込んでいます...",
@@ -854,6 +862,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Derive commitment": "コミットメントを検索",
     "Creating...": "作成中...",
     "Embedded image at character offset": "文字オフセットの埋め込み画像",
+    "Text detected in image": "画像から認識されたテキスト",
+    "Image regions": "画像領域",
     "Image from this post. Extract Keyman or ask a question to read text inside it.":
       "この投稿の画像です。キーパーソンを抽出するか質問して、画像内の文字を読み取ってください。",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
@@ -1058,7 +1068,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source author evidence": "Bằng chứng tác giả nguồn",
     "Hint only": "Chỉ là gợi ý",
     "Authorization context": "Ngữ cảnh tài khoản quyền hạn",
-    "Our-side Keyman hints": "Gợi ý người liên hệ chính phía chúng ta",
+    "Our-side Keymen hints": "Gợi ý người liên hệ chính phía chúng ta",
     "posts": "bài viết",
     "Authorized customer entity": "Thực thể khách hàng được cấp quyền",
     "Evidence-grounded questions": "Câu hỏi dựa trên bằng chứng",
@@ -1100,7 +1110,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No linked posts yet.": "Chưa có bài viết liên quan.",
     "VOC evidence": "Bằng chứng VOC",
     "Affiliate tree": "Cây liên kết",
-    Keyman: "Người liên hệ chính",
+    Keymen: "Người liên hệ chính",
     Activity: "Hoạt động",
     Tickets: "Phiếu công việc",
     Summary: "Tóm tắt",
@@ -1119,7 +1129,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Loading VOC evidence...": "Đang tải bằng chứng VOC...",
     "No extractive excerpt -- no named organization appears in this post.":
       "Không có trích đoạn được trích xuất. Bài viết này không có tên tổ chức.",
-    "No Keyman extracted yet.": "Chưa trích xuất người liên hệ chính.",
+    "No Keymen extracted yet.": "Chưa trích xuất người liên hệ chính.",
     "Loading evaluation...": "Đang tải đánh giá...",
     "Not yet evaluated.": "Chưa được đánh giá.",
     "Loading tickets...": "Đang tải phiếu công việc...",
@@ -1153,6 +1163,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Derive commitment": "Tìm cam kết",
     "Creating...": "Đang tạo...",
     "Embedded image at character offset": "Hình ảnh nhúng tại vị trí ký tự",
+    "Text detected in image": "Văn bản nhận dạng trong hình ảnh",
+    "Image regions": "Các vùng trong hình ảnh",
     "Image from this post. Extract Keyman or ask a question to read text inside it.":
       "Hình ảnh trong bài viết này. Hãy trích xuất người liên hệ chính hoặc đặt câu hỏi để đọc chữ bên trong.",
     "Embedded image could not be decoded. Re-export the source post and open it again.":

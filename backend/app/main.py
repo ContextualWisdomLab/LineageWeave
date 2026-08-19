@@ -543,9 +543,30 @@ async def read_me(
     return {
         "user_account_id": account.user_account_id,
         "display_name": account.display_name,
+        "preferred_locale": account.preferred_locale,
         "permission_codes": sorted(account.permission_codes),
         "corporate_entities": entities,
     }
+
+
+class LocalePreferenceRequest(BaseModel):
+    preferred_locale: Literal["en", "ko", "zh", "ja", "vi"]
+
+
+@app.patch("/api/me/preferences")
+async def update_me_preferences(
+    preference: LocalePreferenceRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, str]:
+    """Persist member preferences without putting them in browser-only state."""
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "update user_account set preferred_locale = $1 where user_account_id = $2",
+            preference.preferred_locale,
+            account.user_account_id,
+        )
+    return {"preferred_locale": preference.preferred_locale}
 
 
 @app.get("/api/customer-master")
@@ -1202,6 +1223,90 @@ async def read_post(
     return payload
 
 
+@app.get("/api/posts/{post_id}/content")
+async def read_post_content(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return persisted image evidence; never derive or invent buyer copy."""
+    await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            select image.post_content_image_id, unit.unit_index, image.mime_type, image.description_status_code,
+                   image.extracted_text, image.caption,
+                   coalesce(
+                       array_agg(tag.tag_text order by tag.tag_text)
+                           filter (where tag.tag_text is not null),
+                       '{}'::text[]
+                   ) as tags
+              from post_content_unit unit
+              join post_content_image image
+                on image.post_content_unit_id = unit.post_content_unit_id
+              left join post_content_image_tag tag
+                on tag.post_content_image_id = image.post_content_image_id
+             where unit.post_id = $1
+             group by image.post_content_image_id, unit.unit_index, image.mime_type, image.description_status_code,
+                      image.extracted_text, image.caption
+             order by unit.unit_index
+            """,
+            post_id,
+        )
+        region_rows = await conn.fetch(
+            """
+            select image.post_content_image_id, region.region_index,
+                   region.x_ratio, region.y_ratio, region.width_ratio, region.height_ratio,
+                   region.description_status_code, region.extracted_text, region.caption,
+                   coalesce(
+                       array_agg(tag.tag_text order by tag.tag_text)
+                           filter (where tag.tag_text is not null),
+                       '{}'::text[]
+                   ) as tags
+              from post_content_image image
+              join post_content_image_region region
+                on region.post_content_image_id = image.post_content_image_id
+              left join post_content_image_region_tag tag
+                on tag.post_content_image_region_id = region.post_content_image_region_id
+             where image.post_content_image_id = any($1::uuid[])
+             group by image.post_content_image_id, region.region_index,
+                      region.x_ratio, region.y_ratio, region.width_ratio, region.height_ratio,
+                      region.description_status_code, region.extracted_text, region.caption
+             order by image.post_content_image_id, region.region_index
+            """,
+            [row["post_content_image_id"] for row in rows],
+        ) if rows else []
+    regions_by_image: dict[str, list[dict[str, Any]]] = {}
+    for row in region_rows:
+        regions_by_image.setdefault(str(row["post_content_image_id"]), []).append(
+            {
+                "region_index": row["region_index"],
+                "x_ratio": row["x_ratio"],
+                "y_ratio": row["y_ratio"],
+                "width_ratio": row["width_ratio"],
+                "height_ratio": row["height_ratio"],
+                "status_code": row["description_status_code"],
+                "extracted_text": row["extracted_text"],
+                "caption": row["caption"],
+                "tags": list(row["tags"] or []),
+            }
+        )
+    return {
+        "images": [
+            {
+                "unit_index": row["unit_index"],
+                "mime_type": row["mime_type"],
+                "status_code": row["description_status_code"],
+                "extracted_text": row["extracted_text"],
+                "caption": row["caption"],
+                "tags": list(row["tags"] or []),
+                "regions": regions_by_image.get(str(row["post_content_image_id"]), []),
+            }
+            for row in rows
+        ]
+    }
+
+
 async def _load_visible_post(
     post_id: str,
     account: CurrentAccount,
@@ -1607,7 +1712,7 @@ async def extract_post_keymen(
     if not keyman_client.available:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Keyman extraction is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+            "Keymen extraction is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
         )
     relationship_client = _entity_relationship_client()
     async with pool.acquire() as conn:

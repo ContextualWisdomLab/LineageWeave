@@ -128,6 +128,32 @@ async def persist_post_content(
                     image_id,
                     tag,
                 )
+            for region in result.regions if result else ():
+                region_id = await conn.fetchval(
+                    """
+                    insert into post_content_image_region
+                        (post_content_image_id, region_index, x_ratio, y_ratio,
+                         width_ratio, height_ratio, description_status_code,
+                         extracted_text, caption)
+                    values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                    returning post_content_image_region_id
+                    """,
+                    image_id,
+                    region.region_index,
+                    region.region.x,
+                    region.region.y,
+                    region.region.width,
+                    region.region.height,
+                    region.status_code,
+                    region.description.extracted_text if region.description else None,
+                    region.description.caption if region.description else None,
+                )
+                for tag in region.description.tags if region.description else ():
+                    await conn.execute(
+                        "insert into post_content_image_region_tag (post_content_image_region_id, tag_text) values ($1, $2) on conflict do nothing",
+                        region_id,
+                        tag,
+                    )
 
         if embedding_model_code:
             for unit_index, vector in vectors:
