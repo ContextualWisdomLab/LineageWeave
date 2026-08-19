@@ -9,7 +9,6 @@ which source(s) contributed, not just that the model produced prose.
 from __future__ import annotations
 
 import asyncio
-import json
 import os
 
 import pytest
