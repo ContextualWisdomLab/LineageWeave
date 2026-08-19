@@ -299,17 +299,14 @@ def _commitment_extraction_client():
 def _vision_client():
     """Live vision client when configured; otherwise the unavailable null.
 
-    Same contextual-orchestrator gateway as every other channel, plus a
-    vision-capable model name (``VISION_MODEL``) -- unlike the other
-    channels, a missing model name alone (base_url/api_key present but no
-    model) also means unavailable, since there is no sane default model
-    to guess.
+    Same contextual-orchestrator gateway as every other channel. The model is
+    intentionally omitted so contextual-orchestrator selects the registered
+    vision-capable provider agent; LineageWeave never selects ``VISION_MODEL``.
     """
     settings = load_settings()
     return orchestrator_vision_client(
         settings.orchestrator_base_url,
         settings.orchestrator_api_key,
-        settings.vision_model,
     )
 
 

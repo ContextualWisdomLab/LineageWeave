@@ -43,7 +43,6 @@ async def backfill_post_content(target_dsn: str, raw_post_ids: list[str]) -> dic
     vision_client = orchestrator_vision_client(
         os.environ.get("ORCHESTRATOR_BASE_URL", ""),
         os.environ.get("ORCHESTRATOR_API_KEY", ""),
-        os.environ.get("VISION_MODEL", ""),
     )
     if not vision_client.available:
         raise RuntimeError("VISION is unavailable; configure contextual-orchestrator before backfill")

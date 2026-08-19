@@ -117,7 +117,6 @@ services:
       LLM_GATEWAY_URL: ${LLM_GATEWAY_API_URL:-${LLM_GATEWAY_URL:-${LLM_API_GATEWAY:-http://host.docker.internal:8080/v1}}}
       # Deliberately blank: contextual-orchestrator selects the agent model.
       LLM_GATEWAY_MODEL: ""
-      VISION_MODEL: ""
       # Buyer summaries and Ask answers must finish their JSON contract; the
       # local-MLX bootstrap default of 256 tokens truncates evidence arrays.
       LLM_GATEWAY_MAX_OUTPUT_TOKENS: ${LLM_GATEWAY_MAX_OUTPUT_TOKENS:-4096}
@@ -165,8 +164,6 @@ services:
       # LLM_GATEWAY_API_KEY in the orchestrator's private env file.
       ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8000}
       ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
-      # Deliberately blank: contextual-orchestrator selects the Vision agent model.
-      VISION_MODEL: ""
       SEARXNG_BASE_URL: http://searxng:8080
       TEPP_TRANSPORT_URL: ${TEPP_TRANSPORT_URL:-}
       TEPP_API_KEY: ${TEPP_API_KEY:-}

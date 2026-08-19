@@ -695,15 +695,13 @@ when absent) alongside its text -- `_BlockTextExtractor` tracks it
 through the existing start/end-tag stack rather than adding a second
 pass over the document.
 
-Wiring: `backend/app/config.py` gained `Settings.vision_model` (env
-`VISION_MODEL`) -- empty means the vision channel is unavailable, the
-same "no fake channel" discipline as every other pluggable client, not a
-guessed default model. `backend/app/main.py`'s `_vision_client()` factory
+Wiring: `backend/app/main.py`'s `_vision_client()` factory
 returns a real `OpenAiCompatibleVisionClient` (via
 `orchestrator_vision_client`, which appends `/v1` so the same
 `ORCHESTRATOR_BASE_URL` other channels use lands on
-`/v1/chat/completions`) only when base URL, API key, and model are all
-set, else `NullImageContentClient()`; it is
+`/v1/chat/completions`) when base URL and API key are set, else
+`NullImageContentClient()`. The request omits `model`; contextual-orchestrator
+selects the registered vision-capable agent. It is
 called at all three raw-`post_body`-reading endpoints (`extract-keymen`,
 post summary, commitment derivation) and threaded through
 `post_chat_ingestion.gather_chat_sources()` so every RAG source document

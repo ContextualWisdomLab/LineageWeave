@@ -351,7 +351,6 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
         vision_client = orchestrator_vision_client(
             os.environ.get("ORCHESTRATOR_BASE_URL", ""),
             os.environ.get("ORCHESTRATOR_API_KEY", ""),
-            os.environ.get("VISION_MODEL", ""),
         )
         embedding_client = orchestrator_embedding_client(
             os.environ.get("ORCHESTRATOR_BASE_URL", ""),
