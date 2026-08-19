@@ -87,6 +87,15 @@ describe("App, authenticated", () => {
     postBody?: string;
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
+    boardPosts?: {
+      post_id: string;
+      post_title: string;
+      voc_type_code: string;
+      voc_type_label?: string;
+      visibility_code?: string;
+      visibility_label?: string;
+      created_at: string;
+    }[];
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -1043,6 +1052,7 @@ describe("App, authenticated", () => {
                       visibility_label: "Public",
                       created_at: "2026-01-01T00:00:00Z",
                     },
+                    ...(options?.boardPosts ?? []),
                   ],
                   total_count: 1,
                   limit: 50,
@@ -1760,6 +1770,78 @@ describe("App, authenticated", () => {
     const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
     expect(searchInput).toHaveValue("Semantic project");
     expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+  });
+
+  it("clicking Weekly VOC keeps the 2026-W01 Voice of Customer post and names Event Lineage as the next action", async () => {
+    stubBackend({
+      boardPosts: [
+        {
+          post_id: "post-vom-w01",
+          post_title: "Internal memo",
+          voc_type_code: "vom",
+          voc_type_label: "Voice of Market",
+          visibility_code: "internal",
+          visibility_label: "Internal",
+          created_at: "2026-01-02T00:00:00Z",
+        },
+        {
+          post_id: "post-voc-w52",
+          post_title: "Older Voice of Customer",
+          voc_type_code: "voc",
+          voc_type_label: "Voice of Customer",
+          visibility_code: "public",
+          visibility_label: "Public",
+          created_at: "2025-12-22T00:00:00Z",
+        },
+      ],
+    });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(within(board).getByRole("button", { name: "View post: Internal memo" })).toBeInTheDocument();
+    expect(within(board).getByRole("button", { name: "View post: Older Voice of Customer" })).toBeInTheDocument();
+
+    const weeklyVoc = within(board).getByRole("button", { name: "Weekly VOC" });
+    expect(weeklyVoc).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(weeklyVoc);
+
+    expect(weeklyVoc).toHaveAttribute("aria-pressed", "true");
+    expect(within(board).getByLabelText("Filter by ISO week")).toHaveValue("2026-W01");
+    expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    expect(within(board).queryByRole("button", { name: "View post: Internal memo" })).not.toBeInTheDocument();
+    expect(
+      within(board).queryByRole("button", { name: "View post: Older Voice of Customer" }),
+    ).not.toBeInTheDocument();
+    expect(within(board).getByLabelText("Next action")).toHaveTextContent(
+      "Voice of Customer posts for 2026-W01 are current. Open a post to read Event Lineage.",
+    );
+
+    await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
+    expect(weeklyVoc).toHaveAttribute("aria-pressed", "false");
+    expect(within(board).getByRole("button", { name: "View post: Internal memo" })).toBeInTheDocument();
+    expect(within(board).getByRole("button", { name: "View post: Older Voice of Customer" })).toBeInTheDocument();
+  });
+
+  it("opening a Weekly VOC post focuses Event Lineage; a home list open does not", async () => {
+    stubBackend();
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    await userEvent.click(within(board).getByRole("button", { name: "Weekly VOC" }));
+    await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
+
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).toHaveFocus();
+    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
+      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
+    await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
   });
 
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
