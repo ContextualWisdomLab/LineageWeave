@@ -126,7 +126,12 @@ begin
     ) and new.target_node_type_code = 'node_post' then
         insert into knowledge_graph_edge_evidence
             (knowledge_graph_edge_id, evidence_post_id)
-        values (new.knowledge_graph_edge_id, new.target_node_id)
+        select new.knowledge_graph_edge_id, new.target_node_id
+         where exists (
+             select 1
+               from source_post post
+              where post.post_id = new.target_node_id
+         )
         on conflict do nothing;
     elsif new.edge_type_code = 'edge_co_mention' then
         insert into knowledge_graph_edge_evidence
