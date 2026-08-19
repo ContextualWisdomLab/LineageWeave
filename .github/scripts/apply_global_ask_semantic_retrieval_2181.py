@@ -64,6 +64,19 @@ def test_global_sources_discover_posts_from_persisted_semantic_evidence() -> Non
     assert "post_summary_role" in semantic_query
     assert "post_person_mention" in semantic_query
     assert "cataloged_person" in semantic_query
+    assert "concat_ws" not in semantic_query
+    for indexed_predicate in (
+        "mention.project_name ilike",
+        "mention.evidence_text ilike",
+        "mention.ontology_iri ilike",
+        "role.actor_name ilike",
+        "role.responsibility ilike",
+        "role.affiliated_organization_name ilike",
+        "person.person_name ilike",
+        "person.last_known_job_title ilike",
+        "mention.mention_context ilike",
+    ):
+        assert indexed_predicate in semantic_query.lower()
 '''
 )
 
@@ -79,29 +92,26 @@ NEW_CANDIDATE_TAIL = '''        candidate_ids.extend(str(row["post_id"]) for row
                    (select mention.post_id, source.created_at
                       from post_project_mention mention
                       join source_post source on source.post_id = mention.post_id
-                     where concat_ws(' ', mention.project_name,
-                                      mention.evidence_text,
-                                      mention.ontology_iri)
-                               ilike '%' || $1 || '%'
+                     where mention.project_name ilike '%' || $1 || '%'
+                        or mention.evidence_text ilike '%' || $1 || '%'
+                        or mention.ontology_iri ilike '%' || $1 || '%'
                      limit 32)
                     union all
                    (select role.post_id, source.created_at
                       from post_summary_role role
                       join source_post source on source.post_id = role.post_id
-                     where concat_ws(' ', role.actor_name,
-                                      role.responsibility,
-                                      role.affiliated_organization_name)
-                               ilike '%' || $1 || '%'
+                     where role.actor_name ilike '%' || $1 || '%'
+                        or role.responsibility ilike '%' || $1 || '%'
+                        or role.affiliated_organization_name ilike '%' || $1 || '%'
                      limit 32)
                     union all
                    (select mention.post_id, source.created_at
                       from post_person_mention mention
                       join cataloged_person person on person.person_id = mention.person_id
                       join source_post source on source.post_id = mention.post_id
-                     where concat_ws(' ', person.person_name,
-                                      person.last_known_job_title,
-                                      mention.mention_context)
-                               ilike '%' || $1 || '%'
+                     where person.person_name ilike '%' || $1 || '%'
+                        or person.last_known_job_title ilike '%' || $1 || '%'
+                        or mention.mention_context ilike '%' || $1 || '%'
                      limit 32)
                    ) semantic_candidate_matches
              order by created_at desc, post_id desc
@@ -115,6 +125,83 @@ NEW_CANDIDATE_TAIL = '''        candidate_ids.extend(str(row["post_id"]) for row
     candidate_ids = list(dict.fromkeys(candidate_ids))
 '''
 
+MIGRATION_TEXT = dedent(
+    '''
+    -- Keep every Global Ask semantic ILIKE predicate backed by pg_trgm.
+    -- Candidate IDs still cross the authoritative source_post visibility/ABAC gate.
+    begin;
+
+    create extension if not exists pg_trgm;
+
+    create index if not exists post_project_mention_evidence_trgm_idx
+        on post_project_mention using gin (evidence_text gin_trgm_ops);
+    create index if not exists post_project_mention_ontology_trgm_idx
+        on post_project_mention using gin (ontology_iri gin_trgm_ops);
+    create index if not exists post_summary_role_responsibility_trgm_idx
+        on post_summary_role using gin (responsibility gin_trgm_ops);
+    create index if not exists post_summary_role_affiliation_trgm_idx
+        on post_summary_role using gin (affiliated_organization_name gin_trgm_ops);
+    create index if not exists cataloged_person_job_title_trgm_idx
+        on cataloged_person using gin (last_known_job_title gin_trgm_ops);
+    create index if not exists post_person_mention_context_trgm_idx
+        on post_person_mention using gin (mention_context gin_trgm_ops);
+
+    commit;
+    '''
+)
+
+ROLLBACK_TEXT = dedent(
+    '''
+    begin;
+
+    drop index if exists post_person_mention_context_trgm_idx;
+    drop index if exists cataloged_person_job_title_trgm_idx;
+    drop index if exists post_summary_role_affiliation_trgm_idx;
+    drop index if exists post_summary_role_responsibility_trgm_idx;
+    drop index if exists post_project_mention_ontology_trgm_idx;
+    drop index if exists post_project_mention_evidence_trgm_idx;
+
+    commit;
+    '''
+)
+
+INDEX_TEST_TEXT = dedent(
+    '''
+    """Contract tests for index-backed Global Ask semantic predicates."""
+
+    from pathlib import Path
+
+
+    INDEX_NAMES = (
+        "post_project_mention_evidence_trgm_idx",
+        "post_project_mention_ontology_trgm_idx",
+        "post_summary_role_responsibility_trgm_idx",
+        "post_summary_role_affiliation_trgm_idx",
+        "cataloged_person_job_title_trgm_idx",
+        "post_person_mention_context_trgm_idx",
+    )
+
+
+    def test_global_ask_semantic_lookup_migration_creates_each_index() -> None:
+        """Every newly queried semantic field has a trigram lookup index."""
+        migration = Path(
+            "migrations/0046_global_ask_semantic_lookup_indexes.sql"
+        ).read_text()
+        for index_name in INDEX_NAMES:
+            assert f"create index if not exists {index_name}" in migration.lower()
+        assert "gin_trgm_ops" in migration
+
+
+    def test_global_ask_semantic_lookup_rollback_drops_each_index() -> None:
+        """Rollback removes only the indexes introduced by the migration."""
+        rollback = Path(
+            "migrations/rollback/0046_global_ask_semantic_lookup_indexes.sql"
+        ).read_text()
+        for index_name in INDEX_NAMES:
+            assert f"drop index if exists {index_name}" in rollback.lower()
+    '''
+)
+
 CHANGELOG_ENTRY = dedent(
     '''
     ## [2.18.1] - 2026-08-20
@@ -123,9 +210,9 @@ CHANGELOG_ENTRY = dedent(
 
     - Global Ask now nominates candidates from persisted project,
       role/responsibility/affiliation, and cataloged Keyman evidence in addition
-      to lexical source text and raw source hints. A semantic-only buyer term can
-      reach the authorized cited post without bypassing visibility or ABAC
-      (ADR 0091 / ADR 0047 / ADR 0039).
+      to lexical source text and raw source hints. Every new substring predicate
+      is backed by a dedicated trigram index, and candidate IDs still cross the
+      authoritative visibility and ABAC gate (ADR 0091 / ADR 0047 / ADR 0039).
 
     '''
 )
@@ -163,6 +250,12 @@ ADR_TEXT = dedent(
     - `post_person_mention` plus `cataloged_person`: Keyman name, job title, and
       mention context.
 
+    Each semantic field is tested with its own `ILIKE` predicate so PostgreSQL
+    can use a matching `pg_trgm` index. Migration 0046 adds indexes for fields
+    not already covered by migration 0032. A concatenated cross-field expression
+    is intentionally avoided because it would bypass the existing per-column
+    indexes and permit table-wide scans despite a small result limit.
+
     Candidate IDs are not evidence and grant no access. The existing authorized
     `source_post` query and application ABAC predicate still run before body,
     graph, or semantic facts enter contextual-orchestrator. Question terms,
@@ -174,6 +267,7 @@ ADR_TEXT = dedent(
 
     - Browser and MCP Global Ask share semantic-only candidate retrieval.
     - Hidden semantic matches remain hidden behind visibility and ABAC.
+    - Buyer queries do not turn the semantic tables into unindexed scan paths.
     - This does not claim embedding similarity, exhaustive recall, causal
       inference, or an answer unsupported by selected sources.
 
@@ -182,6 +276,8 @@ ADR_TEXT = dedent(
     `tests/test_global_ask_sources.py` contains a regression whose title, body,
     and raw hints omit the buyer term. Persisted semantic evidence alone
     nominates the authorized source and accompanies the citation.
+    `tests/test_global_ask_semantic_indexes.py` locks the forward and rollback
+    index contract.
     '''
 )
 
@@ -191,8 +287,9 @@ RELEASE_TEXT = dedent(
 
     Browser and authenticated MCP Global Ask now find an authorized post when a
     buyer term exists only in persisted project, responsibility, affiliation,
-    or Keyman evidence. The cited post still crosses the same visibility and
-    ABAC boundary before any content reaches contextual-orchestrator.
+    or Keyman evidence. Each new semantic substring predicate is backed by a
+    trigram index, and the cited post still crosses the same visibility and ABAC
+    boundary before any content reaches contextual-orchestrator.
 
     This release preserves the MCP question bound and distributed rate limit.
     It does not claim exhaustive semantic search or invent a source,
@@ -209,6 +306,8 @@ FRAGMENT_TEXT = dedent(
     - Browser and MCP Global Ask now nominate authorized source posts from
       persisted project, role/responsibility/affiliation, and Keyman evidence,
       not only lexical source text and raw source hints (ADR 0091).
+    - Dedicated `pg_trgm` indexes keep every new substring predicate from
+      becoming an unindexed semantic-table scan.
     - Candidate nomination does not bypass the existing visibility and ABAC
       gate, MCP question bound, or distributed invocation rate limit.
     '''
@@ -234,7 +333,7 @@ def replace_once(path_name: str, old: str, new: str) -> None:
 
 
 def apply_implementation() -> None:
-    """Apply production, version, ADR, and release changes."""
+    """Apply production, database, version, ADR, and release changes."""
     backend = Path("backend/app/post_chat_ingestion.py")
     backend_text = backend.read_text()
     if "semantic_candidate_matches" not in backend_text:
@@ -244,10 +343,23 @@ def apply_implementation() -> None:
             backend_text.replace(OLD_CANDIDATE_TAIL, NEW_CANDIDATE_TAIL, 1)
         )
 
+    Path("migrations/0046_global_ask_semantic_lookup_indexes.sql").write_text(
+        MIGRATION_TEXT
+    )
+    Path("migrations/rollback").mkdir(parents=True, exist_ok=True)
+    Path(
+        "migrations/rollback/0046_global_ask_semantic_lookup_indexes.sql"
+    ).write_text(ROLLBACK_TEXT)
+    Path("tests/test_global_ask_semantic_indexes.py").write_text(INDEX_TEST_TEXT)
+
     for path_name, old, new in (
         ("pyproject.toml", 'version = "2.18.0"', 'version = "2.18.1"'),
         ("frontend/package.json", '"version": "2.18.0"', '"version": "2.18.1"'),
-        ("backend/app/mcp_server.py", '_SERVER_VERSION = "2.18.0"', '_SERVER_VERSION = "2.18.1"'),
+        (
+            "backend/app/mcp_server.py",
+            '_SERVER_VERSION = "2.18.0"',
+            '_SERVER_VERSION = "2.18.1"',
+        ),
     ):
         text = Path(path_name).read_text()
         if new not in text:
@@ -259,7 +371,9 @@ def apply_implementation() -> None:
         marker = "## [2.17.0] - 2026-08-19\n"
         if changelog_text.count(marker) != 1:
             raise SystemExit("CHANGELOG 2.17.0 marker drifted")
-        changelog.write_text(changelog_text.replace(marker, CHANGELOG_ENTRY + marker, 1))
+        changelog.write_text(
+            changelog_text.replace(marker, CHANGELOG_ENTRY + marker, 1)
+        )
 
     Path("docs/adr/0091-global-ask-semantic-candidate-retrieval.md").write_text(
         ADR_TEXT
