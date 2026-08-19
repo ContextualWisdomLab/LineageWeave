@@ -576,7 +576,7 @@ async def read_customer_master(
                        count(*) as post_count
                   from ranked
                  group by customer_code, customer_name_group
-            ), top_groups as (
+            ), top_groups as materialized (
                 select *
                   from groups
                  order by post_count desc, customer_code, customer_name
@@ -586,9 +586,7 @@ async def read_customer_master(
                        json_agg(
                            json_build_object(
                                'post_id', post.post_id::text,
-                               'post_title', post.post_title,
-                               'post_body_excerpt', btrim(left(source_post_search_text(post.post_body), 420)),
-                               'post_body_truncated', char_length(coalesce(post.post_body, '')) > 420
+                               'post_title', post.post_title
                            )
                            order by ranked.created_at desc, ranked.post_id desc
                        ) as related_posts
@@ -643,7 +641,7 @@ async def read_customer_master(
                        count(*) as post_count
                   from ranked
                  group by author_code, author_account_id, account_display_name
-            ), top_groups as (
+            ), top_groups as materialized (
                 select *
                   from groups
                  order by post_count desc, author_code
@@ -691,9 +689,7 @@ async def read_customer_master(
                        json_agg(
                            json_build_object(
                                'post_id', post.post_id::text,
-                               'post_title', post.post_title,
-                               'post_body_excerpt', btrim(left(source_post_search_text(post.post_body), 420)),
-                               'post_body_truncated', char_length(coalesce(post.post_body, '')) > 420
+                               'post_title', post.post_title
                            )
                            order by ranked.created_at desc, ranked.post_id desc
                        ) as related_posts
