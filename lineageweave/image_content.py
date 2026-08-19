@@ -274,9 +274,15 @@ def _parse_structured_image_evidence(
 
     text = document.get("text")
     caption = document.get("caption")
+    if not isinstance(caption, str):
+        caption = document.get("description")
     tags = document.get("tags")
-    if not isinstance(text, str) or not isinstance(caption, str) or not isinstance(tags, list):
-        raise ImageDescriptionParseError("vision response had an invalid evidence shape")
+    if not isinstance(text, str):
+        text = ""
+    if not isinstance(caption, str):
+        caption = ""
+    if not isinstance(tags, list):
+        tags = []
     extracted_text = "" if text.strip().upper() == "NONE" else text.strip()
     whole = ImageDescription(
         extracted_text=extracted_text,
@@ -289,7 +295,8 @@ def _parse_structured_image_evidence(
     region_descriptions: list[ImageRegionDescription] = []
     regions = document.get("regions")
     if not isinstance(regions, list):
-        raise ImageDescriptionParseError("vision response had no regions list")
+        region = document.get("region")
+        regions = region if isinstance(region, list) else [region] if isinstance(region, dict) else []
     seen: set[tuple[int, int, int, int]] = set()
     for candidate in regions[:12]:
         if not isinstance(candidate, dict):
@@ -302,8 +309,16 @@ def _parse_structured_image_evidence(
             continue
         region_text = candidate.get("text")
         region_caption = candidate.get("caption")
+        if not isinstance(region_caption, str):
+            region_caption = candidate.get("description")
         region_tags = candidate.get("tags")
-        if not isinstance(region_text, str) or not isinstance(region_caption, str) or not isinstance(region_tags, list):
+        if not isinstance(region_text, str):
+            region_text = ""
+        if not isinstance(region_caption, str):
+            region_caption = ""
+        if not isinstance(region_tags, list):
+            region_tags = []
+        if not region_text.strip() and not region_caption.strip():
             continue
         key = tuple(round(value * 1000) for value in (x, y, width, height))
         if key in seen:

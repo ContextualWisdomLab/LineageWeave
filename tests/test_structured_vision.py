@@ -22,17 +22,15 @@ def test_structured_vision_uses_json_schema_and_returns_regions(monkeypatch) -> 
                         "content": json.dumps(
                             {
                                 "text": "diagram",
-                                "caption": "A diagram.",
-                                "tags": ["diagram"],
-                                "regions": [
+                                "description": "A diagram.",
+                                "region": [
                                     {
                                         "x": 0.1,
                                         "y": 0.2,
                                         "width": 0.5,
                                         "height": 0.6,
                                         "text": "panel",
-                                        "caption": "A panel.",
-                                        "tags": ["panel"],
+                                        "description": "A panel.",
                                     }
                                 ],
                             }

@@ -18,7 +18,9 @@ failed run left no content artifact or vector.
 The contextual-orchestrator VISION boundary receives one structured
 `json_object` request per DOM image. The prompt defines the response shape:
 whole-image text, caption, tags, and up to twelve normalized regions with
-their own text, caption, and tags. LineageWeave persists the response into
+  their own text, caption, and tags. The parser accepts the gateway's
+  equivalent `description`/`region` aliases and treats null regions as no
+  region evidence. LineageWeave persists the response into
 the existing image and image-region tables. The request uses `mode=auto` and
 `reasoning_effort=auto`; it does not select a provider model or force a
 sampling temperature. Direct provider calls and monkey patches remain
