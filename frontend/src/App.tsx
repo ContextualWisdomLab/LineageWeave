@@ -82,6 +82,7 @@ import { PopupCloseButton } from "./components/PopupCloseButton";
 import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
+import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
 import {
@@ -3756,7 +3757,7 @@ function PostList({
                           className="post-body-excerpt"
                           aria-label={t("Post body preview")}
                         >
-                          {post.post_body_excerpt || t("No post body.")}
+                          {decodeHtmlEntities(post.post_body_excerpt || t("No post body."))}
                           {post.post_body_truncated ? " ..." : ""}
                         </span>
                         <span className="post-meta">

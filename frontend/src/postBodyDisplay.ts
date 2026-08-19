@@ -34,6 +34,18 @@ function stripIndentMarkers(value: string): string {
 
 import { t } from "./i18n";
 
+export function decodeHtmlEntities(text: string): string {
+  const decoder = document.createElement("textarea");
+  let decoded = text;
+  for (let pass = 0; pass < 3; pass += 1) {
+    decoder.innerHTML = decoded;
+    const next = decoder.value;
+    if (next === decoded) break;
+    decoded = next;
+  }
+  return decoded.replace(/\u00a0/g, " ");
+}
+
 function lengthToIndentUnits(value: string): number {
   const match = value
     .trim()
@@ -81,22 +93,13 @@ function stripHtmlTags(text: string): string {
   const withoutTags = withBoundaries.replace(HTML_TAG, (tag) =>
     /^<\/?w:/i.test(tag) ? "" : " ",
   );
-  const decoder = document.createElement("textarea");
-  let decoded = withoutTags;
-  for (let pass = 0; pass < 3; pass += 1) {
-    decoder.innerHTML = decoded;
-    const next = decoder.value;
-    if (next === decoded) {
-      break;
-    }
-    decoded = next;
-  }
+  const decoded = decodeHtmlEntities(withoutTags);
   return decoded
     .split("\n")
     .map((line) => {
       if (!line.trim()) return "";
       const leading = line.match(/^[^\S\n]*/)?.[0] ?? "";
-      return `${leading.replace(/\u00a0/g, " ")}${line
+      return `${leading}${line
         .slice(leading.length)
         .replace(/[^\S\n]+/g, " ")}`;
     })
