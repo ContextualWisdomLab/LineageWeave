@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from mcp.client import Client
 from mcp.server.auth.provider import AccessToken
 
@@ -52,6 +53,7 @@ def _settings() -> Settings:
     )
 
 
+@pytest.mark.asyncio
 async def test_default_global_ask_never_calls_external_verifier() -> None:
     """Omitting verify_external keeps the tool closed-world and reports not_requested."""
     cfg = _settings()
