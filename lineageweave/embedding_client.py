@@ -112,75 +112,95 @@ class ContextualOrchestratorEmbeddingClient:
                     headers=headers,
                     timeout=self._timeout,
                 )
-
+            
         vectors = self._vectors(response, len(texts))
         if vectors is None:
             raise ValueError("embedding response did not contain a complete vector batch")
         return vectors
 
     @staticmethod
-    def _vectors(response: dict, expected: int) -> list[list[float]] | None:
-        """Extract and validate one vector per input from provider-neutral payloads."""
-        candidate = response.get("vectors")
-        if candidate is None:
-            data = response.get("data")
-            if isinstance(data, list):
-                candidate = [item.get("embedding") for item in data if isinstance(item, dict)]
-        if not isinstance(candidate, list) or len(candidate) != expected:
+    def _vectors(response: dict, expected_count: int) -> list[list[float]] | None:
+        """Implement the _vectors operation for this channel."""
+        raw_vectors = response.get("embeddings")
+        if not isinstance(raw_vectors, list) or len(raw_vectors) != expected_count:
             return None
-        vectors: list[list[float]] = []
-        dimension: int | None = None
-        for item in candidate:
-            if not isinstance(item, list) or not item:
+        ordered: list[list[float] | None] = [None] * expected_count
+        for item in raw_vectors:
+            if not isinstance(item, dict) or not isinstance(item.get("index"), int):
                 return None
-            vector = [float(value) for value in item]
-            if not all(math.isfinite(value) for value in vector):
-                raise ValueError("embedding vector contains a non-finite value")
-            if dimension is None:
-                dimension = len(vector)
-            elif len(vector) != dimension:
-                raise ValueError("embedding vectors have inconsistent dimensions")
-            vectors.append(vector)
-        return vectors
+            index = item["index"]
+            vector = item.get("embedding")
+            if not 0 <= index < expected_count or not isinstance(vector, list) or not vector:
+                return None
+            if not all(isinstance(value, (int, float)) and math.isfinite(float(value)) for value in vector):
+                return None
+            ordered[index] = [float(value) for value in vector]
+        if any(vector is None for vector in ordered):
+            return None
+        return [vector for vector in ordered if vector is not None]
 
 
-def orchestrator_embedding_client(
-    base_url: str,
-    api_key: str,
-    model: str,
-) -> EmbeddingClient:
-    """Return the configured orchestrator client or the unavailable sentinel."""
+def orchestrator_embedding_client(base_url: str, api_key: str, model: str):
+    """Build the batch embedding channel, or the unavailable null client."""
     if not (base_url and api_key and model):
         return NullEmbeddingClient()
     return ContextualOrchestratorEmbeddingClient(base_url, api_key, model)
 
 
-def embed_chunks(client: EmbeddingClient, chunks: list[Chunk]) -> list[list[float]]:
-    """Embed paragraph-level chunks without losing the semantic-unit boundary."""
-    if not chunks:
-        return []
-    embed_many = getattr(client, "embed_many", None)
-    if callable(embed_many):
-        return embed_many([chunk.text for chunk in chunks])
-    return [client.embed(chunk.text) for chunk in chunks]
-
-
-def embed_text_by_paragraph(client: EmbeddingClient, text: str) -> list[tuple[Chunk, list[float]]]:
-    """Chunk text by paragraph and return each chunk with its embedding."""
-    chunks = chunk_by_paragraph(text)
-    return list(zip(chunks, embed_chunks(client, chunks), strict=True))
-
-
 def cosine_similarity(a: list[float], b: list[float]) -> float:
-    """Cosine similarity for equal-dimension finite vectors."""
-    if len(a) != len(b):
-        raise ValueError("vectors must have equal dimensions")
-    if not a:
-        raise ValueError("vectors must not be empty")
-    if not all(math.isfinite(value) for value in (*a, *b)):
-        raise ValueError("vectors must contain only finite values")
-    norm_a = math.sqrt(sum(value * value for value in a))
-    norm_b = math.sqrt(sum(value * value for value in b))
+    """Cosine similarity mapped from ``[-1, 1]`` into the ``[0, 1]`` channel range."""
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = math.sqrt(sum(x * x for x in a))
+    norm_b = math.sqrt(sum(y * y for y in b))
     if norm_a == 0.0 or norm_b == 0.0:
-        raise ValueError("vectors must have non-zero magnitude")
-    return sum(left * right for left, right in zip(a, b, strict=True)) / (norm_a * norm_b)
+        return 0.0
+    cosine = dot / (norm_a * norm_b)
+    return (cosine + 1.0) / 2.0
+
+
+def chunked_max_similarity(
+    client: EmbeddingClient,
+    text_a: str,
+    text_b: str,
+    *,
+    chunker=chunk_by_paragraph,
+) -> tuple[float, Chunk, Chunk]:
+    """Chunk both documents, embed every chunk, and return the single
+    highest-scoring chunk pair.
+
+    Embedding a whole document as one vector dilutes a short relevant unit
+    with everything else in the same document. Max-pooling over chunk-pair
+    similarity instead asks the right question for lineage matching: "is
+    there ANY unit in A that plausibly matches ANY unit in B?" -- the
+    standard passage-retrieval strategy for exactly this "relevant content
+    is buried in a longer document" shape (see module docstring in
+    ``chunking.py`` for the per-unit-type grounding).
+
+    Falls back to whole-text embedding (a single implicit chunk) for any
+    document that chunks to zero or one pieces, so short records (this
+    project's real dataset's ``title_field``, ~28 characters on average)
+    behave exactly as they did before chunking existed -- one embedding
+    call each, same as :meth:`EmbeddingClient.embed`.
+    """
+    raw_chunks_a = chunker(text_a)
+    raw_chunks_b = chunker(text_b)
+    # Fallback applies for zero OR one chunk, not just zero: a single chunk
+    # still means "nothing to max-pool over," and the chunker's own single
+    # chunk may be normalized (e.g. paragraph-stripped) rather than the
+    # original text, which would silently break the documented "behaves
+    # exactly as it did before chunking existed" whole-text-embedding contract.
+    chunks_a = raw_chunks_a if len(raw_chunks_a) > 1 else [Chunk(text=text_a, unit_type="whole", index=0)]
+    chunks_b = raw_chunks_b if len(raw_chunks_b) > 1 else [Chunk(text=text_b, unit_type="whole", index=0)]
+
+    vectors_a = [(chunk, client.embed(chunk.text)) for chunk in chunks_a]
+    vectors_b = [(chunk, client.embed(chunk.text)) for chunk in chunks_b]
+
+    best_score = 0.0
+    best_pair: tuple[Chunk, Chunk] = (chunks_a[0], chunks_b[0])
+    for chunk_a, vector_a in vectors_a:
+        for chunk_b, vector_b in vectors_b:
+            score = cosine_similarity(vector_a, vector_b)
+            if score > best_score:
+                best_score = score
+                best_pair = (chunk_a, chunk_b)
+    return best_score, best_pair[0], best_pair[1]
