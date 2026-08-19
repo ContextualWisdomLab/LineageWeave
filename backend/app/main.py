@@ -2555,7 +2555,14 @@ async def read_calendar(
         caldav_next_action = CALDAV_UNAVAILABLE_NEXT_ACTION
     async with pool.acquire() as conn:
         commitments = await fetch_upcoming_commitments(conn)
+        demo_entity_ids: set[str] = set()
+        if commitments and await has_real_source_context(conn, list(account.corporate_entity_ids)):
+            demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
     visible = [c for c in commitments if _can_see_post(account, c)]
+    # Once real evidence is visible, the synthetic Demo Corp commitments
+    # (ADR 0001 / ADR 0042) stop appearing beside it.
+    if demo_entity_ids:
+        visible = [c for c in visible if c["corporate_entity_id"] not in demo_entity_ids]
     for c in visible:
         del c["visibility_code"], c["corporate_entity_id"]
     return {
