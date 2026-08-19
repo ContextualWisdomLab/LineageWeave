@@ -2466,6 +2466,8 @@ function analysisRunPostOpenOptions(run: AnalysisRun, postId: string): SelectPos
   };
 }
 
+const VISIBLE_POSTS_RENDER_LIMIT = 200;
+
 function AnalysisRunsPanel({
   accessToken,
   currentReportPeriod,
@@ -2769,8 +2771,16 @@ function AnalysisRunsPanel({
             <>
               {corpusHint && <p className="post-meta">{corpusHint}</p>}
               <p className="post-meta">{analysisRunLivePostWarning(selected.knowledge_cutoff)}</p>
+              {selected.visible_posts.length > VISIBLE_POSTS_RENDER_LIMIT && (
+                <p className="post-meta">
+                  {tf("Showing the first {shown} of {total} posts known at this cutoff.", {
+                    shown: VISIBLE_POSTS_RENDER_LIMIT,
+                    total: selected.visible_posts.length,
+                  })}
+                </p>
+              )}
               <ul aria-label="Posts known at this run cutoff">
-                {selected.visible_posts.map((post) => (
+                {selected.visible_posts.slice(0, VISIBLE_POSTS_RENDER_LIMIT).map((post) => (
                   <li key={post.post_id}>
                     <button
                       className="keyman-select"

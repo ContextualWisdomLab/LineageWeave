@@ -34,6 +34,7 @@ describe("i18n", () => {
     "Search",
     "Page",
     "Answer",
+    "Showing the first {shown} of {total} posts known at this cutoff.",
   ] as const;
 
   it("supports the five product locales", () => {

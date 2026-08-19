@@ -300,6 +300,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Open post": "글 열기",
     "No summary is available for this record yet.": "이 기록의 요약이 아직 없습니다.",
     "Saved evidence is still available.": "저장된 근거는 계속 확인할 수 있습니다.",
+    "Showing the first {shown} of {total} posts known at this cutoff.":
+      "이 기준 시점에 알려진 {total}개 글 중 처음 {shown}개를 표시합니다.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "대화형 질문을 지금 사용할 수 없습니다. 저장된 근거는 계속 확인할 수 있습니다.",
   },
@@ -588,6 +590,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Open post": "打开文章",
     "No summary is available for this record yet.": "此记录暂时没有摘要。",
     "Saved evidence is still available.": "仍可查看已保存的证据。",
+    "Showing the first {shown} of {total} posts known at this cutoff.":
+      "显示此截止时间已知的 {total} 篇文章中的前 {shown} 篇。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "交互式提问暂不可用；已保存的证据仍可查看。",
   },
@@ -876,6 +880,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Open post": "投稿を開く",
     "No summary is available for this record yet.": "この記録の概要はまだありません。",
     "Saved evidence is still available.": "保存された証拠は引き続き確認できます。",
+    "Showing the first {shown} of {total} posts known at this cutoff.":
+      "この基準時点で把握されている{total}件の投稿のうち、最初の{shown}件を表示しています。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "対話形式の質問は現在利用できません。保存された証拠は確認できます。",
   },
@@ -1164,6 +1170,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Open post": "Mở bài viết",
     "No summary is available for this record yet.": "Chưa có bản tóm tắt cho bản ghi này.",
     "Saved evidence is still available.": "Bằng chứng đã lưu vẫn có thể xem.",
+    "Showing the first {shown} of {total} posts known at this cutoff.":
+      "Đang hiển thị {shown} bài viết đầu tiên trong số {total} bài viết được biết tại thời điểm chốt này.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "Câu hỏi tương tác hiện không khả dụng; bằng chứng đã lưu vẫn có thể xem.",
   },
