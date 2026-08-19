@@ -30,6 +30,16 @@ ANALYSIS_REFERENCE_TABLES = {
     "analysis_run_lineage_edge",
 }
 
+# Columns that are an optional supporting reference to another post, not the
+# row's own subject -- e.g. post_counterparty_entity's identity is
+# (post_id, counterparty_entity_name); verification_evidence_post_id merely
+# cites a corroborating post. Deleting the whole row because that citation
+# happens to point at a removed synthetic post would destroy real evidence
+# belonging to a kept, real post. Null the reference instead of the row.
+NULLABLE_REFERENCE_COLUMNS = {
+    ("post_counterparty_entity", "verification_evidence_post_id"),
+}
+
 
 def _missing_source_context(alias: str = "post") -> str:
     return " and ".join(
@@ -125,6 +135,12 @@ async def cleanup_synthetic_seed(conn: Any, *, apply: bool = False) -> dict[str,
                 continue
             table = f"{_quote_identifier(row['child_schema'])}.{_quote_identifier(row['child_table'])}"
             column = _quote_identifier(row["child_column"])
+            if (row["child_table"], row["child_column"]) in NULLABLE_REFERENCE_COLUMNS:
+                await conn.execute(
+                    f"update {table} set {column} = null where {column} = any($1::uuid[])",
+                    deletable_ids,
+                )
+                continue
             await conn.execute(
                 f"delete from {table} where {column} = any($1::uuid[])",
                 deletable_ids,
