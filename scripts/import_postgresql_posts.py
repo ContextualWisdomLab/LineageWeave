@@ -97,6 +97,11 @@ def _parser() -> argparse.ArgumentParser:
         default=[],
         help="authoritative source deletion value to skip; repeat for multiple values",
     )
+    parser.add_argument(
+        "--allow-unknown-publication-state",
+        action="store_true",
+        help="explicitly allow imports whose source draft state is not verified",
+    )
     parser.add_argument("--source-author-code-column")
     parser.add_argument("--source-author-name-column")
     parser.add_argument("--source-company-code-column")
@@ -174,13 +179,31 @@ def _validate_source_mapping(
         )
 
 
+def _validate_publication_state(
+    rows: list[Any],
+    mapping: ColumnMapping,
+    excluded_draft_values: list[str],
+) -> None:
+    """Require evidence that imported rows have a known publication state."""
+    if mapping.draft is None:
+        raise ValueError("source draft status column is required for publication-state preflight")
+    if not excluded_draft_values:
+        raise ValueError("at least one source draft value must be excluded explicitly")
+    if rows and not any(str(_value(row, mapping.draft) or "").strip() for row in rows):
+        raise ValueError("source publication state is unknown: draft status has no values")
+
+
 def _validate_source_rows(
     rows: list[Any],
     mapping: ColumnMapping,
     excluded_draft_values: list[str],
     excluded_deleted_values: list[str],
+    *,
+    require_publication_state: bool = False,
 ) -> None:
     """Reject incomplete source evidence before the target is mutated."""
+    if require_publication_state:
+        _validate_publication_state(rows, mapping, excluded_draft_values)
     for row_number, row in enumerate(rows, start=1):
         if _source_code_matches(row, mapping.draft, excluded_draft_values) or _source_code_matches(
             row, mapping.deleted, excluded_deleted_values
@@ -281,6 +304,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             mapping,
             args.exclude_draft_value,
             args.exclude_deleted_value,
+            require_publication_state=not args.allow_unknown_publication_state,
         )
         account_id, corporate_id, process_unit_id = await _ensure_scope(target, args)
         vision_client = orchestrator_vision_client(

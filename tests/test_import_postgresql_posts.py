@@ -45,6 +45,28 @@ def test_importer_preflights_identity_and_body_before_target_mutation() -> None:
         _validate_source_rows([{"record_key": "one", "body": ""}], mapping, [], [])
 
 
+def test_importer_requires_verified_publication_state_when_requested() -> None:
+    mapping = SimpleNamespace(record_key="record_key", body="body", draft="draft_state", deleted=None)
+
+    with pytest.raises(ValueError, match="at least one source draft value"):
+        _validate_source_rows(
+            [{"record_key": "one", "body": "body", "draft_state": "N"}],
+            mapping,
+            [],
+            [],
+            require_publication_state=True,
+        )
+
+    with pytest.raises(ValueError, match="publication state is unknown"):
+        _validate_source_rows(
+            [{"record_key": "one", "body": "body", "draft_state": None}],
+            mapping,
+            ["Y"],
+            [],
+            require_publication_state=True,
+        )
+
+
 def test_importer_prefers_canonical_gateway_embedding_model(monkeypatch) -> None:
     monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "gateway-embedding")
     monkeypatch.setenv("EMBEDDING_MODEL", "legacy-embedding")
