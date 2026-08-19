@@ -141,6 +141,23 @@ jobs:
               "analysisRunPostOpenOptions",
           )
           replace_once(
+              '''                      onClick={() =>
+                        onSelectPost(post.post_id, {
+                          liveAfterCutoff: Boolean(post.live_after_cutoff),
+                          knowledgeCutoff: selected.knowledge_cutoff,
+                        })
+                      }
+          ''',
+              '''                      onClick={() =>
+                        onSelectPost(
+                          post.post_id,
+                          analysisRunPostOpenOptions(selected, post.post_id),
+                        )
+                      }
+          ''',
+              "visible analysis-run post opener",
+          )
+          replace_once(
               '''  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
             const [openedAfterCutoff, setOpenedAfterCutoff] = useState(false);
             const [openedCutoffIso, setOpenedCutoffIso] = useState<string | null>(null);
