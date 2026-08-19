@@ -31,21 +31,26 @@ def test_importer_rejects_mapping_the_pu_column_as_sales_pool() -> None:
 
 
 def test_importer_preflights_identity_and_body_before_target_mutation() -> None:
-    mapping = SimpleNamespace(record_key="record_key", body="body", draft=None, deleted=None)
+    mapping = SimpleNamespace(record_key="record_key", body="body", draft="draft_state", deleted=None)
 
     with pytest.raises(ValueError, match="source record key cannot be empty at source row 2"):
         _validate_source_rows(
-            [{"record_key": "one", "body": "body"}, {"record_key": "", "body": "body"}],
+            [
+                {"record_key": "one", "body": "body", "draft_state": "N"},
+                {"record_key": "", "body": "body", "draft_state": "N"},
+            ],
             mapping,
-            [],
+            ["Y"],
             [],
         )
 
     with pytest.raises(ValueError, match="source post body cannot be empty at source row 1"):
-        _validate_source_rows([{"record_key": "one", "body": ""}], mapping, [], [])
+        _validate_source_rows(
+            [{"record_key": "one", "body": "", "draft_state": "N"}], mapping, ["Y"], []
+        )
 
 
-def test_importer_requires_verified_publication_state_when_requested() -> None:
+def test_importer_always_requires_verified_publication_state() -> None:
     mapping = SimpleNamespace(record_key="record_key", body="body", draft="draft_state", deleted=None)
 
     with pytest.raises(ValueError, match="at least one source draft value"):
@@ -54,7 +59,6 @@ def test_importer_requires_verified_publication_state_when_requested() -> None:
             mapping,
             [],
             [],
-            require_publication_state=True,
         )
 
     with pytest.raises(ValueError, match="publication state is unknown"):
@@ -63,8 +67,12 @@ def test_importer_requires_verified_publication_state_when_requested() -> None:
             mapping,
             ["Y"],
             [],
-            require_publication_state=True,
         )
+
+
+def test_importer_has_no_unknown_publication_state_bypass() -> None:
+    with pytest.raises(SystemExit):
+        _parser().parse_args(["--allow-unknown-publication-state"])
 
 
 def test_importer_prefers_canonical_gateway_embedding_model(monkeypatch) -> None:

@@ -26,6 +26,9 @@ expose rows without evidence of publication state.
 - A missing or all-`NULL` draft signal is `publication_state_unknown`, not
   “published”. The import must stop before target mutation unless an
   independently governed source contract states how that value is interpreted.
+- There is no command-line or runtime bypass for this preflight gate. A caller
+  must provide the governed source interpretation and explicit excluded values
+  before the importer can proceed.
 - Rows marked temporary or deleted are excluded before identity resolution,
   body persistence, semantic extraction, lineage reconstruction, and search
   indexing.
