@@ -617,10 +617,24 @@ export function fetchPostVocEvidence(accessToken: string, postId: string): Promi
   return backendFetch(`/api/posts/${postId}/voc-evidence`, accessToken);
 }
 
+export interface PersonRoleHistoryEntry {
+  post_id: string;
+  post_title: string;
+  created_at: string;
+  responsibility: string;
+  affiliated_organization_name: string | null;
+}
+
 export function fetchRelatedKeymen(
   accessToken: string,
   personId: string,
-): Promise<{ person_id: string; person_name: string; person_side_code: string; related: RelatedNode[] }> {
+): Promise<{
+  person_id: string;
+  person_name: string;
+  person_side_code: string;
+  related: RelatedNode[];
+  role_history?: PersonRoleHistoryEntry[];
+}> {
   return backendFetch(`/api/keymen/${personId}/related`, accessToken);
 }
 

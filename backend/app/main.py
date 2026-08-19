@@ -139,6 +139,7 @@ from backend.app.issue_ticket_ingestion import (
 from backend.app.keyman_ingestion import ingest_post_keymen
 from backend.app.knowledge_graph import (
     corporate_entity_exists,
+    fetch_person_role_history,
     fetch_post_keymen,
     labels_for_codes,
     person_exists,
@@ -1613,11 +1614,13 @@ async def read_related_keymen(
             person_id,
         )
         related = await related_for_person(conn, person_id, visible_post_ids)
+        role_history = await fetch_person_role_history(conn, person_id, visible_post_ids)
     return {
         "person_id": str(person["person_id"]),
         "person_name": person["person_name"],
         "person_side_code": person["person_side_code"],
         "related": related,
+        "role_history": role_history,
     }
 
 

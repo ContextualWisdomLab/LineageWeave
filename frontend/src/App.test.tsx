@@ -1222,6 +1222,7 @@ describe("App, authenticated", () => {
             person_id: "person-priya",
             person_name: "Priya Nair",
             person_side_code: "counterparty",
+            role_history: [],
             related: [
               {
                 node_id: "person-ada",
@@ -1243,6 +1244,22 @@ describe("App, authenticated", () => {
             person_id: "person-ada",
             person_name: "Ada West",
             person_side_code: "our_side",
+            role_history: [
+              {
+                post_id: "post-early",
+                post_title: "Early post",
+                created_at: "2026-01-01T00:00:00Z",
+                responsibility: "junior account rep",
+                affiliated_organization_name: "Northwind Labs",
+              },
+              {
+                post_id: "post-later",
+                post_title: "Later post",
+                created_at: "2026-06-01T00:00:00Z",
+                responsibility: "account lead",
+                affiliated_organization_name: "Demo Corp",
+              },
+            ],
             related: [
               {
                 node_id: "person-priya",
@@ -2027,6 +2044,14 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Related to Ada West").closest(".related-keymen")).not.toHaveTextContent(
       "Priya Nair (Person)",
     );
+    // Feature request (2026-08-19): clicking a Keyman should show how
+    // their responsibility/organization changed over time, in order.
+    const roleHistoryList = screen.getByRole("list", { name: "Role history: Ada West" });
+    expect(roleHistoryList).toHaveTextContent("junior account rep at Northwind Labs");
+    expect(roleHistoryList).toHaveTextContent("account lead at Demo Corp");
+    const historyItems = within(roleHistoryList).getAllByRole("listitem");
+    expect(historyItems[0]).toHaveTextContent("junior account rep");
+    expect(historyItems[1]).toHaveTextContent("account lead");
     expect(
       screen.getByRole("button", {
         name: "Related nodes for Priya Nair (Counterparty)",

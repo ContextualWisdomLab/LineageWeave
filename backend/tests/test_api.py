@@ -1962,6 +1962,96 @@ def test_related_keymen_use_rwr_and_hide_invisible_posts(client, demo_analyst_to
     assert own_post["ontology_label"] == "Post"
 
 
+def test_related_keymen_includes_chronological_role_history(client, demo_analyst_token, seeded_db) -> None:
+    """Feature request (2026-08-19): clicking a Keyman should show which
+    company they were affiliated with and how their responsibility
+    changed over time, not just the RWR-related node list.
+    """
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with admin_conn.cursor() as cur:
+            # Two visible posts, given a known chronological order, each
+            # classifying a different role/organization for the same
+            # cataloged person -- simulating a real job change.
+            cur.execute(
+                "update source_post set created_at = %s where post_id = %s",
+                ("2026-01-01T00:00:00+00:00", seeded_db["own_private_post_id"]),
+            )
+            cur.execute(
+                "update source_post set created_at = %s where post_id = %s",
+                ("2026-06-01T00:00:00+00:00", seeded_db["public_post_id"]),
+            )
+            for post_id, summary in (
+                (seeded_db["own_private_post_id"], "early summary"),
+                (seeded_db["public_post_id"], "later summary"),
+            ):
+                cur.execute(
+                    "insert into post_summary_result (post_id, korean_summary, summary_contract_version) "
+                    "values (%s, %s, %s)",
+                    (post_id, summary, POST_SUMMARY_CONTRACT_VERSION),
+                )
+            cur.execute(
+                "insert into post_summary_role "
+                "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name, cataloged_person_id) "
+                "values (%s, %s, %s, %s, %s, %s)",
+                (
+                    seeded_db["own_private_post_id"],
+                    "Ada West",
+                    "junior account rep",
+                    "prov_person",
+                    "Northwind Labs",
+                    seeded_db["our_person_id"],
+                ),
+            )
+            cur.execute(
+                "insert into post_summary_role "
+                "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name, cataloged_person_id) "
+                "values (%s, %s, %s, %s, %s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    "Ada West",
+                    "account lead",
+                    "prov_person",
+                    "Test Corp",
+                    seeded_db["our_person_id"],
+                ),
+            )
+        admin_conn.commit()
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/keymen/{seeded_db['our_person_id']}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    history = body["role_history"]
+    assert [row["post_id"] for row in history] == [
+        seeded_db["own_private_post_id"],
+        seeded_db["public_post_id"],
+    ]
+    assert history[0]["responsibility"] == "junior account rep"
+    assert history[0]["affiliated_organization_name"] == "Northwind Labs"
+    assert history[1]["responsibility"] == "account lead"
+    assert history[1]["affiliated_organization_name"] == "Test Corp"
+    assert history[0]["created_at"] < history[1]["created_at"]
+
+
+def test_related_keymen_role_history_is_empty_without_any_role_classification(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """No post_summary_role rows for this person -- an empty history is
+    the correct, non-fabricated answer, not an error.
+    """
+    response = client.get(
+        f"/api/keymen/{seeded_db['our_person_id']}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["role_history"] == []
+
+
 def test_related_corporate_entity_uses_rwr_and_hides_invisible_posts(
     client, demo_analyst_token, seeded_db
 ) -> None:

@@ -72,6 +72,7 @@ import {
   type PostSummary,
   type PostSortOrder,
   type RankingList,
+  type PersonRoleHistoryEntry,
   type RelatedNode,
   type RelatedNodeType,
   type VocEvidence,
@@ -838,6 +839,7 @@ function KeymanPanel({
   afterList?: ReactNode;
 }) {
   const [related, setRelated] = useState<RelatedNode[] | null>(null);
+  const [roleHistory, setRoleHistory] = useState<PersonRoleHistoryEntry[]>([]);
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [landedRelated, setLandedRelated] = useState<RelatedNode[] | null>(null);
   const [landedRelatedName, setLandedRelatedName] = useState<string | null>(null);
@@ -855,9 +857,13 @@ function KeymanPanel({
     const requestId = ++relatedRequest.current;
     setSelectedName(personName);
     setRelated(null);
+    setRoleHistory([]);
     try {
       const result = await fetchRelatedKeymen(accessToken, personId);
-      if (requestId === relatedRequest.current) setRelated(result.related);
+      if (requestId === relatedRequest.current) {
+        setRelated(result.related);
+        setRoleHistory(result.role_history ?? []);
+      }
     } catch {
       if (requestId === relatedRequest.current) setRelated([]);
     }
@@ -867,6 +873,7 @@ function KeymanPanel({
     const requestId = ++relatedRequest.current;
     setSelectedName(entityName);
     setRelated(null);
+    setRoleHistory([]);
     try {
       const result = await fetchRelatedEntity(accessToken, entityId);
       if (requestId === relatedRequest.current) setRelated(result.related);
@@ -879,6 +886,7 @@ function KeymanPanel({
     const requestId = ++relatedRequest.current;
     setSelectedName(teamName);
     setRelated(null);
+    setRoleHistory([]);
     try {
       const result = await fetchRelatedTeam(accessToken, teamId);
       if (requestId === relatedRequest.current) setRelated(result.related);
@@ -895,9 +903,13 @@ function KeymanPanel({
     const requestId = ++relatedRequest.current;
     setSelectedName(first.person_name);
     setRelated(null);
+    setRoleHistory([]);
     fetchRelatedKeymen(accessToken, first.person_id)
       .then((result) => {
-        if (requestId === relatedRequest.current) setRelated(result.related);
+        if (requestId === relatedRequest.current) {
+          setRelated(result.related);
+          setRoleHistory(result.role_history ?? []);
+        }
       })
       .catch(() => {
         if (requestId === relatedRequest.current) setRelated([]);
@@ -944,9 +956,13 @@ function KeymanPanel({
     const requestId = ++relatedRequest.current;
     setSelectedName(focusPerson.personName);
     setRelated(null);
+    setRoleHistory([]);
     fetchRelatedKeymen(accessToken, focusPerson.personId)
       .then((result) => {
-        if (requestId === relatedRequest.current) setRelated(result.related);
+        if (requestId === relatedRequest.current) {
+          setRelated(result.related);
+          setRoleHistory(result.role_history ?? []);
+        }
       })
       .catch(() => {
         if (requestId === relatedRequest.current) setRelated([]);
@@ -958,6 +974,7 @@ function KeymanPanel({
     const requestId = ++relatedRequest.current;
     setSelectedName(focusEntity.entityName);
     setRelated(null);
+    setRoleHistory([]);
     fetchRelatedEntity(accessToken, focusEntity.entityId)
       .then((result) => {
         if (requestId === relatedRequest.current) setRelated(result.related);
@@ -1001,6 +1018,26 @@ function KeymanPanel({
   const relatedBlock = selectedName ? (
     <div className="related-keymen">
       <h4>{t("Related to")} {selectedName}</h4>
+      {roleHistory.length > 0 ? (
+        <div className="role-history">
+          <p className="section-eyebrow">{t("Role history")}</p>
+          <ol aria-label={`${t("Role history")}: ${selectedName}`}>
+            {roleHistory.map((entry) => (
+              <li key={entry.post_id}>
+                <span className="post-badge">{entry.created_at.slice(0, 10)}</span>
+                <span>
+                  {entry.affiliated_organization_name
+                    ? tf("{responsibility} at {organization}", {
+                        responsibility: entry.responsibility,
+                        organization: entry.affiliated_organization_name,
+                      })
+                    : entry.responsibility}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
       {related === null ? (
         <p>{t("Loading related nodes...")}</p>
       ) : related.length === 0 ? (
