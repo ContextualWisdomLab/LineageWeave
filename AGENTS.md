@@ -68,7 +68,8 @@ Calendar commitment uses the same focus path (ADR 0072). Opening a Customer
 master related post uses the same focus path (ADR 0073). Opening an Ask
 Agent cited post uses the same focus path (ADR 0074). A linked Event
 Lineage node opened from that focused popup keeps the originating flags
-(ADR 0075). Do not invent a
+(ADR 0075). That open then focuses Keyman as the named next read
+(ADR 0076). Do not invent a
 week, a theta, a cutoff body, a CalDAV event, a customer, or a cited post.
 
 

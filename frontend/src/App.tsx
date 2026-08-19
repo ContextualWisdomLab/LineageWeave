@@ -1095,7 +1095,7 @@ function KeymanPanel({
     <>
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>{t("Keymen")}</h3>
+        <h3 id="post-keyman" tabIndex={-1}>{t("Keymen")}</h3>
         {canExtract && !orchestratorOff && (
           <details className="operator-action-tools">
             <summary>{t("Evidence operations")}</summary>
@@ -1605,6 +1605,8 @@ function PostDetailPopup({
   liveBodyWarning,
   knowledgeCutoff,
   focusEventLineage,
+  focusKeyman,
+  fromReportMember,
   onClose,
   onSelectPost,
   onSearch,
@@ -1616,6 +1618,8 @@ function PostDetailPopup({
   liveBodyWarning?: string | null;
   knowledgeCutoff?: string | null;
   focusEventLineage?: boolean;
+  focusKeyman?: boolean;
+  fromReportMember?: boolean;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
@@ -1774,6 +1778,15 @@ function PostDetailPopup({
     heading?.focus();
     heading?.scrollIntoView?.({ block: "nearest" });
   }, [focusEventLineage, post]);
+
+  useEffect(() => {
+    if (!focusKeyman || !post || keymen === null) {
+      return;
+    }
+    const heading = document.getElementById("post-keyman");
+    heading?.focus();
+    heading?.scrollIntoView?.({ block: "nearest" });
+  }, [focusKeyman, post, keymen, postId]);
 
   return (
     <div className="popup-backdrop" onClick={onClose}>
@@ -2178,7 +2191,7 @@ function PostDetailPopup({
                 focusEntity={focusEntity}
                 focusTeam={focusTeam}
                 landFirstKeyman
-                landFirstRelated
+                landFirstRelated={Boolean(fromReportMember)}
                 afterList={
                   <>
                     <EvaluationPanel
@@ -4001,6 +4014,13 @@ function PostList({
             openedFromCustomerMaster ||
             openedFromAskAgent
           }
+          focusKeyman={
+            openedFromWeeklyVoc ||
+            openedFromCalendar ||
+            openedFromCustomerMaster ||
+            openedFromAskAgent
+          }
+          fromReportMember={openedFromReportMember}
           onClose={closeSelectedPost}
           onSelectPost={(postId) =>
             selectPost(postId, {
