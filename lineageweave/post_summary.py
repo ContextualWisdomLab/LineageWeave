@@ -240,6 +240,14 @@ inside a sentence for a dimension the evidence genuinely lacks, never as
 a standalone label line. Do not invent facts or a generic report
 sentence.
 
+Name every person and organization by their actual stated name whenever
+the text gives one. "PM들이 참석했다" ("PMs attended") is not acceptable
+when the text names them ("홍길동 PM, 김철수 PM이 참석했다") -- a title-only
+collective reference is a lost fact, not an acceptable compression, even
+though it costs more words. The same applies to organizations: name the
+specific company/team the text gives, not a generic "관계자" or
+"업체" placeholder.
+
 Structure the prose as three parts, in order, without labeling them:
 1. 발단 (trigger): what event, request, or problem started this post.
 2. 전개 (development): what was investigated, discussed, or done as a

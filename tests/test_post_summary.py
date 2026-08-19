@@ -49,6 +49,18 @@ def test_summary_prompt_requires_trigger_development_conclusion_structure() -> N
         assert marker in _SUMMARY_REQUEST_PROMPT_TEMPLATE
 
 
+def test_summary_prompt_requires_naming_actual_people_not_generic_titles() -> None:
+    """Live bug (2026-08-19): a real post's summary said "PM들이
+    참석했다" (a generic "PMs attended") even though the post body
+    literally named each attendee -- the same names a separate R&R
+    extraction call correctly pulled out. The summary call has no
+    knowledge of that separate call's output, so the summary prompt
+    itself must demand real names, not rely on R&R to carry them.
+    """
+    assert "PM들이 참석했다" in _SUMMARY_REQUEST_PROMPT_TEMPLATE
+    assert "홍길동" in _SUMMARY_REQUEST_PROMPT_TEMPLATE
+
+
 def test_summary_requires_imported_source_body() -> None:
     assert require_summary_source_body("  body  ") == "  body  "
     with pytest.raises(ValueError, match="source post body is empty"):
