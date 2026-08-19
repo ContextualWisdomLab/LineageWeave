@@ -263,8 +263,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Embedded image at character offset": "문자 위치의 첨부 이미지",
     "Text detected in image": "이미지에서 인식된 텍스트",
     "Image regions": "이미지 영역",
-    "Image from this post. Extract Keyman or ask a question to read text inside it.":
-      "이 글의 이미지입니다. Keyman을 추출하거나 질문해 이미지 안의 텍스트를 읽으세요.",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
       "첨부 이미지를 해독할 수 없습니다. 원문을 다시 내보내고 다시 여세요.",
     "What happened between these events?": "이 사건들 사이에 무슨 일이 있었나요?",
@@ -584,8 +582,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Embedded image at character offset": "字符位置的嵌入图像",
     "Text detected in image": "图像中识别的文字",
     "Image regions": "图像区域",
-    "Image from this post. Extract Keyman or ask a question to read text inside it.":
-      "此文章中的图像。提取关键联系人或提问，以读取图像中的文字。",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
       "无法解码嵌入图像。请重新导出原始文章后再打开。",
     "What happened between these events?": "这些事件之间发生了什么？",
@@ -920,8 +916,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Embedded image at character offset": "文字オフセットの埋め込み画像",
     "Text detected in image": "画像から認識されたテキスト",
     "Image regions": "画像領域",
-    "Image from this post. Extract Keyman or ask a question to read text inside it.":
-      "この投稿の画像です。キーパーソンを抽出するか質問して、画像内の文字を読み取ってください。",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
       "埋め込み画像をデコードできませんでした。原文を再エクスポートして、もう一度開いてください。",
     "What happened between these events?": "これらのイベントの間に何が起きましたか？",
@@ -1241,8 +1235,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Embedded image at character offset": "Hình ảnh nhúng tại vị trí ký tự",
     "Text detected in image": "Văn bản nhận dạng trong hình ảnh",
     "Image regions": "Các vùng trong hình ảnh",
-    "Image from this post. Extract Keyman or ask a question to read text inside it.":
-      "Hình ảnh trong bài viết này. Hãy trích xuất người liên hệ chính hoặc đặt câu hỏi để đọc chữ bên trong.",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
       "Không thể giải mã hình ảnh nhúng. Hãy xuất lại bài viết gốc rồi mở lại.",
     "What happened between these events?": "Điều gì đã xảy ra giữa các sự kiện này?",
