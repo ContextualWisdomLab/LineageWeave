@@ -59,13 +59,24 @@ def _signing_key_from_jwks(jwks: dict, token: str):
         header = jwt.get_unverified_header(token)
     except jwt.PyJWTError as exc:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid access-token header") from exc
+    if header.get("alg") != "RS256":
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token must use RS256")
     kid = header.get("kid")
     if not isinstance(kid, str) or not kid.strip():
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token must include a non-empty kid")
     for key in jwks.get("keys", []):
         if not isinstance(key, dict) or key.get("kid") != kid:
             continue
-        if key.get("kty") not in (None, "RSA") or key.get("alg") not in (None, "RS256"):
+        if key.get("kty") != "RSA":
+            continue
+        if key.get("alg") not in (None, "RS256"):
+            continue
+        if key.get("use") not in (None, "sig"):
+            continue
+        key_ops = key.get("key_ops")
+        if key_ops is not None and (
+            not isinstance(key_ops, list) or "verify" not in key_ops
+        ):
             continue
         try:
             return RSAAlgorithm.from_jwk(json.dumps(key))
