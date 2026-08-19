@@ -10,8 +10,16 @@ export interface PostSummary {
   created_at: string;
 }
 
+export interface PostKnownAt {
+  post_title: string;
+  post_body: string;
+  written_at: string;
+  as_of: string;
+}
+
 export interface PostDetail extends PostSummary {
   post_body: string;
+  known_at?: PostKnownAt;
 }
 
 export interface Affiliation {
@@ -26,6 +34,7 @@ export interface Keyman {
   person_side_code: string;
   person_side_label?: string;
   mention_context: string | null;
+  last_known_job_title: string | null;
   affiliations: Affiliation[];
 }
 
@@ -72,19 +81,30 @@ export interface VocEvidence {
   counterparties: VocEvidenceCounterparty[];
 }
 
+export type RelatedNodeType =
+  | "node_person"
+  | "node_post"
+  | "node_corporate_entity"
+  | "node_team";
+
 export interface RelatedNode {
   node_id: string;
-  node_type_code: string;
+  node_type_code: RelatedNodeType | string;
   relevance: number;
   label?: string;
   person_side_code?: string;
+  person_side_label?: string;
   ontology_iri?: string;
   ontology_label?: string;
 }
 
 export interface PostRoleResponsibility {
-  person_name: string;
+  actor_name: string;
   responsibility: string;
+  actor_type_code: string;
+  affiliated_organization_name: string | null;
+  catalog_node_id?: string | null;
+  catalog_node_type_code?: string | null;
 }
 
 export interface PostAiSummary {
@@ -222,10 +242,16 @@ export function fetchLineageGraph(accessToken: string): Promise<LineageGraph> {
   return backendFetch<LineageGraph>("/api/lineage", accessToken);
 }
 
+export interface CorporateEntityRef {
+  corporate_entity_id: string;
+  entity_name: string;
+}
+
 export interface CurrentUser {
   user_account_id: string;
   display_name: string;
   permission_codes: string[];
+  corporate_entities?: CorporateEntityRef[];
 }
 
 export function fetchMe(accessToken: string): Promise<CurrentUser> {
@@ -240,8 +266,13 @@ export function fetchPosts(accessToken: string): Promise<PostSummary[]> {
   return backendFetch<PostSummary[]>("/api/posts", accessToken);
 }
 
-export function fetchPost(accessToken: string, postId: string): Promise<PostDetail> {
-  return backendFetch<PostDetail>(`/api/posts/${postId}`, accessToken);
+export function fetchPost(
+  accessToken: string,
+  postId: string,
+  asOf?: string,
+): Promise<PostDetail> {
+  const query = asOf ? `?as_of=${encodeURIComponent(asOf)}` : "";
+  return backendFetch<PostDetail>(`/api/posts/${postId}${query}`, accessToken);
 }
 
 export function fetchPostKeymen(accessToken: string, postId: string): Promise<{ keymen: Keyman[] }> {
@@ -262,6 +293,55 @@ export function fetchPostAffiliateTree(
   return backendFetch(`/api/posts/${postId}/affiliate-tree`, accessToken);
 }
 
+export type VerificationStatusCode =
+  | "verify_corroborated"
+  | "verify_uncorroborated"
+  | "verify_pending";
+
+export interface TreeAbbreviation {
+  raw_organization_name: string;
+  verification_status_code: VerificationStatusCode;
+  verification_evidence_url: string | null;
+}
+
+export interface CustomerGroupNode {
+  entity_id: string;
+  entity_name: string;
+  entity_level_code: string | null;
+  entity_level_label?: string | null;
+  abbreviations: TreeAbbreviation[];
+  children: CustomerGroupNode[];
+}
+
+export interface AbbreviationTreeMatch {
+  raw_organization_name: string;
+  corporate_entity_id: string | null;
+  verification_status_code: VerificationStatusCode;
+  verification_evidence_url: string | null;
+}
+
+export function fetchCustomerGroupTree(
+  accessToken: string,
+): Promise<{ trees: CustomerGroupNode[] }> {
+  return backendFetch("/api/customer-group-tree", accessToken);
+}
+
+export function fetchPostAbbreviationTreeMatches(
+  accessToken: string,
+  postId: string,
+): Promise<{ matches: AbbreviationTreeMatch[] }> {
+  return backendFetch(`/api/posts/${postId}/abbreviation-tree-matches`, accessToken);
+}
+
+export function corroboratePostAbbreviations(
+  accessToken: string,
+  postId: string,
+): Promise<{ matches: AbbreviationTreeMatch[] }> {
+  return backendFetch(`/api/posts/${postId}/corroborate-abbreviations`, accessToken, {
+    method: "POST",
+  });
+}
+
 export function fetchPostVocEvidence(accessToken: string, postId: string): Promise<VocEvidence> {
   return backendFetch(`/api/posts/${postId}/voc-evidence`, accessToken);
 }
@@ -278,6 +358,13 @@ export function fetchRelatedEntity(
   entityId: string,
 ): Promise<{ corporate_entity_id: string; entity_name: string; related: RelatedNode[] }> {
   return backendFetch(`/api/corporate-entities/${entityId}/related`, accessToken);
+}
+
+export function fetchRelatedTeam(
+  accessToken: string,
+  teamId: string,
+): Promise<{ team_id: string; team_name: string; related: RelatedNode[] }> {
+  return backendFetch(`/api/teams/${teamId}/related`, accessToken);
 }
 
 export function extractPostKeymen(
@@ -349,6 +436,7 @@ export interface LeftoverPair {
 
 export interface PeriodGroupReport {
   grouping_key: string;
+  grouping_label?: string;
   selected_model: string;
   mean_theta: number;
   mean_theta_sd: number;
@@ -497,6 +585,124 @@ export function deriveCommitment(accessToken: string, postId: string): Promise<D
 
 export function fetchCalendar(accessToken: string): Promise<{ commitments: CalendarEntry[] }> {
   return backendFetch("/api/calendar", accessToken);
+}
+
+export interface AnalysisRunCount {
+  count_type_code: string;
+  count_type_label: string;
+  count_value: number;
+}
+
+/** Registry kinds from `analysis_run.run_kind_code` (migration 0018). */
+export type AnalysisRunKindCode =
+  | "analysis_run_lineage"
+  | "analysis_run_report"
+  | "analysis_run_tepp";
+
+/** Registry statuses from `analysis_run_status_event.status_code`. */
+export type AnalysisRunStatusCode =
+  | "analysis_status_pending"
+  | "analysis_status_running"
+  | "analysis_status_succeeded"
+  | "analysis_status_failed"
+  | "analysis_status_cancelled";
+
+export interface AnalysisRunStatusEvent {
+  status_ordinal: number;
+  status_code: AnalysisRunStatusCode;
+  status_label: string;
+  occurred_at: string;
+  failure_code?: string;
+}
+
+export interface AnalysisRunOutboxDelivery {
+  delivery_ordinal: number;
+  delivery_status_code: string;
+  delivery_status_label: string;
+  occurred_at: string;
+}
+
+export interface AnalysisRunReconstructedEdge {
+  parent_post_id: string;
+  parent_post_title: string;
+  child_post_id: string;
+  child_post_title: string;
+  fused_score: number;
+}
+
+export interface AnalysisRunVisiblePost {
+  post_id: string;
+  post_title: string;
+  updated_at?: string;
+  live_after_cutoff?: boolean;
+}
+
+export interface AnalysisRun {
+  analysis_run_id: string;
+  run_kind_code: AnalysisRunKindCode;
+  run_kind_label: string;
+  scope_kind_code: string;
+  scope_kind_label: string;
+  scope_entity_name?: string;
+  scope_key?: string;
+  scope_grouping_key?: string;
+  status_code: AnalysisRunStatusCode | null;
+  status_label: string | null;
+  failure_code?: string;
+  knowledge_cutoff: string;
+  requested_at: string;
+  source_counts: AnalysisRunCount[];
+  status_history?: AnalysisRunStatusEvent[];
+  outbox_deliveries?: AnalysisRunOutboxDelivery[];
+  visible_posts?: AnalysisRunVisiblePost[];
+  reconstructed_edges?: AnalysisRunReconstructedEdge[];
+  reconstruction_result_sha256?: string;
+  tepp_evidence_kind?: string;
+  tepp_contract_version?: number;
+  tepp_accepted_run_id?: string;
+  tepp_run_state?: string;
+  tepp_idempotency_key?: string;
+  tepp_evidence_sha256?: string;
+  tepp_received_at?: string;
+  tepp_recorded_at?: string;
+  tepp_completed_artifact_available?: boolean;
+  code_revision_sha?: string;
+  configuration_sha256?: string;
+}
+
+export function fetchAnalysisRuns(accessToken: string): Promise<{ analysis_runs: AnalysisRun[] }> {
+  return backendFetch("/api/analysis-runs", accessToken);
+}
+
+export function fetchAnalysisRun(accessToken: string, analysisRunId: string): Promise<AnalysisRun> {
+  return backendFetch(`/api/analysis-runs/${analysisRunId}`, accessToken);
+}
+
+export interface CreateAnalysisRunRequest {
+  run_kind_code?: string;
+  scope_kind_code?: string;
+  corporate_entity_id?: string;
+  knowledge_cutoff?: string;
+  idempotency_key: string;
+}
+
+export function createAnalysisRun(
+  accessToken: string,
+  request: CreateAnalysisRunRequest,
+): Promise<AnalysisRun> {
+  return backendFetch("/api/analysis-runs", accessToken, {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}
+
+export function startAnalysisRun(
+  accessToken: string,
+  analysisRunId: string,
+): Promise<AnalysisRun> {
+  return backendFetch(`/api/analysis-runs/${analysisRunId}/start`, accessToken, {
+    method: "POST",
+  });
 }
 
 export interface RankedPost {

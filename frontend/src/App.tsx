@@ -1,17 +1,24 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
   BackendError,
+  corroboratePostAbbreviations,
+  createAnalysisRun,
+  startAnalysisRun,
   createPostTicket,
   deriveCommitment,
   evaluatePost,
   extractPostKeymen,
+  fetchAnalysisRun,
+  fetchAnalysisRuns,
   fetchCalendar,
+  fetchCustomerGroupTree,
   fetchLineageGraph,
   fetchMe,
   fetchPost,
   fetchPostActivity,
+  fetchPostAbbreviationTreeMatches,
   fetchPostChat,
   fetchPostAffiliateTree,
   fetchPostCounterparties,
@@ -28,16 +35,21 @@ import {
   fetchRankings,
   fetchRelatedEntity,
   fetchRelatedKeymen,
+  fetchRelatedTeam,
   rebuildLineage,
   rebuildPeriodReports,
   updateTicketStatus,
   verifyPostRelations,
+  type AbbreviationTreeMatch,
   type ActivityEvent,
   type AffiliateNode,
+  type AnalysisRun,
   type CalendarEntry,
   type ChatAnswer,
   type ChatExchange,
+  type CorporateEntityRef,
   type Counterparty,
+  type CustomerGroupNode,
   type EvaluationResponse,
   type IssueTicket,
   type LineageGraph,
@@ -52,9 +64,17 @@ import {
   type PostSummary,
   type RankingList,
   type RelatedNode,
+  type RelatedNodeType,
+  type VerificationStatusCode,
   type VocEvidence,
 } from "./api";
+import { CitationChip } from "./components/CitationChip";
+import { CutoffKnownBody } from "./components/CutoffKnownBody";
+import { LineageEntityPicker } from "./components/LineageEntityPicker";
+import { PopupCloseButton } from "./components/PopupCloseButton";
+import { StatusAlert } from "./components/StatusAlert";
 import { LineageDag } from "./LineageDag";
+import { PostBody } from "./PostBody";
 import { subgraphForPost } from "./lineageLayout";
 import "./App.css";
 
@@ -70,6 +90,32 @@ function searchUnavailableMessage(err: unknown): string {
     return "Verification unavailable (search is not configured).";
   }
   return String(err);
+}
+
+function abbreviationStatusLabel(code: VerificationStatusCode): string {
+  switch (code) {
+    case "verify_corroborated":
+      return "corroborated";
+    case "verify_uncorroborated":
+      return "uncorroborated";
+    case "verify_pending":
+      return "pending";
+    default: {
+      const _exhaustive: never = code;
+      return _exhaustive;
+    }
+  }
+}
+
+function parseVerificationStatus(code: string): VerificationStatusCode {
+  switch (code) {
+    case "verify_corroborated":
+    case "verify_uncorroborated":
+    case "verify_pending":
+      return code;
+    default:
+      return "verify_pending";
+  }
 }
 
 const CRITERION_SHORT_LABEL: Record<string, string> = {
@@ -96,7 +142,7 @@ function EvidencePanel({
 }: {
   postId: string;
   accessToken: string;
-  onClose: () => void;
+  onClose?: () => void;
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
 
@@ -107,15 +153,13 @@ function EvidencePanel({
 
   return (
     <div className="evidence-panel" role="complementary" aria-label="Evidence">
-      <button className="popup-close" onClick={onClose} aria-label="Close evidence panel">
-        &times;
-      </button>
+      {onClose ? <PopupCloseButton onClose={onClose} label="Close evidence panel" /> : null}
       <h3>Evidence</h3>
       {!post && <p>Loading source post...</p>}
       {post && (
         <>
           <h4>{post.post_title}</h4>
-          <p className="post-body">{post.post_body}</p>
+          <PostBody body={post.post_body} />
         </>
       )}
     </div>
@@ -126,10 +170,12 @@ function ChatCitations({
   citedPosts,
   citedPostIds,
   onOpenEvidence,
+  currentPostId,
 }: {
   citedPosts?: { post_id: string; post_title: string }[];
   citedPostIds: string[];
   onOpenEvidence: (postId: string) => void;
+  currentPostId?: string;
 }) {
   if ((citedPosts?.length ?? citedPostIds.length) === 0) return null;
   const chips =
@@ -138,20 +184,27 @@ function ChatCitations({
     <div className="chat-citations">
       <span>Sources: </span>
       {chips.map((cited) => (
-        <button
+        <CitationChip
           key={cited.post_id}
-          className="citation-chip"
-          aria-label={`Open evidence: ${cited.post_title}`}
-          onClick={() => onOpenEvidence(cited.post_id)}
-        >
-          {cited.post_title}
-        </button>
+          postId={cited.post_id}
+          postTitle={cited.post_title}
+          onOpenEvidence={onOpenEvidence}
+          current={cited.post_id === currentPostId}
+        />
       ))}
     </div>
   );
 }
 
-function ChatPanel({ postId, accessToken }: { postId: string; accessToken: string }) {
+function ChatPanel({
+  postId,
+  accessToken,
+  nameFirstAsk,
+}: {
+  postId: string;
+  accessToken: string;
+  nameFirstAsk?: boolean;
+}) {
   const [question, setQuestion] = useState("");
   const [exchanges, setExchanges] = useState<ChatExchange[]>([]);
   const [answer, setAnswer] = useState<ChatAnswer | null>(null);
@@ -165,6 +218,7 @@ function ChatPanel({ postId, accessToken }: { postId: string; accessToken: strin
     setAnswer(null);
     setError(null);
     setSeededOnly(false);
+    setEvidencePostId(null);
     fetchPostChat(accessToken, postId)
       .then((history) => setExchanges(history.exchanges))
       .catch(() => setExchanges([]));
@@ -196,9 +250,58 @@ function ChatPanel({ postId, accessToken }: { postId: string; accessToken: strin
     }
   }
 
+  const firstCitedPostId =
+    exchanges[0]?.cited_posts?.[0]?.post_id ?? exchanges[0]?.cited_post_ids[0] ?? null;
+  const firstCitedTitle =
+    exchanges[0]?.cited_posts?.[0]?.post_title ??
+    (firstCitedPostId ? firstCitedPostId.slice(0, 8) : null);
+  const landedEvidencePostId = nameFirstAsk ? (evidencePostId ?? firstCitedPostId) : null;
+
   return (
     <section className="popup-section chat-section">
-      <h3>Ask about this lineage</h3>
+      <h3 id="post-ask" tabIndex={-1}>
+        Ask about this lineage
+      </h3>
+      {nameFirstAsk && exchanges[0] ? (
+        <p className="post-meta" role="status" aria-label="Ask seed next action">
+          {firstAskNextAction(exchanges[0].question_text)}
+        </p>
+      ) : null}
+      {nameFirstAsk && exchanges[0] ? (
+        <div key={`seeded-${exchanges[0].question_text}`} className="chat-answer">
+          <p className="chat-question">{exchanges[0].question_text}</p>
+          <p>{exchanges[0].answer_text}</p>
+          <ChatCitations
+            citedPosts={exchanges[0].cited_posts}
+            citedPostIds={exchanges[0].cited_post_ids}
+            onOpenEvidence={setEvidencePostId}
+            currentPostId={
+              exchanges[0].cited_posts?.[0]?.post_id ?? exchanges[0].cited_post_ids[0]
+            }
+          />
+        </div>
+      ) : null}
+      {nameFirstAsk && firstCitedTitle ? (
+        <p className="post-meta" role="status" aria-label="Ask citation next action">
+          {firstCitedNextAction(firstCitedTitle)}
+        </p>
+      ) : null}
+      {nameFirstAsk && landedEvidencePostId ? (
+        <EvidencePanel
+          postId={landedEvidencePostId}
+          accessToken={accessToken}
+          onClose={
+            evidencePostId && evidencePostId !== firstCitedPostId
+              ? () => setEvidencePostId(null)
+              : undefined
+          }
+        />
+      ) : null}
+      {nameFirstAsk && firstCitedTitle && landedEvidencePostId ? (
+        <p className="post-meta" role="status" aria-label="Evidence next action">
+          {landedEvidenceNextAction(firstCitedTitle)}
+        </p>
+      ) : null}
       {!seededOnly && (
         <div className="chat-input-row">
           <input
@@ -223,6 +326,11 @@ function ChatPanel({ postId, accessToken }: { postId: string; accessToken: strin
               key={exchange.question_text}
               className="chat-suggestion-chip"
               aria-label={`Ask seeded question: ${exchange.question_text}`}
+              aria-current={
+                nameFirstAsk && exchanges[0]?.question_text === exchange.question_text
+                  ? "true"
+                  : undefined
+              }
               onClick={() => {
                 if (seededOnly) return;
                 setQuestion(exchange.question_text);
@@ -235,7 +343,12 @@ function ChatPanel({ postId, accessToken }: { postId: string; accessToken: strin
         </div>
       )}
       {error && <p className="error">{error}</p>}
-      {exchanges.map((exchange) => (
+      {exchanges
+        .filter(
+          (exchange) =>
+            !(nameFirstAsk && exchange.question_text === exchanges[0]?.question_text),
+        )
+        .map((exchange) => (
         <div key={`seeded-${exchange.question_text}`} className="chat-answer">
           <p className="chat-question">{exchange.question_text}</p>
           <p>{exchange.answer_text}</p>
@@ -256,15 +369,43 @@ function ChatPanel({ postId, accessToken }: { postId: string; accessToken: strin
           />
         </div>
       )}
-      {evidencePostId && (
+      {!nameFirstAsk && evidencePostId ? (
         <EvidencePanel
           postId={evidencePostId}
           accessToken={accessToken}
           onClose={() => setEvidencePostId(null)}
         />
-      )}
+      ) : null}
     </section>
   );
+}
+
+function eventLineageCurrentNextAction(postTitle: string): string {
+  return `${postTitle} is current in Event Lineage. Read Keyman and evaluation next.`;
+}
+
+function firstKeymanNextAction(personName: string): string {
+  return `${personName} is the first Keyman. Read that person next.`;
+}
+
+function firstRelatedNextAction(nodeLabel: string): string {
+  return `${nodeLabel} is the first related node. Read that person next.`;
+}
+
+function relatedNodesCurrentNextAction(personName: string): string {
+  return `Related nodes for ${personName} are current. Ask about this lineage next.`;
+}
+
+function firstAskNextAction(questionText: string): string {
+  return `${questionText} is the first Ask. Read that answer next.`;
+}
+
+function firstCitedNextAction(postTitle: string): string {
+  return `${postTitle} is the first cited source. Open that evidence next.`;
+}
+
+function landedEvidenceNextAction(postTitle: string): string {
+  return `${postTitle} evidence is current. Read Event Lineage on that post next.`;
 }
 
 function EventLineageSection({
@@ -272,11 +413,13 @@ function EventLineageSection({
   graph,
   postId,
   onSelectPost,
+  currentNextAction,
 }: {
   lineage: PostLineage | null;
   graph: LineageGraph | null;
   postId: string;
   onSelectPost?: (postId: string) => void;
+  currentNextAction?: string | null;
 }) {
   if (!lineage) return <p>Loading lineage...</p>;
   const scoped = graph ? subgraphForPost(graph, postId) : { nodes: [], edges: [] };
@@ -299,8 +442,13 @@ function EventLineageSection({
   return (
     <>
       {scoped.nodes.length > 0 && onSelectPost && (
-        <LineageDag graph={scoped} onSelectPost={onSelectPost} />
+        <LineageDag graph={scoped} onSelectPost={onSelectPost} currentPostId={postId} />
       )}
+      {scoped.nodes.length > 0 && currentNextAction ? (
+        <p className="post-meta" role="status" aria-label="Event Lineage next action">
+          {currentNextAction}
+        </p>
+      ) : null}
       {hasLinks && (
         <ul className="lineage-list">
           {lineage.direct.map((post) => renderLink(post, "direct"))}
@@ -470,6 +618,24 @@ function VocEvidenceSection({
 const NODE_PERSON = "node_person";
 const NODE_POST = "node_post";
 const NODE_CORPORATE_ENTITY = "node_corporate_entity";
+const NODE_TEAM = "node_team";
+
+const KNOWN_RELATED_NODE_TYPES = [NODE_PERSON, NODE_POST, NODE_CORPORATE_ENTITY, NODE_TEAM] as const;
+
+function isKnownRelatedNodeType(code: string): code is RelatedNodeType {
+  return (KNOWN_RELATED_NODE_TYPES as readonly string[]).includes(code);
+}
+
+function relatedNodeCaption(node: RelatedNode): string {
+  const name = node.label ?? node.node_id;
+  if (node.node_type_code === NODE_PERSON) {
+    const side = node.person_side_label ?? node.person_side_code;
+    if (side) {
+      return `${name} (${side})`;
+    }
+  }
+  return `${name} (${node.ontology_label ?? node.node_type_code})`;
+}
 
 const VERIFICATION_BADGE: Record<string, string> = {
   verify_pending: "Not yet checked",
@@ -525,6 +691,10 @@ function KeymanPanel({
   onSelectPost,
   focusPerson,
   focusEntity,
+  focusTeam,
+  landFirstKeyman,
+  landFirstRelated,
+  afterList,
 }: {
   postId: string;
   accessToken: string;
@@ -534,9 +704,15 @@ function KeymanPanel({
   onSelectPost?: (postId: string) => void;
   focusPerson?: { personId: string; personName: string } | null;
   focusEntity?: { entityId: string; entityName: string } | null;
+  focusTeam?: { teamId: string; teamName: string } | null;
+  landFirstKeyman?: boolean;
+  landFirstRelated?: boolean;
+  afterList?: ReactNode;
 }) {
   const [related, setRelated] = useState<RelatedNode[] | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [landedRelated, setLandedRelated] = useState<RelatedNode[] | null>(null);
+  const [landedRelatedName, setLandedRelatedName] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orchestratorOff, setOrchestratorOff] = useState(false);
@@ -571,6 +747,70 @@ function KeymanPanel({
     }
   }
 
+  async function handleSelectTeam(teamId: string, teamName: string) {
+    const requestId = ++relatedRequest.current;
+    setSelectedName(teamName);
+    setRelated(null);
+    try {
+      const result = await fetchRelatedTeam(accessToken, teamId);
+      if (requestId === relatedRequest.current) setRelated(result.related);
+    } catch {
+      if (requestId === relatedRequest.current) setRelated([]);
+    }
+  }
+
+  useEffect(() => {
+    if (!landFirstKeyman || selectedName || !keymen?.[0]) {
+      return;
+    }
+    const first = keymen[0];
+    const requestId = ++relatedRequest.current;
+    setSelectedName(first.person_name);
+    setRelated(null);
+    fetchRelatedKeymen(accessToken, first.person_id)
+      .then((result) => {
+        if (requestId === relatedRequest.current) setRelated(result.related);
+      })
+      .catch(() => {
+        if (requestId === relatedRequest.current) setRelated([]);
+      });
+  }, [accessToken, landFirstKeyman, keymen, selectedName]);
+
+  useEffect(() => {
+    if (!landFirstRelated) {
+      setLandedRelatedName(null);
+      setLandedRelated(null);
+      return;
+    }
+    const first = related?.[0];
+    if (!first || first.node_type_code !== NODE_PERSON) {
+      return;
+    }
+    const name = first.label ?? first.node_id;
+    let cancelled = false;
+    setLandedRelatedName(name);
+    setLandedRelated(null);
+    fetchRelatedKeymen(accessToken, first.node_id)
+      .then((result) => {
+        if (!cancelled) setLandedRelated(result.related);
+      })
+      .catch(() => {
+        if (!cancelled) setLandedRelated([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, landFirstRelated, related]);
+
+  useEffect(() => {
+    if (!landFirstRelated || !landedRelatedName || landedRelated === null) {
+      return;
+    }
+    const heading = document.getElementById("post-ask");
+    heading?.focus();
+    heading?.scrollIntoView?.({ block: "nearest" });
+  }, [landFirstRelated, landedRelatedName, landedRelated]);
+
   useEffect(() => {
     if (!focusPerson) return;
     const requestId = ++relatedRequest.current;
@@ -599,6 +839,20 @@ function KeymanPanel({
       });
   }, [accessToken, focusEntity]);
 
+  useEffect(() => {
+    if (!focusTeam) return;
+    const requestId = ++relatedRequest.current;
+    setSelectedName(focusTeam.teamName);
+    setRelated(null);
+    fetchRelatedTeam(accessToken, focusTeam.teamId)
+      .then((result) => {
+        if (requestId === relatedRequest.current) setRelated(result.related);
+      })
+      .catch(() => {
+        if (requestId === relatedRequest.current) setRelated([]);
+      });
+  }, [accessToken, focusTeam]);
+
   async function handleExtract() {
     setExtracting(true);
     setError(null);
@@ -615,7 +869,91 @@ function KeymanPanel({
     }
   }
 
+  const relatedBlock = selectedName ? (
+    <div className="related-keymen">
+      <h4>Related to {selectedName}</h4>
+      {related === null ? (
+        <p>Loading related nodes...</p>
+      ) : related.length === 0 ? (
+        <p className="popup-placeholder">No related nodes in the visible graph.</p>
+      ) : (
+        <ul>
+          {related.map((node) => {
+            const caption = relatedNodeCaption(node);
+            const key = `${node.node_type_code}:${node.node_id}`;
+            if (!isKnownRelatedNodeType(node.node_type_code)) {
+              return <li key={key}>{caption}</li>;
+            }
+            switch (node.node_type_code) {
+              case NODE_POST:
+                if (!onSelectPost) {
+                  return <li key={key}>{caption}</li>;
+                }
+                return (
+                  <li key={key}>
+                    <button
+                      className="keyman-select"
+                      aria-label={`Open related post: ${node.label ?? node.node_id}`}
+                      onClick={() => onSelectPost(node.node_id)}
+                    >
+                      {caption}
+                    </button>
+                  </li>
+                );
+              case NODE_PERSON:
+                return (
+                  <li key={key}>
+                    <button
+                      className="keyman-select"
+                      aria-label={`Related nodes for ${caption}`}
+                      aria-current={
+                        landFirstRelated && related[0]?.node_id === node.node_id
+                          ? "true"
+                          : undefined
+                      }
+                      onClick={() => handleSelect(node.node_id, node.label ?? node.node_id)}
+                    >
+                      {caption}
+                    </button>
+                  </li>
+                );
+              case NODE_CORPORATE_ENTITY:
+                return (
+                  <li key={key}>
+                    <button
+                      className="keyman-select"
+                      aria-label={`Related nodes for ${node.label ?? node.node_id}`}
+                      onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
+                    >
+                      {caption}
+                    </button>
+                  </li>
+                );
+              case NODE_TEAM:
+                return (
+                  <li key={key}>
+                    <button
+                      className="keyman-select"
+                      aria-label={`Related nodes for ${node.label ?? node.node_id}`}
+                      onClick={() => handleSelectTeam(node.node_id, node.label ?? node.node_id)}
+                    >
+                      {caption}
+                    </button>
+                  </li>
+                );
+              default: {
+                const _exhaustive: never = node.node_type_code;
+                return <li key={key}>{_exhaustive}</li>;
+              }
+            }
+          })}
+        </ul>
+      )}
+    </div>
+  ) : null;
+
   return (
+    <>
     <section className="popup-section">
       <div className="lineage-home-header">
         <h3>Keyman</h3>
@@ -633,10 +971,16 @@ function KeymanPanel({
               <button
                 className="keyman-select"
                 aria-label={`Related nodes for ${person.person_name}`}
+                aria-current={
+                  landFirstKeyman && selectedName === person.person_name ? "true" : undefined
+                }
                 onClick={() => handleSelect(person.person_id, person.person_name)}
               >
                 <strong>{person.person_name}</strong> ({person.person_side_label ?? person.person_side_code})
               </button>
+              {person.last_known_job_title && (
+                <span className="keyman-role-title"> {person.last_known_job_title}</span>
+              )}
               {person.affiliations.length > 0 && (
                 <span className="keyman-affiliations">
                   {" -- "}
@@ -659,6 +1003,9 @@ function KeymanPanel({
                       ) : (
                         affiliation.organization_name
                       )}
+                      {affiliation.role_title && (
+                        <span className="keyman-role-title"> ({affiliation.role_title})</span>
+                      )}
                     </span>
                   ))}
                 </span>
@@ -669,65 +1016,42 @@ function KeymanPanel({
       ) : (
         <p className="popup-placeholder">No Keyman extracted yet.</p>
       )}
-      {selectedName && (
+      {!afterList && relatedBlock}
+    </section>
+      {afterList}
+      {afterList && relatedBlock}
+      {afterList && related?.[0] ? (
+        <p className="post-meta" role="status" aria-label="Related next action">
+          {firstRelatedNextAction(related[0].label ?? related[0].node_id)}
+        </p>
+      ) : null}
+      {afterList && landFirstRelated && landedRelatedName ? (
         <div className="related-keymen">
-          <h4>Related to {selectedName}</h4>
-          {related === null ? (
+          <h4>Related to {landedRelatedName}</h4>
+          {landedRelated === null ? (
             <p>Loading related nodes...</p>
-          ) : related.length === 0 ? (
+          ) : landedRelated.length === 0 ? (
             <p className="popup-placeholder">No related nodes in the visible graph.</p>
           ) : (
             <ul>
-              {related.map((node) => {
-                const caption = `${node.label ?? node.node_id} (${node.ontology_label ?? node.node_type_code})`;
-                if (node.node_type_code === NODE_POST && onSelectPost) {
-                  return (
-                    <li key={`${node.node_type_code}:${node.node_id}`}>
-                      <button
-                        className="keyman-select"
-                        aria-label={`Open related post: ${node.label ?? node.node_id}`}
-                        onClick={() => onSelectPost(node.node_id)}
-                      >
-                        {caption}
-                      </button>
-                    </li>
-                  );
-                }
-                if (node.node_type_code === NODE_PERSON) {
-                  return (
-                    <li key={`${node.node_type_code}:${node.node_id}`}>
-                      <button
-                        className="keyman-select"
-                        aria-label={`Related nodes for ${node.label ?? node.node_id}`}
-                        onClick={() => handleSelect(node.node_id, node.label ?? node.node_id)}
-                      >
-                        {caption}
-                      </button>
-                    </li>
-                  );
-                }
-                if (node.node_type_code === NODE_CORPORATE_ENTITY) {
-                  return (
-                    <li key={`${node.node_type_code}:${node.node_id}`}>
-                      <button
-                        className="keyman-select"
-                        aria-label={`Related nodes for ${node.label ?? node.node_id}`}
-                        onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
-                      >
-                        {caption}
-                      </button>
-                    </li>
-                  );
-                }
-                return (
-                  <li key={`${node.node_type_code}:${node.node_id}`}>{caption}</li>
-                );
-              })}
+              {landedRelated.map((node) => (
+                <li key={`${node.node_type_code}:${node.node_id}`}>
+                  {relatedNodeCaption(node)}
+                </li>
+              ))}
             </ul>
           )}
         </div>
-      )}
-    </section>
+      ) : null}
+      {afterList && landFirstRelated && landedRelatedName && landedRelated !== null ? (
+        <p className="post-meta" role="status" aria-label="Ask next action">
+          {relatedNodesCurrentNextAction(landedRelatedName)}
+        </p>
+      ) : null}
+      {afterList && landFirstRelated && landedRelatedName && landedRelated !== null ? (
+        <ChatPanel postId={postId} accessToken={accessToken} nameFirstAsk />
+      ) : null}
+    </>
   );
 }
 
@@ -875,6 +1199,79 @@ function CounterpartyPanel({
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+function AbbreviationCrossCheckPanel({
+  postId,
+  accessToken,
+  canExtract,
+}: {
+  postId: string;
+  accessToken: string;
+  canExtract: boolean;
+}) {
+  const [matches, setMatches] = useState<AbbreviationTreeMatch[] | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchOff, setSearchOff] = useState(false);
+
+  useEffect(() => {
+    setMatches(null);
+    setError(null);
+    setSearchOff(false);
+    fetchPostAbbreviationTreeMatches(accessToken, postId)
+      .then((payload) => setMatches(payload.matches))
+      .catch(() => setMatches([]));
+  }, [accessToken, postId]);
+
+  async function handleCorroborate() {
+    setChecking(true);
+    setError(null);
+    try {
+      const payload = await corroboratePostAbbreviations(accessToken, postId);
+      setMatches(payload.matches);
+    } catch (err) {
+      setError(searchUnavailableMessage(err));
+      if (err instanceof BackendError && err.status === 503) {
+        setSearchOff(true);
+      }
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  return (
+    <section className="popup-section">
+      <div className="lineage-home-header">
+        <h3>Abbreviation cross-check</h3>
+        {canExtract && !searchOff && (
+          <button onClick={handleCorroborate} disabled={checking}>
+            {checking ? "Checking..." : "Cross-check against customer group tree"}
+          </button>
+        )}
+      </div>
+      {error && <p className="error">{error}</p>}
+      {matches === null ? (
+        <p>Loading abbreviation cross-check...</p>
+      ) : matches.length === 0 ? (
+        <p className="popup-placeholder">
+          No abbreviations cross-checked against the customer group tree yet.
+        </p>
+      ) : (
+        <ul aria-label="Abbreviation tree matches">
+          {matches.map((match) => (
+            <li key={match.raw_organization_name}>
+              {match.raw_organization_name}
+              <span className="affiliate-level">
+                {" "}
+                ({abbreviationStatusLabel(parseVerificationStatus(match.verification_status_code))})
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
@@ -1087,6 +1484,9 @@ function PostDetailPopup({
   accessToken,
   canExtract,
   graph,
+  liveBodyWarning,
+  knowledgeCutoff,
+  focusEventLineage,
   onClose,
   onSelectPost,
 }: {
@@ -1094,6 +1494,9 @@ function PostDetailPopup({
   accessToken: string;
   canExtract: boolean;
   graph: LineageGraph | null;
+  liveBodyWarning?: string | null;
+  knowledgeCutoff?: string | null;
+  focusEventLineage?: boolean;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
 }) {
@@ -1108,6 +1511,7 @@ function PostDetailPopup({
   const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
+  const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
 
   function reloadKeymen() {
     fetchPostKeymen(accessToken, postId).then((r) => setKeymen(r.keymen)).catch(() => setKeymen([]));
@@ -1136,7 +1540,9 @@ function PostDetailPopup({
     setEvaluation(null);
     setFocusPerson(null);
     setFocusEntity(null);
-    fetchPost(accessToken, postId).then(setPost).catch((err) => setError(String(err)));
+    setFocusTeam(null);
+    const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
+    fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
     fetchPostEvaluation(accessToken, postId)
       .then((r) => setEvaluation(r.responses))
       .catch(() => setEvaluation([]));
@@ -1150,14 +1556,21 @@ function PostDetailPopup({
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
     fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
-  }, [postId, accessToken]);
+  }, [postId, accessToken, liveBodyWarning, knowledgeCutoff]);
+
+  useEffect(() => {
+    if (!focusEventLineage || !post) {
+      return;
+    }
+    const heading = document.getElementById("post-event-lineage");
+    heading?.focus();
+    heading?.scrollIntoView?.({ block: "nearest" });
+  }, [focusEventLineage, post]);
 
   return (
     <div className="popup-backdrop" onClick={onClose}>
       <div className="popup-panel" onClick={(event) => event.stopPropagation()}>
-        <button className="popup-close" onClick={onClose} aria-label="Close">
-          &times;
-        </button>
+        <PopupCloseButton onClose={onClose} label="Close" />
         {error && <p className="error">{error}</p>}
         {!post && !error && <p>Loading...</p>}
         {post && (
@@ -1168,7 +1581,20 @@ function PostDetailPopup({
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
-            <p className="post-body">{post.post_body}</p>
+            {post.known_at ? (
+              <CutoffKnownBody
+                title={post.known_at.post_title}
+                body={post.known_at.post_body}
+                writtenAt={post.known_at.written_at}
+                cutoff={post.known_at.as_of}
+              />
+            ) : null}
+            {liveBodyWarning ? (
+              <p className="popup-live-body-warning" role="status" aria-label="Live body warning">
+                {liveBodyWarning}
+              </p>
+            ) : null}
+            <PostBody body={post.post_body} />
 
             <section className="popup-section">
               <h3>요약 (Summary)</h3>
@@ -1190,25 +1616,90 @@ function PostDetailPopup({
                       <h4>R&amp;R</h4>
                       <ul>
                         {summary.roles_and_responsibilities.map((rr, i) => {
-                          const person = keymen?.find((row) => row.person_name === rr.person_name);
+                          const isPerson = rr.actor_type_code === "prov_person";
+                          const actorTypeLabel =
+                            rr.actor_type_code === "prov_team"
+                              ? "Team"
+                              : isPerson
+                                ? "Person"
+                                : "Organization";
+                          const person = isPerson
+                            ? keymen?.find((row) => row.person_name === rr.actor_name)
+                            : undefined;
+                          const catalogId = rr.catalog_node_id;
+                          const catalogType = rr.catalog_node_type_code;
+                          let actorName: ReactNode = <strong>{rr.actor_name}</strong>;
+                          if (catalogType === NODE_PERSON && catalogId) {
+                            actorName = (
+                              <button
+                                className="keyman-select"
+                                aria-label={`R&R person: ${rr.actor_name}`}
+                                onClick={() => {
+                                  setFocusEntity(null);
+                                  setFocusTeam(null);
+                                  setFocusPerson({
+                                    personId: catalogId,
+                                    personName: rr.actor_name,
+                                  });
+                                }}
+                              >
+                                <strong>{rr.actor_name}</strong>
+                              </button>
+                            );
+                          } else if (person) {
+                            actorName = (
+                              <button
+                                className="keyman-select"
+                                aria-label={`R&R Keyman: ${rr.actor_name}`}
+                                onClick={() => {
+                                  setFocusEntity(null);
+                                  setFocusTeam(null);
+                                  setFocusPerson({
+                                    personId: person.person_id,
+                                    personName: person.person_name,
+                                  });
+                                }}
+                              >
+                                <strong>{rr.actor_name}</strong>
+                              </button>
+                            );
+                          } else if (catalogType === NODE_TEAM && catalogId) {
+                            actorName = (
+                              <button
+                                className="keyman-select"
+                                aria-label={`R&R team: ${rr.actor_name}`}
+                                onClick={() => {
+                                  setFocusPerson(null);
+                                  setFocusEntity(null);
+                                  setFocusTeam({ teamId: catalogId, teamName: rr.actor_name });
+                                }}
+                              >
+                                <strong>{rr.actor_name}</strong>
+                              </button>
+                            );
+                          } else if (catalogType === NODE_CORPORATE_ENTITY && catalogId) {
+                            actorName = (
+                              <button
+                                className="keyman-select"
+                                aria-label={`R&R organization: ${rr.actor_name}`}
+                                onClick={() => {
+                                  setFocusPerson(null);
+                                  setFocusTeam(null);
+                                  setFocusEntity({ entityId: catalogId, entityName: rr.actor_name });
+                                }}
+                              >
+                                <strong>{rr.actor_name}</strong>
+                              </button>
+                            );
+                          }
                           return (
                             <li key={i}>
-                              {person ? (
-                                <button
-                                  className="keyman-select"
-                                  aria-label={`R&R Keyman: ${rr.person_name}`}
-                                  onClick={() => {
-                                    setFocusEntity(null);
-                                    setFocusPerson({
-                                      personId: person.person_id,
-                                      personName: person.person_name,
-                                    });
-                                  }}
-                                >
-                                  <strong>{rr.person_name}</strong>
-                                </button>
-                              ) : (
-                                <strong>{rr.person_name}</strong>
+                              <span className={`actor-type-badge actor-type-${rr.actor_type_code}`}>
+                                {actorTypeLabel}
+                              </span>{" "}
+                              {actorName}
+                              {rr.affiliated_organization_name && (
+                                <span className="rr-affiliation"> ({rr.affiliated_organization_name})</span>
                               )}
                               : {rr.responsibility}
                             </li>
@@ -1223,32 +1714,78 @@ function PostDetailPopup({
               )}
             </section>
 
-            <EvaluationPanel
-              postId={postId}
-              accessToken={accessToken}
-              responses={evaluation}
-              canExtract={canExtract}
-              onEvaluated={(rows) => setEvaluation(rows)}
-            />
+            {!focusEventLineage && (
+              <EvaluationPanel
+                postId={postId}
+                accessToken={accessToken}
+                responses={evaluation}
+                canExtract={canExtract}
+                onEvaluated={(rows) => setEvaluation(rows)}
+              />
+            )}
 
             <VocEvidenceSection
               evidence={vocEvidence}
               affiliateTrees={affiliateTrees}
               onSelectPerson={(personId, personName) => {
                 setFocusEntity(null);
+                setFocusTeam(null);
                 setFocusPerson({ personId, personName });
               }}
             />
 
             <section className="popup-section">
-              <h3>Event Lineage</h3>
+              <h3 id="post-event-lineage" tabIndex={-1}>
+                Event Lineage
+              </h3>
               <EventLineageSection
                 lineage={lineage}
                 graph={graph}
                 postId={postId}
                 onSelectPost={onSelectPost}
+                currentNextAction={
+                  focusEventLineage ? eventLineageCurrentNextAction(post.post_title) : null
+                }
               />
             </section>
+
+            {focusEventLineage && (
+              <KeymanPanel
+                postId={postId}
+                accessToken={accessToken}
+                keymen={keymen}
+                canExtract={canExtract}
+                onExtracted={reloadKeymen}
+                onSelectPost={onSelectPost}
+                focusPerson={focusPerson}
+                focusEntity={focusEntity}
+                focusTeam={focusTeam}
+                landFirstKeyman
+                landFirstRelated
+                afterList={
+                  <>
+                    <EvaluationPanel
+                      postId={postId}
+                      accessToken={accessToken}
+                      responses={evaluation}
+                      canExtract={canExtract}
+                      onEvaluated={(rows) => setEvaluation(rows)}
+                    />
+                    {keymen?.[0] ? (
+                      <p className="post-meta" role="status" aria-label="Keyman next action">
+                        {firstKeymanNextAction(keymen[0].person_name)}
+                      </p>
+                    ) : null}
+                  </>
+                }
+              />
+            )}
+
+            <AbbreviationCrossCheckPanel
+              postId={postId}
+              accessToken={accessToken}
+              canExtract={canExtract}
+            />
 
             <section className="popup-section">
               <h3>Affiliate tree</h3>
@@ -1264,10 +1801,12 @@ function PostDetailPopup({
                       node={node}
                       onSelectPerson={(personId, personName) => {
                         setFocusEntity(null);
+                        setFocusTeam(null);
                         setFocusPerson({ personId, personName });
                       }}
                       onSelectEntity={(entityId, entityName) => {
                         setFocusPerson(null);
+                        setFocusTeam(null);
                         setFocusEntity({ entityId, entityName });
                       }}
                     />
@@ -1276,16 +1815,19 @@ function PostDetailPopup({
               )}
             </section>
 
-            <KeymanPanel
-              postId={postId}
-              accessToken={accessToken}
-              keymen={keymen}
-              canExtract={canExtract}
-              onExtracted={reloadKeymen}
-              onSelectPost={onSelectPost}
-              focusPerson={focusPerson}
-              focusEntity={focusEntity}
-            />
+            {!focusEventLineage && (
+              <KeymanPanel
+                postId={postId}
+                accessToken={accessToken}
+                keymen={keymen}
+                canExtract={canExtract}
+                onExtracted={reloadKeymen}
+                onSelectPost={onSelectPost}
+                focusPerson={focusPerson}
+                focusEntity={focusEntity}
+                focusTeam={focusTeam}
+              />
+            )}
 
             {counterparties && counterparties.length > 0 && (
               <CounterpartyPanel
@@ -1296,6 +1838,7 @@ function PostDetailPopup({
                 onVerified={reloadCounterparties}
                 onSelectEntity={(entityId, entityName) => {
                   setFocusPerson(null);
+                  setFocusTeam(null);
                   setFocusEntity({ entityId, entityName });
                 }}
               />
@@ -1305,11 +1848,896 @@ function PostDetailPopup({
 
             <ActivityPanel postId={postId} accessToken={accessToken} />
 
-            <ChatPanel postId={postId} accessToken={accessToken} />
+            {!focusEventLineage && (
+              <ChatPanel postId={postId} accessToken={accessToken} />
+            )}
           </>
         )}
       </div>
     </div>
+  );
+}
+
+function analysisRunCaption(run: AnalysisRun): string {
+  return [run.run_kind_label, run.status_label, run.scope_entity_name ?? run.scope_kind_label]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/**
+ * Next action for a pending or failed run on the home list and detail.
+ *
+ * The machine `failure_code` stays on detail history (ADR 0014). Copy
+ * is pinned to registered kinds so a pending TEPP row is not mistaken
+ * for reconstruction, and a failed lineage row is not mistaken for a
+ * missing TEPP transport.
+ */
+function analysisRunNextAction(run: AnalysisRun): string | null {
+  switch (run.status_code) {
+    case "analysis_status_pending":
+      switch (run.run_kind_code) {
+        case "analysis_run_lineage":
+          return "Open this run, then start reconstruction. Reconstruction has not started yet.";
+        case "analysis_run_tepp":
+          return "Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.";
+        case "analysis_run_report":
+          return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
+        default: {
+          const unexpected: never = run.run_kind_code;
+          return unexpected;
+        }
+      }
+    case "analysis_status_failed":
+      switch (run.run_kind_code) {
+        case "analysis_run_tepp":
+          if (run.tepp_evidence_sha256) {
+            return (
+              "Open this run to read aggregate transport evidence. Completed " +
+              "TEPP measurement identity is unavailable until TEPP publishes a " +
+              "versioned completed-result contract."
+            );
+          }
+          return "Open this run to see why it failed, then connect the measurement service and re-run.";
+        case "analysis_run_lineage":
+          return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
+        case "analysis_run_report":
+          return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
+        default: {
+          const unexpected: never = run.run_kind_code;
+          return unexpected;
+        }
+      }
+    case "analysis_status_running":
+      return "Refresh this run. Start already queued the work on the durable outbox.";
+    case "analysis_status_succeeded":
+      switch (run.run_kind_code) {
+        case "analysis_run_tepp":
+          return (
+            "Open this run to read aggregate transport evidence. This status " +
+            "is not a validated multilevel estimate. Completed TEPP " +
+            "measurement identity is unavailable until TEPP publishes a " +
+            "versioned completed-result contract."
+          );
+        case "analysis_run_lineage":
+        case "analysis_run_report":
+          return null;
+        default: {
+          const unexpected: never = run.run_kind_code;
+          return unexpected;
+        }
+      }
+    case "analysis_status_cancelled":
+    case null:
+      return null;
+    default: {
+      const unexpected: never = run.status_code;
+      return unexpected;
+    }
+  }
+}
+
+/**
+ * Accessible name for an analysis-run list button (ADR 0014).
+ *
+ * `aria-label` replaces the button contents (W3C Accessible Name and
+ * Description Computation 1.1). When a next action exists, the name is
+ * `Open analysis run: {caption}. {nextAction}` so a screen reader hears
+ * what to do next, not only the run title (WCAG 2.2 SC 4.1.2). Succeeded
+ * TEPP rows keep a next action. Other succeeded and cancelled rows keep
+ * the caption alone.
+ */
+function analysisRunAccessibleName(run: AnalysisRun): string {
+  const caption = analysisRunCaption(run);
+  const nextAction = analysisRunNextAction(run);
+  if (nextAction === null) {
+    return `Open analysis run: ${caption}`;
+  }
+  return `Open analysis run: ${caption}. ${nextAction}`;
+}
+
+/**
+ * Next action when detail 404s. Stay generic: do not name the thread or the cutoff.
+ * Naming either would confirm a hidden row (ADR 0018).
+ */
+function analysisRunHiddenNextAction(): string {
+  return (
+    "This run is not on your list. Open a visible run from the home list, " +
+    "or request a lineage reconstruction for a corporation you already walk."
+  );
+}
+
+/**
+ * Empty-corpus copy that tells the operator what to do next.
+ */
+function analysisRunEmptyPostsHint(run: AnalysisRun): string {
+  switch (run.run_kind_code) {
+    case "analysis_run_tepp":
+      return (
+        "No posts were available at this cutoff for TEPP to measure. " +
+        "Open a later run, or ask an administrator to capture a newer snapshot."
+      );
+    case "analysis_run_lineage":
+      return (
+        "No posts were available at this cutoff for reconstruction. " +
+        "Open a later run, or ask an administrator to capture a newer snapshot."
+      );
+    case "analysis_run_report":
+      return (
+        "No posts were available at this cutoff for the period report. " +
+        "Open a later run, or ask an administrator to capture a newer snapshot."
+      );
+    default: {
+      const unexpected: never = run.run_kind_code;
+      return unexpected;
+    }
+  }
+}
+
+/**
+ * Corpus copy for a TEPP run that already has cutoff posts.
+ *
+ * Those titles are the measurement bag, not a reconstruction result.
+ * Pending or running must not claim a calibrated measurement.
+ */
+function analysisRunCorpusHint(run: AnalysisRun): string | null {
+  if (run.run_kind_code !== "analysis_run_tepp") return null;
+  switch (run.status_code) {
+    case "analysis_status_failed":
+      if (run.tepp_evidence_sha256) {
+        return (
+          "These posts are the cutoff corpus TEPP accepted for later " +
+          "measurement. Completed artifact identity is unavailable until TEPP " +
+          "publishes a versioned completed-result contract."
+        );
+      }
+      return (
+        "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
+        "transport, then re-run. An accepted acknowledgement is not a " +
+        "calibrated result."
+      );
+    case "analysis_status_succeeded":
+      return (
+        "These posts are the cutoff corpus attached to this TEPP run. This " +
+        "status is not a validated multilevel estimate."
+      );
+    case "analysis_status_pending":
+    case "analysis_status_running":
+      return "These posts are the cutoff corpus TEPP will measure once this run finishes.";
+    case "analysis_status_cancelled":
+      return (
+        "These posts are the cutoff corpus this TEPP run would have measured. " +
+        "The run was cancelled before a calibrated result."
+      );
+    case null:
+      return "These posts are the cutoff corpus attached to this TEPP run.";
+    default: {
+      const unexpected: never = run.status_code;
+      return unexpected;
+    }
+  }
+}
+
+/**
+ * Buyer-visible TEPP receipt clock. Minute precision matches other run clocks.
+ */
+function formatTeppEvidenceClock(iso: string): string {
+  return iso.slice(0, 16).replace("T", " ");
+}
+
+/**
+ * Authorized TEPP clocks. A second clock appears only when instants differ.
+ *
+ * Equal receipt and row-write values stay one sentence so the copy does
+ * not invent a second clock. Missing recorded time is receipt only.
+ */
+function teppAcceptedClockCopy(
+  receivedAt: string,
+  recordedAt: string | undefined,
+): string {
+  const received = formatTeppEvidenceClock(receivedAt);
+  if (recordedAt === undefined) {
+    return `Received ${received}`;
+  }
+  const recorded = formatTeppEvidenceClock(recordedAt);
+  if (recorded === received) {
+    return `Received ${received}`;
+  }
+  return `Received ${received} · recorded ${recorded}`;
+}
+
+/**
+ * Authorized TEPP transport evidence. Never a validated multilevel estimate.
+ *
+ * Completed-artifact identity, membership weights, uncertainty, and
+ * scientific estimands stay unavailable until TEPP publishes a versioned
+ * completed-result contract.
+ */
+function TeppMeasurementEvidence({ run }: { run: AnalysisRun }) {
+  const evidenceKind = run.tepp_evidence_kind ?? "aggregate transport evidence";
+  const digest = run.tepp_evidence_sha256;
+  async function copyDigest() {
+    if (!digest || !navigator.clipboard?.writeText) {
+      return;
+    }
+    await navigator.clipboard.writeText(digest);
+  }
+  return (
+    <section aria-labelledby="tepp-measurement-evidence-heading">
+      <h4 id="tepp-measurement-evidence-heading">Measurement evidence</h4>
+      <p className="post-meta">{evidenceKind}</p>
+      <p className="post-meta">
+        TEPP completed-artifact identity, membership weights, uncertainty,
+        validation, and scientific estimands are unavailable until TEPP
+        publishes a versioned completed-result contract. Missing fields fail
+        closed. This is not a validated multilevel estimate.
+      </p>
+      {digest ? (
+        <>
+          <p className="post-meta">
+            Contract v{run.tepp_contract_version} · {run.tepp_run_state}
+            {run.tepp_accepted_run_id ? ` · accepted run ${run.tepp_accepted_run_id}` : ""}
+          </p>
+          {run.tepp_received_at && (
+            <p className="post-meta">
+              {teppAcceptedClockCopy(run.tepp_received_at, run.tepp_recorded_at)}
+            </p>
+          )}
+          <p className="post-meta">
+            <label htmlFor="tepp-evidence-sha256">Evidence SHA-256</label>
+          </p>
+          <code id="tepp-evidence-sha256">{digest}</code>
+          <button
+            type="button"
+            className="keyman-select"
+            aria-label="Copy evidence SHA-256"
+            onClick={() => void copyDigest()}
+          >
+            Copy evidence SHA-256
+          </button>
+        </>
+      ) : (
+        <p className="post-meta">
+          No published accepted acknowledgement is stored on this run.
+        </p>
+      )}
+    </section>
+  );
+}
+
+/** Git-style prefix. The full digest stays on `title` for verification. */
+const ANALYSIS_RUN_DIGEST_PREFIX_LENGTH = 12;
+
+function analysisRunDigestPrefix(digest: string): string {
+  return digest.slice(0, ANALYSIS_RUN_DIGEST_PREFIX_LENGTH);
+}
+
+type SelectPostOptions = {
+  liveAfterCutoff?: boolean;
+  knowledgeCutoff?: string;
+  fromReportMember?: boolean;
+};
+
+/**
+ * Next action when a cutoff title opens the live post (ADR 0016 / 0025).
+ *
+ * Titles marked `live_after_cutoff` were rewritten after this run;
+ * others still match the write clock the run knew. The popup then
+ * shows the stored cutoff-known body beside the live rewrite. A
+ * missing revision is omitted -- never an invented earlier sentence.
+ */
+function analysisRunLivePostWarning(cutoffIso: string): string {
+  const cutoffDate = cutoffIso.slice(0, 10);
+  return (
+    `Opening a title shows the live post. Titles marked updated after cutoff ` +
+    `were rewritten after ${cutoffDate}. Compare those bodies with this run ` +
+    "before you treat them as reconstructed evidence."
+  );
+}
+
+/**
+ * Popup next action when a marked cutoff title opens the live body.
+ *
+ * ADR 0025 stores the earlier sentence on source_post_revision. This
+ * copy still names the live body so the operator compares two texts.
+ */
+function analysisRunOpenedBodyWarning(cutoffIso?: string | null): string {
+  const cutoffDate = cutoffIso?.slice(0, 10);
+  const when = cutoffDate ? ` this ${cutoffDate}` : " this";
+  return (
+    "This is the live body, not a cutoff snapshot. " +
+    `Compare it with${when} run before you treat it as reconstructed evidence.`
+  );
+}
+
+function analysisRunLivePostButtonLabel(post: {
+  post_title: string;
+  live_after_cutoff?: boolean;
+}): string {
+  if (post.live_after_cutoff) {
+    return `Open live post (updated after cutoff): ${post.post_title}`;
+  }
+  return `Open live post: ${post.post_title}`;
+}
+
+function AnalysisRunReproducibilityDigests({
+  codeRevisionSha,
+  configurationSha256,
+  reconstructionResultSha256,
+  teppEvidenceSha256,
+}: {
+  codeRevisionSha?: string;
+  configurationSha256?: string;
+  reconstructionResultSha256?: string;
+  teppEvidenceSha256?: string;
+}) {
+  const parts: { label: string; digest: string }[] = [];
+  if (codeRevisionSha) {
+    parts.push({ label: "Code", digest: codeRevisionSha });
+  }
+  if (configurationSha256) {
+    parts.push({ label: "Config", digest: configurationSha256 });
+  }
+  if (reconstructionResultSha256) {
+    parts.push({ label: "Result", digest: reconstructionResultSha256 });
+  }
+  if (teppEvidenceSha256) {
+    parts.push({ label: "TEPP", digest: teppEvidenceSha256 });
+  }
+  if (parts.length === 0) {
+    return null;
+  }
+  return (
+    <div role="group" aria-label="Analysis run reproducibility digests">
+      <p className="post-meta">
+        <span className="visually-hidden">
+          Hover a prefix to read the full digest for verification.{" "}
+        </span>
+        {parts.map((part, index) => (
+          <span key={part.label}>
+            {index > 0 ? " · " : null}
+            <span title={part.digest}>{`${part.label} ${analysisRunDigestPrefix(part.digest)}`}</span>
+          </span>
+        ))}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Start is for a Pending lineage or TEPP row after Request.
+ *
+ * Period-report keeps its own rebuild path. TEPP start goes through
+ * tepp_client and must not be labeled reconstruction.
+ */
+function analysisRunCanStart(run: AnalysisRun): boolean {
+  return (
+    (run.run_kind_code === "analysis_run_lineage" || run.run_kind_code === "analysis_run_tepp") &&
+    (run.status_code === "analysis_status_pending" ||
+      run.status_code === "analysis_status_running")
+  );
+}
+
+function analysisRunStartLabel(run: AnalysisRun): string {
+  return run.run_kind_code === "analysis_run_tepp"
+    ? "Start TEPP measurement"
+    : "Start reconstruction";
+}
+
+/** Failed TEPP is terminal. Create cannot invent a Pending TEPP row. */
+function analysisRunCanRequestTeppRetry(run: AnalysisRun): boolean {
+  return run.run_kind_code === "analysis_run_tepp" && run.status_code === "analysis_status_failed";
+}
+
+const REPORT_PERIOD_KEY = /^\d{4}-W\d{2}$/;
+
+/**
+ * Period code stored on a succeeded report run's scope key.
+ *
+ * That key is a week label, not a theta. Missing or malformed keys
+ * stay closed so we do not invent a period.
+ */
+/**
+ * Report grouping that matches the run's authorized scope.
+ *
+ * A corporate-entity run must not leave the panel on process unit.
+ */
+function analysisRunReportGrouping(run: AnalysisRun): string | null {
+  switch (run.scope_kind_code) {
+    case "analysis_scope_corporate_entity":
+      return "corporate_entity";
+    case "analysis_scope_process_unit":
+      return "process_unit";
+    case "analysis_scope_thread_group":
+      return "thread_group";
+    default:
+      return null;
+  }
+}
+
+function analysisRunReportGroupingKey(run: AnalysisRun): string | undefined {
+  return run.scope_grouping_key || undefined;
+}
+
+function analysisRunReportPeriod(run: AnalysisRun): string | null {
+  if (run.run_kind_code !== "analysis_run_report") {
+    return null;
+  }
+  if (run.status_code !== "analysis_status_succeeded") {
+    return null;
+  }
+  const key = run.scope_key;
+  if (!key || !REPORT_PERIOD_KEY.test(key)) {
+    return null;
+  }
+  return key;
+}
+
+/**
+ * Open options for a reconstructed parent or child.
+ *
+ * The run-scoped edge is the reconstruction result. The popup still
+ * shows the live body; reuse the cutoff write-clock flag when that
+ * title is marked rewritten after this run.
+ */
+function analysisRunPostOpenOptions(run: AnalysisRun, postId: string): SelectPostOptions {
+  const post = run.visible_posts?.find((item) => item.post_id === postId);
+  return {
+    liveAfterCutoff: Boolean(post?.live_after_cutoff),
+    knowledgeCutoff: run.knowledge_cutoff,
+  };
+}
+
+function AnalysisRunsPanel({
+  accessToken,
+  currentReportPeriod,
+  onSelectPost,
+  onSelectReportPeriod,
+  corporateEntities,
+  entitiesLoadError,
+}: {
+  accessToken: string;
+  currentReportPeriod?: string;
+  onSelectPost: (postId: string, options?: SelectPostOptions) => void;
+  onSelectReportPeriod?: (
+    periodCode: string,
+    groupingKind?: string,
+    groupingKey?: string,
+    groupingLabel?: string,
+  ) => void;
+  corporateEntities: CorporateEntityRef[] | null;
+  entitiesLoadError: string | null;
+}) {
+  const [runs, setRuns] = useState<AnalysisRun[] | null>(null);
+  const [selected, setSelected] = useState<AnalysisRun | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [requesting, setRequesting] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [selectedEntityId, setSelectedEntityId] = useState("");
+  const inFlightKeyRef = useRef<string | null>(null);
+  const entitiesReady = corporateEntities !== null && entitiesLoadError === null;
+  const defaultEntityId = corporateEntities?.[0]?.corporate_entity_id ?? "";
+  const effectiveEntityId = selectedEntityId || defaultEntityId;
+  const requestLabel = requesting
+    ? "Recording the run..."
+    : entitiesLoadError
+      ? "Reload to choose a corporate entity"
+      : corporateEntities === null
+        ? "Loading affiliated entities..."
+        : "Request a lineage reconstruction";
+
+  useEffect(() => {
+    fetchAnalysisRuns(accessToken)
+      .then((payload) => setRuns(payload.analysis_runs))
+      .catch((err) => setError(String(err)));
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (!corporateEntities?.length) {
+      return;
+    }
+    setSelectedEntityId((current) => current || corporateEntities[0].corporate_entity_id);
+  }, [corporateEntities]);
+
+  async function handleRequestLineage() {
+    if (corporateEntities === null || entitiesLoadError) {
+      setError(
+        entitiesLoadError ?? "Reload to load the corporate entities this account may reconstruct.",
+      );
+      return;
+    }
+    if (corporateEntities.length > 1 && !effectiveEntityId) {
+      setError("Choose which corporate entity to reconstruct.");
+      return;
+    }
+    setError(null);
+    setRequesting(true);
+    if (inFlightKeyRef.current === null) {
+      inFlightKeyRef.current = crypto.randomUUID();
+    }
+    const idempotencyKey = inFlightKeyRef.current;
+    try {
+      const created = await createAnalysisRun(accessToken, {
+        run_kind_code: "analysis_run_lineage",
+        idempotency_key: idempotencyKey,
+        ...(effectiveEntityId ? { corporate_entity_id: effectiveEntityId } : {}),
+      });
+      const listed = await fetchAnalysisRuns(accessToken);
+      setRuns(listed.analysis_runs);
+      setSelected(created);
+      inFlightKeyRef.current = null;
+    } catch (err) {
+      if (err instanceof BackendError && err.status === 409) {
+        inFlightKeyRef.current = null;
+        setError(
+          "This request key already names a different reconstruction. Request again to start a new run.",
+        );
+      } else {
+        setError(err instanceof BackendError ? err.message : String(err));
+      }
+    } finally {
+      setRequesting(false);
+    }
+  }
+
+  async function handleStartReconstruction() {
+    if (!selected) return;
+    setError(null);
+    setStarting(true);
+    try {
+      const started = await startAnalysisRun(accessToken, selected.analysis_run_id);
+      const listed = await fetchAnalysisRuns(accessToken);
+      setRuns(listed.analysis_runs);
+      setSelected(started);
+    } catch (err) {
+      setError(err instanceof BackendError ? err.message : String(err));
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  async function handleOpen(runId: string) {
+    setError(null);
+    try {
+      setSelected(await fetchAnalysisRun(accessToken, runId));
+    } catch (err) {
+      setSelected(null);
+      if (err instanceof BackendError && err.status === 404) {
+        setError(analysisRunHiddenNextAction());
+        try {
+          setRuns((await fetchAnalysisRuns(accessToken)).analysis_runs);
+        } catch {
+          // Keep the last authorized list if the re-read fails.
+        }
+        return;
+      }
+      setError(String(err));
+    }
+  }
+
+  if (error && runs === null) return <StatusAlert>{error}</StatusAlert>;
+  if (runs === null) return <p>Loading analysis runs...</p>;
+
+  const corpusHint = selected ? analysisRunCorpusHint(selected) : null;
+  const selectedNextAction = selected ? analysisRunNextAction(selected) : null;
+  const statusMessage = error ?? entitiesLoadError;
+
+  return (
+    <section className="popup-section lineage-home">
+      <div className="lineage-home-header">
+        <h2>Analysis runs</h2>
+        <LineageEntityPicker
+          entities={corporateEntities ?? []}
+          selectedEntityId={selectedEntityId}
+          onSelectEntityId={setSelectedEntityId}
+        />
+        <button
+          className="keyman-select"
+          aria-label={requestLabel}
+          aria-busy={corporateEntities === null || requesting}
+          disabled={
+            requesting ||
+            !entitiesReady ||
+            (corporateEntities !== null && corporateEntities.length > 1 && !effectiveEntityId)
+          }
+          onClick={() => void handleRequestLineage()}
+        >
+          {requestLabel}
+        </button>
+      </div>
+      {statusMessage ? <StatusAlert>{statusMessage}</StatusAlert> : null}
+      {runs.length === 0 ? (
+        <p className="popup-placeholder">
+          No analysis runs visible to this account yet. Request a lineage
+          reconstruction, or ask an administrator to run make seed.
+        </p>
+      ) : (
+        <ul className="ticket-list" aria-label="Analysis runs">
+          {runs.map((run) => {
+            const documentCount = run.source_counts.find(
+              (count) => count.count_type_code === "analysis_count_document",
+            );
+            const caption = analysisRunCaption(run);
+            const nextAction = analysisRunNextAction(run);
+            return (
+              <li key={run.analysis_run_id} className="ticket-list-item">
+                <button
+                  className="post-list-item"
+                  aria-label={analysisRunAccessibleName(run)}
+                  onClick={() => void handleOpen(run.analysis_run_id)}
+                >
+                  <span className="ticket-title">{caption}</span>
+                  {documentCount && (
+                    <span className="post-badge">
+                      {documentCount.count_value} {documentCount.count_type_label.toLowerCase()}
+                    </span>
+                  )}
+                  {run.tepp_evidence_kind && (
+                    <span className="post-badge">{run.tepp_evidence_kind}</span>
+                  )}
+                  {nextAction && <span className="post-meta">{nextAction}</span>}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {selected && (
+        <div className="popup-section">
+          <h3>{analysisRunCaption(selected)}</h3>
+          {selectedNextAction && <p className="post-meta">{selectedNextAction}</p>}
+          <p className="post-meta">
+            Cutoff {selected.knowledge_cutoff.slice(0, 10)}
+            {" · "}
+            Requested {selected.requested_at.slice(0, 10)}
+          </p>
+          <AnalysisRunReproducibilityDigests
+            codeRevisionSha={selected.code_revision_sha}
+            configurationSha256={selected.configuration_sha256}
+            reconstructionResultSha256={selected.reconstruction_result_sha256}
+            teppEvidenceSha256={selected.tepp_evidence_sha256}
+          />
+          {selected.run_kind_code === "analysis_run_tepp" && (
+            <TeppMeasurementEvidence run={selected} />
+          )}
+          {analysisRunCanStart(selected) && (
+            <button
+              className="keyman-select"
+              aria-label={analysisRunStartLabel(selected)}
+              disabled={starting}
+              onClick={() => void handleStartReconstruction()}
+            >
+              {starting
+                ? selected.run_kind_code === "analysis_run_tepp"
+                  ? "Submitting the TEPP request..."
+                  : "Reconstructing the cutoff bag..."
+                : analysisRunStartLabel(selected)}
+            </button>
+          )}
+          {analysisRunCanRequestTeppRetry(selected) && (
+            <p className="post-meta">
+              Connect a TEPP transport from this Failed row. Request a lineage
+              reconstruction does not invent a measurement.
+            </p>
+          )}
+          {analysisRunReportPeriod(selected) && onSelectReportPeriod && (
+            <button
+              className="keyman-select"
+              aria-label={`Open period report ${analysisRunReportPeriod(selected)}`}
+              onClick={() => {
+                const periodCode = analysisRunReportPeriod(selected);
+                if (periodCode) {
+                  const alreadyOnWeek = currentReportPeriod === periodCode;
+                  onSelectReportPeriod(
+                    periodCode,
+                    analysisRunReportGrouping(selected) ?? undefined,
+                    analysisRunReportGroupingKey(selected),
+                    selected.scope_entity_name,
+                  );
+                  if (!alreadyOnWeek) {
+                    document.getElementById("report-period")?.focus();
+                  }
+                }
+              }}
+            >
+              Open period report {analysisRunReportPeriod(selected)}
+            </button>
+          )}
+          {selected.reconstructed_edges && selected.reconstructed_edges.length > 0 && (
+            <ul aria-label="Reconstructed lineage edges">
+              {selected.reconstructed_edges.map((edge) => (
+                <li key={`${edge.parent_post_id}-${edge.child_post_id}`}>
+                  <button
+                    className="keyman-select"
+                    aria-label={`Open reconstructed child: ${edge.child_post_title}`}
+                    onClick={() =>
+                      onSelectPost(
+                        edge.child_post_id,
+                        analysisRunPostOpenOptions(selected, edge.child_post_id),
+                      )
+                    }
+                  >
+                    {edge.child_post_title}
+                  </button>
+                  {" follows "}
+                  <button
+                    className="keyman-select"
+                    aria-label={`Open reconstructed parent: ${edge.parent_post_title}`}
+                    onClick={() =>
+                      onSelectPost(
+                        edge.parent_post_id,
+                        analysisRunPostOpenOptions(selected, edge.parent_post_id),
+                      )
+                    }
+                  >
+                    {edge.parent_post_title}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <ul>
+            {selected.source_counts.map((count) => (
+              <li key={count.count_type_code}>
+                {count.count_value} {count.count_type_label.toLowerCase()}
+              </li>
+            ))}
+          </ul>
+          {selected.status_history && selected.status_history.length > 0 && (
+            <ol aria-label="Analysis run status history">
+              {selected.status_history.map((event) => (
+                <li key={event.status_ordinal}>
+                  {event.status_label} {event.occurred_at.slice(0, 16).replace("T", " ")}
+                  {event.failure_code ? ` · ${event.failure_code}` : ""}
+                </li>
+              ))}
+            </ol>
+          )}
+          {selected.outbox_deliveries && selected.outbox_deliveries.length > 0 && (
+            <ol aria-label="Analysis run outbox delivery">
+              {selected.outbox_deliveries.map((event) => (
+                <li key={event.delivery_ordinal}>
+                  {event.delivery_status_label} {event.occurred_at.slice(0, 16).replace("T", " ")}
+                </li>
+              ))}
+            </ol>
+          )}
+          {selected.visible_posts && selected.visible_posts.length > 0 ? (
+            <>
+              {corpusHint && <p className="post-meta">{corpusHint}</p>}
+              <p className="post-meta">{analysisRunLivePostWarning(selected.knowledge_cutoff)}</p>
+              <ul aria-label="Posts known at this run cutoff">
+                {selected.visible_posts.map((post) => (
+                  <li key={post.post_id}>
+                    <button
+                      className="keyman-select"
+                      aria-label={analysisRunLivePostButtonLabel(post)}
+                      onClick={() =>
+                        onSelectPost(post.post_id, {
+                          liveAfterCutoff: Boolean(post.live_after_cutoff),
+                          knowledgeCutoff: selected.knowledge_cutoff,
+                        })
+                      }
+                    >
+                      {post.post_title}
+                    </button>
+                    {post.live_after_cutoff && (
+                      <span className="post-badge">Updated after cutoff</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="popup-placeholder">{analysisRunEmptyPostsHint(selected)}</p>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function CustomerGroupTreeNode({
+  node,
+  onSelectEntity,
+}: {
+  node: CustomerGroupNode;
+  onSelectEntity: (entityId: string, entityName: string) => void;
+}) {
+  return (
+    <li>
+      <button
+        className="lineage-link-button"
+        aria-label={`Open customer group: ${node.entity_name}`}
+        onClick={() => onSelectEntity(node.entity_id, node.entity_name)}
+      >
+        {node.entity_name}
+      </button>
+      {(node.entity_level_label || node.entity_level_code) && (
+        <span className="affiliate-level"> ({node.entity_level_label ?? node.entity_level_code})</span>
+      )}
+      {node.abbreviations.length > 0 && (
+        <ul className="customer-group-abbreviations" aria-label={`${node.entity_name} abbreviations`}>
+          {node.abbreviations.map((alias) => (
+            <li key={alias.raw_organization_name}>
+              {alias.raw_organization_name}
+              <span className="affiliate-level">
+                {" "}
+                ({abbreviationStatusLabel(parseVerificationStatus(alias.verification_status_code))})
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {node.children.length > 0 && (
+        <ul>
+          {node.children.map((child) => (
+            <CustomerGroupTreeNode
+              key={child.entity_id}
+              node={child}
+              onSelectEntity={onSelectEntity}
+            />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
+function CustomerGroupTreePanel({
+  accessToken,
+  onSelectEntity,
+}: {
+  accessToken: string;
+  onSelectEntity: (entityId: string, entityName: string) => void;
+}) {
+  const [trees, setTrees] = useState<CustomerGroupNode[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setError(null);
+    fetchCustomerGroupTree(accessToken)
+      .then((payload) => setTrees(payload.trees))
+      .catch((err) => setError(String(err)));
+  }, [accessToken]);
+
+  return (
+    <section className="popup-section lineage-home" aria-label="Customer group tree">
+      <div className="lineage-home-header">
+        <h2>Customer group tree</h2>
+      </div>
+      {error && <p className="error">{error}</p>}
+      {trees === null && !error && <p>Loading customer group tree...</p>}
+      {trees && trees.length === 0 && (
+        <p className="popup-placeholder">No customer-group hierarchy for this account.</p>
+      )}
+      {trees && trees.length > 0 && (
+        <ul className="affiliate-tree" aria-label="Customer group hierarchy">
+          {trees.map((node) => (
+            <CustomerGroupTreeNode key={node.entity_id} node={node} onSelectEntity={onSelectEntity} />
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -1421,28 +2849,94 @@ function CalendarPanel({
   );
 }
 
+const REPORT_GROUPING_LABELS: Record<string, string> = {
+  process_unit: "Process unit",
+  corporate_entity: "Corporate entity",
+  thread_group: "Thread group",
+};
+
+function comparisonGroupingTitle(groupingKind: string, groupingLabel: string): string {
+  return `${REPORT_GROUPING_LABELS[groupingKind] ?? groupingKind}: ${groupingLabel}`;
+}
+
+function comparisonChipAccessibleName(
+  groupingKind: string,
+  groupingLabel: string,
+  meanTheta: number,
+): string {
+  return `Compare ${comparisonGroupingTitle(groupingKind, groupingLabel)}, mean θ ${meanTheta.toFixed(2)}`;
+}
+
+function openedReportNextAction(
+  groupingLabel: string,
+  openedMemberTitle?: string | null,
+): string {
+  if (openedMemberTitle) {
+    return (
+      `${openedMemberTitle} is open from ${groupingLabel}. ` +
+      "Read Event Lineage, Keyman, and evaluation on this post."
+    );
+  }
+  return (
+    `${groupingLabel} is the opened grouping. Read its mean θ and member posts below, then open a post.`
+  );
+}
+
+function openedReportsFirst<T extends { grouping_key: string; grouping_label?: string }>(
+  reports: T[],
+  isOpened: (groupingKey: string, groupingLabel?: string) => boolean,
+): T[] {
+  const opened = reports.filter((report) => isOpened(report.grouping_key, report.grouping_label));
+  if (opened.length === 0) {
+    return reports;
+  }
+  const rest = reports.filter((report) => !isOpened(report.grouping_key, report.grouping_label));
+  return [...opened, ...rest];
+}
+
 function ReportsPanel({
   accessToken,
   canRebuild,
   onSelectPost,
+  period,
+  onSelectPeriod,
+  grouping,
+  onSelectGrouping,
+  openedGroupingKey,
+  openedGroupingLabel,
+  onOpenGrouping,
+  landOnComparison,
+  selectedPostId,
 }: {
   accessToken: string;
   canRebuild: boolean;
-  onSelectPost: (postId: string) => void;
+  onSelectPost: (postId: string, options?: SelectPostOptions) => void;
+  period: string;
+  onSelectPeriod: (periodCode: string) => void;
+  grouping: string;
+  onSelectGrouping: (groupingKind: string) => void;
+  openedGroupingKey?: string | null;
+  openedGroupingLabel?: string | null;
+  onOpenGrouping?: (groupingKey: string, groupingLabel: string) => void;
+  landOnComparison?: boolean;
+  selectedPostId?: string | null;
 }) {
-  const [grouping, setGrouping] = useState("process_unit");
-  const [period, setPeriod] = useState("2026-W02");
   const [payload, setPayload] = useState<PeriodReports | null>(null);
   const [index, setIndex] = useState<PeriodReportIndex | null>(null);
   const [comparison, setComparison] = useState<PeriodComparison | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rebuilding, setRebuilding] = useState(false);
+  const openedComparisonRef = useRef<HTMLButtonElement | null>(null);
 
-  const groupingLabels: Record<string, string> = {
-    process_unit: "Process unit",
-    corporate_entity: "Corporate entity",
-    thread_group: "Thread group",
-  };
+  function groupingIsOpened(groupingKind: string, groupingKey: string, groupingLabel?: string) {
+    if (groupingKind !== grouping) {
+      return false;
+    }
+    if (openedGroupingKey && groupingKey === openedGroupingKey) {
+      return true;
+    }
+    return Boolean(openedGroupingLabel && groupingLabel && groupingLabel === openedGroupingLabel);
+  }
 
   useEffect(() => {
     setError(null);
@@ -1458,6 +2952,18 @@ function ReportsPanel({
       })
       .catch((err) => setError(String(err)));
   }, [accessToken, grouping, period]);
+
+  useEffect(() => {
+    if (!landOnComparison) {
+      return;
+    }
+    const current = openedComparisonRef.current;
+    if (!current) {
+      return;
+    }
+    current.scrollIntoView({ block: "nearest" });
+    current.focus();
+  }, [landOnComparison, grouping, openedGroupingKey, openedGroupingLabel, comparison]);
 
   async function handleRebuild() {
     setRebuilding(true);
@@ -1479,6 +2985,129 @@ function ReportsPanel({
     }
   }
 
+  const orderedReports = payload
+    ? openedReportsFirst(payload.reports, (groupingKey, groupingLabel) =>
+        groupingIsOpened(grouping, groupingKey, groupingLabel),
+      )
+    : [];
+  const openedMemberTitle = selectedPostId
+    ? orderedReports
+        .filter((report) =>
+          groupingIsOpened(grouping, report.grouping_key, report.grouping_label),
+        )
+        .flatMap((report) => report.members)
+        .find((member) => member.post_id === selectedPostId)?.post_title
+    : undefined;
+  const reportList =
+    payload === null && !error ? (
+      <p>Loading reports...</p>
+    ) : payload && payload.reports.length === 0 ? (
+      <p className="popup-placeholder">
+        No calibrated report for this grouping and period. Evaluate posts, then rebuild.
+      </p>
+    ) : payload && payload.reports.length > 0 ? (
+      <ul
+        className="ticket-list"
+        aria-label={openedGroupingLabel ? "Opened grouping report" : "Period report groups"}
+      >
+        {orderedReports.map((report) => (
+          <li
+            key={report.grouping_key}
+            className="ticket-list-item"
+            aria-current={
+              groupingIsOpened(grouping, report.grouping_key, report.grouping_label)
+                ? "true"
+                : undefined
+            }
+          >
+            <span className="ticket-title">
+              {report.grouping_label ?? report.grouping_key}: mean θ {report.mean_theta.toFixed(2)} ({report.selected_model}
+              {report.fit_converged ? ", converged" : ", not converged"})
+            </span>
+            <span className="post-badge">{report.post_count} posts</span>
+            {report.link_method === "fipc" && report.anchor_period_code && report.delta_mean_theta != null && (
+              <span className="post-badge">
+                vs {report.anchor_period_code}: {report.delta_mean_theta >= 0 ? "+" : ""}
+                {report.delta_mean_theta.toFixed(2)}
+              </span>
+            )}
+            {report.link_method === "fipc" && report.delta_mean_theta == null && (
+              <span className="post-badge">shared metric</span>
+            )}
+            {report.selected_items?.[0] && (
+              <span className="post-badge">
+                CAT: {criterionShortLabel(report.selected_items[0].item_code)} I=
+                {report.selected_items[0].information.toFixed(2)}
+              </span>
+            )}
+            {report.leftover_pairs && report.leftover_pairs.length > 0 && (
+              <ul className="ticket-list" aria-label="Leftover pairs">
+                {report.leftover_pairs.map((pair) => {
+                  const kindLabel =
+                    pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover";
+                  const nextAction =
+                    pair.pair_kind === "farthest"
+                      ? "Open this post to read the criterion it sat farthest from after main effects."
+                      : "Open this post to read the criterion it sat closest to after main effects.";
+                  const criterion = criterionShortLabel(pair.criterion_code);
+                  return (
+                    <li
+                      key={`${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
+                      className="ticket-list-item"
+                    >
+                      <button
+                        className="post-list-item"
+                        aria-label={`Open leftover ${pair.pair_kind} pair: ${pair.post_title} · ${criterion}`}
+                        onClick={() => onSelectPost(pair.post_id, { fromReportMember: true })}
+                      >
+                        <span className="ticket-title">
+                          {kindLabel}: {pair.post_title} · {criterion}
+                        </span>
+                        <span className="post-badge">{nextAction}</span>
+                        <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {report.members.length > 0 && (
+              <ul className="ticket-list">
+                {report.members.map((member) => (
+                  <li key={member.post_id} className="ticket-list-item">
+                    <button
+                      className="post-list-item"
+                      aria-label={`Open report post: ${member.post_title}`}
+                      aria-current={
+                        selectedPostId && member.post_id === selectedPostId
+                          ? "true"
+                          : undefined
+                      }
+                      onClick={() => onSelectPost(member.post_id, { fromReportMember: true })}
+                    >
+                      <span className="ticket-title">{member.post_title}</span>
+                      <span className="post-badge">θ {member.theta_eap.toFixed(2)}</span>
+                      {member.ticket_title && (
+                        <span className="post-badge">{member.ticket_title}</span>
+                      )}
+                      {(member.ticket_status_label ?? member.ticket_status_code) && (
+                        <span className="post-badge">
+                          {member.ticket_status_label ?? member.ticket_status_code}
+                        </span>
+                      )}
+                      {member.ticket_due_date && (
+                        <span className="post-badge">due {member.ticket_due_date}</span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ul>
+    ) : null;
+
   return (
     <section className="popup-section lineage-home">
       <div className="lineage-home-header">
@@ -1492,7 +3121,7 @@ function ReportsPanel({
       <div className="chat-input-row">
         <label>
           Grouping
-          <select aria-label="Report grouping" value={grouping} onChange={(event) => setGrouping(event.target.value)}>
+          <select aria-label="Report grouping" value={grouping} onChange={(event) => onSelectGrouping(event.target.value)}>
             <option value="process_unit">Process unit</option>
             <option value="corporate_entity">Corporate entity</option>
             <option value="thread_group">Thread group</option>
@@ -1501,9 +3130,10 @@ function ReportsPanel({
         <label>
           Period
           <input
+            id="report-period"
             aria-label="Report period"
             value={period}
-            onChange={(event) => setPeriod(event.target.value)}
+            onChange={(event) => onSelectPeriod(event.target.value)}
           />
         </label>
       </div>
@@ -1513,11 +3143,28 @@ function ReportsPanel({
             <li key={`${row.grouping_kind}:${row.grouping_key}`} className="ticket-list-item">
               <button
                 className="post-list-item"
-                aria-label={`Compare ${row.grouping_kind}: ${row.grouping_label}`}
-                onClick={() => setGrouping(row.grouping_kind)}
+                ref={
+                  groupingIsOpened(row.grouping_kind, row.grouping_key, row.grouping_label)
+                    ? openedComparisonRef
+                    : undefined
+                }
+                aria-label={comparisonChipAccessibleName(
+                  row.grouping_kind,
+                  row.grouping_label,
+                  row.mean_theta,
+                )}
+                aria-current={
+                  groupingIsOpened(row.grouping_kind, row.grouping_key, row.grouping_label)
+                    ? "true"
+                    : undefined
+                }
+                onClick={() => {
+                  onSelectGrouping(row.grouping_kind);
+                  onOpenGrouping?.(row.grouping_key, row.grouping_label);
+                }}
               >
                 <span className="ticket-title">
-                  {groupingLabels[row.grouping_kind] ?? row.grouping_kind}: {row.grouping_label}
+                  {comparisonGroupingTitle(row.grouping_kind, row.grouping_label)}
                 </span>
                 <span className="post-badge">mean θ {row.mean_theta.toFixed(2)}</span>
                 <span className="post-badge">{row.post_count} posts</span>
@@ -1526,6 +3173,12 @@ function ReportsPanel({
           ))}
         </ul>
       )}
+      {openedGroupingLabel && (
+        <p className="post-meta" role="status">
+          {openedReportNextAction(openedGroupingLabel, openedMemberTitle)}
+        </p>
+      )}
+      {openedGroupingLabel && reportList}
       {index && index.periods.length > 0 && (
         <ul className="ticket-list">
           {index.periods.map((row) => (
@@ -1533,7 +3186,7 @@ function ReportsPanel({
               <button
                 className="post-list-item"
                 aria-label={`Open report period ${row.period_code}`}
-                onClick={() => setPeriod(row.period_code)}
+                onClick={() => onSelectPeriod(row.period_code)}
               >
                 <span className="ticket-title">
                   {row.period_code}: mean θ {row.mean_theta.toFixed(2)}
@@ -1557,98 +3210,7 @@ function ReportsPanel({
         </ul>
       )}
       {error && <p className="error">{error}</p>}
-      {payload === null && !error && <p>Loading reports...</p>}
-      {payload && payload.reports.length === 0 && (
-        <p className="popup-placeholder">
-          No calibrated report for this grouping and period. Evaluate posts, then rebuild.
-        </p>
-      )}
-      {payload && payload.reports.length > 0 && (
-        <ul className="ticket-list">
-          {payload.reports.map((report) => (
-            <li key={report.grouping_key} className="ticket-list-item">
-              <span className="ticket-title">
-                {report.grouping_key}: mean θ {report.mean_theta.toFixed(2)} ({report.selected_model}
-                {report.fit_converged ? ", converged" : ", not converged"})
-              </span>
-              <span className="post-badge">{report.post_count} posts</span>
-              {report.link_method === "fipc" && report.anchor_period_code && report.delta_mean_theta != null && (
-                <span className="post-badge">
-                  vs {report.anchor_period_code}: {report.delta_mean_theta >= 0 ? "+" : ""}
-                  {report.delta_mean_theta.toFixed(2)}
-                </span>
-              )}
-              {report.link_method === "fipc" && report.delta_mean_theta == null && (
-                <span className="post-badge">shared metric</span>
-              )}
-              {report.selected_items?.[0] && (
-                <span className="post-badge">
-                  CAT: {criterionShortLabel(report.selected_items[0].item_code)} I=
-                  {report.selected_items[0].information.toFixed(2)}
-                </span>
-              )}
-              {report.leftover_pairs && report.leftover_pairs.length > 0 && (
-                <ul className="ticket-list" aria-label="Leftover pairs">
-                  {report.leftover_pairs.map((pair) => {
-                    const kindLabel =
-                      pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover";
-                    const nextAction =
-                      pair.pair_kind === "farthest"
-                        ? "Open this post to read the criterion it sat farthest from after main effects."
-                        : "Open this post to read the criterion it sat closest to after main effects.";
-                    const criterion = criterionShortLabel(pair.criterion_code);
-                    return (
-                    <li
-                      key={`${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
-                      className="ticket-list-item"
-                    >
-                      <button
-                        className="post-list-item"
-                        aria-label={`Open leftover ${pair.pair_kind} pair: ${pair.post_title} · ${criterion}`}
-                        onClick={() => onSelectPost(pair.post_id)}
-                      >
-                        <span className="ticket-title">
-                          {kindLabel}: {pair.post_title} · {criterion}
-                        </span>
-                        <span className="post-badge">{nextAction}</span>
-                        <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
-                      </button>
-                    </li>
-                    );
-                  })}
-                </ul>
-              )}
-              {report.members.length > 0 && (
-                <ul className="ticket-list">
-                  {report.members.map((member) => (
-                    <li key={member.post_id} className="ticket-list-item">
-                      <button
-                        className="post-list-item"
-                        aria-label={`Open report post: ${member.post_title}`}
-                        onClick={() => onSelectPost(member.post_id)}
-                      >
-                        <span className="ticket-title">{member.post_title}</span>
-                        <span className="post-badge">θ {member.theta_eap.toFixed(2)}</span>
-                        {member.ticket_title && (
-                          <span className="post-badge">{member.ticket_title}</span>
-                        )}
-                        {(member.ticket_status_label ?? member.ticket_status_code) && (
-                          <span className="post-badge">
-                            {member.ticket_status_label ?? member.ticket_status_code}
-                          </span>
-                        )}
-                        {member.ticket_due_date && (
-                          <span className="post-badge">due {member.ticket_due_date}</span>
-                        )}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      {!openedGroupingLabel && reportList}
     </section>
   );
 }
@@ -1658,16 +3220,80 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [graph, setGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [openedAfterCutoff, setOpenedAfterCutoff] = useState(false);
+  const [openedCutoffIso, setOpenedCutoffIso] = useState<string | null>(null);
   const [canRebuild, setCanRebuild] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
+  const [reportPeriod, setReportPeriod] = useState("2026-W02");
+  const [reportGrouping, setReportGrouping] = useState("process_unit");
+  const [openedGroupingKey, setOpenedGroupingKey] = useState<string | null>(null);
+  const [openedGroupingLabel, setOpenedGroupingLabel] = useState<string | null>(null);
+  const [landOnComparison, setLandOnComparison] = useState(false);
+  const [openedFromReportMember, setOpenedFromReportMember] = useState(false);
+  const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
+  const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
+
+  function openReportFromAnalysisRun(
+    periodCode: string,
+    groupingKind?: string,
+    groupingKey?: string,
+    groupingLabel?: string,
+  ) {
+    setLandOnComparison(reportPeriod === periodCode);
+    setReportPeriod(periodCode);
+    if (groupingKind) {
+      setReportGrouping(groupingKind);
+    }
+    setOpenedGroupingKey(groupingKey ?? null);
+    setOpenedGroupingLabel(groupingLabel ?? null);
+  }
+
+  function selectReportGrouping(groupingKind: string) {
+    setReportGrouping(groupingKind);
+    setOpenedGroupingKey(null);
+    setOpenedGroupingLabel(null);
+    setLandOnComparison(false);
+  }
+
+  function selectReportPeriod(periodCode: string) {
+    setReportPeriod(periodCode);
+    setLandOnComparison(false);
+  }
+
+  function openComparedGrouping(groupingKey: string, groupingLabel: string) {
+    setOpenedGroupingKey(groupingKey);
+    setOpenedGroupingLabel(groupingLabel);
+  }
+
+  function selectPost(postId: string, options?: SelectPostOptions) {
+    setSelectedPostId(postId);
+    setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
+    setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
+    setOpenedFromReportMember(Boolean(options?.fromReportMember));
+  }
+
+  function closeSelectedPost() {
+    setSelectedPostId(null);
+    setOpenedAfterCutoff(false);
+    setOpenedCutoffIso(null);
+    setOpenedFromReportMember(false);
+  }
 
   useEffect(() => {
     fetchPosts(accessToken).then(setPosts).catch((err) => setError(String(err)));
     fetchLineageGraph(accessToken).then(setGraph).catch(() => setGraph({ nodes: [], edges: [] }));
     fetchMe(accessToken)
-      .then((me) => setCanRebuild(me.permission_codes.includes("post_admin")))
-      .catch(() => setCanRebuild(false));
+      .then((me) => {
+        setCanRebuild(me.permission_codes.includes("post_admin"));
+        setCorporateEntities(me.corporate_entities ?? []);
+        setEntitiesLoadError(null);
+      })
+      .catch(() => {
+        setCanRebuild(false);
+        setCorporateEntities([]);
+        setEntitiesLoadError("Reload to load the corporate entities this account may reconstruct.");
+      });
   }, [accessToken]);
 
   async function handleRebuild() {
@@ -1689,9 +3315,37 @@ function PostList({ accessToken }: { accessToken: string }) {
 
   return (
     <>
-      <RankingsPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <CalendarPanel accessToken={accessToken} onSelectPost={setSelectedPostId} />
-      <ReportsPanel accessToken={accessToken} canRebuild={canRebuild} onSelectPost={setSelectedPostId} />
+      <CustomerGroupTreePanel
+        accessToken={accessToken}
+        onSelectEntity={(entityId, entityName) => {
+          selectReportGrouping("corporate_entity");
+          openComparedGrouping(entityId, entityName);
+        }}
+      />
+      <RankingsPanel accessToken={accessToken} onSelectPost={selectPost} />
+      <CalendarPanel accessToken={accessToken} onSelectPost={selectPost} />
+      <AnalysisRunsPanel
+        accessToken={accessToken}
+        currentReportPeriod={reportPeriod}
+        onSelectPost={selectPost}
+        onSelectReportPeriod={openReportFromAnalysisRun}
+        corporateEntities={corporateEntities}
+        entitiesLoadError={entitiesLoadError}
+      />
+      <ReportsPanel
+        accessToken={accessToken}
+        canRebuild={canRebuild}
+        onSelectPost={selectPost}
+        period={reportPeriod}
+        onSelectPeriod={selectReportPeriod}
+        grouping={reportGrouping}
+        onSelectGrouping={selectReportGrouping}
+        openedGroupingKey={openedGroupingKey}
+        openedGroupingLabel={openedGroupingLabel}
+        onOpenGrouping={openComparedGrouping}
+        landOnComparison={landOnComparison}
+        selectedPostId={selectedPostId}
+      />
       <section className="popup-section lineage-home">
         <div className="lineage-home-header">
           <h2>Event Lineage</h2>
@@ -1703,7 +3357,7 @@ function PostList({ accessToken }: { accessToken: string }) {
         </div>
         {rebuildError && <p className="error">{rebuildError}</p>}
         {!graph && <p>Loading lineage graph...</p>}
-        {graph && <LineageDag graph={graph} onSelectPost={setSelectedPostId} />}
+        {graph && <LineageDag graph={graph} onSelectPost={selectPost} />}
       </section>
       <ul className="post-list">
         {posts.map((post) => (
@@ -1711,7 +3365,7 @@ function PostList({ accessToken }: { accessToken: string }) {
             <button
               className="post-list-item"
               aria-label={`View post: ${post.post_title}`}
-              onClick={() => setSelectedPostId(post.post_id)}
+              onClick={() => selectPost(post.post_id)}
             >
               <span className="post-title">{post.post_title}</span>
               <span className="post-badge">{post.voc_type_label ?? post.voc_type_code}</span>
@@ -1726,8 +3380,13 @@ function PostList({ accessToken }: { accessToken: string }) {
           accessToken={accessToken}
           canExtract={canRebuild}
           graph={graph}
-          onClose={() => setSelectedPostId(null)}
-          onSelectPost={setSelectedPostId}
+          liveBodyWarning={
+            openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
+          }
+          knowledgeCutoff={openedAfterCutoff ? openedCutoffIso : null}
+          focusEventLineage={openedFromReportMember}
+          onClose={closeSelectedPost}
+          onSelectPost={selectPost}
         />
       )}
     </>

@@ -22,6 +22,12 @@ import pytest
 import redis
 
 from lineageweave.http_client import HttpClientError, get_json, post_form
+from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
+from lineageweave.tepp_client import TeppClient
+from lineageweave.tepp_result import (
+    accepted_tepp_seed_envelope,
+    tepp_accepted_evidence_sha256,
+)
 
 _POSTGRES_ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
@@ -30,6 +36,26 @@ _KEYCLOAK_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL", "http
 _VALKEY_URL = os.environ.get("LINEAGEWEAVE_TEST_VALKEY_URL", "redis://localhost:16379/0")
 _REALM = "lineageweave-demo"
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
+_REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
+_RETENTION_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0020_analysis_run_retention_purge.sql"
+_RECONSTRUCTION_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0021_analysis_run_reconstruction.sql"
+)
+_SNAPSHOT_MEMBER_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0022_analysis_source_snapshot_member.sql"
+)
+_OUTBOX_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0023_analysis_run_outbox.sql"
+)
+_REVISION_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0024_source_post_revision.sql"
+)
+_TEPP_RESULT_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0028_analysis_run_tepp_result.sql"
+)
+_TEPP_ACCEPTED_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0029_analysis_run_tepp_accepted.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -112,10 +138,19 @@ def seeded_db(demo_analyst_token):
     try:
         with conn.cursor() as cur:
             cur.execute(_MIGRATION_PATH.read_text())
+            cur.execute(_REGISTRY_MIGRATION.read_text())
+            cur.execute(_RETENTION_MIGRATION.read_text())
+            cur.execute(_RECONSTRUCTION_MIGRATION.read_text())
+            cur.execute(_SNAPSHOT_MEMBER_MIGRATION.read_text())
+            cur.execute(_OUTBOX_MIGRATION.read_text())
+            cur.execute(_REVISION_MIGRATION.read_text())
+            cur.execute(_TEPP_RESULT_MIGRATION.read_text())
+            cur.execute(_TEPP_ACCEPTED_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
                 "('corporate_entity_level', 'company', 'Company'), "
+                "('corporate_entity_level', 'plant', 'Plant'), "
                 "('post_visibility', 'public', 'Public'), "
                 "('post_visibility', 'private', 'Private'), "
                 "('voc_type', 'voc', 'Voice of Customer'), "
@@ -125,9 +160,13 @@ def seeded_db(demo_analyst_token):
                 "('node_type', 'node_person', 'Person'), "
                 "('node_type', 'node_corporate_entity', 'Corporate entity'), "
                 "('node_type', 'node_post', 'Post'), "
+                "('node_type', 'node_team', 'Team'), "
                 "('edge_type', 'edge_mention', 'Mentioned in'), "
                 "('edge_type', 'edge_affiliation', 'Affiliated with'), "
                 "('edge_type', 'edge_co_mention', 'Co-mentioned'), "
+                "('edge_type', 'edge_mention_team', 'Team mentioned in'), "
+                "('edge_type', 'edge_team_affiliation', 'Team affiliated with'), "
+                "('edge_type', 'edge_mention_organization', 'Organization mentioned in'), "
                 "('entity_relationship_type', 'rel_voc', 'Voice of Customer'), "
                 "('entity_relationship_type', 'rel_vom', 'Voice of Market'), "
                 "('entity_relationship_type', 'rel_vop', 'Voice of Partner'), "
@@ -142,7 +181,10 @@ def seeded_db(demo_analyst_token):
                 "('relation_verification_status', 'verify_uncorroborated', 'No corroborating evidence found'), "
                 "('evaluation_criterion', 'general_sentiment_positive', 'Constructive stance'), "
                 "('evaluation_criterion', 'general_sentiment_negative', 'Negative stance'), "
-                "('evaluation_criterion', 'sales_lead_specificity', 'Sales-lead specificity')"
+                "('evaluation_criterion', 'sales_lead_specificity', 'Sales-lead specificity'), "
+                "('prov_agent_type', 'prov_person', 'Person'), "
+                "('prov_agent_type', 'prov_organization', 'Organization'), "
+                "('prov_agent_type', 'prov_team', 'Team')"
             )
             cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
@@ -155,6 +197,12 @@ def seeded_db(demo_analyst_token):
                 (own_group_id,),
             )
             own_corp_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into corporate_entity (parent_entity_id, corporate_entity_code, entity_name, entity_level_code) "
+                "values (%s, 'TEST-PLANT', 'Test Plant', 'plant') returning corporate_entity_id",
+                (own_corp_id,),
+            )
+            own_plant_id = cur.fetchone()[0]
             cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
                 "values ('OTHER-CORP', 'Other Corp', 'group') returning corporate_entity_id"
@@ -179,16 +227,134 @@ def seeded_db(demo_analyst_token):
                 "insert into role_permission (access_role_id, permission_code) values (%s, 'post_read')",
                 (role_id,),
             )
+
+            def _seed_analysis_run(
+                digest: str,
+                idempotency_key: str,
+                requester_id,
+                scope_kind: str,
+                corp_id=None,
+            ) -> str:
+                cur.execute(
+                    """
+                    insert into analysis_source_snapshot
+                        (snapshot_sha256, source_contract_version,
+                         maximum_available_time, captured_at)
+                    values (%s, 'source-contract-v1',
+                            '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
+                    returning analysis_source_snapshot_id
+                    """,
+                    (digest,),
+                )
+                snapshot_id = cur.fetchone()[0]
+                cur.execute(
+                    """
+                    insert into analysis_source_count
+                        (analysis_source_snapshot_id, count_type_code, count_value)
+                    values (%s, 'analysis_count_document', 3)
+                    """,
+                    (snapshot_id,),
+                )
+                cur.execute(
+                    """
+                    insert into analysis_run
+                        (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                         requested_by_account_id, knowledge_cutoff,
+                         configuration_schema_version, configuration_sha256,
+                         code_revision_sha, requested_at)
+                    values (%s, 'analysis_run_lineage', %s, %s,
+                            '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
+                            '2026-01-12T12:30:00Z')
+                    returning analysis_run_id
+                    """,
+                    (snapshot_id, idempotency_key, requester_id, "b" * 64, "c" * 40),
+                )
+                run_id = str(cur.fetchone()[0])
+                if scope_kind == "analysis_scope_corporate_entity":
+                    cur.execute(
+                        """
+                        insert into analysis_run_scope
+                            (analysis_run_id, scope_kind_code, corporate_entity_id)
+                        values (%s, %s, %s)
+                        """,
+                        (run_id, scope_kind, corp_id),
+                    )
+                else:
+                    cur.execute(
+                        """
+                        insert into analysis_run_scope
+                            (analysis_run_id, scope_kind_code)
+                        values (%s, %s)
+                        """,
+                        (run_id, scope_kind),
+                    )
+                for ordinal, status, occurred in (
+                    (1, "analysis_status_pending", "2026-01-12T12:31:00Z"),
+                    (2, "analysis_status_running", "2026-01-12T12:32:00Z"),
+                    (3, "analysis_status_succeeded", "2026-01-12T12:33:00Z"),
+                ):
+                    cur.execute(
+                        """
+                        insert into analysis_run_status_event
+                            (analysis_run_id, status_ordinal, status_code, occurred_at)
+                        values (%s, %s, %s, %s)
+                        """,
+                        (run_id, ordinal, status, occurred),
+                    )
+                return run_id
+
+            cur.execute(
+                "insert into user_account (external_subject_id, display_name, email_address) "
+                "values (%s, 'Other Analyst', 'other.analyst@example.test') returning user_account_id",
+                (f"other-{uuid.uuid4()}",),
+            )
+            other_account_id = cur.fetchone()[0]
+            visible_run_id = _seed_analysis_run(
+                "a" * 64,
+                "visible-own-corp",
+                account_id,
+                "analysis_scope_corporate_entity",
+                own_corp_id,
+            )
+            hidden_run_id = _seed_analysis_run(
+                "d" * 64,
+                "hidden-other-corp",
+                other_account_id,
+                "analysis_scope_corporate_entity",
+                other_corp_id,
+            )
+            hidden_all_visible_id = _seed_analysis_run(
+                "e" * 64,
+                "hidden-all-visible",
+                other_account_id,
+                "analysis_scope_all_visible",
+            )
             cur.execute(
                 "insert into account_role_assignment (user_account_id, access_role_id) values (%s, %s)",
                 (account_id, role_id),
             )
 
-            def _insert_post(title: str, corporate_entity_id, visibility_code: str, body: str = "body") -> str:
+            def _insert_post(
+                title: str,
+                corporate_entity_id,
+                visibility_code: str,
+                body: str = "body",
+                created_at: str = "2026-01-10T12:00:00Z",
+                updated_at: str | None = None,
+            ) -> str:
+                written_at = updated_at if updated_at is not None else created_at
                 cur.execute(
-                    "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
-                    "values (%s, %s, %s, %s, 'voc', %s) returning post_id",
-                    (account_id, corporate_entity_id, title, body, visibility_code),
+                    "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code, created_at, updated_at) "
+                    "values (%s, %s, %s, %s, 'voc', %s, %s, %s) returning post_id",
+                    (
+                        account_id,
+                        corporate_entity_id,
+                        title,
+                        body,
+                        visibility_code,
+                        created_at,
+                        written_at,
+                    ),
                 )
                 return str(cur.fetchone()[0])
 
@@ -201,6 +367,29 @@ def seeded_db(demo_analyst_token):
                 "The weather in Gwangju was irrelevant.",
             )
             other_private_post_id = _insert_post("Other-corp private post", other_corp_id, "private")
+            late_own_private_post_id = _insert_post(
+                "Late own-corp private post",
+                own_corp_id,
+                "private",
+                "A follow-up written after the January 2026 run cutoff.",
+                created_at="2026-01-20T12:00:00Z",
+            )
+            edited_own_post_id = _insert_post(
+                "Edited own-corp private post",
+                own_corp_id,
+                "private",
+                "A January post before the rewrite.",
+                created_at="2026-01-10T12:00:00Z",
+                updated_at="2026-01-10T12:00:00Z",
+            )
+            cur.execute(
+                "update source_post set post_body = %s, updated_at = %s where post_id = %s",
+                (
+                    "A January post rewritten after the run cutoff.",
+                    "2026-01-13T09:00:00Z",
+                    edited_own_post_id,
+                ),
+            )
 
             cur.execute(
                 "insert into cataloged_person (person_name, person_side_code) values "
@@ -284,12 +473,18 @@ def seeded_db(demo_analyst_token):
             "public_post_id": public_post_id,
             "own_group_id": str(own_group_id),
             "own_corp_id": str(own_corp_id),
+            "own_plant_id": str(own_plant_id),
             "other_corp_id": str(other_corp_id),
             "own_private_post_id": own_private_post_id,
+            "late_own_private_post_id": late_own_private_post_id,
+            "edited_own_post_id": edited_own_post_id,
             "other_private_post_id": other_private_post_id,
             "our_person_id": our_person_id,
             "counterpart_person_id": counterpart_person_id,
             "hidden_person_id": hidden_person_id,
+            "visible_run_id": visible_run_id,
+            "hidden_run_id": hidden_run_id,
+            "hidden_all_visible_id": hidden_all_visible_id,
         }
     finally:
         conn.close()
@@ -312,19 +507,681 @@ def client(seeded_db):
         yield test_client
 
 
+def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Demo analyst sees the Test Corp run, never the Other Corp or outsider run."""
+    listed = client.get("/api/analysis-runs", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert listed.status_code == 200
+    runs = listed.json()["analysis_runs"]
+    ids = {run["analysis_run_id"] for run in runs}
+    assert seeded_db["visible_run_id"] in ids
+    assert seeded_db["hidden_run_id"] not in ids
+    assert seeded_db["hidden_all_visible_id"] not in ids
+    visible = next(run for run in runs if run["analysis_run_id"] == seeded_db["visible_run_id"])
+    assert visible["run_kind_label"] == "Lineage reconstruction"
+    assert visible["status_label"] == "Succeeded"
+    assert visible["scope_kind_label"] == "Corporate entity"
+    assert visible["scope_entity_name"] == "Test Corp"
+    assert visible["source_counts"] == [
+        {
+            "count_type_code": "analysis_count_document",
+            "count_type_label": "Documents",
+            "count_value": 3,
+        }
+    ]
+    dumped = str(visible)
+    assert "postgresql://" not in dumped
+    assert "select " not in dumped.lower()
+    assert "status_history" not in visible
+
+    detail = client.get(
+        f"/api/analysis-runs/{seeded_db['visible_run_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert detail.status_code == 200
+    body = detail.json()
+    assert body["configuration_schema_version"] == "lineage-run-v1"
+    assert "snapshot_sha256" not in body
+    history = body["status_history"]
+    assert [event["status_label"] for event in history] == [
+        "Pending",
+        "Running",
+        "Succeeded",
+    ]
+    assert [event["occurred_at"][:16] for event in history] == [
+        "2026-01-12T12:31",
+        "2026-01-12T12:32",
+        "2026-01-12T12:33",
+    ]
+    assert all("failure_code" not in event for event in history)
+    titles = {post["post_title"] for post in body["visible_posts"]}
+    assert "Own-corp private post" in titles
+    assert "Edited own-corp private post" in titles
+    assert "Late own-corp private post" not in titles
+    assert "Other-corp private post" not in titles
+    posts_by_title = {post["post_title"]: post for post in body["visible_posts"]}
+    assert posts_by_title["Own-corp private post"]["live_after_cutoff"] is False
+    assert posts_by_title["Edited own-corp private post"]["live_after_cutoff"] is True
+    assert posts_by_title["Edited own-corp private post"]["updated_at"].startswith("2026-01-13")
+    assert "post_body" not in posts_by_title["Edited own-corp private post"]
+    assert "postgresql://" not in str(body)
+    assert "visible_posts" not in visible
+
+    hidden = client.get(
+        f"/api/analysis-runs/{seeded_db['hidden_run_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert hidden.status_code == 404
+    assert "tepp_evidence_sha256" not in hidden.text
+    assert "accepted_run_id" not in hidden.text
+    assert "aggregate transport evidence" not in hidden.text
+
+    unauthenticated = client.get("/api/analysis-runs")
+    assert unauthenticated.status_code == 401
+
+
+def test_create_analysis_run_records_pending_without_inventing_a_score(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """POST /api/analysis-runs writes Pending on the authorized cutoff bag."""
+    created = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_lineage",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "idempotency_key": "buyer-create-2026-w02",
+        },
+    )
+    assert created.status_code == 201
+    body = created.json()
+    assert body["run_kind_label"] == "Lineage reconstruction"
+    assert body["status_label"] == "Pending"
+    assert body["status_history"][0]["status_label"] == "Pending"
+    assert all(event["status_label"] != "Succeeded" for event in body["status_history"])
+    titles = {post["post_title"] for post in body["visible_posts"]}
+    assert "Own-corp private post" in titles
+    assert "Other-corp private post" not in titles
+    assert "theta" not in str(body).lower()
+    assert "postgresql://" not in str(body)
+
+    replay = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_lineage",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "idempotency_key": "buyer-create-2026-w02",
+        },
+    )
+    assert replay.status_code == 201
+    assert replay.json()["analysis_run_id"] == body["analysis_run_id"]
+
+    tepp = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_tepp",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "idempotency_key": "buyer-create-tepp",
+        },
+    )
+    assert tepp.status_code == 422
+    assert "invent a measurement" in tepp.json()["detail"]
+    assert "theta" not in tepp.json()["detail"].lower()
+
+    report = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_report",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "idempotency_key": "buyer-create-report",
+        },
+    )
+    assert report.status_code == 422
+    assert "Reports panel" in report.json()["detail"]
+
+    conflict = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_lineage",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "knowledge_cutoff": "2026-01-01T00:00:00Z",
+            "idempotency_key": "buyer-create-2026-w02",
+        },
+    )
+    assert conflict.status_code == 409
+
+    hidden = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_lineage",
+            "corporate_entity_id": seeded_db["other_corp_id"],
+            "idempotency_key": "buyer-create-hidden-corp",
+        },
+    )
+    assert hidden.status_code == 404
+
+    unauthenticated = client.post(
+        "/api/analysis-runs",
+        json={"idempotency_key": "buyer-create-unauthenticated"},
+    )
+    assert unauthenticated.status_code == 401
+
+
+def test_start_analysis_run_recovers_the_a100_fork(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Starting a Pending lineage run persists the designed fixture tree."""
+    from scripts.seed_demo_data import insert_fixture_source_posts
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('voc_type', 'vom', 'Voice of Market') "
+                "on conflict (lookup_code) do nothing"
+            )
+            cur.execute(
+                "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
+                "select corporate_entity_id, 'TEST-PU-START', 'Start reconstruction' "
+                "from source_post where post_id = %s returning process_unit_id",
+                (seeded_db["own_private_post_id"],),
+            )
+            process_unit_id = cur.fetchone()[0]
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_id, corp_id = cur.fetchone()
+            insert_fixture_source_posts(cur, author_id, corp_id, process_unit_id)
+    finally:
+        admin_conn.close()
+
+    created = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_lineage",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "knowledge_cutoff": "2026-02-15T00:00:00Z",
+            "idempotency_key": "buyer-start-2026-w07",
+        },
+    )
+    assert created.status_code == 201, created.text
+    run_id = created.json()["analysis_run_id"]
+    assert created.json()["status_label"] == "Pending"
+
+    started = client.post(
+        f"/api/analysis-runs/{run_id}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert started.status_code == 200, started.text
+    body = started.json()
+    assert body["status_label"] == "Succeeded"
+    assert all(event["status_label"] != "Failed" for event in body["status_history"])
+    assert body["reconstruction_result_sha256"]
+    children = {
+        edge["child_post_title"]
+        for edge in body["reconstructed_edges"]
+        if edge["parent_post_title"] == "Pricing renegotiation follow-up"
+    }
+    assert "Pricing renegotiation: revised quote sent" in children
+    assert "Delivery schedule question raised" in children
+    assert "theta" not in str(body).lower()
+    assert "outbox_request_sha256" not in body
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                """
+                select outbox.work_kind_code, delivery.delivery_status_code
+                from analysis_run_outbox outbox
+                join analysis_run_outbox_delivery delivery
+                  on delivery.analysis_run_id = outbox.analysis_run_id
+                where outbox.analysis_run_id = %s
+                order by delivery.delivery_ordinal desc
+                limit 1
+                """,
+                (run_id,),
+            )
+            outbox_row = cur.fetchone()
+            assert outbox_row == ("analysis_run_lineage", "analysis_outbox_delivered")
+    finally:
+        admin_conn.close()
+    valkey = redis.from_url(_VALKEY_URL, decode_responses=True)
+    try:
+        entries = valkey.xrevrange("analysis-run-outbox", count=50)
+        assert any(
+            fields.get("analysis_run_id") == run_id
+            and fields.get("work_kind_code") == "analysis_run_lineage"
+            and "theta" not in str(fields).casefold()
+            for _entry_id, fields in entries
+        )
+    finally:
+        valkey.close()
+
+    replay = client.post(
+        f"/api/analysis-runs/{run_id}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert replay.status_code == 200
+    assert replay.json()["reconstruction_result_sha256"] == body["reconstruction_result_sha256"]
+
+    tepp_create = client.post(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        json={
+            "run_kind_code": "analysis_run_tepp",
+            "corporate_entity_id": seeded_db["own_corp_id"],
+            "knowledge_cutoff": "2026-02-15T00:00:00Z",
+            "idempotency_key": "buyer-start-tepp-2026-w07",
+        },
+    )
+    assert tepp_create.status_code == 422
+    assert "invent a measurement" in tepp_create.json()["detail"]
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select requested_by_account_id from analysis_run where analysis_run_id = %s",
+                (run_id,),
+            )
+            requester_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_source_snapshot
+                    (snapshot_sha256, source_contract_version,
+                     maximum_available_time, captured_at)
+                values (%s, 'source-contract-v1',
+                        '2026-02-15T00:00:00Z', '2026-02-15T00:05:00Z')
+                returning analysis_source_snapshot_id
+                """,
+                ("b" * 64,),
+            )
+            tepp_snapshot_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_run
+                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                     requested_by_account_id, knowledge_cutoff,
+                     configuration_schema_version, configuration_sha256,
+                     code_revision_sha, requested_at)
+                values (%s, 'analysis_run_tepp', 'buyer-start-tepp-seeded',
+                        %s, '2026-02-15T00:00:00Z', 'tepp-run-v1', %s, %s,
+                        '2026-02-15T12:30:00Z')
+                returning analysis_run_id
+                """,
+                (tepp_snapshot_id, requester_id, "c" * 64, "d" * 40),
+            )
+            tepp_run_id = str(cur.fetchone()[0])
+            cur.execute(
+                """
+                insert into analysis_run_scope
+                    (analysis_run_id, scope_kind_code, corporate_entity_id)
+                values (%s, 'analysis_scope_corporate_entity', %s)
+                """,
+                (tepp_run_id, seeded_db["own_corp_id"]),
+            )
+            cur.execute(
+                """
+                insert into analysis_run_status_event
+                    (analysis_run_id, status_ordinal, status_code, occurred_at)
+                values (%s, 1, 'analysis_status_pending', '2026-02-15T12:31:00Z')
+                """,
+                (tepp_run_id,),
+            )
+    finally:
+        admin_conn.close()
+
+    measured = client.post(
+        f"/api/analysis-runs/{tepp_run_id}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert measured.status_code == 200, measured.text
+    tepp_body = measured.json()
+    assert tepp_body["status_label"] == "Failed"
+    assert tepp_body["failure_code"] == "tepp_not_available"
+    assert any(
+        event.get("failure_code") == "tepp_not_available"
+        for event in tepp_body["status_history"]
+    )
+    assert "theta" not in str(tepp_body).lower()
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                """
+                insert into analysis_source_snapshot
+                    (snapshot_sha256, source_contract_version,
+                     maximum_available_time, captured_at)
+                values (%s, 'source-contract-v1',
+                        '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
+                returning analysis_source_snapshot_id
+                """,
+                ("9" * 64,),
+            )
+            report_snapshot_id = cur.fetchone()[0]
+            cur.execute(
+                "select requested_by_account_id from analysis_run where analysis_run_id = %s",
+                (run_id,),
+            )
+            requester_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_run
+                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                     requested_by_account_id, knowledge_cutoff,
+                     configuration_schema_version, configuration_sha256,
+                     code_revision_sha, requested_at)
+                values (%s, 'analysis_run_report', 'buyer-start-report',
+                        %s, '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
+                        '2026-01-12T12:30:00Z')
+                returning analysis_run_id
+                """,
+                (report_snapshot_id, requester_id, "8" * 64, "7" * 40),
+            )
+            report_run_id = str(cur.fetchone()[0])
+            cur.execute(
+                """
+                insert into analysis_run_scope
+                    (analysis_run_id, scope_kind_code, corporate_entity_id)
+                values (%s, 'analysis_scope_corporate_entity', %s)
+                """,
+                (report_run_id, seeded_db["own_corp_id"]),
+            )
+            cur.execute(
+                """
+                insert into analysis_run_status_event
+                    (analysis_run_id, status_ordinal, status_code, occurred_at)
+                values (%s, 1, 'analysis_status_pending', '2026-01-12T12:31:00Z')
+                """,
+                (report_run_id,),
+            )
+            cur.execute(
+                """
+                insert into analysis_source_snapshot
+                    (snapshot_sha256, source_contract_version,
+                     maximum_available_time, captured_at)
+                values (%s, 'source-contract-v1',
+                        '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
+                returning analysis_source_snapshot_id
+                """,
+                ("6" * 64,),
+            )
+            running_snapshot_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_run
+                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                     requested_by_account_id, knowledge_cutoff,
+                     configuration_schema_version, configuration_sha256,
+                     code_revision_sha, requested_at)
+                values (%s, 'analysis_run_lineage', 'buyer-start-running',
+                        %s, '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
+                        '2026-01-12T12:30:00Z')
+                returning analysis_run_id
+                """,
+                (running_snapshot_id, requester_id, "5" * 64, "4" * 40),
+            )
+            running_run_id = str(cur.fetchone()[0])
+            cur.execute(
+                """
+                insert into analysis_run_scope
+                    (analysis_run_id, scope_kind_code, corporate_entity_id)
+                values (%s, 'analysis_scope_corporate_entity', %s)
+                """,
+                (running_run_id, seeded_db["own_corp_id"]),
+            )
+            for ordinal, status, occurred in (
+                (1, "analysis_status_pending", "2026-01-12T12:31:00Z"),
+                (2, "analysis_status_running", "2026-01-12T12:32:00Z"),
+            ):
+                cur.execute(
+                    """
+                    insert into analysis_run_status_event
+                        (analysis_run_id, status_ordinal, status_code, occurred_at)
+                    values (%s, %s, %s, %s)
+                    """,
+                    (running_run_id, ordinal, status, occurred),
+                )
+    finally:
+        admin_conn.close()
+
+    report_refused = client.post(
+        f"/api/analysis-runs/{report_run_id}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert report_refused.status_code == 422
+    assert "invent a measurement" in report_refused.json()["detail"]
+
+    running = client.post(
+        f"/api/analysis-runs/{running_run_id}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert running.status_code == 409
+
+    hidden = client.post(
+        f"/api/analysis-runs/{seeded_db['hidden_run_id']}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert hidden.status_code == 404
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                """
+                insert into analysis_source_snapshot
+                    (snapshot_sha256, source_contract_version,
+                     maximum_available_time, captured_at)
+                values (%s, 'source-contract-v1',
+                        '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
+                returning analysis_source_snapshot_id
+                """,
+                ("3" * 64,),
+            )
+            crash_snapshot_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_run
+                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                     requested_by_account_id, knowledge_cutoff,
+                     configuration_schema_version, configuration_sha256,
+                     code_revision_sha, requested_at)
+                values (%s, 'analysis_run_lineage', 'buyer-start-outbox-resume',
+                        %s, '2026-02-15T00:00:00Z', 'lineage-run-v1', %s, %s,
+                        '2026-02-15T12:30:00Z')
+                returning analysis_run_id
+                """,
+                (crash_snapshot_id, requester_id, "2" * 64, "1" * 40),
+            )
+            crash_run_id = str(cur.fetchone()[0])
+            cur.execute(
+                """
+                insert into analysis_run_scope
+                    (analysis_run_id, scope_kind_code, corporate_entity_id)
+                values (%s, 'analysis_scope_corporate_entity', %s)
+                """,
+                (crash_run_id, seeded_db["own_corp_id"]),
+            )
+            for ordinal, status, occurred in (
+                (1, "analysis_status_pending", "2026-02-15T12:31:00Z"),
+                (2, "analysis_status_running", "2026-02-15T12:32:00Z"),
+            ):
+                cur.execute(
+                    """
+                    insert into analysis_run_status_event
+                        (analysis_run_id, status_ordinal, status_code, occurred_at)
+                    values (%s, %s, %s, %s)
+                    """,
+                    (crash_run_id, ordinal, status, occurred),
+                )
+            cur.execute(
+                """
+                insert into analysis_run_outbox
+                    (analysis_run_id, work_kind_code, request_sha256, enqueued_at)
+                values (%s, 'analysis_run_lineage', %s, '2026-02-15T12:32:00Z')
+                """,
+                (crash_run_id, "a" * 64),
+            )
+    finally:
+        admin_conn.close()
+
+    resumed = client.post(
+        f"/api/analysis-runs/{crash_run_id}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert resumed.status_code == 200, resumed.text
+    resumed_body = resumed.json()
+    assert resumed_body["status_label"] == "Succeeded"
+    assert "theta" not in str(resumed_body).lower()
+    children = {
+        edge["child_post_title"]
+        for edge in resumed_body["reconstructed_edges"]
+        if edge["parent_post_title"] == "Pricing renegotiation follow-up"
+    }
+    assert "Pricing renegotiation: revised quote sent" in children
+
+
+def test_tepp_start_persists_published_accepted_evidence(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """A published accepted ack is stored as transport evidence, never Succeeded."""
+    idempotency_key = "buyer-start-tepp-accepted"
+    monkeypatch.setattr(
+        "backend.app.main.configured_tepp_client",
+        lambda _url="": TeppClient(
+            transport=lambda _payload: accepted_tepp_seed_envelope(
+                idempotency_key=idempotency_key
+            )
+        ),
+    )
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select requested_by_account_id from analysis_run "
+                "where analysis_run_id = %s",
+                (seeded_db["visible_run_id"],),
+            )
+            requester_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_source_snapshot
+                    (snapshot_sha256, source_contract_version,
+                     maximum_available_time, captured_at)
+                values (%s, 'source-contract-v1',
+                        '2026-02-15T00:00:00Z', '2026-02-15T00:05:00Z')
+                returning analysis_source_snapshot_id
+                """,
+                ("8" * 64,),
+            )
+            snapshot_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_run
+                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                     requested_by_account_id, knowledge_cutoff,
+                     configuration_schema_version, configuration_sha256,
+                     code_revision_sha, requested_at)
+                values (%s, 'analysis_run_tepp', 'buyer-start-tepp-accepted',
+                        %s, '2026-02-15T00:00:00Z', 'tepp-run-v1', %s, %s,
+                        '2026-02-15T12:30:00Z')
+                returning analysis_run_id
+                """,
+                (snapshot_id, requester_id, "7" * 64, "6" * 40),
+            )
+            tepp_run_id = str(cur.fetchone()[0])
+            cur.execute(
+                """
+                insert into analysis_run_scope
+                    (analysis_run_id, scope_kind_code, corporate_entity_id)
+                values (%s, 'analysis_scope_corporate_entity', %s)
+                """,
+                (tepp_run_id, seeded_db["own_corp_id"]),
+            )
+            cur.execute(
+                """
+                insert into analysis_run_status_event
+                    (analysis_run_id, status_ordinal, status_code, occurred_at)
+                values (%s, 1, 'analysis_status_pending', '2026-02-15T12:31:00Z')
+                """,
+                (tepp_run_id,),
+            )
+    finally:
+        admin_conn.close()
+
+    measured = client.post(
+        f"/api/analysis-runs/{tepp_run_id}/start",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert measured.status_code == 200, measured.text
+    body = measured.json()
+    assert body["status_label"] == "Failed"
+    assert body["failure_code"] == "tepp_completed_result_unsupported"
+    assert body["tepp_evidence_kind"] == "aggregate transport evidence"
+    assert body["tepp_run_state"] == "accepted"
+    assert body["tepp_accepted_run_id"] == "demo-tepp-accepted-opaque"
+    assert body["tepp_completed_artifact_available"] is False
+    expected = tepp_accepted_evidence_sha256(
+        contract_version=1,
+        accepted_run_id="demo-tepp-accepted-opaque",
+        run_state="accepted",
+        idempotency_key=idempotency_key,
+    )
+    assert body["tepp_evidence_sha256"] == expected
+    assert "tepp_affiliation_count" not in body
+    assert "theta" not in str(body).lower()
+
+    listed = client.get(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert listed.status_code == 200
+    listed_run = next(
+        run for run in listed.json()["analysis_runs"] if run["analysis_run_id"] == tepp_run_id
+    )
+    assert listed_run["status_label"] == "Failed"
+    assert listed_run["tepp_evidence_sha256"] == expected
+    assert "tepp_affiliation_count" not in listed_run
+
+
 def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> None:
     response = client.get("/api/me", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200
     body = response.json()
     assert body["display_name"] == "Test Analyst"
     assert "post_read" in body["permission_codes"]
+    assert any(
+        entity["entity_name"] == "Test Corp" for entity in body["corporate_entities"]
+    )
 
 
 def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, demo_analyst_token, seeded_db) -> None:
     response = client.get("/api/posts", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200
     titles = {post["post_title"] for post in response.json()}
-    assert titles == {"Public post", "Own-corp private post"}
+    assert titles == {
+        "Public post",
+        "Own-corp private post",
+        "Late own-corp private post",
+        "Edited own-corp private post",
+    }
     public = next(post for post in response.json() if post["post_title"] == "Public post")
     assert public["voc_type_label"] == "Voice of Customer"
     assert public["visibility_label"] == "Public"
@@ -341,6 +1198,44 @@ def test_post_detail_uses_lookup_labels_not_raw_codes(client, demo_analyst_token
     assert body["voc_type_label"] == "Voice of Customer"
     assert body["visibility_code"] == "public"
     assert body["visibility_label"] == "Public"
+
+
+def test_post_detail_as_of_returns_the_cutoff_known_body(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Opened marked titles compare two real sentences, not two clocks."""
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    live = client.get(f"/api/posts/{seeded_db['edited_own_post_id']}", headers=headers)
+    assert live.status_code == 200
+    assert live.json()["post_body"] == "A January post rewritten after the run cutoff."
+    assert "known_at" not in live.json()
+
+    known = client.get(
+        f"/api/posts/{seeded_db['edited_own_post_id']}",
+        params={"as_of": "2026-01-12T12:00:00Z"},
+        headers=headers,
+    )
+    assert known.status_code == 200
+    body = known.json()
+    assert body["post_body"] == "A January post rewritten after the run cutoff."
+    assert body["known_at"]["post_body"] == "A January post before the rewrite."
+    assert body["known_at"]["written_at"].startswith("2026-01-10")
+    assert "postgresql://" not in str(body)
+
+    missing = client.get(
+        f"/api/posts/{seeded_db['edited_own_post_id']}",
+        params={"as_of": "2026-01-01T00:00:00Z"},
+        headers=headers,
+    )
+    assert missing.status_code == 200
+    assert "known_at" not in missing.json()
+
+    invalid = client.get(
+        f"/api/posts/{seeded_db['edited_own_post_id']}",
+        params={"as_of": "not-a-clock"},
+        headers=headers,
+    )
+    assert invalid.status_code == 422
 
 
 def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token, seeded_db) -> None:
@@ -363,8 +1258,9 @@ def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token
                 (seeded_db["public_post_id"],),
             )
             cur.execute(
-                "insert into post_summary_role (post_id, person_name, responsibility) "
-                "values (%s, 'Ada West', '후속 연락')",
+                "insert into post_summary_role "
+                "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name) "
+                "values (%s, 'Ada West', '후속 연락', 'prov_person', 'Demo Corp')",
                 (seeded_db["public_post_id"],),
             )
     finally:
@@ -378,9 +1274,13 @@ def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token
     body = response.json()
     assert body["korean_summary"] == "저장된 한국어 요약입니다."
     assert body["key_events"] == ["저장된 이벤트"]
-    assert body["roles_and_responsibilities"] == [
-        {"person_name": "Ada West", "responsibility": "후속 연락"}
-    ]
+    assert len(body["roles_and_responsibilities"]) == 1
+    role = body["roles_and_responsibilities"][0]
+    assert role["actor_name"] == "Ada West"
+    assert role["responsibility"] == "후속 연락"
+    assert role["actor_type_code"] == "prov_person"
+    assert role["affiliated_organization_name"] == "Demo Corp"
+    assert role["ontology_label"] == "Role actor (person)"
 
 
 def test_seed_demo_summary_surfaces_on_get_summary(client, demo_analyst_token, seeded_db) -> None:
@@ -407,7 +1307,10 @@ def test_seed_demo_summary_surfaces_on_get_summary(client, demo_analyst_token, s
     body = response.json()
     assert "에이다" in body["korean_summary"]
     assert body["key_events"]
-    assert any(role["person_name"] == "Ada West" for role in body["roles_and_responsibilities"])
+    roles = {role["actor_name"]: role for role in body["roles_and_responsibilities"]}
+    assert roles["Ada West"]["actor_type_code"] == "prov_person"
+    assert roles["당사"]["actor_type_code"] == "prov_organization"
+    assert roles["당사"]["ontology_label"] == "Role actor (organization)"
 
 
 def test_seed_fixture_summaries_surface_on_get_summary(client, demo_analyst_token, seeded_db) -> None:
@@ -466,7 +1369,7 @@ def test_seed_fixture_summaries_surface_on_get_summary(client, demo_analyst_toke
     assert fork.status_code == 200, fork.text
     assert "재협상" in fork.json()["korean_summary"]
     assert fork.json()["key_events"]
-    fork_roles = {role["person_name"] for role in fork.json()["roles_and_responsibilities"]}
+    fork_roles = {role["actor_name"] for role in fork.json()["roles_and_responsibilities"]}
     assert fork_roles == {"Ada West", "Priya Nair"}
 
     calendar = client.get(
@@ -803,6 +1706,122 @@ def test_affiliate_tree_walks_ancestors_and_keeps_unresolved_orgs(client, demo_a
     assert all(person["person_name"] == "Priya Nair" for node in unresolved for person in node["people"])
 
 
+def test_customer_group_tree_walks_authorized_ancestors_and_descendants(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Operators navigate Group → Company → Plant, not a flat corp list."""
+    response = client.get(
+        "/api/customer-group-tree",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    trees = response.json()["trees"]
+    assert [node["entity_name"] for node in trees] == ["Test Group"]
+    assert trees[0]["entity_id"] == seeded_db["own_group_id"]
+    assert trees[0]["entity_level_label"] == "Group"
+    children = trees[0]["children"]
+    assert [child["entity_name"] for child in children] == ["Test Corp"]
+    assert children[0]["entity_id"] == seeded_db["own_corp_id"]
+    assert children[0]["entity_level_label"] == "Company"
+    plants = children[0]["children"]
+    assert [plant["entity_name"] for plant in plants] == ["Test Plant"]
+    assert plants[0]["entity_id"] == seeded_db["own_plant_id"]
+    assert plants[0]["entity_level_label"] == "Plant"
+    assert "Other Corp" not in str(trees)
+
+
+def test_corroborate_abbreviations_requires_post_admin(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/corroborate-abbreviations",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_corroborate_abbreviations_is_unavailable_without_searxng(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    _grant_post_admin(seeded_db["dsn"])
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/corroborate-abbreviations",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 503
+    assert "SEARXNG_BASE_URL" in response.json()["detail"]
+
+
+def test_corroborate_abbreviations_binds_a_unique_tree_node(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Searxng must corroborate TC against Test Corp; a miss invents nothing."""
+    from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVerificationResult
+
+    _grant_post_admin(seeded_db["dsn"])
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into person_affiliation (person_id, affiliated_organization_name) "
+                "values (%s, 'TC')",
+                (seeded_db["our_person_id"],),
+            )
+    finally:
+        admin_conn.close()
+
+    class _FakeVerificationClient:
+        available = True
+
+        def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:
+            if organization_name == "Test Corp" and relationship_label == "TC":
+                return RelationVerificationResult(
+                    STATUS_CORROBORATED, "https://example.test/test-corp-tc"
+                )
+            return RelationVerificationResult("verify_uncorroborated", None)
+
+    monkeypatch.setattr("backend.app.main._relation_verification_client", lambda: _FakeVerificationClient())
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/corroborate-abbreviations",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    matches = {row["raw_organization_name"]: row for row in response.json()["matches"]}
+    assert matches["TC"]["corporate_entity_id"] == seeded_db["own_corp_id"]
+    assert matches["TC"]["verification_status_code"] == "verify_corroborated"
+    assert "Test Corp" not in matches
+    for unresolved_name in ("Northridge Grid", "Northridge Holdings"):
+        if unresolved_name in matches:
+            assert matches[unresolved_name]["corporate_entity_id"] is None
+            assert matches[unresolved_name]["verification_status_code"] == "verify_uncorroborated"
+
+    cached = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/abbreviation-tree-matches",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert cached.status_code == 200
+    cached_matches = {row["raw_organization_name"]: row for row in cached.json()["matches"]}
+    assert cached_matches["TC"]["corporate_entity_id"] == seeded_db["own_corp_id"]
+
+    tree = client.get(
+        "/api/customer-group-tree",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    company = tree.json()["trees"][0]["children"][0]
+    assert [alias["raw_organization_name"] for alias in company["abbreviations"]] == ["TC"]
+
+
+def test_other_corp_private_abbreviation_cross_check_is_forbidden(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    listed = client.get(
+        f"/api/posts/{seeded_db['other_private_post_id']}/abbreviation-tree-matches",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert listed.status_code == 403
+
+
 def test_other_corp_private_affiliate_tree_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         f"/api/posts/{seeded_db['other_private_post_id']}/affiliate-tree",
@@ -883,6 +1902,8 @@ def test_related_keymen_use_rwr_and_hide_invisible_posts(client, demo_analyst_to
     counterpart = by_id[seeded_db["counterpart_person_id"]]
     assert counterpart["ontology_label"] == "Person"
     assert counterpart["ontology_iri"].endswith("#Person")
+    assert counterpart["person_side_code"] == "counterparty"
+    assert counterpart["person_side_label"] == "Counterparty"
     own_post = by_id[seeded_db["own_private_post_id"]]
     assert own_post["ontology_label"] == "Post"
 
@@ -902,6 +1923,9 @@ def test_related_corporate_entity_uses_rwr_and_hides_invisible_posts(
     assert body["entity_name"] == "Test Corp"
     related_ids = {node["node_id"] for node in body["related"]}
     assert seeded_db["our_person_id"] in related_ids
+    our_person = next(node for node in body["related"] if node["node_id"] == seeded_db["our_person_id"])
+    assert our_person["person_side_code"] == "our_side"
+    assert our_person["person_side_label"] == "Our side"
     assert seeded_db["other_private_post_id"] not in related_ids
     assert seeded_db["hidden_person_id"] not in related_ids
 
@@ -927,6 +1951,44 @@ def test_unknown_corporate_entity_related_is_not_found(
     assert response.status_code == 404
 
 
+def test_team_only_on_other_corp_private_post_is_forbidden(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A team mentioned only on another corp's private post must 403."""
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into cataloged_team (team_name, affiliated_organization_name) "
+                "values ('비공개 설계팀', 'Other Corp') returning team_id"
+            )
+            team_id = str(cur.fetchone()[0])
+            cur.execute(
+                "insert into post_team_mention (post_id, team_id) values (%s, %s)",
+                (seeded_db["other_private_post_id"], team_id),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/teams/{team_id}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_unknown_team_related_is_not_found(client, demo_analyst_token) -> None:
+    """An unknown team UUID must 404, matching person and entity related."""
+
+    response = client.get(
+        f"/api/teams/{uuid.uuid4()}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 404
+
+
 def test_keyman_only_on_other_corp_private_post_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         f"/api/keymen/{seeded_db['hidden_person_id']}/related",
@@ -945,6 +2007,557 @@ def test_extract_keymen_requires_post_admin(client, demo_analyst_token, seeded_d
 
 _ORCHESTRATOR_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL")
 _ORCHESTRATOR_API_KEY = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY")
+
+
+def test_extract_keymen_does_not_merge_same_name_people_with_conflicting_titles(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Two different real people can share a name -- extracting a second
+    post that names the same person_name+side but a genuinely different
+    stated job_title must NOT reuse the first post's cataloged_person row.
+    A deterministic fake client (not a real orchestrator call) so this
+    is CI-stable: the point under test is `_upsert_person`'s own SQL
+    logic, not LLM extraction quality.
+    """
+    from lineageweave.keyman_extraction import COUNTERPARTY, PersonMention
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeClient:
+        available = True
+
+        def __init__(self, job_title: str) -> None:
+            self._job_title = job_title
+
+        def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
+            return [PersonMention(person_name="Kim Cheolsu", person_side_code=COUNTERPARTY, job_title=self._job_title)]
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            post_ids = []
+            for title in ("Sales follow-up", "Purchasing follow-up"):
+                cur.execute(
+                    "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                    "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public' "
+                    "from source_post where post_id = %s "
+                    "returning post_id",
+                    (title, "placeholder body", seeded_db["own_private_post_id"]),
+                )
+                post_ids.append(str(cur.fetchone()[0]))
+    finally:
+        admin_conn.close()
+
+    monkeypatch.setattr("backend.app.main._entity_relationship_client", lambda: _FakeClient("unused"))
+
+    monkeypatch.setattr("backend.app.main._keyman_extraction_client", lambda: _FakeClient("Sales Manager"))
+    response_a = client.post(
+        f"/api/posts/{post_ids[0]}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response_a.status_code == 200, response_a.text
+
+    monkeypatch.setattr("backend.app.main._keyman_extraction_client", lambda: _FakeClient("Purchasing Lead"))
+    response_b = client.post(
+        f"/api/posts/{post_ids[1]}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response_b.status_code == 200, response_b.text
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select count(distinct person_id) from cataloged_person where person_name = 'Kim Cheolsu'"
+            )
+            distinct_people = cur.fetchone()[0]
+    finally:
+        admin_conn.close()
+
+    assert distinct_people == 2, "conflicting stated job titles for the same name must not be merged into one person"
+
+
+def test_extract_keymen_resolves_and_caches_an_abbreviated_organization_name(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """ADR 0008: an affiliated organization named by abbreviation
+    ("AGP") must be resolved to its canonical name
+    ("Aurora Grid Power") and cross-verified before that name is trusted --
+    deterministic fake resolution/verification clients (not a real LLM
+    or Searxng call) so this is CI-stable; the point under test is the
+    resolve-then-persist wiring, not model/search quality.
+    """
+    from lineageweave.keyman_extraction import COUNTERPARTY, PersonMention
+    from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVerificationResult
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeKeymanClient:
+        available = True
+
+        def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
+            return [
+                PersonMention(
+                    person_name="Kim Cheolsu",
+                    person_side_code=COUNTERPARTY,
+                    affiliated_organization_names=("AGP",),
+                )
+            ]
+
+    class _FakeRelationshipClient:
+        available = True
+
+        def classify(self, post_title: str, post_body: str, organization_names: list[str]):
+            return []
+
+    class _FakeResolutionClient:
+        available = True
+
+        def resolve(self, raw_name: str, context_text: str) -> str | None:
+            assert raw_name == "AGP"
+            return "Aurora Grid Power"
+
+    class _FakeVerificationClient:
+        available = True
+
+        def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:
+            assert organization_name == "Aurora Grid Power"
+            assert relationship_label == "AGP"
+            return RelationVerificationResult(
+                status_code=STATUS_CORROBORATED, evidence_url="https://example.org/khnp"
+            )
+
+    monkeypatch.setattr("backend.app.main._keyman_extraction_client", lambda: _FakeKeymanClient())
+    monkeypatch.setattr("backend.app.main._entity_relationship_client", lambda: _FakeRelationshipClient())
+    monkeypatch.setattr(
+        "backend.app.main._organization_name_resolution_client", lambda: _FakeResolutionClient()
+    )
+    monkeypatch.setattr("backend.app.main._relation_verification_client", lambda: _FakeVerificationClient())
+
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select resolved_organization_name, verification_status_code, verification_evidence_url "
+                "from organization_name_resolution where raw_organization_name = 'AGP'"
+            )
+            cached = cur.fetchone()
+            cur.execute(
+                "select pa.affiliated_organization_name from person_affiliation pa "
+                "join cataloged_person cp on cp.person_id = pa.person_id "
+                "where cp.person_name = 'Kim Cheolsu'"
+            )
+            affiliation_name = cur.fetchone()[0]
+    finally:
+        admin_conn.close()
+
+    assert cached == ("Aurora Grid Power", STATUS_CORROBORATED, "https://example.org/khnp")
+    assert affiliation_name == "Aurora Grid Power", "a corroborated resolution must be the stored affiliation name"
+
+
+def test_same_team_named_in_two_posts_resolves_to_one_cataloged_team(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """ADR 0009: extraction runs per-post, but "설계팀" (design team) at
+    the same company named in two different posts must resolve to the
+    same cataloged_team row -- otherwise every extraction is an island
+    and can never become a cross-post Knowledge Graph clue. A
+    deterministic fake summary client (not a real LLM call) so this is
+    CI-stable; the point under test is the upsert-then-dedupe wiring.
+    """
+    from lineageweave.post_summary import ACTOR_TYPE_TEAM, PostSummary, RoleResponsibility
+
+    class _FakeSummaryClient:
+        available = True
+
+        def summarize(self, post_title: str, post_body: str) -> PostSummary:
+            return PostSummary(
+                korean_summary="설계팀이 도면을 검토했다.",
+                roles_and_responsibilities=(
+                    RoleResponsibility(
+                        actor_name="설계팀",
+                        responsibility="도면 검토",
+                        actor_type_code=ACTOR_TYPE_TEAM,
+                        affiliated_organization_name="Demo Corp",
+                    ),
+                ),
+            )
+
+    monkeypatch.setattr("backend.app.main._post_summary_client", lambda: _FakeSummaryClient())
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            post_ids = []
+            for title in ("설계 검토 회의 1", "설계 검토 회의 2"):
+                cur.execute(
+                    "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                    "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public' "
+                    "from source_post where post_id = %s returning post_id",
+                    (title, "placeholder body", seeded_db["own_private_post_id"]),
+                )
+                post_ids.append(str(cur.fetchone()[0]))
+    finally:
+        admin_conn.close()
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    for post_id in post_ids:
+        response = client.get(f"/api/posts/{post_id}/summary", headers=headers)
+        assert response.status_code == 200, response.text
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute("select count(*), count(distinct team_id) from cataloged_team where team_name = '설계팀'")
+            team_row_count, distinct_team_count = cur.fetchone()
+            cur.execute(
+                "select count(distinct pt.post_id) from post_team_mention pt "
+                "join cataloged_team ct on ct.team_id = pt.team_id "
+                "where ct.team_name = '설계팀'"
+            )
+            mentioning_post_count = cur.fetchone()[0]
+            cur.execute(
+                "select count(*) from knowledge_graph_edge "
+                "where source_node_type_code = 'node_team' and edge_type_code = 'edge_mention_team'"
+            )
+            team_mention_edge_count = cur.fetchone()[0]
+    finally:
+        admin_conn.close()
+
+    assert (team_row_count, distinct_team_count) == (1, 1), "the same team+org pair must dedupe to one row"
+    assert mentioning_post_count == 2, "both posts must link to the single cataloged team"
+    assert team_mention_edge_count == 2, "each post's mention must become a real KG edge"
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute("select team_id from cataloged_team where team_name = '설계팀'")
+            team_id = str(cur.fetchone()[0])
+    finally:
+        admin_conn.close()
+
+    related = client.get(
+        f"/api/teams/{team_id}/related",
+        headers=headers,
+    )
+    assert related.status_code == 200, related.text
+    related_ids = {node["node_id"] for node in related.json()["related"]}
+    assert set(post_ids) <= related_ids
+    summaries = [
+        client.get(f"/api/posts/{post_id}/summary", headers=headers).json()
+        for post_id in post_ids
+    ]
+    for body in summaries:
+        role = body["roles_and_responsibilities"][0]
+        assert role["catalog_node_id"] == team_id
+        assert role["catalog_node_type_code"] == "node_team"
+
+
+def test_organization_mention_only_posts_appear_in_entity_related(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """An org mentioned with no affiliated person must still start a related walk."""
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public' "
+                "from source_post where post_id = %s returning post_id",
+                ("Org-only mention", "Test Corp was named without a person.", seeded_db["own_private_post_id"]),
+            )
+            org_only_post_id = str(cur.fetchone()[0])
+            cur.execute(
+                "insert into post_organization_mention (post_id, corporate_entity_id) values (%s, %s)",
+                (org_only_post_id, seeded_db["own_corp_id"]),
+            )
+            for edge in knowledge_graph_edges_for_post(
+                org_only_post_id,
+                [],
+                organization_corporate_entity_ids=[seeded_db["own_corp_id"]],
+            ):
+                cur.execute(
+                    "insert into knowledge_graph_edge ("
+                    "source_node_type_code, source_node_id, target_node_type_code, "
+                    "target_node_id, edge_type_code, edge_weight"
+                    ") values (%s, %s, %s, %s, %s, %s) "
+                    "on conflict do nothing",
+                    (
+                        edge.source_node_type_code,
+                        edge.source_node_id,
+                        edge.target_node_type_code,
+                        edge.target_node_id,
+                        edge.edge_type_code,
+                        edge.edge_weight,
+                    ),
+                )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/corporate-entities/{seeded_db['own_corp_id']}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    related_ids = {node["node_id"] for node in response.json()["related"]}
+    assert org_only_post_id in related_ids
+
+
+def test_private_other_corp_organization_mention_does_not_leak(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """The org-mention UNION must still apply ABAC per post."""
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into post_organization_mention (post_id, corporate_entity_id) "
+                "values (%s, %s) on conflict do nothing",
+                (seeded_db["other_private_post_id"], seeded_db["own_corp_id"]),
+            )
+            cur.execute(
+                "insert into post_organization_mention (post_id, corporate_entity_id) "
+                "values (%s, %s) on conflict do nothing",
+                (seeded_db["other_private_post_id"], seeded_db["other_corp_id"]),
+            )
+            for entity_id in (seeded_db["own_corp_id"], seeded_db["other_corp_id"]):
+                for edge in knowledge_graph_edges_for_post(
+                    seeded_db["other_private_post_id"],
+                    [],
+                    organization_corporate_entity_ids=[entity_id],
+                ):
+                    cur.execute(
+                        "insert into knowledge_graph_edge ("
+                        "source_node_type_code, source_node_id, target_node_type_code, "
+                        "target_node_id, edge_type_code, edge_weight"
+                        ") values (%s, %s, %s, %s, %s, %s) "
+                        "on conflict do nothing",
+                        (
+                            edge.source_node_type_code,
+                            edge.source_node_id,
+                            edge.target_node_type_code,
+                            edge.target_node_id,
+                            edge.edge_type_code,
+                            edge.edge_weight,
+                        ),
+                    )
+    finally:
+        admin_conn.close()
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    own = client.get(
+        f"/api/corporate-entities/{seeded_db['own_corp_id']}/related",
+        headers=headers,
+    )
+    assert own.status_code == 200, own.text
+    own_ids = {node["node_id"] for node in own.json()["related"]}
+    assert seeded_db["other_private_post_id"] not in own_ids
+
+    hidden = client.get(
+        f"/api/corporate-entities/{seeded_db['other_corp_id']}/related",
+        headers=headers,
+    )
+    assert hidden.status_code == 403
+
+
+def test_thread_group_run_list_honors_knowledge_cutoff(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A later public post must not surface a previously hidden thread-group run."""
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code, thread_group_key, created_at) "
+                "select author_account_id, corporate_entity_id, %s, %s, 'voc', 'public', %s, %s "
+                "from source_post where post_id = %s",
+                (
+                    "Late thread-group post",
+                    "Written after the January cutoff.",
+                    "late-thread-group",
+                    "2026-01-20T12:00:00Z",
+                    seeded_db["own_private_post_id"],
+                ),
+            )
+            cur.execute(
+                """
+                insert into analysis_source_snapshot
+                    (snapshot_sha256, source_contract_version,
+                     maximum_available_time, captured_at)
+                values (%s, 'source-contract-v1',
+                        '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
+                returning analysis_source_snapshot_id
+                """,
+                ("f" * 64,),
+            )
+            snapshot_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                insert into analysis_run
+                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                     requested_by_account_id, knowledge_cutoff,
+                     configuration_schema_version, configuration_sha256,
+                     code_revision_sha, requested_at)
+                values (%s, 'analysis_run_lineage', %s,
+                        (select user_account_id from user_account
+                          where email_address = 'other.analyst@example.test'),
+                        '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
+                        '2026-01-12T12:30:00Z')
+                returning analysis_run_id
+                """,
+                (snapshot_id, "hidden-late-thread", "b" * 64, "c" * 40),
+            )
+            run_id = str(cur.fetchone()[0])
+            cur.execute(
+                """
+                insert into analysis_run_scope
+                    (analysis_run_id, scope_kind_code, scope_key)
+                values (%s, 'analysis_scope_thread_group', 'late-thread-group')
+                """,
+                (run_id,),
+            )
+            for ordinal, status, occurred in (
+                (1, "analysis_status_pending", "2026-01-12T12:31:00Z"),
+                (2, "analysis_status_running", "2026-01-12T12:32:00Z"),
+                (3, "analysis_status_succeeded", "2026-01-12T12:33:00Z"),
+            ):
+                cur.execute(
+                    """
+                    insert into analysis_run_status_event
+                        (analysis_run_id, status_ordinal, status_code, occurred_at)
+                    values (%s, %s, %s, %s)
+                    """,
+                    (run_id, ordinal, status, occurred),
+                )
+    finally:
+        admin_conn.close()
+
+    listed = client.get(
+        "/api/analysis-runs",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert listed.status_code == 200
+    ids = {run["analysis_run_id"] for run in listed.json()["analysis_runs"]}
+    assert run_id not in ids
+    assert seeded_db["visible_run_id"] in ids
+
+
+def test_first_mention_of_a_new_counterparty_creates_a_real_corporate_entity(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """ADR 0010: a person's affiliation to an organization with no
+    existing corporate_entity candidate must not stay permanently
+    unresolved -- an LLM-proposed, search-corroborated hierarchy
+    placement creates a real new row, closing the "통합 고객사 계열
+    tree AI" gap synthetic regression corpus data confirmed (0 of thousands of
+    real affiliations ever resolved before this). Deterministic fake
+    clients, CI-stable -- the point under test is the create-then-link
+    wiring, not model/search quality.
+    """
+    from lineageweave.corporate_hierarchy_inference import HierarchyProposal
+    from lineageweave.keyman_extraction import COUNTERPARTY, PersonMention
+    from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVerificationResult
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeKeymanClient:
+        available = True
+
+        def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
+            return [
+                PersonMention(
+                    person_name="Priya Sharma",
+                    person_side_code=COUNTERPARTY,
+                    affiliated_organization_names=("Northwind Turbines Gwangju Plant",),
+                )
+            ]
+
+    class _FakeRelationshipClient:
+        available = True
+
+        def classify(self, post_title: str, post_body: str, organization_names: list[str]):
+            return []
+
+    class _FakeHierarchyInferenceClient:
+        available = True
+
+        def infer(self, organization_name: str, context_text: str) -> HierarchyProposal | None:
+            if organization_name == "Northwind Turbines Gwangju Plant":
+                return HierarchyProposal(level_code="plant", parent_name="Northwind Turbines")
+            if organization_name == "Northwind Turbines":
+                return HierarchyProposal(level_code="company", parent_name=None)
+            return None
+
+    class _FakeVerificationClient:
+        available = True
+
+        def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:
+            return RelationVerificationResult(
+                status_code=STATUS_CORROBORATED, evidence_url=f"https://example.org/{organization_name}"
+            )
+
+    monkeypatch.setattr("backend.app.main._keyman_extraction_client", lambda: _FakeKeymanClient())
+    monkeypatch.setattr("backend.app.main._entity_relationship_client", lambda: _FakeRelationshipClient())
+    monkeypatch.setattr(
+        "backend.app.main._corporate_hierarchy_inference_client", lambda: _FakeHierarchyInferenceClient()
+    )
+    monkeypatch.setattr("backend.app.main._relation_verification_client", lambda: _FakeVerificationClient())
+
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select corporate_entity_id, entity_level_code, parent_entity_id, corporate_entity_code "
+                "from corporate_entity where entity_name = 'Northwind Turbines Gwangju Plant'"
+            )
+            plant_row = cur.fetchone()
+            cur.execute(
+                "select corporate_entity_id, entity_level_code "
+                "from corporate_entity where entity_name = 'Northwind Turbines'"
+            )
+            company_row = cur.fetchone()
+            cur.execute(
+                "select pa.affiliated_corporate_entity_id from person_affiliation pa "
+                "join cataloged_person cp on cp.person_id = pa.person_id "
+                "where cp.person_name = 'Priya Sharma'"
+            )
+            affiliation_entity_id = cur.fetchone()[0]
+    finally:
+        admin_conn.close()
+
+    assert plant_row is not None, "the plant-level entity must be created"
+    plant_entity_id, plant_level_code, plant_parent_id, plant_code = plant_row
+    assert plant_level_code == "plant"
+    assert plant_code.startswith("AUTO-"), "an auto-created code must never collide with a real login corp code"
+    assert company_row is not None, "the inferred parent company must also be created, not left dangling"
+    company_entity_id, company_level_code = company_row
+    assert company_level_code == "company"
+    assert str(plant_parent_id) == str(company_entity_id), "the plant's parent must be the real created company"
+    assert str(affiliation_entity_id) == str(plant_entity_id), "the affiliation must link to the real created plant"
 
 
 @pytest.mark.skipif(

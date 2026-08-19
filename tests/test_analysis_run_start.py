@@ -1,0 +1,445 @@
+"""Start-reconstruction contracts: digest, freeze, 422/409, designed tree."""
+
+import asyncio
+from datetime import datetime, timezone
+
+import asyncpg
+import pytest
+
+from backend.app.analysis_run_ingestion import reconstructed_edge_is_visible
+from backend.app.analysis_run_start import (
+    AnalysisRunStartError,
+    _deliver_tepp_measurement,
+    _persist_tepp_accepted,
+    configured_tepp_client,
+    reconstruction_member_ids,
+    reconstruction_result_digest,
+    start_kind_rejection,
+    start_write_conflict_error,
+    tepp_accepted_clocks,
+    tepp_run_request,
+    tepp_submit_outcome,
+)
+from backend.app.lineage_ingestion import records_from_source_posts
+from lineageweave.fixtures import sample_records
+from lineageweave.lineage_persistence import lineage_edge_specs
+from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
+from lineageweave.tepp_result import (
+    TeppAcceptedEvidence,
+    accepted_tepp_seed_envelope,
+    parse_tepp_accepted_evidence,
+    persistable_tepp_seed_envelope,
+)
+
+
+def test_reconstruction_digest_is_stable_and_ignores_edge_order() -> None:
+    """The same parent choices hash the same way regardless of insert order."""
+    edges = lineage_edge_specs(sample_records())
+    reversed_edges = list(reversed(edges))
+    assert reconstruction_result_digest(edges) == reconstruction_result_digest(reversed_edges)
+    assert reconstruction_result_digest([]) == reconstruction_result_digest([])
+    assert reconstruction_result_digest(edges) != reconstruction_result_digest([])
+
+
+def test_start_uses_the_same_parent_choices_as_library_reconstruct() -> None:
+    """The product start path must recover the designed A-100 fork.
+
+    fixtures.sample_records() is the synthetic gold tree: rec-002 is the
+    branch point for the revised quote and the delivery question. A start
+    that dropped an edge or invented a parent would fail this check.
+    """
+    edges = lineage_edge_specs(sample_records())
+    children = {edge.child_id for edge in edges if edge.parent_id == "rec-002"}
+    assert children >= {"rec-003", "rec-004"}
+    assert all(0.0 <= edge.fused_score <= 1.0 for edge in edges)
+    assert "theta" not in reconstruction_result_digest(edges)
+
+
+def test_start_wiring_recovers_a100_from_source_post_rows() -> None:
+    """CI must exercise records_from_source_posts, not only library reconstruct."""
+    rows = [
+        {
+            "post_id": record.record_id,
+            "post_title": record.label,
+            "created_at": record.occurred_at,
+            "thread_group_key": record.group_key,
+            "secondary_grouping_key": record.secondary_key,
+            "process_unit_id": None,
+            "corporate_entity_id": "corp-demo",
+        }
+        for record in sample_records()
+    ]
+    edges = lineage_edge_specs(records_from_source_posts(rows))
+    children = {edge.child_id for edge in edges if edge.parent_id == "rec-002"}
+    assert children >= {"rec-003", "rec-004"}
+    assert reconstruction_result_digest(edges) == reconstruction_result_digest(
+        lineage_edge_specs(sample_records())
+    )
+
+
+def test_snapshot_members_exclude_a_later_backfill() -> None:
+    """Start reconstructs the create-time bag, not a later cutoff re-query."""
+    captured = ["rec-001", "rec-002", "rec-003", "rec-004"]
+    cutoff_with_backfill = [*captured, "rec-backfill"]
+    assert reconstruction_member_ids(captured, cutoff_with_backfill) == captured
+    assert reconstruction_member_ids([], cutoff_with_backfill) == cutoff_with_backfill
+
+
+def test_reconstructed_edge_hides_unaffiliated_private_titles() -> None:
+    """Edge titles use the same public-or-affiliated rule as cutoff posts."""
+    affiliated = ["corp-demo"]
+    assert reconstructed_edge_is_visible(
+        parent_visibility_code="public",
+        parent_corporate_entity_id="corp-other",
+        child_visibility_code="public",
+        child_corporate_entity_id="corp-other",
+        affiliated_entity_ids=affiliated,
+    )
+    assert not reconstructed_edge_is_visible(
+        parent_visibility_code="private",
+        parent_corporate_entity_id="corp-other",
+        child_visibility_code="public",
+        child_corporate_entity_id="corp-demo",
+        affiliated_entity_ids=affiliated,
+    )
+
+
+def test_period_report_start_is_unprocessable_and_tepp_is_allowed() -> None:
+    """Period-report stays 422. TEPP start is allowed so tepp_client can run."""
+    report = start_kind_rejection("analysis_run_report")
+    assert report is not None
+    assert report.status_code == 422
+    assert "invent a measurement" in report.detail
+    assert "period report" in report.detail
+    assert start_kind_rejection("analysis_run_lineage") is None
+    assert start_kind_rejection("analysis_run_tepp") is None
+
+
+def _tepp_request() -> AnalysisRunRequest:
+    return tepp_run_request(
+        idempotency_key="buyer-tepp-2026-w07",
+        snapshot_sha256="ab" * 32,
+        knowledge_cutoff=datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc),
+        corporate_entity_id="11111111-1111-1111-1111-111111111111",
+    )
+
+
+def test_tepp_run_request_is_the_published_wire_shape() -> None:
+    """Start builds TEPP's seven-field request from the frozen run."""
+    request = _tepp_request()
+    payload = request.to_json()
+    assert payload["contract_version"] == 1
+    assert payload["idempotency_key"] == "buyer-tepp-2026-w07"
+    assert payload["snapshot_id"] == "ab" * 32
+    assert payload["knowledge_cutoff"] == "2026-01-12T12:00:00Z"
+    assert payload["model_contract_version"] == "tepp-analysis-run-v1"
+    assert payload["output_profile"] == "calibrated_event_measurement"
+    assert "theta" not in str(payload).casefold()
+
+
+def test_tepp_submit_outcome_drops_a_missing_transport() -> None:
+    """A missing TEPP transport is Failed, never a fabricated score."""
+    status, failure, result = tepp_submit_outcome(TeppClient(), _tepp_request())
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_not_available"
+    assert result is None
+
+
+def test_tepp_submit_outcome_does_not_persist_an_empty_envelope() -> None:
+    """A bare accepted status is not TEPP's published acknowledgement."""
+
+    class _Accepting(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(transport=lambda _payload: {"status": "accepted"})
+
+    status, failure, result = tepp_submit_outcome(_Accepting(), _tepp_request())
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_result_not_persisted"
+    assert result is None
+
+
+def test_tepp_submit_outcome_keeps_a_published_accepted_envelope_failed() -> None:
+    """A published accepted ack is transport evidence, never Succeeded."""
+    request = _tepp_request()
+
+    class _Accepted(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda _payload: accepted_tepp_seed_envelope(
+                    idempotency_key=request.idempotency_key
+                )
+            )
+
+    status, failure, result = tepp_submit_outcome(_Accepted(), request)
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_completed_result_unsupported"
+    assert result is not None
+    assert result.run_state == "accepted"
+    assert result.evidence_kind() == "aggregate transport evidence"
+    assert "theta" not in result.evidence_sha256()
+
+
+def test_tepp_submit_outcome_rejects_a_local_completed_envelope() -> None:
+    """A LineageWeave-local completed shape must not become Succeeded."""
+
+    class _Local(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(transport=lambda _payload: persistable_tepp_seed_envelope())
+
+    status, failure, result = tepp_submit_outcome(_Local(), _tepp_request())
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_result_not_persisted"
+    assert result is None
+
+
+def test_configured_tepp_client_stays_unavailable_without_http() -> None:
+    """Empty or non-http URLs keep the default dropped channel."""
+    assert isinstance(configured_tepp_client(""), TeppClient)
+    client = configured_tepp_client("file:///tmp/tepp.json")
+    with pytest.raises(TeppNotAvailable):
+        client.submit_analysis_run(_tepp_request())
+
+
+def test_tepp_accepted_clocks_keep_distinct_receipt_and_row_write() -> None:
+    """Transport receipt and row write stay two values when they differ."""
+    started = datetime(2026, 1, 12, 12, 44, tzinfo=timezone.utc)
+    received = datetime(2026, 1, 12, 12, 45, tzinfo=timezone.utc)
+    recorded = datetime(2026, 1, 12, 12, 46, tzinfo=timezone.utc)
+    assert tepp_accepted_clocks(
+        started_at=started,
+        received_at=received,
+        recorded_at=recorded,
+    ) == (received, recorded)
+
+
+def test_tepp_accepted_clocks_clamp_backward_receipt_to_start() -> None:
+    """A receipt earlier than start is not stored as a later invention."""
+    started = datetime(2026, 1, 12, 12, 45, tzinfo=timezone.utc)
+    earlier = datetime(2026, 1, 12, 12, 44, tzinfo=timezone.utc)
+    assert tepp_accepted_clocks(
+        started_at=started,
+        received_at=earlier,
+        recorded_at=earlier,
+    ) == (started, started)
+
+
+def test_tepp_accepted_clocks_clamp_backward_row_write_to_receipt() -> None:
+    """A row-write earlier than receipt stays the receipt, not invented later."""
+    started = datetime(2026, 1, 12, 12, 44, tzinfo=timezone.utc)
+    received = datetime(2026, 1, 12, 12, 45, tzinfo=timezone.utc)
+    earlier = datetime(2026, 1, 12, 12, 44, 30, tzinfo=timezone.utc)
+    assert tepp_accepted_clocks(
+        started_at=started,
+        received_at=received,
+        recorded_at=earlier,
+    ) == (received, received)
+
+
+def test_tepp_accepted_clocks_do_not_invent_a_second_instant() -> None:
+    """Equal receipt and persist stay one stored instant."""
+    instant = datetime(2026, 1, 12, 12, 45, tzinfo=timezone.utc)
+    assert tepp_accepted_clocks(
+        started_at=instant,
+        received_at=instant,
+        recorded_at=instant,
+    ) == (instant, instant)
+
+
+def _accepted_evidence() -> TeppAcceptedEvidence:
+    """Published Demo Corp accepted envelope used by persist-path tests."""
+    parsed = parse_tepp_accepted_evidence(
+        accepted_tepp_seed_envelope(idempotency_key="buyer-key"),
+        expected_idempotency_key="buyer-key",
+    )
+    assert parsed is not None
+    return parsed
+
+
+def test_persist_tepp_accepted_stores_two_clock_values() -> None:
+    """The insert binds transport receipt and row-write as distinct values."""
+    received = datetime(2026, 1, 12, 12, 45, tzinfo=timezone.utc)
+    recorded = datetime(2026, 1, 12, 12, 46, tzinfo=timezone.utc)
+
+    class _Conn:
+        def __init__(self) -> None:
+            self.bound: tuple[object, ...] | None = None
+
+        async def execute(self, _sql: str, *args: object) -> str:
+            self.bound = args
+            return "INSERT 0 1"
+
+    conn = _Conn()
+    stored = asyncio.run(
+        _persist_tepp_accepted(conn, "run-id", _accepted_evidence(), received, recorded)
+    )
+    assert stored is True
+    assert conn.bound is not None
+    assert conn.bound[6] == received
+    assert conn.bound[7] == recorded
+    assert conn.bound[6] != conn.bound[7]
+
+
+def test_persist_tepp_accepted_keeps_equal_clocks_equal() -> None:
+    """Same-instant receipt and persist are stored once each, not rewritten later."""
+    instant = datetime(2026, 1, 12, 12, 45, tzinfo=timezone.utc)
+
+    class _Conn:
+        def __init__(self) -> None:
+            self.bound: tuple[object, ...] | None = None
+
+        async def execute(self, _sql: str, *args: object) -> str:
+            self.bound = args
+            return "INSERT 0 1"
+
+    conn = _Conn()
+    stored = asyncio.run(
+        _persist_tepp_accepted(conn, "run-id", _accepted_evidence(), instant, instant)
+    )
+    assert stored is True
+    assert conn.bound is not None
+    assert conn.bound[6] == instant
+    assert conn.bound[7] == instant
+
+
+def test_persist_tepp_accepted_fails_closed_without_the_table() -> None:
+    """A missing accepted-evidence table is not success."""
+    instant = datetime(2026, 1, 12, 12, 45, tzinfo=timezone.utc)
+
+    class _Conn:
+        async def execute(self, _sql: str, *_args: object) -> str:
+            raise asyncpg.UndefinedTableError("undefined_table")
+
+    stored = asyncio.run(
+        _persist_tepp_accepted(_Conn(), "run-id", _accepted_evidence(), instant, instant)
+    )
+    assert stored is False
+
+
+class _DeliverConn:
+    """In-memory start connection for TEPP persist and status append."""
+
+    def __init__(self, *, persist_ok: bool = True) -> None:
+        self.persist_ok = persist_ok
+        self.accepted_args: tuple[object, ...] | None = None
+        self.status_args: tuple[object, ...] | None = None
+
+    async def fetchval(self, _sql: str, *_args: object) -> int:
+        return 2
+
+    async def execute(self, sql: str, *args: object) -> str:
+        if "analysis_run_tepp_accepted" in sql:
+            if not self.persist_ok:
+                raise asyncpg.UndefinedTableError("undefined_table")
+            self.accepted_args = args
+            return "INSERT 0 1"
+        if "analysis_run_status_event" in sql:
+            self.status_args = args
+            return "INSERT 0 1"
+        raise AssertionError(sql)
+
+
+def _locked_tepp_row() -> dict[str, object]:
+    """Frozen Demo Corp TEPP start row. Never invents a theta."""
+    return {
+        "idempotency_key": "buyer-tepp-2026-w07",
+        "snapshot_sha256": "ab" * 32,
+        "knowledge_cutoff": datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc),
+        "corporate_entity_id": "11111111-1111-1111-1111-111111111111",
+    }
+
+
+def test_deliver_tepp_measurement_persists_distinct_clocks() -> None:
+    """Accepted evidence stores receipt then row-write, and stays Failed."""
+    request = _tepp_request()
+
+    class _Accepted(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda _payload: accepted_tepp_seed_envelope(
+                    idempotency_key=request.idempotency_key
+                )
+            )
+
+    conn = _DeliverConn()
+    asyncio.run(
+        _deliver_tepp_measurement(
+            conn,
+            analysis_run_id="run-id",
+            locked=_locked_tepp_row(),
+            tepp_client=_Accepted(),
+        )
+    )
+    assert conn.accepted_args is not None
+    received_at = conn.accepted_args[6]
+    recorded_at = conn.accepted_args[7]
+    assert isinstance(received_at, datetime)
+    assert isinstance(recorded_at, datetime)
+    assert received_at <= recorded_at
+    assert conn.status_args is not None
+    assert conn.status_args[2] == "analysis_status_failed"
+    assert conn.status_args[4] == "tepp_completed_result_unsupported"
+    assert conn.status_args[3] == recorded_at
+
+
+def test_deliver_tepp_measurement_fails_closed_when_table_is_missing() -> None:
+    """A missing accepted table is Failed, never a fabricated measurement."""
+    request = _tepp_request()
+
+    class _Accepted(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda _payload: accepted_tepp_seed_envelope(
+                    idempotency_key=request.idempotency_key
+                )
+            )
+
+    conn = _DeliverConn(persist_ok=False)
+    asyncio.run(
+        _deliver_tepp_measurement(
+            conn,
+            analysis_run_id="run-id",
+            locked=_locked_tepp_row(),
+            tepp_client=_Accepted(),
+        )
+    )
+    assert conn.accepted_args is None
+    assert conn.status_args is not None
+    assert conn.status_args[2] == "analysis_status_failed"
+    assert conn.status_args[4] == "tepp_result_not_persisted"
+
+
+def test_deliver_tepp_measurement_does_not_persist_a_missing_transport() -> None:
+    """A missing TEPP transport writes no accepted evidence row."""
+    conn = _DeliverConn()
+    asyncio.run(
+        _deliver_tepp_measurement(
+            conn,
+            analysis_run_id="run-id",
+            locked=_locked_tepp_row(),
+            tepp_client=TeppClient(),
+        )
+    )
+    assert conn.accepted_args is None
+    assert conn.status_args is not None
+    assert conn.status_args[2] == "analysis_status_failed"
+    assert conn.status_args[4] == "tepp_not_available"
+
+
+def test_hidden_run_start_is_not_found() -> None:
+    """Operators get a 404 next action, not an internal exception name."""
+    error = AnalysisRunStartError(404, "This analysis run is not visible.")
+    assert error.status_code == 404
+    assert "not visible" in error.detail
+
+
+def test_running_restart_conflicts_and_succeeded_replay_is_documented() -> None:
+    """Running without pending outbox is 409. Succeeded replay is a no-op."""
+    conflict = start_write_conflict_error()
+    assert conflict.status_code == 409
+    assert "Refresh to see the stored tree" in conflict.detail
+    running = AnalysisRunStartError(
+        409,
+        "Open this run. Start is only for a Pending lineage reconstruction.",
+    )
+    assert running.status_code == 409
+    assert "Pending" in running.detail

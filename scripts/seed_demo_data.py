@@ -13,12 +13,14 @@ onto Valkey so the Activity panel is not empty after ``make seed``.
 
 HTTP goes through ``lineageweave.http_client`` (http(s) allowlist).
 
-Usage: python3 scripts/seed_demo_data.py [--postgres-dsn ...] [--keycloak-base-url ...] [--valkey-url ...]
+Usage: KEYCLOAK_ADMIN_PASSWORD=... python3 scripts/seed_demo_data.py [--postgres-dsn ...] [--keycloak-base-url ...] [--valkey-url ...]
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
+import os
 import sys
 from pathlib import Path
 from urllib.parse import urlencode
@@ -29,13 +31,27 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import psycopg2
 
 from lineageweave.http_client import get_json_list, post_form
+from lineageweave.post_summary import ACTOR_TYPE_PERSON
+from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
+from lineageweave.tepp_result import (
+    accepted_tepp_seed_envelope,
+    parse_tepp_accepted_evidence,
+    persistable_tepp_seed_envelope,
+)
 
 REALM = "lineageweave-demo"
 DEFAULT_POSTGRES_DSN = "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
 DEFAULT_KEYCLOAK_BASE_URL = "http://localhost:18080"
-DEFAULT_KEYCLOAK_ADMIN_USER = "admin"
-DEFAULT_KEYCLOAK_ADMIN_PASSWORD = "admin_dev_only"  # nosec B105 -- throwaway local-dev-only Keycloak seed credential
+DEFAULT_KEYCLOAK_ADMIN_USER = os.environ.get("KEYCLOAK_ADMIN", "admin")
 DEFAULT_VALKEY_URL = "redis://localhost:16379/0"
+
+# ADR 0013: one Demo Corp capture, many runs (lineage + TEPP + report).
+DEMO_SOURCE_SNAPSHOT_MATERIAL = b"lineageweave-synthetic-demo-snapshot-v1"
+DEMO_SOURCE_CONTRACT_VERSION = "demo-source-contract-v1"
+DEMO_LINEAGE_IDEMPOTENCY_KEY = "demo-lineage-seed-2026-w02"
+DEMO_TEPP_IDEMPOTENCY_KEY = "demo-tepp-seed-2026-w02"
+DEMO_TEPP_SUCCEEDED_IDEMPOTENCY_KEY = "demo-tepp-seed-2026-w02-succeeded"
+DEMO_REPORT_IDEMPOTENCY_KEY = "demo-report-seed-2026-w02"
 
 # (post_title, ticket_title, due_date) -- Event Lineage fixtures a report
 # member click opens. Activity seed uses the same titles so Valkey matches.
@@ -57,6 +73,17 @@ FIXTURE_TICKET_SPECS = (
     ),
 )
 CALENDAR_TICKET_TITLE = "Send Riverbend the revised delivery schedule."
+
+# ADR 0016: Demo Corp lineage/TEPP runs use this analysis clock. Late Demo
+# public post is the own-corp counter-example dated after that clock.
+DEMO_PUBLIC_POST_TITLE = "Demo public post"
+DEMO_PUBLIC_POST_CREATED_AT = "2026-01-10T12:00:00Z"
+DEMO_ANALYSIS_RUN_KNOWLEDGE_CUTOFF = "2026-01-12T12:00:00Z"
+LATE_DEMO_PUBLIC_POST_TITLE = "Late Demo public post"
+LATE_DEMO_PUBLIC_POST_CREATED_AT = "2026-01-13T09:00:00Z"
+LATE_DEMO_PUBLIC_POST_BODY = (
+    "Written after the Demo Corp lineage-run knowledge cutoff."
+)
 
 
 def _fetch_demo_user_subjects(base_url: str, admin_user: str, admin_password: str) -> dict[str, str]:
@@ -106,7 +133,23 @@ def seed(
             cur.execute((migrations / "0009_shared_metric_bank.sql").read_text())
             cur.execute((migrations / "0010_report_item_information.sql").read_text())
             cur.execute((migrations / "0011_post_chat_result.sql").read_text())
-            cur.execute((migrations / "0012_report_leftover_pair.sql").read_text())
+            cur.execute((migrations / "0012_role_responsibility_agent_type.sql").read_text())
+            cur.execute((migrations / "0013_person_job_title.sql").read_text())
+            cur.execute((migrations / "0014_role_responsibility_team_actor_type.sql").read_text())
+            cur.execute((migrations / "0015_organization_name_resolution.sql").read_text())
+            cur.execute((migrations / "0016_cross_post_actor_identity.sql").read_text())
+            cur.execute((migrations / "0018_analysis_run_registry.sql").read_text())
+            cur.execute((migrations / "0019_role_catalog_identity.sql").read_text())
+            cur.execute((migrations / "0020_analysis_run_retention_purge.sql").read_text())
+            cur.execute((migrations / "0021_analysis_run_reconstruction.sql").read_text())
+            cur.execute((migrations / "0022_analysis_source_snapshot_member.sql").read_text())
+            cur.execute((migrations / "0023_analysis_run_outbox.sql").read_text())
+            cur.execute((migrations / "0024_source_post_revision.sql").read_text())
+            cur.execute((migrations / "0025_role_person_catalog_identity.sql").read_text())
+            cur.execute((migrations / "0026_report_leftover_pair.sql").read_text())
+            cur.execute((migrations / "0027_abbreviation_tree_corroboration.sql").read_text())
+            cur.execute((migrations / "0028_analysis_run_tepp_result.sql").read_text())
+            cur.execute((migrations / "0029_analysis_run_tepp_accepted.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -158,6 +201,28 @@ def seed(
                 (group_entity_id,),
             )
             corporate_entity_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into corporate_entity (parent_entity_id, corporate_entity_code, entity_name, entity_level_code) "
+                "values (%s, 'DEMO-PLANT-01', 'Demo Plant', 'plant') "
+                "on conflict (corporate_entity_code) do update set "
+                "entity_name = excluded.entity_name, "
+                "entity_level_code = excluded.entity_level_code, "
+                "parent_entity_id = excluded.parent_entity_id",
+                (corporate_entity_id,),
+            )
+            cur.execute(
+                "insert into abbreviation_tree_corroboration "
+                "(raw_organization_name, corporate_entity_id, "
+                " verification_status_code, verification_evidence_url) "
+                "values ('DC', %s, 'verify_corroborated', "
+                "        'https://example.test/demo-corp-dc') "
+                "on conflict (raw_organization_name) do update set "
+                "corporate_entity_id = excluded.corporate_entity_id, "
+                "verification_status_code = excluded.verification_status_code, "
+                "verification_evidence_url = excluded.verification_evidence_url, "
+                "corroborated_at = now()",
+                (corporate_entity_id,),
+            )
 
             cur.execute(
                 "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) values "
@@ -215,29 +280,87 @@ def seed(
                     (account_id, roles[role_code]),
                 )
 
-            cur.execute("select post_id from source_post where post_title = 'Demo public post'")
-            if cur.fetchone() is None:
+            demo_public_cutoff_body = (
+                "Ada West at Demo Corp followed up with Priya Nair at "
+                "Northridge Grid about the delayed shipment."
+            )
+            demo_public_live_body = (
+                "Ada West at Demo Corp revised the delayed-shipment note after "
+                "the January cutoff: Priya Nair at Northridge Grid now expects "
+                "a later delivery window."
+            )
+            cur.execute(
+                "select post_id, post_body from source_post where post_title = %s",
+                (DEMO_PUBLIC_POST_TITLE,),
+            )
+            demo_public_row = cur.fetchone()
+            if demo_public_row is None:
                 cur.execute(
-                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code) "
-                    "values (%s, %s, %s, 'Demo public post', "
-                    "'Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.', "
-                    "'voc', 'public')",
-                    (account_ids["demo.analyst"], corporate_entity_id, process_units["DEMO-PU-A"]),
+                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at, updated_at) "
+                    "values (%s, %s, %s, %s, "
+                    "%s, "
+                    "'voc', 'public', '2026-01-10T12:00:00Z', '2026-01-10T12:00:00Z') "
+                    "returning post_id",
+                    (
+                        account_ids["demo.analyst"],
+                        corporate_entity_id,
+                        process_units["DEMO-PU-A"],
+                        DEMO_PUBLIC_POST_TITLE,
+                        demo_public_cutoff_body,
+                    ),
+                )
+                demo_public_post_id = cur.fetchone()[0]
+                cur.execute(
+                    "update source_post set post_body = %s, "
+                    "updated_at = '2026-01-13T09:00:00Z' "
+                    "where post_id = %s",
+                    (demo_public_live_body, demo_public_post_id),
                 )
                 cur.execute(
-                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code) "
-                    "values (%s, %s, %s, 'Demo private post', 'A synthetic private post scoped to Demo Corp accounts.', 'vom', 'private')",
+                    "insert into source_post (author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, voc_type_code, visibility_code, created_at, updated_at) "
+                    "values (%s, %s, %s, 'Demo private post', 'A synthetic private post scoped to Demo Corp accounts.', 'vom', 'private', '2026-01-10T12:00:00Z', '2026-01-10T12:00:00Z')",
                     (account_ids["demo.admin"], corporate_entity_id, process_units["DEMO-PU-HQ"]),
                 )
-
-            cur.execute("select post_id from source_post where post_title = 'Demo public post'")
-            demo_public_post_id = cur.fetchone()[0]
+            else:
+                demo_public_post_id = demo_public_row[0]
+                if demo_public_row[1] != demo_public_live_body:
+                    cur.execute(
+                        "update source_post set post_body = %s, "
+                        "updated_at = '2026-01-13T09:00:00Z' "
+                        "where post_id = %s",
+                        (demo_public_live_body, demo_public_post_id),
+                    )
+                cur.execute(
+                    "update source_post set created_at = '2026-01-10T12:00:00Z' "
+                    "where post_id = %s",
+                    (demo_public_post_id,),
+                )
             cur.execute(
-                "update source_post set post_body = %s where post_id = %s",
-                (
-                    "Ada West at Demo Corp followed up with Priya Nair at Northridge Grid about the delayed shipment.",
-                    demo_public_post_id,
-                ),
+                """
+                insert into source_post_revision (
+                    post_id, post_title, post_body, written_at, superseded_at
+                )
+                select %s, 'Demo public post', %s,
+                       '2026-01-10T12:00:00Z', '2026-01-13T09:00:00Z'
+                where not exists (
+                    select 1 from source_post_revision
+                     where post_id = %s
+                       and written_at <= '2026-01-12T12:00:00Z'
+                       and (superseded_at is null or superseded_at > '2026-01-12T12:00:00Z')
+                )
+                """,
+                (demo_public_post_id, demo_public_cutoff_body, demo_public_post_id),
+            )
+            cur.execute(
+                "update source_post set created_at = '2026-01-10T12:00:00Z', "
+                "updated_at = '2026-01-10T12:00:00Z' "
+                "where post_title = 'Demo private post'"
+            )
+            seed_late_demo_public_post(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+                process_units["DEMO-PU-A"],
             )
             cur.execute(
                 "insert into post_counterparty_entity (post_id, counterparty_entity_name, relationship_type_code) "
@@ -252,8 +375,9 @@ def seed(
                 from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
 
                 cur.execute(
-                    "insert into cataloged_person (person_name, person_side_code) values "
-                    "('Ada West', 'our_side'), ('Priya Nair', 'counterparty') "
+                    "insert into cataloged_person (person_name, person_side_code, last_known_job_title) values "
+                    "('Ada West', 'our_side', 'Account manager'), "
+                    "('Priya Nair', 'counterparty', 'Procurement lead') "
                     "returning person_name, person_id"
                 )
                 people = dict(cur.fetchall())
@@ -291,6 +415,8 @@ def seed(
                         ),
                     )
 
+            _seed_demo_public_summary(cur, demo_public_post_id)
+
             _seed_reconstructed_lineage(
                 cur,
                 account_ids["demo.analyst"],
@@ -303,10 +429,10 @@ def seed(
                 corporate_entity_id,
                 process_units["DEMO-PU-LINEAGE"],
             )
+            _seed_fixture_keymen_and_voc(cur, corporate_entity_id)
             _seed_fixture_summaries(cur)
             _seed_fixture_chats(cur)
             _seed_fixture_evaluations(cur)
-            _seed_fixture_keymen_and_voc(cur, corporate_entity_id)
             _seed_fixture_tickets(cur)
             _seed_fixture_ticket_activity(cur, account_ids["demo.analyst"], valkey_url)
             _seed_demo_period_report(
@@ -315,10 +441,69 @@ def seed(
                 corporate_entity_id,
                 process_units["DEMO-PU-LINEAGE"],
             )
+            _seed_demo_analysis_run(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+            )
+            _seed_demo_tepp_run(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+            )
+            _seed_demo_accepted_tepp_run(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+            )
+            _seed_demo_report_run(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+            )
 
         conn.commit()
     finally:
         conn.close()
+
+
+def seed_late_demo_public_post(
+    cur,
+    author_account_id,
+    corporate_entity_id,
+    process_unit_id,
+) -> None:
+    """Insert Late Demo public post after the January 12 knowledge cutoff.
+
+    ADR 0016 already filters ``source_post.created_at <= knowledge_cutoff``.
+    This own-corp public post is the falsifiable counter-example: Demo
+    public post stays on the January 12 Demo Corp lineage and TEPP run
+    lists; Late Demo does not. The live post list still shows Late Demo.
+    Does not implement a second cutoff, invent a theta, or stamp TEPP
+    Succeeded.
+    """
+    cur.execute(
+        "select post_id from source_post where post_title = %s",
+        (LATE_DEMO_PUBLIC_POST_TITLE,),
+    )
+    if cur.fetchone() is not None:
+        return
+    cur.execute(
+        "insert into source_post ("
+        "author_account_id, corporate_entity_id, process_unit_id, "
+        "post_title, post_body, voc_type_code, visibility_code, "
+        "created_at, updated_at"
+        ") values (%s, %s, %s, %s, %s, 'voc', 'public', %s, %s)",
+        (
+            author_account_id,
+            corporate_entity_id,
+            process_unit_id,
+            LATE_DEMO_PUBLIC_POST_TITLE,
+            LATE_DEMO_PUBLIC_POST_BODY,
+            LATE_DEMO_PUBLIC_POST_CREATED_AT,
+            LATE_DEMO_PUBLIC_POST_CREATED_AT,
+        ),
+    )
 
 
 def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, process_unit_id):
@@ -344,8 +529,8 @@ def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, pro
             "insert into source_post "
             "(author_account_id, corporate_entity_id, process_unit_id, "
             " post_title, post_body, voc_type_code, visibility_code, "
-            " thread_group_key, secondary_grouping_key, created_at) "
-            "values (%s, %s, %s, %s, %s, %s, 'public', %s, %s, %s) returning post_id",
+            " thread_group_key, secondary_grouping_key, created_at, updated_at) "
+            "values (%s, %s, %s, %s, %s, %s, 'public', %s, %s, %s, %s) returning post_id",
             (
                 author_account_id,
                 corporate_entity_id,
@@ -355,6 +540,7 @@ def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, pro
                 voc_type,
                 rec.group_key,
                 rec.secondary_key,
+                occurred,
                 occurred,
             ),
         )
@@ -393,6 +579,7 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
 
 def _write_post_summary(cur, post_id, summary) -> None:
     """Replace the stored summary for ``post_id`` (idempotent re-seed)."""
+    cur.execute("delete from post_summary_person_mention where post_id = %s", (post_id,))
     cur.execute("delete from post_summary_result where post_id = %s", (post_id,))
     cur.execute(
         "insert into post_summary_result (post_id, korean_summary) values (%s, %s)",
@@ -404,10 +591,37 @@ def _write_post_summary(cur, post_id, summary) -> None:
             (post_id, ordinal, event_text),
         )
     for role in summary.roles_and_responsibilities:
+        cataloged_person_id = None
+        if role.actor_type_code == ACTOR_TYPE_PERSON:
+            cur.execute(
+                "select person_id from cataloged_person "
+                "where person_name = %s "
+                "order by created_at, person_id limit 1",
+                (role.actor_name,),
+            )
+            person_row = cur.fetchone()
+            if person_row is not None:
+                cataloged_person_id = str(person_row[0])
         cur.execute(
-            "insert into post_summary_role (post_id, person_name, responsibility) values (%s, %s, %s)",
-            (post_id, role.person_name, role.responsibility),
+            "insert into post_summary_role "
+            "(post_id, actor_name, responsibility, actor_type_code, "
+            "affiliated_organization_name, cataloged_person_id) "
+            "values (%s, %s, %s, %s, %s, %s)",
+            (
+                post_id,
+                role.actor_name,
+                role.responsibility,
+                role.actor_type_code,
+                role.affiliated_organization_name,
+                cataloged_person_id,
+            ),
         )
+        if cataloged_person_id is not None:
+            cur.execute(
+                "insert into post_summary_person_mention (post_id, person_id) "
+                "values (%s, %s) on conflict do nothing",
+                (post_id, cataloged_person_id),
+            )
 
 
 def _write_post_chat(cur, post_id, question: str, chat) -> None:
@@ -553,7 +767,7 @@ def _seed_fixture_evaluations(cur) -> None:
     from lineageweave.fixtures import ambiguous_commitment_post, sample_records
     from lineageweave.post_evaluation import RUBRIC_VERSION
 
-    titles = ["Demo public post", ambiguous_commitment_post()[0]]
+    titles = [DEMO_PUBLIC_POST_TITLE, ambiguous_commitment_post()[0]]
     titles.extend(rec.label for rec in sample_records())
     for title in titles:
         cur.execute("select post_id from source_post where post_title = %s", (title,))
@@ -573,22 +787,27 @@ def _seed_fixture_evaluations(cur) -> None:
 def _ensure_demo_people(cur, corporate_entity_id) -> dict[str, str]:
     """Ada West / Priya Nair / Jordan Hale plus their affiliations. Idempotent."""
     people: dict[str, str] = {}
-    for name, side in (
-        ("Ada West", "our_side"),
-        ("Priya Nair", "counterparty"),
-        ("Jordan Hale", "our_side"),
+    for name, side, title in (
+        ("Ada West", "our_side", "Account manager"),
+        ("Priya Nair", "counterparty", "Procurement lead"),
+        ("Jordan Hale", "our_side", "Bid coordinator"),
     ):
         cur.execute("select person_id from cataloged_person where person_name = %s", (name,))
         row = cur.fetchone()
         if row is None:
             cur.execute(
-                "insert into cataloged_person (person_name, person_side_code) "
-                "values (%s, %s) returning person_id",
-                (name, side),
+                "insert into cataloged_person (person_name, person_side_code, last_known_job_title) "
+                "values (%s, %s, %s) returning person_id",
+                (name, side, title),
             )
             people[name] = str(cur.fetchone()[0])
         else:
             people[name] = str(row[0])
+            cur.execute(
+                "update cataloged_person set last_known_job_title = coalesce(last_known_job_title, %s) "
+                "where person_id = %s",
+                (title, people[name]),
+            )
     cur.execute(
         "insert into person_affiliation "
         "(person_id, affiliated_organization_name, affiliated_corporate_entity_id) "
@@ -1170,14 +1389,625 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
     _persist_seed_period_report(cur, "process_unit", high_key, w03, week3[high_key])
 
 
+def demo_source_snapshot_sha256() -> str:
+    """Return the reusable Demo Corp snapshot digest (never a source row)."""
+    return hashlib.sha256(DEMO_SOURCE_SNAPSHOT_MATERIAL).hexdigest()
+
+
+def _ensure_demo_source_snapshot(cur):
+    """Return the shared Demo Corp capture, inserting it on first seed.
+
+    Lineage, TEPP, and period-report runs share this snapshot
+    (ADR 0013: one capture, many runs). The digest is a hash of a
+    fixed demo contract string -- never a source row or DSN.
+    """
+    digest = demo_source_snapshot_sha256()
+    cur.execute(
+        "select analysis_source_snapshot_id from analysis_source_snapshot "
+        "where snapshot_sha256 = %s",
+        (digest,),
+    )
+    snapshot_row = cur.fetchone()
+    if snapshot_row is not None:
+        return snapshot_row[0]
+    cur.execute(
+        """
+        insert into analysis_source_snapshot
+            (snapshot_sha256, source_contract_version,
+             maximum_available_time, captured_at)
+        values (%s, %s,
+                '2026-01-12T00:00:00Z', '2026-01-12T00:05:00Z')
+        returning analysis_source_snapshot_id
+        """,
+        (digest, DEMO_SOURCE_CONTRACT_VERSION),
+    )
+    return cur.fetchone()[0]
+
+
+def _ensure_demo_source_counts(cur, snapshot_id) -> None:
+    """Insert demo counts only when the snapshot still has none.
+
+    ``enforce_analysis_source_count_freeze`` runs BEFORE INSERT. After
+    the first run points at the snapshot, a later ``INSERT ... ON
+    CONFLICT DO NOTHING`` still raises ``analysis_source_count_frozen_after_run``
+    and rolls back the whole ``seed()`` transaction. Skip when counts
+    already exist so ``make seed`` can be re-run.
+    """
+    cur.execute(
+        "select 1 from analysis_source_count "
+        "where analysis_source_snapshot_id = %s limit 1",
+        (snapshot_id,),
+    )
+    if cur.fetchone() is not None:
+        return
+    cur.execute(
+        """
+        insert into analysis_source_count
+            (analysis_source_snapshot_id, count_type_code, count_value)
+        values
+            (%s, 'analysis_count_document', 3),
+            (%s, 'analysis_count_thread', 1),
+            (%s, 'analysis_count_lineage_node', 5),
+            (%s, 'analysis_count_lineage_edge', 4)
+        """,
+        (snapshot_id, snapshot_id, snapshot_id, snapshot_id),
+    )
+
+
+def _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id) -> None:
+    """Freeze Demo Corp post ids on the shared snapshot when the table exists."""
+    cur.execute(
+        "select 1 from information_schema.tables "
+        "where table_schema = 'public' "
+        "and table_name = 'analysis_source_snapshot_member'"
+    )
+    if cur.fetchone() is None:
+        return
+    cur.execute(
+        "select 1 from analysis_source_snapshot_member "
+        "where analysis_source_snapshot_id = %s limit 1",
+        (snapshot_id,),
+    )
+    if cur.fetchone() is not None:
+        return
+    cur.execute(
+        """
+        insert into analysis_source_snapshot_member
+            (analysis_source_snapshot_id, source_post_id)
+        select %s, post_id from source_post
+        where corporate_entity_id = %s
+          and created_at <= '2026-01-12T00:00:00Z'
+        on conflict do nothing
+        """,
+        (snapshot_id, corporate_entity_id),
+    )
+
+
+def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -> None:
+    """Insert one Demo-Corp lineage run so Analysis runs is not empty.
+
+    Aggregates only: three synthetic documents, one thread. Reuses the
+    shared Demo Corp snapshot so a later TEPP run can attach to the
+    same capture.
+    """
+    snapshot_id = _ensure_demo_source_snapshot(cur)
+    _ensure_demo_source_counts(cur, snapshot_id)
+    _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id)
+    cur.execute(
+        """
+        select analysis_run_id from analysis_run
+        where requested_by_account_id = %s
+          and idempotency_key = %s
+        """,
+        (requested_by_account_id, DEMO_LINEAGE_IDEMPOTENCY_KEY),
+    )
+    run_row = cur.fetchone()
+    if run_row is None:
+        cur.execute(
+            """
+            insert into analysis_run
+                (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                 requested_by_account_id, knowledge_cutoff,
+                 configuration_schema_version, configuration_sha256,
+                 code_revision_sha, requested_at)
+            values (%s, 'analysis_run_lineage', %s,
+                    %s, %s, 'lineage-run-v1', %s, %s,
+                    '2026-01-12T12:30:00Z')
+            returning analysis_run_id
+            """,
+            (
+                snapshot_id,
+                DEMO_LINEAGE_IDEMPOTENCY_KEY,
+                requested_by_account_id,
+                DEMO_ANALYSIS_RUN_KNOWLEDGE_CUTOFF,
+                "b" * 64,
+                "c" * 40,
+            ),
+        )
+        run_id = cur.fetchone()[0]
+    else:
+        run_id = run_row[0]
+    cur.execute(
+        """
+        insert into analysis_run_scope
+            (analysis_run_id, scope_kind_code, corporate_entity_id)
+        values (%s, 'analysis_scope_corporate_entity', %s)
+        on conflict (analysis_run_id) do nothing
+        """,
+        (run_id, corporate_entity_id),
+    )
+    for ordinal, status, occurred in (
+        (1, "analysis_status_pending", "2026-01-12T12:31:00Z"),
+        (2, "analysis_status_running", "2026-01-12T12:32:00Z"),
+        (3, "analysis_status_succeeded", "2026-01-12T12:33:00Z"),
+    ):
+        cur.execute(
+            """
+            insert into analysis_run_status_event
+                (analysis_run_id, status_ordinal, status_code, occurred_at)
+            values (%s, %s, %s, %s)
+            on conflict do nothing
+            """,
+            (run_id, ordinal, status, occurred),
+        )
+    _seed_demo_run_reconstruction(cur, run_id, corporate_entity_id)
+    _seed_demo_run_outbox(cur, run_id)
+
+
+def seed_reconstruction_edges(rows: list[dict]) -> tuple:
+    """ThreadWeave parent choices and digest for seed and start. Never a theta."""
+    from backend.app.analysis_run_start import reconstruction_result_digest
+    from backend.app.lineage_ingestion import records_from_source_posts
+    from lineageweave.lineage_persistence import lineage_edge_specs
+
+    edges = lineage_edge_specs(records_from_source_posts(rows))
+    return edges, reconstruction_result_digest(edges)
+
+
+def _seed_demo_run_reconstruction(cur, analysis_run_id, corporate_entity_id) -> None:
+    """Persist the designed A-100 fork on the seeded Succeeded lineage run.
+
+    Seed already stamps Succeeded. Without run-scoped edges the home
+    detail has cutoff titles and no fork. Reuses the same ThreadWeave
+    path start uses. Does not invent a TEPP score.
+    """
+    from datetime import datetime, timezone
+
+    cur.execute(
+        "select 1 from analysis_run_reconstruction where analysis_run_id = %s",
+        (analysis_run_id,),
+    )
+    if cur.fetchone() is not None:
+        return
+    cur.execute(
+        """
+        select post_id, post_title, created_at, visibility_code,
+               corporate_entity_id, process_unit_id,
+               thread_group_key, secondary_grouping_key
+        from source_post
+        where corporate_entity_id = %s
+          and created_at <= %s
+        order by created_at, post_title
+        """,
+        (corporate_entity_id, DEMO_ANALYSIS_RUN_KNOWLEDGE_CUTOFF),
+    )
+    columns = [desc[0] for desc in cur.description]
+    rows = [dict(zip(columns, row)) for row in cur.fetchall()]
+    if not rows:
+        return
+    edges, digest = seed_reconstruction_edges(rows)
+    finished = datetime(2026, 1, 12, 12, 33, tzinfo=timezone.utc)
+    cur.execute(
+        """
+        insert into analysis_run_reconstruction
+            (analysis_run_id, result_sha256, edge_count, reconstructed_at)
+        values (%s, %s, %s, %s)
+        on conflict do nothing
+        """,
+        (analysis_run_id, digest, len(edges), finished),
+    )
+    for edge in edges:
+        cur.execute(
+            """
+            insert into analysis_run_lineage_edge
+                (analysis_run_id, child_post_id, parent_post_id,
+                 fused_score, reconstructed_at)
+            values (%s, %s, %s, %s, %s)
+            on conflict do nothing
+            """,
+            (analysis_run_id, edge.child_id, edge.parent_id, edge.fused_score, finished),
+        )
+
+
+def tepp_seed_request() -> AnalysisRunRequest:
+    """Build the Demo Corp TEPP request against the shared snapshot digest."""
+    return AnalysisRunRequest(
+        idempotency_key=DEMO_TEPP_IDEMPOTENCY_KEY,
+        tenant_workspace_id="demo-workspace",
+        snapshot_id=demo_source_snapshot_sha256(),
+        knowledge_cutoff=DEMO_ANALYSIS_RUN_KNOWLEDGE_CUTOFF,
+        model_contract_version="tepp-analysis-run-v1",
+        output_profile="calibrated_event_measurement",
+    )
+
+
+def tepp_accepted_seed_client(idempotency_key: str | None = None) -> TeppClient:
+    """In-process transport that returns the Demo Corp accepted acknowledgement."""
+    key = idempotency_key or tepp_seed_request().idempotency_key
+    return TeppClient(
+        transport=lambda _payload: accepted_tepp_seed_envelope(idempotency_key=key)
+    )
+
+
+def tepp_persistable_seed_client() -> TeppClient:
+    """In-process transport that returns the unsupported local envelope."""
+    return TeppClient(transport=lambda _payload: persistable_tepp_seed_envelope())
+
+
+def tepp_seed_outcome(
+    client: TeppClient | None = None,
+    request: AnalysisRunRequest | None = None,
+) -> tuple[str, str | None]:
+    """Ask TEPP through the published client. A missing transport is Failed.
+
+    Never invents a psychometric score. ``tepp_not_available`` means the
+    channel was dropped, not a calibrated negative result. A published
+    accepted acknowledgement is Failed /
+    ``tepp_completed_result_unsupported``. A LineageWeave-local
+    completed envelope stays Failed / ``tepp_result_not_persisted``.
+    """
+    payload = request or tepp_seed_request()
+    try:
+        envelope = (client or TeppClient()).submit_analysis_run(payload)
+    except TeppNotAvailable:
+        return "analysis_status_failed", "tepp_not_available"
+    parsed = parse_tepp_accepted_evidence(
+        envelope,
+        expected_idempotency_key=payload.idempotency_key,
+    )
+    if parsed is None:
+        return "analysis_status_failed", "tepp_result_not_persisted"
+    return "analysis_status_failed", "tepp_completed_result_unsupported"
+
+
+def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> None:
+    """Insert one Demo-Corp TEPP run so the kind is visible without a live TEPP.
+
+    Uses :func:`tepp_seed_outcome` against the shared lineage snapshot.
+    Default transport is unavailable, so the run ends Failed /
+    ``tepp_not_available`` -- never a fake theta.
+    """
+    snapshot_id = _ensure_demo_source_snapshot(cur)
+    _ensure_demo_source_counts(cur, snapshot_id)
+    _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id)
+    cur.execute(
+        """
+        select analysis_run_id from analysis_run
+        where requested_by_account_id = %s
+          and idempotency_key = %s
+        """,
+        (requested_by_account_id, DEMO_TEPP_IDEMPOTENCY_KEY),
+    )
+    run_row = cur.fetchone()
+    if run_row is None:
+        cur.execute(
+            """
+            insert into analysis_run
+                (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                 requested_by_account_id, knowledge_cutoff,
+                 configuration_schema_version, configuration_sha256,
+                 code_revision_sha, requested_at)
+            values (%s, 'analysis_run_tepp', %s,
+                    %s, %s, 'tepp-run-v1', %s, %s,
+                    '2026-01-12T12:34:00Z')
+            returning analysis_run_id
+            """,
+            (
+                snapshot_id,
+                DEMO_TEPP_IDEMPOTENCY_KEY,
+                requested_by_account_id,
+                DEMO_ANALYSIS_RUN_KNOWLEDGE_CUTOFF,
+                "d" * 64,
+                "e" * 40,
+            ),
+        )
+        run_id = cur.fetchone()[0]
+    else:
+        run_id = run_row[0]
+    cur.execute(
+        """
+        insert into analysis_run_scope
+            (analysis_run_id, scope_kind_code, corporate_entity_id)
+        values (%s, 'analysis_scope_corporate_entity', %s)
+        on conflict (analysis_run_id) do nothing
+        """,
+        (run_id, corporate_entity_id),
+    )
+    final_status, failure_code = tepp_seed_outcome()
+    events = [
+        (1, "analysis_status_pending", "2026-01-12T12:35:00Z", None),
+        (2, "analysis_status_running", "2026-01-12T12:36:00Z", None),
+        (3, final_status, "2026-01-12T12:37:00Z", failure_code),
+    ]
+    for ordinal, status, occurred, fail in events:
+        cur.execute(
+            """
+            insert into analysis_run_status_event
+                (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
+            values (%s, %s, %s, %s, %s)
+            on conflict do nothing
+            """,
+            (run_id, ordinal, status, occurred, fail),
+        )
+    _seed_demo_run_outbox(cur, run_id)
+
+
+def tepp_accepted_seed_request() -> AnalysisRunRequest:
+    """Build the Demo Corp accepted-evidence TEPP request."""
+    return AnalysisRunRequest(
+        idempotency_key=DEMO_TEPP_SUCCEEDED_IDEMPOTENCY_KEY,
+        tenant_workspace_id="demo-workspace",
+        snapshot_id=demo_source_snapshot_sha256(),
+        knowledge_cutoff=DEMO_ANALYSIS_RUN_KNOWLEDGE_CUTOFF,
+        model_contract_version="tepp-analysis-run-v1",
+        output_profile="calibrated_event_measurement",
+    )
+
+
+def _seed_demo_accepted_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> None:
+    """Insert one Demo-Corp TEPP run from a published accepted acknowledgement.
+
+    Uses an in-process transport so CI and ``make seed`` do not need a
+    live TEPP HTTP endpoint. The run stays Failed /
+    ``tepp_completed_result_unsupported``. The stored row is aggregate
+    transport evidence, never a fabricated theta or Succeeded
+    measurement.
+    """
+    snapshot_id = _ensure_demo_source_snapshot(cur)
+    _ensure_demo_source_counts(cur, snapshot_id)
+    _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id)
+    cur.execute(
+        """
+        select analysis_run_id from analysis_run
+        where requested_by_account_id = %s
+          and idempotency_key = %s
+        """,
+        (requested_by_account_id, DEMO_TEPP_SUCCEEDED_IDEMPOTENCY_KEY),
+    )
+    run_row = cur.fetchone()
+    if run_row is None:
+        cur.execute(
+            """
+            insert into analysis_run
+                (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                 requested_by_account_id, knowledge_cutoff,
+                 configuration_schema_version, configuration_sha256,
+                 code_revision_sha, requested_at)
+            values (%s, 'analysis_run_tepp', %s,
+                    %s, %s, 'tepp-run-v1', %s, %s,
+                    '2026-01-12T12:42:00Z')
+            returning analysis_run_id
+            """,
+            (
+                snapshot_id,
+                DEMO_TEPP_SUCCEEDED_IDEMPOTENCY_KEY,
+                requested_by_account_id,
+                DEMO_ANALYSIS_RUN_KNOWLEDGE_CUTOFF,
+                "c" * 64,
+                "b" * 40,
+            ),
+        )
+        run_id = cur.fetchone()[0]
+    else:
+        run_id = run_row[0]
+    cur.execute(
+        """
+        insert into analysis_run_scope
+            (analysis_run_id, scope_kind_code, corporate_entity_id)
+        values (%s, 'analysis_scope_corporate_entity', %s)
+        on conflict (analysis_run_id) do nothing
+        """,
+        (run_id, corporate_entity_id),
+    )
+    request = tepp_accepted_seed_request()
+    status, failure = tepp_seed_outcome(
+        tepp_accepted_seed_client(request.idempotency_key),
+        request,
+    )
+    accepted = parse_tepp_accepted_evidence(
+        accepted_tepp_seed_envelope(idempotency_key=request.idempotency_key),
+        expected_idempotency_key=request.idempotency_key,
+    )
+    if accepted is not None:
+        cur.execute(
+            """
+            insert into analysis_run_tepp_accepted
+                (analysis_run_id, contract_version, accepted_run_id, run_state,
+                 idempotency_key, evidence_sha256, received_at, recorded_at)
+            values (%s, %s, %s, %s, %s, %s, %s, %s)
+            on conflict do nothing
+            """,
+            (
+                run_id,
+                accepted.contract_version,
+                accepted.accepted_run_id,
+                accepted.run_state,
+                accepted.idempotency_key,
+                accepted.evidence_sha256(),
+                "2026-01-12T12:45:00Z",
+                "2026-01-12T12:45:00Z",
+            ),
+        )
+    events = [
+        (1, "analysis_status_pending", "2026-01-12T12:43:00Z", None),
+        (2, "analysis_status_running", "2026-01-12T12:44:00Z", None),
+        (3, status, "2026-01-12T12:45:00Z", failure),
+    ]
+    for ordinal, event_status, occurred, fail in events:
+        cur.execute(
+            """
+            insert into analysis_run_status_event
+                (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
+            values (%s, %s, %s, %s, %s)
+            on conflict do nothing
+            """,
+            (run_id, ordinal, event_status, occurred, fail),
+        )
+    _seed_demo_run_outbox(cur, run_id)
+
+
+def _seed_demo_report_run(cur, requested_by_account_id, corporate_entity_id) -> None:
+    """Record the already-built Demo Corp period report on the shared snapshot.
+
+    ``_seed_demo_period_report`` persists calibrated report tables first.
+    This registry row is Succeeded because that write already happened.
+    It does not copy a theta onto ``analysis_run``, does not invent a
+    local psychometric substitute, and does not enqueue start outbox
+    work (ADR 0024). Start stays 422.
+    """
+    snapshot_id = _ensure_demo_source_snapshot(cur)
+    _ensure_demo_source_counts(cur, snapshot_id)
+    _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id)
+    cur.execute(
+        """
+        select analysis_run_id from analysis_run
+        where requested_by_account_id = %s
+          and idempotency_key = %s
+        """,
+        (requested_by_account_id, DEMO_REPORT_IDEMPOTENCY_KEY),
+    )
+    run_row = cur.fetchone()
+    if run_row is None:
+        cur.execute(
+            """
+            insert into analysis_run
+                (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                 requested_by_account_id, knowledge_cutoff,
+                 configuration_schema_version, configuration_sha256,
+                 code_revision_sha, requested_at)
+            values (%s, 'analysis_run_report', %s,
+                    %s, %s, 'report-run-v1', %s, %s,
+                    '2026-01-12T12:38:00Z')
+            returning analysis_run_id
+            """,
+            (
+                snapshot_id,
+                DEMO_REPORT_IDEMPOTENCY_KEY,
+                requested_by_account_id,
+                DEMO_ANALYSIS_RUN_KNOWLEDGE_CUTOFF,
+                "f" * 64,
+                "a" * 40,
+            ),
+        )
+        run_id = cur.fetchone()[0]
+    else:
+        run_id = run_row[0]
+    cur.execute(
+        """
+        insert into analysis_run_scope
+            (analysis_run_id, scope_kind_code, corporate_entity_id, scope_key)
+        values (%s, 'analysis_scope_corporate_entity', %s, %s)
+        on conflict (analysis_run_id) do update
+            set scope_key = excluded.scope_key
+        """,
+        (run_id, corporate_entity_id, "2026-W02"),
+    )
+    for ordinal, status, occurred in (
+        (1, "analysis_status_pending", "2026-01-12T12:39:00Z"),
+        (2, "analysis_status_running", "2026-01-12T12:40:00Z"),
+        (3, "analysis_status_succeeded", "2026-01-12T12:41:00Z"),
+    ):
+        cur.execute(
+            """
+            insert into analysis_run_status_event
+                (analysis_run_id, status_ordinal, status_code, occurred_at)
+            values (%s, %s, %s, %s)
+            on conflict do nothing
+            """,
+            (run_id, ordinal, status, occurred),
+        )
+
+
+def _seed_demo_run_outbox(cur, analysis_run_id) -> None:
+    """Record a delivered start-work item for the seeded run.
+
+    Seed already stamped the terminal status. The outbox row proves the
+    same durable path start uses. No theta is stored.
+    """
+    from datetime import datetime, timezone
+
+    from backend.app.analysis_run_outbox import outbox_request_digest
+
+    cur.execute(
+        "select 1 from analysis_run_outbox where analysis_run_id = %s",
+        (analysis_run_id,),
+    )
+    if cur.fetchone() is not None:
+        return
+    cur.execute(
+        """
+        select run.run_kind_code, run.knowledge_cutoff, snapshot.snapshot_sha256
+        from analysis_run run
+        join analysis_source_snapshot snapshot
+          on snapshot.analysis_source_snapshot_id = run.analysis_source_snapshot_id
+        where run.analysis_run_id = %s
+        """,
+        (analysis_run_id,),
+    )
+    row = cur.fetchone()
+    if row is None:
+        return
+    work_kind_code, knowledge_cutoff, snapshot_sha256 = row
+    digest = outbox_request_digest(
+        analysis_run_id=str(analysis_run_id),
+        work_kind_code=work_kind_code,
+        snapshot_sha256=snapshot_sha256,
+        knowledge_cutoff=knowledge_cutoff,
+    )
+    if work_kind_code == "analysis_run_tepp":
+        claimed = datetime(2026, 1, 12, 12, 36, tzinfo=timezone.utc)
+        delivered = datetime(2026, 1, 12, 12, 37, tzinfo=timezone.utc)
+    else:
+        claimed = datetime(2026, 1, 12, 12, 32, tzinfo=timezone.utc)
+        delivered = datetime(2026, 1, 12, 12, 33, tzinfo=timezone.utc)
+    cur.execute(
+        """
+        insert into analysis_run_outbox
+            (analysis_run_id, work_kind_code, request_sha256, enqueued_at)
+        values (%s, %s, %s, %s)
+        on conflict do nothing
+        """,
+        (analysis_run_id, work_kind_code, digest, claimed),
+    )
+    for ordinal, status, occurred in (
+        (1, "analysis_outbox_claimed", claimed),
+        (2, "analysis_outbox_delivered", delivered),
+    ):
+        cur.execute(
+            """
+            insert into analysis_run_outbox_delivery
+                (analysis_run_id, delivery_ordinal, delivery_status_code, occurred_at)
+            values (%s, %s, %s, %s)
+            on conflict do nothing
+            """,
+            (analysis_run_id, ordinal, status, occurred),
+        )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--postgres-dsn", default=DEFAULT_POSTGRES_DSN)
     parser.add_argument("--keycloak-base-url", default=DEFAULT_KEYCLOAK_BASE_URL)
     parser.add_argument("--keycloak-admin-user", default=DEFAULT_KEYCLOAK_ADMIN_USER)
-    parser.add_argument("--keycloak-admin-password", default=DEFAULT_KEYCLOAK_ADMIN_PASSWORD)
+    parser.add_argument(
+        "--keycloak-admin-password",
+        default=os.environ.get("KEYCLOAK_ADMIN_PASSWORD"),
+        help="Keycloak master admin password (or KEYCLOAK_ADMIN_PASSWORD). Required.",
+    )
     parser.add_argument("--valkey-url", default=DEFAULT_VALKEY_URL)
     args = parser.parse_args()
+    if not args.keycloak_admin_password:
+        parser.error("set KEYCLOAK_ADMIN_PASSWORD or pass --keycloak-admin-password")
 
     subjects = _fetch_demo_user_subjects(args.keycloak_base_url, args.keycloak_admin_user, args.keycloak_admin_password)
     seed(args.postgres_dsn, subjects, args.valkey_url)

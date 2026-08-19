@@ -48,7 +48,10 @@ class Settings:
     # means the verification channel is unavailable, same "no fake
     # channel" discipline as every other pluggable client.
     searxng_base_url: str
-    # RankWeave ranking port (ADR 0024). True = fail-closed
+    # Optional TEPP HTTP transport. Empty keeps TeppClient's default
+    # unavailable transport. Never a local psychometric substitute.
+    tepp_transport_url: str
+    # RankWeave ranking port (ADR 0030). True = fail-closed
     # RankWeaveNotAvailable -- never invent a fused score. Default false
     # uses the in-process library already required by reconstruct.py.
     rankweave_disabled: bool
@@ -84,6 +87,7 @@ def load_settings() -> Settings:
         vision_model=os.environ.get("VISION_MODEL", ""),
         valkey_url=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
         searxng_base_url=os.environ.get("SEARXNG_BASE_URL", ""),
+        tepp_transport_url=os.environ.get("TEPP_TRANSPORT_URL", ""),
         rankweave_disabled=os.environ.get("RANKWEAVE_DISABLED", "")
         .strip()
         .lower()

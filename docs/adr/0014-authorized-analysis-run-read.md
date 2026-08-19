@@ -1,0 +1,92 @@
+# ADR 0014 — Analysis-run evidence is an authorized, source-redacting read
+
+**Decision status:** Accepted on this active PR; not protected-main truth until merge
+**Date:** 2026-08-16
+**Depends on:** ADR 0013 normalized analysis-run registry
+**Refs:** Issue #79 (Milestone 2 parent); closed PR #77 is read-only evidence
+
+## Context
+
+PR #89 persists analysis-run identity, aggregate reconciliation, scope,
+and lifecycle without exposing a product API. Buyers still cannot see
+whether a lineage reconstruction ran, succeeded, or reconciled how many
+documents. Closed PR #77 exposed analysis records through a parallel
+application that also stored raw metadata payloads -- that shape cannot
+become protected product truth.
+
+## Decision
+
+LineageWeave owns a fail-closed read projection of the #89 registry:
+
+- `GET /api/analysis-runs` and `GET /api/analysis-runs/{id}` require
+  `post_read`.
+- Visibility is evaluated in SQL. A run is visible when the caller
+  requested it, or the scope is a corporate entity / process unit /
+  thread group the caller may already walk. `all_visible` stays
+  requester-only so it cannot broaden another tenant's evidence.
+- Hidden runs return 404, not 403, and never appear in the list.
+- The payload carries lookup labels and non-negative aggregate counts.
+  It does not carry source SQL, DSNs, raw records, image bytes, provider
+  payloads, credentials, or another service's table names.
+- `GET /api/analysis-runs/{id}` also returns the append-only labeled
+  `status_history`. The list does not. A failed event may include the
+  stored machine `failure_code`; this slice does not invent a label.
+- TEPP remains a versioned `AnalysisRunRequest` consumer
+  (`lineageweave.tepp_client`). This slice does not fork TEPP arithmetic.
+- contextual-orchestrator remains the only LLM path. This slice does not
+  call a raw model API.
+
+## Consequences
+
+`make seed` writes one synthetic Demo Corp lineage run, one Failed
+missing-transport TEPP run, one Failed accepted-evidence TEPP run, and
+one Succeeded period-report run on the same snapshot so the existing
+React home page can show all three kinds without a second application
+(ADR 0024 / ADR 0035). The missing-transport TEPP run is
+`tepp_not_available` when the default transport is missing -- the list
+keeps that machine code off the caption (this decision) and instead
+tells the operator to open the TEPP run, then connect the measurement
+service. The accepted-evidence TEPP row tells the operator to read
+aggregate transport evidence and that completed measurement identity
+is unavailable. A failed lineage row tells the operator to retry
+reconstruction, not to connect TEPP. A failed period-report row
+tells the operator to rebuild the report from a current snapshot.
+A pending or running TEPP row must not claim a calibrated
+measurement and must not say reconstruction. The list
+button accessible name is `Open analysis run: {caption}. {nextAction}`
+when a next action exists (WCAG 2.2 SC 4.1.2); otherwise the caption
+alone. `aria-label` replaces button contents (W3C Accessible Name and
+Description Computation 1.1), so the next-action sentence must live
+in that name. Detail repeats that sentence. A pending
+lineage row says reconstruction has not started yet. The detail now shows the legal
+lifecycle the registry already stored. `POST /api/analysis-runs` now
+records a Pending lineage run on an authorized cutoff capture
+(ADR 0017). TEPP and period-report kinds are 422. Reconstruction and
+TEPP accepted transport evidence are ADR 0021 / ADR 0035. A fuller Analysis
+Run Console remains a later slice. A 404 on a hidden run (including a thread-group row that
+still lacks an in-cutoff visible post, ADR 0018) must stay generic:
+do not name the thread or the cutoff, and do not say the run is not
+visible. Tell the operator to open a visible run from the home list,
+or request a lineage reconstruction for a corporation they already
+walk. After that 404, re-read `GET /api/analysis-runs` so the stale
+list row does not stay clickable, and announce the status with
+`role="alert"` (WCAG 2.2 SC 4.1.3) without moving focus.
+
+## References
+
+American Educational Research Association, American Psychological
+Association, & National Council on Measurement in Education. (2014).
+*Standards for educational and psychological testing*. American
+Educational Research Association.
+
+Lebo, T., Sahoo, S., & McGuinness, D. (Eds.). (2013). *PROV-O: The PROV
+ontology* (W3C Recommendation). World Wide Web Consortium.
+https://www.w3.org/TR/2013/REC-prov-o-20130430/
+
+World Wide Web Consortium. (2018). *Accessible name and description
+computation 1.1* (W3C Recommendation).
+https://www.w3.org/TR/accname-1.1/
+
+World Wide Web Consortium. (2023). *Web content accessibility
+guidelines (WCAG) 2.2* (W3C Recommendation).
+https://www.w3.org/TR/WCAG22/

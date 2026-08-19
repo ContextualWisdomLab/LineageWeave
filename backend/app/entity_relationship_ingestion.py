@@ -6,6 +6,7 @@ organization names (typically the union of Keyman affiliations from
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -38,7 +39,9 @@ async def ingest_post_entity_relationships(
     if not organization_names:
         return []
 
-    relationships = client.classify(post_title, post_body, organization_names)
+    relationships = await asyncio.to_thread(
+        client.classify, post_title, post_body, organization_names
+    )
 
     for relationship in relationships:
         await conn.execute(

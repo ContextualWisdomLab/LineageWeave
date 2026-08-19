@@ -47,6 +47,24 @@ def test_parses_a_well_formed_json_array() -> None:
     assert mentions[1].affiliated_organization_names == ("Acme Corp", "Acme Holdings")
 
 
+def test_job_title_is_captured_when_present() -> None:
+    content = '[{"name": "Kim Cheolsu", "side": "counterparty", "affiliations": [], "job_title": "Sales Manager"}]'
+    mentions = parse_keyman_response(content)
+    assert mentions[0].job_title == "Sales Manager"
+
+
+def test_job_title_is_none_not_empty_string_when_absent() -> None:
+    content = '[{"name": "Kim Cheolsu", "side": "counterparty", "affiliations": []}]'
+    mentions = parse_keyman_response(content)
+    assert mentions[0].job_title is None
+
+
+def test_null_job_title_is_none_not_the_string_null() -> None:
+    content = '[{"name": "Kim Cheolsu", "side": "counterparty", "affiliations": [], "job_title": null}]'
+    mentions = parse_keyman_response(content)
+    assert mentions[0].job_title is None
+
+
 def test_strips_a_markdown_code_fence() -> None:
     content = '```json\n[{"name": "Jo Park", "side": "our_side", "affiliations": []}]\n```'
     mentions = parse_keyman_response(content)
@@ -110,3 +128,11 @@ def test_contextual_orchestrator_extracts_keymen_from_an_ambiguous_post() -> Non
     assert jordan.person_side_code == OUR_SIDE
     assert priya.person_side_code == COUNTERPARTY
     assert len(priya.affiliated_organization_names) >= 2
+
+    # Sam Okonkwo is named only by role ("our legal counsel, Sam Okonkwo") --
+    # a real assertion that job_title extraction reads the text, not a
+    # synthetic fixture built just to satisfy this one field.
+    sam = next((m for name, m in by_name.items() if "Sam" in name or "Okonkwo" in name), None)
+    assert sam is not None
+    assert sam.job_title is not None
+    assert "counsel" in sam.job_title.lower() or "legal" in sam.job_title.lower()

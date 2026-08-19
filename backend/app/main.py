@@ -19,8 +19,11 @@ read is ``source_post`` -- two-or-more-word table names, per AGENTS.md.
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import Any
+from uuid import UUID
 
 import asyncpg
 import redis.asyncio as redis
@@ -37,9 +40,17 @@ from lineageweave.entity_relationship_classification import (
     NullEntityRelationshipClient,
 )
 from lineageweave.image_content import orchestrator_vision_client
+from lineageweave.corporate_hierarchy_inference import (
+    ContextualOrchestratorHierarchyInferenceClient,
+    NullCorporateHierarchyInferenceClient,
+)
 from lineageweave.keyman_extraction import (
     ContextualOrchestratorKeymanExtractionClient,
     NullKeymanExtractionClient,
+)
+from lineageweave.organization_name_resolution import (
+    ContextualOrchestratorOrganizationNameResolutionClient,
+    NullOrganizationNameResolutionClient,
 )
 from lineageweave.post_chat import (
     ContextualOrchestratorPostChatClient,
@@ -56,6 +67,20 @@ from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, N
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
 from lineageweave.rankweave_client import build_rankweave_client
 
+from backend.app.analysis_run_ingestion import (
+    AnalysisRunCreateError,
+    create_pending_analysis_run,
+    fetch_visible_analysis_run,
+    fetch_visible_analysis_runs,
+)
+from backend.app.analysis_run_outbox import publish_outbox_event
+from backend.app.analysis_run_start import (
+    AnalysisRunStartError,
+    configured_tepp_client,
+    deliver_queued_analysis_run,
+    enqueue_pending_analysis_run,
+)
+from backend.app.source_post_revision import fetch_known_at_revision, parse_as_of_clock
 from backend.app.activity_stream import (
     create_valkey_client,
     get_valkey,
@@ -64,7 +89,12 @@ from backend.app.activity_stream import (
     ticket_created_summary,
     ticket_status_changed_summary,
 )
+from backend.app.abbreviation_tree_corroboration_ingestion import (
+    corroborate_post_abbreviations,
+    fetch_post_abbreviation_matches,
+)
 from backend.app.affiliate_tree_ingestion import fetch_affiliate_forest, fetch_voc_evidence
+from backend.app.customer_group_tree_ingestion import fetch_customer_group_forest
 from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
 from backend.app.db import create_pool, get_pool
@@ -98,10 +128,14 @@ from backend.app.knowledge_graph import (
     fetch_post_keymen,
     labels_for_codes,
     person_exists,
+    persist_edges_for_post,
     related_for_entity,
     related_for_person,
+    related_for_team,
+    team_exists,
     visible_affiliation_post_ids,
     visible_mention_post_ids,
+    visible_team_mention_post_ids,
 )
 from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
 from backend.app.post_chat_ingestion import (
@@ -180,6 +214,26 @@ def _relation_verification_client():
     return SearxngRelationVerificationClient(base_url=settings.searxng_base_url)
 
 
+def _organization_name_resolution_client():
+    """Live orchestrator client when configured; otherwise the unavailable null."""
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
+        return NullOrganizationNameResolutionClient()
+    return ContextualOrchestratorOrganizationNameResolutionClient(
+        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+    )
+
+
+def _corporate_hierarchy_inference_client():
+    """Live orchestrator client when configured; otherwise the unavailable null."""
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
+        return NullCorporateHierarchyInferenceClient()
+    return ContextualOrchestratorHierarchyInferenceClient(
+        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+    )
+
+
 def _post_summary_client():
     """Live orchestrator client when configured; otherwise the unavailable null."""
     settings = load_settings()
@@ -238,7 +292,7 @@ def _post_evaluation_client():
 
 
 def _rankweave_client():
-    """In-process RankWeave unless RANKWEAVE_DISABLED=1 (ADR 0024)."""
+    """In-process RankWeave unless RANKWEAVE_DISABLED=1 (ADR 0030)."""
     return build_rankweave_client(disabled=load_settings().rankweave_disabled)
 
 
@@ -278,13 +332,58 @@ async def healthz() -> dict[str, str]:
 
 
 @app.get("/api/me")
-async def read_me(account: CurrentAccount = Depends(get_current_account)) -> dict[str, Any]:
-    """Return the provisioned account that the bearer token resolved to."""
+async def read_me(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return the provisioned account and the corps this token may walk.
+
+    Multi-affiliation operators need those names to choose which entity
+    ``POST /api/analysis-runs`` should cover.
+    """
+    entities: list[dict[str, str]] = []
+    if account.corporate_entity_ids:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                select corporate_entity_id, entity_name
+                  from corporate_entity
+                 where corporate_entity_id = any($1::uuid[])
+                 order by entity_name
+                """,
+                list(account.corporate_entity_ids),
+            )
+        entities = [
+            {
+                "corporate_entity_id": str(row["corporate_entity_id"]),
+                "entity_name": row["entity_name"],
+            }
+            for row in rows
+        ]
     return {
         "user_account_id": account.user_account_id,
         "display_name": account.display_name,
         "permission_codes": sorted(account.permission_codes),
+        "corporate_entities": entities,
     }
+
+
+@app.get("/api/customer-group-tree")
+async def read_customer_group_tree(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Authorized Group / Company / Plant forest this token may navigate.
+
+    Affiliated corps pull in ancestors and descendants. A catalog row
+    the account does not touch is omitted -- a missing affiliation is
+    not a guessed parent. Corroborated abbreviations attach as
+    alternative labels; Searxng is not called on this read.
+    """
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        trees = await fetch_customer_group_forest(conn, list(account.corporate_entity_ids))
+    return {"trees": trees}
 
 
 @app.get("/api/lineage")
@@ -334,11 +433,29 @@ async def list_posts(
 @app.get("/api/posts/{post_id}")
 async def read_post(
     post_id: str,
+    as_of: str | None = None,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Return one source_post, or 404 / 403 if it is missing or out of scope."""
+    """Return one source_post, or 404 / 403 if it is missing or out of scope.
+
+    ``as_of`` adds ``known_at`` when a ``source_post_revision`` covers that
+    clock (ADR 0025). The live ``post_body`` stays the live row. A missing
+    cover is omitted -- never a fabricated cutoff sentence. Next action:
+    pass the analysis-run cutoff, then compare ``known_at`` with the live
+    body before treating the live text as reconstructed evidence.
+    """
     _require_post_read(account)
+    as_of_clock = None
+    if as_of is not None:
+        try:
+            as_of_clock = parse_as_of_clock(as_of)
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "as_of must be an ISO-8601 timestamp. Use the run cutoff, "
+                "then compare the known body with the live body.",
+            ) from exc
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "select post_id, post_title, post_body, voc_type_code, visibility_code, corporate_entity_id, created_at "
@@ -350,7 +467,13 @@ async def read_post(
         if not _can_see_post(account, row):
             raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
         labels = await _lookup_post_labels(conn, [row])
-    return {**_serialize_post(row, labels), "post_body": row["post_body"]}
+        known_at = None
+        if as_of_clock is not None:
+            known_at = await fetch_known_at_revision(conn, post_id, as_of_clock)
+    payload = {**_serialize_post(row, labels), "post_body": row["post_body"]}
+    if known_at is not None:
+        payload["known_at"] = known_at
+    return payload
 
 
 async def _load_visible_post(
@@ -442,6 +565,34 @@ async def read_related_corporate_entity(
     }
 
 
+@app.get("/api/teams/{team_id}/related")
+async def read_related_team(
+    team_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """RWR-ranked related nodes from one cataloged team, hiding unseen posts."""
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        if not await team_exists(conn, team_id):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "team not found")
+        visible_post_ids = await visible_team_mention_post_ids(
+            conn, team_id, lambda row: _can_see_post(account, row)
+        )
+        if not visible_post_ids:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this team")
+        team = await conn.fetchrow(
+            "select team_id, team_name from cataloged_team where team_id = $1",
+            team_id,
+        )
+        related = await related_for_team(conn, team_id, visible_post_ids)
+    return {
+        "team_id": str(team["team_id"]),
+        "team_name": team["team_name"],
+        "related": related,
+    }
+
+
 @app.get("/api/posts/{post_id}/counterparties")
 async def read_post_counterparties(
     post_id: str,
@@ -479,6 +630,64 @@ async def read_post_affiliate_tree(
     async with pool.acquire() as conn:
         trees = await fetch_affiliate_forest(conn, post_id)
     return {"post_id": str(post["post_id"]), "trees": trees}
+
+
+@app.get("/api/posts/{post_id}/abbreviation-tree-matches")
+async def read_post_abbreviation_tree_matches(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Cached Searxng tree matches for organization names on this post.
+
+    Does not call Searxng. A missing cache row means the mention has
+    not been cross-checked yet, not that a parent was invented.
+    """
+    post = await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        matches = await fetch_post_abbreviation_matches(conn, post_id)
+    return {"post_id": str(post["post_id"]), "matches": matches}
+
+
+@app.post("/api/posts/{post_id}/corroborate-abbreviations")
+async def corroborate_post_abbreviation_tree(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Cross-check this post's abbreviations against the customer-group tree.
+
+    Reuses the existing Searxng client. Fail-closed: unavailable search
+    is 503, not an invented parent or AUTO row. A tied or empty result
+    stays unbound. post_admin only -- a real external-search write.
+    """
+    _require_post_admin(account)
+    post = await _load_visible_post(post_id, account, pool)
+    client = _relation_verification_client()
+    if not client.available:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Abbreviation tree corroboration is unavailable: set SEARXNG_BASE_URL",
+        )
+    async with pool.acquire() as conn:
+        matches = await corroborate_post_abbreviations(
+            conn,
+            client,
+            post_id,
+            list(account.corporate_entity_ids),
+        )
+    return {
+        "post_id": str(post["post_id"]),
+        "matches": [
+            {
+                "raw_organization_name": match.raw_organization_name,
+                "corporate_entity_id": match.corporate_entity_id,
+                "verification_status_code": match.verification_status_code,
+                "verification_evidence_url": match.verification_evidence_url,
+            }
+            for match in matches
+        ],
+    }
 
 
 @app.get("/api/posts/{post_id}/voc-evidence")
@@ -560,17 +769,28 @@ async def extract_post_keymen(
         # literal text either blows the token budget or is silently
         # ignored (see lineageweave/post_content_normalization.py).
         post_body = normalize_post_body(raw_body, vision_client=_vision_client()).text
+        mentions = await ingest_post_keymen(
+            conn,
+            keyman_client,
+            post_id,
+            post["post_title"],
+            post_body,
+            resolution_client=_organization_name_resolution_client(),
+            verification_client=_relation_verification_client(),
+            hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+            persist_graph=False,
+        )
+        organization_names = sorted(
+            {name for mention in mentions for name in mention.affiliated_organization_names}
+        )
+        # relationship_client is gated by the same settings check as
+        # keyman_client above (both read ORCHESTRATOR_BASE_URL/_API_KEY),
+        # so reaching here means it is available too.
+        relationships = await ingest_post_entity_relationships(
+            conn, relationship_client, post_id, post["post_title"], post_body, organization_names
+        )
         async with conn.transaction():
-            mentions = await ingest_post_keymen(conn, keyman_client, post_id, post["post_title"], post_body)
-            organization_names = sorted(
-                {name for mention in mentions for name in mention.affiliated_organization_names}
-            )
-            # relationship_client is gated by the same settings check as
-            # keyman_client above (both read ORCHESTRATOR_BASE_URL/_API_KEY),
-            # so reaching here means it is available too.
-            relationships = await ingest_post_entity_relationships(
-                conn, relationship_client, post_id, post["post_title"], post_body, organization_names
-            )
+            await persist_edges_for_post(conn, post_id)
     return {
         "post_id": str(post["post_id"]),
         "extracted_count": len(mentions),
@@ -828,8 +1048,17 @@ async def read_post_summary(
             )
         body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
         normalized_body = normalize_post_body(body_row["post_body"], vision_client=_vision_client()).text
-        summary = client.summarize(post["post_title"], normalized_body)
-        return await persist_post_summary(conn, post_id, summary)
+        summary = await asyncio.to_thread(
+            client.summarize, post["post_title"], normalized_body
+        )
+        return await persist_post_summary(
+            conn,
+            post_id,
+            summary,
+            post_body=normalized_body,
+            hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+            verification_client=_relation_verification_client(),
+        )
 
 
 class ChatRequest(BaseModel):
@@ -1112,6 +1341,161 @@ async def derive_post_commitment(
     return {"post_id": str(post["post_id"]), "has_commitment": True, "ticket": ticket}
 
 
+@app.get("/api/analysis-runs")
+async def list_analysis_runs(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Authorized analysis-run list: aggregates and labels only.
+
+    Hidden scopes 404 at the item path and never appear here. The
+    payload has no source SQL, DSN, raw record, or provider body.
+    """
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        runs = await fetch_visible_analysis_runs(
+            conn,
+            account.user_account_id,
+            list(account.corporate_entity_ids),
+        )
+    return {"analysis_runs": runs}
+
+
+class CreateAnalysisRunRequest(BaseModel):
+    """JSON body for ``POST /api/analysis-runs``.
+
+    Omitting ``corporate_entity_id`` uses the account's sole affiliation.
+    Only ``analysis_run_lineage`` is accepted. Reconstruction and TEPP
+    execution stay later slices; this write records Pending lineage only.
+    """
+
+    run_kind_code: str = "analysis_run_lineage"
+    scope_kind_code: str = "analysis_scope_corporate_entity"
+    corporate_entity_id: str | None = None
+    knowledge_cutoff: datetime | None = None
+    idempotency_key: str
+
+
+@app.post("/api/analysis-runs", status_code=status.HTTP_201_CREATED)
+async def create_analysis_run(
+    request: CreateAnalysisRunRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Record a Pending lineage run on an authorized cutoff capture.
+
+    post_read is enough: the caller requests a run of a corp they
+    already walk. TEPP and period-report kinds are 422 so this path
+    cannot invent a measurement. Hidden scopes 404. A matching
+    idempotent retry returns the same run.
+    """
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            try:
+                created = await create_pending_analysis_run(
+                    conn,
+                    account_id=account.user_account_id,
+                    affiliated_entity_ids=list(account.corporate_entity_ids),
+                    run_kind_code=request.run_kind_code,
+                    scope_kind_code=request.scope_kind_code,
+                    corporate_entity_id=request.corporate_entity_id,
+                    knowledge_cutoff=request.knowledge_cutoff,
+                    idempotency_key=request.idempotency_key,
+                )
+            except AnalysisRunCreateError as exc:
+                raise HTTPException(exc.status_code, exc.detail) from exc
+    return created
+
+
+@app.post("/api/analysis-runs/{analysis_run_id}/start")
+async def start_analysis_run(
+    analysis_run_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
+) -> dict[str, Any]:
+    """Enqueue start work, then deliver ThreadWeave or TEPP.
+
+    post_read is enough. Hidden runs 404. Period-report is 422 so this
+    path cannot invent a calibrated score. TEPP goes through
+    ``tepp_client`` and stays Failed when the transport is missing, the
+    envelope is unpublished, or TEPP has not published a completed-result
+    contract. A published accepted acknowledgement is stored as
+    aggregate transport evidence. Succeeded is never stamped from that
+    ack. A Succeeded lineage retry returns
+    the stored tree. A Running restart with an undelivered outbox
+    finishes that work. A Running restart without pending work is 409.
+    The outbox commits before reconstruct/TEPP so a crash leaves a
+    durable work item (ADR 0023).
+    """
+    _require_post_read(account)
+    settings = load_settings()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            try:
+                queued = await enqueue_pending_analysis_run(
+                    conn,
+                    analysis_run_id=analysis_run_id,
+                    account_id=account.user_account_id,
+                    affiliated_entity_ids=list(account.corporate_entity_ids),
+                )
+            except AnalysisRunStartError as exc:
+                raise HTTPException(exc.status_code, exc.detail) from exc
+    if queued.get("status_code") == "analysis_status_succeeded":
+        return queued
+    request_digest = queued.pop("outbox_request_sha256", None)
+    stream_id = None
+    if request_digest:
+        stream_id = await publish_outbox_event(
+            valkey,
+            analysis_run_id=analysis_run_id,
+            work_kind_code=str(queued.get("run_kind_code") or ""),
+            request_sha256=request_digest,
+        )
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            try:
+                started = await deliver_queued_analysis_run(
+                    conn,
+                    analysis_run_id=analysis_run_id,
+                    account_id=account.user_account_id,
+                    affiliated_entity_ids=list(account.corporate_entity_ids),
+                    tepp_client=configured_tepp_client(settings.tepp_transport_url),
+                    valkey_stream_entry_id=stream_id,
+                )
+            except AnalysisRunStartError as exc:
+                raise HTTPException(exc.status_code, exc.detail) from exc
+    return started
+
+
+@app.get("/api/analysis-runs/{analysis_run_id}")
+async def read_analysis_run(
+    analysis_run_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """One authorized analysis-run projection, or 404 when hidden.
+
+    Detail adds the labeled status history. Hidden runs never leak events.
+    """
+    _require_post_read(account)
+    try:
+        UUID(analysis_run_id)
+    except ValueError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "analysis run not found") from None
+    async with pool.acquire() as conn:
+        run = await fetch_visible_analysis_run(
+            conn,
+            analysis_run_id,
+            account.user_account_id,
+            list(account.corporate_entity_ids),
+        )
+    if run is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "analysis run not found")
+    return run
+
+
 @app.get("/api/calendar")
 async def read_calendar(
     account: CurrentAccount = Depends(get_current_account),
@@ -1136,7 +1520,7 @@ async def read_rankings(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """RankWeave fusion of ABAC-visible posts (ADR 0024).
+    """RankWeave fusion of ABAC-visible posts (ADR 0030).
 
     Hidden posts are omitted from every channel. Never invents a fused
     score or a theta. Fail-closed when RankWeave is disabled or the

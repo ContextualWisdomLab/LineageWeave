@@ -64,7 +64,7 @@ flowchart LR
 | `chunking.py` | Splits a document into meaning-identifiable units (paragraph, sentence, DOM, conversation-turn) plus embedded-image extraction, in document order |
 | `embedding_client.py` | Pluggable text-embedding channel (`Null` default, `OpenAiCompatible` real impl) + `chunked_max_similarity` |
 | `adjudication_client.py` | Pluggable LLM-judgment channel (`Null` default, `ContextualOrchestrator` real impl) |
-| `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl) |
+| `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl). The product popup (`frontend/src/PostBody.tsx`) and `extract_base64_images` parse with the same HTML rules as `chunk_by_dom` (ADR 0031) so invoice-like `alt` values still show the picture; GET does not call the vision client. |
 | `tepp_client.py` | TEPP's published `AnalysisRunRequest` wire contract, pluggable transport |
 | `rankweave_client.py` | Fail-closed RankWeave ranking port (`weighted_reciprocal_rank_fuse` in-process; never invent a fused score or a theta) |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
@@ -122,7 +122,7 @@ flowchart LR
   `rankweave_client.py`'s default transport raises
   `RankWeaveNotAvailable`. `GET /api/rankings` then returns
   `rankweave_not_available` and an empty ranking list. Hidden posts
-  are omitted from every channel. See ADR 0024.
+  are omitted from every channel. See ADR 0030.
 
 ## Standards and citations
 
@@ -142,6 +142,8 @@ identities and content) and `migrations/0001_initial_schema.sql` for the
 `role_permission` / `account_role_assignment`, `abac_policy`, `post` /
 `post_counterparty_entity`, `person` / `person_affiliation` /
 `post_person_mention`, `knowledge_graph_edge`, `issue_ticket`,
+
+Keyman and R&R person mentions are separate replaceable projections (`post_person_mention` and `post_summary_person_mention`). The read-only `combined_post_person_mention` view feeds lineage discovery. Materialized KG edges are unique and carry normalized `knowledge_graph_edge_evidence`; only evidence from an ABAC-visible post participates in RWR.
 `post_lineage_edge`). Real-database tests: `tests/test_schema.py`
 (skipped without a reachable PostgreSQL server, same pattern as the
 real-provider LLM tests).
@@ -260,11 +262,14 @@ pattern and then hide the action button so it cannot 503 again.
 `find_linked_post_ids` first expands to every post
 sharing a mentioned person before calling
 `backend/app/knowledge_graph.py::load_visible_subgraph` -- that function
-only loads edges among an *already-known* post set (its other caller,
-`related_for_person`, pre-resolves the full set itself), it does not
-discover new posts on its own; a real bug from calling it with only the
-single starting post was caught while building this and is now
-regression-tested (`test_post_chat_cites_a_post_linked_only_via_a_shared_keyman`).
+only loads edges among an *already-known* post set (its other callers,
+`related_for_person` / `related_for_entity` / `related_for_team`,
+pre-resolve the full set themselves), it does not discover new posts on
+its own; a real bug from calling it with only the single starting post
+was caught while building this and is now regression-tested
+(`test_post_chat_cites_a_post_linked_only_via_a_shared_keyman`).
+Person, team, and organization mention channels load independently
+(ADR 0018): a team-only or organization-only post still walks.
 
 ### Frontend (`frontend/`)
 
@@ -280,8 +285,9 @@ summary/key-events/R&R, VOC evidence excerpts, an Event Lineage panel
 affiliate tree (resolved ancestors plus unresolved org roots), Keyman +
 counterparty panels (a Keyman click loads RWR related nodes;
 a related corporate-entity node, a resolved Keyman affiliation,
-or a classified name that resolves to a cataloged org continues
-the same walk via `GET /api/corporate-entities/{id}/related`;
+a classified name that resolves to a cataloged org, or an R&R team
+continues the same walk via `GET /api/corporate-entities/{id}/related`
+or `GET /api/teams/{id}/related`;
 `post_admin` can extract),
 and an in-popup chat whose cited sources
 open a sliding evidence panel (`EvidencePanel`, CSS
@@ -326,7 +332,9 @@ is the same never-guess-a-parent rule
 `corporate_hierarchy_resolution` already applies. Entity levels and
 Keyman sides are labeled from `common_lookup_value` (`Our side`,
 `Plant`, `Company`) so the popup never shows raw `our_side` / `plant`
-codes when a label exists.
+codes when a label exists. Related-node person chips use the same
+side lookup label (for example, `Our side` or `Counterparty`) rather
+than exposing the generic PROV-O `Person` class as business context.
 
 `GET /api/posts` and `GET /api/posts/{post_id}` include
 `voc_type_label` / `visibility_label` from `common_lookup_value` so
@@ -456,6 +464,85 @@ lists the same dated tickets the period-report members already show.
 Re-seed is idempotent. The empty-state copy is only for accounts that
 truly have no dated open tickets.
 
+## Phase 6-M2: authorized analysis-run evidence (read projection)
+
+Issue #79's first buyer-visible Milestone 2 slice is a source-redacting
+read of the #89 registry. `GET /api/analysis-runs` and
+`GET /api/analysis-runs/{id}` require `post_read` and apply the scope
+in SQL: the requester always sees their own run; a corporate-entity or
+process-unit scope is visible only to affiliated accounts; a
+thread-group scope is visible only when the account can already see a
+post in that group; `all_visible` is requester-only. Hidden runs 404. Detail also lists ABAC-visible post titles in the
+run's scope whose `created_at` is at or before `knowledge_cutoff`
+(ADR 0016) so a buyer can open a post the run was allowed to know
+without seeing later live rows or hidden bodies. Detail also returns
+revision and configuration digest prefixes.
+`POST /api/analysis-runs` records a Pending lineage run on a new
+authorized cutoff capture (ADR 0017): snapshot, counts, frozen
+membership, run, scope, and the first status in one transaction. TEPP
+and period-report kinds are 422. Request a lineage reconstruction from
+the home list after affiliated corps load (choose a corp if you walk
+more than one), then open the Pending row to confirm the cutoff corpus.
+`POST /api/analysis-runs/{id}/start` then commits Running plus a
+durable outbox row, wakes Valkey, and delivers ThreadWeave on that
+frozen bag (ADR 0021 / ADR 0023) or submits TEPP through
+`tepp_client` (ADR 0022). It does not invent a TEPP score.
+Request a lineage reconstruction from the home list, open the Pending
+row, then start reconstruction. A Pending TEPP row starts a
+measurement; a missing transport stays Failed /
+`tepp_not_available`. Hover the Result digest
+prefix, then confirm the designed A-100 fork before treating the live
+Event Lineage panel as that run's tree.
+`make seed` also records a TEPP measurement run through
+`tepp_client` on that same snapshot; the default transport is
+unavailable, so that run is Failed rather than a fabricated score.
+A second Demo Corp TEPP run uses an in-process published accepted
+acknowledgement and stays Failed / `tepp_completed_result_unsupported`
+with aggregate transport evidence (ADR 0035).
+The home list is clickable: `GET /api/analysis-runs/{id}` fills a
+labeled detail (cutoff, requested date, 12-character digest prefixes
+with full digests on hover, counts, status history)
+without exposing a DSN or raw record. Opening a cutoff title still
+shows the live body and names both clocks when the title was
+rewritten after the run. A marked title also shows the body that
+run knew (`GET /api/posts/{id}?as_of=`) so the operator can compare
+two texts, not two clocks. Status history is detail-only
+and uses lookup labels plus occurrence times; a failure event keeps
+its machine `failure_code` rather than an invented caption. Failed
+TEPP list rows add a next-action line (open the run, then connect the
+measurement service) so `tepp_not_available` is not mistaken for a
+calibrated negative result. A failed lineage row tells the operator
+to retry reconstruction, not to connect TEPP. A failed period-report
+row tells the operator to rebuild the report. A pending TEPP row
+does not claim a calibrated measurement and does not say
+reconstruction. The list button accessible name includes the
+next-action sentence; detail repeats it (ADR 0014). A pending lineage row
+says reconstruction has not started yet; open it and start
+reconstruction. The
+payload is lookup labels plus non-negative aggregate counts -- never
+source SQL, a DSN, a raw record, or a provider body. After `make seed`,
+Demo Analyst and Demo Admin see "Lineage reconstruction · Succeeded ·
+Demo Corp" with "3 documents" and Pending / Running / Succeeded times,
+the designed A-100 fork as clickable reconstructed edges, Claimed
+then Delivered outbox times, "TEPP measurement · Failed · Demo
+Corp" whose detail history ends in Failed / `tepp_not_available`,
+and a second "TEPP measurement · Failed · Demo Corp" whose detail
+shows Measurement evidence for the published accepted acknowledgement
+(ADR 0035).
+Seed also records "Period report · Succeeded · Demo Corp" on that
+same snapshot after the calibrated report tables are written
+(ADR 0024). Open that row to confirm the cutoff posts; mean θ stays
+on the period-report panel. Start stays 422.
+A run-bearing registry is emptied only after an unrevoked
+`analysis_run_retention_grant` and `GRANT analysis_run_retention_admin`,
+then `purge_analysis_run_registry('approved-retention-purge')`
+(ADR 0020); a raw `DELETE` and a runtime role that only knows the
+public phrase stay rejected. When start reconstruction has persisted
+run-scoped edges, that same call empties those children instead of
+stopping on an immutable-trigger or foreign-key error (ADR 0032).
+Repeated chip and close controls use
+`frontend/src/styles/tokens.css` and the Storybook inventory.
+
 ## Phase 6a: fast-mlsirm dependency + Rust toolchain (infra only)
 
 First of three staged slices toward the brief's weekly/monthly
@@ -511,7 +598,7 @@ on those same fixed parameters (Kim, 2006 FIPC). After scoring,
 `information_polytomous` ranks the shared-bank items by Fisher
 information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
-residual SVD leftover pairs (Jeon et al., 2021; ADR 0017) persist to
+residual SVD leftover pairs (Jeon et al., 2021; ADR 0028) persist to
 `report_leftover_pair`. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
@@ -691,3 +778,205 @@ checks a well-known public foundation name ("Mozilla Foundation")
 against a deliberately fabricated one in the same request, asserting
 the former comes back `verify_corroborated` with a real evidence URL
 and the latter `verify_uncorroborated` with none.
+
+## Phase 7: R&R's named actor is a PROV-O Agent, not always a person
+
+`post_summary.py`'s R&R extraction forced every named actor into a
+person slot, but business correspondence routinely names an
+organization acting in its own name ("당사" [our company],
+"Demo Corp"), not an individual. See
+[ADR 0006](docs/adr/0006-role-responsibility-agent-ontology.md).
+
+Grounded in W3C PROV-O (Lebo, Sahoo, & McGuinness, 2013):
+`RoleResponsibility` (renamed field `actor_name`, was `person_name` --
+the field can hold an organization's name now, so "person" in the name
+would be wrong) gains `actor_type_code` (`prov_person` /
+`prov_organization`, defaulting to person when the model omits it) and
+`affiliated_organization_name` (an LLM-inferred affiliation for a
+person actor, since a bare name without an employer is hard to place).
+The ontology gains `:RoleActorPerson rdfs:subClassOf prov:Person` and
+`:RoleActorOrganization rdfs:subClassOf prov:Organization` -- genuine
+subclasses of the real external PROV-O classes (imported via the
+`prov:` namespace), kept distinct from the ontology's existing `:Person`
+(node_type's cataloged Keyman with a stable `person_id`) since an R&R
+actor is a free-text name with no cataloged identity of its own.
+`migrations/0012_role_responsibility_agent_type.sql` renames the
+`post_summary_role` column via `RENAME COLUMN` (preserves existing
+rows) rather than a drop/recreate. The popup's R&R list shows a
+Person/Organization badge and the inferred affiliation; only a person
+actor still links to the Keyman panel.
+
+## Phase 8: same-name Keymen are not silently merged; titles are captured
+
+Two different real people can share a name -- `keyman_extraction.py`
+never captured a stated job title/position, so nothing distinguished
+"Kim Cheolsu, sales manager" from an unrelated "Kim Cheolsu, purchasing
+lead" beyond the bare name. `PersonMention` gains `job_title: str |
+None`, and the extraction prompt now explicitly asks for one when the
+text states it (never left out as a same-name disambiguation signal).
+
+Persistence, in two places for a reason: `person_affiliation.role_title`
+(a schema column that already existed, previously never populated) for
+a title tied to a specific organization, and a new
+`cataloged_person.last_known_job_title` (`migrations/0013_person_job_title.sql`)
+for a title stated without a named organization to attach it to (e.g.
+"our legal counsel, Sam Okonkwo" -- `fixtures.ambiguous_keyman_post()`'s
+own real example, which has zero affiliated organizations for Sam).
+Both feed `_upsert_person`'s disambiguation check
+(`backend/app/keyman_ingestion.py`): a same person_name+person_side_code
+match is only reused when the new mention's stated title, if any, does
+not conflict with a title already on file -- a genuine stated conflict
+creates a fresh `cataloged_person` row instead of merging two different
+people. A missing title on either side is not treated as a conflict
+(titles legitimately change -- a promotion -- and most mentions state no
+title at all), so this only splits on an actual stated disagreement,
+verified by a real test that two posts naming the same name with
+genuinely different stated titles produce two distinct person rows.
+
+## Phase 9: an R&R actor can be a team, meso-level between person and organization
+
+Real post text named "설계팀" (design team) -- neither a person nor the
+company itself, but a sub-unit of one. See
+[ADR 0007](docs/adr/0007-team-actor-type.md). `actor_type_code` gains a
+third value, `prov_team`, grounded in the W3C Organization Ontology's
+`org:OrganizationalUnit` (Reynolds, 2014) -- a different, complementary
+W3C vocabulary from PROV-O (which models "who acted," not "how a
+company is internally structured"). The prompt now offers three actor
+types and requires `affiliated_organization_name` for a team actor too
+(not just a person): a team's own name never answers "which company,"
+unlike an organization actor's. `migrations/0014_role_responsibility_team_actor_type.sql`
+adds the lookup row -- purely additive, no schema change, since
+`actor_type_code` already stores an arbitrary FK'd code.
+
+## Phase 10: an abbreviated organization name is resolved and search-verified, not left opaque
+
+Real post text names organizations by abbreviation ("AGP" for
+"Aurora Grid Power") that character-similarity matching
+(`corporate_hierarchy_resolution`) structurally cannot bridge -- an
+initialism shares almost no substring with its expansion. See
+[ADR 0008](docs/adr/0008-organization-abbreviation-resolution.md).
+
+New module `lineageweave/organization_name_resolution.py`: an LLM
+proposes the full name from context (or declines with `UNKNOWN`), then
+the *existing* `relation_verification` Searxng client cross-verifies
+the specific raw/resolved pairing (no second web-search integration
+built). Only a search-corroborated resolution is ever substituted in
+for `resolve_corporate_entity` -- an unresolved or unverified name
+still flows through unchanged. Cached in a new
+`organization_name_resolution` table
+(`migrations/0015_organization_name_resolution.sql`) keyed by the raw
+name, so the same abbreviation across many posts is resolved once.
+Grounded in SKOS `skos:altLabel`/`skos:prefLabel` (Miles & Bechhofer,
+2009). Wired into `backend/app/keyman_ingestion.py`'s affiliation loop
+and the offline synthetic-batch script's paced re-implementation of it
+(the batch script's own copy was also missing `role_title` persistence
+entirely -- fixed alongside this).
+
+Also fixed while running this against synthetic embedded-image fixtures:
+`image_content.py`'s `_parse_description` required an exact single-pass
+`TEXT:`/`CAPTION:`/`TAGS:` match, which was rejecting real vision
+responses whose formatting was close but not exact (markdown-bolded
+labels, reordered labels, a missing TAGS line) -- silently producing
+the same "content unavailable" placeholder as a genuinely unconfigured
+vision channel. Fields are now recovered independently per label line;
+only a response with neither TEXT nor CAPTION is treated as unusable.
+
+## Phase 11: R&R team/organization actors get a shared cross-post identity
+
+Extraction runs per-post; a team's or organization's identity did not
+survive across posts the way a Keyman's already did via
+`cataloged_person`. See
+[ADR 0009](docs/adr/0009-cross-post-actor-identity.md). New
+`cataloged_team` catalog (`migrations/0016_cross_post_actor_identity.sql`,
+identity key `(team_name, affiliated_organization_name)` -- a bare team
+name like "설계팀" is not by itself identifying) plus two mention join
+tables (`post_team_mention`, `post_organization_mention`); an
+organization actor reuses the existing `corporate_entity` catalog, no
+new table needed. `lineageweave/knowledge_graph.py`'s
+`knowledge_graph_edges_for_post` extended with three new edge kinds
+(`edge_mention_team`, `edge_team_affiliation`, `edge_mention_organization`);
+`backend/app/post_summary_ingestion.py`'s `persist_post_summary` now
+resolves each R&R actor's identity, stores that id on
+`post_summary_role` (ADR 0019 — `entity_name` is not unique), and calls
+the same `persist_edges_for_post` Keyman ingestion already uses. A person R&R
+actor is opportunistically joined to an existing `cataloged_person` row
+by name (never originated by R&R itself -- documented gap in the ADR:
+`cataloged_person` needs `person_side_code`, which R&R's prompt does
+not currently capture). ADR 0019 stores that resolved catalog id on
+`post_summary_role` (`cataloged_team_id` /
+`cataloged_corporate_entity_id` / `cataloged_person_id`, ADR 0019 /
+0027) so a later read does not rejoin `corporate_entity` by
+`entity_name`. Fetch returns the person foreign key as
+`catalog_node_id` the same way. Historical backfill leaves a role
+unbound when two same-named mentions already exist on the post.
+Open a post whose R&R names an organization that shares a display name
+with another catalog row: the chip keeps the id persist stored. Click
+it to walk that organization, not the homonym. Click a person chip to
+walk the stored person even when Keyman was not extracted on that post.
+
+## Phase 12: a real counterparty organization is auto-created, not left permanently unresolved
+
+`corporate_hierarchy_resolution`'s similarity matching only ever finds
+an ALREADY-cataloged entity. Real Milestone 2 data confirmed the actual
+gap: 0 of 4,154 person affiliations and 0 of 9,852 R&R organization
+mentions ever resolved -- the standing "통합 고객사 계열 tree AI"
+requirement was never actually populated. See
+[ADR 0010](docs/adr/0010-corporate-hierarchy-auto-creation.md).
+
+New `lineageweave/corporate_hierarchy_inference.py` proposes a
+Group/Company/Plant placement from context; new
+`backend/app/corporate_entity_ingestion.py`'s
+`get_or_create_corporate_entity` tries similarity matching first, then
+creates a real new `corporate_entity` row once the proposal is
+Searxng-corroborated (reusing `relation_verification`, no new search
+integration), recursing up a bounded parent chain so the whole
+hierarchy gets real links. Auto-created rows get a deterministic
+`AUTO-`-prefixed code so they can never collide with a real login corp
+code. Wired into both `keyman_ingestion.py`'s affiliation loop and
+`post_summary_ingestion.py`'s R&R organization-actor loop.
+## Standards-complete W3C PROV-O provenance layer
+
+ADR 0011 separates standards-complete provenance from the compact
+buyer-facing navigation graph. `lineageweave/prov_o.py` validates
+and materializes all 50 normative PROV-O properties, including
+literal-valued times/values and qualified Influence resources.
+`migrations/0017_prov_o_standard_relations.sql` stores definitions,
+class/property hierarchies, domains, ranges, qualification maps,
+inverse names, typed resources, literals, assertions, and inference
+premises in third normal form. Existing product nodes cross the
+boundary only through `provenance_resource_binding`; projection to
+`knowledge_graph_edge` is explicit and reversible.
+
+See `docs/PROV_O_IMPLEMENTATION.md`, the complete implementation
+matrix, and `docs/adr/0011-prov-o-standard-relations.md`.
+
+## Phase 13: corporate-entity creation is serialized against a real observed deadlock
+
+Phase 12's creation path made real concurrent writes for the first
+time. A synthetic regression corpus batch run under real concurrency surfaced a
+genuine `DeadlockDetectedError`: two concurrent transactions each
+creating a different new entity, mentioned in opposite order across
+two different posts, took row-level locks in opposite order and
+deadlocked. See [ADR 0012](docs/adr/0012-corporate-entity-creation-lock.md).
+
+`get_or_create_corporate_entity` now takes a single named Postgres
+advisory transaction lock (`pg_advisory_xact_lock`) immediately before
+the write -- never held across the slow LLM inference/Searxng
+verification calls that precede it -- and re-checks candidates fresh
+under the lock before inserting. The lock key is fixed, not per-name,
+so it also covers the multi-entity opposite-order case a per-name lock
+would still deadlock on. Every already-cataloged entity still resolves
+through the unchanged, lock-free similarity-matching fast path; only
+the rare creation branch serializes.
+
+## Phase 14: customer-group tree plus Searxng abbreviation cross-check
+
+Operators navigate the authorized Group / Company / Plant catalog
+(`GET /api/customer-group-tree`), not only the post-scoped affiliate
+tree or the flat `/api/me` corp list. Abbreviations on a post are
+cross-checked against that tree through the existing Searxng client
+(`abbreviation_tree_corroboration`). A unique corroborated node binds;
+a down, empty, or tied search stays unbound and does not invent a
+parent or AUTO row. See
+[ADR 0033](docs/adr/0033-customer-group-tree-abbreviation-corroboration.md).
+This path does not reimplement ADR 0008 or ADR 0010.

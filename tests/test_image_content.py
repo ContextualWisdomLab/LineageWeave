@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import base64
+from pathlib import Path
 
 import pytest
 
+from lineageweave.chunking import chunk_by_dom
+from lineageweave.embedded_image_payload import decode_data_uri_image
 from lineageweave.image_content import (
     ImageContentClient,
     ImageDescriptionParseError,
@@ -55,6 +58,57 @@ def test_extract_base64_images_empty_document_yields_no_images() -> None:
     assert extract_base64_images("<p>No images here.</p>") == []
 
 
+def test_extract_base64_images_skips_svg_and_unpadded_payloads() -> None:
+    svg = (
+        '<img src="data:image/svg+xml;base64,'
+        'PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjwvc3ZnPg==">'
+    )
+    assert extract_base64_images(svg) == []
+    assert extract_base64_images('<img src="data:image/png;base64,YQ">') == []
+    assert decode_data_uri_image(f"data:image/png;base64,{_TINY_PNG_B64}") is not None
+
+
+def test_extract_base64_images_skips_style_script_and_src_less_tags() -> None:
+    html = (
+        f'<style><img src="data:image/png;base64,{_TINY_PNG_B64}"></style>'
+        f'<script><img src="data:image/png;base64,{_TINY_PNG_B64}"></script>'
+        "<img>"
+        f'<img src="data:image/png;base64,{_TINY_PNG_B64}">'
+    )
+    images = extract_base64_images(html)
+    assert len(images) == 1
+    assert images[0].data == base64.b64decode(_TINY_PNG_B64)
+
+
+def test_invoice_fixture_is_one_visible_png_for_every_extractor() -> None:
+    """Outlook-style invoice HTML must not resurrect the base64 wall.
+
+    The same file is read by the TypeScript popup splitter. All three
+    extractors must see one raster PNG, ignore the commented copy, the
+    remote URL, the SVG, and the CSS background, and keep surrounding
+    sentences readable.
+    """
+    html = (Path(__file__).parent / "fixtures" / "synthetic_invoice_embedded_image.html").read_text(
+        encoding="utf-8"
+    )
+    images = extract_base64_images(html)
+    chunks = chunk_by_dom(html)
+    image_chunks = [chunk for chunk in chunks if chunk.unit_type == "image"]
+    text = " ".join(chunk.text for chunk in chunks if chunk.unit_type == "dom")
+
+    assert len(images) == 1
+    assert len(image_chunks) == 1
+    assert images[0].mime_type == "image/png"
+    assert images[0].data == base64.b64decode(_TINY_PNG_B64)
+    assert images[0].position == html.find("<img alt=")
+    assert "Quote attached." in text
+    assert "Terms & conditions." in text
+    assert "Please confirm." in text
+    assert _TINY_PNG_B64 not in text
+    assert "example.test" not in text
+    assert "background:url" not in text
+
+
 def test_parse_description_extracts_all_three_fields() -> None:
     content = "TEXT: Quarterly Budget Report\nCAPTION: A printed report cover page.\nTAGS: document, report, text"
     description = _parse_description(content)
@@ -80,6 +134,56 @@ def test_parse_description_preserves_multiline_ocr_text() -> None:
     description = _parse_description(content)
     assert description.extracted_text == "Line one\nLine two\nLine three"
     assert description.caption == "A scanned page."
+
+
+def test_parse_description_tolerates_markdown_emphasis_on_labels() -> None:
+    """Synthetic provider drift may bold labels without changing content."""
+    content = "**TEXT:** LT7\n**CAPTION:** A close-up of a component.\n**TAGS:** component, close-up"
+    description = _parse_description(content)
+    assert description.extracted_text == "LT7"
+    assert description.caption == "A close-up of a component."
+    assert description.tags == ("component", "close-up")
+
+
+def test_parse_description_strips_balanced_markdown_emphasis_from_values() -> None:
+    content = "TEXT: **LT7**\nCAPTION: _A synthetic component._\nTAGS: `component`, close-up"
+    description = _parse_description(content)
+    assert description.extracted_text == "LT7"
+    assert description.caption == "A synthetic component."
+    assert description.tags == ("component", "close-up")
+
+
+def test_parse_description_tolerates_reordered_labels() -> None:
+    content = "CAPTION: A blue sky.\nTEXT: NONE\nTAGS: sky"
+    description = _parse_description(content)
+    assert description.caption == "A blue sky."
+    assert description.extracted_text == ""
+    assert description.tags == ("sky",)
+
+
+def test_parse_description_missing_tags_still_recovers_text_and_caption() -> None:
+    """Missing optional tags must not discard provided TEXT/CAPTION fields."""
+    content = "TEXT: Quarterly Budget Report\nCAPTION: A printed report cover page."
+    description = _parse_description(content)
+    assert description.extracted_text == "Quarterly Budget Report"
+    assert description.caption == "A printed report cover page."
+    assert description.tags == ()
+
+
+def test_parse_description_leading_commentary_before_labels_is_ignored() -> None:
+    content = "Sure, here is the analysis:\n\nTEXT: LT7\nCAPTION: A component.\nTAGS: component"
+    description = _parse_description(content)
+    assert description.extracted_text == "LT7"
+
+
+def test_parse_description_does_not_absorb_trailing_commentary() -> None:
+    content = (
+        "TEXT: NONE\nCAPTION: A turbine diagram.\nTAGS: turbine, diagram\n"
+        "Let me know if you need more detail."
+    )
+    description = _parse_description(content)
+    assert description.caption == "A turbine diagram."
+    assert description.tags == ("turbine", "diagram")
 
 
 def test_vision_client_rejects_non_http_url_schemes() -> None:
@@ -146,3 +250,11 @@ def test_image_content_client_protocol_stub_raises() -> None:
     """
     with pytest.raises(NotImplementedError):
         ImageContentClient.describe(None, b"", "image/png")  # type: ignore[arg-type]
+
+
+def test_parse_description_does_not_absorb_unknown_labels_into_tags() -> None:
+    parsed = _parse_description(
+        "TEXT: NONE\nCAPTION: A turbine diagram\n"
+        "TAGS: turbine, diagram\nNOTE: synthetic"
+    )
+    assert parsed.tags == ("turbine", "diagram")

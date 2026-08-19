@@ -31,12 +31,31 @@ from rdflib.namespace import RDFS, SKOS
 
 _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo_data.py"
 
+# Several covered categories add lookup rows via their own migration
+# SQL rather than literally embedded in seed_demo_data.py's own source
+# text -- read alongside it below so the round-trip still sees them:
+# 0012 (ADR 0006: prov_person/prov_organization), 0014 (ADR 0007:
+# prov_team), 0016 (ADR 0009: node_team/edge_mention_team/
+# edge_team_affiliation/edge_mention_organization).
+_ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0012_role_responsibility_agent_type.sql",
+    Path(__file__).resolve().parents[1] / "migrations" / "0014_role_responsibility_team_actor_type.sql",
+    Path(__file__).resolve().parents[1] / "migrations" / "0016_cross_post_actor_identity.sql",
+)
+
 # The categories this ontology covers (ADR 0004's scope). seed_demo_data.py
 # also seeds categories this ontology deliberately does not model yet
 # (post_visibility, voc_type, permission, ticket_status) -- those are
 # real, expected gaps, not a test bug.
 _ONTOLOGY_COVERED_CATEGORIES = frozenset(
-    {"node_type", "edge_type", "entity_relationship_type", "person_side", "corporate_entity_level"}
+    {
+        "node_type",
+        "edge_type",
+        "entity_relationship_type",
+        "person_side",
+        "corporate_entity_level",
+        "prov_agent_type",
+    }
 )
 
 _INSERT_TUPLE_PATTERN = re.compile(r"\('([a-z_]+)',\s*'([a-z_]+)'")
@@ -44,12 +63,14 @@ _INSERT_TUPLE_PATTERN = re.compile(r"\('([a-z_]+)',\s*'([a-z_]+)'")
 
 def _seeded_lookup_codes_for_covered_categories() -> set[str]:
     """Every `(lookup_category, lookup_code)` pair seed_demo_data.py's own
-    SQL literally inserts, filtered to the categories this ontology
-    covers. Parsed from source, not executed -- this is a static
-    consistency check between two committed files, not a live-database
-    test.
+    SQL, plus the additional migrations' SQL, literally inserts, filtered
+    to the categories this ontology covers. Parsed from source, not
+    executed -- this is a static consistency check between committed
+    files, not a live-database test.
     """
-    source = _SEED_SCRIPT_PATH.read_text()
+    source = _SEED_SCRIPT_PATH.read_text() + "".join(
+        p.read_text() for p in _ADDITIONAL_LOOKUP_MIGRATION_PATHS
+    )
     return {
         code
         for category, code in _INSERT_TUPLE_PATTERN.findall(source)
@@ -129,6 +150,38 @@ def test_mentions_property_domain_and_range_match_the_schema() -> None:
     assert (LW.mentions, RDFS.range, LW.Person) in graph
 
 
+def test_prov_agent_type_terms_resolve_and_subclass_real_prov_o() -> None:
+    """Beyond the generic round-trip above: the two prov_agent_type terms
+    must actually subclass the real external W3C PROV-O classes, not
+    just carry a matching :lookupCode -- the whole point of grounding
+    this in a standard ontology is that :RoleActorPerson really is a
+    prov:Person, not a same-named local invention.
+    """
+    from rdflib import URIRef
+    from rdflib.namespace import Namespace
+
+    prov = Namespace("http://www.w3.org/ns/prov#")
+    graph = load_ontology()
+    assert iri_for_lookup_code("prov_person") == str(LW.RoleActorPerson)
+    assert iri_for_lookup_code("prov_organization") == str(LW.RoleActorOrganization)
+    assert (LW.RoleActorPerson, RDFS.subClassOf, URIRef(prov.Person)) in graph
+    assert (LW.RoleActorOrganization, RDFS.subClassOf, URIRef(prov.Organization)) in graph
+
+
+def test_prov_team_type_resolves_and_subclasses_real_org_ontology() -> None:
+    """ADR 0007: a team actor is grounded in the real external W3C
+    Organization Ontology's org:OrganizationalUnit, the meso-level
+    sub-organization concept PROV-O itself has no equivalent for.
+    """
+    from rdflib import URIRef
+    from rdflib.namespace import Namespace
+
+    org = Namespace("http://www.w3.org/ns/org#")
+    graph = load_ontology()
+    assert iri_for_lookup_code("prov_team") == str(LW.RoleActorTeam)
+    assert (LW.RoleActorTeam, RDFS.subClassOf, URIRef(org.OrganizationalUnit)) in graph
+
+
 def test_corporate_entity_level_hierarchy_is_broadest_first() -> None:
     """Group is broader than Company is broader than Plant -- the
     Acme Group -> Acme Electronics Korea -> plant direction the
@@ -137,3 +190,12 @@ def test_corporate_entity_level_hierarchy_is_broadest_first() -> None:
     assert (LW.CompanyLevel, SKOS.broader, LW.GroupLevel) in graph
     assert (LW.PlantLevel, SKOS.broader, LW.CompanyLevel) in graph
     assert (LW.GroupLevel, SKOS.broader, LW.CompanyLevel) not in graph
+
+
+def test_actor_mentions_follow_stored_edge_direction() -> None:
+    """Ontology domain/range matches Team/Organization -> Post storage."""
+    graph = load_ontology()
+    assert (LW.mentionsTeam, RDFS.domain, LW.Team) in graph
+    assert (LW.mentionsTeam, RDFS.range, LW.Post) in graph
+    assert (LW.mentionsOrganization, RDFS.domain, LW.CorporateEntity) in graph
+    assert (LW.mentionsOrganization, RDFS.range, LW.Post) in graph
