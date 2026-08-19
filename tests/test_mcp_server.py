@@ -8,10 +8,10 @@ from mcp.server.auth.provider import AccessToken
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.testclient import TestClient
 
+from backend.app import mcp_server
 from backend.app.auth import CurrentAccount
 from backend.app.config import Settings
 from backend.app.global_ask import GlobalAskAnswer
-from backend.app import mcp_server
 from lineageweave.post_chat import ContextualOrchestratorPostChatClient, NullPostChatClient
 
 
@@ -99,6 +99,7 @@ async def test_global_ask_tool_is_read_only_structured_and_closes_lifespan() -> 
         assert tool.annotations is not None
         assert tool.annotations.read_only_hint is True
         assert tool.annotations.idempotent_hint is True
+        assert tool.annotations.open_world_hint is False
         assert tool.output_schema is not None
         result = await client.call_tool("global_ask", {"question": "What happened?"})
         assert not result.is_error
@@ -146,6 +147,20 @@ def test_chat_client_factory_uses_null_or_configured_orchestrator() -> None:
     assert isinstance(mcp_server._chat_client(configured), ContextualOrchestratorPostChatClient)
 
 
+def _initialize_request() -> dict[str, object]:
+    """Return one protocol-valid MCP initialize request body."""
+    return {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2025-11-25",
+            "capabilities": {},
+            "clientInfo": {"name": "test", "version": "1"},
+        },
+    }
+
+
 def test_streamable_http_rejects_unauthenticated_request() -> None:
     pool = FakePool()
 
@@ -163,20 +178,39 @@ def test_streamable_http_rejects_unauthenticated_request() -> None:
     with TestClient(app) as client:
         response = client.post(
             "/mcp",
-            json={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "initialize",
-                "params": {
-                    "protocolVersion": "2025-11-25",
-                    "capabilities": {},
-                    "clientInfo": {"name": "test", "version": "1"},
-                },
-            },
+            json=_initialize_request(),
             headers={"MCP-Protocol-Version": "2025-11-25"},
         )
     assert response.status_code == 401
     assert "resource_metadata" in response.headers["www-authenticate"]
+    assert pool.closed is True
+
+
+def test_streamable_http_rejects_untrusted_host_before_authentication() -> None:
+    """DNS-rebinding protection rejects a hostile Host before token processing."""
+    pool = FakePool()
+
+    async def pool_factory(_database_url: str):
+        return pool
+
+    server = mcp_server.build_mcp_server(settings(), pool_factory=pool_factory)
+    app = server.streamable_http_app(
+        transport_security=TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=["testserver"],
+            allowed_origins=[],
+        )
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            "/mcp",
+            json=_initialize_request(),
+            headers={
+                "Host": "attacker.example",
+                "MCP-Protocol-Version": "2025-11-25",
+            },
+        )
+    assert response.status_code == 421
     assert pool.closed is True
 
 
