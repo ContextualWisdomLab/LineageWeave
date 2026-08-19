@@ -23,6 +23,11 @@ authorization scope and not a replacement for ontology resolution.
 The importer must preserve the key on insert and update. No real source key,
 title, body, screenshot, or fixture is added to this repository.
 
+Before creating or mutating the target scope, the importer preflights every
+non-excluded source row and rejects an empty record key or body. This prevents
+a partially imported batch from appearing valid while its source identity is
+missing.
+
 ## Consequences
 
 - A buyer can search an opaque source identifier and open its authorized post.

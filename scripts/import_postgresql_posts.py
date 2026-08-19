@@ -174,6 +174,26 @@ def _validate_source_mapping(
         )
 
 
+def _validate_source_rows(
+    rows: list[Any],
+    mapping: ColumnMapping,
+    excluded_draft_values: list[str],
+    excluded_deleted_values: list[str],
+) -> None:
+    """Reject incomplete source evidence before the target is mutated."""
+    for row_number, row in enumerate(rows, start=1):
+        if _source_code_matches(row, mapping.draft, excluded_draft_values) or _source_code_matches(
+            row, mapping.deleted, excluded_deleted_values
+        ):
+            continue
+        record_key = str(_value(row, mapping.record_key) or "").strip()
+        if not record_key:
+            raise ValueError(f"source record key cannot be empty at source row {row_number}")
+        body = str(_value(row, mapping.body) or "")
+        if not body.strip():
+            raise ValueError(f"source post body cannot be empty at source row {row_number}")
+
+
 async def _ensure_scope(conn: asyncpg.Connection, args: argparse.Namespace) -> tuple[str, str, str]:
     """Resolve the existing target account, company, and process unit."""
     account_id = await conn.fetchval(
@@ -255,8 +275,14 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
     imported = 0
     skipped = 0
     try:
-        account_id, corporate_id, process_unit_id = await _ensure_scope(target, args)
         rows = await source.fetch(query)
+        _validate_source_rows(
+            rows,
+            mapping,
+            args.exclude_draft_value,
+            args.exclude_deleted_value,
+        )
+        account_id, corporate_id, process_unit_id = await _ensure_scope(target, args)
         vision_client = orchestrator_vision_client(
             os.environ.get("ORCHESTRATOR_BASE_URL", ""),
             os.environ.get("ORCHESTRATOR_API_KEY", ""),
@@ -274,15 +300,11 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 skipped += 1
                 continue
             record_key = str(_value(row, mapping.record_key)).strip()
-            if not record_key:
-                raise ValueError("source record key cannot be empty")
             created_at = _timestamp(_value(row, mapping.created_at))
             updated_at = _timestamp(_value(row, mapping.updated_at, created_at))
             post_id = uuid.uuid5(SOURCE_NAMESPACE, f"{args.source_system_code}:{record_key}")
             title = str(_value(row, mapping.title, "") or "")
             body = str(_value(row, mapping.body, "") or "")
-            if not body.strip():
-                raise ValueError("source post body cannot be empty; import the source record body")
             await target.execute(
                 """
                 insert into source_post

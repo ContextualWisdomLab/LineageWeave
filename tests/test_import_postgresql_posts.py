@@ -1,6 +1,13 @@
+from types import SimpleNamespace
+
 import pytest
 
-from scripts.import_postgresql_posts import _parser, _source_code_matches, _validate_source_mapping
+from scripts.import_postgresql_posts import (
+    _parser,
+    _source_code_matches,
+    _validate_source_mapping,
+    _validate_source_rows,
+)
 
 
 def test_source_state_exclusion_uses_only_explicit_caller_values() -> None:
@@ -21,6 +28,21 @@ def test_source_state_exclusion_does_not_guess_when_mapping_is_absent() -> None:
 def test_importer_rejects_mapping_the_pu_column_as_sales_pool() -> None:
     with pytest.raises(ValueError, match="PU is source_process_unit_code"):
         _validate_source_mapping("pu_code", "pu_code")
+
+
+def test_importer_preflights_identity_and_body_before_target_mutation() -> None:
+    mapping = SimpleNamespace(record_key="record_key", body="body", draft=None, deleted=None)
+
+    with pytest.raises(ValueError, match="source record key cannot be empty at source row 2"):
+        _validate_source_rows(
+            [{"record_key": "one", "body": "body"}, {"record_key": "", "body": "body"}],
+            mapping,
+            [],
+            [],
+        )
+
+    with pytest.raises(ValueError, match="source post body cannot be empty at source row 1"):
+        _validate_source_rows([{"record_key": "one", "body": ""}], mapping, [], [])
 
 
 def test_importer_prefers_canonical_gateway_embedding_model(monkeypatch) -> None:
