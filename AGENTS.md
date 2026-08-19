@@ -66,6 +66,62 @@ Compose `env_file` boundary. Never copy `~/.env` into the repository or image,
 print its values, or persist them. Do not add `LLM_GATEWAY_MODEL`; the upstream
 contextual-orchestrator owns model discovery and selection.
 
+## LLM and VISION boundary
+
+- Use `LLM_GATEWAY_API_KEY` and `LLM_GATEWAY_API_URL` from the user's `~/.env`
+  at runtime. Keep compatibility aliases only at the process boundary; do not
+  introduce a second credential source or a repository-local secret.
+- Every LLM and VISION operation goes through contextual-orchestrator. This
+  includes adjudication, summaries, Keyman/entity extraction, post chat,
+  paragraph structure, image region recognition, OCR, image descriptions, and
+  embeddings. Do not call a provider SDK or raw `/v1/chat/completions` or
+  `/v1/responses` endpoint from LineageWeave.
+- One post shares one orchestrator session id across its LLM and VISION work.
+  Pass bounded provenance metadata with each request, including post id,
+  corporate entity code, PU, author id, source system, and visibility when
+  available. Do not persist an ad hoc `user_account + post_id` session key;
+  use normalized third-normal-form tables and the ADR-defined foreign keys.
+- Do not set `LLM_GATEWAY_MODEL` or select a model by provider order, model
+  name, parameter count, or local intuition. Blank provider agents must be
+  expanded and selected by contextual-orchestrator. Reasoning effort defaults
+  to `auto`; `low`, `medium`, `high`, and `xhigh` are capability/paper-policy
+  inputs, not a local model ranking heuristic. Never force `none` merely
+  because a model is not known to be a reasoning model.
+- Responses API `developer` and Chat Completions `system` are compatible
+  instruction roles at the orchestrator boundary. The orchestrator owns the
+  translation and provider capability handling; do not fork prompts per
+  transport in this repository.
+- `response_format`, `tools`, Responses API requests, `json_object`, and
+  `json_schema` must remain multi-agent workflows. A structured response or a
+  repair attempt must not silently fall back to a single-agent passthrough.
+  Preserve schema validation, synthesis, repair, session, and cost lineage.
+- VISION is an orchestrator capability, not a frontend-only enhancement. For
+  unsupported image formats, convert at ingestion; for transparent PNGs,
+  flatten transparent pixels onto white for the derived analysis image while
+  retaining the original asset and provenance. Recognize image DOM/visual
+  regions before OCR, descriptions, Keyman extraction, or embeddings. Store
+  region-level evidence; never show an internal LLM instruction such as
+  `This post is an image` to a buyer.
+
+## Source parsing and semantic units
+
+- Preserve the source representation and provenance, then derive semantic
+  paragraph/list/table/image-region units for search, ontology, and embeddings.
+  Do not flatten a post into one opaque body string.
+- Paragraph structure may come from HTML DOM and CSS, visible leading spaces or
+  `&nbsp;`, and OOXML/MS Word paragraph or run properties. Combine those
+  signals with contextual-orchestrator adjudication when evidence conflicts;
+  heuristics are not authoritative and must not be the only fallback for an
+  unresolved structure decision.
+- Remove presentation-only visual line alignment inside a paragraph (for
+  example continuation lines manually aligned after `-`, `*`, `1.`, or `.`)
+  from derived semantic text, while retaining the source body and meaningful
+  list/heading nesting. A buyer-facing post view must render semantic
+  paragraphs, not the authoring application's spacing workaround.
+- Image descriptions, OCR text, and region evidence are analysis artifacts,
+  not buyer-facing prompt instructions. Buyer UI shows the source content and
+  useful captions/evidence only, with provenance where appropriate.
+
 ## Pluggable channels: never fake a missing signal
 
 `NullEmbeddingClient`, `NullAdjudicationClient`,
