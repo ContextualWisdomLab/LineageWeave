@@ -18,6 +18,12 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("decodes nested HTML character references without rendering the body as markup", () => {
+    expect(splitPostBody("<p>Company&amp;nbsp;&amp;amp;&amp;nbsp;Product &#39;s note</p>")).toEqual([
+      { kind: "text", text: "Company & Product 's note" },
+    ]);
+  });
+
   it("renders a data-URI image as its own segment and never leaks the raw base64 into text", () => {
     const html =
       `<p>Quote attached.</p><img src="data:image/png;base64,${TINY_PNG_B64}" alt=""><p>Please confirm.</p>`;

@@ -1,6 +1,9 @@
 # Research notes: what this design is grounded in
 
-**Status:** living document -- update when the channel set or fusion method changes.
+**Status:** supporting research notes. Normative design decisions are recorded
+in [ADR 0064](adr/0064-lineage-evidence-and-tree-assembly.md), [ADR 0062](adr/0062-semantic-unit-embedding.md),
+and the existing channel-specific ADRs; update this file as literature and
+validation evidence changes, not as an untracked architecture decision.
 
 ## The problem this is answering
 

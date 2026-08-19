@@ -44,6 +44,7 @@ import base64
 import binascii
 import re
 from dataclasses import dataclass, field
+from html import unescape
 from html.parser import HTMLParser
 
 # WHATWG HTML Living Standard / W3C HTML5 sectioning-content and common
@@ -212,7 +213,13 @@ class _BlockTextExtractor(HTMLParser):
 
     def handle_data(self, data: str) -> None:
         """Collect character data from the current HTML text region."""
-        text = data.strip()
+        text = data
+        for _ in range(3):
+            decoded = unescape(text)
+            if decoded == text:
+                break
+            text = decoded
+        text = text.strip()
         if text and self._stack:
             self._stack[-1][1].append(text)
 

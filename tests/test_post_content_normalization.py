@@ -51,6 +51,11 @@ def test_html_tags_never_appear_in_the_normalized_text() -> None:
     assert "Confirm delivery by Friday." in result.text
 
 
+def test_nested_html_character_references_are_decoded() -> None:
+    result = normalize_post_body("<p>Company&amp;nbsp;&amp;amp;&amp;nbsp;Product &#39;s note</p>")
+    assert result.text == "Company & Product 's note"
+
+
 def test_formatting_hints_are_captured_separately_from_text() -> None:
     html = '<h2 style="color:red">Urgent</h2><p>Please review the attached quote.</p>'
     result = normalize_post_body(html)

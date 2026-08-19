@@ -1,5 +1,9 @@
 # DB design: searchable, position-preserving image content
 
+> Normative decision: [ADR 0066](adr/0066-position-preserving-image-content.md).
+> This file remains the schema reference; its future-migration status is
+> authoritative until the persistence migration is accepted.
+
 **Status:** proposed normalized schema reference. The running product persists
 position-preserving image units, OCR/captions, and embeddings in PostgreSQL
 through `post_content_unit` (`migrations/0026_post_content_artifacts.sql`);

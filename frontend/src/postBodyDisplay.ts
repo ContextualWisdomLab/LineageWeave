@@ -19,7 +19,18 @@ const HTML_TAG = /<\/?[a-zA-Z][^>]*>/g;
 import { t } from "./i18n";
 
 function stripHtmlTags(text: string): string {
-  return text.replace(HTML_TAG, " ").replace(/\s+/g, " ").trim();
+  const withoutTags = text.replace(HTML_TAG, " ");
+  const decoder = document.createElement("textarea");
+  let decoded = withoutTags;
+  for (let pass = 0; pass < 3; pass += 1) {
+    decoder.innerHTML = decoded;
+    const next = decoder.value;
+    if (next === decoded) {
+      break;
+    }
+    decoded = next;
+  }
+  return decoded.replace(/\s+/g, " ").trim();
 }
 
 function isDecodableBase64(raw: string): boolean {
@@ -68,7 +79,7 @@ export function splitPostBody(body: string): PostBodySegment[] {
   }
   pushText(segments, body.slice(lastIndex));
   if (segments.length === 0) {
-    return [{ kind: "text", text: body }];
+    return [{ kind: "text", text: stripHtmlTags(body) }];
   }
   return segments;
 }
