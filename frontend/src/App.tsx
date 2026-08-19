@@ -4006,7 +4006,7 @@ function CustomerMasterPanel({
                 onClick={() => toggleEntity(entity.corporate_entity_id)}
               >
                 <strong>{entity.entity_name}</strong>
-                <span>{entity.corporate_entity_code} · {entity.entity_level_code}</span>
+                <span>{entity.corporate_entity_code} · {entity.entity_level_label}</span>
               </button>
               {expandedEntityId === entity.corporate_entity_id ? (
                 <div className="customer-related-posts">

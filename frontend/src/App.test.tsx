@@ -1504,6 +1504,34 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/customer-master") && method === "GET") {
+        return Promise.resolve(
+          jsonResponse({
+            corporate_entities: [
+              {
+                corporate_entity_id: "corp-demo",
+                corporate_entity_code: "DEMO-CORP-01",
+                entity_name: "Demo Corp",
+                entity_level_code: "company",
+                entity_level_label: "Company",
+                parent_entity_id: null,
+              },
+            ],
+            keymen: [
+              {
+                person_id: "person-1",
+                person_name: "Ada West",
+                person_side_code: "our_side",
+                person_side_label: "Our side",
+                last_known_job_title: null,
+                affiliations: [],
+              },
+            ],
+            source_customer_hints: [],
+            source_author_hints: [],
+          }),
+        );
+      }
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -1522,6 +1550,25 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
+    // Live UI finding (2026-08-19): read_customer_master() skipped the
+    // common_lookup_value join both endpoints elsewhere already use,
+    // so the panel showed raw codes ("company", "our_side") whenever
+    // a Keyman had no last_known_job_title -- confirm the human labels
+    // render and the raw codes never leak into visible text.
+    stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    expect(await screen.findByText("Demo Corp")).toBeInTheDocument();
+    expect(screen.getByText("DEMO-CORP-01 · Company")).toBeInTheDocument();
+    expect(screen.getByText("Ada West")).toBeInTheDocument();
+    expect(screen.getByText("Our side")).toBeInTheDocument();
+    expect(screen.queryByText("company", { exact: true })).not.toBeInTheDocument();
+    expect(screen.queryByText("our_side", { exact: true })).not.toBeInTheDocument();
   });
 
   it("searches the board from a semantic project mention", async () => {

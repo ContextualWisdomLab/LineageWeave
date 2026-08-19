@@ -406,6 +406,7 @@ export interface CorporateEntityRef {
 export interface CustomerMasterEntity extends CorporateEntityRef {
   corporate_entity_code: string;
   entity_level_code: string;
+  entity_level_label: string;
   parent_entity_id: string | null;
 }
 
