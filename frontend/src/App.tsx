@@ -2456,6 +2456,7 @@ type SelectPostOptions = {
   fromReportMember?: boolean;
   fromWeeklyVoc?: boolean;
   fromCalendar?: boolean;
+  fromCustomerMaster?: boolean;
 };
 
 /**
@@ -3499,12 +3500,14 @@ function PostList({
   showLabPanels = false,
   postIdToOpen = null,
   postOpenFromCalendar = false,
+  postOpenFromCustomerMaster = false,
   onPostOpened,
 }: {
   accessToken: string;
   showLabPanels?: boolean;
   postIdToOpen?: string | null;
   postOpenFromCalendar?: boolean;
+  postOpenFromCustomerMaster?: boolean;
   onPostOpened?: () => void;
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
@@ -3525,6 +3528,7 @@ function PostList({
   const [openedFromReportMember, setOpenedFromReportMember] = useState(false);
   const [openedFromWeeklyVoc, setOpenedFromWeeklyVoc] = useState(false);
   const [openedFromCalendar, setOpenedFromCalendar] = useState(false);
+  const [openedFromCustomerMaster, setOpenedFromCustomerMaster] = useState(false);
   const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
   const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
   const [totalPosts, setTotalPosts] = useState(0);
@@ -3580,13 +3584,17 @@ function PostList({
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
     setOpenedFromWeeklyVoc(Boolean(options?.fromWeeklyVoc));
     setOpenedFromCalendar(Boolean(options?.fromCalendar));
+    setOpenedFromCustomerMaster(Boolean(options?.fromCustomerMaster));
   }
 
   useEffect(() => {
     if (!postIdToOpen) return;
-    selectPost(postIdToOpen, postOpenFromCalendar ? { fromCalendar: true } : undefined);
+    selectPost(postIdToOpen, {
+      fromCalendar: postOpenFromCalendar,
+      fromCustomerMaster: postOpenFromCustomerMaster,
+    });
     onPostOpened?.();
-  }, [onPostOpened, postIdToOpen, postOpenFromCalendar]);
+  }, [onPostOpened, postIdToOpen, postOpenFromCalendar, postOpenFromCustomerMaster]);
 
   function closeSelectedPost() {
     setSelectedPostId(null);
@@ -3595,6 +3603,7 @@ function PostList({
     setOpenedFromReportMember(false);
     setOpenedFromWeeklyVoc(false);
     setOpenedFromCalendar(false);
+    setOpenedFromCustomerMaster(false);
     const url = new URL(window.location.href);
     if (url.searchParams.has("post")) {
       url.searchParams.delete("post");
@@ -4060,7 +4069,12 @@ function PostList({
             openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
           }
           knowledgeCutoff={openedAfterCutoff ? openedCutoffIso : null}
-          focusEventLineage={openedFromReportMember || openedFromWeeklyVoc || openedFromCalendar}
+          focusEventLineage={
+            openedFromReportMember ||
+            openedFromWeeklyVoc ||
+            openedFromCalendar ||
+            openedFromCustomerMaster
+          }
           focusAskOnLand={openedFromReportMember}
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
@@ -4294,6 +4308,11 @@ function CustomerMasterPanel({
       <p className="section-eyebrow">{t("Authorized customer scope")}</p>
       <h2 id="customer-master-heading">{t("Customer master")}</h2>
       <p className="buyer-destination-intro">{t("Customer entities available to this account.")}</p>
+      {master && master.corporate_entities.length > 0 ? (
+        <p className="board-next-action" role="status" aria-label={t("Next action")}>
+          {t("Authorized customer entities are current. Open a related post to read Event Lineage.")}
+        </p>
+      ) : null}
       {error ? <p className="error">{error}</p> : null}
       {master === null && !error ? <p>{t("Loading customer master...")}</p> : null}
       {master?.corporate_entities.length === 0 ? (
@@ -4554,6 +4573,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
     return new URLSearchParams(window.location.search).get("post");
   });
   const [postOpenFromCalendar, setPostOpenFromCalendar] = useState(false);
+  const [postOpenFromCustomerMaster, setPostOpenFromCustomerMaster] = useState(false);
   // Test-only compatibility for legacy analysis-panel coverage; this prop
   // never forces the panels open outside Vitest. In a real build the
   // advanced-review section (ADR 0037) is gated on PostList's own
@@ -4634,9 +4654,11 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           showLabPanels={testOnlyLabPanels}
           postIdToOpen={postToOpen}
           postOpenFromCalendar={postOpenFromCalendar}
+          postOpenFromCustomerMaster={postOpenFromCustomerMaster}
           onPostOpened={() => {
             setPostToOpen(null);
             setPostOpenFromCalendar(false);
+            setPostOpenFromCustomerMaster(false);
           }}
         />
       ) : null}
@@ -4645,6 +4667,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           accessToken={accessToken}
           onOpenPost={(postId) => {
             setPostToOpen(postId);
+            setPostOpenFromCalendar(false);
+            setPostOpenFromCustomerMaster(true);
             setDestination("board");
           }}
         />
@@ -4656,6 +4680,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           onSelectPost={(postId) => {
             setPostToOpen(postId);
             setPostOpenFromCalendar(true);
+            setPostOpenFromCustomerMaster(false);
             setDestination("board");
           }}
         />
