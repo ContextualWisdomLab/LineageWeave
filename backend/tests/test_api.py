@@ -3685,6 +3685,48 @@ def test_calendar_hides_other_corp_private_commitments_and_sorts_by_due_date(
     assert "corporate_entity_id" not in commitments[0]
 
 
+def test_calendar_keeps_real_ticket_when_demo_code_is_shared(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A shared DEMO code must filter pure seed tickets row by row."""
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "update corporate_entity set corporate_entity_code = 'DEMO-SHARED' where corporate_entity_id = %s",
+                (seeded_db["own_corp_id"],),
+            )
+            cur.execute(
+                "update source_post set source_author_code = null, source_company_code = null, "
+                "source_process_unit_code = null, source_sales_pool_code = null, "
+                "source_customer_code = null, source_project_code = null where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            cur.execute(
+                "update source_post set source_author_code = 'REAL-AUTHOR', source_company_code = 'REAL-COMPANY' "
+                "where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "insert into issue_ticket (post_id, ticket_status_code, ticket_title, due_date, commitment_summary) "
+                "values (%s, 'open', 'Synthetic commitment', '2026-01-01', 'seed')",
+                (seeded_db["own_private_post_id"],),
+            )
+            cur.execute(
+                "insert into issue_ticket (post_id, ticket_status_code, ticket_title, due_date, commitment_summary) "
+                "values (%s, 'open', 'Real commitment', '2026-02-01', 'source-backed')",
+                (seeded_db["public_post_id"],),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get("/api/calendar", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 200
+    titles = [commitment["ticket_title"] for commitment in response.json()["commitments"]]
+    assert titles == ["Real commitment"]
+
+
 def test_calendar_excludes_closed_tickets_and_includes_manual_due_dates(
     client, demo_analyst_token, seeded_db
 ) -> None:

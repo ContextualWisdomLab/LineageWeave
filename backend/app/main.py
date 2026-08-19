@@ -378,13 +378,10 @@ def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
     return str(post["corporate_entity_id"]) in account.corporate_entity_ids
 
 
-def _is_demo_only_group(members: list[dict[str, Any]], demo_entity_ids: set[str]) -> bool:
-    """True when every visible member of a report group is the synthetic
-    Demo Corp narrative -- dropped once real evidence exists (ADR 0001 /
-    ADR 0042), same rule for the comparison strip, the FIPC trend strip,
-    and one grouping/period's calibrated report."""
-    return bool(demo_entity_ids) and all(
-        member["corporate_entity_id"] in demo_entity_ids for member in members
+def _is_synthetic_demo_member(member: dict[str, Any], demo_entity_ids: set[str]) -> bool:
+    """Identify one pure seed row without hiding real rows sharing its entity."""
+    return bool(demo_entity_ids) and member["corporate_entity_id"] in demo_entity_ids and not bool(
+        member.get("has_real_source_context", False)
     )
 
 
@@ -1995,10 +1992,13 @@ async def compare_period_groupings(
             demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
     visible: list[dict[str, Any]] = []
     for row in rows:
-        members = [member for member in row["members"] if _can_see_post(account, member)]
+        members = [
+            member
+            for member in row["members"]
+            if _can_see_post(account, member)
+            and not _is_synthetic_demo_member(member, demo_entity_ids)
+        ]
         if not members:
-            continue
-        if _is_demo_only_group(members, demo_entity_ids):
             continue
         visible.append({**row, "members": [], "post_count": len(members)})
     return {"period_code": period_code, "groupings": visible}
@@ -2021,10 +2021,13 @@ async def list_period_reports(
             demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
     visible: list[dict[str, Any]] = []
     for summary in summaries:
-        members = [member for member in summary["members"] if _can_see_post(account, member)]
+        members = [
+            member
+            for member in summary["members"]
+            if _can_see_post(account, member)
+            and not _is_synthetic_demo_member(member, demo_entity_ids)
+        ]
         if not members:
-            continue
-        if _is_demo_only_group(members, demo_entity_ids):
             continue
         visible.append({**summary, "members": [], "post_count": len(members)})
     return {"grouping_kind": grouping_kind, "periods": visible}
@@ -2052,15 +2055,27 @@ async def read_period_reports(
             demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
     visible: list[dict[str, Any]] = []
     for report in reports:
-        members = [member for member in report["members"] if _can_see_post(account, member)]
+        members = [
+            member
+            for member in report["members"]
+            if _can_see_post(account, member)
+            and not _is_synthetic_demo_member(member, demo_entity_ids)
+        ]
         if not members:
-            continue
-        if _is_demo_only_group(members, demo_entity_ids):
             continue
         leftover_pairs = [
             pair
             for pair in report.get("leftover_pairs", [])
             if _can_see_post(account, pair)
+            and not _is_synthetic_demo_member(pair, demo_entity_ids)
+        ]
+        members = [
+            {key: value for key, value in member.items() if key != "has_real_source_context"}
+            for member in members
+        ]
+        leftover_pairs = [
+            {key: value for key, value in pair.items() if key != "has_real_source_context"}
+            for pair in leftover_pairs
         ]
         visible.append(
             {**report, "members": members, "leftover_pairs": leftover_pairs, "post_count": len(members)}
@@ -2770,9 +2785,11 @@ async def read_calendar(
     # Once real evidence is visible, the synthetic Demo Corp commitments
     # (ADR 0001 / ADR 0042) stop appearing beside it.
     if demo_entity_ids:
-        visible = [c for c in visible if c["corporate_entity_id"] not in demo_entity_ids]
+        visible = [
+            c for c in visible if not _is_synthetic_demo_member(c, demo_entity_ids)
+        ]
     for c in visible:
-        del c["visibility_code"], c["corporate_entity_id"]
+        del c["visibility_code"], c["corporate_entity_id"], c["has_real_source_context"]
     return {
         "events": events,
         "commitments": visible,

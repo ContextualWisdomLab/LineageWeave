@@ -374,30 +374,38 @@ async def gather_global_chat_sources(
             }
         )
     )[:8]
-    candidate_ids: list[str] = []
+    # A post whose title names the exact thing asked about is a far more
+    # specific match than one that only shares a generic term (a common
+    # word, or a hit buried in a 16KB body prefix); weighting every match
+    # equally and then falling back on created_at desc as the only
+    # tiebreak let recency crowd out relevance -- a year-old post whose
+    # title is an exact company-name match lost to four newer, only
+    # loosely related posts in a live reproduction of this bug.
+    _MATCH_WEIGHT = {"title": 3.0, "body": 1.0, "source_field": 1.0}
+    candidate_scores: dict[str, float] = {}
     for term in search_terms:
         candidate_rows = await conn.fetch(
             """
-            select post_id
+            select post_id, matched_in
               from (
-                   (select post_id, created_at
+                   (select post_id, created_at, 'title' as matched_in
                       from source_post
                      where post_title ilike '%' || $1 || '%'
                      limit 32)
                     union all
-                   (select post_id, created_at
+                   (select post_id, created_at, 'body' as matched_in
                       from source_post
                      where lower(left(source_post_search_text(post_body), 16384))
                                like '%' || lower($1) || '%'
                      limit 32)
                     union all
-                   (select post_id, created_at
+                   (select post_id, created_at, 'body' as matched_in
                       from source_post
                      where to_tsvector('simple', source_post_search_text(post_body))
                                @@ plainto_tsquery('simple', $1)
                      limit 32)
                     union all
-                   (select post_id, created_at
+                   (select post_id, created_at, 'source_field' as matched_in
                       from source_post
                      where concat_ws(' ', source_system_code, source_record_key,
                                       source_author_code, source_author_name,
@@ -414,8 +422,10 @@ async def gather_global_chat_sources(
             """,
             term,
         )
-        candidate_ids.extend(str(row["post_id"]) for row in candidate_rows)
-    candidate_ids = list(dict.fromkeys(candidate_ids))
+        for row in candidate_rows:
+            post_id = str(row["post_id"])
+            candidate_scores[post_id] = candidate_scores.get(post_id, 0.0) + _MATCH_WEIGHT[row["matched_in"]]
+    candidate_ids = sorted(candidate_scores, key=lambda post_id: candidate_scores[post_id], reverse=True)
     rows = await conn.fetch(
         """
         select post_id, post_title, post_body, visibility_code, corporate_entity_id,
@@ -427,7 +437,7 @@ async def gather_global_chat_sources(
           from source_post
          where visibility_code = 'public'
             or corporate_entity_id::text = any($1::text[])
-         order by case when post_id = any($2::uuid[]) then 0 else 1 end,
+         order by array_position($2::uuid[], post_id) nulls last,
                   created_at desc, post_id desc
          limit $3
         """,
