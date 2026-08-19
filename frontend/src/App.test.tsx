@@ -120,6 +120,10 @@ describe("App, authenticated", () => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
+      if (url.endsWith("/api/me/preferences") && method === "PATCH") {
+        const body = JSON.parse(String(init?.body));
+        return Promise.resolve(jsonResponse({ preferred_locale: body.preferred_locale }));
+      }
       if (url.endsWith("/api/me")) {
         return meReady.then(() => {
           if (options?.meFailed) {
@@ -1818,6 +1822,26 @@ describe("App, authenticated", () => {
 
     await userEvent.selectOptions(language, "en");
     expect(screen.getByRole("heading", { name: "Related posts" })).toBeInTheDocument();
+  });
+
+  it("persists the authenticated member's language preference", async () => {
+    const fetchMock = stubBackend();
+    render(<App showLabPanels />);
+
+    const language = await screen.findByRole("combobox", {
+      name: /language|언어|言語|语言|ngôn ngữ/i,
+    });
+    await userEvent.selectOptions(language, "ja");
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/me/preferences"),
+        expect.objectContaining({
+          method: "PATCH",
+          body: JSON.stringify({ preferred_locale: "ja" }),
+        }),
+      );
+    });
   });
 
   it("rebuilds lineage when the account has post_admin", async () => {
