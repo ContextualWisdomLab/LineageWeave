@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { type User, WebStorageStateStore } from "oidc-client-ts";
 import { AuthProvider } from "react-oidc-context";
 import "./index.css";
 import App from "./App.tsx";
@@ -10,9 +11,23 @@ const oidcConfig = {
   client_id: config.oidcClientId,
   redirect_uri: window.location.origin,
   post_logout_redirect_uri: window.location.origin,
-  onSigninCallback: () => {
-    // Strip the OIDC response params (code/state) from the URL after login.
-    window.history.replaceState({}, document.title, window.location.pathname);
+  userStore: new WebStorageStateStore({ store: window.localStorage }),
+  onSigninCallback: (user: User | undefined) => {
+    const state = user?.state;
+    const requestedReturnUrl =
+      typeof state === "object" &&
+      state !== null &&
+      "returnUrl" in state &&
+      typeof state.returnUrl === "string"
+        ? state.returnUrl
+        : "";
+    const returnUrl =
+      requestedReturnUrl.startsWith("/") && !requestedReturnUrl.startsWith("//")
+        ? requestedReturnUrl
+        : window.location.pathname;
+
+    // Strip OIDC response params while preserving the requested deep link.
+    window.history.replaceState({}, document.title, returnUrl);
   },
 };
 

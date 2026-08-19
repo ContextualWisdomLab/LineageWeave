@@ -4226,6 +4226,12 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
 
   useEffect(() => {
     if (!accessToken) return;
+    const postId = new URLSearchParams(window.location.search).get("post");
+    if (postId) setPostToOpen(postId);
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (!accessToken) return;
     let active = true;
     fetchMe(accessToken)
       .then((member) => {
@@ -4250,7 +4256,17 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
       <main className="centered">
         <h1>LineageWeave</h1>
         <LanguageSwitcher />
-        <button onClick={() => auth.signinRedirect()}>{t("Log in")}</button>
+          <button
+            onClick={() =>
+              void auth.signinRedirect({
+                state: {
+                  returnUrl: `${window.location.pathname}${window.location.search}${window.location.hash}`,
+                },
+              })
+            }
+          >
+            {t("Log in")}
+          </button>
       </main>
     );
   }
