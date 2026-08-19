@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
@@ -20,19 +21,27 @@ from backend.app.auth import CurrentAccount, resolve_current_account
 from backend.app.config import Settings, load_settings
 from backend.app.db import create_pool
 from backend.app.global_ask import GlobalAskAnswer, answer_global_question
+from backend.app.global_ask_verification import (
+    GlobalAskExternalVerifier,
+    NullGlobalAskExternalVerifier,
+    SearxngOrchestratorGlobalAskVerifier,
+)
 from backend.app.mcp_auth import KeycloakMcpTokenVerifier
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.post_chat import ContextualOrchestratorPostChatClient, NullPostChatClient, PostChatClient
 
 
 class GlobalAskResult(BaseModel):
-    """Structured MCP response with bounded source and citation identifiers."""
+    """Structured MCP response separating internal citations from web verification."""
 
     answer_text: str
     anchor_post_id: str
     cited_post_ids: list[str] = Field(default_factory=list)
     cited_posts: list[dict[str, str]] = Field(default_factory=list)
     source_post_ids: list[str] = Field(default_factory=list)
+    external_verification_status: str
+    external_evidence_urls: list[str] = Field(default_factory=list)
+    external_verification_rationale: str | None = None
 
 
 @dataclass
@@ -42,6 +51,7 @@ class McpAppContext:
     pool: Any
     chat_client: PostChatClient
     vision_client: Any
+    external_verifier: GlobalAskExternalVerifier
 
 
 PoolFactory = Callable[[str], Awaitable[Any]]
@@ -60,6 +70,21 @@ def _chat_client(settings: Settings) -> PostChatClient:
     )
 
 
+def _external_verifier(settings: Settings) -> GlobalAskExternalVerifier:
+    """Build external corroboration only when both search and judge channels exist."""
+    if not (
+        settings.searxng_base_url
+        and settings.orchestrator_base_url
+        and settings.orchestrator_api_key
+    ):
+        return NullGlobalAskExternalVerifier()
+    return SearxngOrchestratorGlobalAskVerifier(
+        settings.searxng_base_url,
+        settings.orchestrator_base_url,
+        settings.orchestrator_api_key,
+    )
+
+
 def build_mcp_server(
     settings: Settings | None = None,
     *,
@@ -68,9 +93,11 @@ def build_mcp_server(
     account_resolver: AccountResolver = resolve_current_account,
     answerer: Answerer = answer_global_question,
     access_token_provider: AccessTokenProvider = get_access_token,
+    external_verifier: GlobalAskExternalVerifier | None = None,
 ) -> MCPServer[McpAppContext]:
-    """Build a testable OAuth resource server with one read-only tool."""
+    """Build a testable OAuth resource server with one read-only Global Ask tool."""
     resolved_settings = settings or load_settings()
+    resolved_external_verifier = external_verifier or _external_verifier(resolved_settings)
 
     @asynccontextmanager
     async def lifespan(_: MCPServer) -> AsyncIterator[McpAppContext]:
@@ -85,6 +112,7 @@ def build_mcp_server(
                     resolved_settings.orchestrator_api_key,
                     resolved_settings.vision_model,
                 ),
+                external_verifier=resolved_external_verifier,
             )
         finally:
             await pool.close()
@@ -94,11 +122,15 @@ def build_mcp_server(
         title="LineageWeave",
         description="Authenticated evidence-grounded lineage intelligence.",
         instructions=(
-            "Use global_ask only to answer from the authenticated caller's authorized "
-            "LineageWeave source-post and event-lineage evidence. Treat answers as "
-            "evidence-grounded inference, not authoritative fact. Follow cited post IDs. "
-            "The tool is read-only and fails closed when evidence or the configured "
-            "contextual-orchestrator is unavailable."
+            "Use global_ask to answer from the authenticated caller's authorized "
+            "LineageWeave source-post and event-lineage evidence. The answer and its "
+            "post citations remain database-authorized internal evidence. A separate "
+            "external_verification_status may corroborate or refute important factual "
+            "claims using bounded Searxng web evidence judged by contextual-orchestrator; "
+            "external URLs never become LineageWeave post authority. Treat insufficient "
+            "or unavailable verification as unresolved, not as support. The tool is "
+            "read-only and fails closed when the primary evidence or reasoning channel "
+            "is unavailable."
         ),
         version="1.0.0",
         lifespan=lifespan,
@@ -113,17 +145,18 @@ def build_mcp_server(
     @mcp.tool(
         title="Global Ask",
         description=(
-            "Answer a question using only source posts and event-lineage evidence visible "
-            "to the authenticated LineageWeave account; returns source and citation IDs."
+            "Answer from authorized LineageWeave source posts and Event Lineage, then "
+            "separately corroborate the resulting claims against bounded public web "
+            "evidence when the Searxng verification channel is configured."
         ),
         annotations=ToolAnnotations(
             read_only_hint=True,
             idempotent_hint=True,
-            open_world_hint=False,
+            open_world_hint=True,
         ),
     )
     async def global_ask(question: str, ctx: Context[McpAppContext, Any]) -> GlobalAskResult:
-        """Run authorization-preserving Global Ask for the current MCP principal."""
+        """Run source-grounded Global Ask plus a non-authoritative external check."""
         token = access_token_provider()
         if token is None or not token.subject:
             raise PermissionError("authenticated MCP principal is unavailable")
@@ -136,7 +169,17 @@ def build_mcp_server(
             question,
             vision_client=dependencies.vision_client,
         )
-        return GlobalAskResult(**asdict(result))
+        verification = await asyncio.to_thread(
+            dependencies.external_verifier.verify,
+            question,
+            result.answer_text,
+        )
+        return GlobalAskResult(
+            **asdict(result),
+            external_verification_status=verification.status_code,
+            external_evidence_urls=list(verification.evidence_urls),
+            external_verification_rationale=verification.rationale,
+        )
 
     return mcp
 
