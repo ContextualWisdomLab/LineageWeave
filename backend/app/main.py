@@ -159,6 +159,7 @@ from backend.app.post_summary_ingestion import (
     require_summary_source_body,
 )
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.demo_scope import has_real_source_context, is_demo_scope
 from lineageweave.post_content_persistence import persist_post_content
 from lineageweave.http_client import HttpClientError
 
@@ -731,38 +732,12 @@ async def read_customer_master(
         )
         has_source_context = bool(source_customer_rows or source_author_rows)
         if not has_source_context:
-            has_source_context = bool(
-                await conn.fetchval(
-                    """
-                    select exists (
-                        select 1
-                          from source_post
-                         where (visibility_code = 'public'
-                                or corporate_entity_id = any($1::uuid[]))
-                           and (
-                                nullif(btrim(source_author_code), '') is not null
-                                or nullif(btrim(source_author_name), '') is not null
-                                or nullif(btrim(source_company_code), '') is not null
-                                or nullif(btrim(source_company_name), '') is not null
-                                or nullif(btrim(source_process_unit_code), '') is not null
-                                or nullif(btrim(source_process_unit_name), '') is not null
-                                or nullif(btrim(source_sales_pool_code), '') is not null
-                                or nullif(btrim(source_sales_pool_name), '') is not null
-                                or nullif(btrim(source_customer_code), '') is not null
-                                or nullif(btrim(source_customer_name), '') is not null
-                                or nullif(btrim(source_project_code), '') is not null
-                                or nullif(btrim(source_project_name), '') is not null
-                           )
-                    )
-                    """,
-                    list(account.corporate_entity_ids),
-                )
+            has_source_context = await has_real_source_context(
+                conn, list(account.corporate_entity_ids)
             )
         if has_source_context:
             entity_rows = [
-                row
-                for row in entity_rows
-                if not str(row["corporate_entity_code"]).startswith("DEMO-")
+                row for row in entity_rows if not is_demo_scope(row["corporate_entity_code"])
             ]
         entity_ids = [row["corporate_entity_id"] for row in entity_rows]
         source_author_affiliations = await _load_account_affiliation_hints(

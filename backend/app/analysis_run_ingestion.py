@@ -26,6 +26,7 @@ from uuid import UUID
 
 import asyncpg
 
+from backend.app.demo_scope import has_real_source_context, is_demo_scope
 from backend.app.knowledge_graph import labels_for_codes
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave import __version__ as PACKAGE_VERSION
@@ -54,6 +55,7 @@ _RUN_LIST_SQL = f"""
       scope.process_unit_id,
       scope.scope_key,
       corp.entity_name as scope_entity_name,
+      corp.corporate_entity_code as scope_entity_code,
       status.status_code,
       status.failure_code
     from analysis_run run
@@ -340,12 +342,19 @@ async def fetch_visible_analysis_runs(
     account_id: str,
     affiliated_entity_ids: list[str],
 ) -> list[dict[str, Any]]:
-    """Runs the account requested or whose scope they may already walk."""
+    """Runs the account requested or whose scope they may already walk.
+
+    Once real source-import evidence is visible, the synthetic `make seed`
+    Demo Corp runs stop appearing here -- a buyer must not mistake that
+    fabricated narrative for real evidence (ADR 0001 / ADR 0042).
+    """
     rows = await conn.fetch(
         _RUN_LIST_SQL,
         account_id,
         affiliated_entity_ids,
     )
+    if rows and await has_real_source_context(conn, affiliated_entity_ids):
+        rows = [row for row in rows if not is_demo_scope(row["scope_entity_code"])]
     return await _serialize_runs(conn, rows)
 
 
