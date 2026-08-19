@@ -269,6 +269,13 @@ responsibility (e.g. a list of meeting attendees), write one row per
 person and repeat the responsibility text on each row rather than merging
 them into a single row.
 
+Never write a ROLES row for the account/system identity named in the
+context hints (author_account_name, author_account_id, and similar) --
+those hints describe who is viewing or importing this record, not a
+participant the post text names. Only write a row for that name if the
+post title or body independently names that same person doing something
+-- an account name appearing only in the hints is not post evidence.
+
 Worked examples (fictional names, format only, not real post's content):
 홍길동 | 견적 승인 검토 | person | Acme Electronics
 Acme Renewables | 기술 세미나 참석 | organization | NONE
@@ -315,10 +322,30 @@ def _parse_plain_summary_response(content: str) -> tuple[str, tuple[str, ...]] |
     return (summary, events) if summary else None
 
 
+_HINT_VALUE_PATTERN = re.compile(r"(?:^|;)\s*author_account_name=([^;\[]+?)\s*(?:\[|;|$)")
+
+
+def _hallucinated_account_name(context_hints: str) -> str | None:
+    """The logged-in account's display name, if the hint string carries one.
+
+    Live finding (2026-08-19): the model twice wrote a ROLES row for
+    this exact value -- e.g. "Demo Analyst | 발주처 면담 및 대책 협의 |
+    person | Demo Corp" -- even though that name never appears in the
+    post body. author_account_name describes who is viewing/importing
+    the record, not a participant named in the text; the prompt now says
+    so explicitly, but this is the belt-and-suspenders check since a
+    fabricated actor with a fabricated responsibility is worse than a
+    dropped one.
+    """
+    match = _HINT_VALUE_PATTERN.search(context_hints)
+    return match.group(1).strip() if match else None
+
+
 def _parse_plain_summary_details(
     content: str,
     *,
     post_title: str = "",
+    context_hints: str = "",
 ) -> tuple[tuple[RoleResponsibility, ...], tuple[ProjectMention, ...]] | None:
     """Parse the compact semantic extraction contract without nested JSON."""
     plain = _strip_code_fence(content).strip()
@@ -353,6 +380,7 @@ def _parse_plain_summary_details(
             "설계팀 | 도면 검토 지원 | team | acme electronics",
         )
     )
+    hallucinated_account_name = _hallucinated_account_name(context_hints)
     roles: list[RoleResponsibility] = []
     for raw_row in sections["ROLES"].splitlines():
         row = raw_row.strip().lstrip("-* ").strip()
@@ -365,6 +393,11 @@ def _parse_plain_summary_details(
         elif len(parts) == 4:
             actor_name, responsibility, actor_type, affiliation = parts
         else:
+            continue
+        if (
+            hallucinated_account_name is not None
+            and actor_name.casefold() == hallucinated_account_name.casefold()
+        ):
             continue
         actor_type_code = {
             "person": ACTOR_TYPE_PERSON,
@@ -673,6 +706,7 @@ class ContextualOrchestratorPostSummaryClient:
         details = _parse_plain_summary_details(
             details_body["choices"][0]["message"]["content"],
             post_title=post_title,
+            context_hints=context_hints,
         )
         if details is None:
             raise ValueError(

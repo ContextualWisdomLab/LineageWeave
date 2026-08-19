@@ -227,6 +227,24 @@ def test_title_match_can_supply_explicit_project_evidence_but_not_a_guess() -> N
     assert unrelated == ((), ())
 
 
+def test_role_matching_the_hinted_account_name_is_dropped_not_cataloged() -> None:
+    """Live finding: the model wrote a ROLES row for the logged-in
+    account's display name (from author_account_name in the hints)
+    even though that name never appeared in the post text -- see
+    _hallucinated_account_name's docstring.
+    """
+    details = _parse_plain_summary_details(
+        "ROLES:\n"
+        "Demo Analyst | met the customer | person | Demo Corp\n"
+        "Jordi Gil | approved the quote | person | Northwind Labs\n"
+        "PROJECTS:\nNONE",
+        context_hints="author_account_name=Demo Analyst [source_field=user_account.display_name]; "
+        "author_affiliations=Demo Corp [source_field=account_affiliation.corporate_entity_id]",
+    )
+    assert details is not None
+    assert [role.actor_name for role in details[0]] == ["Jordi Gil"]
+
+
 _ORCHESTRATOR_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL")
 _ORCHESTRATOR_API_KEY = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY")
 
