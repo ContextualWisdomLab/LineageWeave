@@ -232,10 +232,18 @@ _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 # The full legacy contract remains parseable for persisted/test responses. The
 # local provider is more reliable when the two nested-array groups are split.
 _SUMMARY_REQUEST_PROMPT_TEMPLATE = """\
-Write a concise Korean 5W1H summary in at most four sentences using only
-the evidence below. State who, what, when, where, why, and how when
-supported; write "본문에 없음" for a missing dimension. Do not invent
-facts or a generic report sentence.
+Write a concise Korean summary in at most four complete sentences using
+only the evidence below. Weave who, what, when, where, why, and how into
+natural flowing prose -- do NOT write a "누가: ... 언제: ... 어디서: ..."
+label-value list; that is a table, not a summary. Use "본문에 없음" only
+inside a sentence for a dimension the evidence genuinely lacks, never as
+a standalone label line. Do not invent facts or a generic report
+sentence.
+
+Example shape (fictional content, format only):
+이수진 PM은 2월 12일 Acme Electronics 창원 공장에서 열린 기술 회의에
+참석하여 설계 누락 사항을 확인했다. 회의에서는 케이블 배선과 관련된
+문제가 논의되었으며, 이수진 PM은 설계팀에 확인을 요청했다.
 
 Then write a new line beginning KEY EVENTS: followed by up to four short
 event phrases separated by semicolons. If there are no events, write NONE.

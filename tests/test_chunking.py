@@ -92,7 +92,7 @@ def test_chunk_by_dom_reads_html_and_word_indentation_declarations() -> None:
 
 def test_chunk_by_dom_joins_visual_continuation_lines_but_keeps_list_items() -> None:
     html = (
-        "<p>1. 배경<br>"
+        '<p>1. 배경<br style="line-height: 1.5;" />'
         "    1) 기존 대차는 이전이 필요함<br>"
         "        콘크리트 양생까지 공장 운영 불가하여 이전 불가<br>"
         "    2) 신규 대차 제작으로 결정</p>"
@@ -100,11 +100,12 @@ def test_chunk_by_dom_joins_visual_continuation_lines_but_keeps_list_items() -> 
 
     chunks = chunk_by_dom(html)
 
-    assert chunks[0].text == (
-        "1. 배경\n"
-        "1) 기존 대차는 이전이 필요함 콘크리트 양생까지 공장 운영 불가하여 이전 불가\n"
-        "2) 신규 대차 제작으로 결정"
-    )
+    assert [chunk.text for chunk in chunks] == [
+        "1. 배경",
+        "1) 기존 대차는 이전이 필요함 콘크리트 양생까지 공장 운영 불가하여 이전 불가",
+        "2) 신규 대차 제작으로 결정",
+    ]
+    assert [chunk.indent_width for chunk in chunks] == [0, 4, 4]
 
 
 def test_chunk_by_dom_empty_html_yields_no_chunks() -> None:

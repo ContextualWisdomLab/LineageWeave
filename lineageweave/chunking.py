@@ -305,10 +305,12 @@ class _BlockTextExtractor(HTMLParser):
             declared_width = sum(entry[3] for entry in self._stack)
             tag_name, buffer, style, _ = self._stack.pop()
             raw_text = "".join(buffer)
-            declared_width += _source_indent_width(raw_text)
-            text = normalize_semantic_text(raw_text)
-            if text:
-                self._finished.append(("text", text, tag_name, style, declared_width))
+            for raw_unit, source_indent in _split_dom_units(raw_text):
+                text = normalize_semantic_text(raw_unit)
+                if text:
+                    self._finished.append(
+                        ("text", text, tag_name, style, declared_width + source_indent)
+                    )
 
     def handle_data(self, data: str) -> None:
         """Collect character data from the current HTML text region."""
@@ -326,6 +328,29 @@ class _BlockTextExtractor(HTMLParser):
     def finished(self) -> list[tuple[str, object, str, str | None, int]]:
         """Return the normalized records collected from the HTML fragment."""
         return self._finished
+
+
+def _split_dom_units(raw_text: str) -> list[tuple[str, int]]:
+    """Split forced visual lines at authored list starts, not arbitrary wraps."""
+    units: list[tuple[str, int]] = []
+    current: list[str] = []
+
+    def flush() -> None:
+        if current:
+            raw_unit = "\n".join(current)
+            if raw_unit.strip():
+                units.append((raw_unit, _source_indent_width(raw_unit)))
+            current.clear()
+
+    for line in raw_text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        if not line.strip():
+            flush()
+            continue
+        if current and _LIST_ITEM_START.match(line.strip()):
+            flush()
+        current.append(line.rstrip())
+    flush()
+    return units
 
 
 def chunk_by_dom(html: str) -> list[Chunk]:

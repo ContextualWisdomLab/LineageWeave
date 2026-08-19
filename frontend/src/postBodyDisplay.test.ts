@@ -14,6 +14,18 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("splits attribute-bearing visual list breaks into semantic segments", () => {
+    expect(
+      splitPostBody(
+        '<p>1. Background<br style="line-height: 1.5;" />1) Existing unit<br />wrapped continuation<br />2) New unit</p>',
+      ),
+    ).toEqual([
+      { kind: "text", text: "1. Background" },
+      { kind: "text", text: "1) Existing unit wrapped continuation" },
+      { kind: "text", text: "2) New unit" },
+    ]);
+  });
+
   it("evaluates nbsp indentation levels from the document's observed unit", () => {
     expect(
       splitPostBody("<p>&nbsp;&nbsp;Level one</p><p>&nbsp;&nbsp;&nbsp;&nbsp;Level two</p><p>Root</p>"),

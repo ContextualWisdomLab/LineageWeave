@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from lineageweave.five_w1h import assemble_five_w1h_slots, slots_payload
 
 
@@ -13,13 +11,16 @@ def test_five_w1h_keeps_persisted_evidence_and_leaves_unsupported_slots_empty() 
             }
         ],
         key_events=["검사 일정 확정"],
-        created_at=datetime(2026, 8, 19, 9, 30, tzinfo=timezone.utc),
         counterparties=["Northwind Labs"],
     )
 
     assert [item["text"] for item in slots["who"]] == ["Ada West"]
     assert [item["text"] for item in slots["what"]] == ["검사 일정 확정"]
-    assert slots["when"][0]["text"].startswith("2026-08-19T09:30:00")
+    # "when" has no persisted evidence of the narrated event's own time --
+    # source_post.created_at is the record's filing time, a different
+    # PROV-O category (prov:generatedAtTime), and must not be shown here
+    # as if it answered "when did this happen" (see five_w1h.py).
+    assert slots["when"] == []
     assert {item["text"] for item in slots["where"]} == {"Demo Corp", "Northwind Labs"}
     assert slots["why"] == []
     assert slots["how"] == []
@@ -29,7 +30,6 @@ def test_five_w1h_uses_visible_lineage_title_only_as_what_fallback() -> None:
     slots = assemble_five_w1h_slots(
         roles=[],
         key_events=[],
-        created_at=None,
         lineage_node_labels=["검사 후속 조치"],
     )
 

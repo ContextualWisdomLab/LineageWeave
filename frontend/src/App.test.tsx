@@ -1679,7 +1679,7 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByText("Evidence provenance"));
     expect(screen.getByText(/Ontology class:/)).toBeInTheDocument();
     expect(screen.getByText(/Extraction source: Semantic extraction/)).toBeInTheDocument();
-    expect(screen.getByText(/Evidence provenance: Stored semantic evidence/)).toBeInTheDocument();
+    expect(screen.getByText(/Evidence field: Stored semantic evidence/)).toBeInTheDocument();
     expect(screen.queryByText("contextual_orchestrator_semantic")).not.toBeInTheDocument();
     expect(screen.queryByText("https://contextualwisdomlab.github.io/lineageweave/ontology#Project")).not.toBeInTheDocument();
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();

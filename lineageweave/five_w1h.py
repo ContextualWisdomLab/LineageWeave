@@ -6,7 +6,6 @@ slots are intentional: an absent claim must not become an LLM guess.
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any
 
 from .ontology import ontology_annotations
@@ -51,11 +50,22 @@ def assemble_five_w1h_slots(
     *,
     roles: list[dict[str, Any]],
     key_events: list[str],
-    created_at: datetime | str | None,
     counterparties: list[str] | None = None,
     lineage_node_labels: list[str] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
-    """Assemble only persisted, authorized evidence into six slots."""
+    """Assemble only persisted, authorized evidence into six slots.
+
+    There is no ``created_at`` parameter on purpose: the source post's
+    creation timestamp is ``prov:generatedAtTime`` for the *record*
+    (when the source system filed this post), not evidence of when the
+    event the post narrates took place -- a live real post proved these
+    can disagree by days (a trip report filed two days after the trip it
+    describes). Treating the record's filing time as the event's time is
+    the same kind of unearned claim this module already forbids for an
+    LLM guess, just from a timestamp instead of a model. Until a real
+    stated-date extraction is persisted somewhere, "when" stays empty
+    rather than showing a plausible-looking wrong answer.
+    """
     slots: dict[str, list[dict[str, Any]]] = {slot: [] for slot in FIVE_W1H_SLOTS}
 
     for role in roles:
@@ -82,12 +92,6 @@ def assemble_five_w1h_slots(
             item = _value(title, "post_lineage_edge", _SLOT_LOOKUP_CODES["what"])
             if item:
                 slots["what"].append(item)
-
-    if created_at is not None:
-        timestamp = created_at.isoformat() if isinstance(created_at, datetime) else str(created_at)
-        item = _value(timestamp, "source_post.created_at")
-        if item:
-            slots["when"].append(item)
 
     for name in counterparties or []:
         item = _value(name, "post_counterparty_entity", ("prov_organization",))

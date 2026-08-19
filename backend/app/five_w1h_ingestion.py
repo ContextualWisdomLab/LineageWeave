@@ -17,7 +17,6 @@ from .post_summary_ingestion import fetch_persisted_summary
 async def load_five_w1h_slots(
     conn: asyncpg.Connection,
     post_id: str,
-    created_at: Any,
     can_see_post: Callable[[asyncpg.Record], bool],
 ) -> dict[str, Any]:
     """Build 5W1H from stored projections and visible lineage only."""
@@ -37,7 +36,6 @@ async def load_five_w1h_slots(
     slots = assemble_five_w1h_slots(
         roles=summary.get("roles_and_responsibilities", []),
         key_events=summary.get("key_events", []),
-        created_at=created_at,
         counterparties=[row["counterparty_entity_name"] for row in counterparties],
         lineage_node_labels=linked_titles,
     )

@@ -2103,12 +2103,11 @@ async def read_post_five_w1h(
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
     """Return an evidence-only 5W1H projection for an authorized post."""
-    post = await _load_visible_post(post_id, account, pool)
+    await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
         return await load_five_w1h_slots(
             conn,
             post_id,
-            post["created_at"],
             lambda row: _can_see_post(account, row),
         )
 

@@ -15,10 +15,11 @@ const DATA_URI_IMG =
   /<img\b[^>]*\bsrc\s*=\s*["']data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)["'][^>]*>/gi;
 
 const HTML_TAG = /<\/?[a-zA-Z][^>]*>/g;
-const BREAK_TAG = /<br\s*\/?\s*>/gi;
+const BREAK_TAG = /<br\b[^>]*>/gi;
 const BLOCK_TAG =
   /<\/?(?:article|blockquote|div|h[1-6]|li|ol|p|section|table|tbody|td|tfoot|th|thead|tr|ul|w:p|w:tbl|w:tr|w:tc)\b[^>]*>/gi;
 const WORD_INDENT_TAG = /<w:ind\b[^>]*\/?\s*>/gi;
+const LIST_ITEM_START = /^\s*(?:[-*•·]\s+|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)/;
 const INDENT_MARKER = "\u0001lw-indent:";
 const INDENT_MARKER_END = "\u0002";
 const INDENT_MARKER_PATTERN = /lw-indent:(\d+)/g;
@@ -108,6 +109,27 @@ function stripHtmlTags(text: string): string {
     .replace(/^\n+|\n+$/g, "");
 }
 
+function splitSemanticParagraphs(text: string): string[] {
+  const paragraphs: string[] = [];
+  let lines: string[] = [];
+  const flush = () => {
+    const paragraph = lines.join(" ").trimEnd();
+    if (paragraph.trim()) paragraphs.push(paragraph);
+    lines = [];
+  };
+
+  for (const line of text.split("\n")) {
+    if (!line.trim()) {
+      flush();
+      continue;
+    }
+    if (lines.length > 0 && LIST_ITEM_START.test(line)) flush();
+    lines.push(lines.length === 0 ? line.replace(/[ \t]+$/g, "") : line.trim());
+  }
+  flush();
+  return paragraphs;
+}
+
 function indentationWidth(line: string): number {
   let width = 0;
   for (const character of line) {
@@ -170,7 +192,7 @@ function isDecodableBase64(raw: string): boolean {
 
 function pushText(segments: PostBodySegment[], raw: string, indentUnit: number): void {
   const text = stripHtmlTags(raw);
-  for (const paragraph of text.split(/\n{2,}/)) {
+  for (const paragraph of splitSemanticParagraphs(text)) {
     const indentLevel = indentationLevel(paragraph, indentUnit);
     const normalized = stripIndentMarkers(paragraph)
       .replace(/^[ \t]+/, "")

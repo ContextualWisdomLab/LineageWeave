@@ -1998,7 +1998,7 @@ function PostDetailPopup({
                           {t("Extraction source")}: {projectExtractionLabel(project.extraction_method)}
                         </span>
                         <span className="post-badge">
-                          {t("Evidence provenance")}: {projectProvenanceLabel(project.provenance)}
+                          {t("Evidence field")}: {projectProvenanceLabel(project.provenance)}
                         </span>
                       </details>
                     </li>

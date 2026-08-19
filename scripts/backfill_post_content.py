@@ -75,6 +75,7 @@ async def backfill_post_content(target_dsn: str, raw_post_ids: list[str]) -> dic
 
         result = {
             "requested_posts": len(post_ids),
+            "processed_posts": 0,
             "described_posts": 0,
             "described_images": 0,
             "described_regions": 0,
@@ -85,24 +86,26 @@ async def backfill_post_content(target_dsn: str, raw_post_ids: list[str]) -> dic
             with use_llm_metadata(build_post_llm_metadata(str(row["post_id"]), row)):
                 normalized = normalize_post_body(row["post_body"], vision_client=vision_client)
                 described_images = sum(item.status_code == "described" for item in normalized.image_results)
-                if described_images == 0:
-                    result["skipped_posts"] += 1
-                    continue
-                await persist_post_content(
-                    conn,
-                    str(row["post_id"]),
-                    row["post_body"],
-                    vision_client=vision_client,
-                    embedding_client=embedding_client,
-                    embedding_model_code=embedding_model or None,
-                    normalized_result=normalized,
-                )
+            if described_images == 0 and not normalized.text.strip():
+                result["skipped_posts"] += 1
+                continue
+            await persist_post_content(
+                conn,
+                str(row["post_id"]),
+                row["post_body"],
+                vision_client=vision_client,
+                embedding_client=embedding_client,
+                embedding_model_code=embedding_model or None,
+                normalized_result=normalized,
+            )
+            result["processed_posts"] += 1
+            if described_images:
                 result["described_posts"] += 1
-                result["described_images"] += described_images
-                result["described_regions"] += sum(
-                    len(item.regions) for item in normalized.image_results if item.status_code == "described"
-                )
-                result["embedding_rows"] += await conn.fetchval(
+            result["described_images"] += described_images
+            result["described_regions"] += sum(
+                len(item.regions) for item in normalized.image_results if item.status_code == "described"
+            )
+            result["embedding_rows"] += await conn.fetchval(
                     """
                     select count(*)
                       from post_content_embedding embedding
