@@ -38,7 +38,7 @@ backend = [
   "pyjwt[crypto]>=2.8.0",
   # Current stable MCP Python SDK. Exact pin because MCP transport/auth APIs
   # are part of the externally consumed Codex contract, not an incidental
-  # implementation detail.
+  # implementation detail. The branch-local lock refresh verifies this pin.
   "mcp==2.0.0",
   # Speaks RESP; works against Valkey (a Redis-protocol-compatible fork)
   # as well as real Redis. Used for the post-activity event stream.
