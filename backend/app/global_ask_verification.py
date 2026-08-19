@@ -1,17 +1,18 @@
 """External corroboration for Global Ask claims without weakening source authority.
 
 The primary Global Ask answer remains grounded only in authorized LineageWeave
-posts.  This module runs a separate verification lane: retrieve bounded public
-web evidence through the configured self-hosted Searxng instance, then ask the
-same contextual-orchestrator to classify the already-produced answer as
-supported, refuted, or not sufficiently evidenced by those retrieved passages.
-External evidence never becomes a LineageWeave post and never satisfies product
-RBAC/ABAC on behalf of an internal source.
+posts. This module is an explicit open-world verification lane: when the caller
+opts in, it sends the caller's question (never the private internal answer body)
+to the configured self-hosted Searxng instance, then asks contextual-orchestrator
+to classify the already-produced answer against only the retrieved public-web
+evidence. External evidence never becomes a LineageWeave post or RBAC/ABAC
+authority.
 """
 
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from typing import Protocol
 from urllib.parse import quote, urlparse
@@ -23,11 +24,13 @@ MAX_EXTERNAL_SNIPPET_CHARS = 2_000
 MAX_EXTERNAL_QUERY_CHARS = 1_500
 DEFAULT_VERIFICATION_TIMEOUT_SECONDS = 120.0
 
+STATUS_NOT_REQUESTED = "not_requested"
 STATUS_SUPPORTED = "supported"
 STATUS_REFUTED = "refuted"
 STATUS_INSUFFICIENT = "insufficient_evidence"
 STATUS_UNAVAILABLE = "unavailable"
 _ALLOWED_STATUSES = frozenset({STATUS_SUPPORTED, STATUS_REFUTED, STATUS_INSUFFICIENT})
+_JSON_FENCE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL | re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -64,7 +67,7 @@ class NullGlobalAskExternalVerifier:
     available = False
 
     def verify(self, question: str, answer_text: str) -> ExternalVerificationResult:
-        """Return an unavailable result without fabricating evidence."""
+        """Return unavailable without fabricating evidence."""
         return ExternalVerificationResult(status_code=STATUS_UNAVAILABLE)
 
 
@@ -72,16 +75,16 @@ def _safe_external_url(raw_url: object) -> str | None:
     """Accept only ordinary HTTP(S) evidence URLs with a network host."""
     if not isinstance(raw_url, str):
         return None
-    parsed = urlparse(raw_url.strip())
+    candidate = raw_url.strip()
+    parsed = urlparse(candidate)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         return None
-    return raw_url.strip()
+    return candidate
 
 
-def _bounded_search_query(question: str, answer_text: str) -> str:
-    """Build one deterministic bounded query from the question and answer."""
-    joined = " ".join(f"{question} {answer_text}".split())
-    return joined[:MAX_EXTERNAL_QUERY_CHARS]
+def _bounded_search_query(question: str) -> str:
+    """Build a deterministic bounded public-search query from caller text only."""
+    return " ".join(question.split())[:MAX_EXTERNAL_QUERY_CHARS]
 
 
 def _parse_search_results(payload: object) -> list[ExternalEvidence]:
@@ -112,6 +115,19 @@ def _parse_search_results(payload: object) -> list[ExternalEvidence]:
         if len(evidence) == MAX_EXTERNAL_RESULTS:
             break
     return evidence
+
+
+def _parse_judgment(content: object) -> dict[str, object] | None:
+    """Parse strict JSON, tolerating only an optional outer Markdown JSON fence."""
+    if not isinstance(content, str):
+        return None
+    match = _JSON_FENCE.search(content)
+    candidate = match.group(1) if match else content
+    try:
+        parsed = json.loads(candidate.strip())
+    except json.JSONDecodeError:
+        return None
+    return parsed if isinstance(parsed, dict) else None
 
 
 _VERIFICATION_PROMPT = """\
@@ -166,7 +182,7 @@ class SearxngOrchestratorGlobalAskVerifier:
 
     def verify(self, question: str, answer_text: str) -> ExternalVerificationResult:
         """Return supported/refuted/insufficient from bounded external evidence."""
-        query = _bounded_search_query(question, answer_text)
+        query = _bounded_search_query(question)
         if not query:
             return ExternalVerificationResult(status_code=STATUS_INSUFFICIENT)
         try:
@@ -199,11 +215,10 @@ class SearxngOrchestratorGlobalAskVerifier:
                 headers={"authorization": f"Bearer {self._orchestrator_api_key}"},
                 timeout=self._verification_timeout,
             )
-            content = body["choices"][0]["message"]["content"]
-            parsed = json.loads(content.strip())
-        except (HttpClientError, KeyError, OSError, TypeError, ValueError, json.JSONDecodeError):
+            parsed = _parse_judgment(body["choices"][0]["message"]["content"])
+        except (HttpClientError, KeyError, OSError, TypeError, ValueError):
             return ExternalVerificationResult(status_code=STATUS_UNAVAILABLE)
-        if not isinstance(parsed, dict) or parsed.get("status_code") not in _ALLOWED_STATUSES:
+        if parsed is None or parsed.get("status_code") not in _ALLOWED_STATUSES:
             return ExternalVerificationResult(status_code=STATUS_UNAVAILABLE)
         raw_numbers = parsed.get("cited_evidence_numbers")
         numbers = raw_numbers if isinstance(raw_numbers, list) else []
@@ -218,7 +233,7 @@ class SearxngOrchestratorGlobalAskVerifier:
         if not isinstance(rationale, str) or not rationale.strip():
             rationale = None
         return ExternalVerificationResult(
-            status_code=parsed["status_code"],
+            status_code=str(parsed["status_code"]),
             evidence_urls=cited_urls,
             rationale=rationale.strip()[:2_000] if rationale else None,
         )
