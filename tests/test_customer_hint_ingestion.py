@@ -94,6 +94,12 @@ def test_corroborated_resolution_creates_and_links_a_new_entity(monkeypatch) -> 
     insert_calls = [call for call in conn.executed if "insert into corporate_entity" in call[0]]
     assert len(insert_calls) == 1
     assert insert_calls[0][1] == ("HINT-0019999999", "Northridge Grid")
+    # Live-shaped bug: re-resolving the same hint_code is not guaranteed to
+    # get byte-identical LLM phrasing back, so the create path must key off
+    # corporate_entity_code (deterministic from hint_code), not rely on the
+    # name-based lookup alone -- otherwise a second resolve with slightly
+    # different wording collides on the unique code and raises uncaught.
+    assert "on conflict (corporate_entity_code)" in insert_calls[0][0]
 
 
 def test_corroborated_resolution_reuses_an_existing_entity_by_name(monkeypatch) -> None:

@@ -91,9 +91,19 @@ async def resolve_customer_hint(
     if existing is not None:
         entity_id = existing["corporate_entity_id"]
     else:
+        # ON CONFLICT, not a plain INSERT: re-resolving the same hint_code
+        # is not guaranteed to get byte-identical LLM phrasing back, so the
+        # name-based lookup above can miss an entity this same hint already
+        # created -- corporate_entity_code (deterministic from hint_code)
+        # is the stable identity key a retry must key off instead.
         created = await conn.fetchrow(
-            "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
-            "values ($1, $2, 'company') returning corporate_entity_id",
+            """
+            insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code)
+            values ($1, $2, 'company')
+            on conflict (corporate_entity_code)
+            do update set entity_name = excluded.entity_name
+            returning corporate_entity_id
+            """,
             f"HINT-{hint_code}",
             entity_name,
         )
