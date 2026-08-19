@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.0] - 2026-08-19
+
+### Added
+
+- Opening a linked Event Lineage DAG node from a GNB-focused popup now
+  keeps Event Lineage focused and names Keyman and evaluation as the next
+  read. A home-list DAG walk does not add that focus or copy. No TEPP
+  theta is invented. No cited post, customer, week, or cutoff body is
+  invented (ADR 0075 / ADR 0074 / ADR 0016).
+
 ## [2.16.0] - 2026-08-19
 
 ### Added

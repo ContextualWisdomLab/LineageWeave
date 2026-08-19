@@ -66,7 +66,9 @@ Buyer Board **Weekly VOC** is an ISO-8601 week list filter (ADR 0070).
 Opening that filtered post focuses Event Lineage (ADR 0071). Opening a
 Calendar commitment uses the same focus path (ADR 0072). Opening a Customer
 master related post uses the same focus path (ADR 0073). Opening an Ask
-Agent cited post uses the same focus path (ADR 0074). Do not invent a
+Agent cited post uses the same focus path (ADR 0074). A linked Event
+Lineage node opened from that focused popup keeps the originating flags
+(ADR 0075). Do not invent a
 week, a theta, a cutoff body, a CalDAV event, a customer, or a cited post.
 
 

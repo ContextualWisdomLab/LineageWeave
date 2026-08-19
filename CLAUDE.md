@@ -100,6 +100,12 @@ a cited post: Event Lineage takes focus and names Keyman and evaluation
 next (ADR 0074). A home-list open does not. Do not invent a theta or a
 cited post.
 
+## Event Lineage DAG walk (v2.17.0)
+
+From a GNB-focused popup, open a linked Event Lineage node: Event Lineage
+stays focused and names the new post as current (ADR 0075). A home-list
+DAG walk does not. Do not invent a theta.
+
 
 
 
