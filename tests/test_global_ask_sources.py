@@ -139,3 +139,124 @@ def test_global_sources_carry_source_and_semantic_evidence() -> None:
         "source project code=PROJECT-HINT" in fact for fact in sources[0].evidence_facts
     )
     assert sources[0].evidence_facts[-1].startswith("project: semantic project")
+
+
+def test_global_sources_keep_hyphenated_source_codes_atomic() -> None:
+    """Live bug (2026-08-19): a hyphenated ERP-style job code such as
+    ``P41-4182-202405-0015`` used to be shredded into generic numeric
+    fragments (``P41``, ``4182``, ``202405``, ``0015``) by the search-term
+    tokenizer, so unrelated posts sharing only a short fragment (e.g. a
+    ``202405``-dated post from a different project) outranked or crowded
+    out the actual code match. The tokenizer must keep a hyphen-joined
+    code as one atomic search term.
+    """
+    calls: list[tuple[str, tuple[object, ...]]] = []
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            calls.append((query, args))
+            return []
+
+    asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda row: True,
+            question="P41-4182-202405-0015",
+            limit=4,
+        )
+    )
+
+    candidate_terms = [args[0] for query, args in calls if "matched_in" in query]
+    assert candidate_terms == ["p41-4182-202405-0015"]
+
+
+def test_global_sources_expand_top_match_through_event_lineage() -> None:
+    """Global Ask must speak to a connected timeline, not an isolated
+    snapshot -- expand the single top-ranked keyword match through its
+    direct `post_lineage_edge` neighbors (`lineageweave.reconstruct`'s
+    output), mirroring the post-scoped chat flow's `find_linked_post_ids`.
+    """
+    matched_row = {
+        "post_id": "event-2",
+        "post_title": "Northridge Grid capacity review",
+        "post_body": "capacity review body",
+        "visibility_code": "public",
+        "corporate_entity_id": None,
+        "matched_in": "title",
+    }
+    lineage_row = {
+        "post_id": "event-1",
+        "post_title": "Northridge Grid kickoff",
+        "post_body": "kickoff body",
+        "visibility_code": "public",
+        "corporate_entity_id": None,
+    }
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            if "matched_in" in query:
+                return [matched_row]
+            if "post_lineage_edge" in query:
+                return [{"other_id": "event-1"}]
+            if "array_position($2::uuid[], post_id)" in query:
+                return [matched_row, lineage_row]
+            return []
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda row: True,
+            question="Northridge Grid capacity",
+            limit=4,
+        )
+    )
+
+    assert [source.post_id for source in sources] == ["event-2", "event-1"]
+    assert sources[0].evidence_facts == ()
+    assert any(
+        "Event Lineage: reconstructed timeline neighbor of post_id=event-2" in fact
+        for fact in sources[1].evidence_facts
+    )
+
+
+def test_global_sources_do_not_leak_lineage_anchor_id_when_anchor_is_invisible() -> None:
+    """If ABAC hides the top match itself, an expanded neighbor must not
+    cite that hidden post's id as its lineage anchor.
+    """
+    matched_row = {
+        "post_id": "hidden-anchor",
+        "post_title": "Private kickoff",
+        "post_body": "private body",
+        "visibility_code": "private",
+        "corporate_entity_id": "corp-other",
+        "matched_in": "title",
+    }
+    lineage_row = {
+        "post_id": "visible-neighbor",
+        "post_title": "Public follow-up",
+        "post_body": "public body",
+        "visibility_code": "public",
+        "corporate_entity_id": None,
+    }
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            if "matched_in" in query:
+                return [matched_row]
+            if "post_lineage_edge" in query:
+                return [{"other_id": "visible-neighbor"}]
+            if "array_position($2::uuid[], post_id)" in query:
+                return [matched_row, lineage_row]
+            return []
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda row: row["visibility_code"] == "public",
+            question="kickoff",
+            limit=4,
+        )
+    )
+
+    assert [source.post_id for source in sources] == ["visible-neighbor"]
+    assert sources[0].evidence_facts == ()
