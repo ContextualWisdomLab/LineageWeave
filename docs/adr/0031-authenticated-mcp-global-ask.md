@@ -21,6 +21,11 @@ The current contextual-orchestrator HTTP contract accepts `auto`, `route`, and
 supported verified multi-step workflow and fails closed when its model-based
 verification dependency is unavailable.
 
+Some buyer questions concern Knowledge Graph, ontology, or semantic claims that
+benefit from independent public corroboration. That lane must be explicit and
+must not turn public snippets into internal authority or silently export a
+private answer as a search query.
+
 ## Decision
 
 1. Run MCP as a dedicated ASGI process using MCP Python SDK 2.0.0 and
@@ -32,23 +37,35 @@ verification dependency is unavailable.
 3. Resolve the JWT subject through the existing `user_account`, role,
    permission, and affiliation tables. Never authorize from `corp_code` or
    `pu_code` token claims.
-4. Expose one bounded, structured, read-only, idempotent, closed-world tool:
-   `global_ask`.
-5. Search only caller-visible posts, refuse an unrelated fallback when a
-   concrete search term has no match, then expand the chosen anchor through
-   the existing Event-Lineage/Knowledge-Graph source gatherer with ABAC
-   re-checking.
+4. Expose one bounded, structured, read-only and idempotent tool:
+   `global_ask(question, verify_external=false)`.
+5. Keep the default invocation closed-world. Search only caller-visible posts,
+   refuse an unrelated fallback when a concrete search term has no match, then
+   expand the chosen anchor through the existing Event-Lineage/Knowledge-Graph
+   source gatherer with ABAC re-checking.
 6. Limit retrieval terms, candidate rows, source count, and source-body bytes
    before invoking contextual-orchestrator.
 7. Use contextual-orchestrator `mode="conduct"`, high reasoning effort, and a
    finite 300-second downstream timeout. Never call a direct provider or the
    rejected legacy `verify` mode.
-8. Return source and citation identities. Drop citations outside the authorized
-   source bundle and reject an answer when no authorized citation remains. Do
-   not persist a Global Ask exchange as a side effect.
-9. Keep the bearer token inside the resource server. Downstream services use
-   their own credentials.
-10. Enable Host and Origin validation for DNS-rebinding protection.
+8. Return internal source and citation identities. Drop citations outside the
+   authorized source bundle and reject an answer when no authorized citation
+   remains. Do not persist a Global Ask exchange as a side effect.
+9. Permit open-web corroboration only when the caller explicitly sends
+   `verify_external=true`. Search using a bounded form of the caller's question,
+   never the private internal answer body.
+10. Treat the question, answer, public titles, URLs, and snippets as one
+    explicitly untrusted JSON document for the external judge. Restrict returned
+    evidence to bounded public HTTP(S) URLs without credentials or local/private
+    literal addresses.
+11. Keep external status, rationale, and cited URLs separate from internal
+    source authority. `supported` or `refuted` requires at least one valid cited
+    external URL; otherwise return `insufficient_evidence`.
+12. Advertise `open_world_hint=true` because the tool has an explicit optional
+    external lane even though the default remains closed-world.
+13. Keep the bearer token inside the resource server. Downstream services use
+    their own credentials.
+14. Enable Host and Origin validation for DNS-rebinding protection.
 
 ## Consequences
 
@@ -59,8 +76,11 @@ verification dependency is unavailable.
 - Answers remain inferred, evidence-grounded results; they do not become
   authoritative audit events or lineage facts.
 - A configured contextual-orchestrator with a working conduct verification
-  runtime remains required for a live answer. The server fails closed rather
-  than substituting a local model, direct provider, or canned prose.
+  runtime remains required for a live internal answer. The server fails closed
+  rather than substituting a local model, direct provider, or canned prose.
+- Public corroboration is available without becoming an authorization or truth
+  source. Callers retain the decision to cross the search boundary for each
+  invocation.
 - Deployments must configure an audience for the exact public MCP resource URL.
 - Codex deployments should set a tool timeout slightly above 300 seconds so the
   server returns the bounded downstream failure instead of a client timeout.
@@ -77,3 +97,7 @@ verification dependency is unavailable.
 - **Legacy `mode="verify"`:** rejected by the current orchestrator HTTP API.
 - **Direct provider fallback:** bypasses contextual-orchestrator governance,
   verification, model discovery, and service credentials.
+- **Automatic web verification:** leaks caller questions without explicit task
+  consent and misrepresents a normally closed-world evidence tool.
+- **Search the internal answer text:** can disclose private evidence-derived
+  content to the public-search boundary and invites prompt/search injection.

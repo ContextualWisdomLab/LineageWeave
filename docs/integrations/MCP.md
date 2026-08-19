@@ -9,8 +9,15 @@ client.
 
 ## Tool contract
 
-`global_ask(question)` is read-only, idempotent, and closed-world with respect to
-LineageWeave state. It returns:
+`global_ask(question, verify_external=false)` is read-only and idempotent with
+respect to LineageWeave state. The default call is closed-world: it uses only
+caller-authorized LineageWeave evidence. Because a caller can explicitly opt
+into public-web corroboration, the MCP tool truthfully advertises
+`open_world_hint=true`.
+
+The response separates two evidence planes.
+
+### Internal LineageWeave answer
 
 - `answer_text`
 - the selected `anchor_post_id`
@@ -18,15 +25,39 @@ LineageWeave state. It returns:
 - `cited_post_ids` and `cited_posts`
 
 The tool never promotes an inferred answer to an authoritative fact. Citation
-IDs not present in the authorized source bundle are discarded; if no authorized
-citation remains, the call fails instead of returning unsupported prose. No
-Global Ask row is written merely because an MCP client asked a question.
+IDs not present in the authorized internal source bundle are discarded; if no
+authorized citation remains, the call fails instead of returning unsupported
+prose. No Global Ask row is written merely because an MCP client asked a
+question.
 
 The reason-and-cite call uses contextual-orchestrator's supported
 `mode="conduct"` contract with high reasoning effort. It does not use the
 rejected legacy `verify` mode and never falls back to a direct model provider.
 The downstream call is bounded to 300 seconds so verified orchestration is not
 prematurely cut off while remaining finite.
+
+### Explicit external corroboration
+
+When and only when the caller sends `verify_external=true`, the tool sends a
+bounded form of the caller's question to the configured self-hosted Searxng
+search lane. It never uses the private internal answer body as a search query.
+Retrieved public results are bounded, deduplicated, restricted to public
+HTTP(S) URLs without credentials, and passed with the internal answer to
+contextual-orchestrator as one explicitly untrusted JSON document.
+
+The output fields are separate from LineageWeave authority:
+
+- `external_verification_status`: `supported`, `refuted`,
+  `insufficient_evidence`, `unavailable`, or `not_requested`
+- `external_evidence_urls`
+- `external_verification_rationale`
+
+`not_requested`, `unavailable`, and `insufficient_evidence` are unresolved
+states, not support. `supported` or `refuted` requires at least one valid cited
+external URL; otherwise the status is downgraded to `insufficient_evidence`.
+External evidence does not become a `source_post`, does not satisfy RBAC or
+ABAC, and cannot upgrade an inference into an authoritative audit or lineage
+fact.
 
 ## Authentication and authorization
 
@@ -39,11 +70,12 @@ The MCP endpoint is an OAuth protected resource:
 4. optional `MCP_REQUIRED_SCOPES` are enforced by the MCP SDK;
 5. the token `sub` must resolve to a provisioned `user_account`;
 6. the account must have `post_read`;
-7. every candidate and every lineage-expanded source is checked against the
-   existing public-or-affiliated ABAC rule.
+7. every candidate and every lineage-expanded internal source is checked
+   against the existing public-or-affiliated ABAC rule.
 
-The inbound bearer token is never forwarded to contextual-orchestrator or any
-other downstream service. Provider credentials remain service credentials.
+The inbound bearer token is never forwarded to contextual-orchestrator,
+Searxng, or any other downstream service. Provider credentials remain service
+credentials.
 
 ### Required deployment settings
 
@@ -64,6 +96,17 @@ DNS-rebinding protection is enabled. Do not disable it to make a deployment
 work; add only the real public hostname and, for browser MCP clients, exact
 allowed origins.
 
+External verification additionally requires all three service settings:
+
+```text
+SEARXNG_BASE_URL=https://search.internal.example
+ORCHESTRATOR_BASE_URL=https://orchestrator.internal.example
+ORCHESTRATOR_API_KEY=<service credential>
+```
+
+An absent channel returns `unavailable` after explicit opt-in; it never
+silently substitutes a third-party search API or direct model provider.
+
 ## Codex configuration
 
 The guaranteed integration path uses a pre-issued short-lived bearer token in
@@ -79,11 +122,11 @@ default_tools_approval_mode = "writes"
 tool_timeout_sec = 330
 ```
 
-`global_ask` is annotated read-only, idempotent, and closed-world. Codex's
-`writes` approval mode therefore continues to prompt for non-read-only tools
-without misclassifying this evidence query as a write. The Codex timeout is set
-slightly above LineageWeave's 300-second downstream bound so the server, not the
-client, returns the actionable failure.
+The Codex timeout is set slightly above LineageWeave's 300-second primary-answer
+bound so the server, not the client, returns the actionable failure. A normal
+call omits `verify_external` or sets it to `false`. A caller should set it to
+`true` only after determining that transmitting the question to the configured
+public-search lane is permitted for that task.
 
 Interactive `codex mcp login lineageweave` can be enabled after Keyverse or
 Keycloak has a Codex OAuth client-registration policy compatible with the MCP
@@ -109,14 +152,18 @@ not accept the REST frontend audience as a substitute.
 - no bearer or invalid bearer: HTTP `401`
 - valid bearer without a required OAuth scope: HTTP `403`
 - unprovisioned subject or missing `post_read`: tool error, no evidence returned
-- no matching authorized evidence: tool error, no unrelated recent post fallback
+- no matching authorized evidence: tool error, no unrelated recent-post fallback
 - contextual-orchestrator unavailable, malformed, or uncited: tool error, no invented answer
-- unknown citation ID: omitted; all-unknown citations fail the call
+- unknown internal citation ID: omitted; all-unknown citations fail the call
+- external verification not requested: `not_requested`, no search call
+- external search/judge unavailable: primary answer remains, external status `unavailable`
+- externally supported/refuted without a valid cited public URL: `insufficient_evidence`
 
 ## Operational checks
 
 A release must exercise the MCP SDK client against the in-process server, assert
 tool annotations and structured output, verify Host and unauthenticated HTTP
-rejection, and run the same auth, ABAC, source-boundary, citation, and
-contextual-orchestrator mode regressions in the normal test suite. `uv.lock`
-remains authoritative for the MCP SDK version.
+rejection, and run the same auth, ABAC, source-boundary, citation,
+contextual-orchestrator mode, explicit-consent, untrusted-input, URL-safety, and
+external-evidence regressions in the normal test suite. `uv.lock` remains
+authoritative for the MCP SDK version.

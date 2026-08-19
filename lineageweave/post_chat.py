@@ -149,9 +149,9 @@ def parse_chat_response(content: str, sources: list[ChatSourceDocument]) -> Chat
     if not isinstance(cited_numbers_raw, list):
         cited_numbers_raw = []
     cited_post_ids = tuple(
-        sources[n - 1].post_id
-        for n in cited_numbers_raw
-        if isinstance(n, int) and 1 <= n <= len(sources)
+        sources[number - 1].post_id
+        for number in cited_numbers_raw
+        if type(number) is int and 1 <= number <= len(sources)
     )
     return ChatAnswer(answer_text=answer_text.strip(), cited_post_ids=cited_post_ids)
 
