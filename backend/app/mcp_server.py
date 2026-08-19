@@ -1,13 +1,9 @@
 """Authenticated Model Context Protocol endpoint for LineageWeave Global Ask.
 
-This module is deliberately separate from the browser-facing FastAPI app.
-It exposes one read-only MCP tool, ``global_ask``, over Streamable HTTP and
-reuses LineageWeave's persisted authorization and evidence contracts instead
-of forwarding the caller's bearer token to another service.
-
-The HTTP authorization boundary follows MCP protocol revision 2025-06-18:
-resource metadata advertises the authorization server, access tokens must be
-bound to this MCP resource, and browser ``Origin`` values are allow-listed.
+The server implements the stateless MCP protocol revision 2026-07-28 over
+Streamable HTTP. It exposes one read-only ``global_ask`` tool and reuses
+LineageWeave's persisted authorization and evidence contracts instead of
+forwarding the caller's bearer token to another service.
 """
 
 from __future__ import annotations
@@ -17,17 +13,19 @@ import json
 import logging
 import os
 import time
-from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlsplit
 
 import asyncpg
 import jwt
+import redis.asyncio as redis
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from jwt.algorithms import RSAAlgorithm
 
+from backend.app.activity_stream import create_valkey_client
 from backend.app.auth import CurrentAccount
 from backend.app.config import Settings, load_settings
 from backend.app.db import create_pool
@@ -39,14 +37,22 @@ from lineageweave.post_chat import (
     cited_post_summaries,
 )
 
-_PROTOCOL_VERSION = "2025-06-18"
+_PROTOCOL_VERSION = "2026-07-28"
 _SERVER_NAME = "lineageweave"
 _SERVER_VERSION = "2.18.0"
 _TOOL_NAME = "global_ask"
 _LOG = logging.getLogger("lineageweave.mcp")
 _JWKS_CACHE: dict[str, dict[str, Any]] = {}
-_RATE_WINDOWS: dict[str, deque[float]] = defaultdict(deque)
-_RATE_LOCK = asyncio.Lock()
+
+_META_PROTOCOL_VERSION = "io.modelcontextprotocol/protocolVersion"
+_META_CLIENT_INFO = "io.modelcontextprotocol/clientInfo"
+_META_CLIENT_CAPABILITIES = "io.modelcontextprotocol/clientCapabilities"
+_META_SERVER_INFO = "io.modelcontextprotocol/serverInfo"
+
+_HEADER_MISMATCH = -32020
+_UNSUPPORTED_PROTOCOL_VERSION = -32022
+
+_SERVER_INFO = {"name": _SERVER_NAME, "version": _SERVER_VERSION}
 
 _GLOBAL_ASK_OUTPUT_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -102,7 +108,7 @@ _GLOBAL_ASK_TOOL: dict[str, Any] = {
 
 @dataclass(frozen=True)
 class McpRuntimeSettings:
-    """MCP-specific settings layered on the shared LineageWeave settings."""
+    """MCP-specific settings layered on shared LineageWeave settings."""
 
     resource_uri: str
     allowed_origins: frozenset[str]
@@ -114,8 +120,14 @@ def load_mcp_settings() -> McpRuntimeSettings:
     resource_uri = os.environ.get(
         "LINEAGEWEAVE_MCP_RESOURCE_URI", "http://localhost:18421/mcp"
     ).strip()
-    if not resource_uri.startswith(("http://", "https://")) or "#" in resource_uri:
-        raise ValueError("LINEAGEWEAVE_MCP_RESOURCE_URI must be an absolute http(s) URI without a fragment")
+    parsed = urlsplit(resource_uri)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc or parsed.fragment or parsed.query:
+        raise ValueError(
+            "LINEAGEWEAVE_MCP_RESOURCE_URI must be an absolute http(s) URI without query or fragment"
+        )
+    loopback = parsed.hostname in {"localhost", "127.0.0.1", "::1"}
+    if parsed.scheme != "https" and not loopback:
+        raise ValueError("LINEAGEWEAVE_MCP_RESOURCE_URI must use HTTPS outside loopback development")
     allowed_origins = frozenset(
         origin.strip()
         for origin in os.environ.get("LINEAGEWEAVE_MCP_ALLOWED_ORIGINS", "").split(",")
@@ -270,17 +282,18 @@ async def _authenticate(request: Request, pool: asyncpg.Pool) -> CurrentAccount:
     return await _resolve_account(pool, str(claims["sub"]))
 
 
-async def _check_rate_limit(account_id: str, limit: int) -> None:
-    """Bound MCP tool execution per process without storing question text."""
-    now = time.monotonic()
-    cutoff = now - 60.0
-    async with _RATE_LOCK:
-        window = _RATE_WINDOWS[account_id]
-        while window and window[0] <= cutoff:
-            window.popleft()
-        if len(window) >= limit:
-            raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "MCP tool rate limit exceeded")
-        window.append(now)
+async def _check_rate_limit(client: redis.Redis, account_id: str, limit: int) -> None:
+    """Apply a distributed fixed-window MCP rate limit using existing Valkey."""
+    bucket = int(time.time() // 60)
+    key = f"mcp:rate:{account_id}:{bucket}"
+    script = """
+    local count = redis.call('INCR', KEYS[1])
+    if count == 1 then redis.call('EXPIRE', KEYS[1], 120) end
+    return count
+    """
+    count = int(await client.eval(script, 1, key))
+    if count > limit:
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "MCP tool rate limit exceeded")
 
 
 def _can_see_post(account: CurrentAccount, post: Any) -> bool:
@@ -351,90 +364,224 @@ async def _global_ask(
     return result
 
 
-def _jsonrpc_result(request_id: Any, result: dict[str, Any]) -> dict[str, Any]:
-    return {"jsonrpc": "2.0", "id": request_id, "result": result}
+def _jsonrpc_result(request_id: Any, payload: dict[str, Any]) -> dict[str, Any]:
+    """Build a complete 2026-era result with server identity metadata."""
+    return {
+        "jsonrpc": "2.0",
+        "id": request_id,
+        "result": {
+            **payload,
+            "resultType": "complete",
+            "_meta": {_META_SERVER_INFO: _SERVER_INFO},
+        },
+    }
 
 
-def _jsonrpc_error(request_id: Any, code: int, message: str) -> dict[str, Any]:
-    return {"jsonrpc": "2.0", "id": request_id, "error": {"code": code, "message": message}}
+def _jsonrpc_error(
+    request_id: Any,
+    code: int,
+    message: str,
+    *,
+    data: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build a JSON-RPC error response."""
+    error: dict[str, Any] = {"code": code, "message": message}
+    if data is not None:
+        error["data"] = data
+    return {"jsonrpc": "2.0", "id": request_id, "error": error}
+
+
+def _request_envelope(message: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Validate the stateless per-request MCP metadata envelope."""
+    params = message.get("params")
+    if params is None:
+        params = {}
+    if not isinstance(params, dict):
+        raise ValueError("params must be an object")
+    meta = params.get("_meta")
+    if not isinstance(meta, dict):
+        raise ValueError("params._meta is required")
+    protocol_version = meta.get(_META_PROTOCOL_VERSION)
+    if protocol_version != _PROTOCOL_VERSION:
+        raise RuntimeError(str(protocol_version))
+    client_capabilities = meta.get(_META_CLIENT_CAPABILITIES)
+    if not isinstance(client_capabilities, dict):
+        raise ValueError("clientCapabilities must be an object")
+    client_info = meta.get(_META_CLIENT_INFO)
+    if client_info is not None:
+        if not isinstance(client_info, dict):
+            raise ValueError("clientInfo must be an object when present")
+        if not isinstance(client_info.get("name"), str) or not isinstance(client_info.get("version"), str):
+            raise ValueError("clientInfo name and version must be strings")
+    return params, meta
+
+
+def _expected_mcp_name(method: Any, params: dict[str, Any]) -> str | None:
+    """Return the standardized Mcp-Name source for name-bearing methods."""
+    if method == "tools/call":
+        name = params.get("name")
+        return name if isinstance(name, str) else None
+    if method in {"resources/read", "prompts/get"}:
+        uri_or_name = params.get("uri") if method == "resources/read" else params.get("name")
+        return uri_or_name if isinstance(uri_or_name, str) else None
+    return None
+
+
+def _validate_transport_headers(request: Request, message: dict[str, Any]) -> JSONResponse | None:
+    """Validate 2026 protocol/version/method/name headers against the body."""
+    request_id = message.get("id")
+    params = message.get("params") if isinstance(message.get("params"), dict) else {}
+    meta = params.get("_meta") if isinstance(params, dict) else None
+    body_version = meta.get(_META_PROTOCOL_VERSION) if isinstance(meta, dict) else None
+    header_version = request.headers.get("mcp-protocol-version")
+    if header_version != _PROTOCOL_VERSION or body_version != _PROTOCOL_VERSION:
+        return JSONResponse(
+            _jsonrpc_error(
+                request_id,
+                _UNSUPPORTED_PROTOCOL_VERSION,
+                "Unsupported protocol version",
+                data={"supportedVersions": [_PROTOCOL_VERSION]},
+            ),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    if header_version != body_version:
+        return JSONResponse(
+            _jsonrpc_error(request_id, _HEADER_MISMATCH, "MCP-Protocol-Version header mismatch"),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    method = message.get("method")
+    method_header = request.headers.get("mcp-method")
+    if not isinstance(method, str) or method_header != method:
+        return JSONResponse(
+            _jsonrpc_error(request_id, _HEADER_MISMATCH, "Mcp-Method header mismatch"),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    expected_name = _expected_mcp_name(method, params)
+    name_header = request.headers.get("mcp-name")
+    if expected_name is None:
+        if name_header is not None:
+            return JSONResponse(
+                _jsonrpc_error(request_id, _HEADER_MISMATCH, "unexpected Mcp-Name header"),
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+    elif name_header != expected_name:
+        return JSONResponse(
+            _jsonrpc_error(request_id, _HEADER_MISMATCH, "Mcp-Name header mismatch"),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    return None
 
 
 async def _dispatch_message(
     message: Any,
     pool: asyncpg.Pool,
+    valkey: redis.Redis,
     account: CurrentAccount,
     mcp_settings: McpRuntimeSettings,
-) -> dict[str, Any] | None:
-    """Dispatch one non-batched JSON-RPC 2.0 MCP message."""
+) -> tuple[dict[str, Any] | None, int]:
+    """Dispatch one stateless, non-batched JSON-RPC 2.0 MCP message."""
     if not isinstance(message, dict) or message.get("jsonrpc") != "2.0":
-        return _jsonrpc_error(message.get("id") if isinstance(message, dict) else None, -32600, "Invalid Request")
-    if isinstance(message, list):
-        return _jsonrpc_error(None, -32600, "JSON-RPC batching is not supported")
+        request_id = message.get("id") if isinstance(message, dict) else None
+        return _jsonrpc_error(request_id, -32600, "Invalid Request"), status.HTTP_200_OK
     method = message.get("method")
     request_id = message.get("id")
     if request_id is None:
-        if method == "notifications/initialized":
-            return None
-        return None
-    if method == "initialize":
-        params = message.get("params") or {}
-        requested_version = params.get("protocolVersion") if isinstance(params, dict) else None
-        if requested_version != _PROTOCOL_VERSION:
-            return _jsonrpc_error(request_id, -32602, f"Unsupported protocolVersion: {requested_version!r}")
-        return _jsonrpc_result(
-            request_id,
-            {
-                "protocolVersion": _PROTOCOL_VERSION,
-                "capabilities": {"tools": {"listChanged": False}},
-                "serverInfo": {"name": _SERVER_NAME, "version": _SERVER_VERSION},
-                "instructions": "Use global_ask only for source-grounded LineageWeave questions.",
-            },
+        return None, status.HTTP_202_ACCEPTED
+    try:
+        params, _meta = _request_envelope(message)
+    except RuntimeError:
+        return (
+            _jsonrpc_error(
+                request_id,
+                _UNSUPPORTED_PROTOCOL_VERSION,
+                "Unsupported protocol version",
+                data={"supportedVersions": [_PROTOCOL_VERSION]},
+            ),
+            status.HTTP_400_BAD_REQUEST,
+        )
+    except ValueError as exc:
+        return _jsonrpc_error(request_id, -32602, str(exc)), status.HTTP_200_OK
+
+    if method == "server/discover":
+        return (
+            _jsonrpc_result(
+                request_id,
+                {
+                    "supportedVersions": [_PROTOCOL_VERSION],
+                    "capabilities": {"tools": {"listChanged": False}},
+                    "instructions": "Use global_ask only for source-grounded LineageWeave questions.",
+                    "ttlMs": 0,
+                    "cacheScope": "private",
+                },
+            ),
+            status.HTTP_200_OK,
         )
     if method == "ping":
-        return _jsonrpc_result(request_id, {})
+        return _jsonrpc_result(request_id, {}), status.HTTP_200_OK
     if method == "tools/list":
-        return _jsonrpc_result(request_id, {"tools": [_GLOBAL_ASK_TOOL]})
+        return (
+            _jsonrpc_result(
+                request_id,
+                {"tools": [_GLOBAL_ASK_TOOL], "ttlMs": 0, "cacheScope": "private"},
+            ),
+            status.HTTP_200_OK,
+        )
     if method == "tools/call":
-        params = message.get("params")
-        if not isinstance(params, dict) or params.get("name") != _TOOL_NAME:
-            return _jsonrpc_error(request_id, -32602, "Unknown tool")
+        if params.get("name") != _TOOL_NAME:
+            return _jsonrpc_error(request_id, -32602, "Unknown tool"), status.HTTP_200_OK
         arguments = params.get("arguments")
         if not isinstance(arguments, dict) or set(arguments) != {"question"}:
-            return _jsonrpc_error(request_id, -32602, "global_ask requires only the question argument")
+            return (
+                _jsonrpc_error(request_id, -32602, "global_ask requires only the question argument"),
+                status.HTTP_200_OK,
+            )
         question = arguments.get("question")
         if not isinstance(question, str) or not question.strip() or len(question.strip()) > 4000:
-            return _jsonrpc_error(request_id, -32602, "question must contain between 1 and 4000 characters")
-        await _check_rate_limit(account.user_account_id, mcp_settings.requests_per_minute)
+            return (
+                _jsonrpc_error(
+                    request_id,
+                    -32602,
+                    "question must contain between 1 and 4000 characters",
+                ),
+                status.HTTP_200_OK,
+            )
+        await _check_rate_limit(valkey, account.user_account_id, mcp_settings.requests_per_minute)
         try:
             structured = await _global_ask(pool, account, question)
         except RuntimeError as exc:
-            return _jsonrpc_result(
-                request_id,
-                {
-                    "content": [{"type": "text", "text": str(exc)}],
-                    "isError": True,
-                },
+            return (
+                _jsonrpc_result(
+                    request_id,
+                    {"content": [{"type": "text", "text": str(exc)}], "isError": True},
+                ),
+                status.HTTP_200_OK,
             )
         text = json.dumps(structured, ensure_ascii=False, separators=(",", ":"))
-        return _jsonrpc_result(
-            request_id,
-            {
-                "content": [{"type": "text", "text": text}],
-                "structuredContent": structured,
-                "isError": False,
-            },
+        return (
+            _jsonrpc_result(
+                request_id,
+                {
+                    "content": [{"type": "text", "text": text}],
+                    "structuredContent": structured,
+                    "isError": False,
+                },
+            ),
+            status.HTTP_200_OK,
         )
-    return _jsonrpc_error(request_id, -32601, f"Method not found: {method}")
+    return _jsonrpc_error(request_id, -32601, f"Method not found: {method}"), status.HTTP_404_NOT_FOUND
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Create only the database pool needed by the MCP resource server."""
-    app.state.pool = await create_pool(load_settings().database_url)
+    """Create shared DB and Valkey clients; MCP protocol state stays per request."""
+    shared = load_settings()
+    app.state.pool = await create_pool(shared.database_url)
+    app.state.valkey = create_valkey_client(shared.valkey_url)
     try:
         yield
     finally:
         await app.state.pool.close()
+        await app.state.valkey.aclose()
 
 
 mcp_app = FastAPI(title="LineageWeave MCP", lifespan=lifespan)
@@ -461,15 +608,29 @@ async def protected_resource_metadata() -> dict[str, Any]:
 
 @mcp_app.get("/mcp")
 async def mcp_get() -> Response:
-    """This first slice is non-streaming; GET explicitly declines SSE."""
+    """No subscription stream is exposed in this read-only first slice."""
     return Response(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, headers={"Allow": "POST"})
 
 
 @mcp_app.post("/mcp")
 async def mcp_post(request: Request) -> Response:
-    """Handle one authenticated Streamable-HTTP MCP JSON-RPC message."""
+    """Handle one authenticated MCP 2026-07-28 Streamable HTTP request."""
     mcp_settings = load_mcp_settings()
     _validate_origin(request, mcp_settings)
+    try:
+        message = await request.json()
+    except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
+        return JSONResponse(_jsonrpc_error(None, -32700, "Parse error"), status_code=200)
+    if isinstance(message, list):
+        return JSONResponse(
+            _jsonrpc_error(None, -32600, "JSON-RPC batching is not supported"),
+            status_code=200,
+        )
+    if not isinstance(message, dict):
+        return JSONResponse(_jsonrpc_error(None, -32600, "Invalid Request"), status_code=200)
+    header_error = _validate_transport_headers(request, message)
+    if header_error is not None:
+        return header_error
     try:
         account = await _authenticate(request, request.app.state.pool)
     except HTTPException as exc:
@@ -484,27 +645,16 @@ async def mcp_post(request: Request) -> Response:
                 },
             )
         raise
-    protocol_header = request.headers.get("mcp-protocol-version")
-    if protocol_header is not None and protocol_header != _PROTOCOL_VERSION:
-        return JSONResponse(
-            {"detail": "Unsupported MCP-Protocol-Version"},
-            status_code=status.HTTP_400_BAD_REQUEST,
-        )
-    try:
-        message = await request.json()
-    except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
-        return JSONResponse(_jsonrpc_error(None, -32700, "Parse error"), status_code=200)
-    if isinstance(message, list):
-        return JSONResponse(_jsonrpc_error(None, -32600, "JSON-RPC batching is not supported"), status_code=200)
-    response_message = await _dispatch_message(
+    response_message, http_status = await _dispatch_message(
         message,
         request.app.state.pool,
+        request.app.state.valkey,
         account,
         mcp_settings,
     )
     if response_message is None:
-        return Response(status_code=status.HTTP_202_ACCEPTED)
-    return JSONResponse(response_message)
+        return Response(status_code=http_status)
+    return JSONResponse(response_message, status_code=http_status)
 
 
 app = mcp_app
