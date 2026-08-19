@@ -380,6 +380,12 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
     }
 
 
+_SOURCE_POST_ELIGIBILITY_SQL = (
+    "nullif(btrim({alias}.source_draft_code), '') is null "
+    "and nullif(btrim({alias}.source_deleted_flag), '') is null"
+)
+
+
 def _publication_state_code(post: asyncpg.Record) -> str:
     """Expose raw lifecycle evidence without guessing its source semantics."""
     if str(post.get("source_deleted_flag") or "").strip():
@@ -911,19 +917,20 @@ async def list_posts(
         body_search_ids: list[str] = []
         if search_term:
             body_rows = await conn.fetch(
-                """
+                f"""
                 select post_id
                   from source_post
-                where lower(left(source_post_search_text(post_body), 16384))
+                where {_SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
+                  and (lower(left(source_post_search_text(post_body), 16384))
                            like '%' || lower($1) || '%'
                     or to_tsvector('simple', source_post_search_text(post_body))
-                           @@ plainto_tsquery('simple', $1)
+                           @@ plainto_tsquery('simple', $1))
                 """,
                 search_term,
             )
             body_search_ids = [str(row["post_id"]) for row in body_rows]
         rows = await conn.fetch(
-            """
+            f"""
             with page as (
                 select post.post_id, post.post_title, post.voc_type_code, post.visibility_code,
                        post.source_stage_code, post.source_detail_state_code,
@@ -941,6 +948,7 @@ async def list_posts(
                   from source_post post
              where (post.visibility_code = 'public'
                 or post.corporate_entity_id::text = any($2::text[]))
+               and {_SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
                and (
                     $1::text is null
                     or post.post_title ilike '%' || $1 || '%'
@@ -1166,7 +1174,7 @@ async def read_post(
                 "source_customer_code, source_customer_name, source_project_code, source_project_name, "
                 "source_system_code, source_record_key, "
             "corporate_entity_id, created_at "
-            "from source_post where post_id = $1",
+            f"from source_post where post_id = $1 and {_SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
             post_id,
         )
         if row is None:
@@ -1200,7 +1208,7 @@ async def _load_visible_post(
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "select post_id, post_title, voc_type_code, visibility_code, corporate_entity_id, created_at "
-            "from source_post where post_id = $1",
+            f"from source_post where post_id = $1 and {_SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
             post_id,
         )
     if row is None:
