@@ -56,6 +56,7 @@ def test_global_sources_prioritize_question_terms_and_bound_long_bodies() -> Non
             "post_body": "ordinary body",
             "visibility_code": "public",
             "corporate_entity_id": None,
+            "matched_in": "body",
         },
         {
             "post_id": "uam-post",
@@ -63,6 +64,7 @@ def test_global_sources_prioritize_question_terms_and_bound_long_bodies() -> Non
             "post_body": "x" * 7000,
             "visibility_code": "public",
             "corporate_entity_id": None,
+            "matched_in": "title",
         },
     ]
     calls: list[tuple[str, tuple[object, ...]]] = []
@@ -83,12 +85,18 @@ def test_global_sources_prioritize_question_terms_and_bound_long_bodies() -> Non
 
     candidate_query, candidate_args = calls[0]
     source_query, source_args = next(
-        (query, args) for query, args in calls if "post_id = any($2::uuid[])" in query
+        (query, args) for query, args in calls if "array_position($2::uuid[], post_id)" in query
     )
     assert "to_tsvector('simple'" in candidate_query
     assert candidate_args[0] == "mention"
-    assert "post_id = any($2::uuid[])" in source_query
+    assert "array_position($2::uuid[], post_id)" in source_query
     assert source_args[2] == 8
+    # Live bug (2026-08-19): a title match must outrank a body/source-field
+    # match regardless of discovery order -- "uam-post" matched in the
+    # title (higher weight) but was appended to candidate_rows after
+    # "newest-post" (a body match); the final candidate_ids array passed
+    # as $2 must still rank uam-post first.
+    assert list(source_args[1]) == ["uam-post", "newest-post"]
     assert sources[1].post_body.startswith("x" * 4000)
     assert "Source body truncated for Global Ask" in sources[1].post_body
 
@@ -103,6 +111,7 @@ def test_global_sources_carry_source_and_semantic_evidence() -> None:
             "corporate_entity_id": None,
             "source_project_code": "PROJECT-HINT",
             "source_record_key": "SYNTHETIC-KEY-001",
+            "matched_in": "source_field",
         }
     ]
 
