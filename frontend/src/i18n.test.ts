@@ -35,6 +35,9 @@ describe("i18n", () => {
     "Page",
     "Answer",
     "Showing the first {shown} of {total} posts known at this cutoff.",
+    "Weekly VOC",
+    "Filter by ISO week",
+    "All weeks",
   ] as const;
 
   it("supports the five product locales", () => {
@@ -72,6 +75,20 @@ describe("i18n", () => {
   ] as const)("formats dynamic buyer guidance in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", { post: "DEMO" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "2026-W01 Voice of Customer 글이 현재 표시되어 있습니다. 이벤트 계보를 읽으려면 글을 여세요."],
+    ["zh", "2026-W01 的 Voice of Customer 文章为当前内容。打开一篇文章阅读事件谱系。"],
+    ["ja", "2026-W01のVoice of Customer投稿が現在表示されています。イベント系譜を読むには投稿を開いてください。"],
+    ["vi", "Các bài Voice of Customer của 2026-W01 đang hiện tại. Hãy mở một bài để đọc Dòng sự kiện."],
+  ] as const)("formats weekly VOC next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf("Voice of Customer posts for {week} are current. Open a post to read Event Lineage.", {
+        week: "2026-W01",
+      }),
+    ).toBe(expected);
   });
 });
 
