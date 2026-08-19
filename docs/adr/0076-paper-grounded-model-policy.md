@@ -43,6 +43,11 @@ provider's model names as universally better.
    guessed selection.
 6. Any change to this policy requires an ADR update before implementation and
    focused tests plus runtime evidence at the orchestrator boundary.
+7. The gateway endpoint is opaque and OpenAI-compatible at this boundary.
+   LineageWeave MUST NOT encode an MLX/local-server URL scheme, port list,
+   default endpoint, chat-template field, or vendor-specific bootstrap
+   exception. Provider-specific protocol and capability translation belongs
+   to contextual-orchestrator.
 
 ## Consequences
 

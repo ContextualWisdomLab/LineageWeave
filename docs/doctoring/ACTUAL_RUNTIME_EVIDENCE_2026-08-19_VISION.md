@@ -1,4 +1,4 @@
-# Actual runtime evidence: Vision capability boundary (2026-08-19)
+# Historical runtime evidence: Vision capability boundary (2026-08-19)
 
 This note records aggregate local Compose observations only. It contains no
 access token, API key, source title, organization name, post id, or image body.
@@ -14,9 +14,10 @@ access token, API key, source title, organization name, post id, or image body.
 | Vision model bootstrap | Vision requests omit a model; contextual-orchestrator selects the registered vision-capable agent. |
 | local VLM executable | `mlx-vlm 0.6.15` served `gemma-4-e4b-it-4bit` on `http://host.docker.internal:18082/v1`. |
 
-The successful check used a shell override for the VLM gateway. Persistent
-configuration must set `LLM_GATEWAY_API_URL` to that multimodal endpoint and
-provide `LLM_GATEWAY_API_KEY`; `LLM_GATEWAY_URL` remains a compatibility
-fallback. Vision is considered available only after a real multimodal request
-succeeds through `contextual-orchestrator`. The text-only gateway failure is
-not converted into OCR, a caption, or a placeholder success.
+These observations are historical and do not define the current provider
+contract. Current configuration must provide the generic
+`LLM_GATEWAY_API_URL` and `LLM_GATEWAY_API_KEY`; no MLX-specific endpoint,
+scheme, port, or chat-template field is required or injected. Vision is
+considered available only after a real multimodal request succeeds through
+`contextual-orchestrator`. A text-only gateway failure is not converted into
+OCR, a caption, or a placeholder success.

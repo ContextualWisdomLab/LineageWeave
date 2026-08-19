@@ -91,6 +91,10 @@ contextual-orchestrator owns model discovery and selection.
   instruction roles at the orchestrator boundary. The orchestrator owns the
   translation and provider capability handling; do not fork prompts per
   transport in this repository.
+- Treat `LLM_GATEWAY_API_URL` as an opaque OpenAI-compatible gateway endpoint.
+  Do not add MLX/local-server URL schemes, port lists, local defaults,
+  chat-template injection, or vendor-specific bootstrap exceptions in
+  LineageWeave. Provider-specific capability translation belongs upstream.
 - `response_format`, `tools`, Responses API requests, `json_object`, and
   `json_schema` must remain multi-agent workflows. A structured response or a
   repair attempt must not silently fall back to a single-agent passthrough.

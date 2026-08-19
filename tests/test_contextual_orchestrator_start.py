@@ -5,14 +5,10 @@ from __future__ import annotations
 import importlib.util
 import sys
 from pathlib import Path
-from types import ModuleType
 
 
 def _load_start_module():
-    stubs = {
-        "provider_policy": ModuleType("provider_policy"),
-    }
-    stubs["provider_policy"].is_local_mlx_provider = lambda value: False
+    stubs = {}
     previous = {name: sys.modules.get(name) for name in stubs}
     sys.modules.update(stubs)
     try:
