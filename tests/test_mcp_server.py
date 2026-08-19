@@ -118,7 +118,10 @@ async def test_global_ask_tool_is_read_only_structured_and_closes_lifespan() -> 
         assert tool.annotations.idempotent_hint is True
         assert tool.annotations.open_world_hint is True
         assert tool.output_schema is not None
-        result = await client.call_tool("global_ask", {"question": "What happened?"})
+        result = await client.call_tool(
+            "global_ask",
+            {"question": "What happened?", "verify_external": True},
+        )
         assert not result.is_error
         assert result.structured_content == {
             "answer_text": "Grounded",
