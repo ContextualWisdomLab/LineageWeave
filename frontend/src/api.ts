@@ -467,7 +467,7 @@ export function fetchPosts(
   limit?: number,
   offset?: number,
   search?: string,
-  vocType?: string,
+  vocTypes?: string[],
   visibility?: string,
   sort?: PostSortOrder,
 ): Promise<PostPage> {
@@ -479,8 +479,8 @@ export function fetchPosts(
   if (search?.trim()) {
     params.set("search", search.trim());
   }
-  if (vocType) {
-    params.set("voc_type", vocType);
+  for (const vocType of vocTypes ?? []) {
+    params.append("voc_type", vocType);
   }
   if (visibility) {
     params.set("visibility", visibility);
@@ -504,6 +504,26 @@ export function fetchPost(
 ): Promise<PostDetail> {
   const query = asOf ? `?as_of=${encodeURIComponent(asOf)}` : "";
   return backendFetch<PostDetail>(`/api/posts/${postId}${query}`, accessToken);
+}
+
+export interface PostBookmark {
+  post_id: string;
+  bookmarked: boolean;
+}
+
+export function fetchPostBookmark(accessToken: string, postId: string): Promise<PostBookmark> {
+  return backendFetch(`/api/posts/${postId}/bookmark`, accessToken);
+}
+
+export function setPostBookmark(
+  accessToken: string,
+  postId: string,
+  bookmarked: boolean,
+): Promise<PostBookmark> {
+  return backendFetch(`/api/posts/${postId}/bookmark`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({ bookmarked }),
+  });
 }
 
 export function fetchPostKeymen(

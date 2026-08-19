@@ -18,6 +18,7 @@ import {
   fetchMe,
   fetchPost,
   fetchPostActivity,
+  fetchPostBookmark,
   fetchPostChat,
   fetchPostAffiliateTree,
   fetchPostCounterparties,
@@ -38,6 +39,7 @@ import {
   fetchRelatedTeam,
   rebuildLineage,
   rebuildPeriodReports,
+  setPostBookmark,
   updateTicketStatus,
   verifyPostRelations,
   type ActivityEvent,
@@ -1602,6 +1604,9 @@ function PostDetailPopup({
   onSearch?: (query: string) => void;
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
+  const [bookmarked, setBookmarked] = useState<boolean | null>(null);
+  const [bookmarkSaving, setBookmarkSaving] = useState(false);
+  const [postActionStatus, setPostActionStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<PostAiSummary | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
@@ -1642,6 +1647,9 @@ function PostDetailPopup({
 
   useEffect(() => {
     setPost(null);
+    setBookmarked(null);
+    setBookmarkSaving(false);
+    setPostActionStatus(null);
     setError(null);
     setSummary(null);
     setSummaryError(null);
@@ -1658,6 +1666,11 @@ function PostDetailPopup({
     setFocusTeam(null);
     const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
     fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
+    fetchPostBookmark(accessToken, postId)
+      .then((r) => setBookmarked(r.bookmarked))
+      .catch(() => {
+        setBookmarked(null);
+      });
     fetchPostEvaluation(accessToken, postId)
       .then((r) => setEvaluation(r.responses))
       .catch(() => setEvaluation([]));
@@ -1689,6 +1702,44 @@ function PostDetailPopup({
     fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
   }, [postId, accessToken, liveBodyWarning, knowledgeCutoff]);
 
+  const permanentLink = (() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("post", postId);
+    url.hash = "";
+    return url.toString();
+  })();
+
+  async function sharePost() {
+    try {
+      if (typeof navigator.share === "function") {
+        await navigator.share({ title: post?.post_title, url: permanentLink });
+        return;
+      }
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(permanentLink);
+        setPostActionStatus(t("Permanent link copied."));
+        return;
+      }
+      setPostActionStatus(t("Share unavailable."));
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setPostActionStatus(t("Share unavailable."));
+    }
+  }
+
+  async function toggleBookmark() {
+    if (bookmarked === null || bookmarkSaving) return;
+    setBookmarkSaving(true);
+    try {
+      const next = await setPostBookmark(accessToken, postId, !bookmarked);
+      setBookmarked(next.bookmarked);
+    } catch {
+      setPostActionStatus(t("Bookmark unavailable."));
+    } finally {
+      setBookmarkSaving(false);
+    }
+  }
+
   useEffect(() => {
     if (!focusEventLineage || !post) {
       return;
@@ -1712,6 +1763,28 @@ function PostDetailPopup({
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
+            <nav className="post-actions" aria-label={t("Post actions")}>
+              <a href={permanentLink}>{t("Permanent link")}</a>
+              <button type="button" onClick={() => void sharePost()}>
+                {t("Share")}
+              </button>
+              <button type="button" onClick={() => window.print()}>
+                {t("Print")}
+              </button>
+              <button
+                type="button"
+                aria-pressed={bookmarked === true}
+                disabled={bookmarked === null || bookmarkSaving}
+                onClick={() => void toggleBookmark()}
+              >
+                {bookmarked ? t("Bookmarked") : t("Bookmark")}
+              </button>
+            </nav>
+            {postActionStatus && (
+              <p className="post-action-status" role="status">
+                {postActionStatus}
+              </p>
+            )}
             {post.known_at ? (
               <CutoffKnownBody
                 title={post.known_at.post_title}
@@ -3322,6 +3395,17 @@ function ReportsPanel({
 const POST_PAGE_SIZE = 50;
 type BoardSortOrder = PostSortOrder;
 
+// The five source VOC type codes (ADR 0060) -- declared directly rather
+// than derived from the board's authorized-values response, since the
+// checkbox filter is a fixed, known vocabulary.
+const VOC_TYPE_CHECKBOXES = [
+  { code: "voc", label: "VOC" },
+  { code: "vocc", label: "VOCC" },
+  { code: "voco", label: "VOCO" },
+  { code: "vop", label: "VOP" },
+  { code: "vom", label: "VOM" },
+];
+
 function PostList({
   accessToken,
   showLabPanels = false,
@@ -3355,9 +3439,8 @@ function PostList({
   const [loadingPage, setLoadingPage] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [visibilityFilter, setVisibilityFilter] = useState("all");
-  const [typeFilterOptions, setTypeFilterOptions] = useState<PostFilterOption[]>([]);
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
 
@@ -3411,6 +3494,11 @@ function PostList({
     setOpenedAfterCutoff(false);
     setOpenedCutoffIso(null);
     setOpenedFromReportMember(false);
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("post")) {
+      url.searchParams.delete("post");
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    }
   }
 
   function searchBoard(query: string) {
@@ -3431,13 +3519,12 @@ function PostList({
         POST_PAGE_SIZE,
         (page - 1) * POST_PAGE_SIZE,
         query,
-        typeFilter === "all" ? undefined : typeFilter,
+        typeFilter.length > 0 ? typeFilter : undefined,
         visibilityFilter === "all" ? undefined : visibilityFilter,
         sort,
       );
       setPosts(response.posts);
       setTotalPosts(response.total_count);
-      setTypeFilterOptions(response.voc_type_options ?? []);
       setVisibilityFilterOptions(response.visibility_options ?? []);
       setCurrentPage(page);
     } catch (err) {
@@ -3480,14 +3567,6 @@ function PostList({
   }
 
   const loadedPosts = posts ?? [];
-  const typeOptions = typeFilterOptions.length
-    ? typeFilterOptions
-    : Array.from(new Set(loadedPosts.map((post) => post.voc_type_code)))
-        .sort()
-        .map((code) => ({
-          code,
-          label: loadedPosts.find((post) => post.voc_type_code === code)?.voc_type_label ?? code,
-        }));
   const visibilityOptions = visibilityFilterOptions.length
     ? visibilityFilterOptions
     : Array.from(new Set(loadedPosts.map((post) => post.visibility_code)))
@@ -3498,7 +3577,7 @@ function PostList({
         }));
   const filteredPosts = loadedPosts
     .filter((post) => {
-      const matchesType = typeFilter === "all" || post.voc_type_code === typeFilter;
+      const matchesType = typeFilter.length === 0 || typeFilter.includes(post.voc_type_code);
       const matchesVisibility = visibilityFilter === "all" || post.visibility_code === visibilityFilter;
       return matchesType && matchesVisibility;
     })
@@ -3509,7 +3588,7 @@ function PostList({
       const direction = sortOrder === "newest" ? -1 : 1;
       return direction * left.created_at.localeCompare(right.created_at);
     });
-  const hasBoardFilters = Boolean(searchInput.trim()) || Boolean(searchQuery) || typeFilter !== "all" || visibilityFilter !== "all";
+  const hasBoardFilters = Boolean(searchInput.trim()) || Boolean(searchQuery) || typeFilter.length > 0 || visibilityFilter !== "all";
   const totalPages = Math.max(1, Math.ceil(totalPosts / POST_PAGE_SIZE));
   const pageItems: Array<number | "ellipsis"> =
     totalPages <= 7
@@ -3558,7 +3637,7 @@ function PostList({
             onReset={() => {
               setSearchInput("");
               setSearchQuery("");
-              setTypeFilter("all");
+              setTypeFilter([]);
               setVisibilityFilter("all");
               setSortOrder("newest");
             }}
@@ -3575,21 +3654,25 @@ function PostList({
             </label>
             <button type="submit">{t("Search")}</button>
             <p className="board-search-help post-meta">{t("Search includes post text and semantic evidence.")}</p>
-            <label>
-              {t("Filter by VOC type")}
-              <select
-                value={typeFilter}
-                onChange={(event) => setTypeFilter(event.target.value)}
-                aria-label={t("Filter by VOC type")}
-              >
-                <option value="all">{t("All VOC types")}</option>
-                {typeOptions.map((option) => (
-                  <option key={option.code} value={option.code}>
-                    {t(option.label)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <fieldset className="board-voc-type-filter">
+              <legend>{t("Filter by VOC type")}</legend>
+              {VOC_TYPE_CHECKBOXES.map((option) => (
+                <label key={option.code}>
+                  <input
+                    type="checkbox"
+                    checked={typeFilter.includes(option.code)}
+                    onChange={(event) =>
+                      setTypeFilter((current) =>
+                        event.target.checked
+                          ? [...current, option.code]
+                          : current.filter((code) => code !== option.code),
+                      )
+                    }
+                  />
+                  {t(option.label)}
+                </label>
+              ))}
+            </fieldset>
             <label>
               {t("Filter by visibility")}
               <select
@@ -4106,7 +4189,10 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   useLocale();
   const auth = useAuth();
   const [destination, setDestination] = useState<BuyerDestination>("board");
-  const [postToOpen, setPostToOpen] = useState<string | null>(null);
+  const [postToOpen, setPostToOpen] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("post");
+  });
   // Test-only compatibility for legacy analysis-panel coverage; this prop
   // never forces the panels open outside Vitest. In a real build the
   // advanced-review section (ADR 0037) is gated on PostList's own

@@ -219,7 +219,7 @@ class _BlockTextExtractor(HTMLParser):
             if decoded == text:
                 break
             text = decoded
-        text = text.strip()
+        text = text.replace("\xa0", " ").strip()
         if text and self._stack:
             self._stack[-1][1].append(text)
 

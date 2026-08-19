@@ -15,11 +15,15 @@ const DATA_URI_IMG =
   /<img\b[^>]*\bsrc\s*=\s*["']data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)["'][^>]*>/gi;
 
 const HTML_TAG = /<\/?[a-zA-Z][^>]*>/g;
+const BREAK_TAG = /<br\s*\/?\s*>/gi;
+const BLOCK_TAG =
+  /<\/?(?:article|blockquote|div|h[1-6]|li|ol|p|section|table|tbody|td|tfoot|th|thead|tr|ul)\b[^>]*>/gi;
 
 import { t } from "./i18n";
 
 function stripHtmlTags(text: string): string {
-  const withoutTags = text.replace(HTML_TAG, " ");
+  const withBoundaries = text.replace(BREAK_TAG, "\n").replace(BLOCK_TAG, "\n\n");
+  const withoutTags = withBoundaries.replace(HTML_TAG, " ");
   const decoder = document.createElement("textarea");
   let decoded = withoutTags;
   for (let pass = 0; pass < 3; pass += 1) {
@@ -30,7 +34,11 @@ function stripHtmlTags(text: string): string {
     }
     decoded = next;
   }
-  return decoded.replace(/\s+/g, " ").trim();
+  return decoded
+    .replace(/[^\S\n]+/g, " ")
+    .replace(/\n[ \t]*/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function isDecodableBase64(raw: string): boolean {
@@ -47,8 +55,11 @@ function isDecodableBase64(raw: string): boolean {
 
 function pushText(segments: PostBodySegment[], raw: string): void {
   const text = stripHtmlTags(raw);
-  if (text) {
-    segments.push({ kind: "text", text });
+  for (const paragraph of text.split(/\n{2,}/)) {
+    const normalized = paragraph.trim();
+    if (normalized) {
+      segments.push({ kind: "text", text: normalized });
+    }
   }
 }
 

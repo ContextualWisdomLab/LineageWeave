@@ -6,6 +6,14 @@ const TINY_PNG_B64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
 describe("splitPostBody", () => {
+  it("preserves source paragraph boundaries as separate text segments", () => {
+    expect(splitPostBody("<p>First</p><p>Second</p>\n\nThird")).toEqual([
+      { kind: "text", text: "First" },
+      { kind: "text", text: "Second" },
+      { kind: "text", text: "Third" },
+    ]);
+  });
+
   it("leaves a plain-text post unchanged so existing popups keep their wording", () => {
     expect(splitPostBody("The full body text.")).toEqual([
       { kind: "text", text: "The full body text." },

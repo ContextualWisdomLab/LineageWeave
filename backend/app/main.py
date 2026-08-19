@@ -905,7 +905,7 @@ async def list_posts(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     search: str | None = Query(None, max_length=200),
-    voc_type: str | None = Query(None, max_length=80),
+    voc_type: list[str] | None = Query(None, max_length=80),
     visibility: str | None = Query(None, max_length=80),
     sort: Literal["newest", "oldest", "title"] = Query("newest"),
     account: CurrentAccount = Depends(get_current_account),
@@ -1074,7 +1074,7 @@ async def list_posts(
                                 or affiliated.corporate_entity_code ilike '%' || $1 || '%')
                     )
                )
-               and ($3::text is null or post.voc_type_code = $3)
+               and ($3::text[] is null or post.voc_type_code = any($3::text[]))
                and ($4::text is null or post.visibility_code = $4)
                  order by
                     case when $8::text = 'title' then lower(coalesce(post.post_title, '')) end asc,
@@ -1122,7 +1122,7 @@ async def list_posts(
             """,
             search_term,
             list(account.corporate_entity_ids),
-            voc_type.strip() if voc_type and voc_type.strip() else None,
+            [code.strip() for code in voc_type if code.strip()] if voc_type else None,
             visibility.strip() if visibility and visibility.strip() else None,
             body_search_ids,
             offset,
@@ -2124,6 +2124,54 @@ async def ask_agent(
         "cited_post_evidence": cited_post_evidence(sources, cited_ids),
         "source_post_ids": [source.post_id for source in sources],
     }
+
+
+class PostBookmarkRequest(BaseModel):
+    bookmarked: bool
+
+
+@app.get("/api/posts/{post_id}/bookmark")
+async def read_post_bookmark(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "select 1 from bookmark where user_account_id = $1 and post_id = $2",
+            account.user_account_id,
+            post_id,
+        )
+    return {"post_id": post_id, "bookmarked": row is not None}
+
+
+@app.post("/api/posts/{post_id}/bookmark")
+async def write_post_bookmark(
+    post_id: str,
+    request: PostBookmarkRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        if request.bookmarked:
+            await conn.execute(
+                """
+                insert into bookmark (user_account_id, post_id)
+                values ($1, $2)
+                on conflict (user_account_id, post_id) do nothing
+                """,
+                account.user_account_id,
+                post_id,
+            )
+        else:
+            await conn.execute(
+                "delete from bookmark where user_account_id = $1 and post_id = $2",
+                account.user_account_id,
+                post_id,
+            )
+    return {"post_id": post_id, "bookmarked": request.bookmarked}
 
 
 @app.get("/api/posts/{post_id}/tickets")
