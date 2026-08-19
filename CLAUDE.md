@@ -92,3 +92,10 @@ Open Customer master. Authorized customer entities are current. Open a
 related post: Event Lineage takes focus and names Keyman and evaluation
 next (ADR 0095). A home-list open does not. Do not invent a theta or a
 customer.
+
+## Ask Agent open (v2.16.0)
+
+Open Ask Agent. After an authorized answer, cited posts are current. Open
+a cited post: Event Lineage takes focus and names Keyman and evaluation
+next (ADR 0096). A home-list open does not. Do not invent a theta or a
+cited post.
