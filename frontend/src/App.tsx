@@ -4266,13 +4266,15 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         <h1>LineageWeave</h1>
         <LanguageSwitcher />
           <button
-            onClick={() =>
-              void auth.signinRedirect({
-                state: {
-                  returnUrl: `${window.location.pathname}${window.location.search}${window.location.hash}`,
-                },
-              })
-            }
+            onClick={() => {
+              const returnUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+              try {
+                window.sessionStorage.setItem("lineageweave.oidc.returnUrl", returnUrl);
+              } catch {
+                // OIDC state remains the primary return-path transport.
+              }
+              void auth.signinRedirect({ state: { returnUrl } });
+            }}
           >
             {t("Log in")}
           </button>

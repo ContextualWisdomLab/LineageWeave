@@ -34,6 +34,11 @@ describe("App, unauthenticated", () => {
     const button = screen.getByRole("button", { name: /log in/i });
     await userEvent.click(button);
     expect(signinRedirect).toHaveBeenCalledTimes(1);
+    expect(signinRedirect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
+      }),
+    );
   });
 });
 

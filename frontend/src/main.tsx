@@ -21,9 +21,20 @@ const oidcConfig = {
       typeof state.returnUrl === "string"
         ? state.returnUrl
         : "";
+    let storedReturnUrl = "";
+    try {
+      storedReturnUrl = window.sessionStorage.getItem("lineageweave.oidc.returnUrl") ?? "";
+      window.sessionStorage.removeItem("lineageweave.oidc.returnUrl");
+    } catch {
+      // OIDC state remains sufficient when session storage is unavailable.
+    }
     const returnUrl =
-      requestedReturnUrl.startsWith("/") && !requestedReturnUrl.startsWith("//")
-        ? requestedReturnUrl
+      [requestedReturnUrl, storedReturnUrl].find(
+        (candidate) => candidate.startsWith("/") && !candidate.startsWith("//"),
+      )
+        ? [requestedReturnUrl, storedReturnUrl].find(
+            (candidate) => candidate.startsWith("/") && !candidate.startsWith("//"),
+          )!
         : window.location.pathname;
 
     // Strip OIDC response params while preserving the requested deep link.
