@@ -66,27 +66,31 @@ def load_settings() -> Settings:
     )
     keyverse_issuer = os.environ.get("KEYVERSE_ISSUER", "").strip()
     generic_oidc_issuer = os.environ.get("OIDC_ISSUER", "").strip()
+    external_oidc = bool(keyverse_issuer or generic_oidc_issuer)
     oidc_issuer = (keyverse_issuer or generic_oidc_issuer or keycloak_issuer).rstrip("/")
     oidc_client_id = (
         os.environ.get("KEYVERSE_CLIENT_ID", "").strip()
         or os.environ.get("OIDC_CLIENT_ID", "").strip()
         or keycloak_client_id
     )
-    oidc_audience = (
+    configured_audience = (
         os.environ.get("KEYVERSE_AUDIENCE", "").strip()
         or os.environ.get("OIDC_AUDIENCE", "").strip()
-        or (oidc_client_id if (keyverse_issuer or generic_oidc_issuer) else "lineageweave-api")
     )
-    if not oidc_audience:
-        raise ValueError("OIDC audience must not be empty")
+    if external_oidc and not configured_audience:
+        raise ValueError(
+            "external OIDC requires KEYVERSE_AUDIENCE or OIDC_AUDIENCE; "
+            "do not infer a resource-server audience from the browser client id"
+        )
+    oidc_audience = configured_audience or "lineageweave-api"
     oidc_discovery_uri = os.environ.get("KEYVERSE_DISCOVERY_URI", "").strip() or os.environ.get(
         "OIDC_DISCOVERY_URI", ""
     ).strip()
     if not oidc_discovery_uri:
-        discovery_base = oidc_issuer if (keyverse_issuer or generic_oidc_issuer) else keycloak_base_url
+        discovery_base = oidc_issuer if external_oidc else keycloak_base_url
         oidc_discovery_uri = (
             f"{discovery_base.rstrip('/')}/realms/{keycloak_realm}/.well-known/openid-configuration"
-            if not (keyverse_issuer or generic_oidc_issuer)
+            if not external_oidc
             else f"{discovery_base.rstrip('/')}/.well-known/openid-configuration"
         )
     try:
@@ -113,7 +117,7 @@ def load_settings() -> Settings:
             or os.environ.get("OIDC_JWKS_URI", "").strip()
             or (
                 f"{keycloak_base_url}/realms/{keycloak_realm}/protocol/openid-connect/certs"
-                if not (keyverse_issuer or generic_oidc_issuer)
+                if not external_oidc
                 else ""
             )
         ),
