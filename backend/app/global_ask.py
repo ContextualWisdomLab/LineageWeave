@@ -208,6 +208,10 @@ async def answer_global_question(
     source_ids = tuple(source.post_id for source in sources)
     allowed_ids = set(source_ids)
     cited_ids = tuple(dict.fromkeys(post_id for post_id in answer.cited_post_ids if post_id in allowed_ids))
+    if not cited_ids:
+        raise GlobalAskUnavailableError(
+            "contextual-orchestrator returned no citation from the authorized source bundle"
+        )
     cited_posts = tuple(cited_post_summaries(sources, cited_ids))
     return GlobalAskAnswer(
         answer_text=answer.answer_text,
