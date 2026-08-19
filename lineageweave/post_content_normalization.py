@@ -24,7 +24,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from .chunking import Chunk, chunk_by_dom
+from .chunking import Chunk, chunk_by_dom, normalize_semantic_text
 from .image_content import (
     ImageContentClient,
     ImageDescription,
@@ -147,7 +147,7 @@ def normalize_post_body(
         vision_client = NullImageContentClient()
 
     if not _looks_like_html(body):
-        return NormalizedPostContent(text=body)
+        return NormalizedPostContent(text=normalize_semantic_text(body))
 
     chunks: list[Chunk] = chunk_by_dom(body)
     text_parts: list[str] = []

@@ -115,9 +115,9 @@ services:
       # API_URL is canonical; URL and LLM_API_GATEWAY are compatibility aliases.
       LLM_GATEWAY_API_URL: ${LLM_GATEWAY_API_URL:-${LLM_GATEWAY_URL:-${LLM_API_GATEWAY:-http://host.docker.internal:8080/v1}}}
       LLM_GATEWAY_URL: ${LLM_GATEWAY_API_URL:-${LLM_GATEWAY_URL:-${LLM_API_GATEWAY:-http://host.docker.internal:8080/v1}}}
-      LLM_GATEWAY_MODEL: ${LLM_GATEWAY_MODEL:-mlx-community/gemma-4-e4b-it-4bit}
-      VISION_MODEL: ${VISION_MODEL:-${LLM_GATEWAY_MODEL:-mlx-community/gemma-4-e4b-it-4bit}}
-      LLM_GATEWAY_EMBEDDING_MODEL: ${LLM_GATEWAY_EMBEDDING_MODEL:-}
+      # Deliberately blank: contextual-orchestrator selects the agent model.
+      LLM_GATEWAY_MODEL: ""
+      VISION_MODEL: ""
       # Buyer summaries and Ask answers must finish their JSON contract; the
       # local-MLX bootstrap default of 256 tokens truncates evidence arrays.
       LLM_GATEWAY_MAX_OUTPUT_TOKENS: ${LLM_GATEWAY_MAX_OUTPUT_TOKENS:-4096}
@@ -139,6 +139,8 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    env_file:
+      - ${HOME}/.env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-lineageweave}:${POSTGRES_PASSWORD:-lineageweave_dev_only}@postgres:5432/${POSTGRES_DB:-lineageweave}
       # Internal DNS name for JWKS fetches (always reachable from inside the
@@ -163,8 +165,8 @@ services:
       # LLM_GATEWAY_API_KEY in the orchestrator's private env file.
       ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8000}
       ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
-      VISION_MODEL: ${VISION_MODEL:-${LLM_GATEWAY_MODEL:-mlx-community/gemma-4-e4b-it-4bit}}
-      LLM_GATEWAY_EMBEDDING_MODEL: ${LLM_GATEWAY_EMBEDDING_MODEL:-}
+      # Deliberately blank: contextual-orchestrator selects the Vision agent model.
+      VISION_MODEL: ""
       SEARXNG_BASE_URL: http://searxng:8080
       TEPP_TRANSPORT_URL: ${TEPP_TRANSPORT_URL:-}
       TEPP_API_KEY: ${TEPP_API_KEY:-}

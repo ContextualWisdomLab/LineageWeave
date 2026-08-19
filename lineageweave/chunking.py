@@ -79,6 +79,36 @@ _DOM_BLOCK_TAGS = frozenset(
     }
 )
 
+_LIST_ITEM_START = re.compile(
+    r"^(?:[-*•·]\s+|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)"
+)
+
+
+def normalize_semantic_text(text: str) -> str:
+    """Remove visual hanging-indent breaks without changing source content."""
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    normalized: list[str] = []
+    for line in lines:
+        stripped = line.replace("\xa0", " ").strip()
+        if not stripped:
+            if normalized and normalized[-1] != "":
+                normalized.append("")
+            continue
+        if normalized and normalized[-1] != "" and not _LIST_ITEM_START.match(stripped):
+            normalized[-1] = f"{normalized[-1]} {stripped}"
+        else:
+            normalized.append(stripped)
+    return "\n".join(normalized).strip()
+
+
+def _source_indent_width(text: str) -> int:
+    """Measure leading source whitespace separately from semantic text."""
+    first_line = next((line for line in text.replace("\r", "\n").split("\n") if line.strip()), "")
+    leading = re.match(r"^[ \t]+", first_line)
+    if leading is None:
+        return 0
+    return sum(4 if character == "\t" else 1 for character in leading.group(0))
+
 
 def _length_to_indent_units(value: str) -> int:
     """Convert common CSS/XML lengths to a comparable eight-pixel unit."""
@@ -152,6 +182,9 @@ class Chunk:
             ``text``. ``None`` when the element had no ``style``
             attribute, distinct from an empty string (which would mean
             "had the attribute, but it was blank").
+        indent_width: source indentation in semantic units, retained as
+            structural metadata while presentation whitespace is removed from
+            ``text``.
     """
 
     text: str
@@ -160,6 +193,7 @@ class Chunk:
     label: str = ""
     image_data: bytes | None = field(default=None, compare=True)
     style: str | None = None
+    indent_width: int = 0
 
 
 def chunk_by_paragraph(text: str) -> list[Chunk]:
@@ -173,7 +207,7 @@ def chunk_by_paragraph(text: str) -> list[Chunk]:
     of paragraph-free prose. Upgrade to real TextTiling scoring if a real
     document set turns out to need it.
     """
-    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
+    paragraphs = [normalize_semantic_text(p) for p in re.split(r"\n\s*\n", text) if p.strip()]
     if not paragraphs:
         return []
     return [Chunk(text=p, unit_type="paragraph", index=i) for i, p in enumerate(paragraphs)]
@@ -191,7 +225,7 @@ def chunk_by_sentence(text: str) -> list[Chunk]:
     real document set shows this matters. Good enough for short business
     records and paragraph-internal splitting.
     """
-    sentences = [s.strip() for s in _SENTENCE_BOUNDARY.split(text.strip()) if s.strip()]
+    sentences = [normalize_semantic_text(s) for s in _SENTENCE_BOUNDARY.split(text.strip()) if s.strip()]
     if not sentences:
         return []
     return [Chunk(text=s, unit_type="sentence", index=i) for i, s in enumerate(sentences)]
@@ -232,7 +266,7 @@ class _BlockTextExtractor(HTMLParser):
         # ("image", (mime_type, bytes), "", None) -- a single sequence in
         # true document order, so an image's index among its siblings
         # reflects where it actually sat.
-        self._finished: list[tuple[str, object, str, str | None]] = []
+        self._finished: list[tuple[str, object, str, str | None, int]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Collect relevant text state when an HTML start tag is encountered."""
@@ -241,7 +275,10 @@ class _BlockTextExtractor(HTMLParser):
             if src:
                 decoded = _decode_data_uri_image(src)
                 if decoded is not None:
-                    self._finished.append(("image", decoded, "", None))
+                    self._finished.append(("image", decoded, "", None, 0))
+            return
+        if tag in {"br", "w:br"} and self._stack:
+            self._stack[-1][1].append("\n")
             return
         if tag == "w:ind" and self._stack:
             tag_name, buffer, style, indent_width = self._stack[-1]
@@ -267,9 +304,11 @@ class _BlockTextExtractor(HTMLParser):
         if tag in _DOM_BLOCK_TAGS and self._stack:
             declared_width = sum(entry[3] for entry in self._stack)
             tag_name, buffer, style, _ = self._stack.pop()
-            text = " " * declared_width + "".join(buffer).strip("\r\n").rstrip()
+            raw_text = "".join(buffer)
+            declared_width += _source_indent_width(raw_text)
+            text = normalize_semantic_text(raw_text)
             if text:
-                self._finished.append(("text", text, tag_name, style))
+                self._finished.append(("text", text, tag_name, style, declared_width))
 
     def handle_data(self, data: str) -> None:
         """Collect character data from the current HTML text region."""
@@ -284,7 +323,7 @@ class _BlockTextExtractor(HTMLParser):
         if self._stack and (text.strip() or had_nbsp):
             self._stack[-1][1].append(text)
 
-    def finished(self) -> list[tuple[str, object, str, str | None]]:
+    def finished(self) -> list[tuple[str, object, str, str | None, int]]:
         """Return the normalized records collected from the HTML fragment."""
         return self._finished
 
@@ -307,13 +346,28 @@ def chunk_by_dom(html: str) -> list[Chunk]:
     parser.feed(html)
     entries = parser.finished()
     chunks: list[Chunk] = []
-    for index, (kind, value, tag_name, style) in enumerate(entries):
+    for index, (kind, value, tag_name, style, indent_width) in enumerate(entries):
         if kind == "text":
-            chunks.append(Chunk(text=value, unit_type="dom", index=index, label=tag_name, style=style))
+            chunks.append(
+                Chunk(
+                    text=value,
+                    unit_type="dom",
+                    index=index,
+                    label=tag_name,
+                    style=style,
+                    indent_width=indent_width,
+                )
+            )
         else:
             mime_type, image_bytes = value
             chunks.append(
-                Chunk(text="", unit_type="image", index=index, label=mime_type, image_data=image_bytes)
+                Chunk(
+                    text="",
+                    unit_type="image",
+                    index=index,
+                    label=mime_type,
+                    image_data=image_bytes,
+                )
             )
     return chunks
 

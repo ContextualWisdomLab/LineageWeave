@@ -47,6 +47,12 @@ def test_plain_text_passes_through_unchanged() -> None:
     assert result.image_descriptions == ()
 
 
+def test_plain_text_visual_continuation_breaks_are_normalized_for_embeddings() -> None:
+    result = normalize_post_body("- 요청 사항\n    후속 설명은 같은 항목에 속한다.\n· 다음 항목")
+
+    assert result.text == "- 요청 사항 후속 설명은 같은 항목에 속한다.\n· 다음 항목"
+
+
 def test_html_tags_never_appear_in_the_normalized_text() -> None:
     html = '<div style="color:red"><p>Confirm delivery by Friday.</p></div>'
     result = normalize_post_body(html)

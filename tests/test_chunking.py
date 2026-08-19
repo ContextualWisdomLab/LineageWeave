@@ -70,11 +70,12 @@ def test_chunk_by_dom_nested_blocks_do_not_duplicate_text() -> None:
     assert chunks[0].label == "p"
 
 
-def test_chunk_by_dom_preserves_source_indentation_for_semantic_units() -> None:
+def test_chunk_by_dom_keeps_indentation_as_metadata_not_embedding_text() -> None:
     html = "<p>&nbsp;&nbsp;Level one</p><p>&nbsp;&nbsp;&nbsp;&nbsp;Level two</p>"
     chunks = chunk_by_dom(html)
 
-    assert [chunk.text for chunk in chunks] == ["  Level one", "    Level two"]
+    assert [chunk.text for chunk in chunks] == ["Level one", "Level two"]
+    assert [chunk.indent_width for chunk in chunks] == [2, 4]
 
 
 def test_chunk_by_dom_reads_html_and_word_indentation_declarations() -> None:
@@ -85,7 +86,25 @@ def test_chunk_by_dom_reads_html_and_word_indentation_declarations() -> None:
     )
     chunks = chunk_by_dom(html)
 
-    assert [chunk.text for chunk in chunks] == ["    HTML", "    Word"]
+    assert [chunk.text for chunk in chunks] == ["HTML", "Word"]
+    assert [chunk.indent_width for chunk in chunks] == [4, 4]
+
+
+def test_chunk_by_dom_joins_visual_continuation_lines_but_keeps_list_items() -> None:
+    html = (
+        "<p>1. 배경<br>"
+        "    1) 기존 대차는 이전이 필요함<br>"
+        "        콘크리트 양생까지 공장 운영 불가하여 이전 불가<br>"
+        "    2) 신규 대차 제작으로 결정</p>"
+    )
+
+    chunks = chunk_by_dom(html)
+
+    assert chunks[0].text == (
+        "1. 배경\n"
+        "1) 기존 대차는 이전이 필요함 콘크리트 양생까지 공장 운영 불가하여 이전 불가\n"
+        "2) 신규 대차 제작으로 결정"
+    )
 
 
 def test_chunk_by_dom_empty_html_yields_no_chunks() -> None:

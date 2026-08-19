@@ -58,11 +58,10 @@ local score, summary, extraction, or answer when the gateway is unavailable.
   `host.docker.internal:8080` text gateway and `host.docker.internal:18082`
   Vision gateway when `LINEAGEWEAVE_ALLOW_LOCAL_LLM_HTTP=1`; arbitrary local
   HTTP ports remain rejected.
-- `LLM_GATEWAY_MODEL` must be authorized by that gateway. A local-MLX model
-  name cannot be assumed to be available on an external provider.
-- `VISION_MODEL` is an optional model override for agents tagged `vision`.
-  It is applied inside contextual-orchestrator only; `LLM_GATEWAY_MODEL` must
-  not silently replace an explicitly configured Vision model.
+- `LLM_GATEWAY_MODEL` and `VISION_MODEL` are not selected by LineageWeave.
+  When they are blank, contextual-orchestrator resolves the registered agent
+  model, so a local or provider-specific model name cannot leak into this
+  application or be assumed available on an external gateway.
 - `LLM_GATEWAY_EMBEDDING_MODEL` is the explicit allowlisted semantic embedding
   model. If it is absent, contextual-orchestrator rejects embedding work
   instead of returning its standalone eight-dimensional heuristic vector.

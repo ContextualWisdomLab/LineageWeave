@@ -163,6 +163,10 @@ _REGION_RESPONSE_FORMAT = (
     '{"regions":[{"x":0.0,"y":0.0,"width":1.0,"height":1.0}]} . '
     "Coordinates are normalized to 0..1, omit decorative borders, and return at most 12 regions."
 )
+_VISION_SYSTEM_ROLE = (
+    "You are the LineageWeave visual-evidence agent. Extract only evidence "
+    "visible in the supplied image; never invent people, projects, or text."
+)
 # TEXT may legitimately span multiple lines because OCR output is often
 # multi-line. CAPTION and TAGS are explicitly single-line fields. Synthetic
 # format-variation fixtures cover common provider drift such as bolded or
@@ -251,7 +255,7 @@ class OpenAiCompatibleVisionClient:
         self,
         base_url: str,
         api_key: str,
-        model: str,
+        model: str | None = None,
         *,
         timeout: float = 60.0,
         allow_insecure_http: bool = False,
@@ -272,7 +276,7 @@ class OpenAiCompatibleVisionClient:
             )
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
-        self._model = model
+        self._model = model.strip() if model else ""
         self._timeout = timeout
 
     def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
@@ -281,22 +285,25 @@ class OpenAiCompatibleVisionClient:
 
         image_bytes, mime_type = normalize_vision_image(image_bytes, mime_type)
         data_uri = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
+        payload = {
+            "messages": [
+                {"role": "system", "content": _VISION_SYSTEM_ROLE},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": _RESPONSE_FORMAT},
+                        {"type": "image_url", "image_url": {"url": data_uri}},
+                    ],
+                }
+            ],
+            "max_tokens": 1024,
+            "temperature": 0.0,
+        }
+        if self._model:
+            payload["model"] = self._model
         body = post_json(
             f"{self._base_url}/chat/completions",
-            {
-                "model": self._model,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": _RESPONSE_FORMAT},
-                            {"type": "image_url", "image_url": {"url": data_uri}},
-                        ],
-                    }
-                ],
-                "max_tokens": 300,
-                "temperature": 0.0,
-            },
+            payload,
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
@@ -309,23 +316,26 @@ class OpenAiCompatibleVisionClient:
 
         image_bytes, mime_type = normalize_vision_image(image_bytes, mime_type)
         data_uri = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
+        payload = {
+            "messages": [
+                {"role": "system", "content": _VISION_SYSTEM_ROLE},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": _REGION_RESPONSE_FORMAT},
+                        {"type": "image_url", "image_url": {"url": data_uri}},
+                    ],
+                }
+            ],
+            "max_tokens": 2048,
+            "temperature": 0.0,
+            "response_format": {"type": "json_object"},
+        }
+        if self._model:
+            payload["model"] = self._model
         body = post_json(
             f"{self._base_url}/chat/completions",
-            {
-                "model": self._model,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": _REGION_RESPONSE_FORMAT},
-                            {"type": "image_url", "image_url": {"url": data_uri}},
-                        ],
-                    }
-                ],
-                "max_tokens": 700,
-                "temperature": 0.0,
-                "response_format": {"type": "json_object"},
-            },
+            payload,
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
@@ -355,7 +365,7 @@ class OpenAiCompatibleVisionClient:
         return tuple(accepted)
 
 
-def orchestrator_vision_client(base_url: str, api_key: str, model: str) -> ImageContentClient:
+def orchestrator_vision_client(base_url: str, api_key: str, model: str | None = None) -> ImageContentClient:
     """Build a vision client against the same orchestrator root other channels use.
 
     Other clients POST ``{base_url}/v1/chat/completions``;
@@ -365,7 +375,7 @@ def orchestrator_vision_client(base_url: str, api_key: str, model: str) -> Image
     same URL. A construct-time error degrades to the unavailable null rather
     than crashing the request that asked for a description.
     """
-    if not (base_url and api_key and model):
+    if not (base_url and api_key):
         return NullImageContentClient()
     parsed = urlparse(base_url)
     vision_base = base_url.rstrip("/")

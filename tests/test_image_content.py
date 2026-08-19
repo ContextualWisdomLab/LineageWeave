@@ -185,7 +185,7 @@ def test_orchestrator_vision_client_does_not_double_v1() -> None:
 
 
 def test_orchestrator_vision_client_is_null_when_unconfigured() -> None:
-    client = orchestrator_vision_client("", "", "")
+    client = orchestrator_vision_client("", "")
     assert isinstance(client, NullImageContentClient)
     assert client.available is False
 
