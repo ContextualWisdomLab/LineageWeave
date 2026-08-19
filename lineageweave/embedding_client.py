@@ -25,7 +25,7 @@ class EmbeddingClient(Protocol):
 
     def embed(self, text: str) -> list[float]:
         """Return an embedding for the supplied text."""
-        ...
+        raise NotImplementedError
 
 
 class NullEmbeddingClient:
