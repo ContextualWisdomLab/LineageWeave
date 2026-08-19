@@ -47,6 +47,50 @@ def test_signing_key_requires_nonempty_exact_kid(monkeypatch: pytest.MonkeyPatch
     assert unknown.value.status_code == 401
 
 
+def test_signing_key_rejects_non_rs256_header(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(auth.RSAAlgorithm, "from_jwk", lambda value: ("key", value))
+    jwks = {"keys": [{"kid": "wanted", "kty": "RSA", "n": "y", "e": "AQAB"}]}
+
+    with pytest.raises(HTTPException) as error:
+        auth._signing_key_from_jwks(
+            jwks, _unsigned_token({"alg": "RS512", "kid": "wanted"})
+        )
+
+    assert error.value.status_code == 401
+
+
+def test_signing_key_requires_rsa_jwk_and_verification_use(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(auth.RSAAlgorithm, "from_jwk", lambda value: ("key", value))
+    token = _unsigned_token({"alg": "RS256", "kid": "wanted"})
+
+    rejected_keys = [
+        {"kid": "wanted", "n": "x", "e": "AQAB"},
+        {"kid": "wanted", "kty": "EC", "alg": "RS256"},
+        {"kid": "wanted", "kty": "RSA", "alg": "RS512", "n": "x", "e": "AQAB"},
+        {"kid": "wanted", "kty": "RSA", "use": "enc", "n": "x", "e": "AQAB"},
+        {"kid": "wanted", "kty": "RSA", "key_ops": ["encrypt"], "n": "x", "e": "AQAB"},
+        {"kid": "wanted", "kty": "RSA", "key_ops": "verify", "n": "x", "e": "AQAB"},
+    ]
+
+    for key in rejected_keys:
+        with pytest.raises(HTTPException) as error:
+            auth._signing_key_from_jwks({"keys": [key]}, token)
+        assert error.value.status_code == 401
+
+    accepted = {
+        "kid": "wanted",
+        "kty": "RSA",
+        "alg": "RS256",
+        "use": "sig",
+        "key_ops": ["verify"],
+        "n": "x",
+        "e": "AQAB",
+    }
+    assert auth._signing_key_from_jwks({"keys": [accepted]}, token)[0] == "key"
+
+
 def test_decode_requires_configured_resource_audience(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, object] = {}
     monkeypatch.setattr(auth, "_jwks", lambda settings: {"keys": []})
