@@ -72,8 +72,12 @@ export function PostBody({
         const content = segment.kind === "image" ? imageContent[imageOrdinal++] : undefined;
         if (segment.kind !== "text") return renderSegment(segment, index, content);
         const structure = textUnits[textOrdinal++];
+        const authoritativeStructure =
+          structure?.indent_source_code === "explicit" || structure?.indent_source_code === "llm";
         return renderSegment(
-          structure ? { ...segment, indentLevel: structure.indent_level || undefined } : segment,
+          authoritativeStructure
+            ? { ...segment, indentLevel: structure.indent_level || undefined }
+            : segment,
           index,
           content,
         );
