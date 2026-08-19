@@ -206,6 +206,14 @@ def test_chunk_by_dom_falls_back_for_inline_only_markup() -> None:
     assert chunks[0].text == "First inline block.Second inline block."
 
 
+def test_chunk_by_dom_flushes_unclosed_block_at_end_of_document() -> None:
+    chunks = chunk_by_dom("<div><span>Unclosed source fragment.")
+
+    assert len(chunks) == 1
+    assert chunks[0].unit_type == "dom"
+    assert chunks[0].text == "Unclosed source fragment."
+
+
 def test_chunk_by_dom_interleaves_images_with_text_in_document_order() -> None:
     tiny_png_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
     html = (

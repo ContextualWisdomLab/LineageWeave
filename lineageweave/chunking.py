@@ -346,14 +346,20 @@ class _BlockTextExtractor(HTMLParser):
         if tag in _DOM_BLOCK_TAGS and self._stack:
             declared_width = sum(entry[3] for entry in self._stack)
             tag_name, buffer, style, _ = self._stack.pop()
-            raw_text = "".join(buffer)
-            for raw_unit, source_indent in _split_dom_units(raw_text):
-                text = normalize_semantic_text(raw_unit)
-                if text:
-                    indent_width = declared_width + source_indent
-                    self._finished.append(
-                        ("text", text, tag_name, style, indent_width)
-                    )
+            self._finish_block(tag_name, buffer, style, declared_width)
+
+    def _finish_block(
+        self, tag_name: str, buffer: list[str], style: str | None, declared_width: int
+    ) -> None:
+        """Emit one block buffer, including a block closed only at EOF."""
+        raw_text = "".join(buffer)
+        for raw_unit, source_indent in _split_dom_units(raw_text):
+            text = normalize_semantic_text(raw_unit)
+            if text:
+                indent_width = declared_width + source_indent
+                self._finished.append(
+                    ("text", text, tag_name, style, indent_width)
+                )
 
     def handle_data(self, data: str) -> None:
         """Collect character data from the current HTML text region."""
@@ -372,6 +378,10 @@ class _BlockTextExtractor(HTMLParser):
 
     def finished(self) -> list[tuple[str, object, str, str | None, int]]:
         """Return the normalized records collected from the HTML fragment."""
+        while self._stack:
+            declared_width = sum(entry[3] for entry in self._stack)
+            tag_name, buffer, style, _ = self._stack.pop()
+            self._finish_block(tag_name, buffer, style, declared_width)
         if not self._finished:
             fallback = normalize_semantic_text("".join(self._unscoped_buffer))
             if fallback:
