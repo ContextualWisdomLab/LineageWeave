@@ -964,12 +964,23 @@ async def resolve_customer_master_hint(
     """
     _require_post_admin(account)
     async with pool.acquire() as conn:
-        resolution = await resolve_customer_hint(
-            conn,
-            _customer_hint_resolution_client(),
-            _relation_verification_client(),
-            request.hint_code,
-        )
+        try:
+            resolution = await resolve_customer_hint(
+                conn,
+                _customer_hint_resolution_client(),
+                _relation_verification_client(),
+                request.hint_code,
+            )
+        except (HttpClientError, OSError) as exc:
+            # resolve_and_verify_organization_name's resolution/verification
+            # calls raise on a failed request rather than silently returning
+            # "unresolved" -- a failed call is not the same claim as "the
+            # model looked and found nothing" (same discipline as
+            # verify-relations' identical try/except).
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Hint resolution is unavailable: the orchestrator or search provider did not respond",
+            ) from exc
     if resolution is None:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
