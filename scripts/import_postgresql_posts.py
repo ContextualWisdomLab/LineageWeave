@@ -34,6 +34,26 @@ from lineageweave.post_content_persistence import persist_post_content
 
 SOURCE_NAMESPACE = uuid.UUID("b6e4b1d6-5fd0-4ca1-92b0-8f7a4e2df83e")
 
+_VOC_TYPE_ALIASES = {
+    "voc": "voc",
+    "vocc": "vocc",
+    "voco": "voco",
+    "vom": "vom",
+    "vop": "vop",
+}
+
+
+def _normalize_voc_type(value: Any, *, mapped: bool) -> str:
+    """Preserve the governed source VOC vocabulary as canonical target codes."""
+    if value is None or not str(value).strip():
+        if mapped:
+            raise ValueError("mapped source VOC type is empty")
+        return "voc"
+    normalized = _VOC_TYPE_ALIASES.get(str(value).strip().casefold())
+    if normalized is None:
+        raise ValueError(f"unsupported source VOC type {value!r}")
+    return normalized
+
 
 @dataclass(frozen=True)
 class ColumnMapping:
@@ -207,6 +227,14 @@ def _validate_source_rows(
         body = str(_value(row, mapping.body) or "")
         if not body.strip():
             raise ValueError(f"source post body cannot be empty at source row {row_number}")
+        voc_type_column = getattr(mapping, "voc_type", None)
+        try:
+            _normalize_voc_type(
+                _value(row, voc_type_column, "voc"),
+                mapped=voc_type_column is not None,
+            )
+        except ValueError as exc:
+            raise ValueError(f"invalid source VOC type at source row {row_number}: {exc}") from exc
 
 
 async def _ensure_scope(conn: asyncpg.Connection, args: argparse.Namespace) -> tuple[str, str, str]:
@@ -320,6 +348,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             post_id = uuid.uuid5(SOURCE_NAMESPACE, f"{args.source_system_code}:{record_key}")
             title = str(_value(row, mapping.title, "") or "")
             body = str(_value(row, mapping.body, "") or "")
+            voc_type_code = _normalize_voc_type(
+                _value(row, mapping.voc_type, "voc"),
+                mapped=mapping.voc_type is not None,
+            )
             await target.execute(
                 """
                 insert into source_post
@@ -372,7 +404,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 process_unit_id,
                 title,
                 body,
-                str(_value(row, mapping.voc_type, "voc") or "voc"),
+                voc_type_code,
                 str(_value(row, mapping.visibility, "public") or "public"),
                 str(_value(row, mapping.stage) or "").strip() or None,
                 str(_value(row, mapping.detail_state) or "").strip() or None,

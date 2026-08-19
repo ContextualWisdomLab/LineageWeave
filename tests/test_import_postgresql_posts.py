@@ -4,10 +4,26 @@ import pytest
 
 from scripts.import_postgresql_posts import (
     _parser,
+    _normalize_voc_type,
     _source_code_matches,
     _validate_source_mapping,
     _validate_source_rows,
 )
+
+
+@pytest.mark.parametrize(
+    ("source_value", "expected"),
+    [("VOC", "voc"), ("VOCC", "vocc"), ("VOCO", "voco"), ("VOM", "vom"), ("VOP", "vop")],
+)
+def test_importer_preserves_source_voc_type_vocabulary(source_value: str, expected: str) -> None:
+    assert _normalize_voc_type(source_value, mapped=True) == expected
+
+
+def test_importer_rejects_unknown_or_empty_mapped_voc_type() -> None:
+    with pytest.raises(ValueError, match="unsupported source VOC type"):
+        _normalize_voc_type("not-a-voc-type", mapped=True)
+    with pytest.raises(ValueError, match="mapped source VOC type is empty"):
+        _normalize_voc_type("", mapped=True)
 
 
 def test_source_state_exclusion_uses_only_explicit_caller_values() -> None:
