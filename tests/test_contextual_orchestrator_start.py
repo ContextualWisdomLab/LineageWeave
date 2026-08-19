@@ -54,3 +54,21 @@ def test_text_model_is_used_when_no_vision_override_exists() -> None:
     module._apply_provider_models(agents, "text-model", "")
 
     assert agents[0]["model"] == "text-model"
+
+
+def test_provider_api_url_is_canonical_over_compatibility_aliases(monkeypatch) -> None:
+    module = _load_start_module()
+    monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://canonical.example/v1")
+    monkeypatch.setenv("LLM_GATEWAY_URL", "https://legacy.example/v1")
+    monkeypatch.setenv("LLM_API_GATEWAY", "https://local-alias.example/v1")
+
+    assert module._pop_first_env("LLM_GATEWAY_API_URL", "LLM_GATEWAY_URL", "LLM_API_GATEWAY") == (
+        "https://canonical.example/v1"
+    )
+
+
+def test_gateway_api_key_accepts_local_compatibility_alias(monkeypatch) -> None:
+    module = _load_start_module()
+    monkeypatch.setenv("LLM_API_KEY", "compatibility-key")
+
+    assert module._pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY") == "compatibility-key"

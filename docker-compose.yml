@@ -112,7 +112,9 @@ services:
       # Canonical gateway variables win. The LLM_API_* fallback is only for
       # the operator's ~/.env compatibility contract; GitHub injects the
       # canonical names directly.
-      LLM_GATEWAY_URL: ${LLM_GATEWAY_URL:-${LLM_API_GATEWAY:-http://host.docker.internal:8080/v1}}
+      # API_URL is canonical; URL and LLM_API_GATEWAY are compatibility aliases.
+      LLM_GATEWAY_API_URL: ${LLM_GATEWAY_API_URL:-${LLM_GATEWAY_URL:-${LLM_API_GATEWAY:-http://host.docker.internal:8080/v1}}}
+      LLM_GATEWAY_URL: ${LLM_GATEWAY_API_URL:-${LLM_GATEWAY_URL:-${LLM_API_GATEWAY:-http://host.docker.internal:8080/v1}}}
       LLM_GATEWAY_MODEL: ${LLM_GATEWAY_MODEL:-mlx-community/gemma-4-e4b-it-4bit}
       VISION_MODEL: ${VISION_MODEL:-${LLM_GATEWAY_MODEL:-mlx-community/gemma-4-e4b-it-4bit}}
       LLM_GATEWAY_EMBEDDING_MODEL: ${LLM_GATEWAY_EMBEDDING_MODEL:-}
@@ -122,7 +124,7 @@ services:
       LLM_GATEWAY_API_KEY: ${LLM_GATEWAY_API_KEY:-${LLM_API_KEY:-lineageweave-local-mlx-dev-only}}
       CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS: ${CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS:-host.docker.internal}
       # Enables the exact local-MLX exception; bootstrap applies it only when
-      # LLM_GATEWAY_URL is http://host.docker.internal:8080(/v1).
+      # LLM_GATEWAY_API_URL is the explicit text (8080) or Vision (18082) endpoint.
       LINEAGEWEAVE_ALLOW_LOCAL_LLM_HTTP: "1"
     command: ["python", "/app/start.py"]
     ports:
@@ -157,7 +159,7 @@ services:
       VALKEY_URL: redis://valkey:6379/0
       # Empty by default: every LLM/vision channel stays the Null client
       # (dropped, not faked). Set these to a running contextual-orchestrator
-      # to turn the channels on. Provider credentials use LLM_GATEWAY_URL /
+      # to turn the channels on. Provider credentials use LLM_GATEWAY_API_URL /
       # LLM_GATEWAY_API_KEY in the orchestrator's private env file.
       ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8000}
       ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}

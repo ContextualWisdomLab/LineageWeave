@@ -17,6 +17,15 @@ from provider_policy import is_local_mlx_provider
 from vision_compat import install_multimodal_chat_support
 
 
+def _pop_first_env(*names: str) -> str:
+    """Read the first configured alias without leaving credentials in the environment."""
+    for name in names:
+        value = os.environ.pop(name, "").strip()
+        if value:
+            return value
+    return ""
+
+
 def _allow_local_mlx_provider() -> None:
     """Permit only the explicit Compose local-MLX HTTP endpoint.
 
@@ -88,16 +97,14 @@ def _apply_provider_models(
 
 def main() -> None:
     """Register the provider credential and delegate to the upstream server."""
-    provider_key = os.environ.pop("LLM_GATEWAY_API_KEY", "").strip()
+    provider_key = _pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY", "NVIDIA_NIM_API_KEY")
     if not provider_key:
-        provider_key = os.environ.pop("NVIDIA_NIM_API_KEY", "").strip()
-    if not provider_key:
-        raise SystemExit("LLM_GATEWAY_API_KEY or NVIDIA_NIM_API_KEY is required to start the real LLM service")
+        raise SystemExit("LLM_GATEWAY_API_KEY or LLM_API_KEY is required to start the real LLM service")
     auth_token = os.environ.get("CONTEXTUAL_ORCHESTRATOR_TOKEN", "").strip()
     if not auth_token:
         raise SystemExit("CONTEXTUAL_ORCHESTRATOR_TOKEN is required to start the authenticated LLM service")
 
-    provider_url = os.environ.pop("LLM_GATEWAY_URL", "").strip()
+    provider_url = _pop_first_env("LLM_GATEWAY_API_URL", "LLM_GATEWAY_URL", "LLM_API_GATEWAY")
     if not provider_url:
         provider_url = "https://integrate.api.nvidia.com/v1"
     if not provider_url.rstrip("/").endswith("/v1"):
