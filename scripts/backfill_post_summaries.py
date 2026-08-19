@@ -25,9 +25,12 @@ if str(REPOSITORY_ROOT) not in sys.path:
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from backend.app.post_summary_ingestion import persist_post_summary
 from lineageweave.corporate_hierarchy_inference import NullCorporateHierarchyInferenceClient
+from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
+from lineageweave.post_content_persistence import persist_post_content
+from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient
 from lineageweave.semantic_hints import format_semantic_hints
@@ -53,15 +56,11 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _gateway_config() -> tuple[str, str]:
-    """Resolve compose-injected gateway settings without reading a secret file."""
-    base_url = (
-        os.environ.get("ORCHESTRATOR_BASE_URL")
-        or os.environ.get("LLM_GATEWAY_API_URL")
-        or os.environ.get("LLM_GATEWAY_URL")
-        or ""
+    """Resolve only the contextual-orchestrator boundary, never its provider."""
+    return (
+        os.environ.get("ORCHESTRATOR_BASE_URL", ""),
+        os.environ.get("ORCHESTRATOR_API_KEY", ""),
     )
-    api_key = os.environ.get("ORCHESTRATOR_API_KEY") or os.environ.get("LLM_GATEWAY_API_KEY") or ""
-    return base_url, api_key
 
 
 def _semantic_hints(row: asyncpg.Record) -> str:
@@ -160,6 +159,13 @@ async def backfill_post_summaries(
     if not vision_client.available:
         raise RuntimeError("VISION is unavailable; configure contextual-orchestrator before backfill")
     summary_client = ContextualOrchestratorPostSummaryClient(base_url, api_key, timeout=180.0)
+    embedding_model = os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
+    embedding_client = orchestrator_embedding_client(base_url, api_key, embedding_model)
+    structure_client = (
+        ContextualOrchestratorPostStructureClient(base_url, api_key)
+        if base_url and api_key
+        else NullPostStructureClient()
+    )
     conn = await asyncpg.connect(target_dsn)
     try:
         rows = await _load_posts(conn, post_ids, limit)
@@ -177,6 +183,17 @@ async def backfill_post_summaries(
                     normalized = normalize_post_body(row["post_body"], vision_client=vision_client)
                     if not normalized.text.strip():
                         raise ValueError("normalized post body is empty")
+                    await persist_post_content(
+                        conn,
+                        str(row["post_id"]),
+                        row["post_body"],
+                        vision_client=vision_client,
+                        embedding_client=embedding_client,
+                        embedding_model_code=embedding_model or None,
+                        normalized_result=normalized,
+                        structure_client=structure_client,
+                        post_title=row["post_title"],
+                    )
                     summary = await asyncio.to_thread(
                         summary_client.summarize_with_hints,
                         row["post_title"],
