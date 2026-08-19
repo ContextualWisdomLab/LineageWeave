@@ -1,33 +1,37 @@
 FROM python:3.12-slim@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36
 WORKDIR /app
 
-# rankweave and fast-mlsirm install from a git URL (see pyproject.toml) --
-# neither has a PyPI release yet. fast-mlsirm additionally ships a
-# PyO3/maturin Rust core with no fallback wheel (ADR 0003), so this build
-# needs a real Rust toolchain, not just Python -- build-essential supplies
-# the C linker maturin needs on Linux. Create the runtime user here so the
-# later USER instruction is not a no-op against a missing account
-# (DS-0002: explicit non-root USER).
-RUN apt-get update && apt-get install -y --no-install-recommends git build-essential curl ca-certificates \
+# Hash-pinned bootstrap input is copied before dependency installation so the
+# build cannot resolve a different uv artifact for the same version.
+COPY backend/uv-bootstrap-requirements.txt /tmp/uv-bootstrap-requirements.txt
+
+# rankweave and fast-mlsirm install from immutable git commit references.
+# fast-mlsirm builds a PyO3/maturin core, so the image needs a C linker and
+# the repository-pinned Rust toolchain. The runtime user is created before
+# dependencies so no application process runs as root.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git build-essential curl ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --gid 1000 appuser \
-    && useradd --uid 1000 --gid appuser --create-home appuser
+    && useradd --uid 1000 --gid appuser --create-home appuser \
+    && python -m pip install --no-cache-dir --no-deps \
+        --require-hashes --only-binary=:all: \
+        -r /tmp/uv-bootstrap-requirements.txt
 
-# Pinned, non-interactive rustup install (minimal profile: no docs/clippy,
-# just rustc+cargo) -- same "pinned, reproducible install" discipline this
-# project already applies to rankweave/fast-mlsirm's own commit pins.
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
     sh -s -- -y --profile minimal --default-toolchain 1.97.1
-ENV PATH="/root/.cargo/bin:${PATH}"
+ENV PATH="/app/.venv/bin:/root/.cargo/bin:${PATH}"
 
-COPY pyproject.toml ./
+COPY pyproject.toml uv.lock README.md ./
 COPY lineageweave ./lineageweave
 COPY backend ./backend
 # lineageweave/ontology.py resolves this path relative to itself
 # (parents[1] = /app) -- ADR 0004.
 COPY docs/ontology ./docs/ontology
 
-RUN pip install --no-cache-dir ".[backend]" \
+# Install exactly the committed universal lock. --no-editable prevents a
+# runtime dependency on source-tree editability while retaining package data.
+RUN uv sync --frozen --no-dev --extra backend --no-editable \
     && chown -R appuser:appuser /app
 
 USER appuser

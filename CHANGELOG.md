@@ -4,25 +4,854 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.75.0] - 2026-08-17
+## [2.12.5] - 2026-08-18
+
+### Fixed
+
+- Migrations 0019 and 0025 (R&R role-catalog identity backfills) both
+  used `min(uuid_column)` to pick "the" value from a `having count(*)
+  = 1` group -- Postgres has no built-in `min(uuid)` aggregate, so
+  both failed outright the first time either was actually run against
+  a real, non-trivial dataset. Fixed to
+  `min(uuid_column::text)::uuid`, safe given the query's own
+  `having count(*) = 1` already guarantees exactly one value per
+  group. Applying the full migration set 0001-0029 against a real,
+  long-lived dataset also surfaced that this database's original
+  bootstrap had left several *earlier* migrations (0001, 0016)
+  partially applied -- specific tables/indexes/backfills their own
+  later statements defined were missing even though their initial
+  `create table` statements had run. All 29 migrations are now
+  confirmed genuinely, fully applied end to end against a real
+  43,814-post dataset; every table/index any migration defines is now
+  present, verified via direct schema comparison, not assumption.
+
+### Known issue (not fixed here, flagged for follow-up)
+
+- `backend/tests/test_api.py::test_start_analysis_run_recovers_the_a100_fork`
+  and `::test_tepp_start_persists_published_accepted_evidence`
+  deterministically fail against a real live PostgreSQL/Keycloak/Valkey
+  stack (this whole test module is `skipif`-guarded and never runs in
+  CI) with `CheckViolationError` on `analysis_run_status_time_check`
+  (`occurred_at <= recorded_at`): the row's `occurred_at`
+  (`datetime.now(timezone.utc)`, captured in `backend/app/analysis_run_start.py`)
+  reproducibly lands ~15-20ms *after* `recorded_at`
+  (`clock_timestamp()`, evaluated later, at actual insert time, inside
+  a `before insert` trigger) -- the wrong direction, given
+  `recorded_at` is evaluated strictly after `occurred_at` is captured
+  in every code path. Confirmed via a direct clock-sync measurement
+  (5 samples, Python vs. Postgres `clock_timestamp()` interleaved)
+  that there is no measurable systemic clock drift between the test
+  process and this Postgres instance under normal conditions, and
+  confirmed the failure is 100% reproducible in isolation (not a
+  concurrency/load artifact) and entirely pre-existing (verified via
+  `git diff` that no file in this change touches
+  `analysis_run_start.py` or the 0018 migration that defines this
+  constraint). Root cause not yet conclusively identified; deferred
+  as out of scope for this migration-catchup change (a different
+  feature area -- analysis-run/TEPP lifecycle, not R&R/summary/
+  verification) rather than rushed. 553 other tests unaffected.
+
+- `get_or_create_corporate_entity`'s post-lock duplicate-create re-check
+  fuzzy-matched against every cataloged entity, not just an exact
+  concurrent duplicate of the entity being created. A newly-created
+  parent whose name is a prefix of the child now being created (e.g.
+  "Acme" as parent of "Acme Gwangju Plant") scored ~0.7 similarity
+  against that child under the shared 0.6 threshold, so the child was
+  silently bound to its own parent's id instead of getting its own
+  catalog row -- undermining exactly the "통합 고객사 계열 tree AI"
+  (integrated customer affiliate tree) hierarchy the feature exists
+  for. The re-check now requires an exact post-normalization match
+  (`min_similarity=1.0`); real mention resolution against the full
+  candidate set is unchanged. Caught locally by
+  `test_first_mention_of_a_new_counterparty_creates_a_real_corporate_entity`,
+  which requires a live PostgreSQL/Keycloak/Valkey stack and is
+  therefore skipped in CI (`make up` required) -- confirmed CI's own
+  "Full test suite" run has never actually executed this assertion.
+- `test_start_analysis_run_recovers_the_a100_fork` seeded
+  `snapshot_sha256`/`configuration_sha256`/`code_revision_sha` with
+  `"t"`/`"u"`/`"v"`-repeated literals; none are valid hex characters,
+  so the very first insert failed its own `analysis_source_snapshot`
+  check constraint every time this test actually ran. Same CI-blind
+  gap as above -- fixed to valid hex placeholders matching this file's
+  existing convention.
+
+## [2.12.3] - 2026-08-18
+
+### Added
+
+- `make seed` inserts Late Demo public post (2026-01-13) so the
+  January 12 Demo Corp lineage and TEPP runs' knowledge cutoff is
+  falsifiable: Demo public post still opens; Late Demo does not.
+  The live post list still shows Late Demo. The cutoff filter
+  itself already lives on this stack (ADR 0016). TEPP honesty is
+  unchanged: accepted acks stay Failed transport evidence, not
+  Succeeded. Never invent a theta.
+
+## [2.12.2] - 2026-08-18
+
+### Fixed
+
+- Accepted TEPP transport evidence now stores **received** (transport
+  response) and **recorded** (row write) as distinct clocks when those
+  instants differ (ADR 0035 follow-up). After `make seed`, Demo Analyst
+  opens **TEPP measurement · Failed · Demo Corp** Measurement evidence
+  and sees one Received clock when seed receipt and persist share an
+  instant. A later start that persists in a later minute shows both
+  clocks. Digest recomputation is unchanged. Hidden runs stay 404.
+  Never invent a theta.
+
+## [2.12.1] - 2026-08-17
+
+### Fixed
+
+- A published TEPP **accepted** acknowledgement is stored as
+  **aggregate transport evidence** and stays Failed /
+  `tepp_completed_result_unsupported` (ADR 0035). After `make seed`,
+  Demo Analyst opens that Failed Demo Corp row to read contract
+  version, accepted run id, clocks, and a copyable SHA-256. The
+  section says completed-artifact identity is unavailable until TEPP
+  publishes a versioned completed-result contract. A
+  LineageWeave-local `time_multilevel_multi_affiliation` envelope, or
+  any other unpublished completed shape, stays Failed /
+  `tepp_result_not_persisted` and must not stamp Succeeded. Missing
+  `TEPP_TRANSPORT_URL` stays Failed / `tepp_not_available`. Never
+  invent a theta.
+
+## [2.12.0] - 2026-08-17
+
+### Added
+
+- A persistable TEPP **time / multilevel / multi-affiliation** result
+  is stored on the analysis-run and marked Succeeded (ADR 0034). After
+  `make seed`, Demo Analyst sees **TEPP measurement · Succeeded · Demo
+  Corp** next to the Failed missing-transport row. Home list and detail
+  show measured clocks and affiliation counts. A screen reader on that
+  Succeeded row hears open the run to read those aggregates, not only
+  the title. An `accepted` ack or an envelope this product cannot store
+  stays Failed / `tepp_result_not_persisted`. Missing
+  `TEPP_TRANSPORT_URL` stays Failed / `tepp_not_available`. Never
+  invent a theta.
+
+## [2.11.0] - 2026-08-17
+
+### Added
+
+- Home now shows the authorized customer-group tree (Group / Company /
+  Plant) instead of only a flat corp list. After `make seed`, Demo
+  Analyst walks Demo Group → Demo Corp → Demo Plant; a click opens that
+  entity as the corporate-entity report grouping. The post-scoped
+  affiliate tree is unchanged (ADR 0033).
+- Abbreviations on a post are cross-checked against that tree through
+  the existing Searxng client. A unique corroborated hit binds; a down,
+  empty, or tied search stays unbound and does not invent a parent or
+  AUTO row. Seeded `DC` on Demo Corp is synthetic Demo Corp only.
+
+## [2.10.4] - 2026-08-17
+
+### Fixed
+
+- After a Demo Corp lineage reconstruction has started, the same
+  granted retention purge empties `analysis_run_lineage_edge`,
+  `analysis_run_reconstruction`, and `analysis_source_snapshot_member`
+  when those tables exist, including their delete-reject triggers
+  (ADR 0032). Follow the same grant + admin + phrase path — do not
+  `DISABLE TRIGGER` as superuser.
+
+## [2.10.3] - 2026-08-17
+
+### Fixed
+
+- Opening a listed analysis-run that then 404s drops that stale row
+  from the home list after an authorized re-read. The next action is
+  announced as a status alert: open a remaining visible run, or
+  request a lineage reconstruction. The message still does not name
+  the thread or the cutoff (ADR 0014 / ADR 0018).
+
+## [2.10.2] - 2026-08-17
+
+### Fixed
+
+- Opening a post whose embedded picture uses invoice-like HTML
+  (`alt="Invoice > 1000"`, unquoted `width`, newlines in the base64)
+  now shows the picture. The raw payload no longer returns when a
+  remote-only or SVG tag is the whole body. Re-export as PNG or JPEG
+  if the type is rejected. The popup, `extract_base64_images`, and
+  `chunk_by_dom` share one raster allowlist (ADR 0031).
+
+## [2.10.1] - 2026-08-17
+
+### Fixed
+
+- Analysis-run list buttons now include the kind-specific next-action
+  sentence in the accessible name (WCAG 2.2 SC 4.1.2). Open a Failed
+  TEPP row: a screen reader hears connect the measurement service, not
+  only the run title. `aria-label` replaces button contents (ADR 0014).
+  No TEPP theta is invented.
+
+## [2.10.0] - 2026-08-17
 
 ### Added
 
 - Home Rankings panel fuses visible posts through `RankWeaveClient`
-  (ADR 0024). After login with the port disabled or the library
+  (ADR 0030). After login with the port disabled or the library
   missing, Demo Analyst sees **Rankings · RankWeave not available**.
   An accepted hit lists the title; click opens that post. A hidden
   post is omitted. Never invent a fused score or a theta.
+- Period reports now persist closest and farthest leftover
+  post–criterion pairs after the IRT main effects (Jeon leftover
+  map, ADR 0028 / 0029). After `make seed`, leftover pairs sit above
+  the member list; clicking a pair opens that post. A leftover pair
+  for a hidden post is omitted the same way a hidden member is.
 
-## [0.71.2] - 2026-08-17
+## [2.9.0] - 2026-08-17
 
 ### Added
 
-- Period reports now persist closest and farthest leftover
-  post–criterion pairs after the IRT main effects (Jeon leftover
-  map). After `make seed`, leftover pairs sit above the member
-  list; clicking a pair opens that post. A leftover pair for a
-  hidden post is omitted the same way a hidden member is.
+- Opening Public post from the landed Demo Corp members now names the
+  next action after landed cited evidence: Linked post evidence is
+  current, then read Event Lineage on that post. Home list opens do
+  not add that copy. No TEPP theta is invented. No cutoff body is
+  invented (ADR 0016).
+
+## [2.8.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members now puts the
+  first cited evidence immediately under the named citation next
+  action, ahead of the chat input. Home list opens still wait for a
+  citation click. No TEPP theta is invented. No cutoff body is
+  invented (ADR 0016).
+
+## [2.7.2] - 2026-08-17
+
+### Fixed
+
+- R&R person chips now read `cataloged_person_id` from
+  `post_summary_role` (ADR 0027). Open a post whose R&R names a
+  cataloged person: the chip is a button even when Keyman extraction
+  was not run on that post. Click it to walk that person, not a later
+  same-named row. Historical backfill leaves a role unbound when two
+  same-named mentions already exist.
+
+## [2.7.1] - 2026-08-17
+
+### Fixed
+
+- `POST /api/analysis-runs` records Pending lineage only (ADR 0017).
+  TEPP and period-report kinds are 422 so this path cannot invent a
+  measurement. Open Analysis runs and wait until affiliated corps
+  load; choose a corp if you walk more than one, then click
+  **Request a lineage reconstruction**. Preview the picker in
+  Storybook (`Analysis/LineageEntityPicker`). Failed TEPP stays
+  terminal on this write.
+
+## [2.7.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members now names the
+  first cited source after the landed first Ask answer: Linked post,
+  then open that evidence. Home list opens do not add that copy. No
+  TEPP theta is invented. No cutoff body is invented (ADR 0016).
+
+## [2.6.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members now puts the
+  first Ask answer immediately under the named seed next action, ahead
+  of the chat input. Home list opens keep that answer after the input.
+  No TEPP theta is invented. No cutoff body is invented (ADR 0016).
+
+## [2.5.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members now names the
+  first Ask after landed chat: What happened between these events,
+  then read that answer. Home list opens do not add that copy. No
+  TEPP theta is invented. No cutoff body is invented (ADR 0016).
+
+## [2.4.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members now puts Ask
+  about this lineage immediately under the Ask next action, ahead of
+  Affiliate tree. Home list opens keep Ask after Keyman. No TEPP theta
+  is invented. No cutoff body is invented (ADR 0016).
+
+## [2.3.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members now focuses
+  the Ask heading after Priya Nair related nodes are current. Home
+  list opens do not steal that focus. No TEPP theta is invented. No
+  cutoff body is invented (ADR 0016).
+
+## [2.2.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members now names the
+  next action after Priya Nair related nodes are current: **Ask about
+  this lineage**. Home list opens do not add that copy. No TEPP theta
+  is invented. No cutoff body is invented (ADR 0016).
+
+## [2.1.0] - 2026-08-17
+
+### Added
+
+- Opening a title marked **Updated after cutoff** now shows the body
+  that run knew beside the live rewrite. After `make seed`, open Demo
+  public post from the Demo Corp lineage run: **Body this run knew** is
+  the January follow-up; the live body names the later delivery window.
+  `GET /api/posts/{id}?as_of=` reads `source_post_revision`. Analysis-run
+  detail stays titles and clocks. A missing revision is omitted — never
+  a fabricated cutoff sentence or a TEPP theta (ADR 0025).
+
+## [2.0.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members now lands
+  Priya Nair related nodes under the first-related next action, ahead
+  of Affiliate tree. Home list opens still wait for a related click.
+  No TEPP theta is invented. No cutoff body is invented (ADR 0016).
+
+## [1.9.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members now names the
+  first related node after landed Ada West related: Priya Nair, then
+  read that person. Home list opens do not add that copy. No TEPP
+  theta is invented. No cutoff body is invented (ADR 0016).
+
+## [1.8.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members now lands
+  Ada West related nodes under the first-Keyman next action, ahead
+  of Affiliate tree. Home list opens still wait for a Keyman click.
+  No TEPP theta is invented. No cutoff body is invented (ADR 0016).
+
+## [1.7.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members now names the
+  first Keyman after landed evaluation: Ada West, then read that
+  person. Home list opens do not add that copy. No TEPP theta is
+  invented. No cutoff body is invented (ADR 0016).
+
+## [1.6.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members now puts
+  Keyman and evaluation immediately under the Event Lineage next
+  action, ahead of Affiliate tree. Home list opens keep evaluation
+  above Event Lineage. No TEPP theta is invented. No cutoff body is
+  invented (ADR 0016).
+
+## [1.5.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members names the next
+  action after the current Event Lineage node: read Keyman and
+  evaluation. Home list opens do not add that copy. No TEPP theta is
+  invented. No cutoff body is invented (ADR 0016).
+
+## [1.4.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members marks that
+  post current in the popup Event Lineage DAG, so the focused heading
+  has a you-are-here node. The home DAG stays unmarked. No TEPP theta
+  is invented. No cutoff body is invented (ADR 0016).
+
+## [1.3.0] - 2026-08-17
+
+### Added
+
+- Opening Public post from the landed Demo Corp members focuses the
+  popup Event Lineage heading, matching the next-action copy. Home
+  post-list opens do not steal that focus. No TEPP theta is invented.
+
+## [1.2.0] - 2026-08-17
+
+### Added
+
+- Opening **Public post** from the landed Demo Corp report now names
+  the next action: that post is open from Demo Corp, so read Event
+  Lineage, Keyman, and evaluation. The opened member is current. Mean
+  θ stays on the report panel. No TEPP theta is invented. No cutoff
+  body is invented (ADR 0016).
+
+## [1.1.0] - 2026-08-17
+
+### Added
+
+- Opening **Open period report 2026-W02** now puts the Demo Corp
+  report (mean θ and member posts) immediately under the named next
+  action, ahead of Other Corp and the week strip. The Public post
+  member stays clickable. Mean θ stays on the report panel. No TEPP
+  theta is invented. No cutoff body is invented (ADR 0016).
+
+## [1.0.0] - 2026-08-17
+
+### Added
+
+- Opening **Open period report 2026-W02** now names the next action on
+  the landed Demo Corp report: read its mean θ and member posts, then
+  open a post. The focused comparison chip uses the visible
+  `Corporate entity: Demo Corp` caption and the persisted mean θ
+  (WCAG 2.5.3). Changing the week still focuses the report period
+  field. Mean θ stays on the report panel. No TEPP theta is invented.
+
+## [0.99.0] - 2026-08-17
+
+### Added
+
+- Opening **Open period report 2026-W02** when the operator is already
+  on that week lands the grouping comparison strip on Demo Corp. The
+  Demo Corp chip is current and focused. Changing the week still
+  focuses the report period field. Mean θ stays on the report panel.
+  No TEPP theta is invented.
+
+## [0.98.1] - 2026-08-17
+
+### Fixed
+
+- Authorized analysis-run list and detail queries are now complete
+  parameterized SQL literals. Semgrep no longer treats the visibility
+  predicate as string-concatenated user input. The $1 / $2 / $3 binds
+  are unchanged. No TEPP theta is invented.
+
+## [0.98.0] - 2026-08-17
+
+### Added
+
+- Opening **Open period report 2026-W02** from a corporate-entity
+  analysis run also switches Report grouping to Corporate entity and
+  marks the Demo Corp grouping current. The opened report is named
+  Demo Corp, not a UUID. Mean θ stays on the report panel. No TEPP
+  theta is invented.
+
+## [0.97.0] - 2026-08-17
+
+### Added
+
+- A Succeeded period-report analysis run now opens the scored week.
+  After `make seed`, open **Period report · Succeeded · Demo Corp**
+  and click **Open period report 2026-W02**: the report period field
+  is focused on that week. Failed rows stay closed. Mean θ stays on
+  the report panel. No TEPP theta is invented.
+
+## [0.96.0] - 2026-08-17
+
+### Added
+
+- `make seed` now records **Period report · Succeeded · Demo Corp** on
+  the shared snapshot after the calibrated report tables are written
+  (ADR 0024). Open that row to confirm the cutoff posts. Mean θ stays
+  on the period-report panel. Start stays 422. No TEPP theta is
+  invented.
+
+## [0.95.0] - 2026-08-17
+
+### Added
+
+- Analysis-run detail now lists labeled outbox delivery: Claimed then
+  Delivered (ADR 0023). After `make seed`, open the Demo Corp lineage
+  run to see those times. Stream entry ids stay off the payload. No
+  TEPP theta is invented.
+
+## [0.94.0] - 2026-08-17
+
+### Added
+
+- `POST /api/analysis-runs/{id}/start` now commits Running plus one
+  durable outbox row, wakes Valkey (`analysis-run-outbox`), then
+  delivers ThreadWeave or `tepp_client` (ADR 0023). A crash after
+  Start leaves the work item; refresh finishes it. Period-report
+  stays 422. No TEPP theta is invented.
+
+## [0.93.0] - 2026-08-17
+
+### Added
+
+- `make seed` now persists the designed A-100 fork on the Demo Corp
+  Succeeded lineage run. Open that run: the revised quote and delivery
+  question follow the pricing follow-up and are buttons. Start is
+  unchanged. No TEPP theta is invented.
+
+## [0.92.0] - 2026-08-17
+
+### Added
+
+- **Start TEPP measurement** on a Pending TEPP row submits
+  `AnalysisRunRequest` through `tepp_client` (ADR 0022). A missing
+  `TEPP_TRANSPORT_URL` or a refused URL is Failed /
+  `tepp_not_available`. An accepted envelope is Failed /
+  `tepp_result_not_persisted`. Failed stays terminal: **Request a new
+  TEPP measurement** records a new Pending run. Period-report start
+  stays 422. No TEPP theta is invented.
+
+## [0.91.0] - 2026-08-17
+
+### Added
+
+- After **Start reconstruction**, the titled A-100 edges are buttons.
+  Click the revised-quote child to open the live post; click the
+  pricing-follow-up parent to open that post. A child marked
+  **Updated after cutoff** still shows the live-body warning. The
+  popup does not invent a cutoff snapshot. No TEPP theta is invented.
+
+## [0.90.0] - 2026-08-17
+
+### Added
+
+- Opening an analysis-run title marked **Updated after cutoff** now
+  shows a popup status that the body is live, not a cutoff snapshot
+  (ADR 0016). After `make seed`, open the Demo Corp lineage run and
+  click Demo public post: the warning appears above the live body
+  and tells you to compare it with this run. Demo private post and
+  the home post list do not. The popup does not invent the earlier
+  text. No TEPP theta is invented.
+
+## [0.89.0] - 2026-08-17
+
+### Added
+
+- Analysis-run detail now compares each in-cutoff title's live
+  `updated_at` with that run's knowledge cutoff. After `make seed`,
+  open the Demo Corp lineage run: Demo public post is marked
+  **Updated after cutoff**; Demo private post is not. Opening a
+  marked title still shows the live body -- cutoff body versioning
+  stays a later slice (ADR 0016). The list stays aggregates-only.
+  No TEPP theta is invented.
+
+## [0.88.0] - 2026-08-16
+
+### Added
+
+- `POST /api/analysis-runs/{id}/start` runs ThreadWeave on a visible
+  Pending lineage cutoff bag and persists run-scoped parent choices
+  (ADR 0021). Open the Pending Demo Corp row, then start reconstruction.
+  The designed A-100 fork (revised quote and delivery question under the
+  pricing follow-up) is the acceptance tree. TEPP and period-report
+  start are 422 — this path does not invent a theta. A Succeeded retry
+  returns the stored digest. A Running restart is 409. Create freezes
+  authorized post ids so start cannot pick up a later backfill. Live
+  Event Lineage stays a separate rebuild.
+
+## [0.87.0] - 2026-08-16
+
+### Added
+
+- Operators can empty a run-bearing analysis-run registry without a
+  superuser trigger disable. Insert an unrevoked
+  `analysis_run_retention_grant` for `session_user`, grant
+  `analysis_run_retention_admin`, then
+  `select purge_analysis_run_registry('approved-retention-purge')`
+  (ADR 0020). Export `analysis_run_retention_event`, delete those
+  rows, then roll back 0020 and 0018. A raw `DELETE`, a published
+  token without a grant, and a runtime role that is not the admin
+  role still fail.
+- Repeated citation chips and close buttons use named design tokens
+  in `frontend/src/styles/tokens.css`. Preview them in Storybook
+  (`cd frontend && pnpm run storybook`).
+
+## [0.86.2] - 2026-08-16
+
+### Fixed
+
+- An R&R organization button now walks the catalog id stored on that
+  role row (ADR 0019). Two catalog orgs can share a display name; open
+  the post, click the name, and you stay on the resolved org — not a
+  homonym. `GET /api/teams/{id}/related` matches person/entity authz:
+  another corp's private-only team is 403; an unknown UUID is 404.
+
+## [0.86.1] - 2026-08-16
+
+### Changed
+
+- Opening a post or its evidence panel now shows each embedded
+  `data:image` picture in document order, with the surrounding sentences
+  as text. The raw base64 string is no longer dumped into the popup.
+  Remote `http(s)` image URLs stay unloaded. After `make seed`, a post
+  whose body includes a data-URI image shows the picture; Extract Keyman
+  or Ask still runs OCR on that image for search.
+
+### Fixed
+
+- Opening a Pending lineage run repeats that reconstruction has not
+  started. Pending next-action copy is pinned to the registered run
+  kinds, so a Pending TEPP row does not say reconstruction.
+
+## [0.86.0] - 2026-08-16
+
+### Added
+
+- Related-node walks now include team and organization mention edges.
+  After `make seed` and a summary that names 설계팀 on two posts, open
+  either post, click the R&R team, and open the sibling post (ADR 0018).
+  A team-only follow-up is no longer an island.
+- `GET /api/teams/{team_id}/related` starts the same RWR walk Keyman
+  and corporate-entity related already use. Related team chips are
+  buttons.
+
+### Fixed
+
+- Thread-group analysis-run *lists* now require an in-cutoff visible
+  post. A later public post in that thread group no longer surfaces a
+  January run the account was not allowed to know.
+- Failed period-report rows tell the operator to rebuild the report.
+  Next-action copy is pinned to the registered run kinds. A pending
+  TEPP corpus does not claim a calibrated measurement.
+
+## [0.85.0] - 2026-08-16
+
+### Added
+
+- `POST /api/analysis-runs` records a Pending lineage or TEPP run on an
+  authorized cutoff capture (ADR 0017). The home panel's **Request a
+  lineage reconstruction** button writes that row so an operator can
+  confirm the cutoff corpus immediately. Reconstruction and live TEPP
+  execution stay later slices — this write never invents a theta.
+- Failed lineage rows tell the operator to retry reconstruction; only
+  Failed TEPP rows mention the measurement service. Pending rows say
+  reconstruction has not started yet.
+
+## [0.84.1] - 2026-08-16
+
+### Fixed
+
+- Analysis-run detail keeps 12-character digest prefixes as visible
+  text (so assistive technology hears `Code` / `Config` values) and
+  puts the full digest on hover. Open the Demo Corp lineage run, hover
+  a prefix, and match it to the API payload. The home list still hides
+  digests even when the list JSON includes them.
+- Opening a cutoff title now says the live body may have changed after
+  that run. Compare the opened post with the cutoff date before you
+  treat it as reconstructed evidence (ADR 0016).
+
+## [0.84.0] - 2026-08-16
+
+### Added
+
+- `make seed` records a Demo Corp TEPP measurement run through
+  `tepp_client` on the same snapshot as the lineage run (ADR 0013).
+  The default transport is unavailable, so the home list shows
+  "TEPP measurement · Failed · Demo Corp" and tells the operator to
+  open the run, then connect the measurement service. Detail history
+  keeps `tepp_not_available` -- never a fabricated theta. TEPP stays
+  a wire client, not a local psychometric engine. `make seed` skips
+  snapshot-count inserts once counts exist so a re-run does not hit
+  the freeze trigger. A failed lineage row tells the operator to retry
+  reconstruction; only a failed TEPP row mentions the measurement
+  service. A failed period-report row tells the operator to rebuild
+  the report from a current snapshot. A pending TEPP row does not
+  claim a calibrated measurement. Stacked PRs now run the same
+  GitHub Checks as PRs to main.
+
+## [0.83.0] - 2026-08-16
+
+### Fixed
+
+- Analysis-run detail now lists only ABAC-visible posts whose
+  `created_at` is at or before that run's `knowledge_cutoff`. After
+  `make seed`, open the Demo Corp lineage run: Demo public post is
+  there; a later own-corp follow-up is not. The live post list is
+  unchanged. Click a listed title to inspect what that cutoff
+  reconstructed (ADR 0016).
+- Upgrading through `0016_cross_post_actor_identity.sql` copies R&R
+  person names into `post_summary_person_mention` and leaves Keyman
+  `post_person_mention.mention_context` in place. Re-run Keyman only
+  when you want a new Keyman set -- a later summary no longer erases
+  the stolen row.
+
+## [0.82.0] - 2026-08-16
+
+### Added
+
+- Analysis-run detail lists ABAC-visible posts in the run's scope.
+  After `make seed`, the Demo Corp lineage run opens the Demo public
+  post. Hidden other-corp private posts never appear. List payloads
+  stay aggregates-only.
+
+## [0.81.0] - 2026-08-16
+
+### Added
+
+- Analysis-run detail shows the labeled lifecycle: Pending, Running,
+  then Succeeded, with occurrence times from `analysis_run_status_event`.
+  The list stays latest-status only. Hidden runs still 404 and never
+  leak events. Failure codes stay machine tokens -- no invented label.
+  Synthetic Demo Corp seed only.
+
+## [0.80.0] - 2026-08-16
+
+### Added
+
+- Home Analysis runs rows are buttons. Clicking the seeded Demo Corp
+  lineage run opens `GET /api/analysis-runs/{id}` and shows cutoff,
+  requested date, and document count. A hidden run is "This analysis
+  run is not visible." -- never a raw 404 or a DSN. Still synthetic
+  aggregates only.
+
+## [0.79.0] - 2026-08-16
+
+### Added
+
+- Authorized analysis-run evidence on the product home page. After
+  `make seed`, Demo Analyst sees "Lineage reconstruction · Succeeded ·
+  Demo Corp" with the synthetic document count. `GET /api/analysis-runs`
+  is scoped in SQL: another tenant's run 404s and never appears in the
+  list. The payload is labels and aggregates -- never source SQL, a DSN,
+  or a raw record. TEPP stays behind `tepp_client`; Null channels are
+  unchanged.
+
+## [0.78.0] - 2026-08-15
+
+### Changed
+
+- Related-node person chips now use the localized `person_side` lookup label
+  supplied by the authorized API payload. Users see business context such as
+  `Our side` or `Counterparty`, while ontology class metadata remains available
+  separately for semantic processing and provenance.
+- Related-person buttons now expose that same caption in the accessible name, so
+  assistive technology hears `Related nodes for Priya Nair (Counterparty)`
+  instead of the name alone.
+- Structured extraction, summarization, commitment, relationship-classification,
+  and LLM-as-a-Judge consumers now request contextual-orchestrator `auto` mode
+  so the orchestration plane can meet the quality requirement and then minimize
+  known execution cost. Explicit checked `verify` paths remain unchanged
+  (ADR 0015).
+
+## [0.77.0] - 2026-08-14
+
+### Fixed
+
+- Keyman and R&R person mentions now replace independent source projections. Knowledge Graph edges have one canonical identity plus post-level evidence, so removed actors and concurrent writes cannot leave stale or duplicate buyer-visible relationships.
+- Vision-response parsing now strips balanced outer Markdown emphasis from field values
+  while still accepting emphasized field labels, so OCR such as
+  ``TEXT: **LT7**`` is not truncated.
+- A real live synthetic regression batch run surfaced a genuine
+  `DeadlockDetectedError` from concurrent corporate-entity creation:
+  two concurrent transactions each creating a different new entity,
+  mentioned in opposite order across two different posts, took
+  row-level locks in opposite order and deadlocked. Entity *creation*
+  (the rare, first-mention-only branch) now serializes through a
+  single named Postgres advisory transaction lock, taken only right
+  before the write and auto-released at commit/rollback -- the
+  lock-free similarity-matching fast path every already-cataloged
+  entity resolves through is unaffected. See ADR 0012.
+
+## [0.76.0] - 2026-08-14
+
+### Added
+
+- Standards-complete W3C PROV-O support: all 30 classes, all 50
+  normative properties, both qualification tables, qualified-to-
+  unqualified implication, property hierarchy, defined inverses,
+  Appendix B inverse-name normalization, RDF serialization, and a
+  normalized PostgreSQL assertion store with fail-closed domain,
+  range, object-kind, and datatype enforcement (ADR 0011).
+- A dedicated exact-head PROV-O contract workflow runs the complete
+  registry/inference suite, real PostgreSQL migration tests, public
+  docstring checks, and 100% statement/branch coverage for the owned
+  runtime module.
+
+### Changed
+
+- The product navigation graph remains an explicit projection;
+  literal-valued and qualified provenance is no longer forced into
+  `knowledge_graph_edge`.
+
+### Fixed
+
+- Review hardening verifies complete hierarchy placement, rejects parent
+  failures and cycles, propagates canonical affiliations, replaces stale
+  actor projections, enforces atomic team identity, validates timezone-aware
+  `xsd:dateTime` literals (including the XSD `±14:00` offset bound), and
+  protects referenced provenance rows.
+
+## [0.75.0] - 2026-08-14
+
+### Added
+
+- A real counterparty organization mentioned for the first time now
+  gets auto-created into the corporate hierarchy, not left permanently
+  unresolved. Synthetic regression fixtures prove the first-mention gap.
+  An LLM proposes a
+  Group/Company/Plant placement from context; a real new
+  `corporate_entity` row is only created once the proposal is
+  search-corroborated (reusing the existing Searxng verification
+  client, no new search integration). Auto-created rows get a
+  deterministic `AUTO-`-prefixed code, kept structurally separate from
+  the real login corp-code namespace. Wired into both Keyman
+  affiliation resolution and R&R organization-actor resolution.
+
+## [0.74.0] - 2026-08-14
+
+### Added
+
+- R&R team and organization actors now get a shared identity across
+  posts, not just per-post free text -- the same "설계팀" (design
+  team) named in ten posts resolves to one `cataloged_team` row
+  (identity key: team name + parent org, since a bare team name is not
+  by itself identifying), and an organization actor resolves against
+  the existing `corporate_entity` catalog. Each resolved actor gets a
+  real Knowledge Graph mention edge (`edge_mention_team`,
+  `edge_team_affiliation`, `edge_mention_organization`), so extraction
+  results now genuinely become cross-post lineage clues instead of
+  per-post islands. A person R&R actor is opportunistically joined to
+  an existing Keyman-cataloged person by name (documented gap: R&R does
+  not yet originate new person identities itself -- see ADR 0009).
+
+## [0.73.0] - 2026-08-14
+
+### Fixed
+
+- Image OCR/caption parsing no longer discards a real vision response
+  just because its formatting was close but not exact (bolded labels
+  like `**TEXT:**`, reordered labels, or a missing TAGS line) --
+  observed live against synthetic embedded-image fixtures in the synthetic regression batch
+  in format-variation fixtures. Fields are now recovered independently; only a
+  response with neither TEXT nor CAPTION content is treated as
+  unusable. A strict format mismatch was silently producing the same
+  "[image: content unavailable]" placeholder as a genuinely unavailable
+  vision channel, discarding real, already-paid-for content.
+
+## [0.72.0] - 2026-08-14
+
+### Added
+
+- Abbreviated/slang organization names (e.g. "AGP") are now resolved
+  to their canonical name ("Aurora Grid Power") via LLM context, then
+  cross-verified against external search before being trusted -- new
+  `lineageweave/organization_name_resolution.py`, reusing the existing
+  Searxng verification client rather than a second web-search
+  integration. Cached in a new `organization_name_resolution` table
+  keyed by the raw name.
+- Wired into Keyman affiliation ingestion (both the API path and the
+  offline synthetic-batch script): a search-corroborated resolution feeds
+  `resolve_corporate_entity`, an unverified one leaves the raw name
+  unchanged.
+
+### Fixed
+
+- The offline synthetic-batch script's own re-implementation of Keyman
+  affiliation persistence was missing `role_title` entirely (a stale
+  copy that predated that feature) -- fixed alongside this change.
 
 ## [0.71.0] - 2026-08-14
 
@@ -33,6 +862,61 @@ All notable changes to this project are documented here. Format follows
   the sentence that mentions it, instead of a detached excerpt list
   above the names. Unassigned excerpts stay in the list; a post with
   no named organization still says so.
+
+## [0.70.0] - 2026-08-14
+
+### Added
+
+- R&R's `actor_type_code` gains `prov_team`, a meso-level actor type for
+  a named sub-unit of a company (e.g. "설계팀"/design team) -- distinct
+  from both a person and the company itself. Grounded in the W3C
+  Organization Ontology's `org:OrganizationalUnit` (Reynolds, 2014).
+- A team actor now requires `affiliated_organization_name` in the same
+  way a person actor does -- a team's own name never answers "which
+  company."
+- R&R badge shows a distinct "Team" label/color, not the prior binary
+  Person/Organization ternary (which would have mislabeled a team as
+  "Organization").
+
+## [0.69.0] - 2026-08-14
+
+### Added
+
+- Keyman extraction now captures a stated job title/position
+  (`PersonMention.job_title`), since two different real people can
+  share a name and a title is real evidence for telling them apart.
+  Persisted to `person_affiliation.role_title` (an existing schema
+  column, previously never populated) and a new
+  `cataloged_person.last_known_job_title` for a title stated without a
+  named organization to attach it to.
+- `_upsert_person` no longer blindly merges a same-name+side match: a
+  genuinely conflicting stated title creates a fresh person row instead
+  of reusing one, verified by a real test with two posts naming the
+  same name and different titles.
+- Keyman panel shows the person's title next to their name. After
+  `make seed`, Ada West is "Account manager" and Priya Nair is
+  "Procurement lead" so the title is visible without a live LLM.
+
+### Fixed
+
+- `scripts/seed_demo_data.py` no longer embeds the local Keycloak admin
+  password. `make seed` still supplies the compose default via
+  `KEYCLOAK_ADMIN_PASSWORD`; a direct script run requires that env var
+  or `--keycloak-admin-password`.
+
+## [0.68.0] - 2026-08-14
+
+### Changed
+
+- R&R's named actor is no longer forced into a person slot. A
+  business post can name an organization acting in its own name
+  ("당사," "Demo Corp"), not an individual --
+  `RoleResponsibility.actor_name` (renamed from `person_name`) now
+  carries `actor_type_code` (Person / Organization, W3C PROV-O
+  grounded) and an LLM-inferred `affiliated_organization_name` for
+  person actors. The popup's R&R list shows a Person/Organization
+  badge and the inferred affiliation; only a person actor still links
+  to the Keyman panel. See ADR 0006.
 
 ## [0.67.0] - 2026-08-14
 
@@ -1117,7 +2001,7 @@ All notable changes to this project are documented here. Format follows
   embedding, against the live embedding provider.
 - `docs/lineage-bi-research-notes.md`: new "Chunking" section with the
   four units' grounding and an explicit, honest note that this project's
-  real dataset's only free-text field is too short to need chunking in
+  unseen dataset's only free-text field is too short to need chunking in
   practice -- the module exists for richer content sources (e.g. the raw
   MHTML artifacts that dataset's records were derived from).
 - `lineageweave/image_content.py`: pluggable vision channel for base64

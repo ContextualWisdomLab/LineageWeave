@@ -18,6 +18,8 @@ same post jointly rather than independently. That joint step is a real
 upgrade path once real usage shows single-mention similarity scoring
 under- or over-resolving in practice -- it is not implemented here because
 nothing yet demonstrates the need for it over this simpler, cheaper stage.
+A tied top score therefore stays unbound (ADR 0026; Fellegi & Sunter,
+1969) instead of first-winning a homonym.
 """
 
 from __future__ import annotations
@@ -26,8 +28,13 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from difflib import SequenceMatcher
+from typing import Literal
 
 DEFAULT_MIN_SIMILARITY = 0.6
+RESOLUTION_UNIQUE = "unique"
+RESOLUTION_MISS = "miss"
+RESOLUTION_TIE = "tie"
+CorporateEntityResolutionKind = Literal["unique", "miss", "tie"]
 
 # Legal-entity suffixes stripped before comparison so "Acme Electronics
 # Korea Ltd." and "Acme Electronics Korea" don't get penalized for a
@@ -39,10 +46,7 @@ _WHITESPACE_PATTERN = re.compile(r"\s+")
 
 
 def normalize_organization_name(name: str) -> str:
-    """Lowercases, strips punctuation and common legal-entity suffixes, and
-    collapses whitespace -- the normalization both sides of a similarity
-    comparison go through.
-    """
+    """Lowercase and normalize one organization name for comparison."""
     lowered = _PUNCTUATION_PATTERN.sub("", name.strip().lower())
     lowered = _SUFFIX_PATTERN.sub("", lowered)
     return _WHITESPACE_PATTERN.sub(" ", lowered).strip()
@@ -56,31 +60,109 @@ class CorporateEntityCandidate:
     entity_name: str
 
 
+@dataclass(frozen=True)
+class CorporateEntityResolution:
+    """Candidate-generation outcome for one mentioned organization name.
+
+    ``None`` from :func:`resolve_corporate_entity` used to mean both
+    "no catalog row is close enough" and "two catalog rows tied."
+    Those are different decisions. A miss may enter ADR 0010 creation.
+    A tie must not invent a third same-named row (ADR 0026; Fellegi &
+    Sunter, 1969).
+
+    Attributes:
+        kind: ``unique`` stores ``catalog_id``. ``miss`` means no
+            candidate cleared ``min_similarity``. ``tie`` means two
+            or more distinct catalog ids share the top score at or
+            above the threshold.
+        catalog_id: The unique winner, or ``None``.
+        top_score: Highest similarity seen, or ``0.0`` when the
+            mention is empty.
+        top_catalog_ids: Distinct catalog ids that share
+            ``top_score``. Empty on a miss that never scored.
+    """
+
+    kind: CorporateEntityResolutionKind
+    catalog_id: str | None
+    top_score: float
+    top_catalog_ids: tuple[str, ...]
+
+
+def score_corporate_entity(
+    mentioned_name: str,
+    candidates: Sequence[CorporateEntityCandidate],
+    min_similarity: float = DEFAULT_MIN_SIMILARITY,
+) -> CorporateEntityResolution:
+    """Classify a mention as a unique match, a miss, or a tied match.
+
+    Duplicate snapshot rows for the same ``corporate_entity_id`` count
+    as one candidate. Only a unique top score may bind; a tie stays
+    unbound, while a genuine miss may enter the separately corroborated
+    creation path defined by ADR 0010.
+    """
+    normalized_mention = normalize_organization_name(mentioned_name)
+    if not normalized_mention:
+        return CorporateEntityResolution(
+            kind=RESOLUTION_MISS,
+            catalog_id=None,
+            top_score=0.0,
+            top_catalog_ids=(),
+        )
+
+    best_ids: list[str] = []
+    best_score = 0.0
+    for candidate in candidates:
+        score = SequenceMatcher(
+            None,
+            normalized_mention,
+            normalize_organization_name(candidate.entity_name),
+        ).ratio()
+        if score > best_score:
+            best_score = score
+            best_ids = [candidate.corporate_entity_id]
+        elif (
+            score == best_score
+            and score > 0.0
+            and candidate.corporate_entity_id not in best_ids
+        ):
+            best_ids.append(candidate.corporate_entity_id)
+
+    if best_score < min_similarity or not best_ids:
+        return CorporateEntityResolution(
+            kind=RESOLUTION_MISS,
+            catalog_id=None,
+            top_score=best_score,
+            top_catalog_ids=tuple(best_ids),
+        )
+    if len(best_ids) != 1:
+        return CorporateEntityResolution(
+            kind=RESOLUTION_TIE,
+            catalog_id=None,
+            top_score=best_score,
+            top_catalog_ids=tuple(best_ids),
+        )
+    return CorporateEntityResolution(
+        kind=RESOLUTION_UNIQUE,
+        catalog_id=best_ids[0],
+        top_score=best_score,
+        top_catalog_ids=tuple(best_ids),
+    )
+
+
 def resolve_corporate_entity(
     mentioned_name: str,
     candidates: Sequence[CorporateEntityCandidate],
     min_similarity: float = DEFAULT_MIN_SIMILARITY,
 ) -> str | None:
-    """Returns the best-matching candidate's `corporate_entity_id`, or
-    `None` if no candidate clears `min_similarity`.
+    """Return the unique best-matching catalog id, or ``None``.
 
-    Returning `None` for a genuine non-match is the point, not a failure
-    case to work around: a wrong hierarchy link corrupts every downstream
-    Knowledge Graph traversal through it, so "no confident match" must
-    stay a real, distinguishable outcome from "matched entity X."
+    ``None`` is the fail-closed outcome when no candidate clears
+    ``min_similarity`` or when distinct candidates share the top score.
+    Callers that may create a row must use :func:`score_corporate_entity`
+    to distinguish a miss from a tie (ADR 0026).
     """
-    normalized_mention = normalize_organization_name(mentioned_name)
-    if not normalized_mention:
-        return None
-
-    best_id: str | None = None
-    best_score = 0.0
-    for candidate in candidates:
-        score = SequenceMatcher(
-            None, normalized_mention, normalize_organization_name(candidate.entity_name)
-        ).ratio()
-        if score > best_score:
-            best_score = score
-            best_id = candidate.corporate_entity_id
-
-    return best_id if best_score >= min_similarity else None
+    return score_corporate_entity(
+        mentioned_name,
+        candidates,
+        min_similarity,
+    ).catalog_id

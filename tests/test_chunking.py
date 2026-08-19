@@ -107,6 +107,18 @@ def test_chunk_by_dom_skips_malformed_image_data() -> None:
     assert [c.unit_type for c in chunks] == ["dom"]
 
 
+def test_chunk_by_dom_skips_script_and_style_images() -> None:
+    tiny_png_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    html = (
+        f'<script><img src="data:image/png;base64,{tiny_png_b64}"></script>'
+        f'<style><img src="data:image/png;base64,{tiny_png_b64}"></style>'
+        "<p>Visible.</p>"
+    )
+    chunks = chunk_by_dom(html)
+    assert [c.unit_type for c in chunks] == ["dom"]
+    assert chunks[0].text == "Visible."
+
+
 def test_chunk_by_conversation_turn_labels_each_chunk_with_its_sender() -> None:
     turns = [
         ConversationTurn(sender="alice@example.com", text="Can we move the meeting?"),

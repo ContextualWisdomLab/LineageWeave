@@ -4,23 +4,27 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix org: <http://www.w3.org/ns/org#> .
 
 #################################################################
 # LineageWeave Knowledge Graph Ontology
 #
 # The formal OWL 2 / RDFS / SKOS vocabulary for the
-# `knowledge_graph_edge` table's node/edge types and the
+# `knowledge_graph_edge` table's node/edge types, the
 # `entity_relationship_type` / `person_side` / `corporate_entity_level`
-# controlled vocabularies in migrations/0001_initial_schema.sql.
+# controlled vocabularies in migrations/0001_initial_schema.sql, and
+# `post_summary_role.actor_type_code` (migrations/0012).
 #
 # `knowledge_graph_edge` (source_node_type_code, source_node_id) --
 # [edge_type_code] --> (target_node_type_code, target_node_id) is
 # already an RDF triple in shape (Cyganiak, Wood, & Lanthaler, 2014);
 # this file is the formal semantic layer over it -- PostgreSQL stays
 # the source of record. See docs/adr/0004-knowledge-graph-ontology.md
-# for the full design rationale, and tests/test_ontology.py for the
-# round-trip check that every code below actually exists as a
-# common_lookup_value row, and vice versa.
+# for the KG design rationale, docs/adr/0006-role-responsibility-agent-ontology.md
+# for the R&R actor-type rationale (grounded in W3C PROV-O), and
+# tests/test_ontology.py for the round-trip check that every code below
+# actually exists as a common_lookup_value row, and vice versa.
 #
 # Every custom term carries a :lookupCode annotation naming the exact
 # `common_lookup_value.lookup_code` it corresponds to -- that literal
@@ -29,7 +33,7 @@
 
 <https://contextualwisdomlab.github.io/lineageweave/ontology> a owl:Ontology ;
     rdfs:label "LineageWeave Knowledge Graph Ontology" ;
-    rdfs:comment "Formal OWL 2 / RDFS / SKOS vocabulary for LineageWeave's knowledge_graph_edge node and edge types, entity_relationship_type, person_side, and corporate_entity_level controlled vocabularies." .
+    rdfs:comment "Formal OWL 2 / RDFS / SKOS vocabulary for LineageWeave's knowledge_graph_edge node and edge types, entity_relationship_type, person_side, corporate_entity_level, and post_summary_role.actor_type_code controlled vocabularies." .
 
 :lookupCode a owl:AnnotationProperty ;
     rdfs:label "lookup code" ;
@@ -65,6 +69,12 @@
     rdfs:comment "A corporate_entity row. Also a skos:Concept so the self-referencing parent_entity_id hierarchy (e.g. Group -> Company -> Plant) is expressible with skos:broader/skos:narrower on instances." ;
     :lookupCode "node_corporate_entity" .
 
+:Team a owl:Class ;
+    rdfs:subClassOf org:OrganizationalUnit ;
+    rdfs:label "Team" ;
+    rdfs:comment "A cataloged_team row: a named company sub-unit (ADR 0009) with a stable team_id, distinct from :RoleActorTeam (ADR 0007's per-row actor_type_code classification) the same way :Person is distinct from :RoleActorPerson." ;
+    :lookupCode "node_team" .
+
 #################################################################
 # Object properties -- edge_type (knowledge_graph_edge.edge_type_code)
 #################################################################
@@ -89,6 +99,36 @@
     rdfs:label "co-mentioned with" ;
     rdfs:comment "Two people named in the same post -- symmetric by construction." ;
     :lookupCode "edge_co_mention" .
+
+#################################################################
+# Object properties -- ADR 0009 cross-post identity resolution edges.
+# Kept distinct from :mentions/:affiliatedWith (not reused with a
+# broadened domain/range) so an edge_type_code alone always tells you
+# which node types it connects -- stating rdfs:domain for the same
+# property twice (once :Person, once :Team) would make RDFS entail
+# every :mentions subject is BOTH a :Person and a :Team, which is false.
+#################################################################
+
+:mentionsTeam a owl:ObjectProperty ;
+    rdfs:domain :Team ;
+    rdfs:range :Post ;
+    rdfs:label "mentioned in post" ;
+    rdfs:comment "A cataloged team is named by a post (post_team_mention)." ;
+    :lookupCode "edge_mention_team" .
+
+:teamAffiliatedWith a owl:ObjectProperty ;
+    rdfs:domain :Team ;
+    rdfs:range :CorporateEntity ;
+    rdfs:label "team affiliated with" ;
+    rdfs:comment "The company a cataloged team belongs to (cataloged_team.affiliated_corporate_entity_id)." ;
+    :lookupCode "edge_team_affiliation" .
+
+:mentionsOrganization a owl:ObjectProperty ;
+    rdfs:domain :CorporateEntity ;
+    rdfs:range :Post ;
+    rdfs:label "mentioned in post" ;
+    rdfs:comment "A resolved organization is named by a post (post_organization_mention)." ;
+    :lookupCode "edge_mention_organization" .
 
 #################################################################
 # Object properties -- entity_relationship_type
@@ -152,3 +192,61 @@
 
 :GroupLevel skos:narrower :CompanyLevel .
 :CompanyLevel skos:narrower :PlantLevel .
+
+#################################################################
+# Classes -- prov_agent_type (post_summary_role.actor_type_code)
+#
+# A post's R&R (roles & responsibilities) actor is not always a person
+# -- business correspondence routinely names an organization acting
+# in its own name ("당사" [our company], "Demo Corp"). Grounded
+# directly in W3C PROV-O (Lebo, Sahoo, & McGuinness,
+# 2013): prov:Agent is the general acting-party class, with prov:Person
+# and prov:Organization its two recognized subclasses. These are
+# distinct from :Person / :OurSidePerson / :CounterpartyPerson above:
+# node_type's :Person is a cataloged_person row with a stable person_id
+# a Keyman panel links to; an R&R actor is a free-text name with no
+# cataloged identity of its own (it may not even resolve to a Keyman).
+#
+# A third, meso-level case real data surfaced: a named sub-unit of a
+# company ("설계팀" [design team]) is neither prov:Person nor the
+# prov:Organization itself -- it is the company's own internal
+# structure. PROV-O has no such class; the W3C Organization Ontology
+# (Reynolds, 2014) does: org:OrganizationalUnit, "used to represent
+# division of a particular organization into sub-organizational units,"
+# linked to its parent via org:unitOf. See docs/adr/0007-team-actor-type.md.
+#################################################################
+
+:RoleActorPerson a owl:Class ;
+    rdfs:subClassOf prov:Person ;
+    rdfs:label "Role actor (person)" ;
+    rdfs:comment "An R&R actor that is a named individual, per prov:Person." ;
+    :lookupCode "prov_person" .
+
+:RoleActorOrganization a owl:Class ;
+    rdfs:subClassOf prov:Organization ;
+    rdfs:label "Role actor (organization)" ;
+    rdfs:comment "An R&R actor that is an organization acting in its own name, per prov:Organization." ;
+    :lookupCode "prov_organization" .
+
+:RoleActorTeam a owl:Class ;
+    rdfs:subClassOf org:OrganizationalUnit ;
+    rdfs:label "Role actor (team)" ;
+    rdfs:comment "An R&R actor that is a named sub-unit of a company (e.g. 설계팀), per org:OrganizationalUnit -- not the company itself." ;
+    :lookupCode "prov_team" .
+
+#################################################################
+# organization_name_resolution (raw/canonical organization-name pairs)
+#
+# ADR 0008: an abbreviated/slang organization mention (e.g. "AGP")
+# is resolved to its full canonical name ("Aurora Grid Power") and
+# cross-verified via external search before being trusted. This is not
+# a new KG node/edge type -- no new :lookupCode term is declared here,
+# since organization_name_resolution's columns are not a
+# common_lookup_value category (there is nothing for
+# tests/test_ontology.py's round-trip check to enforce). Documented
+# here for the Ontology/Semantic-Layer grounding itself:
+# `organization_name_resolution.raw_organization_name` corresponds to
+# SKOS `skos:altLabel` (an alternative label -- an abbreviation is
+# exactly this) and `resolved_organization_name` to `skos:prefLabel`
+# (the single preferred/canonical label), per Miles & Bechhofer (2009).
+#################################################################

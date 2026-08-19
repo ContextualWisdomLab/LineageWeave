@@ -43,7 +43,8 @@ comment on table common_lookup_value is
     'Every ENUM-like value in this schema (voc_type, post_visibility, '
     'entity_relationship_type, person_side, edge_type, node_type, '
     'ticket_status, permission, corporate_entity_level, '
-    'relation_verification_status, evaluation_criterion) lives here once. '
+    'relation_verification_status, evaluation_criterion, prov_agent_type) '
+    'lives here once. '
     'lookup_code is unique across all categories -- see the unique(lookup_code) comment.';
 
 -- ---------------------------------------------------------------------
@@ -211,11 +212,17 @@ create table post_summary_event (
     primary key (post_id, event_ordinal)
 );
 
+-- actor_type_code: R&R Ontology, see migrations/0012_role_responsibility_agent_type.sql
+-- and ADR 0006 -- a named actor is not always a person (an organization
+-- can act in its own name, e.g. "당사," "Demo Corp"), so this is not folded
+-- into person_name's own meaning.
 create table post_summary_role (
     post_id uuid not null references post_summary_result (post_id) on delete cascade,
-    person_name text not null,
+    actor_name text not null,
     responsibility text not null,
-    primary key (post_id, person_name)
+    actor_type_code text not null default 'prov_person' references common_lookup_value (lookup_code),
+    affiliated_organization_name text,
+    primary key (post_id, actor_name)
 );
 
 -- Persisted in-popup Q&A. Seed writes a synthetic exchange so
@@ -318,7 +325,7 @@ create table report_item_information (
     check (item_rank >= 1)
 );
 
--- Leftover interaction map pairs after IRT main effects (ADR 0017).
+-- Leftover interaction map pairs after IRT main effects (ADR 0028).
 -- Closest / farthest post–criterion Euclidean distances on the residual
 -- biplot (Jeon et al., 2021). Cascade with the period score. The pair
 -- post must be a member of this report; the criterion must be a CAT
@@ -357,10 +364,16 @@ create index report_leftover_pair_post_idx on report_leftover_pair (post_id);
 -- ---------------------------------------------------------------------
 -- Cataloged people mentioned in posts (Keyman). Named cataloged_person,
 -- not person, so every table name is two or more snake_case words.
+-- last_known_job_title: the disambiguation signal migrations/0013 adds.
+-- Lives here, not only on person_affiliation.role_title, because a
+-- stated title ("our legal counsel, Sam Okonkwo") is real same-name
+-- evidence even when the text names no specific organization to attach
+-- a person_affiliation row to.
 create table cataloged_person (
     person_id uuid primary key default uuid_generate_v4(),
     person_name text not null,
     person_side_code text not null references common_lookup_value (lookup_code),
+    last_known_job_title text,
     created_at timestamptz not null default now()
 );
 
@@ -374,6 +387,9 @@ create table person_affiliation (
 );
 
 create index person_affiliation_person_idx on person_affiliation (person_id);
+create index person_affiliation_corporate_entity_idx
+    on person_affiliation (affiliated_corporate_entity_id)
+    where affiliated_corporate_entity_id is not null;
 
 create table post_person_mention (
     post_id uuid not null references source_post (post_id),
@@ -381,6 +397,77 @@ create table post_person_mention (
     mention_context text,
     primary key (post_id, person_id)
 );
+
+create table post_summary_person_mention (
+    post_id uuid not null references source_post (post_id) on delete cascade,
+    person_id uuid not null references cataloged_person (person_id),
+    primary key (post_id, person_id)
+);
+
+-- Read-side union only. The two writable tables retain the evidence source:
+-- post_person_mention is Keyman extraction; post_summary_person_mention is R&R.
+create view combined_post_person_mention as
+    select post_id, person_id from post_person_mention
+    union
+    select post_id, person_id from post_summary_person_mention;
+
+-- ---------------------------------------------------------------------
+-- Cross-post identity resolution for R&R actors (ADR 0009/0007): a
+-- team named across two posts (e.g. 설계팀) must resolve to the same
+-- row, the same way cataloged_person/corporate_entity already give
+-- persons/organizations a shared identity across posts.
+-- ---------------------------------------------------------------------
+create table cataloged_team (
+    team_id uuid primary key default uuid_generate_v4(),
+    team_name text not null,
+    affiliated_organization_name text,
+    affiliated_corporate_entity_id uuid references corporate_entity (corporate_entity_id),
+    created_at timestamptz not null default now(),
+    unique nulls not distinct (team_name, affiliated_organization_name)
+);
+
+create index cataloged_team_corporate_entity_idx
+    on cataloged_team (affiliated_corporate_entity_id)
+    where affiliated_corporate_entity_id is not null;
+
+create table post_team_mention (
+    post_id uuid not null references source_post (post_id),
+    team_id uuid not null references cataloged_team (team_id),
+    primary key (post_id, team_id)
+);
+
+create table post_organization_mention (
+    post_id uuid not null references source_post (post_id),
+    corporate_entity_id uuid not null references corporate_entity (corporate_entity_id),
+    primary key (post_id, corporate_entity_id)
+);
+
+-- ADR 0019: store the resolved catalog id on the role row itself.
+-- corporate_entity.entity_name is not unique, and mention tables are
+-- post-scoped, so reconstructing identity by name is not 3NF.
+alter table post_summary_role
+    add column cataloged_team_id uuid references cataloged_team (team_id);
+alter table post_summary_role
+    add column cataloged_corporate_entity_id uuid
+        references corporate_entity (corporate_entity_id);
+-- ADR 0027: person chips read the stored catalog id, not a later
+-- same-named Keyman row. At most one catalog FK is set.
+alter table post_summary_role
+    add column cataloged_person_id uuid references cataloged_person (person_id),
+    add constraint post_summary_role_one_catalog_chk check (
+        (cataloged_team_id is not null)::int
+        + (cataloged_corporate_entity_id is not null)::int
+        + (cataloged_person_id is not null)::int
+        <= 1
+    ),
+    add constraint post_summary_role_catalog_type_chk check (
+        (cataloged_team_id is null or actor_type_code = 'prov_team')
+        and (
+            cataloged_corporate_entity_id is null
+            or actor_type_code = 'prov_organization'
+        )
+        and (cataloged_person_id is null or actor_type_code = 'prov_person')
+    );
 
 -- ---------------------------------------------------------------------
 -- Knowledge graph: person/company/post nodes, typed edges. The type
@@ -400,11 +487,80 @@ create table knowledge_graph_edge (
     target_node_id uuid not null,
     edge_type_code text not null references common_lookup_value (lookup_code),
     edge_weight numeric not null default 1.0,
-    created_at timestamptz not null default now()
+    created_at timestamptz not null default now(),
+    constraint knowledge_graph_edge_identity_uq unique (
+        source_node_type_code, source_node_id,
+        target_node_type_code, target_node_id,
+        edge_type_code
+    )
 );
 
 create index knowledge_graph_edge_source_idx on knowledge_graph_edge (source_node_type_code, source_node_id);
 create index knowledge_graph_edge_target_idx on knowledge_graph_edge (target_node_type_code, target_node_id);
+
+create table if not exists knowledge_graph_edge_evidence (
+    knowledge_graph_edge_id uuid not null
+        references knowledge_graph_edge (knowledge_graph_edge_id) on delete cascade,
+    evidence_post_id uuid not null references source_post (post_id) on delete cascade,
+    primary key (knowledge_graph_edge_id, evidence_post_id)
+);
+
+create index if not exists knowledge_graph_edge_evidence_post_idx
+    on knowledge_graph_edge_evidence (evidence_post_id, knowledge_graph_edge_id);
+
+create or replace function register_knowledge_graph_edge_evidence()
+returns trigger
+language plpgsql
+as $$
+begin
+    if new.edge_type_code in (
+        'edge_mention',
+        'edge_mention_team',
+        'edge_mention_organization'
+    ) and new.target_node_type_code = 'node_post' then
+        insert into knowledge_graph_edge_evidence
+            (knowledge_graph_edge_id, evidence_post_id)
+        values (new.knowledge_graph_edge_id, new.target_node_id)
+        on conflict do nothing;
+    elsif new.edge_type_code = 'edge_co_mention' then
+        insert into knowledge_graph_edge_evidence
+            (knowledge_graph_edge_id, evidence_post_id)
+        select distinct new.knowledge_graph_edge_id, left_mention.post_id
+          from combined_post_person_mention left_mention
+          join combined_post_person_mention right_mention
+            on right_mention.post_id = left_mention.post_id
+         where left_mention.person_id = new.source_node_id
+           and right_mention.person_id = new.target_node_id
+        on conflict do nothing;
+    elsif new.edge_type_code = 'edge_affiliation' then
+        insert into knowledge_graph_edge_evidence
+            (knowledge_graph_edge_id, evidence_post_id)
+        select distinct new.knowledge_graph_edge_id, mention.post_id
+          from combined_post_person_mention mention
+          join person_affiliation affiliation
+            on affiliation.person_id = mention.person_id
+         where mention.person_id = new.source_node_id
+           and affiliation.affiliated_corporate_entity_id = new.target_node_id
+        on conflict do nothing;
+    elsif new.edge_type_code = 'edge_team_affiliation' then
+        insert into knowledge_graph_edge_evidence
+            (knowledge_graph_edge_id, evidence_post_id)
+        select distinct new.knowledge_graph_edge_id, mention.post_id
+          from post_team_mention mention
+          join cataloged_team team on team.team_id = mention.team_id
+         where mention.team_id = new.source_node_id
+           and team.affiliated_corporate_entity_id = new.target_node_id
+        on conflict do nothing;
+    end if;
+    return new;
+end
+$$;
+
+drop trigger if exists knowledge_graph_edge_evidence_register
+    on knowledge_graph_edge;
+create trigger knowledge_graph_edge_evidence_register
+after insert or update on knowledge_graph_edge
+for each row execute function register_knowledge_graph_edge_evidence();
 
 -- ---------------------------------------------------------------------
 -- Issue tickets tied to a post.
@@ -442,5 +598,47 @@ create table post_lineage_edge (
     created_at timestamptz not null default now(),
     primary key (parent_post_id, child_post_id)
 );
+
+-- ---------------------------------------------------------------------
+-- Caches an abbreviated/slang organization name's LLM-inferred
+-- canonical name plus external search cross-verification (ADR 0008),
+-- e.g. "AGP" -> "Aurora Grid Power" -- keyed by the raw name so the same
+-- abbreviation across many posts is resolved once, not re-queried
+-- every mention. Grounded in SKOS skos:altLabel/skos:prefLabel (see
+-- docs/ontology/lineageweave-kg.ttl); verification_status_code reuses
+-- relation_verification_status (migration 0004) rather than a
+-- near-duplicate category -- a resolved name is corroborated/
+-- uncorroborated the same way a classified relationship is.
+-- ---------------------------------------------------------------------
+create table organization_name_resolution (
+    raw_organization_name text primary key,
+    resolved_organization_name text not null,
+    verification_status_code text not null references common_lookup_value (lookup_code),
+    verification_evidence_url text,
+    resolved_at timestamptz not null default now()
+);
+
+comment on table organization_name_resolution is
+    'Caches LLM-proposed canonical names for abbreviated/slang organization mentions (e.g. AGP -> Aurora Grid Power), cross-verified via external search before being trusted.';
+
+-- Searxng cross-check of a post abbreviation against an existing
+-- customer-group tree node (ADR 0033). This is not ADR 0008's LLM
+-- expansion and does not insert a corporate_entity row. A missing or
+-- tied Searxng result leaves corporate_entity_id null.
+create table abbreviation_tree_corroboration (
+    abbreviation_tree_corroboration_id uuid primary key default uuid_generate_v4(),
+    raw_organization_name text not null unique,
+    corporate_entity_id uuid references corporate_entity (corporate_entity_id),
+    verification_status_code text not null references common_lookup_value (lookup_code),
+    verification_evidence_url text,
+    corroborated_at timestamptz not null default now()
+);
+
+create index abbreviation_tree_corroboration_entity_idx
+    on abbreviation_tree_corroboration (corporate_entity_id)
+    where corporate_entity_id is not null;
+
+comment on table abbreviation_tree_corroboration is
+    'Caches Searxng corroboration of a raw organization mention against an existing customer-group tree node. Fail-closed: no parent and no AUTO row when search is down, empty, or tied.';
 
 commit;

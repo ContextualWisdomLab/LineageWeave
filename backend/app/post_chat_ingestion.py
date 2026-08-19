@@ -66,13 +66,14 @@ async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> Linked
     # Discover them here first: every post that mentions any person this
     # post itself mentions, then load the subgraph over that expanded set.
     person_rows = await conn.fetch(
-        "select distinct person_id from post_person_mention where post_id = $1", post_id
+        "select distinct person_id from combined_post_person_mention where post_id = $1", post_id
     )
     person_ids = [row["person_id"] for row in person_rows]
     sibling_post_ids = [post_id]
     if person_ids:
         sibling_rows = await conn.fetch(
-            "select distinct post_id from post_person_mention where person_id = any($1::uuid[])",
+            "select distinct post_id from combined_post_person_mention "
+            "where person_id = any($1::uuid[])",
             person_ids,
         )
         sibling_post_ids = list({str(row["post_id"]) for row in sibling_rows} | {post_id})

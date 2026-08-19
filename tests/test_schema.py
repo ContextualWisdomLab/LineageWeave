@@ -17,6 +17,7 @@ from __future__ import annotations
 import os
 import uuid
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 import psycopg2
 import psycopg2.errors
@@ -52,7 +53,8 @@ def schema_db():
     with admin_conn.cursor() as cur:
         cur.execute(f'create database "{db_name}"')
     try:
-        db_dsn = _ADMIN_DSN.rsplit("/", 1)[0] + f"/{db_name}"
+        parsed_admin_dsn = urlsplit(_ADMIN_DSN)
+        db_dsn = urlunsplit(parsed_admin_dsn._replace(path=f"/{db_name}"))
         conn = psycopg2.connect(db_dsn)
         try:
             with conn.cursor() as cur:
@@ -88,7 +90,9 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "cataloged_person",
         "person_affiliation",
         "post_person_mention",
+        "post_summary_person_mention",
         "knowledge_graph_edge",
+        "knowledge_graph_edge_evidence",
         "issue_ticket",
         "post_lineage_edge",
         "post_evaluation_response",
@@ -102,6 +106,7 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_role",
         "post_chat_result",
         "post_chat_citation",
+        "abbreviation_tree_corroboration",
     }
     assert expected <= tables
 
@@ -205,14 +210,38 @@ def test_lookup_code_is_unique_across_categories(schema_db) -> None:
 
 
 def test_every_created_table_name_has_at_least_two_words() -> None:
-    """The project naming rule is enforced on the shipped migration, not
-    only on tables that happen to be created in a live-Postgres run.
-    """
+    """Enforce naming for ordinary and idempotent table declarations."""
     import re
 
     sql = _MIGRATION_PATH.read_text()
-    names = re.findall(r"create table (\w+)", sql)
+    names = re.findall(
+        r"create\s+table\s+(?:if\s+not\s+exists\s+)?([a-z][a-z0-9_]*)",
+        sql,
+        flags=re.IGNORECASE,
+    )
     assert names, "migration must create at least one table"
     for name in names:
         words = name.split("_")
         assert len(words) >= 2, f"table {name!r} must be two or more snake_case words"
+
+
+def test_cataloged_team_null_affiliation_is_unique(schema_db) -> None:
+    """Repeated NULL-affiliation upserts return one catalog identity."""
+    with schema_db.cursor() as cursor:
+        ids = []
+        for _ in range(2):
+            cursor.execute(
+                "insert into cataloged_team (team_name, affiliated_organization_name) "
+                "values ('Synthetic Design Team', null) "
+                "on conflict (team_name, affiliated_organization_name) do update "
+                "set team_name = excluded.team_name returning team_id"
+            )
+            ids.append(cursor.fetchone()[0])
+        cursor.execute(
+            "select count(*) from cataloged_team "
+            "where team_name = 'Synthetic Design Team' "
+            "and affiliated_organization_name is null"
+        )
+        count = cursor.fetchone()[0]
+    assert ids[0] == ids[1]
+    assert count == 1

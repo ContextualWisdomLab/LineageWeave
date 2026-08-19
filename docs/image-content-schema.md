@@ -82,6 +82,20 @@ picture sat relative to the surrounding paragraphs."
 | `chunk_position` | `integer not null` | 0-based index among ALL of this document's chunks (text and image together) -- matches `Chunk.index` from `chunk_by_dom` |
 | primary key | `(source_document_id, chunk_position)` | one image slot per position per document |
 
+## Viewer contract (before persistence exists)
+
+The demo popup does not yet read these tables. It splits the live
+`post_body` the same way `extract_base64_images` and `chunk_by_dom` do:
+an HTML parser walks the document, each raster `data:image/...;base64,...`
+payload becomes an `<img>` at its original character offset, and the
+surrounding HTML is shown as decoded text (ADR 0031). A buyer who opens
+an invoice-like post — including `alt="Invoice > 1000"` — sees the
+picture that sat between the paragraphs, not the base64 wall. Remote
+`src="https://..."` tags, `image/svg+xml`, HTML comments, and CSS
+`background:url` payloads are not loaded. OCR, caption, and tag search
+still require the vision client on extract / Ask (Li et al., 2023;
+Radford et al., 2021) and, in a real deployment, the tables below.
+
 ## Query shapes this supports
 
 - **"Find images whose extracted text or tags match a search query, then
@@ -105,3 +119,24 @@ picture sat relative to the surrounding paragraphs."
   ON CONFLICT DO NOTHING` before the provider call, or a short-lived
   lease row) to close that race; this schema documents the storage
   guarantee, not that concurrency control.
+
+## References
+
+Boutell, T., & Randers-Pehrson, G. (Eds.). (2003). *Portable Network
+Graphics (PNG) specification (second edition)*. World Wide Web Consortium.
+https://www.w3.org/TR/2003/REC-PNG-20031110/
+
+Li, M., Lv, T., Chen, J., Cui, L., Lu, Y., Florencio, D., Zhang, C., Li, Z.,
+& Wei, F. (2023). TrOCR: Transformer-based optical character recognition
+with pre-trained models. *Proceedings of the AAAI Conference on Artificial
+Intelligence, 37*(11), 13094–13102. https://doi.org/10.1609/aaai.v37i11.26538
+
+Radford, A., Kim, J. W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S.,
+Sastry, G., Askell, A., Mishkin, P., Clark, J., Krueger, G., & Sutskever, I.
+(2021). Learning transferable visual models from natural language
+supervision. In M. Meila & T. Zhang (Eds.), *Proceedings of the 38th
+International Conference on Machine Learning* (pp. 8748–8763). PMLR.
+https://proceedings.mlr.press/v139/radford21a.html
+
+WHATWG. (n.d.). *HTML living standard*.
+https://html.spec.whatwg.org/multipage/

@@ -1,4 +1,30 @@
-"""Persist and load the popup's Korean summary / key events / R&R."""
+"""Persist and load the popup's Korean summary / key events / R&R.
+
+ADR 0009 / 0019 / 0027: an R&R actor is not just per-post free text --
+when it is a team, organization, or already-cataloged person, it is
+resolved to a shared catalog identity (``cataloged_team`` /
+``corporate_entity`` / ``cataloged_person``) stored on the role row and
+a Knowledge Graph mention edge is written, so the same "설계팀" or
+organization named across two posts becomes one linkable node. Fetch
+never reconstructs that id by ``entity_name`` or ``person_name``; those
+columns are not unique. A person actor is opportunistically joined to
+an *existing* ``cataloged_person`` row by name when Keyman extraction
+has already cataloged that name. The resolved ``cataloged_person_id``
+is stored on the role so a later read does not rejoin by display name.
+The R&R evidence is written to ``post_summary_person_mention`` rather
+than Keyman's ``post_person_mention`` so either extractor can replace
+its own result without leaving or deleting the other's evidence.
+
+ADR 0010: an organization actor's name is resolved via
+``get_or_create_corporate_entity`` -- similarity matching first, then
+an LLM-proposed, search-corroborated hierarchy placement before
+creating a real new row, so a real dataset's first mention of a
+counterparty organization actually populates the corporate hierarchy
+tree instead of staying permanently unresolved.  Inference,
+verification, and the short advisory-lock creation transaction finish
+before the summary-replacement transaction begins; slow external work
+therefore cannot extend the lock or the atomic replacement window.
+"""
 
 from __future__ import annotations
 
@@ -6,12 +32,44 @@ from typing import Any
 
 import asyncpg
 
+from lineageweave.corporate_hierarchy_inference import (
+    CorporateHierarchyInferenceClient,
+    NullCorporateHierarchyInferenceClient,
+)
 from lineageweave.fixtures import fixture_thread_cast
-from lineageweave.post_summary import PostSummary, RoleResponsibility
+from lineageweave.knowledge_graph import (
+    NODE_CORPORATE_ENTITY,
+    NODE_PERSON,
+    NODE_TEAM,
+)
+from lineageweave.ontology import ontology_annotations
+from lineageweave.post_summary import (
+    ACTOR_TYPE_ORGANIZATION,
+    ACTOR_TYPE_PERSON,
+    ACTOR_TYPE_TEAM,
+    PostSummary,
+    RoleResponsibility,
+)
+from lineageweave.relation_verification import (
+    NullRelationVerificationClient,
+    RelationVerificationClient,
+)
+
+from .corporate_entity_ingestion import get_or_create_corporate_entity
+from .keyman_ingestion import _load_corporate_entity_candidates
+from .knowledge_graph import persist_edges_for_post
+from .team_ingestion import upsert_team
 
 
-async def fetch_persisted_summary(conn: asyncpg.Connection, post_id: str) -> dict[str, Any] | None:
-    """Return the stored summary payload, or None when none has been written."""
+async def fetch_persisted_summary(
+    conn: asyncpg.Connection, post_id: str
+) -> dict[str, Any] | None:
+    """Return the stored summary payload, or None when none has been written.
+
+    ``catalog_node_id`` comes from the role row's catalog foreign keys
+    (ADR 0019 / 0027). This function does not join ``corporate_entity``
+    by ``entity_name``. Person chips read ``cataloged_person_id``.
+    """
     header = await conn.fetchrow(
         "select korean_summary from post_summary_result where post_id = $1",
         post_id,
@@ -23,23 +81,151 @@ async def fetch_persisted_summary(conn: asyncpg.Connection, post_id: str) -> dic
         post_id,
     )
     roles = await conn.fetch(
-        "select person_name, responsibility from post_summary_role "
-        "where post_id = $1 order by person_name",
+        """
+        select role.actor_name, role.responsibility, role.actor_type_code,
+               role.affiliated_organization_name,
+               role.cataloged_team_id,
+               role.cataloged_corporate_entity_id,
+               role.cataloged_person_id
+          from post_summary_role role
+         where role.post_id = $1
+         order by role.actor_name
+        """,
         post_id,
     )
+    payload_roles: list[dict[str, Any]] = []
+    for row in roles:
+        catalog_node_id = None
+        catalog_node_type_code = None
+        if row["cataloged_team_id"] is not None:
+            catalog_node_id = str(row["cataloged_team_id"])
+            catalog_node_type_code = NODE_TEAM
+        elif row["cataloged_corporate_entity_id"] is not None:
+            catalog_node_id = str(row["cataloged_corporate_entity_id"])
+            catalog_node_type_code = NODE_CORPORATE_ENTITY
+        elif row["cataloged_person_id"] is not None:
+            catalog_node_id = str(row["cataloged_person_id"])
+            catalog_node_type_code = NODE_PERSON
+        payload_roles.append(
+            {
+                "actor_name": row["actor_name"],
+                "responsibility": row["responsibility"],
+                "actor_type_code": row["actor_type_code"],
+                "affiliated_organization_name": row["affiliated_organization_name"],
+                "catalog_node_id": catalog_node_id,
+                "catalog_node_type_code": catalog_node_type_code,
+                **ontology_annotations(row["actor_type_code"]),
+            }
+        )
     return {
         "post_id": post_id,
         "korean_summary": header["korean_summary"],
         "key_events": [row["event_text"] for row in events],
-        "roles_and_responsibilities": [
-            {"person_name": row["person_name"], "responsibility": row["responsibility"]}
-            for row in roles
-        ],
+        "roles_and_responsibilities": payload_roles,
     }
 
 
-async def persist_post_summary(conn: asyncpg.Connection, post_id: str, summary: PostSummary) -> dict[str, Any]:
-    """Replace the stored summary for ``post_id`` and return the public payload."""
+async def persist_post_summary(
+    conn: asyncpg.Connection,
+    post_id: str,
+    summary: PostSummary,
+    *,
+    post_body: str | None = None,
+    hierarchy_inference_client: CorporateHierarchyInferenceClient | None = None,
+    verification_client: RelationVerificationClient | None = None,
+) -> dict[str, Any]:
+    """Replace the stored summary for ``post_id`` and return the public payload.
+
+    ``post_body`` is the context an organization-actor hierarchy proposal
+    is inferred from (ADR 0010); it falls back to the summary's own Korean
+    text when not given.  The pluggable clients default to unavailable Null
+    clients, so an organization actor then only resolves against an existing
+    ``corporate_entity``.
+
+    Organization inference, verification, and any lock-protected catalog
+    creation complete before the atomic summary transaction.  The catalog is
+    an idempotent shared identity registry; keeping that enrichment separate
+    prevents network latency and ``pg_advisory_xact_lock`` from extending the
+    summary replacement transaction while all post-owned rows still commit or
+    roll back together.
+    """
+    hierarchy_inference_client = (
+        hierarchy_inference_client or NullCorporateHierarchyInferenceClient()
+    )
+    verification_client = verification_client or NullRelationVerificationClient()
+
+    context_text = post_body if post_body is not None else summary.korean_summary
+    candidates = (
+        await _load_corporate_entity_candidates(conn)
+        if summary.roles_and_responsibilities
+        else []
+    )
+    resolved_organization_ids: dict[int, str] = {}
+    for role_index, role in enumerate(summary.roles_and_responsibilities):
+        if role.actor_type_code != ACTOR_TYPE_ORGANIZATION:
+            continue
+        corporate_entity_id = await get_or_create_corporate_entity(
+            conn,
+            role.actor_name,
+            context_text,
+            hierarchy_inference_client,
+            verification_client,
+            candidates,
+        )
+        if corporate_entity_id is not None:
+            resolved_organization_ids[role_index] = corporate_entity_id
+
+    async with conn.transaction():
+        await _replace_summary_projection(
+            conn,
+            post_id,
+            summary,
+            candidates,
+            resolved_organization_ids,
+        )
+
+    payload = await fetch_persisted_summary(conn, post_id)
+    if payload is None:
+        raise RuntimeError("persist_post_summary wrote no row")
+    return payload
+
+
+async def _resolve_existing_cataloged_person_id(
+    conn: asyncpg.Connection, person_name: str
+) -> str | None:
+    """Return the earliest existing catalog person id for ``person_name``.
+
+    Lookup orders by ``created_at``, then ``person_id``. This function
+    does not insert a ``cataloged_person`` row (ADR 0009). A missing
+    catalog row stays unbound rather than inventing a person.
+    """
+    person_row = await conn.fetchrow(
+        "select person_id from cataloged_person "
+        "where person_name = $1 "
+        "order by created_at, person_id limit 1",
+        person_name,
+    )
+    if person_row is None:
+        return None
+    return str(person_row["person_id"])
+
+
+async def _replace_summary_projection(
+    conn: asyncpg.Connection,
+    post_id: str,
+    summary: PostSummary,
+    candidates: list[Any],
+    resolved_organization_ids: dict[int, str],
+) -> None:
+    """Write one atomic replacement using pre-resolved shared identities."""
+    # Summary replacement owns only R&R projections. Keyman mentions remain
+    # independent and are combined only by the graph read/derivation view.
+    await conn.execute(
+        "delete from post_summary_person_mention where post_id = $1",
+        post_id,
+    )
+    await conn.execute("delete from post_team_mention where post_id = $1", post_id)
+    await conn.execute("delete from post_organization_mention where post_id = $1", post_id)
     await conn.execute("delete from post_summary_result where post_id = $1", post_id)
     await conn.execute(
         "insert into post_summary_result (post_id, korean_summary) values ($1, $2)",
@@ -48,22 +234,72 @@ async def persist_post_summary(conn: asyncpg.Connection, post_id: str, summary: 
     )
     for ordinal, event_text in enumerate(summary.key_events):
         await conn.execute(
-            "insert into post_summary_event (post_id, event_ordinal, event_text) values ($1, $2, $3)",
+            "insert into post_summary_event (post_id, event_ordinal, event_text) "
+            "values ($1, $2, $3)",
             post_id,
             ordinal,
             event_text,
         )
-    for role in summary.roles_and_responsibilities:
+    # ADR 0009 / 0019 / 0027: resolve catalog identity before writing
+    # the role row so fetch never reconstructs it by a non-unique name.
+    for role_index, role in enumerate(summary.roles_and_responsibilities):
+        cataloged_team_id = None
+        cataloged_corporate_entity_id = None
+        cataloged_person_id = None
+        if role.actor_type_code == ACTOR_TYPE_TEAM:
+            cataloged_team_id = await upsert_team(
+                conn,
+                role.actor_name,
+                role.affiliated_organization_name,
+                candidates,
+            )
+        elif role.actor_type_code == ACTOR_TYPE_ORGANIZATION:
+            cataloged_corporate_entity_id = resolved_organization_ids.get(
+                role_index
+            )
+        elif role.actor_type_code == ACTOR_TYPE_PERSON:
+            cataloged_person_id = await _resolve_existing_cataloged_person_id(
+                conn,
+                role.actor_name,
+            )
         await conn.execute(
-            "insert into post_summary_role (post_id, person_name, responsibility) values ($1, $2, $3)",
+            "insert into post_summary_role "
+            "(post_id, actor_name, responsibility, actor_type_code, "
+            "affiliated_organization_name, cataloged_team_id, "
+            "cataloged_corporate_entity_id, cataloged_person_id) values "
+            "($1, $2, $3, $4, $5, $6, $7, $8)",
             post_id,
-            role.person_name,
+            role.actor_name,
             role.responsibility,
+            role.actor_type_code,
+            role.affiliated_organization_name,
+            cataloged_team_id,
+            cataloged_corporate_entity_id,
+            cataloged_person_id,
         )
-    payload = await fetch_persisted_summary(conn, post_id)
-    if payload is None:
-        raise RuntimeError("persist_post_summary wrote no row")
-    return payload
+        if cataloged_team_id is not None:
+            await conn.execute(
+                "insert into post_team_mention (post_id, team_id) values ($1, $2) "
+                "on conflict do nothing",
+                post_id,
+                cataloged_team_id,
+            )
+        elif cataloged_corporate_entity_id is not None:
+            await conn.execute(
+                "insert into post_organization_mention "
+                "(post_id, corporate_entity_id) values ($1, $2) "
+                "on conflict do nothing",
+                post_id,
+                cataloged_corporate_entity_id,
+            )
+        elif cataloged_person_id is not None:
+            await conn.execute(
+                "insert into post_summary_person_mention (post_id, person_id) "
+                "values ($1, $2) on conflict do nothing",
+                post_id,
+                cataloged_person_id,
+            )
+    await persist_edges_for_post(conn, post_id)
 
 
 def seeded_demo_summary() -> PostSummary:
@@ -75,8 +311,21 @@ def seeded_demo_summary() -> PostSummary:
         ),
         key_events=("출하 지연 후속 연락",),
         roles_and_responsibilities=(
-            RoleResponsibility(person_name="Ada West", responsibility="일정 확인 후속"),
-            RoleResponsibility(person_name="Priya Nair", responsibility="고객 측 수신"),
+            RoleResponsibility(
+                actor_name="Ada West",
+                responsibility="일정 확인 후속",
+                affiliated_organization_name="Demo Corp",
+            ),
+            RoleResponsibility(
+                actor_name="Priya Nair",
+                responsibility="고객 측 수신",
+                affiliated_organization_name="Northridge Grid",
+            ),
+            RoleResponsibility(
+                actor_name="당사",
+                responsibility="출하 일정 확정",
+                actor_type_code=ACTOR_TYPE_ORGANIZATION,
+            ),
         ),
     )
 
@@ -108,7 +357,11 @@ def _roles_for_fixture(post_title: str) -> tuple[RoleResponsibility, ...]:
     if cast is None or not cast.person_names:
         return ()
     return tuple(
-        RoleResponsibility(person_name=name, responsibility=responsibility)
+        RoleResponsibility(
+            actor_name=name,
+            responsibility=responsibility,
+            affiliated_organization_name=_FIXTURE_ROLE_AFFILIATION.get(name),
+        )
         for name in cast.person_names
         if (responsibility := _FIXTURE_ROLE_RESPONSIBILITY.get(name))
     )
@@ -120,8 +373,15 @@ _FIXTURE_ROLE_RESPONSIBILITY = {
     "Jordan Hale": "사양 검토",
 }
 
+_FIXTURE_ROLE_AFFILIATION = {
+    "Ada West": "Demo Corp",
+    "Priya Nair": "Northridge Grid",
+    "Jordan Hale": "Westfield Power",
+}
+
 
 def _summary(korean: str, *events: str) -> PostSummary:
+    """Create one compact synthetic fixture summary."""
     return PostSummary(korean_summary=korean, key_events=events)
 
 

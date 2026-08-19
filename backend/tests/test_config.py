@@ -23,6 +23,14 @@ def test_frontend_origins_drop_blank_entries(monkeypatch) -> None:
     assert load_settings().frontend_origins == ["http://localhost:5173"]
 
 
+def test_tepp_transport_url_defaults_empty_and_is_not_a_score(monkeypatch) -> None:
+    """Missing TEPP_TRANSPORT_URL keeps the channel dropped."""
+    monkeypatch.delenv("TEPP_TRANSPORT_URL", raising=False)
+    assert load_settings().tepp_transport_url == ""
+    monkeypatch.setenv("TEPP_TRANSPORT_URL", "https://tepp.example/v1/analysis-runs")
+    assert load_settings().tepp_transport_url == "https://tepp.example/v1/analysis-runs"
+
+
 def test_rankweave_disabled_defaults_off(monkeypatch) -> None:
     monkeypatch.delenv("RANKWEAVE_DISABLED", raising=False)
     assert load_settings().rankweave_disabled is False

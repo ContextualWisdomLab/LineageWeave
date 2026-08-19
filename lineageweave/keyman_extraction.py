@@ -35,14 +35,26 @@ _VALID_SIDES = frozenset({OUR_SIDE, COUNTERPARTY})
 class PersonMention:
     """One person the extractor found in a post's text.
 
-    ``affiliated_organization_names`` may be empty (mentioned without a
-    stated affiliation) or contain more than one name (the N:N case the
-    product requirement describes).
+    Attributes:
+        affiliated_organization_names: may be empty (mentioned without a
+            stated affiliation) or contain more than one name (the N:N
+            case the product requirement describes).
+        job_title: the person's title/position as the text states it
+            (e.g. "영업팀장," "구매담당"), or ``None`` when the text does
+            not say. Two different real people can share a name -- a
+            name alone is not a reliable identity key, and dropping a
+            stated title would throw away the one signal the text
+            offers to tell them apart. Persisted onto
+            ``person_affiliation.role_title`` (a schema column that
+            already existed, previously never populated) and used by
+            ``_upsert_person`` as a same-name disambiguation signal:
+            see ``backend/app/keyman_ingestion.py``.
     """
 
     person_name: str
     person_side_code: str
     affiliated_organization_names: tuple[str, ...] = field(default_factory=tuple)
+    job_title: str | None = None
 
 
 class KeymanExtractionClient(Protocol):
@@ -71,9 +83,13 @@ class NullKeymanExtractionClient:
 
 _EXTRACTION_PROMPT_TEMPLATE = """\
 Read the post below and list every named person it mentions. For each
-person, classify which side they are on and list every organization they
+person, classify which side they are on, list every organization they
 are affiliated with according to the text (a person may belong to more
-than one organization, or none if the text does not say).
+than one organization, or none if the text does not say), and give their
+job title or position if the text states one. Two different real people
+can share the same name -- a stated title/position (e.g. "sales
+manager," "purchasing lead") is real evidence for telling them apart, so
+report it whenever the text gives one rather than leaving it out.
 
 Reply with ONLY a JSON array (no markdown fences, no prose), where each
 element has exactly these fields:
@@ -82,6 +98,8 @@ element has exactly these fields:
           "counterparty" (an external customer, partner, competitor, or
           other outside organization)
   "affiliations": a JSON array of organization name strings (can be empty)
+  "job_title": the person's stated title/position as a string, or null
+               when the text does not give one
 
 If no people are named, reply with an empty JSON array: []
 
@@ -126,8 +144,15 @@ def parse_keyman_response(content: str) -> list[PersonMention]:
         if not isinstance(affiliations_raw, list):
             affiliations_raw = []
         affiliations = tuple(a.strip() for a in affiliations_raw if isinstance(a, str) and a.strip())
+        job_title_raw = entry.get("job_title")
+        job_title = job_title_raw.strip() if isinstance(job_title_raw, str) and job_title_raw.strip() else None
         mentions.append(
-            PersonMention(person_name=name.strip(), person_side_code=side, affiliated_organization_names=affiliations)
+            PersonMention(
+                person_name=name.strip(),
+                person_side_code=side,
+                affiliated_organization_names=affiliations,
+                job_title=job_title,
+            )
         )
     return mentions
 

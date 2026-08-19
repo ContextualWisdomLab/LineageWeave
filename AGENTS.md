@@ -57,7 +57,14 @@ summary/chat, or invented commitment. A missing signal and a
 confidently-negative signal are different things. Keyman extraction,
 entity-relationship classification, post summary, in-popup chat, and
 commitment derivation go through contextual-orchestrator the same way
-adjudication does -- never a raw LLM API.
+adjudication does -- never a raw LLM API. Demo TEPP seed goes through
+`tepp_client` the same way: a missing transport or an unpublished
+envelope is Failed (`tepp_not_available` / `tepp_result_not_persisted`).
+A published accepted acknowledgement is Failed /
+`tepp_completed_result_unsupported` and may be shown as aggregate
+transport evidence (ADR 0035). Never stamp Succeeded from that ack or
+from a LineageWeave-local completed envelope, and never invent a theta
+or a local psychometric substitute.
 
 ## Tests
 
@@ -75,7 +82,7 @@ in the same spirit) -- never against real data, per the hard rule above.
 against a live local stack (`make up`) and self-skip without one -- see
 [README.md](README.md#local-product-stack-docker-compose).
 
-Period leftover pairs (ADR 0017 / 0018) are computed in
+Period leftover pairs (ADR 0028 / 0029) are computed in
 `lineageweave/leftover_pairs.py` from the residual after a real
 GRM/GPCM score, never invented. Missing cells stay out of the
 Gabriel factorization. Closest and farthest post–criterion pairs
@@ -89,7 +96,46 @@ floating Node version):
 ```bash
 cd frontend && pnpm install
 pnpm run lint && pnpm run test && pnpm run build
+# Storybook inventory (ADR 0020 tokens): pnpm run build-storybook
 ```
+
+A run-bearing analysis-run registry empties only after an unrevoked
+`analysis_run_retention_grant` and `GRANT analysis_run_retention_admin`
+(ADR 0020 / v0.87.0). The documented phrase is not a secret. The same
+call empties reconstruction children when those tables exist
+(ADR 0032 / v2.10.4). Do not expose purge on a public HTTP route.
+
+`POST /api/analysis-runs` records Pending lineage only (ADR 0017 /
+v2.7.1). TEPP and period-report kinds 422 before any snapshot write.
+`POST /api/analysis-runs/{id}/start` reconstructs a Pending lineage
+cutoff bag through `reconstruct()` / `lineage_edge_specs` (ADR 0021 /
+v0.88.0). Do not invent a theta.
+Opening a cutoff-rewritten title shows **Body this run knew** from
+`source_post_revision` beside the live rewrite (ADR 0025 / v2.1.0).
+Do not invent the earlier sentence when no revision covers the cutoff.
+After `make seed`, the January 12 Demo Corp lineage and TEPP runs list
+Demo public post and do not list Late Demo public post (2026-01-13).
+The live post list still shows Late Demo (ADR 0016).
+
+A corporate-entity similarity result has three outcomes: unique, miss,
+or tie (ADR 0026). A tie is not a miss. Keep the organization name
+unbound and do not create an `AUTO-` catalog row, even when live name
+resolution, hierarchy inference, and verification are available. Keyman
+must test the raw organization name before any abbreviation rewrite so a
+rewrite cannot turn an existing tie into an apparent creation miss.
+
+R&R chips read the catalog id stored on `post_summary_role`
+(ADR 0019 / 0027), including `cataloged_person_id`. Do not rejoin
+`corporate_entity` or `cataloged_person` by display name. Historical
+backfill leaves a role unbound when two same-named mentions already
+exist on the post.
+
+A listed analysis-run that then 404s must stay generic: do not name the thread or the cutoff,
+and do not say the run is not visible (ADR 0014 / ADR 0018). After
+that 404, re-read the authorized list so the stale row does not stay
+clickable. Announce the next action with `role="alert"` without
+moving focus. Remaining visible runs stay clickable. Request remains
+the named reconstruction control.
 
 ## CI gates
 
@@ -97,3 +143,13 @@ pnpm run lint && pnpm run test && pnpm run build
 Do not weaken, skip, or `continue-on-error` a failing check -- fix the
 underlying cause or, for a genuine false positive in a third-party scanner,
 add a narrow, documented suppression referencing the specific finding.
+## W3C PROV-O boundary
+
+- Add standard provenance through `lineageweave.prov_o` and the
+  normalized `provenance_*` schema, never by inventing another
+  `edge_type` alias for a W3C property.
+- Qualified relations retain their Influence resource and imply the
+  corresponding unqualified relation.
+- Appendix B inverse names normalize to the preferred W3C direction;
+  do not proliferate private inverse vocabulary.
+- Keep `knowledge_graph_edge` an explicit navigation projection.

@@ -15,6 +15,17 @@ from .lineage_persistence import lineage_edge_specs
 from .models import Edge, Record, Tree
 from .post_chat import ChatAnswer, cited_post_summaries
 from .post_summary import PostSummary
+from .prov_o import (
+    PROV,
+    PROV_CLASSES,
+    PROV_QUALIFICATIONS,
+    PROV_RELATIONS,
+    PROV_RECOMMENDED_INVERSES,
+    ProvAssertion,
+    ProvGraph,
+    ProvLiteral,
+    ProvValidationError,
+)
 from .reconstruct import reconstruct
 from .voc_evidence import sentence_excerpts
 
@@ -22,7 +33,16 @@ __all__ = [
     "ChatAnswer",
     "Edge",
     "OrganizationRelationship",
+    "PROV",
+    "PROV_CLASSES",
+    "PROV_QUALIFICATIONS",
+    "PROV_RELATIONS",
+    "PROV_RECOMMENDED_INVERSES",
     "PostSummary",
+    "ProvAssertion",
+    "ProvGraph",
+    "ProvLiteral",
+    "ProvValidationError",
     "Record",
     "Tree",
     "build_affiliate_forest",
@@ -35,4 +55,4 @@ __all__ = [
     "sentence_excerpts",
 ]
 
-__version__ = "0.75.0"
+__version__ = "2.12.5"
