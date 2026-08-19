@@ -958,7 +958,7 @@ describe("App, authenticated", () => {
       if (url.includes("/api/reports/") && method === "POST") {
         return Promise.resolve(jsonResponse({ group_count: 1 }));
       }
-      if (url.endsWith("/api/lineage")) {
+      if (url.includes("/api/lineage") && method === "GET") {
         return Promise.resolve(
           jsonResponse({
             nodes: [
