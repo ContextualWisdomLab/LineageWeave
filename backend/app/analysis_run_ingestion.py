@@ -27,6 +27,7 @@ from uuid import UUID
 import asyncpg
 
 from backend.app.knowledge_graph import labels_for_codes
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave import __version__ as PACKAGE_VERSION
 
 _LINEAGE_RUN_KIND = "analysis_run_lineage"
@@ -39,7 +40,7 @@ _KIND_SCHEMA_VERSION = {
     "analysis_run_tepp": "tepp-run-v1",
 }
 
-_RUN_LIST_SQL = """
+_RUN_LIST_SQL = f"""
     select
       run.analysis_run_id,
       run.run_kind_code,
@@ -81,6 +82,7 @@ _RUN_LIST_SQL = """
           select 1 from source_post p
           where p.thread_group_key = scope.scope_key
             and p.created_at <= run.knowledge_cutoff
+            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="p")}
             and (
               p.visibility_code = 'public'
               or p.corporate_entity_id = any($2::uuid[])
@@ -90,7 +92,7 @@ _RUN_LIST_SQL = """
     order by run.requested_at desc
 """
 
-_RUN_DETAIL_SQL = """
+_RUN_DETAIL_SQL = f"""
     select
       run.analysis_run_id,
       run.run_kind_code,
@@ -131,9 +133,10 @@ _RUN_DETAIL_SQL = """
           scope.scope_kind_code = 'analysis_scope_thread_group'
           and exists (
             select 1 from source_post p
-            where p.thread_group_key = scope.scope_key
-              and p.created_at <= run.knowledge_cutoff
-              and (
+          where p.thread_group_key = scope.scope_key
+            and p.created_at <= run.knowledge_cutoff
+            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="p")}
+            and (
                 p.visibility_code = 'public'
                 or p.corporate_entity_id = any($2::uuid[])
               )
@@ -191,7 +194,7 @@ async def _counts_by_run(
     if not run_ids:
         return {}
     rows = await conn.fetch(
-        """
+        f"""
         select run.analysis_run_id, counts.count_type_code, counts.count_value
         from analysis_run run
         join analysis_source_count counts
@@ -449,8 +452,12 @@ async def fetch_reconstructed_edges(
           child_post.corporate_entity_id as child_corporate_entity_id,
           edge.fused_score
         from analysis_run_lineage_edge edge
-        join source_post parent_post on parent_post.post_id = edge.parent_post_id
-        join source_post child_post on child_post.post_id = edge.child_post_id
+        join source_post parent_post
+          on parent_post.post_id = edge.parent_post_id
+         and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="parent_post")}
+        join source_post child_post
+          on child_post.post_id = edge.child_post_id
+         and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="child_post")}
         where edge.analysis_run_id = $1
         order by parent_post.post_title, child_post.post_title
         """,
@@ -522,6 +529,7 @@ async def fetch_visible_scope_posts(
             f"select {columns} "
             "from source_post where corporate_entity_id = $1 "
             "and created_at <= $2 "
+            f"and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} "
             "order by created_at, post_title",
             corporate_entity_id,
             knowledge_cutoff,
@@ -531,6 +539,7 @@ async def fetch_visible_scope_posts(
             f"select {columns} "
             "from source_post where process_unit_id = $1 "
             "and created_at <= $2 "
+            f"and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} "
             "order by created_at, post_title",
             process_unit_id,
             knowledge_cutoff,
@@ -540,6 +549,7 @@ async def fetch_visible_scope_posts(
             f"select {columns} "
             "from source_post where thread_group_key = $1 "
             "and created_at <= $2 "
+            f"and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} "
             "order by created_at, post_title",
             scope_key,
             knowledge_cutoff,
@@ -548,6 +558,7 @@ async def fetch_visible_scope_posts(
         rows = await conn.fetch(
             f"select {columns} "
             "from source_post where created_at <= $1 "
+            f"and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} "
             "order by created_at, post_title",
             knowledge_cutoff,
         )
@@ -766,11 +777,13 @@ async def create_pending_analysis_run(
     )
 
     rows = await conn.fetch(
-        """
+        f"""
         select post_id, post_title, thread_group_key, created_at,
                visibility_code, corporate_entity_id
         from source_post
-        where corporate_entity_id = $1 and created_at <= $2
+        where corporate_entity_id = $1
+          and created_at <= $2
+          and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
         order by created_at, post_title
         """,
         corp_id,

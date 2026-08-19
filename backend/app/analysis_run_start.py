@@ -21,6 +21,7 @@ from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
     fetch_visible_analysis_run,
 )
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from backend.app.analysis_run_outbox import (
     latest_outbox_delivery_is_claimed,
     latest_outbox_delivery_is_delivered,
@@ -226,12 +227,14 @@ async def _cutoff_source_posts(
 ) -> list[asyncpg.Record]:
     """ABAC-visible cutoff rows with the grouping keys reconstruct needs."""
     rows = await conn.fetch(
-        """
+        f"""
         select post_id, post_title, created_at, visibility_code,
                corporate_entity_id, process_unit_id,
                thread_group_key, secondary_grouping_key
         from source_post
-        where corporate_entity_id = $1 and created_at <= $2
+        where corporate_entity_id = $1
+          and created_at <= $2
+          and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
         order by created_at, post_title
         """,
         corporate_entity_id,
@@ -254,13 +257,15 @@ async def _snapshot_member_posts(
     try:
         return list(
             await conn.fetch(
-                """
+                f"""
                 select post.post_id, post.post_title, post.created_at,
                        post.visibility_code, post.corporate_entity_id,
                        post.process_unit_id, post.thread_group_key,
                        post.secondary_grouping_key
                 from analysis_source_snapshot_member member
-                join source_post post on post.post_id = member.source_post_id
+                join source_post post
+                  on post.post_id = member.source_post_id
+                 and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
                 where member.analysis_source_snapshot_id = $1
                 order by post.created_at, post.post_title
                 """,

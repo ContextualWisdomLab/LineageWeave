@@ -15,6 +15,7 @@ from typing import Any, Mapping
 
 import asyncpg
 
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge, Record
 
@@ -76,7 +77,7 @@ async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
     rows = await conn.fetch(
         "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
         "process_unit_id, thread_group_key, secondary_grouping_key "
-        "from source_post"
+        f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
     )
     edges = lineage_edge_specs(records_from_source_posts(rows))
     await persist_lineage_edges(conn, edges)
@@ -97,7 +98,7 @@ async def visible_lineage_graph(
     posts = await conn.fetch(
         "select post_id, post_title, voc_type_code, visibility_code, "
         "corporate_entity_id, process_unit_id, thread_group_key, created_at "
-        "from source_post"
+        f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
     )
     visible_all = [row for row in posts if can_see_post(row)]
     visible = sorted(
