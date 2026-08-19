@@ -22,6 +22,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
@@ -36,12 +37,22 @@ def _parser() -> argparse.ArgumentParser:
         "--target-dsn",
         default=os.environ.get("DATABASE_URL", "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"),
     )
-    parser.add_argument("--post-id", action="append", required=True, dest="post_ids")
+    parser.add_argument("--post-id", action="append", dest="post_ids")
+    parser.add_argument("--limit", type=int, default=5)
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="process every eligible post without persisted content units",
+    )
     return parser
 
 
-async def backfill_post_content(target_dsn: str, raw_post_ids: list[str]) -> dict[str, int]:
-    post_ids = [str(uuid.UUID(post_id)) for post_id in dict.fromkeys(raw_post_ids)]
+async def backfill_post_content(
+    target_dsn: str,
+    raw_post_ids: list[str] | None,
+    limit: int | None,
+) -> dict[str, int]:
+    post_ids = [str(uuid.UUID(post_id)) for post_id in dict.fromkeys(raw_post_ids or [])]
     vision_client = orchestrator_vision_client(
         os.environ.get("ORCHESTRATOR_BASE_URL", ""),
         os.environ.get("ORCHESTRATOR_API_KEY", ""),
@@ -64,8 +75,18 @@ async def backfill_post_content(target_dsn: str, raw_post_ids: list[str]) -> dic
     )
     conn = await asyncpg.connect(target_dsn)
     try:
+        conditions = [SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")]
+        query_args: list[object] = []
+        if post_ids:
+            conditions.append("post.post_id = any($1::uuid[])")
+            query_args.append(post_ids)
+        else:
+            conditions.append(
+                "not exists (select 1 from post_content_unit unit where unit.post_id = post.post_id)"
+            )
+        limit_sql = "" if limit is None else f" limit {int(limit)}"
         rows = await conn.fetch(
-            """
+            f"""
             select post.post_id, post.post_title, post.post_body, post.author_account_id,
                    post.source_process_unit_code, post.source_author_code,
                    post.source_company_code, post.source_customer_code,
@@ -74,15 +95,18 @@ async def backfill_post_content(target_dsn: str, raw_post_ids: list[str]) -> dic
               from source_post post
               left join corporate_entity entity
                 on entity.corporate_entity_id = post.corporate_entity_id
-             where post.post_id = any($1::uuid[])
+             where {' and '.join(conditions)}
+             order by post.created_at, post.post_id
+             {limit_sql}
             """,
-            post_ids,
+            *query_args,
         )
-        if len(rows) != len(post_ids):
+        if post_ids and len(rows) != len(post_ids):
             raise ValueError("one or more requested post IDs were not found")
 
         result = {
             "requested_posts": len(post_ids),
+            "selected_posts": len(rows),
             "processed_posts": 0,
             "described_posts": 0,
             "described_images": 0,
@@ -131,7 +155,17 @@ async def backfill_post_content(target_dsn: str, raw_post_ids: list[str]) -> dic
 
 def main() -> None:
     args = _parser().parse_args()
-    print(json.dumps(asyncio.run(backfill_post_content(args.target_dsn, args.post_ids)), sort_keys=True))
+    if args.limit < 1:
+        raise SystemExit("--limit must be positive")
+    if args.all and args.post_ids:
+        raise SystemExit("--all cannot be combined with --post-id")
+    limit = None if args.all or args.post_ids else args.limit
+    print(
+        json.dumps(
+            asyncio.run(backfill_post_content(args.target_dsn, args.post_ids, limit)),
+            sort_keys=True,
+        )
+    )
 
 
 if __name__ == "__main__":
