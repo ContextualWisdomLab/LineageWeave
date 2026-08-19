@@ -94,6 +94,10 @@ import {
   useLocale,
 } from "./i18n";
 import { isoWeekFromCreatedAt, latestIsoWeek } from "./isoWeek";
+import {
+  analysisRunTargetClock,
+  type AnalysisRunNavigationContext,
+} from "./analysisRunNavigation";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -2396,6 +2400,7 @@ function analysisRunDigestPrefix(digest: string): string {
 type SelectPostOptions = {
   liveAfterCutoff?: boolean;
   knowledgeCutoff?: string;
+  analysisRunContext?: AnalysisRunNavigationContext;
   fromReportMember?: boolean;
   fromWeeklyVoc?: boolean;
   fromCalendar?: boolean;
@@ -2561,10 +2566,13 @@ function analysisRunReportPeriod(run: AnalysisRun): string | null {
  * title is marked rewritten after this run.
  */
 function analysisRunPostOpenOptions(run: AnalysisRun, postId: string): SelectPostOptions {
-  const post = run.visible_posts?.find((item) => item.post_id === postId);
-  return {
-    liveAfterCutoff: Boolean(post?.live_after_cutoff),
+  const analysisRunContext: AnalysisRunNavigationContext = {
     knowledgeCutoff: run.knowledge_cutoff,
+    visiblePosts: run.visible_posts ?? [],
+  };
+  return {
+    ...analysisRunTargetClock(analysisRunContext, postId),
+    analysisRunContext,
   };
 }
 
@@ -2888,10 +2896,10 @@ function AnalysisRunsPanel({
                       className="keyman-select"
                       aria-label={analysisRunLivePostButtonLabel(post)}
                       onClick={() =>
-                        onSelectPost(post.post_id, {
-                          liveAfterCutoff: Boolean(post.live_after_cutoff),
-                          knowledgeCutoff: selected.knowledge_cutoff,
-                        })
+                        onSelectPost(
+                          post.post_id,
+                          analysisRunPostOpenOptions(selected, post.post_id),
+                        )
                       }
                     >
                       {post.post_title}
@@ -3465,6 +3473,8 @@ function PostList({
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [openedAfterCutoff, setOpenedAfterCutoff] = useState(false);
   const [openedCutoffIso, setOpenedCutoffIso] = useState<string | null>(null);
+  const [openedAnalysisRunContext, setOpenedAnalysisRunContext] =
+    useState<AnalysisRunNavigationContext | null>(null);
   const [canRebuild, setCanRebuild] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
@@ -3527,6 +3537,7 @@ function PostList({
     setSelectedPostId(postId);
     setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
+    setOpenedAnalysisRunContext(options?.analysisRunContext ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
     setOpenedFromWeeklyVoc(Boolean(options?.fromWeeklyVoc));
     setOpenedFromCalendar(Boolean(options?.fromCalendar));
@@ -3554,6 +3565,7 @@ function PostList({
     setSelectedPostId(null);
     setOpenedAfterCutoff(false);
     setOpenedCutoffIso(null);
+    setOpenedAnalysisRunContext(null);
     setOpenedFromReportMember(false);
     setOpenedFromWeeklyVoc(false);
     setOpenedFromCalendar(false);
@@ -4002,15 +4014,20 @@ function PostList({
             openedFromAskAgent
           }
           onClose={closeSelectedPost}
-          onSelectPost={(postId) =>
+          onSelectPost={(postId) => {
+            const cutoffOptions = openedAnalysisRunContext
+              ? analysisRunTargetClock(openedAnalysisRunContext, postId)
+              : {};
             selectPost(postId, {
+              ...cutoffOptions,
+              analysisRunContext: openedAnalysisRunContext ?? undefined,
               fromReportMember: openedFromReportMember,
               fromWeeklyVoc: openedFromWeeklyVoc,
               fromCalendar: openedFromCalendar,
               fromCustomerMaster: openedFromCustomerMaster,
               fromAskAgent: openedFromAskAgent,
-            })
-          }
+            });
+          }}
           onSearch={searchBoard}
         />
       )}
