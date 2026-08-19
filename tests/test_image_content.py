@@ -9,6 +9,8 @@ from lineageweave.image_content import (
     ImageDescriptionParseError,
     NullImageContentClient,
     OpenAiCompatibleVisionClient,
+    _RESPONSE_FORMAT,
+    _REGION_RESPONSE_FORMAT,
     _parse_description,
     extract_base64_images,
     orchestrator_vision_client,
@@ -80,6 +82,21 @@ def test_parse_description_preserves_multiline_ocr_text() -> None:
     description = _parse_description(content)
     assert description.extracted_text == "Line one\nLine two\nLine three"
     assert description.caption == "A scanned page."
+
+
+def test_parse_description_preserves_table_row_structure_in_ocr_text() -> None:
+    """Live gap (2026-08-19): an image containing a table used to have its
+    text flattened into an unstructured word list on OCR, the same
+    row-grouping loss chunk_by_dom had for real HTML tables. The parser
+    already preserves multi-line TEXT (see the sibling test above); this
+    confirms a table-shaped response -- one row per line, columns
+    delimited by " | " per the response-format prompt -- round-trips intact.
+    """
+    content = "TEXT: No. | Company | Result\n1 | Acme Corp | Declined\n2 | Globex Corp | Interested\nCAPTION: A visit log table.\nTAGS: table, log"
+    description = _parse_description(content)
+    assert description.extracted_text == (
+        "No. | Company | Result\n1 | Acme Corp | Declined\n2 | Globex Corp | Interested"
+    )
 
 
 def test_parse_description_tolerates_markdown_emphasis_on_labels() -> None:
@@ -196,6 +213,24 @@ def test_image_content_client_protocol_stub_raises() -> None:
     """
     with pytest.raises(NotImplementedError):
         ImageContentClient.describe(None, b"", "image/png")  # type: ignore[arg-type]
+
+
+def test_ocr_prompt_asks_for_table_row_structure() -> None:
+    """Live gap (2026-08-19): the OCR prompt had no guidance for a
+    table-shaped image, so a real table image had its text flattened into
+    an unstructured list -- the same class of bug chunk_by_dom had for
+    real HTML tables. The prompt must tell the model to preserve rows.
+    """
+    assert "row" in _RESPONSE_FORMAT.lower()
+    assert "table" in _RESPONSE_FORMAT.lower()
+
+
+def test_region_prompt_requires_full_image_coverage() -> None:
+    """Live gap (2026-08-19): "distinct meaningful visual regions" alone
+    let the model describe only the most visually striking part of an
+    image and skip the rest, instead of covering the whole DOM/image area.
+    """
+    assert "entire image" in _REGION_RESPONSE_FORMAT.lower()
 
 
 def test_parse_description_does_not_absorb_unknown_labels_into_tags() -> None:

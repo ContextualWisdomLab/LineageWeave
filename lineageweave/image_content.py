@@ -153,12 +153,19 @@ class NullImageContentClient:
 
 _RESPONSE_FORMAT = (
     "Examine this image. Reply with EXACTLY three lines, no extra commentary:\n"
-    "TEXT: <all legible text in the image, verbatim, or NONE if there is none>\n"
+    "TEXT: <all legible text in the image, verbatim, or NONE if there is none. "
+    "If the image contains a table, preserve its row/column structure: one row "
+    "per line, with ' | ' between that row's cell values, in reading order -- "
+    "never flatten a table into an unstructured word list.>\n"
     "CAPTION: <one sentence describing what the image shows>\n"
     "TAGS: <comma-separated short tags for the main objects/subjects>"
 )
 _REGION_RESPONSE_FORMAT = (
     "Find distinct meaningful visual regions in this image for separate OCR and description. "
+    "The returned regions must collectively cover the entire image, edge to edge -- "
+    "do not stop at only the most visually striking parts and omit the rest; a "
+    "plain-looking area (a table, a block of body text) still needs its own "
+    "region if no existing region already covers it. "
     "Return JSON only in this exact shape: "
     '{"regions":[{"x":0.0,"y":0.0,"width":1.0,"height":1.0}]} . '
     "Coordinates are normalized to 0..1, omit decorative borders, and return at most 12 regions."
