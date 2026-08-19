@@ -440,7 +440,7 @@ async def fetch_reconstructed_edges(
     if header is None:
         return None, []
     rows = await conn.fetch(
-        """
+        f"""
         select
           edge.parent_post_id,
           parent_post.post_title as parent_post_title,

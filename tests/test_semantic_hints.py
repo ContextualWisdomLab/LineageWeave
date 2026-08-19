@@ -1,4 +1,10 @@
-from lineageweave.semantic_hints import format_semantic_hints
+from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hints
+
+
+def test_customer_hint_trust_marks_generic_values_weak() -> None:
+    assert customer_hint_trust("미등록고객") == "low"
+    assert customer_hint_trust("Named customer", "other") == "low"
+    assert customer_hint_trust("Named customer") == "normal"
 
 
 def test_semantic_hints_keep_explicit_project_pool_and_author_sources() -> None:

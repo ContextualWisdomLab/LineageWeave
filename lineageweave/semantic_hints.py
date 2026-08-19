@@ -18,6 +18,12 @@ def _value(value: str | None) -> str:
     return value.strip() if isinstance(value, str) and value.strip() else "none"
 
 
+def customer_hint_trust(*values: str | None) -> str:
+    """Classify source customer values without resolving them to a catalog entity."""
+    normalized = {value.strip().casefold() for value in values if isinstance(value, str) and value.strip()}
+    return "low" if normalized & _WEAK_CUSTOMER_VALUES else "normal"
+
+
 def format_semantic_hints(
     *,
     author_name: str | None,
@@ -61,7 +67,7 @@ def format_semantic_hints(
         )
     )
     customer = _value(None if source_context else customer_name)
-    customer_trust = "low" if customer.casefold() in _WEAK_CUSTOMER_VALUES else "normal"
+    customer_trust = customer_hint_trust(customer)
     affiliations = sorted(
         {
             _value(value)
@@ -97,9 +103,7 @@ def format_semantic_hints(
     source_customer_name_trust = (
         "none"
         if source_customer_name_value == "none"
-        else "low"
-        if source_customer_name_value.casefold() in _WEAK_CUSTOMER_VALUES
-        else "normal"
+        else customer_hint_trust(source_customer_code, source_customer_name)
     )
     return "; ".join(
         (

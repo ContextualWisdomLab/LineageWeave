@@ -3922,6 +3922,7 @@ function CustomerMasterPanel({
                 <strong>{hint.customer_name ?? hint.customer_code ?? t("Unresolved source identifier")}</strong>
                 {hint.customer_name && hint.customer_code ? <span>{hint.customer_code}</span> : null}
                 <span>{t("Unresolved source identifier")}</span>
+                <span>{t(hint.hint_trust === "low" ? "Weak source hint" : "Source hint")}</span>
                 <span>{hint.post_count} {t("posts")}</span>
                 {hint.related_posts.length > 0 ? (
                   <ul aria-label={`${t("Related posts")}: ${hint.customer_name ?? hint.customer_code ?? t("Unresolved source identifier")}`}>

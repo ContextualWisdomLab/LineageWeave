@@ -1151,6 +1151,7 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
                 }
             ],
             "resolution_status": "hint_only",
+            "hint_trust": "normal",
             "provenance": "source_post.source_customer_code/source_post.source_customer_name",
         }
     ]

@@ -393,6 +393,7 @@ export interface SourceCustomerHint {
   post_count: number;
   related_posts: LinkedPostRef[];
   resolution_status: string;
+  hint_trust: string;
   provenance: string;
 }
 

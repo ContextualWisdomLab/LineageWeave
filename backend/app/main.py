@@ -73,7 +73,7 @@ from lineageweave.post_evaluation import (
 )
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
-from lineageweave.semantic_hints import format_semantic_hints
+from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hints
 from lineageweave.ontology import LW
 from lineageweave.rankweave_client import build_rankweave_client
 
@@ -824,6 +824,7 @@ async def read_customer_master(
                     else row["related_posts"] or []
                 ),
                 "resolution_status": "hint_only",
+                "hint_trust": customer_hint_trust(row["customer_name"], row["customer_code"]),
                 "provenance": "source_post.source_customer_code/source_post.source_customer_name",
             }
             for row in source_customer_rows
