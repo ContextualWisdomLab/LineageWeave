@@ -27,13 +27,22 @@ from backend.app.db import get_pool
 from lineageweave.http_client import HttpClientError, get_json
 
 _bearer_scheme = HTTPBearer(auto_error=True)
-_jwks_cache: dict[str, dict] = {}
+_jwks_cache: dict[tuple[str, str, str], dict] = {}
 
 
-def _jwks(settings: Settings) -> dict:
-    """Return the configured OIDC provider's JWKS, cached by issuer."""
-    cache_key = settings.oidc_issuer
-    cached = _jwks_cache.get(cache_key)
+def _jwks_cache_key(settings: Settings) -> tuple[str, str, str]:
+    """Bind cached keys to the exact issuer and key-discovery configuration."""
+    return (
+        settings.oidc_issuer,
+        settings.oidc_discovery_uri,
+        settings.oidc_jwks_uri_override,
+    )
+
+
+def _jwks(settings: Settings, *, force_refresh: bool = False) -> dict:
+    """Return provider JWKS, refreshing explicitly when signing keys rotate."""
+    cache_key = _jwks_cache_key(settings)
+    cached = None if force_refresh else _jwks_cache.get(cache_key)
     if cached is None:
         try:
             if settings.oidc_jwks_uri_override:
@@ -85,6 +94,16 @@ def _signing_key_from_jwks(jwks: dict, token: str):
     raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"no JWKS key matched kid={kid!r}")
 
 
+def _signing_key(settings: Settings, token: str):
+    """Resolve a signing key and refresh JWKS once when a new ``kid`` appears."""
+    try:
+        return _signing_key_from_jwks(_jwks(settings), token)
+    except HTTPException as exc:
+        if not str(exc.detail).startswith("no JWKS key matched kid="):
+            raise
+    return _signing_key_from_jwks(_jwks(settings, force_refresh=True), token)
+
+
 @dataclass(frozen=True)
 class CurrentAccount:
     """The provisioned account that a verified access token resolved to."""
@@ -104,10 +123,9 @@ class CurrentAccount:
 def _decode_access_token(token: str, settings: Settings) -> dict:
     """Validate signature, issuer, resource audience, time claims, and subject."""
     try:
-        signing_key = _signing_key_from_jwks(_jwks(settings), token)
         claims = jwt.decode(
             token,
-            key=signing_key,
+            key=_signing_key(settings, token),
             algorithms=["RS256"],
             issuer=settings.oidc_issuer,
             audience=settings.oidc_audience,
