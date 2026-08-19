@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Reuse the upstream implementation without copying it into LineageWeave.
 # The archive is pinned to the main commit used by this integration.
-ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/4cf6114.tar.gz /tmp/contextual-orchestrator.tar.gz
+ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/f16c751.tar.gz /tmp/contextual-orchestrator.tar.gz
 RUN mkdir /tmp/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 -C /tmp/contextual-orchestrator \
     && cp -R /tmp/contextual-orchestrator/contextual_orchestrator /app/contextual_orchestrator \

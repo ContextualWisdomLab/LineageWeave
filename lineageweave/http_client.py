@@ -19,6 +19,8 @@ from urllib.parse import urlencode, urlparse
 
 import certifi
 
+from .llm_context import current_llm_metadata
+
 # Some interpreter distributions don't reliably inherit the OS trust store.
 # Pointing at certifi keeps full chain validation without weakening TLS.
 _SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
@@ -110,10 +112,21 @@ def post_json(
         ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
         HttpClientError: the server responded with HTTP >= 400 or non-JSON.
     """
+    request_payload = payload
+    request_metadata = current_llm_metadata()
+    if request_metadata:
+        request_payload = dict(payload)
+        existing_metadata = request_payload.get("metadata")
+        if existing_metadata is None:
+            request_payload["metadata"] = request_metadata
+        elif isinstance(existing_metadata, dict):
+            request_payload["metadata"] = {**existing_metadata, **request_metadata}
+        else:
+            raise ValueError("metadata must be an object")
     status, raw = _request(
         "POST",
         url,
-        body=json.dumps(payload).encode("utf-8"),
+        body=json.dumps(request_payload).encode("utf-8"),
         headers={"content-type": "application/json", **headers},
         timeout=timeout,
     )

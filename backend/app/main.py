@@ -47,6 +47,7 @@ from lineageweave.entity_relationship_classification import (
 )
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.embedding_client import orchestrator_embedding_client
+from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.corporate_hierarchy_inference import (
     ContextualOrchestratorHierarchyInferenceClient,
     NullCorporateHierarchyInferenceClient,
@@ -1313,8 +1314,20 @@ async def _load_visible_post(
     _require_post_read(account)
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "select post_id, post_title, voc_type_code, visibility_code, corporate_entity_id, created_at "
-            f"from source_post where post_id = $1 and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
+            """
+            select source_post.post_id, source_post.post_title, source_post.voc_type_code,
+                   source_post.visibility_code, source_post.corporate_entity_id,
+                   source_post.created_at, source_post.author_account_id,
+                   source_post.source_process_unit_code, source_post.source_author_code,
+                   source_post.source_company_code, source_post.source_customer_code,
+                   source_post.source_project_code, source_post.source_sales_pool_code,
+                   customer.corporate_entity_code
+              from source_post
+              left join corporate_entity customer
+                on customer.corporate_entity_id = source_post.corporate_entity_id
+             where source_post.post_id = $1
+               and """
+            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
             post_id,
         )
     if row is None:
@@ -1705,45 +1718,44 @@ async def extract_post_keymen(
     """
     _require_post_admin(account)
     post = await _load_visible_post(post_id, account, pool)
-    keyman_client = _keyman_extraction_client()
-    if not keyman_client.available:
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Keymen extraction is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
-        )
-    relationship_client = _entity_relationship_client()
-    async with pool.acquire() as conn:
-        body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-        raw_body = "" if body_row is None else body_row["post_body"]
-        # HTML/base64-image content must never reach an LLM prompt raw --
-        # tags dilute the model's attention and a base64 payload sent as
-        # literal text either blows the token budget or is silently
-        # ignored (see lineageweave/post_content_normalization.py).
-        post_body = normalize_post_body(raw_body, vision_client=_vision_client()).text
-        context_hints = await _load_post_semantic_hints(conn, post_id)
-        mentions = await ingest_post_keymen(
-            conn,
-            keyman_client,
-            post_id,
-            post["post_title"],
-            post_body,
-            resolution_client=_organization_name_resolution_client(),
-            verification_client=_relation_verification_client(),
-            hierarchy_inference_client=_corporate_hierarchy_inference_client(),
-            context_hints=context_hints,
-            persist_graph=False,
-        )
-        organization_names = sorted(
-            {name for mention in mentions for name in mention.affiliated_organization_names}
-        )
-        # relationship_client is gated by the same settings check as
-        # keyman_client above (both read ORCHESTRATOR_BASE_URL/_API_KEY),
-        # so reaching here means it is available too.
-        relationships = await ingest_post_entity_relationships(
-            conn, relationship_client, post_id, post["post_title"], post_body, organization_names
-        )
-        async with conn.transaction():
-            await persist_edges_for_post(conn, post_id)
+    post_metadata = build_post_llm_metadata(post_id, post)
+    with use_llm_metadata(post_metadata):
+        keyman_client = _keyman_extraction_client()
+        if not keyman_client.available:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Keymen extraction is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+            )
+        relationship_client = _entity_relationship_client()
+        async with pool.acquire() as conn:
+            body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
+            raw_body = "" if body_row is None else body_row["post_body"]
+            # HTML/base64-image content must never reach an LLM prompt raw --
+            # tags dilute the model's attention and a base64 payload sent as
+            # literal text either blows the token budget or is silently
+            # ignored (see lineageweave/post_content_normalization.py).
+            post_body = normalize_post_body(raw_body, vision_client=_vision_client()).text
+            context_hints = await _load_post_semantic_hints(conn, post_id)
+            mentions = await ingest_post_keymen(
+                conn,
+                keyman_client,
+                post_id,
+                post["post_title"],
+                post_body,
+                resolution_client=_organization_name_resolution_client(),
+                verification_client=_relation_verification_client(),
+                hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+                context_hints=context_hints,
+                persist_graph=False,
+            )
+            organization_names = sorted(
+                {name for mention in mentions for name in mention.affiliated_organization_names}
+            )
+            relationships = await ingest_post_entity_relationships(
+                conn, relationship_client, post_id, post["post_title"], post_body, organization_names
+            )
+            async with conn.transaction():
+                await persist_edges_for_post(conn, post_id)
     return {
         "post_id": str(post["post_id"]),
         "extracted_count": len(mentions),
@@ -1850,21 +1862,23 @@ async def evaluate_post(
     """
     _require_post_admin(account)
     post = await _load_visible_post(post_id, account, pool)
-    client = _post_evaluation_client()
-    if not client.available:
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Post evaluation is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
-        )
-    async with pool.acquire() as conn:
-        body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-    normalized_body = normalize_post_body(
-        "" if body_row is None else body_row["post_body"], vision_client=_vision_client()
-    ).text
-    async with pool.acquire() as conn:
-        rows = await ingest_post_evaluation(
-            conn, client, post_id, post["post_title"], normalized_body
-        )
+    post_metadata = build_post_llm_metadata(post_id, post)
+    with use_llm_metadata(post_metadata):
+        client = _post_evaluation_client()
+        if not client.available:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Post evaluation is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+            )
+        async with pool.acquire() as conn:
+            body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
+        normalized_body = normalize_post_body(
+            "" if body_row is None else body_row["post_body"], vision_client=_vision_client()
+        ).text
+        async with pool.acquire() as conn:
+            rows = await ingest_post_evaluation(
+                conn, client, post_id, post["post_title"], normalized_body
+            )
     return {
         "post_id": str(post["post_id"]),
         "rubric_version": RUBRIC_VERSION,
@@ -2012,6 +2026,7 @@ async def read_post_summary(
     fabricated summary.
     """
     post = await _load_visible_post(post_id, account, pool)
+    post_metadata = build_post_llm_metadata(post_id, post)
     async with pool.acquire() as conn:
         body_row = await conn.fetchrow(
             "select post_body from source_post where post_id = $1", post_id
@@ -2025,49 +2040,50 @@ async def read_post_summary(
         stored = await fetch_persisted_summary(conn, post_id)
         if stored is not None:
             return stored
-        client = _post_summary_client()
-        if not client.available:
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
-            )
-        vision_client = _vision_client()
-        normalized = normalize_post_body(raw_body, vision_client=vision_client)
-        settings = load_settings()
-        embedding_client = _embedding_client()
-        if vision_client.available or embedding_client.available:
-            await persist_post_content(
+        with use_llm_metadata(post_metadata):
+            client = _post_summary_client()
+            if not client.available:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                )
+            vision_client = _vision_client()
+            normalized = normalize_post_body(raw_body, vision_client=vision_client)
+            settings = load_settings()
+            embedding_client = _embedding_client()
+            if vision_client.available or embedding_client.available:
+                await persist_post_content(
+                    conn,
+                    post_id,
+                    raw_body,
+                    vision_client=vision_client,
+                    embedding_client=embedding_client,
+                    embedding_model_code=settings.embedding_model or None,
+                    normalized_result=normalized,
+                )
+            normalized_body = normalized.text
+            context_hints = await _load_post_semantic_hints(conn, post_id)
+            summarize_with_hints = getattr(client, "summarize_with_hints", None)
+            try:
+                if callable(summarize_with_hints):
+                    summary = await asyncio.to_thread(
+                        summarize_with_hints, post["post_title"], normalized_body, context_hints
+                    )
+                else:
+                    summary = await asyncio.to_thread(client.summarize, post["post_title"], normalized_body)
+            except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
+                ) from exc
+            return await persist_post_summary(
                 conn,
                 post_id,
-                raw_body,
-                vision_client=vision_client,
-                embedding_client=embedding_client,
-                embedding_model_code=settings.embedding_model or None,
-                normalized_result=normalized,
+                summary,
+                post_body=normalized_body,
+                hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+                verification_client=_relation_verification_client(),
             )
-        normalized_body = normalized.text
-        context_hints = await _load_post_semantic_hints(conn, post_id)
-        summarize_with_hints = getattr(client, "summarize_with_hints", None)
-        try:
-            if callable(summarize_with_hints):
-                summary = await asyncio.to_thread(
-                    summarize_with_hints, post["post_title"], normalized_body, context_hints
-                )
-            else:
-                summary = await asyncio.to_thread(client.summarize, post["post_title"], normalized_body)
-        except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
-            ) from exc
-        return await persist_post_summary(
-            conn,
-            post_id,
-            summary,
-            post_body=normalized_body,
-            hierarchy_inference_client=_corporate_hierarchy_inference_client(),
-            verification_client=_relation_verification_client(),
-        )
 
 
 @app.get("/api/posts/{post_id}/five-w1h")
@@ -2137,7 +2153,8 @@ async def chat_about_post(
     question = request.question.strip()
     if not question:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
-    await _load_visible_post(post_id, account, pool)
+    post = await _load_visible_post(post_id, account, pool)
+    post_metadata = build_post_llm_metadata(post_id, post)
     async with pool.acquire() as conn:
         stored = await fetch_persisted_chat(conn, post_id, question)
         if stored is not None:
@@ -2150,17 +2167,19 @@ async def chat_about_post(
                 "cited_posts": stored["cited_posts"],
                 "source_post_ids": source_ids,
             }
-        client = _post_chat_client()
-        if not client.available:
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Post chat is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+        with use_llm_metadata(post_metadata):
+            client = _post_chat_client()
+            if not client.available:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post chat is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+                )
+            sources = await gather_chat_sources(
+                conn, post_id, lambda row: _can_see_post(account, row), vision_client=_vision_client()
             )
-        sources = await gather_chat_sources(
-            conn, post_id, lambda row: _can_see_post(account, row), vision_client=_vision_client()
-        )
     try:
-        answer = await asyncio.to_thread(client.answer, question, sources)
+        with use_llm_metadata(post_metadata):
+            answer = await asyncio.to_thread(client.answer, question, sources)
     except (HttpClientError, KeyError, OSError, ValueError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -2437,20 +2456,22 @@ async def derive_post_commitment(
     """
     _require_post_admin(account)
     post = await _load_visible_post(post_id, account, pool)
-    client = _commitment_extraction_client()
-    if not client.available:
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Commitment derivation is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
-        )
-    async with pool.acquire() as conn:
-        body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-    normalized_body = normalize_post_body(body_row["post_body"], vision_client=_vision_client()).text
-    # TimeML/TempEval document creation time, not wall-clock now: "by next
-    # Friday" in a January post must resolve to that January, not to the
-    # Friday after the operator clicked Derive.
-    reference_date = post["created_at"].date().isoformat()
-    commitment = client.extract(post["post_title"], normalized_body, reference_date)
+    post_metadata = build_post_llm_metadata(post_id, post)
+    with use_llm_metadata(post_metadata):
+        client = _commitment_extraction_client()
+        if not client.available:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Commitment derivation is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
+            )
+        async with pool.acquire() as conn:
+            body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
+        normalized_body = normalize_post_body(body_row["post_body"], vision_client=_vision_client()).text
+        # TimeML/TempEval document creation time, not wall-clock now: "by next
+        # Friday" in a January post must resolve to that January, not to the
+        # Friday after the operator clicked Derive.
+        reference_date = post["created_at"].date().isoformat()
+        commitment = client.extract(post["post_title"], normalized_body, reference_date)
     if not commitment.has_commitment:
         return {"post_id": str(post["post_id"]), "has_commitment": False, "ticket": None}
     async with pool.acquire() as conn:

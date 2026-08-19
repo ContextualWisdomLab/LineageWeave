@@ -30,6 +30,7 @@ from backend.app.lineage_ingestion import rebuild_lineage
 from lineageweave.synthetic_seed_cleanup import cleanup_synthetic_seed
 from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.image_content import orchestrator_vision_client
+from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_persistence import persist_post_content
 
 
@@ -464,14 +465,27 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 body,
                 updated_at,
             )
-            await persist_post_content(
-                target,
+            metadata = build_post_llm_metadata(
                 str(post_id),
-                body,
-                vision_client=vision_client,
-                embedding_client=embedding_client,
-                embedding_model_code=args.embedding_model or None,
+                {
+                    "author_account_id": account_id,
+                    "source_process_unit_code": _value(row, mapping.source_business_unit),
+                    "source_author_code": _value(row, mapping.author_code),
+                    "source_company_code": _value(row, mapping.company_code),
+                    "source_customer_code": _value(row, mapping.customer_code),
+                    "source_project_code": _value(row, mapping.project_code),
+                    "source_sales_pool_code": _value(row, mapping.sales_pool),
+                },
             )
+            with use_llm_metadata(metadata):
+                await persist_post_content(
+                    target,
+                    str(post_id),
+                    body,
+                    vision_client=vision_client,
+                    embedding_client=embedding_client,
+                    embedding_model_code=args.embedding_model or None,
+                )
             imported += 1
         cleanup = await cleanup_synthetic_seed(target, apply=True)
         edges = await rebuild_lineage(target)

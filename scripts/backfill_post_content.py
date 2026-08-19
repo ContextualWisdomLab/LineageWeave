@@ -24,6 +24,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
 
 from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.image_content import orchestrator_vision_client
+from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
 
@@ -56,7 +57,17 @@ async def backfill_post_content(target_dsn: str, raw_post_ids: list[str]) -> dic
     conn = await asyncpg.connect(target_dsn)
     try:
         rows = await conn.fetch(
-            "select post_id, post_body from source_post where post_id = any($1::uuid[])",
+            """
+            select post.post_id, post.post_body, post.author_account_id,
+                   post.source_process_unit_code, post.source_author_code,
+                   post.source_company_code, post.source_customer_code,
+                   post.source_project_code, post.source_sales_pool_code,
+                   entity.corporate_entity_code
+              from source_post post
+              left join corporate_entity entity
+                on entity.corporate_entity_id = post.corporate_entity_id
+             where post.post_id = any($1::uuid[])
+            """,
             post_ids,
         )
         if len(rows) != len(post_ids):
@@ -71,34 +82,35 @@ async def backfill_post_content(target_dsn: str, raw_post_ids: list[str]) -> dic
             "skipped_posts": 0,
         }
         for row in rows:
-            normalized = normalize_post_body(row["post_body"], vision_client=vision_client)
-            described_images = sum(item.status_code == "described" for item in normalized.image_results)
-            if described_images == 0:
-                result["skipped_posts"] += 1
-                continue
-            await persist_post_content(
-                conn,
-                str(row["post_id"]),
-                row["post_body"],
-                vision_client=vision_client,
-                embedding_client=embedding_client,
-                embedding_model_code=embedding_model or None,
-                normalized_result=normalized,
-            )
-            result["described_posts"] += 1
-            result["described_images"] += described_images
-            result["described_regions"] += sum(
-                len(item.regions) for item in normalized.image_results if item.status_code == "described"
-            )
-            result["embedding_rows"] += await conn.fetchval(
-                """
-                select count(*)
-                  from post_content_embedding embedding
-                  join post_content_unit unit using (post_content_unit_id)
-                 where unit.post_id = $1
-                """,
-                row["post_id"],
-            )
+            with use_llm_metadata(build_post_llm_metadata(str(row["post_id"]), row)):
+                normalized = normalize_post_body(row["post_body"], vision_client=vision_client)
+                described_images = sum(item.status_code == "described" for item in normalized.image_results)
+                if described_images == 0:
+                    result["skipped_posts"] += 1
+                    continue
+                await persist_post_content(
+                    conn,
+                    str(row["post_id"]),
+                    row["post_body"],
+                    vision_client=vision_client,
+                    embedding_client=embedding_client,
+                    embedding_model_code=embedding_model or None,
+                    normalized_result=normalized,
+                )
+                result["described_posts"] += 1
+                result["described_images"] += described_images
+                result["described_regions"] += sum(
+                    len(item.regions) for item in normalized.image_results if item.status_code == "described"
+                )
+                result["embedding_rows"] += await conn.fetchval(
+                    """
+                    select count(*)
+                      from post_content_embedding embedding
+                      join post_content_unit unit using (post_content_unit_id)
+                     where unit.post_id = $1
+                    """,
+                    row["post_id"],
+                )
         return result
     finally:
         await conn.close()
