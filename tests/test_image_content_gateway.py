@@ -4,11 +4,6 @@ from io import BytesIO
 from PIL import Image
 
 import lineageweave.image_content as image_content
-from lineageweave.image_content import (
-    NullImageContentClient,
-    OpenAiCompatibleVisionClient,
-    orchestrator_vision_client,
-)
 
 
 def _transparent_png() -> bytes:
@@ -34,7 +29,7 @@ def test_vision_gateway_normalizes_image_and_preserves_structured_response(monke
         }
 
     monkeypatch.setattr(image_content, "post_json", post_json)
-    client = OpenAiCompatibleVisionClient(
+    client = image_content.OpenAiCompatibleVisionClient(
         "http://orchestrator/v1", "gateway-key", "", allow_insecure_http=True
     )
 
@@ -56,13 +51,13 @@ def test_vision_gateway_normalizes_image_and_preserves_structured_response(monke
 
 
 def test_vision_factory_fails_closed_for_unsupported_url_scheme() -> None:
-    client = orchestrator_vision_client("ftp://orchestrator", "gateway-key", "vision-model")
-    assert isinstance(client, NullImageContentClient)
+    client = image_content.orchestrator_vision_client("ftp://orchestrator", "gateway-key", "vision-model")
+    assert isinstance(client, image_content.NullImageContentClient)
     assert client.available is False
 
 
 def test_vision_factory_allows_orchestrator_model_selection() -> None:
-    client = orchestrator_vision_client("http://orchestrator", "gateway-key")
+    client = image_content.orchestrator_vision_client("http://orchestrator", "gateway-key")
 
-    assert isinstance(client, OpenAiCompatibleVisionClient)
+    assert isinstance(client, image_content.OpenAiCompatibleVisionClient)
     assert client.available is True

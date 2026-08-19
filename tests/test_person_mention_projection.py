@@ -58,6 +58,15 @@ _SEMANTIC_PROJECT_MIGRATION = (
 _POST_SUMMARY_CONTRACT_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0040_post_summary_contract.sql"
 )
+_SEMANTIC_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0032_semantic_search_trigram.sql"
+)
+_SOURCE_STATE_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0033_source_state_provenance.sql"
+)
+_NORMALIZED_BODY_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0036_normalized_body_search.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -113,6 +122,9 @@ def projection_database() -> str:
             with connection.cursor() as cursor:
                 cursor.execute(_MIGRATION_PATH.read_text(encoding="utf-8"))
                 cursor.execute(_SEMANTIC_PROJECT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SEMANTIC_SEARCH_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SOURCE_STATE_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_NORMALIZED_BODY_SEARCH_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_POST_SUMMARY_CONTRACT_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(
                     """

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import subprocess
 import uuid
 from pathlib import Path
 
@@ -56,12 +57,15 @@ def migrated_db():
     admin_conn.close()
 
     db_dsn = _ADMIN_DSN.rsplit("/", 1)[0] + f"/{db_name}"
-    conn = psycopg2.connect(db_dsn)
-    conn.autocommit = True
-    with conn.cursor() as cur:
-        for migration in sorted(_MIGRATIONS_DIR.glob("*.sql")):
-            cur.execute(migration.read_text())
-    conn.close()
+    # psql, not psycopg2 cur.execute(), matches docker/postgres-init/migrate.sh:
+    # a few migrations use CREATE INDEX CONCURRENTLY, which errors under
+    # psycopg2's implicit multi-statement transaction wrapping but not under
+    # psql's one-statement-at-a-time execution of a -f file.
+    for migration in sorted(_MIGRATIONS_DIR.glob("*.sql")):
+        subprocess.run(
+            ["psql", "-X", "-v", "ON_ERROR_STOP=1", db_dsn, "-f", str(migration)],
+            check=True,
+        )
 
     yield db_dsn
 
@@ -80,6 +84,14 @@ def test_cleanup_deletes_only_entangled_synthetic_rows(migrated_db: str) -> None
     async def run() -> dict[str, int]:
         conn = await asyncpg.connect(migrated_db)
         try:
+            # 'corporate_entity_level'/'company' and 'voc_type'/'voc' are already
+            # seeded by migrations 0016 and 0042 respectively; inserting them again
+            # here would violate common_lookup_value's primary key.
+            await conn.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
+                "('post_visibility', 'public', 'Public'), "
+                "('entity_relationship_type', 'rel_voc', 'Voice of Customer')"
+            )
             demo_entity = await conn.fetchval(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
                 "values ('DEMO-CORP-01', 'Demo Corp', 'company') returning corporate_entity_id"
