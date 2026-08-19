@@ -28,6 +28,12 @@ from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 #: hitting an unbounded prompt for a hint shared by thousands of posts.
 _SAMPLE_POST_LIMIT = 5
 _EXCERPT_LENGTH = 1500
+#: Live bug (2026-08-19): a bulk-imported hint's posts can be pathological
+#: (a 12MB post_body seen in production), so this caps what's even
+#: transferred/parsed before normalize_post_body ever sees it -- relying
+#: on _EXCERPT_LENGTH's post-normalization slice alone still means
+#: fully parsing megabytes of raw HTML first.
+_RAW_BODY_SQL_CAP = 20000
 
 
 async def resolve_customer_hint(
@@ -49,11 +55,11 @@ async def resolve_customer_hint(
         return None
     rows = await conn.fetch(
         f"""
-        select post_title, post_body
+        select post_title, left(post_body, {_RAW_BODY_SQL_CAP}) as post_body
           from source_post
          where source_customer_code = $1
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
-         order by length(post_body) desc
+         order by created_at desc
          limit {_SAMPLE_POST_LIMIT}
         """,
         hint_code,
