@@ -3836,15 +3836,15 @@ function PostList({
                           {decodeHtmlEntities(post.post_body_excerpt || t("No post body."))}
                           {post.post_body_truncated ? " ..." : ""}
                         </span>
-                        <span className="post-meta">
-                          {t("Publication state")}: {t(
-                            post.publication_state_code === "source_draft_marker"
-                              ? "Source draft marker present"
-                              : post.publication_state_code === "source_deletion_marker"
-                                ? "Source deletion marker present"
-                                : "Publication state unknown",
-                          )}
-                        </span>
+                        {post.publication_state_code && post.publication_state_code !== "publication_state_unknown" ? (
+                          <span className="post-meta">
+                            {t("Publication state")}: {t(
+                              post.publication_state_code === "source_draft_marker"
+                                ? "Source draft marker present"
+                                : "Source deletion marker present",
+                            )}
+                          </span>
+                        ) : null}
                         {post.source_project_code ? (
                           <span className="post-meta">
                             {t("Source project code")}: {post.source_project_code}
