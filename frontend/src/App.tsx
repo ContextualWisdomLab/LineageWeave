@@ -4091,7 +4091,15 @@ function PostList({
           }
           focusAskOnLand={openedFromReportMember}
           onClose={closeSelectedPost}
-          onSelectPost={selectPost}
+          onSelectPost={(postId) =>
+            selectPost(postId, {
+              fromReportMember: openedFromReportMember,
+              fromWeeklyVoc: openedFromWeeklyVoc,
+              fromCalendar: openedFromCalendar,
+              fromCustomerMaster: openedFromCustomerMaster,
+              fromAskAgent: openedFromAskAgent,
+            })
+          }
           onSearch={searchBoard}
         />
       )}
