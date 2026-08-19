@@ -249,6 +249,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Rebuild lineage": "계보 다시 만들기",
     "Extracting...": "추출하는 중...",
     "Extract Keymen": "핵심 담당자 새로 고침",
+    Resolve: "해결",
+    "Resolving...": "해결하는 중...",
+    "This hint could not be resolved to a corroborated organization name.":
+      "이 힌트를 검증된 조직명으로 해결할 수 없습니다.",
     "Evaluating...": "평가하는 중...",
     "Evaluate post": "평가 새로 고침",
     "Verifying...": "확인하는 중...",
@@ -566,6 +570,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Rebuild lineage": "重建谱系",
     "Extracting...": "正在提取...",
     "Extract Keymen": "刷新关键联系人",
+    Resolve: "解析",
+    "Resolving...": "正在解析...",
+    "This hint could not be resolved to a corroborated organization name.":
+      "该线索无法解析为已验证的组织名称。",
     "Evaluating...": "正在评估...",
     "Evaluate post": "刷新评估",
     "Verifying...": "正在核验...",
@@ -898,6 +906,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Rebuild lineage": "系譜を再構築",
     "Extracting...": "抽出中...",
     "Extract Keymen": "キーパーソンを更新",
+    Resolve: "解決",
+    "Resolving...": "解決中...",
+    "This hint could not be resolved to a corroborated organization name.":
+      "このヒントは検証済みの組織名に解決できませんでした。",
     "Evaluating...": "評価中...",
     "Evaluate post": "評価を更新",
     "Verifying...": "確認中...",
@@ -1215,6 +1227,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Rebuild lineage": "Xây dựng lại dòng sự kiện",
     "Extracting...": "Đang trích xuất...",
     "Extract Keymen": "Làm mới người liên hệ chính",
+    Resolve: "Xử lý",
+    "Resolving...": "Đang xử lý...",
+    "This hint could not be resolved to a corroborated organization name.":
+      "Không thể xử lý gợi ý này thành tên tổ chức đã được xác minh.",
     "Evaluating...": "Đang đánh giá...",
     "Evaluate post": "Làm mới đánh giá",
     "Verifying...": "Đang kiểm tra...",

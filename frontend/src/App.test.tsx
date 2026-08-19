@@ -107,6 +107,7 @@ describe("App, authenticated", () => {
     let nextEventId = 1;
     let createdPendingLineage: Record<string, unknown> | null = null;
     let createdPendingTepp: Record<string, unknown> | null = null;
+    let resolvedHintCode: string | null = null;
 
     let releaseMe = () => {};
     const meReady = options?.deferMe
@@ -1548,10 +1549,10 @@ describe("App, authenticated", () => {
             source_customer_hints: options?.manyCustomerHints
               ? Array.from({ length: options.manyCustomerHints }, (_, index) => ({
                   customer_code: `CUST-${index}`,
-                  customer_name: null,
+                  customer_name: resolvedHintCode === `CUST-${index}` ? "Southfield Utilities" : null,
                   post_count: options.manyCustomerHints! - index,
                   related_posts: [],
-                  resolution_status: "hint_only",
+                  resolution_status: resolvedHintCode === `CUST-${index}` ? "resolved" : "hint_only",
                   hint_trust: "normal",
                   provenance: "source_post.source_customer_code",
                 }))
@@ -1578,6 +1579,18 @@ describe("App, authenticated", () => {
                 multi_role: false,
               },
             ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/customer-master/resolve-hint") && method === "POST") {
+        const body = JSON.parse(String(init?.body));
+        resolvedHintCode = body.hint_code;
+        return Promise.resolve(
+          jsonResponse({
+            corporate_entity_id: "corp-southfield",
+            entity_name: "Southfield Utilities",
+            linked_post_count: 3,
+            verification_evidence_url: "https://example.org/southfield",
           }),
         );
       }
@@ -1640,6 +1653,32 @@ describe("App, authenticated", () => {
     const soloRow = screen.getByText("Solo Role Corp").closest("li");
     expect(soloRow).not.toBeNull();
     expect(within(soloRow as HTMLElement).queryByText("Multiple roles observed")).not.toBeInTheDocument();
+  });
+
+  it("lets a post_admin account resolve an unresolved customer hint into a real name", async () => {
+    // Feature (2026-08-19): a Customer Master hint (an opaque customer
+    // code with no name) previously had no action at all -- a dead end
+    // even for an admin account. Resolving now creates/binds a real
+    // corporate_entity and the panel reloads to show the resolved name.
+    stubBackend({ admin: true, manyCustomerHints: 1 });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    expect(await screen.findByText("CUST-0")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Resolve" }));
+
+    expect(await screen.findByText("Southfield Utilities")).toBeInTheDocument();
+  });
+
+  it("hides the resolve action from an account without post_admin", async () => {
+    stubBackend({ manyCustomerHints: 1 });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    expect(await screen.findByText("CUST-0")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Resolve" })).not.toBeInTheDocument();
   });
 
   it("caps the observed customer identifier list instead of rendering all of them", async () => {

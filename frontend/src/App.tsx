@@ -14,6 +14,7 @@ import {
   fetchAnalysisRuns,
   fetchCalendar,
   fetchCustomerMaster,
+  resolveCustomerHint,
   fetchLineageGraph,
   fetchMe,
   fetchPost,
@@ -3999,14 +4000,51 @@ function CustomerMasterPanel({
   const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
   const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
   const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
+  const [resolvingHint, setResolvingHint] = useState<string | null>(null);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+  // Fetched independently, same pattern as PostList's own canRebuild --
+  // CustomerMasterPanel is a sibling of PostList under App, not a child,
+  // so it cannot read PostList's local post_admin check.
+  const [canResolveHints, setCanResolveHints] = useState(false);
 
   useEffect(() => {
-    setMaster(null);
+    let active = true;
+    fetchMe(accessToken)
+      .then((member) => {
+        if (active) setCanResolveHints(member.permission_codes.includes("post_admin"));
+      })
+      .catch(() => {
+        if (active) setCanResolveHints(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [accessToken]);
+
+  const loadMaster = useCallback(() => {
     setError(null);
-    fetchCustomerMaster(accessToken)
+    return fetchCustomerMaster(accessToken)
       .then(setMaster)
       .catch(() => setError(t("Customer master could not be loaded.")));
   }, [accessToken]);
+
+  useEffect(() => {
+    setMaster(null);
+    void loadMaster();
+  }, [loadMaster]);
+
+  async function handleResolveHint(hintCode: string) {
+    setResolvingHint(hintCode);
+    setResolveError(null);
+    try {
+      await resolveCustomerHint(accessToken, hintCode);
+      await loadMaster();
+    } catch {
+      setResolveError(t("This hint could not be resolved to a corroborated organization name."));
+    } finally {
+      setResolvingHint(null);
+    }
+  }
 
   async function toggleEntity(entityId: string) {
     if (expandedEntityId === entityId) {
@@ -4118,6 +4156,7 @@ function CustomerMasterPanel({
               })}
             </p>
           )}
+          {resolveError ? <p className="error">{resolveError}</p> : null}
           <ul className="customer-master-list">
             {master.source_customer_hints.slice(0, HINT_RENDER_LIMIT).map((hint) => (
               <li key={`${hint.customer_code ?? "name"}:${hint.customer_name ?? "unknown"}`}>
@@ -4126,6 +4165,14 @@ function CustomerMasterPanel({
                 <span>{t("Unresolved source identifier")}</span>
                 <span>{t(hint.hint_trust === "low" ? "Weak source hint" : "Source hint")}</span>
                 <span>{hint.post_count} {t("posts")}</span>
+                {canResolveHints && hint.customer_code ? (
+                  <button
+                    onClick={() => void handleResolveHint(hint.customer_code as string)}
+                    disabled={resolvingHint === hint.customer_code}
+                  >
+                    {resolvingHint === hint.customer_code ? t("Resolving...") : t("Resolve")}
+                  </button>
+                ) : null}
                 {hint.related_posts.length > 0 ? (
                   <details>
                     <summary>{t("Related posts")} ({hint.related_posts.length})</summary>

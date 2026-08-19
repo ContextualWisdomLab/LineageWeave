@@ -1250,6 +1250,90 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
     assert "account_affiliation.corporate_entity_id" in author_hint[0]["provenance"]
 
 
+def test_resolve_customer_hint_creates_and_links_a_corroborated_entity(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """A Customer Master hint (an opaque source_customer_code with no name)
+    must resolve to a real corporate_entity only once external search
+    corroborates the proposed name -- deterministic fake resolution/
+    verification clients (not a real LLM or Searxng call) so this is
+    CI-stable; the point under test is the resolve-then-persist wiring.
+    """
+    from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVerificationResult
+
+    _grant_post_admin(seeded_db["dsn"])
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            # corporate_entity_id is NOT NULL: a bulk-imported real record
+            # defaults to whatever entity its author account is affiliated
+            # with, never to a null "unresolved" sentinel. own_private_post_id
+            # already sits at that exact default (its author's own
+            # account_affiliation row) -- the case this endpoint reclaims.
+            cur.execute(
+                "update source_post set source_customer_code = %s where post_id = %s",
+                ("HINT-CODE-001", seeded_db["own_private_post_id"]),
+            )
+
+        class _FakeResolutionClient:
+            available = True
+
+            def resolve(self, hint_code: str, context_text: str) -> str | None:
+                assert hint_code == "HINT-CODE-001"
+                return "Northridge Grid"
+
+        class _FakeVerificationClient:
+            available = True
+
+            def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:
+                assert organization_name == "Northridge Grid"
+                return RelationVerificationResult(
+                    status_code=STATUS_CORROBORATED, evidence_url="https://example.org/northridge"
+                )
+
+        monkeypatch.setattr(
+            "backend.app.main._customer_hint_resolution_client", lambda: _FakeResolutionClient()
+        )
+        monkeypatch.setattr(
+            "backend.app.main._relation_verification_client", lambda: _FakeVerificationClient()
+        )
+
+        response = client.post(
+            "/api/customer-master/resolve-hint",
+            json={"hint_code": "HINT-CODE-001"},
+            headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["entity_name"] == "Northridge Grid"
+        assert body["linked_post_count"] == 1
+
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select entity_name, corporate_entity_code from corporate_entity where corporate_entity_id = %s",
+                (body["corporate_entity_id"],),
+            )
+            entity_row = cur.fetchone()
+            assert entity_row == ("Northridge Grid", "HINT-HINT-CODE-001")
+            cur.execute(
+                "select corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            assert str(cur.fetchone()[0]) == body["corporate_entity_id"]
+    finally:
+        admin_conn.close()
+
+
+def test_resolve_customer_hint_requires_post_admin(client, demo_analyst_token, seeded_db) -> None:
+    response = client.post(
+        "/api/customer-master/resolve-hint",
+        json={"hint_code": "HINT-CODE-001"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
 def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, demo_analyst_token, seeded_db) -> None:
     response = client.get("/api/posts", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200

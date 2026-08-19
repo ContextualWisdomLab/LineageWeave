@@ -60,6 +60,10 @@ from lineageweave.keyman_extraction import (
     ContextualOrchestratorKeymanExtractionClient,
     NullKeymanExtractionClient,
 )
+from lineageweave.customer_hint_resolution import (
+    ContextualOrchestratorCustomerHintResolutionClient,
+    NullCustomerHintResolutionClient,
+)
 from lineageweave.organization_name_resolution import (
     ContextualOrchestratorOrganizationNameResolutionClient,
     NullOrganizationNameResolutionClient,
@@ -109,6 +113,7 @@ from backend.app.activity_stream import (
 from backend.app.affiliate_tree_ingestion import fetch_affiliate_forest, fetch_voc_evidence
 from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
+from backend.app.customer_hint_ingestion import resolve_customer_hint
 from backend.app.db import create_pool, get_pool
 from backend.app.entity_relationship_ingestion import (
     fetch_post_counterparties,
@@ -261,6 +266,16 @@ def _organization_name_resolution_client():
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullOrganizationNameResolutionClient()
     return ContextualOrchestratorOrganizationNameResolutionClient(
+        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+    )
+
+
+def _customer_hint_resolution_client():
+    """Live orchestrator client when configured; otherwise the unavailable null."""
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
+        return NullCustomerHintResolutionClient()
+    return ContextualOrchestratorCustomerHintResolutionClient(
         base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
     )
 
@@ -581,6 +596,10 @@ async def read_me(
 
 class LocalePreferenceRequest(BaseModel):
     preferred_locale: Literal["en", "ko", "zh", "ja", "vi"]
+
+
+class CustomerHintResolveRequest(BaseModel):
+    hint_code: str
 
 
 @app.patch("/api/me/preferences")
@@ -926,6 +945,37 @@ async def read_customer_master(
         ],
         "relationship_network": relationship_network,
     }
+
+
+@app.post("/api/customer-master/resolve-hint")
+async def resolve_customer_master_hint(
+    request: CustomerHintResolveRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Resolve one observed customer-hint code to a real corporate_entity.
+
+    Gated by post_admin, not post_read: this is a write action with a
+    real LLM-call cost, same discipline as extract-keymen/verify-relations.
+    Only an externally-corroborated proposed name ever creates or binds an
+    entity (`backend.app.customer_hint_ingestion`) -- an unresolved or
+    uncorroborated hint is returned as such, never guessed into the
+    catalog.
+    """
+    _require_post_admin(account)
+    async with pool.acquire() as conn:
+        resolution = await resolve_customer_hint(
+            conn,
+            _customer_hint_resolution_client(),
+            _relation_verification_client(),
+            request.hint_code,
+        )
+    if resolution is None:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "this hint could not be resolved to a corroborated organization name",
+        )
+    return resolution
 
 
 @app.get("/api/lineage")

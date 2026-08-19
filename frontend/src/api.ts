@@ -520,6 +520,23 @@ export function fetchCustomerMaster(accessToken: string): Promise<CustomerMaster
   return backendFetch<CustomerMasterResponse>("/api/customer-master", accessToken);
 }
 
+export interface CustomerHintResolution {
+  corporate_entity_id: string;
+  entity_name: string;
+  linked_post_count: number;
+  verification_evidence_url: string | null;
+}
+
+export function resolveCustomerHint(
+  accessToken: string,
+  hintCode: string,
+): Promise<CustomerHintResolution> {
+  return backendFetch<CustomerHintResolution>("/api/customer-master/resolve-hint", accessToken, {
+    method: "POST",
+    body: JSON.stringify({ hint_code: hintCode }),
+  });
+}
+
 export function rebuildLineage(accessToken: string): Promise<{ edge_count: number }> {
   return backendFetch("/api/lineage/rebuild", accessToken, { method: "POST" });
 }
