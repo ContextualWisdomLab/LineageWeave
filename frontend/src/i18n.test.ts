@@ -38,6 +38,7 @@ describe("i18n", () => {
     "Weekly VOC",
     "Filter by ISO week",
     "All weeks",
+    "Authorized commitments are current. Open a commitment to read Event Lineage.",
   ] as const;
 
   it("supports the five product locales", () => {
