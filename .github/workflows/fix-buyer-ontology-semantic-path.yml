@@ -1,0 +1,203 @@
+name: Repair buyer ontology semantic path
+
+on:
+  push:
+    branches:
+      - feat/buyer-ontology-semantic-path-v2180
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-buyer-ontology-semantic-path
+  cancel-in-progress: false
+
+jobs:
+  red-green-fix:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+      REPAIR_BRANCH: feat/buyer-ontology-semantic-path-v2180
+    steps:
+      - name: Checkout semantic stack branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/buyer-ontology-semantic-path-v2180
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Fetch live foundational branch for collision-free ADR numbering
+        run: git fetch origin feat/analysis-run-name-evidence-lineage:refs/remotes/origin/feat/analysis-run-name-evidence-lineage
+
+      - name: Materialize the reviewed repair program from branch history
+        shell: bash
+        run: |
+          mkdir -p .github/scripts
+          git show 84319989716da98597ca52f3639cce49bea151fb:.github/scripts/fix_pr264_semantic_path.py \
+            > .github/scripts/fix_buyer_semantic_path.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/scripts/fix_buyer_semantic_path.py')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace('PR 264 ontology relationship-path repair', 'buyer-stack ontology relationship-path repair')
+          text = text.replace('2.17.0-ontology-semantic-path.md', '2.18.0-ontology-semantic-path.md')
+          path.write_text(text, encoding='utf-8')
+          PY
+          python -m compileall -q .github/scripts/fix_buyer_semantic_path.py
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install locked dependencies
+        run: |
+          corepack enable
+          uv sync --frozen --extra dev --extra backend
+          pnpm --dir frontend install --frozen-lockfile
+
+      - name: Write RED regressions
+        run: |
+          python .github/scripts/fix_buyer_semantic_path.py red
+          cat >> tests/test_semantic_relationship_paths.py <<'PY'
+
+
+def test_reverse_traversal_without_declared_inverse_falls_back_to_the_property() -> None:
+    """Unpaired ontology predicates remain truthful instead of getting a guessed inverse."""
+
+    assert relationship_annotations("rel_voc", reverse=True) == {
+        "relationship_iri": str(LW.hasVocRelationship),
+        "relationship_label": "has Voice-of-Customer relationship",
+    }
+
+
+def test_semantic_paths_skip_non_positive_and_nan_weights() -> None:
+    """Explanation paths use the same positive finite graph contract as RWR."""
+
+    start = node_key(NODE_PERSON, "person-a")
+    paths = semantic_paths_from_edges(
+        [
+            KnowledgeGraphEdgeSpec(
+                NODE_PERSON,
+                "person-a",
+                NODE_POST,
+                "zero-post",
+                EDGE_MENTION,
+                0.0,
+            ),
+            KnowledgeGraphEdgeSpec(
+                NODE_PERSON,
+                "person-a",
+                NODE_POST,
+                "nan-post",
+                EDGE_MENTION,
+                float("nan"),
+            ),
+        ],
+        start,
+    )
+    assert paths == {start: ()}
+          PY
+
+      - name: Prove RED failures
+        shell: bash
+        run: |
+          set +e
+          uv run --frozen python -m pytest -q tests/test_semantic_relationship_paths.py
+          python_status=$?
+          pnpm --dir frontend exec vitest run src/components/RelatedSemanticPath.test.tsx
+          frontend_status=$?
+          set -e
+          if [ "$python_status" -eq 0 ] || [ "$frontend_status" -eq 0 ]; then
+            echo "A semantic-path regression unexpectedly passed before implementation." >&2
+            exit 1
+          fi
+
+      - name: Apply the narrow GREEN implementation
+        run: python .github/scripts/fix_buyer_semantic_path.py apply
+
+      - name: Advance the independent semantic release version
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              Path('pyproject.toml'): ('version = "2.17.0"', 'version = "2.18.0"'),
+              Path('frontend/package.json'): ('"version": "2.17.0"', '"version": "2.18.0"'),
+          }
+          for path, (old, new) in replacements.items():
+              text = path.read_text(encoding='utf-8')
+              if text.count(old) != 1:
+                  raise SystemExit(f'{path}: expected exactly one {old!r}')
+              path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          uv lock --offline
+
+      - name: Verify focused Python contracts
+        run: |
+          uv run --frozen python -m pytest -q \
+            tests/test_semantic_relationship_paths.py \
+            tests/test_ontology.py \
+            tests/test_knowledge_graph.py \
+            tests/test_person_mention_projection.py \
+            tests/test_documentation_hygiene.py
+
+      - name: Verify focused buyer UI contract
+        run: pnpm --dir frontend exec vitest run src/components/RelatedSemanticPath.test.tsx src/App.test.tsx
+
+      - name: Verify complete Python contract
+        run: uv run --frozen python -m pytest -q
+
+      - name: Verify complete frontend contract
+        run: |
+          pnpm --dir frontend run lint
+          pnpm --dir frontend run test
+          pnpm --dir frontend run build
+          pnpm --dir frontend run build-storybook
+
+      - name: Verify clean release diff
+        run: |
+          git diff --check
+          test -f CHANGELOG.d/2.18.0-ontology-semantic-path.md
+          grep -F 'version = "2.18.0"' pyproject.toml
+          grep -F '"version": "2.18.0"' frontend/package.json
+
+      - name: Publish the verified semantic slice
+        shell: bash
+        run: |
+          rm -f .github/workflows/fix-buyer-ontology-semantic-path.yml
+          rm -f .github/scripts/fix_buyer_semantic_path.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "feat: expose ontology-grounded buyer relationship paths (v2.18.0)"
+          git push origin "HEAD:${REPAIR_BRANCH}"
