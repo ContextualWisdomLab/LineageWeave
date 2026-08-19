@@ -1683,12 +1683,22 @@ async def verify_post_entity_relationships(
             "Relation verification is unavailable: set SEARXNG_BASE_URL",
         )
     async with pool.acquire() as conn:
-        verified = await verify_post_relations(
-            conn,
-            client,
-            post_id,
-            visible_corporate_entity_ids=account.corporate_entity_ids,
-        )
+        try:
+            verified = await verify_post_relations(
+                conn,
+                client,
+                post_id,
+                visible_corporate_entity_ids=account.corporate_entity_ids,
+            )
+        except (HttpClientError, OSError) as exc:
+            # verify_post_relations() deliberately raises on a failed search
+            # (a failed search is not "searched and found nothing" -- see
+            # its docstring); this is the one caller, so it is the right
+            # place to turn that into a clean 503 instead of a raw 500.
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Relation verification is unavailable: the search provider did not respond",
+            ) from exc
     return {
         "post_id": str(post["post_id"]),
         "verified": [

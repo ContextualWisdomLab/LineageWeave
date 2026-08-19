@@ -27,7 +27,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
-from .http_client import post_json
+from .http_client import HttpClientError, post_json
 from .relation_verification import (
     STATUS_PENDING,
     RelationVerificationClient,
@@ -189,7 +189,25 @@ def resolve_and_verify_organization_name(
             verification_evidence_url=None,
         )
 
-    result = verification_client.verify(resolved_name, raw_name)
+    try:
+        result = verification_client.verify(resolved_name, raw_name)
+    except (HttpClientError, OSError):
+        # A configured client (``.available`` True) can still fail at call
+        # time -- a transient search-provider outage, DNS blip, timeout.
+        # That is the same "search itself is unavailable" case the
+        # ``.available`` branch above already covers, not "searched and
+        # found nothing" (``STATUS_UNCORROBORATED``): the caller
+        # (`backend/app/keyman_ingestion.py`'s `ingest_post_keymen` ->
+        # `_resolve_affiliated_organization`) must not have this
+        # exception propagate uncaught into the FastAPI request handler
+        # and turn one flaky search call into a 500 that discards an
+        # otherwise-successful Keyman/R&R extraction.
+        return OrganizationNameResolution(
+            raw_organization_name=raw_name,
+            resolved_organization_name=resolved_name,
+            verification_status_code=STATUS_PENDING,
+            verification_evidence_url=None,
+        )
     return OrganizationNameResolution(
         raw_organization_name=raw_name,
         resolved_organization_name=resolved_name,

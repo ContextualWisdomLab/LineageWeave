@@ -249,7 +249,22 @@ Use only the post evidence below. Do not output analysis or markdown.
 Write exactly these two section markers, each on its own line:
 
 ROLES:
-actor | responsibility | person, organization, or team | affiliation or NONE
+<one row per named actor, in this exact column order:>
+actor name | responsibility | person, organization, or team | affiliation or NONE
+
+Column 1 is always the actor's own name (a person's name, an organization's
+name, or a team's name) -- never a role description or a category label
+such as "meeting participant" or "attendee". Column 3 must be exactly one
+of the three words person, organization, or team -- never a name. One row
+per distinct actor: when several different people share the same
+responsibility (e.g. a list of meeting attendees), write one row per
+person and repeat the responsibility text on each row rather than merging
+them into a single row.
+
+Worked examples (fictional names, format only, not real post's content):
+홍길동 | 견적 승인 검토 | person | Acme Electronics
+Acme Renewables | 기술 세미나 참석 | organization | NONE
+설계팀 | 도면 검토 지원 | team | Acme Electronics
 
 PROJECTS:
 project name | canonical name | shortest supporting evidence | confidence from 0 to 1
@@ -313,10 +328,27 @@ def _parse_plain_summary_details(
         return None
 
     empty_values = frozenset({"", "none", "null", "n/a", "unknown", "없음", "미상"})
+    # The model occasionally echoes _DETAILS_REQUEST_PROMPT_TEMPLATE's own
+    # column-header line or one of its worked-example rows back verbatim
+    # as if it were a data row. These would otherwise usually get dropped
+    # by the actor_type lookup below anyway (their 3rd column doesn't say
+    # "person"/"organization"/"team"), but that is an accident of their
+    # specific wording, not a real filter -- skip them by exact match so
+    # the intent is explicit and doesn't depend on that accident holding
+    # for every future prompt edit.
+    _template_echo_rows = frozenset(
+        row.casefold()
+        for row in (
+            "actor name | responsibility | person, organization, or team | affiliation or none",
+            "홍길동 | 견적 승인 검토 | person | acme electronics",
+            "acme renewables | 기술 세미나 참석 | organization | none",
+            "설계팀 | 도면 검토 지원 | team | acme electronics",
+        )
+    )
     roles: list[RoleResponsibility] = []
     for raw_row in sections["ROLES"].splitlines():
         row = raw_row.strip().lstrip("-* ").strip()
-        if not row or row.casefold() in empty_values:
+        if not row or row.casefold() in empty_values or row.casefold() in _template_echo_rows:
             continue
         parts = [part.strip() for part in row.split("|", 3)]
         if len(parts) == 3:
@@ -334,6 +366,17 @@ def _parse_plain_summary_details(
             ACTOR_TYPE_ORGANIZATION: ACTOR_TYPE_ORGANIZATION,
             ACTOR_TYPE_TEAM: ACTOR_TYPE_TEAM,
         }.get(actor_type.casefold())
+        # A row whose 3rd column isn't literally person/organization/team is
+        # not recoverable by reshuffling columns: nothing here tells us
+        # which of the other 3 fields actually holds the real actor name
+        # (see the 2026-08-19 live finding where the model put a
+        # description like "Q&A participant" in column 1 and the real
+        # name in column 3 for a run of grouped meeting-attendee rows).
+        # Guessing would risk cataloging a role description as a person's
+        # name. Dropping the row is the same "no fake positive" discipline
+        # this module already documents for a missing summary -- if this
+        # keeps recurring after the worked examples above, the fix is a
+        # better prompt/model, not a column-guessing heuristic here.
         if not actor_type_code or not actor_name or not responsibility:
             continue
         roles.append(
