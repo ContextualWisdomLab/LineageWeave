@@ -33,6 +33,10 @@ from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from lineageweave.adjudication_client import (
+    ContextualOrchestratorAdjudicationClient,
+    NullAdjudicationClient,
+)
 from lineageweave.commitment_extraction import (
     ContextualOrchestratorCommitmentExtractionClient,
     NullCommitmentExtractionClient,
@@ -188,6 +192,7 @@ async def lifespan(app: FastAPI):
                 settings.tepp_transport_url,
                 settings.tepp_api_key,
             ),
+            adjudication_client=_adjudication_client(),
         )
     )
     try:
@@ -274,6 +279,24 @@ def _post_summary_client():
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullPostSummaryClient()
     return ContextualOrchestratorPostSummaryClient(
+        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+    )
+
+
+def _adjudication_client():
+    """Live orchestrator client when configured; otherwise the unavailable null.
+
+    reconstruct.py's DEFAULT_CHANNEL_WEIGHTS gives this channel the most
+    weight (0.40) of the four -- it is the only one that reasons about
+    content instead of approximating it (ADR 0064) -- but nothing ever
+    passed a real client through lineage_edge_specs() to reconstruct(),
+    so every lineage reconstruction had silently run on the weaker
+    3-channel fallback since the feature was built.
+    """
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
+        return NullAdjudicationClient()
+    return ContextualOrchestratorAdjudicationClient(
         base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
     )
 
@@ -2667,6 +2690,7 @@ async def start_analysis_run(
                         settings.tepp_transport_url,
                         settings.tepp_api_key,
                     ),
+                    adjudication_client=_adjudication_client(),
                     valkey_stream_entry_id=stream_id,
                 )
             except AnalysisRunStartError as exc:

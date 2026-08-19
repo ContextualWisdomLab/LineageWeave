@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from backend.app import analysis_run_worker
+from lineageweave.adjudication_client import NullAdjudicationClient
 from lineageweave.tepp_client import TeppClient
 
 
@@ -69,6 +70,7 @@ async def test_consumer_forwards_valid_event_and_skips_malformed_event(monkeypat
         _Pool(),
         last_id="0-0",
         tepp_client=TeppClient(),
+        adjudication_client=NullAdjudicationClient(),
     )
 
     assert last_id == "1-1"
@@ -78,6 +80,7 @@ async def test_consumer_forwards_valid_event_and_skips_malformed_event(monkeypat
             "account_id": "synthetic-account",
             "affiliated_entity_ids": [],
             "tepp_client": calls[0]["tepp_client"],
+            "adjudication_client": calls[0]["adjudication_client"],
             "valkey_stream_entry_id": "1-0",
         }
     ]
