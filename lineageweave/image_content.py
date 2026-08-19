@@ -348,9 +348,18 @@ class OpenAiCompatibleVisionClient:
             raise ValueError("vision region response was not text JSON")
         fenced = re.sub(r"^\s*```(?:json)?\s*|\s*```\s*$", "", content, flags=re.IGNORECASE)
         document = json.loads(fenced)
-        regions = document.get("regions") if isinstance(document, dict) else None
-        if not isinstance(regions, list):
+        if not isinstance(document, dict):
             raise ValueError("vision region response had no regions list")
+        regions = document.get("regions")
+        if not isinstance(regions, list):
+            single_region = tuple(document.get(name) for name in ("x", "y", "width", "height"))
+            if all(
+                isinstance(value, (int, float)) and math.isfinite(float(value))
+                for value in single_region
+            ):
+                regions = [document]
+            else:
+                raise ValueError("vision region response had no regions list")
         accepted: list[ImageRegion] = []
         seen: set[tuple[int, int, int, int]] = set()
         for candidate in regions[:12]:

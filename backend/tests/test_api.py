@@ -1132,6 +1132,23 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
                     seeded_db["our_person_id"],
                 ),
             )
+            # A real counterparty can hold more than one role over its
+            # lifetime -- one post classifies "Northridge Grid" as a
+            # customer, a different visible post classifies the same
+            # name as a competitor. relationship_network must surface
+            # both, not just the most recent/frequent one.
+            cur.execute(
+                "insert into post_counterparty_entity "
+                "(post_id, counterparty_entity_name, relationship_type_code, verification_status_code) "
+                "values (%s, 'Northridge Grid', 'rel_voc', 'verify_pending'), "
+                "       (%s, 'Northridge Grid', 'rel_voco', 'verify_pending'), "
+                "       (%s, 'Solo Role Corp', 'rel_vos', 'verify_pending')",
+                (
+                    seeded_db["public_post_id"],
+                    seeded_db["own_private_post_id"],
+                    seeded_db["public_post_id"],
+                ),
+            )
         admin_conn.commit()
     finally:
         admin_conn.close()
@@ -1141,7 +1158,10 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
     )
     assert response.status_code == 200
     body = response.json()
-    assert set(body) == {"corporate_entities", "keymen", "source_customer_hints", "source_author_hints"}
+    assert set(body) == {
+        "corporate_entities", "keymen", "source_customer_hints", "source_author_hints",
+        "relationship_network",
+    }
     entity = next(item for item in body["corporate_entities"] if item["entity_name"] == "Test Corp")
     assert {
         "corporate_entity_id", "corporate_entity_code", "entity_name",
@@ -1160,6 +1180,21 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
     # last_known_job_title is null -- confirm the label is actually a
     # human label from common_lookup_value, not the bare code repeated.
     assert ada_west["person_side_label"] not in ("", "our_side")
+
+    network = {row["counterparty_entity_name"]: row for row in body["relationship_network"]}
+    northridge = network["Northridge Grid"]
+    assert northridge["multi_role"] is True
+    assert {rel["relationship_type_code"] for rel in northridge["relationships"]} == {"rel_voc", "rel_voco"}
+    for rel in northridge["relationships"]:
+        assert rel["post_count"] == 1
+        assert rel["relationship_label"] not in ("", rel["relationship_type_code"])
+    solo = network["Solo Role Corp"]
+    assert solo["multi_role"] is False
+    assert [rel["relationship_type_code"] for rel in solo["relationships"]] == ["rel_vos"]
+    # Neither counterparty name matches a cataloged corporate_entity in
+    # this fixture -- resolution stays null rather than guessing.
+    assert northridge["corporate_entity_id"] is None
+    assert solo["corporate_entity_id"] is None
     assert body["source_customer_hints"] == [
         {
             "customer_code": "TEST-CUSTOMER-001",

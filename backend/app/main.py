@@ -112,6 +112,7 @@ from backend.app.config import load_settings
 from backend.app.db import create_pool, get_pool
 from backend.app.entity_relationship_ingestion import (
     fetch_post_counterparties,
+    fetch_relationship_network,
     ingest_post_entity_relationships,
 )
 from backend.app.five_w1h_ingestion import load_five_w1h_slots
@@ -613,6 +614,7 @@ async def read_customer_master(
             "keymen": [],
             "source_customer_hints": [],
             "source_author_hints": [],
+            "relationship_network": [],
         }
 
     async with pool.acquire() as conn:
@@ -830,6 +832,7 @@ async def read_customer_master(
         )
         side_labels = await labels_for_codes(conn, [row["person_side_code"] for row in keyman_rows])
         entity_level_labels = await labels_for_codes(conn, [row["entity_level_code"] for row in entity_rows])
+        relationship_network = await fetch_relationship_network(conn, entity_ids)
 
     keymen_by_id: dict[str, dict[str, Any]] = {}
     for row in keyman_rows:
@@ -923,6 +926,7 @@ async def read_customer_master(
             }
             for row in source_author_rows
         ],
+        "relationship_network": relationship_network,
     }
 
 

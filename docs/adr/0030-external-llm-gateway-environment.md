@@ -77,6 +77,12 @@ container validates the supported `text` and `image_url` blocks and forwards
 the multimodal request to the configured provider. Image data is excluded from
 the text used for workflow routing and reasoning classification.
 
+The upstream HTTP server keeps its ordinary JSON body default at 64 KiB. The
+LineageWeave Compose bootstrap passes the explicit bounded
+`CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES` value, defaulting to 8 MiB, because
+normalized image blocks are base64 data URIs. The limit is bounded at 64 MiB;
+unbounded request bodies and per-image provider bypasses are forbidden.
+
 The selected provider/model must actually support multimodal `image_url`
 content. A text-only gateway response such as `Only 'text' content type is
 supported` is a provider capability failure, not a successful Vision result;

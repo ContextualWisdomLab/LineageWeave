@@ -70,3 +70,24 @@ def test_native_vision_region_locator_uses_orchestrator_auto_contract(monkeypatc
     assert captured["payload"]["mode"] == "auto"
     assert captured["payload"]["reasoning_effort"] == "auto"
     assert captured["payload"]["response_format"] == {"type": "json_object"}
+
+
+def test_native_vision_region_locator_accepts_single_region_object(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "lineageweave.vision_image.normalize_vision_image",
+        lambda image_bytes, mime_type: (image_bytes, mime_type),
+    )
+
+    def fake_request(method, url, *, body, headers, timeout):
+        return 200, json.dumps({
+            "choices": [{"message": {"content": '{"x":0.13,"y":0.545,"width":0.74,"height":0.41}'}}]
+        }).encode("utf-8")
+
+    monkeypatch.setattr(http_client, "_request", fake_request)
+    client = image_content.OpenAiCompatibleVisionClient(
+        "http://orchestrator/v1", "test-key", allow_insecure_http=True
+    )
+
+    regions = client.locate_regions(b"image-bytes", "image/png")
+
+    assert regions == (image_content.ImageRegion(0.13, 0.545, 0.74, 0.41),)

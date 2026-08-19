@@ -77,6 +77,13 @@ def main() -> None:
         raise SystemExit("LLM_GATEWAY_MAX_OUTPUT_TOKENS must be an integer") from exc
     if not 64 <= max_output_tokens <= 4096:
         raise SystemExit("LLM_GATEWAY_MAX_OUTPUT_TOKENS must be between 64 and 4096")
+    raw_body_limit = os.environ.pop("CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES", str(8 * 1024 * 1024)).strip()
+    try:
+        max_body_bytes = int(raw_body_limit)
+    except ValueError as exc:
+        raise SystemExit("CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES must be an integer") from exc
+    if not 64 * 1024 <= max_body_bytes <= 64 * 1024 * 1024:
+        raise SystemExit("CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES must be between 65536 and 67108864")
     embedding_model = os.environ.pop("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
 
     agents_path = Path("/tmp/lineageweave-agents.json")
@@ -111,6 +118,8 @@ def main() -> None:
         auth_token,
         "--max-output-tokens",
         str(max_output_tokens),
+        "--max-body-bytes",
+        str(max_body_bytes),
         "--embedding-provider-url",
         embedding_provider_url,
         "--embedding-model",
