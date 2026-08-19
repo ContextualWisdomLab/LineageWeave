@@ -16,28 +16,39 @@ normalized evidence assembly, and contextual-orchestrator-based source-only
 answers. The MCP surface should adapt those responsibilities, not reimplement
 or bypass them.
 
+The current contextual-orchestrator HTTP contract accepts `auto`, `route`, and
+`conduct`; it rejects the older LineageWeave `verify` request. `conduct` is the
+supported verified multi-step workflow and fails closed when its model-based
+verification dependency is unavailable.
+
 ## Decision
 
 1. Run MCP as a dedicated ASGI process using MCP Python SDK 2.0.0 and
    Streamable HTTP.
 2. Treat the endpoint as an OAuth protected resource. Validate issuer,
    signature, expiry, mandatory exact JWKS `kid`, and an exact MCP resource
-   audience. Refresh JWKS once on an unknown key to tolerate issuer rotation.
+   audience. Refresh JWKS once on an unknown key to tolerate issuer rotation;
+   reject malformed JWKS structures as service unavailable.
 3. Resolve the JWT subject through the existing `user_account`, role,
    permission, and affiliation tables. Never authorize from `corp_code` or
    `pu_code` token claims.
-4. Expose one bounded, structured, read-only tool: `global_ask`.
+4. Expose one bounded, structured, read-only, idempotent, closed-world tool:
+   `global_ask`.
 5. Search only caller-visible posts, refuse an unrelated fallback when a
    concrete search term has no match, then expand the chosen anchor through
    the existing Event-Lineage/Knowledge-Graph source gatherer with ABAC
    re-checking.
 6. Limit retrieval terms, candidate rows, source count, and source-body bytes
    before invoking contextual-orchestrator.
-7. Return source and citation identities. Drop citations outside the authorized
-   source bundle. Do not persist a Global Ask exchange as a side effect.
-8. Keep the bearer token inside the resource server. Downstream services use
+7. Use contextual-orchestrator `mode="conduct"`, high reasoning effort, and a
+   finite 300-second downstream timeout. Never call a direct provider or the
+   rejected legacy `verify` mode.
+8. Return source and citation identities. Drop citations outside the authorized
+   source bundle and reject an answer when no authorized citation remains. Do
+   not persist a Global Ask exchange as a side effect.
+9. Keep the bearer token inside the resource server. Downstream services use
    their own credentials.
-9. Enable Host and Origin validation for DNS-rebinding protection.
+10. Enable Host and Origin validation for DNS-rebinding protection.
 
 ## Consequences
 
@@ -47,9 +58,12 @@ or bypass them.
   the same authoritative database.
 - Answers remain inferred, evidence-grounded results; they do not become
   authoritative audit events or lineage facts.
-- A configured contextual-orchestrator remains required for a live answer. The
-  server fails closed rather than substituting a local model or canned prose.
+- A configured contextual-orchestrator with a working conduct verification
+  runtime remains required for a live answer. The server fails closed rather
+  than substituting a local model, direct provider, or canned prose.
 - Deployments must configure an audience for the exact public MCP resource URL.
+- Codex deployments should set a tool timeout slightly above 300 seconds so the
+  server returns the bounded downstream failure instead of a client timeout.
 
 ## Rejected alternatives
 
@@ -60,3 +74,6 @@ or bypass them.
   API and encourages token forwarding.
 - **Store a second MCP search index containing full posts:** duplicates
   restricted evidence and creates deletion/authorization drift.
+- **Legacy `mode="verify"`:** rejected by the current orchestrator HTTP API.
+- **Direct provider fallback:** bypasses contextual-orchestrator governance,
+  verification, model discovery, and service credentials.
