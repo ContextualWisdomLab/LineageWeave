@@ -1,20 +1,10 @@
-"""In-popup LLM chat, answering "what happened between these linked
-events" using a post's own content plus its Event-Lineage-linked posts as
-context -- with citations back to the specific source post(s) an answer
-drew from, the data shape the frontend's sliding evidence panel needs.
+"""Evidence-grounded post chat over Event-Lineage-linked source posts.
 
-Deliberately two explicit steps, not one undifferentiated prompt --
-retrieval-augmented generation (Lewis et al., 2020): a *retrieve* step
-(the caller -- ``backend/app/post_chat_ingestion.py`` -- assembles the
-post's own content plus its lineage/Knowledge-Graph-linked posts as
-numbered source documents) and a *reason-and-cite* step (this module's
-client, prompted to answer using ONLY the numbered sources and to cite
-which source numbers each part of its answer drew from). This is the
-Agentic-workflow shape the product brief asks for (retrieve context ->
-reason -> cite) without adding a full agent-framework dependency for what
-two functions and a structured prompt already do -- Pydantic AI remains
-an acceptable implementation choice if a future phase's chat needs
-multi-turn tool use this simple two-step pipeline doesn't cover.
+The product keeps retrieval and reasoning as two explicit steps (Lewis et
+al., 2020): the caller assembles authorized source documents and this module
+asks contextual-orchestrator to conduct a verified, source-only answer with
+citations. The supported HTTP orchestration contract is ``mode="conduct"``;
+there is no private ``verify`` mode or direct-provider fallback.
 """
 
 from __future__ import annotations
@@ -29,6 +19,7 @@ from .http_client import post_json
 CANONICAL_CHAT_QUESTION = "What happened between these events?"
 CANONICAL_INVOLVED_QUESTION = "Who is involved?"
 CANONICAL_COMMITMENT_QUESTION = "What is the next commitment?"
+DEFAULT_CHAT_TIMEOUT_SECONDS = 300.0
 
 _TRAILING_PUNCT = re.compile(r"[?.!\s]+$")
 _CANONICAL_QUESTION_NORM = "what happened between these events"
@@ -66,9 +57,7 @@ class ChatSourceDocument:
 
 @dataclass(frozen=True)
 class ChatAnswer:
-    """The chat's answer plus which source post(s) it drew from -- the
-    evidence-panel citation data.
-    """
+    """The chat answer plus the source-post identifiers it actually cites."""
 
     answer_text: str
     cited_post_ids: tuple[str, ...] = field(default_factory=tuple)
@@ -78,11 +67,7 @@ def cited_post_summaries(
     sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
     cited_post_ids: tuple[str, ...] | list[str],
 ) -> list[dict[str, str]]:
-    """Titles for cited ids, in citation order. Unknown ids are dropped.
-
-    The sliding evidence chip must show the source post's title, not a
-    truncated UUID -- a missing title is omitted, never invented.
-    """
+    """Return source titles in citation order, omitting unknown identifiers."""
     titles = {source.post_id: source.post_title for source in sources}
     return [
         {"post_id": post_id, "post_title": titles[post_id]}
@@ -97,21 +82,17 @@ class PostChatClient(Protocol):
     available: bool
 
     def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:
-        """Answer ``question`` using only ``sources``, with citations.
-
-        Implementations must raise if they cannot answer. Protocol stubs
-        raise ``NotImplementedError`` so a no-op body is never treated as
-        a successful empty result.
-        """
+        """Answer ``question`` using only ``sources``, with citations."""
         raise NotImplementedError
 
 
 class NullPostChatClient:
-    """No LLM orchestrator configured -- chat is unavailable."""
+    """No LLM orchestrator configured; chat is unavailable."""
 
     available = False
 
     def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:
+        """Fail explicitly so an absent channel cannot look like an empty answer."""
         raise RuntimeError("NullPostChatClient cannot answer; check .available first")
 
 
@@ -138,11 +119,13 @@ _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 
 
 def _strip_code_fence(content: str) -> str:
+    """Return JSON content from an optional Markdown code fence."""
     match = _CODE_FENCE_PATTERN.search(content)
     return match.group(1) if match else content
 
 
 def _render_sources_block(sources: list[ChatSourceDocument]) -> str:
+    """Render stable, one-based source numbers for the reason-and-cite prompt."""
     return "\n\n".join(
         f"[Source {i}] (post_id={source.post_id})\nTitle: {source.post_title}\n{source.post_body}"
         for i, source in enumerate(sources, start=1)
@@ -150,15 +133,7 @@ def _render_sources_block(sources: list[ChatSourceDocument]) -> str:
 
 
 def parse_chat_response(content: str, sources: list[ChatSourceDocument]) -> ChatAnswer | None:
-    """Parses the LLM's JSON object response into a `ChatAnswer`.
-
-    Cited source numbers outside `1..len(sources)` are dropped rather than
-    causing the whole response to fail -- a hallucinated citation number
-    is a real, correctable model error, and dropping just that one
-    citation is safer than discarding an otherwise-valid answer, or
-    keeping a citation the evidence panel could never actually resolve to
-    a source post.
-    """
+    """Parse the required JSON response and map valid source numbers to post IDs."""
     try:
         parsed = json.loads(_strip_code_fence(content).strip())
     except json.JSONDecodeError:
@@ -182,18 +157,23 @@ def parse_chat_response(content: str, sources: list[ChatSourceDocument]) -> Chat
 
 
 class ContextualOrchestratorPostChatClient:
-    """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="verify"``
-    -- a chat answer with citations is exactly the checked-judgment shape
-    ``mode="verify"`` exists for (one worker call plus one checked
-    verifier judgment), same reasoning ``adjudication_client`` already
-    uses, not ``keyman_extraction``/``entity_relationship_classification``'s
-    single-pass ``mode="route"`` structured extraction.
+    """Run verified source-only chat through supported ``conduct`` mode.
+
+    ``conduct`` is contextual-orchestrator's multi-step workflow contract and
+    includes verification/synthesis when its configured runtime supports those
+    stages. Missing or broken model-based verification fails closed in the
+    orchestrator; LineageWeave never falls back to a direct provider.
     """
 
     available = True
 
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "high", timeout: float = 60.0
+        self,
+        base_url: str,
+        api_key: str,
+        *,
+        reasoning_effort: str = "high",
+        timeout: float = DEFAULT_CHAT_TIMEOUT_SECONDS,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -201,6 +181,7 @@ class ContextualOrchestratorPostChatClient:
         self._timeout = timeout
 
     def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:
+        """Call contextual-orchestrator and require the structured citation contract."""
         prompt = _CHAT_PROMPT_TEMPLATE.format(
             sources_block=_render_sources_block(sources), question=question
         )
@@ -208,7 +189,7 @@ class ContextualOrchestratorPostChatClient:
             f"{self._base_url}/v1/chat/completions",
             {
                 "messages": [{"role": "user", "content": prompt}],
-                "mode": "verify",
+                "mode": "conduct",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},
