@@ -1,15 +1,21 @@
 name: Repair PR 264 cutoff context
 
 on:
-  pull_request:
-    types: [synchronize]
+  push:
+    branches:
+      - feat/event-lineage-node-keeps-gnb-focus-v2170
+  workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: repair-pr-264-cutoff-context
+  cancel-in-progress: false
+
 jobs:
   red-green-fix:
-    if: github.event.pull_request.number == 264 && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.ref == 'refs/heads/feat/event-lineage-node-keeps-gnb-focus-v2170'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
@@ -94,6 +100,7 @@ jobs:
           EOF
           python - <<'PY'
           from pathlib import Path
+
           path = Path("frontend/src/App.tsx")
           text = path.read_text()
 
@@ -212,19 +219,57 @@ jobs:
               "popup navigation",
           )
           path.write_text(text)
+
+          test_path = Path("frontend/src/App.test.tsx")
+          test_text = test_path.read_text()
+          old_test = '''    expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open live post: Private post",
+      }),
+    );
+'''
+          new_test = '''    expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
+
+    const publicPosts = screen.getAllByLabelText("Open post: Public post");
+    await userEvent.click(publicPosts[publicPosts.length - 1]);
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(screen.getByRole("status", { name: "Live body warning" })).toHaveTextContent(
+      "This is the live body, not a cutoff snapshot. Compare it with this 2026-01-12 run before you treat it as reconstructed evidence.",
+    );
+    expect(screen.getByRole("heading", { name: "Body this run knew" })).toBeInTheDocument();
+    expect(screen.getByText("The cutoff body this run knew.")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open live post: Private post",
+      }),
+    );
+'''
+          count = test_text.count(old_test)
+          if count != 1:
+              raise SystemExit(f"cutoff navigation regression: expected exactly one match, got {count}")
+          test_path.write_text(test_text.replace(old_test, new_test, 1))
           PY
       - name: Verify GREEN and full frontend contract
         working-directory: frontend
         run: |
           pnpm exec vitest run src/analysisRunNavigation.test.ts src/App.test.tsx
           pnpm run lint
+          pnpm run test
           pnpm run build
+          pnpm run build-storybook
       - name: Commit only the validated repair
         shell: bash
         run: |
           rm .github/workflows/fix-264-cutoff-context.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add frontend/src/App.tsx frontend/src/analysisRunNavigation.ts frontend/src/analysisRunNavigation.test.ts .github/workflows/fix-264-cutoff-context.yml
+          git add frontend/src/App.tsx frontend/src/App.test.tsx frontend/src/analysisRunNavigation.ts frontend/src/analysisRunNavigation.test.ts .github/workflows/fix-264-cutoff-context.yml
+          git diff --cached --check
           git commit -m "fix(ui): preserve analysis-run cutoff across DAG navigation"
           git push origin HEAD:feat/event-lineage-node-keeps-gnb-focus-v2170
