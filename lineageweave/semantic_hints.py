@@ -66,7 +66,7 @@ def format_semantic_hints(
         {
             _value(value)
             for value in author_affiliations
-            if _value(value) != "none" and not source_context
+            if _value(value) != "none"
         }
     )
     account_id = author_account_id
@@ -82,7 +82,7 @@ def format_semantic_hints(
     if effective_source_author_name and effective_source_author_name == source_author_code:
         effective_source_author_name = None
     effective_author_name = effective_source_author_name if source_context else author_name
-    effective_account_name = None if source_context else author_account_name
+    effective_account_name = author_account_name
     order_pool = ": ".join(
         value for value in (_value(order_pool_code), _value(order_pool_name)) if value != "none"
     ) or "none"
