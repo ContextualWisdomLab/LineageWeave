@@ -40,31 +40,42 @@ async def _find_internal_evidence_post(
     are restricted to the caller's affiliated corporate entities. The result
     is evidence metadata only and never changes the external verification
     status.
+
+    Each term is matched against title, body, and content-unit text as three
+    separately indexed branches unioned together (ADR 0043's title/body
+    trigram indexes), rather than one `like` over a per-row concatenation --
+    the concatenated form forces a sequential scan with a per-row string
+    build over the whole real-imported corpus (tens of seconds at
+    real-corpus scale; see the `report_leftover_pair`-class perf class of
+    bug), where the unioned form stays on indexed bitmap scans.
     """
     row = await conn.fetchrow(
         """
+        with term1_matches as (
+            (select post_id from source_post where lower(post_title) like '%' || lower($2) || '%')
+            union
+            (select post_id from source_post
+              where lower(left(source_post_search_text(post_body), 16384)) like '%' || lower($2) || '%')
+            union
+            (select post_id from post_content_unit where lower(unit_text) like '%' || lower($2) || '%')
+        ),
+        term2_matches as (
+            (select post_id from source_post where lower(post_title) like '%' || lower($3) || '%')
+            union
+            (select post_id from source_post
+              where lower(left(source_post_search_text(post_body), 16384)) like '%' || lower($3) || '%')
+            union
+            (select post_id from post_content_unit where lower(unit_text) like '%' || lower($3) || '%')
+        )
         select candidate.post_id
           from source_post candidate
-          left join lateral (
-                select coalesce(string_agg(unit.unit_text, ' '), '') as normalized_text
-                  from post_content_unit unit
-                 where unit.post_id = candidate.post_id
-          ) content on true
+          join term1_matches t1 on t1.post_id = candidate.post_id
+          join term2_matches t2 on t2.post_id = candidate.post_id
          where candidate.post_id <> $1
            and (
                 candidate.visibility_code = 'public'
                 or candidate.corporate_entity_id::text = any($4::text[])
            )
-           and lower(
-                coalesce(candidate.post_title, '') || ' ' ||
-                coalesce(candidate.post_body, '') || ' ' ||
-                coalesce(content.normalized_text, '')
-           ) like '%' || lower($2) || '%'
-           and lower(
-                coalesce(candidate.post_title, '') || ' ' ||
-                coalesce(candidate.post_body, '') || ' ' ||
-                coalesce(content.normalized_text, '')
-           ) like '%' || lower($3) || '%'
          order by candidate.updated_at desc, candidate.post_id
          limit 1
         """,
