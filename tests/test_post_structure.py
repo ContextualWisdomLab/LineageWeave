@@ -8,18 +8,21 @@ def test_structure_client_validates_complete_decisions(monkeypatch) -> None:
 
     def fake_post_json(*args, **kwargs):
         captured.append(args[1])
-        target = json.loads(args[1]["messages"][1]["content"])["target_unit_index"]
+        units = json.loads(args[1]["messages"][1]["content"])["ordered_units"]
         return {
             "choices": [
                 {
                     "message": {
                         "content": json.dumps(
-                            {
-                                "unit_index": target,
-                                "indent_level": 0,
-                                "confidence": 0.9,
-                                "evidence": "top-level heading",
-                            }
+                            {"decisions": [
+                                {
+                                    "unit_index": int(unit["unit_index"]),
+                                    "indent_level": 0,
+                                    "confidence": 0.9,
+                                    "evidence": "top-level heading",
+                                }
+                                for unit in units
+                            ]}
                         )
                     }
                 }
@@ -33,12 +36,8 @@ def test_structure_client_validates_complete_decisions(monkeypatch) -> None:
     client = ContextualOrchestratorPostStructureClient("http://orchestrator", "test-key")
 
     assert client.infer("Title", [{"unit_index": 0, "text": "1. Heading"}])[0].indent_level == 0
+    assert len(captured) == 1
     response_format = captured[0]["response_format"]
     assert response_format["type"] == "json_schema"
     assert response_format["json_schema"]["strict"] is True
-    assert response_format["json_schema"]["schema"]["required"] == [
-        "unit_index",
-        "indent_level",
-        "confidence",
-        "evidence",
-    ]
+    assert response_format["json_schema"]["schema"]["required"] == ["decisions"]
