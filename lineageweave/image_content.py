@@ -126,14 +126,6 @@ class ImageDescription:
     tags: tuple[str, ...]
 
 
-@dataclass(frozen=True)
-class ImageRegionDescription:
-    """Description returned for one meaningful region of an image."""
-
-    region: ImageRegion
-    description: ImageDescription
-
-
 class ImageContentClient(Protocol):
     """Turns image bytes into searchable text content."""
 
@@ -171,15 +163,6 @@ _REGION_RESPONSE_FORMAT = (
     '{"regions":[{"x":0.0,"y":0.0,"width":1.0,"height":1.0}]} . '
     "Coordinates are normalized to 0..1, omit decorative borders, and return at most 12 regions."
 )
-_REGION_EVIDENCE_PROMPT = (
-    "Examine this image as visual evidence. Extract all legible text, describe the whole image, "
-    "and describe each meaningful visual region separately. Omit decorative borders. "
-    "Return only the supplied JSON schema; use an empty regions array when no meaningful "
-    "subregions can be identified. Never invent text or entities."
-)
-_REGION_EVIDENCE_RESPONSE_FORMAT = {
-    "type": "json_object",
-}
 _VISION_SYSTEM_ROLE = (
     "You are the LineageWeave visual-evidence agent. Extract only evidence "
     "visible in the supplied image; never invent people, projects, or text."
@@ -261,82 +244,6 @@ def _parse_description(content: str) -> ImageDescription:
     return ImageDescription(extracted_text=extracted_text, caption=caption, tags=tags)
 
 
-def _parse_structured_image_evidence(
-    content: str,
-) -> tuple[ImageDescription, tuple[ImageRegionDescription, ...]]:
-    """Parse one structured whole-image response without inventing evidence."""
-    try:
-        document = json.loads(content)
-    except json.JSONDecodeError as exc:
-        raise ImageDescriptionParseError("vision response was not JSON") from exc
-    if not isinstance(document, dict):
-        raise ImageDescriptionParseError("vision response was not an object")
-
-    text = document.get("text")
-    caption = document.get("caption")
-    if not isinstance(caption, str):
-        caption = document.get("description")
-    tags = document.get("tags")
-    if not isinstance(text, str):
-        text = ""
-    if not isinstance(caption, str):
-        caption = ""
-    if not isinstance(tags, list):
-        tags = []
-    extracted_text = "" if text.strip().upper() == "NONE" else text.strip()
-    whole = ImageDescription(
-        extracted_text=extracted_text,
-        caption=caption.strip(),
-        tags=tuple(tag.strip() for tag in tags if isinstance(tag, str) and tag.strip()),
-    )
-    if not whole.extracted_text and not whole.caption:
-        raise ImageDescriptionParseError("vision response had no whole-image evidence")
-
-    region_descriptions: list[ImageRegionDescription] = []
-    regions = document.get("regions")
-    if not isinstance(regions, list):
-        region = document.get("region")
-        regions = region if isinstance(region, list) else [region] if isinstance(region, dict) else []
-    seen: set[tuple[int, int, int, int]] = set()
-    for candidate in regions[:12]:
-        if not isinstance(candidate, dict):
-            continue
-        values = tuple(candidate.get(name) for name in ("x", "y", "width", "height"))
-        if not all(isinstance(value, (int, float)) and math.isfinite(float(value)) for value in values):
-            continue
-        x, y, width, height = (float(value) for value in values)
-        if x < 0 or y < 0 or width <= 0 or height <= 0 or x + width > 1 or y + height > 1:
-            continue
-        region_text = candidate.get("text")
-        region_caption = candidate.get("caption")
-        if not isinstance(region_caption, str):
-            region_caption = candidate.get("description")
-        region_tags = candidate.get("tags")
-        if not isinstance(region_text, str):
-            region_text = ""
-        if not isinstance(region_caption, str):
-            region_caption = ""
-        if not isinstance(region_tags, list):
-            region_tags = []
-        if not region_text.strip() and not region_caption.strip():
-            continue
-        key = tuple(round(value * 1000) for value in (x, y, width, height))
-        if key in seen:
-            continue
-        seen.add(key)
-        region_descriptions.append(
-            ImageRegionDescription(
-                region=ImageRegion(x, y, width, height),
-                description=ImageDescription(
-                    extracted_text="" if region_text.strip().upper() == "NONE" else region_text.strip(),
-                    caption=region_caption.strip(),
-                    tags=tuple(tag.strip() for tag in region_tags if isinstance(tag, str) and tag.strip()),
-                ),
-            )
-        )
-    return whole, tuple(region_descriptions)
-
-
 class OpenAiCompatibleVisionClient:
     """Calls an OpenAI-compatible vision-capable chat model for OCR and
     object recognition/tagging in one round trip.
@@ -403,43 +310,6 @@ class OpenAiCompatibleVisionClient:
         )
         content = body["choices"][0]["message"]["content"]
         return _parse_description(content)
-
-    def describe_regions(
-        self, image_bytes: bytes, mime_type: str
-    ) -> tuple[ImageDescription, tuple[ImageRegionDescription, ...]]:
-        """Describe a whole image and its regions in one orchestrated call."""
-        from .vision_image import normalize_vision_image
-
-        image_bytes, mime_type = normalize_vision_image(image_bytes, mime_type)
-        data_uri = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
-        payload = {
-            "messages": [
-                {"role": "system", "content": _VISION_SYSTEM_ROLE},
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": _REGION_EVIDENCE_PROMPT},
-                        {"type": "image_url", "image_url": {"url": data_uri}},
-                    ],
-                },
-            ],
-            "mode": "auto",
-            "reasoning_effort": "auto",
-            "max_tokens": 4096,
-            "response_format": _REGION_EVIDENCE_RESPONSE_FORMAT,
-        }
-        if self._model:
-            payload["model"] = self._model
-        body = post_json(
-            f"{self._base_url}/chat/completions",
-            payload,
-            headers={"authorization": f"Bearer {self._api_key}"},
-            timeout=self._timeout,
-        )
-        content = body["choices"][0]["message"]["content"]
-        if not isinstance(content, str):
-            raise ImageDescriptionParseError("vision evidence response was not text JSON")
-        return _parse_structured_image_evidence(content)
 
     def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
         """Locate meaningful visual panels through the same orchestrator VISION model."""

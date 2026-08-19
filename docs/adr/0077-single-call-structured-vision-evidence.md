@@ -15,13 +15,12 @@ failed run left no content artifact or vector.
 
 ## Decision
 
-The contextual-orchestrator VISION boundary receives one structured
-`json_object` request per DOM image. The prompt defines the response shape:
-whole-image text, caption, tags, and up to twelve normalized regions with
-  their own text, caption, and tags. The parser accepts the gateway's
-  equivalent `description`/`region` aliases and treats null regions as no
-  region evidence. LineageWeave persists the response into
-the existing image and image-region tables. The request uses `mode=auto` and
+Each DOM image first crosses the contextual-orchestrator VISION boundary with
+one `json_object` region-location request. Accepted normalized regions are
+cropped locally, and each crop crosses the same orchestrated `describe`
+boundary for OCR, caption, and tags. If no region is returned, the whole image
+is described once. LineageWeave persists the image and image-region evidence
+without inventing coordinates. Every request uses `mode=auto` and
 `reasoning_effort=auto`; it does not select a provider model or force a
 sampling temperature. Direct provider calls and monkey patches remain
 forbidden.
@@ -32,16 +31,13 @@ the configured provider's real image request timed out on the schema contract
 while the equivalent object contract completed. This is a provider-shaped
 boundary decision, not a removal of orchestrator schema support.
 
-The legacy locate-then-describe path remains as a compatibility fallback for
-test doubles and clients that do not implement the structured method.
-
 ## Consequences
 
-- One image has one orchestrated VISION request instead of a serial region
-  fan-out, while region-level evidence remains queryable.
-- The parser boundary enforces the documented JSON object shape without
-  claiming provider schema support that the live multimodal path does not
-  currently satisfy.
+- Region-level evidence remains queryable, and a locator failure degrades to
+  whole-image evidence without fabricating a region.
+- The parser boundary enforces normalized coordinate bounds and the documented
+  JSON object shape without claiming provider schema support that the live
+  multimodal path does not currently satisfy.
 - Provider capability and reasoning policy remain centralized in
   contextual-orchestrator.
 - A provider that cannot produce the structured response falls back to the

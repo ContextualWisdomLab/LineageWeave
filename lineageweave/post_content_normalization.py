@@ -171,42 +171,29 @@ def normalize_post_body(
             if vision_client.available and chunk.image_data is not None:
                 region_results: list[ImageRegionResult] = []
                 try:
-                    describe_regions = getattr(vision_client, "describe_regions", None)
-                    if callable(describe_regions):
+                    locator = getattr(vision_client, "locate_regions", None)
+                    try:
+                        regions = locator(chunk.image_data, chunk.label) if callable(locator) else ()
+                    except Exception:  # noqa: BLE001 - locator failure falls back to whole-image evidence.
+                        regions = ()
+                    for region_index, region in enumerate(regions):
                         try:
-                            description, region_descriptions = describe_regions(
-                                chunk.image_data, chunk.label
+                            cropped, cropped_mime = crop_image_region(chunk.image_data, chunk.label, region)
+                            region_description = vision_client.describe(cropped, cropped_mime)
+                        except Exception:  # noqa: BLE001 - one bad region must not drop other evidence.
+                            region_results.append(ImageRegionResult(region_index, region, "failed"))
+                        else:
+                            region_results.append(
+                                ImageRegionResult(region_index, region, "described", region_description)
                             )
-                            region_results = [
-                                ImageRegionResult(index, item.region, "described", item.description)
-                                for index, item in enumerate(region_descriptions)
-                            ]
-                        except Exception:  # noqa: BLE001 - retain whole-image evidence on schema/provider drift.
-                            description = vision_client.describe(chunk.image_data, chunk.label)
-                    else:
-                        locator = getattr(vision_client, "locate_regions", None)
-                        try:
-                            regions = locator(chunk.image_data, chunk.label) if callable(locator) else ()
-                        except Exception:  # noqa: BLE001 - locator failure falls back to whole-image evidence.
-                            regions = ()
-                        for region_index, region in enumerate(regions):
-                            try:
-                                cropped, cropped_mime = crop_image_region(chunk.image_data, chunk.label, region)
-                                region_description = vision_client.describe(cropped, cropped_mime)
-                            except Exception:  # noqa: BLE001 - one bad region must not drop other evidence.
-                                region_results.append(ImageRegionResult(region_index, region, "failed"))
-                            else:
-                                region_results.append(
-                                    ImageRegionResult(region_index, region, "described", region_description)
-                                )
-                        successful_regions = [
-                            result.description for result in region_results if result.description is not None
-                        ]
-                        description = (
-                            _merge_region_descriptions(successful_regions)
-                            if successful_regions
-                            else vision_client.describe(chunk.image_data, chunk.label)
-                        )
+                    successful_regions = [
+                        result.description for result in region_results if result.description is not None
+                    ]
+                    description = (
+                        _merge_region_descriptions(successful_regions)
+                        if successful_regions
+                        else vision_client.describe(chunk.image_data, chunk.label)
+                    )
                 except Exception:  # noqa: BLE001 - a provider failure must not drop the whole post.
                     text_parts.append("[image: content unavailable]")
                     result = ImageContentResult(
