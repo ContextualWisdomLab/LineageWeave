@@ -74,6 +74,18 @@ def _configure_provider_output_budget(*, local_mlx: bool) -> None:
         ModelClient._lineageweave_disable_thinking = True
 
 
+def _apply_provider_models(
+    agents: list[dict[str, object]], provider_model: str, vision_model: str
+) -> None:
+    """Apply text and explicit Vision model overrides without crossing channels."""
+    for agent in agents:
+        tags = agent.get("tags", [])
+        if vision_model and isinstance(tags, list) and "vision" in tags:
+            agent["model"] = vision_model
+        elif provider_model:
+            agent["model"] = provider_model
+
+
 def main() -> None:
     """Register the provider credential and delegate to the upstream server."""
     provider_key = os.environ.pop("LLM_GATEWAY_API_KEY", "").strip()
@@ -92,6 +104,7 @@ def main() -> None:
         provider_url = provider_url.rstrip("/") + "/v1"
     local_mlx = is_local_mlx_provider(provider_url)
     provider_model = os.environ.pop("LLM_GATEWAY_MODEL", "").strip()
+    vision_model = os.environ.pop("VISION_MODEL", "").strip()
     embedding_model = os.environ.pop("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
 
     agents_path = Path("/tmp/lineageweave-agents.json")
@@ -99,8 +112,7 @@ def main() -> None:
     for agent in agents["agents"]:
         agent["base_url"] = provider_url
         agent["credential_key"] = "LLM_GATEWAY_API_KEY"
-        if provider_model:
-            agent["model"] = provider_model
+    _apply_provider_models(agents["agents"], provider_model, vision_model)
     agents_path.write_text(json.dumps(agents), encoding="utf-8")
 
     from contextual_orchestrator.credentials import register_credential

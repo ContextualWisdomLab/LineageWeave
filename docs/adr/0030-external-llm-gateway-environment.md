@@ -55,6 +55,9 @@ local score, summary, extraction, or answer when the gateway is unavailable.
   hostname selected by `LLM_GATEWAY_URL`; wildcard allowlists are forbidden.
 - `LLM_GATEWAY_MODEL` must be authorized by that gateway. A local-MLX model
   name cannot be assumed to be available on an external provider.
+- `VISION_MODEL` is an optional model override for agents tagged `vision`.
+  It is applied inside contextual-orchestrator only; `LLM_GATEWAY_MODEL` must
+  not silently replace an explicitly configured Vision model.
 - `LLM_GATEWAY_EMBEDDING_MODEL` is the explicit allowlisted semantic embedding
   model. If it is absent, contextual-orchestrator rejects embedding work
   instead of returning its standalone eight-dimensional heuristic vector.
@@ -68,6 +71,11 @@ sends image bytes directly to `LLM_GATEWAY_URL`. The contextual-orchestrator
 container validates the supported `text` and `image_url` blocks and forwards
 the multimodal request to the configured provider. Image data is excluded from
 the text used for workflow routing and reasoning classification.
+
+The selected provider/model must actually support multimodal `image_url`
+content. A text-only gateway response such as `Only 'text' content type is
+supported` is a provider capability failure, not a successful Vision result;
+the channel remains unavailable and no OCR/caption is fabricated.
 
 Before the image content block is built, the backend decodes supported raster
 formats, applies EXIF orientation, composites transparent pixels onto white,
