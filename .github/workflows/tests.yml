@@ -13,6 +13,283 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  repair_analysis_run_cutoff_context:
+    name: Repair target-specific cutoff context
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.head_ref == 'feat/event-lineage-node-keeps-gnb-focus-v2170'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/event-lineage-node-keeps-gnb-focus-v2170
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install locked frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: RED - selected DAG target needs its own cutoff clock
+        shell: bash
+        run: |
+          cat > frontend/src/analysisRunNavigation.test.ts <<'EOF'
+          import { describe, expect, it } from "vitest";
+          import { analysisRunTargetClock } from "./analysisRunNavigation";
+
+          describe("analysisRunTargetClock", () => {
+            const context = {
+              knowledgeCutoff: "2026-01-15T12:00:00Z",
+              visiblePosts: [
+                { post_id: "unchanged", live_after_cutoff: false },
+                { post_id: "rewritten", live_after_cutoff: true },
+              ],
+            };
+
+            it("uses the selected DAG target's own live_after_cutoff value", () => {
+              expect(analysisRunTargetClock(context, "rewritten")).toEqual({
+                liveAfterCutoff: true,
+                knowledgeCutoff: context.knowledgeCutoff,
+              });
+              expect(analysisRunTargetClock(context, "unchanged")).toEqual({
+                liveAfterCutoff: false,
+                knowledgeCutoff: context.knowledgeCutoff,
+              });
+            });
+
+            it("keeps the run cutoff and fails closed for a target absent from visible_posts", () => {
+              expect(analysisRunTargetClock(context, "missing")).toEqual({
+                liveAfterCutoff: false,
+                knowledgeCutoff: context.knowledgeCutoff,
+              });
+            });
+          });
+          EOF
+          set +e
+          pnpm --dir frontend exec vitest run src/analysisRunNavigation.test.ts > /tmp/red.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/red.log
+          if [ "$rc" -eq 0 ]; then
+            echo "RED unexpectedly passed; refusing to patch without reproducing the missing contract" >&2
+            exit 1
+          fi
+          grep -Eq 'analysisRunNavigation|Cannot find|Failed to resolve|ENOENT' /tmp/red.log
+
+      - name: GREEN - preserve run context and resolve target-specific clock
+        shell: bash
+        run: |
+          cat > frontend/src/analysisRunNavigation.ts <<'EOF'
+          /** Immutable analysis-run clock context carried across post navigation. */
+          export type AnalysisRunNavigationContext = {
+            knowledgeCutoff: string;
+            visiblePosts: Array<{ post_id: string; live_after_cutoff?: boolean }>;
+          };
+
+          /** Resolve the selected target's own write-clock flag under the originating run cutoff. */
+          export function analysisRunTargetClock(
+            context: AnalysisRunNavigationContext,
+            postId: string,
+          ): { liveAfterCutoff: boolean; knowledgeCutoff: string } {
+            const target = context.visiblePosts.find((post) => post.post_id === postId);
+            return {
+              liveAfterCutoff: Boolean(target?.live_after_cutoff),
+              knowledgeCutoff: context.knowledgeCutoff,
+            };
+          }
+          EOF
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("frontend/src/App.tsx")
+          text = path.read_text()
+
+          def replace_once(old: str, new: str, label: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected exactly one match, got {count}")
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              'import { isoWeekFromCreatedAt, latestIsoWeek } from "./isoWeek";\n',
+              'import { isoWeekFromCreatedAt, latestIsoWeek } from "./isoWeek";\n'
+              'import {\n'
+              '  analysisRunTargetClock,\n'
+              '  type AnalysisRunNavigationContext,\n'
+              '} from "./analysisRunNavigation";\n',
+              "navigation import",
+          )
+          replace_once(
+              'type SelectPostOptions = {\n'
+              '  liveAfterCutoff?: boolean;\n'
+              '  knowledgeCutoff?: string;\n',
+              'type SelectPostOptions = {\n'
+              '  liveAfterCutoff?: boolean;\n'
+              '  knowledgeCutoff?: string;\n'
+              '  analysisRunContext?: AnalysisRunNavigationContext;\n',
+              "select options",
+          )
+          replace_once(
+              'function analysisRunPostOpenOptions(run: AnalysisRun, postId: string): SelectPostOptions {\n'
+              '  const post = run.visible_posts?.find((item) => item.post_id === postId);\n'
+              '  return {\n'
+              '    liveAfterCutoff: Boolean(post?.live_after_cutoff),\n'
+              '    knowledgeCutoff: run.knowledge_cutoff,\n'
+              '  };\n'
+              '}\n',
+              'function analysisRunPostOpenOptions(run: AnalysisRun, postId: string): SelectPostOptions {\n'
+              '  const analysisRunContext: AnalysisRunNavigationContext = {\n'
+              '    knowledgeCutoff: run.knowledge_cutoff,\n'
+              '    visiblePosts: run.visible_posts ?? [],\n'
+              '  };\n'
+              '  return {\n'
+              '    ...analysisRunTargetClock(analysisRunContext, postId),\n'
+              '    analysisRunContext,\n'
+              '  };\n'
+              '}\n',
+              "analysis run open options",
+          )
+          replace_once(
+              '  const [openedAfterCutoff, setOpenedAfterCutoff] = useState(false);\n'
+              '  const [openedCutoffIso, setOpenedCutoffIso] = useState<string | null>(null);\n',
+              '  const [openedAfterCutoff, setOpenedAfterCutoff] = useState(false);\n'
+              '  const [openedCutoffIso, setOpenedCutoffIso] = useState<string | null>(null);\n'
+              '  const [openedAnalysisRunContext, setOpenedAnalysisRunContext] =\n'
+              '    useState<AnalysisRunNavigationContext | null>(null);\n',
+              "analysis run state",
+          )
+          replace_once(
+              '    setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));\n'
+              '    setOpenedCutoffIso(options?.knowledgeCutoff ?? null);\n',
+              '    setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));\n'
+              '    setOpenedCutoffIso(options?.knowledgeCutoff ?? null);\n'
+              '    setOpenedAnalysisRunContext(options?.analysisRunContext ?? null);\n',
+              "select state",
+          )
+          replace_once(
+              '    setOpenedAfterCutoff(false);\n'
+              '    setOpenedCutoffIso(null);\n'
+              '    setOpenedFromReportMember(false);\n',
+              '    setOpenedAfterCutoff(false);\n'
+              '    setOpenedCutoffIso(null);\n'
+              '    setOpenedAnalysisRunContext(null);\n'
+              '    setOpenedFromReportMember(false);\n',
+              "close state",
+          )
+          replace_once(
+              '                      onClick={() =>\n'
+              '                        onSelectPost(post.post_id, {\n'
+              '                          liveAfterCutoff: Boolean(post.live_after_cutoff),\n'
+              '                          knowledgeCutoff: selected.knowledge_cutoff,\n'
+              '                        })\n'
+              '                      }\n',
+              '                      onClick={() =>\n'
+              '                        onSelectPost(\n'
+              '                          post.post_id,\n'
+              '                          analysisRunPostOpenOptions(selected, post.post_id),\n'
+              '                        )\n'
+              '                      }\n',
+              "visible post open",
+          )
+          replace_once(
+              '          onSelectPost={(postId) =>\n'
+              '            selectPost(postId, {\n'
+              '              fromReportMember: openedFromReportMember,\n'
+              '              fromWeeklyVoc: openedFromWeeklyVoc,\n'
+              '              fromCalendar: openedFromCalendar,\n'
+              '              fromCustomerMaster: openedFromCustomerMaster,\n'
+              '              fromAskAgent: openedFromAskAgent,\n'
+              '            })\n'
+              '          }\n',
+              '          onSelectPost={(postId) => {\n'
+              '            const cutoffOptions = openedAnalysisRunContext\n'
+              '              ? analysisRunTargetClock(openedAnalysisRunContext, postId)\n'
+              '              : {};\n'
+              '            selectPost(postId, {\n'
+              '              ...cutoffOptions,\n'
+              '              analysisRunContext: openedAnalysisRunContext ?? undefined,\n'
+              '              fromReportMember: openedFromReportMember,\n'
+              '              fromWeeklyVoc: openedFromWeeklyVoc,\n'
+              '              fromCalendar: openedFromCalendar,\n'
+              '              fromCustomerMaster: openedFromCustomerMaster,\n'
+              '              fromAskAgent: openedFromAskAgent,\n'
+              '            });\n'
+              '          }}\n',
+              "popup navigation",
+          )
+          path.write_text(text)
+
+          test_path = Path("frontend/src/App.test.tsx")
+          test_text = test_path.read_text()
+          old_test = '''    expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open live post: Private post",
+      }),
+    );
+'''
+          new_test = '''    expect(screen.queryByRole("status", { name: "Live body warning" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Body this run knew" })).not.toBeInTheDocument();
+
+    const publicPosts = screen.getAllByLabelText("Open post: Public post");
+    await userEvent.click(publicPosts[publicPosts.length - 1]);
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(screen.getByRole("status", { name: "Live body warning" })).toHaveTextContent(
+      "This is the live body, not a cutoff snapshot. Compare it with this 2026-01-12 run before you treat it as reconstructed evidence.",
+    );
+    expect(screen.getByRole("heading", { name: "Body this run knew" })).toBeInTheDocument();
+    expect(screen.getByText("The cutoff body this run knew.")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Open live post: Private post",
+      }),
+    );
+'''
+          count = test_text.count(old_test)
+          if count != 1:
+              raise SystemExit(f"cutoff navigation regression: expected exactly one match, got {count}")
+          test_path.write_text(test_text.replace(old_test, new_test, 1))
+          PY
+
+      - name: Verify GREEN and full frontend contract
+        working-directory: frontend
+        run: |
+          pnpm exec vitest run src/analysisRunNavigation.test.ts src/App.test.tsx
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Restore canonical workflows and publish the fix
+        shell: bash
+        run: |
+          git show "${BASE_SHA}:.github/workflows/tests.yml" > .github/workflows/tests.yml
+          rm -f .github/workflows/fix-264-cutoff-context.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/src/App.tsx frontend/src/App.test.tsx frontend/src/analysisRunNavigation.ts frontend/src/analysisRunNavigation.test.ts .github/workflows/tests.yml .github/workflows/fix-264-cutoff-context.yml
+          git diff --cached --check
+          git commit -m "fix(ui): preserve analysis-run cutoff across DAG navigation"
+          git push origin HEAD:feat/event-lineage-node-keeps-gnb-focus-v2170
+
   pytest:
     name: Full test suite
     runs-on: ubuntu-latest
