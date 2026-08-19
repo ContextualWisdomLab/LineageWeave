@@ -22,6 +22,8 @@ from backend.app.config import Settings, load_settings
 from backend.app.db import create_pool
 from backend.app.global_ask import GlobalAskAnswer, answer_global_question
 from backend.app.global_ask_verification import (
+    STATUS_NOT_REQUESTED,
+    ExternalVerificationResult,
     GlobalAskExternalVerifier,
     NullGlobalAskExternalVerifier,
     SearxngOrchestratorGlobalAskVerifier,
@@ -124,13 +126,13 @@ def build_mcp_server(
         instructions=(
             "Use global_ask to answer from the authenticated caller's authorized "
             "LineageWeave source-post and event-lineage evidence. The answer and its "
-            "post citations remain database-authorized internal evidence. A separate "
-            "external_verification_status may corroborate or refute important factual "
-            "claims using bounded Searxng web evidence judged by contextual-orchestrator; "
-            "external URLs never become LineageWeave post authority. Treat insufficient "
-            "or unavailable verification as unresolved, not as support. The tool is "
-            "read-only and fails closed when the primary evidence or reasoning channel "
-            "is unavailable."
+            "post citations remain database-authorized internal evidence. Set "
+            "verify_external=true only when the caller explicitly permits sending the "
+            "question to the configured Searxng open-web search lane. The internal "
+            "answer body is never used as a web-search query. External verification is "
+            "reported separately and external URLs never become LineageWeave post "
+            "authority. Treat insufficient, unavailable, and not_requested as unresolved, "
+            "not as support."
         ),
         version="1.0.0",
         lifespan=lifespan,
@@ -145,9 +147,10 @@ def build_mcp_server(
     @mcp.tool(
         title="Global Ask",
         description=(
-            "Answer from authorized LineageWeave source posts and Event Lineage, then "
-            "separately corroborate the resulting claims against bounded public web "
-            "evidence when the Searxng verification channel is configured."
+            "Answer from authorized LineageWeave source posts and Event Lineage. "
+            "Optionally, with verify_external=true, send the caller's question to the "
+            "configured Searxng open-web lane and separately classify the answer against "
+            "bounded retrieved evidence."
         ),
         annotations=ToolAnnotations(
             read_only_hint=True,
@@ -155,8 +158,12 @@ def build_mcp_server(
             open_world_hint=True,
         ),
     )
-    async def global_ask(question: str, ctx: Context[McpAppContext, Any]) -> GlobalAskResult:
-        """Run source-grounded Global Ask plus a non-authoritative external check."""
+    async def global_ask(
+        question: str,
+        ctx: Context[McpAppContext, Any],
+        verify_external: bool = False,
+    ) -> GlobalAskResult:
+        """Run source-grounded Global Ask with optional explicit open-web verification."""
         token = access_token_provider()
         if token is None or not token.subject:
             raise PermissionError("authenticated MCP principal is unavailable")
@@ -169,11 +176,14 @@ def build_mcp_server(
             question,
             vision_client=dependencies.vision_client,
         )
-        verification = await asyncio.to_thread(
-            dependencies.external_verifier.verify,
-            question,
-            result.answer_text,
-        )
+        if verify_external:
+            verification = await asyncio.to_thread(
+                dependencies.external_verifier.verify,
+                question,
+                result.answer_text,
+            )
+        else:
+            verification = ExternalVerificationResult(status_code=STATUS_NOT_REQUESTED)
         return GlobalAskResult(
             **asdict(result),
             external_verification_status=verification.status_code,
