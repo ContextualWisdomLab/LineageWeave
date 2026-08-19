@@ -733,9 +733,11 @@ async def read_customer_master(
                        count(*) as post_count
                   from ranked
                  group by author_code, author_account_id, account_display_name
-            ), keyman_authors as (
-                select distinct ranked.author_code, ranked.author_account_id,
-                       ranked.account_display_name
+            ), keyman_mentions as (
+                select ranked.author_code, ranked.author_account_id,
+                       ranked.account_display_name, ranked.post_id,
+                       person.person_id, person.person_name,
+                       person.person_side_code, person.last_known_job_title
                   from ranked
                   join post_summary_role role
                     on role.post_id = ranked.post_id
@@ -744,6 +746,17 @@ async def read_customer_master(
                     on person.person_id = role.cataloged_person_id
                    and person.person_side_code = 'our_side'
                  where role.cataloged_person_id is not null
+                union
+                select ranked.author_code, ranked.author_account_id,
+                       ranked.account_display_name, ranked.post_id,
+                       person.person_id, person.person_name,
+                       person.person_side_code, person.last_known_job_title
+                  from ranked
+                  join post_person_mention mention
+                    on mention.post_id = ranked.post_id
+                  join cataloged_person person
+                    on person.person_id = mention.person_id
+                   and person.person_side_code = 'our_side'
             ), top_groups as materialized (
                 select groups.*
                   from groups
@@ -755,27 +768,20 @@ async def read_customer_master(
                           groups.post_count desc, groups.author_code
                  limit 100
             ), keyman_groups as (
-                select ranked.author_code, ranked.author_account_id,
-                       ranked.account_display_name,
-                       person.person_id, person.person_name,
-                       person.person_side_code, person.last_known_job_title,
-                       count(distinct ranked.post_id) as mention_count
-                  from ranked
+                select mentions.author_code, mentions.author_account_id,
+                       mentions.account_display_name,
+                       mentions.person_id, mentions.person_name,
+                       mentions.person_side_code, mentions.last_known_job_title,
+                       count(distinct mentions.post_id) as mention_count
+                  from keyman_mentions mentions
                   join top_groups
-                    on top_groups.author_code = ranked.author_code
-                   and top_groups.author_account_id = ranked.author_account_id
-                   and top_groups.account_display_name = ranked.account_display_name
-                  join post_summary_role role
-                    on role.post_id = ranked.post_id
-                   and role.actor_type_code = 'prov_person'
-                  join cataloged_person person
-                    on person.person_id = role.cataloged_person_id
-                   and person.person_side_code = 'our_side'
-                 where role.cataloged_person_id is not null
-                 group by ranked.author_code, ranked.author_account_id,
-                          ranked.account_display_name, person.person_id,
-                          person.person_name, person.person_side_code,
-                          person.last_known_job_title
+                    on top_groups.author_code = mentions.author_code
+                   and top_groups.author_account_id = mentions.author_account_id
+                   and top_groups.account_display_name = mentions.account_display_name
+                 group by mentions.author_code, mentions.author_account_id,
+                          mentions.account_display_name, mentions.person_id,
+                          mentions.person_name, mentions.person_side_code,
+                          mentions.last_known_job_title
             ), keyman_related as (
                 select author_code, author_account_id, account_display_name,
                        json_agg(
@@ -786,7 +792,7 @@ async def read_customer_master(
                                'last_known_job_title', last_known_job_title,
                                'mention_count', mention_count,
                                'provenance',
-                               'post_summary_role.cataloged_person_id/source_post.author_account_id'
+                               'post_person_mention.person_id|post_summary_role.cataloged_person_id/source_post.author_account_id'
                            )
                            order by mention_count desc, person_name, person_id
                        ) as keyman_hints
