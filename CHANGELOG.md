@@ -4,6 +4,25 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.0] - 2026-08-19
+
+### Added
+
+- Opening a Voice of Customer post from an active Weekly VOC filter now
+  focuses Event Lineage and names Keyman and evaluation as the next read.
+  Home-list opens do not add that focus or copy. No TEPP theta is
+  invented. No cutoff body is invented (ADR 0093 / ADR 0016).
+
+## [2.12.0] - 2026-08-19
+
+### Added
+
+- Board now names Weekly VOC as an ISO-8601 week list filter. The control
+  keeps Voice of Customer posts for the latest week present in the loaded
+  list (UTC Thursday rule) and tells the buyer to open a post to read
+  Event Lineage. Reset filters returns every VOC type and every week.
+  No TEPP theta is invented (ADR 0092).
+
 ## [2.10.0] - 2026-08-18
 
 ### Added

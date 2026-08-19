@@ -145,6 +145,15 @@
   min-height: 0;
 }
 
+.board-weekly-voc[aria-pressed="true"] {
+  border-color: var(--text);
+  font-weight: 700;
+}
+
+.board-next-action {
+  margin: 0 0 1rem;
+}
+
 .board-controls input,
 .board-controls select {
   min-height: var(--size-control-min);
