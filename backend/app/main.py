@@ -733,10 +733,26 @@ async def read_customer_master(
                        count(*) as post_count
                   from ranked
                  group by author_code, author_account_id, account_display_name
+            ), keyman_authors as (
+                select distinct ranked.author_code, ranked.author_account_id,
+                       ranked.account_display_name
+                  from ranked
+                  join post_summary_role role
+                    on role.post_id = ranked.post_id
+                   and role.actor_type_code = 'prov_person'
+                  join cataloged_person person
+                    on person.person_id = role.cataloged_person_id
+                   and person.person_side_code = 'our_side'
+                 where role.cataloged_person_id is not null
             ), top_groups as materialized (
-                select *
+                select groups.*
                   from groups
-                 order by post_count desc, author_code
+                  left join keyman_authors
+                    on keyman_authors.author_code = groups.author_code
+                   and keyman_authors.author_account_id = groups.author_account_id
+                   and keyman_authors.account_display_name = groups.account_display_name
+                 order by (keyman_authors.author_code is not null) desc,
+                          groups.post_count desc, groups.author_code
                  limit 100
             ), keyman_groups as (
                 select ranked.author_code, ranked.author_account_id,
