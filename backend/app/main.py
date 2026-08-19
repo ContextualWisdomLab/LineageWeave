@@ -828,6 +828,7 @@ async def read_customer_master(
             """,
             entity_ids,
         )
+        side_labels = await labels_for_codes(conn, [row["person_side_code"] for row in keyman_rows])
 
     keymen_by_id: dict[str, dict[str, Any]] = {}
     for row in keyman_rows:
@@ -838,6 +839,7 @@ async def read_customer_master(
                 "person_id": person_id,
                 "person_name": row["person_name"],
                 "person_side_code": row["person_side_code"],
+                "person_side_label": side_labels.get(row["person_side_code"], row["person_side_code"]),
                 "last_known_job_title": row["last_known_job_title"],
                 "affiliations": [],
             },

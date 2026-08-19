@@ -420,6 +420,7 @@ export interface CustomerMasterKeyman {
   person_id: string;
   person_name: string;
   person_side_code: string;
+  person_side_label: string;
   last_known_job_title: string | null;
   affiliations: CustomerMasterKeymanAffiliation[];
 }

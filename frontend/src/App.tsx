@@ -4125,7 +4125,7 @@ function CustomerMasterPanel({
             {master.keymen.map((person) => (
               <li key={person.person_id}>
                 <strong>{person.person_name}</strong>
-                <span>{person.last_known_job_title ?? person.person_side_code}</span>
+                <span>{person.last_known_job_title ?? person.person_side_label}</span>
                 <span>{person.affiliations.map((affiliation) => affiliation.entity_name ?? affiliation.organization_name).join(", ")}</span>
               </li>
             ))}

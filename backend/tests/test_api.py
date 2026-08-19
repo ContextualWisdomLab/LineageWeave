@@ -1145,6 +1145,13 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
     entity = next(item for item in body["corporate_entities"] if item["entity_name"] == "Test Corp")
     assert {"corporate_entity_id", "corporate_entity_code", "entity_name", "entity_level_code", "parent_entity_id"} <= set(entity)
     assert isinstance(body["keymen"], list)
+    ada_west = next(item for item in body["keymen"] if item["person_name"] == "Ada West")
+    assert ada_west["person_side_code"] == "our_side"
+    # Live UI finding (2026-08-19): the Customer Master Keymen list falls
+    # back to person_side_label, not the raw code, whenever
+    # last_known_job_title is null -- confirm the label is actually a
+    # human label from common_lookup_value, not the bare code repeated.
+    assert ada_west["person_side_label"] not in ("", "our_side")
     assert body["source_customer_hints"] == [
         {
             "customer_code": "TEST-CUSTOMER-001",
