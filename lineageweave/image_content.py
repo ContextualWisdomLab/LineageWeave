@@ -299,7 +299,6 @@ class OpenAiCompatibleVisionClient:
             "mode": "auto",
             "reasoning_effort": "auto",
             "max_tokens": 1024,
-            "temperature": 0.0,
         }
         if self._model:
             payload["model"] = self._model
@@ -332,7 +331,6 @@ class OpenAiCompatibleVisionClient:
             "mode": "auto",
             "reasoning_effort": "auto",
             "max_tokens": 2048,
-            "temperature": 0.0,
             "response_format": {"type": "json_object"},
         }
         if self._model:
