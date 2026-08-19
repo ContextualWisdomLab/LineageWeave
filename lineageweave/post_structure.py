@@ -71,6 +71,34 @@ class ContextualOrchestratorPostStructureClient:
                         ),
                     },
                 ],
+                "response_format": {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "post_structure_adjudication",
+                        "strict": True,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "decisions": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "unit_index": {"type": "integer", "minimum": 0},
+                                            "indent_level": {"type": "integer", "minimum": 0},
+                                            "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                                            "evidence": {"type": "string", "minLength": 1},
+                                        },
+                                        "required": ["unit_index", "indent_level", "confidence", "evidence"],
+                                        "additionalProperties": False,
+                                    },
+                                },
+                            },
+                            "required": ["decisions"],
+                            "additionalProperties": False,
+                        },
+                    },
+                },
                 "mode": "auto",
                 "reasoning_effort": "auto",
             },
