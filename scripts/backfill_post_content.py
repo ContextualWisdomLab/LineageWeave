@@ -95,28 +95,22 @@ async def backfill_post_content(
                 "where unit.post_id = post.post_id and embedding.post_content_unit_id is null))"
             )
         limit_sql = "" if limit is None else f" limit {int(limit)}"
-        rows = await conn.fetch(
+        selected_rows = await conn.fetch(
             f"""
-            select post.post_id, post.post_title, post.post_body, post.author_account_id,
-                   post.source_process_unit_code, post.source_author_code,
-                   post.source_company_code, post.source_customer_code,
-                   post.source_project_code, post.source_sales_pool_code,
-                   entity.corporate_entity_code
+            select post.post_id
               from source_post post
-              left join corporate_entity entity
-                on entity.corporate_entity_id = post.corporate_entity_id
              where {' and '.join(conditions)}
              order by post.created_at, post.post_id
              {limit_sql}
             """,
             *query_args,
         )
-        if post_ids and len(rows) != len(post_ids):
+        if post_ids and len(selected_rows) != len(post_ids):
             raise ValueError("one or more requested post IDs were not found")
 
         result = {
             "requested_posts": len(post_ids),
-            "selected_posts": len(rows),
+            "selected_posts": len(selected_rows),
             "processed_posts": 0,
             "described_posts": 0,
             "described_images": 0,
@@ -124,7 +118,23 @@ async def backfill_post_content(
             "embedding_rows": 0,
             "skipped_posts": 0,
         }
-        for row in rows:
+        for selected_row in selected_rows:
+            row = await conn.fetchrow(
+                """
+                select post.post_id, post.post_title, post.post_body, post.author_account_id,
+                       post.source_process_unit_code, post.source_author_code,
+                       post.source_company_code, post.source_customer_code,
+                       post.source_project_code, post.source_sales_pool_code,
+                       entity.corporate_entity_code
+                  from source_post post
+                  left join corporate_entity entity
+                    on entity.corporate_entity_id = post.corporate_entity_id
+                 where post.post_id = $1
+                """,
+                selected_row["post_id"],
+            )
+            if row is None:
+                continue
             with use_llm_metadata(build_post_llm_metadata(str(row["post_id"]), row)):
                 normalized = normalize_post_body(row["post_body"], vision_client=vision_client)
                 described_images = sum(item.status_code == "described" for item in normalized.image_results)
