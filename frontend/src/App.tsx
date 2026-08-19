@@ -2575,6 +2575,14 @@ function analysisRunPostOpenOptions(run: AnalysisRun, postId: string): SelectPos
 
 const VISIBLE_POSTS_RENDER_LIMIT = 200;
 
+// Live finding (2026-08-19): the backend already caps source_customer_hints
+// / source_author_hints at 100 rows each, but real imported data hits that
+// cap routinely (unresolved codes are the common case), and each row's own
+// "Related posts" details -- collapsed by default but still mounted in the
+// DOM -- pushed the page to a ~37,000px scroll height. Same pattern as
+// VISIBLE_POSTS_RENDER_LIMIT above: cap the initial render, name the total.
+const HINT_RENDER_LIMIT = 30;
+
 function AnalysisRunsPanel({
   accessToken,
   currentReportPeriod,
@@ -4042,8 +4050,16 @@ function CustomerMasterPanel({
           <p className="buyer-destination-intro">
             {t("Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.")}
           </p>
+          {master.source_customer_hints.length > HINT_RENDER_LIMIT && (
+            <p className="post-meta">
+              {tf("Showing the first {shown} of {total} observed customer identifiers, ranked by post count.", {
+                shown: HINT_RENDER_LIMIT,
+                total: master.source_customer_hints.length,
+              })}
+            </p>
+          )}
           <ul className="customer-master-list">
-            {master.source_customer_hints.map((hint) => (
+            {master.source_customer_hints.slice(0, HINT_RENDER_LIMIT).map((hint) => (
               <li key={`${hint.customer_code ?? "name"}:${hint.customer_name ?? "unknown"}`}>
                 <strong>{hint.customer_name ?? hint.customer_code ?? t("Unresolved source identifier")}</strong>
                 {hint.customer_name && hint.customer_code ? <span>{hint.customer_code}</span> : null}
@@ -4076,8 +4092,16 @@ function CustomerMasterPanel({
       {master && master.source_author_hints.length > 0 ? (
         <section className="customer-keymen" aria-labelledby="source-author-evidence-heading">
           <h3 id="source-author-evidence-heading">{t("Source author evidence")}</h3>
+          {master.source_author_hints.length > HINT_RENDER_LIMIT && (
+            <p className="post-meta">
+              {tf("Showing the first {shown} of {total} observed source authors, ranked by post count.", {
+                shown: HINT_RENDER_LIMIT,
+                total: master.source_author_hints.length,
+              })}
+            </p>
+          )}
           <ul className="customer-master-list">
-            {master.source_author_hints.map((hint) => (
+            {master.source_author_hints.slice(0, HINT_RENDER_LIMIT).map((hint) => (
               <li key={`${hint.author_code}:${hint.author_account_id}`}>
                 <strong>{hint.author_name ?? hint.author_code}</strong>
                 <details>

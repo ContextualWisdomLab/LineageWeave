@@ -323,6 +323,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Saved evidence is still available.": "저장된 근거는 계속 확인할 수 있습니다.",
     "Showing the first {shown} of {total} posts known at this cutoff.":
       "이 기준 시점에 알려진 {total}개 글 중 처음 {shown}개를 표시합니다.",
+    "Showing the first {shown} of {total} observed customer identifiers, ranked by post count.":
+      "관측된 고객 식별자 {total}개 중 게시물 수 기준 상위 {shown}개를 표시합니다.",
+    "Showing the first {shown} of {total} observed source authors, ranked by post count.":
+      "관측된 원본 작성자 {total}명 중 게시물 수 기준 상위 {shown}명을 표시합니다.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "대화형 질문을 지금 사용할 수 없습니다. 저장된 근거는 계속 확인할 수 있습니다.",
   },
@@ -630,6 +634,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Saved evidence is still available.": "仍可查看已保存的证据。",
     "Showing the first {shown} of {total} posts known at this cutoff.":
       "显示此截止时间已知的 {total} 篇文章中的前 {shown} 篇。",
+    "Showing the first {shown} of {total} observed customer identifiers, ranked by post count.":
+      "显示按文章数排序的 {total} 个已观察客户标识符中的前 {shown} 个。",
+    "Showing the first {shown} of {total} observed source authors, ranked by post count.":
+      "显示按文章数排序的 {total} 位已观察来源作者中的前 {shown} 位。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "交互式提问暂不可用；已保存的证据仍可查看。",
   },
@@ -937,6 +945,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Saved evidence is still available.": "保存された証拠は引き続き確認できます。",
     "Showing the first {shown} of {total} posts known at this cutoff.":
       "この基準時点で把握されている{total}件の投稿のうち、最初の{shown}件を表示しています。",
+    "Showing the first {shown} of {total} observed customer identifiers, ranked by post count.":
+      "投稿数順に、観測された{total}件の顧客識別子のうち上位{shown}件を表示しています。",
+    "Showing the first {shown} of {total} observed source authors, ranked by post count.":
+      "投稿数順に、観測された{total}名の元投稿者のうち上位{shown}名を表示しています。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "対話形式の質問は現在利用できません。保存された証拠は確認できます。",
   },
@@ -1244,6 +1256,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Saved evidence is still available.": "Bằng chứng đã lưu vẫn có thể xem.",
     "Showing the first {shown} of {total} posts known at this cutoff.":
       "Đang hiển thị {shown} bài viết đầu tiên trong số {total} bài viết được biết tại thời điểm chốt này.",
+    "Showing the first {shown} of {total} observed customer identifiers, ranked by post count.":
+      "Đang hiển thị {shown} mã định danh khách hàng hàng đầu trong số {total} mã định danh đã quan sát, xếp theo số bài viết.",
+    "Showing the first {shown} of {total} observed source authors, ranked by post count.":
+      "Đang hiển thị {shown} tác giả nguồn hàng đầu trong số {total} tác giả đã quan sát, xếp theo số bài viết.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "Câu hỏi tương tác hiện không khả dụng; bằng chứng đã lưu vẫn có thể xem.",
   },

@@ -83,6 +83,7 @@ describe("App, authenticated", () => {
     deferMe?: boolean;
     meFailed?: boolean;
     postBody?: string;
+    manyCustomerHints?: number;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -1527,7 +1528,17 @@ describe("App, authenticated", () => {
                 affiliations: [],
               },
             ],
-            source_customer_hints: [],
+            source_customer_hints: options?.manyCustomerHints
+              ? Array.from({ length: options.manyCustomerHints }, (_, index) => ({
+                  customer_code: `CUST-${index}`,
+                  customer_name: null,
+                  post_count: options.manyCustomerHints! - index,
+                  related_posts: [],
+                  resolution_status: "hint_only",
+                  hint_trust: "normal",
+                  provenance: "source_post.source_customer_code",
+                }))
+              : [],
             source_author_hints: [],
           }),
         );
@@ -1569,6 +1580,25 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Our side")).toBeInTheDocument();
     expect(screen.queryByText("company", { exact: true })).not.toBeInTheDocument();
     expect(screen.queryByText("our_side", { exact: true })).not.toBeInTheDocument();
+  });
+
+  it("caps the observed customer identifier list instead of rendering all of them", async () => {
+    // Live UI finding (2026-08-19): real imported data routinely hits the
+    // backend's 100-row cap on source_customer_hints; rendering all of
+    // them (each with its own collapsed-but-mounted Related posts
+    // details) pushed the page to a ~37,000px scroll height. Confirm the
+    // frontend now truncates and says so, matching VISIBLE_POSTS_RENDER_LIMIT's
+    // established pattern elsewhere in this screen.
+    stubBackend({ manyCustomerHints: 45 });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    expect(await screen.findByText("CUST-0")).toBeInTheDocument();
+    expect(screen.getByText(/Showing the first 30 of 45 observed customer identifiers/)).toBeInTheDocument();
+    expect(screen.getByText("CUST-29")).toBeInTheDocument();
+    expect(screen.queryByText("CUST-30")).not.toBeInTheDocument();
+    expect(screen.queryByText("CUST-44")).not.toBeInTheDocument();
   });
 
   it("searches the board from a semantic project mention", async () => {
