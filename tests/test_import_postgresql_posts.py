@@ -67,6 +67,21 @@ def test_importer_preflights_identity_and_body_before_target_mutation() -> None:
         )
 
 
+def test_importer_rejects_duplicate_active_source_identity() -> None:
+    mapping = SimpleNamespace(record_key="record_key", body="body", draft="draft_state", deleted=None)
+
+    with pytest.raises(ValueError, match="duplicate source record key at source rows 1 and 2"):
+        _validate_source_rows(
+            [
+                {"record_key": "same", "body": "first", "draft_state": "N"},
+                {"record_key": "same", "body": "second", "draft_state": "N"},
+            ],
+            mapping,
+            ["Y"],
+            [],
+        )
+
+
 def test_importer_always_requires_verified_publication_state() -> None:
     mapping = SimpleNamespace(record_key="record_key", body="body", draft="draft_state", deleted=None)
 

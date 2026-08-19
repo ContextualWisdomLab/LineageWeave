@@ -16,6 +16,10 @@ made real records appear to belong to the demo identity.
 - Preserve caller-mapped raw source context separately from the authenticated
   account and authorization scope: author code/name, company code, business
   unit (PU), sales pool, customer code, and project code.
+- Require the caller-mapped source record key to be a stable unique identity
+  for each active source row. Do not synthesize identity from title, date,
+  customer, PU, or other display fields; the importer rejects duplicate active
+  keys before any target mutation.
 - Treat `ZCRHT811.VOCCTS` (`voccts_field`) as the source post body when that
   column is available. A missing body remains missing; do not summarize a
   title-only row.

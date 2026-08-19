@@ -236,6 +236,7 @@ def _validate_source_rows(
 ) -> None:
     """Reject incomplete source evidence before the target is mutated."""
     _validate_publication_state(rows, mapping, excluded_draft_values)
+    seen_record_keys: dict[str, int] = {}
     for row_number, row in enumerate(rows, start=1):
         if _source_code_matches(row, mapping.draft, excluded_draft_values) or _source_code_matches(
             row, mapping.deleted, excluded_deleted_values
@@ -244,6 +245,12 @@ def _validate_source_rows(
         record_key = str(_value(row, mapping.record_key) or "").strip()
         if not record_key:
             raise ValueError(f"source record key cannot be empty at source row {row_number}")
+        previous_row = seen_record_keys.get(record_key)
+        if previous_row is not None:
+            raise ValueError(
+                f"duplicate source record key at source rows {previous_row} and {row_number}"
+            )
+        seen_record_keys[record_key] = row_number
         body = str(_value(row, mapping.body) or "")
         if not body.strip():
             raise ValueError(f"source post body cannot be empty at source row {row_number}")
