@@ -139,6 +139,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Customer master could not be loaded.": "고객 마스터를 불러오지 못했습니다.",
     "No customer entities are connected to this account.": "이 계정에 연결된 고객 엔터티가 없습니다.",
     "Observed customer evidence": "관찰된 고객 증거",
+    "Relationship network": "관계 네트워크",
+    "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
+      "거래처는 시간에 따라 여러 역할을 동시에 가질 수 있습니다 -- 한 게시물에서는 고객이지만 다른 게시물에서는 경쟁사, 공급자, 파트너일 수 있습니다. 가장 빈번한 역할만이 아니라 관측된 모든 역할을 표시합니다.",
+    "Multiple roles observed": "복수 역할 관측됨",
     "Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.": "원본 식별자는 힌트일 뿐이며, 고객에 연결하기 전에 온톨로지와 의미 증거로 확인해야 합니다.",
     "Unresolved source identifier": "미해결 원본 식별자",
     "Weak source hint": "신뢰도가 낮은 원본 힌트",
@@ -451,6 +455,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Customer master could not be loaded.": "无法加载客户主数据。",
     "No customer entities are connected to this account.": "此账户没有连接的客户实体。",
     "Observed customer evidence": "观测到的客户证据",
+    "Relationship network": "关系网络",
+    "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
+      "同一交易对手可能随时间拥有多个角色 -- 在一篇文章中是客户,在另一篇文章中可能是竞争对手、供应商或合作伙伴。会列出观测到的每一个角色,而不仅是最频繁的那个。",
+    "Multiple roles observed": "观测到多个角色",
     "Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.": "源标识符仅是提示；绑定客户前必须通过本体和语义证据解析它们。",
     "Unresolved source identifier": "未解析的源标识符",
     "Weak source hint": "低可信源提示",
@@ -786,6 +794,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Customer master could not be loaded.": "顧客マスターを読み込めませんでした。",
     "No customer entities are connected to this account.": "このアカウントに接続された顧客エンティティはありません。",
     "Observed customer evidence": "観測された顧客証拠",
+    "Relationship network": "関係ネットワーク",
+    "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
+      "取引先は時間の経過とともに複数の役割を持つことがあります -- ある投稿では顧客でも、別の投稿では競合他社、サプライヤー、またはパートナーである場合があります。最も頻繁な役割だけでなく、観測されたすべての役割を表示します。",
+    "Multiple roles observed": "複数の役割が観測されました",
     "Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.": "ソース識別子はヒントにすぎません。顧客に紐付ける前にオントロジーと意味証拠で解決する必要があります。",
     "Unresolved source identifier": "未解決のソース識別子",
     "Weak source hint": "信頼度の低いソースヒント",
@@ -1097,6 +1109,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Customer master could not be loaded.": "Không thể tải danh mục khách hàng.",
     "No customer entities are connected to this account.": "Tài khoản này chưa được kết nối với thực thể khách hàng nào.",
     "Observed customer evidence": "Bằng chứng khách hàng được quan sát",
+    "Relationship network": "Mạng lưới quan hệ",
+    "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
+      "Một đối tác có thể giữ nhiều vai trò theo thời gian -- là khách hàng trong bài viết này nhưng có thể là đối thủ cạnh tranh, nhà cung cấp, hoặc đối tác trong bài viết khác. Mọi vai trò được quan sát đều được liệt kê, không chỉ vai trò phổ biến nhất.",
+    "Multiple roles observed": "Đã quan sát nhiều vai trò",
     "Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.": "Mã định danh nguồn chỉ là gợi ý; ontology và bằng chứng ngữ nghĩa phải phân giải trước khi gắn với khách hàng.",
     "Unresolved source identifier": "Mã định danh nguồn chưa được phân giải",
     "Weak source hint": "Gợi ý nguồn có độ tin cậy thấp",

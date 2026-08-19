@@ -1114,6 +1114,17 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
                 "update source_post set source_customer_code = %s, source_author_code = %s, source_author_name = %s where post_id = %s",
                 ("TEST-CUSTOMER-001", "TEST-AUTHOR-001", "Test Author", seeded_db["public_post_id"]),
             )
+            # SOURCE_POST_ELIGIBILITY_SQL treats a post with no source_*
+            # context as ineligible once any other post has real context
+            # (the demo-vs-real-data lifecycle rule). source_project_code
+            # isn't read by the customer/author hint queries, so setting
+            # it keeps this post eligible for relationship_network
+            # without adding a second source_customer_hints/
+            # source_author_hints row to the exact-list assertions below.
+            cur.execute(
+                "update source_post set source_project_code = %s where post_id = %s",
+                ("TEST-PROJECT-001", seeded_db["own_private_post_id"]),
+            )
             cur.execute(
                 "insert into post_summary_result (post_id, korean_summary, summary_contract_version) "
                 "values (%s, %s, %s)",
@@ -1200,12 +1211,10 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
             "customer_code": "TEST-CUSTOMER-001",
             "customer_name": None,
             "post_count": 1,
-            "related_posts": [
-                {
+            "related_posts": [{
                 "post_id": seeded_db["public_post_id"],
                 "post_title": "Public post",
-            }
-            ],
+            }],
             "resolution_status": "hint_only",
             "hint_trust": "normal",
             "provenance": "source_post.source_customer_code/source_post.source_customer_name",

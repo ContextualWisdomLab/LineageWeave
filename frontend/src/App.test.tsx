@@ -1540,6 +1540,27 @@ describe("App, authenticated", () => {
                 }))
               : [],
             source_author_hints: [],
+            relationship_network: [
+              {
+                counterparty_entity_name: "Northridge Grid",
+                corporate_entity_id: null,
+                total_post_count: 2,
+                relationships: [
+                  { relationship_type_code: "rel_voc", relationship_label: "Voice of Customer", post_count: 1 },
+                  { relationship_type_code: "rel_voco", relationship_label: "Voice of Competitor", post_count: 1 },
+                ],
+                multi_role: true,
+              },
+              {
+                counterparty_entity_name: "Solo Role Corp",
+                corporate_entity_id: null,
+                total_post_count: 1,
+                relationships: [
+                  { relationship_type_code: "rel_vos", relationship_label: "Voice of Supplier", post_count: 1 },
+                ],
+                multi_role: false,
+              },
+            ],
           }),
         );
       }
@@ -1580,6 +1601,28 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Our side")).toBeInTheDocument();
     expect(screen.queryByText("company", { exact: true })).not.toBeInTheDocument();
     expect(screen.queryByText("our_side", { exact: true })).not.toBeInTheDocument();
+  });
+
+  it("shows every observed relationship role for a counterparty, flagging multi-role names", async () => {
+    // Feature request (2026-08-19): a real counterparty is not limited
+    // to one role -- a customer in one post can be a competitor,
+    // supplier, or partner in another. The Customer Master screen must
+    // surface the whole observed network per name, not just one role.
+    stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    expect(await screen.findByText("Northridge Grid")).toBeInTheDocument();
+    expect(screen.getByText("Voice of Customer (1), Voice of Competitor (1)")).toBeInTheDocument();
+    expect(screen.getByText("Multiple roles observed")).toBeInTheDocument();
+
+    expect(screen.getByText("Solo Role Corp")).toBeInTheDocument();
+    expect(screen.getByText("Voice of Supplier (1)")).toBeInTheDocument();
+    // Solo Role Corp has exactly one observed role -- no badge for it.
+    const soloRow = screen.getByText("Solo Role Corp").closest("li");
+    expect(soloRow).not.toBeNull();
+    expect(within(soloRow as HTMLElement).queryByText("Multiple roles observed")).not.toBeInTheDocument();
   });
 
   it("caps the observed customer identifier list instead of rendering all of them", async () => {

@@ -4044,6 +4044,29 @@ function CustomerMasterPanel({
           })}
         </ul>
       ) : null}
+      {master && (master.relationship_network ?? []).length > 0 ? (
+        <section className="customer-keymen" aria-labelledby="relationship-network-heading">
+          <h3 id="relationship-network-heading">{t("Relationship network")}</h3>
+          <p className="buyer-destination-intro">
+            {t("A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.")}
+          </p>
+          <ul className="customer-master-list">
+            {(master.relationship_network ?? []).map((entry) => (
+              <li key={entry.counterparty_entity_name}>
+                <strong>{entry.counterparty_entity_name}</strong>
+                {entry.multi_role ? (
+                  <span className="post-badge">{t("Multiple roles observed")}</span>
+                ) : null}
+                <span>
+                  {entry.relationships
+                    .map((role) => `${role.relationship_label} (${role.post_count})`)
+                    .join(", ")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {master && master.source_customer_hints.length > 0 ? (
         <section className="customer-keymen" aria-labelledby="observed-customer-evidence-heading">
           <h3 id="observed-customer-evidence-heading">{t("Observed customer evidence")}</h3>

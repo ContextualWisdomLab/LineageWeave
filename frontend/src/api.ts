@@ -475,11 +475,26 @@ export interface SourceAuthorHint {
   provenance: string;
 }
 
+export interface CounterpartyRelationshipRole {
+  relationship_type_code: string;
+  relationship_label: string;
+  post_count: number;
+}
+
+export interface RelationshipNetworkEntry {
+  counterparty_entity_name: string;
+  corporate_entity_id: string | null;
+  total_post_count: number;
+  relationships: CounterpartyRelationshipRole[];
+  multi_role: boolean;
+}
+
 export interface CustomerMasterResponse {
   corporate_entities: CustomerMasterEntity[];
   keymen: CustomerMasterKeyman[];
   source_customer_hints: SourceCustomerHint[];
   source_author_hints: SourceAuthorHint[];
+  relationship_network: RelationshipNetworkEntry[];
 }
 
 export interface CurrentUser {
