@@ -112,17 +112,34 @@ def test_mcp_settings_validate_resource_and_rate(monkeypatch: pytest.MonkeyPatch
         mcp.load_mcp_settings()
 
 
-def test_origin_is_fail_closed_only_when_browser_origin_is_present() -> None:
+def test_transport_target_checks_origin_and_host() -> None:
     settings = mcp.McpRuntimeSettings(
         resource_uri="https://lineage.example/mcp",
         allowed_origins=frozenset({"https://codex.example"}),
         requests_per_minute=30,
     )
-    mcp._validate_origin(_request(), settings)
-    mcp._validate_origin(_request(origin="https://codex.example"), settings)
-    with pytest.raises(Exception) as error:
-        mcp._validate_origin(_request(origin="https://evil.example"), settings)
-    assert getattr(error.value, "status_code", None) == 403
+    mcp._validate_transport_target(_request(), settings)
+    mcp._validate_transport_target(
+        _request(origin="https://codex.example", headers={"Host": "lineage.example"}), settings
+    )
+    with pytest.raises(Exception) as origin_error:
+        mcp._validate_transport_target(_request(origin="https://evil.example"), settings)
+    assert getattr(origin_error.value, "status_code", None) == 403
+    with pytest.raises(Exception) as host_error:
+        mcp._validate_transport_target(_request(headers={"Host": "evil.example"}), settings)
+    assert getattr(host_error.value, "status_code", None) == 400
+
+
+def test_resource_metadata_url_uses_canonical_resource_not_request_host() -> None:
+    settings = mcp.McpRuntimeSettings(
+        resource_uri="https://lineage.example/public/mcp",
+        allowed_origins=frozenset(),
+        requests_per_minute=30,
+    )
+    assert (
+        mcp._resource_metadata_url(settings)
+        == "https://lineage.example/.well-known/oauth-protected-resource/public/mcp"
+    )
 
 
 def test_signing_key_requires_nonempty_exact_kid(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -208,7 +225,7 @@ def test_request_envelope_requires_current_protocol_and_capabilities() -> None:
         mcp._request_envelope(old)
 
 
-def test_transport_headers_must_match_body() -> None:
+def test_transport_headers_follow_final_error_precedence() -> None:
     message = _message("tools/call", name="global_ask", arguments={"question": "Q"})
     valid = _request(
         headers={
@@ -219,27 +236,31 @@ def test_transport_headers_must_match_body() -> None:
     )
     assert mcp._validate_transport_headers(valid, message) is None
 
-    bad_method = _request(
-        headers={
-            "MCP-Protocol-Version": "2026-07-28",
-            "Mcp-Method": "tools/list",
-            "Mcp-Name": "global_ask",
-        }
-    )
-    response = mcp._validate_transport_headers(bad_method, message)
-    assert response.status_code == 400
-    assert b'"code":-32020' in response.body
-
-    old_version = _request(
+    mismatch = _request(
         headers={
             "MCP-Protocol-Version": "2025-06-18",
             "Mcp-Method": "tools/call",
             "Mcp-Name": "global_ask",
         }
     )
-    response = mcp._validate_transport_headers(old_version, message)
+    response = mcp._validate_transport_headers(mismatch, message)
+    assert response.status_code == 400
+    assert b'"code":-32020' in response.body
+
+    old_message = _message("tools/call", name="global_ask", arguments={"question": "Q"})
+    old_message["params"]["_meta"]["io.modelcontextprotocol/protocolVersion"] = "2025-06-18"
+    old_header = _request(
+        headers={
+            "MCP-Protocol-Version": "2025-06-18",
+            "Mcp-Method": "tools/call",
+            "Mcp-Name": "global_ask",
+        }
+    )
+    response = mcp._validate_transport_headers(old_header, old_message)
     assert response.status_code == 400
     assert b'"code":-32022' in response.body
+    assert b'"supported":["2026-07-28"]' in response.body
+    assert b'"requested":"2025-06-18"' in response.body
 
 
 def test_discover_and_tool_catalog_are_stateless_current_protocol() -> None:
