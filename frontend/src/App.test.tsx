@@ -756,6 +756,24 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/customer-master")) {
+        return Promise.resolve(
+          jsonResponse({
+            corporate_entities: [
+              {
+                corporate_entity_id: "corp-demo",
+                entity_name: "Demo Corp",
+                corporate_entity_code: "DEMO-CORP-01",
+                entity_level_code: "company",
+                parent_entity_id: null,
+              },
+            ],
+            keymen: [],
+            source_customer_hints: [],
+            source_author_hints: [],
+          }),
+        );
+      }
       if (url.endsWith("/api/rankings")) {
         const rankings = options?.rankings ?? {
           status: "unavailable" as const,
@@ -1314,6 +1332,26 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/corporate-entities/corp-demo/related")) {
+        return Promise.resolve(
+          jsonResponse({
+            corporate_entity_id: "corp-demo",
+            entity_name: "Demo Corp",
+            related: [
+              {
+                node_id: "post-1",
+                node_type_code: "node_post",
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                ontology_label: "Post",
+                label: "Public post",
+                relevance: 0.8,
+                post_body_excerpt: "The full body text.",
+                post_body_truncated: false,
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/posts/post-1/affiliate-tree")) {
         return Promise.resolve(
           jsonResponse({
@@ -1627,6 +1665,36 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     const board = screen.getByRole("region", { name: "Board" });
     await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+  });
+
+  it("opening a Customer master related post focuses Event Lineage; a home list open does not", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+    const customers = await screen.findByRole("region", { name: "Customer master" });
+    expect(within(customers).getByLabelText("Next action")).toHaveTextContent(
+      "Authorized customer entities are current. Open a related post to read Event Lineage.",
+    );
+    await userEvent.click(within(customers).getByRole("button", { name: /Demo Corp/ }));
+    await userEvent.click(
+      await within(customers).findByRole("button", { name: "Open related post: Public post" }),
+    );
+
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).toHaveFocus();
+    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
+      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    const boardAfterCustomer = screen.getByRole("region", { name: "Board" });
+    await userEvent.click(
+      within(boardAfterCustomer).getByRole("button", { name: "View post: Public post" }),
+    );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
     expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();

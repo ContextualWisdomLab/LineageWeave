@@ -86,4 +86,12 @@ Event Lineage takes focus and names Keyman and evaluation next
 (ADR 0072). A home-list open does not. Do not invent a theta or a
 CalDAV event.
 
+## Customer master open (v2.15.0)
+
+Open Customer master. Authorized customer entities are current. Open a
+related post: Event Lineage takes focus and names Keyman and evaluation
+next (ADR 0073). A home-list open does not. Do not invent a theta or a
+customer.
+
+
 
