@@ -22,7 +22,9 @@ character-count split:
 - **dom**: sectioning-content element boundaries (WHATWG HTML Living
   Standard / W3C HTML5 -- ``article``, ``section``, ``nav``, ``aside``,
   ``header``, ``footer``, headings ``h1``-``h6``, and flow-content block
-  boundaries ``div``, ``p``, ``li``, ``td``). Relevant once a source
+  boundaries ``div``, ``p``, ``li``, ``tr`` -- a table row, not each
+  cell, since cells sharing a row are one unit; see ``_TABLE_CELL_TAGS``).
+  Relevant once a source
   document is HTML/MHTML rather than plain text (e.g. a raw ingested
   email). Each block's inline ``style`` attribute is
   captured on the resulting :class:`Chunk` as separate metadata, never
@@ -64,7 +66,7 @@ _DOM_BLOCK_TAGS = frozenset(
         "div",
         "p",
         "li",
-        "td",
+        "tr",
         "blockquote",
         "h1",
         "h2",
@@ -75,9 +77,20 @@ _DOM_BLOCK_TAGS = frozenset(
         "w:p",
         "w:tbl",
         "w:tr",
-        "w:tc",
     }
 )
+
+# A table row is the block unit, not each cell -- a cell pushed as its own
+# block (the previous behavior for "td"/"w:tc") loses which cells shared a
+# row: `<tr><td>1</td><td>Acme Corp</td></tr>` flattened into two
+# independent one-line chunks "1" and "Acme Corp" is indistinguishable from
+# two unrelated one-line paragraphs, and a real 5-column x 13-row table
+# read this way degrades into an unrecoverable flat list (live bug,
+# 2026-08-19). Cells append inline into the open row's buffer instead,
+# delimited by " | ", so "1 | Acme Corp | ..." keeps each row's columns
+# readable and attributable as one unit.
+_TABLE_ROW_TAGS = frozenset({"tr", "w:tr"})
+_TABLE_CELL_TAGS = frozenset({"td", "th", "w:tc"})
 
 _LIST_ITEM_START = re.compile(
     r"^(?:[-*•·]\s+|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)"
@@ -288,6 +301,10 @@ class _BlockTextExtractor(HTMLParser):
                 style,
                 indent_width + _declared_indent_width(tag, attrs),
             )
+            return
+        if tag in _TABLE_CELL_TAGS:
+            if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS and self._stack[-1][1]:
+                self._stack[-1][1].append(" | ")
             return
         if tag in _DOM_BLOCK_TAGS:
             style = next((value for name, value in attrs if name == "style" and value), None)

@@ -70,6 +70,39 @@ def test_chunk_by_dom_nested_blocks_do_not_duplicate_text() -> None:
     assert chunks[0].label == "p"
 
 
+def test_chunk_by_dom_groups_table_cells_by_row_instead_of_flattening() -> None:
+    """Live bug (2026-08-19): each <td> used to push its own independent
+    chunk with no row grouping, so a real table (headers + N data rows)
+    degraded into a flat, unattributable list of cell fragments -- e.g. a
+    5-column x 13-row table read back as 65 disconnected one-word lines
+    with no way to tell which cells shared a row.
+    """
+    html = (
+        "<table>"
+        "<tr><td>No.</td><td>Company</td><td>Result</td></tr>"
+        "<tr><td>1</td><td>Acme Corp</td><td>Declined</td></tr>"
+        "<tr><td>2</td><td>Globex Corp</td><td>Interested</td></tr>"
+        "</table>"
+    )
+    chunks = chunk_by_dom(html)
+
+    texts = [c.text for c in chunks]
+    assert texts == [
+        "No. | Company | Result",
+        "1 | Acme Corp | Declined",
+        "2 | Globex Corp | Interested",
+    ]
+    assert all(c.label == "tr" for c in chunks)
+
+
+def test_chunk_by_dom_word_table_rows_also_group_cells() -> None:
+    html = "<w:tbl><w:tr><w:tc>1</w:tc><w:tc>Acme Corp</w:tc></w:tr></w:tbl>"
+    chunks = chunk_by_dom(html)
+
+    assert [c.text for c in chunks] == ["1 | Acme Corp"]
+    assert chunks[0].label == "w:tr"
+
+
 def test_chunk_by_dom_keeps_indentation_as_metadata_not_embedding_text() -> None:
     html = "<p>&nbsp;&nbsp;Level one</p><p>&nbsp;&nbsp;&nbsp;&nbsp;Level two</p>"
     chunks = chunk_by_dom(html)

@@ -1,7 +1,10 @@
 # ADR 0072: Gateway chat model auto-discovery
 
-- Status: Accepted
+- Status: Superseded by [ADR 0076](0076-paper-grounded-model-policy.md)
 - Date: 2026-08-19
+
+> Historical record only. The first-model selection below is no longer a
+> normative decision.
 
 ## Context
 

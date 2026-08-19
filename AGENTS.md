@@ -44,6 +44,28 @@ reimplementing them:
 Before adding a new dependency, check whether an existing org repo already
 does it (`gh repo list ContextualWisdomLab`).
 
+## ADR-first and paper-grounded model decisions
+
+ADRs are normative. Before making an architectural, schema, provider, agent,
+LLM, VISION, routing, reasoning-effort, or persistence decision, read the
+relevant ADRs first. If the ADR does not cover the decision, write or update
+the ADR before changing code, tests, Docker configuration, or runtime policy.
+Do not use an implementation preference to silently override an ADR.
+
+Model-related decisions are governed by [ADR
+0076](docs/adr/0076-paper-grounded-model-policy.md) and may rely only on the
+paper sources cited there and in contextual-orchestrator's literature register:
+the Fugu technical report, TRINITY, and Conductor. Provider model ordering,
+model-name size guesses, undocumented benchmarks, and local intuition are not
+evidence for model quality, routing, reasoning effort, agent count, synthesis,
+or VISION selection. If the papers do not support a policy, leave it
+undecided or unavailable rather than inventing a heuristic.
+
+The canonical provider credentials are runtime-only from `~/.env` through the
+Compose `env_file` boundary. Never copy `~/.env` into the repository or image,
+print its values, or persist them. Do not add `LLM_GATEWAY_MODEL`; the upstream
+contextual-orchestrator owns model discovery and selection.
+
 ## Pluggable channels: never fake a missing signal
 
 `NullEmbeddingClient`, `NullAdjudicationClient`,

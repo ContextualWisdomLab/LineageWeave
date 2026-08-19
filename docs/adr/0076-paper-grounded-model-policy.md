@@ -1,0 +1,61 @@
+# ADR 0076: Paper-grounded model and orchestration policy
+
+- Status: Accepted
+- Date: 2026-08-19
+- Supersedes: [0072](0072-gateway-model-auto-discovery.md)
+- Related: [0070](0070-contextual-orchestrator-upstream-integration.md), [0074](0074-provider-shaped-multi-agent-synthesis.md)
+
+## Context
+
+LineageWeave must not choose a gateway model by provider catalog order, model
+name, parameter-count guess, or an undocumented local benchmark. Those rules
+would make model quality, reasoning effort, agent count, synthesis, and VISION
+behavior arbitrary and would place orchestrator policy in the wrong repository.
+
+The contextual-orchestrator design cites the Fugu technical report, TRINITY,
+and Conductor for model-pool, routing, workflow, role, and quality/latency
+trade-off principles. Those papers do not justify ranking a particular
+provider's model names as universally better.
+
+## Decision
+
+1. Every model-related architectural decision MUST cite a paper in the
+   contextual-orchestrator literature register and state the exact principle
+   being implemented. The source list is maintained in
+   `contextual-orchestrator/docs/architecture.md` and includes:
+   - [Fugu Technical Report](https://github.com/SakanaAI/fugu/blob/main/Fugu_technical_report.pdf)
+   - [TRINITY: An Evolved LLM Coordinator](https://arxiv.org/abs/2512.04695)
+   - [Learning to Orchestrate Agents in Natural Language with the Conductor](https://arxiv.org/abs/2512.04388)
+2. Provider catalog order, model-name parsing, parameter-size guesses,
+   undocumented benchmark results, and intuition MUST NOT be used as evidence
+   for model quality, routing, reasoning effort, agent count, synthesis, or
+   VISION selection.
+3. Provider metadata may be used only for hard capability validation, such as
+   excluding an embedding-only endpoint from chat. It is not a quality score.
+4. Model discovery, agent-pool construction, routing, reasoning-effort
+   allocation, provider protocol translation, structured synthesis, and VISION
+   capability handling belong to contextual-orchestrator. LineageWeave passes
+   the request through its published contract and does not select a model.
+5. `LLM_GATEWAY_MODEL` remains unset. Runtime credentials come from `~/.env`
+   through Compose `env_file`; the file and its values are never copied into a
+   repository or image. If the paper-grounded policy or required capability is
+   unavailable, the system reports an unavailable channel rather than making a
+   guessed selection.
+6. Any change to this policy requires an ADR update before implementation and
+   focused tests plus runtime evidence at the orchestrator boundary.
+
+## Consequences
+
+- ADR 0072's first-catalog-model behavior is historical and non-normative.
+- LineageWeave cannot repair an upstream model-policy gap with a bootstrap
+  heuristic or monkey patch.
+- The orchestrator repository must carry the model-policy implementation and
+  its evidence; this repository pins only a reviewed upstream commit.
+- A provider with insufficient capability may leave structured or VISION work
+  unavailable until the upstream policy supports it.
+
+## References
+
+- Sakana AI. (2026). *Fugu technical report*.
+- [TRINITY: An Evolved LLM Coordinator](https://arxiv.org/abs/2512.04695).
+- [Learning to Orchestrate Agents in Natural Language with the Conductor](https://arxiv.org/abs/2512.04388).

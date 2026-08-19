@@ -78,12 +78,25 @@ def format_semantic_hints(
     )
     customer = _value(None if source_context else customer_name)
     customer_trust = customer_hint_trust(customer)
-    affiliations = sorted(
-        {
-            _value(value)
-            for value in author_affiliations
-            if _value(value) != "none"
-        }
+    # A bulk-imported real record's `author_account_id` is a shared platform
+    # placeholder (every such record is attributed to the same seeded
+    # account), not the record's real author -- so `account_affiliation`
+    # names that placeholder's own org, never the org `source_author_code`/
+    # `source_company_code` actually names. Surfacing it as "our side"
+    # context here fed a wrong company name into a real Keyman-extraction
+    # prompt and inverted the our_side/counterparty classification (live
+    # bug, 2026-08-19). `customer_name` already gets this same treatment a
+    # few lines up for the identical reason -- extend it to affiliations.
+    affiliations = (
+        []
+        if source_context
+        else sorted(
+            {
+                _value(value)
+                for value in author_affiliations
+                if _value(value) != "none"
+            }
+        )
     )
     account_id = author_account_id
     if source_context:
