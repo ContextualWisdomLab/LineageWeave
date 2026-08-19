@@ -36,7 +36,8 @@ provider's model names as universally better.
    allocation, provider protocol translation, structured synthesis, and VISION
    capability handling belong to contextual-orchestrator. LineageWeave passes
    the request through its published contract and does not select a model.
-5. `LLM_GATEWAY_MODEL` remains unset. Runtime credentials come from `~/.env`
+5. `LLM_GATEWAY_MODEL`, `VISION_MODEL`, and other provider-specific chat or
+   vision model selectors remain unset. Runtime credentials come from `~/.env`
    through Compose `env_file`; the file and its values are never copied into a
    repository or image. If the paper-grounded policy or required capability is
    unavailable, the system reports an unavailable channel rather than making a

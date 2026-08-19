@@ -46,6 +46,25 @@ reimplementing them:
 Before adding a new dependency, check whether an existing org repo already
 does it (`gh repo list ContextualWisdomLab`).
 
+## Decision records and model boundary
+
+- Read the applicable `docs/adr/` records before making an architectural,
+  schema, provider, model, or runtime decision. Record a new decision before
+  implementing a new policy; do not resolve ADR conflicts by intuition.
+- All LLM, VISION, embedding, and structured-output traffic crosses
+  `contextual-orchestrator`. This repository never calls a provider API
+  directly and never uses a monkey patch to repair an upstream capability.
+- Compose loads provider transport credentials from `~/.env` into the
+  orchestrator service. Never copy those values into this repository, an
+  image, a fixture, a log, or a committed agent configuration.
+- `LLM_GATEWAY_MODEL`, `VISION_MODEL`, and provider-specific model selectors
+  are not LineageWeave configuration. Model discovery, capability selection,
+  reasoning effort, protocol negotiation, and VISION selection belong to
+  contextual-orchestrator and must follow its paper-grounded ADRs.
+- MLX and any other local runtime are not public provider contracts. Use the
+  provider-neutral gateway boundary; historical benchmark material is not
+  runtime configuration.
+
 ## ADR-first and paper-grounded model decisions
 
 ADRs are normative. Before making an architectural, schema, provider, agent,
