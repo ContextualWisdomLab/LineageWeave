@@ -5,18 +5,31 @@ on:
     paths:
       - pyproject.toml
       - .github/workflows/mcp-lock-refresh.yml
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - pyproject.toml
+      - uv.lock
+      - backend/app/mcp_*.py
+      - backend/app/global_ask.py
+      - tests/test_mcp_*.py
+      - .github/workflows/mcp-lock-refresh.yml
 
 permissions:
   contents: write
 
 jobs:
   refresh-lock:
-    if: github.actor != 'github-actions[bot]' && github.repository_owner == 'ContextualWisdomLab'
+    if: >-
+      github.actor != 'github-actions[bot]' &&
+      github.repository_owner == 'ContextualWisdomLab' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout feature branch
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
+          ref: ${{ github.head_ref || github.ref_name }}
           fetch-depth: 0
           persist-credentials: true
 
@@ -43,6 +56,8 @@ jobs:
             tests/test_mcp_server.py
 
       - name: Commit the regenerated universal lock
+        env:
+          TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -52,4 +67,4 @@ jobs:
             exit 0
           fi
           git commit -m "build: lock MCP 2.0 runtime"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "HEAD:${TARGET_BRANCH}"
