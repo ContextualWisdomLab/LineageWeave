@@ -3925,19 +3925,22 @@ function CustomerMasterPanel({
                 <span>{t(hint.hint_trust === "low" ? "Weak source hint" : "Source hint")}</span>
                 <span>{hint.post_count} {t("posts")}</span>
                 {hint.related_posts.length > 0 ? (
-                  <ul aria-label={`${t("Related posts")}: ${hint.customer_name ?? hint.customer_code ?? t("Unresolved source identifier")}`}>
-                    {hint.related_posts.map((post) => (
-                      <li key={post.post_id}>
-                        <CustomerRelatedPostCard
-                          postId={post.post_id}
-                          postTitle={post.post_title}
-                          postBodyExcerpt={post.post_body_excerpt}
-                          postBodyTruncated={post.post_body_truncated}
-                          onOpenPost={onOpenPost}
-                        />
-                      </li>
-                    ))}
-                  </ul>
+                  <details>
+                    <summary>{t("Related posts")} ({hint.related_posts.length})</summary>
+                    <ul aria-label={`${t("Related posts")}: ${hint.customer_name ?? hint.customer_code ?? t("Unresolved source identifier")}`}>
+                      {hint.related_posts.map((post) => (
+                        <li key={post.post_id}>
+                          <CustomerRelatedPostCard
+                            postId={post.post_id}
+                            postTitle={post.post_title}
+                            postBodyExcerpt={post.post_body_excerpt}
+                            postBodyTruncated={post.post_body_truncated}
+                            onOpenPost={onOpenPost}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
                 ) : null}
               </li>
             ))}
@@ -3967,19 +3970,22 @@ function CustomerMasterPanel({
                 </details>
                 <span>{hint.post_count} {t("posts")}</span>
                 {hint.related_posts.length > 0 ? (
-                  <ul className="related-post-list">
-                    {hint.related_posts.map((post) => (
-                      <li key={post.post_id}>
-                        <CustomerRelatedPostCard
-                          postId={post.post_id}
-                          postTitle={post.post_title}
-                          postBodyExcerpt={post.post_body_excerpt}
-                          postBodyTruncated={post.post_body_truncated}
-                          onOpenPost={onOpenPost}
-                        />
-                      </li>
-                    ))}
-                  </ul>
+                  <details>
+                    <summary>{t("Related posts")} ({hint.related_posts.length})</summary>
+                    <ul className="related-post-list">
+                      {hint.related_posts.map((post) => (
+                        <li key={post.post_id}>
+                          <CustomerRelatedPostCard
+                            postId={post.post_id}
+                            postTitle={post.post_title}
+                            postBodyExcerpt={post.post_body_excerpt}
+                            postBodyTruncated={post.post_body_truncated}
+                            onOpenPost={onOpenPost}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
                 ) : null}
               </li>
             ))}
