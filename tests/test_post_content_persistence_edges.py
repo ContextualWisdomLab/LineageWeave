@@ -4,8 +4,6 @@ import asyncio
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
 
-import pytest
-
 from lineageweave.chunking import chunk_by_dom
 from lineageweave.post_content_normalization import (
     FormattingHint,
