@@ -2,7 +2,8 @@ from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hin
 
 
 def test_customer_hint_trust_marks_generic_values_weak() -> None:
-    assert customer_hint_trust("미등록고객") == "low"
+    for value in ("기타", "기타고객", "기타 고객", "미등록", "미등록고객", "미등록 고객"):
+        assert customer_hint_trust(value) == "low"
     assert customer_hint_trust("Named customer", "other") == "low"
     assert customer_hint_trust("Named customer") == "normal"
 

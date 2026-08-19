@@ -9,8 +9,8 @@
 project field, but many records describe a project only in the title or body.
 The same record can also carry useful hints in its sales-pool/process-unit,
 customer, and author-account affiliations. A customer represented as `기타`,
-미등록, unknown, or an equivalent placeholder is not reliable identity
-evidence.
+`기타고객`, `미등록`, `미등록고객`, their spaced forms, unknown, or an
+equivalent placeholder is not reliable identity evidence.
 
 Keyman side classification has the same boundary. The post author's account
 and its corporate affiliations are strong prior context for identifying an

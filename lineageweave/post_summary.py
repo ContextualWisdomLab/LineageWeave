@@ -254,8 +254,8 @@ post, what was actually considered, and what was decided or left open --
 not just a flat restatement of facts in body order.
 
 Example shape (fictional content, format only):
-Acme Electronics 창원 공장에서 케이블 배선 설계 누락이 발견되어 2월 12일
-기술 회의가 소집되었다. 회의에서 이수진 PM은 전선관 규격을 그대로 쓸지
+Acme Electronics 제3공장에서 케이블 배선 설계 누락이 발견되어 2월 12일
+기술 회의가 소집되었다. 회의에서 홍길동 PM은 전선관 규격을 그대로 쓸지
 재설계할지를 두고 설계팀과 논의했으며, 재설계 시 발생하는 일정 지연이
 쟁점이 되었다. 결론적으로 규격은 유지하되 배선 경로만 변경하기로 했고,
 설계팀이 다음 주까지 수정 도면을 제출하기로 했다.

@@ -10,7 +10,17 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 _WEAK_CUSTOMER_VALUES = frozenset(
-    {"기타", "미등록", "미등록고객", "unknown", "unregistered", "other"}
+    {
+        "기타",
+        "기타고객",
+        "기타 고객",
+        "미등록",
+        "미등록고객",
+        "미등록 고객",
+        "unknown",
+        "unregistered",
+        "other",
+    }
 )
 
 
