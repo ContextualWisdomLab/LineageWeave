@@ -60,9 +60,15 @@ def _signing_key_from_jwks(jwks: dict[str, Any], token: str):
     kid = header.get("kid")
     if not isinstance(kid, str) or not kid:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid token: missing kid")
+    keys = jwks.get("keys")
+    if not isinstance(keys, list):
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "issuer JWKS keys is not an array",
+        )
     matches = [
         key
-        for key in jwks.get("keys", [])
+        for key in keys
         if isinstance(key, dict)
         and key.get("kid") == kid
         and key.get("kty") == "RSA"
