@@ -6,6 +6,7 @@ from lineageweave.chunking import (
     chunk_by_dom,
     chunk_by_paragraph,
     chunk_by_sentence,
+    normalize_semantic_text,
 )
 
 
@@ -158,6 +159,31 @@ def test_chunk_by_dom_joins_visual_continuation_lines_but_keeps_list_items() -> 
         "2) 신규 대차 제작으로 결정",
     ]
     assert [chunk.indent_width for chunk in chunks] == [0, 4, 4]
+
+
+def test_normalize_semantic_text_removes_visual_hanging_indent_breaks() -> None:
+    text = (
+        "1. 배경\n\n"
+        "    1) 기존 대차는 이전이 필요함\n"
+        "        콘크리트 양생까지 공장 운영 불가하여 이전 불가\n"
+        "    2) 신규 대차 제작"
+    )
+
+    assert normalize_semantic_text(text) == (
+        "1. 배경\n\n"
+        "1) 기존 대차는 이전이 필요함 콘크리트 양생까지 공장 운영 불가하여 이전 불가\n"
+        "2) 신규 대차 제작"
+    )
+
+
+def test_normalize_semantic_text_preserves_blank_paragraph_boundaries() -> None:
+    assert normalize_semantic_text("첫 문단\n\n둘째 문단") == "첫 문단\n\n둘째 문단"
+
+
+def test_normalize_semantic_text_does_not_embed_visual_indentation_markers() -> None:
+    assert normalize_semantic_text("\xa0\xa0계속되는 문장\n\xa0\xa0\xa0\xa0다음 줄") == (
+        "계속되는 문장 다음 줄"
+    )
 
 
 def test_chunk_by_dom_does_not_infer_marker_depth_without_source_whitespace() -> None:
