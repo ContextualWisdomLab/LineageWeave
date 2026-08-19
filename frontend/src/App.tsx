@@ -3515,6 +3515,7 @@ function PostList({
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
+  const postsRequest = useRef(0);
 
   function openReportFromAnalysisRun(
     periodCode: string,
@@ -3584,6 +3585,7 @@ function PostList({
   }
 
   const loadPostPage = useCallback(async (page: number, query = searchQuery, sort = sortOrder) => {
+    const requestId = ++postsRequest.current;
     setLoadingPage(true);
     setError(null);
     try {
@@ -3596,15 +3598,17 @@ function PostList({
         visibilityFilter === "all" ? undefined : visibilityFilter,
         sort,
       );
+      if (requestId !== postsRequest.current) return;
       setPosts(response.posts);
       setTotalPosts(response.total_count);
       setVocTypeFilterOptions(response.voc_type_options ?? []);
       setVisibilityFilterOptions(response.visibility_options ?? []);
       setCurrentPage(page);
     } catch (err) {
+      if (requestId !== postsRequest.current) return;
       setError(String(err));
     } finally {
-      setLoadingPage(false);
+      if (requestId === postsRequest.current) setLoadingPage(false);
     }
   }, [accessToken, searchQuery, sortOrder, typeFilter, visibilityFilter]);
 
