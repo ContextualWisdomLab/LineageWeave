@@ -126,8 +126,9 @@ flowchart LR
 
 ## Standards and citations
 
-See [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md)
-for the full APA 7th reference list this design is grounded in.
+See [ADR 0084](docs/adr/0084-lineage-research-grounding.md) for the normative
+research-grounding policy and [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md)
+for the full APA 7th reference list and supporting aggregate evidence.
 
 ## Product schema (Phase 1 of a larger roadmap)
 

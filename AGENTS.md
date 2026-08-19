@@ -7,8 +7,10 @@ Cross-agent conventions for `LineageWeave`, readable by any coding agent
 
 A demo BI prototype that reconstructs git-branch-style lineage between
 scattered short records. See [ARCHITECTURE.md](ARCHITECTURE.md) for the
-design and [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md)
-for the literature it is grounded in.
+design, [ADR 0084](docs/adr/0084-lineage-research-grounding.md) for the
+normative research-grounding policy, and
+[`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md) for
+supporting literature and aggregate evidence.
 
 ## Hard rule: no real data, ever
 

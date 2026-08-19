@@ -27,7 +27,9 @@ signal reliably tells you which record continues which -- see
 the validation numbers and the literature this design follows. LineageWeave
 fuses several independent, individually-weak signals (temporal proximity, a
 shared grouping key, text similarity, and an optional LLM judgment) instead
-of trusting any one of them alone.
+of trusting any one of them alone. The normative research-grounding policy is
+[ADR 0084](docs/adr/0084-lineage-research-grounding.md); the linked notes
+retain the supporting bibliography and aggregate evidence.
 
 ## How it fits with the rest of the ecosystem
 
