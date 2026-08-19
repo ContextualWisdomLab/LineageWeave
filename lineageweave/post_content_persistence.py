@@ -18,6 +18,31 @@ from .image_content import ImageContentClient
 from .post_content_normalization import ImageContentResult, normalize_post_body
 from .post_structure import NullPostStructureClient, PostStructureClient, StructureDecision
 
+_LLM_BATCH_MAX_UNITS = 32
+_LLM_BATCH_MAX_CHARS = 24_000
+_STRUCTURE_UNIT_MAX_CHARS = 8_000
+
+
+def _bounded_unit_batches(units: list[tuple[int, str]]) -> list[list[tuple[int, str]]]:
+    """Keep provider requests bounded without changing persisted source units."""
+    batches: list[list[tuple[int, str]]] = []
+    batch: list[tuple[int, str]] = []
+    batch_chars = 0
+    for unit in units:
+        unit_chars = len(unit[1])
+        if batch and (
+            len(batch) >= _LLM_BATCH_MAX_UNITS
+            or batch_chars + unit_chars > _LLM_BATCH_MAX_CHARS
+        ):
+            batches.append(batch)
+            batch = []
+            batch_chars = 0
+        batch.append(unit)
+        batch_chars += unit_chars
+    if batch:
+        batches.append(batch)
+    return batches
+
 
 def _render_image_text(result: ImageContentResult | None) -> str:
     """Render the same searchable placeholder used by normalization."""
@@ -87,17 +112,30 @@ async def persist_post_content(
             )
     client = structure_client or NullPostStructureClient()
     if unresolved and client.available:
-        try:
-            decisions = await asyncio.to_thread(
-                client.infer,
-                post_title,
-                [{"unit_index": chunk.index, "text": chunk.text} for chunk in text_chunks],
+        structure_units = [
+            (
+                chunk.index,
+                chunk.text[:_STRUCTURE_UNIT_MAX_CHARS]
+                + (
+                    "\n[truncated for structure adjudication]"
+                    if len(chunk.text) > _STRUCTURE_UNIT_MAX_CHARS
+                    else ""
+                ),
             )
-            for decision in decisions:
-                if decision.unit_index in unresolved_indexes:
-                    structure_by_index[decision.unit_index] = decision
-        except Exception:  # noqa: BLE001 - unresolved structure must not alter source content.
-            pass
+            for chunk in unresolved
+        ]
+        for batch in _bounded_unit_batches(structure_units):
+            try:
+                decisions = await asyncio.to_thread(
+                    client.infer,
+                    post_title,
+                    [{"unit_index": index, "text": text} for index, text in batch],
+                )
+                for decision in decisions:
+                    if decision.unit_index in unresolved_indexes:
+                        structure_by_index[decision.unit_index] = decision
+            except Exception:  # noqa: BLE001 - failed batches remain unresolved for retry.
+                continue
     for chunk in unresolved:
         structure_by_index.setdefault(
             chunk.index,
@@ -114,23 +152,24 @@ async def persist_post_content(
     if embedding_client is not None and embedding_client.available and embedding_model_code:
         embeddable = [(chunk.index, unit_text) for chunk, unit_text, _style in prepared if unit_text]
         embed_many = getattr(embedding_client, "embed_many", None)
-        try:
-            if callable(embed_many):
-                embedded = await asyncio.to_thread(embed_many, [text for _, text in embeddable])
-                candidates = zip((index for index, _ in embeddable), embedded, strict=True)
-            else:
-                candidates = []
-                for index, text in embeddable:
-                    vector = await asyncio.to_thread(embedding_client.embed, text)
-                    candidates.append((index, vector))
-            for unit_index, vector in candidates:
-                if isinstance(vector, list) and vector and all(
-                    isinstance(value, (int, float)) and math.isfinite(float(value))
-                    for value in vector
-                ):
-                    vectors.append((unit_index, [float(value) for value in vector]))
-        except Exception:  # noqa: BLE001 - missing provider signal stays absent.
-            vectors = []
+        for batch in _bounded_unit_batches(embeddable):
+            try:
+                if callable(embed_many):
+                    embedded = await asyncio.to_thread(embed_many, [text for _, text in batch])
+                    candidates = zip((index for index, _ in batch), embedded, strict=True)
+                else:
+                    candidates = [
+                        (index, await asyncio.to_thread(embedding_client.embed, text))
+                        for index, text in batch
+                    ]
+                for unit_index, vector in candidates:
+                    if isinstance(vector, list) and vector and all(
+                        isinstance(value, (int, float)) and math.isfinite(float(value))
+                        for value in vector
+                    ):
+                        vectors.append((unit_index, [float(value) for value in vector]))
+            except Exception:  # noqa: BLE001 - failed batches remain absent for retry.
+                continue
 
     async with conn.transaction():
         await conn.execute("delete from post_content_unit where post_id = $1", post_id)

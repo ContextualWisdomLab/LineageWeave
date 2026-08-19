@@ -66,6 +66,11 @@ async def backfill_post_content(
         os.environ.get("ORCHESTRATOR_API_KEY", ""),
         embedding_model,
     )
+    if not embedding_client.available:
+        raise RuntimeError(
+            "embedding is unavailable; configure contextual-orchestrator and "
+            "LLM_GATEWAY_EMBEDDING_MODEL before backfill"
+        )
     orchestrator_base_url = os.environ.get("ORCHESTRATOR_BASE_URL", "")
     orchestrator_api_key = os.environ.get("ORCHESTRATOR_API_KEY", "")
     structure_client = (
@@ -82,7 +87,12 @@ async def backfill_post_content(
             query_args.append(post_ids)
         else:
             conditions.append(
-                "not exists (select 1 from post_content_unit unit where unit.post_id = post.post_id)"
+                "(not exists (select 1 from post_content_unit unit where unit.post_id = post.post_id) "
+                "or exists (select 1 "
+                "from post_content_unit unit "
+                "left join post_content_embedding embedding "
+                "on embedding.post_content_unit_id = unit.post_content_unit_id "
+                "where unit.post_id = post.post_id and embedding.post_content_unit_id is null))"
             )
         limit_sql = "" if limit is None else f" limit {int(limit)}"
         rows = await conn.fetch(
