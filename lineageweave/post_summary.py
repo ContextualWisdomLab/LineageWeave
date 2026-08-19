@@ -232,7 +232,7 @@ _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 # The full legacy contract remains parseable for persisted/test responses. The
 # local provider is more reliable when the two nested-array groups are split.
 _SUMMARY_REQUEST_PROMPT_TEMPLATE = """\
-Write a concise Korean summary in at most four complete sentences using
+Write a concise Korean summary in five to seven complete sentences using
 only the evidence below. Weave who, what, when, where, why, and how into
 natural flowing prose -- do NOT write a "누가: ... 언제: ... 어디서: ..."
 label-value list; that is a table, not a summary. Use "본문에 없음" only
@@ -240,10 +240,25 @@ inside a sentence for a dimension the evidence genuinely lacks, never as
 a standalone label line. Do not invent facts or a generic report
 sentence.
 
+Structure the prose as three parts, in order, without labeling them:
+1. 발단 (trigger): what event, request, or problem started this post.
+2. 전개 (development): what was investigated, discussed, or done as a
+   result -- include any option considered, tradeoff weighed, or
+   disagreement, not only the final action.
+3. 결론 (conclusion): what was decided or concluded, and the next
+   action -- who does what next, or what remains open. If the evidence
+   states no decision or next step, say so explicitly (e.g. "다음 조치는
+   본문에 없음") rather than inventing one.
+A reader must be able to tell, from the prose alone, what triggered this
+post, what was actually considered, and what was decided or left open --
+not just a flat restatement of facts in body order.
+
 Example shape (fictional content, format only):
-이수진 PM은 2월 12일 Acme Electronics 창원 공장에서 열린 기술 회의에
-참석하여 설계 누락 사항을 확인했다. 회의에서는 케이블 배선과 관련된
-문제가 논의되었으며, 이수진 PM은 설계팀에 확인을 요청했다.
+Acme Electronics 창원 공장에서 케이블 배선 설계 누락이 발견되어 2월 12일
+기술 회의가 소집되었다. 회의에서 이수진 PM은 전선관 규격을 그대로 쓸지
+재설계할지를 두고 설계팀과 논의했으며, 재설계 시 발생하는 일정 지연이
+쟁점이 되었다. 결론적으로 규격은 유지하되 배선 경로만 변경하기로 했고,
+설계팀이 다음 주까지 수정 도면을 제출하기로 했다.
 
 Then write a new line beginning KEY EVENTS: followed by up to four short
 event phrases separated by semicolons. If there are no events, write NONE.

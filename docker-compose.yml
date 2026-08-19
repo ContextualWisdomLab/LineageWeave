@@ -142,8 +142,6 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    env_file:
-      - ${HOME}/.env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-lineageweave}:${POSTGRES_PASSWORD:-lineageweave_dev_only}@postgres:5432/${POSTGRES_DB:-lineageweave}
       # Internal DNS name for JWKS fetches (always reachable from inside the
@@ -160,6 +158,11 @@ services:
       KEYVERSE_CLIENT_ID: ${KEYVERSE_CLIENT_ID:-}
       KEYVERSE_DISCOVERY_URI: ${KEYVERSE_DISCOVERY_URI:-}
       KEYVERSE_JWKS_URI: ${KEYVERSE_JWKS_URI:-}
+      OIDC_ISSUER: ${OIDC_ISSUER:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_DISCOVERY_URI: ${OIDC_DISCOVERY_URI:-}
+      OIDC_JWKS_URI: ${OIDC_JWKS_URI:-}
+      OIDC_CLOCK_SKEW_SECONDS: ${OIDC_CLOCK_SKEW_SECONDS:-5}
       FRONTEND_ORIGINS: http://localhost:${FRONTEND_PORT:-15173}
       VALKEY_URL: redis://valkey:6379/0
       # Empty by default: every LLM/vision channel stays the Null client
@@ -168,10 +171,14 @@ services:
       # LLM_GATEWAY_API_KEY in the orchestrator's private env file.
       ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8000}
       ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
+      # This is a non-secret embedding contract. Provider credentials remain
+      # private to contextual-orchestrator and are never injected into backend.
+      LLM_GATEWAY_EMBEDDING_MODEL: ${LLM_GATEWAY_EMBEDDING_MODEL:-}
       SEARXNG_BASE_URL: http://searxng:8080
       TEPP_TRANSPORT_URL: ${TEPP_TRANSPORT_URL:-}
       TEPP_API_KEY: ${TEPP_API_KEY:-}
       CALDAV_BASE_URL: ${CALDAV_BASE_URL:-}
+      RANKWEAVE_DISABLED: ${RANKWEAVE_DISABLED:-}
     ports:
       - "${BACKEND_PORT:-18420}:8000"
     depends_on:

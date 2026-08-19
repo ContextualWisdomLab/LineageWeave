@@ -25,6 +25,7 @@ from lineageweave.post_summary import (
     ContextualOrchestratorPostSummaryClient,
     NullPostSummaryClient,
     RoleResponsibility,
+    _SUMMARY_REQUEST_PROMPT_TEMPLATE,
     _parse_plain_summary_details,
     parse_summary_response,
 )
@@ -35,6 +36,17 @@ def test_null_summary_client_is_unavailable_not_empty_summary() -> None:
     assert client.available is False
     with pytest.raises(RuntimeError):
         client.summarize("any title", "any body")
+
+
+def test_summary_prompt_requires_trigger_development_conclusion_structure() -> None:
+    """Feature request (2026-08-19): a flat 5W1H restatement in body
+    order was ruled a bug -- the prompt must ask for a legible
+    발단(trigger)/전개(development)/결론(conclusion) narrative arc so a
+    reader can tell what triggered the post, what was actually
+    considered, and what was decided or left open.
+    """
+    for marker in ("발단", "전개", "결론", "다음 조치는"):
+        assert marker in _SUMMARY_REQUEST_PROMPT_TEMPLATE
 
 
 def test_summary_requires_imported_source_body() -> None:
