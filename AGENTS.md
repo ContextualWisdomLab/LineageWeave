@@ -173,6 +173,9 @@ Opening a Calendar commitment uses the same focus path (ADR 0072). Do not
 invent a week, a theta, a cutoff body, or a CalDAV event.
 Opening a Customer master related post uses the same focus path (ADR 0073).
 Do not invent a week, a theta, a cutoff body, a CalDAV event, or a customer.
+Opening an Ask Agent cited post uses the same focus path (ADR 0074). Do not
+invent a week, a theta, a cutoff body, a CalDAV event, a customer, or a cited
+post.
 
 
 ## Tests

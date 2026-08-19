@@ -93,4 +93,12 @@ related post: Event Lineage takes focus and names Keyman and evaluation
 next (ADR 0073). A home-list open does not. Do not invent a theta or a
 customer.
 
+## Ask Agent open (v2.16.0)
+
+Open Ask Agent. After an authorized answer, cited posts are current. Open
+a cited post: Event Lineage takes focus and names Keyman and evaluation
+next (ADR 0074). A home-list open does not. Do not invent a theta or a
+cited post.
+
+
 
