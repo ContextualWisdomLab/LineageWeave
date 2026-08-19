@@ -296,6 +296,8 @@ class OpenAiCompatibleVisionClient:
                     ],
                 }
             ],
+            "mode": "auto",
+            "reasoning_effort": "auto",
             "max_tokens": 1024,
             "temperature": 0.0,
         }
@@ -327,6 +329,8 @@ class OpenAiCompatibleVisionClient:
                     ],
                 }
             ],
+            "mode": "auto",
+            "reasoning_effort": "auto",
             "max_tokens": 2048,
             "temperature": 0.0,
             "response_format": {"type": "json_object"},

@@ -42,6 +42,8 @@ def test_vision_gateway_normalizes_image_and_preserves_structured_response(monke
     assert captured["headers"] == {"authorization": "Bearer gateway-key"}
     payload = captured["payload"]
     assert "model" not in payload
+    assert payload["mode"] == "auto"
+    assert payload["reasoning_effort"] == "auto"
     assert [message["role"] for message in payload["messages"]] == ["system", "user"]
     user_message = payload["messages"][1]
     image_url = user_message["content"][1]["image_url"]["url"]
