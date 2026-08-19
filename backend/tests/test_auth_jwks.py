@@ -91,10 +91,55 @@ def test_signing_key_requires_rsa_jwk_and_verification_use(
     assert auth._signing_key_from_jwks({"keys": [accepted]}, token)[0] == "key"
 
 
+def test_signing_key_refreshes_jwks_once_for_rotated_kid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(auth.RSAAlgorithm, "from_jwk", lambda value: ("key", value))
+    calls: list[bool] = []
+    old_jwks = {
+        "keys": [{"kid": "old", "kty": "RSA", "alg": "RS256", "n": "x", "e": "AQAB"}]
+    }
+    new_jwks = {
+        "keys": [{"kid": "new", "kty": "RSA", "alg": "RS256", "n": "y", "e": "AQAB"}]
+    }
+
+    def fake_jwks(settings, *, force_refresh=False):
+        calls.append(force_refresh)
+        return new_jwks if force_refresh else old_jwks
+
+    monkeypatch.setattr(auth, "_jwks", fake_jwks)
+    token = _unsigned_token({"alg": "RS256", "kid": "new"})
+
+    key = auth._signing_key(SimpleNamespace(), token)
+
+    assert key[0] == "key"
+    assert calls == [False, True]
+
+
+def test_signing_key_does_not_refresh_for_invalid_header(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[bool] = []
+
+    def fake_jwks(settings, *, force_refresh=False):
+        calls.append(force_refresh)
+        return {"keys": []}
+
+    monkeypatch.setattr(auth, "_jwks", fake_jwks)
+
+    with pytest.raises(HTTPException) as error:
+        auth._signing_key(
+            SimpleNamespace(),
+            _unsigned_token({"alg": "RS512", "kid": "unknown"}),
+        )
+
+    assert error.value.status_code == 401
+    assert calls == [False]
+
+
 def test_decode_requires_configured_resource_audience(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, object] = {}
-    monkeypatch.setattr(auth, "_jwks", lambda settings: {"keys": []})
-    monkeypatch.setattr(auth, "_signing_key_from_jwks", lambda jwks, token: "signing-key")
+    monkeypatch.setattr(auth, "_signing_key", lambda settings, token: "signing-key")
 
     def fake_decode(token, **kwargs):
         captured.update(kwargs)
@@ -117,8 +162,7 @@ def test_decode_requires_configured_resource_audience(monkeypatch: pytest.Monkey
 
 
 def test_decode_rejects_missing_subject(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(auth, "_jwks", lambda settings: {"keys": []})
-    monkeypatch.setattr(auth, "_signing_key_from_jwks", lambda jwks, token: "signing-key")
+    monkeypatch.setattr(auth, "_signing_key", lambda settings, token: "signing-key")
     monkeypatch.setattr(auth.jwt, "decode", lambda *args, **kwargs: {})
     settings = SimpleNamespace(
         oidc_issuer="https://id.example",
