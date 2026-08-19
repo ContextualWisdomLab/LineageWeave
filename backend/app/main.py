@@ -57,6 +57,7 @@ from lineageweave.corporate_hierarchy_inference import (
     NullCorporateHierarchyInferenceClient,
 )
 from lineageweave.keyman_extraction import (
+    COUNTERPARTY,
     ContextualOrchestratorKeymanExtractionClient,
     NullKeymanExtractionClient,
 )
@@ -1930,8 +1931,20 @@ async def extract_post_keymen(
                 context_hints=context_hints,
                 persist_graph=False,
             )
+            # Live bug (2026-08-19): an organization affiliated ONLY with an
+            # our_side person (our own factory, our own affiliate) got fed
+            # into the counterparty-relationship classifier the same as any
+            # external org -- forced to pick from six codes that all assume
+            # an external counterparty, it had no correct answer and landed
+            # on the closest wrong one (typically "Partner"). Only classify
+            # organizations a counterparty-side mention actually names.
             organization_names = sorted(
-                {name for mention in mentions for name in mention.affiliated_organization_names}
+                {
+                    name
+                    for mention in mentions
+                    if mention.person_side_code == COUNTERPARTY
+                    for name in mention.affiliated_organization_names
+                }
             )
             relationships = await ingest_post_entity_relationships(
                 conn, relationship_client, post_id, post["post_title"], post_body, organization_names

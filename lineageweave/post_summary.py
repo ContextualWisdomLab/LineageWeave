@@ -253,6 +253,13 @@ A reader must be able to tell, from the prose alone, what triggered this
 post, what was actually considered, and what was decided or left open --
 not just a flat restatement of facts in body order.
 
+If the evidence covers two or more clearly distinct, unrelated matters
+(e.g. different projects, different customers, or topics with no shared
+thread -- not just one topic told out of order), address each as its own
+compact 발단-전개-결론 unit and clearly distinguish them (state which
+matter each sentence belongs to) instead of blending them into one
+narrative as if they were a single continuous story.
+
 Example shape (fictional content, format only):
 Acme Electronics 제3공장에서 케이블 배선 설계 누락이 발견되어 2월 12일
 기술 회의가 소집되었다. 회의에서 홍길동 PM은 전선관 규격을 그대로 쓸지
@@ -261,7 +268,9 @@ Acme Electronics 제3공장에서 케이블 배선 설계 누락이 발견되어
 설계팀이 다음 주까지 수정 도면을 제출하기로 했다.
 
 Then write a new line beginning KEY EVENTS: followed by up to four short
-event phrases separated by semicolons. If there are no events, write NONE.
+event phrases separated by semicolons. If the evidence covers multiple
+distinct matters, include events from each of them, not only the first
+or most prominent one. If there are no events, write NONE.
 Context hints are weak evidence only: {context_hints}
 Post title: {title}
 Post body: {body}
