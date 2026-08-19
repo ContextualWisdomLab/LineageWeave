@@ -45,6 +45,8 @@ services:
   valkey:
     image: valkey/valkey:8-alpine@sha256:a038175878d66b9d274fbf8be73c0305e93798b83917647f167e18cef3c71eec
     ports:
+      # Not Redis/Valkey's default (6379) for the same collision-avoidance
+      # reason as POSTGRES_PORT above.
       - "${VALKEY_PORT:-16379}:6379"
     volumes:
       - valkey_data:/data
@@ -55,6 +57,13 @@ services:
       retries: 10
 
   searxng:
+    # Self-hosted metasearch, never a hosted third-party search API key --
+    # relation_verification.py's SearxngRelationVerificationClient checks a
+    # Knowledge Graph relation inference against real external evidence
+    # (see ADR 0005). Published to a host port (not the default 8080, same
+    # collision-avoidance reasoning as every other service here) so
+    # backend/tests/test_api.py's real-integration tests -- running as a
+    # host process, not inside the compose network -- can reach it too.
     build: ./docker/searxng
     ports:
       - "${SEARXNG_PORT:-18888}:8080"
@@ -65,6 +74,9 @@ services:
       retries: 10
 
   keycloak:
+    # Built (not bind-mounted) so the realm-export.json seed ships inside
+    # the image itself -- portable across hosts/CI runners that don't share
+    # a filesystem with the Docker daemon.
     build: ./docker/keycloak
     command: ["start-dev", "--import-realm"]
     environment:
@@ -79,12 +91,15 @@ services:
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
     ports:
+      # Not the common local-dev default (8080) for the same reason.
       - "${KEYCLOAK_PORT:-18080}:8080"
     depends_on:
       postgres:
         condition: service_healthy
 
   orchestrator:
+    # Consume the paper-grounded orchestration service from main; inference
+    # remains behind its authenticated OpenAI-compatible boundary.
     build:
       context: ./docker/contextual-orchestrator
       dockerfile: Dockerfile
@@ -94,6 +109,12 @@ services:
       AGENTS_FILE: /app/agents.json
       PORT: 8000
       CONTEXTUAL_ORCHESTRATOR_TOKEN: ${CONTEXTUAL_ORCHESTRATOR_TOKEN:-${ORCHESTRATOR_API_KEY:-lineageweave-orchestrator-dev-only}}
+      # Gateway credentials and URL are supplied only by env_file (${HOME}/.env).
+      # Do not repeat them under environment:, where Compose interpolation can
+      # overwrite env_file values with an empty host-shell value.
+      # The upstream default remains 64 KiB for ordinary text APIs. Buyer
+      # image blocks are base64 data URIs, so the multimodal boundary gets an
+      # explicit bounded 8 MiB limit rather than an unbounded request size.
       CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES: ${CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES:-8388608}
       CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS: ${CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS:-host.docker.internal}
     command: ["python", "/app/start.py"]
@@ -111,10 +132,16 @@ services:
       dockerfile: backend/Dockerfile
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-lineageweave}:${POSTGRES_PASSWORD:-lineageweave_dev_only}@postgres:5432/${POSTGRES_DB:-lineageweave}
+      # Internal DNS name for JWKS fetches (always reachable from inside the
+      # compose network); KEYCLOAK_ISSUER is the *external*, host-published
+      # URL a browser/token actually carries -- see backend/app/config.py.
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_ISSUER: http://localhost:${KEYCLOAK_PORT:-18080}/realms/lineageweave-demo
       KEYCLOAK_REALM: lineageweave-demo
       KEYCLOAK_CLIENT_ID: lineageweave-frontend
+      # Production may set these to the real Keyverse OIDC provider. Empty
+      # values keep this stack on its explicit local Keycloak development mode;
+      # no Keyverse-shaped identity service is created by Compose.
       KEYVERSE_ISSUER: ${KEYVERSE_ISSUER:-}
       KEYVERSE_CLIENT_ID: ${KEYVERSE_CLIENT_ID:-}
       KEYVERSE_AUDIENCE: ${KEYVERSE_AUDIENCE:-}
@@ -128,8 +155,14 @@ services:
       OIDC_CLOCK_SKEW_SECONDS: ${OIDC_CLOCK_SKEW_SECONDS:-5}
       FRONTEND_ORIGINS: http://localhost:${FRONTEND_PORT:-15173}
       VALKEY_URL: redis://valkey:6379/0
+      # Empty by default: every LLM/vision channel stays the Null client
+      # (dropped, not faked). Set these to a running contextual-orchestrator
+      # to turn the channels on. Provider credentials use LLM_GATEWAY_API_URL /
+      # LLM_GATEWAY_API_KEY in the orchestrator's private env file.
       ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8000}
       ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
+      # This is a non-secret embedding contract. Provider credentials remain
+      # private to contextual-orchestrator and are never injected into backend.
       LLM_GATEWAY_EMBEDDING_MODEL: ${LLM_GATEWAY_EMBEDDING_MODEL:-}
       SEARXNG_BASE_URL: http://searxng:8080
       TEPP_TRANSPORT_URL: ${TEPP_TRANSPORT_URL:-}
