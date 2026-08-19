@@ -19,7 +19,7 @@ an answer, but it does not become a `source_post`, does not satisfy RBAC/ABAC,
 and cannot replace the internal citation bundle. `supported` and `refuted`
 require at least one valid cited external HTTP(S) evidence URL; otherwise the
 result is `insufficient_evidence`. This mirrors FEVER's core distinction between
-a claim label and the evidence required to justify Supported/Refuted judgments. citeturn895774search1
+a claim label and the evidence required to justify Supported/Refuted judgments.
 
 ## APA 7th references
 
