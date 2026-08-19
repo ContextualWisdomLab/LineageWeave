@@ -30,7 +30,10 @@ STATUS_REFUTED = "refuted"
 STATUS_INSUFFICIENT = "insufficient_evidence"
 STATUS_UNAVAILABLE = "unavailable"
 _ALLOWED_STATUSES = frozenset({STATUS_SUPPORTED, STATUS_REFUTED, STATUS_INSUFFICIENT})
-_JSON_FENCE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL | re.IGNORECASE)
+_JSON_FENCE = re.compile(
+    r"^\s*```(?:json)?\s*(.*?)\s*```\s*$",
+    re.DOTALL | re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -118,13 +121,14 @@ def _parse_search_results(payload: object) -> list[ExternalEvidence]:
 
 
 def _parse_judgment(content: object) -> dict[str, object] | None:
-    """Parse strict JSON, tolerating only an optional outer Markdown JSON fence."""
+    """Parse a whole JSON response or one whole outer Markdown JSON fence."""
     if not isinstance(content, str):
         return None
-    match = _JSON_FENCE.search(content)
-    candidate = match.group(1) if match else content
+    stripped = content.strip()
+    match = _JSON_FENCE.fullmatch(stripped)
+    candidate = match.group(1) if match else stripped
     try:
-        parsed = json.loads(candidate.strip())
+        parsed = json.loads(candidate)
     except json.JSONDecodeError:
         return None
     return parsed if isinstance(parsed, dict) else None
