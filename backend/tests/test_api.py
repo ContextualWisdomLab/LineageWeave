@@ -3195,6 +3195,47 @@ def test_evaluation_is_empty_before_a_judge_run(client, demo_analyst_token, seed
     assert response.json()["responses"] == []
 
 
+def test_evaluate_publishes_an_activity_event(client, demo_analyst_token, seeded_db, monkeypatch) -> None:
+    """Live gap (2026-08-19): evaluate is a real, consequential write
+    action (an LLM-as-a-Judge call), same discipline as extract-keymen --
+    it must publish to the post's activity feed too, not only those two.
+    """
+    from backend.app.post_evaluation_ingestion import PersistedEvaluation
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeEvaluationClient:
+        available = True
+
+    async def _fake_ingest_post_evaluation(conn, client, post_id, post_title, post_body):
+        return [
+            PersistedEvaluation(
+                criterion_code="specificity",
+                criterion_label="Specificity",
+                response_category=2,
+                rubric_version="v1",
+            )
+        ]
+
+    monkeypatch.setattr("backend.app.main._post_evaluation_client", lambda: _FakeEvaluationClient())
+    monkeypatch.setattr("backend.app.main.ingest_post_evaluation", _fake_ingest_post_evaluation)
+
+    post_id = seeded_db["own_private_post_id"]
+    response = client.post(
+        f"/api/posts/{post_id}/evaluate",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+
+    activity_response = client.get(
+        f"/api/posts/{post_id}/activity",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    events = activity_response.json()["events"]
+    assert events[0]["event_type"] == "post_evaluated"
+    assert "1 rubric criterion response" in events[0]["summary"]
+
+
 def test_evaluate_is_unavailable_without_orchestrator(client, demo_analyst_token, seeded_db) -> None:
     os.environ.pop("ORCHESTRATOR_BASE_URL", None)
     os.environ.pop("ORCHESTRATOR_API_KEY", None)
