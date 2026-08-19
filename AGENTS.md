@@ -176,6 +176,9 @@ Do not invent a week, a theta, a cutoff body, a CalDAV event, or a customer.
 Opening an Ask Agent cited post uses the same focus path (ADR 0074). Do not
 invent a week, a theta, a cutoff body, a CalDAV event, a customer, or a cited
 post.
+A linked Event Lineage node opened from that focused popup keeps the
+originating flags (ADR 0075). Do not invent a week, a theta, a cutoff body,
+a CalDAV event, a customer, or a cited post.
 
 
 ## Tests
