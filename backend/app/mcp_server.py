@@ -116,7 +116,11 @@ def build_mcp_server(
             "Answer a question using only source posts and event-lineage evidence visible "
             "to the authenticated LineageWeave account; returns source and citation IDs."
         ),
-        annotations=ToolAnnotations(read_only_hint=True, idempotent_hint=True),
+        annotations=ToolAnnotations(
+            read_only_hint=True,
+            idempotent_hint=True,
+            open_world_hint=False,
+        ),
     )
     async def global_ask(question: str, ctx: Context[McpAppContext, Any]) -> GlobalAskResult:
         """Run authorization-preserving Global Ask for the current MCP principal."""
