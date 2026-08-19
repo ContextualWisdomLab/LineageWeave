@@ -23,8 +23,8 @@ if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
-from lineageweave.embedding_client import orchestrator_embedding_client
-from lineageweave.image_content import orchestrator_vision_client
+from lineageweave.embedding_client import NullEmbeddingClient, orchestrator_embedding_client
+from lineageweave.image_content import NullImageContentClient, orchestrator_vision_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
@@ -44,6 +44,11 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="process every eligible post without persisted content units",
     )
+    parser.add_argument(
+        "--normalize-only",
+        action="store_true",
+        help="persist deterministic DOM/text units without VISION, structure, or embedding calls",
+    )
     return parser
 
 
@@ -51,33 +56,40 @@ async def backfill_post_content(
     target_dsn: str,
     raw_post_ids: list[str] | None,
     limit: int | None,
+    normalize_only: bool = False,
 ) -> dict[str, int]:
     post_ids = [str(uuid.UUID(post_id)) for post_id in dict.fromkeys(raw_post_ids or [])]
-    vision_client = orchestrator_vision_client(
-        os.environ.get("ORCHESTRATOR_BASE_URL", ""),
-        os.environ.get("ORCHESTRATOR_API_KEY", ""),
-    )
-    if not vision_client.available:
-        raise RuntimeError("VISION is unavailable; configure contextual-orchestrator before backfill")
-
-    embedding_model = os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
-    embedding_client = orchestrator_embedding_client(
-        os.environ.get("ORCHESTRATOR_BASE_URL", ""),
-        os.environ.get("ORCHESTRATOR_API_KEY", ""),
-        embedding_model,
-    )
-    if not embedding_client.available:
-        raise RuntimeError(
-            "embedding is unavailable; configure contextual-orchestrator and "
-            "LLM_GATEWAY_EMBEDDING_MODEL before backfill"
+    if normalize_only:
+        vision_client = NullImageContentClient()
+        embedding_model = ""
+        embedding_client = NullEmbeddingClient()
+        structure_client = NullPostStructureClient()
+    else:
+        vision_client = orchestrator_vision_client(
+            os.environ.get("ORCHESTRATOR_BASE_URL", ""),
+            os.environ.get("ORCHESTRATOR_API_KEY", ""),
         )
-    orchestrator_base_url = os.environ.get("ORCHESTRATOR_BASE_URL", "")
-    orchestrator_api_key = os.environ.get("ORCHESTRATOR_API_KEY", "")
-    structure_client = (
-        ContextualOrchestratorPostStructureClient(orchestrator_base_url, orchestrator_api_key)
-        if orchestrator_base_url and orchestrator_api_key
-        else NullPostStructureClient()
-    )
+        if not vision_client.available:
+            raise RuntimeError("VISION is unavailable; configure contextual-orchestrator before backfill")
+
+        embedding_model = os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
+        embedding_client = orchestrator_embedding_client(
+            os.environ.get("ORCHESTRATOR_BASE_URL", ""),
+            os.environ.get("ORCHESTRATOR_API_KEY", ""),
+            embedding_model,
+        )
+        if not embedding_client.available:
+            raise RuntimeError(
+                "embedding is unavailable; configure contextual-orchestrator and "
+                "LLM_GATEWAY_EMBEDDING_MODEL before backfill"
+            )
+        orchestrator_base_url = os.environ.get("ORCHESTRATOR_BASE_URL", "")
+        orchestrator_api_key = os.environ.get("ORCHESTRATOR_API_KEY", "")
+        structure_client = (
+            ContextualOrchestratorPostStructureClient(orchestrator_base_url, orchestrator_api_key)
+            if orchestrator_base_url and orchestrator_api_key
+            else NullPostStructureClient()
+        )
     conn = await asyncpg.connect(target_dsn)
     try:
         conditions = [SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")]
@@ -85,6 +97,10 @@ async def backfill_post_content(
         if post_ids:
             conditions.append("post.post_id = any($1::uuid[])")
             query_args.append(post_ids)
+        elif normalize_only:
+            conditions.append(
+                "not exists (select 1 from post_content_unit unit where unit.post_id = post.post_id)"
+            )
         else:
             conditions.append(
                 "(not exists (select 1 from post_content_unit unit where unit.post_id = post.post_id) "
@@ -182,7 +198,7 @@ def main() -> None:
     limit = None if args.all or args.post_ids else args.limit
     print(
         json.dumps(
-            asyncio.run(backfill_post_content(args.target_dsn, args.post_ids, limit)),
+            asyncio.run(backfill_post_content(args.target_dsn, args.post_ids, limit, args.normalize_only)),
             sort_keys=True,
         )
     )
