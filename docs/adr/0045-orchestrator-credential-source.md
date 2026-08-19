@@ -20,11 +20,12 @@ The backend's internal orchestrator credential resolves in this order:
 
 The orchestrator URL remains the internal `orchestrator` service boundary.
 `CONTEXTUAL_ORCHESTRATOR_TOKEN` authenticates that internal service boundary;
-`LLM_GATEWAY_API_KEY` and `LLM_GATEWAY_URL` configure the provider gateway and
-are never used as the internal service credential. GitHub/external runs inject
-the canonical gateway variables; local Compose reads `~/.env` and accepts the
-compatibility aliases. No raw provider credential or token is printed or
-committed.
+`LLM_GATEWAY_API_KEY` and `LLM_GATEWAY_API_URL` configure the provider gateway
+and are never used as the internal service credential. GitHub/external runs and
+local Compose use these canonical gateway variables from `~/.env` or the
+deployment environment; `LLM_GATEWAY_URL`, `LLM_API_GATEWAY`, and `LLM_API_KEY`
+are compatibility aliases only. No raw provider credential or token is printed
+or committed.
 
 The pinned orchestrator's product Compose default is 4096 output tokens for
 external and local gateways. This is required because Buyer summary and Ask

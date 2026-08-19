@@ -111,9 +111,11 @@ make down
 
 Outside GitHub, `make up` reads `~/.env` through Compose's `--env-file`.
 Configure the contextual-orchestrator provider there with
-`LLM_GATEWAY_URL` and `LLM_GATEWAY_API_KEY`; the key is never committed or
-printed. `ORCHESTRATOR_BASE_URL` and `ORCHESTRATOR_API_KEY` are separate,
-internal LineageWeave-to-orchestrator settings.
+`LLM_GATEWAY_API_URL` and `LLM_GATEWAY_API_KEY`; the key is never committed or
+printed. `LLM_GATEWAY_URL`, `LLM_API_GATEWAY`, and `LLM_API_KEY` remain
+compatibility aliases only. `ORCHESTRATOR_BASE_URL` and
+`ORCHESTRATOR_API_KEY` are separate, internal
+LineageWeave-to-orchestrator settings.
 
 Postgres and Keycloak are built (`docker/postgres-init/`, `docker/keycloak/`)
 rather than bind-mounted, so the keycloak database's init script and the
