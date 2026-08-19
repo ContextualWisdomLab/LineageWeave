@@ -271,12 +271,18 @@ def _organization_name_resolution_client():
 
 
 def _customer_hint_resolution_client():
-    """Live orchestrator client when configured; otherwise the unavailable null."""
+    """Live orchestrator client when configured; otherwise the unavailable null.
+
+    A longer timeout than the other channels' default 30s: this prompt
+    carries up to five posts' excerpts (a single "say hi" round trip
+    alone measured 26.5s live under real load), not one short mention --
+    see customer_hint_resolution.py's prompt template.
+    """
     settings = load_settings()
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullCustomerHintResolutionClient()
     return ContextualOrchestratorCustomerHintResolutionClient(
-        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key, timeout=90.0
     )
 
 
