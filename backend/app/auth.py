@@ -54,12 +54,23 @@ def _jwks(settings: Settings) -> dict:
 
 
 def _signing_key_from_jwks(jwks: dict, token: str):
-    """Pick the JWKS RSA key that matches the JWT kid, without urllib."""
-    header = jwt.get_unverified_header(token)
+    """Require a non-empty JWT ``kid`` and an exact acceptable RSA key match."""
+    try:
+        header = jwt.get_unverified_header(token)
+    except jwt.PyJWTError as exc:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid access-token header") from exc
     kid = header.get("kid")
+    if not isinstance(kid, str) or not kid.strip():
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token must include a non-empty kid")
     for key in jwks.get("keys", []):
-        if kid is None or key.get("kid") == kid:
+        if not isinstance(key, dict) or key.get("kid") != kid:
+            continue
+        if key.get("kty") not in (None, "RSA") or key.get("alg") not in (None, "RS256"):
+            continue
+        try:
             return RSAAlgorithm.from_jwk(json.dumps(key))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "matching JWKS key is invalid") from exc
     raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"no JWKS key matched kid={kid!r}")
 
 
@@ -80,18 +91,25 @@ class CurrentAccount:
 
 
 def _decode_access_token(token: str, settings: Settings) -> dict:
+    """Validate signature, issuer, resource audience, time claims, and subject."""
     try:
         signing_key = _signing_key_from_jwks(_jwks(settings), token)
-        return jwt.decode(
+        claims = jwt.decode(
             token,
             key=signing_key,
             algorithms=["RS256"],
             issuer=settings.oidc_issuer,
+            audience=settings.oidc_audience,
             leeway=settings.oidc_clock_skew_seconds,
-            options={"verify_aud": False},
         )
+    except HTTPException:
+        raise
     except jwt.PyJWTError as exc:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"invalid token: {exc}") from exc
+    subject = claims.get("sub")
+    if not isinstance(subject, str) or not subject.strip():
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token has no subject")
+    return claims
 
 
 async def get_current_account(
