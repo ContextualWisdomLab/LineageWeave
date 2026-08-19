@@ -3724,7 +3724,7 @@ function PostList({
           )}
         </>
       )}
-      {showLabPanels && (
+      {(showLabPanels || canRebuild) && (
         <details className="advanced-review-tools">
           <summary>{t("Advanced review tools")}</summary>
           {canRebuild && (
@@ -4097,9 +4097,10 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   const auth = useAuth();
   const [destination, setDestination] = useState<BuyerDestination>("board");
   const [postToOpen, setPostToOpen] = useState<string | null>(null);
-  // Test-only compatibility for legacy analysis-panel coverage. Production
-  // builds must never expose the lab/rebuild surface, even if a caller passes
-  // the old prop accidentally.
+  // Test-only compatibility for legacy analysis-panel coverage; this prop
+  // never forces the panels open outside Vitest. In a real build the
+  // advanced-review section (ADR 0037) is gated on PostList's own
+  // post_admin check (`canRebuild`), not on this caller-supplied prop.
   const testOnlyLabPanels = import.meta.env.MODE === "test" && showLabPanels;
 
   if (auth.isLoading) {

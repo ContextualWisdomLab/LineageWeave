@@ -1638,6 +1638,20 @@ describe("App, authenticated", () => {
     );
   });
 
+  it("shows the advanced-review section to post_admin without the test-only prop", async () => {
+    stubBackend({ admin: true });
+    render(<App />);
+    await screen.findByRole("button", { name: "View post: Public post" });
+    expect(await screen.findByText("Advanced review tools")).toBeInTheDocument();
+  });
+
+  it("hides the advanced-review section from accounts without post_admin, even without the test-only prop", async () => {
+    stubBackend();
+    render(<App />);
+    await screen.findByRole("button", { name: "View post: Public post" });
+    expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
+  });
+
   it("renders the Korean summary, key events, R&R, and Event Lineage panels", async () => {
     stubBackend();
     render(<App showLabPanels />);
