@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import asyncpg
 
+from .post_eligibility import source_context_present_sql
+
 
 def is_demo_scope(corporate_entity_code: str | None) -> bool:
     """True for `make seed`'s synthetic Demo Corp tree (``DEMO-*`` codes)."""
@@ -35,22 +37,9 @@ async def has_real_source_context(
                   from source_post
                  where (visibility_code = 'public'
                         or corporate_entity_id = any($1::uuid[]))
-                   and (
-                        nullif(btrim(source_author_code), '') is not null
-                        or nullif(btrim(source_author_name), '') is not null
-                        or nullif(btrim(source_company_code), '') is not null
-                        or nullif(btrim(source_company_name), '') is not null
-                        or nullif(btrim(source_process_unit_code), '') is not null
-                        or nullif(btrim(source_process_unit_name), '') is not null
-                        or nullif(btrim(source_sales_pool_code), '') is not null
-                        or nullif(btrim(source_sales_pool_name), '') is not null
-                        or nullif(btrim(source_customer_code), '') is not null
-                        or nullif(btrim(source_customer_name), '') is not null
-                        or nullif(btrim(source_project_code), '') is not null
-                        or nullif(btrim(source_project_name), '') is not null
-                   )
+                   and ({source_context_sql})
             )
-            """,
+            """.format(source_context_sql=source_context_present_sql("source_post")),
             list(corporate_entity_ids),
         )
     )
