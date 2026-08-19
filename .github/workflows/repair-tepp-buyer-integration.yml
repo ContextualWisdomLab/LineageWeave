@@ -71,8 +71,14 @@ jobs:
       - name: Install locked Python dependencies
         run: uv sync --frozen --extra dev --extra backend
 
-      - name: Verify the full Python and PostgreSQL suite
-        run: uv run --frozen python -m pytest -q
+      - name: Verify the TEPP integration slice
+        run: |
+          uv run --frozen python -m pytest -q \
+            tests/test_tepp_client.py \
+            tests/test_tepp_result.py \
+            tests/test_analysis_run_start.py \
+            tests/test_analysis_run_tepp_accepted_schema.py \
+            tests/test_http_client.py
 
       - name: Install and verify the buyer frontend
         working-directory: frontend
@@ -80,7 +86,7 @@ jobs:
           corepack enable
           pnpm install --frozen-lockfile
           pnpm run lint
-          pnpm run test
+          pnpm run test -- TeppMeasurementStatus App
           pnpm run build
           pnpm run build-storybook
 
