@@ -144,6 +144,22 @@ def _length_to_indent_units(value: str) -> int:
     return max(0, round(amount * scale / 8))
 
 
+def _shorthand_left_value(raw: str) -> str:
+    """Pick the left-side length out of a CSS 1-4 value box shorthand
+    (``margin``/``padding``), per the CSS box-model value-count rule:
+    1 value = all sides, 2 = vertical/horizontal, 3 = top/horizontal/bottom,
+    4 = top/right/bottom/left.
+    """
+    parts = raw.split()
+    if not parts:
+        return ""
+    if len(parts) == 1:
+        return parts[0]
+    if len(parts) >= 4:
+        return parts[3]
+    return parts[1]
+
+
 def _declared_indent_width(tag: str, attrs: list[tuple[str, str | None]]) -> int:
     """Read HTML CSS and WordprocessingML paragraph indentation declarations."""
     width = 4 if tag in {"blockquote", "ul", "ol"} else 0
@@ -154,6 +170,14 @@ def _declared_indent_width(tag: str, attrs: list[tuple[str, str | None]]) -> int
         re.I,
     ):
         width += _length_to_indent_units(match.group(1))
+    # A real editor (Word paste, Outlook compose) declares indentation with
+    # the box-model shorthand ("margin: 0cm 0cm 0cm 56px") far more often
+    # than the longhand "margin-left" the pattern above alone recognizes --
+    # every nested <li> in a real body used only the shorthand, so its
+    # indentation silently read as 0 and every nesting level collapsed flat
+    # (live bug, 2026-08-19).
+    for match in re.finditer(r"(?:^|;)\s*(?:margin|padding)\s*:\s*([^;]+)", style, re.I):
+        width += _length_to_indent_units(_shorthand_left_value(match.group(1)))
     for name, value in attrs:
         if name in {"w:left", "w:start", "w:firstline"} and value:
             try:

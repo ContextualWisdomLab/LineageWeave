@@ -123,6 +123,25 @@ def test_chunk_by_dom_reads_html_and_word_indentation_declarations() -> None:
     assert [chunk.indent_width for chunk in chunks] == [4, 4]
 
 
+def test_chunk_by_dom_reads_the_css_margin_shorthand_not_just_margin_left() -> None:
+    """Live bug (2026-08-19): a real editor (Word paste, Outlook compose)
+    declares indentation with the box-model shorthand
+    ("margin: 0cm 0cm 0cm 56px") far more often than the "margin-left"
+    longhand -- every nested <li> in a real body used only the shorthand,
+    so indentation silently read as 0 and every nesting level flattened.
+    """
+    html = (
+        '<ul><li style="margin: 0cm 0cm 0cm 56px">Outer item</li></ul>'
+        '<ul><li style="margin: 0cm 0cm 0cm 80px">Nested item</li></ul>'
+    )
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.text for chunk in chunks] == ["Outer item", "Nested item"]
+    outer, nested = chunks
+    assert outer.indent_width < nested.indent_width
+    assert outer.indent_width > 0
+
+
 def test_chunk_by_dom_joins_visual_continuation_lines_but_keeps_list_items() -> None:
     html = (
         '<p>1. 배경<br style="line-height: 1.5;" />'
