@@ -79,3 +79,11 @@ names Event Lineage as the next read (ADR 0070). Open a remaining post:
 Event Lineage takes focus and names Keyman and evaluation next
 (ADR 0071). A home-list open does not. Do not invent a theta.
 
+## Calendar open (v2.14.0)
+
+Open Calendar. Authorized commitments are current. Open a commitment:
+Event Lineage takes focus and names Keyman and evaluation next
+(ADR 0072). A home-list open does not. Do not invent a theta or a
+CalDAV event.
+
+

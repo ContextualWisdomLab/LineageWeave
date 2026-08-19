@@ -2398,6 +2398,7 @@ type SelectPostOptions = {
   knowledgeCutoff?: string;
   fromReportMember?: boolean;
   fromWeeklyVoc?: boolean;
+  fromCalendar?: boolean;
 };
 
 /**
@@ -2970,9 +2971,11 @@ function RankingsPanel({
 function CalendarPanel({
   accessToken,
   onSelectPost,
+  namedNextAction = false,
 }: {
   accessToken: string;
-  onSelectPost: (postId: string) => void;
+  onSelectPost: (postId: string, options?: SelectPostOptions) => void;
+  namedNextAction?: boolean;
 }) {
   const [calendar, setCalendar] = useState<CalendarResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -2992,8 +2995,13 @@ function CalendarPanel({
   const caldavNextAction = calendar.calendar_sources?.caldav_next_action;
 
   return (
-    <section className="popup-section lineage-home">
-      <h2>{t("Calendar")}</h2>
+    <section className="popup-section lineage-home" aria-labelledby="calendar-title">
+      <h2 id="calendar-title">{t("Calendar")}</h2>
+      {namedNextAction && commitments.length > 0 ? (
+        <p className="board-next-action" role="status" aria-label={t("Next action")}>
+          {t("Authorized commitments are current. Open a commitment to read Event Lineage.")}
+        </p>
+      ) : null}
       <section className="popup-section">
         <h3>{t("CalDAV events")}</h3>
         {events.length === 0 ? (
@@ -3028,7 +3036,7 @@ function CalendarPanel({
                 <button
                   className="post-list-item"
                   aria-label={`${t("Open commitment for:")} ${entry.post_title}`}
-                  onClick={() => onSelectPost(entry.post_id)}
+                  onClick={() => onSelectPost(entry.post_id, { fromCalendar: true })}
                 >
                   <span className="ticket-title">
                     {entry.commitment_summary ?? entry.ticket_title}
@@ -3436,11 +3444,13 @@ function PostList({
   accessToken,
   showLabPanels = false,
   postIdToOpen = null,
+  postOpenFromCalendar = false,
   onPostOpened,
 }: {
   accessToken: string;
   showLabPanels?: boolean;
   postIdToOpen?: string | null;
+  postOpenFromCalendar?: boolean;
   onPostOpened?: () => void;
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
@@ -3459,6 +3469,7 @@ function PostList({
   const [landOnComparison, setLandOnComparison] = useState(false);
   const [openedFromReportMember, setOpenedFromReportMember] = useState(false);
   const [openedFromWeeklyVoc, setOpenedFromWeeklyVoc] = useState(false);
+  const [openedFromCalendar, setOpenedFromCalendar] = useState(false);
   const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
   const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
   const [totalPosts, setTotalPosts] = useState(0);
@@ -3510,13 +3521,14 @@ function PostList({
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
     setOpenedFromWeeklyVoc(Boolean(options?.fromWeeklyVoc));
+    setOpenedFromCalendar(Boolean(options?.fromCalendar));
   }
 
   useEffect(() => {
     if (!postIdToOpen) return;
-    selectPost(postIdToOpen);
+    selectPost(postIdToOpen, postOpenFromCalendar ? { fromCalendar: true } : undefined);
     onPostOpened?.();
-  }, [onPostOpened, postIdToOpen]);
+  }, [onPostOpened, postIdToOpen, postOpenFromCalendar]);
 
   function closeSelectedPost() {
     setSelectedPostId(null);
@@ -3524,6 +3536,7 @@ function PostList({
     setOpenedCutoffIso(null);
     setOpenedFromReportMember(false);
     setOpenedFromWeeklyVoc(false);
+    setOpenedFromCalendar(false);
     const url = new URL(window.location.href);
     if (url.searchParams.has("post")) {
       url.searchParams.delete("post");
@@ -3959,7 +3972,7 @@ function PostList({
             openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
           }
           knowledgeCutoff={openedAfterCutoff ? openedCutoffIso : null}
-          focusEventLineage={openedFromReportMember || openedFromWeeklyVoc}
+          focusEventLineage={openedFromReportMember || openedFromWeeklyVoc || openedFromCalendar}
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
           onSearch={searchBoard}
@@ -4285,6 +4298,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("post");
   });
+  const [postOpenFromCalendar, setPostOpenFromCalendar] = useState(false);
   // Test-only compatibility for legacy analysis-panel coverage; this prop
   // never forces the panels open outside Vitest. In a real build the
   // advanced-review section (ADR 0037) is gated on PostList's own
@@ -4346,7 +4360,11 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           accessToken={accessToken}
           showLabPanels={testOnlyLabPanels}
           postIdToOpen={postToOpen}
-          onPostOpened={() => setPostToOpen(null)}
+          postOpenFromCalendar={postOpenFromCalendar}
+          onPostOpened={() => {
+            setPostToOpen(null);
+            setPostOpenFromCalendar(false);
+          }}
         />
       ) : null}
       {destination === "customers" ? (
@@ -4361,8 +4379,10 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
       {destination === "calendar" ? (
         <CalendarPanel
           accessToken={accessToken}
+          namedNextAction
           onSelectPost={(postId) => {
             setPostToOpen(postId);
+            setPostOpenFromCalendar(true);
             setDestination("board");
           }}
         />
