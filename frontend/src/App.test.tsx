@@ -41,6 +41,22 @@ function jsonResponse(body: unknown): Response {
   return new Response(JSON.stringify(body), { status: 200 });
 }
 
+function expectKeymanAndEvaluationUnderLineageNext(popup: HTMLElement) {
+  const lineageNext = screen.getByRole("status", { name: "Event Lineage next action" });
+  const keyman = within(popup).getByRole("heading", { name: "Keymen" });
+  const evaluation = within(popup).getByRole("heading", { name: "Post quality (IRT)" });
+  const affiliate = within(popup).getByRole("heading", { name: "Affiliate tree" });
+  expect(lineageNext.compareDocumentPosition(keyman) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  expect(keyman.compareDocumentPosition(evaluation) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  expect(evaluation.compareDocumentPosition(affiliate) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+}
+
+function expectHomeListEvaluationAboveEventLineage(popup: HTMLElement) {
+  const evaluation = within(popup).getByRole("heading", { name: "Post quality (IRT)" });
+  const lineage = within(popup).getByRole("heading", { name: "Event Lineage" });
+  expect(evaluation.compareDocumentPosition(lineage) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+}
+
 describe("App, authenticated", () => {
   beforeEach(() => {
     mockAuth = {
@@ -1657,6 +1673,9 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
       "Public post is current in Event Lineage. Read Keyman and evaluation next.",
     );
+    const weeklyPopup = document.querySelector(".popup-panel");
+    expect(weeklyPopup).not.toBeNull();
+    expectKeymanAndEvaluationUnderLineageNext(weeklyPopup as HTMLElement);
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
@@ -1664,6 +1683,9 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
     expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    const weeklyHomePopup = document.querySelector(".popup-panel");
+    expect(weeklyHomePopup).not.toBeNull();
+    expectHomeListEvaluationAboveEventLineage(weeklyHomePopup as HTMLElement);
   });
 
   it("opening a Calendar commitment focuses Event Lineage; a home list open does not", async () => {
@@ -1684,6 +1706,9 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
       "Public post is current in Event Lineage. Read Keyman and evaluation next.",
     );
+    const calendarPopup = document.querySelector(".popup-panel");
+    expect(calendarPopup).not.toBeNull();
+    expectKeymanAndEvaluationUnderLineageNext(calendarPopup as HTMLElement);
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     const board = screen.getByRole("region", { name: "Board" });
@@ -1691,6 +1716,9 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
     expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    const calendarHomePopup = document.querySelector(".popup-panel");
+    expect(calendarHomePopup).not.toBeNull();
+    expectHomeListEvaluationAboveEventLineage(calendarHomePopup as HTMLElement);
   });
 
   it("opening a Customer master related post focuses Event Lineage; a home list open does not", async () => {
@@ -1712,6 +1740,9 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
       "Public post is current in Event Lineage. Read Keyman and evaluation next.",
     );
+    const customerPopup = document.querySelector(".popup-panel");
+    expect(customerPopup).not.toBeNull();
+    expectKeymanAndEvaluationUnderLineageNext(customerPopup as HTMLElement);
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     const boardAfterCustomer = screen.getByRole("region", { name: "Board" });
@@ -1721,6 +1752,9 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
     expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    const customerHomePopup = document.querySelector(".popup-panel");
+    expect(customerHomePopup).not.toBeNull();
+    expectHomeListEvaluationAboveEventLineage(customerHomePopup as HTMLElement);
   });
 
   it("opening an Ask Agent cited post focuses Event Lineage; a home list open does not", async () => {
@@ -1743,6 +1777,9 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
       "Linked post is current in Event Lineage. Read Keyman and evaluation next.",
     );
+    const askPopup = document.querySelector(".popup-panel");
+    expect(askPopup).not.toBeNull();
+    expectKeymanAndEvaluationUnderLineageNext(askPopup as HTMLElement);
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     const boardAfterAsk = screen.getByRole("region", { name: "Board" });
@@ -1750,6 +1787,9 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
     expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    const askHomePopup = document.querySelector(".popup-panel");
+    expect(askHomePopup).not.toBeNull();
+    expectHomeListEvaluationAboveEventLineage(askHomePopup as HTMLElement);
   });
 
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {

@@ -100,6 +100,13 @@ a cited post: Event Lineage takes focus and names Keyman and evaluation
 next (ADR 0074). A home-list open does not. Do not invent a theta or a
 cited post.
 
+## GNB land Keyman and evaluation (v2.17.0)
+
+Weekly VOC, Calendar, Customer master, and Ask Agent opens land Keyman
+and evaluation under the Event Lineage next action, ahead of Affiliate
+tree (ADR 0075). A home-list open keeps evaluation above Event Lineage.
+Do not invent a theta.
+
 
 
 

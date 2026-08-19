@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.0] - 2026-08-19
+
+### Added
+
+- Opening a post from Weekly VOC, Calendar, Customer master, or Ask Agent
+  now lands Keyman and evaluation immediately under the Event Lineage next
+  action, ahead of Affiliate tree. Home-list opens keep evaluation above
+  Event Lineage. No TEPP theta is invented. No week, CalDAV event,
+  customer, or cited post is invented (ADR 0075 / ADR 0016).
+
 ## [2.16.0] - 2026-08-19
 
 ### Added
