@@ -108,6 +108,15 @@ describe("App, authenticated", () => {
       created_at: string;
     };
     isoWeekOptions?: string[];
+    weekFilteredPosts?: {
+      post_id: string;
+      post_title: string;
+      voc_type_code: string;
+      voc_type_label?: string;
+      visibility_code?: string;
+      visibility_label?: string;
+      created_at: string;
+    }[];
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -1071,12 +1080,16 @@ describe("App, authenticated", () => {
               .filter((week): week is string => Boolean(week)),
           ),
         ).sort((left, right) => right.localeCompare(left));
+        const responsePosts =
+          postsUrl.searchParams.get("iso_week") && options?.weekFilteredPosts
+            ? options.weekFilteredPosts
+            : boardPosts;
         return Promise.resolve(
           jsonResponse(
             postsUrl.searchParams.get("search")
               ? []
               : {
-                  posts: boardPosts,
+                  posts: responsePosts,
                   total_count: 1,
                   limit: 50,
                   offset: 0,
@@ -1852,11 +1865,31 @@ describe("App, authenticated", () => {
   });
 
   it("shows authorized ISO weeks supplied by the API even when a week is outside the loaded page", async () => {
-    stubBackend({ isoWeekOptions: ["2026-W08", "2026-W01"] });
+    const fetchMock = stubBackend({
+      isoWeekOptions: ["2026-W08", "2026-W01"],
+      weekFilteredPosts: [
+        {
+          post_id: "post-voc-w08",
+          post_title: "Older page Voice of Customer",
+          voc_type_code: "voc",
+          voc_type_label: "Voice of Customer",
+          visibility_code: "public",
+          visibility_label: "Public",
+          created_at: "2026-02-18T00:00:00Z",
+        },
+      ],
+    });
     render(<App />);
 
     const board = await screen.findByRole("region", { name: "Board" });
-    expect(within(board).getByRole("option", { name: "2026-W08" })).toBeInTheDocument();
+    await userEvent.selectOptions(within(board).getByLabelText("Filter by ISO week"), "2026-W08");
+    await waitFor(() =>
+      expect(within(board).getByRole("button", { name: "View post: Older page Voice of Customer" })).toBeInTheDocument(),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("iso_week=2026-W08"),
+      expect.anything(),
+    );
   });
 
   it("gets the Weekly VOC week from the authorized newest VOC post, not the loaded page", async () => {

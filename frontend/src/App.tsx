@@ -3662,6 +3662,7 @@ function PostList({
         typeFilter.length > 0 ? typeFilter : undefined,
         visibilityFilter === "all" ? undefined : visibilityFilter,
         sort,
+        weekFilter === "all" ? undefined : weekFilter,
       );
       if (requestId !== postsRequest.current) return;
       setPosts(response.posts);
@@ -3676,7 +3677,7 @@ function PostList({
     } finally {
       if (requestId === postsRequest.current) setLoadingPage(false);
     }
-  }, [accessToken, searchQuery, sortOrder, typeFilter, visibilityFilter]);
+  }, [accessToken, searchQuery, sortOrder, typeFilter, visibilityFilter, weekFilter]);
 
   useEffect(() => {
     void loadPostPage(1);

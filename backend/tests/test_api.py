@@ -1391,6 +1391,15 @@ def test_post_list_supports_bounded_offset_pages(client, demo_analyst_token, see
     assert title_sorted.status_code == 200, title_sorted.text
     assert title_sorted.json()["posts"][0]["post_title"] == "Edited own-corp private post"
 
+    week_filtered = client.get(
+        "/api/posts?iso_week=2026-W04",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert week_filtered.status_code == 200, week_filtered.text
+    assert [post["post_title"] for post in week_filtered.json()["posts"]] == [
+        "Late own-corp private post"
+    ]
+
     invalid_sort = client.get(
         "/api/posts?sort=unsupported",
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
