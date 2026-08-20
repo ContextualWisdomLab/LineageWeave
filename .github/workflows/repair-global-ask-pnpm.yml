@@ -1,0 +1,76 @@
+name: Repair Global Ask pnpm provisioning once
+
+on:
+  push:
+    branches:
+      - "feat/global-ask-public-claim-verification-v2200"
+    paths:
+      - ".github/workflows/repair-global-ask-pnpm.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-global-ask-pnpm-v2200
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    name: Pin the repository-declared pnpm and retrigger the product workflow
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the exact feature branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/global-ask-public-claim-verification-v2200
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Repair only the proven package-manager boundary
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/apply-global-ask-public-verification-v2200.yml')
+          text = path.read_text(encoding='utf-8')
+
+          old_install = '''          corepack enable
+          pnpm --dir frontend install --frozen-lockfile
+'''
+          new_install = '''          corepack enable
+          corepack prepare pnpm@9.15.9 --activate
+          test "$(pnpm --version)" = "9.15.9"
+          pnpm --dir frontend install --frozen-lockfile
+'''
+          if text.count(old_install) != 1:
+              raise SystemExit('expected one unpinned pnpm install boundary')
+          text = text.replace(old_install, new_install, 1)
+
+          old_condition = '''      github.event.pull_request.number == 276 &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'github-actions[bot]'
+'''
+          new_condition = '''      github.event.pull_request.number == 276 &&
+      github.event.pull_request.head.repo.full_name == github.repository
+'''
+          if text.count(old_condition) != 1:
+              raise SystemExit('expected one actor-gated apply job')
+          text = text.replace(old_condition, new_condition, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+          grep -F 'corepack prepare pnpm@9.15.9 --activate' .github/workflows/apply-global-ask-public-verification-v2200.yml
+          grep -F 'test "$(pnpm --version)" = "9.15.9"' .github/workflows/apply-global-ask-public-verification-v2200.yml
+          ! grep -F "github.actor != 'github-actions[bot]'" .github/workflows/apply-global-ask-public-verification-v2200.yml
+          rm .github/workflows/repair-global-ask-pnpm.yml
+          git diff --check
+
+      - name: Commit the verified workflow repair
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/apply-global-ask-public-verification-v2200.yml .github/workflows/repair-global-ask-pnpm.yml
+          git diff --cached --check
+          git commit -m "fix(ci): pin pnpm for Global Ask verification"
+          git push origin HEAD:feat/global-ask-public-claim-verification-v2200
