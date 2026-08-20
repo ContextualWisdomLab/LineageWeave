@@ -427,7 +427,7 @@ are not release evidence.
 | #322 | `fix/stale-summary-buyer-continuity` -> `feat/orchestrator-owned-embedding-consumer` | `7b710453d27286c307986fb3b0bad4ac27d7c8af` | `CLEAN`; Full test and frontend Checks SUCCESS; Devin no issues; independent approval pending |
 | #320 | `codex/normalize-source-indent-semantics` -> `codex/preserve-partial-image-regions` | `41d164c570fe232cc1e38a766439e4093d80cb84` | `CLEAN`; Full test and frontend Checks SUCCESS; independent approval pending |
 | #324 | `codex/preserve-partial-image-regions` -> `fix/validate-partial-image-regions` | `fdd62a6f8317c93f9ba5fc27393cfb26c69e584a` | `CLEAN`; Full test and frontend Checks SUCCESS; independent approval pending |
-| #325 | `fix/validate-partial-image-regions` -> `docs/current-gap-audit` | `0d5538220830eab6cd2823dd67ff8113ffcbf945` | `UNSTABLE`; required Checks queued; existing review is non-approval |
+| #325 | `fix/validate-partial-image-regions` -> `docs/current-gap-audit` | `66e3e557c333423f2db0dac9bd16373b360a0034` | `UNSTABLE`; semantic HTML/Word footnote units preserved; required Checks and fresh independent approval pending |
 | #789 | `main` -> contextual-orchestrator embedding capability branch | `3a80d91b8c879e57d30ab87af664546b8712fb15` | `REVIEW_REQUIRED`, `BLOCKED`; upstream Checks queued |
 
 The current implementation checkpoints are local/branch evidence only:
