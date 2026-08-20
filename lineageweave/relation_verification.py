@@ -184,8 +184,9 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
     if not tokens:
         return None
     haystack = f"{host} {result.get('content') or ''}".lower()
-    required_matches = len(tokens) // 2 + 1
-    matches = sum(1 for token in tokens if token in haystack)
-    if matches >= required_matches:
+    # Every distinctive token must occur in the same result. Matching one
+    # token lets generic pages about words such as "fictitious" corroborate a
+    # made-up multi-word organization.
+    if all(token in haystack for token in tokens):
         return url
     return None

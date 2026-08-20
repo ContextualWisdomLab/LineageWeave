@@ -139,11 +139,17 @@ async def get_or_create_corporate_entity(
     if _depth >= _MAX_HIERARCHY_DEPTH or not inference_client.available:
         return None
 
-    proposal = await asyncio.to_thread(
-        inference_client.infer,
-        normalized_name,
-        context_text,
-    )
+    try:
+        proposal = await asyncio.to_thread(
+            inference_client.infer,
+            normalized_name,
+            context_text,
+        )
+    except (HttpClientError, OSError, TimeoutError):
+        # A provider timeout is an unavailable enrichment channel, not a
+        # reason to discard the source-grounded summary. Keep the actor
+        # unbound and let an explicit retry attempt catalog enrichment later.
+        return None
     if proposal is None or not verification_client.available:
         return None
 
