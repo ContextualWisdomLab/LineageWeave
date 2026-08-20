@@ -10,6 +10,13 @@ provider-specific wire contracts. Treating those requests as a single-agent
 passthrough avoids merging work, but it also bypasses the orchestrator's
 reasoning, verification, cost, and provenance boundary.
 
+This is also the smallest workflow consistent with the primary multi-agent
+debate literature: independent model instances produce candidate reasoning,
+multiple rounds may challenge those candidates, and a final judge synthesizes
+the result. The debate papers do not establish a universal provider model
+ranking; they support preserving independent evidence and an explicit
+adjudication step.
+
 ## Decision
 
 Contextual-orchestrator must execute these requests as workflows:
@@ -30,6 +37,11 @@ Contextual-orchestrator must execute these requests as workflows:
 
 LineageWeave continues to call contextual-orchestrator only; it must not call a
 raw LLM endpoint for this behavior.
+
+## Research basis
+
+- [Improving Factuality and Reasoning in Language Models through Multiagent Debate](https://arxiv.org/abs/2305.14325)
+- [Encouraging Divergent Thinking in Large Language Models through Multi-Agent Debate](https://arxiv.org/abs/2305.19118)
 
 ## Consequences
 
