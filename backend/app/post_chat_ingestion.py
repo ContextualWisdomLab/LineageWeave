@@ -102,58 +102,66 @@ async def gather_chat_sources(
     session_id: str | None = None,
     metadata: dict[str, str] | None = None,
 ) -> list[ChatSourceDocument]:
-    """Post `post_id` itself, plus every linked post the requesting account
-    can actually see -- numbered in the order returned, which is the
-    order `post_chat`'s citations refer back to. Every source's body is
-    normalized (HTML tags/base64 images never reach the reason-and-cite
-    LLM call raw) before becoming a `ChatSourceDocument` -- see
-    `lineageweave.post_content_normalization`. `vision_client` defaults
-    to unavailable (embedded images become an explicit placeholder, not
-    a dropped or raw-base64 source) so this function stays callable
-    without a live provider.
+    """Assemble caller-visible chat sources without preloading hidden bodies.
+
+    Visibility metadata is loaded first and passed through ``can_see_post``.
+    Only the anchor and the bounded linked rows that survive that application
+    ABAC decision are used in a second body query. Hidden source text and inline
+    images therefore never enter application memory or normalization merely
+    because a lineage or Knowledge-Graph candidate named the post.
+
+    Returned sources remain numbered in reason-and-cite order. Every admitted
+    body is normalized before becoming a :class:`ChatSourceDocument`;
+    ``vision_client`` defaults to the explicit unavailable implementation.
     """
     if vision_client is None:
         vision_client = NullImageContentClient()
 
-    this_post = await conn.fetchrow(
-        "select post_id, post_title, post_body, created_at "
+    anchor_metadata = await conn.fetchrow(
+        "select post_id, post_title, visibility_code, corporate_entity_id, created_at "
         "from source_post where post_id = $1",
         post_id,
     )
-    if this_post is None:
+    if anchor_metadata is None or not can_see_post(anchor_metadata):
+        return []
+    anchor_body = await conn.fetchval(
+        "select post_body from source_post where post_id = $1",
+        post_id,
+    )
+    if anchor_body is None:
         return []
     source_metadata = dict(metadata or {})
-    source_metadata["source_post_id"] = str(this_post["post_id"])
+    source_metadata["source_post_id"] = str(anchor_metadata["post_id"])
     sources = [
-            ChatSourceDocument(
-                str(this_post["post_id"]),
-                this_post["post_title"],
-                normalize_post_body(
-                this_post["post_body"],
+        ChatSourceDocument(
+            str(anchor_metadata["post_id"]),
+            anchor_metadata["post_title"],
+            normalize_post_body(
+                anchor_body,
                 vision_client=vision_client,
                 session_id=session_id,
-                    metadata=source_metadata,
-                ).text,
-                occurred_at=(
-                    this_post["created_at"].isoformat()
-                    if this_post.get("created_at") is not None
-                    else None
-                ),
-                lineage_relation="anchor",
-            )
-        ]
+                metadata=source_metadata,
+            ).text,
+            occurred_at=(
+                anchor_metadata["created_at"].isoformat()
+                if anchor_metadata.get("created_at") is not None
+                else None
+            ),
+            lineage_relation="anchor",
+        )
+    ]
 
     linked = await find_linked_post_ids(conn, post_id)
     candidate_ids = linked.direct | linked.indirect
     if not candidate_ids:
         return sources
 
-    rows = await conn.fetch(
-        "select post_id, post_title, post_body, visibility_code, corporate_entity_id, created_at "
+    metadata_rows = await conn.fetch(
+        "select post_id, post_title, visibility_code, corporate_entity_id, created_at "
         "from source_post where post_id = any($1::uuid[])",
         list(candidate_ids),
     )
-    visible_rows = [row for row in rows if can_see_post(row)]
+    visible_rows = [row for row in metadata_rows if can_see_post(row)]
     direct_rows = sorted(
         (row for row in visible_rows if str(row["post_id"]) in linked.direct),
         key=lambda row: str(row["post_id"]),
@@ -163,15 +171,27 @@ async def gather_chat_sources(
         key=lambda row: str(row["post_id"]),
     )
     selected_rows = (direct_rows + indirect_rows)[: MAX_CHAT_SOURCE_COUNT - 1]
+    selected_ids = [row["post_id"] for row in selected_rows]
+    if not selected_ids:
+        return sources
+    body_rows = await conn.fetch(
+        "select post_id, post_body from source_post where post_id = any($1::uuid[])",
+        selected_ids,
+    )
+    bodies = {str(row["post_id"]): row["post_body"] for row in body_rows}
     for row in selected_rows:
+        selected_post_id = str(row["post_id"])
+        body = bodies.get(selected_post_id)
+        if body is None:
+            continue
         source_metadata = dict(metadata or {})
-        source_metadata["source_post_id"] = str(row["post_id"])
+        source_metadata["source_post_id"] = selected_post_id
         sources.append(
             ChatSourceDocument(
-                str(row["post_id"]),
+                selected_post_id,
                 row["post_title"],
                 normalize_post_body(
-                    row["post_body"],
+                    body,
                     vision_client=vision_client,
                     session_id=session_id,
                     metadata=source_metadata,
@@ -183,7 +203,7 @@ async def gather_chat_sources(
                 ),
                 lineage_relation=(
                     "direct_lineage"
-                    if str(row["post_id"]) in linked.direct
+                    if selected_post_id in linked.direct
                     else "indirect_knowledge_graph"
                 ),
             )
