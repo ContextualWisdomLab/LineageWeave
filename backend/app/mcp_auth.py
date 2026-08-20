@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 from functools import partial
 from typing import Any
 
+import asyncpg
 from fastapi import HTTPException
 from mcp.server.auth.provider import AccessToken, TokenVerifier
 
@@ -27,9 +29,65 @@ class KeycloakMcpTokenVerifier(TokenVerifier):
 
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
+        self._api_key_pool: Any | None = None
+
+    def bind_api_key_pool(self, pool: Any) -> None:
+        """Bind the process-lifetime pool used by LineageWeave API keys."""
+        self._api_key_pool = pool
+
+    def unbind_api_key_pool(self, pool: Any) -> None:
+        """Release the pool only when it is the currently bound instance."""
+        if self._api_key_pool is pool:
+            self._api_key_pool = None
+
+    async def _verify_api_key(self, token: str) -> AccessToken | None:
+        """Resolve one hashed application key to its provisioned account subject."""
+        if self._api_key_pool is None:
+            return None
+        key_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        try:
+            row = await self._api_key_pool.fetchrow(
+                """
+                select api_key.mcp_api_key_id,
+                       api_key.user_account_id,
+                       account.external_subject_id,
+                       extract(epoch from api_key.expires_at) as expires_at
+                  from mcp_api_key api_key
+                  join user_account account
+                    on account.user_account_id = api_key.user_account_id
+                 where api_key.key_hash = $1
+                   and api_key.revoked_at is null
+                   and (api_key.expires_at is null or api_key.expires_at > now())
+                """,
+                key_hash,
+            )
+        except asyncpg.UndefinedTableError:
+            # The key-management stack may be deployed after this MCP stack.
+            return None
+        if row is None:
+            return None
+        subject = row["external_subject_id"]
+        if not isinstance(subject, str) or not subject:
+            return None
+        expires_at = row["expires_at"]
+        return AccessToken(
+            token=token,
+            client_id="lineageweave-mcp-api-key",
+            scopes=list(self._settings.mcp_required_scopes),
+            expires_at=int(expires_at) if expires_at is not None else None,
+            resource=self._settings.mcp_audience,
+            subject=subject,
+            claims={
+                "auth_method": "mcp_api_key",
+                "mcp_api_key_id": str(row["mcp_api_key_id"]),
+                "user_account_id": str(row["user_account_id"]),
+            },
+        )
 
     async def verify_token(self, token: str) -> AccessToken | None:
         """Return MCP access metadata for a valid token; otherwise fail closed."""
+        if token.startswith("lw_mcp_"):
+            return await self._verify_api_key(token)
         try:
             claims = await asyncio.to_thread(
                 partial(

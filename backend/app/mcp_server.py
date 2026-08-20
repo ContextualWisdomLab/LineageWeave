@@ -156,11 +156,14 @@ def build_mcp_server(
     """Build a testable OAuth resource server with one read-only Global Ask tool."""
     resolved_settings = settings or load_settings()
     resolved_external_verifier = external_verifier or _external_verifier(resolved_settings)
+    resolved_token_verifier = token_verifier or KeycloakMcpTokenVerifier(resolved_settings)
 
     @asynccontextmanager
     async def lifespan(_: MCPServer) -> AsyncIterator[McpAppContext]:
         """Open and close the MCP process-wide database and client context."""
         pool = await pool_factory(resolved_settings.database_url)
+        if isinstance(resolved_token_verifier, KeycloakMcpTokenVerifier):
+            resolved_token_verifier.bind_api_key_pool(pool)
         try:
             yield McpAppContext(
                 pool=pool,
@@ -172,6 +175,8 @@ def build_mcp_server(
                 external_verifier=resolved_external_verifier,
             )
         finally:
+            if isinstance(resolved_token_verifier, KeycloakMcpTokenVerifier):
+                resolved_token_verifier.unbind_api_key_pool(pool)
             await pool.close()
 
     mcp = MCPServer(
@@ -191,7 +196,7 @@ def build_mcp_server(
         ),
         version="1.0.1",
         lifespan=lifespan,
-        token_verifier=token_verifier or KeycloakMcpTokenVerifier(resolved_settings),
+        token_verifier=resolved_token_verifier,
         auth=AuthSettings(
             issuer_url=AnyHttpUrl(resolved_settings.oidc_issuer),
             resource_server_url=AnyHttpUrl(resolved_settings.mcp_resource_url),
