@@ -1,31 +1,48 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-  OIDC_RETURN_URL_STORAGE_KEY,
   rememberOidcReturnUrl,
   restoreOidcReturnUrl,
   returnUrlFromLocation,
 } from "./oidcReturnUrl";
 
-describe("OIDC deep-link return URL", () => {
+describe("OIDC return URL handling", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
     window.localStorage.clear();
-    window.history.replaceState({}, "", "/?post=synthetic-post#evidence");
   });
 
-  it("preserves the post query and hash through the OIDC state callback", () => {
-    const returnUrl = returnUrlFromLocation();
+  it("keeps a post deep link and rejects external destinations", () => {
+    expect(returnUrlFromLocation({ pathname: "/", search: "?post=abc", hash: "" })).toBe(
+      "/?post=abc",
+    );
+    expect(returnUrlFromLocation({ pathname: "//evil.example", search: "", hash: "" })).toBe("/");
+  });
+
+  it("restores an object or serialized OIDC state before storage fallback", () => {
+    rememberOidcReturnUrl("/?post=stored");
+    expect(restoreOidcReturnUrl({ returnUrl: "/?post=from-object" })).toBe("/?post=from-object");
+
+    rememberOidcReturnUrl("/?post=stored-again");
+    expect(restoreOidcReturnUrl('{"returnUrl":"/?post=from-json"}')).toBe("/?post=from-json");
+    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toBeNull();
+    expect(window.localStorage.getItem("lineageweave.oidc.returnUrl")).toBeNull();
+  });
+
+  it("restores a deep link from local storage when session storage is empty", () => {
+    window.localStorage.setItem("lineageweave.oidc.returnUrl", "/?post=from-local-storage");
+
+    expect(restoreOidcReturnUrl(undefined)).toBe("/?post=from-local-storage");
+    expect(window.localStorage.getItem("lineageweave.oidc.returnUrl")).toBeNull();
+  });
+
+  it("preserves the post query and hash through the OIDC callback", () => {
+    const returnUrl = returnUrlFromLocation({
+      pathname: "/",
+      search: "?post=synthetic-post",
+      hash: "#evidence",
+    });
 
     expect(returnUrl).toBe("/?post=synthetic-post#evidence");
     expect(restoreOidcReturnUrl({ returnUrl })).toBe(returnUrl);
-  });
-
-  it("restores the deep link from storage when the callback has no state", () => {
-    const returnUrl = returnUrlFromLocation();
-    rememberOidcReturnUrl(returnUrl);
-
-    expect(restoreOidcReturnUrl(undefined)).toBe(returnUrl);
-    expect(window.sessionStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toBeNull();
-    expect(window.localStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toBeNull();
   });
 });
