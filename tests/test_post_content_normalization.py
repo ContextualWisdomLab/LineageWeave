@@ -92,6 +92,11 @@ class _EmptyLocatorVisionClient(_FakeVisionClient):
         return None  # type: ignore[return-value]
 
 
+class _MalformedLocatorVisionClient(_FakeVisionClient):
+    def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
+        return object()  # type: ignore[return-value]
+
+
 class _PartialRegionFailureVisionClient(_FakeVisionClient):
     def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
         return (ImageRegion(0.25, 0.25, 0.25, 0.25),)
@@ -231,6 +236,20 @@ def test_empty_locator_result_falls_back_to_parent_image_evidence() -> None:
     result = normalize_post_body(
         f'<img src="data:image/png;base64,{b64}"/>',
         vision_client=_EmptyLocatorVisionClient(description),
+    )
+
+    assert result.image_results[0].status_code == "described"
+    assert result.image_results[0].regions == ()
+    assert result.image_results[0].description == description
+
+
+def test_non_iterable_locator_result_falls_back_to_parent_image_evidence() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    description = ImageDescription(extracted_text="parent", caption="whole image", tags=())
+
+    result = normalize_post_body(
+        f'<img src="data:image/png;base64,{b64}"/>',
+        vision_client=_MalformedLocatorVisionClient(description),
     )
 
     assert result.image_results[0].status_code == "described"
