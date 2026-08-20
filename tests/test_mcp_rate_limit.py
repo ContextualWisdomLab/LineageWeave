@@ -205,8 +205,8 @@ async def test_global_ask_rate_limit_error_has_bounded_protocol_retry_metadata()
         with pytest.raises(MCPError) as exc_info:
             await client.call_tool("global_ask", {"question": "What happened?"})
 
-    assert exc_info.value.code == mcp_rate_limit.GLOBAL_ASK_RATE_LIMIT_ERROR_CODE
-    assert exc_info.value.data == {
+    assert exc_info.value.error.code == mcp_rate_limit.GLOBAL_ASK_RATE_LIMIT_ERROR_CODE
+    assert exc_info.value.error.data == {
         "error_code": "global_ask_rate_limited",
         "retry_after_seconds": 17,
         "retryable": True,
@@ -223,9 +223,12 @@ async def test_rate_limit_backend_failure_is_explicit_and_unauthorized_principal
     async with Client(server) as client:
         with pytest.raises(MCPError) as exc_info:
             await client.call_tool("global_ask", {"question": "What happened?"})
-    assert exc_info.value.code == mcp_rate_limit.GLOBAL_ASK_RATE_LIMIT_UNAVAILABLE_ERROR_CODE
-    assert exc_info.value.data["error_code"] == "global_ask_rate_limit_unavailable"
-    assert exc_info.value.data["retry_after_seconds"] == 5
+    assert (
+        exc_info.value.error.code
+        == mcp_rate_limit.GLOBAL_ASK_RATE_LIMIT_UNAVAILABLE_ERROR_CODE
+    )
+    assert exc_info.value.error.data["error_code"] == "global_ask_rate_limit_unavailable"
+    assert exc_info.value.error.data["retry_after_seconds"] == 5
 
     forbidden = _Limiter(mcp_rate_limit.RateLimitDecision(allowed=True, retry_after_seconds=0))
     forbidden_server, _pool = await _server(forbidden, permissions=frozenset())
