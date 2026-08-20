@@ -27,7 +27,7 @@ from lineageweave.ontology import (
     load_ontology,
     ontology_annotations,
 )
-from rdflib.namespace import RDFS, SKOS
+from rdflib.namespace import OWL, RDFS, SKOS
 
 _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo_data.py"
 
@@ -118,7 +118,7 @@ def test_knowledge_graph_lookup_constants_are_declared_in_the_ontology() -> None
 
 
 def test_iri_for_lookup_code_resolves_a_real_term() -> None:
-    assert iri_for_lookup_code("edge_mention") == str(LW.mentions)
+    assert iri_for_lookup_code("edge_mention") == str(LW.mentionedIn)
     assert iri_for_lookup_code("rel_voc") == str(LW.hasVocRelationship)
 
 
@@ -142,12 +142,12 @@ def test_ontology_annotations_are_empty_for_an_undeclared_code() -> None:
     assert ontology_annotations("open") == {}
 
 
-def test_mentions_property_domain_and_range_match_the_schema() -> None:
-    """`mentions` goes Post -> Person, matching post_person_mention's
-    actual foreign keys -- not just any two classes."""
+def test_mentioned_in_property_matches_canonical_edge_direction() -> None:
+    """`mentionedIn` goes Person -> Post, matching stored KG triples."""
     graph = load_ontology()
-    assert (LW.mentions, RDFS.domain, LW.Post) in graph
-    assert (LW.mentions, RDFS.range, LW.Person) in graph
+    assert (LW.mentionedIn, RDFS.domain, LW.Person) in graph
+    assert (LW.mentionedIn, RDFS.range, LW.Post) in graph
+    assert (LW.mentions, OWL.inverseOf, LW.mentionedIn) in graph
 
 
 def test_prov_agent_type_terms_resolve_and_subclass_real_prov_o() -> None:
