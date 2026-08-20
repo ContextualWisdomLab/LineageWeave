@@ -1,4 +1,4 @@
-# ADR 0099: Register account operation events in Valkey
+# ADR 0101: Register account operation events in Valkey
 
 - Status: Accepted
 - Date: 2026-08-20
