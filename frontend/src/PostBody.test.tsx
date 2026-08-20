@@ -144,11 +144,21 @@ describe("PostBody", () => {
             indent_confidence: 0,
             indent_evidence: "",
           },
+          {
+            unit_index: 2,
+            unit_kind_code: "dom",
+            unit_text: "Unavailable source unit",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "",
+          },
         ]}
       />,
     );
 
     expect(screen.getByText("Nested item")).toHaveAttribute("data-indent-level", "1");
+    expect(screen.getByText("Unavailable source unit")).toHaveAttribute("data-indent-level", "0");
   });
 
   it("marks persisted footnotes as footnote evidence", () => {
