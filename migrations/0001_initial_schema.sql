@@ -212,7 +212,7 @@ create table post_summary_event (
     primary key (post_id, event_ordinal)
 );
 
--- actor_type_code: R&R Ontology, see migrations/0012_role_responsibility_agent_type.sql
+-- actor_type_code: R&R Ontology, see migrations/0060_role_responsibility_agent_type.sql
 -- and ADR 0006 -- a named actor is not always a person (an organization
 -- can act in its own name, e.g. "당사," "Demo Corp"), so this is not folded
 -- into person_name's own meaning.

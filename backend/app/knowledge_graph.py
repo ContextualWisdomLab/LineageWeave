@@ -256,7 +256,8 @@ async def visible_mention_post_ids(
     can_see_post,
 ) -> list[str]:
     """Visible post ids supported by Keyman or R&R person evidence."""
-    rows = await conn.fetch(
+    # Safe SQL: the eligibility predicate is an immutable schema fragment; person id is bound.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select post.post_id, post.visibility_code, post.corporate_entity_id
           from combined_post_person_mention mention
@@ -275,7 +276,8 @@ async def visible_affiliation_post_ids(
     can_see_post,
 ) -> list[str]:
     """Visible posts that mention an entity via a person or a direct org mention."""
-    rows = await conn.fetch(
+    # Safe SQL: the eligibility predicate is an immutable schema fragment; entity id is bound.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select distinct post.post_id, post.visibility_code,
                         post.corporate_entity_id, post.created_at
@@ -305,7 +307,8 @@ async def visible_team_mention_post_ids(
     can_see_post,
 ) -> list[str]:
     """Visible post ids supported by a cataloged team mention."""
-    rows = await conn.fetch(
+    # Safe SQL: the eligibility predicate is an immutable schema fragment; team id is bound.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select post.post_id, post.visibility_code, post.corporate_entity_id
           from post_team_mention mention
@@ -481,7 +484,8 @@ async def hydrate_related_nodes(
     } if person_ids else {}
     posts = {
         str(row["post_id"]): row
-        for row in await conn.fetch(
+        # Safe SQL: the eligibility predicate is an immutable schema fragment; post ids are bound.
+        for row in await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"select post_id, post_title, "
             "btrim(left(source_post_search_text(post_body), 420)) as post_body_excerpt, "
             "char_length(coalesce(post_body, '')) > 420 as post_body_truncated "

@@ -790,7 +790,7 @@ subclasses of the real external PROV-O classes (imported via the
 `prov:` namespace), kept distinct from the ontology's existing `:Person`
 (node_type's cataloged Keyman with a stable `person_id`) since an R&R
 actor is a free-text name with no cataloged identity of its own.
-`migrations/0012_role_responsibility_agent_type.sql` renames the
+`migrations/0060_role_responsibility_agent_type.sql` renames the
 `post_summary_role` column via `RENAME COLUMN` (preserves existing
 rows) rather than a drop/recreate. The popup's R&R list shows a
 Person/Organization badge and the inferred affiliation; only a person
