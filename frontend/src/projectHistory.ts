@@ -3,6 +3,7 @@ import type { Locale } from "./i18n";
 
 export type ProjectHistoryTruthStatus = "observed" | "inferred";
 export type ResponsibilityTransitionCode = "continuous" | "handoff" | "assignment_gap";
+export type ProjectHistoryTimeBasis = "source_post_created_at_fallback" | "document_time";
 
 export interface ProjectHistoryMatch {
   match_kind_code: string;
@@ -20,7 +21,7 @@ export interface ProjectHistoryResponsibility {
   affiliated_organization_name: string | null;
   responsibility: string;
   truth_status_code: "observed";
-  provenance: "post_summary_role";
+  provenance: string;
 }
 
 export interface ProjectHistoryPathEdge {
@@ -47,7 +48,7 @@ export interface ProjectHistoryEvent {
   event_type_code: string;
   event_type_basis_code: "display_classification";
   occurred_at: string;
-  time_basis_code: "document_time";
+  time_basis_code: ProjectHistoryTimeBasis;
   voc_type_code: string | null;
   source_stage_code: string | null;
   source_detail_state_code: string | null;
@@ -63,7 +64,7 @@ export interface ProjectHistoryProjection {
   normalized_project_key: string;
   project_name: string;
   focus_event_id: string;
-  time_basis_code: "document_time";
+  time_basis_code: ProjectHistoryTimeBasis;
   event_count: number;
   distinct_observed_actor_count: number;
   truncated: boolean;
@@ -87,38 +88,40 @@ function evidenceOrder(evidence: ProjectEvidence): number {
   return 2;
 }
 
+function compareEvidence(left: ProjectEvidence, right: ProjectEvidence): number {
+  return (
+    evidenceOrder(left) - evidenceOrder(right) ||
+    left.project_name.localeCompare(right.project_name) ||
+    left.project_key.localeCompare(right.project_key) ||
+    left.provenance.localeCompare(right.provenance)
+  );
+}
+
 export function groupProjectEvidence(evidence: ProjectEvidence[]): ProjectEvidenceGroup[] {
-  const groups = new Map<string, ProjectEvidenceGroup>();
+  const groups = new Map<string, ProjectEvidence[]>();
   for (const item of evidence) {
     const normalizedProjectKey = normalizeProjectIdentity(item.project_key || item.project_name);
     if (!normalizedProjectKey) continue;
-    const existing = groups.get(normalizedProjectKey);
-    if (!existing) {
-      groups.set(normalizedProjectKey, {
-        normalizedProjectKey,
-        projectKey: item.project_key,
-        projectName: item.project_name,
-        evidence: [item],
-      });
-      continue;
-    }
-    existing.evidence.push(item);
-    if (evidenceOrder(item) < evidenceOrder(existing.evidence[0])) {
-      existing.projectKey = item.project_key;
-      existing.projectName = item.project_name;
-    }
+    const rows = groups.get(normalizedProjectKey) ?? [];
+    rows.push(item);
+    groups.set(normalizedProjectKey, rows);
   }
-  return Array.from(groups.values())
-    .map((group) => ({
-      ...group,
-      evidence: [...group.evidence].sort(
-        (left, right) =>
-          evidenceOrder(left) - evidenceOrder(right) ||
-          left.project_name.localeCompare(right.project_name) ||
-          left.provenance.localeCompare(right.provenance),
-      ),
-    }))
-    .sort((left, right) => left.projectName.localeCompare(right.projectName));
+  return Array.from(groups.entries())
+    .map(([normalizedProjectKey, rows]) => {
+      const ordered = [...rows].sort(compareEvidence);
+      const representative = ordered[0];
+      return {
+        normalizedProjectKey,
+        projectKey: representative.project_key || representative.project_name,
+        projectName: representative.project_name || representative.project_key,
+        evidence: ordered,
+      };
+    })
+    .sort(
+      (left, right) =>
+        left.projectName.localeCompare(right.projectName) ||
+        left.normalizedProjectKey.localeCompare(right.normalizedProjectKey),
+    );
 }
 
 const MESSAGE_KEYS = [
@@ -167,16 +170,16 @@ type MessageParams = Record<string, string | number>;
 const EN: Record<ProjectHistoryMessageKey, string> = {
   heading: "Project event timeline",
   summaryCounts: "{events} events · {actors} observed actors",
-  documentTime: "Dates use document time; they are not asserted event-occurrence times.",
+  documentTime: "Dates use source-post creation time because a separate event clock is not recorded.",
   truncated: "This bounded timeline is truncated. The selected event remains included.",
   eventDetail: "Event detail",
   eventType: "Display event type",
-  eventDate: "Document date",
+  eventDate: "Source-post date",
   responsibilityEvidence: "Observed responsibility evidence",
   noResponsibilityEvidence: "No responsibility evidence is recorded for this event.",
-  continuous: "Responsibility continued",
-  handoff: "Responsibility handoff",
-  assignmentGap: "Assignment evidence gap",
+  continuous: "Responsibility evidence continued",
+  handoff: "Responsibility evidence changed",
+  assignmentGap: "Responsibility evidence gap",
   priorHistory: "Related prior history",
   noPriorHistory: "No visible prior lineage path is recorded for this event.",
   inferredBoundary: "This is inferred related history, not causality or an authoritative assignment record.",
@@ -189,7 +192,7 @@ const EN: Record<ProjectHistoryMessageKey, string> = {
   columnDate: "Date",
   columnEvent: "Event",
   columnType: "Type",
-  columnTransition: "Responsibility transition",
+  columnTransition: "Responsibility evidence change",
   columnActors: "Observed actors",
   columnPathScore: "Minimum lineage score",
   notApplicable: "Not applicable",
@@ -207,15 +210,15 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
   ko: {
     heading: "프로젝트 이벤트 타임라인",
     summaryCounts: "이벤트 {events}건 · 관찰된 담당자 {actors}명",
-    documentTime: "날짜는 문서 시각이며 실제 사건 발생 시각으로 단정하지 않습니다.",
+    documentTime: "별도 사건 시각이 없어 날짜는 원천 게시물 생성 시각을 사용합니다.",
     truncated: "이 제한된 타임라인은 일부만 표시합니다. 선택한 이벤트는 계속 포함됩니다.",
     eventDetail: "이벤트 상세",
     eventType: "표시용 이벤트 유형",
-    eventDate: "문서 날짜",
+    eventDate: "원천 게시물 날짜",
     responsibilityEvidence: "관찰된 담당 근거",
     noResponsibilityEvidence: "이 이벤트에는 기록된 담당 근거가 없습니다.",
-    continuous: "담당 유지",
-    handoff: "담당 변경",
+    continuous: "담당 근거 유지",
+    handoff: "담당 근거 변경",
     assignmentGap: "담당 근거 공백",
     priorHistory: "관련 과거 이력",
     noPriorHistory: "이 이벤트로 이어지는 공개 가능한 이전 계보가 없습니다.",
@@ -229,7 +232,7 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     columnDate: "날짜",
     columnEvent: "이벤트",
     columnType: "유형",
-    columnTransition: "담당 변화",
+    columnTransition: "담당 근거 변화",
     columnActors: "관찰된 담당자",
     columnPathScore: "최소 계보 점수",
     notApplicable: "해당 없음",
@@ -244,15 +247,15 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
   zh: {
     heading: "项目事件时间线",
     summaryCounts: "{events} 个事件 · {actors} 名已观察责任人",
-    documentTime: "日期采用文档时间，不声称为事件实际发生时间。",
+    documentTime: "未记录独立事件时钟，因此日期采用源帖子创建时间。",
     truncated: "此有界时间线已截断，但所选事件仍保留。",
     eventDetail: "事件详情",
     eventType: "显示事件类型",
-    eventDate: "文档日期",
+    eventDate: "源帖子日期",
     responsibilityEvidence: "已观察的责任证据",
     noResponsibilityEvidence: "此事件没有记录责任证据。",
-    continuous: "责任持续",
-    handoff: "责任交接",
+    continuous: "责任证据持续",
+    handoff: "责任证据变化",
     assignmentGap: "责任证据缺口",
     priorHistory: "相关既往历史",
     noPriorHistory: "此事件没有可见的既往谱系路径。",
@@ -266,7 +269,7 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     columnDate: "日期",
     columnEvent: "事件",
     columnType: "类型",
-    columnTransition: "责任变化",
+    columnTransition: "责任证据变化",
     columnActors: "已观察责任人",
     columnPathScore: "最低谱系分数",
     notApplicable: "不适用",
@@ -281,15 +284,15 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
   ja: {
     heading: "プロジェクトイベントのタイムライン",
     summaryCounts: "イベント {events}件 · 観察された担当者 {actors}名",
-    documentTime: "日付は文書時刻であり、実際のイベント発生時刻とは断定しません。",
+    documentTime: "独立したイベント時刻がないため、原資料の作成時刻を使用します。",
     truncated: "この上限付きタイムラインは省略されていますが、選択イベントは保持されます。",
     eventDetail: "イベント詳細",
     eventType: "表示用イベント種別",
-    eventDate: "文書日付",
+    eventDate: "原資料の日付",
     responsibilityEvidence: "観察された担当根拠",
     noResponsibilityEvidence: "このイベントには担当根拠が記録されていません。",
-    continuous: "担当継続",
-    handoff: "担当引継ぎ",
+    continuous: "担当根拠が継続",
+    handoff: "担当根拠が変更",
     assignmentGap: "担当根拠の空白",
     priorHistory: "関連する過去履歴",
     noPriorHistory: "このイベントに至る可視の過去系譜はありません。",
@@ -303,7 +306,7 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     columnDate: "日付",
     columnEvent: "イベント",
     columnType: "種別",
-    columnTransition: "担当変化",
+    columnTransition: "担当根拠の変化",
     columnActors: "観察担当者",
     columnPathScore: "最小系譜スコア",
     notApplicable: "該当なし",
@@ -318,16 +321,16 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
   vi: {
     heading: "Dòng thời gian sự kiện dự án",
     summaryCounts: "{events} sự kiện · {actors} người phụ trách được quan sát",
-    documentTime: "Ngày dùng thời gian tài liệu, không khẳng định là thời điểm sự kiện thực tế.",
+    documentTime: "Không có đồng hồ sự kiện riêng, nên dùng thời gian tạo bài nguồn.",
     truncated: "Dòng thời gian có giới hạn này đã bị rút gọn nhưng vẫn giữ sự kiện đang chọn.",
     eventDetail: "Chi tiết sự kiện",
     eventType: "Loại sự kiện hiển thị",
-    eventDate: "Ngày tài liệu",
+    eventDate: "Ngày bài nguồn",
     responsibilityEvidence: "Bằng chứng trách nhiệm quan sát được",
     noResponsibilityEvidence: "Không có bằng chứng trách nhiệm được ghi cho sự kiện này.",
-    continuous: "Trách nhiệm được duy trì",
-    handoff: "Bàn giao trách nhiệm",
-    assignmentGap: "Khoảng trống bằng chứng phân công",
+    continuous: "Bằng chứng trách nhiệm tiếp tục",
+    handoff: "Bằng chứng trách nhiệm thay đổi",
+    assignmentGap: "Khoảng trống bằng chứng trách nhiệm",
     priorHistory: "Lịch sử trước đó có liên quan",
     noPriorHistory: "Không có đường dẫn lịch sử trước đó khả kiến cho sự kiện này.",
     inferredBoundary: "Đây là lịch sử liên quan được suy luận, không phải quan hệ nhân quả hay hồ sơ phân công có thẩm quyền.",
@@ -340,7 +343,7 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     columnDate: "Ngày",
     columnEvent: "Sự kiện",
     columnType: "Loại",
-    columnTransition: "Thay đổi trách nhiệm",
+    columnTransition: "Thay đổi bằng chứng trách nhiệm",
     columnActors: "Người phụ trách được quan sát",
     columnPathScore: "Điểm dòng dõi tối thiểu",
     notApplicable: "Không áp dụng",
