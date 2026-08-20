@@ -83,6 +83,27 @@ services:
       postgres:
         condition: service_healthy
 
+  keycloak_mcp_audience:
+    # Startup import skips an already-existing realm. Reconcile only the
+    # dedicated audience mapper through the Admin REST API so a persisted
+    # realm follows MCP_PORT changes without destructive realm replacement.
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["python", "-m", "backend.app.keycloak_audience_reconciler"]
+    environment:
+      KEYCLOAK_ADMIN_BASE_URL: http://keycloak:8080
+      KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin_dev_only}
+      KEYCLOAK_TARGET_REALM: lineageweave-demo
+      KEYCLOAK_TARGET_CLIENT_ID: lineageweave-frontend
+      KEYCLOAK_MCP_MAPPER_NAME: lineageweave-mcp-audience
+      MCP_AUDIENCE: http://localhost:${MCP_PORT:-18001}/mcp
+    depends_on:
+      keycloak:
+        condition: service_started
+    restart: "no"
+
   backend:
     build:
       context: .
@@ -154,6 +175,8 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_started
+      keycloak_mcp_audience:
+        condition: service_completed_successfully
       searxng:
         condition: service_healthy
 
