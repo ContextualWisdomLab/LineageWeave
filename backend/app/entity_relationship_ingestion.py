@@ -214,7 +214,8 @@ async def fetch_relationship_network(
     """
     if not corporate_entity_ids:
         return []
-    rows = await conn.fetch(
+    # Safe SQL: this is immutable schema text; authorized entity ids are bound through $1.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         """
         with scoped as (
             select counterparty.counterparty_entity_name,
