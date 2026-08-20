@@ -13,9 +13,14 @@ from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.mcpserver import Context
-from mcp.server.transport_security import TransportSecuritySettings
+from mcp.server.transport_security import (
+    TransportSecurityMiddleware,
+    TransportSecuritySettings,
+)
 from mcp.types import ToolAnnotations
 from pydantic import AnyHttpUrl, BaseModel, Field
+from starlette.requests import Request
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from backend.app.auth import CurrentAccount, resolve_current_account
 from backend.app.config import Settings, load_settings
@@ -54,6 +59,38 @@ class McpAppContext:
     chat_client: PostChatClient
     vision_client: Any
     external_verifier: GlobalAskExternalVerifier
+
+
+class PreAuthTransportSecurityApp:
+    """Apply MCP Host, Origin, and POST content-type checks before OAuth.
+
+    MCP SDK 2.0 assembles its OAuth resource-server middleware outside the
+    Streamable HTTP transport. Calling ``streamable_http_app`` directly can
+    therefore challenge an unauthenticated hostile Host before the transport's
+    DNS-rebinding validator runs. This outer ASGI boundary reuses the SDK's own
+    validator and rejects invalid transport metadata before any token verifier,
+    database resolver, or Global Ask dependency is invoked.
+    """
+
+    def __init__(self, app: ASGIApp, settings: TransportSecuritySettings) -> None:
+        """Wrap ``app`` with the SDK's transport validator as the outer boundary."""
+        self._app = app
+        self._transport_security = TransportSecurityMiddleware(settings)
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        """Validate HTTP transport metadata, then delegate non-hostile requests."""
+        if scope["type"] != "http":
+            await self._app(scope, receive, send)
+            return
+        request = Request(scope, receive=receive)
+        rejection = await self._transport_security.validate_request(
+            request,
+            is_post=request.method == "POST",
+        )
+        if rejection is not None:
+            await rejection(scope, receive, send)
+            return
+        await self._app(scope, receive, send)
 
 
 PoolFactory = Callable[[str], Awaitable[Any]]
@@ -194,12 +231,20 @@ def build_mcp_server(
     return mcp
 
 
+def build_mcp_http_app(
+    server: MCPServer[McpAppContext],
+    settings: Settings,
+) -> ASGIApp:
+    """Build the Streamable HTTP app with transport checks outside OAuth."""
+    transport_security = TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=settings.mcp_allowed_hosts,
+        allowed_origins=settings.mcp_allowed_origins,
+    )
+    sdk_app = server.streamable_http_app(transport_security=transport_security)
+    return PreAuthTransportSecurityApp(sdk_app, transport_security)
+
+
 _settings = load_settings()
 mcp = build_mcp_server(_settings)
-app = mcp.streamable_http_app(
-    transport_security=TransportSecuritySettings(
-        enable_dns_rebinding_protection=True,
-        allowed_hosts=_settings.mcp_allowed_hosts,
-        allowed_origins=_settings.mcp_allowed_origins,
-    )
-)
+app = build_mcp_http_app(mcp, _settings)
