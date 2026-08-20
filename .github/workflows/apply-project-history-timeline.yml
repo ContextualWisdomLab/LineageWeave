@@ -1,0 +1,183 @@
+name: One-shot Buyer project-history timeline
+
+on:
+  push:
+    branches:
+      - feat/project-history-timeline-v2200
+    paths:
+      - .github/workflows/apply-project-history-timeline.yml
+      - .github/repair/*.b64.*
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-project-history-timeline-v2200
+  cancel-in-progress: false
+
+jobs:
+  materialize-and-verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+      PGPASSWORD: postgres
+    steps:
+      - name: Checkout exact project-history branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/project-history-timeline-v2200
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Fast-forward to the live branch tip
+        run: |
+          git fetch origin feat/project-history-timeline-v2200
+          git merge --ff-only origin/feat/project-history-timeline-v2200
+          git diff --check
+
+      - name: Reconstruct the immutable repair payload
+        run: |
+          cat .github/repair/apply_project_history_timeline.py.b64.* | tr -d '\n' | base64 -d \
+            > .github/repair/apply_project_history_timeline.py
+          cat .github/repair/project-history-timeline-payload.zip.b64.* | tr -d '\n' | base64 -d \
+            > .github/repair/project-history-timeline-payload.zip
+          chmod 0755 .github/repair/apply_project_history_timeline.py
+          echo "ff1113720d32814f2d8eae0228daa5a97ec68f13698d2465bcacb9be92b1a2e5  .github/repair/project-history-timeline-payload.zip" | sha256sum -c -
+          python -m py_compile .github/repair/apply_project_history_timeline.py
+          unzip -t .github/repair/project-history-timeline-payload.zip
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Install current locked dependencies
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Reproduce the missing project-history contract (RED)
+        run: |
+          rm -rf /tmp/project-history-red
+          mkdir -p /tmp/project-history-red
+          unzip -q .github/repair/project-history-timeline-payload.zip \
+            tests/test_project_history.py \
+            -d /tmp/project-history-red
+          if uv run --frozen python -m pytest -q \
+            /tmp/project-history-red/tests/test_project_history.py \
+            >/tmp/project-history-red.log 2>&1; then
+            cat /tmp/project-history-red.log
+            echo "RED test unexpectedly passed before the project-history module existed" >&2
+            exit 1
+          fi
+          cat /tmp/project-history-red.log
+          grep -Eq "ModuleNotFoundError|ImportError" /tmp/project-history-red.log
+
+      - name: Apply the bounded production patch
+        run: |
+          python -m py_compile .github/repair/apply_project_history_timeline.py
+          python .github/repair/apply_project_history_timeline.py
+          python -m compileall -q lineageweave backend scripts tests
+          git diff --check
+
+      - name: Revalidate the updated universal lock
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Verify focused project-history Python contracts (GREEN)
+        run: |
+          uv run --frozen python -m pytest -q \
+            tests/test_project_history.py \
+            tests/test_project_history_api_helpers.py \
+            tests/test_project_history_schema.py
+
+      - name: Rehearse clean install and idempotent migration 0050
+        run: |
+          DB_NAME="lineageweave_project_history_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          createdb -h localhost -p 5432 -U postgres "$DB_NAME"
+          trap 'dropdb -h localhost -p 5432 -U postgres --if-exists "$DB_NAME"' EXIT
+          for migration in migrations/*.sql; do
+            psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U postgres -d "$DB_NAME" -f "$migration"
+          done
+          psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U postgres -d "$DB_NAME" \
+            -f migrations/0050_project_history_timeline.sql
+          psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U postgres -d "$DB_NAME" <<'SQL'
+          select to_regclass('public.project_record') is not null as project_record_exists;
+          select to_regclass('public.project_event_record') is not null as project_event_record_exists;
+          select to_regclass('public.project_assignment_period') is not null as project_assignment_period_exists;
+          SQL
+
+      - name: Run the complete Python and PostgreSQL suite
+        run: uv run --frozen python -m pytest -q
+
+      - name: Validate schema and ontology artifacts
+        run: |
+          uv run --frozen python - <<'PY'
+          import json
+          from pathlib import Path
+          from rdflib import Graph
+
+          json.loads(Path("schemas/project_history_import_v1.schema.json").read_text())
+          graph = Graph()
+          graph.parse("docs/ontology/project-history-profile.ttl", format="turtle")
+          assert len(graph) > 0
+          PY
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install and verify the complete Buyer frontend
+        working-directory: frontend
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm run lint
+          pnpm run test -- ProjectHistoryTimeline ProjectHistoryWorkspace projectHistoryTimeline
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Verify version, migration registration, and one-shot cleanup target
+        run: |
+          grep -F 'version = "2.20.0"' pyproject.toml
+          grep -F '0049_*|0050_*)' docker/postgres-init/migrate.sh
+          test -f migrations/0050_project_history_timeline.sql
+          test -f frontend/src/components/ProjectHistoryWorkspace.tsx
+          test -f docs/adr/0094-project-history-timeline.md
+
+      - name: Publish only the fully verified production tree
+        run: |
+          rm .github/repair/apply_project_history_timeline.py
+          rm .github/repair/project-history-timeline-payload.zip
+          git rm .github/workflows/apply-project-history-timeline.yml
+          git rm .github/repair/apply_project_history_timeline.py.b64.*
+          git rm .github/repair/project-history-timeline-payload.zip.b64.*
+          git config user.name "CWL Project History Maintainer"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "feat(buyer): trace complete project history"
+          git pull --rebase origin feat/project-history-timeline-v2200
+          git push origin HEAD:feat/project-history-timeline-v2200
