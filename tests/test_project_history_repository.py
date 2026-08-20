@@ -112,7 +112,7 @@ def test_repository_bounds_abac_first_and_constrains_every_child_read() -> None:
 def test_repository_reports_truncation_and_rejects_hidden_focus() -> None:
     """A focus outside the authorized ID set fails without revealing why."""
 
-    connection = FakeConnection([[source("award", 1), source("voc", 2)]])
+    connection = FakeConnection([[source("award", 1), source("voc", 2)], []])
     with pytest.raises(ProjectHistoryNotFound):
         asyncio.run(
             fetch_project_history_projection(

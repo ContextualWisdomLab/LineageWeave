@@ -10,6 +10,7 @@ from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.project_history import build_project_history_projection, normalize_project_key
 
 PROJECT_HISTORY_DEFAULT_LIMIT = 64
+PROJECT_HISTORY_MAXIMUM_LIMIT = 128
 
 
 class ProjectHistoryConnection(Protocol):
@@ -20,8 +21,6 @@ class ProjectHistoryConnection(Protocol):
 
         ...
 
-
-PROJECT_HISTORY_MAXIMUM_LIMIT = 128
 
 _ELIGIBILITY = SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")
 _PROJECT_MATCH = """
@@ -54,6 +53,22 @@ select post.post_id,
    and {_PROJECT_MATCH}
  order by post.created_at, post.post_id
  limit $4
+"""
+_FOCUS_SQL = f"""
+select post.post_id,
+       post.post_title,
+       post.created_at,
+       post.voc_type_code,
+       post.source_stage_code,
+       post.source_detail_state_code
+  from source_post post
+ where (post.visibility_code = 'public'
+    or post.corporate_entity_id::text = any($2::text[]))
+   and {_ELIGIBILITY}
+   and post.created_at <= $3
+   and post.post_id = $4::uuid
+   and {_PROJECT_MATCH}
+ limit 1
 """
 _MATCH_SQL = """
 select post.post_id,
@@ -137,7 +152,8 @@ async def fetch_project_history_projection(
     The query applies source eligibility, cutoff, and ABAC before selecting
     event IDs. All subsequent match, role, and lineage reads are constrained to
     that visible ID set, so hidden rows cannot affect counts, transitions, or
-    prior-history paths.
+    prior-history paths. An authorized focus event remains in a truncated
+    projection even when it falls beyond the earliest page.
     """
 
     if limit < 1 or limit > PROJECT_HISTORY_MAXIMUM_LIMIT:
@@ -158,7 +174,21 @@ async def fetch_project_history_projection(
         raise ProjectHistoryNotFound(project_key)
     visible_ids = [str(row["post_id"]) for row in event_rows]
     if focus_post_id is not None and focus_post_id not in set(visible_ids):
-        raise ProjectHistoryNotFound(project_key)
+        focus_rows = list(
+            await conn.fetch(
+                _FOCUS_SQL,
+                normalized_key,
+                list(corporate_entity_ids),
+                knowledge_cutoff,
+                focus_post_id,
+            )
+        )
+        if not focus_rows:
+            raise ProjectHistoryNotFound(project_key)
+        truncated = True
+        event_rows = (event_rows[: limit - 1] if limit > 1 else []) + [focus_rows[0]]
+        event_rows.sort(key=lambda row: (row["created_at"], str(row["post_id"])))
+        visible_ids = [str(row["post_id"]) for row in event_rows]
 
     match_rows, role_rows, edge_rows = await _fetch_project_children(
         conn,
