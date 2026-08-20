@@ -4626,6 +4626,7 @@ function AskAgentPanel({
     if (!normalized) return;
     setAsking(true);
     setError(null);
+    setAnswer(null);
     try {
       const nextAnswer = await askAgent(accessToken, normalized, sessionId);
       setAnswer(nextAnswer);
