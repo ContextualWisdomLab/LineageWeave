@@ -239,3 +239,19 @@ ADRs remain normative. This document is the product/technical traceability
 projection: update the affected FR/NFR row and Gap closure evidence when an ADR
 or PR changes product behavior. Never turn a PR title, green unit test, or old
 runtime note into a shipped/live claim.
+
+## Exact-head CI repair: PR #318, 2026-08-21 KST
+
+The previous exact head `63ebb11ce2dfb39209d163ad90eff4deff0cb80d` failed the
+Full test suite in `tests/test_global_ask_public_integration.py` because its
+test connection double rejected the new `matched_organization_label` query.
+The production query was already the intended post-ABAC lookup; the fixture
+had not been updated to return the valid empty result for a synthetic post
+without a corroborated label.
+
+Commit `b50e51f733983478937c3c8304f4828ca8e8083c` adds only that explicit
+empty-result branch. The exact-head local evidence is Python `781 passed, 16
+skipped`, frontend `168 passed`, lint, production build, and Storybook build.
+GitHub's two required checks are queued for this exact head, and no formal
+independent approval has been observed; this is therefore a repaired PR, not
+protected-main or release evidence.
