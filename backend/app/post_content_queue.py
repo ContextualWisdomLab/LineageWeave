@@ -177,9 +177,15 @@ async def transition_post_content_job(
     *,
     failure_code: str | None = None,
     detail_text: str | None = None,
-) -> None:
-    """Update the job and append its lifecycle event atomically."""
-    await conn.execute(
+    expected_attempt_count: int | None = None,
+) -> bool:
+    """Update one job attempt and append its lifecycle event atomically.
+
+    ``expected_attempt_count`` fences stale workers after lease recovery.  A
+    late completion from an older attempt must not overwrite the newer
+    attempt's status or append a misleading lifecycle event.
+    """
+    updated = await conn.execute(
         """
         update post_content_ingestion_job
         set status_code = $2,
@@ -194,6 +200,7 @@ async def transition_post_content_job(
             last_error_code = $7,
             last_error_detail = $8
         where post_id = $1
+          and ($9::integer is null or attempt_count = $9)
         """,
         post_id,
         status_code,
@@ -203,7 +210,10 @@ async def transition_post_content_job(
         QUEUED,
         failure_code,
         detail_text,
+        expected_attempt_count,
     )
+    if not updated.endswith(" 1"):
+        return False
     await _record_status(
         conn,
         post_id,
@@ -211,6 +221,7 @@ async def transition_post_content_job(
         failure_code=failure_code,
         detail_text=detail_text,
     )
+    return True
 
 
 async def ensure_post_content_job(

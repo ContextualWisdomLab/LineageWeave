@@ -83,6 +83,13 @@ normalized PostgreSQL ledger is scanned and queued/stale rows are republished
 after the cursor is established. This prevents a restart from replaying an
 unbounded historical stream before processing current work.
 
+Lease recovery also fences completion by `attempt_count`. A worker whose
+15-minute lease was reclaimed may finish after the replacement worker has
+started; its success, retry, or terminal failure transition is accepted only
+when the PostgreSQL row is still `running` for that exact attempt. A stale
+worker therefore cannot overwrite the newer attempt or append a false status
+event.
+
 ## Corpus backfill (2026-08-20)
 
 Operational backfill MUST use `scripts/queue_post_content_backfill.py`. It
