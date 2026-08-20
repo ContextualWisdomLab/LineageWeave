@@ -9,7 +9,6 @@ from backend.app.auth import CurrentAccount
 from lineageweave.http_client import HttpClientError
 from lineageweave.post_chat import ChatAnswer, ChatSourceDocument
 
-
 ACCOUNT = CurrentAccount(
     user_account_id="account-1",
     external_subject_id="subject-1",
