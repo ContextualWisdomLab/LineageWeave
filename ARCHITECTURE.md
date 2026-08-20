@@ -72,7 +72,7 @@ flowchart LR
 | `knowledge_graph.py` | Random-walk-with-restart relevance + per-node adaptive related-node cutoff (Tong et al., 2006) -- pure graph math, no Postgres |
 | `keyman_extraction.py` | Pluggable LLM extraction of two-sided (our-side/counterparty) person mentions + N:N org affiliations from a post |
 | `entity_relationship_classification.py` | Pluggable LLM classification of a named organization's relationship to the post author (`rel_voc`/`rel_vom`/`rel_vop`/`rel_vocc`/`rel_voco`/`rel_vos`) |
-| `corporate_hierarchy_resolution.py` | Similarity-based resolution of a free-text org name to an existing `corporate_entity` row (Bhattacharya & Getoor, 2007's candidate-generation stage; [ADR 0006](docs/adr/0006-entity-resolution-and-record-linkage.md)) |
+| `corporate_hierarchy_resolution.py` | Similarity-based resolution of a free-text org name to an existing `corporate_entity` row (Bhattacharya & Getoor, 2007's candidate-generation stage; [ADR 0038](docs/adr/0038-entity-resolution-and-record-linkage.md)) |
 | `affiliate_tree.py` | Ancestor forest of the organizations a post's Keymen touch -- resolved rows walk `parent_entity_id`, unresolved names stay roots |
 | `voc_evidence.py` | Extractive VOC excerpts: sentences that name a classified organization, or empty |
 | `post_summary.py` | Pluggable LLM Korean summary + key events + R&R derivation for a post |

@@ -1,4 +1,4 @@
-# ADR 0006 — Entity resolution and record linkage as first-stage blocking and similarity, not full collective inference
+# ADR 0038 — Entity resolution and record linkage as first-stage blocking and similarity, not full collective inference
 
 **Decision status:** Accepted
 **Date:** 2026-08-16
