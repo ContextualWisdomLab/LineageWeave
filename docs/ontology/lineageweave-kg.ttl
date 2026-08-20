@@ -79,12 +79,20 @@
 # Object properties -- edge_type (knowledge_graph_edge.edge_type_code)
 #################################################################
 
+:mentionedIn a owl:ObjectProperty ;
+    rdfs:domain :Person ;
+    rdfs:range :Post ;
+    rdfs:label "mentioned in" ;
+    rdfs:comment "A person is named by a post (post_person_mention); this is the canonical direction stored by knowledge_graph_edge." ;
+    :lookupCode "edge_mention" .
+
+# Keep the natural-language inverse available to RDF consumers without
+# assigning the relational lookup code to two different properties.
 :mentions a owl:ObjectProperty ;
     rdfs:domain :Post ;
     rdfs:range :Person ;
     rdfs:label "mentions" ;
-    rdfs:comment "A post names a person (post_person_mention)." ;
-    :lookupCode "edge_mention" .
+    owl:inverseOf :mentionedIn .
 
 :affiliatedWith a owl:ObjectProperty ;
     rdfs:domain :Person ;
@@ -102,11 +110,11 @@
 
 #################################################################
 # Object properties -- ADR 0009 cross-post identity resolution edges.
-# Kept distinct from :mentions/:affiliatedWith (not reused with a
+# Kept distinct from :mentionedIn/:affiliatedWith (not reused with a
 # broadened domain/range) so an edge_type_code alone always tells you
 # which node types it connects -- stating rdfs:domain for the same
 # property twice (once :Person, once :Team) would make RDFS entail
-# every :mentions subject is BOTH a :Person and a :Team, which is false.
+# every :mentionedIn subject is BOTH a :Person and a :Team, which is false.
 #################################################################
 
 :mentionsTeam a owl:ObjectProperty ;
