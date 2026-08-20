@@ -567,28 +567,25 @@ def _clock_iso(value: datetime) -> str:
 
 
 def _global_ask_candidate_sql(*, knowledge_cutoff: bool) -> str:
-    clock_filter = "and created_at <= $2" if knowledge_cutoff else ""
-    return f"""
+    if not knowledge_cutoff:
+        return """
             select post_id, matched_in
               from (
                    (select post_id, created_at, 'title' as matched_in
                       from source_post
                      where post_title ilike '%' || $1 || '%'
-                     {clock_filter}
                      limit 32)
                     union all
                    (select post_id, created_at, 'body' as matched_in
                       from source_post
                      where lower(left(source_post_search_text(post_body), 16384))
                                like '%' || lower($1) || '%'
-                     {clock_filter}
                      limit 32)
                     union all
                    (select post_id, created_at, 'body' as matched_in
                       from source_post
                      where to_tsvector('simple', source_post_search_text(post_body))
                                @@ plainto_tsquery('simple', $1)
-                     {clock_filter}
                      limit 32)
                     union all
                    (select post_id, created_at, 'source_field' as matched_in
@@ -601,7 +598,40 @@ def _global_ask_candidate_sql(*, knowledge_cutoff: bool) -> str:
                                       source_customer_code, source_customer_name,
                                       source_project_code, source_project_name)
                                ilike '%' || $1 || '%'
-                     {clock_filter}
+                     limit 32)
+                   ) matches
+             order by created_at desc, post_id desc
+            limit 32
+            """
+    covering = (
+        "spr.written_at <= $2 "
+        "and (spr.superseded_at is null or spr.superseded_at > $2) "
+        "and sp.created_at <= $2"
+    )
+    return f"""
+            select post_id, matched_in
+              from (
+                   (select sp.post_id, sp.created_at, 'title' as matched_in
+                      from source_post_revision spr
+                      join source_post sp on sp.post_id = spr.post_id
+                     where {covering}
+                       and spr.post_title ilike '%' || $1 || '%'
+                     limit 32)
+                    union all
+                   (select sp.post_id, sp.created_at, 'body' as matched_in
+                      from source_post_revision spr
+                      join source_post sp on sp.post_id = spr.post_id
+                     where {covering}
+                       and lower(left(source_post_search_text(spr.post_body), 16384))
+                               like '%' || lower($1) || '%'
+                     limit 32)
+                    union all
+                   (select sp.post_id, sp.created_at, 'body' as matched_in
+                      from source_post_revision spr
+                      join source_post sp on sp.post_id = spr.post_id
+                     where {covering}
+                       and to_tsvector('simple', source_post_search_text(spr.post_body))
+                               @@ plainto_tsquery('simple', $1)
                      limit 32)
                    ) matches
              order by created_at desc, post_id desc

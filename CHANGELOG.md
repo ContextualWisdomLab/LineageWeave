@@ -9,10 +9,10 @@ All notable changes to this project are documented here. Format follows
 ### Added
 
 - Ask Agent now accepts an optional knowledge cutoff. A dated question
-  uses retained source-post revisions from that clock and never
-  substitutes a live body. Fully, partly, and live-only answers are
-  named separately. No TEPP theta is invented. No as-of label is applied
-  to a live query (ADR 0101 / ADR 0016 / ADR 0025).
+  matches retained source-post revisions from that clock and never
+  substitutes a live body or live rewrite text. Fully, partly, and
+  live-only answers are named separately. No TEPP theta is invented. No
+  as-of label is applied to a live query (ADR 0101 / ADR 0016 / ADR 0025).
 
 ## [2.17.0] - 2026-08-19
 

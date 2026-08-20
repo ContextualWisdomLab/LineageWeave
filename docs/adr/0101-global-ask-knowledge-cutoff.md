@@ -26,7 +26,9 @@ half-open. A prompt-only date is not a retrieval boundary.
    Omitting it preserves the live-query contract and must never label the
    answer as as-of.
 2. When the cutoff is present, candidate and visible source rows require
-   `created_at <= knowledge_cutoff`. A post created after the cutoff is
+   `created_at <= knowledge_cutoff`. Candidate keyword search uses the
+   covering `source_post_revision` title and body, never the live rewrite
+   and never live source-field hints. A post created after the cutoff is
    excluded even when its live text matches.
 3. Each selected post resolves to the latest `source_post_revision`
    covering that clock (`written_at <= cutoff < superseded_at`). That

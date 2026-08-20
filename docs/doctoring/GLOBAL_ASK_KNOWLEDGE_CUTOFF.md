@@ -9,7 +9,8 @@ Ask Agent now accepts an optional ISO-8601 `knowledge_cutoff`.
 3. If the cutoff is empty, the answer is live-only and is never labeled
    as-of.
 4. If the cutoff is set, open a cited post to compare the retained body.
-   A post created after the cutoff does not appear. A missing historical
+   A post created after the cutoff does not appear. Keyword search uses
+   the retained revision, not the live rewrite. A missing historical
    body is named; the live rewrite is not used.
 
 No TEPP theta is invented. No SearXNG claim is invented.
