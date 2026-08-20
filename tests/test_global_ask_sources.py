@@ -243,13 +243,14 @@ def test_global_sources_keep_lineage_expansion_within_requested_limit() -> None:
     assert source_call is not None
     _query, source_args = source_call
     assert source_args[2] == 4
-    assert list(source_args[1]) == [
+    assert list(source_args[1])[:4] == [
         "anchor-post",
         "neighbor-00",
         "neighbor-01",
         "neighbor-02",
     ]
-    assert [source.post_id for source in sources] == list(source_args[1])
+    assert len(source_args[1]) == 16
+    assert [source.post_id for source in sources] == list(source_args[1])[:4]
     assert len(sources) == 4
 
 
@@ -369,3 +370,51 @@ def test_global_sources_do_not_leak_lineage_anchor_id_when_anchor_is_invisible()
 
     assert [source.post_id for source in sources] == ["visible-neighbor"]
     assert sources[0].evidence_facts == ()
+
+
+def test_global_sources_overfetch_before_abac_so_visible_hits_are_not_dropped() -> None:
+    hidden_rows = [
+        {
+            "post_id": f"hidden-{index}",
+            "post_title": "Restricted match",
+            "post_body": "restricted body",
+            "visibility_code": "private",
+            "corporate_entity_id": "corp-other",
+            "matched_in": "title",
+        }
+        for index in range(3)
+    ]
+    visible_row = {
+        "post_id": "visible-match",
+        "post_title": "Authorized match",
+        "post_body": "authorized body",
+        "visibility_code": "public",
+        "corporate_entity_id": None,
+        "matched_in": "title",
+    }
+    rows_by_id = {row["post_id"]: row for row in [*hidden_rows, visible_row]}
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            if "matched_in" in query:
+                return [*hidden_rows, visible_row]
+            if "post_lineage_edge" in query:
+                return []
+            if "array_position($2::uuid[], post_id)" in query:
+                return [
+                    rows_by_id[post_id]
+                    for post_id in args[1]
+                    if rows_by_id[post_id]["visibility_code"] == "public"
+                ][: args[2]]
+            return []
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda row: row["visibility_code"] == "public",
+            question="match",
+            limit=1,
+        )
+    )
+
+    assert [source.post_id for source in sources] == ["visible-match"]

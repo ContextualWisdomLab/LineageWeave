@@ -652,6 +652,7 @@ async def gather_global_chat_sources(
         for row in candidate_rows:
             post_id = str(row["post_id"])
             candidate_scores[post_id] = candidate_scores.get(post_id, 0.0) + _MATCH_WEIGHT[row["matched_in"]]
+    candidate_budget = min(_POST_CHAT_CANDIDATE_LIMIT, max(limit, limit * 4))
     candidate_ids = sorted(candidate_scores, key=lambda post_id: candidate_scores[post_id], reverse=True)
 
     # A keyword match only proves one post's text is relevant -- the
@@ -679,9 +680,9 @@ async def gather_global_chat_sources(
         )
         candidate_ids = list(
             dict.fromkeys([lineage_anchor_id, *lineage_neighbor_ids, *candidate_ids[1:]])
-        )[:limit]
+        )[:candidate_budget]
     else:
-        candidate_ids = []
+        candidate_ids = candidate_ids[:candidate_budget]
     lineage_neighbor_id_set = frozenset(lineage_neighbor_ids)
 
     rows = await conn.fetch(
