@@ -46,6 +46,26 @@ def test_public_claim_candidates_keep_public_semantic_and_graph_claims_bounded()
     assert "confidence" not in claims[1].claim_text
 
 
+def test_public_claim_candidates_preserve_multilingual_relevance() -> None:
+    matching = _public_source("project: 客户项目 プロジェクト dự-án | evidence: public launch")
+    unrelated = cv.GlobalAskSourceDocument(
+        post_id="22222222-2222-2222-2222-222222222222",
+        post_title="Unrelated public evidence",
+        post_body="Zephyr",
+        external_claim_facts=("project: Zephyr | evidence: unrelated",),
+    )
+
+    claims = cv.public_claim_candidates(
+        [matching, unrelated],
+        "客户项目 プロジェクト dự-án",
+        maximum_claims=8,
+    )
+
+    assert [claim.claim_text for claim in claims] == [
+        "project: 客户项目 プロジェクト dự-án | evidence: public launch"
+    ]
+
+
 def test_public_claim_candidates_require_query_overlap_and_positive_budget() -> None:
     source = _public_source("project: Apollo | evidence: Acme launch")
     assert cv.public_claim_candidates([source], "Zephyr") == ()
