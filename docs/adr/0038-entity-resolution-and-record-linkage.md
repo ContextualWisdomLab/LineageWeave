@@ -44,7 +44,7 @@ later stages those papers also describe.
 **Blocking / agreement on a secondary key (Fellegi & Sunter, 1969;
 Christen, 2012).** Fellegi and Sunter's theory of record linkage
 compares pairs on agreement patterns and decides match / non-match /
-clerical review. Practically, every linkage pipeline still starts by
+clerical review. Many linkage pipelines start with
 *blocking*: only pairs that share a cheap, coarse key are compared, so
 the search does not become all-pairs (Christen, 2012, on blocking,
 comparison, and classification as the usual stages). LineageWeave
@@ -80,8 +80,8 @@ candidates and scores them. `corporate_hierarchy_resolution` is that
 stage:
 
 - Normalize both the mention and each cataloged `corporate_entity`
-  name (lowercase, strip punctuation and common legal suffixes, collapse
-  whitespace).
+  name by lowercasing, removing periods and commas, stripping the listed
+  legal suffixes, and collapsing whitespace.
 - Score with `difflib.SequenceMatcher` ratio.
 - Return the best candidate's id if it clears `DEFAULT_MIN_SIMILARITY`
   (0.6); otherwise return `None`.
@@ -90,7 +90,16 @@ stage:
 downstream Knowledge Graph walk through that node (affiliate tree,
 related-node traversal, VOC evidence). Keyman ingestion and
 entity-relationship ingestion both persist an unresolved name as text
-with a null `corporate_entity_id` rather than guessing.
+with a null `corporate_entity_id` when no verified catalog match exists.
+For a genuine similarity miss only, `get_or_create_corporate_entity` may
+create an `AUTO-` catalog row after hierarchy inference and independent
+verification, including verified parent resolution. A tied top score at or
+above the threshold is not a miss and never enters that creation path.
+
+`post_counterparty_entity` stores only `counterparty_entity_name`.
+`corporate_entity_id` is resolved at read time, and the UI displays an
+unresolved counterparty by name without presenting an unresolved-status
+claim.
 
 This is honestly the *first* stage of what Bhattacharya & Getoor call
 collective resolution, not the full joint-inference version. A

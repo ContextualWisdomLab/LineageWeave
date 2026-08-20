@@ -155,7 +155,7 @@ nobody can tell which paragraph it illustrated.
 | Channel | What it does | Grounded in |
 |---|---|---|
 | `temporal` | Prefers a candidate parent closer in time | Standard recency prior in event/story linking (Allan, 2002) |
-| `secondary_key` | Rewards a shared finer-grained key (e.g. project code) | Coarse blocking key, the standard first step in record-linkage pipelines (Fellegi & Sunter, 1969; Christen, 2012) -- product decision in [ADR 0038](adr/0038-entity-resolution-and-record-linkage.md) |
+| `secondary_key` | Rewards a shared finer-grained key (e.g. project code) | Blocking-style agreement signal used in record-linkage pipelines (Fellegi & Sunter, 1969; Christen, 2012) -- product decision in [ADR 0038](adr/0038-entity-resolution-and-record-linkage.md) |
 | `text` | String-similarity between record labels | A dependency-free stand-in for an embedding-cosine channel (`lineageweave.embedding_client`); same role, cheaper, swappable without touching the fusion code |
 | `llm` | An LLM's judged confidence that one record follows from another | Optional, highest-weighted when available -- see "LLM adjudication" below |
 
