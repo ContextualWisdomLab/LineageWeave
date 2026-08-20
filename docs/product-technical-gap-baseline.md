@@ -667,3 +667,12 @@ non-HTTP(S) evidence-link guard to
 The next action is to re-read each current head and terminal Checks before
 merging; predecessor review and check results do not transfer across these
 concurrent head changes.
+
+## Exact-head parent refresh: 2026-08-21 08:44 KST
+
+PR #309's parent #307 advanced concurrently to base
+`9e17c2a0630a3803ac5a9d6788ef9bc8a1fa9549` while its head remained
+`d8a938cd6e7e72b8bc0a7b11149afcfcc7820270`. The current base-to-head diff was
+rechecked locally with `137 passed`, lint, TypeScript build, and Storybook
+build. Hosted checks and independent approval must be revalidated for this
+exact pair; predecessor base evidence is not transferable.
