@@ -119,6 +119,22 @@ def test_chunk_by_dom_labels_numeric_superscript_footnotes() -> None:
     ]
 
 
+def test_chunk_by_dom_labels_numeric_superscript_after_body_text() -> None:
+    chunks = chunk_by_dom("<p>Body claim<sup>1</sup> source note.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("footnote", "Body claim1 source note."),
+    ]
+
+
+def test_chunk_by_dom_does_not_treat_non_numeric_superscript_as_footnote() -> None:
+    chunks = chunk_by_dom("<p>Formula x<sup>n</sup> remains prose.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Formula xn remains prose."),
+    ]
+
+
 def test_chunk_by_dom_preserves_nested_list_order_and_depth() -> None:
     chunks = chunk_by_dom(
         "<ol><li>Parent item<ul><li>Child item</li></ul></li></ol>"

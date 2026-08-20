@@ -305,7 +305,8 @@ class _BlockTextExtractor(HTMLParser):
         super().__init__()
         self._stack: list[tuple[str, list[str], str | None, int]] = []
         self._unscoped_buffer: list[str] = []
-        self._superscript_buffers: set[int] = set()
+        self._active_superscripts: list[tuple[int, list[str]]] = []
+        self._numeric_superscript_buffers: set[int] = set()
         # Each entry is ("text", str, tag_name, style) or
         # ("image", (mime_type, bytes), "", None) -- a single sequence in
         # true document order, so an image's index among its siblings
@@ -331,8 +332,8 @@ class _BlockTextExtractor(HTMLParser):
                     self._finished.append(("image", decoded, "", None, 0))
             return
         if tag == "sup":
-            if self._stack and not "".join(self._stack[-1][1]).strip():
-                self._superscript_buffers.add(id(self._stack[-1][1]))
+            if self._stack:
+                self._active_superscripts.append((id(self._stack[-1][1]), []))
             return
         if tag in {"br", "w:br"} and self._stack:
             self._stack[-1][1].append("\n")
@@ -384,6 +385,12 @@ class _BlockTextExtractor(HTMLParser):
 
     def handle_endtag(self, tag: str) -> None:
         """Close the relevant text state when an HTML end tag is encountered."""
+        if tag == "sup":
+            if self._active_superscripts:
+                buffer_id, content = self._active_superscripts.pop()
+                if re.fullmatch(r"\s*\d{1,3}\s*", "".join(content)):
+                    self._numeric_superscript_buffers.add(buffer_id)
+            return
         if tag in _DOM_BLOCK_TAGS and self._stack and self._stack[-1][0] == tag:
             declared_width = self._declared_stack_width()
             tag_name, buffer, style, _ = self._stack.pop()
@@ -394,7 +401,7 @@ class _BlockTextExtractor(HTMLParser):
     ) -> None:
         """Emit one block buffer, including a block closed only at EOF."""
         raw_text = "".join(buffer)
-        superscript_marker = id(buffer) in self._superscript_buffers
+        superscript_marker = id(buffer) in self._numeric_superscript_buffers
         for raw_unit, source_indent in _split_dom_units(raw_text):
             text = normalize_semantic_text(raw_unit)
             if text:
@@ -407,7 +414,7 @@ class _BlockTextExtractor(HTMLParser):
                 self._finished.append(
                     ("text", text, label, style, indent_width)
                 )
-        self._superscript_buffers.discard(id(buffer))
+        self._numeric_superscript_buffers.discard(id(buffer))
 
     def handle_data(self, data: str) -> None:
         """Collect character data from the current HTML text region."""
@@ -417,6 +424,8 @@ class _BlockTextExtractor(HTMLParser):
             if decoded == text:
                 break
             text = decoded
+        if self._active_superscripts:
+            self._active_superscripts[-1][1].append(text)
         had_nbsp = "\xa0" in text
         text = text.replace("\xa0", " ")
         if self._stack and (text.strip() or had_nbsp):
