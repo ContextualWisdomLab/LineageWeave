@@ -167,11 +167,11 @@ def test_visible_lineage_graph_exposes_exact_channel_scores_without_inventing_ll
 
 
 def test_channel_score_migration_is_normalized_bounded_and_reversible() -> None:
-    migration = Path("migrations/0052_lineage_edge_channel_score.sql").read_text(
+    migration = Path("migrations/0053_lineage_edge_channel_score.sql").read_text(
         encoding="utf-8"
     )
     rollback = Path(
-        "migrations/rollback/0052_lineage_edge_channel_score.sql"
+        "migrations/rollback/0053_lineage_edge_channel_score.sql"
     ).read_text(encoding="utf-8")
 
     assert "create table lineage_edge_channel_score" in migration
