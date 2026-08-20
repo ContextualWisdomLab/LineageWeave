@@ -129,7 +129,9 @@ def load_settings() -> Settings:
         ],
         orchestrator_base_url=os.environ.get("ORCHESTRATOR_BASE_URL", ""),
         orchestrator_api_key=os.environ.get("ORCHESTRATOR_API_KEY", ""),
-        embedding_model=os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip(),
+        # contextual-orchestrator owns embedding model discovery. Keep the
+        # empty compatibility value for older callers; never read a selector.
+        embedding_model="",
         valkey_url=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
         searxng_base_url=os.environ.get("SEARXNG_BASE_URL", ""),
         tepp_transport_url=os.environ.get("TEPP_TRANSPORT_URL", ""),

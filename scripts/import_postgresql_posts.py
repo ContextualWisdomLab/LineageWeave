@@ -157,10 +157,6 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--corporate-entity-name")
     parser.add_argument("--process-unit-code", required=True)
     parser.add_argument("--process-unit-name")
-    parser.add_argument(
-        "--embedding-model",
-        default=os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", os.environ.get("EMBEDDING_MODEL", "")),
-    )
     return parser
 
 
@@ -394,7 +390,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
         embedding_client = orchestrator_embedding_client(
             os.environ.get("ORCHESTRATOR_BASE_URL", ""),
             os.environ.get("ORCHESTRATOR_API_KEY", ""),
-            args.embedding_model,
+            None,
         )
         orchestrator_base_url = os.environ.get("ORCHESTRATOR_BASE_URL", "")
         orchestrator_api_key = os.environ.get("ORCHESTRATOR_API_KEY", "")
@@ -529,7 +525,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                     body,
                     vision_client=vision_client,
                     embedding_client=embedding_client,
-                    embedding_model_code=args.embedding_model or None,
+                    embedding_model_code=None,
                     structure_client=structure_client,
                     post_title=title,
                 )
