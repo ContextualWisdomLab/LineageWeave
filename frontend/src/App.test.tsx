@@ -84,6 +84,7 @@ describe("App, authenticated", () => {
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
+    customerEntityHierarchy?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -1530,16 +1531,35 @@ describe("App, authenticated", () => {
       if (url.endsWith("/api/customer-master") && method === "GET") {
         return Promise.resolve(
           jsonResponse({
-            corporate_entities: [
-              {
-                corporate_entity_id: "corp-demo",
-                corporate_entity_code: "DEMO-CORP-01",
-                entity_name: "Demo Corp",
-                entity_level_code: "company",
-                entity_level_label: "Company",
-                parent_entity_id: null,
-              },
-            ],
+            corporate_entities: options?.customerEntityHierarchy
+              ? [
+                  {
+                    corporate_entity_id: "corp-group",
+                    corporate_entity_code: "DEMO-GROUP-01",
+                    entity_name: "Demo Group",
+                    entity_level_code: "group",
+                    entity_level_label: "Group",
+                    parent_entity_id: null,
+                  },
+                  {
+                    corporate_entity_id: "corp-demo",
+                    corporate_entity_code: "DEMO-CORP-01",
+                    entity_name: "Demo Corp",
+                    entity_level_code: "company",
+                    entity_level_label: "Company",
+                    parent_entity_id: "corp-group",
+                  },
+                ]
+              : [
+                  {
+                    corporate_entity_id: "corp-demo",
+                    corporate_entity_code: "DEMO-CORP-01",
+                    entity_name: "Demo Corp",
+                    entity_level_code: "company",
+                    entity_level_label: "Company",
+                    parent_entity_id: null,
+                  },
+                ],
             keymen: [
               {
                 person_id: "person-1",
@@ -1635,6 +1655,28 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Our side")).toBeInTheDocument();
     expect(screen.queryByText("company", { exact: true })).not.toBeInTheDocument();
     expect(screen.queryByText("our_side", { exact: true })).not.toBeInTheDocument();
+  });
+
+  it("nests a corporate entity under its parent instead of a flat list", async () => {
+    // Live bug (2026-08-19): corporate_entities already carries
+    // parent_entity_id and the codebase already builds a real forest from
+    // it elsewhere (lineageweave/affiliate_tree.py, the post-detail
+    // popup's Affiliate tree) -- Customer Master's own entity list never
+    // did, so a holding company and its subsidiary rendered as two
+    // unrelated top-level rows with no visual hierarchy at all.
+    stubBackend({ customerEntityHierarchy: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    expect(await screen.findByText("Demo Group")).toBeInTheDocument();
+    const subsidiaryRow = screen.getByText("Demo Corp").closest("li");
+    expect(subsidiaryRow).not.toBeNull();
+    const parentRow = screen.getByText("Demo Group").closest("li");
+    expect(parentRow).not.toBeNull();
+    // The subsidiary's <li> is nested inside the parent's <li>, not a
+    // sibling at the same top level.
+    expect(parentRow?.contains(subsidiaryRow)).toBe(true);
   });
 
   it("shows every observed relationship role for a counterparty, flagging multi-role names", async () => {
