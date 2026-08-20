@@ -239,3 +239,29 @@ ADRs remain normative. This document is the product/technical traceability
 projection: update the affected FR/NFR row and Gap closure evidence when an ADR
 or PR changes product behavior. Never turn a PR title, green unit test, or old
 runtime note into a shipped/live claim.
+
+## Buyer-reported gap checkpoint: temporal evidence and visual semantics
+
+The following gap classes were reported from a private local runtime. The
+source references are intentionally not copied into repository artifacts: the
+repository contains synthetic fixtures only. Each row names a buyer-visible
+acceptance contract so a future implementation can be verified without
+publishing a source record, person, organization, or identifier.
+
+| Gap class | Buyer-visible contract | Current boundary | Closure evidence required |
+|---|---|---|---|
+| Footnote and list-item structure | Footnotes remain attached to their source paragraph; list and ordered-list levels are not inferred from incidental indentation. | Source DOM/OOXML is preserved, while semantic units are derived before embedding. | Synthetic HTML and OOXML fixtures covering footnotes, nested lists, continuation lines, and `li`/`ol` ambiguity; browser assertion of rendered nesting and source navigation. |
+| Tables and Markdown | A source table remains a table in the API and renders as an accessible table in the buyer view; Markdown is parsed only in the intended content boundary. | Table/image regions and source representation are separate channels; no source text is rewritten in place. | Synthetic HTML, Markdown, and image-table fixtures; cell/header/span assertions, keyboard navigation, and exact source-region provenance. |
+| Mixed projects | Events from two explicitly named projects are separated; an event without a grounded project remains unbound. | Project-bound action persistence uses a normalized project key and same-post `post_project_mention` evidence (ADR 0111). | Multi-project fixture round trip, rejected cross-project action, aggregate accepted/unbound counts, and popup navigation to the correct evidence. |
+| Organization role ambiguity | Partner, supplier, customer, and internal-factory hypotheses remain evidence-bound and may stay unresolved when evidence ties. | Catalog identifiers and tie-preserving resolution rules are authoritative; no display-name reconstruction. | Synthetic same-name and multi-affiliation fixtures, tie outcome, catalog FK assertions, and buyer labels that distinguish unresolved from negative. |
+| Five-W and one-H evidence | “When, where, how, and why” are separate evidence slots; absence is shown as unavailable, never filled by a guess. | `post_summary_five_w1h` stores normalized slots and evidence text. | Slot-level persistence, missing-slot rendering, cutoff test, and source-post navigation for each populated slot. |
+| Image and visual-region semantics | Image tables expose cells/headers and layout regions; descriptions cover all detected regions and retain original coordinates. | Vision, OCR, region recognition, and embeddings cross contextual-orchestrator; original asset and derived evidence stay distinct. | Synthetic raster fixtures with table, caption, and multiple regions; OCR/object/region provenance, coordinate bounds, embedding-unit identity, and fallback-unavailable tests. |
+| R&R and DAG navigation | A buyer can see event, responsibility, requester, processor, and the branch-like lineage graph, then open the supporting source. | Summary actions and normalized roles are source-bound; Event Lineage is a separate navigation projection. | Authorized browser journey from summary → action → event → DAG node → source post, with no invented actor or edge. |
+
+This checkpoint does not claim that these gaps are closed. TEPP remains the
+external temporal/relational measurement boundary described by the
+[ContextualWisdomLab/TEPP repository](https://github.com/ContextualWisdomLab/TEPP);
+LineageWeave does not reimplement its Rust arithmetic or turn a missing TEPP
+result into a local score. The project-history adapter in PR #282 is likewise
+proposed behavior until its exact head passes required checks, receives
+independent approval, and is merged normally.
