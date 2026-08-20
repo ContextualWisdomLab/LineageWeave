@@ -1,0 +1,149 @@
+.tepp-project-history {
+  margin-top: 1rem;
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+  border: 1px solid color-mix(in srgb, var(--accent, #315fa7) 28%, var(--border, #d6deea));
+  border-radius: 1rem;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--surface, #fff) 96%, #eaf1ff), var(--surface, #fff)),
+    var(--surface, #fff);
+  box-shadow: 0 1rem 2.5rem rgba(26, 54, 94, 0.08);
+}
+
+.tepp-project-history__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.tepp-project-history__header h3,
+.tepp-project-history__detail h4 {
+  margin: 0;
+  color: var(--ink-strong, #102e57);
+}
+
+.tepp-project-history__header p:not(.section-eyebrow) {
+  margin: 0.35rem 0 0;
+  color: var(--ink-muted, #536984);
+}
+
+.tepp-project-history__timeline {
+  --timeline-line: color-mix(in srgb, var(--accent, #315fa7) 24%, #c9d3df);
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--tepp-event-count, 1), minmax(8rem, 1fr));
+  gap: 0;
+  margin: 2rem 0 1.4rem;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+}
+
+.tepp-project-history__timeline::before {
+  position: absolute;
+  top: 2.35rem;
+  right: 4rem;
+  left: 4rem;
+  height: 2px;
+  background: var(--timeline-line);
+  content: "";
+}
+
+.tepp-project-history__event {
+  position: relative;
+  min-width: 8rem;
+  text-align: center;
+}
+
+.tepp-project-history__event time {
+  display: block;
+  min-height: 1.4rem;
+  color: var(--ink-muted, #64748b);
+  font-size: 0.8rem;
+}
+
+.tepp-project-history__event button {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  padding: 0.35rem 0.45rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink, #18324f);
+  cursor: pointer;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.tepp-project-history__event button:hover strong,
+.tepp-project-history__event button:focus-visible strong {
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+
+.tepp-project-history__dot {
+  display: block;
+  width: 1.45rem;
+  height: 1.45rem;
+  margin: 0.05rem 0 0.45rem;
+  border: 0.28rem solid color-mix(in srgb, var(--surface, #fff) 92%, #dbe5f5);
+  border-radius: 50%;
+  background: var(--accent-strong, #173967);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-strong, #173967) 16%, transparent);
+}
+
+.tepp-project-history__event.is-focus .tepp-project-history__dot {
+  background: #c95661;
+  box-shadow: 0 0 0 5px rgba(201, 86, 97, 0.16);
+}
+
+.tepp-project-history__event.is-focus strong {
+  color: #b43f4b;
+}
+
+.tepp-project-history__event span:last-child {
+  max-width: 11rem;
+  color: var(--ink-muted, #536984);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.tepp-project-history__detail {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border, #d6deea);
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, var(--surface, #fff) 96%, #eef4fd);
+}
+
+.tepp-project-history__detail p {
+  margin: 0.55rem 0 0;
+  color: var(--ink, #263f5c);
+  line-height: 1.55;
+}
+
+.tepp-project-history__detail strong:first-child {
+  color: var(--accent, #315fa7);
+}
+
+.tepp-project-history__boundary {
+  margin: 0.85rem 0 0;
+  color: var(--ink-muted, #64748b);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.tepp-project-history-status {
+  border: 1px dashed var(--border, #c6d2e3);
+}
+
+@media (max-width: 800px) {
+  .tepp-project-history__header {
+    flex-direction: column;
+  }
+
+  .tepp-project-history__timeline {
+    grid-template-columns: repeat(var(--tepp-event-count, 1), minmax(7rem, 1fr));
+  }
+}

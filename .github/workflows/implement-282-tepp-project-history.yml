@@ -1,0 +1,148 @@
+name: Implement PR 282 TEPP project-history Buyer vertical
+
+on:
+  push:
+    branches:
+      - feat/tepp-project-history-ask-v2180
+
+permissions:
+  contents: write
+
+concurrency:
+  group: implement-pr-282-tepp-project-history
+  cancel-in-progress: true
+
+jobs:
+  implement-and-verify:
+    runs-on: ubuntu-latest
+    env:
+      IMPLEMENTATION_BRANCH: feat/tepp-project-history-ask-v2180
+      IMPLEMENTATION_HEAD: ${{ github.sha }}
+    steps:
+      - name: Checkout the exact clean-restack head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Set up Python and locked dependency manager
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Install the committed Python lock
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Confirm the clean stack is RED only because integration is absent
+        shell: bash
+        run: |
+          set +e
+          uv run --frozen python -m pytest -q \
+            tests/test_tepp_project_history.py \
+            tests/test_tepp_project_history_ingestion.py \
+            > /tmp/pr282-red.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/pr282-red.log
+          if [ "$status" -eq 0 ]; then
+            echo "Expected the test-only clean restack to be RED before implementation." >&2
+            exit 1
+          fi
+          grep -q 'test_api_contract_attaches_tepp_history_to_read_global_and_post_ask' /tmp/pr282-red.log || {
+            echo "RED failure was not the missing Buyer API integration." >&2
+            exit 1
+          }
+
+      - name: Apply the exact-anchor implementation
+        run: |
+          python3 -m py_compile \
+            .github/scripts/implement_282_tepp_project_history.py \
+            .github/scripts/run_implementation_282.py
+          python3 .github/scripts/run_implementation_282.py
+          git diff --check
+
+      - name: Verify focused Python contracts
+        run: |
+          uv run --frozen python -m pytest -q \
+            tests/test_tepp_project_history.py \
+            tests/test_tepp_project_history_ingestion.py
+          uv run --frozen python -m compileall -q lineageweave backend
+
+      - name: Verify the complete Python and PostgreSQL suite
+        run: uv run --frozen python -m pytest -q
+
+      - name: Verify documentation and public API contracts
+        run: |
+          uv run --frozen python scripts/check_docstrings.py
+          uv run --frozen python scripts/validate_documentation.py
+          uv run --frozen python -m pytest -q tests/test_documentation_hygiene.py
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack and install frontend lock
+        run: |
+          corepack enable
+          cd frontend
+          pnpm install --frozen-lockfile
+
+      - name: Verify frontend, production bundle, and Storybook
+        working-directory: frontend
+        run: |
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Publish only the exact verified production delta
+        shell: bash
+        run: |
+          test -s .implementation_282_paths
+          while IFS= read -r path; do
+            test -n "$path" || continue
+            git add -- "$path"
+          done < .implementation_282_paths
+
+          rm -f \
+            .github/workflows/implement-282-tepp-project-history.yml \
+            .github/scripts/implement_282_tepp_project_history.py \
+            .github/scripts/run_implementation_282.py \
+            .implementation_282_paths
+          git add -u -- \
+            .github/workflows/implement-282-tepp-project-history.yml \
+            .github/scripts/implement_282_tepp_project_history.py \
+            .github/scripts/run_implementation_282.py
+
+          rm -rf .coverage htmlcov frontend/storybook-static
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "feat: integrate TEPP project history across Buyer surfaces"
+
+          test -z "$(git status --porcelain)" || {
+            echo "Implementation left uncommitted or untracked files." >&2
+            git status --short
+            exit 1
+          }
+
+          git fetch origin "${IMPLEMENTATION_BRANCH}"
+          remote_head="$(git rev-parse "origin/${IMPLEMENTATION_BRANCH}")"
+          if [ "$remote_head" != "$IMPLEMENTATION_HEAD" ]; then
+            echo "PR head moved from ${IMPLEMENTATION_HEAD} to ${remote_head}; refusing to publish stale verification." >&2
+            exit 1
+          fi
+          git push origin "HEAD:${IMPLEMENTATION_BRANCH}"
