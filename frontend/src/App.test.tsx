@@ -86,6 +86,7 @@ describe("App, authenticated", () => {
     deferPostOneSummary?: boolean;
     deferSecondAsk?: boolean;
     queuedRebuild?: boolean;
+    failedRebuild?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
@@ -215,23 +216,29 @@ describe("App, authenticated", () => {
         return Promise.resolve(
           jsonResponse({
             lineage_rebuild_job_id: "job-1",
-            status_code: options?.queuedRebuild
-              ? "lineage_rebuild_queued"
-              : "lineage_rebuild_succeeded",
+            status_code: options?.failedRebuild
+              ? "lineage_rebuild_failed"
+              : options?.queuedRebuild
+                ? "lineage_rebuild_queued"
+                : "lineage_rebuild_succeeded",
             llm_channel_requested: true,
-            llm_channel_status_code: options?.queuedRebuild
-              ? "lineage_llm_requested"
-              : "lineage_llm_unavailable",
+            llm_channel_status_code: options?.failedRebuild
+              ? "lineage_llm_failed"
+              : options?.queuedRebuild
+                ? "lineage_llm_requested"
+                : "lineage_llm_unavailable",
             pair_estimate: 3,
             pair_limit: 10000,
-            edge_count: options?.queuedRebuild ? null : 4,
-            result_sha256: options?.queuedRebuild ? null : "ab".repeat(32),
-            failure_code: null,
+            edge_count: options?.queuedRebuild || options?.failedRebuild ? null : 4,
+            result_sha256: options?.queuedRebuild || options?.failedRebuild ? null : "ab".repeat(32),
+            failure_code: options?.failedRebuild ? "lineage_rebuild_failed" : null,
             knowledge_cutoff: "2026-01-12T00:00:00Z",
             source_snapshot_sha256: "cd".repeat(32),
-            next_action: options?.queuedRebuild
-              ? "Rebuild is queued. Event Lineage updates when it succeeds."
-              : "Rebuild succeeded on three channels. Open Event Lineage, then connect contextual-orchestrator to use the LLM channel.",
+            next_action: options?.failedRebuild
+              ? "Rebuild failed. Retry rebuild. No LLM score was invented."
+              : options?.queuedRebuild
+                ? "Rebuild is queued. Event Lineage updates when it succeeds."
+                : "Rebuild succeeded on three channels. Open Event Lineage, then connect contextual-orchestrator to use the LLM channel.",
           }),
         );
       }
@@ -2289,7 +2296,7 @@ describe("App, authenticated", () => {
     render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
-    const image = await screen.findByRole("img", { name: /embedded image at character offset/i });
+    const image = await screen.findByRole("img", { name: "Embedded image" });
     expect(image).toHaveAttribute("src", `data:image/png;base64,${tinyPng}`);
     expect(screen.getByText("Quote attached.")).toBeInTheDocument();
     expect(screen.getByText("Please confirm.")).toBeInTheDocument();
@@ -2372,6 +2379,18 @@ describe("App, authenticated", () => {
         "Rebuild succeeded on three channels. Open Event Lineage, then connect contextual-orchestrator to use the LLM channel.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("re-enables lineage rebuild after an immediate terminal failure", async () => {
+    stubBackend({ admin: true, failedRebuild: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByText("Advanced review tools"));
+    const rebuildButton = await screen.findByRole("button", { name: /rebuild lineage/i });
+
+    await userEvent.click(rebuildButton);
+
+    expect(await screen.findByText("Rebuild failed. Retry rebuild. No LLM score was invented.")).toBeInTheDocument();
+    expect(rebuildButton).not.toBeDisabled();
   });
 
   it("polls a queued lineage rebuild until Event Lineage is ready", async () => {

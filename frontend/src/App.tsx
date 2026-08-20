@@ -3809,6 +3809,11 @@ function PostList({
       if (job.status_code === "lineage_rebuild_succeeded") {
         setGraph(await fetchLineageGraph(accessToken));
         setRebuilding(false);
+      } else if (
+        job.status_code === "lineage_rebuild_failed" ||
+        job.status_code === "lineage_rebuild_cancelled"
+      ) {
+        setRebuilding(false);
       }
     } catch (err) {
       setRebuildError(String(err));

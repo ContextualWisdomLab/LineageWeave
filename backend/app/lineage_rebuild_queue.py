@@ -36,6 +36,9 @@ insert into lineage_rebuild_job (
     pair_estimate, pair_limit, llm_channel_requested, llm_channel_status_code,
     status_code
 ) values ($1::uuid, $2, $3, $4, $5, $6, $7, $8)
+on conflict (source_snapshot_sha256, llm_channel_requested)
+where status_code in ('lineage_rebuild_queued', 'lineage_rebuild_running')
+do nothing
 returning *
 """
 _ACTIVE_JOB_SQL = """
@@ -294,7 +297,16 @@ async def enqueue_lineage_rebuild(
         llm_status,
         QUEUED,
     )
-    assert row is not None
+    if row is None:
+        existing = await conn.fetchrow(
+            _ACTIVE_JOB_SQL,
+            digest,
+            llm_channel_requested,
+            list(_ACTIVE),
+        )
+        if existing is None:
+            raise RuntimeError("lineage_rebuild_job_conflict_without_active_row")
+        return LineageRebuildEnqueue(dict(existing), False)
     await _record_status(
         conn,
         str(row["lineage_rebuild_job_id"]),

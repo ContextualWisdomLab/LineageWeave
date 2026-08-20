@@ -31,8 +31,9 @@ _ROOT = Path(__file__).resolve().parents[1]
 
 
 class _FakeConnection:
-    def __init__(self, existing=None) -> None:
+    def __init__(self, existing=None, *, conflict_on_insert: bool = False) -> None:
         self.existing = existing
+        self.conflict_on_insert = conflict_on_insert
         self.executed: list[tuple[str, tuple[object, ...]]] = []
         self.inserted = None
 
@@ -41,6 +42,8 @@ class _FakeConnection:
         if "source_snapshot_sha256 = $1" in query:
             return self.existing
         if "insert into lineage_rebuild_job" in query:
+            if self.conflict_on_insert:
+                return None
             self.inserted = {
                 "lineage_rebuild_job_id": uuid4(),
                 "requested_by_account_id": args[0],
@@ -165,6 +168,32 @@ def test_enqueue_does_not_call_an_llm_and_is_idempotent() -> None:
     assert second.should_publish is False
     assert second.job["lineage_rebuild_job_id"] == first.job["lineage_rebuild_job_id"]
     assert client.calls == 0
+
+
+def test_enqueue_reuses_the_active_row_after_a_unique_race() -> None:
+    first = asyncio.run(
+        enqueue_lineage_rebuild(
+            _FakeConnection(),
+            account_id="00000000-0000-0000-0000-000000000009",
+            records=sample_records(),
+            llm_channel_requested=True,
+            llm_available=True,
+        )
+    )
+    raced = _FakeConnection(existing=first.job, conflict_on_insert=True)
+
+    result = asyncio.run(
+        enqueue_lineage_rebuild(
+            raced,
+            account_id="00000000-0000-0000-0000-000000000009",
+            records=sample_records(),
+            llm_channel_requested=True,
+            llm_available=True,
+        )
+    )
+
+    assert result.should_publish is False
+    assert result.job["lineage_rebuild_job_id"] == first.job["lineage_rebuild_job_id"]
 
 
 def test_http_path_copy_names_the_next_action() -> None:
