@@ -121,6 +121,15 @@ async def fetch_persisted_summary(
         """,
         post_id,
     )
+    actions = await conn.fetch(
+        """
+        select action_text, requester_actor_name, processor_actor_name, evidence_text
+          from post_summary_action
+         where post_id = $1
+         order by action_ordinal
+        """,
+        post_id,
+    )
     payload_roles: list[dict[str, Any]] = []
     for row in roles:
         catalog_node_id = None
@@ -150,6 +159,15 @@ async def fetch_persisted_summary(
         "korean_summary": header["korean_summary"],
         "key_events": [row["event_text"] for row in events],
         "roles_and_responsibilities": payload_roles,
+        "major_event_actions": [
+            {
+                "action_text": row["action_text"],
+                "requester_actor_name": row["requester_actor_name"],
+                "processor_actor_name": row["processor_actor_name"],
+                "evidence_text": row["evidence_text"],
+            }
+            for row in actions
+        ],
         "project_mentions": [
             {
                 "project_key": row["project_key"],
@@ -269,6 +287,7 @@ async def _replace_summary_projection(
     await conn.execute("delete from post_team_mention where post_id = $1", post_id)
     await conn.execute("delete from post_organization_mention where post_id = $1", post_id)
     await conn.execute("delete from post_summary_five_w1h where post_id = $1", post_id)
+    await conn.execute("delete from post_summary_action where post_id = $1", post_id)
     await conn.execute("delete from post_summary_result where post_id = $1", post_id)
     await conn.execute("delete from post_project_mention where post_id = $1", post_id)
     await conn.execute(
@@ -380,6 +399,25 @@ async def _replace_summary_projection(
                 post_id,
                 cataloged_person_id,
             )
+    role_names = {role.actor_name for role in summary.roles_and_responsibilities}
+    for ordinal, action in enumerate(summary.major_event_actions):
+        actor_names = (action.requester_actor_name, action.processor_actor_name)
+        if any(name is not None and name not in role_names for name in actor_names):
+            continue
+        await conn.execute(
+            """
+            insert into post_summary_action
+                (post_id, action_ordinal, action_text, requester_actor_name,
+                 processor_actor_name, evidence_text)
+            values ($1, $2, $3, $4, $5, $6)
+            """,
+            post_id,
+            ordinal,
+            action.action_text,
+            action.requester_actor_name,
+            action.processor_actor_name,
+            action.evidence_text,
+        )
     await persist_edges_for_post(conn, post_id)
 
 
