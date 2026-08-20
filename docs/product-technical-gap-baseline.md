@@ -425,3 +425,16 @@ treated as approval, a successful review, or a merge result.
 This checkpoint is an operational snapshot only. Recompute exact head, formal
 review, required Checks, dependency order, and post-merge SHA immediately before
 any protected merge.
+
+## Exact-head validation checkpoint: 2026-08-20 22:45 KST
+
+The current stacked delivery head `efd4aab2` passed the local validation matrix:
+the backend suite completed with `731 passed, 16 skipped`, frontend lint passed,
+Vitest completed with `133 passed`, and the production Vite and Storybook builds
+completed successfully. These results cover the checked-out stack only; the
+remote PR Checks for #311 remain queued and no independent formal approval is
+present.
+
+The current branch is clean and its local HEAD equals the remote branch HEAD.
+The product baseline therefore records these results as reproducible delivery
+evidence, not as protected-main release evidence.
