@@ -22,9 +22,10 @@ translation or an unverified LLM expansion is not evidence.
 After the ordinary source-visibility/ABAC predicate has selected
 visible posts, Global Ask SHALL load corroborated
 `organization_name_resolution` rows whose raw or resolved label matches
-the bounded query terms and whose canonical name joins a
+the bounded query terms and whose `resolved_corporate_entity_id` joins a
 `corporate_entity` already mentioned on, or affiliated to a person on,
-those visible posts.
+those visible posts. The stable-identity rule is defined in ADR 0122;
+historical rows without that foreign key remain excluded.
 
 Each match is disclosed as cited-post evidence of kind
 `verified_organization_label` with the raw label and canonical label

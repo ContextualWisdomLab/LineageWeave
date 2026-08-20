@@ -56,3 +56,24 @@ def test_migrate_sh_replays_global_ask_context_migration() -> None:
     ).read_text(encoding="utf-8")
 
     assert "0052_*" in script
+
+
+def test_migrate_sh_replays_verified_label_and_catalog_identity_migrations() -> None:
+    """Existing Compose volumes receive both Global Ask schema upgrades."""
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "0055_*" in script
+    assert "0103_*" in script
+
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0103_organization_resolution_entity_id.sql"
+    ).read_text(encoding="utf-8")
+    assert "resolved_corporate_entity_id" in migration
+    assert "references corporate_entity" in migration

@@ -141,6 +141,8 @@ async def test_semantic_candidate_post_ids_is_bounded_deduplicated_and_indexable
     assert "post_organization_mention" in query
     assert "organization_name_resolution" in query
     assert "resolution.verification_status_code = 'verify_corroborated'" in query
+    assert "resolution.resolved_corporate_entity_id = entity.corporate_entity_id" in query
+    assert "entity.entity_name = resolution.resolved_organization_name" not in query
     assert "resolution.raw_organization_name ilike" in query
     assert "resolution.resolved_organization_name ilike" in query
     assert "person_affiliation" in query
@@ -236,6 +238,8 @@ async def test_verified_organization_label_facts_disclose_corroborated_pairs_onl
     assert "matched_organization_label" in query
     assert "organization_name_resolution" in query
     assert "resolution.verification_status_code = 'verify_corroborated'" in query
+    assert "resolution.resolved_corporate_entity_id = entity.corporate_entity_id" in query
+    assert "entity.entity_name = resolution.resolved_organization_name" not in query
     assert "verify_pending" not in query
     assert "verify_uncorroborated" not in query
     assert "resolution.raw_organization_name ilike" in query

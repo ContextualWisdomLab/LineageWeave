@@ -13,6 +13,9 @@ All notable changes to this project are documented here. Format follows
   a cited post to read Event Lineage as the next action. Pending and
   uncorroborated aliases stay hidden. No TEPP theta is invented
   (ADR 0107 / ADR 0008 / ADR 0106).
+- Verified aliases join the catalog through a stable entity id rather than a
+  display-name match, and existing Compose volumes replay the identity
+  migration (ADR 0122).
 
 ## [2.19.0] - 2026-08-20
 

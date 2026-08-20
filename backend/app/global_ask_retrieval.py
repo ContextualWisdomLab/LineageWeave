@@ -92,7 +92,7 @@ async def verified_organization_label_facts(
                    resolution.resolved_organization_name
               from organization_name_resolution resolution
               join corporate_entity entity
-                on entity.entity_name = resolution.resolved_organization_name
+                on resolution.resolved_corporate_entity_id = entity.corporate_entity_id
               join query_terms term
                 on resolution.raw_organization_name ilike '%' || term.term || '%'
                 or resolution.resolved_organization_name ilike '%' || term.term || '%'
@@ -186,7 +186,7 @@ async def semantic_candidate_post_ids(
             select distinct entity.corporate_entity_id
               from organization_name_resolution resolution
               join corporate_entity entity
-                on entity.entity_name = resolution.resolved_organization_name
+                on resolution.resolved_corporate_entity_id = entity.corporate_entity_id
               join query_terms term
                 on resolution.raw_organization_name ilike '%' || term.term || '%'
                 or resolution.resolved_organization_name ilike '%' || term.term || '%'

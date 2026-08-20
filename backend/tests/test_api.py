@@ -105,6 +105,11 @@ _ORGANIZATION_CONTEXT_MIGRATION = (
     / "migrations"
     / "0051_context_scoped_organization_name_resolution.sql"
 )
+_ORGANIZATION_ENTITY_ID_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0103_organization_resolution_entity_id.sql"
+)
 _GLOBAL_ASK_CONTEXT_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -224,6 +229,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text())
             cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
             cur.execute(_ORGANIZATION_CONTEXT_MIGRATION.read_text())
+            cur.execute(_ORGANIZATION_ENTITY_ID_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_CONTEXT_MIGRATION.read_text())
             cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
             cur.execute(
