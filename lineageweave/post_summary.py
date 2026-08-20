@@ -109,6 +109,7 @@ class MajorEventAction:
     requester_actor_name: str | None
     processor_actor_name: str | None
     evidence_text: str
+    project_key: str | None = None
 
     def __post_init__(self) -> None:
         if not self.action_text.strip() or not self.evidence_text.strip():
@@ -116,6 +117,7 @@ class MajorEventAction:
         for field_name, value in (
             ("requester_actor_name", self.requester_actor_name),
             ("processor_actor_name", self.processor_actor_name),
+            ("project_key", self.project_key),
         ):
             if value is not None and not value.strip():
                 raise ValueError(f"{field_name} must be non-empty when provided")
@@ -156,6 +158,16 @@ def normalize_project_key(project_name: str) -> str:
     """Stable comparison key; raw/canonical labels and evidence stay separate."""
     normalized = unicodedata.normalize("NFKC", project_name).casefold()
     return re.sub(r"[^\w]+", "-", normalized, flags=re.UNICODE).strip("-")
+
+
+def _parse_optional_project_key(value: object) -> str | None:
+    """Normalize an explicitly named project, rejecting empty sentinel values."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    project_key = normalize_project_key(value)
+    if project_key in {"", "none", "null", "unknown", "n-a", "na"}:
+        return None
+    return project_key
 
 
 @dataclass(frozen=True)
@@ -367,15 +379,16 @@ PROJECTS:
 project name | canonical name | shortest supporting evidence | confidence from 0 to 1
 
 ACTIONS:
-major event or action | requester actor name or NONE | processor actor name or NONE | shortest supporting evidence
+major event or action | project canonical key or NONE | requester actor name or NONE | processor actor name or NONE | shortest supporting evidence
 
 EVIDENCE:
 slot (when, where, why, or how) | value stated in the post | shortest supporting phrase
 
 Use NONE on the line after a marker when the evidence supports no item. Keep
-each row short. For ACTIONS, requester and processor must be actor names also
-present in ROLES. Use NONE only when the post does not name that actor. Do not
-invent actors, projects, affiliations, actions, or confidence.
+each row short. For ACTIONS, the project canonical key must exactly match a
+canonical name in PROJECTS or be NONE. Requester and processor must be actor
+names also present in ROLES. Use NONE only when the post does not name that
+actor. Do not invent actors, projects, affiliations, actions, or confidence.
 Only write EVIDENCE rows when the post explicitly supports the value; do not
 turn the record's filing timestamp into an event time and do not infer a
 place, reason, or method from a title alone.
@@ -564,10 +577,15 @@ def _parse_plain_summary_details(
         row = raw_row.strip().lstrip("-* ").strip()
         if not row or row.casefold() in empty_values:
             continue
-        parts = [part.strip() for part in row.split("|", 3)]
-        if len(parts) != 4:
+        parts = [part.strip() for part in row.split("|", 4)]
+        if len(parts) == 4:
+            action_text, requester, processor, evidence_text = parts
+            project_key = None
+        elif len(parts) == 5:
+            action_text, project_key_raw, requester, processor, evidence_text = parts
+            project_key = _parse_optional_project_key(project_key_raw)
+        else:
             continue
-        action_text, requester, processor, evidence_text = parts
         if not action_text or evidence_text.casefold() in empty_values:
             continue
         requester_name = None if requester.casefold() in empty_values else requester
@@ -579,6 +597,7 @@ def _parse_plain_summary_details(
                     requester_actor_name=requester_name,
                     processor_actor_name=processor_name,
                     evidence_text=evidence_text,
+                    project_key=project_key,
                 )
             )
         except ValueError:
@@ -699,6 +718,9 @@ def parse_summary_response(content: str) -> PostSummary | None:
             evidence_text = entry.get("evidence_text") or entry.get("evidence")
             requester = entry.get("requester_actor_name")
             processor = entry.get("processor_actor_name")
+            project_key = _parse_optional_project_key(
+                entry.get("project_key") or entry.get("project_name")
+            )
             if not isinstance(action_text, str) or not isinstance(evidence_text, str):
                 continue
             requester_name = requester.strip() if isinstance(requester, str) and requester.strip() else None
@@ -710,6 +732,7 @@ def parse_summary_response(content: str) -> PostSummary | None:
                         requester_actor_name=requester_name,
                         processor_actor_name=processor_name,
                         evidence_text=evidence_text.strip(),
+                        project_key=project_key,
                     )
                 )
             except ValueError:

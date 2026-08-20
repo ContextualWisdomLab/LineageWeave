@@ -30,6 +30,14 @@ _MIGRATION_PATH = Path(__file__).resolve().parents[1] / "migrations" / "0001_ini
 _MAJOR_EVENT_ACTION_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0100_major_event_action.sql"
 )
+_PROJECT_MENTION_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0031_semantic_project_mentions.sql"
+)
+_PROJECT_BOUND_ACTION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0101_project_bound_major_event_action.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -62,7 +70,9 @@ def schema_db():
         try:
             with conn.cursor() as cur:
                 cur.execute(_MIGRATION_PATH.read_text())
+                cur.execute(_PROJECT_MENTION_MIGRATION.read_text())
                 cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
+                cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -91,6 +101,7 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "abac_policy",
         "source_post",
         "post_counterparty_entity",
+        "post_project_mention",
         "cataloged_person",
         "person_affiliation",
         "post_person_mention",
@@ -113,6 +124,18 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_chat_citation",
     }
     assert expected <= tables
+
+
+def test_major_event_action_project_reference_is_normalized(schema_db) -> None:
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select confrelid::regclass::text
+              from pg_constraint
+             where conname = 'post_summary_action_project_mention_fk'
+            """
+        )
+        assert cur.fetchone()[0] == "post_project_mention"
 
 
 def test_leftover_pair_references_member_and_item_rows(schema_db) -> None:

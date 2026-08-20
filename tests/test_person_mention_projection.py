@@ -64,6 +64,11 @@ _SUMMARY_FIVE_W1H_MIGRATION = (
 _MAJOR_EVENT_ACTION_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0100_major_event_action.sql"
 )
+_PROJECT_BOUND_ACTION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0101_project_bound_major_event_action.sql"
+)
 _SEMANTIC_SEARCH_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0032_semantic_search_trigram.sql"
 )
@@ -150,6 +155,7 @@ def projection_database() -> str:
                 cursor.execute(_POST_SUMMARY_CONTRACT_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(
                     """
                     insert into common_lookup_value

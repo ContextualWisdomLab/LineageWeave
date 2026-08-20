@@ -2211,7 +2211,10 @@ function PostDetailPopup({
                       <ul className="summary-action-list">
                         {summary.major_event_actions.map((action, i) => (
                           <li key={i}>
-                            <strong>{action.action_text}</strong>
+                            <strong>
+                              {action.project_name ? `${action.project_name}: ` : ""}
+                              {action.action_text}
+                            </strong>
                             <div>
                               {t("Requester")}: {action.requester_actor_name ?? t("Not stated in source")}
                             </div>

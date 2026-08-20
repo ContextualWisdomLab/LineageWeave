@@ -119,6 +119,30 @@ def test_parses_major_event_requester_and_processor() -> None:
     assert action.processor_actor_name == "김철수"
 
 
+def test_parses_project_bound_major_event_action() -> None:
+    details = _parse_plain_summary_details(
+        "ROLES:\n"
+        "홍길동 | 변경 요청 | person | 당사\n"
+        "김철수 | 도면 수정 | person | 고객사\n"
+        "PROJECTS:\n"
+        "HVDC Pilot | hvdc-pilot | 파일럿 도면 | 0.9\n"
+        "ACTIONS:\n"
+        "도면 변경 승인 | hvdc-pilot | 홍길동 | 김철수 | 프로젝트 도면 근거"
+    )
+    assert details is not None
+    assert details[2][0].project_key == "hvdc-pilot"
+
+
+def test_json_project_name_is_normalized_for_legacy_action_contract() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary":"요약", "major_event_actions":['
+        '{"action_text":"검토", "project_name":"HVDC Pilot", '
+        '"evidence_text":"본문 근거"}]}'
+    )
+    assert summary is not None
+    assert summary.major_event_actions[0].project_key == "hvdc-pilot"
+
+
 def test_organization_actor_is_not_forced_into_a_person_slot() -> None:
     """A named actor that is genuinely an organization (e.g. our own
     company acting in its own name, not a named individual) must parse

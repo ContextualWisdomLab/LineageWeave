@@ -192,6 +192,7 @@ export interface PostMajorEventAction {
   requester_actor_name: string | null;
   processor_actor_name: string | null;
   evidence_text: string;
+  project_name?: string | null;
 }
 
 export interface PostProjectMention {

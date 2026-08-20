@@ -123,10 +123,15 @@ async def fetch_persisted_summary(
     )
     actions = await conn.fetch(
         """
-        select action_text, requester_actor_name, processor_actor_name, evidence_text
-          from post_summary_action
-         where post_id = $1
-         order by action_ordinal
+        select action.action_text, action.requester_actor_name,
+               action.processor_actor_name, action.evidence_text,
+               mention.project_name
+          from post_summary_action action
+          left join post_project_mention mention
+            on mention.post_id = action.post_id
+           and mention.project_key = action.project_key
+         where action.post_id = $1
+         order by action.action_ordinal
         """,
         post_id,
     )
@@ -165,6 +170,7 @@ async def fetch_persisted_summary(
                 "requester_actor_name": row["requester_actor_name"],
                 "processor_actor_name": row["processor_actor_name"],
                 "evidence_text": row["evidence_text"],
+                "project_name": row["project_name"],
             }
             for row in actions
         ],
@@ -400,16 +406,22 @@ async def _replace_summary_projection(
                 cataloged_person_id,
             )
     role_names = {role.actor_name for role in summary.roles_and_responsibilities}
+    project_keys = {
+        normalize_project_key(project.canonical_name)
+        for project in summary.project_mentions
+        if normalize_project_key(project.canonical_name)
+    }
     for ordinal, action in enumerate(summary.major_event_actions):
         actor_names = (action.requester_actor_name, action.processor_actor_name)
         if any(name is not None and name not in role_names for name in actor_names):
             continue
+        project_key = action.project_key if action.project_key in project_keys else None
         await conn.execute(
             """
             insert into post_summary_action
                 (post_id, action_ordinal, action_text, requester_actor_name,
-                 processor_actor_name, evidence_text)
-            values ($1, $2, $3, $4, $5, $6)
+                 processor_actor_name, evidence_text, project_key)
+            values ($1, $2, $3, $4, $5, $6, $7)
             """,
             post_id,
             ordinal,
@@ -417,6 +429,7 @@ async def _replace_summary_projection(
             action.requester_actor_name,
             action.processor_actor_name,
             action.evidence_text,
+            project_key,
         )
     await persist_edges_for_post(conn, post_id)
 
