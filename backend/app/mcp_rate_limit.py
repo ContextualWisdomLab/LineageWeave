@@ -1,11 +1,11 @@
 """Distributed, principal-scoped admission for expensive MCP Global Ask calls.
 
-The limiter uses one atomic Valkey Lua script and the Valkey server clock. It
-never falls back to process-local counters because doing so would let callers
-bypass policy by switching replicas. Rate-limit failures are represented as
-structured JSON-RPC errors at the MCP layer; the pinned MCP SDK does not yet
-provide a stable supported hook for preserving an application HTTP 429 response
-through Streamable HTTP.
+The limiter uses one atomic, single-key Valkey Lua script. It never falls back
+to process-local counters because doing so would let callers bypass policy by
+switching replicas. Rate-limit failures are represented as structured JSON-RPC
+errors at the MCP layer; the pinned MCP SDK does not yet provide a stable
+supported hook for preserving an application HTTP 429 response through
+Streamable HTTP.
 """
 
 from __future__ import annotations
@@ -24,20 +24,18 @@ DEFAULT_RATE_LIMIT_KEY_PREFIX = "lineageweave:mcp:global_ask:principal"
 _FIXED_WINDOW_SCRIPT = """
 local maximum_requests = tonumber(ARGV[1])
 local window_milliseconds = tonumber(ARGV[2])
-local server_time = redis.call('TIME')
-local now_milliseconds = tonumber(server_time[1]) * 1000 + math.floor(tonumber(server_time[2]) / 1000)
-local bucket_number = math.floor(now_milliseconds / window_milliseconds)
-local bucket_key = KEYS[1] .. ':' .. tostring(bucket_number)
-local current_count = redis.call('INCR', bucket_key)
+local current_count = redis.call('INCR', KEYS[1])
 if current_count == 1 then
-    redis.call('PEXPIRE', bucket_key, window_milliseconds + 1000)
+    redis.call('PEXPIRE', KEYS[1], window_milliseconds)
 end
-local reset_milliseconds = (bucket_number + 1) * window_milliseconds
-local retry_milliseconds = math.max(1, reset_milliseconds - now_milliseconds)
+local retry_milliseconds = redis.call('PTTL', KEYS[1])
+if retry_milliseconds < 0 then
+    return {-1, 0}
+end
 if current_count <= maximum_requests then
     return {1, 0}
 end
-return {0, retry_milliseconds}
+return {0, math.max(1, retry_milliseconds)}
 """.strip()
 
 
@@ -63,7 +61,7 @@ class GlobalAskRateLimiter(Protocol):
 
 
 class ValkeyGlobalAskRateLimiter:
-    """Fixed-window Valkey limiter using one atomic server-time script."""
+    """Fixed-window Valkey limiter using one atomic expiring counter."""
 
     def __init__(
         self,
