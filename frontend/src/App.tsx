@@ -103,6 +103,7 @@ import {
   analysisRunTargetClock,
   type AnalysisRunNavigationContext,
 } from "./analysisRunNavigation";
+import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -4617,14 +4618,21 @@ function AskAgentPanel({
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [sessionId, setSessionId] = useState<string | undefined>(() =>
+    window.sessionStorage.getItem("lineageweave.globalAskSessionId") ?? undefined,
+  );
 
   async function handleAsk() {
     const normalized = question.trim();
     if (!normalized) return;
     setAsking(true);
     setError(null);
+    setAnswer(null);
     try {
-      setAnswer(await askAgent(accessToken, normalized));
+      const nextAnswer = await askAgent(accessToken, normalized, sessionId);
+      setAnswer(nextAnswer);
+      setSessionId(nextAnswer.session_id);
+      window.sessionStorage.setItem("lineageweave.globalAskSessionId", nextAnswer.session_id);
     } catch (err) {
       setAnswer(null);
       setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
@@ -4767,12 +4775,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         <LanguageSwitcher />
           <button
             onClick={() => {
-              const returnUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-              try {
-                window.sessionStorage.setItem("lineageweave.oidc.returnUrl", returnUrl);
-              } catch {
-                // OIDC state remains the primary return-path transport.
-              }
+              const returnUrl = returnUrlFromLocation();
+              rememberOidcReturnUrl(returnUrl);
               void auth.signinRedirect({ state: { returnUrl } });
             }}
           >
