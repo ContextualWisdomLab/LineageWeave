@@ -81,7 +81,7 @@ class _OrchestratorCompleteAdapter:
     ``complete(messages, mode=...)`` contract.
     """
 
-    def __init__(self, base_url: str, api_key: str, *, timeout: float = 60.0) -> None:
+    def __init__(self, base_url: str, api_key: str, *, timeout: float = 180.0) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
         self._timeout = timeout
@@ -111,7 +111,7 @@ class ContextualOrchestratorPostEvaluationClient:
 
     available = True
 
-    def __init__(self, base_url: str, api_key: str, *, timeout: float = 60.0) -> None:
+    def __init__(self, base_url: str, api_key: str, *, timeout: float = 180.0) -> None:
         self._judge = ContextualOrchestratorJudge(
             _OrchestratorCompleteAdapter(base_url, api_key, timeout=timeout),
             mode="auto",

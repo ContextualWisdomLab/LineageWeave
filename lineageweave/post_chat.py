@@ -289,11 +289,10 @@ def parse_chat_response(content: str, sources: list[ChatSourceDocument]) -> Chat
 
 
 class ContextualOrchestratorPostChatClient:
-    """Calls the orchestrator's evidence-preserving ``mode="route"`` boundary.
+    """Calls the orchestrator's evidence-preserving ``mode="auto"`` boundary.
 
-    Interactive chat must not run a multi-step workflow for every question;
-    the route still crosses contextual-orchestrator and the prompt enforces
-    evidence-only answers and citations.
+    contextual-orchestrator resolves ``auto`` using its own capability/routing
+    policy (ADR 0083); the prompt enforces evidence-only answers and citations.
     """
 
     available = True

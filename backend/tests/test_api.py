@@ -1237,7 +1237,7 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
             "person_side_code": "our_side",
             "last_known_job_title": None,
             "mention_count": 1,
-            "provenance": "post_summary_role.cataloged_person_id/source_post.author_account_id",
+                "provenance": "post_person_mention.person_id|post_summary_role.cataloged_person_id/source_post.author_account_id",
         }
     ]
     assert author_hint[0]["related_posts"] == [

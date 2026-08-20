@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from backend.app import global_ask_retrieval as retrieval
 
 
@@ -79,6 +81,7 @@ class _FakeConnection:
         ]
 
 
+@pytest.mark.anyio
 async def test_semantic_candidate_post_ids_is_bounded_and_deduplicated(monkeypatch) -> None:
     monkeypatch.setattr(
         retrieval,
@@ -107,6 +110,7 @@ async def test_semantic_candidate_post_ids_is_bounded_and_deduplicated(monkeypat
     assert connection.arguments[2] == 7
 
 
+@pytest.mark.anyio
 async def test_semantic_candidate_post_ids_skips_empty_or_zero_budget(monkeypatch) -> None:
     connection = _FakeConnection()
     monkeypatch.setattr(

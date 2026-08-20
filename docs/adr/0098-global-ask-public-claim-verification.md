@@ -1,4 +1,4 @@
-# ADR 0094 — Global Ask public claim verification
+# ADR 0098 — Global Ask public claim verification
 
 - Status: Proposed
 - Date: 2026-08-20
