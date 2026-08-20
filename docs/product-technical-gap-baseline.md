@@ -356,3 +356,25 @@ refresh is unavailable or incomplete. The buyer popup shows the saved-summary
 state and exposes a retry action; a successful contextual-orchestrator refresh
 still performs the only replacement. No private post identifiers or body text
 are recorded here.
+
+## Post-content recovery checkpoint: 2026-08-20
+
+The operator backfill path now finalizes the post-content job ledger in the
+same transaction as persisted semantic units. A successful synchronous
+backfill therefore cannot leave a terminal failed job beside successful
+buyer-visible content.
+
+- A bounded private run processed four authorized posts, persisted 89
+  embedding rows, and produced one image description with one region artifact.
+- The same run persisted one footnote unit and resolved all inspected text
+  structure decisions.
+- A table-shaped post produced 45 semantic units, including 14 table-row
+  units, and its ingestion ledger ended in `succeeded` with an operator audit
+  event.
+- These are bounded runtime observations only; they do not establish
+  corpus-wide parser accuracy or protected-main behavior.
+
+The explicit terminal retry and ledger-finalization contract is recorded in
+ADR 0115. PR #311 remains an active stacked delivery candidate; its required
+checks and formal approval must be rechecked at the exact current head before
+any protected merge claim.
