@@ -73,13 +73,13 @@ describe("LineageDag evidence disclosure", () => {
   it("renders ranked exact score, weight, and contribution values", () => {
     render(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
 
-    const disclosure = screen.getByText(/Initial event.*Follow-up event.*0\.6850/);
+    const disclosure = screen.getByText(/Follow-up event.*Initial event.*0\.6850/);
     expect(disclosure.closest("details")).toHaveAttribute("open");
 
     const table = screen.getByRole("table", { name: "Lineage evidence scores" });
     expect(
       within(table).getByRole("row", {
-        name: /1 Secondary key 1\.0000 0\.2500 0\.2500/,
+        name: /1 Secondary-key match 1\.0000 0\.2500 0\.2500/,
       }),
     ).toBeInTheDocument();
     expect(
@@ -114,13 +114,25 @@ describe("LineageDag evidence disclosure", () => {
     );
 
     const edgeTitle = container.querySelector(".lineage-dag-edge title");
+    expect(edgeTitle?.textContent).toContain("Follow-up event follows Initial event");
     expect(edgeTitle?.textContent).toContain("Fused score 0.6850");
     expect(edgeTitle?.textContent).toContain(
-      "Secondary key 1.0000 × 0.2500 = 0.2500",
+      "Secondary-key match 1.0000 × 0.2500 = 0.2500",
     );
     expect(edgeTitle?.textContent).toContain(
       "Time proximity 0.9000 × 0.2500 = 0.2250",
     );
     expect(edgeTitle?.textContent).not.toContain("LLM adjudication 0.0000");
+  });
+
+  it("localizes signal labels from stable signal codes instead of backend English", () => {
+    setLocale("ko");
+    render(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
+
+    const table = screen.getByRole("table", { name: "계보 근거 점수" });
+    expect(within(table).getByText("보조 키 일치")).toBeInTheDocument();
+    expect(within(table).getByText("시간 근접도")).toBeInTheDocument();
+    expect(within(table).getByText("텍스트 유사도")).toBeInTheDocument();
+    expect(within(table).queryByText("Secondary key")).not.toBeInTheDocument();
   });
 });
