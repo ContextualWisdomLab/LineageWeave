@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import css from "./LineageDag.css?raw";
+
+const css = readFileSync("src/LineageDag.css", "utf8");
 
 describe("LineageDag print contract", () => {
   it("overrides the global print hiding rule and preserves exact evidence", () => {
