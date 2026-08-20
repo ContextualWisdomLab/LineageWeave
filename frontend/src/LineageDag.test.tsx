@@ -73,7 +73,10 @@ describe("LineageDag evidence disclosure", () => {
   it("renders ranked exact score, weight, and contribution values", () => {
     render(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
 
-    const disclosure = screen.getByText(/Follow-up event.*Initial event.*0\.6850/);
+    const disclosure = screen.getByText(
+      /Follow-up event.*Initial event.*0\.6850/,
+      { selector: "summary" },
+    );
     expect(disclosure.closest("details")).toHaveAttribute("open");
 
     const table = screen.getByRole("table", { name: "Lineage evidence scores" });
