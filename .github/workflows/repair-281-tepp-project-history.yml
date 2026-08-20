@@ -3,6 +3,9 @@ name: Repair PR 281 TEPP project history
 on:
   push:
     branches: [feat/tepp-project-history-buyer-surface-v2180]
+  pull_request:
+    branches: [feat/event-lineage-node-keeps-gnb-focus-v2170]
+    types: [synchronize]
   workflow_dispatch:
 
 permissions:
@@ -14,17 +17,19 @@ concurrency:
 
 jobs:
   integrate-and-verify:
-    if: github.ref == 'refs/heads/feat/tepp-project-history-buyer-surface-v2180'
+    if: >-
+      github.ref == 'refs/heads/feat/tepp-project-history-buyer-surface-v2180' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.number == 281 && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       REPAIR_BRANCH: feat/tepp-project-history-buyer-surface-v2180
-      REPAIR_BASE_SHA: ${{ github.sha }}
+      REPAIR_BASE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - name: Checkout the exact branch head
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ env.REPAIR_BASE_SHA }}
           persist-credentials: true
           fetch-depth: 0
 
