@@ -1,4 +1,9 @@
-import type { LineageGraph, LineageGraphEdge, LineageGraphNode } from "./api";
+import type {
+  LineageChannelEvidence,
+  LineageGraph,
+  LineageGraphEdge,
+  LineageGraphNode,
+} from "./api";
 import { t, tf } from "./i18n";
 import { lineageEvidenceText } from "./lineageEvidenceI18n";
 import { layoutLineageDag } from "./lineageLayout";
@@ -8,10 +13,20 @@ function truncateLabel(label: string): string {
   return label.length > 34 ? `${label.slice(0, 33)}…` : label;
 }
 
-function exactScore(value: number | undefined): string {
-  return value === undefined
+function exactScore(value: number | null | undefined): string {
+  return value === undefined || value === null
     ? lineageEvidenceText("notAvailable")
     : value.toFixed(4);
+}
+
+function legacySignalLabel(signalCode: keyof NonNullable<LineageGraphEdge["channel_scores"]>): string {
+  const keyBySignal = {
+    temporal: "time",
+    secondary_key: "secondaryKey",
+    text: "text",
+    llm: "llm",
+  } as const;
+  return lineageEvidenceText(keyBySignal[signalCode]);
 }
 
 function edgeEvidenceDescription(
@@ -19,35 +34,66 @@ function edgeEvidenceDescription(
   from: LineageGraphNode,
   to: LineageGraphNode,
 ): string {
-  const channelScores = edge.channel_scores ?? {};
   const parts = [
     `${lineageEvidenceText("fused")} ${exactScore(edge.fused_score)}`,
   ];
-  if (channelScores.temporal !== undefined) {
-    parts.push(
-      `${lineageEvidenceText("time")} ${exactScore(channelScores.temporal)}`,
-    );
-  }
-  if (channelScores.secondary_key !== undefined) {
-    parts.push(
-      `${lineageEvidenceText("secondaryKey")} ${exactScore(channelScores.secondary_key)}`,
-    );
-  }
-  if (channelScores.text !== undefined) {
-    parts.push(
-      `${lineageEvidenceText("text")} ${exactScore(channelScores.text)}`,
-    );
-  }
-  if (channelScores.llm !== undefined) {
-    parts.push(
-      `${lineageEvidenceText("llm")} ${exactScore(channelScores.llm)}`,
-    );
+  const evidence = edge.channel_evidence ?? [];
+  if (evidence.length > 0) {
+    for (const item of evidence) {
+      parts.push(
+        `${item.signal_label} ${exactScore(item.score)} × ${exactScore(item.weight)} = ${exactScore(item.contribution)}`,
+      );
+    }
+  } else {
+    for (const [signalCode, score] of Object.entries(
+      edge.channel_scores ?? {},
+    ) as [keyof NonNullable<LineageGraphEdge["channel_scores"]>, number][]) {
+      parts.push(`${legacySignalLabel(signalCode)} ${exactScore(score)}`);
+    }
   }
   return tf("{from} follows {to} ({score})", {
     from: from.label,
     to: to.label,
     score: parts.join("; "),
   });
+}
+
+function EvidenceTable({ evidence }: { evidence: LineageChannelEvidence[] }) {
+  return (
+    <div className="lineage-evidence-scroll">
+      <table
+        className="lineage-evidence-table"
+        aria-label={lineageEvidenceText("tableLabel")}
+      >
+        <thead>
+          <tr>
+            <th scope="col">{lineageEvidenceText("rank")}</th>
+            <th scope="col">{lineageEvidenceText("signal")}</th>
+            <th scope="col">{lineageEvidenceText("score")}</th>
+            <th scope="col">{lineageEvidenceText("weight")}</th>
+            <th scope="col">{lineageEvidenceText("contribution")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {evidence.length > 0 ? (
+            evidence.map((item) => (
+              <tr key={item.signal_code}>
+                <td>{item.rank}</td>
+                <th scope="row">{item.signal_label}</th>
+                <td>{exactScore(item.score)}</td>
+                <td>{exactScore(item.weight)}</td>
+                <td>{exactScore(item.contribution)}</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={5}>{lineageEvidenceText("notAvailable")}</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 export function LineageDag({
@@ -156,43 +202,60 @@ export function LineageDag({
             {lineageEvidenceText("whyLinked")}
           </h3>
           <p className="post-meta">{lineageEvidenceText("nextAction")}</p>
-          <div className="lineage-evidence-scroll">
-            <table
-              className="lineage-evidence-table"
-              aria-label={lineageEvidenceText("tableLabel")}
-            >
-              <thead>
-                <tr>
-                  <th scope="col">{lineageEvidenceText("from")}</th>
-                  <th scope="col">{lineageEvidenceText("to")}</th>
-                  <th scope="col">{lineageEvidenceText("fused")}</th>
-                  <th scope="col">{lineageEvidenceText("time")}</th>
-                  <th scope="col">
-                    {lineageEvidenceText("secondaryKey")}
-                  </th>
-                  <th scope="col">{lineageEvidenceText("text")}</th>
-                  <th scope="col">{lineageEvidenceText("llm")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {graph.edges.map((edge) => {
-                  const from = nodeById.get(edge.source);
-                  const to = nodeById.get(edge.target);
-                  const channels = edge.channel_scores ?? {};
-                  return (
-                    <tr key={`${edge.source}-${edge.target}`}>
-                      <th scope="row">{from?.label ?? edge.source}</th>
-                      <td>{to?.label ?? edge.target}</td>
-                      <td>{exactScore(edge.fused_score)}</td>
-                      <td>{exactScore(channels.temporal)}</td>
-                      <td>{exactScore(channels.secondary_key)}</td>
-                      <td>{exactScore(channels.text)}</td>
-                      <td>{exactScore(channels.llm)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <p className="lineage-evidence-warning">
+            {lineageEvidenceText("inferredNotice")}
+          </p>
+          <div className="lineage-evidence-disclosures">
+            {graph.edges.map((edge) => {
+              const from = nodeById.get(edge.source);
+              const to = nodeById.get(edge.target);
+              const evidence = edge.channel_evidence ?? [];
+              const llmParticipated = evidence.some(
+                (item) => item.signal_code === "llm",
+              );
+              return (
+                <details
+                  className="lineage-evidence-disclosure"
+                  key={`${edge.source}-${edge.target}`}
+                  open
+                >
+                  <summary>
+                    {tf("{from} follows {to} ({score})", {
+                      from: from?.label ?? edge.source,
+                      to: to?.label ?? edge.target,
+                      score: `${lineageEvidenceText("fused")} ${exactScore(edge.fused_score)}`,
+                    })}
+                  </summary>
+                  <dl className="lineage-evidence-metadata">
+                    <div>
+                      <dt>{lineageEvidenceText("version")}</dt>
+                      <dd>
+                        {edge.reconstruction_version ??
+                          lineageEvidenceText("notAvailable")}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>{lineageEvidenceText("generatedAt")}</dt>
+                      <dd>
+                        {edge.reconstructed_at ? (
+                          <time dateTime={edge.reconstructed_at}>
+                            {edge.reconstructed_at}
+                          </time>
+                        ) : (
+                          lineageEvidenceText("notAvailable")
+                        )}
+                      </dd>
+                    </div>
+                  </dl>
+                  {!llmParticipated ? (
+                    <p className="post-meta">
+                      {lineageEvidenceText("llmNotUsed")}
+                    </p>
+                  ) : null}
+                  <EvidenceTable evidence={evidence} />
+                </details>
+              );
+            })}
           </div>
         </section>
       ) : null}
