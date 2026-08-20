@@ -83,6 +83,7 @@ describe("App, authenticated", () => {
     pendingTeppRun?: boolean;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
+    deferPostOneSummary?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
@@ -101,6 +102,7 @@ describe("App, authenticated", () => {
     releaseMe: () => void;
     releaseGroupRelated: () => void;
     releaseDemoRelated: () => void;
+    releasePostOneSummary: () => void;
   } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -142,6 +144,12 @@ describe("App, authenticated", () => {
     const demoRelatedReady = options?.deferCustomerRelated
       ? new Promise<void>((resolve) => {
           releaseDemoRelated = resolve;
+        })
+      : Promise.resolve();
+    let releasePostOneSummary = () => {};
+    const postOneSummaryReady = options?.deferPostOneSummary
+      ? new Promise<void>((resolve) => {
+          releasePostOneSummary = resolve;
         })
       : Promise.resolve();
 
@@ -1163,7 +1171,7 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/summary")) {
-        return Promise.resolve(
+        return postOneSummaryReady.then(() =>
           jsonResponse({
             post_id: "post-1",
             korean_summary: "이것은 요약입니다.",
@@ -1706,6 +1714,7 @@ describe("App, authenticated", () => {
       releaseMe,
       releaseGroupRelated,
       releaseDemoRelated,
+      releasePostOneSummary,
     });
   }
 
@@ -2047,6 +2056,31 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
     expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+  });
+
+  it("ignores a stale summary after Event Lineage navigation changes the selected post", async () => {
+    const fetchMock = stubBackend({ deferPostOneSummary: true });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    await userEvent.click(
+      within(board).getByRole("button", { name: "View post: Public post" }),
+    );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+
+    const linkedPosts = screen.getAllByLabelText("Open post: Linked post");
+    await userEvent.click(linkedPosts[linkedPosts.length - 1]);
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    expect(await screen.findByText("연결된 글입니다.")).toBeInTheDocument();
+
+    fetchMock.releasePostOneSummary();
+
+    await waitFor(() => {
+      expect(screen.getByText("연결된 글입니다.")).toBeInTheDocument();
+      expect(screen.queryByText("이것은 요약입니다.")).not.toBeInTheDocument();
+    });
   });
 
   it("opening a linked Event Lineage node from Ask Agent keeps GNB focus; a home-list DAG walk does not", async () => {
