@@ -29,7 +29,8 @@ _MIGRATIONS = tuple(
         "0033_source_state_provenance.sql",
         "0034_source_context_provenance.sql",
         "0038_source_named_hints.sql",
-        "0046_project_history_lookup.sql",
+        "0039_source_org_named_hints.sql",
+        "0053_project_history_lookup.sql",
     )
 )
 

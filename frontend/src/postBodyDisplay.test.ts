@@ -47,17 +47,31 @@ describe("splitPostBody", () => {
     ]);
   });
 
-  it("reads CSS box shorthand indentation and markerless footnotes", () => {
+  it("reads CSS box shorthand indentation and numbered footnotes", () => {
     expect(
       splitPostBody(
         '<ul><li style="margin: 0cm 0cm 0cm 56px">Outer</li></ul>' +
           '<ul><li style="margin: 0cm 0cm 0cm 80px">Nested</li></ul>' +
-          "<p>*Tier 2: note</p>",
+          "<p>[1] Source note</p><p>*Tier 2: note</p>",
       ),
     ).toEqual([
       { kind: "text", text: "Outer", indentLevel: 7 },
       { kind: "text", text: "Nested", indentLevel: 10 },
+      { kind: "text", text: "[1] Source note", role: "footnote" },
       { kind: "text", text: "*Tier 2: note", role: "footnote" },
+    ]);
+  });
+
+  it("keeps nested list items in source order with their list depth", () => {
+    expect(
+      splitPostBody(
+        "<ol><li>Outer<ul><li>Inner</li></ul>After inner</li><li>Sibling</li></ol>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "Outer", indentLevel: 1 },
+      { kind: "text", text: "Inner", indentLevel: 2 },
+      { kind: "text", text: "After inner", indentLevel: 1 },
+      { kind: "text", text: "Sibling", indentLevel: 1 },
     ]);
   });
 

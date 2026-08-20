@@ -4,8 +4,8 @@ from pathlib import Path
 
 
 _ROOT = Path(__file__).resolve().parents[1]
-_MIGRATION = _ROOT / "migrations" / "0046_project_history_lookup.sql"
-_ROLLBACK = _ROOT / "migrations" / "rollback" / "0046_project_history_lookup.sql"
+_MIGRATION = _ROOT / "migrations" / "0053_project_history_lookup.sql"
+_ROLLBACK = _ROOT / "migrations" / "rollback" / "0053_project_history_lookup.sql"
 
 
 def test_project_history_migration_indexes_explicit_and_semantic_keys() -> None:

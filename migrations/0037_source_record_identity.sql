@@ -1,10 +1,11 @@
--- ADR 0046: preserve the opaque source identity used to import each post.
+-- ADR 0046 / 0057: preserve the opaque source identity used to import each post.
 -- The deterministic post UUID remains the internal product identity; these
--- columns retain the source-system key needed for audit and board search.
+-- columns retain the source-system key needed for audit and board search. A
+-- source export may repeat a lookup key for distinct immutable source UUIDs.
 alter table source_post add column if not exists source_system_code text;
 alter table source_post add column if not exists source_record_key text;
 
-create unique index if not exists source_post_source_identity_idx
+create index if not exists source_post_source_identity_idx
     on source_post (source_system_code, source_record_key)
     where source_system_code is not null and source_record_key is not null;
 

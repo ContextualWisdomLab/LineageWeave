@@ -225,7 +225,8 @@ describe("ProjectHistoryTimeline", () => {
     const vocTab = screen.getByRole("tab", { name: /VOC received/ });
     expect(vocTab).toHaveAttribute("aria-selected", "true");
     expect(vocTab).toHaveAttribute("aria-current", "step");
-    expect(screen.getByText("Assignment evidence gap")).toBeInTheDocument();
+    const detailPanel = screen.getByRole("tabpanel");
+    expect(within(detailPanel).getByText("Assignment evidence gap")).toBeInTheDocument();
     expect(
       screen.getByText(
         "Contract awarded → Specification revision requested → Delivery confirmed → VOC received",
@@ -245,8 +246,9 @@ describe("ProjectHistoryTimeline", () => {
     const deliveryTab = screen.getByRole("tab", { name: /Delivery confirmed/ });
     expect(deliveryTab).toHaveAttribute("aria-selected", "true");
     expect(deliveryTab).toHaveFocus();
-    expect(screen.getByText("Responsibility handoff")).toBeInTheDocument();
-    expect(screen.getByText("Priya Nair")).toBeInTheDocument();
+    const detailPanel = screen.getByRole("tabpanel");
+    expect(within(detailPanel).getByText("Responsibility handoff")).toBeInTheDocument();
+    expect(within(detailPanel).getByText("Priya Nair")).toBeInTheDocument();
 
     fireEvent.keyDown(deliveryTab, { key: "Home" });
     expect(screen.getByRole("tab", { name: /Contract awarded/ })).toHaveAttribute(
@@ -268,6 +270,8 @@ describe("ProjectHistoryTimeline", () => {
     const table = screen.getByRole("table", { name: "Project history exact values" });
     expect(within(table).getAllByRole("row")).toHaveLength(6);
     expect(within(table).getByText("0.730")).toBeInTheDocument();
-    expect(within(table).getByText("Assignment evidence gap")).toBeInTheDocument();
+    const vocRow = within(table).getAllByText("VOC received")[0].closest("tr");
+    if (vocRow === null) throw new Error("VOC received row not found");
+    expect(within(vocRow).getByText("Assignment evidence gap")).toBeInTheDocument();
   });
 });

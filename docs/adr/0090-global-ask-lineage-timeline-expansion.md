@@ -68,12 +68,24 @@ sequence around it.
 - The source budget is no longer a fixed constant per request; callers
   reading `limit` as an upper bound on retrieved posts must account for the
   lineage-expansion addition.
-- Global Ask still has no persisted multi-turn conversation state, so
-  there is no long-context-compression problem yet. Recursive dialogue
-  summarization (Wang et al., 2023) is recorded in
-  `docs/lineage-bi-research-notes.md` as the citation a future persisted
-  Global Ask conversation thread would build on, not as a claim that
-  conversation-level compression exists today.
+- Global Ask conversation continuity is an explicit follow-on contract. An
+  account-owned `global_ask_session` and normalized `global_ask_turn` rows
+  retain the question, answer, and cited post ids; a browser may send the
+  session id back on the next turn. The server creates the id when omitted,
+  and every session lookup is scoped to the requesting account.
+- The current authorized source set is rebuilt and ABAC-filtered on every
+  turn. Prior answers and a compressed conversation summary are continuity
+  context only, never evidence or citations; a changed authorization cannot
+  make an old answer reintroduce a hidden post.
+- Once the retained turns exceed the bounded context budget, the older turns
+  are compressed through contextual-orchestrator using the Wang et al. (2023)
+  recursive-dialogue-summarization grounding. The compressed result records
+  the covered turn ordinal and is passed as explicitly non-evidentiary
+  context. A failed compression is unavailable, not silently replaced with a
+  guessed summary or an unbounded transcript.
+- Every successful Global Ask turn returns the authorized Event Lineage
+  timeline for that request, including an empty timeline when no authorized
+  sources were found.
 
 ## Evidence and literature
 

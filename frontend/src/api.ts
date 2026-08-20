@@ -1,4 +1,5 @@
 import { config } from "./config";
+import type { ProjectHistoryProjection } from "./projectHistory";
 
 export interface PostSummary {
   post_id: string;
@@ -83,6 +84,7 @@ export interface PostImageRegion {
 }
 
 export interface PostContentResponse {
+  status?: "ready" | "processing" | "unavailable";
   units: PostContentUnit[];
   images: PostImageContent[];
 }
@@ -284,12 +286,21 @@ export interface ChatHistory {
 }
 
 export interface AskAgentResponse {
+  session_id: string;
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
   cited_post_evidence?: CitedPostEvidence[];
   source_post_ids: string[];
+  timeline?: AskTimelineEntry[];
   next_action?: string;
+}
+
+export interface AskTimelineEntry {
+  post_id: string;
+  post_title: string;
+  occurred_at: string | null;
+  timeline_kind: string | null;
 }
 
 export interface IssueTicket {
@@ -842,6 +853,19 @@ export function fetchPostLineage(accessToken: string, postId: string): Promise<P
   return backendFetch(`/api/posts/${postId}/lineage`, accessToken);
 }
 
+export function fetchProjectHistory(
+  accessToken: string,
+  options: { projectKey: string; focusPostId: string; knowledgeCutoff?: string },
+): Promise<ProjectHistoryProjection> {
+  const params = new URLSearchParams();
+  params.set("project_key", options.projectKey);
+  params.set("focus_post_id", options.focusPostId);
+  if (options.knowledgeCutoff) {
+    params.set("knowledge_cutoff", options.knowledgeCutoff);
+  }
+  return backendFetch(`/api/project-history?${params.toString()}`, accessToken);
+}
+
 export function fetchPostChat(accessToken: string, postId: string): Promise<ChatHistory> {
   return backendFetch(`/api/posts/${postId}/chat`, accessToken);
 }
@@ -853,10 +877,14 @@ export function askPostChat(accessToken: string, postId: string, question: strin
   });
 }
 
-export function askAgent(accessToken: string, question: string): Promise<AskAgentResponse> {
+export function askAgent(
+  accessToken: string,
+  question: string,
+  sessionId?: string,
+): Promise<AskAgentResponse> {
   return backendFetch("/api/ask", accessToken, {
     method: "POST",
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, ...(sessionId ? { session_id: sessionId } : {}) }),
   });
 }
 

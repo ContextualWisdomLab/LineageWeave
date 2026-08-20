@@ -157,6 +157,8 @@ const MESSAGE_KEYS = [
   "vocReceived",
   "rebidStarted",
   "sourceRecorded",
+  "openProjectHistory",
+  "historyUnavailable",
 ] as const;
 
 export const PROJECT_HISTORY_MESSAGE_KEYS = MESSAGE_KEYS;
@@ -200,6 +202,8 @@ const EN: Record<ProjectHistoryMessageKey, string> = {
   vocReceived: "VOC received",
   rebidStarted: "Rebid started",
   sourceRecorded: "Source record",
+  openProjectHistory: "Open project history",
+  historyUnavailable: "Project history is unavailable for this evidence.",
 };
 
 const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
@@ -240,6 +244,8 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     vocReceived: "VOC 접수",
     rebidStarted: "재입찰 시작",
     sourceRecorded: "원천 기록",
+    openProjectHistory: "프로젝트 이력 열기",
+    historyUnavailable: "이 근거에 대한 프로젝트 이력을 사용할 수 없습니다.",
   },
   zh: {
     heading: "项目事件时间线",
@@ -277,6 +283,8 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     vocReceived: "收到客户之声",
     rebidStarted: "重新投标开始",
     sourceRecorded: "源记录",
+    openProjectHistory: "打开项目历史",
+    historyUnavailable: "此证据的项目历史不可用。",
   },
   ja: {
     heading: "プロジェクトイベントのタイムライン",
@@ -314,6 +322,8 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     vocReceived: "VOC受付",
     rebidStarted: "再入札開始",
     sourceRecorded: "原資料",
+    openProjectHistory: "プロジェクト履歴を開く",
+    historyUnavailable: "この根拠のプロジェクト履歴は利用できません。",
   },
   vi: {
     heading: "Dòng thời gian sự kiện dự án",
@@ -351,6 +361,8 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     vocReceived: "Đã nhận ý kiến khách hàng",
     rebidStarted: "Đã bắt đầu đấu thầu lại",
     sourceRecorded: "Bản ghi nguồn",
+    openProjectHistory: "Mở lịch sử dự án",
+    historyUnavailable: "Lịch sử dự án không khả dụng cho bằng chứng này.",
   },
 };
 
