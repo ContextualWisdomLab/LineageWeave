@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Preserve source-order nested list units, numeric superscript footnotes,
+  HTML/OOXML table rows, and recognizable Markdown table rows across the
+  semantic-unit parser and buyer body renderer. See the [product and
+  technical gap baseline](docs/product-technical-gap-baseline.md) and
+  [ADR 0101](docs/adr/0101-semantic-document-evidence-contract.md).
+
 ## [2.10.0] - 2026-08-18
 
 ### Added

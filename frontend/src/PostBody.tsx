@@ -1,4 +1,9 @@
-import { splitPostBody, type PostBodySegment } from "./postBodyDisplay";
+import {
+  splitMarkdownTableBody,
+  splitPostBody,
+  type MarkdownBodyBlock,
+  type PostBodySegment,
+} from "./postBodyDisplay";
 import { t } from "./i18n";
 import type { PostContentUnit, PostImageContent } from "./api";
 import type { ReactNode } from "react";
@@ -57,7 +62,7 @@ function renderSegment(segment: PostBodySegment, index: number, imageContent?: P
 }
 
 function isStructuredTableRow(unit: PostContentUnit): boolean {
-  return unit.unit_label === "tr" || unit.unit_label === "w:tr";
+  return unit.unit_label === "tr" || unit.unit_label === "w:tr" || unit.unit_label === "markdown_tr";
 }
 
 function renderStructuredUnits(
@@ -124,6 +129,39 @@ function renderStructuredUnits(
   return rendered;
 }
 
+function renderMarkdownBlocks(blocks: MarkdownBodyBlock[]): ReactNode[] {
+  return blocks.map((block, blockIndex) => {
+    if (block.kind === "prose") {
+      return <p key={`post-body-markdown-prose-${blockIndex}`}>{block.text}</p>;
+    }
+    const [header, ...rows] = block.rows;
+    return (
+      <table className="post-body-table" key={`post-body-markdown-table-${blockIndex}`}>
+        <thead>
+          <tr>
+            {header.map((cell, cellIndex) => (
+              <th key={`post-body-markdown-header-${blockIndex}-${cellIndex}`} scope="col">
+                {cell}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, rowIndex) => (
+            <tr key={`post-body-markdown-row-${blockIndex}-${rowIndex}`}>
+              {row.map((cell, cellIndex) => (
+                <td key={`post-body-markdown-cell-${blockIndex}-${rowIndex}-${cellIndex}`}>
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  });
+}
+
 export function PostBody({
   body,
   imageContent = [],
@@ -145,6 +183,10 @@ export function PostBody({
   );
   if (hasPersistedStructuralUnits) {
     return <div className="post-body">{renderStructuredUnits(body, structureUnits, imageContent)}</div>;
+  }
+  const markdownBlocks = !hasPersistedStructuralUnits ? splitMarkdownTableBody(body) : null;
+  if (markdownBlocks) {
+    return <div className="post-body">{renderMarkdownBlocks(markdownBlocks)}</div>;
   }
   return (
     <div className="post-body">

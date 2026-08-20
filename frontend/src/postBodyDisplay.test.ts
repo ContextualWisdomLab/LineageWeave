@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { splitPostBody } from "./postBodyDisplay";
+import { splitMarkdownTableBody, splitPostBody } from "./postBodyDisplay";
 
 /** 1x1 transparent PNG — the same synthetic fixture the Python vision tests use. */
 const TINY_PNG_B64 =
@@ -58,6 +58,29 @@ describe("splitPostBody", () => {
       { kind: "text", text: "Outer", indentLevel: 7 },
       { kind: "text", text: "Nested", indentLevel: 10 },
       { kind: "text", text: "*Tier 2: note", role: "footnote" },
+    ]);
+  });
+
+  it("recognizes numeric superscript-style footnotes", () => {
+    expect(splitPostBody("<p><sup>1</sup> Source note</p>")).toEqual([
+      { kind: "text", text: "1 Source note", role: "footnote" },
+    ]);
+  });
+
+  it("keeps exporter list containers in the visible nesting hierarchy", () => {
+    expect(splitPostBody("<oi><li>Parent<ul><li>Child</li></ul></li></oi>")).toEqual([
+      { kind: "text", text: "Parent", indentLevel: 1 },
+      { kind: "text", text: "Child", indentLevel: 2 },
+    ]);
+  });
+
+  it("preserves prose around the supported Markdown table shape", () => {
+    expect(
+      splitMarkdownTableBody("Intro.\n\n| Project | Status |\n| --- | --- |\n| Alpha | Ready |\n\nNext action."),
+    ).toEqual([
+      { kind: "prose", text: "Intro." },
+      { kind: "table", rows: [["Project", "Status"], ["Alpha", "Ready"]] },
+      { kind: "prose", text: "Next action." },
     ]);
   });
 

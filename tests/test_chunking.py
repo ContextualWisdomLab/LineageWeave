@@ -111,6 +111,54 @@ def test_chunk_by_dom_labels_markerless_footnotes() -> None:
     ]
 
 
+def test_chunk_by_dom_labels_numeric_superscript_footnotes() -> None:
+    chunks = chunk_by_dom("<p><sup>1</sup> Source note attached to the record.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("footnote", "1 Source note attached to the record."),
+    ]
+
+
+def test_chunk_by_dom_preserves_nested_list_order_and_depth() -> None:
+    chunks = chunk_by_dom(
+        "<ol><li>Parent item<ul><li>Child item</li></ul></li></ol>"
+    )
+
+    assert [chunk.text for chunk in chunks] == ["Parent item", "Child item"]
+    assert [chunk.indent_width for chunk in chunks] == [4, 8]
+
+
+def test_chunk_by_dom_accepts_exporter_oi_list_container() -> None:
+    chunks = chunk_by_dom("<oi><li>First item</li><li>Second item</li></oi>")
+
+    assert [chunk.text for chunk in chunks] == ["First item", "Second item"]
+    assert [chunk.indent_width for chunk in chunks] == [4, 4]
+
+
+def test_chunk_by_dom_keeps_markdown_table_rows_as_searchable_units() -> None:
+    chunks = chunk_by_dom(
+        "| Project | Status |\n| :--- | ---: |\n| Alpha | Ready |"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("markdown_tr", "Project | Status"),
+        ("markdown_tr", "Alpha | Ready"),
+    ]
+
+
+def test_chunk_by_dom_keeps_prose_around_markdown_table_rows() -> None:
+    chunks = chunk_by_dom(
+        "Intro.\n\n| Project | Status |\n| --- | --- |\n| Alpha | Ready |\n\nNext action."
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("", "Intro."),
+        ("markdown_tr", "Project | Status"),
+        ("markdown_tr", "Alpha | Ready"),
+        ("", "Next action."),
+    ]
+
+
 def test_chunk_by_dom_word_table_rows_also_group_cells() -> None:
     html = "<w:tbl><w:tr><w:tc>1</w:tc><w:tc>Acme Corp</w:tc></w:tr></w:tbl>"
     chunks = chunk_by_dom(html)
@@ -154,6 +202,7 @@ def test_chunk_by_dom_reads_the_css_margin_shorthand_not_just_margin_left() -> N
 
     assert [chunk.text for chunk in chunks] == ["Outer item", "Nested item"]
     outer, nested = chunks
+    assert [outer.indent_width, nested.indent_width] == [7, 10]
     assert outer.indent_width < nested.indent_width
     assert outer.indent_width > 0
 

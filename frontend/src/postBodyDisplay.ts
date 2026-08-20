@@ -11,16 +11,20 @@ export type PostBodySegment =
   | { kind: "text"; text: string; indentLevel?: number; role?: "footnote" }
   | { kind: "image"; src: string; mimeType: string; position: number };
 
+export type MarkdownBodyBlock =
+  | { kind: "prose"; text: string }
+  | { kind: "table"; rows: string[][] };
+
 const DATA_URI_IMG =
   /<img\b[^>]*\bsrc\s*=\s*["']data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)["'][^>]*>/gi;
 
 const HTML_TAG = /<\/?[a-zA-Z][^>]*>/g;
 const BREAK_TAG = /<br\b[^>]*>/gi;
 const BLOCK_TAG =
-  /<\/?(?:article|blockquote|div|h[1-6]|li|ol|p|section|table|tbody|td|tfoot|th|thead|tr|ul|w:p|w:tbl|w:tr|w:tc)\b[^>]*>/gi;
+  /<\/?(?:article|blockquote|div|h[1-6]|li|oi|ol|p|section|table|tbody|td|tfoot|th|thead|tr|ul|w:p|w:tbl|w:tr|w:tc)\b[^>]*>/gi;
 const WORD_INDENT_TAG = /<w:ind\b[^>]*\/?\s*>/gi;
 const LIST_ITEM_START = /^\s*(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)/;
-const FOOTNOTE_START = /^\s*[*†‡](?=\S)/;
+const FOOTNOTE_START = /^\s*[*†‡]+(?=\S)/;
 const INDENT_MARKER = "\u0001lw-indent:";
 const INDENT_MARKER_END = "\u0002";
 const INDENT_MARKER_PATTERN = /lw-indent:(\d+)/g;
@@ -65,7 +69,7 @@ function lengthToIndentUnits(value: string): number {
 
 function declaredIndentWidth(tag: string): number {
   const name = tag.match(/^<\/?\s*([a-z0-9:]+)/i)?.[1]?.toLowerCase() ?? "";
-  let width = name === "blockquote" || name === "ul" || name === "ol" ? 4 : 0;
+  let width = name === "blockquote" || name === "ul" || name === "ol" || name === "oi" ? 4 : 0;
   const style = tag.match(/\bstyle\s*=\s*(["'])(.*?)\1/i)?.[2] ?? "";
   for (const match of style.matchAll(
     /(?:^|;)\s*(?:margin-left|padding-left|padding-inline-start|text-indent)\s*:\s*([^;]+)/gi,
@@ -90,16 +94,30 @@ function indentMarker(width: number): string {
 }
 
 function stripHtmlTags(text: string): string {
+  let listDepth = 0;
   const withBoundaries = text
     .replace(BREAK_TAG, "\n")
     .replace(BLOCK_TAG, (tag) => {
-      if (/^<\//.test(tag)) return "\n\n";
+      const closing = /^<\//.test(tag);
+      const listContainer = /^<\s*(?:ul|ol|oi)\b/i.test(tag);
+      if (closing) {
+        if (listContainer) listDepth = Math.max(0, listDepth - 1);
+        return "\n\n";
+      }
+      if (listContainer) {
+        listDepth += 1;
+        return "\n\n";
+      }
+      if (/^<\s*li\b/i.test(tag)) {
+        return indentMarker(Math.max(listDepth * 4, declaredIndentWidth(tag)));
+      }
       return `\n\n${indentMarker(declaredIndentWidth(tag))}`;
     })
     .replace(WORD_INDENT_TAG, (tag) => indentMarker(declaredIndentWidth(tag)));
-  const withoutTags = withBoundaries.replace(HTML_TAG, (tag) =>
-    /^<\/?w:/i.test(tag) ? "" : " ",
-  );
+  const withoutTags = withBoundaries.replace(HTML_TAG, (tag) => {
+    if (/^<\/?w:/i.test(tag) || /^<\/?sup\b/i.test(tag)) return "";
+    return " ";
+  });
   const decoded = decodeHtmlEntities(withoutTags);
   return decoded
     .split("\n")
@@ -197,6 +215,7 @@ function isDecodableBase64(raw: string): boolean {
 }
 
 function pushText(segments: PostBodySegment[], raw: string, indentUnit: number): void {
+  const hasNumericSuperscriptMarker = /<sup\b[^>]*>\s*\d{1,3}\s*<\/sup>/i.test(raw);
   const text = stripHtmlTags(raw);
   for (const paragraph of splitSemanticParagraphs(text)) {
     const indentLevel = indentationLevel(paragraph, indentUnit);
@@ -208,10 +227,66 @@ function pushText(segments: PostBodySegment[], raw: string, indentUnit: number):
         kind: "text",
         text: normalized,
         ...(indentLevel > 0 ? { indentLevel } : {}),
-        ...(FOOTNOTE_START.test(normalized) ? { role: "footnote" as const } : {}),
+        ...(hasNumericSuperscriptMarker || FOOTNOTE_START.test(normalized)
+          ? { role: "footnote" as const }
+          : {}),
       });
     }
   }
+}
+
+function markdownCells(line: string): string[] | null {
+  const value = line.trim().replace(/^\|/, "").replace(/(?<!\\)\|$/, "");
+  if (!value.includes("|")) return null;
+  const cells = value.split(/(?<!\\)\|/).map((cell) => cell.trim().replace(/\\\|/g, "|"));
+  return cells.length >= 2 && cells.every(Boolean) ? cells : null;
+}
+
+function isMarkdownSeparatorRow(cells: string[] | null): boolean {
+  return Boolean(cells?.every((cell) => /^:?-{3,}:?$/.test(cell)));
+}
+
+/**
+ * Split the narrow Markdown-table shape supported by the ingestion boundary.
+ * The return value preserves prose and skips only the delimiter row.
+ */
+export function splitMarkdownTableBody(body: string): MarkdownBodyBlock[] | null {
+  const lines = body.replace(/\r\n?/g, "\n").split("\n");
+  const blocks: MarkdownBodyBlock[] = [];
+  let prose: string[] = [];
+  let foundTable = false;
+
+  const flushProse = () => {
+    const text = prose.join("\n").trim();
+    if (text) blocks.push({ kind: "prose", text });
+    prose = [];
+  };
+
+  let index = 0;
+  while (index < lines.length) {
+    const header = markdownCells(lines[index]);
+    const separator = markdownCells(lines[index + 1] ?? "");
+    if (!header || !isMarkdownSeparatorRow(separator)) {
+      prose.push(lines[index]);
+      index += 1;
+      continue;
+    }
+
+    foundTable = true;
+    flushProse();
+    const rows = [header];
+    index += 2;
+    while (index < lines.length && lines[index].trim()) {
+      const row = markdownCells(lines[index]);
+      if (!row) break;
+      rows.push(row);
+      index += 1;
+    }
+    blocks.push({ kind: "table", rows });
+  }
+
+  flushProse();
+  return foundTable ? blocks : null;
 }
 
 export function splitPostBody(body: string): PostBodySegment[] {

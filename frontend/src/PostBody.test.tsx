@@ -120,6 +120,50 @@ describe("PostBody", () => {
     expect(screen.queryAllByText("No.")).toHaveLength(1);
   });
 
+  it("renders persisted Markdown table rows as a table", () => {
+    render(
+      <PostBody
+        body="| Project | Status |\n| --- | --- |\n| Alpha | Ready |"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "plain_text",
+            unit_label: "markdown_tr",
+            unit_text: "Project | Status",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "Markdown table row",
+          },
+          {
+            unit_index: 1,
+            unit_kind_code: "plain_text",
+            unit_label: "markdown_tr",
+            unit_text: "Alpha | Ready",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "Markdown table row",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getAllByRole("row")).toHaveLength(2);
+  });
+
+  it("renders a raw Markdown table when persisted structure is unavailable", () => {
+    render(
+      <PostBody body={"Intro.\n\n| Project | Status |\n| --- | --- |\n| Alpha | Ready |\n\nNext action."} />,
+    );
+
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Project" })).toBeInTheDocument();
+    expect(screen.getByText("Intro.")).toBeInTheDocument();
+    expect(screen.getByText("Next action.")).toBeInTheDocument();
+  });
+
   it("marks persisted footnotes as footnote evidence", () => {
     render(
       <PostBody
