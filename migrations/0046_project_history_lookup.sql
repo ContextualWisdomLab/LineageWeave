@@ -18,6 +18,12 @@ create index if not exists source_post_project_name_history_idx
     )
     where source_project_name is not null and btrim(source_project_name) <> '';
 
+create index if not exists post_project_mention_key_history_idx
+    on post_project_mention (
+        lower(normalize(btrim(project_key), NFKC)),
+        post_id
+    );
+
 create index if not exists post_project_mention_name_history_idx
     on post_project_mention (
         lower(normalize(btrim(project_name), NFKC)),
