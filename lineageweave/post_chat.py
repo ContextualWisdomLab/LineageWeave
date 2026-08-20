@@ -64,6 +64,8 @@ class ChatSourceDocument:
     post_body: str
     graph_facts: tuple[str, ...] = field(default_factory=tuple)
     evidence_facts: tuple[str, ...] = field(default_factory=tuple)
+    occurred_at: str | None = None
+    timeline_kind: str | None = None
 
 
 @dataclass(frozen=True)
@@ -142,7 +144,13 @@ class PostChatClient(Protocol):
 
     available: bool
 
-    def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:
+    def answer(
+        self,
+        question: str,
+        sources: list[ChatSourceDocument],
+        *,
+        conversation_context: str = "",
+    ) -> ChatAnswer:
         """Answer ``question`` using only ``sources``, with citations.
 
         Implementations must raise if they cannot answer. Protocol stubs
@@ -157,7 +165,13 @@ class NullPostChatClient:
 
     available = False
 
-    def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:
+    def answer(
+        self,
+        question: str,
+        sources: list[ChatSourceDocument],
+        *,
+        conversation_context: str = "",
+    ) -> ChatAnswer:
         """Answer the question using the supplied source documents."""
         raise RuntimeError("NullPostChatClient cannot answer; check .available first")
 
@@ -181,6 +195,9 @@ Sources:
 {sources_block}
 
 Question: {question}
+
+Conversation continuity (not source evidence; verify it against the numbered sources):
+{conversation_context}
 """
 
 _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
@@ -196,6 +213,9 @@ Sources:
 {sources_block}
 
 Question: {question}
+
+Conversation continuity (not source evidence; verify it against the numbered sources):
+{conversation_context}
 """
 
 
@@ -226,9 +246,27 @@ def _render_sources_block(sources: list[ChatSourceDocument]) -> str:
                 "raw source hints as resolved ontology assertions):\n"
                 + "\n".join(f"- {fact}" for fact in source.evidence_facts)
             )
+        occurred_block = f"Occurred at: {source.occurred_at}\n" if source.occurred_at else ""
         blocks.append(
             f"[Source {i}] (post_id={source.post_id})\n"
-            f"Title: {source.post_title}\n{body}{graph_block}{evidence_block}"
+            f"Title: {source.post_title}\n"
+            f"{occurred_block}{body}{graph_block}{evidence_block}"
+        )
+    return "\n\n".join(blocks)
+
+
+def render_global_ask_context(
+    summary: str | None,
+    turns: list[tuple[int, str, str]] | tuple[tuple[int, str, str], ...],
+) -> str:
+    """Render account-owned continuity as explicitly non-evidentiary context."""
+    blocks: list[str] = []
+    if summary and summary.strip():
+        blocks.append(f"Compressed prior context:\n{summary.strip()}")
+    for ordinal, question, answer in turns:
+        blocks.append(
+            f"Turn {ordinal} question: {question.strip()}\n"
+            f"Turn {ordinal} answer: {answer.strip()}"
         )
     return "\n\n".join(blocks)
 
@@ -305,10 +343,18 @@ class ContextualOrchestratorPostChatClient:
         self._reasoning_effort = reasoning_effort
         self._timeout = timeout
 
-    def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:
+    def answer(
+        self,
+        question: str,
+        sources: list[ChatSourceDocument],
+        *,
+        conversation_context: str = "",
+    ) -> ChatAnswer:
         """Answer the question using the supplied source documents."""
         prompt = _CHAT_REQUEST_PROMPT_TEMPLATE.format(
-            sources_block=_render_sources_block(sources), question=question
+            sources_block=_render_sources_block(sources),
+            question=question,
+            conversation_context=conversation_context,
         )
         body = post_json(
             f"{self._base_url}/v1/chat/completions",
@@ -325,3 +371,36 @@ class ContextualOrchestratorPostChatClient:
         if answer is None:
             raise ValueError(f"chat response did not match the required format: {content!r}")
         return answer
+
+    def compress_context(
+        self,
+        previous_summary: str | None,
+        turns: list[tuple[int, str, str]],
+    ) -> str:
+        """Compress older Global Ask turns through the orchestrator boundary."""
+        turn_block = "\n\n".join(
+            f"Turn {ordinal}\nQuestion: {question}\nAnswer: {answer}"
+            for ordinal, question, answer in turns
+        )
+        prompt = (
+            "Compress the prior Global Ask conversation into a short factual continuity summary. "
+            "Keep unresolved questions, decisions, dates, and requested follow-ups. "
+            "Do not add facts, names, or conclusions not present in the supplied context. "
+            "This is continuity context, not source evidence; return only the summary text.\n\n"
+            f"Existing compressed context:\n{previous_summary or '(none)'}\n\n"
+            f"Older turns to incorporate:\n{turn_block}"
+        )
+        body = post_json(
+            f"{self._base_url}/v1/chat/completions",
+            {
+                "messages": [{"role": "user", "content": prompt}],
+                "mode": "auto",
+                "reasoning_effort": self._reasoning_effort,
+            },
+            headers={"authorization": f"Bearer {self._api_key}"},
+            timeout=self._timeout,
+        )
+        content = body["choices"][0]["message"]["content"]
+        if not isinstance(content, str) or not content.strip():
+            raise ValueError("Global Ask context compression returned no summary")
+        return content.strip()

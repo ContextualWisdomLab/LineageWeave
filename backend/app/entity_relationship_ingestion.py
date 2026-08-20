@@ -96,7 +96,67 @@ def attach_resolved_entity_ids(
     ]
 
 
-async def fetch_post_counterparties(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
+def merge_relationship_network_rows(
+    rows: Sequence[Mapping[str, Any]],
+    candidates: Sequence[CorporateEntityCandidate],
+) -> list[dict[str, Any]]:
+    """Merge raw-name variants only when they share one unique catalog id."""
+    candidate_names = {candidate.corporate_entity_id: candidate.entity_name for candidate in candidates}
+    merged: dict[tuple[str, str], dict[str, Any]] = {}
+    for row in rows:
+        raw_name = str(row["counterparty_entity_name"])
+        corporate_entity_id = resolve_corporate_entity(raw_name, candidates)
+        key = ("entity", corporate_entity_id) if corporate_entity_id else ("name", raw_name)
+        entry = merged.setdefault(
+            key,
+            {
+                "counterparty_entity_name": candidate_names.get(corporate_entity_id, raw_name),
+                "corporate_entity_id": corporate_entity_id,
+                "total_post_count": 0,
+                "relationship_counts": {},
+            },
+        )
+        entry["total_post_count"] += int(row["total_post_count"])
+        relationships = row["relationships"]
+        if isinstance(relationships, str):
+            relationships = json.loads(relationships)
+        for relationship in relationships:
+            relationship_key = (
+                relationship["relationship_type_code"],
+                relationship["relationship_label"],
+            )
+            counts = entry["relationship_counts"]
+            counts[relationship_key] = counts.get(relationship_key, 0) + int(relationship["post_count"])
+
+    result: list[dict[str, Any]] = []
+    for entry in merged.values():
+        relationships = [
+            {
+                "relationship_type_code": code,
+                "relationship_label": label,
+                "post_count": post_count,
+            }
+            for (code, label), post_count in entry["relationship_counts"].items()
+        ]
+        relationships.sort(key=lambda relationship: (-relationship["post_count"], relationship["relationship_type_code"]))
+        result.append(
+            {
+                "counterparty_entity_name": entry["counterparty_entity_name"],
+                "corporate_entity_id": entry["corporate_entity_id"],
+                "total_post_count": entry["total_post_count"],
+                "relationships": relationships,
+                "multi_role": len(relationships) > 1,
+            }
+        )
+    result.sort(key=lambda entry: (-entry["total_post_count"], entry["counterparty_entity_name"]))
+    return result[:_RELATIONSHIP_NETWORK_LIMIT]
+
+
+async def fetch_post_counterparties(
+    conn: asyncpg.Connection,
+    post_id: str,
+    authorized_corporate_entity_ids: Sequence[str] = (),
+) -> list[dict[str, Any]]:
     """Classified counterparties with a cataloged org id when the name resolves.
 
     Unresolved names keep ``corporate_entity_id`` null -- a missing
@@ -114,7 +174,15 @@ async def fetch_post_counterparties(conn: asyncpg.Connection, post_id: str) -> l
         """,
         post_id,
     )
-    candidate_rows = await conn.fetch("select corporate_entity_id, entity_name from corporate_entity")
+    candidate_rows = (
+        await conn.fetch(
+            "select corporate_entity_id, entity_name from corporate_entity "
+            "where corporate_entity_id = any($1::uuid[])",
+            list(authorized_corporate_entity_ids),
+        )
+        if authorized_corporate_entity_ids
+        else []
+    )
     candidates = [
         CorporateEntityCandidate(str(row["corporate_entity_id"]), row["entity_name"])
         for row in candidate_rows
@@ -192,21 +260,13 @@ async def fetch_relationship_network(
         """,
         list(corporate_entity_ids),
     )
-    candidate_rows = await conn.fetch("select corporate_entity_id, entity_name from corporate_entity")
+    candidate_rows = await conn.fetch(
+        "select corporate_entity_id, entity_name from corporate_entity "
+        "where corporate_entity_id = any($1::uuid[])",
+        list(corporate_entity_ids),
+    )
     candidates = [
         CorporateEntityCandidate(str(row["corporate_entity_id"]), row["entity_name"])
         for row in candidate_rows
     ]
-    network: list[dict[str, Any]] = []
-    for row in rows:
-        relationships = json.loads(row["relationships"]) if isinstance(row["relationships"], str) else row["relationships"]
-        network.append(
-            {
-                "counterparty_entity_name": row["counterparty_entity_name"],
-                "corporate_entity_id": resolve_corporate_entity(row["counterparty_entity_name"], candidates),
-                "total_post_count": row["total_post_count"],
-                "relationships": relationships,
-                "multi_role": len(relationships) > 1,
-            }
-        )
-    return network
+    return merge_relationship_network_rows(rows, candidates)

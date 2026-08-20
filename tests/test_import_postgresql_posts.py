@@ -1,5 +1,6 @@
 import uuid
 from types import SimpleNamespace
+from pathlib import Path
 
 import pytest
 
@@ -129,6 +130,14 @@ def test_importer_allows_repeated_lookup_keys_when_source_uuids_are_distinct() -
         ["Y"],
         [],
     )
+
+
+def test_source_record_key_index_is_a_lookup_not_a_uniqueness_constraint() -> None:
+    migration = (
+        Path(__file__).resolve().parents[1] / "migrations" / "0037_source_record_identity.sql"
+    ).read_text()
+    assert "create unique index" not in migration.casefold()
+    assert "create index if not exists source_post_source_identity_idx" in migration
 
 
 def test_importer_always_requires_verified_publication_state() -> None:
