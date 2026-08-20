@@ -826,6 +826,7 @@ function KeymanPanel({
   focusTeam,
   landFirstKeyman,
   landFirstRelated,
+  landOnAsk,
   afterList,
 }: {
   postId: string;
@@ -840,6 +841,7 @@ function KeymanPanel({
   focusTeam?: { teamId: string; teamName: string } | null;
   landFirstKeyman?: boolean;
   landFirstRelated?: boolean;
+  landOnAsk?: boolean;
   afterList?: ReactNode;
 }) {
   const [related, setRelated] = useState<RelatedNode[] | null>(null);
@@ -951,9 +953,11 @@ function KeymanPanel({
       return;
     }
     const heading = document.getElementById("post-ask");
-    heading?.focus();
+    if (landOnAsk) {
+      heading?.focus();
+    }
     heading?.scrollIntoView?.({ block: "nearest" });
-  }, [landFirstRelated, landedRelatedName, landedRelated]);
+  }, [landFirstRelated, landedRelatedName, landedRelated, landOnAsk]);
 
   useEffect(() => {
     if (!focusPerson) return;
@@ -1647,6 +1651,7 @@ function PostDetailPopup({
   liveBodyWarning,
   knowledgeCutoff,
   focusEventLineage,
+  focusAskOnLand,
   onClose,
   onSelectPost,
   onSearch,
@@ -1658,6 +1663,7 @@ function PostDetailPopup({
   liveBodyWarning?: string | null;
   knowledgeCutoff?: string | null;
   focusEventLineage?: boolean;
+  focusAskOnLand?: boolean;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
@@ -2229,6 +2235,7 @@ function PostDetailPopup({
                 focusTeam={focusTeam}
                 landFirstKeyman
                 landFirstRelated
+                landOnAsk={focusAskOnLand}
                 afterList={
                   <>
                     <EvaluationPanel
@@ -4054,6 +4061,7 @@ function PostList({
           }
           knowledgeCutoff={openedAfterCutoff ? openedCutoffIso : null}
           focusEventLineage={openedFromReportMember || openedFromWeeklyVoc || openedFromCalendar}
+          focusAskOnLand={openedFromReportMember}
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
           onSearch={searchBoard}
