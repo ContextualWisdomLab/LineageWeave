@@ -6,7 +6,10 @@ import {
 } from "./oidcReturnUrl";
 
 describe("OIDC return URL handling", () => {
-  beforeEach(() => window.sessionStorage.clear());
+  beforeEach(() => {
+    window.sessionStorage.clear();
+    window.localStorage.clear();
+  });
 
   it("keeps a post deep link and rejects external destinations", () => {
     expect(returnUrlFromLocation({ pathname: "/", search: "?post=abc", hash: "" })).toBe(
@@ -22,5 +25,13 @@ describe("OIDC return URL handling", () => {
     rememberOidcReturnUrl("/?post=stored-again");
     expect(restoreOidcReturnUrl('{"returnUrl":"/?post=from-json"}')).toBe("/?post=from-json");
     expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toBeNull();
+    expect(window.localStorage.getItem("lineageweave.oidc.returnUrl")).toBeNull();
+  });
+
+  it("restores a deep link from local storage when session storage is empty", () => {
+    window.localStorage.setItem("lineageweave.oidc.returnUrl", "/?post=from-local-storage");
+
+    expect(restoreOidcReturnUrl(undefined)).toBe("/?post=from-local-storage");
+    expect(window.localStorage.getItem("lineageweave.oidc.returnUrl")).toBeNull();
   });
 });

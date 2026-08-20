@@ -18,6 +18,11 @@ export function rememberOidcReturnUrl(value: string): void {
   } catch {
     // OIDC state remains the fallback when session storage is unavailable.
   }
+  try {
+    window.localStorage.setItem(OIDC_RETURN_URL_STORAGE_KEY, value);
+  } catch {
+    // The OIDC state and session storage remain the fallbacks.
+  }
 }
 
 function stateReturnUrl(state: unknown): string {
@@ -35,15 +40,23 @@ function stateReturnUrl(state: unknown): string {
 
 export function restoreOidcReturnUrl(state: unknown): string {
   const fromState = stateReturnUrl(state);
-  let stored = "";
+  let sessionStored = "";
+  let localStored = "";
   try {
-    stored = window.sessionStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY) ?? "";
+    sessionStored = window.sessionStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY) ?? "";
     window.sessionStorage.removeItem(OIDC_RETURN_URL_STORAGE_KEY);
+  } catch {
+    // Fall through to local storage or the current path.
+  }
+  try {
+    localStored = window.localStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY) ?? "";
+    window.localStorage.removeItem(OIDC_RETURN_URL_STORAGE_KEY);
   } catch {
     // Fall through to the current path.
   }
   if (fromState) return fromState;
-  if (isSafeReturnUrl(stored)) return stored;
+  if (isSafeReturnUrl(sessionStored)) return sessionStored;
+  if (isSafeReturnUrl(localStored)) return localStored;
   return new URLSearchParams(window.location.search).has("post")
     ? returnUrlFromLocation()
     : window.location.pathname;
