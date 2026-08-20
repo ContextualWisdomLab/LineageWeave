@@ -133,6 +133,20 @@ def test_parses_project_bound_major_event_action() -> None:
     assert details[2][0].project_key == "hvdc-pilot"
 
 
+def test_legacy_action_preserves_pipe_in_evidence_text() -> None:
+    details = _parse_plain_summary_details(
+        "ROLES:\n"
+        "Synthetic requester | 요청 | person | Synthetic organization\n"
+        "Synthetic processor | 처리 | person | Synthetic organization\n"
+        "PROJECTS:\nNONE\n"
+        "ACTIONS:\n"
+        "합성 조치 | Synthetic requester | Synthetic processor | 첫 근거 | 추가 근거"
+    )
+    assert details is not None
+    assert details[2][0].project_key is None
+    assert details[2][0].evidence_text == "첫 근거 | 추가 근거"
+
+
 def test_json_project_name_is_normalized_for_legacy_action_contract() -> None:
     summary = parse_summary_response(
         '{"korean_summary":"요약", "major_event_actions":['
