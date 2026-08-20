@@ -21,6 +21,8 @@ from lineageweave.post_structure import PostStructureClient
 from backend.app.config import load_settings
 from backend.app.post_content_queue import (
     FAILED,
+    POST_CONTENT_MAX_ATTEMPTS,
+    POST_CONTENT_RETRY_INTERVAL,
     POST_CONTENT_STREAM_KEY,
     QUEUED,
     RUNNING,
@@ -33,6 +35,8 @@ from backend.app.post_content_queue import (
 
 _logger = logging.getLogger(__name__)
 _RECOVERY_INTERVAL_SECONDS = 30.0
+_INCOMPLETE_FAILURE_CODE = "post_content_ingestion_incomplete"
+_ATTEMPT_LIMIT_FAILURE_CODE = "post_content_ingestion_attempt_limit"
 
 
 async def _stream_tail(client: redis.Redis) -> str:
@@ -56,7 +60,8 @@ async def _claim_job(
                 select p.*, j.source_body_sha256 as job_source_body_sha256,
                        j.status_code as job_status_code,
                        j.attempt_count as job_attempt_count,
-                       j.started_at as job_started_at
+                       j.started_at as job_started_at,
+                       j.queued_at as job_queued_at
                 from post_content_ingestion_job j
                 join source_post p on p.post_id = j.post_id
                 where j.post_id = $1::uuid
@@ -69,6 +74,35 @@ async def _claim_job(
             if row is None:
                 return None
             status_code = str(row["job_status_code"])
+            attempt_count = int(row["job_attempt_count"])
+            if status_code == FAILED:
+                return None
+            if status_code == RUNNING and attempt_count >= POST_CONTENT_MAX_ATTEMPTS:
+                await transition_post_content_job(
+                    conn,
+                    post_id,
+                    FAILED,
+                    failure_code=_ATTEMPT_LIMIT_FAILURE_CODE,
+                    detail_text="post-content ingestion attempt limit was already reached",
+                )
+                return None
+            if status_code == QUEUED and attempt_count >= POST_CONTENT_MAX_ATTEMPTS:
+                await transition_post_content_job(
+                    conn,
+                    post_id,
+                    FAILED,
+                    failure_code=_ATTEMPT_LIMIT_FAILURE_CODE,
+                    detail_text="post-content ingestion attempt limit was already reached",
+                )
+                return None
+            if status_code == QUEUED and attempt_count > 0:
+                retry_ready = await conn.fetchval(
+                    "select now() >= $1 + $2::interval",
+                    row["job_queued_at"],
+                    POST_CONTENT_RETRY_INTERVAL,
+                )
+                if not retry_ready:
+                    return None
             if status_code == SUCCEEDED:
                 content_complete = await post_content_is_complete(
                     conn,
@@ -103,17 +137,67 @@ async def _finish_job(
     post_id: str,
     status_code: str,
     *,
+    expected_attempt_count: int,
     failure_code: str | None = None,
     detail_text: str | None = None,
 ) -> None:
+    """Finish only the attempt that actually owns the running lease."""
     async with pool.acquire() as conn:
         async with conn.transaction():
             await transition_post_content_job(
                 conn,
                 post_id,
                 status_code,
+                expected_attempt_count=expected_attempt_count,
                 failure_code=failure_code,
                 detail_text=detail_text,
+            )
+
+
+async def _finish_failed_job(
+    pool: asyncpg.Pool,
+    post_id: str,
+    *,
+    failure_code: str,
+    detail_text: str,
+    expected_attempt_count: int,
+) -> None:
+    """Schedule one retry, or persist a terminal failure for this attempt.
+
+    The running status and attempt number are locked before the transition so
+    a worker whose lease was reclaimed cannot retry or terminally fail a newer
+    attempt.
+    """
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            attempt_count = int(
+                await conn.fetchval(
+                    """
+                    select attempt_count
+                    from post_content_ingestion_job
+                    where post_id = $1
+                      and status_code = $2
+                    for update
+                    """,
+                    post_id,
+                    RUNNING,
+                )
+                or -1
+            )
+            if attempt_count != expected_attempt_count:
+                return
+            terminal = attempt_count >= POST_CONTENT_MAX_ATTEMPTS
+            await transition_post_content_job(
+                conn,
+                post_id,
+                FAILED if terminal else QUEUED,
+                failure_code=_ATTEMPT_LIMIT_FAILURE_CODE if terminal else failure_code,
+                detail_text=(
+                    "post-content ingestion reached its bounded retry limit"
+                    if terminal
+                    else detail_text
+                ),
+                expected_attempt_count=expected_attempt_count,
             )
 
 
@@ -136,11 +220,14 @@ async def process_post_content_job(
     )
     if row is None:
         return
+    attempt_count = int(row["job_attempt_count"]) + 1
     try:
         raw_body = row["post_body"]
         if not isinstance(raw_body, str) or not raw_body.strip():
             raise ValueError("source post has no body")
         metadata = build_post_llm_metadata(post_id, row)
+        embedding_client = embedding_factory()
+        structure_client = structure_factory()
         with use_llm_metadata(metadata):
             vision_client = vision_factory()
             normalized = await asyncio.to_thread(normalize_post_body, raw_body, vision_client)
@@ -150,10 +237,10 @@ async def process_post_content_job(
                     post_id,
                     raw_body,
                     vision_client=vision_client,
-                    embedding_client=embedding_factory(),
+                    embedding_client=embedding_client,
                     embedding_model_code=settings.embedding_model or None,
                     normalized_result=normalized,
-                    structure_client=structure_factory(),
+                    structure_client=structure_client,
                     post_title=str(row["post_title"]),
                 )
             async with pool.acquire() as conn:
@@ -165,20 +252,26 @@ async def process_post_content_job(
                         settings.orchestrator_base_url and settings.orchestrator_api_key
                     ),
                 )
-                if not complete:
-                    await transition_post_content_job(conn, post_id, QUEUED)
-                    return
+            if not complete:
+                await _finish_failed_job(
+                    pool,
+                    post_id,
+                    failure_code=_INCOMPLETE_FAILURE_CODE,
+                    detail_text="post-content providers did not produce complete persisted evidence",
+                    expected_attempt_count=attempt_count,
+                )
+                return
     except Exception as exc:  # noqa: BLE001 - durable failure is recorded for retry.
         _logger.exception("post content ingestion failed for post_id=%s", post_id)
-        await _finish_job(
+        await _finish_failed_job(
             pool,
             post_id,
-            FAILED,
             failure_code="post_content_ingestion_failed",
             detail_text=str(exc)[:1000],
+            expected_attempt_count=attempt_count,
         )
         return
-    await _finish_job(pool, post_id, SUCCEEDED)
+    await _finish_job(pool, post_id, SUCCEEDED, expected_attempt_count=attempt_count)
 
 
 async def consume_post_content_stream_once(

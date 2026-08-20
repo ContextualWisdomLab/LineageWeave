@@ -101,7 +101,22 @@ def test_parses_plain_summary_evidence_section() -> None:
         "where | 제3공장 | 제3공장에서 협의했다"
     )
     assert details is not None
-    assert details[2][0].value_text == "제3공장"
+    assert details[3][0].value_text == "제3공장"
+
+
+def test_parses_major_event_requester_and_processor() -> None:
+    details = _parse_plain_summary_details(
+        "ROLES:\n"
+        "홍길동 | 변경 요청 | person | 당사\n"
+        "김철수 | 도면 수정 | person | 고객사\n"
+        "PROJECTS:\nNONE\n"
+        "ACTIONS:\n"
+        "도면 변경 승인 | 홍길동 | 김철수 | 홍길동이 변경을 요청했고 김철수가 수정하기로 함"
+    )
+    assert details is not None
+    action = details[2][0]
+    assert action.requester_actor_name == "홍길동"
+    assert action.processor_actor_name == "김철수"
 
 
 def test_organization_actor_is_not_forced_into_a_person_slot() -> None:
@@ -267,7 +282,7 @@ def test_title_match_can_supply_explicit_project_evidence_but_not_a_guess() -> N
         "ROLES:\nNONE\nPROJECTS:\nUnrelated project | NONE | 1",
         post_title="Follow-up after the Northridge transformer bid workshop",
     )
-    assert unrelated == ((), (), ())
+    assert unrelated == ((), (), (), ())
 
 
 def test_role_matching_the_hinted_account_name_is_dropped_not_cataloged() -> None:
