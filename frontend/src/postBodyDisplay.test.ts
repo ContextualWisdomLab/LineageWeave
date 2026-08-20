@@ -84,6 +84,15 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("unescapes pipe characters inside Markdown cells without accepting a short delimiter", () => {
+    expect(
+      splitMarkdownTableBody(
+        "| Project | Notes |\n| :--- | ---: |\n| Alpha | Ready \\| review |",
+      ),
+    ).toEqual([{ kind: "table", rows: [["Project", "Notes"], ["Alpha", "Ready | review"]] }]);
+    expect(splitMarkdownTableBody("| Project | Status |\n| -- | -- |\n| Alpha | Ready |")).toBeNull();
+  });
+
   it("leaves a plain-text post unchanged so existing popups keep their wording", () => {
     expect(splitPostBody("The full body text.")).toEqual([
       { kind: "text", text: "The full body text." },
