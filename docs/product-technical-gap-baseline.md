@@ -457,13 +457,13 @@ parent-image fallback preserves an honest image-level outcome.
 ## Exact-head refresh: 2026-08-20 23:41 KST
 
 PR #324 advanced to exact head
-`71f0940cb3881b2f5452ae79fa45f033dff56a9d` after the malformed-locator
-fallback and its edge tests were added. The local Python regression completed
-`740 passed, 16 skipped`; the normalization module remains at `100%` branch
-coverage. Frontend lint, `134 passed` frontend tests, production build, and
-Storybook build also passed locally. GitHub's two required PR Checks are still
-queued and no formal approval is bound to this exact head, so this is not a
-merge or release claim.
+`b1d1b106419488a0e9f9b608bab98fc1004972c8` after the malformed-locator
+fallback and the duplicate baseline-status note were corrected. The local
+documentation invariant confirms that the PR #320 integration-status note
+appears exactly once. Earlier Python, frontend, build, and Storybook evidence
+continues to apply to the unchanged visual-locator implementation. GitHub's
+required PR Checks are running for this exact head and no formal approval is
+bound to it, so this is not a merge or release claim.
  ## Image locator and buyer table checkpoint: 2026-08-20
 
 A first bounded private reprocessing run completed five parent-image
