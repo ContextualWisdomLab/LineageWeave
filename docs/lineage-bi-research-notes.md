@@ -1,16 +1,19 @@
 # Research notes: what this design is grounded in
 
+**Status:** supporting research notes. Normative design decisions are recorded
+in [ADR 0064](adr/0064-lineage-evidence-and-tree-assembly.md), [ADR 0062](adr/0062-semantic-unit-embedding.md),
+and the existing channel-specific ADRs; update this file as literature and
+validation evidence changes, not as an untracked architecture decision.
+
 ## Related-node business captions
 
-ADR-0036 keeps compact graph navigation truthful for multiple-membership
+ADR 0103 keeps compact graph navigation truthful for multiple-membership
 people: the UI uses an authorized unique affiliation only when one identity
 remains and otherwise says `multiple organizations`. The full N:N evidence
 stays on the Keyman surface, and the panel gives the buyer the next action.
 The implementation and APA 7th sources are recorded in
-[`docs/adr/0036-related-node-business-captions.md`](adr/0036-related-node-business-captions.md)
+[`docs/adr/0103-related-node-business-captions.md`](adr/0103-related-node-business-captions.md)
 and [`docs/doctoring/RELATED_NODE_AFFILIATION_REFERENCES.md`](doctoring/RELATED_NODE_AFFILIATION_REFERENCES.md).
-
-**Status:** living document -- update when the channel set or fusion method changes.
 
 ## The problem this is answering
 
@@ -193,7 +196,8 @@ message id and a reference list per item.
 When configured (`lineageweave.adjudication_client.ContextualOrchestratorAdjudicationClient`),
 the `llm` channel calls a running
 [contextual-orchestrator](https://github.com/ContextualWisdomLab/contextual-orchestrator)
-instance with `mode="verify"` and `reasoning_effort="high"` -- one worker
+instance with `mode="auto"` and `reasoning_effort="high"`; the orchestrator
+selects the supported route and records any verification metadata -- one worker
 call plus one checked verifier judgment, rather than either a bare
 unverified guess or the full four-step thinker/worker/verifier/synthesizer
 workflow. This follows the test-time-compute allocation argument
@@ -243,7 +247,11 @@ Resnick, P. (2008). *Internet Message Format* (RFC 5322). IETF. https://doi.org/
 
 See, A., Liu, P. J., & Manning, C. D. (2017). Get to the point: Summarization with pointer-generator networks. In *Proceedings of the 55th Annual Meeting of the Association for Computational Linguistics* (Vol. 1, pp. 1073-1083). Association for Computational Linguistics. https://doi.org/10.18653/v1/P17-1099
 
+Sun, Q., Yuan, J., He, S., Guan, X., Yuan, H., Fu, X., Li, J., & Yu, P. S. (2025). *DyG-RAG: Dynamic graph retrieval-augmented generation with event-centric reasoning*. arXiv. https://arxiv.org/abs/2507.13396
+
 Tong, H., Faloutsos, C., & Pan, J.-Y. (2006). Fast random walk with restart and its applications. *Proceedings of the Sixth International Conference on Data Mining (ICDM'06)*, 613-622. https://doi.org/10.1109/ICDM.2006.70
+
+Wang, Q., Fu, Y., Cao, Y., Wang, S., Tian, Z., & Ding, L. (2023). *Recursively summarizing enables long-term dialogue memory in large language models*. arXiv. https://arxiv.org/abs/2308.15022
 
 WHATWG. (2026). *HTML Living Standard — sections 4.3 (sectioning content) and 4.4 (grouping content)*. https://html.spec.whatwg.org/
 
@@ -293,7 +301,7 @@ adaptive cutoff (a relevance-ratio threshold against the top score) --
 threshold yields a five-node related-set from a well-connected "hub" node
 and a one-node related-set from a sparsely-connected node, with no hop-count
 constant anywhere in the algorithm or the test. Hydrated related-node
-chips (ADR-0036) then replace the ontology class with the authorized
+chips (ADR 0103) then replace the ontology class with the authorized
 side or entity-level label so the next click is a business decision,
 not a class reminder.
 
@@ -364,3 +372,34 @@ model answers using only those sources and reports which ones it actually
 drew from). This is the Agentic retrieve-reason-cite shape the product
 brief asks for without adding a full agent-framework dependency for what
 two functions and a structured prompt already do.
+
+## Global Ask timeline expansion and conversation continuity (Phase 5)
+
+`gather_global_chat_sources` (`backend/app/post_chat_ingestion.py`) had a
+retrieve step with no lineage expansion at all: it ranked keyword-matched
+posts by match specificity, but never pulled in a matched post's own
+Event-Lineage neighbors. A relevance-correct top match is still a single
+snapshot, not the connected sequence of records around it -- a live
+question about one event returned an accurate answer about that one post
+alone when the account actually wanted to know what led up to it and what
+happened next. This is exactly the event-centric temporal retrieval
+problem DyG-RAG frames: retrieving one temporally-anchored record and
+stopping there answers "what does this record say" but not "what actually
+happened," which needs the surrounding event sequence (Sun et al., 2025).
+The fix expands the single top-ranked match through its direct
+`post_lineage_edge` neighbors (the same relation `reconstruct.py` already
+persists, reused rather than re-derived) so the source set can speak to a
+connected timeline, still ABAC-filtered and still bounded by the existing
+source limit -- expanding every keyword hit instead of only the top one
+was rejected because a loosely related term would otherwise drag in an
+unrelated lineage chain into the model's context.
+
+Global Ask's chat turns are not yet persisted as a running conversation --
+each question is answered independently, so there is no multi-turn
+context to compress. Recursive dialogue summarization (Wang et al., 2023)
+is the grounding this repository would use if/when Global Ask grows a
+persisted conversation thread that can exceed a bounded context window:
+summarize-and-replace older turns instead of an unbounded transcript or a
+hard truncation that silently drops earlier decisions. This is recorded
+here as the citation this feature would build on, not as a claim that
+conversation-level compression is implemented today.

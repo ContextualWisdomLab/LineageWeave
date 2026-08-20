@@ -57,8 +57,9 @@ prose:
   `person_side_code`. Issue tickets stay a separate table
   (`issue_ticket`), not a knowledge-graph node type.
 - **Object properties** (`owl:ObjectProperty`, each with
-  `rdfs:domain`/`rdfs:range`): `mentions` (Post -> Person, from
-  `edge_mention`), `affiliatedWith` (Person -> CorporateEntity, from
+  `rdfs:domain`/`rdfs:range`): `mentionedIn` (Person -> Post, the
+  canonical direction stored by `edge_mention`; `mentions` is its
+  declared RDF inverse), `affiliatedWith` (Person -> CorporateEntity, from
   `edge_affiliation`), `coMentionedWith` (symmetric, Person <-> Person,
   from `edge_co_mention`), and one object property per entity-
   relationship-type code (`hasVocRelationship`, `hasVomRelationship`,

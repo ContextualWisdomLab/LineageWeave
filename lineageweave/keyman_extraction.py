@@ -78,6 +78,13 @@ class NullKeymanExtractionClient:
     available = False
 
     def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
+        """Extract the structured signal supported by the post content."""
+        raise RuntimeError("NullKeymanExtractionClient cannot extract; check .available first")
+
+    def extract_with_hints(
+        self, post_title: str, post_body: str, context_hints: str
+    ) -> list[PersonMention]:
+        """Implement the extract_with_hints operation for this channel."""
         raise RuntimeError("NullKeymanExtractionClient cannot extract; check .available first")
 
 
@@ -90,6 +97,14 @@ job title or position if the text states one. Two different real people
 can share the same name -- a stated title/position (e.g. "sales
 manager," "purchasing lead") is real evidence for telling them apart, so
 report it whenever the text gives one rather than leaving it out.
+
+Use the author/account and organization hints below to resolve whether a
+named person is on our side, but treat them as prior context rather than
+proof. A generic or unregistered customer is a weak hint; never use it to
+turn an unsupported person into a Keyman. The person's own textual role or
+affiliation must still support the result.
+
+Author/account context hints (not proof): {context_hints}
 
 Reply with ONLY a JSON array (no markdown fences, no prose), where each
 element has exactly these fields:
@@ -111,6 +126,7 @@ _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 
 
 def _strip_code_fence(content: str) -> str:
+    """Implement the _strip_code_fence operation for this channel."""
     match = _CODE_FENCE_PATTERN.search(content)
     return match.group(1) if match else content
 
@@ -163,7 +179,7 @@ class ContextualOrchestratorKeymanExtractionClient:
     available = True
 
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "medium", timeout: float = 60.0
+        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 180.0
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -171,7 +187,18 @@ class ContextualOrchestratorKeymanExtractionClient:
         self._timeout = timeout
 
     def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
-        prompt = _EXTRACTION_PROMPT_TEMPLATE.format(title=post_title, body=post_body)
+        """Extract the structured signal supported by the post content."""
+        return self.extract_with_hints(post_title, post_body, "")
+
+    def extract_with_hints(
+        self, post_title: str, post_body: str, context_hints: str
+    ) -> list[PersonMention]:
+        """Implement the extract_with_hints operation for this channel."""
+        prompt = _EXTRACTION_PROMPT_TEMPLATE.format(
+            title=post_title,
+            body=post_body,
+            context_hints=context_hints.strip() or "none available",
+        )
         body = post_json(
             f"{self._base_url}/v1/chat/completions",
             {

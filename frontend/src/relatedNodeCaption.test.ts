@@ -80,17 +80,13 @@ describe("relatedNodeCaption", () => {
 
   it("tells the buyer to read the Keyman list when it is already on screen", () => {
     expect(relatedAffiliationNextAction(true)).toBe(
-      "A chip that says multiple organizations is not a missing affiliation. " +
-        "Read every organization in the Keyman list above, then click the chip " +
-        "to continue the walk.",
+      "Multiple organizations are recorded. Read every organization in the Keyman list above, then continue the walk.",
     );
   });
 
   it("tells the buyer to extract Keymen when the list is empty", () => {
     expect(relatedAffiliationNextAction(false)).toBe(
-      "A chip that says multiple organizations is not a missing affiliation. " +
-        "Extract Keymen to list every organization, then click the chip to " +
-        "continue the walk.",
+      "Multiple organizations are recorded. Extract Keymen to list every organization, then continue the walk.",
     );
   });
 

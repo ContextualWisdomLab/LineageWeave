@@ -1,4 +1,5 @@
 import type { RelatedNode } from "./api";
+import { t, tf } from "./i18n";
 
 const NODE_PERSON = "node_person";
 const NODE_POST = "node_post";
@@ -42,7 +43,7 @@ export function relatedNodeCaption(node: RelatedNode): string {
     case NODE_PERSON: {
       const side = node.person_side_label?.trim() || node.person_side_code?.trim();
       const org = node.affiliation_organization_name?.trim();
-      const context = node.affiliation_ambiguous ? "multiple organizations" : org || "";
+      const context = node.affiliation_ambiguous ? t("multiple organizations") : org || "";
       if (side && context) {
         return `${name}, ${context} (${side})`;
       }
@@ -89,9 +90,9 @@ export function relatedNodeChipAccessibleName(
     case "walk_person":
     case "walk_entity":
     case "walk_team":
-      return `Related nodes for ${caption}`;
+      return tf("Related nodes for {name}", { name: caption });
     case "open_post":
-      return `Open related post: ${caption}`;
+      return tf("Open related post: {label}", { label: caption });
     default: {
       const _exhaustive: never = action;
       return _exhaustive;
@@ -106,15 +107,11 @@ export function relatedNodeChipAccessibleName(
  */
 export function relatedAffiliationNextAction(hasKeymanList: boolean): string {
   if (hasKeymanList) {
-    return (
-      "A chip that says multiple organizations is not a missing affiliation. " +
-      "Read every organization in the Keyman list above, then click the chip " +
-      "to continue the walk."
+    return t(
+      "Multiple organizations are recorded. Read every organization in the Keyman list above, then continue the walk.",
     );
   }
-  return (
-    "A chip that says multiple organizations is not a missing affiliation. " +
-    "Extract Keymen to list every organization, then click the chip to " +
-    "continue the walk."
+  return t(
+    "Multiple organizations are recorded. Extract Keymen to list every organization, then continue the walk.",
   );
 }

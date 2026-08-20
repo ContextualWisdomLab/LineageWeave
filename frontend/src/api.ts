@@ -7,8 +7,46 @@ export interface PostSummary {
   voc_type_label?: string;
   visibility_code: string;
   visibility_label?: string;
+  source_stage_code?: string | null;
+  source_detail_state_code?: string | null;
+  source_draft_code?: string | null;
+  source_deleted_flag?: string | null;
+  source_author_code?: string | null;
+  source_author_name?: string | null;
+  source_company_code?: string | null;
+  source_company_name?: string | null;
+  source_process_unit_code?: string | null;
+  source_process_unit_name?: string | null;
+  source_sales_pool_code?: string | null;
+  source_sales_pool_name?: string | null;
+  source_customer_code?: string | null;
+  source_customer_name?: string | null;
+  source_project_code?: string | null;
+  source_project_name?: string | null;
+  source_system_code?: string | null;
+  source_record_key?: string | null;
+  publication_state_code?: string;
+  post_body_excerpt?: string | null;
+  post_body_truncated?: boolean;
+  project_evidence?: ProjectEvidence[];
   created_at: string;
 }
+
+export interface PostPage {
+  posts: PostSummary[];
+  total_count: number;
+  limit: number;
+  offset: number;
+  voc_type_options?: PostFilterOption[];
+  visibility_options?: PostFilterOption[];
+}
+
+export interface PostFilterOption {
+  code: string;
+  label: string;
+}
+
+export type PostSortOrder = "newest" | "oldest" | "title";
 
 export interface PostKnownAt {
   post_title: string;
@@ -20,6 +58,45 @@ export interface PostKnownAt {
 export interface PostDetail extends PostSummary {
   post_body: string;
   known_at?: PostKnownAt;
+}
+
+export interface PostImageContent {
+  unit_index: number;
+  mime_type: string;
+  status_code: string;
+  extracted_text: string | null;
+  caption: string | null;
+  tags: string[];
+  regions?: PostImageRegion[];
+}
+
+export interface PostImageRegion {
+  region_index: number;
+  x_ratio: number;
+  y_ratio: number;
+  width_ratio: number;
+  height_ratio: number;
+  status_code: string;
+  extracted_text: string | null;
+  caption: string | null;
+  tags: string[];
+}
+
+export interface PostContentResponse {
+  status?: "ready" | "processing" | "unavailable";
+  units: PostContentUnit[];
+  images: PostImageContent[];
+}
+
+export interface PostContentUnit {
+  unit_index: number;
+  unit_kind_code: string;
+  unit_label?: string;
+  unit_text: string;
+  indent_level: number;
+  indent_source_code: "explicit" | "llm" | "unresolved";
+  indent_confidence: number;
+  indent_evidence: string;
 }
 
 export interface Affiliation {
@@ -44,6 +121,7 @@ export interface Counterparty {
   relationship_label?: string;
   verification_status_code: string;
   verification_evidence_url: string | null;
+  verification_evidence_post_id: string | null;
   corporate_entity_id: string | null;
 }
 
@@ -92,6 +170,8 @@ export interface RelatedNode {
   node_type_code: RelatedNodeType | string;
   relevance: number;
   label?: string;
+  post_body_excerpt?: string | null;
+  post_body_truncated?: boolean;
   person_side_code?: string;
   person_side_label?: string;
   affiliation_organization_name?: string;
@@ -111,16 +191,68 @@ export interface PostRoleResponsibility {
   catalog_node_type_code?: string | null;
 }
 
+export interface PostMajorEventAction {
+  action_text: string;
+  requester_actor_name: string | null;
+  processor_actor_name: string | null;
+  evidence_text: string;
+}
+
+export interface PostProjectMention {
+  project_key: string;
+  project_name: string;
+  evidence: string;
+  confidence: number;
+  ontology_iri: string;
+  ontology_label?: string;
+  extraction_method: string;
+}
+
+export interface ProjectEvidence {
+  project_key: string;
+  project_name: string;
+  evidence: string;
+  confidence: number | null;
+  ontology_iri: string;
+  ontology_label?: string;
+  extraction_method: string;
+  resolution_status: string;
+  provenance: string;
+}
+
 export interface PostAiSummary {
   post_id: string;
   korean_summary: string;
   key_events: string[];
   roles_and_responsibilities: PostRoleResponsibility[];
+  major_event_actions?: PostMajorEventAction[];
+  project_mentions?: PostProjectMention[];
+}
+
+export interface FiveW1HValue {
+  text: string;
+  source: string;
+  evidence_text?: string;
+  ontology_codes: string[];
+  ontology_annotations: Record<string, string>;
+}
+
+export interface FiveW1HSlot {
+  slot_code: "who" | "what" | "when" | "where" | "why" | "how";
+  values: FiveW1HValue[];
+  empty_next_action_code: string;
+}
+
+export interface PostFiveW1H {
+  post_id: string;
+  slots: FiveW1HSlot[];
 }
 
 export interface LinkedPostRef {
   post_id: string;
   post_title: string;
+  post_body_excerpt?: string | null;
+  post_body_truncated?: boolean;
 }
 
 export interface PostLineage {
@@ -132,6 +264,16 @@ export interface PostLineage {
 export interface CitedPostRef {
   post_id: string;
   post_title: string;
+}
+
+export interface CitedPostEvidenceFact {
+  kind: string;
+  text: string;
+}
+
+export interface CitedPostEvidence {
+  post_id: string;
+  facts: CitedPostEvidenceFact[];
 }
 
 export interface ChatAnswer {
@@ -154,6 +296,15 @@ export interface ChatHistory {
   exchanges: ChatExchange[];
 }
 
+export interface AskAgentResponse {
+  answer_text: string;
+  cited_post_ids: string[];
+  cited_posts?: CitedPostRef[];
+  cited_post_evidence?: CitedPostEvidence[];
+  source_post_ids: string[];
+  next_action?: string;
+}
+
 export interface IssueTicket {
   issue_ticket_id: string;
   post_id: string;
@@ -169,6 +320,21 @@ export interface IssueTicket {
 
 export interface CalendarEntry extends IssueTicket {
   post_title: string;
+}
+
+export interface CalDavEvent {
+  event_id: string;
+  summary: string;
+  starts_at: string;
+}
+
+export interface CalendarResponse {
+  events: CalDavEvent[];
+  commitments: CalendarEntry[];
+  calendar_sources: {
+    caldav_available: boolean;
+    caldav_next_action: string | null;
+  };
 }
 
 export interface DerivedCommitment {
@@ -240,10 +406,12 @@ export interface LineageGraphEdge {
 export interface LineageGraph {
   nodes: LineageGraphNode[];
   edges: LineageGraphEdge[];
+  truncated?: boolean;
 }
 
-export function fetchLineageGraph(accessToken: string): Promise<LineageGraph> {
-  return backendFetch<LineageGraph>("/api/lineage", accessToken);
+export function fetchLineageGraph(accessToken: string, postId?: string): Promise<LineageGraph> {
+  const query = postId ? `?post_id=${encodeURIComponent(postId)}` : "";
+  return backendFetch<LineageGraph>(`/api/lineage${query}`, accessToken);
 }
 
 export interface CorporateEntityRef {
@@ -251,23 +419,180 @@ export interface CorporateEntityRef {
   entity_name: string;
 }
 
+export interface CustomerMasterEntity extends CorporateEntityRef {
+  corporate_entity_code: string;
+  entity_level_code: string;
+  entity_level_label: string;
+  parent_entity_id: string | null;
+}
+
+export interface CustomerMasterKeymanAffiliation {
+  organization_name: string;
+  corporate_entity_id: string | null;
+  entity_name: string | null;
+  role_title: string | null;
+}
+
+export interface CustomerMasterKeyman {
+  person_id: string;
+  person_name: string;
+  person_side_code: string;
+  person_side_label: string;
+  last_known_job_title: string | null;
+  affiliations: CustomerMasterKeymanAffiliation[];
+}
+
+export interface SourceCustomerHint {
+  customer_code: string | null;
+  customer_name: string | null;
+  post_count: number;
+  related_posts: LinkedPostRef[];
+  resolution_status: string;
+  hint_trust: string;
+  provenance: string;
+}
+
+export interface SourceAuthorAffiliation {
+  corporate_entity_id: string;
+  entity_name: string;
+  process_unit_code: string | null;
+  process_unit_name: string | null;
+}
+
+export interface SourceAuthorContext {
+  author_account_id: string;
+  account_display_name: string;
+  source_author_code: string | null;
+  source_author_name: string | null;
+  account_affiliations: SourceAuthorAffiliation[];
+  resolution_status: string;
+  provenance: string;
+}
+
+export interface SourceAuthorKeymanHint {
+  person_id: string;
+  person_name: string;
+  person_side_code: string;
+  last_known_job_title: string | null;
+  mention_count: number;
+  provenance: string;
+}
+
+export interface SourceAuthorHint {
+  author_code: string;
+  author_name: string | null;
+  author_account_id: string;
+  account_display_name: string;
+  account_affiliations: SourceAuthorAffiliation[];
+  post_count: number;
+  keyman_hints: SourceAuthorKeymanHint[];
+  related_posts: LinkedPostRef[];
+  resolution_status: string;
+  provenance: string;
+}
+
+export interface CounterpartyRelationshipRole {
+  relationship_type_code: string;
+  relationship_label: string;
+  post_count: number;
+}
+
+export interface RelationshipNetworkEntry {
+  counterparty_entity_name: string;
+  corporate_entity_id: string | null;
+  total_post_count: number;
+  relationships: CounterpartyRelationshipRole[];
+  multi_role: boolean;
+}
+
+export interface CustomerMasterResponse {
+  corporate_entities: CustomerMasterEntity[];
+  keymen: CustomerMasterKeyman[];
+  source_customer_hints: SourceCustomerHint[];
+  source_author_hints: SourceAuthorHint[];
+  relationship_network: RelationshipNetworkEntry[];
+}
+
 export interface CurrentUser {
   user_account_id: string;
   display_name: string;
   permission_codes: string[];
   corporate_entities?: CorporateEntityRef[];
+  preferred_locale?: string | null;
 }
 
 export function fetchMe(accessToken: string): Promise<CurrentUser> {
   return backendFetch<CurrentUser>("/api/me", accessToken);
 }
 
+export function setPreferredLocale(
+  accessToken: string,
+  preferredLocale: string,
+): Promise<{ preferred_locale: string }> {
+  return backendFetch<{ preferred_locale: string }>("/api/me/preferences", accessToken, {
+    method: "PATCH",
+    body: JSON.stringify({ preferred_locale: preferredLocale }),
+  });
+}
+
+export function fetchCustomerMaster(accessToken: string): Promise<CustomerMasterResponse> {
+  return backendFetch<CustomerMasterResponse>("/api/customer-master", accessToken);
+}
+
+export interface CustomerHintResolution {
+  corporate_entity_id: string;
+  entity_name: string;
+  linked_post_count: number;
+  verification_evidence_url: string | null;
+}
+
+export function resolveCustomerHint(
+  accessToken: string,
+  hintCode: string,
+): Promise<CustomerHintResolution> {
+  return backendFetch<CustomerHintResolution>("/api/customer-master/resolve-hint", accessToken, {
+    method: "POST",
+    body: JSON.stringify({ hint_code: hintCode }),
+  });
+}
+
 export function rebuildLineage(accessToken: string): Promise<{ edge_count: number }> {
   return backendFetch("/api/lineage/rebuild", accessToken, { method: "POST" });
 }
 
-export function fetchPosts(accessToken: string): Promise<PostSummary[]> {
-  return backendFetch<PostSummary[]>("/api/posts", accessToken);
+export function fetchPosts(
+  accessToken: string,
+  limit?: number,
+  offset?: number,
+  search?: string,
+  vocTypes?: string[],
+  visibility?: string,
+  sort?: PostSortOrder,
+): Promise<PostPage> {
+  const params = new URLSearchParams();
+  if (limit !== undefined) {
+    params.set("limit", String(limit));
+    params.set("offset", String(offset ?? 0));
+  }
+  if (search?.trim()) {
+    params.set("search", search.trim());
+  }
+  for (const vocType of vocTypes ?? []) {
+    params.append("voc_type", vocType);
+  }
+  if (visibility) {
+    params.set("visibility", visibility);
+  }
+  if (sort) {
+    params.set("sort", sort);
+  }
+  const query = params.toString();
+  return backendFetch<PostPage | PostSummary[]>(`/api/posts${query ? `?${query}` : ""}`, accessToken).then(
+    (payload) =>
+      Array.isArray(payload)
+        ? { posts: payload, total_count: payload.length, limit: limit ?? payload.length, offset: offset ?? 0 }
+        : payload,
+  );
 }
 
 export function fetchPost(
@@ -279,7 +604,34 @@ export function fetchPost(
   return backendFetch<PostDetail>(`/api/posts/${postId}${query}`, accessToken);
 }
 
-export function fetchPostKeymen(accessToken: string, postId: string): Promise<{ keymen: Keyman[] }> {
+export function fetchPostContent(accessToken: string, postId: string): Promise<PostContentResponse> {
+  return backendFetch<PostContentResponse>(`/api/posts/${postId}/content`, accessToken);
+}
+
+export interface PostBookmark {
+  post_id: string;
+  bookmarked: boolean;
+}
+
+export function fetchPostBookmark(accessToken: string, postId: string): Promise<PostBookmark> {
+  return backendFetch(`/api/posts/${postId}/bookmark`, accessToken);
+}
+
+export function setPostBookmark(
+  accessToken: string,
+  postId: string,
+  bookmarked: boolean,
+): Promise<PostBookmark> {
+  return backendFetch(`/api/posts/${postId}/bookmark`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({ bookmarked }),
+  });
+}
+
+export function fetchPostKeymen(
+  accessToken: string,
+  postId: string,
+): Promise<{ keymen: Keyman[]; source_author_context?: SourceAuthorContext | null }> {
   return backendFetch(`/api/posts/${postId}/keymen`, accessToken);
 }
 
@@ -297,63 +649,28 @@ export function fetchPostAffiliateTree(
   return backendFetch(`/api/posts/${postId}/affiliate-tree`, accessToken);
 }
 
-export type VerificationStatusCode =
-  | "verify_corroborated"
-  | "verify_uncorroborated"
-  | "verify_pending";
-
-export interface TreeAbbreviation {
-  raw_organization_name: string;
-  verification_status_code: VerificationStatusCode;
-  verification_evidence_url: string | null;
-}
-
-export interface CustomerGroupNode {
-  entity_id: string;
-  entity_name: string;
-  entity_level_code: string | null;
-  entity_level_label?: string | null;
-  abbreviations: TreeAbbreviation[];
-  children: CustomerGroupNode[];
-}
-
-export interface AbbreviationTreeMatch {
-  raw_organization_name: string;
-  corporate_entity_id: string | null;
-  verification_status_code: VerificationStatusCode;
-  verification_evidence_url: string | null;
-}
-
-export function fetchCustomerGroupTree(
-  accessToken: string,
-): Promise<{ trees: CustomerGroupNode[] }> {
-  return backendFetch("/api/customer-group-tree", accessToken);
-}
-
-export function fetchPostAbbreviationTreeMatches(
-  accessToken: string,
-  postId: string,
-): Promise<{ matches: AbbreviationTreeMatch[] }> {
-  return backendFetch(`/api/posts/${postId}/abbreviation-tree-matches`, accessToken);
-}
-
-export function corroboratePostAbbreviations(
-  accessToken: string,
-  postId: string,
-): Promise<{ matches: AbbreviationTreeMatch[] }> {
-  return backendFetch(`/api/posts/${postId}/corroborate-abbreviations`, accessToken, {
-    method: "POST",
-  });
-}
-
 export function fetchPostVocEvidence(accessToken: string, postId: string): Promise<VocEvidence> {
   return backendFetch(`/api/posts/${postId}/voc-evidence`, accessToken);
+}
+
+export interface PersonRoleHistoryEntry {
+  post_id: string;
+  post_title: string;
+  created_at: string;
+  responsibility: string;
+  affiliated_organization_name: string | null;
 }
 
 export function fetchRelatedKeymen(
   accessToken: string,
   personId: string,
-): Promise<{ person_id: string; person_name: string; person_side_code: string; related: RelatedNode[] }> {
+): Promise<{
+  person_id: string;
+  person_name: string;
+  person_side_code: string;
+  related: RelatedNode[];
+  role_history?: PersonRoleHistoryEntry[];
+}> {
   return backendFetch(`/api/keymen/${personId}/related`, accessToken);
 }
 
@@ -382,6 +699,7 @@ export interface VerifiedRelation {
   counterparty_entity_name: string;
   verification_status_code: string;
   verification_evidence_url: string | null;
+  verification_evidence_post_id: string | null;
 }
 
 export function verifyPostRelations(
@@ -529,6 +847,10 @@ export function fetchPostSummary(accessToken: string, postId: string): Promise<P
   return backendFetch(`/api/posts/${postId}/summary`, accessToken);
 }
 
+export function fetchPostFiveW1H(accessToken: string, postId: string): Promise<PostFiveW1H> {
+  return backendFetch(`/api/posts/${postId}/five-w1h`, accessToken);
+}
+
 export function fetchPostLineage(accessToken: string, postId: string): Promise<PostLineage> {
   return backendFetch(`/api/posts/${postId}/lineage`, accessToken);
 }
@@ -539,6 +861,13 @@ export function fetchPostChat(accessToken: string, postId: string): Promise<Chat
 
 export function askPostChat(accessToken: string, postId: string, question: string): Promise<ChatAnswer> {
   return backendFetch(`/api/posts/${postId}/chat`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({ question }),
+  });
+}
+
+export function askAgent(accessToken: string, question: string): Promise<AskAgentResponse> {
+  return backendFetch("/api/ask", accessToken, {
     method: "POST",
     body: JSON.stringify({ question }),
   });
@@ -587,7 +916,7 @@ export function deriveCommitment(accessToken: string, postId: string): Promise<D
   return backendFetch(`/api/posts/${postId}/derive-commitment`, accessToken, { method: "POST" });
 }
 
-export function fetchCalendar(accessToken: string): Promise<{ commitments: CalendarEntry[] }> {
+export function fetchCalendar(accessToken: string): Promise<CalendarResponse> {
   return backendFetch("/api/calendar", accessToken);
 }
 
@@ -661,15 +990,6 @@ export interface AnalysisRun {
   visible_posts?: AnalysisRunVisiblePost[];
   reconstructed_edges?: AnalysisRunReconstructedEdge[];
   reconstruction_result_sha256?: string;
-  tepp_evidence_kind?: string;
-  tepp_contract_version?: number;
-  tepp_accepted_run_id?: string;
-  tepp_run_state?: string;
-  tepp_idempotency_key?: string;
-  tepp_evidence_sha256?: string;
-  tepp_received_at?: string;
-  tepp_recorded_at?: string;
-  tepp_completed_artifact_available?: boolean;
   code_revision_sha?: string;
   configuration_sha256?: string;
 }

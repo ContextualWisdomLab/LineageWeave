@@ -455,9 +455,10 @@ wheels = [
 [[package]]
 name = "lineageweave"
 version = "2.12.6"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "certifi" },
+    { name = "pillow" },
     { name = "rankweave" },
     { name = "rdflib" },
     { name = "threadweave" },
@@ -475,7 +476,6 @@ backend = [
 dev = [
     { name = "coverage" },
     { name = "httpx" },
-    { name = "pillow" },
     { name = "psycopg2-binary" },
     { name = "pyjwt", extra = ["crypto"] },
     { name = "pytest" },
@@ -489,7 +489,7 @@ requires-dist = [
     { name = "fast-mlsirm", marker = "extra == 'backend'", git = "https://github.com/ContextualWisdomLab/fast-mlsirm.git?rev=5006c38286a4fa1d81bcf57eeed5ce27ae743f50" },
     { name = "fastapi", marker = "extra == 'backend'", specifier = ">=0.115.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27.0" },
-    { name = "pillow", marker = "extra == 'dev'", specifier = ">=12.3.0" },
+    { name = "pillow", specifier = ">=12.3.0" },
     { name = "psycopg2-binary", marker = "extra == 'dev'", specifier = ">=2.9.12" },
     { name = "pyjwt", extras = ["crypto"], marker = "extra == 'backend'", specifier = ">=2.8.0" },
     { name = "pyjwt", extras = ["crypto"], marker = "extra == 'dev'", specifier = ">=2.8.0" },

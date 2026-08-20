@@ -7,20 +7,23 @@ Cross-agent conventions for `LineageWeave`, readable by any coding agent
 
 A demo BI prototype that reconstructs git-branch-style lineage between
 scattered short records. See [ARCHITECTURE.md](ARCHITECTURE.md) for the
-design and [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md)
-for the literature it is grounded in.
+design, [ADR 0084](docs/adr/0084-lineage-research-grounding.md) for the
+normative research-grounding policy, and
+[`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md) for
+supporting literature and aggregate evidence.
 
-## Hard rule: no real data, ever
+## Hard rule: no real data in repository artifacts
 
-This repo ships **synthetic data only** (`lineageweave/fixtures.py`) and
-must never reference, by name or otherwise identifiably, any real
-organization whose data motivated this design. Never add a fixture, test
-case, screenshot, or example derived from a real organization's records. If you are extending this repo to validate against
-real data, do that validation entirely outside this repository (a private
-scratch script against a local database is fine) and only bring back
-**aggregate, non-identifying findings** -- see how
-`docs/lineage-bi-research-notes.md`'s "2.6%" validation number is phrased:
-a statistic, never a title, name, or id.
+This repository ships **synthetic fixtures only** (`lineageweave/fixtures.py`)
+and must never commit or expose, by name or otherwise identifiably, any real
+organization's records. Never add a real record to a fixture, test case,
+screenshot, example, log, benchmark artifact, or documentation.
+
+The private runtime is different: the product is expected to read an
+authorized real PostgreSQL source through its configured import/data boundary.
+Keep those records outside git and return only authorized, provenance-bearing
+product evidence. Validation results brought back into this repository must be
+aggregate and non-identifying -- a statistic, never a title, name, or id.
 
 ## Reuse before you build
 
@@ -44,6 +47,107 @@ reimplementing them:
 Before adding a new dependency, check whether an existing org repo already
 does it (`gh repo list ContextualWisdomLab`).
 
+## Decision records and model boundary
+
+- Read the applicable `docs/adr/` records before making an architectural,
+  schema, provider, model, or runtime decision. Record a new decision before
+  implementing a new policy; do not resolve ADR conflicts by intuition.
+- All LLM, VISION, embedding, and structured-output traffic crosses
+  `contextual-orchestrator`. This repository never calls a provider API
+  directly and never uses a monkey patch to repair an upstream capability.
+- Compose loads provider transport credentials from `~/.env` into the
+  orchestrator service. Never copy those values into this repository, an
+  image, a fixture, a log, or a committed agent configuration.
+- `LLM_GATEWAY_MODEL`, `VISION_MODEL`, and provider-specific model selectors
+  are not LineageWeave configuration. Model discovery, capability selection,
+  reasoning effort, protocol negotiation, and VISION selection belong to
+  contextual-orchestrator and must follow its paper-grounded ADRs.
+- MLX and any other local runtime are not public provider contracts. Use the
+  provider-neutral gateway boundary; historical benchmark material is not
+  runtime configuration.
+
+## ADR-first and paper-grounded model decisions
+
+ADRs are normative. Before making an architectural, schema, provider, agent,
+LLM, VISION, routing, reasoning-effort, or persistence decision, read the
+relevant ADRs first. If the ADR does not cover the decision, write or update
+the ADR before changing code, tests, Docker configuration, or runtime policy.
+Do not use an implementation preference to silently override an ADR.
+
+Model-related decisions are governed by [ADR
+0076](docs/adr/0076-paper-grounded-model-policy.md) and may rely only on the
+paper sources cited there and in contextual-orchestrator's literature register:
+the Fugu technical report, TRINITY, and Conductor. Provider model ordering,
+model-name size guesses, undocumented benchmarks, and local intuition are not
+evidence for model quality, routing, reasoning effort, agent count, synthesis,
+or VISION selection. If the papers do not support a policy, leave it
+undecided or unavailable rather than inventing a heuristic.
+
+The canonical provider credentials are runtime-only from `~/.env` through the
+Compose `env_file` boundary. Never copy `~/.env` into the repository or image,
+print its values, or persist them. Do not add `LLM_GATEWAY_MODEL`; the upstream
+contextual-orchestrator owns model discovery and selection.
+
+## LLM and VISION boundary
+
+- Use `LLM_GATEWAY_API_KEY` and `LLM_GATEWAY_API_URL` from the user's `~/.env`
+  at runtime. Keep compatibility aliases only at the process boundary; do not
+  introduce a second credential source or a repository-local secret.
+- Every LLM and VISION operation goes through contextual-orchestrator. This
+  includes adjudication, summaries, Keyman/entity extraction, post chat,
+  paragraph structure, image region recognition, OCR, image descriptions, and
+  embeddings. Do not call a provider SDK or raw `/v1/chat/completions` or
+  `/v1/responses` endpoint from LineageWeave.
+- One post shares one orchestrator session id across its LLM and VISION work.
+  Pass bounded provenance metadata with each request, including post id,
+  corporate entity code, PU, author id, source system, and visibility when
+  available. Do not persist an ad hoc `user_account + post_id` session key;
+  use normalized third-normal-form tables and the ADR-defined foreign keys.
+- Do not set `LLM_GATEWAY_MODEL` or select a model by provider order, model
+  name, parameter count, or local intuition. Blank provider agents must be
+  expanded and selected by contextual-orchestrator. Reasoning effort defaults
+  to `auto`; `low`, `medium`, `high`, and `xhigh` are capability/paper-policy
+  inputs, not a local model ranking heuristic. Never force `none` merely
+  because a model is not known to be a reasoning model.
+- Responses API `developer` and Chat Completions `system` are compatible
+  instruction roles at the orchestrator boundary. The orchestrator owns the
+  translation and provider capability handling; do not fork prompts per
+  transport in this repository.
+- Treat `LLM_GATEWAY_API_URL` as an opaque OpenAI-compatible gateway endpoint.
+  Do not add MLX/local-server URL schemes, port lists, local defaults,
+  chat-template injection, or vendor-specific bootstrap exceptions in
+  LineageWeave. Provider-specific capability translation belongs upstream.
+- `response_format`, `tools`, Responses API requests, `json_object`, and
+  `json_schema` must remain multi-agent workflows. A structured response or a
+  repair attempt must not silently fall back to a single-agent passthrough.
+  Preserve schema validation, synthesis, repair, session, and cost lineage.
+- VISION is an orchestrator capability, not a frontend-only enhancement. For
+  unsupported image formats, convert at ingestion; for transparent PNGs,
+  flatten transparent pixels onto white for the derived analysis image while
+  retaining the original asset and provenance. Recognize image DOM/visual
+  regions before OCR, descriptions, Keyman extraction, or embeddings. Store
+  region-level evidence; never show an internal LLM instruction such as
+  `This post is an image` to a buyer.
+
+## Source parsing and semantic units
+
+- Preserve the source representation and provenance, then derive semantic
+  paragraph/list/table/image-region units for search, ontology, and embeddings.
+  Do not flatten a post into one opaque body string.
+- Paragraph structure may come from HTML DOM and CSS, visible leading spaces or
+  `&nbsp;`, and OOXML/MS Word paragraph or run properties. Combine those
+  signals with contextual-orchestrator adjudication when evidence conflicts;
+  heuristics are not authoritative and must not be the only fallback for an
+  unresolved structure decision.
+- Remove presentation-only visual line alignment inside a paragraph (for
+  example continuation lines manually aligned after `-`, `*`, `1.`, or `.`)
+  from derived semantic text, while retaining the source body and meaningful
+  list/heading nesting. A buyer-facing post view must render semantic
+  paragraphs, not the authoring application's spacing workaround.
+- Image descriptions, OCR text, and region evidence are analysis artifacts,
+  not buyer-facing prompt instructions. Buyer UI shows the source content and
+  useful captions/evidence only, with provenance where appropriate.
+
 ## Pluggable channels: never fake a missing signal
 
 `NullEmbeddingClient`, `NullAdjudicationClient`,
@@ -58,13 +162,9 @@ confidently-negative signal are different things. Keyman extraction,
 entity-relationship classification, post summary, in-popup chat, and
 commitment derivation go through contextual-orchestrator the same way
 adjudication does -- never a raw LLM API. Demo TEPP seed goes through
-`tepp_client` the same way: a missing transport or an unpublished
-envelope is Failed (`tepp_not_available` / `tepp_result_not_persisted`).
-A published accepted acknowledgement is Failed /
-`tepp_completed_result_unsupported` and may be shown as aggregate
-transport evidence (ADR 0035). Never stamp Succeeded from that ack or
-from a LineageWeave-local completed envelope, and never invent a theta
-or a local psychometric substitute.
+`tepp_client` the same way: a missing transport or an unused accepted
+envelope is Failed (`tepp_not_available` / `tepp_result_not_persisted`),
+never a fabricated theta or a local psychometric substitute.
 
 ## Tests
 
@@ -82,7 +182,7 @@ in the same spirit) -- never against real data, per the hard rule above.
 against a live local stack (`make up`) and self-skip without one -- see
 [README.md](README.md#local-product-stack-docker-compose).
 
-Period leftover pairs (ADR 0028 / 0029) are computed in
+Period leftover pairs (ADR 0017 / 0018) are computed in
 `lineageweave/leftover_pairs.py` from the residual after a real
 GRM/GPCM score, never invented. Missing cells stay out of the
 Gabriel factorization. Closest and farthest post–criterion pairs
@@ -101,9 +201,8 @@ pnpm run lint && pnpm run test && pnpm run build
 
 A run-bearing analysis-run registry empties only after an unrevoked
 `analysis_run_retention_grant` and `GRANT analysis_run_retention_admin`
-(ADR 0020 / v0.87.0). The documented phrase is not a secret. The same
-call empties reconstruction children when those tables exist
-(ADR 0032 / v2.10.4). Do not expose purge on a public HTTP route.
+(ADR 0020 / v0.87.0). The documented phrase is not a secret. Do not
+expose purge on a public HTTP route.
 
 `POST /api/analysis-runs` records Pending lineage only (ADR 0017 /
 v2.7.1). TEPP and period-report kinds 422 before any snapshot write.
@@ -113,9 +212,6 @@ v0.88.0). Do not invent a theta.
 Opening a cutoff-rewritten title shows **Body this run knew** from
 `source_post_revision` beside the live rewrite (ADR 0025 / v2.1.0).
 Do not invent the earlier sentence when no revision covers the cutoff.
-After `make seed`, the January 12 Demo Corp lineage and TEPP runs list
-Demo public post and do not list Late Demo public post (2026-01-13).
-The live post list still shows Late Demo (ADR 0016).
 
 A corporate-entity similarity result has three outcomes: unique, miss,
 or tie (ADR 0026). A tie is not a miss. Keep the organization name
@@ -129,13 +225,6 @@ R&R chips read the catalog id stored on `post_summary_role`
 `corporate_entity` or `cataloged_person` by display name. Historical
 backfill leaves a role unbound when two same-named mentions already
 exist on the post.
-
-A listed analysis-run that then 404s must stay generic: do not name the thread or the cutoff,
-and do not say the run is not visible (ADR 0014 / ADR 0018). After
-that 404, re-read the authorized list so the stale row does not stay
-clickable. Announce the next action with `role="alert"` without
-moving focus. Remaining visible runs stay clickable. Request remains
-the named reconstruction control.
 
 ## CI gates
 

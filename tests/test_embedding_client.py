@@ -9,7 +9,10 @@ itself is correct regardless of provider.
 from __future__ import annotations
 
 from lineageweave.chunking import Chunk
-from lineageweave.embedding_client import chunked_max_similarity
+from lineageweave.embedding_client import (
+    ContextualOrchestratorEmbeddingClient,
+    chunked_max_similarity,
+)
 
 
 class _RecordingFakeEmbeddingClient:
@@ -84,3 +87,32 @@ def test_uses_chunker_output_directly_when_it_returns_two_or_more_pieces() -> No
     # Both documents chunk into 2 pieces each via _chunk_to_two_pieces --
     # the fallback must NOT engage, so every chunk gets its own embed call.
     assert len(client.embed_calls) == 4
+
+
+def test_orchestrator_embedding_client_submits_and_polls_batch(monkeypatch) -> None:
+    calls = []
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        calls.append(("post", url, payload, headers))
+        return {"batch_id": "synthetic-batch", "status": "queued"}
+
+    def fake_get_json(url, *, headers, timeout):
+        calls.append(("get", url, headers))
+        return {
+            "batch_id": "synthetic-batch",
+            "status": "completed",
+            "embeddings": [
+                {"index": 1, "embedding": [2.0, 3.0]},
+                {"index": 0, "embedding": [0.0, 1.0]},
+            ],
+        }
+
+    monkeypatch.setattr("lineageweave.embedding_client.post_json", fake_post_json)
+    monkeypatch.setattr("lineageweave.embedding_client.get_json", fake_get_json)
+    client = ContextualOrchestratorEmbeddingClient(
+        "http://orchestrator:8000", "synthetic-token", "synthetic-embedding", poll_interval=0
+    )
+
+    assert client.embed_many(["first", "second"]) == [[0.0, 1.0], [2.0, 3.0]]
+    assert calls[0][1] == "http://orchestrator:8000/v1/batch/embeddings"
+    assert calls[0][3] == {"authorization": "Bearer synthetic-token"}

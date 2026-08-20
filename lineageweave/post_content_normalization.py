@@ -21,11 +21,21 @@ new claim of its own, it only combines the two.
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
+from contextvars import Context, copy_context
+from itertools import repeat
 import re
 from dataclasses import dataclass, field
 
-from .chunking import Chunk, chunk_by_dom
-from .image_content import ImageContentClient, ImageDescription, NullImageContentClient
+from .chunking import Chunk, chunk_by_dom, normalize_semantic_text
+from .image_content import (
+    ImageContentClient,
+    ImageDescription,
+    ImageRegion,
+    NullImageContentClient,
+    crop_image_region,
+    regions_cover_image,
+)
 
 # Real HTML tags only -- a VOC body like "qty < 50 and price > 10" is
 # still plain text and must pass through unchanged. Listed tags match
@@ -52,6 +62,27 @@ class FormattingHint:
 
 
 @dataclass(frozen=True)
+class ImageContentResult:
+    """One embedded image's document-order result, including failures."""
+
+    chunk_index: int
+    mime_type: str
+    status_code: str
+    description: ImageDescription | None = None
+    regions: tuple["ImageRegionResult", ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class ImageRegionResult:
+    """One visual subregion and its independently obtained description."""
+
+    region_index: int
+    region: ImageRegion
+    status_code: str
+    description: ImageDescription | None = None
+
+
+@dataclass(frozen=True)
 class NormalizedPostContent:
     """The result of normalizing one post body.
 
@@ -70,11 +101,14 @@ class NormalizedPostContent:
         image_descriptions: every embedded image's real OCR text,
             caption, and tags, in document order -- empty when the input
             had no images or no vision client was available.
+        image_results: every embedded image's outcome, including unavailable
+            and failed outcomes, keyed by the original document-order index.
     """
 
     text: str
     formatting_hints: tuple[FormattingHint, ...] = field(default_factory=tuple)
     image_descriptions: tuple[ImageDescription, ...] = field(default_factory=tuple)
+    image_results: tuple[ImageContentResult, ...] = field(default_factory=tuple)
 
 
 def _looks_like_html(body: str) -> bool:
@@ -89,6 +123,116 @@ def _image_placeholder(description: ImageDescription) -> str:
     if ocr:
         return f"[image: {caption} | text: {ocr}]"
     return f"[image: {caption}]"
+
+
+def _merge_region_descriptions(descriptions: list[ImageDescription]) -> ImageDescription:
+    """Keep all successful region evidence in the parent image unit."""
+    extracted_text = "\n".join(item.extracted_text.strip() for item in descriptions if item.extracted_text.strip())
+    captions = " ".join(item.caption.strip() for item in descriptions if item.caption.strip())
+    tags = tuple(dict.fromkeys(tag for item in descriptions for tag in item.tags))
+    return ImageDescription(extracted_text=extracted_text, caption=captions, tags=tags)
+
+
+def _describe_image_region(
+    region_index: int,
+    image_bytes: bytes,
+    mime_type: str,
+    region: ImageRegion,
+    vision_client: ImageContentClient,
+) -> ImageRegionResult:
+    """Describe one region without allowing one failed crop to cancel siblings."""
+    try:
+        cropped, cropped_mime = crop_image_region(image_bytes, mime_type, region)
+        description = vision_client.describe(cropped, cropped_mime)
+    except Exception:  # noqa: BLE001 - preserve the region-level failure evidence.
+        return ImageRegionResult(region_index, region, "failed")
+    return ImageRegionResult(region_index, region, "described", description)
+
+
+def _describe_image_region_in_context(
+    context: Context,
+    region_index: int,
+    image_bytes: bytes,
+    mime_type: str,
+    region: ImageRegion,
+    vision_client: ImageContentClient,
+) -> ImageRegionResult:
+    """Run a region task with the post's metadata context attached."""
+    return context.run(
+        _describe_image_region,
+        region_index,
+        image_bytes,
+        mime_type,
+        region,
+        vision_client,
+    )
+
+
+def _describe_image_chunk(
+    chunk: Chunk, vision_client: ImageContentClient
+) -> tuple[ImageContentResult, ImageDescription | None, str]:
+    """Analyze one image chunk and keep its evidence and failure state."""
+    result = ImageContentResult(
+        chunk_index=chunk.index,
+        mime_type=chunk.label,
+        status_code="unavailable",
+    )
+    if not vision_client.available or chunk.image_data is None:
+        return result, None, "[image: content unavailable]"
+
+    region_results: list[ImageRegionResult] = []
+    try:
+        locator = getattr(vision_client, "locate_regions", None)
+        try:
+            regions = locator(chunk.image_data, chunk.label) if callable(locator) else ()
+        except Exception:  # noqa: BLE001 - locator failure falls back to whole-image evidence.
+            regions = ()
+        if not regions_cover_image(regions):
+            # A provider may return only a salient crop even when the contract asks for
+            # full-image coverage. Preserve the missing evidence with one bounded region.
+            regions = (ImageRegion(0.0, 0.0, 1.0, 1.0),)
+        # Keep each region's request bounded and preserve LLM metadata while avoiding
+        # serial timeout multiplication for image panels.
+        with ThreadPoolExecutor(max_workers=min(8, len(regions))) as executor:
+            region_results.extend(
+                executor.map(
+                    _describe_image_region_in_context,
+                    (copy_context() for _ in regions),
+                    range(len(regions)),
+                    repeat(chunk.image_data),
+                    repeat(chunk.label),
+                    regions,
+                    repeat(vision_client),
+                )
+            )
+        successful_regions = [
+            item.description for item in region_results if item.description is not None
+        ]
+        description = (
+            _merge_region_descriptions(successful_regions)
+            if successful_regions
+            else vision_client.describe(chunk.image_data, chunk.label)
+        )
+    except Exception:  # noqa: BLE001 - a provider failure must not drop the whole post.
+        return ImageContentResult(chunk.index, chunk.label, "failed"), None, "[image: content unavailable]"
+
+    result = ImageContentResult(
+        chunk_index=chunk.index,
+        mime_type=chunk.label,
+        status_code="described",
+        description=description,
+        regions=tuple(region_results),
+    )
+    return result, description, _image_placeholder(description)
+
+
+def _describe_image_chunk_in_context(
+    context: Context,
+    chunk: Chunk,
+    vision_client: ImageContentClient,
+) -> tuple[ImageContentResult, ImageDescription | None, str]:
+    """Run one parallel vision task with the caller's request context."""
+    return context.run(_describe_image_chunk, chunk, vision_client)
 
 
 def normalize_post_body(
@@ -109,12 +253,30 @@ def normalize_post_body(
         vision_client = NullImageContentClient()
 
     if not _looks_like_html(body):
-        return NormalizedPostContent(text=body)
+        return NormalizedPostContent(text=normalize_semantic_text(body))
 
     chunks: list[Chunk] = chunk_by_dom(body)
     text_parts: list[str] = []
     formatting_hints: list[FormattingHint] = []
     image_descriptions: list[ImageDescription] = []
+    image_results: list[ImageContentResult] = []
+    image_outcomes: dict[int, tuple[ImageContentResult, ImageDescription | None, str]] = {}
+    image_chunks = [chunk for chunk in chunks if chunk.unit_type == "image"]
+    if image_chunks and vision_client.available:
+        # ponytail: cap independent provider calls at eight; raise only with measured throughput need.
+        with ThreadPoolExecutor(max_workers=min(8, len(image_chunks))) as executor:
+            image_outcomes.update(
+                zip(
+                    (chunk.index for chunk in image_chunks),
+                    executor.map(
+                        _describe_image_chunk_in_context,
+                        (copy_context() for _ in image_chunks),
+                        image_chunks,
+                        repeat(vision_client),
+                    ),
+                    strict=True,
+                )
+            )
 
     for chunk in chunks:
         if chunk.unit_type == "dom":
@@ -124,19 +286,22 @@ def normalize_post_body(
                     FormattingHint(chunk_index=chunk.index, tag=chunk.label, style=chunk.style)
                 )
         elif chunk.unit_type == "image":
-            if vision_client.available and chunk.image_data is not None:
-                try:
-                    description = vision_client.describe(chunk.image_data, chunk.label)
-                except Exception:  # noqa: BLE001 - a provider failure must not drop the whole post.
-                    text_parts.append("[image: content unavailable]")
-                else:
-                    image_descriptions.append(description)
-                    text_parts.append(_image_placeholder(description))
-            else:
-                text_parts.append("[image: content unavailable]")
+            result, description, placeholder = image_outcomes.get(
+                chunk.index,
+                (
+                    ImageContentResult(chunk.index, chunk.label, "unavailable"),
+                    None,
+                    "[image: content unavailable]",
+                ),
+            )
+            if description is not None:
+                image_descriptions.append(description)
+            text_parts.append(placeholder)
+            image_results.append(result)
 
     return NormalizedPostContent(
         text="\n\n".join(part for part in text_parts if part),
         formatting_hints=tuple(formatting_hints),
         image_descriptions=tuple(image_descriptions),
+        image_results=tuple(image_results),
     )

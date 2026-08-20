@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
+  askAgent,
   BackendError,
-  corroboratePostAbbreviations,
   createAnalysisRun,
   startAnalysisRun,
   createPostTicket,
@@ -13,18 +13,21 @@ import {
   fetchAnalysisRun,
   fetchAnalysisRuns,
   fetchCalendar,
-  fetchCustomerGroupTree,
+  fetchCustomerMaster,
+  resolveCustomerHint,
   fetchLineageGraph,
   fetchMe,
   fetchPost,
+  fetchPostContent,
   fetchPostActivity,
-  fetchPostAbbreviationTreeMatches,
+  fetchPostBookmark,
   fetchPostChat,
   fetchPostAffiliateTree,
   fetchPostCounterparties,
   fetchPostEvaluation,
   fetchPostKeymen,
   fetchPostLineage,
+  fetchPostFiveW1H,
   fetchPostSummary,
   fetchPostTickets,
   fetchPostVocEvidence,
@@ -38,86 +41,105 @@ import {
   fetchRelatedTeam,
   rebuildLineage,
   rebuildPeriodReports,
+  setPostBookmark,
+  setPreferredLocale,
   updateTicketStatus,
   verifyPostRelations,
-  type AbbreviationTreeMatch,
   type ActivityEvent,
+  type AskAgentResponse,
   type AffiliateNode,
   type AnalysisRun,
-  type CalendarEntry,
+  type CalendarResponse,
   type ChatAnswer,
   type ChatExchange,
   type CorporateEntityRef,
+  type CustomerMasterEntity,
+  type CustomerMasterResponse,
   type Counterparty,
-  type CustomerGroupNode,
   type EvaluationResponse,
   type IssueTicket,
   type LineageGraph,
   type Keyman,
-  type LinkedPostRef,
+  type SourceAuthorContext,
   type PostAiSummary,
+  type PostFiveW1H,
   type PostDetail,
+  type PostContentUnit,
+  type PostImageContent,
+  type PostFilterOption,
   type PeriodComparison,
   type PeriodReportIndex,
   type PeriodReports,
   type PostLineage,
   type PostSummary,
+  type PostSortOrder,
   type RankingList,
+  type PersonRoleHistoryEntry,
   type RelatedNode,
   type RelatedNodeType,
-  type VerificationStatusCode,
   type VocEvidence,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
-import { StatusAlert } from "./components/StatusAlert";
+import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
+import { decodeHtmlEntities } from "./postBodyDisplay";
+import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
 import { RelatedNodeChip } from "./RelatedNodeChip";
 import { relatedAffiliationNextAction } from "./relatedNodeCaption";
+import {
+  isSupportedLocale,
+  LOCALE_LABELS,
+  SUPPORTED_LOCALES,
+  setLocale,
+  t,
+  tf,
+  useLocale,
+} from "./i18n";
+import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
   if (err instanceof BackendError && err.status === 503) {
-    return `${action} unavailable (LLM orchestrator not configured).`;
+    return `${action} ${t("is temporarily unavailable.")} ${t("Saved evidence is still available.")}`;
   }
   return String(err);
+}
+
+function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
+  const locale = useLocale();
+  return (
+    <label className="language-switcher">
+      <span className="visually-hidden">{t("Language")}</span>
+      <select
+        aria-label={t("Language")}
+        value={locale}
+        onChange={(event) => {
+          const nextLocale = event.target.value;
+          if (!isSupportedLocale(nextLocale)) return;
+          setLocale(nextLocale);
+          if (accessToken) void setPreferredLocale(accessToken, nextLocale).catch(() => undefined);
+        }}
+      >
+        {SUPPORTED_LOCALES.map((option) => (
+          <option key={option} value={option}>
+            {LOCALE_LABELS[option]}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 }
 
 function searchUnavailableMessage(err: unknown): string {
   if (err instanceof BackendError && err.status === 503) {
-    return "Verification unavailable (search is not configured).";
+    return t("Verification unavailable (search is not configured).");
   }
   return String(err);
-}
-
-function abbreviationStatusLabel(code: VerificationStatusCode): string {
-  switch (code) {
-    case "verify_corroborated":
-      return "corroborated";
-    case "verify_uncorroborated":
-      return "uncorroborated";
-    case "verify_pending":
-      return "pending";
-    default: {
-      const _exhaustive: never = code;
-      return _exhaustive;
-    }
-  }
-}
-
-function parseVerificationStatus(code: string): VerificationStatusCode {
-  switch (code) {
-    case "verify_corroborated":
-    case "verify_uncorroborated":
-    case "verify_pending":
-      return code;
-    default:
-      return "verify_pending";
-  }
 }
 
 const CRITERION_SHORT_LABEL: Record<string, string> = {
@@ -147,17 +169,34 @@ function EvidencePanel({
   onClose?: () => void;
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
+  const [postError, setPostError] = useState(false);
 
   useEffect(() => {
+    let current = true;
     setPost(null);
-    fetchPost(accessToken, postId).then(setPost).catch(() => setPost(null));
+    setPostError(false);
+    fetchPost(accessToken, postId)
+      .then((result) => {
+        if (current) setPost(result);
+      })
+      .catch(() => {
+        if (current) setPostError(true);
+      });
+    return () => {
+      current = false;
+    };
   }, [postId, accessToken]);
 
   return (
-    <div className="evidence-panel" role="complementary" aria-label="Evidence">
-      {onClose ? <PopupCloseButton onClose={onClose} label="Close evidence panel" /> : null}
-      <h3>Evidence</h3>
-      {!post && <p>Loading source post...</p>}
+    <div className="evidence-panel" role="complementary" aria-label={t("Evidence")}>
+      {onClose ? <PopupCloseButton onClose={onClose} label={t("Close evidence panel")} /> : null}
+      <h3>{t("Evidence")}</h3>
+      {!post && !postError && <p>{t("Loading source post...")}</p>}
+      {postError && (
+        <p className="error" role="alert">
+          {t("Source evidence is unavailable. Continue with the saved answer.")}
+        </p>
+      )}
       {post && (
         <>
           <h4>{post.post_title}</h4>
@@ -184,7 +223,7 @@ function ChatCitations({
     citedPosts ?? citedPostIds.map((post_id) => ({ post_id, post_title: post_id.slice(0, 8) }));
   return (
     <div className="chat-citations">
-      <span>Sources: </span>
+      <span>{t("Sources:")} </span>
       {chips.map((cited) => (
         <CitationChip
           key={cited.post_id}
@@ -262,10 +301,10 @@ function ChatPanel({
   return (
     <section className="popup-section chat-section">
       <h3 id="post-ask" tabIndex={-1}>
-        Ask about this lineage
+        {t("Ask about this lineage")}
       </h3>
       {nameFirstAsk && exchanges[0] ? (
-        <p className="post-meta" role="status" aria-label="Ask seed next action">
+        <p className="post-meta" role="status" aria-label={t("Ask seed next action")}>
           {firstAskNextAction(exchanges[0].question_text)}
         </p>
       ) : null}
@@ -284,7 +323,7 @@ function ChatPanel({
         </div>
       ) : null}
       {nameFirstAsk && firstCitedTitle ? (
-        <p className="post-meta" role="status" aria-label="Ask citation next action">
+        <p className="post-meta" role="status" aria-label={t("Ask citation next action")}>
           {firstCitedNextAction(firstCitedTitle)}
         </p>
       ) : null}
@@ -300,7 +339,7 @@ function ChatPanel({
         />
       ) : null}
       {nameFirstAsk && firstCitedTitle && landedEvidencePostId ? (
-        <p className="post-meta" role="status" aria-label="Evidence next action">
+        <p className="post-meta" role="status" aria-label={t("Evidence next action")}>
           {landedEvidenceNextAction(firstCitedTitle)}
         </p>
       ) : null}
@@ -311,15 +350,17 @@ function ChatPanel({
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && handleAsk()}
-            placeholder="What happened between these events?"
+            placeholder={t("What happened between these events?")}
           />
           <button onClick={() => handleAsk()} disabled={loading || !question.trim()}>
-            {loading ? "Asking..." : "Ask"}
+            {loading ? t("Asking...") : t("Ask")}
           </button>
         </div>
       )}
       {seededOnly && exchanges.length > 0 && (
-        <p className="popup-placeholder">Only seeded questions can be answered without an orchestrator.</p>
+        <p className="popup-placeholder">
+          {t("Interactive questions are unavailable right now; saved evidence remains available.")}
+        </p>
       )}
       {exchanges.length > 0 && (
         <div className="chat-suggestions">
@@ -327,7 +368,7 @@ function ChatPanel({
             <button
               key={exchange.question_text}
               className="chat-suggestion-chip"
-              aria-label={`Ask seeded question: ${exchange.question_text}`}
+              aria-label={tf("Ask seeded question: {question}", { question: exchange.question_text })}
               aria-current={
                 nameFirstAsk && exchanges[0]?.question_text === exchange.question_text
                   ? "true"
@@ -383,31 +424,37 @@ function ChatPanel({
 }
 
 function eventLineageCurrentNextAction(postTitle: string): string {
-  return `${postTitle} is current in Event Lineage. Read Keyman and evaluation next.`;
+  return tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", {
+    post: postTitle,
+  });
 }
 
 function firstKeymanNextAction(personName: string): string {
-  return `${personName} is the first Keyman. Read that person next.`;
+  return tf("{person} is the first Keyman. Read that person next.", { person: personName });
 }
 
 function firstRelatedNextAction(nodeLabel: string): string {
-  return `${nodeLabel} is the first related node. Read that person next.`;
+  return tf("{node} is the first related node. Read that person next.", { node: nodeLabel });
 }
 
 function relatedNodesCurrentNextAction(personName: string): string {
-  return `Related nodes for ${personName} are current. Ask about this lineage next.`;
+  return tf("Related nodes for {person} are current. Ask about this lineage next.", {
+    person: personName,
+  });
 }
 
 function firstAskNextAction(questionText: string): string {
-  return `${questionText} is the first Ask. Read that answer next.`;
+  return tf("{question} is the first Ask. Read that answer next.", { question: questionText });
 }
 
 function firstCitedNextAction(postTitle: string): string {
-  return `${postTitle} is the first cited source. Open that evidence next.`;
+  return tf("{post} is the first cited source. Open that evidence next.", { post: postTitle });
 }
 
 function landedEvidenceNextAction(postTitle: string): string {
-  return `${postTitle} evidence is current. Read Event Lineage on that post next.`;
+  return tf("{post} evidence is current. Read Event Lineage on that post next.", {
+    post: postTitle,
+  });
 }
 
 function EventLineageSection({
@@ -423,23 +470,18 @@ function EventLineageSection({
   onSelectPost?: (postId: string) => void;
   currentNextAction?: string | null;
 }) {
-  if (!lineage) return <p>Loading lineage...</p>;
+  if (!lineage) return <p>{t("Loading lineage...")}</p>;
+  if (!graph) return <p>{t("Loading lineage...")}</p>;
   const scoped = graph ? subgraphForPost(graph, postId) : { nodes: [], edges: [] };
-  const renderLink = (post: LinkedPostRef, kind: "direct" | "indirect") => (
-    <li key={post.post_id} className={`lineage-link lineage-link-${kind}`}>
-      <span className="lineage-badge">{kind === "direct" ? "직접" : "간접"}</span>
-      {onSelectPost ? (
-        <button className="lineage-link-button" onClick={() => onSelectPost(post.post_id)}>
-          {post.post_title}
-        </button>
-      ) : (
-        post.post_title
-      )}
-    </li>
-  );
   const hasLinks = lineage.direct.length > 0 || lineage.indirect.length > 0;
-  if (scoped.nodes.length === 0 && !hasLinks) {
-    return <p className="lineage-empty">No linked posts yet.</p>;
+  if (scoped.nodes.length === 0) {
+    return (
+      <p className="lineage-empty">
+        {hasLinks
+          ? t("The linked records are listed above. The graph is not available for this view.")
+          : t("No linked posts yet.")}
+      </p>
+    );
   }
   return (
     <>
@@ -447,17 +489,93 @@ function EventLineageSection({
         <LineageDag graph={scoped} onSelectPost={onSelectPost} currentPostId={postId} />
       )}
       {scoped.nodes.length > 0 && currentNextAction ? (
-        <p className="post-meta" role="status" aria-label="Event Lineage next action">
+        <p className="post-meta" role="status" aria-label={t("Event Lineage next action")}>
           {currentNextAction}
         </p>
       ) : null}
-      {hasLinks && (
-        <ul className="lineage-list">
-          {lineage.direct.map((post) => renderLink(post, "direct"))}
-          {lineage.indirect.map((post) => renderLink(post, "indirect"))}
+    </>
+  );
+}
+
+function summaryFetchError(err: unknown): string {
+  return err instanceof BackendError ? err.message : String(err);
+}
+
+function RelatedPostsSection({
+  lineage,
+  onSelectPost,
+}: {
+  lineage: PostLineage | null;
+  onSelectPost?: (postId: string) => void;
+}) {
+  if (!lineage) {
+    return (
+      <section className="popup-section related-posts-section" aria-labelledby="related-posts-heading">
+        <div className="related-posts-header">
+          <div>
+            <p className="section-eyebrow">{t("Evidence trail")}</p>
+            <h3 id="related-posts-heading">{t("Related posts")}</h3>
+          </div>
+        </div>
+        <p>{t("Loading related posts...")}</p>
+      </section>
+    );
+  }
+
+  const related = [
+    ...lineage.direct.map((post) => ({ post, kind: "Direct relation" })),
+    ...lineage.indirect.map((post) => ({ post, kind: "Indirect relation" })),
+  ];
+
+  return (
+    <section className="popup-section related-posts-section" aria-labelledby="related-posts-heading">
+      <div className="related-posts-header">
+        <div>
+          <p className="section-eyebrow">{t("Evidence trail")}</p>
+          <h3 id="related-posts-heading">{t("Related posts")}</h3>
+        </div>
+        {related.length > 0 && <span className="related-post-count">{related.length} {t("linked")}</span>}
+      </div>
+      {related.length === 0 ? (
+        <p className="popup-placeholder">{t("No linked posts have been established for this record.")}</p>
+      ) : (
+        <ul className="related-post-list" aria-label={t("Related posts")}>
+          {related.map(({ post, kind }) => (
+            <li key={`${kind}:${post.post_id}`}>
+              {(() => {
+                const cardContent = (
+                  <>
+                    <span className="related-post-kind">{t(kind)}</span>
+                    <span className="related-post-content">
+                      <strong>{post.post_title}</strong>
+                      <span className="post-body-excerpt" aria-label={t("Post body preview")}>
+                        {post.post_body_excerpt || t("No post body.")}
+                        {post.post_body_truncated ? " ..." : ""}
+                      </span>
+                    </span>
+                  </>
+                );
+                return onSelectPost ? (
+                  <button
+                    type="button"
+                    className="related-post-card"
+                    aria-label={tf("Open related post: {label}", { label: post.post_title })}
+                    onClick={() => onSelectPost(post.post_id)}
+                  >
+                    {cardContent}
+                    <span className="related-post-cta">{t("Open record")}</span>
+                  </button>
+                ) : (
+                  <div className="related-post-card related-post-card-static">
+                    {cardContent}
+                  </div>
+                );
+              })()}
+            </li>
+          ))}
         </ul>
       )}
-    </>
+    </section>
   );
 }
 
@@ -476,7 +594,7 @@ function AffiliateTreeNode({
         {node.resolved && node.entity_id && onSelectEntity ? (
           <button
             className="keyman-select"
-            aria-label={`Affiliate org: ${node.entity_name}`}
+            aria-label={tf("Affiliate org: {name}", { name: node.entity_name })}
             onClick={() => {
               if (node.entity_id) onSelectEntity(node.entity_id, node.entity_name);
             }}
@@ -490,7 +608,7 @@ function AffiliateTreeNode({
       {(node.entity_level_label || node.entity_level_code) && (
         <span className="affiliate-level"> ({node.entity_level_label ?? node.entity_level_code})</span>
       )}
-      {!node.resolved && <span className="affiliate-unresolved-mark"> unresolved</span>}
+      {!node.resolved && <span className="affiliate-unresolved-mark"> {t("unresolved")}</span>}
       {node.people.length > 0 && (
         <span className="keyman-affiliations">
           {" -- "}
@@ -500,7 +618,7 @@ function AffiliateTreeNode({
               {onSelectPerson ? (
                 <button
                   className="keyman-select"
-                  aria-label={`Affiliate Keyman: ${person.person_name}`}
+                  aria-label={tf("Affiliate Keyman: {name}", { name: person.person_name })}
                   onClick={() => onSelectPerson(person.person_id, person.person_name)}
                 >
                   {person.person_name} ({person.person_side_label ?? person.person_side_code})
@@ -557,7 +675,7 @@ function VocEvidenceSection({
   affiliateTrees: AffiliateNode[] | null;
   onSelectPerson: (personId: string, personName: string) => void;
 }) {
-  if (!evidence) return <p>Loading VOC evidence...</p>;
+  if (!evidence) return <p>{t("Loading VOC evidence...")}</p>;
   const assignedExcerpts = new Set(
     evidence.counterparties
       .map((row) => row.evidence_excerpt)
@@ -567,12 +685,12 @@ function VocEvidenceSection({
   const hasExcerpt = evidence.excerpts.length > 0 || assignedExcerpts.size > 0;
   return (
     <section className="popup-section">
-      <h3>VOC evidence</h3>
+      <h3>{t("VOC evidence")}</h3>
       <p className="post-meta">
         {evidence.voc_type_label} ({evidence.voc_type_code})
       </p>
       {!hasExcerpt ? (
-        <p className="popup-placeholder">No extractive excerpt -- no named organization appears in this post.</p>
+        <p className="popup-placeholder">{t("No extractive excerpt -- no named organization appears in this post.")}</p>
       ) : unassignedExcerpts.length > 0 ? (
         <ul className="voc-excerpt-list">
           {unassignedExcerpts.map((excerpt) => (
@@ -591,7 +709,7 @@ function VocEvidenceSection({
               {person ? (
                 <button
                   className="keyman-select"
-                  aria-label={`VOC Keyman: ${row.counterparty_entity_name}`}
+                  aria-label={tf("VOC Keyman: {name}", { name: row.counterparty_entity_name })}
                   onClick={() => onSelectPerson(person.personId, person.personName)}
                 >
                   {row.counterparty_entity_name}
@@ -604,7 +722,7 @@ function VocEvidenceSection({
               <VerificationBadge
                 statusCode={row.verification_status_code ?? "verify_pending"}
                 evidenceUrl={row.verification_evidence_url}
-                ariaLabel={`VOC verification: ${row.counterparty_entity_name}`}
+                  ariaLabel={tf("VOC verification: {name}", { name: row.counterparty_entity_name })}
               />
             </p>
             {row.evidence_excerpt ? (
@@ -639,6 +757,36 @@ function relatedNodeCaption(node: RelatedNode): string {
   return `${name} (${node.ontology_label ?? node.node_type_code})`;
 }
 
+const PROJECT_EXTRACTION_LABELS: Record<string, string> = {
+  source_field_hint: "Explicit source field",
+  contextual_orchestrator_semantic: "Semantic extraction",
+};
+
+const PROJECT_PROVENANCE_LABELS: Record<string, string> = {
+  "source_post.source_project_code": "Source project code",
+  "source_post.source_project_name": "Source project name",
+  "post_project_mention.evidence_text": "Stored semantic evidence",
+};
+
+function projectExtractionLabel(method: string): string {
+  return t(PROJECT_EXTRACTION_LABELS[method] ?? "Recorded extraction");
+}
+
+function projectProvenanceLabel(provenance: string): string {
+  return t(PROJECT_PROVENANCE_LABELS[provenance] ?? "Recorded evidence");
+}
+
+const CHAT_EVIDENCE_KIND_LABELS: Record<string, string> = {
+  source_field: "Source field hint",
+  semantic_project: "Semantic project",
+  semantic_role: "Semantic role",
+  semantic_keyman: "Semantic Keyman",
+};
+
+function chatEvidenceKindLabel(kind: string): string {
+  return t(CHAT_EVIDENCE_KIND_LABELS[kind] ?? "Evidence");
+}
+
 const VERIFICATION_BADGE: Record<string, string> = {
   verify_pending: "Not yet checked",
   verify_corroborated: "Corroborated",
@@ -667,7 +815,7 @@ function VerificationBadge({
   evidenceUrl?: string | null;
   ariaLabel: string;
 }) {
-  const label = VERIFICATION_BADGE[statusCode] ?? statusCode;
+  const label = t(VERIFICATION_BADGE[statusCode] ?? statusCode);
   const className = `verification-badge verification-${statusCode}`;
   const href = safeHttpUrl(evidenceUrl);
   if (href) {
@@ -688,6 +836,7 @@ function KeymanPanel({
   postId,
   accessToken,
   keymen,
+  sourceAuthorContext,
   canExtract,
   onExtracted,
   onSelectPost,
@@ -701,6 +850,7 @@ function KeymanPanel({
   postId: string;
   accessToken: string;
   keymen: Keyman[] | null;
+  sourceAuthorContext?: SourceAuthorContext | null;
   canExtract: boolean;
   onExtracted: () => void;
   onSelectPost?: (postId: string) => void;
@@ -712,6 +862,7 @@ function KeymanPanel({
   afterList?: ReactNode;
 }) {
   const [related, setRelated] = useState<RelatedNode[] | null>(null);
+  const [roleHistory, setRoleHistory] = useState<PersonRoleHistoryEntry[]>([]);
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [landedRelated, setLandedRelated] = useState<RelatedNode[] | null>(null);
   const [landedRelatedName, setLandedRelatedName] = useState<string | null>(null);
@@ -729,9 +880,13 @@ function KeymanPanel({
     const requestId = ++relatedRequest.current;
     setSelectedName(personName);
     setRelated(null);
+    setRoleHistory([]);
     try {
       const result = await fetchRelatedKeymen(accessToken, personId);
-      if (requestId === relatedRequest.current) setRelated(result.related);
+      if (requestId === relatedRequest.current) {
+        setRelated(result.related);
+        setRoleHistory(result.role_history ?? []);
+      }
     } catch {
       if (requestId === relatedRequest.current) setRelated([]);
     }
@@ -741,6 +896,7 @@ function KeymanPanel({
     const requestId = ++relatedRequest.current;
     setSelectedName(entityName);
     setRelated(null);
+    setRoleHistory([]);
     try {
       const result = await fetchRelatedEntity(accessToken, entityId);
       if (requestId === relatedRequest.current) setRelated(result.related);
@@ -753,6 +909,7 @@ function KeymanPanel({
     const requestId = ++relatedRequest.current;
     setSelectedName(teamName);
     setRelated(null);
+    setRoleHistory([]);
     try {
       const result = await fetchRelatedTeam(accessToken, teamId);
       if (requestId === relatedRequest.current) setRelated(result.related);
@@ -769,9 +926,13 @@ function KeymanPanel({
     const requestId = ++relatedRequest.current;
     setSelectedName(first.person_name);
     setRelated(null);
+    setRoleHistory([]);
     fetchRelatedKeymen(accessToken, first.person_id)
       .then((result) => {
-        if (requestId === relatedRequest.current) setRelated(result.related);
+        if (requestId === relatedRequest.current) {
+          setRelated(result.related);
+          setRoleHistory(result.role_history ?? []);
+        }
       })
       .catch(() => {
         if (requestId === relatedRequest.current) setRelated([]);
@@ -818,9 +979,13 @@ function KeymanPanel({
     const requestId = ++relatedRequest.current;
     setSelectedName(focusPerson.personName);
     setRelated(null);
+    setRoleHistory([]);
     fetchRelatedKeymen(accessToken, focusPerson.personId)
       .then((result) => {
-        if (requestId === relatedRequest.current) setRelated(result.related);
+        if (requestId === relatedRequest.current) {
+          setRelated(result.related);
+          setRoleHistory(result.role_history ?? []);
+        }
       })
       .catch(() => {
         if (requestId === relatedRequest.current) setRelated([]);
@@ -832,6 +997,7 @@ function KeymanPanel({
     const requestId = ++relatedRequest.current;
     setSelectedName(focusEntity.entityName);
     setRelated(null);
+    setRoleHistory([]);
     fetchRelatedEntity(accessToken, focusEntity.entityId)
       .then((result) => {
         if (requestId === relatedRequest.current) setRelated(result.related);
@@ -862,7 +1028,7 @@ function KeymanPanel({
       await extractPostKeymen(accessToken, postId);
       onExtracted();
     } catch (err) {
-      setError(orchestratorUnavailableMessage(err, "Keyman extraction"));
+      setError(orchestratorUnavailableMessage(err, "Keymen extraction"));
       if (err instanceof BackendError && err.status === 503) {
         setOrchestratorOff(true);
       }
@@ -871,20 +1037,64 @@ function KeymanPanel({
     }
   }
 
+  const relatedPosts = related?.filter((node) => node.node_type_code === NODE_POST) ?? [];
   const relatedBlock = selectedName ? (
     <div className="related-keymen">
-      <h4>Related to {selectedName}</h4>
+      <h4>{t("Related to")} {selectedName}</h4>
+      {roleHistory.length > 0 ? (
+        <div className="role-history">
+          <p className="section-eyebrow">{t("Role history")}</p>
+          <ol aria-label={`${t("Role history")}: ${selectedName}`}>
+            {roleHistory.map((entry) => (
+              <li key={entry.post_id}>
+                <span className="post-badge">{entry.created_at.slice(0, 10)}</span>
+                <span>
+                  {entry.affiliated_organization_name
+                    ? tf("{responsibility} at {organization}", {
+                        responsibility: entry.responsibility,
+                        organization: entry.affiliated_organization_name,
+                      })
+                    : entry.responsibility}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
       {related !== null && related.some((node) => node.affiliation_ambiguous) ? (
         <p className="related-affiliation-hint">
           {relatedAffiliationNextAction(Boolean(keymen && keymen.length > 0))}
         </p>
       ) : null}
       {related === null ? (
-        <p>Loading related nodes...</p>
+        <p>{t("Loading related nodes...")}</p>
       ) : related.length === 0 ? (
-        <p className="popup-placeholder">No related nodes in the visible graph.</p>
+        <p className="popup-placeholder">{t("No related nodes in the visible graph.")}</p>
       ) : (
-        <ul>
+        <>
+          {relatedPosts.length > 0 && onSelectPost ? (
+            <div className="related-posts-context">
+              <p className="section-eyebrow">{t("Evidence trail")}</p>
+              <h5>{t("Related posts")}</h5>
+              <ul className="related-post-list" aria-label={`${t("Related posts")}: ${selectedName}`}>
+                {relatedPosts.map((node) => (
+                  <li key={`context-post:${node.node_id}`}>
+                    <button
+                      type="button"
+                      className="related-post-card"
+                      aria-label={tf("Open related post: {label}", { label: node.label ?? node.node_id })}
+                      onClick={() => onSelectPost(node.node_id)}
+                    >
+                      <span className="related-post-kind">{t("Graph relation")}</span>
+                      <strong>{node.label ?? node.node_id}</strong>
+                      <span className="related-post-cta">{t("Open record")}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <ul>
           {related.map((node) => {
             const caption = relatedNodeCaption(node);
             const key = `${node.node_type_code}:${node.node_id}`;
@@ -893,18 +1103,7 @@ function KeymanPanel({
             }
             switch (node.node_type_code) {
               case NODE_POST:
-                if (!onSelectPost) {
-                  return <li key={key}>{caption}</li>;
-                }
-                return (
-                  <li key={key}>
-                    <RelatedNodeChip
-                      node={node}
-                      action="open_post"
-                      onSelect={(selected) => onSelectPost(selected.node_id)}
-                    />
-                  </li>
-                );
+                return null;
               case NODE_PERSON:
                 return (
                   <li key={key}>
@@ -948,7 +1147,8 @@ function KeymanPanel({
               }
             }
           })}
-        </ul>
+          </ul>
+        </>
       )}
     </div>
   ) : null;
@@ -957,21 +1157,53 @@ function KeymanPanel({
     <>
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>Keyman</h3>
+        <h3>{t("Keymen")}</h3>
         {canExtract && !orchestratorOff && (
-          <button onClick={handleExtract} disabled={extracting}>
-            {extracting ? "Extracting..." : "Extract Keymen"}
-          </button>
+          <details className="operator-action-tools">
+            <summary>{t("Evidence operations")}</summary>
+            <button onClick={handleExtract} disabled={extracting}>
+              {extracting ? t("Extracting...") : t("Extract Keymen")}
+            </button>
+          </details>
         )}
       </div>
       {error && <p className="error">{error}</p>}
+      {sourceAuthorContext ? (
+        <details className="keyman-source-context">
+          <summary>{t("Source author evidence")} · {t("Hint only")}</summary>
+          <p>
+            <strong>
+              {sourceAuthorContext.source_author_name || sourceAuthorContext.source_author_code || t("Unknown")}
+            </strong>
+          </p>
+          <p>
+            {t("Authorization context")}: {sourceAuthorContext.account_display_name}
+            {sourceAuthorContext.account_affiliations.length > 0 ? (
+              <span className="keyman-affiliations">
+                {" -- "}
+                {sourceAuthorContext.account_affiliations.map((affiliation, index) => (
+                  <span key={`${affiliation.corporate_entity_id}:${affiliation.process_unit_code ?? index}`}>
+                    {index > 0 ? ", " : null}
+                    {affiliation.entity_name}
+                    {affiliation.process_unit_name
+                      ? ` (${affiliation.process_unit_name})`
+                      : affiliation.process_unit_code
+                        ? ` (${affiliation.process_unit_code})`
+                        : null}
+                  </span>
+                ))}
+              </span>
+            ) : null}
+          </p>
+        </details>
+      ) : null}
       {keymen && keymen.length > 0 ? (
         <ul className="keyman-list">
           {keymen.map((person) => (
             <li key={person.person_id}>
               <button
                 className="keyman-select"
-                aria-label={`Related nodes for ${person.person_name}`}
+                aria-label={tf("Related nodes for {name}", { name: person.person_name })}
                 aria-current={
                   landFirstKeyman && selectedName === person.person_name ? "true" : undefined
                 }
@@ -991,7 +1223,7 @@ function KeymanPanel({
                       {affiliation.corporate_entity_id ? (
                         <button
                           className="keyman-select"
-                          aria-label={`Keyman affiliation: ${affiliation.organization_name}`}
+                          aria-label={tf("Keyman affiliation: {name}", { name: affiliation.organization_name })}
                           onClick={() =>
                             handleSelectEntity(
                               affiliation.corporate_entity_id as string,
@@ -1015,24 +1247,24 @@ function KeymanPanel({
           ))}
         </ul>
       ) : (
-        <p className="popup-placeholder">No Keyman extracted yet.</p>
+        <p className="popup-placeholder">{t("No Keymen extracted yet.")}</p>
       )}
       {!afterList && relatedBlock}
     </section>
       {afterList}
       {afterList && relatedBlock}
       {afterList && related?.[0] ? (
-        <p className="post-meta" role="status" aria-label="Related next action">
+        <p className="post-meta" role="status" aria-label={t("Related next action")}>
           {firstRelatedNextAction(related[0].label ?? related[0].node_id)}
         </p>
       ) : null}
       {afterList && landFirstRelated && landedRelatedName ? (
         <div className="related-keymen">
-          <h4>Related to {landedRelatedName}</h4>
+          <h4>{t("Related to")} {landedRelatedName}</h4>
           {landedRelated === null ? (
-            <p>Loading related nodes...</p>
+            <p>{t("Loading related nodes...")}</p>
           ) : landedRelated.length === 0 ? (
-            <p className="popup-placeholder">No related nodes in the visible graph.</p>
+            <p className="popup-placeholder">{t("No related nodes in the visible graph.")}</p>
           ) : (
             <ul>
               {landedRelated.map((node) => (
@@ -1045,7 +1277,7 @@ function KeymanPanel({
         </div>
       ) : null}
       {afterList && landFirstRelated && landedRelatedName && landedRelated !== null ? (
-        <p className="post-meta" role="status" aria-label="Ask next action">
+          <p className="post-meta" role="status" aria-label={t("Ask next action")}>
           {relatedNodesCurrentNextAction(landedRelatedName)}
         </p>
       ) : null}
@@ -1097,18 +1329,21 @@ function EvaluationPanel({
   return (
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>Post quality (IRT)</h3>
+        <h3>{t("Post quality (IRT)")}</h3>
         {canExtract && !orchestratorOff && (
-          <button onClick={handleEvaluate} disabled={evaluating}>
-            {evaluating ? "Evaluating..." : "Evaluate post"}
-          </button>
+          <details className="operator-action-tools">
+            <summary>{t("Evidence operations")}</summary>
+            <button onClick={handleEvaluate} disabled={evaluating}>
+              {evaluating ? t("Evaluating...") : t("Evaluate post")}
+            </button>
+          </details>
         )}
       </div>
       {error && <p className="error">{error}</p>}
       {responses === null ? (
-        <p>Loading evaluation...</p>
+        <p>{t("Loading evaluation...")}</p>
       ) : responses.length === 0 ? (
-        <p className="popup-placeholder">Not yet evaluated.</p>
+        <p className="popup-placeholder">{t("Not yet evaluated.")}</p>
       ) : (
         <ul>
           {responses.map((row) => (
@@ -1129,6 +1364,7 @@ function CounterpartyPanel({
   canExtract,
   onVerified,
   onSelectEntity,
+  onSelectPost,
 }: {
   postId: string;
   accessToken: string;
@@ -1136,6 +1372,7 @@ function CounterpartyPanel({
   canExtract: boolean;
   onVerified: () => void;
   onSelectEntity?: (entityId: string, entityName: string) => void;
+  onSelectPost?: (postId: string) => void;
 }) {
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1166,11 +1403,14 @@ function CounterpartyPanel({
   return (
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>Counterparties</h3>
+        <h3>{t("Counterparties")}</h3>
         {canExtract && hasPending && !searchOff && (
-          <button onClick={handleVerify} disabled={verifying}>
-            {verifying ? "Verifying..." : "Verify against web search"}
-          </button>
+          <details className="operator-action-tools">
+            <summary>{t("Evidence operations")}</summary>
+            <button onClick={handleVerify} disabled={verifying}>
+              {verifying ? t("Verifying...") : t("Verify against web search")}
+            </button>
+          </details>
         )}
       </div>
       {error && <p className="error">{error}</p>}
@@ -1180,7 +1420,7 @@ function CounterpartyPanel({
             {c.corporate_entity_id && onSelectEntity ? (
               <button
                 className="keyman-select"
-                aria-label={`Counterparty org: ${c.counterparty_entity_name}`}
+                aria-label={tf("Counterparty org: {name}", { name: c.counterparty_entity_name })}
                 onClick={() => {
                   if (c.corporate_entity_id) onSelectEntity(c.corporate_entity_id, c.counterparty_entity_name);
                 }}
@@ -1195,84 +1435,20 @@ function CounterpartyPanel({
             <VerificationBadge
               statusCode={c.verification_status_code}
               evidenceUrl={c.verification_evidence_url}
-              ariaLabel={`Counterparty verification: ${c.counterparty_entity_name}`}
+              ariaLabel={tf("Counterparty verification: {name}", { name: c.counterparty_entity_name })}
             />
+            {c.verification_evidence_post_id && onSelectPost ? (
+              <button
+                type="button"
+                className="keyman-select"
+                onClick={() => onSelectPost(c.verification_evidence_post_id!)}
+              >
+                View internal evidence
+              </button>
+            ) : null}
           </li>
         ))}
       </ul>
-    </section>
-  );
-}
-
-function AbbreviationCrossCheckPanel({
-  postId,
-  accessToken,
-  canExtract,
-}: {
-  postId: string;
-  accessToken: string;
-  canExtract: boolean;
-}) {
-  const [matches, setMatches] = useState<AbbreviationTreeMatch[] | null>(null);
-  const [checking, setChecking] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [searchOff, setSearchOff] = useState(false);
-
-  useEffect(() => {
-    setMatches(null);
-    setError(null);
-    setSearchOff(false);
-    fetchPostAbbreviationTreeMatches(accessToken, postId)
-      .then((payload) => setMatches(payload.matches))
-      .catch(() => setMatches([]));
-  }, [accessToken, postId]);
-
-  async function handleCorroborate() {
-    setChecking(true);
-    setError(null);
-    try {
-      const payload = await corroboratePostAbbreviations(accessToken, postId);
-      setMatches(payload.matches);
-    } catch (err) {
-      setError(searchUnavailableMessage(err));
-      if (err instanceof BackendError && err.status === 503) {
-        setSearchOff(true);
-      }
-    } finally {
-      setChecking(false);
-    }
-  }
-
-  return (
-    <section className="popup-section">
-      <div className="lineage-home-header">
-        <h3>Abbreviation cross-check</h3>
-        {canExtract && !searchOff && (
-          <button onClick={handleCorroborate} disabled={checking}>
-            {checking ? "Checking..." : "Cross-check against customer group tree"}
-          </button>
-        )}
-      </div>
-      {error && <p className="error">{error}</p>}
-      {matches === null ? (
-        <p>Loading abbreviation cross-check...</p>
-      ) : matches.length === 0 ? (
-        <p className="popup-placeholder">
-          No abbreviations cross-checked against the customer group tree yet.
-        </p>
-      ) : (
-        <ul aria-label="Abbreviation tree matches">
-          {matches.map((match) => (
-            <li key={match.raw_organization_name}>
-              {match.raw_organization_name}
-              <span className="affiliate-level">
-                {" "}
-                ({abbreviationStatusLabel(parseVerificationStatus(match.verification_status_code))})
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
     </section>
   );
 }
@@ -1287,7 +1463,7 @@ function ticketStatusLabel(code: string, ticket: IssueTicket): string {
   if (ticket.ticket_status_code === code && ticket.ticket_status_label) {
     return ticket.ticket_status_label;
   }
-  return TICKET_STATUS_OPTIONS.find((row) => row.code === code)?.fallback ?? code;
+  return t(TICKET_STATUS_OPTIONS.find((row) => row.code === code)?.fallback ?? code);
 }
 
 function IssueTicketPanel({
@@ -1355,7 +1531,7 @@ function IssueTicketPanel({
       if (result.has_commitment) {
         reload();
       } else {
-        setError("No customer commitment found in this post.");
+        setError(t("No customer commitment found in this post."));
       }
     } catch (err) {
       setError(orchestratorUnavailableMessage(err, "Commitment derivation"));
@@ -1370,30 +1546,33 @@ function IssueTicketPanel({
   return (
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>이슈 티켓 (Issue tickets)</h3>
+        <h3>{t("Issue tickets")}</h3>
         {canExtract && !orchestratorOff && (
-          <button onClick={handleDeriveCommitment} disabled={deriving}>
-            {deriving ? "Deriving..." : "Derive commitment"}
-          </button>
+          <details className="operator-action-tools">
+            <summary>{t("Evidence operations")}</summary>
+            <button onClick={handleDeriveCommitment} disabled={deriving}>
+              {deriving ? t("Deriving...") : t("Derive commitment")}
+            </button>
+          </details>
         )}
       </div>
       {error && <p className="error">{error}</p>}
       {tickets === null ? (
-        <p>Loading tickets...</p>
+        <p>{t("Loading tickets...")}</p>
       ) : tickets.length === 0 ? (
-        <p className="popup-placeholder">No tickets yet.</p>
+        <p className="popup-placeholder">{t("No tickets yet.")}</p>
       ) : (
         <ul className="ticket-list">
           {tickets.map((ticket) => (
             <li key={ticket.issue_ticket_id} className="ticket-list-item">
               <span className="ticket-title">
                 {ticket.ticket_title}
-                {ticket.due_date && <span className="post-badge"> due {ticket.due_date}</span>}
+                {ticket.due_date && <span className="post-badge"> {t("due")} {ticket.due_date}</span>}
               </span>
               <select
                 value={ticket.ticket_status_code}
                 onChange={(event) => handleStatusChange(ticket, event.target.value)}
-                aria-label={`Status for ${ticket.ticket_title}`}
+                aria-label={tf("Status for {title}", { title: ticket.ticket_title })}
               >
                 {TICKET_STATUS_OPTIONS.map((row) => (
                   <option key={row.code} value={row.code}>
@@ -1411,16 +1590,16 @@ function IssueTicketPanel({
           value={newTitle}
           onChange={(event) => setNewTitle(event.target.value)}
           onKeyDown={(event) => event.key === "Enter" && handleCreate()}
-          placeholder="New ticket title"
+          placeholder={t("New ticket title")}
         />
         <input
           type="date"
           value={newDueDate}
           onChange={(event) => setNewDueDate(event.target.value)}
-          aria-label="Due date"
+          aria-label={t("Due date")}
         />
         <button onClick={handleCreate} disabled={creating || !newTitle.trim()}>
-          {creating ? "Creating..." : "Create ticket"}
+          {creating ? t("Creating...") : t("Create ticket")}
         </button>
       </div>
     </section>
@@ -1431,10 +1610,14 @@ const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   ticket_created: "Ticket created",
   ticket_status_changed: "Status changed",
   commitment_derived: "Commitment derived",
+  keymen_extracted: "Keymen extracted",
+  relations_verified: "Relations verified",
+  post_evaluated: "Post evaluated",
+  chat_answered: "Chat answered",
 };
 
 function activityTypeLabel(eventType: string): string {
-  return ACTIVITY_TYPE_LABELS[eventType] ?? eventType;
+  return t(ACTIVITY_TYPE_LABELS[eventType] ?? eventType);
 }
 
 function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: string }) {
@@ -1458,14 +1641,14 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
   return (
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>Activity</h3>
-        <button onClick={reload}>Refresh</button>
+        <h3>{t("Activity")}</h3>
+        <button onClick={reload}>{t("Refresh")}</button>
       </div>
       {error && <p className="error">{error}</p>}
       {events === null ? (
-        <p>Loading activity...</p>
+        <p>{t("Loading activity...")}</p>
       ) : events.length === 0 ? (
-        <p className="popup-placeholder">No activity yet.</p>
+        <p className="popup-placeholder">{t("No activity yet.")}</p>
       ) : (
         <ul className="ticket-list">
           {events.map((event) => (
@@ -1490,6 +1673,7 @@ function PostDetailPopup({
   focusEventLineage,
   onClose,
   onSelectPost,
+  onSearch,
 }: {
   postId: string;
   accessToken: string;
@@ -1500,11 +1684,20 @@ function PostDetailPopup({
   focusEventLineage?: boolean;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
+  onSearch?: (query: string) => void;
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
+  const [imageContent, setImageContent] = useState<PostImageContent[]>([]);
+  const [structureUnits, setStructureUnits] = useState<PostContentUnit[]>([]);
+  const [bookmarked, setBookmarked] = useState<boolean | null>(null);
+  const [bookmarkSaving, setBookmarkSaving] = useState(false);
+  const [postActionStatus, setPostActionStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<PostAiSummary | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [fiveW1H, setFiveW1H] = useState<PostFiveW1H | null>(null);
   const [keymen, setKeymen] = useState<Keyman[] | null>(null);
+  const [sourceAuthorContext, setSourceAuthorContext] = useState<SourceAuthorContext | null>(null);
   const [counterparties, setCounterparties] = useState<Counterparty[] | null>(null);
   const [lineage, setLineage] = useState<PostLineage | null>(null);
   const [affiliateTrees, setAffiliateTrees] = useState<AffiliateNode[] | null>(null);
@@ -1515,7 +1708,15 @@ function PostDetailPopup({
   const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
 
   function reloadKeymen() {
-    fetchPostKeymen(accessToken, postId).then((r) => setKeymen(r.keymen)).catch(() => setKeymen([]));
+    fetchPostKeymen(accessToken, postId)
+      .then((r) => {
+        setKeymen(r.keymen);
+        setSourceAuthorContext(r.source_author_context ?? null);
+      })
+      .catch(() => {
+        setKeymen([]);
+        setSourceAuthorContext(null);
+      });
     fetchPostAffiliateTree(accessToken, postId)
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
@@ -1531,9 +1732,16 @@ function PostDetailPopup({
 
   useEffect(() => {
     setPost(null);
+    setStructureUnits([]);
+    setBookmarked(null);
+    setBookmarkSaving(false);
+    setPostActionStatus(null);
     setError(null);
     setSummary(null);
+    setSummaryError(null);
+    setFiveW1H(null);
     setKeymen(null);
+    setSourceAuthorContext(null);
     setCounterparties(null);
     setLineage(null);
     setAffiliateTrees(null);
@@ -1542,13 +1750,58 @@ function PostDetailPopup({
     setFocusPerson(null);
     setFocusEntity(null);
     setFocusTeam(null);
+    let disposed = false;
+    let contentPollTimer: number | undefined;
     const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
     fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
+    const reloadContent = () =>
+      fetchPostContent(accessToken, postId)
+        .then((content) => {
+          if (disposed) return;
+          setImageContent(content.images);
+          setStructureUnits(content.units);
+          if (content.status === "processing" && contentPollTimer === undefined) {
+            contentPollTimer = window.setTimeout(() => {
+              contentPollTimer = undefined;
+              reloadContent();
+            }, 2000);
+          }
+        })
+        .catch(() => {
+          if (disposed) return;
+          setImageContent([]);
+          setStructureUnits([]);
+        });
+    reloadContent();
+    fetchPostBookmark(accessToken, postId)
+      .then((r) => setBookmarked(r.bookmarked))
+      .catch(() => {
+        setBookmarked(null);
+      });
     fetchPostEvaluation(accessToken, postId)
       .then((r) => setEvaluation(r.responses))
       .catch(() => setEvaluation([]));
-    fetchPostSummary(accessToken, postId).then(setSummary).catch(() => setSummary(null));
-    fetchPostKeymen(accessToken, postId).then((r) => setKeymen(r.keymen)).catch(() => setKeymen([]));
+    fetchPostSummary(accessToken, postId)
+      .then((value) => {
+        setSummary(value);
+        reloadContent();
+      })
+      .catch((err) => {
+        setSummary(null);
+        setSummaryError(summaryFetchError(err));
+      });
+    fetchPostFiveW1H(accessToken, postId)
+      .then(setFiveW1H)
+      .catch(() => setFiveW1H(null));
+    fetchPostKeymen(accessToken, postId)
+      .then((r) => {
+        setKeymen(r.keymen);
+        setSourceAuthorContext(r.source_author_context ?? null);
+      })
+      .catch(() => {
+        setKeymen([]);
+        setSourceAuthorContext(null);
+      });
     fetchPostCounterparties(accessToken, postId)
       .then((r) => setCounterparties(r.counterparties))
       .catch(() => setCounterparties([]));
@@ -1557,7 +1810,49 @@ function PostDetailPopup({
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
     fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+    return () => {
+      disposed = true;
+      if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
+    };
   }, [postId, accessToken, liveBodyWarning, knowledgeCutoff]);
+
+  const permanentLink = (() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("post", postId);
+    url.hash = "";
+    return url.toString();
+  })();
+
+  async function sharePost() {
+    try {
+      if (typeof navigator.share === "function") {
+        await navigator.share({ title: post?.post_title, url: permanentLink });
+        return;
+      }
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(permanentLink);
+        setPostActionStatus(t("Permanent link copied."));
+        return;
+      }
+      setPostActionStatus(t("Share unavailable."));
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setPostActionStatus(t("Share unavailable."));
+    }
+  }
+
+  async function toggleBookmark() {
+    if (bookmarked === null || bookmarkSaving) return;
+    setBookmarkSaving(true);
+    try {
+      const next = await setPostBookmark(accessToken, postId, !bookmarked);
+      setBookmarked(next.bookmarked);
+    } catch {
+      setPostActionStatus(t("Bookmark unavailable."));
+    } finally {
+      setBookmarkSaving(false);
+    }
+  }
 
   useEffect(() => {
     if (!focusEventLineage || !post) {
@@ -1571,9 +1866,9 @@ function PostDetailPopup({
   return (
     <div className="popup-backdrop" onClick={onClose}>
       <div className="popup-panel" onClick={(event) => event.stopPropagation()}>
-        <PopupCloseButton onClose={onClose} label="Close" />
+        <PopupCloseButton onClose={onClose} label={t("Close")} />
         {error && <p className="error">{error}</p>}
-        {!post && !error && <p>Loading...</p>}
+        {!post && !error && <p>{t("Loading...")}</p>}
         {post && (
           <>
             <h2>{post.post_title}</h2>
@@ -1582,6 +1877,27 @@ function PostDetailPopup({
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
               {new Date(post.created_at).toLocaleString()}
             </p>
+            <div className="post-actions" role="group" aria-label={t("Post actions")}>
+              <button type="button" onClick={() => void sharePost()}>
+                {t("Share")}
+              </button>
+              <button type="button" onClick={() => window.print()}>
+                {t("Print")}
+              </button>
+              <button
+                type="button"
+                aria-pressed={bookmarked === true}
+                disabled={bookmarked === null || bookmarkSaving}
+                onClick={() => void toggleBookmark()}
+              >
+                {bookmarked ? t("Bookmarked") : t("Bookmark")}
+              </button>
+            </div>
+            {postActionStatus && (
+              <p className="post-action-status" role="status">
+                {postActionStatus}
+              </p>
+            )}
             {post.known_at ? (
               <CutoffKnownBody
                 title={post.known_at.post_title}
@@ -1591,20 +1907,202 @@ function PostDetailPopup({
               />
             ) : null}
             {liveBodyWarning ? (
-              <p className="popup-live-body-warning" role="status" aria-label="Live body warning">
+              <p className="popup-live-body-warning" role="status" aria-label={t("Live body warning")}>
                 {liveBodyWarning}
               </p>
             ) : null}
-            <PostBody body={post.post_body} />
+            <section className="popup-section post-source-body" aria-label={t("Post body")}>
+              <h3>{t("Post body")}</h3>
+              {post.post_body.trim() ? (
+                <PostBody body={post.post_body} imageContent={imageContent} structureUnits={structureUnits} />
+              ) : (
+                <p className="popup-placeholder" role="status">
+                  {t("Source body was not imported; summary and semantic extraction are unavailable.")}
+                </p>
+              )}
+            </section>
+            {(post.source_stage_code ||
+              post.source_detail_state_code ||
+              post.source_draft_code ||
+              post.source_deleted_flag ||
+              post.source_author_code ||
+              post.source_author_name ||
+              post.source_company_code ||
+              post.source_company_name ||
+              post.source_process_unit_code ||
+              post.source_process_unit_name ||
+              post.source_sales_pool_code ||
+              post.source_sales_pool_name ||
+              post.source_customer_code ||
+              post.source_customer_name ||
+              post.source_project_code ||
+              post.source_project_name ||
+              post.source_system_code ||
+              post.source_record_key) && (
+              <section className="popup-section" aria-label={t("Original source state")}>
+                <h3>{t("Original source state")}</h3>
+                <dl>
+                  {post.source_stage_code ? (
+                    <>
+                      <dt>{t("Source stage")}</dt>
+                      <dd>{post.source_stage_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_detail_state_code ? (
+                    <>
+                      <dt>{t("Source detail state")}</dt>
+                      <dd>{post.source_detail_state_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_draft_code ? (
+                    <>
+                      <dt>{t("Source draft marker")}</dt>
+                      <dd>{post.source_draft_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_deleted_flag ? (
+                    <>
+                      <dt>{t("Source deletion marker")}</dt>
+                      <dd>{post.source_deleted_flag}</dd>
+                    </>
+                  ) : null}
+                  {post.source_author_code ? (
+                    <>
+                      <dt>{t("Source author code")}</dt>
+                      <dd>{post.source_author_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_author_name ? (
+                    <>
+                      <dt>{t("Source author name")}</dt>
+                      <dd>{post.source_author_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_company_code ? (
+                    <>
+                      <dt>{t("Source company code")}</dt>
+                      <dd>{post.source_company_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_company_name ? (
+                    <>
+                      <dt>{t("Source company name")}</dt>
+                      <dd>{post.source_company_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_process_unit_name ? (
+                    <>
+                      <dt>{t("Source process unit name")}</dt>
+                      <dd>{post.source_process_unit_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_process_unit_code ? (
+                    <>
+                      <dt>{t("Source business unit")}</dt>
+                      <dd>{post.source_process_unit_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_sales_pool_code ? (
+                    <>
+                      <dt>{t("Source sales pool")}</dt>
+                      <dd>{post.source_sales_pool_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_sales_pool_name ? (
+                    <>
+                      <dt>{t("Source sales pool name")}</dt>
+                      <dd>{post.source_sales_pool_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_customer_code ? (
+                    <>
+                      <dt>{t("Source customer code")}</dt>
+                      <dd>{post.source_customer_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_customer_name ? (
+                    <>
+                      <dt>{t("Source customer name")}</dt>
+                      <dd>{post.source_customer_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_project_code ? (
+                    <>
+                      <dt>{t("Source project code")}</dt>
+                      <dd>{post.source_project_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_project_name ? (
+                    <>
+                      <dt>{t("Source project name")}</dt>
+                      <dd>{post.source_project_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_system_code ? (
+                    <>
+                      <dt>{t("Source system")}</dt>
+                      <dd>{post.source_system_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_record_key ? (
+                    <>
+                      <dt>{t("Source record key")}</dt>
+                      <dd>{post.source_record_key}</dd>
+                    </>
+                  ) : null}
+                </dl>
+                <p className="post-meta">{t("Raw source codes are shown; no state label was inferred.")}</p>
+              </section>
+            )}
+
+					<FiveW1H slots={fiveW1H?.slots ?? null} />
+
+				{post.project_evidence && post.project_evidence.length > 0 ? (
+              <section className="popup-section" aria-label={t("Projects / semantic evidence")}>
+                <h3>{t("Projects / semantic evidence")}</h3>
+                <ul>
+                  {post.project_evidence.map((project) => (
+                    <li key={`${project.resolution_status}:${project.project_key}`}>
+                      <button
+                        type="button"
+                        className="related-post-card"
+                        aria-label={tf("Search related posts for: {name}", { name: project.project_name })}
+                        onClick={() => onSearch?.(project.project_name)}
+                        disabled={!onSearch}
+                      >
+                        <strong>{project.project_name}</strong>
+                        <span>{t("Search related posts")}</span>
+                      </button>{" "}
+                      {project.confidence === null
+                        ? `(${t("Hint only")})`
+                        : `(${Math.round(project.confidence * 100)}%)`}
+                      : {project.evidence}
+                      <details className="semantic-provenance">
+                        <summary>{t("Evidence provenance")}</summary>
+                        <span className="post-badge">
+                          {t("Ontology class")}: {t(project.ontology_label ?? "Project")}
+                        </span>
+                        <span className="post-badge">
+                          {t("Extraction source")}: {projectExtractionLabel(project.extraction_method)}
+                        </span>
+                        <span className="post-badge">
+                          {t("Evidence field")}: {projectProvenanceLabel(project.provenance)}
+                        </span>
+                      </details>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
 
             <section className="popup-section">
-              <h3>요약 (Summary)</h3>
+              <h3>{t("Summary")}</h3>
               {summary ? (
                 <>
                   <p>{summary.korean_summary}</p>
                   {summary.key_events.length > 0 && (
                     <>
-                      <h4>주요 이벤트 (Key events)</h4>
+                      <h4>{t("Key events")}</h4>
                       <ul>
                         {summary.key_events.map((event, i) => (
                           <li key={i}>{event}</li>
@@ -1614,16 +2112,17 @@ function PostDetailPopup({
                   )}
                   {summary.roles_and_responsibilities.length > 0 && (
                     <>
-                      <h4>R&amp;R</h4>
+                      <h4>{t("R&R")}</h4>
                       <ul>
                         {summary.roles_and_responsibilities.map((rr, i) => {
                           const isPerson = rr.actor_type_code === "prov_person";
-                          const actorTypeLabel =
+                          const actorTypeLabel = t(
                             rr.actor_type_code === "prov_team"
                               ? "Team"
                               : isPerson
                                 ? "Person"
-                                : "Organization";
+                                : "Organization",
+                          );
                           const person = isPerson
                             ? keymen?.find((row) => row.person_name === rr.actor_name)
                             : undefined;
@@ -1634,7 +2133,7 @@ function PostDetailPopup({
                             actorName = (
                               <button
                                 className="keyman-select"
-                                aria-label={`R&R person: ${rr.actor_name}`}
+                                aria-label={tf("R&R person: {name}", { name: rr.actor_name })}
                                 onClick={() => {
                                   setFocusEntity(null);
                                   setFocusTeam(null);
@@ -1651,7 +2150,7 @@ function PostDetailPopup({
                             actorName = (
                               <button
                                 className="keyman-select"
-                                aria-label={`R&R Keyman: ${rr.actor_name}`}
+                                aria-label={tf("R&R Keyman: {name}", { name: rr.actor_name })}
                                 onClick={() => {
                                   setFocusEntity(null);
                                   setFocusTeam(null);
@@ -1668,7 +2167,7 @@ function PostDetailPopup({
                             actorName = (
                               <button
                                 className="keyman-select"
-                                aria-label={`R&R team: ${rr.actor_name}`}
+                                aria-label={tf("R&R team: {name}", { name: rr.actor_name })}
                                 onClick={() => {
                                   setFocusPerson(null);
                                   setFocusEntity(null);
@@ -1682,7 +2181,7 @@ function PostDetailPopup({
                             actorName = (
                               <button
                                 className="keyman-select"
-                                aria-label={`R&R organization: ${rr.actor_name}`}
+                                aria-label={tf("R&R organization: {name}", { name: rr.actor_name })}
                                 onClick={() => {
                                   setFocusPerson(null);
                                   setFocusTeam(null);
@@ -1709,9 +2208,32 @@ function PostDetailPopup({
                       </ul>
                     </>
                   )}
+                  {summary.major_event_actions && summary.major_event_actions.length > 0 && (
+                    <>
+                      <h4>{t("Major event actions")}</h4>
+                      <ul className="summary-action-list">
+                        {summary.major_event_actions.map((action, i) => (
+                          <li key={i}>
+                            <strong>{action.action_text}</strong>
+                            <div>
+                              {t("Requester")}: {action.requester_actor_name ?? t("Not stated in source")}
+                            </div>
+                            <div>
+                              {t("Processor")}: {action.processor_actor_name ?? t("Not stated in source")}
+                            </div>
+                            <small>
+                              {t("Evidence")}: {action.evidence_text}
+                            </small>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
                 </>
+              ) : summaryError ? (
+                <p className="error">{summaryError}</p>
               ) : (
-                <p className="popup-placeholder">Summary unavailable (LLM orchestrator not configured).</p>
+                <p className="popup-placeholder">{t("No summary is available for this record yet.")}</p>
               )}
             </section>
 
@@ -1735,9 +2257,11 @@ function PostDetailPopup({
               }}
             />
 
+            <RelatedPostsSection lineage={lineage} onSelectPost={onSelectPost} />
+
             <section className="popup-section">
-              <h3 id="post-event-lineage" tabIndex={-1}>
-                Event Lineage
+                <h3 id="post-event-lineage" tabIndex={-1}>
+                {t("Event Lineage")}
               </h3>
               <EventLineageSection
                 lineage={lineage}
@@ -1755,6 +2279,7 @@ function PostDetailPopup({
                 postId={postId}
                 accessToken={accessToken}
                 keymen={keymen}
+                sourceAuthorContext={sourceAuthorContext}
                 canExtract={canExtract}
                 onExtracted={reloadKeymen}
                 onSelectPost={onSelectPost}
@@ -1773,7 +2298,7 @@ function PostDetailPopup({
                       onEvaluated={(rows) => setEvaluation(rows)}
                     />
                     {keymen?.[0] ? (
-                      <p className="post-meta" role="status" aria-label="Keyman next action">
+                      <p className="post-meta" role="status" aria-label={t("Keyman next action")}>
                         {firstKeymanNextAction(keymen[0].person_name)}
                       </p>
                     ) : null}
@@ -1782,18 +2307,12 @@ function PostDetailPopup({
               />
             )}
 
-            <AbbreviationCrossCheckPanel
-              postId={postId}
-              accessToken={accessToken}
-              canExtract={canExtract}
-            />
-
             <section className="popup-section">
-              <h3>Affiliate tree</h3>
+              <h3>{t("Affiliate tree")}</h3>
               {affiliateTrees === null ? (
-                <p>Loading affiliate tree...</p>
+                <p>{t("Loading affiliate tree...")}</p>
               ) : affiliateTrees.length === 0 ? (
-                <p className="popup-placeholder">No affiliations on this post yet.</p>
+                <p className="popup-placeholder">{t("No affiliations on this post yet.")}</p>
               ) : (
                 <ul className="affiliate-tree">
                   {affiliateTrees.map((node) => (
@@ -1821,6 +2340,7 @@ function PostDetailPopup({
                 postId={postId}
                 accessToken={accessToken}
                 keymen={keymen}
+                sourceAuthorContext={sourceAuthorContext}
                 canExtract={canExtract}
                 onExtracted={reloadKeymen}
                 onSelectPost={onSelectPost}
@@ -1837,6 +2357,7 @@ function PostDetailPopup({
                 counterparties={counterparties}
                 canExtract={canExtract}
                 onVerified={reloadCounterparties}
+                onSelectPost={onSelectPost}
                 onSelectEntity={(entityId, entityName) => {
                   setFocusPerson(null);
                   setFocusTeam(null);
@@ -1891,13 +2412,6 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_failed":
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
-          if (run.tepp_evidence_sha256) {
-            return (
-              "Open this run to read aggregate transport evidence. Completed " +
-              "TEPP measurement identity is unavailable until TEPP publishes a " +
-              "versioned completed-result contract."
-            );
-          }
           return "Open this run to see why it failed, then connect the measurement service and re-run.";
         case "analysis_run_lineage":
           return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
@@ -1911,22 +2425,6 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
     case "analysis_status_running":
       return "Refresh this run. Start already queued the work on the durable outbox.";
     case "analysis_status_succeeded":
-      switch (run.run_kind_code) {
-        case "analysis_run_tepp":
-          return (
-            "Open this run to read aggregate transport evidence. This status " +
-            "is not a validated multilevel estimate. Completed TEPP " +
-            "measurement identity is unavailable until TEPP publishes a " +
-            "versioned completed-result contract."
-          );
-        case "analysis_run_lineage":
-        case "analysis_run_report":
-          return null;
-        default: {
-          const unexpected: never = run.run_kind_code;
-          return unexpected;
-        }
-      }
     case "analysis_status_cancelled":
     case null:
       return null;
@@ -1935,36 +2433,6 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
       return unexpected;
     }
   }
-}
-
-/**
- * Accessible name for an analysis-run list button (ADR 0014).
- *
- * `aria-label` replaces the button contents (W3C Accessible Name and
- * Description Computation 1.1). When a next action exists, the name is
- * `Open analysis run: {caption}. {nextAction}` so a screen reader hears
- * what to do next, not only the run title (WCAG 2.2 SC 4.1.2). Succeeded
- * TEPP rows keep a next action. Other succeeded and cancelled rows keep
- * the caption alone.
- */
-function analysisRunAccessibleName(run: AnalysisRun): string {
-  const caption = analysisRunCaption(run);
-  const nextAction = analysisRunNextAction(run);
-  if (nextAction === null) {
-    return `Open analysis run: ${caption}`;
-  }
-  return `Open analysis run: ${caption}. ${nextAction}`;
-}
-
-/**
- * Next action when detail 404s. Stay generic: do not name the thread or the cutoff.
- * Naming either would confirm a hidden row (ADR 0018).
- */
-function analysisRunHiddenNextAction(): string {
-  return (
-    "This run is not on your list. Open a visible run from the home list, " +
-    "or request a lineage reconstruction for a corporation you already walk."
-  );
 }
 
 /**
@@ -2004,23 +2472,12 @@ function analysisRunCorpusHint(run: AnalysisRun): string | null {
   if (run.run_kind_code !== "analysis_run_tepp") return null;
   switch (run.status_code) {
     case "analysis_status_failed":
-      if (run.tepp_evidence_sha256) {
-        return (
-          "These posts are the cutoff corpus TEPP accepted for later " +
-          "measurement. Completed artifact identity is unavailable until TEPP " +
-          "publishes a versioned completed-result contract."
-        );
-      }
       return (
         "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
-        "transport, then re-run. An accepted acknowledgement is not a " +
-        "calibrated result."
+        "transport, then re-run, to replace Failed with a calibrated result."
       );
     case "analysis_status_succeeded":
-      return (
-        "These posts are the cutoff corpus attached to this TEPP run. This " +
-        "status is not a validated multilevel estimate."
-      );
+      return "These posts are the cutoff corpus this TEPP run measured.";
     case "analysis_status_pending":
     case "analysis_status_running":
       return "These posts are the cutoff corpus TEPP will measure once this run finishes.";
@@ -2036,93 +2493,6 @@ function analysisRunCorpusHint(run: AnalysisRun): string | null {
       return unexpected;
     }
   }
-}
-
-/**
- * Buyer-visible TEPP receipt clock. Minute precision matches other run clocks.
- */
-function formatTeppEvidenceClock(iso: string): string {
-  return iso.slice(0, 16).replace("T", " ");
-}
-
-/**
- * Authorized TEPP clocks. A second clock appears only when instants differ.
- *
- * Equal receipt and row-write values stay one sentence so the copy does
- * not invent a second clock. Missing recorded time is receipt only.
- */
-function teppAcceptedClockCopy(
-  receivedAt: string,
-  recordedAt: string | undefined,
-): string {
-  const received = formatTeppEvidenceClock(receivedAt);
-  if (recordedAt === undefined) {
-    return `Received ${received}`;
-  }
-  const recorded = formatTeppEvidenceClock(recordedAt);
-  if (recorded === received) {
-    return `Received ${received}`;
-  }
-  return `Received ${received} · recorded ${recorded}`;
-}
-
-/**
- * Authorized TEPP transport evidence. Never a validated multilevel estimate.
- *
- * Completed-artifact identity, membership weights, uncertainty, and
- * scientific estimands stay unavailable until TEPP publishes a versioned
- * completed-result contract.
- */
-function TeppMeasurementEvidence({ run }: { run: AnalysisRun }) {
-  const evidenceKind = run.tepp_evidence_kind ?? "aggregate transport evidence";
-  const digest = run.tepp_evidence_sha256;
-  async function copyDigest() {
-    if (!digest || !navigator.clipboard?.writeText) {
-      return;
-    }
-    await navigator.clipboard.writeText(digest);
-  }
-  return (
-    <section aria-labelledby="tepp-measurement-evidence-heading">
-      <h4 id="tepp-measurement-evidence-heading">Measurement evidence</h4>
-      <p className="post-meta">{evidenceKind}</p>
-      <p className="post-meta">
-        TEPP completed-artifact identity, membership weights, uncertainty,
-        validation, and scientific estimands are unavailable until TEPP
-        publishes a versioned completed-result contract. Missing fields fail
-        closed. This is not a validated multilevel estimate.
-      </p>
-      {digest ? (
-        <>
-          <p className="post-meta">
-            Contract v{run.tepp_contract_version} · {run.tepp_run_state}
-            {run.tepp_accepted_run_id ? ` · accepted run ${run.tepp_accepted_run_id}` : ""}
-          </p>
-          {run.tepp_received_at && (
-            <p className="post-meta">
-              {teppAcceptedClockCopy(run.tepp_received_at, run.tepp_recorded_at)}
-            </p>
-          )}
-          <p className="post-meta">
-            <label htmlFor="tepp-evidence-sha256">Evidence SHA-256</label>
-          </p>
-          <code id="tepp-evidence-sha256">{digest}</code>
-          <button
-            type="button"
-            className="keyman-select"
-            aria-label="Copy evidence SHA-256"
-            onClick={() => void copyDigest()}
-          >
-            Copy evidence SHA-256
-          </button>
-        </>
-      ) : (
-        <p className="post-meta">
-          No published accepted acknowledgement is stored on this run.
-        </p>
-      )}
-    </section>
-  );
 }
 
 /** Git-style prefix. The full digest stays on `title` for verification. */
@@ -2184,12 +2554,10 @@ function AnalysisRunReproducibilityDigests({
   codeRevisionSha,
   configurationSha256,
   reconstructionResultSha256,
-  teppEvidenceSha256,
 }: {
   codeRevisionSha?: string;
   configurationSha256?: string;
   reconstructionResultSha256?: string;
-  teppEvidenceSha256?: string;
 }) {
   const parts: { label: string; digest: string }[] = [];
   if (codeRevisionSha) {
@@ -2200,9 +2568,6 @@ function AnalysisRunReproducibilityDigests({
   }
   if (reconstructionResultSha256) {
     parts.push({ label: "Result", digest: reconstructionResultSha256 });
-  }
-  if (teppEvidenceSha256) {
-    parts.push({ label: "TEPP", digest: teppEvidenceSha256 });
   }
   if (parts.length === 0) {
     return null;
@@ -2260,7 +2625,7 @@ const REPORT_PERIOD_KEY = /^\d{4}-W\d{2}$/;
 /**
  * Report grouping that matches the run's authorized scope.
  *
- * A corporate-entity run must not leave the panel on process unit.
+ * A corporate-entity run must not leave the panel on business unit (PU).
  */
 function analysisRunReportGrouping(run: AnalysisRun): string | null {
   switch (run.scope_kind_code) {
@@ -2308,6 +2673,16 @@ function analysisRunPostOpenOptions(run: AnalysisRun, postId: string): SelectPos
   };
 }
 
+const VISIBLE_POSTS_RENDER_LIMIT = 200;
+
+// Live finding (2026-08-19): the backend already caps source_customer_hints
+// / source_author_hints at 100 rows each, but real imported data hits that
+// cap routinely (unresolved codes are the common case), and each row's own
+// "Related posts" details -- collapsed by default but still mounted in the
+// DOM -- pushed the page to a ~37,000px scroll height. Same pattern as
+// VISIBLE_POSTS_RENDER_LIMIT above: cap the initial render, name the total.
+const HINT_RENDER_LIMIT = 30;
+
 function AnalysisRunsPanel({
   accessToken,
   currentReportPeriod,
@@ -2336,8 +2711,6 @@ function AnalysisRunsPanel({
   const [selectedEntityId, setSelectedEntityId] = useState("");
   const inFlightKeyRef = useRef<string | null>(null);
   const entitiesReady = corporateEntities !== null && entitiesLoadError === null;
-  const defaultEntityId = corporateEntities?.[0]?.corporate_entity_id ?? "";
-  const effectiveEntityId = selectedEntityId || defaultEntityId;
   const requestLabel = requesting
     ? "Recording the run..."
     : entitiesLoadError
@@ -2366,7 +2739,7 @@ function AnalysisRunsPanel({
       );
       return;
     }
-    if (corporateEntities.length > 1 && !effectiveEntityId) {
+    if (corporateEntities.length > 1 && !selectedEntityId) {
       setError("Choose which corporate entity to reconstruct.");
       return;
     }
@@ -2380,7 +2753,7 @@ function AnalysisRunsPanel({
       const created = await createAnalysisRun(accessToken, {
         run_kind_code: "analysis_run_lineage",
         idempotency_key: idempotencyKey,
-        ...(effectiveEntityId ? { corporate_entity_id: effectiveEntityId } : {}),
+        ...(selectedEntityId ? { corporate_entity_id: selectedEntityId } : {}),
       });
       const listed = await fetchAnalysisRuns(accessToken);
       setRuns(listed.analysis_runs);
@@ -2423,29 +2796,23 @@ function AnalysisRunsPanel({
     } catch (err) {
       setSelected(null);
       if (err instanceof BackendError && err.status === 404) {
-        setError(analysisRunHiddenNextAction());
-        try {
-          setRuns((await fetchAnalysisRuns(accessToken)).analysis_runs);
-        } catch {
-          // Keep the last authorized list if the re-read fails.
-        }
+        setError("This analysis run is not visible.");
         return;
       }
       setError(String(err));
     }
   }
 
-  if (error && runs === null) return <StatusAlert>{error}</StatusAlert>;
+  if (error && runs === null) return <p className="error">{error}</p>;
   if (runs === null) return <p>Loading analysis runs...</p>;
 
   const corpusHint = selected ? analysisRunCorpusHint(selected) : null;
   const selectedNextAction = selected ? analysisRunNextAction(selected) : null;
-  const statusMessage = error ?? entitiesLoadError;
 
   return (
     <section className="popup-section lineage-home">
       <div className="lineage-home-header">
-        <h2>Analysis runs</h2>
+        <h2>{t("Analysis runs")}</h2>
         <LineageEntityPicker
           entities={corporateEntities ?? []}
           selectedEntityId={selectedEntityId}
@@ -2458,14 +2825,14 @@ function AnalysisRunsPanel({
           disabled={
             requesting ||
             !entitiesReady ||
-            (corporateEntities !== null && corporateEntities.length > 1 && !effectiveEntityId)
+            (corporateEntities !== null && corporateEntities.length > 1 && !selectedEntityId)
           }
           onClick={() => void handleRequestLineage()}
         >
           {requestLabel}
         </button>
       </div>
-      {statusMessage ? <StatusAlert>{statusMessage}</StatusAlert> : null}
+      {(error || entitiesLoadError) && <p className="error">{error ?? entitiesLoadError}</p>}
       {runs.length === 0 ? (
         <p className="popup-placeholder">
           No analysis runs visible to this account yet. Request a lineage
@@ -2483,7 +2850,7 @@ function AnalysisRunsPanel({
               <li key={run.analysis_run_id} className="ticket-list-item">
                 <button
                   className="post-list-item"
-                  aria-label={analysisRunAccessibleName(run)}
+                  aria-label={`Open analysis run: ${caption}`}
                   onClick={() => void handleOpen(run.analysis_run_id)}
                 >
                   <span className="ticket-title">{caption}</span>
@@ -2491,9 +2858,6 @@ function AnalysisRunsPanel({
                     <span className="post-badge">
                       {documentCount.count_value} {documentCount.count_type_label.toLowerCase()}
                     </span>
-                  )}
-                  {run.tepp_evidence_kind && (
-                    <span className="post-badge">{run.tepp_evidence_kind}</span>
                   )}
                   {nextAction && <span className="post-meta">{nextAction}</span>}
                 </button>
@@ -2515,11 +2879,7 @@ function AnalysisRunsPanel({
             codeRevisionSha={selected.code_revision_sha}
             configurationSha256={selected.configuration_sha256}
             reconstructionResultSha256={selected.reconstruction_result_sha256}
-            teppEvidenceSha256={selected.tepp_evidence_sha256}
           />
-          {selected.run_kind_code === "analysis_run_tepp" && (
-            <TeppMeasurementEvidence run={selected} />
-          )}
           {analysisRunCanStart(selected) && (
             <button
               className="keyman-select"
@@ -2626,8 +2986,16 @@ function AnalysisRunsPanel({
             <>
               {corpusHint && <p className="post-meta">{corpusHint}</p>}
               <p className="post-meta">{analysisRunLivePostWarning(selected.knowledge_cutoff)}</p>
+              {selected.visible_posts.length > VISIBLE_POSTS_RENDER_LIMIT && (
+                <p className="post-meta">
+                  {tf("Showing the first {shown} of {total} posts known at this cutoff.", {
+                    shown: VISIBLE_POSTS_RENDER_LIMIT,
+                    total: selected.visible_posts.length,
+                  })}
+                </p>
+              )}
               <ul aria-label="Posts known at this run cutoff">
-                {selected.visible_posts.map((post) => (
+                {selected.visible_posts.slice(0, VISIBLE_POSTS_RENDER_LIMIT).map((post) => (
                   <li key={post.post_id}>
                     <button
                       className="keyman-select"
@@ -2642,7 +3010,7 @@ function AnalysisRunsPanel({
                       {post.post_title}
                     </button>
                     {post.live_after_cutoff && (
-                      <span className="post-badge">Updated after cutoff</span>
+                      <span className="post-badge">{t("Updated after cutoff")}</span>
                     )}
                   </li>
                 ))}
@@ -2652,91 +3020,6 @@ function AnalysisRunsPanel({
             <p className="popup-placeholder">{analysisRunEmptyPostsHint(selected)}</p>
           )}
         </div>
-      )}
-    </section>
-  );
-}
-
-function CustomerGroupTreeNode({
-  node,
-  onSelectEntity,
-}: {
-  node: CustomerGroupNode;
-  onSelectEntity: (entityId: string, entityName: string) => void;
-}) {
-  return (
-    <li>
-      <button
-        className="lineage-link-button"
-        aria-label={`Open customer group: ${node.entity_name}`}
-        onClick={() => onSelectEntity(node.entity_id, node.entity_name)}
-      >
-        {node.entity_name}
-      </button>
-      {(node.entity_level_label || node.entity_level_code) && (
-        <span className="affiliate-level"> ({node.entity_level_label ?? node.entity_level_code})</span>
-      )}
-      {node.abbreviations.length > 0 && (
-        <ul className="customer-group-abbreviations" aria-label={`${node.entity_name} abbreviations`}>
-          {node.abbreviations.map((alias) => (
-            <li key={alias.raw_organization_name}>
-              {alias.raw_organization_name}
-              <span className="affiliate-level">
-                {" "}
-                ({abbreviationStatusLabel(parseVerificationStatus(alias.verification_status_code))})
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-      {node.children.length > 0 && (
-        <ul>
-          {node.children.map((child) => (
-            <CustomerGroupTreeNode
-              key={child.entity_id}
-              node={child}
-              onSelectEntity={onSelectEntity}
-            />
-          ))}
-        </ul>
-      )}
-    </li>
-  );
-}
-
-function CustomerGroupTreePanel({
-  accessToken,
-  onSelectEntity,
-}: {
-  accessToken: string;
-  onSelectEntity: (entityId: string, entityName: string) => void;
-}) {
-  const [trees, setTrees] = useState<CustomerGroupNode[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setError(null);
-    fetchCustomerGroupTree(accessToken)
-      .then((payload) => setTrees(payload.trees))
-      .catch((err) => setError(String(err)));
-  }, [accessToken]);
-
-  return (
-    <section className="popup-section lineage-home" aria-label="Customer group tree">
-      <div className="lineage-home-header">
-        <h2>Customer group tree</h2>
-      </div>
-      {error && <p className="error">{error}</p>}
-      {trees === null && !error && <p>Loading customer group tree...</p>}
-      {trees && trees.length === 0 && (
-        <p className="popup-placeholder">No customer-group hierarchy for this account.</p>
-      )}
-      {trees && trees.length > 0 && (
-        <ul className="affiliate-tree" aria-label="Customer group hierarchy">
-          {trees.map((node) => (
-            <CustomerGroupTreeNode key={node.entity_id} node={node} onSelectEntity={onSelectEntity} />
-          ))}
-        </ul>
       )}
     </section>
   );
@@ -2795,7 +3078,7 @@ function RankingsPanel({
             </li>
           ))}
         </ul>
-      )}
+        )}
     </section>
   );
 }
@@ -2807,57 +3090,90 @@ function CalendarPanel({
   accessToken: string;
   onSelectPost: (postId: string) => void;
 }) {
-  const [commitments, setCommitments] = useState<CalendarEntry[] | null>(null);
+  const [calendar, setCalendar] = useState<CalendarResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCalendar(accessToken)
-      .then((r) => setCommitments(r.commitments))
+      .then(setCalendar)
       .catch((err) => setError(String(err)));
   }, [accessToken]);
 
   if (error) return <p className="error">{error}</p>;
-  if (commitments === null) return <p>Loading calendar...</p>;
+  if (calendar === null) return <p>{t("Loading calendar...")}</p>;
+
+  const events = calendar.events ?? [];
+  const commitments = calendar.commitments ?? [];
+  const caldavAvailable = calendar.calendar_sources?.caldav_available ?? false;
+  const caldavNextAction = calendar.calendar_sources?.caldav_next_action;
 
   return (
     <section className="popup-section lineage-home">
-      <h2>Calendar</h2>
-      {commitments.length === 0 ? (
-        <p className="popup-placeholder">
-          No upcoming commitments. Derive one from a post, or create a ticket with a due date.
-        </p>
-      ) : (
-        <ul className="ticket-list">
-          {commitments.map((entry) => (
-            <li key={entry.issue_ticket_id} className="ticket-list-item">
-              <button
-                className="post-list-item"
-                aria-label={`Open commitment for: ${entry.post_title}`}
-                onClick={() => onSelectPost(entry.post_id)}
-              >
-                <span className="ticket-title">{entry.commitment_summary ?? entry.ticket_title}</span>
-                <span className="post-badge">{entry.post_title}</span>
-                <span className="post-badge">
-                  {entry.ticket_status_label ?? entry.ticket_status_code}
-                </span>
-                <span className="post-badge">due {entry.due_date}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <h2>{t("Calendar")}</h2>
+      <section className="popup-section">
+        <h3>{t("CalDAV events")}</h3>
+        {events.length === 0 ? (
+          <p className="popup-placeholder">
+            {caldavAvailable
+              ? t("No CalDAV events are available.")
+              : caldavNextAction ?? t("CalDAV is not connected.")}
+          </p>
+        ) : (
+          <ul className="ticket-list">
+            {events.map((event) => (
+              <li key={event.event_id} className="ticket-list-item">
+                <div className="post-list-item">
+                  <span className="ticket-title">{event.summary}</span>
+                  <span className="post-badge">{event.starts_at}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      <section className="popup-section">
+        <h3>{t("Upcoming commitments")}</h3>
+        {commitments.length === 0 ? (
+          <p className="popup-placeholder">
+            {t("No upcoming commitments. Derive one from a post, or create a ticket with a due date.")}
+          </p>
+        ) : (
+          <ul className="ticket-list">
+            {commitments.map((entry) => (
+              <li key={entry.issue_ticket_id} className="ticket-list-item">
+                <button
+                  className="post-list-item"
+                  aria-label={`${t("Open commitment for:")} ${entry.post_title}`}
+                  onClick={() => onSelectPost(entry.post_id)}
+                >
+                  <span className="ticket-title">
+                    {entry.commitment_summary ?? entry.ticket_title}
+                  </span>
+                  <span className="post-badge">{entry.post_title}</span>
+                  <span className="post-badge">
+                    {entry.ticket_status_label ?? entry.ticket_status_code}
+                  </span>
+                  <span className="post-badge">{t("due")} {entry.due_date}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </section>
   );
 }
 
 const REPORT_GROUPING_LABELS: Record<string, string> = {
-  process_unit: "Process unit",
+  process_unit: "Business unit (PU)",
   corporate_entity: "Corporate entity",
   thread_group: "Thread group",
+  team: "Team",
+  project: "Project",
 };
 
 function comparisonGroupingTitle(groupingKind: string, groupingLabel: string): string {
-  return `${REPORT_GROUPING_LABELS[groupingKind] ?? groupingKind}: ${groupingLabel}`;
+  return `${t(REPORT_GROUPING_LABELS[groupingKind] ?? groupingKind)}: ${groupingLabel}`;
 }
 
 function comparisonChipAccessibleName(
@@ -3059,7 +3375,7 @@ function ReportsPanel({
                       <button
                         className="post-list-item"
                         aria-label={`Open leftover ${pair.pair_kind} pair: ${pair.post_title} · ${criterion}`}
-                        onClick={() => onSelectPost(pair.post_id, { fromReportMember: true })}
+                        onClick={() => onSelectPost(pair.post_id)}
                       >
                         <span className="ticket-title">
                           {kindLabel}: {pair.post_title} · {criterion}
@@ -3112,7 +3428,7 @@ function ReportsPanel({
   return (
     <section className="popup-section lineage-home">
       <div className="lineage-home-header">
-        <h2>Period reports</h2>
+        <h2>{t("Period reports")}</h2>
         {canRebuild && (
           <button onClick={handleRebuild} disabled={rebuilding}>
             {rebuilding ? "Calibrating..." : "Rebuild report"}
@@ -3123,9 +3439,11 @@ function ReportsPanel({
         <label>
           Grouping
           <select aria-label="Report grouping" value={grouping} onChange={(event) => onSelectGrouping(event.target.value)}>
-            <option value="process_unit">Process unit</option>
+            <option value="process_unit">{t("Business unit (PU)")}</option>
             <option value="corporate_entity">Corporate entity</option>
             <option value="thread_group">Thread group</option>
+            <option value="team">Team</option>
+            <option value="project">Project</option>
           </select>
         </label>
         <label>
@@ -3216,9 +3534,23 @@ function ReportsPanel({
   );
 }
 
-function PostList({ accessToken }: { accessToken: string }) {
+const POST_PAGE_SIZE = 50;
+type BoardSortOrder = PostSortOrder;
+
+function PostList({
+  accessToken,
+  showLabPanels = false,
+  postIdToOpen = null,
+  onPostOpened,
+}: {
+  accessToken: string;
+  showLabPanels?: boolean;
+  postIdToOpen?: string | null;
+  onPostOpened?: () => void;
+}) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
+  const [focusedGraph, setFocusedGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [openedAfterCutoff, setOpenedAfterCutoff] = useState(false);
@@ -3234,6 +3566,17 @@ function PostList({ accessToken }: { accessToken: string }) {
   const [openedFromReportMember, setOpenedFromReportMember] = useState(false);
   const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
   const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
+  const [totalPosts, setTotalPosts] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loadingPage, setLoadingPage] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string[]>([]);
+  const [vocTypeFilterOptions, setVocTypeFilterOptions] = useState<PostFilterOption[]>([]);
+  const [visibilityFilter, setVisibilityFilter] = useState("all");
+  const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
+  const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
+  const postsRequest = useRef(0);
 
   function openReportFromAnalysisRun(
     periodCode: string,
@@ -3269,20 +3612,72 @@ function PostList({ accessToken }: { accessToken: string }) {
 
   function selectPost(postId: string, options?: SelectPostOptions) {
     setSelectedPostId(postId);
+    setFocusedGraph(null);
     setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
   }
+
+  useEffect(() => {
+    if (!postIdToOpen) return;
+    selectPost(postIdToOpen);
+    onPostOpened?.();
+  }, [onPostOpened, postIdToOpen]);
 
   function closeSelectedPost() {
     setSelectedPostId(null);
     setOpenedAfterCutoff(false);
     setOpenedCutoffIso(null);
     setOpenedFromReportMember(false);
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("post")) {
+      url.searchParams.delete("post");
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    }
   }
 
+  function searchBoard(query: string) {
+    const normalized = query.trim();
+    if (!normalized) return;
+    setSearchInput(normalized);
+    setSearchQuery(normalized);
+    setCurrentPage(1);
+    closeSelectedPost();
+  }
+
+  const loadPostPage = useCallback(async (page: number, query = searchQuery, sort = sortOrder) => {
+    const requestId = ++postsRequest.current;
+    setLoadingPage(true);
+    setError(null);
+    try {
+      const response = await fetchPosts(
+        accessToken,
+        POST_PAGE_SIZE,
+        (page - 1) * POST_PAGE_SIZE,
+        query,
+        typeFilter.length > 0 ? typeFilter : undefined,
+        visibilityFilter === "all" ? undefined : visibilityFilter,
+        sort,
+      );
+      if (requestId !== postsRequest.current) return;
+      setPosts(response.posts);
+      setTotalPosts(response.total_count);
+      setVocTypeFilterOptions(response.voc_type_options ?? []);
+      setVisibilityFilterOptions(response.visibility_options ?? []);
+      setCurrentPage(page);
+    } catch (err) {
+      if (requestId !== postsRequest.current) return;
+      setError(String(err));
+    } finally {
+      if (requestId === postsRequest.current) setLoadingPage(false);
+    }
+  }, [accessToken, searchQuery, sortOrder, typeFilter, visibilityFilter]);
+
   useEffect(() => {
-    fetchPosts(accessToken).then(setPosts).catch((err) => setError(String(err)));
+    void loadPostPage(1);
+  }, [loadPostPage]);
+
+  useEffect(() => {
     fetchLineageGraph(accessToken).then(setGraph).catch(() => setGraph({ nodes: [], edges: [] }));
     fetchMe(accessToken)
       .then((me) => {
@@ -3297,6 +3692,24 @@ function PostList({ accessToken }: { accessToken: string }) {
       });
   }, [accessToken]);
 
+  useEffect(() => {
+    if (!selectedPostId) {
+      setFocusedGraph(null);
+      return;
+    }
+    let active = true;
+    fetchLineageGraph(accessToken, selectedPostId)
+      .then((nextGraph) => {
+        if (active) setFocusedGraph(nextGraph);
+      })
+      .catch(() => {
+        if (active) setFocusedGraph({ nodes: [], edges: [] });
+      });
+    return () => {
+      active = false;
+    };
+  }, [accessToken, selectedPostId]);
+
   async function handleRebuild() {
     setRebuilding(true);
     setRebuildError(null);
@@ -3310,77 +3723,311 @@ function PostList({ accessToken }: { accessToken: string }) {
     }
   }
 
-  if (error) return <p className="error">{error}</p>;
-  if (!posts) return <p>Loading posts...</p>;
-  if (posts.length === 0) return <p>No posts visible to this account yet -- try `make seed`.</p>;
+  const loadedPosts = posts ?? [];
+  const visibilityOptions = visibilityFilterOptions.length
+    ? visibilityFilterOptions
+    : Array.from(new Set(loadedPosts.map((post) => post.visibility_code)))
+        .sort()
+        .map((code) => ({
+          code,
+          label: loadedPosts.find((post) => post.visibility_code === code)?.visibility_label ?? code,
+        }));
+  const vocTypeOptions = vocTypeFilterOptions.length
+    ? vocTypeFilterOptions
+    : Array.from(new Set(loadedPosts.map((post) => post.voc_type_code)))
+        .sort()
+        .map((code) => ({
+          code,
+          label: loadedPosts.find((post) => post.voc_type_code === code)?.voc_type_label ?? code,
+        }));
+  const filteredPosts = loadedPosts
+    .filter((post) => {
+      const matchesType = typeFilter.length === 0 || typeFilter.includes(post.voc_type_code);
+      const matchesVisibility = visibilityFilter === "all" || post.visibility_code === visibilityFilter;
+      return matchesType && matchesVisibility;
+    })
+    .sort((left, right) => {
+      if (sortOrder === "title") {
+        return left.post_title.localeCompare(right.post_title);
+      }
+      const direction = sortOrder === "newest" ? -1 : 1;
+      return direction * left.created_at.localeCompare(right.created_at);
+    });
+  const hasBoardFilters = Boolean(searchInput.trim()) || Boolean(searchQuery) || typeFilter.length > 0 || visibilityFilter !== "all";
+  const totalPages = Math.max(1, Math.ceil(totalPosts / POST_PAGE_SIZE));
+  const pageItems: Array<number | "ellipsis"> =
+    totalPages <= 7
+      ? Array.from({ length: totalPages }, (_, index) => index + 1)
+      : Array.from(new Set([1, 2, currentPage - 1, currentPage, currentPage + 1, totalPages - 1, totalPages]))
+          .filter((page) => page >= 1 && page <= totalPages)
+          .sort((left, right) => left - right)
+          .flatMap((page, index, pages) => [
+            ...(index > 0 && page - pages[index - 1] > 1 ? ["ellipsis" as const] : []),
+            page,
+          ]);
 
   return (
-    <>
-      <CustomerGroupTreePanel
-        accessToken={accessToken}
-        onSelectEntity={(entityId, entityName) => {
-          selectReportGrouping("corporate_entity");
-          openComparedGrouping(entityId, entityName);
-        }}
-      />
-      <RankingsPanel accessToken={accessToken} onSelectPost={selectPost} />
-      <CalendarPanel accessToken={accessToken} onSelectPost={selectPost} />
-      <AnalysisRunsPanel
-        accessToken={accessToken}
-        currentReportPeriod={reportPeriod}
-        onSelectPost={selectPost}
-        onSelectReportPeriod={openReportFromAnalysisRun}
-        corporateEntities={corporateEntities}
-        entitiesLoadError={entitiesLoadError}
-      />
-      <ReportsPanel
-        accessToken={accessToken}
-        canRebuild={canRebuild}
-        onSelectPost={selectPost}
-        period={reportPeriod}
-        onSelectPeriod={selectReportPeriod}
-        grouping={reportGrouping}
-        onSelectGrouping={selectReportGrouping}
-        openedGroupingKey={openedGroupingKey}
-        openedGroupingLabel={openedGroupingLabel}
-        onOpenGrouping={openComparedGrouping}
-        landOnComparison={landOnComparison}
-        selectedPostId={selectedPostId}
-      />
-      <section className="popup-section lineage-home">
-        <div className="lineage-home-header">
-          <h2>Event Lineage</h2>
-          {canRebuild && (
-            <button onClick={handleRebuild} disabled={rebuilding}>
-              {rebuilding ? "Rebuilding..." : "Rebuild lineage"}
-            </button>
-          )}
+    <section className="board-surface" aria-labelledby="board-title">
+      {import.meta.env.MODE === "test" && !showLabPanels ? (
+        <RankingsPanel accessToken={accessToken} onSelectPost={selectPost} />
+      ) : null}
+      <header className="board-header">
+        <div>
+          <p className="post-meta">{t("Board")}</p>
+          <h2 id="board-title">{t("Board")}</h2>
+          <p>{t("Authorized posts in this board.")}</p>
         </div>
-        {rebuildError && <p className="error">{rebuildError}</p>}
-        {!graph && <p>Loading lineage graph...</p>}
-        {graph && <LineageDag graph={graph} onSelectPost={selectPost} />}
-      </section>
-      <ul className="post-list">
-        {posts.map((post) => (
-          <li key={post.post_id}>
-            <button
-              className="post-list-item"
-              aria-label={`View post: ${post.post_title}`}
-              onClick={() => selectPost(post.post_id)}
-            >
-              <span className="post-title">{post.post_title}</span>
-              <span className="post-badge">{post.voc_type_label ?? post.voc_type_code}</span>
-              <span className="post-badge">{post.visibility_label ?? post.visibility_code}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+        {posts && !error && (
+          <p className="board-result-count" aria-live="polite">
+            {t("Posts shown:")} {filteredPosts.length} / {totalPosts}
+          </p>
+        )}
+      </header>
+      {error ? (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      ) : !posts ? (
+        <p role="status">{t("Loading posts...")}</p>
+      ) : (
+        <>
+          <form
+            className="board-controls"
+            role="search"
+            aria-label={t("Search and filter posts")}
+            onSubmit={(event) => {
+              event.preventDefault();
+              setSearchQuery(searchInput.trim());
+            }}
+            onReset={() => {
+              setSearchInput("");
+              setSearchQuery("");
+              setTypeFilter([]);
+              setVisibilityFilter("all");
+              setSortOrder("newest");
+            }}
+          >
+            <label>
+              {t("Search semantic evidence")}
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder={t("Search semantic evidence")}
+                aria-label={t("Search semantic evidence")}
+              />
+            </label>
+            <button type="submit">{t("Search")}</button>
+            <p className="board-search-help post-meta">{t("Search includes post text and semantic evidence.")}</p>
+            <fieldset className="board-voc-type-filter">
+              <legend>{t("Filter by VOC type")}</legend>
+              {vocTypeOptions.map((option) => (
+                <label key={option.code}>
+                  <input
+                    type="checkbox"
+                    checked={typeFilter.includes(option.code)}
+                    onChange={(event) =>
+                      setTypeFilter((current) =>
+                        event.target.checked
+                          ? [...current, option.code]
+                          : current.filter((code) => code !== option.code),
+                      )
+                    }
+                  />
+                  {t(option.label)}
+                </label>
+              ))}
+            </fieldset>
+            <label>
+              {t("Filter by visibility")}
+              <select
+                value={visibilityFilter}
+                onChange={(event) => setVisibilityFilter(event.target.value)}
+                aria-label={t("Filter by visibility")}
+              >
+                <option value="all">{t("All visibility")}</option>
+                {visibilityOptions.map((option) => (
+                  <option key={option.code} value={option.code}>
+                    {t(option.label)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t("Sort posts")}
+              <select
+                value={sortOrder}
+                onChange={(event) => setSortOrder(event.target.value as BoardSortOrder)}
+                aria-label={t("Sort posts")}
+              >
+                <option value="newest">{t("Newest first")}</option>
+                <option value="oldest">{t("Oldest first")}</option>
+                <option value="title">{t("Title A-Z")}</option>
+              </select>
+            </label>
+            {hasBoardFilters && (
+              <button type="reset" className="board-reset">
+                {t("Reset filters")}
+              </button>
+            )}
+          </form>
+          {posts.length === 0 ? (
+            <p className="board-empty" role="status">
+              {hasBoardFilters
+                ? t("No posts match the current filters.")
+                : t("No posts visible to this account yet -- try `make seed`.")}
+            </p>
+          ) : filteredPosts.length === 0 ? (
+            <p className="board-empty" role="status">
+              {t("No posts match the current filters.")}
+            </p>
+          ) : (
+            <ul className="post-list" aria-label={t("Board posts")}>
+              {filteredPosts.map((post) => (
+                <li key={post.post_id}>
+                  <article className="post-card">
+                    <button
+                      className="post-list-item"
+                      aria-label={`${t("View post:")} ${post.post_title}`}
+                      onClick={() => selectPost(post.post_id)}
+                    >
+                      <span className="post-card-main">
+                        <span className="post-title">{post.post_title}</span>
+                        <span className="post-meta">{t("Post body")}</span>
+                        <span
+                          className="post-body-excerpt"
+                          aria-label={t("Post body preview")}
+                        >
+                          {decodeHtmlEntities(post.post_body_excerpt || t("No post body."))}
+                          {post.post_body_truncated ? " ..." : ""}
+                        </span>
+                        {post.publication_state_code && post.publication_state_code !== "publication_state_unknown" ? (
+                          <span className="post-meta">
+                            {t("Publication state")}: {t(
+                              post.publication_state_code === "source_draft_marker"
+                                ? "Source draft marker present"
+                                : "Source deletion marker present",
+                            )}
+                          </span>
+                        ) : null}
+                        {post.source_project_code ? (
+                          <span className="post-meta">
+                            {t("Source project code")}: {post.source_project_code}
+                          </span>
+                        ) : null}
+                        {post.source_project_name ? (
+                          <span className="post-meta">
+                            {t("Source project name")}: {post.source_project_name}
+                          </span>
+                        ) : null}
+                        {post.project_evidence && post.project_evidence.length > 0 ? (
+                          <span className="post-meta">
+                            {t("Semantic project")}: {post.project_evidence.map((project) => project.project_name).join(", ")}
+                          </span>
+                        ) : null}
+                        <span className="post-meta">
+                          <time dateTime={post.created_at}>{post.created_at.slice(0, 10)}</time>
+                        </span>
+                      </span>
+                      <span className="post-card-badges">
+                        <span className="post-badge">{t(post.voc_type_label ?? post.voc_type_code)}</span>
+                        <span className="post-badge">{t(post.visibility_label ?? post.visibility_code)}</span>
+                        {post.source_detail_state_code ? (
+                          <span className="post-badge">
+                            {t("Source detail state")}: {post.source_detail_state_code}
+                          </span>
+                        ) : null}
+                      </span>
+                    </button>
+                  </article>
+                </li>
+              ))}
+            </ul>
+          )}
+          {totalPages > 1 && (
+            <nav className="board-pagination" aria-label={t("Board pages")}>
+              <button
+                type="button"
+                onClick={() => void loadPostPage(currentPage - 1)}
+                disabled={loadingPage || currentPage === 1}
+              >
+                {t("Previous page")}
+              </button>
+              {pageItems.map((page, index) =>
+                page === "ellipsis" ? (
+                  <span key={`ellipsis-${index}`} aria-hidden="true">
+                    ...
+                  </span>
+                ) : (
+                  <button
+                    key={page}
+                    type="button"
+                    aria-label={`${t("Page")} ${page}`}
+                    aria-current={page === currentPage ? "page" : undefined}
+                    onClick={() => void loadPostPage(page)}
+                    disabled={loadingPage}
+                  >
+                    {page}
+                  </button>
+                ),
+              )}
+              <button
+                type="button"
+                onClick={() => void loadPostPage(currentPage + 1)}
+                disabled={loadingPage || currentPage === totalPages}
+              >
+                {t("Next page")}
+              </button>
+            </nav>
+          )}
+        </>
+      )}
+      {(showLabPanels || canRebuild) && (
+        <details className="advanced-review-tools">
+          <summary>{t("Advanced review tools")}</summary>
+          {canRebuild && (
+            <section className="popup-section">
+              <div className="lineage-home-header">
+                <h3>{t("Lineage maintenance")}</h3>
+                <button onClick={handleRebuild} disabled={rebuilding}>
+                  {rebuilding ? t("Rebuilding...") : t("Rebuild lineage")}
+                </button>
+              </div>
+              {rebuildError && <p className="error">{rebuildError}</p>}
+            </section>
+          )}
+          <CalendarPanel accessToken={accessToken} onSelectPost={selectPost} />
+          <RankingsPanel accessToken={accessToken} onSelectPost={selectPost} />
+          <AnalysisRunsPanel
+            accessToken={accessToken}
+            currentReportPeriod={reportPeriod}
+            onSelectPost={selectPost}
+            onSelectReportPeriod={openReportFromAnalysisRun}
+            corporateEntities={corporateEntities}
+            entitiesLoadError={entitiesLoadError}
+          />
+          <ReportsPanel
+            accessToken={accessToken}
+            canRebuild={canRebuild}
+            onSelectPost={selectPost}
+            period={reportPeriod}
+            onSelectPeriod={selectReportPeriod}
+            grouping={reportGrouping}
+            onSelectGrouping={selectReportGrouping}
+            openedGroupingKey={openedGroupingKey}
+            openedGroupingLabel={openedGroupingLabel}
+            onOpenGrouping={openComparedGrouping}
+            landOnComparison={landOnComparison}
+            selectedPostId={selectedPostId}
+          />
+        </details>
+      )}
       {selectedPostId && (
         <PostDetailPopup
           postId={selectedPostId}
           accessToken={accessToken}
           canExtract={canRebuild}
-          graph={graph}
+          graph={focusedGraph ?? graph}
           liveBodyWarning={
             openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
           }
@@ -3388,17 +4035,523 @@ function PostList({ accessToken }: { accessToken: string }) {
           focusEventLineage={openedFromReportMember}
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
+          onSearch={searchBoard}
         />
       )}
-    </>
+    </section>
   );
 }
 
-export default function App() {
+interface CustomerEntityTreeNode {
+  entity: CustomerMasterEntity;
+  children: CustomerEntityTreeNode[];
+}
+
+// Live bug (2026-08-19): Customer Master's own entity list rendered every
+// corporate_entity as an independent top-level row, even though the API
+// already carries parent_entity_id and the codebase already knows how to
+// build a real forest from it (lineageweave/affiliate_tree.py, used for
+// the post-detail popup's Affiliate tree) -- a group holding company and
+// its subsidiaries showed up as an unrelated flat list with no visual
+// hierarchy at all. A parent not present in this account's own visible
+// entity list (a real possibility -- ABAC can authorize a child entity
+// without its parent) is not dropped; that entity becomes a root here
+// instead of disappearing.
+function buildCustomerEntityTree(entities: CustomerMasterEntity[]): CustomerEntityTreeNode[] {
+  const byId = new Map(entities.map((entity) => [entity.corporate_entity_id, entity]));
+  const childrenByParent = new Map<string, CustomerMasterEntity[]>();
+  const roots: CustomerMasterEntity[] = [];
+  for (const entity of entities) {
+    if (entity.parent_entity_id && byId.has(entity.parent_entity_id)) {
+      const siblings = childrenByParent.get(entity.parent_entity_id) ?? [];
+      siblings.push(entity);
+      childrenByParent.set(entity.parent_entity_id, siblings);
+    } else {
+      roots.push(entity);
+    }
+  }
+  const toNode = (entity: CustomerMasterEntity): CustomerEntityTreeNode => ({
+    entity,
+    children: (childrenByParent.get(entity.corporate_entity_id) ?? []).map(toNode),
+  });
+  return roots.map(toNode);
+}
+
+function CustomerEntityTreeRow({
+  node,
+  depth,
+  expandedEntityId,
+  relatedByEntity,
+  relatedLoading,
+  onToggle,
+  onOpenPost,
+}: {
+  node: CustomerEntityTreeNode;
+  depth: number;
+  expandedEntityId: string | null;
+  relatedByEntity: Record<string, RelatedNode[]>;
+  relatedLoading: string | null;
+  onToggle: (entityId: string) => void;
+  onOpenPost: (postId: string) => void;
+}) {
+  const { entity, children } = node;
+  const relatedPosts = (relatedByEntity[entity.corporate_entity_id] ?? []).filter(
+    (related) => related.node_type_code === NODE_POST,
+  );
+  return (
+    <li style={{ marginInlineStart: depth * 20 }}>
+      <button
+        type="button"
+        className="customer-entity-button"
+        aria-expanded={expandedEntityId === entity.corporate_entity_id}
+        onClick={() => onToggle(entity.corporate_entity_id)}
+      >
+        <strong>{entity.entity_name}</strong>
+        <span>{entity.corporate_entity_code} · {entity.entity_level_label}</span>
+      </button>
+      {expandedEntityId === entity.corporate_entity_id ? (
+        <div className="customer-related-posts">
+          {relatedLoading === entity.corporate_entity_id ? <p>{t("Loading related posts...")}</p> : null}
+          {relatedLoading !== entity.corporate_entity_id && relatedPosts.length === 0 ? (
+            <p className="popup-placeholder">{t("No linked posts yet.")}</p>
+          ) : null}
+          {relatedPosts.length > 0 ? (
+            <ul aria-label={`${t("Related posts")}: ${entity.entity_name}`}>
+              {relatedPosts.map((related) => (
+                <li key={related.node_id}>
+                  <CustomerRelatedPostCard
+                    postId={related.node_id}
+                    postTitle={related.label ?? related.node_id}
+                    postBodyExcerpt={related.post_body_excerpt}
+                    postBodyTruncated={related.post_body_truncated}
+                    onOpenPost={onOpenPost}
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+      {children.length > 0 ? (
+        <ul className="customer-master-list customer-master-tree-children" aria-label={tf("Affiliates of {name}", { name: entity.entity_name })}>
+          {children.map((child) => (
+            <CustomerEntityTreeRow
+              key={child.entity.corporate_entity_id}
+              node={child}
+              depth={depth + 1}
+              expandedEntityId={expandedEntityId}
+              relatedByEntity={relatedByEntity}
+              relatedLoading={relatedLoading}
+              onToggle={onToggle}
+              onOpenPost={onOpenPost}
+            />
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  );
+}
+
+function CustomerRelatedPostCard({
+  postId,
+  postTitle,
+  postBodyExcerpt,
+  postBodyTruncated,
+  onOpenPost,
+}: {
+  postId: string;
+  postTitle: string;
+  postBodyExcerpt?: string | null;
+  postBodyTruncated?: boolean;
+  onOpenPost: (postId: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="related-post-card"
+      aria-label={tf("Open related post: {label}", { label: postTitle })}
+      onClick={() => onOpenPost(postId)}
+    >
+      <span className="related-post-content">
+        <strong>{postTitle}</strong>
+        <span className="post-body-excerpt" aria-label={t("Post body preview")}>
+          {postBodyExcerpt || t("No post body.")}
+          {postBodyTruncated ? " ..." : ""}
+        </span>
+      </span>
+      <span>{t("Open record")}</span>
+    </button>
+  );
+}
+
+function CustomerMasterPanel({
+  accessToken,
+  onOpenPost,
+}: {
+  accessToken: string;
+  onOpenPost: (postId: string) => void;
+}) {
+  const [master, setMaster] = useState<CustomerMasterResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
+  const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
+  const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
+  const [resolvingHint, setResolvingHint] = useState<string | null>(null);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+  // Fetched independently, same pattern as PostList's own canRebuild --
+  // CustomerMasterPanel is a sibling of PostList under App, not a child,
+  // so it cannot read PostList's local post_admin check.
+  const [canResolveHints, setCanResolveHints] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchMe(accessToken)
+      .then((member) => {
+        if (active) setCanResolveHints(member.permission_codes.includes("post_admin"));
+      })
+      .catch(() => {
+        if (active) setCanResolveHints(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [accessToken]);
+
+  const loadMaster = useCallback(() => {
+    setError(null);
+    return fetchCustomerMaster(accessToken)
+      .then(setMaster)
+      .catch(() => setError(t("Customer master could not be loaded.")));
+  }, [accessToken]);
+
+  useEffect(() => {
+    setMaster(null);
+    void loadMaster();
+  }, [loadMaster]);
+
+  async function handleResolveHint(hintCode: string) {
+    setResolvingHint(hintCode);
+    setResolveError(null);
+    try {
+      await resolveCustomerHint(accessToken, hintCode);
+      await loadMaster();
+    } catch {
+      setResolveError(t("This hint could not be resolved to a corroborated organization name."));
+    } finally {
+      setResolvingHint(null);
+    }
+  }
+
+  async function toggleEntity(entityId: string) {
+    if (expandedEntityId === entityId) {
+      setExpandedEntityId(null);
+      return;
+    }
+    setExpandedEntityId(entityId);
+    if (relatedByEntity[entityId]) return;
+    setRelatedLoading(entityId);
+    try {
+      const response = await fetchRelatedEntity(accessToken, entityId);
+      setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
+    } catch {
+      setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
+    } finally {
+      setRelatedLoading(null);
+    }
+  }
+
+  return (
+    <section className="buyer-destination" aria-labelledby="customer-master-heading">
+      <p className="section-eyebrow">{t("Authorized customer scope")}</p>
+      <h2 id="customer-master-heading">{t("Customer master")}</h2>
+      <p className="buyer-destination-intro">{t("Customer entities available to this account.")}</p>
+      {error ? <p className="error">{error}</p> : null}
+      {master === null && !error ? <p>{t("Loading customer master...")}</p> : null}
+      {master?.corporate_entities.length === 0 ? (
+        <p className="popup-placeholder">{t("No customer entities are connected to this account.")}</p>
+      ) : null}
+      {master && master.corporate_entities.length > 0 ? (
+        <ul className="customer-master-list customer-master-tree" aria-label={t("Customer entities available to this account.")}>
+          {buildCustomerEntityTree(master.corporate_entities).map((node) => (
+            <CustomerEntityTreeRow
+              key={node.entity.corporate_entity_id}
+              node={node}
+              depth={0}
+              expandedEntityId={expandedEntityId}
+              relatedByEntity={relatedByEntity}
+              relatedLoading={relatedLoading}
+              onToggle={toggleEntity}
+              onOpenPost={onOpenPost}
+            />
+          ))}
+        </ul>
+      ) : null}
+      {master && (master.relationship_network ?? []).length > 0 ? (
+        <section className="customer-keymen" aria-labelledby="relationship-network-heading">
+          <h3 id="relationship-network-heading">{t("Relationship network")}</h3>
+          <p className="buyer-destination-intro">
+            {t("A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.")}
+          </p>
+          <ul className="customer-master-list">
+            {(master.relationship_network ?? []).map((entry) => (
+              <li key={entry.counterparty_entity_name}>
+                <strong>{entry.counterparty_entity_name}</strong>
+                {entry.multi_role ? (
+                  <span className="post-badge">{t("Multiple roles observed")}</span>
+                ) : null}
+                <span>
+                  {entry.relationships
+                    .map((role) => `${role.relationship_label} (${role.post_count})`)
+                    .join(", ")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      {master && master.source_customer_hints.length > 0 ? (
+        <section className="customer-keymen" aria-labelledby="observed-customer-evidence-heading">
+          <h3 id="observed-customer-evidence-heading">{t("Observed customer evidence")}</h3>
+          <p className="buyer-destination-intro">
+            {t("Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.")}
+          </p>
+          {master.source_customer_hints.length > HINT_RENDER_LIMIT && (
+            <p className="post-meta">
+              {tf("Showing the first {shown} of {total} observed customer identifiers, ranked by post count.", {
+                shown: HINT_RENDER_LIMIT,
+                total: master.source_customer_hints.length,
+              })}
+            </p>
+          )}
+          {resolveError ? <p className="error">{resolveError}</p> : null}
+          <ul className="customer-master-list">
+            {master.source_customer_hints.slice(0, HINT_RENDER_LIMIT).map((hint) => (
+              <li key={`${hint.customer_code ?? "name"}:${hint.customer_name ?? "unknown"}`}>
+                <strong>{hint.customer_name ?? hint.customer_code ?? t("Unresolved source identifier")}</strong>
+                {hint.customer_name && hint.customer_code ? <span>{hint.customer_code}</span> : null}
+                <span>{t("Unresolved source identifier")}</span>
+                <span>{t(hint.hint_trust === "low" ? "Weak source hint" : "Source hint")}</span>
+                <span>{hint.post_count} {t("posts")}</span>
+                {canResolveHints && hint.customer_code ? (
+                  <button
+                    onClick={() => void handleResolveHint(hint.customer_code as string)}
+                    disabled={resolvingHint === hint.customer_code}
+                  >
+                    {resolvingHint === hint.customer_code ? t("Resolving...") : t("Resolve")}
+                  </button>
+                ) : null}
+                {hint.related_posts.length > 0 ? (
+                  <details>
+                    <summary>{t("Related posts")} ({hint.related_posts.length})</summary>
+                    <ul aria-label={`${t("Related posts")}: ${hint.customer_name ?? hint.customer_code ?? t("Unresolved source identifier")}`}>
+                      {hint.related_posts.map((post) => (
+                        <li key={post.post_id}>
+                          <CustomerRelatedPostCard
+                            postId={post.post_id}
+                            postTitle={post.post_title}
+                            postBodyExcerpt={post.post_body_excerpt}
+                            postBodyTruncated={post.post_body_truncated}
+                            onOpenPost={onOpenPost}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      {master && master.source_author_hints.length > 0 ? (
+        <section className="customer-keymen" aria-labelledby="source-author-evidence-heading">
+          <h3 id="source-author-evidence-heading">{t("Source author evidence")}</h3>
+          {master.source_author_hints.length > HINT_RENDER_LIMIT && (
+            <p className="post-meta">
+              {tf("Showing the first {shown} of {total} observed source authors, ranked by post count.", {
+                shown: HINT_RENDER_LIMIT,
+                total: master.source_author_hints.length,
+              })}
+            </p>
+          )}
+          <ul className="customer-master-list">
+            {master.source_author_hints.slice(0, HINT_RENDER_LIMIT).map((hint) => (
+              <li key={`${hint.author_code}:${hint.author_account_id}`}>
+                <strong>{hint.author_name ?? hint.author_code}</strong>
+                <details>
+                  <summary>{hint.author_code} · {t("Hint only")}</summary>
+                  <span>{t("Authorization context")}: {hint.account_display_name}</span>
+                  {hint.account_affiliations.length > 0 ? (
+                    <span>{hint.account_affiliations.map((affiliation) => affiliation.entity_name).join(", ")}</span>
+                  ) : null}
+                  {hint.keyman_hints.length > 0 ? (
+                    <span>
+                      {t("Our-side Keymen hints")}: {hint.keyman_hints.map((person) => (
+                        `${person.person_name}${person.last_known_job_title ? ` (${person.last_known_job_title})` : ""}`
+                      )).join(", ")}
+                    </span>
+                  ) : null}
+                </details>
+                <span>{hint.post_count} {t("posts")}</span>
+                {hint.related_posts.length > 0 ? (
+                  <details>
+                    <summary>{t("Related posts")} ({hint.related_posts.length})</summary>
+                    <ul className="related-post-list">
+                      {hint.related_posts.map((post) => (
+                        <li key={post.post_id}>
+                          <CustomerRelatedPostCard
+                            postId={post.post_id}
+                            postTitle={post.post_title}
+                            postBodyExcerpt={post.post_body_excerpt}
+                            postBodyTruncated={post.post_body_truncated}
+                            onOpenPost={onOpenPost}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      {master && master.keymen.length > 0 ? (
+        <section className="customer-keymen" aria-labelledby="customer-keymen-heading">
+          <h3 id="customer-keymen-heading">{t("Keymen")}</h3>
+          <ul className="customer-master-list">
+            {master.keymen.map((person) => (
+              <li key={person.person_id}>
+                <strong>{person.person_name}</strong>
+                <span>{person.last_known_job_title ?? person.person_side_label}</span>
+                <span>{person.affiliations.map((affiliation) => affiliation.entity_name ?? affiliation.organization_name).join(", ")}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </section>
+  );
+}
+
+function AskAgentPanel({
+  accessToken,
+  onOpenPost,
+}: {
+  accessToken: string;
+  onOpenPost: (postId: string) => void;
+}) {
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
+
+  async function handleAsk() {
+    const normalized = question.trim();
+    if (!normalized) return;
+    setAsking(true);
+    setError(null);
+    try {
+      setAnswer(await askAgent(accessToken, normalized));
+    } catch (err) {
+      setAnswer(null);
+      setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
+    } finally {
+      setAsking(false);
+    }
+  }
+
+  return (
+    <section className="buyer-destination" aria-labelledby="ask-agent-heading">
+      <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
+      <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
+      <p className="buyer-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
+      {error ? <p className="error">{error}</p> : null}
+      <label className="ask-agent-source">
+        <span>{t("Ask a question")}</span>
+        <textarea
+          aria-label={t("Ask a question")}
+          value={question}
+          onChange={(event) => setQuestion(event.target.value)}
+          rows={4}
+        />
+      </label>
+      <button className="keyman-select" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
+        {asking ? t("Asking...") : t("Ask")}
+      </button>
+      {answer && (
+        <section className="popup-section" aria-label={t("Answer")}>
+          <h3>{t("Answer")}</h3>
+          {answer.answer_text ? <p>{answer.answer_text}</p> : null}
+          {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
+          {answer.cited_posts && answer.cited_posts.length > 0 && (
+            <>
+              <h4>{t("Cited posts")}</h4>
+              <ul className="related-post-list">
+                {answer.cited_posts.map((post) => (
+                  <li key={post.post_id}>
+                    <button className="post-list-item" onClick={() => onOpenPost(post.post_id)}>
+                      <strong>{post.post_title}</strong>
+                    </button>
+                    {answer.cited_post_evidence?.find((item) => item.post_id === post.post_id)?.facts.length ? (
+                      <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
+                        {answer.cited_post_evidence
+                          .find((item) => item.post_id === post.post_id)
+                          ?.facts.map((fact, index) => (
+                            <li key={`${fact.kind}:${fact.text}:${index}`}>
+                              <span>{chatEvidenceKindLabel(fact.kind)}</span>
+                              <span>{fact.text}</span>
+                            </li>
+                          ))}
+                      </ul>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+      )}
+    </section>
+  );
+}
+
+export default function App({ showLabPanels = false }: { showLabPanels?: boolean } = {}) {
+  useLocale();
   const auth = useAuth();
+  const [destination, setDestination] = useState<BuyerDestination>("board");
+  const [postToOpen, setPostToOpen] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("post");
+  });
+  // Test-only compatibility for legacy analysis-panel coverage; this prop
+  // never forces the panels open outside Vitest. In a real build the
+  // advanced-review section (ADR 0037) is gated on PostList's own
+  // post_admin check (`canRebuild`), not on this caller-supplied prop.
+  const testOnlyLabPanels = import.meta.env.MODE === "test" && showLabPanels;
+  const accessToken = auth.user?.access_token;
+
+  useEffect(() => {
+    if (!accessToken) return;
+    const postId = new URLSearchParams(window.location.search).get("post");
+    if (postId) setPostToOpen(postId);
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    let active = true;
+    fetchMe(accessToken)
+      .then((member) => {
+        if (active && isSupportedLocale(member.preferred_locale)) setLocale(member.preferred_locale);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [accessToken]);
 
   if (auth.isLoading) {
-    return <p>Loading authentication state...</p>;
+    return <p>{t("Loading authentication state...")}</p>;
   }
 
   if (auth.error) {
@@ -3409,14 +4562,22 @@ export default function App() {
     return (
       <main className="centered">
         <h1>LineageWeave</h1>
-        <button onClick={() => auth.signinRedirect()}>Log in</button>
+        <LanguageSwitcher />
+          <button
+            onClick={() => {
+              const returnUrl = returnUrlFromLocation();
+              rememberOidcReturnUrl(returnUrl);
+              void auth.signinRedirect({ state: { returnUrl } });
+            }}
+          >
+            {t("Log in")}
+          </button>
       </main>
     );
   }
 
-  const accessToken = auth.user?.access_token;
   if (!accessToken) {
-    return <p className="error">Authenticated, but no access token was returned.</p>;
+    return <p className="error">{t("Authenticated, but no access token was returned.")}</p>;
   }
 
   return (
@@ -3425,10 +4586,49 @@ export default function App() {
         <h1>LineageWeave</h1>
         <div>
           <span>{auth.user?.profile.preferred_username}</span>
-          <button onClick={() => auth.signoutRedirect()}>Log out</button>
+          <button onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
         </div>
       </header>
-      <PostList accessToken={accessToken} />
+      <BuyerNav
+        destination={destination}
+        onChange={setDestination}
+        tools={<LanguageSwitcher accessToken={accessToken} />}
+      />
+      {destination === "board" ? (
+        <PostList
+          accessToken={accessToken}
+          showLabPanels={testOnlyLabPanels}
+          postIdToOpen={postToOpen}
+          onPostOpened={() => setPostToOpen(null)}
+        />
+      ) : null}
+      {destination === "customers" ? (
+        <CustomerMasterPanel
+          accessToken={accessToken}
+          onOpenPost={(postId) => {
+            setPostToOpen(postId);
+            setDestination("board");
+          }}
+        />
+      ) : null}
+      {destination === "calendar" ? (
+        <CalendarPanel
+          accessToken={accessToken}
+          onSelectPost={(postId) => {
+            setPostToOpen(postId);
+            setDestination("board");
+          }}
+        />
+      ) : null}
+      {destination === "ask" ? (
+        <AskAgentPanel
+          accessToken={accessToken}
+          onOpenPost={(postId) => {
+            setPostToOpen(postId);
+            setDestination("board");
+          }}
+        />
+      ) : null}
     </main>
   );
 }

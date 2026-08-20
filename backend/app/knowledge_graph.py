@@ -15,6 +15,7 @@ from uuid import UUID
 
 import asyncpg
 
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.ontology import ontology_annotations
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
@@ -257,12 +258,14 @@ async def visible_mention_post_ids(
     can_see_post,
 ) -> list[str]:
     """Visible post ids supported by Keyman or R&R person evidence."""
-    rows = await conn.fetch(
-        """
+    # Safe SQL: the eligibility predicate is an immutable schema fragment; person id is bound.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
         select post.post_id, post.visibility_code, post.corporate_entity_id
           from combined_post_person_mention mention
           join source_post post on post.post_id = mention.post_id
          where mention.person_id = $1
+           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by post.created_at, post.post_id
         """,
         person_id,
@@ -275,12 +278,14 @@ async def visible_affiliation_post_ids(
     can_see_post,
 ) -> list[str]:
     """Visible posts that mention an entity via a person or a direct org mention."""
-    rows = await conn.fetch(
-        """
+    # Safe SQL: the eligibility predicate is an immutable schema fragment; entity id is bound.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
         select distinct post.post_id, post.visibility_code,
                         post.corporate_entity_id, post.created_at
           from source_post post
-         where post.post_id in (
+         where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+           and post.post_id in (
             select mention.post_id
               from person_affiliation affiliation
               join combined_post_person_mention mention
@@ -304,12 +309,14 @@ async def visible_team_mention_post_ids(
     can_see_post,
 ) -> list[str]:
     """Visible post ids supported by a cataloged team mention."""
-    rows = await conn.fetch(
-        """
+    # Safe SQL: the eligibility predicate is an immutable schema fragment; team id is bound.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
         select post.post_id, post.visibility_code, post.corporate_entity_id
           from post_team_mention mention
           join source_post post on post.post_id = mention.post_id
          where mention.team_id = $1
+           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by post.created_at, post.post_id
         """,
         team_id,
@@ -554,8 +561,12 @@ async def hydrate_related_nodes(
     ) if person_ids else {}
     posts = {
         str(row["post_id"]): row
-        for row in await conn.fetch(
-            "select post_id, post_title from source_post where post_id = any($1::uuid[])",
+        # Safe SQL: the eligibility predicate is an immutable schema fragment; post ids are bound.
+        for row in await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            f"select post_id, post_title, "
+            "btrim(left(source_post_search_text(post_body), 420)) as post_body_excerpt, "
+            "char_length(coalesce(post_body, '')) > 420 as post_body_truncated "
+            f"from source_post where post_id = any($1::uuid[]) and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
             post_ids,
         )
     } if post_ids else {}
@@ -603,6 +614,8 @@ async def hydrate_related_nodes(
                     item["affiliation_ambiguous"] = True
         elif node_type_code == NODE_POST and node_id in posts:
             item["label"] = posts[node_id]["post_title"]
+            item["post_body_excerpt"] = posts[node_id]["post_body_excerpt"]
+            item["post_body_truncated"] = posts[node_id]["post_body_truncated"]
         elif node_type_code == NODE_CORPORATE_ENTITY and node_id in corps:
             item["label"] = corps[node_id]["entity_name"]
             level = corps[node_id]["entity_level_code"]
@@ -637,6 +650,56 @@ async def related_for_person(
 ) -> list[dict[str, Any]]:
     """Run RWR from ``person_id`` over the account's visible subgraph."""
     return await related_for_start(conn, NODE_PERSON, person_id, visible_post_ids)
+
+
+async def fetch_person_role_history(
+    conn: asyncpg.Connection,
+    person_id: str,
+    visible_post_ids: list[str],
+) -> list[dict[str, Any]]:
+    """This Keyman's responsibility and affiliated organization across time.
+
+    RWR's related-nodes view answers "what else connects to this
+    person"; it does not answer "how has this specific person's role
+    changed" -- the same cataloged_person can be affiliated with
+    different organizations, or described with a different
+    responsibility, in posts at different times (a job change, a title
+    change, a move between projects). ``post_summary_role`` already
+    carries this per post; this simply orders it chronologically for
+    one person instead of leaving a buyer to open every post that
+    mentions them and compare manually.
+
+    ``visible_post_ids`` must already be ABAC-filtered by the caller
+    (see ``visible_mention_post_ids``); this function does not itself
+    check visibility. An empty result means no role classification
+    exists for this person on any post the account can see, not that
+    the person is unknown.
+    """
+    if not visible_post_ids:
+        return []
+    rows = await conn.fetch(
+        """
+        select role.post_id, post.post_title, post.created_at,
+               role.responsibility, role.affiliated_organization_name
+          from post_summary_role role
+          join source_post post on post.post_id = role.post_id
+         where role.cataloged_person_id = $1
+           and role.post_id = any($2::uuid[])
+         order by post.created_at asc, role.post_id
+        """,
+        person_id,
+        visible_post_ids,
+    )
+    return [
+        {
+            "post_id": str(row["post_id"]),
+            "post_title": row["post_title"],
+            "created_at": row["created_at"].isoformat(),
+            "responsibility": row["responsibility"],
+            "affiliated_organization_name": row["affiliated_organization_name"],
+        }
+        for row in rows
+    ]
 
 
 async def related_for_entity(

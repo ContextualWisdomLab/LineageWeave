@@ -1,8 +1,14 @@
 # DB design: searchable, position-preserving image content
 
-**Status:** proposed schema, not yet backed by a persistence layer in this
-repo (LineageWeave's own demo server is in-memory/stdlib -- this document
-is the design a real deployment's persistence layer should implement).
+> Normative decision: [ADR 0066](adr/0066-position-preserving-image-content.md).
+> This file remains the schema reference; its future-migration status is
+> authoritative until the persistence migration is accepted.
+
+**Status:** proposed normalized schema reference. The running product persists
+position-preserving image units, OCR/captions, and embeddings in PostgreSQL
+through `post_content_unit` (`migrations/0026_post_content_artifacts.sql`);
+this document keeps the richer source-document/image decomposition available
+for a future migration rather than describing an in-memory demo server.
 All object names are snake_case, two or more words, per this project's
 naming convention.
 
@@ -85,16 +91,14 @@ picture sat relative to the surrounding paragraphs."
 ## Viewer contract (before persistence exists)
 
 The demo popup does not yet read these tables. It splits the live
-`post_body` the same way `extract_base64_images` and `chunk_by_dom` do:
-an HTML parser walks the document, each raster `data:image/...;base64,...`
-payload becomes an `<img>` at its original character offset, and the
-surrounding HTML is shown as decoded text (ADR 0031). A buyer who opens
-an invoice-like post — including `alt="Invoice > 1000"` — sees the
-picture that sat between the paragraphs, not the base64 wall. Remote
-`src="https://..."` tags, `image/svg+xml`, HTML comments, and CSS
-`background:url` payloads are not loaded. OCR, caption, and tag search
-still require the vision client on extract / Ask (Li et al., 2023;
-Radford et al., 2021) and, in a real deployment, the tables below.
+`post_body` the same way `extract_base64_images` does: each
+`data:image/...;base64,...` payload becomes an `<img>` at its original
+character offset, and the surrounding HTML is shown as text. A buyer who
+opens the post sees the picture that sat between the paragraphs, not the
+base64 wall. Remote `src="https://..."` tags are stripped, never fetched.
+OCR, caption, and tag search still require the vision client on extract /
+Ask (Li et al., 2023; Radford et al., 2021) and, in a real deployment,
+the tables below.
 
 ## Query shapes this supports
 
@@ -122,10 +126,6 @@ Radford et al., 2021) and, in a real deployment, the tables below.
 
 ## References
 
-Boutell, T., & Randers-Pehrson, G. (Eds.). (2003). *Portable Network
-Graphics (PNG) specification (second edition)*. World Wide Web Consortium.
-https://www.w3.org/TR/2003/REC-PNG-20031110/
-
 Li, M., Lv, T., Chen, J., Cui, L., Lu, Y., Florencio, D., Zhang, C., Li, Z.,
 & Wei, F. (2023). TrOCR: Transformer-based optical character recognition
 with pre-trained models. *Proceedings of the AAAI Conference on Artificial
@@ -137,6 +137,3 @@ Sastry, G., Askell, A., Mishkin, P., Clark, J., Krueger, G., & Sutskever, I.
 supervision. In M. Meila & T. Zhang (Eds.), *Proceedings of the 38th
 International Conference on Machine Learning* (pp. 8748–8763). PMLR.
 https://proceedings.mlr.press/v139/radford21a.html
-
-WHATWG. (n.d.). *HTML living standard*.
-https://html.spec.whatwg.org/multipage/

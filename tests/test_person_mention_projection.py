@@ -52,6 +52,39 @@ _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
 )
 _MIGRATION_PATH = Path(__file__).resolve().parents[1] / "migrations" / "0001_initial_schema.sql"
+_SEMANTIC_PROJECT_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0031_semantic_project_mentions.sql"
+)
+_POST_SUMMARY_CONTRACT_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0040_post_summary_contract.sql"
+)
+_SUMMARY_FIVE_W1H_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0048_post_summary_five_w1h.sql"
+)
+_MAJOR_EVENT_ACTION_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0100_major_event_action.sql"
+)
+_SEMANTIC_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0032_semantic_search_trigram.sql"
+)
+_SOURCE_STATE_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0033_source_state_provenance.sql"
+)
+_SOURCE_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0034_source_context_provenance.sql"
+)
+_NORMALIZED_BODY_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0036_normalized_body_search.sql"
+)
+_SOURCE_RECORD_IDENTITY_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0037_source_record_identity.sql"
+)
+_SOURCE_NAMED_HINTS_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0038_source_named_hints.sql"
+)
+_SOURCE_ORG_NAMED_HINTS_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0039_source_org_named_hints.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -106,6 +139,17 @@ def projection_database() -> str:
         try:
             with connection.cursor() as cursor:
                 cursor.execute(_MIGRATION_PATH.read_text(encoding="utf-8"))
+                cursor.execute(_SEMANTIC_PROJECT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SEMANTIC_SEARCH_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SOURCE_STATE_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SOURCE_CONTEXT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_NORMALIZED_BODY_SEARCH_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SOURCE_RECORD_IDENTITY_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SOURCE_NAMED_HINTS_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SOURCE_ORG_NAMED_HINTS_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_POST_SUMMARY_CONTRACT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(
                     """
                     insert into common_lookup_value
@@ -346,8 +390,9 @@ def test_cross_post_identity_upgrade_keeps_keyman_mention_context(
                 ),
             )
             cursor.execute(
-                "insert into post_summary_result (post_id, korean_summary) values (%s, %s)",
-                (post_id, "합성 요약"),
+                "insert into post_summary_result "
+                "(post_id, korean_summary, summary_contract_version) values (%s, %s, %s)",
+                (post_id, "합성 요약", 1),
             )
             cursor.execute(
                 """

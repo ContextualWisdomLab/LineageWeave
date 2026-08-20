@@ -4,7 +4,7 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.12.6] - 2026-08-20
+## [Unreleased]
 
 ### Changed
 
@@ -14,6 +14,26 @@ All notable changes to this project are documented here. Format follows
 - The plural-affiliation panel tells the buyer to read the complete
   Keyman list before continuing the graph walk, preserving every
   membership instead of inventing a primary organization.
+
+### Fixed
+
+- `make smoke` and `make seed` now run through the locked project `uv`
+  environment, so local OIDC and synthetic-data workflows resolve the same
+  pinned dependencies as CI.
+
+## [2.12.6] - 2026-08-20
+
+### Added
+
+- Production OIDC can now use a real Keyverse issuer through
+  `KEYVERSE_ISSUER` and `KEYVERSE_CLIENT_ID`. The backend discovers the
+  provider's JWKS and verifies the issuer; Compose keeps local Keycloak only
+  as an explicit development fallback and does not emulate Keyverse.
+- Relation verification now preserves a separately authorized internal source
+  post containing normalized organization and relationship context. Open that
+  evidence from the counterparty popup without treating it as an external URL.
+- Large corpora now use bounded post and Event Lineage landing projections so
+  buyers can open complete post-specific detail from a responsive first view.
 
 ## [2.12.5] - 2026-08-18
 
