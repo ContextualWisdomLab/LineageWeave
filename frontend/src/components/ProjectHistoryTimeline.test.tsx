@@ -11,8 +11,11 @@ const projection: ProjectHistoryProjection = {
   project_name: "Transformer renewal",
   focus_event_id: "voc",
   time_basis_code: "source_post_created_at_fallback",
+  knowledge_cutoff: "2026-08-20T00:00:00+00:00",
+  evidence_boundary_code: "authorized_visible_source_posts",
   event_count: 3,
-  distinct_observed_actor_count: 2,
+  distinct_actor_count: 2,
+  distinct_observed_actor_count: 1,
   truncated: false,
   events: [
     {
@@ -27,18 +30,30 @@ const projection: ProjectHistoryProjection = {
       source_stage_code: null,
       source_detail_state_code: null,
       project_matches: [],
-      observed_responsibilities: [
+      responsibility_evidence: [
         {
-          actor_key: "person:sales",
+          actor_key: "text:prov_person\u001fkim oo\u001fdemo corp",
           actor_name: "Kim OO",
           actor_type_code: "prov_person",
           affiliated_organization_name: "Demo Corp",
-          responsibility: "Observed award owner",
+          responsibility: "Source author",
           truth_status_code: "observed",
-          provenance: "post_summary_role",
+          provenance: "source_post.source_author",
+        },
+      ],
+      observed_responsibilities: [
+        {
+          actor_key: "text:prov_person\u001fkim oo\u001fdemo corp",
+          actor_name: "Kim OO",
+          actor_type_code: "prov_person",
+          affiliated_organization_name: "Demo Corp",
+          responsibility: "Source author",
+          truth_status_code: "observed",
+          provenance: "source_post.source_author",
         },
       ],
       responsibility_transition_code: null,
+      responsibility_transition_truth_status_code: null,
       related_prior_paths: [],
     },
     {
@@ -53,18 +68,20 @@ const projection: ProjectHistoryProjection = {
       source_stage_code: null,
       source_detail_state_code: null,
       project_matches: [],
-      observed_responsibilities: [
+      responsibility_evidence: [
         {
           actor_key: "person:pm",
           actor_name: "Park OO",
           actor_type_code: "prov_person",
           affiliated_organization_name: "Demo Corp",
-          responsibility: "Observed specification owner",
-          truth_status_code: "observed",
+          responsibility: "Coordinate the specification revision",
+          truth_status_code: "inferred",
           provenance: "post_summary_role",
         },
       ],
+      observed_responsibilities: [],
       responsibility_transition_code: "handoff",
+      responsibility_transition_truth_status_code: "inferred",
       related_prior_paths: [],
     },
     {
@@ -79,8 +96,10 @@ const projection: ProjectHistoryProjection = {
       source_stage_code: null,
       source_detail_state_code: null,
       project_matches: [],
+      responsibility_evidence: [],
       observed_responsibilities: [],
       responsibility_transition_code: "assignment_gap",
+      responsibility_transition_truth_status_code: "inferred",
       related_prior_paths: [
         {
           source_event_id: "award",
@@ -101,7 +120,7 @@ const projection: ProjectHistoryProjection = {
 };
 
 describe("ProjectHistoryTimeline", () => {
-  it("shows the focus event, evidence gap, and non-causal prior history", () => {
+  it("shows the focus event, evidence gap, authorization boundary, and non-causal prior history", () => {
     const onOpenPost = vi.fn();
     render(<ProjectHistoryTimeline projection={projection} onOpenPost={onOpenPost} />);
 
@@ -110,12 +129,13 @@ describe("ProjectHistoryTimeline", () => {
     expect(vocTab).toHaveAttribute("aria-current", "step");
     expect(screen.getByText(/evidence gap/i, { selector: "dd" })).toBeInTheDocument();
     expect(screen.getByText(/related history, not causality/i)).toBeInTheDocument();
+    expect(screen.getByText(/permission, visibility, publication, and cutoff gates/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /open source record: VOC received/i }));
     expect(onOpenPost).toHaveBeenCalledWith("post-voc");
   });
 
-  it("uses roving keyboard selection and a labelled tabpanel", () => {
+  it("uses roving keyboard selection and exposes inferred responsibility truth", () => {
     render(<ProjectHistoryTimeline projection={projection} onOpenPost={vi.fn()} />);
     const vocTab = screen.getByRole("tab", { name: /VOC received/ });
 
@@ -126,5 +146,8 @@ describe("ProjectHistoryTimeline", () => {
 
     const panel = screen.getByRole("tabpanel");
     expect(panel).toHaveAttribute("aria-labelledby", specTab.id);
+    expect(screen.getAllByText("Inferred").length).toBeGreaterThan(0);
+    expect(screen.getByText("post_summary_role")).toBeInTheDocument();
+    expect(screen.queryByText("Observed award owner")).not.toBeInTheDocument();
   });
 });
