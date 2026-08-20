@@ -579,7 +579,7 @@ correctness, authorization coverage, or release readiness. Re-run the same
 aggregate projection against the authorized deployment before treating it as
 buyer-facing evidence.
 
-## Current PR queue checkpoint: 2026-08-21 07:57 KST
+## Current PR queue checkpoint: 2026-08-21 07:58 KST
 
 The current GitHub queue was re-fetched after the previous checkpoint. The
 following buyer-surface heads are exact at this checkpoint; they remain
@@ -611,7 +611,7 @@ and blocked at query time, and none had an `APPROVED` review decision.
 | #306 | `fc7969e1d75f840ccbcc02653331bdafc1382036` | `feat/analysis-run-name-evidence-lineage` | `BLOCKED`, review required |
 | #303 | `817681bb0d491c4c71bcf24b0d9554afd34b3a71` | `feat/buyer-evidence-gap-structure` | `BLOCKED`, review required |
 | #302 | `8ed7eac5dc0e827cfdcfb7143eaa6db7c9c92189` | `feat/analysis-run-name-evidence-lineage` | `BLOCKED`, approval absent |
-| #258 | `d1d49308a703a249138ae85eb9baef3c48ddecd4` | `main` | `BLOCKED`; coverage queued, Strix in progress, Devin failed |
+| #258 | `d1d49308a703a249138ae85eb9baef3c48ddecd4` | `main` | `BLOCKED`; coverage queued, Strix success, Devin failed |
 
 The queue contains valid stacked work for the known buyer gaps, including
 OIDC deep links, visual-region evidence, semantic table rendering, project
