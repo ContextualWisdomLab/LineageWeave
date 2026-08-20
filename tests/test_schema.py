@@ -27,6 +27,9 @@ _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
 )
 _MIGRATION_PATH = Path(__file__).resolve().parents[1] / "migrations" / "0001_initial_schema.sql"
+_MAJOR_EVENT_ACTION_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0100_major_event_action.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -59,6 +62,7 @@ def schema_db():
         try:
             with conn.cursor() as cur:
                 cur.execute(_MIGRATION_PATH.read_text())
+                cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -104,6 +108,7 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_result",
         "post_summary_event",
         "post_summary_role",
+        "post_summary_action",
         "post_chat_result",
         "post_chat_citation",
     }
