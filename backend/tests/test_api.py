@@ -3240,6 +3240,43 @@ def test_evaluate_publishes_an_activity_event(client, demo_analyst_token, seeded
     assert "1 rubric criterion response" in events[0]["summary"]
 
 
+def test_live_chat_answer_publishes_an_activity_event(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Live gap (2026-08-20): a live (non-cached) chat answer is a real,
+    consequential LLM call, same discipline as extract-keymen/evaluate --
+    it must publish to the post's activity feed too. A stored/seeded
+    answer (no live call made) must not.
+    """
+    from lineageweave.post_chat import ChatAnswer
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeChatClient:
+        available = True
+
+        def answer(self, question: str, sources) -> ChatAnswer:
+            return ChatAnswer(answer_text="a live answer", cited_post_ids=())
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FakeChatClient())
+
+    post_id = seeded_db["own_private_post_id"]
+    response = client.post(
+        f"/api/posts/{post_id}/chat",
+        json={"question": "What happened here that no seed already answers?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+
+    activity_response = client.get(
+        f"/api/posts/{post_id}/activity",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    events = activity_response.json()["events"]
+    assert events[0]["event_type"] == "chat_answered"
+    assert "What happened here that no seed already answers?" in events[0]["summary"]
+
+
 def test_evaluate_is_unavailable_without_orchestrator(client, demo_analyst_token, seeded_db) -> None:
     os.environ.pop("ORCHESTRATOR_BASE_URL", None)
     os.environ.pop("ORCHESTRATOR_API_KEY", None)

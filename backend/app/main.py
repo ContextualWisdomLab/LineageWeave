@@ -2414,6 +2414,7 @@ async def chat_about_post(
     request: ChatRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """In-popup chat: answers `request.question` using this post's own
     content plus its Event-Lineage-linked posts (direct and Knowledge-
@@ -2463,6 +2464,13 @@ async def chat_about_post(
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:
         await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
+    await publish_activity_event(
+        valkey,
+        post_id,
+        "chat_answered",
+        account.user_account_id,
+        f"Chat answered: {question}",
+    )
     return {
         "post_id": post_id,
         "answer_text": answer.answer_text,

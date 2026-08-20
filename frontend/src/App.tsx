@@ -1589,6 +1589,10 @@ const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   ticket_created: "Ticket created",
   ticket_status_changed: "Status changed",
   commitment_derived: "Commitment derived",
+  keymen_extracted: "Keymen extracted",
+  relations_verified: "Relations verified",
+  post_evaluated: "Post evaluated",
+  chat_answered: "Chat answered",
 };
 
 function activityTypeLabel(eventType: string): string {
