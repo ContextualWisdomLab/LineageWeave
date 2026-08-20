@@ -103,6 +103,7 @@ import {
   analysisRunTargetClock,
   type AnalysisRunNavigationContext,
 } from "./analysisRunNavigation";
+import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -4774,12 +4775,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         <LanguageSwitcher />
           <button
             onClick={() => {
-              const returnUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-              try {
-                window.sessionStorage.setItem("lineageweave.oidc.returnUrl", returnUrl);
-              } catch {
-                // OIDC state remains the primary return-path transport.
-              }
+              const returnUrl = returnUrlFromLocation();
+              rememberOidcReturnUrl(returnUrl);
               void auth.signinRedirect({ state: { returnUrl } });
             }}
           >
