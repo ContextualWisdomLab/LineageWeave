@@ -105,6 +105,8 @@ def test_render_image_text_preserves_unavailable_and_caption_variants() -> None:
 def test_internal_image_instruction_is_not_searchable_caption() -> None:
     """Prompt guidance is not buyer evidence or embedding content."""
     assert buyer_safe_image_caption("A process diagram") == "A process diagram"
+    legitimate_korean_caption = "이 이미지는 텍스트가 포함된 다이어그램을 보여줍니다"
+    assert buyer_safe_image_caption(legitimate_korean_caption) == legitimate_korean_caption
     assert (
         buyer_safe_image_caption(
             "이 글의 이미지입니다. Keyman을 추출하거나 질문해 이미지 안의 텍스트를 읽으세요."

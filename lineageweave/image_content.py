@@ -154,8 +154,8 @@ class ImageDescription:
 _INTERNAL_IMAGE_INSTRUCTION = re.compile(
     r"^(?:"
     r"this post is an image(?:\s*[.!?]|.*(?:ask\s+questions|read\s+its\s+text).*)"
-    r"|이 글의 이미지입니다(?:\s*[.!?]|.*(?:keyman|질문|텍스트).*)"
-    r"|(?:this image|이 이미지는).*(?:keyman|ask\s+questions|read\s+its\s+text|질문|텍스트).*"
+    r"|이 글의 이미지입니다(?:\s*[.!?]|.*(?:keyman\s*(?:을|를)\s*추출|질문해.*텍스트를\s*읽으세요|이미지\s*안의\s*텍스트를\s*읽으세요).*)"
+    r"|(?:this image|이 이미지는).*(?:keyman\s*(?:을|를)\s*추출|ask\s+questions|read\s+its\s+text|질문해.*(?:읽으세요|추출하세요)|텍스트를\s*(?:읽으세요|추출하세요)).*"
     r")$",
     re.IGNORECASE,
 )

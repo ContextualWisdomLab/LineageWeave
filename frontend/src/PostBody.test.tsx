@@ -352,4 +352,36 @@ describe("PostBody", () => {
     expect(screen.getByText("Visible OCR")).toBeInTheDocument();
     expect(screen.getByText("Region OCR")).toBeInTheDocument();
   });
+
+  it("keeps a legitimate Korean caption that mentions visible text", () => {
+    render(
+      <PostBody
+        body="<p>image with a useful caption</p>"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "image",
+            unit_label: "img",
+            unit_text: "image with a useful caption",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "",
+          },
+        ]}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "",
+            caption: "이 이미지는 텍스트가 포함된 다이어그램을 보여줍니다",
+            tags: [],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("이 이미지는 텍스트가 포함된 다이어그램을 보여줍니다")).toBeInTheDocument();
+  });
 });

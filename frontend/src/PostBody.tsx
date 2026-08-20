@@ -41,7 +41,7 @@ function buyerSafeImageCaption(caption: string | null | undefined): string | und
   const cleaned = caption?.replace(/\s+/g, " ").trim();
   if (!cleaned) return undefined;
   if (
-    /^(?:this post is an image(?:\s*[.!?]|.*(?:ask questions|read its text).*)|이 글의 이미지입니다(?:\s*[.!?]|.*(?:Keyman|질문|텍스트).*)|(?:this image|이 이미지는).*(?:Keyman|ask questions|read its text|질문|텍스트).*)$/i.test(
+    /^(?:this post is an image(?:\s*[.!?]|.*(?:ask questions|read its text).*)|이 글의 이미지입니다(?:\s*[.!?]|.*(?:Keyman\s*(?:을|를)\s*추출|질문해.*텍스트를\s*읽으세요|이미지\s*안의\s*텍스트를\s*읽으세요).*)|(?:this image|이 이미지는).*(?:Keyman\s*(?:을|를)\s*추출|ask questions|read its text|질문해.*(?:읽으세요|추출하세요)|텍스트를\s*(?:읽으세요|추출하세요)).*)$/i.test(
       cleaned,
     )
   ) {
