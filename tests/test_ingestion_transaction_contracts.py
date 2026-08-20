@@ -212,6 +212,8 @@ class _SummaryConnection:
         compact = " ".join(query.split())
         self._events.append(("fetch", compact))
         assert not self.in_transaction
+        if "from post_summary_action" in compact:
+            return []
         if "from post_summary_event" in compact:
             return [{"event_text": "검토 완료"}]
         if "from post_project_mention" in compact:
@@ -515,6 +517,8 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
         async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
             compact = " ".join(query.split())
             events.append(("fetch", compact))
+            if "from post_summary_action" in compact:
+                return []
             if "from post_summary_event" in compact:
                 return []
             if "from post_project_mention" in compact:

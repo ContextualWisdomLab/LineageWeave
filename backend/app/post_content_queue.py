@@ -17,6 +17,8 @@ SUCCEEDED = "post_content_ingestion_succeeded"
 FAILED = "post_content_ingestion_failed"
 STALE_RUNNING_INTERVAL = timedelta(minutes=15)
 _ACTIVE = {QUEUED, RUNNING}
+POST_CONTENT_MAX_ATTEMPTS = 3
+POST_CONTENT_RETRY_INTERVAL = "5 minutes"
 
 
 @dataclass(frozen=True)
@@ -175,27 +177,43 @@ async def transition_post_content_job(
     *,
     failure_code: str | None = None,
     detail_text: str | None = None,
-) -> None:
-    """Update the job and append its lifecycle event atomically."""
-    await conn.execute(
+    expected_attempt_count: int | None = None,
+) -> bool:
+    """Update one job attempt and append its lifecycle event atomically.
+
+    ``expected_attempt_count`` fences stale workers after lease recovery.  A
+    late completion from an older attempt must not overwrite the newer
+    attempt's status or append a misleading lifecycle event.
+    """
+    updated = await conn.execute(
         """
         update post_content_ingestion_job
         set status_code = $2,
-            started_at = case when $2 = $3 then now() else started_at end,
+            started_at = case
+                when $2 = $3 then now()
+                when $2 = $6 then null
+                else started_at
+            end,
             completed_at = case when $2 in ($4, $5) then now() else null end,
+            queued_at = case when $2 = $6 then now() else queued_at end,
             updated_at = now(),
-            last_error_code = $6,
-            last_error_detail = $7
+            last_error_code = $7,
+            last_error_detail = $8
         where post_id = $1
+          and ($9::integer is null or attempt_count = $9)
         """,
         post_id,
         status_code,
         RUNNING,
         SUCCEEDED,
         FAILED,
+        QUEUED,
         failure_code,
         detail_text,
+        expected_attempt_count,
     )
+    if not updated.endswith(" 1"):
+        return False
     await _record_status(
         conn,
         post_id,
@@ -203,6 +221,7 @@ async def transition_post_content_job(
         failure_code=failure_code,
         detail_text=detail_text,
     )
+    return True
 
 
 async def ensure_post_content_job(
@@ -246,7 +265,6 @@ async def ensure_post_content_job(
     status_code = str(row["status_code"])
     needs_requeue = (
         str(row["source_body_sha256"]) != digest
-        or status_code == FAILED
         or (status_code == SUCCEEDED and not content_complete)
     )
     if needs_requeue:
@@ -290,16 +308,23 @@ async def republish_queued_post_content_jobs(
             """
             select post_id, source_body_sha256
             from post_content_ingestion_job
-            where status_code = $1
+            where (
+                status_code = $1
+                and (
+                    attempt_count = 0
+                    or queued_at <= now() - $2::interval
+                )
+            )
                or (
-                   status_code = $2
-                   and started_at is not null
-                   and started_at < now() - $3::interval
+                    status_code = $3
+                    and started_at is not null
+                    and started_at < now() - $4::interval
                )
             order by queued_at
-            limit $4
+            limit $5
             """,
             QUEUED,
+            POST_CONTENT_RETRY_INTERVAL,
             RUNNING,
             STALE_RUNNING_INTERVAL,
             limit,
