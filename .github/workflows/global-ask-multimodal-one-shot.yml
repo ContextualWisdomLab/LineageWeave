@@ -1,0 +1,716 @@
+name: Implement Global Ask multimodal response once
+
+on:
+  push:
+    branches:
+      - feat/analysis-run-name-evidence-lineage
+    paths:
+      - .github/workflows/global-ask-multimodal-one-shot.yml
+
+permissions:
+  contents: write
+
+jobs:
+  implement:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact buyer branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/analysis-run-name-evidence-lineage
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Apply RED tests and GREEN implementation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding="utf-8")
+              if new in text:
+                  return
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one replacement anchor, found {count}")
+              target.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          Path("backend/app/global_ask_media.py").write_text('''"""Bounded image blocks for evidence-grounded Global Ask responses.
+
+Images are reconstructed only from the original body of already-authorized,
+actually-cited source posts. The helper never searches another post, never
+calls a provider, and never treats an uncited image as answer evidence.
+"""
+
+from __future__ import annotations
+
+import base64
+from dataclasses import dataclass
+from typing import Any, Literal, Sequence
+
+from lineageweave.chunking import chunk_by_dom
+
+MAX_GLOBAL_ASK_IMAGE_COUNT = 3
+MAX_GLOBAL_ASK_IMAGE_BYTES = 2 * 1024 * 1024
+MAX_GLOBAL_ASK_TOTAL_IMAGE_BYTES = 4 * 1024 * 1024
+_ALLOWED_IMAGE_MIME_TYPES = frozenset(
+    {"image/png", "image/jpeg", "image/webp", "image/gif"}
+)
+
+
+@dataclass(frozen=True)
+class GlobalAskContentBlock:
+    """One text or inline-image block rendered by REST and MCP clients."""
+
+    type: Literal["text", "image"]
+    text: str | None = None
+    post_id: str | None = None
+    unit_index: int | None = None
+    mime_type: str | None = None
+    data_base64: str | None = None
+    alt_text: str | None = None
+    caption: str | None = None
+
+
+async def load_global_ask_content_blocks(
+    conn: Any,
+    answer_text: str,
+    cited_post_ids: Sequence[str],
+) -> tuple[GlobalAskContentBlock, ...]:
+    """Return text first, then at most three bounded images from cited posts."""
+    blocks: list[GlobalAskContentBlock] = [
+        GlobalAskContentBlock(type="text", text=answer_text)
+    ]
+    ordered_post_ids = list(dict.fromkeys(cited_post_ids))
+    if not ordered_post_ids:
+        return tuple(blocks)
+
+    rows = await conn.fetch(
+        """
+        select post_id, post_title, post_body
+          from source_post
+         where post_id = any($1::uuid[])
+         order by array_position($1::uuid[], post_id)
+        """,
+        ordered_post_ids,
+    )
+    total_bytes = 0
+    image_count = 0
+    for row in rows:
+        post_id = str(row["post_id"])
+        post_title = str(row["post_title"] or "Source post")
+        body = str(row["post_body"] or "")
+        for chunk in chunk_by_dom(body):
+            if chunk.unit_type != "image" or chunk.image_data is None:
+                continue
+            mime_type = chunk.label.casefold()
+            if mime_type not in _ALLOWED_IMAGE_MIME_TYPES:
+                continue
+            byte_length = len(chunk.image_data)
+            if byte_length == 0 or byte_length > MAX_GLOBAL_ASK_IMAGE_BYTES:
+                continue
+            if total_bytes + byte_length > MAX_GLOBAL_ASK_TOTAL_IMAGE_BYTES:
+                return tuple(blocks)
+            blocks.append(
+                GlobalAskContentBlock(
+                    type="image",
+                    post_id=post_id,
+                    unit_index=chunk.index,
+                    mime_type=mime_type,
+                    data_base64=base64.b64encode(chunk.image_data).decode("ascii"),
+                    alt_text=f"{post_title} — source image {chunk.index + 1}",
+                    caption=post_title,
+                )
+            )
+            total_bytes += byte_length
+            image_count += 1
+            if image_count == MAX_GLOBAL_ASK_IMAGE_COUNT:
+                return tuple(blocks)
+    return tuple(blocks)
+''', encoding="utf-8")
+
+          Path("tests/test_global_ask_media.py").write_text('''"""Unit regressions for cited Global Ask image blocks."""
+
+from __future__ import annotations
+
+import base64
+
+import pytest
+
+from backend.app.global_ask_media import load_global_ask_content_blocks
+
+
+class _Connection:
+    def __init__(self, rows):
+        self.rows = rows
+        self.requested_ids = None
+
+    async def fetch(self, _sql: str, post_ids: list[str]):
+        self.requested_ids = post_ids
+        return self.rows
+
+
+@pytest.mark.asyncio
+async def test_loads_text_and_only_cited_inline_raster_images() -> None:
+    connection = _Connection(
+        [
+            {
+                "post_id": "11111111-1111-1111-1111-111111111111",
+                "post_title": "Project history screen",
+                "post_body": (
+                    '<p>timeline</p><img src="data:image/png;base64,'
+                    + base64.b64encode(b"png-bytes").decode("ascii")
+                    + '">'
+                ),
+            }
+        ]
+    )
+
+    blocks = await load_global_ask_content_blocks(
+        connection,
+        "Here is the project timeline.",
+        ["11111111-1111-1111-1111-111111111111"],
+    )
+
+    assert connection.requested_ids == ["11111111-1111-1111-1111-111111111111"]
+    assert [block.type for block in blocks] == ["text", "image"]
+    assert blocks[0].text == "Here is the project timeline."
+    assert blocks[1].mime_type == "image/png"
+    assert base64.b64decode(blocks[1].data_base64 or "") == b"png-bytes"
+    assert blocks[1].post_id == "11111111-1111-1111-1111-111111111111"
+
+
+@pytest.mark.asyncio
+async def test_skips_active_svg_and_bounds_image_count() -> None:
+    png = base64.b64encode(b"png").decode("ascii")
+    svg = base64.b64encode(b"<svg/>").decode("ascii")
+    body = '<img src="data:image/svg+xml;base64,' + svg + '">'
+    body += "".join(f'<img src="data:image/png;base64,{png}">' for _ in range(5))
+    connection = _Connection(
+        [
+            {
+                "post_id": "22222222-2222-2222-2222-222222222222",
+                "post_title": "Bounded images",
+                "post_body": body,
+            }
+        ]
+    )
+
+    blocks = await load_global_ask_content_blocks(
+        connection,
+        "Show the images.",
+        ["22222222-2222-2222-2222-222222222222"],
+    )
+
+    assert [block.type for block in blocks] == ["text", "image", "image", "image"]
+    assert all(block.mime_type == "image/png" for block in blocks[1:])
+
+
+@pytest.mark.asyncio
+async def test_no_citations_returns_text_without_querying_posts() -> None:
+    connection = _Connection([])
+    blocks = await load_global_ask_content_blocks(connection, "No cited image.", [])
+    assert blocks[0].text == "No cited image."
+    assert len(blocks) == 1
+    assert connection.requested_ids is None
+''', encoding="utf-8")
+
+          Path("tests/test_global_ask_rich_response.py").write_text('''"""REST Global Ask contract regression for text plus cited images."""
+
+from __future__ import annotations
+
+import base64
+
+import pytest
+
+from backend.app import main
+from backend.app.auth import CurrentAccount
+from lineageweave.post_chat import ChatAnswer, ChatSourceDocument
+
+
+class _Acquire:
+    def __init__(self, connection):
+        self.connection = connection
+
+    async def __aenter__(self):
+        return self.connection
+
+    async def __aexit__(self, *_args):
+        return False
+
+
+class _Pool:
+    def __init__(self, connection):
+        self.connection = connection
+
+    def acquire(self):
+        return _Acquire(self.connection)
+
+
+class _Connection:
+    async def fetch(self, _sql: str, _post_ids: list[str]):
+        return [
+            {
+                "post_id": "11111111-1111-1111-1111-111111111111",
+                "post_title": "Project history screen",
+                "post_body": (
+                    '<img src="data:image/png;base64,'
+                    + base64.b64encode(b"project-screen").decode("ascii")
+                    + '">'
+                ),
+            }
+        ]
+
+
+class _ChatClient:
+    available = True
+
+    def answer(self, _question: str, _sources: list[ChatSourceDocument]) -> ChatAnswer:
+        return ChatAnswer(
+            "The project timeline screen connects award through rebid.",
+            ("11111111-1111-1111-1111-111111111111",),
+        )
+
+
+@pytest.mark.asyncio
+async def test_global_ask_rest_response_contains_renderable_cited_image(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def gather(*_args, **_kwargs):
+        return [
+            ChatSourceDocument(
+                "11111111-1111-1111-1111-111111111111",
+                "Project history screen",
+                "Timeline evidence",
+            )
+        ]
+
+    monkeypatch.setattr(main, "_post_chat_client", lambda: _ChatClient())
+    monkeypatch.setattr(main, "gather_global_chat_sources", gather)
+    account = CurrentAccount(
+        user_account_id="account-1",
+        external_subject_id="subject-1",
+        display_name="Analyst",
+        corporate_entity_ids=frozenset(),
+        permission_codes=frozenset({"post_read"}),
+        preferred_locale="en",
+    )
+
+    response = await main.ask_agent(
+        main.GlobalAskRequest(question="Show the project history screen."),
+        account,
+        _Pool(_Connection()),
+    )
+
+    assert response["answer_text"].startswith("The project timeline")
+    assert [block["type"] for block in response["content_blocks"]] == ["text", "image"]
+    assert response["content_blocks"][1]["mime_type"] == "image/png"
+    assert base64.b64decode(response["content_blocks"][1]["data_base64"]) == b"project-screen"
+''', encoding="utf-8")
+
+          replace_once(
+              "backend/app/main.py",
+              "from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph\n",
+              "from backend.app.global_ask_media import load_global_ask_content_blocks\n"
+              "from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph\n",
+          )
+          replace_once(
+              "backend/app/main.py",
+              '            "cited_post_evidence": [],\n            "next_action": "No authorized source posts are available for this question.",\n',
+              '            "cited_post_evidence": [],\n            "content_blocks": [],\n            "next_action": "No authorized source posts are available for this question.",\n',
+          )
+          replace_once(
+              "backend/app/main.py",
+              '    cited_ids = list(answer.cited_post_ids)\n    return {\n        "answer_text": answer.answer_text,\n',
+              '    cited_ids = list(answer.cited_post_ids)\n'
+              '    async with pool.acquire() as conn:\n'
+              '        content_blocks = await load_global_ask_content_blocks(\n'
+              '            conn, answer.answer_text, cited_ids\n'
+              '        )\n'
+              '    return {\n'
+              '        "answer_text": answer.answer_text,\n'
+              '        "content_blocks": [asdict(block) for block in content_blocks],\n',
+          )
+
+          replace_once(
+              "frontend/src/api.ts",
+              "export interface AskAgentResponse {\n",
+              '''export interface AskAgentTextBlock {
+  type: "text";
+  text: string;
+}
+
+export interface AskAgentImageBlock {
+  type: "image";
+  post_id: string;
+  unit_index: number;
+  mime_type: string;
+  data_base64: string;
+  alt_text: string;
+  caption: string | null;
+}
+
+export type AskAgentContentBlock = AskAgentTextBlock | AskAgentImageBlock;
+
+export interface AskAgentResponse {
+''',
+          )
+          replace_once(
+              "frontend/src/api.ts",
+              "  answer_text: string;\n  cited_post_ids: string[];\n",
+              "  answer_text: string;\n  content_blocks?: AskAgentContentBlock[];\n  cited_post_ids: string[];\n",
+          )
+
+          Path("frontend/src/components/AskAgentContent.tsx").write_text('''import type { AskAgentContentBlock } from "../api";
+
+const SAFE_IMAGE_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+]);
+
+export function AskAgentContent({
+  blocks,
+  fallbackText,
+}: {
+  blocks?: AskAgentContentBlock[];
+  fallbackText?: string;
+}) {
+  const renderedBlocks: AskAgentContentBlock[] =
+    blocks && blocks.length > 0
+      ? blocks
+      : fallbackText
+        ? [{ type: "text", text: fallbackText }]
+        : [];
+
+  if (renderedBlocks.length === 0) return null;
+
+  return (
+    <div className="ask-agent-content">
+      {renderedBlocks.map((block, index) => {
+        if (block.type === "text") {
+          return block.text ? <p key={`text:${index}`}>{block.text}</p> : null;
+        }
+        if (!SAFE_IMAGE_MIME_TYPES.has(block.mime_type) || !block.data_base64) {
+          return null;
+        }
+        const altText = block.alt_text || block.caption || "Source image";
+        return (
+          <figure
+            className="ask-agent-media"
+            key={`image:${block.post_id}:${block.unit_index}`}
+          >
+            <img
+              src={`data:${block.mime_type};base64,${block.data_base64}`}
+              alt={altText}
+              loading="lazy"
+              decoding="async"
+            />
+            {block.caption ? <figcaption>{block.caption}</figcaption> : null}
+          </figure>
+        );
+      })}
+    </div>
+  );
+}
+''', encoding="utf-8")
+
+          Path("frontend/src/components/AskAgentContent.test.tsx").write_text('''import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { AskAgentContent } from "./AskAgentContent";
+
+
+describe("AskAgentContent", () => {
+  it("renders text and an inline cited raster image", () => {
+    render(
+      <AskAgentContent
+        fallbackText="fallback"
+        blocks={[
+          { type: "text", text: "Project timeline answer" },
+          {
+            type: "image",
+            post_id: "post-1",
+            unit_index: 2,
+            mime_type: "image/png",
+            data_base64: "aGVsbG8=",
+            alt_text: "Project event timeline mockup",
+            caption: "Project history screen",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Project timeline answer")).toBeInTheDocument();
+    const image = screen.getByRole("img", { name: "Project event timeline mockup" });
+    expect(image).toHaveAttribute("src", "data:image/png;base64,aGVsbG8=");
+    expect(screen.getByText("Project history screen")).toBeInTheDocument();
+  });
+
+  it("falls back to legacy text and rejects active image media", () => {
+    const { rerender } = render(<AskAgentContent fallbackText="Legacy answer" />);
+    expect(screen.getByText("Legacy answer")).toBeInTheDocument();
+
+    rerender(
+      <AskAgentContent
+        blocks={[
+          {
+            type: "image",
+            post_id: "post-1",
+            unit_index: 0,
+            mime_type: "image/svg+xml",
+            data_base64: "PHN2Zy8+",
+            alt_text: "Unsafe image",
+            caption: null,
+          },
+        ]}
+      />,
+    );
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+});
+''', encoding="utf-8")
+
+          Path("frontend/src/components/AskAgentContent.stories.tsx").write_text('''import type { Meta, StoryObj } from "@storybook/react";
+import { AskAgentContent } from "./AskAgentContent";
+
+const meta = {
+  title: "Buyer/AskAgentContent",
+  component: AskAgentContent,
+} satisfies Meta<typeof AskAgentContent>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const TextOnly: Story = {
+  args: { fallbackText: "The cited project history is supported by stored evidence." },
+};
+
+export const TextAndImage: Story = {
+  args: {
+    blocks: [
+      { type: "text", text: "The project history is connected from award through rebid." },
+      {
+        type: "image",
+        post_id: "synthetic-post",
+        unit_index: 1,
+        mime_type: "image/png",
+        data_base64:
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2nWQAAAAASUVORK5CYII=",
+        alt_text: "Synthetic project timeline preview",
+        caption: "Synthetic project history screen",
+      },
+    ],
+  },
+};
+''', encoding="utf-8")
+
+          replace_once(
+              "frontend/src/App.tsx",
+              'import { CitationChip } from "./components/CitationChip";\n',
+              'import { AskAgentContent } from "./components/AskAgentContent";\n'
+              'import { CitationChip } from "./components/CitationChip";\n',
+          )
+          replace_once(
+              "frontend/src/App.tsx",
+              '          {answer.answer_text ? <p>{answer.answer_text}</p> : null}\n',
+              '          <AskAgentContent blocks={answer.content_blocks} fallbackText={answer.answer_text} />\n',
+          )
+
+          css = Path("frontend/src/App.css")
+          css_text = css.read_text(encoding="utf-8")
+          marker = "\n.ask-agent-content {\n"
+          if marker not in css_text:
+              css.write_text(
+                  css_text
+                  + '''
+
+.ask-agent-content {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.ask-agent-content > p {
+  margin: 0;
+}
+
+.ask-agent-media {
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-muted);
+}
+
+.ask-agent-media img {
+  display: block;
+  width: 100%;
+  max-height: 36rem;
+  object-fit: contain;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.ask-agent-media figcaption {
+  margin-top: 0.55rem;
+  color: var(--text-muted);
+  font-size: var(--lw-font-size-meta);
+}
+''',
+                  encoding="utf-8",
+              )
+
+          replace_once(
+              "pyproject.toml",
+              'version = "2.12.6"\n',
+              'version = "2.12.7"\n',
+          )
+
+          Path("CHANGELOG.d/2.12.7-global-ask-multimodal.md").write_text('''# 2.12.7 — Global Ask cited images
+
+## Added
+
+- Buyer Global Ask now returns a text-first `content_blocks` response and up
+  to three inline raster images reconstructed from the original bodies of
+  actually cited, already-authorized source posts. SVG and other active media,
+  images above 2 MiB, and aggregate image payloads above 4 MiB are excluded.
+- The Buyer chat renders each image with an accessible text alternative and
+  caption. Legacy text-only responses continue to render unchanged.
+''', encoding="utf-8")
+
+          changelog = Path("CHANGELOG.md")
+          changelog_text = changelog.read_text(encoding="utf-8")
+          heading = "## [2.12.7] - 2026-08-20"
+          if heading not in changelog_text:
+              anchor = "## [2.12.6]"
+              if anchor not in changelog_text:
+                  raise SystemExit("CHANGELOG.md: 2.12.6 anchor missing")
+              section = '''## [2.12.7] - 2026-08-20
+
+### Added
+
+- Global Ask can return bounded text and cited inline raster images in one
+  response. Image bytes come only from authorized cited post bodies; active
+  image types and oversized payloads fail closed. The Buyer UI renders alt
+  text and captions and preserves text-only compatibility.
+
+'''
+              changelog.write_text(changelog_text.replace(anchor, section + anchor, 1), encoding="utf-8")
+
+          Path("docs/doctoring/GLOBAL_ASK_MULTIMODAL_REFERENCES.md").write_text('''# Global Ask multimodal response references
+
+The response contract keeps text and image content distinguishable, emits a
+short text alternative for every rendered image, and accepts only bounded
+raster `data:` payloads reconstructed from authorized cited source posts.
+
+## References (APA 7th)
+
+Masinter, L. (1998). *The “data” URL scheme* (RFC 2397). RFC Editor.
+https://doi.org/10.17487/RFC2397
+
+World Wide Web Consortium. (2023). *Web Content Accessibility Guidelines
+(WCAG) 2.2*. https://www.w3.org/TR/WCAG22/
+''', encoding="utf-8")
+
+          architecture = Path("ARCHITECTURE.md")
+          architecture_text = architecture.read_text(encoding="utf-8")
+          architecture_marker = "## Global Ask multimodal response"
+          if architecture_marker not in architecture_text:
+              architecture.write_text(
+                  architecture_text
+                  + '''
+
+## Global Ask multimodal response
+
+Global Ask returns a text-first bounded block list. Image blocks are decoded
+from the original body only after a post is both present in the caller's
+ABAC-filtered source bundle and cited by the answer. The response accepts PNG,
+JPEG, WebP, and GIF only; it excludes SVG/active media, caps each image at 2
+MiB, caps the total at 4 MiB, and returns at most three images. The Buyer UI
+renders the block list directly and retains `answer_text` as a compatibility
+fallback. See `docs/doctoring/GLOBAL_ASK_MULTIMODAL_REFERENCES.md`.
+''',
+                  encoding="utf-8",
+              )
+          PY
+
+      - name: Refresh universal dependency lock
+        run: uv lock
+
+      - name: Install locked Python environment
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Run focused backend regressions
+        run: |
+          uv run --frozen python -m pytest -q \
+            tests/test_global_ask_media.py \
+            tests/test_global_ask_rich_response.py \
+            tests/test_global_ask_sources.py \
+            tests/test_post_chat.py
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run frontend regressions
+        working-directory: frontend
+        run: pnpm exec vitest run src/components/AskAgentContent.test.tsx src/App.test.tsx
+
+      - name: Lint and build frontend
+        working-directory: frontend
+        run: |
+          pnpm run lint
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Commit verified implementation and remove one-shot workflow
+        run: |
+          rm .github/workflows/global-ask-multimodal-one-shot.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            backend/app/global_ask_media.py \
+            backend/app/main.py \
+            tests/test_global_ask_media.py \
+            tests/test_global_ask_rich_response.py \
+            frontend/src/api.ts \
+            frontend/src/App.tsx \
+            frontend/src/App.css \
+            frontend/src/components/AskAgentContent.tsx \
+            frontend/src/components/AskAgentContent.test.tsx \
+            frontend/src/components/AskAgentContent.stories.tsx \
+            pyproject.toml \
+            uv.lock \
+            CHANGELOG.md \
+            CHANGELOG.d/2.12.7-global-ask-multimodal.md \
+            ARCHITECTURE.md \
+            docs/doctoring/GLOBAL_ASK_MULTIMODAL_REFERENCES.md \
+            .github/workflows/global-ask-multimodal-one-shot.yml
+          git commit -m "feat: return cited images from Global Ask"
+          git push origin HEAD:feat/analysis-run-name-evidence-lineage
