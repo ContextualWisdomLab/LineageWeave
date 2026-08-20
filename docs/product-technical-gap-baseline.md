@@ -424,7 +424,7 @@ are not release evidence.
 |---|---|---|---|
 | #258 | `main` -> `feat/analysis-run-name-evidence-lineage` | `49804b0fef503be1697b8be61919b022b615ef2f` | `REVIEW_REQUIRED`, `BLOCKED`; no independent approval observed |
 | #323 | `main` -> `fix/tepp-request-contract-validation` | `1a27efec6863cd3439a4c6023e1c625ce4d7abf2` | `REVIEW_REQUIRED`, `BLOCKED`; required Checks queued |
-| #322 | `fix/stale-summary-buyer-continuity` -> `feat/orchestrator-owned-embedding-consumer` | `7b710453d27286c307986fb3b0bad4ac27d7c8af` | `CLEAN`; Full test and frontend Checks SUCCESS; Devin no issues; independent approval pending |
+| #322 | `fix/stale-summary-buyer-continuity` -> `feat/orchestrator-owned-embedding-consumer` | `1126cfa026876d2427a6f6cf6001eaa8ac609ad5` | `BLOCKED`; per-batch embedding model provenance reset and regression covered; required Checks and fresh independent approval pending |
 | #320 | `codex/normalize-source-indent-semantics` -> `codex/preserve-partial-image-regions` | `41d164c570fe232cc1e38a766439e4093d80cb84` | `CLEAN`; Full test and frontend Checks SUCCESS; independent approval pending |
 | #324 | `codex/preserve-partial-image-regions` -> `fix/validate-partial-image-regions` | `fdd62a6f8317c93f9ba5fc27393cfb26c69e584a` | `CLEAN`; Full test and frontend Checks SUCCESS; independent approval pending |
 | #325 | `fix/validate-partial-image-regions` -> `docs/current-gap-audit` | `704d32ef7f34ed010bc1ea284bfea8c3bd724eb6` | `UNSTABLE`; semantic HTML/Word/OOXML footnote units preserved, body citations remain body text, and fresh runtime aggregate evidence is recorded; required Checks and fresh independent approval pending |
