@@ -34,26 +34,37 @@ jobs:
           from pathlib import Path
 
           workflow_path = Path(".github/workflows/apply-global-ask-public-verification-v2200.yml")
-          workflow = workflow_path.read_text(encoding="utf-8")
-          old_guard = """      github.event.pull_request.number == 276 &&
-                github.event.pull_request.head.repo.full_name == github.repository &&
-                github.actor != 'github-actions[bot]'"""
-          new_guard = """      github.event.pull_request.number == 276 &&
-                github.event.pull_request.head.repo.full_name == github.repository"""
-          if old_guard not in workflow:
-              raise SystemExit("expected actor guard was not found")
-          workflow = workflow.replace(old_guard, new_guard, 1)
+          lines = workflow_path.read_text(encoding="utf-8").splitlines()
 
-          old_install = """          corepack enable
-                pnpm --dir frontend install --frozen-lockfile"""
-          new_install = """          corepack enable
-                corepack prepare pnpm@9.15.9 --activate
-                test \"$(pnpm --version)\" = \"9.15.9\"
-                pnpm --dir frontend install --frozen-lockfile"""
-          if old_install not in workflow:
-              raise SystemExit("expected unpinned pnpm install was not found")
-          workflow = workflow.replace(old_install, new_install, 1)
-          workflow_path.write_text(workflow, encoding="utf-8")
+          actor_indexes = [
+              index
+              for index, line in enumerate(lines)
+              if line.strip() == "github.actor != 'github-actions[bot]'"
+          ]
+          if len(actor_indexes) != 1:
+              raise SystemExit(f"expected one actor guard, found {len(actor_indexes)}")
+          actor_index = actor_indexes[0]
+          previous = lines[actor_index - 1]
+          if not previous.rstrip().endswith("&&"):
+              raise SystemExit("actor guard predecessor does not end in &&")
+          lines[actor_index - 1] = previous.rstrip()[:-2].rstrip()
+          del lines[actor_index]
+
+          corepack_indexes = [
+              index for index, line in enumerate(lines) if line.strip() == "corepack enable"
+          ]
+          if len(corepack_indexes) != 1:
+              raise SystemExit(f"expected one corepack enable, found {len(corepack_indexes)}")
+          corepack_index = corepack_indexes[0]
+          indentation = lines[corepack_index][:-len(lines[corepack_index].lstrip())]
+          insertion = [
+              f"{indentation}corepack prepare pnpm@9.15.9 --activate",
+              f'{indentation}test "$(pnpm --version)" = "9.15.9"',
+          ]
+          if any("corepack prepare pnpm@9.15.9" in line for line in lines):
+              raise SystemExit("pnpm pin already present unexpectedly")
+          lines[corepack_index + 1:corepack_index + 1] = insertion
+          workflow_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
           Path(".github/workflows/repair-global-ask-pnpm.yml").unlink(missing_ok=True)
           Path(".github/workflows/repair-global-ask-pnpm-direct.yml").unlink()
