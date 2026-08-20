@@ -1,5 +1,6 @@
 import type { LineageGraph, LineageGraphEdge, LineageGraphNode } from "./api";
 import { t, tf } from "./i18n";
+import { lineageEvidenceText } from "./lineageEvidenceI18n";
 import { layoutLineageDag } from "./lineageLayout";
 import "./LineageDag.css";
 
@@ -8,7 +9,9 @@ function truncateLabel(label: string): string {
 }
 
 function exactScore(value: number | undefined): string {
-  return value === undefined ? t("Not available") : value.toFixed(4);
+  return value === undefined
+    ? lineageEvidenceText("notAvailable")
+    : value.toFixed(4);
 }
 
 function edgeEvidenceDescription(
@@ -17,22 +20,34 @@ function edgeEvidenceDescription(
   to: LineageGraphNode,
 ): string {
   const channelScores = edge.channel_scores ?? {};
-  const parts = [`${t("Fused")} ${exactScore(edge.fused_score)}`];
+  const parts = [
+    `${lineageEvidenceText("fused")} ${exactScore(edge.fused_score)}`,
+  ];
   if (channelScores.temporal !== undefined) {
-    parts.push(`${t("Time")} ${exactScore(channelScores.temporal)}`);
+    parts.push(
+      `${lineageEvidenceText("time")} ${exactScore(channelScores.temporal)}`,
+    );
   }
   if (channelScores.secondary_key !== undefined) {
     parts.push(
-      `${t("Secondary key")} ${exactScore(channelScores.secondary_key)}`,
+      `${lineageEvidenceText("secondaryKey")} ${exactScore(channelScores.secondary_key)}`,
     );
   }
   if (channelScores.text !== undefined) {
-    parts.push(`${t("Text")} ${exactScore(channelScores.text)}`);
+    parts.push(
+      `${lineageEvidenceText("text")} ${exactScore(channelScores.text)}`,
+    );
   }
   if (channelScores.llm !== undefined) {
-    parts.push(`${t("LLM")} ${exactScore(channelScores.llm)}`);
+    parts.push(
+      `${lineageEvidenceText("llm")} ${exactScore(channelScores.llm)}`,
+    );
   }
-  return `${from.label} follows ${to.label} — ${parts.join("; ")}`;
+  return tf("{from} follows {to} ({score})", {
+    from: from.label,
+    to: to.label,
+    score: parts.join("; "),
+  });
 }
 
 export function LineageDag({
@@ -138,27 +153,25 @@ export function LineageDag({
       {graph.edges.length > 0 ? (
         <section className="popup-section" aria-labelledby="lineage-evidence-heading">
           <h3 id="lineage-evidence-heading">
-            {t("Why these posts are linked")}
+            {lineageEvidenceText("whyLinked")}
           </h3>
-          <p className="post-meta">
-            {t(
-              "Review exact channel scores before relying on this connection.",
-            )}
-          </p>
+          <p className="post-meta">{lineageEvidenceText("nextAction")}</p>
           <div className="lineage-evidence-scroll">
             <table
               className="lineage-evidence-table"
-              aria-label={t("Lineage evidence scores")}
+              aria-label={lineageEvidenceText("tableLabel")}
             >
               <thead>
                 <tr>
-                  <th scope="col">{t("From")}</th>
-                  <th scope="col">{t("To")}</th>
-                  <th scope="col">{t("Fused")}</th>
-                  <th scope="col">{t("Time")}</th>
-                  <th scope="col">{t("Secondary key")}</th>
-                  <th scope="col">{t("Text")}</th>
-                  <th scope="col">{t("LLM")}</th>
+                  <th scope="col">{lineageEvidenceText("from")}</th>
+                  <th scope="col">{lineageEvidenceText("to")}</th>
+                  <th scope="col">{lineageEvidenceText("fused")}</th>
+                  <th scope="col">{lineageEvidenceText("time")}</th>
+                  <th scope="col">
+                    {lineageEvidenceText("secondaryKey")}
+                  </th>
+                  <th scope="col">{lineageEvidenceText("text")}</th>
+                  <th scope="col">{lineageEvidenceText("llm")}</th>
                 </tr>
               </thead>
               <tbody>
