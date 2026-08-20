@@ -56,13 +56,13 @@ def main() -> None:
         agent["base_url"] = provider_url
         agent["credential_key"] = "LLM_GATEWAY_API_KEY"
         agent.setdefault("provider_protocol", "auto")
+    embedding_model = os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
     agents_path.write_text(json.dumps(agents), encoding="utf-8")
 
     from contextual_orchestrator.credentials import register_credential
 
     register_credential("NVIDIA_NIM_API_KEY", provider_key)
     register_credential("LLM_GATEWAY_API_KEY", provider_key)
-    del provider_url
     del provider_key
     sys.argv = [
         "contextual_orchestrator",
@@ -80,9 +80,14 @@ def main() -> None:
         auth_token,
         "--max-output-tokens",
         str(max_output_tokens),
+        "--embedding-provider-url",
+        provider_url,
+        "--embedding-model",
+        embedding_model,
         "--max-body-bytes",
         str(max_body_bytes),
     ]
+    del provider_url
     del auth_token
     from contextual_orchestrator.__main__ import main as serve
 

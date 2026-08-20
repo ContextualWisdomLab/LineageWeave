@@ -36,6 +36,54 @@ from lineageweave.relation_verification import NullRelationVerificationClient
 from lineageweave.semantic_hints import format_semantic_hints
 
 
+_POST_SELECTION_FROM_SQL = """
+select post.post_id, post.post_title, post.post_body, post.author_account_id,
+       author.display_name as author_name,
+       post.source_author_code, post.source_author_name,
+       post.source_company_code, post.source_company_name,
+       post.source_process_unit_code, post.source_process_unit_name,
+       post.source_sales_pool_code, post.source_sales_pool_name,
+       post.source_customer_code, post.source_customer_name,
+       post.source_project_code, post.source_project_name,
+       post.secondary_grouping_key as project_field,
+       customer.entity_name as customer_name,
+       coalesce(
+           (select array_agg(distinct affiliated.entity_name)
+              from account_affiliation affiliation
+              join corporate_entity affiliated
+                on affiliated.corporate_entity_id = affiliation.corporate_entity_id
+             where affiliation.user_account_id = post.author_account_id),
+           '{}'::text[]
+       ) as author_affiliations
+  from source_post post
+  left join user_account author
+    on author.user_account_id = post.author_account_id
+  left join corporate_entity customer
+    on customer.corporate_entity_id = post.corporate_entity_id
+"""
+
+_SELECT_POSTS_BY_ID_QUERY = f"""
+{_POST_SELECTION_FROM_SQL}
+ where {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
+   and post.post_id = any($1::uuid[])
+ order by post.created_at, post.post_id
+ limit $2::bigint
+"""
+
+_SELECT_UNPROJECTED_POSTS_QUERY = f"""
+{_POST_SELECTION_FROM_SQL}
+ where {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
+   and nullif(btrim(post.source_project_code::text), '') is null
+   and nullif(btrim(post.source_project_name::text), '') is null
+   and not exists (
+       select 1 from post_project_mention mention
+        where mention.post_id = post.post_id
+   )
+ order by post.created_at, post.post_id
+ limit $1::bigint
+"""
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -98,51 +146,10 @@ async def _load_posts(
     post_ids: list[str],
     limit: int | None,
 ) -> list[asyncpg.Record]:
-    conditions = [SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")]
-    args: list[object] = []
+    """Load explicit IDs or one bounded unprojected-post batch."""
     if post_ids:
-        conditions.append("post.post_id = any($1::uuid[])")
-        args.append(post_ids)
-    else:
-        conditions.extend(
-            [
-                "nullif(btrim(post.source_project_code::text), '') is null",
-                "nullif(btrim(post.source_project_name::text), '') is null",
-                "not exists (select 1 from post_project_mention mention where mention.post_id = post.post_id)",
-            ]
-        )
-    limit_sql = "" if limit is None else f" limit {int(limit)}"
-    return await conn.fetch(
-        f"""
-        select post.post_id, post.post_title, post.post_body, post.author_account_id,
-               author.display_name as author_name,
-               post.source_author_code, post.source_author_name,
-               post.source_company_code, post.source_company_name,
-               post.source_process_unit_code, post.source_process_unit_name,
-               post.source_sales_pool_code, post.source_sales_pool_name,
-               post.source_customer_code, post.source_customer_name,
-               post.source_project_code, post.source_project_name,
-               post.secondary_grouping_key as project_field,
-               customer.entity_name as customer_name,
-               coalesce(
-                   (select array_agg(distinct affiliated.entity_name)
-                      from account_affiliation affiliation
-                      join corporate_entity affiliated
-                        on affiliated.corporate_entity_id = affiliation.corporate_entity_id
-                     where affiliation.user_account_id = post.author_account_id),
-                   '{{}}'::text[]
-               ) as author_affiliations
-          from source_post post
-          left join user_account author
-            on author.user_account_id = post.author_account_id
-          left join corporate_entity customer
-            on customer.corporate_entity_id = post.corporate_entity_id
-         where {' and '.join(conditions)}
-         order by post.created_at, post.post_id
-         {limit_sql}
-        """,
-        *args,
-    )
+        return list(await conn.fetch(_SELECT_POSTS_BY_ID_QUERY, post_ids, limit))
+    return list(await conn.fetch(_SELECT_UNPROJECTED_POSTS_QUERY, limit))
 
 
 async def backfill_post_summaries(
