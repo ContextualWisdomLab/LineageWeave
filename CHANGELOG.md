@@ -13,7 +13,7 @@ All notable changes to this project are documented here. Format follows
   and focuses Keyman as the named next read. A linked Event Lineage DAG
   walk from that popup keeps the same Keyman focus. A home-list open
   does not add that focus or copy. No TEPP theta is invented. No cited
-  post, customer, week, or cutoff body is invented (ADR 0098 / ADR 0097
+  post, customer, week, or cutoff body is invented (ADR 0100 / ADR 0097
   / ADR 0016).
 
 ## [2.17.0] - 2026-08-19

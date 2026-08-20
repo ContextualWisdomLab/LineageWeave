@@ -29,6 +29,10 @@ def _stream_key(post_id: str) -> str:
     return f"activity:{post_id}"
 
 
+def _operation_stream_key(account_id: str) -> str:
+    return f"operation:{account_id}"
+
+
 def ticket_created_summary(ticket_title: str) -> str:
     """The ``summary`` field ``ticket_created`` producers must share."""
     return f"Ticket created: {ticket_title}"
@@ -68,6 +72,21 @@ async def publish_activity_event(
     """
     return await client.xadd(
         _stream_key(post_id),
+        _activity_fields(event_type, actor_account_id, summary),
+        maxlen=1000,
+        approximate=True,
+    )
+
+
+async def publish_operation_event(
+    client: redis.Redis,
+    actor_account_id: str,
+    event_type: str,
+    summary: str,
+) -> str:
+    """Register an account operation that has no single owning post."""
+    return await client.xadd(
+        _operation_stream_key(actor_account_id),
         _activity_fields(event_type, actor_account_id, summary),
         maxlen=1000,
         approximate=True,

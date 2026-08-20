@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+from threading import Event, Timer
+from types import SimpleNamespace
 
 import pytest
 
 from backend.app.post_chat_ingestion import (
+    LinkedPostIds,
     fetch_persisted_chat,
     fetch_persisted_chats,
+    gather_chat_sources,
     normalize_chat_question,
     persist_post_chat,
 )
@@ -34,6 +38,171 @@ class _Connection:
         if "question_norm from post_chat_result" in query:
             return [{"question_norm": "question"}]
         return self.citations
+
+
+class _SourceConnection:
+    async def fetchrow(self, query: str, *_args: object):
+        if "from source_post where post_id" not in query:
+            return None
+        return {
+            "post_id": "post-1",
+            "post_title": "Public post",
+            "post_body": "<p>Body</p>",
+            "source_system_code": None,
+            "source_record_key": None,
+            "source_author_code": None,
+            "source_author_name": None,
+            "source_company_code": None,
+            "source_company_name": None,
+            "source_process_unit_code": None,
+            "source_process_unit_name": None,
+            "source_sales_pool_code": None,
+            "source_sales_pool_name": None,
+            "source_customer_code": None,
+            "source_customer_name": None,
+            "source_project_code": None,
+            "source_project_name": None,
+        }
+
+    async def fetch(self, _query: str, *_args: object):
+        return []
+
+
+def test_gather_chat_sources_keeps_the_event_loop_responsive_during_body_normalization(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    order: list[str] = []
+    release = Event()
+
+    def blocking_normalize(_body: str, *, vision_client: object) -> SimpleNamespace:
+        del vision_client
+        order.append("normalization_started")
+        assert release.wait(timeout=1.0)
+        order.append("normalization_finished")
+        return SimpleNamespace(text="normalized body")
+
+    monkeypatch.setattr(
+        "backend.app.post_chat_ingestion.normalize_post_body",
+        blocking_normalize,
+    )
+
+    async def exercise() -> None:
+        loop = asyncio.get_running_loop()
+        timer = Timer(0.2, release.set)
+        timer.start()
+        loop.call_later(0.01, order.append, "event_loop_progress")
+        try:
+            sources = await gather_chat_sources(
+                _SourceConnection(),
+                "post-1",
+                lambda _row: True,
+            )
+            await asyncio.sleep(0)
+        finally:
+            release.set()
+            timer.cancel()
+        assert sources[0].post_body == "normalized body"
+
+    asyncio.run(exercise())
+
+    assert order.index("event_loop_progress") < order.index("normalization_finished")
+
+
+def test_gather_chat_sources_bounds_and_orders_linked_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root_id = "00000000-0000-0000-0000-000000000000"
+    direct_ids = frozenset(
+        f"00000000-0000-0000-0000-{index:012d}" for index in range(1, 21)
+    )
+    indirect_ids = frozenset(
+        f"00000000-0000-0000-0001-{index:012d}" for index in range(1, 21)
+    )
+
+    async def fake_find_linked_post_ids(_conn: object, _post_id: str) -> LinkedPostIds:
+        return LinkedPostIds(direct=direct_ids, indirect=indirect_ids)
+
+    monkeypatch.setattr(
+        "backend.app.post_chat_ingestion.find_linked_post_ids",
+        fake_find_linked_post_ids,
+    )
+
+    class SourceBudgetConnection:
+        def __init__(self) -> None:
+            self.candidate_ids: list[str] = []
+            self.candidate_query = ""
+
+        async def fetchrow(self, query: str, *_args: object):
+            if "from source_post where post_id" not in query:
+                return None
+            return {
+                "post_id": root_id,
+                "post_title": "Root post",
+                "post_body": "Root body",
+                **{
+                    field_name: None
+                    for field_name in (
+                        "source_system_code",
+                        "source_record_key",
+                        "source_author_code",
+                        "source_author_name",
+                        "source_company_code",
+                        "source_company_name",
+                        "source_process_unit_code",
+                        "source_process_unit_name",
+                        "source_sales_pool_code",
+                        "source_sales_pool_name",
+                        "source_customer_code",
+                        "source_customer_name",
+                        "source_project_code",
+                        "source_project_name",
+                    )
+                },
+            }
+
+        async def fetch(self, query: str, *args: object):
+            if "from source_post where post_id = any" not in query:
+                return []
+            self.candidate_query = query
+            self.candidate_ids = list(args[0])
+            return [
+                {
+                    "post_id": post_id,
+                    "post_title": f"Post {post_id}",
+                    "post_body": "Body",
+                    "visibility_code": "public",
+                    "corporate_entity_id": None,
+                    **{
+                        field_name: None
+                        for field_name in (
+                            "source_system_code",
+                            "source_record_key",
+                            "source_author_code",
+                            "source_author_name",
+                            "source_company_code",
+                            "source_company_name",
+                            "source_process_unit_code",
+                            "source_process_unit_name",
+                            "source_sales_pool_code",
+                            "source_sales_pool_name",
+                            "source_customer_code",
+                            "source_customer_name",
+                            "source_project_code",
+                            "source_project_name",
+                        )
+                    },
+                }
+                for post_id in self.candidate_ids
+            ]
+
+    conn = SourceBudgetConnection()
+    sources = asyncio.run(gather_chat_sources(conn, root_id, lambda _row: True))
+
+    expected_candidates = [*sorted(direct_ids), *sorted(indirect_ids)][:32]
+    assert conn.candidate_ids == expected_candidates
+    assert "array_position" in conn.candidate_query
+    assert [source.post_id for source in sources] == [root_id, *expected_candidates[:7]]
+    assert len(sources) == 8
 
 
 def test_normalize_question_rejects_empty_and_collapses_whitespace() -> None:

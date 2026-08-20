@@ -7,26 +7,36 @@ to prove the shared field shape and the idempotent re-seed skip.
 
 from __future__ import annotations
 
+import asyncio
+
 from backend.app.activity_stream import (
     publish_activity_event_sync,
     ticket_created_summary,
     ticket_status_changed_summary,
+    publish_operation_event,
 )
 
 
 class _FakeStream:
     def __init__(self) -> None:
         self.entries: list[tuple[str, dict[str, str]]] = []
+        self.keys: list[str] = []
 
     def xrevrange(self, key: str, count: int = 50):
         del key
         return list(reversed(self.entries[-count:]))
 
     def xadd(self, key: str, fields: dict[str, str], maxlen=None, approximate=None):
-        del key, maxlen, approximate
+        self.keys.append(key)
+        del maxlen, approximate
         entry_id = f"1-{len(self.entries)}"
         self.entries.append((entry_id, dict(fields)))
         return entry_id
+
+
+class _AsyncFakeStream(_FakeStream):
+    async def xadd(self, key: str, fields: dict[str, str], maxlen=None, approximate=None):
+        return super().xadd(key, fields, maxlen=maxlen, approximate=approximate)
 
 
 def test_ticket_created_summary_matches_the_live_api_wording() -> None:
@@ -63,3 +73,20 @@ def test_publish_activity_event_sync_skips_a_matching_summary() -> None:
     assert len(client.entries) == 1
     assert client.entries[0][1]["event_type"] == "ticket_created"
     assert "Send Northridge Grid the revised quote" in client.entries[0][1]["summary"]
+
+
+def test_global_ask_registers_an_account_operation_stream_event() -> None:
+    client = _AsyncFakeStream()
+
+    entry_id = asyncio.run(
+        publish_operation_event(
+            client,
+            "acct-1",
+            "global_ask_completed",
+            "Global Ask completed with 2 cited source post(s)",
+        )
+    )
+
+    assert entry_id == "1-0"
+    assert client.keys == ["operation:acct-1"]
+    assert client.entries[0][1]["actor_account_id"] == "acct-1"

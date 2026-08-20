@@ -17,9 +17,11 @@ chain of its own top match.
 
 from __future__ import annotations
 
+import asyncio
 import re
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable
+from uuid import uuid4
 
 import asyncpg
 
@@ -54,6 +56,194 @@ class LinkedPostIds:
 
     direct: frozenset[str]
     indirect: frozenset[str]
+
+
+@dataclass(frozen=True)
+class GlobalAskContext:
+    """Account-scoped continuity context; source evidence is re-retrieved."""
+
+    session_id: str
+    summary: str | None
+    summary_through_ordinal: int
+    recent_turns: tuple[tuple[int, str, str], ...]
+    compress_turns: tuple[tuple[int, str, str], ...]
+
+
+async def ensure_global_ask_session(
+    conn: asyncpg.Connection,
+    account_id: str,
+    session_id: str | None,
+) -> str | None:
+    """Create or account-check one Global Ask session; hidden ids stay hidden."""
+    if session_id is not None:
+        row = await conn.fetchrow(
+            """
+            select global_ask_session_id
+              from global_ask_session
+             where global_ask_session_id = $1
+               and user_account_id = $2
+            """,
+            session_id,
+            account_id,
+        )
+        return str(row["global_ask_session_id"]) if row is not None else None
+    created = str(uuid4())
+    await conn.execute(
+        "insert into global_ask_session (global_ask_session_id, user_account_id) values ($1, $2)",
+        created,
+        account_id,
+    )
+    return created
+
+
+async def load_global_ask_context(
+    conn: asyncpg.Connection,
+    session_id: str,
+    *,
+    recent_limit: int = 6,
+    compression_batch: int = 4,
+) -> GlobalAskContext:
+    """Load bounded continuity rows and the oldest batch eligible for compression."""
+    session = await conn.fetchrow(
+        """
+        select context_summary, context_summary_through_ordinal
+          from global_ask_session
+         where global_ask_session_id = $1
+        """,
+        session_id,
+    )
+    if session is None:
+        raise ValueError("global ask session not found")
+    through = int(session["context_summary_through_ordinal"])
+    pending_count = int(
+        await conn.fetchval(
+            "select count(*) from global_ask_turn where global_ask_session_id = $1 and turn_ordinal > $2",
+            session_id,
+            through,
+        )
+    )
+    compress_count = min(compression_batch, max(0, pending_count - recent_limit))
+    compress_rows = (
+        await conn.fetch(
+            """
+            select turn_ordinal, question_text, answer_text
+              from global_ask_turn
+             where global_ask_session_id = $1
+               and turn_ordinal > $2
+             order by turn_ordinal
+             limit $3
+            """,
+            session_id,
+            through,
+            compress_count,
+        )
+        if compress_count
+        else []
+    )
+    recent_rows = await conn.fetch(
+        """
+        select turn_ordinal, question_text, answer_text
+          from global_ask_turn
+         where global_ask_session_id = $1
+           and turn_ordinal > $2
+         order by turn_ordinal desc
+         limit $3
+        """,
+        session_id,
+        through,
+        recent_limit,
+    )
+    return GlobalAskContext(
+        session_id=session_id,
+        summary=session["context_summary"],
+        summary_through_ordinal=through,
+        recent_turns=tuple(
+            (int(row["turn_ordinal"]), row["question_text"], row["answer_text"])
+            for row in reversed(recent_rows)
+        ),
+        compress_turns=tuple(
+            (int(row["turn_ordinal"]), row["question_text"], row["answer_text"])
+            for row in compress_rows
+        ),
+    )
+
+
+async def persist_global_ask_summary(
+    conn: asyncpg.Connection,
+    session_id: str,
+    summary: str,
+    through_ordinal: int,
+) -> None:
+    """Replace the bounded continuity summary after orchestrator compression."""
+    if not summary.strip() or through_ordinal <= 0:
+        raise ValueError("global ask summary requires covered turns")
+    await conn.execute(
+        """
+        update global_ask_session
+           set context_summary = $2,
+               context_summary_through_ordinal = $3,
+               updated_at = now()
+         where global_ask_session_id = $1
+        """,
+        session_id,
+        summary.strip(),
+        through_ordinal,
+    )
+
+
+async def persist_global_ask_turn(
+    conn: asyncpg.Connection,
+    session_id: str,
+    question: str,
+    answer: str,
+    cited_post_ids: Iterable[str],
+) -> int:
+    """Append one serialized turn and its normalized citation references."""
+    citations = list(dict.fromkeys(str(post_id) for post_id in cited_post_ids))
+    async with conn.transaction():
+        await conn.fetchrow(
+            "select global_ask_session_id from global_ask_session where global_ask_session_id = $1 for update",
+            session_id,
+        )
+        ordinal = int(
+            await conn.fetchval(
+                "select coalesce(max(turn_ordinal), 0) + 1 from global_ask_turn where global_ask_session_id = $1",
+                session_id,
+            )
+        )
+        await conn.execute(
+            "insert into global_ask_turn (global_ask_session_id, turn_ordinal, question_text, answer_text) values ($1, $2, $3, $4)",
+            session_id,
+            ordinal,
+            question,
+            answer,
+        )
+        for citation_ordinal, post_id in enumerate(citations):
+            await conn.execute(
+                "insert into global_ask_turn_citation (global_ask_session_id, turn_ordinal, citation_ordinal, cited_post_id) values ($1, $2, $3, $4)",
+                session_id,
+                ordinal,
+                citation_ordinal,
+                post_id,
+            )
+        await conn.execute(
+            "update global_ask_session set updated_at = now() where global_ask_session_id = $1",
+            session_id,
+        )
+    return ordinal
+
+
+async def _normalize_post_body_text(
+    body: str,
+    vision_client: ImageContentClient,
+) -> str:
+    """Normalize one source body without blocking the request event loop."""
+    normalized = await asyncio.to_thread(
+        normalize_post_body,
+        body,
+        vision_client=vision_client,
+    )
+    return normalized.text
 
 
 async def _graph_facts_for_posts(
@@ -147,6 +337,10 @@ _SOURCE_HINT_FIELDS = (
     ("source_project_name", "source project name"),
 )
 
+_GLOBAL_ASK_TERM_PATTERN = re.compile(r"[^\W_]+(?:-[^\W_]+)*", re.UNICODE)
+_POST_CHAT_SOURCE_LIMIT = 8
+_POST_CHAT_CANDIDATE_LIMIT = 32
+
 
 def _source_hint_facts(row: Any) -> tuple[str, ...]:
     """Render raw source fields as explicitly weak, column-level evidence."""
@@ -158,6 +352,13 @@ def _source_hint_facts(row: Any) -> tuple[str, ...]:
                 f"{label}={str(value).strip()} [provenance=source_post.{field_name}; hint_only]"
             )
     return tuple(facts)
+
+
+def _timestamp_text(row: Any) -> str | None:
+    value = row.get("created_at")
+    if value is None:
+        return None
+    return value.isoformat() if hasattr(value, "isoformat") else str(value)
 
 
 async def _semantic_facts_for_posts(
@@ -253,10 +454,13 @@ async def gather_chat_sources(
     can_see_post: Callable[[asyncpg.Record], bool],
     vision_client: ImageContentClient | None = None,
 ) -> list[ChatSourceDocument]:
-    """Post `post_id` itself, plus every linked post the requesting account
-    can actually see -- numbered in the order returned, which is the
-    order `post_chat`'s citations refer back to. Every source's body is
-    normalized (HTML tags/base64 images never reach the reason-and-cite
+    """Post `post_id` plus a bounded, deterministic linked-source window.
+
+    Direct Event Lineage neighbors precede indirect Knowledge Graph
+    neighbors; both groups are identifier-sorted before ABAC filtering. The
+    current post plus at most seven visible linked posts become the numbered
+    source set that `post_chat` citations refer back to. Every source's body
+    is normalized (HTML tags/base64 images never reach the reason-and-cite
     LLM call raw) before becoming a `ChatSourceDocument` -- see
     `lineageweave.post_content_normalization`. `vision_client` defaults
     to unavailable (embedded images become an explicit placeholder, not
@@ -279,17 +483,24 @@ async def gather_chat_sources(
         return []
     source_id = str(this_post["post_id"])
     semantic_facts = await _semantic_facts_for_posts(conn, [source_id])
+    normalized_body = await _normalize_post_body_text(
+        this_post["post_body"],
+        vision_client,
+    )
     sources = [
         ChatSourceDocument(
             source_id,
             this_post["post_title"],
-            normalize_post_body(this_post["post_body"], vision_client=vision_client).text,
+            normalized_body,
             evidence_facts=_source_hint_facts(this_post) + semantic_facts.get(source_id, ()),
         )
     ]
 
     linked = await find_linked_post_ids(conn, post_id)
-    candidate_ids = linked.direct | linked.indirect
+    candidate_ids = [
+        *sorted(linked.direct),
+        *sorted(linked.indirect),
+    ][:_POST_CHAT_CANDIDATE_LIMIT]
     if not candidate_ids:
         return sources
 
@@ -300,15 +511,20 @@ async def gather_chat_sources(
         "source_process_unit_name, source_sales_pool_code, source_sales_pool_name, "
         "source_customer_code, source_customer_name, "
         "source_project_code, source_project_name "
-        "from source_post where post_id = any($1::uuid[])",
-        list(candidate_ids),
+        "from source_post where post_id = any($1::uuid[]) "
+        "order by array_position($1::uuid[], post_id) limit $2",
+        candidate_ids,
+        _POST_CHAT_CANDIDATE_LIMIT,
     )
     visible_source_ids = [post_id]
     visible_rows: list[asyncpg.Record] = []
     for row in rows:
-        if can_see_post(row):
-            visible_rows.append(row)
-            visible_source_ids.append(str(row["post_id"]))
+        if not can_see_post(row):
+            continue
+        visible_rows.append(row)
+        visible_source_ids.append(str(row["post_id"]))
+        if len(visible_rows) >= _POST_CHAT_SOURCE_LIMIT - 1:
+            break
 
     semantic_facts = await _semantic_facts_for_posts(conn, visible_source_ids)
     graph_facts = await _graph_facts_for_posts(conn, visible_source_ids)
@@ -320,11 +536,12 @@ async def gather_chat_sources(
         evidence_facts=sources[0].evidence_facts,
     )
     for row in visible_rows:
+        normalized_body = await _normalize_post_body_text(row["post_body"], vision_client)
         sources.append(
             ChatSourceDocument(
                 str(row["post_id"]),
                 row["post_title"],
-                normalize_post_body(row["post_body"], vision_client=vision_client).text,
+                normalized_body,
                 evidence_facts=_source_hint_facts(row)
                 + semantic_facts.get(str(row["post_id"]), ()),
             )
@@ -348,12 +565,14 @@ async def gather_global_chat_sources(
     needed for a much larger corpus; every selected body still uses the same
     image normalization and persisted graph evidence as post-scoped chat.
     """
+    if limit <= 0:
+        return []
     if vision_client is None:
         vision_client = NullImageContentClient()
     search_terms = tuple(
         dict.fromkeys(
             token.casefold()
-            for token in re.findall(r"[0-9A-Za-z가-힣]+(?:-[0-9A-Za-z가-힣]+)*", question or "")
+            for token in _GLOBAL_ASK_TERM_PATTERN.findall(question or "")
             if len(token) >= 2
             and token.casefold()
             not in {
@@ -433,6 +652,7 @@ async def gather_global_chat_sources(
         for row in candidate_rows:
             post_id = str(row["post_id"])
             candidate_scores[post_id] = candidate_scores.get(post_id, 0.0) + _MATCH_WEIGHT[row["matched_in"]]
+    candidate_budget = min(_POST_CHAT_CANDIDATE_LIMIT, max(limit, limit * 4))
     candidate_ids = sorted(candidate_scores, key=lambda post_id: candidate_scores[post_id], reverse=True)
 
     # A keyword match only proves one post's text is relevant -- the
@@ -444,24 +664,31 @@ async def gather_global_chat_sources(
     # flow. Only the top match is expanded -- expanding every keyword hit
     # would let a loosely related term drag in an unrelated lineage chain.
     lineage_neighbor_ids: list[str] = []
-    if candidate_ids:
+    lineage_anchor_id = candidate_ids[0] if candidate_ids else None
+    if lineage_anchor_id:
         lineage_rows = await conn.fetch(
             "select child_post_id as other_id from post_lineage_edge where parent_post_id = $1 "
             "union select parent_post_id as other_id from post_lineage_edge where child_post_id = $1",
-            candidate_ids[0],
+            lineage_anchor_id,
         )
-        lineage_neighbor_ids = [
-            str(row["other_id"])
-            for row in lineage_rows
-            if str(row["other_id"]) not in candidate_scores
-        ]
-        candidate_ids = candidate_ids + lineage_neighbor_ids
-    lineage_anchor_id = candidate_ids[0] if candidate_ids else None
+        lineage_neighbor_ids = sorted(
+            {
+                str(row["other_id"])
+                for row in lineage_rows
+                if str(row["other_id"]) not in candidate_scores
+            }
+        )
+        candidate_ids = list(
+            dict.fromkeys([lineage_anchor_id, *lineage_neighbor_ids, *candidate_ids[1:]])
+        )[:candidate_budget]
+    else:
+        candidate_ids = candidate_ids[:candidate_budget]
     lineage_neighbor_id_set = frozenset(lineage_neighbor_ids)
 
     rows = await conn.fetch(
         """
         select post_id, post_title, post_body, visibility_code, corporate_entity_id,
+               created_at,
                source_system_code, source_record_key, source_author_code, source_author_name,
                source_company_code, source_company_name, source_process_unit_code,
                source_process_unit_name, source_sales_pool_code, source_sales_pool_name,
@@ -476,18 +703,16 @@ async def gather_global_chat_sources(
         """,
         list(authorized_corporate_entity_ids),
         candidate_ids,
-        limit + len(lineage_neighbor_ids),
+        limit,
     )
-    visible_rows = [row for row in rows if can_see_post(row)]
+    visible_rows = [row for row in rows if can_see_post(row)][:limit]
     visible_ids = [str(row["post_id"]) for row in visible_rows]
     anchor_is_visible = lineage_anchor_id in visible_ids
     semantic_facts = await _semantic_facts_for_posts(conn, visible_ids)
     graph_facts = (await _graph_facts_for_posts(conn, visible_ids))[:16]
     sources: list[ChatSourceDocument] = []
     for index, row in enumerate(visible_rows):
-        normalized_body = normalize_post_body(
-            row["post_body"], vision_client=vision_client
-        ).text
+        normalized_body = await _normalize_post_body_text(row["post_body"], vision_client)
         if len(normalized_body) > 4000:
             normalized_body = (
                 normalized_body[:4000]
@@ -508,6 +733,14 @@ async def gather_global_chat_sources(
                 evidence_facts=_source_hint_facts(row)
                 + semantic_facts.get(post_id, ())
                 + lineage_fact,
+                occurred_at=_timestamp_text(row),
+                timeline_kind=(
+                    "lineage_neighbor"
+                    if post_id in lineage_neighbor_id_set and anchor_is_visible
+                    else "lineage_anchor"
+                    if post_id == lineage_anchor_id
+                    else "keyword_match"
+                ),
             )
         )
     return sources

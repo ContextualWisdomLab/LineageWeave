@@ -287,7 +287,7 @@ Customer master related posts use the same Event Lineage focus path
 (ADR 0095). Ask Agent cited posts use the same Event Lineage focus path
 (ADR 0096). A linked Event Lineage node opened from a focused popup
 keeps those flags (ADR 0097) and then focuses Keyman as the named next
-read (ADR 0098).
+read (ADR 0100).
 The full detail popup includes Korean
 summary/key-events/R&R, VOC evidence excerpts, an Event Lineage panel
 (direct vs. indirect links; a link opens that post), the Keyman

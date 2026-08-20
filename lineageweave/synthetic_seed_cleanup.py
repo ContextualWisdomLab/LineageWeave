@@ -133,11 +133,13 @@ async def cleanup_synthetic_seed(conn: Any, *, apply: bool = False) -> dict[str,
             table = f"{_quote_identifier(row['child_schema'])}.{_quote_identifier(row['child_table'])}"
             column = _quote_identifier(row["child_column"])
             if (row["child_table"], row["child_column"]) in NULLABLE_REFERENCE_COLUMNS:
+                # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- Catalog identifiers are quoted; UUID values remain asyncpg parameters.
                 await conn.execute(
                     f"update {table} set {column} = null where {column} = any($1::uuid[])",
                     deletable_ids,
                 )
                 continue
+            # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- Catalog identifiers are quoted; UUID values remain asyncpg parameters.
             await conn.execute(
                 f"delete from {table} where {column} = any($1::uuid[])",
                 deletable_ids,

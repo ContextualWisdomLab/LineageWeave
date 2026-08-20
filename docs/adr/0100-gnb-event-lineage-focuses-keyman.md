@@ -1,4 +1,4 @@
-# ADR 0098: GNB Event Lineage focuses Keyman as the next read
+# ADR 0100: GNB Event Lineage focuses Keyman as the next read
 
 - Status: Accepted
 - Date: 2026-08-20

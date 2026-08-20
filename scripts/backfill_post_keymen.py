@@ -49,6 +49,7 @@ async def _select_posts(
     eligibility = SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")
     if post_id:
         return list(
+            # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli -- Eligibility is a fixed source-schema predicate; post_id is an asyncpg parameter.
             await conn.fetch(
                 f"""
                 select post_id, post_title, post_body, author_account_id,
@@ -63,6 +64,7 @@ async def _select_posts(
             )
         )
     return list(
+        # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli -- Eligibility is a fixed source-schema predicate; limit is an asyncpg parameter.
         await conn.fetch(
             f"""
             select post_id, post_title, post_body, author_account_id,

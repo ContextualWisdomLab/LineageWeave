@@ -84,10 +84,12 @@ describe("App, authenticated", () => {
     pluralAffiliations?: boolean;
     deferMe?: boolean;
     deferPostOneSummary?: boolean;
+    deferSecondAsk?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
+    deferCustomerRelated?: boolean;
     boardPosts?: {
       post_id: string;
       post_title: string;
@@ -99,6 +101,9 @@ describe("App, authenticated", () => {
     }[];
   }): ReturnType<typeof vi.fn> & {
     releaseMe: () => void;
+    releaseSecondAsk: () => void;
+    releaseGroupRelated: () => void;
+    releaseDemoRelated: () => void;
     releasePostOneSummary: () => void;
   } {
     const statusLabel: Record<string, string> = {
@@ -129,6 +134,25 @@ describe("App, authenticated", () => {
     const meReady = options?.deferMe
       ? new Promise<void>((resolve) => {
           releaseMe = resolve;
+        })
+      : Promise.resolve();
+    let releaseSecondAsk = () => {};
+    const secondAskReady = options?.deferSecondAsk
+      ? new Promise<void>((resolve) => {
+          releaseSecondAsk = resolve;
+        })
+      : Promise.resolve();
+    let askRequestCount = 0;
+    let releaseGroupRelated = () => {};
+    let releaseDemoRelated = () => {};
+    const groupRelatedReady = options?.deferCustomerRelated
+      ? new Promise<void>((resolve) => {
+          releaseGroupRelated = resolve;
+        })
+      : Promise.resolve();
+    const demoRelatedReady = options?.deferCustomerRelated
+      ? new Promise<void>((resolve) => {
+          releaseDemoRelated = resolve;
         })
       : Promise.resolve();
     let releasePostOneSummary = () => {};
@@ -1379,8 +1403,17 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/corporate-entities/corp-group/related")) {
+        return groupRelatedReady.then(() =>
+          jsonResponse({
+            corporate_entity_id: "corp-group",
+            entity_name: "Demo Group",
+            related: [],
+          }),
+        );
+      }
       if (url.endsWith("/api/corporate-entities/corp-demo/related")) {
-        return Promise.resolve(
+        return demoRelatedReady.then(() =>
           jsonResponse({
             corporate_entity_id: "corp-demo",
             entity_name: "Demo Corp",
@@ -1575,7 +1608,13 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/ask") && method === "POST") {
-        return Promise.resolve(
+        askRequestCount += 1;
+        const ready =
+          options?.deferSecondAsk && askRequestCount === 2
+            ? secondAskReady
+            : Promise.resolve();
+        return ready.then(() =>
+          Promise.resolve(
           jsonResponse({
             answer_text: "The cited project is supported by the stored semantic evidence.",
             cited_post_ids: ["post-2"],
@@ -1590,7 +1629,22 @@ describe("App, authenticated", () => {
               },
             ],
             source_post_ids: ["post-1", "post-2"],
+            timeline: [
+              {
+                post_id: "post-1",
+                post_title: "Public post",
+                occurred_at: "2026-01-01T00:00:00Z",
+                timeline_kind: "lineage_anchor",
+              },
+              {
+                post_id: "post-2",
+                post_title: "Linked post",
+                occurred_at: "2026-01-02T00:00:00Z",
+                timeline_kind: "lineage_neighbor",
+              },
+            ],
           }),
+          ),
         );
       }
       if (url.endsWith("/api/customer-master") && method === "GET") {
@@ -1686,7 +1740,13 @@ describe("App, authenticated", () => {
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
-    return Object.assign(fetchMock, { releaseMe, releasePostOneSummary });
+    return Object.assign(fetchMock, {
+      releaseMe,
+      releaseSecondAsk,
+      releaseGroupRelated,
+      releaseDemoRelated,
+      releasePostOneSummary,
+    });
   }
 
   async function expectGnbKeymanFocus(postTitle: string) {
@@ -1717,7 +1777,45 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("list", { name: "Evidence facts" })).toBeInTheDocument();
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Event Lineage timeline" })).toBeInTheDocument();
+    expect(screen.getByText("2026-01-01T00:00:00Z")).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("hides previous Ask evidence while a new answer is pending", async () => {
+    const fetchMock = stubBackend({ deferSecondAsk: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    const question = within(ask).getByRole("textbox", { name: "Ask a question" });
+    await userEvent.type(question, "Which project?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+    expect(
+      await within(ask).findByText(
+        "The cited project is supported by the stored semantic evidence.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(ask).getByLabelText("Next action")).toBeInTheDocument();
+
+    await userEvent.clear(question);
+    await userEvent.type(question, "Which person?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+
+    expect(within(ask).getByRole("button", { name: "Asking..." })).toBeDisabled();
+    expect(
+      within(ask).queryByText(
+        "The cited project is supported by the stored semantic evidence.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(within(ask).queryByLabelText("Next action")).not.toBeInTheDocument();
+
+    fetchMock.releaseSecondAsk();
+    expect(
+      await within(ask).findByText(
+        "The cited project is supported by the stored semantic evidence.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
@@ -1910,7 +2008,7 @@ describe("App, authenticated", () => {
     await expectHomeListSkipsGnbKeymanFocus();
   });
 
-  it("never runs the report-member Ask auto-land chain for a Calendar open (ADR 0098)", async () => {
+  it("never runs the report-member Ask auto-land chain for a Calendar open (ADR 0100)", async () => {
     const scrolledIds: string[] = [];
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
     HTMLElement.prototype.scrollIntoView = function () {
@@ -1981,6 +2079,28 @@ describe("App, authenticated", () => {
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     await expectHomeListSkipsGnbKeymanFocus();
+  });
+
+  it("keeps the current Customer master loading state when an older request finishes", async () => {
+    const fetchMock = stubBackend({
+      customerEntityHierarchy: true,
+      deferCustomerRelated: true,
+    });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+    const customers = await screen.findByRole("region", { name: "Customer master" });
+    await userEvent.click(within(customers).getByRole("button", { name: /Demo Group/ }));
+    await userEvent.click(within(customers).getByRole("button", { name: /Demo Corp/ }));
+
+    fetchMock.releaseGroupRelated();
+    await waitFor(() => expect(within(customers).getByText("Loading related posts...")).toBeInTheDocument());
+    expect(within(customers).queryByText("No linked posts yet.")).not.toBeInTheDocument();
+
+    fetchMock.releaseDemoRelated();
+    expect(
+      await within(customers).findByRole("button", { name: "Open related post: Public post" }),
+    ).toBeInTheDocument();
   });
 
   it("opening an Ask Agent cited post focuses Event Lineage; a home list open does not", async () => {

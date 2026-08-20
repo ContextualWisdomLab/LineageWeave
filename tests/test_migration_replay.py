@@ -33,3 +33,26 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
     ).read_text(encoding="utf-8")
 
     assert "0012_*" in script
+
+
+def test_migrate_sh_replays_context_scoped_name_cache_migration() -> None:
+    """Existing volumes must receive the context-scoped resolution key."""
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "0051_*" in script
+
+
+def test_migrate_sh_replays_global_ask_context_migration() -> None:
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "0052_*" in script

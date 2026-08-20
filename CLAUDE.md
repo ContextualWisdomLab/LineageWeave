@@ -111,6 +111,6 @@ DAG walk does not. Do not invent a theta.
 A GNB-origin popup (Weekly VOC, Calendar, Customer master, Ask Agent, or a
 linked Event Lineage DAG walk from one of those) keeps Event Lineage
 current and moves focus to the Keyman heading once Keyman rows have
-settled (ADR 0098). The report-member auto-land chain to related nodes
+settled (ADR 0100). The report-member auto-land chain to related nodes
 and Ask is not used for GNB origins. A home-list open does not gain that
-focus. Do not invent a theta.
+ focus. Do not invent a theta.
