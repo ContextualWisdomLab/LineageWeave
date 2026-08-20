@@ -1,8 +1,9 @@
 name: Repair PR 281 TEPP project history
 
 on:
-  pull_request:
-    types: [synchronize]
+  push:
+    branches: [feat/tepp-project-history-buyer-surface-v2180]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -13,16 +14,16 @@ concurrency:
 
 jobs:
   integrate-and-verify:
-    if: github.event.pull_request.number == 281 && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.ref == 'refs/heads/feat/tepp-project-history-buyer-surface-v2180'
     runs-on: ubuntu-latest
     env:
       REPAIR_BRANCH: feat/tepp-project-history-buyer-surface-v2180
-      REPAIR_BASE_SHA: ${{ github.event.pull_request.head.sha }}
+      REPAIR_BASE_SHA: ${{ github.sha }}
     steps:
-      - name: Checkout the exact PR head
+      - name: Checkout the exact branch head
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: true
           fetch-depth: 0
 
