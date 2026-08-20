@@ -10,6 +10,7 @@ from lineageweave.adjudication_client import (
     AdjudicationDecision,
     AdjudicationFormatError,
     ContextualOrchestratorAdjudicationClient,
+    NullAdjudicationClient,
     _extract_content,
     _parse_decision_content,
 )
@@ -106,6 +107,26 @@ def test_decision_normalizes_probability_and_rationale() -> None:
     decision = AdjudicationDecision(1, "supported", "  evidence agrees  ")
     assert decision.continuation_probability == 1.0
     assert decision.rationale == "evidence agrees"
+
+
+def test_legacy_float_protocol_rejects_non_supported_verdict(monkeypatch) -> None:
+    """Refuted and insufficient judgments never become continuation scores."""
+    monkeypatch.setattr(
+        "lineageweave.adjudication_client.post_json",
+        lambda *args, **kwargs: _response(
+            '{"continuation_probability":0.2,"verdict_code":"refuted",'
+            '"rationale":"The records contradict one another."}'
+        ),
+    )
+    client = ContextualOrchestratorAdjudicationClient("https://example.test", "key")
+    with pytest.raises(AdjudicationFormatError, match="cannot become a continuation signal"):
+        client.judge("A", "B")
+
+
+def test_null_client_exposes_fail_closed_structured_decision() -> None:
+    """Unavailable channels fail closed through both adjudication methods."""
+    with pytest.raises(RuntimeError, match="has no llm channel"):
+        NullAdjudicationClient().judge_decision("A", "B")
 
 
 @pytest.mark.parametrize(

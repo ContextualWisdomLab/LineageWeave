@@ -28,14 +28,14 @@
     "verdict_code": "supported"
   },
   "contract_version": 1,
-  "dossier_sha256": "27d0394be3c3c5e7fe834d9922ac6baef98311771fd7225366d70400e9f84977",
+  "dossier_sha256": "73f17911ca1321a7fe108464e805c30e7b44f9f8fb535a01f2f61bdfe1de0164",
   "event_id": "event-1",
   "event_ontology": [
     {
       "preferred_label": "EventEpisode",
       "semantic_role_code": "event_type",
       "term_iri": "https://contextualwisdomlab.github.io/lineageweave/event-intelligence#EventEpisode",
-      "vocabulary_version": "event-intelligence-profile-v1"
+      "vocabulary_version": "1.0.0"
     }
   ],
   "event_title": "Contract renewal escalation",
@@ -116,7 +116,7 @@
           "preferred_label": "evidencesEvent",
           "semantic_role_code": "edge_type",
           "term_iri": "https://contextualwisdomlab.github.io/lineageweave/event-intelligence#evidencesEvent",
-          "vocabulary_version": "event-intelligence-profile-v1"
+          "vocabulary_version": "1.0.0"
         },
         "source_node_id": "post-1",
         "target_node_id": "event-1"
@@ -136,7 +136,7 @@
           "preferred_label": "EventEpisode",
           "semantic_role_code": "event_type",
           "term_iri": "https://contextualwisdomlab.github.io/lineageweave/event-intelligence#EventEpisode",
-          "vocabulary_version": "event-intelligence-profile-v1"
+          "vocabulary_version": "1.0.0"
         },
         "relevance": {
           "authority_system": "lineageweave_knowledge_graph",
@@ -162,8 +162,8 @@
         "ontology": {
           "preferred_label": "Post",
           "semantic_role_code": "node_type",
-          "term_iri": "https://contextualwisdomlab.github.io/lineageweave/event-intelligence#Post",
-          "vocabulary_version": "event-intelligence-profile-v1"
+          "term_iri": "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+          "vocabulary_version": "1.0.0"
         },
         "relevance": {
           "authority_system": "lineageweave_knowledge_graph",

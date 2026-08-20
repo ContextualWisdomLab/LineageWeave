@@ -18,7 +18,9 @@ from .http_client import post_json
 
 _MAX_LABEL_CHARACTERS = 4_000
 _MAX_RATIONALE_CHARACTERS = 1_000
-_ALLOWED_VERDICTS = frozenset({"supported", "refuted", "insufficient_evidence"})
+ALLOWED_ADJUDICATION_VERDICTS = frozenset(
+    {"supported", "refuted", "insufficient_evidence"}
+)
 _REQUIRED_DECISION_FIELDS = frozenset(
     {"continuation_probability", "verdict_code", "rationale"}
 )
@@ -50,7 +52,7 @@ class AdjudicationDecision:
             )
         object.__setattr__(self, "continuation_probability", normalized_probability)
 
-        if self.verdict_code not in _ALLOWED_VERDICTS:
+        if self.verdict_code not in ALLOWED_ADJUDICATION_VERDICTS:
             raise AdjudicationFormatError("verdict_code is not supported")
         if not isinstance(self.rationale, str):
             raise AdjudicationFormatError("rationale must be a string")
@@ -71,6 +73,12 @@ class AdjudicationClient(Protocol):
         """Return the direct-continuation probability for one pair."""
         ...
 
+    def judge_decision(
+        self, candidate_label: str, record_label: str
+    ) -> AdjudicationDecision:
+        """Return the complete structured decision for one pair."""
+        ...
+
 
 class NullAdjudicationClient:
     """Represent an unavailable LLM adjudication channel."""
@@ -78,6 +86,12 @@ class NullAdjudicationClient:
     available = False
 
     def judge(self, candidate_label: str, record_label: str) -> float:  # pragma: no cover
+        """Reject use when callers ignored :attr:`available`."""
+        raise RuntimeError("NullAdjudicationClient has no llm channel; check .available first")
+
+    def judge_decision(
+        self, candidate_label: str, record_label: str
+    ) -> AdjudicationDecision:  # pragma: no cover
         """Reject use when callers ignored :attr:`available`."""
         raise RuntimeError("NullAdjudicationClient has no llm channel; check .available first")
 
@@ -222,13 +236,19 @@ class ContextualOrchestratorAdjudicationClient:
 
     def judge(self, candidate_label: str, record_label: str) -> float:
         """Return the probability while preserving the legacy float protocol."""
-        return self.judge_decision(candidate_label, record_label).continuation_probability
+        decision = self.judge_decision(candidate_label, record_label)
+        if decision.verdict_code != "supported":
+            raise AdjudicationFormatError(
+                "non-supported adjudication verdict cannot become a continuation signal"
+            )
+        return decision.continuation_probability
 
 
 __all__ = [
     "AdjudicationClient",
     "AdjudicationDecision",
     "AdjudicationFormatError",
+    "ALLOWED_ADJUDICATION_VERDICTS",
     "ContextualOrchestratorAdjudicationClient",
     "NullAdjudicationClient",
 ]

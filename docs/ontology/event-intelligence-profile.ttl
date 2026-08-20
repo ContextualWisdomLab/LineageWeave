@@ -134,7 +134,7 @@
     a owl:ObjectProperty ;
     rdfs:domain lw:Post ;
     rdfs:range :EventEpisode ;
-    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    rdfs:subPropertyOf prov:influenced ;
     rdfs:label "evidences event"@en ;
     rdfs:comment "The source post is evidence for the event episode; it is not itself the event."@en .
 

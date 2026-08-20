@@ -25,13 +25,13 @@
       "const": 1
     },
     "event_id": {
-      "$ref": "#/$defs/nonempty_string"
+      "$ref": "#/$defs/identifier"
     },
     "event_title": {
-      "$ref": "#/$defs/nonempty_string"
+      "$ref": "#/$defs/identifier"
     },
     "source_snapshot_id": {
-      "$ref": "#/$defs/nonempty_string"
+      "$ref": "#/$defs/identifier"
     },
     "temporal_context": {
       "$ref": "#/$defs/temporal_context"
@@ -45,12 +45,12 @@
       "uniqueItems": true
     },
     "evidence": {
+      "description": "Evidence IDs are unique by runtime contract; every input path must invoke the production validator.",
       "type": "array",
       "minItems": 1,
       "items": {
         "$ref": "#/$defs/evidence_reference"
-      },
-      "uniqueItems": true
+      }
     },
     "knowledge_graph": {
       "$ref": "#/$defs/knowledge_graph"
@@ -103,13 +103,20 @@
       "maxLength": 8192,
       "pattern": "\\S"
     },
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "\\S"
+    },
     "sha256": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },
     "timestamp": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$"
     },
     "evidence_id_list": {
       "type": "array",

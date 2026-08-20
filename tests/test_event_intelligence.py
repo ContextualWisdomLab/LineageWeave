@@ -300,7 +300,7 @@ def test_scalar_and_evidence_list_bounds_are_enforced() -> None:
     payload = example()
     payload.pop("dossier_sha256")
     payload["contextual_orchestrator"]["confidence"] = 1.1
-    with pytest.raises(EventIntelligenceValidationError, match="between 0.0 and 1.0"):
+    with pytest.raises(EventIntelligenceValidationError, match=r"between 0\.0 and 1\.0"):
         event_intelligence_dossier_from_dict(payload, require_digest=False)
 
     payload = example()

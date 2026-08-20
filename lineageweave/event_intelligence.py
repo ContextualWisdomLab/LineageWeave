@@ -24,6 +24,8 @@ import math
 import re
 from typing import Any
 
+from .adjudication_client import ALLOWED_ADJUDICATION_VERDICTS
+
 EVENT_INTELLIGENCE_CONTRACT_VERSION = 1
 CHANNEL_AVAILABLE = "available"
 CHANNEL_UNAVAILABLE = "unavailable"
@@ -38,8 +40,10 @@ _SOURCE_SYSTEMS = frozenset(
         "contextual_orchestrator",
     }
 )
-_JUDGE_VERDICTS = frozenset({"supported", "refuted", "insufficient_evidence"})
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_RFC3339 = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$"
+)
 
 _ROOT_FIELDS = frozenset(
     {
@@ -188,6 +192,10 @@ def _timestamp(value: object, field: str, *, optional: bool = False) -> datetime
     if value is None and optional:
         return None
     text = _text(value, field, maximum=64)
+    if _RFC3339.fullmatch(text) is None:
+        raise EventIntelligenceValidationError(
+            f"{field} must be an RFC 3339 timestamp with a UTC offset (ISO-8601)"
+        )
     try:
         parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
     except ValueError as exc:
@@ -495,7 +503,7 @@ def _validate_judge(root: Mapping[str, Any], known: set[str]) -> None:
     verdict = _text(
         item["verdict_code"], "contextual_orchestrator.verdict_code", maximum=64
     )
-    if verdict not in _JUDGE_VERDICTS:
+    if verdict not in ALLOWED_ADJUDICATION_VERDICTS:
         raise EventIntelligenceValidationError(
             "contextual_orchestrator.verdict_code is not supported"
         )
@@ -524,7 +532,13 @@ def _validate_claims(root: Mapping[str, Any], known: set[str]) -> None:
 def _canonical_without_digest(payload: Mapping[str, Any]) -> str:
     value = dict(payload)
     value.pop("dossier_sha256", None)
-    return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        allow_nan=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
 
 
 def _payload_digest(payload: Mapping[str, Any]) -> str:
@@ -562,6 +576,7 @@ class EventIntelligenceDossier:
         return json.dumps(
             self.to_dict(),
             ensure_ascii=False,
+            allow_nan=False,
             separators=(",", ":"),
             sort_keys=True,
         )

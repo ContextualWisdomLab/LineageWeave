@@ -54,7 +54,7 @@ def test_profile_preserves_provenance_and_exact_measurement_fields() -> None:
     """Dossier derivation, evidence use, digests, methods, and intervals are explicit."""
     graph = load_profile()
     assert (EI.usesEvidenceBundle, RDFS.subPropertyOf, PROV.used) in graph
-    assert (EI.evidencesEvent, RDFS.subPropertyOf, PROV.wasDerivedFrom) in graph
+    assert (EI.evidencesEvent, RDFS.subPropertyOf, PROV.influenced) in graph
     for property_iri in (
         EI.knowledgeCutoff,
         EI.availableTime,

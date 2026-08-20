@@ -35,8 +35,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Validate a dossier and emit a machine-readable receipt.
 
     Returns ``0`` for a valid, digest-matching dossier and ``2`` for bounded
-    input, JSON, or contract validation failures. Error output never includes
-    dossier source text or a Python traceback.
+    input, JSON, or contract validation failures. Error output may include a
+    bounded field path or violation identifier to guide correction, but never
+    includes dossier source text or a Python traceback.
     """
     args = _parser().parse_args(argv)
     try:

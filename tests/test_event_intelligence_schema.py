@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator
 
 from lineageweave.event_intelligence import (
     CHANNEL_UNAVAILABLE,
@@ -45,8 +47,21 @@ def test_schema_declares_strict_draft_2020_12_contract() -> None:
 def test_canonical_example_round_trips_through_production_validator() -> None:
     """The example reconstructs and preserves its committed self-digest."""
     payload = load_example()
+    schema_errors = list(Draft202012Validator(load_schema()).iter_errors(payload))
+    assert schema_errors == []
     dossier = event_intelligence_dossier_from_dict(payload)
     assert dossier.to_dict() == payload
+
+
+def test_runtime_validator_owns_evidence_id_uniqueness() -> None:
+    """Runtime validation rejects duplicate IDs even when object fields differ."""
+    payload = load_example()
+    duplicate = deepcopy(payload["evidence"][0])
+    duplicate["source_uri"] = "urn:test:duplicate-source"
+    payload["evidence"].append(duplicate)
+    assert Draft202012Validator(load_schema()).is_valid(payload)
+    with pytest.raises(EventIntelligenceValidationError, match="evidence ids must be unique"):
+        event_intelligence_dossier_from_dict(payload, require_digest=False)
 
 
 def test_validator_refuses_judge_psychometric_override_and_unknown_fields() -> None:

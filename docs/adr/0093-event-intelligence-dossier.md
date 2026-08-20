@@ -60,6 +60,12 @@ The JSON Schema is `schemas/event_intelligence_dossier_v1.schema.json`. The
 runtime implementation is `lineageweave.event_intelligence`; the validator CLI
 is `lineageweave-validate-event-intelligence`.
 
+The JSON Schema provides wire-shape and RFC 3339 checks, while every input path
+must also call the production validator for cross-reference rules such as
+unique `evidence_id` values. The profile's `evidencesEvent` relation uses
+`prov:influenced`: a source post influences the event episode interpretation;
+it is not asserted to be derived from the episode.
+
 ## Authority rules
 
 | Channel | What it may assert | What it may not replace |
