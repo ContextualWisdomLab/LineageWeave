@@ -47,4 +47,3 @@ weak sentinel such as `other` or `unregistered`.
   must run it in bounded checkpoints and retain the resulting runtime evidence.
 - Posts that cannot be processed remain without a semantic project fact rather
   than receiving an invented classification.
-
