@@ -56,6 +56,20 @@ def _app():
     return mcp_server.build_mcp_http_app(server, cfg), pool
 
 
+def _initialize_request() -> dict[str, object]:
+    """Return one protocol-valid initialization body."""
+    return {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2025-11-25",
+            "capabilities": {},
+            "clientInfo": {"name": "test", "version": "1"},
+        },
+    }
+
+
 def test_allowed_exact_origin_preflight_finishes_before_oauth() -> None:
     """A browser can preflight the authenticated MCP request contract."""
     app, pool = _app()
@@ -72,10 +86,34 @@ def test_allowed_exact_origin_preflight_finishes_before_oauth() -> None:
         )
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "https://buyer.example"
+    assert "Origin" in response.headers["vary"]
     assert "POST" in response.headers["access-control-allow-methods"]
     assert "authorization" in response.headers["access-control-allow-headers"].casefold()
     assert "mcp-protocol-version" in response.headers["access-control-allow-headers"].casefold()
+    assert "mcp-session-id" in response.headers["access-control-allow-headers"].casefold()
     assert "www-authenticate" not in response.headers
+    assert pool.closed is True
+
+
+def test_allowed_origin_post_reaches_oauth_with_cors_response_contract() -> None:
+    """An allowed browser Origin receives CORS metadata on the OAuth challenge."""
+    app, pool = _app()
+    with TestClient(app) as client:
+        response = client.post(
+            "/mcp",
+            json=_initialize_request(),
+            headers={
+                "Origin": "https://buyer.example",
+                "MCP-Protocol-Version": "2025-11-25",
+            },
+        )
+    assert response.status_code == 401
+    assert response.headers["access-control-allow-origin"] == "https://buyer.example"
+    assert "Origin" in response.headers["vary"]
+    exposed = response.headers["access-control-expose-headers"].casefold()
+    assert "mcp-session-id" in exposed
+    assert "mcp-protocol-version" in exposed
+    assert "resource_metadata" in response.headers["www-authenticate"]
     assert pool.closed is True
 
 
@@ -99,6 +137,7 @@ def test_disallowed_origin_preflight_fails_closed_without_reflection() -> None:
             )
             assert response.status_code == 403
             assert response.headers.get("access-control-allow-origin") != origin
+            assert "Origin" in response.headers["vary"]
             assert "www-authenticate" not in response.headers
     assert pool.closed is True
 
@@ -109,18 +148,10 @@ def test_no_origin_non_browser_post_keeps_oauth_challenge() -> None:
     with TestClient(app) as client:
         response = client.post(
             "/mcp",
-            json={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "initialize",
-                "params": {
-                    "protocolVersion": "2025-11-25",
-                    "capabilities": {},
-                    "clientInfo": {"name": "test", "version": "1"},
-                },
-            },
+            json=_initialize_request(),
             headers={"MCP-Protocol-Version": "2025-11-25"},
         )
     assert response.status_code == 401
+    assert "access-control-allow-origin" not in response.headers
     assert "resource_metadata" in response.headers["www-authenticate"]
     assert pool.closed is True
