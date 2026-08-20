@@ -1,0 +1,90 @@
+from __future__ import annotations
+
+from typing import Any
+
+import pytest
+
+from backend.app import main
+from lineageweave.claim_verification import (
+    CLAIM_SUPPORTED,
+    VERIFICATION_COMPLETED,
+    VERIFICATION_NO_PUBLIC_CLAIMS,
+    VERIFICATION_SKIPPED,
+    ClaimVerificationResult,
+    GlobalAskSourceDocument,
+)
+
+
+def _source(*facts: str) -> GlobalAskSourceDocument:
+    return GlobalAskSourceDocument(
+        post_id="11111111-1111-1111-1111-111111111111",
+        post_title="Public Apollo evidence",
+        post_body="Apollo is described in the authorized public source.",
+        external_claim_facts=tuple(facts),
+    )
+
+
+def test_global_ask_external_verification_is_backward_compatible_opt_in() -> None:
+    request = main.GlobalAskRequest(question="Apollo")
+    assert request.verify_external is False
+    assert main.GlobalAskRequest(question="Apollo", verify_external=True).verify_external is True
+
+
+@pytest.mark.anyio
+async def test_verify_public_claims_skips_without_explicit_opt_in() -> None:
+    status_code, claims = await main._verify_public_claims(
+        "Apollo",
+        [_source("project: Apollo | evidence: public launch")],
+        ["11111111-1111-1111-1111-111111111111"],
+        verify_external=False,
+    )
+    assert status_code == VERIFICATION_SKIPPED
+    assert claims == ()
+
+
+@pytest.mark.anyio
+async def test_verify_public_claims_uses_only_cited_egress_capable_sources() -> None:
+    source = _source("project: Apollo | evidence: public launch")
+    status_code, claims = await main._verify_public_claims(
+        "Apollo",
+        [source],
+        [],
+        verify_external=True,
+    )
+    assert status_code == VERIFICATION_NO_PUBLIC_CLAIMS
+    assert claims == ()
+
+
+@pytest.mark.anyio
+async def test_verify_public_claims_returns_completed_separate_web_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = _source("project: Apollo | evidence: public launch")
+    verified: list[str] = []
+
+    class _FakeClient:
+        available = True
+
+        def verify(self, claim: Any) -> ClaimVerificationResult:
+            verified.append(claim.claim_text)
+            return ClaimVerificationResult(
+                claim_text=claim.claim_text,
+                claim_kind=claim.claim_kind,
+                status_code=CLAIM_SUPPORTED,
+                rationale="The bounded public evidence supports this claim.",
+                source_post_ids=claim.source_post_ids,
+            )
+
+    monkeypatch.setattr(main, "_claim_verification_client", lambda: _FakeClient(), raising=False)
+
+    status_code, claims = await main._verify_public_claims(
+        "Apollo",
+        [source],
+        [source.post_id],
+        verify_external=True,
+    )
+
+    assert status_code == VERIFICATION_COMPLETED
+    assert len(claims) == 1
+    assert claims[0].status_code == CLAIM_SUPPORTED
+    assert verified == ["project: Apollo | evidence: public launch"]
