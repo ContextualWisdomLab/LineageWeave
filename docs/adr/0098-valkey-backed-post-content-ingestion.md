@@ -48,3 +48,10 @@ placed in a stream message.
   recovery boundary.
 - Summary generation remains a separate contextual-orchestrator operation;
   this ADR does not hide a slow summary provider behind an in-memory task.
+
+## Completeness invariant (2026-08-20)
+
+The worker claim path MUST use the same `post_content_is_complete` predicate as
+the API enqueue path. A successful job that has units but lacks the configured
+unit or described-region embeddings is still eligible for Valkey requeue and
+MUST NOT be silently skipped by checking only for unit presence.
