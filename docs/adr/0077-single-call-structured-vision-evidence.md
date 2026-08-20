@@ -34,7 +34,7 @@ boundary decision, not a removal of orchestrator schema support.
 ## Consequences
 
 - Region-level evidence remains queryable, and a locator failure degrades to
-  whole-image evidence without fabricating a region.
+  whole-image evidence without fabricating a full-image region row.
 - The parser boundary enforces normalized coordinate bounds and the documented
   JSON object shape without claiming provider schema support that the live
   multimodal path does not currently satisfy.

@@ -180,7 +180,9 @@ _RESPONSE_FORMAT = (
     "If the image contains a table, preserve its row/column structure: one row "
     "per line, with ' | ' between that row's cell values, in reading order -- "
     "never flatten a table into an unstructured word list.>\n"
-    "CAPTION: <one sentence describing what the image shows>\n"
+    "CAPTION: <2-4 concise, evidence-grounded sentences describing the visible layout, "
+    "objects, relationships, directions, measurements, and labels; do not guess "
+    "anything that is not visible>\n"
     "TAGS: <comma-separated short tags for the main objects/subjects>"
 )
 _REGION_RESPONSE_FORMAT = (

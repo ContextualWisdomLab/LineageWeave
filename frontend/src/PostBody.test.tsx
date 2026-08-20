@@ -189,4 +189,26 @@ describe("PostBody", () => {
     expect(screen.getByText("Main panel")).toBeInTheDocument();
     expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
   });
+
+  it("renders pipe-delimited image OCR as a buyer-facing table", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "| No. | Item |\n| --- | --- |\n| 1 | Panel |",
+            caption: "A table image",
+            tags: [],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getAllByRole("row")).toHaveLength(2);
+    expect(screen.getByText("Panel")).toBeInTheDocument();
+  });
 });

@@ -378,3 +378,17 @@ The explicit terminal retry and ledger-finalization contract is recorded in
 ADR 0115. PR #311 remains an active stacked delivery candidate; its required
 checks and formal approval must be rechecked at the exact current head before
 any protected merge claim.
+
+## Image locator and buyer table checkpoint: 2026-08-20
+
+A bounded private reprocessing run completed five parent-image descriptions,
+five region embeddings, and zero unresolved text-structure decisions. The
+stored region coordinates were all the full-image box, however; a separate
+locator probe exceeded the bounded diagnostic timeout. This proves the parent
+image channel is usable, but it does not prove detailed visual decomposition.
+
+The normalization path now preserves that distinction: an invalid or partial
+locator response keeps parent-image OCR/caption evidence but does not invent a
+full-image region row. Buyer OCR that preserves consistent pipe-delimited rows
+is rendered as an HTML table, while ordinary OCR remains readable text. ADRs
+0077 and 0110 record these boundaries.
