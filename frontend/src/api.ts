@@ -1,4 +1,5 @@
 import { config } from "./config";
+import type { ProjectHistoryProjection } from "./projectHistory";
 
 export interface PostSummary {
   post_id: string;
@@ -893,6 +894,19 @@ export function fetchPostFiveW1H(accessToken: string, postId: string): Promise<P
 
 export function fetchPostLineage(accessToken: string, postId: string): Promise<PostLineage> {
   return backendFetch(`/api/posts/${postId}/lineage`, accessToken);
+}
+
+export function fetchProjectHistory(
+  accessToken: string,
+  options: { projectKey: string; focusPostId: string; knowledgeCutoff?: string },
+): Promise<ProjectHistoryProjection> {
+  const params = new URLSearchParams();
+  params.set("project_key", options.projectKey);
+  params.set("focus_post_id", options.focusPostId);
+  if (options.knowledgeCutoff) {
+    params.set("knowledge_cutoff", options.knowledgeCutoff);
+  }
+  return backendFetch(`/api/project-history?${params.toString()}`, accessToken);
 }
 
 export function fetchPostChat(accessToken: string, postId: string): Promise<ChatHistory> {

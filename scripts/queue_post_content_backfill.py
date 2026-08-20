@@ -22,59 +22,6 @@ from backend.app.post_content_queue import (  # noqa: E402
     publish_post_content_event,
 )
 
-_REAL_POSTS_QUERY = """
-select post_id, post_body
-  from source_post post
- where nullif(btrim(source_draft_code), '') is null
-   and nullif(btrim(source_deleted_flag), '') is null
-   and (
-       nullif(btrim(source_author_code), '') is not null
-       or nullif(btrim(source_author_name), '') is not null
-       or nullif(btrim(source_company_code), '') is not null
-       or nullif(btrim(source_company_name), '') is not null
-       or nullif(btrim(source_process_unit_code), '') is not null
-       or nullif(btrim(source_process_unit_name), '') is not null
-       or nullif(btrim(source_sales_pool_code), '') is not null
-       or nullif(btrim(source_sales_pool_name), '') is not null
-       or nullif(btrim(source_customer_code), '') is not null
-       or nullif(btrim(source_customer_name), '') is not null
-       or nullif(btrim(source_project_code), '') is not null
-       or nullif(btrim(source_project_name), '') is not null
-   )
-   and (
-       not exists (
-           select 1
-             from post_content_unit unit
-            where unit.post_id = post.post_id
-       )
-       or exists (
-           select 1
-             from post_content_unit unit
-             left join post_content_embedding embedding
-               on embedding.post_content_unit_id = unit.post_content_unit_id
-              and embedding.embedding_model_code = $1
-            where unit.post_id = post.post_id
-              and embedding.post_content_embedding_id is null
-       )
-       or exists (
-           select 1
-             from post_content_unit unit
-             join post_content_image image
-               on image.post_content_unit_id = unit.post_content_unit_id
-             join post_content_image_region region
-               on region.post_content_image_id = image.post_content_image_id
-             left join post_content_image_region_embedding embedding
-               on embedding.post_content_image_region_id = region.post_content_image_region_id
-              and embedding.embedding_model_code = $1
-            where unit.post_id = post.post_id
-              and region.description_status_code = 'described'
-              and embedding.post_content_image_region_embedding_id is null
-       )
-   )
- order by post.created_at, post.post_id
- limit $2::bigint
-"""
-
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -116,7 +63,58 @@ async def queue_post_content_backfill(
     result = {"scanned_posts": 0, "already_complete": 0, "queued_posts": 0, "published_events": 0}
     try:
         rows = await connection.fetch(
-            _REAL_POSTS_QUERY,
+            """
+            select post_id, post_body
+              from source_post post
+             where nullif(btrim(source_draft_code), '') is null
+               and nullif(btrim(source_deleted_flag), '') is null
+               and (
+                   nullif(btrim(source_author_code), '') is not null
+                   or nullif(btrim(source_author_name), '') is not null
+                   or nullif(btrim(source_company_code), '') is not null
+                   or nullif(btrim(source_company_name), '') is not null
+                   or nullif(btrim(source_process_unit_code), '') is not null
+                   or nullif(btrim(source_process_unit_name), '') is not null
+                   or nullif(btrim(source_sales_pool_code), '') is not null
+                   or nullif(btrim(source_sales_pool_name), '') is not null
+                   or nullif(btrim(source_customer_code), '') is not null
+                   or nullif(btrim(source_customer_name), '') is not null
+                   or nullif(btrim(source_project_code), '') is not null
+                   or nullif(btrim(source_project_name), '') is not null
+               )
+               and (
+                   not exists (
+                       select 1
+                         from post_content_unit unit
+                        where unit.post_id = post.post_id
+                   )
+                   or exists (
+                       select 1
+                         from post_content_unit unit
+                         left join post_content_embedding embedding
+                           on embedding.post_content_unit_id = unit.post_content_unit_id
+                          and embedding.embedding_model_code = $1
+                        where unit.post_id = post.post_id
+                          and embedding.post_content_embedding_id is null
+                   )
+                   or exists (
+                       select 1
+                         from post_content_unit unit
+                         join post_content_image image
+                           on image.post_content_unit_id = unit.post_content_unit_id
+                         join post_content_image_region region
+                           on region.post_content_image_id = image.post_content_image_id
+                         left join post_content_image_region_embedding embedding
+                           on embedding.post_content_image_region_id = region.post_content_image_region_id
+                          and embedding.embedding_model_code = $1
+                        where unit.post_id = post.post_id
+                          and region.description_status_code = 'described'
+                          and embedding.post_content_image_region_embedding_id is null
+                   )
+               )
+             order by post.created_at, post.post_id
+             limit $2::bigint
+            """,
             model,
             limit if limit is not None else 9223372036854775807,
         )
