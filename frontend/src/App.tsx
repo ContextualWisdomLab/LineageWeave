@@ -3750,14 +3750,27 @@ function PostList({
         .filter((week): week is string => Boolean(week)),
     ),
   ).sort((left, right) => right.localeCompare(left));
-  const applyWeeklyVoc = () => {
-    const vocWeek = latestIsoWeek(
-      loadedPosts
-        .filter((post) => post.voc_type_code === "voc")
-        .map((post) => isoWeekFromCreatedAt(post.created_at)),
-    );
-    setTypeFilter(["voc"]);
-    setWeekFilter(vocWeek ?? "all");
+  const applyWeeklyVoc = async () => {
+    try {
+      const latestVocPage = await fetchPosts(
+        accessToken,
+        1,
+        0,
+        undefined,
+        ["voc"],
+        undefined,
+        "newest",
+      );
+      const vocWeek = latestIsoWeek(
+        latestVocPage.posts.map((post) => isoWeekFromCreatedAt(post.created_at)),
+      );
+      setTypeFilter(["voc"]);
+      setWeekFilter(vocWeek ?? "all");
+      setCurrentPage(1);
+      setError(null);
+    } catch (err) {
+      setError(String(err));
+    }
   };
   const hasBoardFilters =
     Boolean(searchInput.trim()) ||
