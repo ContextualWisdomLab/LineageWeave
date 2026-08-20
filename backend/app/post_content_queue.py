@@ -40,6 +40,56 @@ def post_content_api_status(status_code: str | None, *, content_present: bool) -
     return "unavailable"
 
 
+async def post_content_is_complete(
+    conn: asyncpg.Connection,
+    post_id: str,
+    *,
+    embedding_model_code: str,
+) -> bool:
+    """Require configured semantic and described-region evidence before ready."""
+    return bool(
+        await conn.fetchval(
+            """
+            select exists(
+                       select 1
+                         from post_content_unit unit
+                        where unit.post_id = $1
+                   )
+               and (
+                       $2 = ''
+                       or (
+                           not exists(
+                               select 1
+                                 from post_content_unit unit
+                                 left join post_content_embedding embedding
+                                   on embedding.post_content_unit_id = unit.post_content_unit_id
+                                  and embedding.embedding_model_code = $2
+                                where unit.post_id = $1
+                                  and embedding.post_content_embedding_id is null
+                           )
+                           and not exists(
+                               select 1
+                                 from post_content_unit unit
+                                 join post_content_image image
+                                   on image.post_content_unit_id = unit.post_content_unit_id
+                                 join post_content_image_region region
+                                   on region.post_content_image_id = image.post_content_image_id
+                                 left join post_content_image_region_embedding embedding
+                                   on embedding.post_content_image_region_id = region.post_content_image_region_id
+                                  and embedding.embedding_model_code = $2
+                                where unit.post_id = $1
+                                  and region.description_status_code = 'described'
+                                  and embedding.post_content_image_region_embedding_id is null
+                           )
+                       )
+                   )
+            """,
+            post_id,
+            embedding_model_code,
+        )
+    )
+
+
 def post_content_stream_fields(*, post_id: str, source_body_digest: str) -> dict[str, str]:
     """Valkey carries only the identity and digest needed to wake a worker."""
     return {"post_id": str(post_id), "source_body_sha256": source_body_digest}
@@ -141,7 +191,7 @@ async def ensure_post_content_job(
     post_id: str,
     body: str,
     *,
-    content_present: bool,
+    content_complete: bool,
 ) -> PostContentJobRequest:
     """Create or requeue the job for the current source-body digest."""
     digest = source_body_sha256(body)
@@ -155,7 +205,7 @@ async def ensure_post_content_job(
         post_id,
     )
     if row is None:
-        initial_status = SUCCEEDED if content_present else QUEUED
+        initial_status = SUCCEEDED if content_complete else QUEUED
         await conn.execute(
             """
             insert into post_content_ingestion_job
@@ -178,7 +228,7 @@ async def ensure_post_content_job(
     needs_requeue = (
         str(row["source_body_sha256"]) != digest
         or status_code == FAILED
-        or (status_code == SUCCEEDED and not content_present)
+        or (status_code == SUCCEEDED and not content_complete)
     )
     if needs_requeue:
         await conn.execute(

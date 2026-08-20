@@ -271,7 +271,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Deriving...": "찾는 중...",
     "Derive commitment": "약속 찾기",
     "Creating...": "생성하는 중...",
-    "Embedded image at character offset": "문자 위치의 첨부 이미지",
+    "Embedded image": "삽입 이미지",
     "Text detected in image": "이미지에서 인식된 텍스트",
     "Image regions": "이미지 영역",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
@@ -601,7 +601,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Deriving...": "正在查找...",
     "Derive commitment": "查找承诺",
     "Creating...": "正在创建...",
-    "Embedded image at character offset": "字符位置的嵌入图像",
+    "Embedded image": "嵌入图像",
     "Text detected in image": "图像中识别的文字",
     "Image regions": "图像区域",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
@@ -946,7 +946,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Deriving...": "検索中...",
     "Derive commitment": "コミットメントを検索",
     "Creating...": "作成中...",
-    "Embedded image at character offset": "文字オフセットの埋め込み画像",
+    "Embedded image": "埋め込み画像",
     "Text detected in image": "画像から認識されたテキスト",
     "Image regions": "画像領域",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
@@ -1276,7 +1276,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Deriving...": "Đang tìm...",
     "Derive commitment": "Tìm cam kết",
     "Creating...": "Đang tạo...",
-    "Embedded image at character offset": "Hình ảnh nhúng tại vị trí ký tự",
+    "Embedded image": "Hình ảnh nhúng",
     "Text detected in image": "Văn bản nhận dạng trong hình ảnh",
     "Image regions": "Các vùng trong hình ảnh",
     "Embedded image could not be decoded. Re-export the source post and open it again.":

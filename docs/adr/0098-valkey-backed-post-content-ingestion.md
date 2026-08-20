@@ -32,8 +32,12 @@ placed in a stream message.
    bounded provenance metadata from `llm_context`; no raw provider call, model
    selector, monkey patch, or MLX-specific contract is introduced.
 5. The buyer content endpoint returns `processing` while the durable job is
-   queued/running and `ready` only after persisted units exist. The frontend
-   polls that status while continuing to show the source post.
+   queued/running and `ready` only after persisted units exist and, when an
+   embedding model is configured, every unit and every described visual region
+   has the corresponding persisted vector. A previous `succeeded` row with
+   incomplete derived evidence is requeued through Valkey instead of being
+   treated as complete. The frontend polls that status while continuing to
+   show the source post.
 
 ## Consequences
 
