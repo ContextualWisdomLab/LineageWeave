@@ -438,3 +438,17 @@ present.
 The current branch is clean and its local HEAD equals the remote branch HEAD.
 The product baseline therefore records these results as reproducible delivery
 evidence, not as protected-main release evidence.
+
+## Live browser acceptance checkpoint: 2026-08-20 22:55 KST
+
+Against the running Compose stack, a Playwright browser completed the synthetic
+OIDC login round trip, loaded a 50-item authorized board page, opened the first
+post-detail popup, waited for its asynchronous evidence projection, and closed
+the popup. The rendered popup contained 14 sections and 15 headings; the
+observed `/api/me`, `/api/posts`, and detail/lineage calls returned HTTP 200.
+No source identifier, title, body, or person name is stored in this baseline.
+
+This proves the login-to-list-to-popup interaction for the current local
+runtime only. It does not prove that the same journey is available on
+protected-main, that private records are universally authorized, or that the
+remote PR Checks have completed.
