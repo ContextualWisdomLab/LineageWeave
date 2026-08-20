@@ -1,9 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectHistoryTimeline } from "./ProjectHistoryTimeline";
 import type { TeppProjectHistory } from "../api";
+import { setLocale } from "../i18n";
 
 const history: TeppProjectHistory = {
   contract_version: 1,
@@ -61,17 +62,25 @@ const history: TeppProjectHistory = {
 };
 
 describe("ProjectHistoryTimeline", () => {
+  afterEach(() => setLocale("en"));
+
   it("renders the TEPP history, focus event, participants, and evidence navigation", async () => {
+    setLocale("ko");
     const onOpenPost = vi.fn();
     render(<ProjectHistoryTimeline history={history} onOpenPost={onOpenPost} />);
 
-    expect(screen.getByRole("region", { name: "TEPP project history" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "TEPP 프로젝트 이력" })).toBeInTheDocument();
     expect(screen.getByText(/Project Alpha/)).toBeInTheDocument();
     expect(screen.getByText("Contract awarded")).toBeInTheDocument();
     expect(screen.getByText("Specification changed")).toBeInTheDocument();
-    expect(screen.getAllByText("VOC received")).toHaveLength(2);
-    expect(screen.getByText(/담당 이력:/)).toHaveTextContent("3인");
-    expect(screen.getByText(/temporal association/i)).toBeInTheDocument();
+    expect(screen.getByText("VOC received")).toBeInTheDocument();
+    expect(screen.getAllByText("VOC 접수")).toHaveLength(2);
+    expect(screen.getByText(/담당 이력:/)).toHaveTextContent("3 명");
+    expect(
+      screen.getByText(
+        "명시적인 사양 변경 이벤트가 현재 이벤트보다 앞섭니다. 이는 시간적 연관이며 인과 결론이 아닙니다.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open evidence: VOC received" })).toHaveAttribute(
       "aria-current",
       "step",

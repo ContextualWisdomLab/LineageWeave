@@ -71,7 +71,7 @@ describe("ProjectHistoryTimeline localization", () => {
     expect(screen.getByText("TEPP 연계 응답")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "프로젝트 이벤트 타임라인" })).toBeInTheDocument();
     expect(screen.getByText("수주")).toBeInTheDocument();
-    expect(screen.getByText("VOC 접수")).toBeInTheDocument();
+    expect(screen.getAllByText("VOC 접수")).toHaveLength(2);
     expect(screen.getByRole("heading", { name: "이벤트 상세" })).toBeInTheDocument();
   });
 });

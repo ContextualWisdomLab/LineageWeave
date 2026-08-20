@@ -20,6 +20,34 @@ const STORAGE_KEY = "lineageweave.locale";
 const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   ko: {
     "Unknown": "알 수 없음",
+    "TEPP project history": "TEPP 프로젝트 이력",
+    "TEPP project history status": "TEPP 프로젝트 이력 상태",
+    "TEPP-connected answer": "TEPP 연계 응답",
+    "Project event timeline": "프로젝트 이벤트 타임라인",
+    "Connect explicit events for {project} in chronological order within the knowledge cutoff.":
+      "{project}의 명시적 이벤트를 지식 컷오프 안에서 시간순으로 연결합니다.",
+    "Event details": "이벤트 상세",
+    "Current event:": "현재 이벤트:",
+    "Participant history:": "담당 이력:",
+    participants: "명",
+    "TEPP finding:": "TEPP 추론:",
+    "Explicit events were ordered chronologically. No causal conclusion is generated.":
+      "명시적 사건을 시간순으로 정렬했습니다. 인과 결론은 생성하지 않습니다.",
+    "TEPP explains temporal associations only. It does not generate missing events, participants, causal relationships, or psychometric scores.":
+      "TEPP는 제공된 증거의 시간적 연관만 설명합니다. 누락된 사건·담당자·인과관계·심리측정 점수는 생성하지 않습니다.",
+    "Loading TEPP project history.": "TEPP 프로젝트 이력을 불러오는 중입니다.",
+    "Contract award": "수주",
+    "Specification change": "사양 변경",
+    Delivery: "납품",
+    "Operational handoff": "운영 인수",
+    "VOC received": "VOC 접수",
+    "VOC event": "VOC 접수",
+    "Rebid started": "재입찰",
+    "Project event": "프로젝트 이벤트",
+    "An explicit contract-award event precedes the focus event. This is a temporal association, not a causal conclusion.":
+      "명시적인 수주 이벤트가 현재 이벤트보다 앞섭니다. 이는 시간적 연관이며 인과 결론이 아닙니다.",
+    "An explicit specification-change event precedes the focus event. This is a temporal association, not a causal conclusion.":
+      "명시적인 사양 변경 이벤트가 현재 이벤트보다 앞섭니다. 이는 시간적 연관이며 인과 결론이 아닙니다.",
     Language: "언어",
     unresolved: "미해결",
     "Close evidence panel": "근거 패널 닫기",

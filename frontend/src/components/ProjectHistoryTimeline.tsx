@@ -5,16 +5,24 @@ import {
   type TeppProjectHistory,
   type TeppProjectHistoryEnvelope,
 } from "../api";
+import { t, tf, useLocale } from "../i18n";
 import "./ProjectHistoryTimeline.css";
 
 const EVENT_LABELS: Record<string, string> = {
-  contract_awarded: "수주",
-  specification_changed: "사양 변경",
-  delivered: "납품",
-  operational_handoff: "운영 인수",
-  voc_received: "VOC 접수",
-  rebid_started: "재입찰",
-  event_observed: "프로젝트 이벤트",
+  contract_awarded: "Contract award",
+  specification_changed: "Specification change",
+  delivered: "Delivery",
+  operational_handoff: "Operational handoff",
+  voc_received: "VOC event",
+  rebid_started: "Rebid started",
+  event_observed: "Project event",
+};
+
+const FINDING_SUMMARY_KEYS: Record<string, string> = {
+  contract_award_before_focus:
+    "An explicit contract-award event precedes the focus event. This is a temporal association, not a causal conclusion.",
+  specification_change_before_focus:
+    "An explicit specification-change event precedes the focus event. This is a temporal association, not a causal conclusion.",
 };
 
 function dateLabel(value: string): string {
@@ -32,18 +40,24 @@ export function ProjectHistoryTimeline({
   history: TeppProjectHistory;
   onOpenPost: (postId: string) => void;
 }) {
+  useLocale();
   const finding = history.findings[0];
+  const focusEvent = history.events.find((event) => event.event_id === history.focus_event_id);
   const listStyle = {
     "--tepp-event-count": Math.max(1, history.events.length),
   } as CSSProperties;
 
   return (
-    <section className="tepp-project-history" role="region" aria-label="TEPP project history">
+    <section className="tepp-project-history" role="region" aria-label={t("TEPP project history")}>
       <div className="tepp-project-history__header">
         <div>
-          <p className="section-eyebrow">TEPP 연계 응답</p>
-          <h3>프로젝트 이벤트 타임라인</h3>
-          <p>{history.project_name}의 명시적 이벤트를 지식 컷오프 안에서 시간순으로 연결합니다.</p>
+          <p className="section-eyebrow">{t("TEPP-connected answer")}</p>
+          <h3>{t("Project event timeline")}</h3>
+          <p>
+            {tf("Connect explicit events for {project} in chronological order within the knowledge cutoff.", {
+              project: history.project_name,
+            })}
+          </p>
         </div>
         <span className="post-badge">TEPP · v{history.contract_version}</span>
       </div>
@@ -64,7 +78,7 @@ export function ProjectHistoryTimeline({
                 onClick={() => onOpenPost(event.source_post_id)}
               >
                 <span className="tepp-project-history__dot" aria-hidden="true" />
-                <strong>{EVENT_LABELS[event.event_type_code] ?? event.event_type_code}</strong>
+                <strong>{t(EVENT_LABELS[event.event_type_code] ?? event.event_type_code)}</strong>
                 <span>{event.event_title}</span>
               </button>
             </li>
@@ -73,24 +87,33 @@ export function ProjectHistoryTimeline({
       </ol>
 
       <div className="tepp-project-history__detail">
-        <h4>이벤트 상세</h4>
+        <h4>{t("Event details")}</h4>
         <p>
-          현재 이벤트: <strong>{history.events.find((event) => event.event_id === history.focus_event_id)?.event_title}</strong>
-          {" · "}담당 이력: {history.participant_count}인
+          {t("Current event:")} {" "}
+          <strong>
+            {focusEvent
+              ? t(EVENT_LABELS[focusEvent.event_type_code] ?? focusEvent.event_title)
+              : t("Unknown")}
+          </strong>
+          {" · "}
+          {t("Participant history:")} {" "}
+          {history.participant_count} {t("participants")}
         </p>
         {finding ? (
           <p>
-            <strong>TEPP 추론:</strong> {finding.summary}
+            <strong>{t("TEPP finding:")}</strong>{" "}
+            {t(FINDING_SUMMARY_KEYS[finding.finding_code] ?? finding.summary)}
           </p>
         ) : (
           <p>
-            <strong>TEPP 추론:</strong> 명시적 사건을 시간순으로 정렬했습니다. 인과 결론은 생성하지 않습니다.
+            <strong>{t("TEPP finding:")}</strong>{" "}
+            {t("Explicit events were ordered chronologically. No causal conclusion is generated.")}
           </p>
         )}
       </div>
 
       <p className="tepp-project-history__boundary">
-        TEPP는 제공된 증거의 시간적 연관만 설명합니다. 누락된 사건·담당자·인과관계·심리측정 점수는 생성하지 않습니다.
+        {t("TEPP explains temporal associations only. It does not generate missing events, participants, causal relationships, or psychometric scores.")}
       </p>
     </section>
   );
@@ -105,6 +128,7 @@ export function PostProjectHistory({
   postId: string;
   onOpenPost: (postId: string) => void;
 }) {
+  useLocale();
   const [envelope, setEnvelope] = useState<TeppProjectHistoryEnvelope | null>(null);
 
   useEffect(() => {
@@ -129,12 +153,15 @@ export function PostProjectHistory({
   }, [accessToken, postId]);
 
   if (envelope === null) {
-    return <p className="popup-placeholder">TEPP 프로젝트 이력을 불러오는 중입니다.</p>;
+    return <p className="popup-placeholder">{t("Loading TEPP project history.")}</p>;
   }
   if (!envelope.project_history) {
     return (
-      <section className="popup-section tepp-project-history-status" aria-label="TEPP project history status">
-        <h3>프로젝트 이벤트 타임라인</h3>
+      <section
+        className="popup-section tepp-project-history-status"
+        aria-label={t("TEPP project history status")}
+      >
+        <h3>{t("Project event timeline")}</h3>
         <p>{envelope.next_action}</p>
       </section>
     );
