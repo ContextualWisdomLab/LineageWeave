@@ -139,7 +139,8 @@ class ImageDescription:
     Attributes:
         extracted_text: OCR result -- every piece of legible text found in
             the image, empty string if none.
-        caption: one-sentence description of what the image shows.
+        caption: factual description of the visible entities, relationships,
+            and layout that make the image useful as semantic evidence.
         tags: short tags for the main objects/subjects, for independent
             keyword search separate from the free-text caption.
     """
@@ -175,13 +176,18 @@ class NullImageContentClient:
 
 
 _RESPONSE_FORMAT = (
-    "Examine this image. Reply with EXACTLY three lines, no extra commentary:\n"
+    "Examine this image. Reply with exactly the three labeled sections below and no "
+    "extra commentary. TEXT may span multiple lines; CAPTION and TAGS stay on their "
+    "labeled lines.\n"
     "TEXT: <all legible text in the image, verbatim, or NONE if there is none. "
-    "If the image contains a table, preserve its row/column structure: one row "
-    "per line, with ' | ' between that row's cell values, in reading order -- "
-    "never flatten a table into an unstructured word list.>\n"
-    "CAPTION: <one sentence describing what the image shows>\n"
-    "TAGS: <comma-separated short tags for the main objects/subjects>"
+    "If the image contains a table, preserve its row/column structure as a Markdown "
+    "pipe table: one row per line, with a separator row immediately after the visible "
+    "header. Never flatten a table into an unstructured word list or invent a header "
+    "that is not visible.>\n"
+    "CAPTION: <a concise factual paragraph naming visible named entities, their visible "
+    "relationships, the spatial or document layout, and the table/chart purpose when "
+    "present. Omit anything the pixels do not support.>\n"
+    "TAGS: <comma-separated short tags for visible named entities, objects, and document types>"
 )
 _REGION_RESPONSE_FORMAT = (
     "Find distinct meaningful visual regions in this image for separate OCR and description. "

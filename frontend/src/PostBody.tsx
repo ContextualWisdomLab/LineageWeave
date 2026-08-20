@@ -37,7 +37,7 @@ function renderSegment(segment: PostBodySegment, index: number, imageContent?: P
           {imageContent?.extracted_text ? (
             <details className="post-image-text">
               <summary>{t("Text detected in image")}</summary>
-              <p>{imageContent.extracted_text}</p>
+              {renderExtractedText(imageContent.extracted_text)}
             </details>
           ) : null}
           {imageContent?.regions?.length ? (
@@ -46,7 +46,14 @@ function renderSegment(segment: PostBodySegment, index: number, imageContent?: P
               <ol>
                 {imageContent.regions.map((region) => (
                   <li key={region.region_index}>
-                    {region.caption || region.extracted_text || t("Unknown")}
+                    {region.caption ? <p>{region.caption}</p> : null}
+                    {region.extracted_text ? (
+                      <div className="post-image-region-text">
+                        {renderExtractedText(region.extracted_text)}
+                      </div>
+                    ) : region.caption ? null : (
+                      t("Unknown")
+                    )}
                   </li>
                 ))}
               </ol>
@@ -160,6 +167,11 @@ function renderMarkdownBlocks(blocks: MarkdownBodyBlock[]): ReactNode[] {
       </table>
     );
   });
+}
+
+function renderExtractedText(text: string): ReactNode {
+  const markdownBlocks = splitMarkdownTableBody(text);
+  return markdownBlocks ? renderMarkdownBlocks(markdownBlocks) : <p>{text}</p>;
 }
 
 export function PostBody({

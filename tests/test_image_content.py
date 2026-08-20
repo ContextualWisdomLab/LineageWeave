@@ -226,6 +226,17 @@ def test_ocr_prompt_asks_for_table_row_structure() -> None:
     assert "table" in _RESPONSE_FORMAT.lower()
 
 
+def test_ocr_prompt_allows_multiline_tables_and_requests_semantic_detail() -> None:
+    """Table rows and ontology-ready captions must fit the response contract."""
+    prompt = _RESPONSE_FORMAT.lower()
+
+    assert "text may span multiple lines" in prompt
+    assert "separator row" in prompt
+    assert "named entities" in prompt
+    assert "relationships" in prompt
+    assert "exactly three lines" not in prompt
+
+
 def test_region_prompt_requires_full_image_coverage() -> None:
     """Live gap (2026-08-19): "distinct meaningful visual regions" alone
     let the model describe only the most visually striking part of an

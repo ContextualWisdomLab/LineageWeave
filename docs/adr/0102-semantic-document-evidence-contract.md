@@ -36,6 +36,10 @@ recognizable header/separator/data shape and otherwise preserves plain text.
 5. Keep the frontend's raw-source fallback aligned with the persisted unit
    labels. Persisted row units render as accessible tables; unresolved
    structure remains visibly unresolved and actionable.
+6. Apply the same narrow Markdown-table renderer to persisted image OCR.
+   VISION output may use multiple `TEXT` lines so row boundaries survive; its
+   caption names only visible entities, relationships, layout, and document
+   purpose rather than offering a generic one-sentence description.
 
 ## Rejected alternatives
 

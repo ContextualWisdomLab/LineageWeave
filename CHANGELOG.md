@@ -13,6 +13,9 @@ All notable changes to this project are documented here. Format follows
   semantic-unit parser and buyer body renderer. See the [product and
   technical gap baseline](docs/product-technical-gap-baseline.md) and
   [ADR 0102](docs/adr/0102-semantic-document-evidence-contract.md).
+- Preserve multiline VISION table rows, render parent and region OCR tables
+  accessibly, and request source-visible entity, relationship, layout, and
+  document-purpose evidence instead of a generic image caption.
 
 ## [2.10.0] - 2026-08-18
 

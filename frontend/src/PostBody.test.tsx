@@ -164,6 +164,43 @@ describe("PostBody", () => {
     expect(screen.getByText("Next action.")).toBeInTheDocument();
   });
 
+  it("renders table-shaped image OCR as accessible evidence", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,QQ==" />'}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "completed",
+            extracted_text: "| Project | Status |\n| --- | --- |\n| Alpha | Ready |",
+            caption: "A synthetic project status table.",
+            tags: ["table"],
+            regions: [
+              {
+                region_index: 0,
+                x_ratio: 0,
+                y_ratio: 0,
+                width_ratio: 1,
+                height_ratio: 1,
+                status_code: "completed",
+                extracted_text: "| Owner | Action |\n| --- | --- |\n| Team A | Review |",
+                caption: "The table region assigns an action to a team.",
+                tags: ["assignment"],
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getAllByRole("table")).toHaveLength(2);
+    expect(screen.getByRole("columnheader", { name: "Project" })).toBeInTheDocument();
+    expect(screen.getByText("Ready")).toBeInTheDocument();
+    expect(screen.getByText("The table region assigns an action to a team.")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Owner" })).toBeInTheDocument();
+  });
+
   it("marks persisted footnotes as footnote evidence", () => {
     render(
       <PostBody
