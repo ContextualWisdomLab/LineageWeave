@@ -1,0 +1,149 @@
+name: Repair MCP source visibility once
+
+on:
+  push:
+    branches:
+      - "agent/authenticated-mcp-global-ask"
+    paths:
+      - ".github/workflows/repair-mcp-source-visibility.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-mcp-source-visibility
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    name: Enforce source visibility before loading bodies
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact feature branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: agent/authenticated-mcp-global-ask
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Materialize the reviewed SQL-level ABAC patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              source = target.read_text(encoding="utf-8")
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one replacement, found {count}")
+              target.write_text(source.replace(old, new), encoding="utf-8")
+
+          replace_once(
+              "backend/app/post_chat_ingestion.py",
+              "from dataclasses import dataclass\nfrom typing import Any, Callable\n",
+              "from collections.abc import Collection\nfrom dataclasses import dataclass\nfrom typing import Any, Callable\n",
+          )
+          replace_once(
+              "backend/app/post_chat_ingestion.py",
+              "    *,\n    session_id: str | None = None,\n",
+              "    *,\n    visible_corporate_entity_ids: Collection[str] = (),\n    session_id: str | None = None,\n",
+          )
+          replace_once(
+              "backend/app/post_chat_ingestion.py",
+              '''    this_post = await conn.fetchrow(
+                  "select post_id, post_title, post_body, created_at "
+                  "from source_post where post_id = $1",
+                  post_id,
+              )
+              if this_post is None:
+          ''',
+              '''    visible_entity_ids = list(visible_corporate_entity_ids)
+              this_post = await conn.fetchrow(
+                  "select post_id, post_title, post_body, visibility_code, corporate_entity_id, created_at "
+                  "from source_post where post_id = $1 "
+                  "and (visibility_code = 'public' or corporate_entity_id = any($2::uuid[]))",
+                  post_id,
+                  visible_entity_ids,
+              )
+              if this_post is None or not can_see_post(this_post):
+          ''',
+          )
+          replace_once(
+              "backend/app/post_chat_ingestion.py",
+              '''    rows = await conn.fetch(
+                  "select post_id, post_title, post_body, visibility_code, corporate_entity_id, created_at "
+                  "from source_post where post_id = any($1::uuid[])",
+                  list(candidate_ids),
+              )
+          ''',
+              '''    rows = await conn.fetch(
+                  "select post_id, post_title, post_body, visibility_code, corporate_entity_id, created_at "
+                  "from source_post where post_id = any($1::uuid[]) "
+                  "and (visibility_code = 'public' or corporate_entity_id = any($2::uuid[]))",
+                  list(candidate_ids),
+                  visible_entity_ids,
+              )
+          ''',
+          )
+          replace_once(
+              "backend/app/global_ask.py",
+              '''            vision_client=vision_client,
+                  session_id=session_id,
+          ''',
+              '''            vision_client=vision_client,
+                  visible_corporate_entity_ids=account.corporate_entity_ids,
+                  session_id=session_id,
+          ''',
+          )
+          replace_once(
+              "backend/app/main.py",
+              '''        sources = await gather_chat_sources(
+                  conn, post_id, lambda row: _can_see_post(account, row), vision_client=_vision_client()
+              )
+          ''',
+              '''        sources = await gather_chat_sources(
+                  conn,
+                  post_id,
+                  lambda row: _can_see_post(account, row),
+                  vision_client=_vision_client(),
+                  visible_corporate_entity_ids=account.corporate_entity_ids,
+              )
+          ''',
+          )
+          PY
+
+      - name: Verify focused authorization and adjacent MCP contracts
+        run: |
+          uv sync --frozen --extra dev --extra backend
+          uv run --frozen python -m pytest -q \
+            tests/test_post_chat_ingestion_bounds.py \
+            tests/test_mcp_global_ask.py \
+            tests/test_mcp_global_ask_media.py \
+            tests/test_post_chat_conduct_contract.py
+          uv run --frozen python -m compileall -q backend lineageweave tests
+          git diff --check
+
+      - name: Publish only the verified product patch
+        shell: bash
+        run: |
+          rm .github/workflows/repair-mcp-source-visibility.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(auth): filter chat sources before body load"
+          git push origin HEAD:agent/authenticated-mcp-global-ask
