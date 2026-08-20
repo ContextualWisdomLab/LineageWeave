@@ -34,6 +34,19 @@ def test_corroborating_evidence_requires_distinctive_org_token() -> None:
     )
 
 
+def test_generic_page_matching_one_fake_name_token_is_not_evidence() -> None:
+    assert (
+        relation_verification.corroborating_evidence_url(
+            "Zzqxvthorp Fictitious Nonexistent Org 8f3e1c",
+            {
+                "url": "https://learn.microsoft.com/en-us/writing-style-guide-msft-internal/legal-content/fictitious-names-domains-and-addresses",
+                "content": "Use fictitious names and domains in examples.",
+            },
+        )
+        is None
+    )
+
+
 def test_corroborating_evidence_requires_a_majority_of_tokens() -> None:
     """One ordinary dictionary word in an invented name must not corroborate.
 
