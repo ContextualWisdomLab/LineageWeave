@@ -100,6 +100,9 @@ _SUMMARY_FIVE_W1H_MIGRATION = (
 _POST_CONTENT_QUEUE_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0050_post_content_ingestion_queue.sql"
 )
+_MAJOR_EVENT_ACTION_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0100_major_event_action.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -210,6 +213,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_IMAGE_REGION_EMBEDDING_MIGRATION.read_text())
             cur.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text())
             cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
+            cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
