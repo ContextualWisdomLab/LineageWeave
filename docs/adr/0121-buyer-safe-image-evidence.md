@@ -1,4 +1,4 @@
-# ADR 0117: Keep Internal Image Instructions Out of Buyer Evidence
+# ADR 0121: Keep Internal Image Instructions Out of Buyer Evidence
 
 ## Status
 
@@ -20,6 +20,10 @@ LLM/embedding placeholders and when rendering the buyer-facing post body.
 Retain the original image, OCR text, tags, region coordinates, and provenance;
 only the non-evidence caption is removed. If no useful caption remains, show
 the image and available evidence without inventing a description.
+
+The instruction matcher uses concrete imperative phrases for Korean text
+extraction guidance rather than ordinary words such as `텍스트` or `질문`, so
+legitimate captions that describe an image containing text remain evidence.
 
 ## Consequences
 
