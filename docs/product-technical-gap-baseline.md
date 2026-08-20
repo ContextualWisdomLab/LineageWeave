@@ -1,10 +1,11 @@
 # Product, technical, and gap baseline
 
-**Snapshot:** 2026-08-20 17:08 (Asia/Seoul)
+**Snapshot:** 2026-08-20 18:33 (Asia/Seoul)
 **Protected-main baseline:** `origin/main`, product version `2.12.5`  
-**Audited PR head:** #258 at `bf599aca` (integrated timeout boundary, fixture fix, worker repair, and SQL review evidence)
-**Active PR update:** ADR 0101 and the enrichment-timeout changes are pushed to
-PR #258; protected-main runtime evidence remains pending.
+**Audited PR head:** #258 at `f8d2fa98d622e4294cf08f24a87a7db697479f4f` (semantic source-unit boundaries and the preceding queue, ontology, and review fixes)
+**Active PR update:** The current #258 head has local backend `716 passed, 16 skipped`
+and frontend lint, 129 tests, build, and Storybook build passing; protected-main
+runtime evidence, formal approval, and required GitHub Checks remain pending.
 **Purpose:** connect the normative ADRs and research evidence to product
 requirements, technical contracts, implementation evidence, and active PRs.
 An active PR is proposed work, not shipped behavior.
@@ -169,9 +170,9 @@ evidence for one authorized post, not a corpus-wide acceptance claim.
 
 ## Active PR audit
 
-GitHub reported 18 open PRs at the snapshot: all were marked Ready and 8
-required review; merge state was 8 `BLOCKED`, 8 `UNSTABLE`, and 2 `DIRTY`.
-Queued checks and review gates mean none of these rows is protected-main truth.
+The following table is the historical 17:08 snapshot; it is retained to show
+why the dependency graph was recorded, not as current merge evidence. Queued
+checks and review gates mean none of those rows was protected-main truth.
 
 | PR | Proposed increment | Base → head | Snapshot state |
 |---|---|---|---|
@@ -206,6 +207,31 @@ ids are passed as `$1` arguments rather than interpolated. This is evidence for
 a likely narrow false-positive suppression, not authority to dismiss the
 findings: the required security workflow and independent reviewer must accept
 the exact-head disposition.
+
+## Current exact-head audit: 2026-08-20 18:33
+
+The active stack was re-fetched after each normal branch update. The current
+heads are: #258 `f8d2fa98`, #260 `dfd95d9c`, #261 `bd1b4d2f`, #262 `80445b8a`,
+#263 `d670acd5`, #264 `d5dbdf71`, #266 `26a6d9c6`, #270 `10aced61`, #275
+`35035783`, #276 `635420d2`, #282 `8a59af2f`, #285 `76af0295`, #286
+`1175cd9d`, #287 `554efb9b`, #298 `49c9976f`, #301 `59ccdf91`, #302
+`40b0a8ea`, #303 `f5b23459`, #306 `e0dbc386`, #307 `313d38a4`, #308
+`e81aff8c`, and #309 `e7d1b353`.
+
+At this audit no PR had a formal `APPROVED` review. Required checks for the
+updated heads were queued, with no completed failure observed in the aggregate
+GitHub status. This is a gate state, not a merge claim. The parallel buyer
+surface branches were also checked for ADR identity collisions; #308 owns ADR
+0111 and #309 now owns ADR 0112.
+
+Local regression evidence for the newly audited branches includes #303 backend
+focused image/persistence/static-SQL tests `49 passed`, #303 frontend `135
+passed`, #306 frontend `130 passed`, #307 frontend `131 passed`, #308 backend
+focused summary/schema/API tests `132 passed, 6 skipped` before the legacy
+delimiter regression was added, #308 focused summary/documentation tests `26
+passed, 1 skipped` after that fix, and #309 frontend `132 passed`. These are
+branch-local observations and do not replace protected Checks or independent
+review.
 
 ## Gap register
 

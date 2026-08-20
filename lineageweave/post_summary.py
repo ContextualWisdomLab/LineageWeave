@@ -604,20 +604,29 @@ def _parse_plain_summary_details(
         except (TypeError, ValueError):
             continue
     actions: list[MajorEventAction] = []
+    role_names = {role.actor_name.casefold() for role in roles}
+
+    def _is_actor_field(value: str) -> bool:
+        """Recognize the actor columns required by the five-column contract."""
+        return value.casefold() in empty_values or value.casefold() in role_names
+
     for raw_row in sections.get("ACTIONS", "").splitlines():
         row = raw_row.strip().lstrip("-* ").strip()
         if not row or row.casefold() in empty_values:
             continue
         parts = [part.strip() for part in row.split("|", 4)]
-        if len(parts) == 4:
-            action_text, requester, processor, evidence_text = parts
-            project_key = None
-        elif len(parts) == 5:
+        if len(parts) == 5 and _is_actor_field(parts[2]) and _is_actor_field(parts[3]):
             action_text, project_key_raw, requester, processor, evidence_text = parts
             project_key = _parse_optional_project_key(project_key_raw)
         else:
+            legacy_parts = [part.strip() for part in row.split("|", 3)]
+            if len(legacy_parts) != 4:
+                continue
+            action_text, requester, processor, evidence_text = legacy_parts
+            project_key = None
+        if not action_text:
             continue
-        if not action_text or evidence_text.casefold() in empty_values:
+        if evidence_text.casefold() in empty_values:
             continue
         requester_name = None if requester.casefold() in empty_values else requester
         processor_name = None if processor.casefold() in empty_values else processor
