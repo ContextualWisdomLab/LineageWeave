@@ -239,3 +239,41 @@ ADRs remain normative. This document is the product/technical traceability
 projection: update the affected FR/NFR row and Gap closure evidence when an ADR
 or PR changes product behavior. Never turn a PR title, green unit test, or old
 runtime note into a shipped/live claim.
+## Checkpoint update: 2026-08-20
+
+### Project-bound major-event actions
+
+The buyer-facing action projection now carries an optional normalized project
+key and persists it only when the same post has a matching
+`post_project_mention`. An action that cannot be grounded to a project remains
+unbound rather than being guessed from its title, customer, PU, sales pool, or
+author hints. This closes the mixed-project event ambiguity at the persistence
+boundary while preserving legacy unbound actions.
+
+- Implementation: PR #308, `fix/project-bound-summary-actions`
+- Decision record: ADR 0111
+- Local evidence: backend `719 passed, 16 skipped`; focused migration regression
+  `7 passed`; frontend lint, tests, and build passed before publication.
+- Integration status: PR #308 is stacked on the buyer-surface branch and is not
+  a protected-main merge claim.
+
+### Provider sampling capability gap
+
+The observed gateway failure for an Azure GPT-5-family deployment was a
+provider capability rejection of non-default `temperature`, followed by an
+unrelated fallback-group failure. The product contract must not select a model
+from a local name or fallback table. `contextual-orchestrator` PR #774 adds a
+single retry without the rejected optional field for HTTP 400/422 across Chat
+Completions, Responses, and raw/proxy transport, while retaining the same
+provider and orchestration session.
+
+- Upstream decision record: contextual-orchestrator ADR 0012
+- Upstream local evidence: provider protocol and integration tests `16 passed`;
+  `git diff --check` passed.
+- Integration status: PR #774 is stacked on the paper-grounded orchestrator
+  branch; it is not yet evidence of protected-main integration.
+
+LineageWeave must continue to send model, reasoning-effort, protocol, and
+VISION selection through contextual-orchestrator. Until the upstream contract
+is integrated into the runtime base used by LineageWeave, this gap remains
+open for deployment acceptance.
