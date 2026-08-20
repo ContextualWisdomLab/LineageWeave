@@ -151,6 +151,27 @@ class ImageDescription:
     tags: tuple[str, ...]
 
 
+_INTERNAL_IMAGE_INSTRUCTION = re.compile(
+    r"^(?:"
+    r"this post is an image(?:\s*[.!?]|.*(?:ask\s+questions|read\s+its\s+text).*)"
+    r"|이 글의 이미지입니다(?:\s*[.!?]|.*(?:keyman|질문|텍스트).*)"
+    r"|(?:this image|이 이미지는).*(?:keyman|ask\s+questions|read\s+its\s+text|질문|텍스트).*"
+    r")$",
+    re.IGNORECASE,
+)
+
+
+def buyer_safe_image_caption(caption: str | None) -> str:
+    """Return a useful image caption, excluding internal LLM instructions.
+
+    Older ingestion runs may have persisted prompt guidance intended for the
+    analysis agent as the image caption. The original image and all other
+    evidence remain available; only that non-content caption is suppressed.
+    """
+    cleaned = " ".join((caption or "").split())
+    return "" if _INTERNAL_IMAGE_INSTRUCTION.fullmatch(cleaned) else cleaned
+
+
 class ImageContentClient(Protocol):
     """Turns image bytes into searchable text content."""
 

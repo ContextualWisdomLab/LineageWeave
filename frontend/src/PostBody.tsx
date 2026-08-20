@@ -37,18 +37,32 @@ function renderImageText(text: string) {
   );
 }
 
+function buyerSafeImageCaption(caption: string | null | undefined): string | undefined {
+  const cleaned = caption?.replace(/\s+/g, " ").trim();
+  if (!cleaned) return undefined;
+  if (
+    /^(?:this post is an image(?:\s*[.!?]|.*(?:ask questions|read its text).*)|이 글의 이미지입니다(?:\s*[.!?]|.*(?:Keyman|질문|텍스트).*)|(?:this image|이 이미지는).*(?:Keyman|ask questions|read its text|질문|텍스트).*)$/i.test(
+      cleaned,
+    )
+  ) {
+    return undefined;
+  }
+  return cleaned;
+}
+
 function renderImageEvidence(
   index: number,
   imageContent?: PostImageContent,
   sourceImage?: Extract<PostBodySegment, { kind: "image" }>,
 ) {
+  const caption = buyerSafeImageCaption(imageContent?.caption);
   return (
     <figure key={`post-body-image-${index}`} className="post-embedded-image">
       {sourceImage ? (
-        <img src={sourceImage.src} alt={imageContent?.caption || t("Embedded image")} />
+        <img src={sourceImage.src} alt={caption || t("Embedded image")} />
       ) : null}
-      {imageContent?.caption || !sourceImage ? (
-        <figcaption>{imageContent?.caption || t("Embedded image")}</figcaption>
+      {caption || !sourceImage ? (
+        <figcaption>{caption || t("Embedded image")}</figcaption>
       ) : null}
       {imageContent?.tags.length ? (
         <p className="post-image-tags">

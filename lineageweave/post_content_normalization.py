@@ -31,6 +31,7 @@ from .image_content import (
     ImageDescription,
     ImageRegion,
     NullImageContentClient,
+    buyer_safe_image_caption,
     crop_image_region,
     regions_cover_image,
 )
@@ -116,7 +117,7 @@ def _looks_like_html(body: str) -> bool:
 
 def _image_placeholder(description: ImageDescription) -> str:
     """Caption plus OCR text -- both are what the vision call paid for."""
-    caption = description.caption or "no caption available"
+    caption = buyer_safe_image_caption(description.caption) or "no caption available"
     ocr = description.extracted_text.strip()
     if ocr:
         return f"[image: {caption} | text: {ocr}]"
@@ -126,7 +127,11 @@ def _image_placeholder(description: ImageDescription) -> str:
 def _merge_region_descriptions(descriptions: list[ImageDescription]) -> ImageDescription:
     """Keep all successful region evidence in the parent image unit."""
     extracted_text = "\n".join(item.extracted_text.strip() for item in descriptions if item.extracted_text.strip())
-    captions = " ".join(item.caption.strip() for item in descriptions if item.caption.strip())
+    captions = " ".join(
+        caption
+        for item in descriptions
+        if (caption := buyer_safe_image_caption(item.caption))
+    )
     tags = tuple(dict.fromkeys(tag for item in descriptions for tag in item.tags))
     return ImageDescription(extracted_text=extracted_text, caption=captions, tags=tags)
 

@@ -14,7 +14,11 @@ from typing import Any, TypeVar
 
 from .chunking import Chunk, chunk_by_source_body
 from .embedding_client import EmbeddingClient
-from .image_content import ImageContentClient, ImageDescription
+from .image_content import (
+    ImageContentClient,
+    ImageDescription,
+    buyer_safe_image_caption,
+)
 from .post_content_normalization import ImageContentResult, normalize_post_body
 from .post_structure import NullPostStructureClient, PostStructureClient, StructureDecision
 
@@ -49,7 +53,7 @@ def _render_description(description: ImageDescription | None) -> str:
     """Render one image or visual-region description as searchable text."""
     if description is None:
         return "[image: content unavailable]"
-    caption = description.caption or "no caption available"
+    caption = buyer_safe_image_caption(description.caption) or "no caption available"
     if description.extracted_text.strip():
         return f"[image: {caption} | text: {description.extracted_text.strip()}]"
     return f"[image: {caption}]"

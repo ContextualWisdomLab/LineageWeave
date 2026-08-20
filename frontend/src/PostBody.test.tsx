@@ -305,4 +305,37 @@ describe("PostBody", () => {
     expect(screen.getByText("Before").compareDocumentPosition(screen.getByAltText("Source diagram")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByAltText("Source diagram").compareDocumentPosition(screen.getByText("After")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+
+  it("hides a legacy internal image caption while keeping the image evidence", () => {
+    render(
+      <PostBody
+        body="<p>legacy image</p>"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "image",
+            unit_label: "img",
+            unit_text: "legacy image",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "",
+          },
+        ]}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "Visible OCR",
+            caption: "이 글의 이미지입니다. Keyman을 추출하거나 질문해 이미지 안의 텍스트를 읽으세요.",
+            tags: [],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.queryByText(/이 글의 이미지입니다/)).not.toBeInTheDocument();
+    expect(screen.getByText("Visible OCR")).toBeInTheDocument();
+  });
 });

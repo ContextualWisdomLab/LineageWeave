@@ -5,14 +5,17 @@ from contextlib import asynccontextmanager
 from types import SimpleNamespace
 
 from lineageweave.chunking import chunk_by_dom
-from lineageweave.image_content import ImageRegion
+from lineageweave.image_content import ImageRegion, buyer_safe_image_caption
 from lineageweave.post_content_normalization import (
     FormattingHint,
     ImageContentResult,
     ImageRegionResult,
     NormalizedPostContent,
 )
-from lineageweave.post_content_persistence import _render_image_text, persist_post_content
+from lineageweave.post_content_persistence import (
+    _render_image_text,
+    persist_post_content,
+)
 
 
 def _persist(*args: object, **kwargs: object) -> int:
@@ -96,6 +99,32 @@ def test_render_image_text_preserves_unavailable_and_caption_variants() -> None:
             )
         )
         == "[image: no caption available | text: OCR]"
+    )
+
+
+def test_internal_image_instruction_is_not_searchable_caption() -> None:
+    """Prompt guidance is not buyer evidence or embedding content."""
+    assert buyer_safe_image_caption("A process diagram") == "A process diagram"
+    assert (
+        buyer_safe_image_caption(
+            "이 글의 이미지입니다. Keyman을 추출하거나 질문해 이미지 안의 텍스트를 읽으세요."
+        )
+        == ""
+    )
+    assert (
+        _render_image_text(
+            ImageContentResult(
+                0,
+                "image/png",
+                "described",
+                SimpleNamespace(
+                    caption="This post is an image. Ask questions to read its text.",
+                    extracted_text="Visible OCR",
+                    tags=(),
+                ),
+            )
+        )
+        == "[image: no caption available | text: Visible OCR]"
     )
 
 
