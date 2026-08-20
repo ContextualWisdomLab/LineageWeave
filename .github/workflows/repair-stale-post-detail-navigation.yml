@@ -1,0 +1,351 @@
+name: One-shot stale post detail navigation repair
+
+on:
+  push:
+    branches:
+      - feat/event-lineage-node-keeps-gnb-focus-v2170
+    paths:
+      - .github/workflows/repair-stale-post-detail-navigation.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-stale-post-detail-navigation
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact repair head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/event-lineage-node-keeps-gnb-focus-v2170
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Require the live branch to match this run
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin feat/event-lineage-node-keeps-gnb-focus-v2170
+          remote_head="$(git rev-parse origin/feat/event-lineage-node-keeps-gnb-focus-v2170)"
+          test "$remote_head" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install the committed frontend lock
+        working-directory: frontend
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Add the stale-response regression only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("frontend/src/App.test.tsx")
+          text = path.read_text()
+
+          def replace_once(old: str, new: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected one test anchor, found {count}: {old[:80]!r}")
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              "    deferMe?: boolean;\n    meFailed?: boolean;",
+              "    deferMe?: boolean;\n    deferPostOneSummary?: boolean;\n    meFailed?: boolean;",
+          )
+          replace_once(
+              "  }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {",
+              "  }): ReturnType<typeof vi.fn> & {\n    releaseMe: () => void;\n    releasePostOneSummary: () => void;\n  } {",
+          )
+          replace_once(
+              "    const meReady = options?.deferMe\n      ? new Promise<void>((resolve) => {\n          releaseMe = resolve;\n        })\n      : Promise.resolve();\n\n    const fetchMock",
+              "    const meReady = options?.deferMe\n      ? new Promise<void>((resolve) => {\n          releaseMe = resolve;\n        })\n      : Promise.resolve();\n    let releasePostOneSummary = () => {};\n    const postOneSummaryReady = options?.deferPostOneSummary\n      ? new Promise<void>((resolve) => {\n          releasePostOneSummary = resolve;\n        })\n      : Promise.resolve();\n\n    const fetchMock",
+          )
+
+          start = text.index('      if (url.endsWith("/api/posts/post-1/summary")) {')
+          end = text.index('      if (url.endsWith("/api/posts/post-2/summary")) {', start)
+          block = text[start:end]
+          old_return = "        return Promise.resolve(\n"
+          if block.count(old_return) != 1:
+              raise SystemExit("post-1 summary promise anchor changed")
+          block = block.replace(old_return, "        return postOneSummaryReady.then(() =>\n", 1)
+          text = text[:start] + block + text[end:]
+
+          replace_once(
+              '    return Object.assign(fetchMock, { releaseMe });',
+              '    return Object.assign(fetchMock, { releaseMe, releasePostOneSummary });',
+          )
+
+          anchor = '  it("opening a linked Event Lineage node from Ask Agent keeps GNB focus; a home-list DAG walk does not", async () => {'
+          if text.count(anchor) != 1:
+              raise SystemExit("DAG-walk test insertion anchor changed")
+          regression = '''  it("ignores a stale summary after Event Lineage navigation changes the selected post", async () => {
+            const fetchMock = stubBackend({ deferPostOneSummary: true });
+            render(<App />);
+
+            const board = await screen.findByRole("region", { name: "Board" });
+            await userEvent.click(
+              within(board).getByRole("button", { name: "View post: Public post" }),
+            );
+            await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+
+            const linkedPosts = screen.getAllByLabelText("Open post: Linked post");
+            await userEvent.click(linkedPosts[linkedPosts.length - 1]);
+            await waitFor(() =>
+              expect(
+                screen.getByText("The evidence panel should show exactly this text."),
+              ).toBeInTheDocument(),
+            );
+            expect(await screen.findByText("연결된 글입니다.")).toBeInTheDocument();
+
+            fetchMock.releasePostOneSummary();
+
+            await waitFor(() => {
+              expect(screen.getByText("연결된 글입니다.")).toBeInTheDocument();
+              expect(screen.queryByText("이것은 요약입니다.")).not.toBeInTheDocument();
+            });
+          });
+
+'''
+          text = text.replace(anchor, regression + anchor, 1)
+          path.write_text(text)
+          PY
+          git diff --check -- frontend/src/App.test.tsx
+
+      - name: Verify RED fails for the stale response
+        working-directory: frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          pnpm exec vitest run src/App.test.tsx -t "ignores a stale summary after Event Lineage navigation changes the selected post" 2>&1 | tee /tmp/stale-red.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "Regression unexpectedly passed before the production fix" >&2
+            exit 1
+          fi
+          grep -Eq "1 failed|FAIL" /tmp/stale-red.log
+
+      - name: Guard post detail state against obsolete requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("frontend/src/App.tsx")
+          text = path.read_text()
+          popup = text.index("function PostDetailPopup({")
+          start = text.index("  function reloadKeymen() {", popup)
+          end = text.index("\n\n  const permanentLink", start)
+
+          replacement = '''  const detailRequestGeneration = useRef(0);
+
+          function reloadKeymen() {
+            const generation = detailRequestGeneration.current;
+            fetchPostKeymen(accessToken, postId)
+              .then((r) => {
+                if (detailRequestGeneration.current !== generation) return;
+                setKeymen(r.keymen);
+                setSourceAuthorContext(r.source_author_context ?? null);
+              })
+              .catch(() => {
+                if (detailRequestGeneration.current !== generation) return;
+                setKeymen([]);
+                setSourceAuthorContext(null);
+              });
+            fetchPostAffiliateTree(accessToken, postId)
+              .then((r) => {
+                if (detailRequestGeneration.current === generation) setAffiliateTrees(r.trees);
+              })
+              .catch(() => {
+                if (detailRequestGeneration.current === generation) setAffiliateTrees([]);
+              });
+            fetchPostVocEvidence(accessToken, postId)
+              .then((value) => {
+                if (detailRequestGeneration.current === generation) setVocEvidence(value);
+              })
+              .catch(() => {
+                if (detailRequestGeneration.current === generation) setVocEvidence(null);
+              });
+            reloadCounterparties();
+          }
+
+          function reloadCounterparties() {
+            const generation = detailRequestGeneration.current;
+            fetchPostCounterparties(accessToken, postId)
+              .then((r) => {
+                if (detailRequestGeneration.current === generation) {
+                  setCounterparties(r.counterparties);
+                }
+              })
+              .catch(() => {
+                if (detailRequestGeneration.current === generation) setCounterparties([]);
+              });
+          }
+
+          useEffect(() => {
+            const generation = detailRequestGeneration.current + 1;
+            detailRequestGeneration.current = generation;
+            const isCurrent = () => detailRequestGeneration.current === generation;
+
+            setPost(null);
+            setImageContent([]);
+            setStructureUnits([]);
+            setBookmarked(null);
+            setBookmarkSaving(false);
+            setPostActionStatus(null);
+            setError(null);
+            setSummary(null);
+            setSummaryError(null);
+            setFiveW1H(null);
+            setKeymen(null);
+            setSourceAuthorContext(null);
+            setCounterparties(null);
+            setLineage(null);
+            setAffiliateTrees(null);
+            setVocEvidence(null);
+            setEvaluation(null);
+            setFocusPerson(null);
+            setFocusEntity(null);
+            setFocusTeam(null);
+            const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
+            fetchPost(accessToken, postId, asOf)
+              .then((value) => {
+                if (isCurrent()) setPost(value);
+              })
+              .catch((err) => {
+                if (isCurrent()) setError(String(err));
+              });
+            const reloadContent = () =>
+              fetchPostContent(accessToken, postId)
+                .then((content) => {
+                  if (!isCurrent()) return;
+                  setImageContent(content.images);
+                  setStructureUnits(content.units);
+                })
+                .catch(() => {
+                  if (!isCurrent()) return;
+                  setImageContent([]);
+                  setStructureUnits([]);
+                });
+            void reloadContent();
+            fetchPostBookmark(accessToken, postId)
+              .then((r) => {
+                if (isCurrent()) setBookmarked(r.bookmarked);
+              })
+              .catch(() => {
+                if (isCurrent()) setBookmarked(null);
+              });
+            fetchPostEvaluation(accessToken, postId)
+              .then((r) => {
+                if (isCurrent()) setEvaluation(r.responses);
+              })
+              .catch(() => {
+                if (isCurrent()) setEvaluation([]);
+              });
+            fetchPostSummary(accessToken, postId)
+              .then((value) => {
+                if (!isCurrent()) return;
+                setSummary(value);
+                void reloadContent();
+              })
+              .catch((err) => {
+                if (!isCurrent()) return;
+                setSummary(null);
+                setSummaryError(summaryFetchError(err));
+              });
+            fetchPostFiveW1H(accessToken, postId)
+              .then((value) => {
+                if (isCurrent()) setFiveW1H(value);
+              })
+              .catch(() => {
+                if (isCurrent()) setFiveW1H(null);
+              });
+            fetchPostKeymen(accessToken, postId)
+              .then((r) => {
+                if (!isCurrent()) return;
+                setKeymen(r.keymen);
+                setSourceAuthorContext(r.source_author_context ?? null);
+              })
+              .catch(() => {
+                if (!isCurrent()) return;
+                setKeymen([]);
+                setSourceAuthorContext(null);
+              });
+            fetchPostCounterparties(accessToken, postId)
+              .then((r) => {
+                if (isCurrent()) setCounterparties(r.counterparties);
+              })
+              .catch(() => {
+                if (isCurrent()) setCounterparties([]);
+              });
+            fetchPostLineage(accessToken, postId)
+              .then((value) => {
+                if (isCurrent()) setLineage(value);
+              })
+              .catch(() => {
+                if (isCurrent()) setLineage(null);
+              });
+            fetchPostAffiliateTree(accessToken, postId)
+              .then((r) => {
+                if (isCurrent()) setAffiliateTrees(r.trees);
+              })
+              .catch(() => {
+                if (isCurrent()) setAffiliateTrees([]);
+              });
+            fetchPostVocEvidence(accessToken, postId)
+              .then((value) => {
+                if (isCurrent()) setVocEvidence(value);
+              })
+              .catch(() => {
+                if (isCurrent()) setVocEvidence(null);
+              });
+
+            return () => {
+              if (isCurrent()) detailRequestGeneration.current = generation + 1;
+            };
+          }, [postId, accessToken, liveBodyWarning, knowledgeCutoff]);'''
+
+          text = text[:start] + replacement + text[end:]
+          path.write_text(text)
+          PY
+          git diff --check -- frontend/src/App.tsx frontend/src/App.test.tsx
+
+      - name: Verify GREEN and the complete frontend
+        working-directory: frontend
+        run: |
+          pnpm exec vitest run src/App.test.tsx -t "ignores a stale summary after Event Lineage navigation changes the selected post"
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Publish only the exact tested branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_head="$(git ls-remote origin refs/heads/feat/event-lineage-node-keeps-gnb-focus-v2170 | cut -f1)"
+          test "$remote_head" = "$GITHUB_SHA"
+          git rm .github/workflows/repair-stale-post-detail-navigation.yml
+          git config user.name "CWL Buyer Surface Repair"
+          git config user.email "actions@users.noreply.github.com"
+          git add -- frontend/src/App.tsx frontend/src/App.test.tsx
+          git diff --cached --check
+          git commit -m "fix(ui): ignore stale post detail responses"
+          git push origin HEAD:feat/event-lineage-node-keeps-gnb-focus-v2170
