@@ -135,8 +135,11 @@ succeeded | failed | cancelled -> terminal
 
 The first event must be `pending`, requires an immutable scope, and cannot predate
 the run request. Failed events require a lowercase machine-code identifier; raw
-exception text is prohibited. `recorded_at` is overwritten with database system
-time on every insert and cannot precede `occurred_at`.
+exception text is prohibited. `recorded_at` is overwritten on every insert with
+`greatest(clock_timestamp(), occurred_at)` so database write time never precedes
+occurrence. Client-supplied `recorded_at` is discarded. Do not clamp
+`occurred_at` down: a Python-ahead occurrence must stay monotonic against
+previously stored status events (v2.12.6).
 `analysis_run_current_status` is a view, not a second mutable state authority.
 
 ### Authorization scope
@@ -225,7 +228,8 @@ Acceptance requires:
 - account-scoped idempotency;
 - snapshot, count, run, and authorization-scope immutability;
 - deletion resistance for request and scope audit evidence;
-- scope-required lifecycle, request-time ordering, and database-owned record time;
+- scope-required lifecycle, request-time ordering, and recorded time at least
+  as late as occurrence;
 - canonical idempotency and bounded machine-code failure identifiers;
 - count/run concurrency serialization;
 - pending-first, contiguous, monotonic, legal status transitions;
@@ -265,6 +269,12 @@ Acceptance requires:
 5. Execute private actual-data analysis and store only signed aggregate and
    reproducibility manifests outside public source control.
 6. Run browser E2E through real OIDC, product navigation, and evidence drill-down.
+7. v2.12.6: stamp status `recorded_at` as
+   `greatest(clock_timestamp(), occurred_at)` so a Python-ahead occurrence
+   (~15-20ms on live PostgreSQL) does not fail `occurred_at <= recorded_at`.
+   Do not clamp `occurred_at` down. Additive migration 0030 updates existing
+   volumes; 0018 carries the same assignment for fresh installs. This is not
+   a new ADR number — ADR 0036 is reserved on the #258 stack.
 
 ## References — APA 7th
 

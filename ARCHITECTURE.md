@@ -487,6 +487,9 @@ more than one), then open the Pending row to confirm the cutoff corpus.
 durable outbox row, wakes Valkey, and delivers ThreadWeave on that
 frozen bag (ADR 0021 / ADR 0023) or submits TEPP through
 `tepp_client` (ADR 0022). It does not invent a TEPP score.
+Status `recorded_at` is `greatest(clock_timestamp(), occurred_at)` so a
+Python-ahead occurrence does not fail `occurred_at <= recorded_at`
+(ADR 0013 / v2.12.6).
 Request a lineage reconstruction from the home list, open the Pending
 row, then start reconstruction. A Pending TEPP row starts a
 measurement; a missing transport stays Failed /

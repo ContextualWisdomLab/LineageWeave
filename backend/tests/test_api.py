@@ -56,6 +56,9 @@ _TEPP_RESULT_MIGRATION = (
 _TEPP_ACCEPTED_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0029_analysis_run_tepp_accepted.sql"
 )
+_STATUS_WRITE_CLOCK_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0030_analysis_run_status_write_clock.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -146,6 +149,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_REVISION_MIGRATION.read_text())
             cur.execute(_TEPP_RESULT_MIGRATION.read_text())
             cur.execute(_TEPP_ACCEPTED_MIGRATION.read_text())
+            cur.execute(_STATUS_WRITE_CLOCK_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "

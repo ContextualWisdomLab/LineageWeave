@@ -150,6 +150,7 @@ def seed(
             cur.execute((migrations / "0027_abbreviation_tree_corroboration.sql").read_text())
             cur.execute((migrations / "0028_analysis_run_tepp_result.sql").read_text())
             cur.execute((migrations / "0029_analysis_run_tepp_accepted.sql").read_text())
+            cur.execute((migrations / "0030_analysis_run_status_write_clock.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values

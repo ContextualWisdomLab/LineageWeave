@@ -492,7 +492,11 @@ begin
     if new.occurred_at < run_requested_at then
         raise exception 'analysis_run_status_before_request';
     end if;
-    new.recorded_at := clock_timestamp();
+    -- Raise recorded_at to occurrence when Python's clock is ahead of
+    -- PostgreSQL clock_timestamp() (live ~15-20ms). Do not clamp
+    -- occurred_at down: that would break monotonicity against
+    -- previously stored Python-ahead events.
+    new.recorded_at := greatest(clock_timestamp(), new.occurred_at);
 
     select status_ordinal, status_code, occurred_at
       into previous_ordinal, previous_status_code, previous_occurred_at
@@ -541,7 +545,8 @@ $$;
 
 comment on function enforce_analysis_run_status_transition() is
     'Serializes status appends and requires immutable scope, request-time '
-    'ordering, database-recorded time, legal transitions, and terminal finality.';
+    'ordering, recorded time at least as late as occurrence, legal transitions, '
+    'and terminal finality.';
 
 drop trigger if exists analysis_run_status_transition_guard
     on analysis_run_status_event;

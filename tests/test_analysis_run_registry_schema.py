@@ -6,6 +6,7 @@ import hashlib
 import os
 import re
 import uuid
+from datetime import timedelta
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
@@ -18,6 +19,10 @@ _ROOT = Path(__file__).resolve().parents[1]
 _INITIAL_MIGRATION = _ROOT / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = _ROOT / "migrations" / "0018_analysis_run_registry.sql"
 _REGISTRY_ROLLBACK = _ROOT / "migrations" / "rollback" / "0018_analysis_run_registry.sql"
+_WRITE_CLOCK_MIGRATION = _ROOT / "migrations" / "0030_analysis_run_status_write_clock.sql"
+_WRITE_CLOCK_ROLLBACK = (
+    _ROOT / "migrations" / "rollback" / "0030_analysis_run_status_write_clock.sql"
+)
 _RETENTION_MIGRATION = _ROOT / "migrations" / "0020_analysis_run_retention_purge.sql"
 _RETENTION_ROLLBACK = (
     _ROOT / "migrations" / "rollback" / "0020_analysis_run_retention_purge.sql"
@@ -284,6 +289,7 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert "0026_report_leftover_pair.sql" in dockerfile
     assert "0028_analysis_run_tepp_result.sql" in dockerfile
     assert "0029_analysis_run_tepp_accepted.sql" in dockerfile
+    assert "0030_analysis_run_status_write_clock.sql" in dockerfile
     seed = (_ROOT / "scripts" / "seed_demo_data.py").read_text(encoding="utf-8")
     assert seed.index("0019_role_catalog_identity.sql") < seed.index(
         "0020_analysis_run_retention_purge.sql"
@@ -314,6 +320,9 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     )
     assert seed.index("0028_analysis_run_tepp_result.sql") < seed.index(
         "0029_analysis_run_tepp_accepted.sql"
+    )
+    assert seed.index("0029_analysis_run_tepp_accepted.sql") < seed.index(
+        "0030_analysis_run_status_write_clock.sql"
     )
     assert "analysis_run_registry_not_empty" in rollback
     retention = _RETENTION_MIGRATION.read_text(encoding="utf-8")
@@ -387,6 +396,9 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert "analysis_run_scope_required" in migration
     assert "enforce_analysis_source_count_freeze" in migration
     assert "enforce_analysis_run_status_transition" in migration
+    assert "greatest(clock_timestamp(), new.occurred_at)" in migration
+    assert "new.recorded_at := clock_timestamp();" not in migration
+    assert "new.occurred_at :=" not in migration
     assert "analysis_run_current_status" in migration
 
     object_patterns = (
@@ -799,6 +811,64 @@ def test_status_requires_scope_and_cannot_predate_request(registry_db) -> None:
         )
         recorded_at = cursor.fetchone()[0]
     assert recorded_at.year < 2099
+
+
+def test_status_write_clock_migration_is_wired() -> None:
+    """0030 replaces the 0018 write clock additively for existing volumes."""
+
+    migration = _WRITE_CLOCK_MIGRATION.read_text(encoding="utf-8")
+    rollback = _WRITE_CLOCK_ROLLBACK.read_text(encoding="utf-8")
+    dockerfile = _POSTGRES_IMAGE.read_text(encoding="utf-8")
+    seed = (_ROOT / "scripts" / "seed_demo_data.py").read_text(encoding="utf-8")
+    assert "create or replace function enforce_analysis_run_status_transition" in migration
+    assert "greatest(clock_timestamp(), new.occurred_at)" in migration
+    assert "new.occurred_at :=" not in migration
+    assert "drop table" not in migration.casefold()
+    assert "0030_analysis_run_status_write_clock.sql" in dockerfile
+    assert "0030_analysis_run_status_write_clock.sql" in seed
+    assert seed.index("0029_analysis_run_tepp_accepted.sql") < seed.index(
+        "0030_analysis_run_status_write_clock.sql"
+    )
+    assert "new.recorded_at := clock_timestamp();" in rollback
+    assert "greatest(clock_timestamp(), new.occurred_at)" not in rollback
+    for object_name in re.findall(
+        r"create or replace function\s+([a-z0-9_]+)",
+        migration,
+        re.I,
+    ):
+        assert len(object_name.split("_")) >= 2, object_name
+
+
+def test_status_write_clock_covers_python_ahead_occurrence(registry_db) -> None:
+    """Python-ahead occurred_at must persist with recorded_at >= occurred_at."""
+
+    with registry_db.cursor() as cursor:
+        snapshot_id = _insert_snapshot(cursor)
+        account_id = _insert_account(cursor)
+        run_id = _insert_run(
+            cursor,
+            snapshot_id=snapshot_id,
+            account_id=account_id,
+            idempotency_key="python-ahead-clock",
+        )
+        cursor.execute(
+            "insert into analysis_run_scope "
+            "(analysis_run_id, scope_kind_code) "
+            "values (%s, 'analysis_scope_all_visible')",
+            (run_id,),
+        )
+        cursor.execute("select clock_timestamp()")
+        db_now = cursor.fetchone()[0]
+        occurred = db_now + timedelta(milliseconds=20)
+        cursor.execute(
+            "insert into analysis_run_status_event "
+            "(analysis_run_id, status_ordinal, status_code, occurred_at) "
+            "values (%s, 1, 'analysis_status_pending', %s) "
+            "returning occurred_at, recorded_at",
+            (run_id, occurred),
+        )
+        occurred_at, recorded_at = cursor.fetchone()
+    assert recorded_at >= occurred_at
 
 
 def test_machine_codes_and_canonical_idempotency_are_fail_closed(registry_db) -> None:

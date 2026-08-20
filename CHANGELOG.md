@@ -6,16 +6,31 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [2.12.6] - 2026-08-21
+
 ### Fixed
 
-- `make smoke` and `make seed` now run through the locked project `uv`
-  environment, so local OIDC and synthetic-data workflows resolve the same
-  pinned dependencies as CI.
+- Starting an analysis run against live PostgreSQL no longer fails
+  `analysis_run_status_time_check` (`occurred_at <= recorded_at`).
+  The 0018 BEFORE INSERT trigger now stamps `recorded_at` as
+  `greatest(clock_timestamp(), occurred_at)`, so a Python-ahead
+  `datetime.now(timezone.utc)` (~15-20ms after Postgres
+  `clock_timestamp()`) still satisfies the check. Occurrence time is
+  **not** clamped down: that would break monotonicity against
+  previously stored Python-ahead status events. Client-supplied
+  `recorded_at` is still discarded. Same pattern as TEPP accepted
+  clocks (ADR 0013 follow-up). Additive migration 0030 updates
+  existing volumes; fresh installs pick it up from 0018. After this
+  lands, Demo Analyst can start a Pending lineage run on the live
+  stack.
 
 ## [2.12.5] - 2026-08-18
 
 ### Fixed
 
+- `make smoke` and `make seed` now run through the locked project `uv`
+  environment, so local OIDC and synthetic-data workflows resolve the same
+  pinned dependencies as CI.
 - Migrations 0019 and 0025 (R&R role-catalog identity backfills) both
   used `min(uuid_column)` to pick "the" value from a `having count(*)
   = 1` group -- Postgres has no built-in `min(uuid)` aggregate, so
@@ -58,6 +73,7 @@ All notable changes to this project are documented here. Format follows
   as out of scope for this migration-catchup change (a different
   feature area -- analysis-run/TEPP lifecycle, not R&R/summary/
   verification) rather than rushed. 553 other tests unaffected.
+  Fixed in 2.12.6.
 
 - `get_or_create_corporate_entity`'s post-lock duplicate-create re-check
   fuzzy-matched against every cataloged entity, not just an exact
