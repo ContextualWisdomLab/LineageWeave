@@ -1621,12 +1621,15 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
                post.source_author_name,
                post.source_company_code,
                post.source_company_name,
+               source_company.entity_name as source_company_catalog_name,
                post.source_process_unit_code,
                post.source_process_unit_name,
+               source_process_unit.process_unit_name as source_process_unit_catalog_name,
                post.source_sales_pool_code,
                post.source_sales_pool_name,
                post.source_customer_code,
                post.source_customer_name,
+               source_customer.entity_name as source_customer_catalog_name,
                post.source_project_code,
                post.source_project_name,
                post.secondary_grouping_key as project_field,
@@ -1635,6 +1638,12 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
           from source_post post
           join user_account author on author.user_account_id = post.author_account_id
           left join corporate_entity customer on customer.corporate_entity_id = post.corporate_entity_id
+          left join corporate_entity source_company
+            on source_company.corporate_entity_code = post.source_company_code
+          left join process_unit source_process_unit
+            on source_process_unit.process_unit_code = post.source_process_unit_code
+          left join corporate_entity source_customer
+            on source_customer.corporate_entity_code = post.source_customer_code
           left join account_affiliation account_aff
             on account_aff.user_account_id = post.author_account_id
           left join corporate_entity affiliated
@@ -1683,12 +1692,15 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
         source_author_name=source_author_name,
         source_company_code=first["source_company_code"],
         source_company_name=first["source_company_name"],
+        source_company_catalog_name=first["source_company_catalog_name"],
         source_business_unit_code=first["source_process_unit_code"],
         source_process_unit_name=first["source_process_unit_name"],
+        source_process_unit_catalog_name=first["source_process_unit_catalog_name"],
         source_sales_pool_code=first["source_sales_pool_code"],
         source_sales_pool_name=first["source_sales_pool_name"],
         source_customer_code=first["source_customer_code"],
         source_customer_name=first["source_customer_name"],
+        source_customer_catalog_name=first["source_customer_catalog_name"],
         source_project_code=first["source_project_code"],
         source_project_name=first["source_project_name"],
         source_context_present=source_context_present,
