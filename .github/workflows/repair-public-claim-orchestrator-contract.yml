@@ -6,6 +6,13 @@ on:
       - "feat/global-ask-public-claim-verification-v2200"
     paths:
       - ".github/workflows/repair-public-claim-orchestrator-contract.yml"
+  pull_request:
+    branches:
+      - "feat/gnb-event-lineage-focus-keyman-v2190"
+    types: [synchronize]
+    paths:
+      - ".github/workflows/repair-public-claim-orchestrator-contract.yml"
+      - "tests/test_claim_verification.py"
 
 permissions:
   contents: write
@@ -17,7 +24,9 @@ concurrency:
 jobs:
   repair:
     name: Replace rejected verify mode with governed auto mode
-    if: github.actor != 'github-actions[bot]'
+    if: >-
+      github.actor != 'github-actions[bot]' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.number == 276)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact feature branch
