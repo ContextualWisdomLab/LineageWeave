@@ -153,7 +153,28 @@ def test_project_history_endpoint_and_unavailable_boundary_fail_closed() -> None
         project_history_endpoint("https://tepp.example.test/")
         == "https://tepp.example.test/v1/project-histories"
     )
-    for hostile in ("", "file:///tmp/tepp", "http://tepp.example.test", "https://user@host"):
+    assert (
+        project_history_endpoint("http://127.0.0.1:45123/v1/analysis-runs")
+        == "http://127.0.0.1:45123/v1/project-histories"
+    )
+    assert (
+        project_history_endpoint("http://localhost:45123")
+        == "http://localhost:45123/v1/project-histories"
+    )
+    assert (
+        project_history_endpoint("http://[::1]:45123/")
+        == "http://[::1]:45123/v1/project-histories"
+    )
+    for hostile in (
+        "",
+        "file:///tmp/tepp",
+        "http://tepp.example.test",
+        "http://0.0.0.0:45123",
+        "https://user@host",
+        "https://host:bad-port",
+        "https://host/path",
+        "https://host\n.invalid",
+    ):
         with pytest.raises(TeppProjectHistoryUnavailable):
             project_history_endpoint(hostile)
 
