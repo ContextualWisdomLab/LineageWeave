@@ -7,6 +7,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
 from typing import Any
+from urllib.parse import urlsplit
 
 from mcp.server import MCPServer
 from mcp.server.auth.middleware.auth_context import get_access_token
@@ -101,6 +102,27 @@ PoolFactory = Callable[[str], Awaitable[Any]]
 AccountResolver = Callable[[Any, str], Awaitable[CurrentAccount]]
 Answerer = Callable[..., Awaitable[GlobalAskAnswer]]
 AccessTokenProvider = Callable[[], AccessToken | None]
+
+
+def _validate_mcp_allowed_origins(origins: list[str]) -> None:
+    """Require browser allowlist entries to be exact HTTP(S) origins."""
+    for origin in origins:
+        parsed = urlsplit(origin)
+        invalid = (
+            origin in {"*", "null"}
+            or parsed.scheme not in {"http", "https"}
+            or not parsed.netloc
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path != ""
+            or parsed.query != ""
+            or parsed.fragment != ""
+        )
+        if invalid:
+            raise ValueError(
+                "MCP_ALLOWED_ORIGINS entries must be exact HTTP(S) origins "
+                "without wildcard, credentials, path, query, or fragment"
+            )
 
 
 def _chat_client(settings: Settings) -> PostChatClient:
@@ -240,6 +262,7 @@ def build_mcp_http_app(
     settings: Settings,
 ) -> ASGIApp:
     """Build exact-origin, byte-bounded Streamable HTTP outside OAuth."""
+    _validate_mcp_allowed_origins(settings.mcp_allowed_origins)
     transport_security = TransportSecuritySettings(
         enable_dns_rebinding_protection=True,
         allowed_hosts=settings.mcp_allowed_hosts,
