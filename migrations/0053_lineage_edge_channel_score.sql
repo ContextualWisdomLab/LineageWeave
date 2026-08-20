@@ -159,6 +159,16 @@ as $$
 declare
     active_weight numeric(18, 12);
 begin
+    perform 1
+      from post_lineage_edge edge
+     where edge.parent_post_id = new.parent_post_id
+       and edge.child_post_id = new.child_post_id;
+    if not found then
+        -- Let the declared composite foreign key return the canonical
+        -- ForeignKeyViolation for a genuinely orphaned child row.
+        return new;
+    end if;
+
     select profile.channel_weight
       into active_weight
       from post_lineage_edge edge
