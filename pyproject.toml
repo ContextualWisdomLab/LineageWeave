@@ -29,6 +29,10 @@ dev = [
   "coverage>=7.6",
   "pyjwt[crypto]>=2.8.0",
   "pytest>=8.0",
+  # MCP/auth and Global Ask regressions are native async pytest functions.
+  # Pin the current stable plugin so `@pytest.mark.asyncio` is executable in
+  # both the full repository suite and the one-shot lock verification lane.
+  "pytest-asyncio==1.4.0",
   "httpx>=0.27.0",
 ]
 backend = [
