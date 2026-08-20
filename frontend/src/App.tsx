@@ -826,6 +826,7 @@ function KeymanPanel({
   focusTeam,
   landFirstKeyman,
   landFirstRelated,
+  focusAskAfterRelated,
   afterList,
 }: {
   postId: string;
@@ -840,6 +841,7 @@ function KeymanPanel({
   focusTeam?: { teamId: string; teamName: string } | null;
   landFirstKeyman?: boolean;
   landFirstRelated?: boolean;
+  focusAskAfterRelated?: boolean;
   afterList?: ReactNode;
 }) {
   const [related, setRelated] = useState<RelatedNode[] | null>(null);
@@ -947,13 +949,13 @@ function KeymanPanel({
   }, [accessToken, landFirstRelated, related]);
 
   useEffect(() => {
-    if (!landFirstRelated || !landedRelatedName || landedRelated === null) {
+    if (!landFirstRelated || !focusAskAfterRelated || !landedRelatedName || landedRelated === null) {
       return;
     }
     const heading = document.getElementById("post-ask");
     heading?.focus();
     heading?.scrollIntoView?.({ block: "nearest" });
-  }, [landFirstRelated, landedRelatedName, landedRelated]);
+  }, [landFirstRelated, focusAskAfterRelated, landedRelatedName, landedRelated]);
 
   useEffect(() => {
     if (!focusPerson) return;
@@ -1647,6 +1649,7 @@ function PostDetailPopup({
   liveBodyWarning,
   knowledgeCutoff,
   focusEventLineage,
+  focusAskAfterRelated,
   onClose,
   onSelectPost,
   onSearch,
@@ -1658,6 +1661,7 @@ function PostDetailPopup({
   liveBodyWarning?: string | null;
   knowledgeCutoff?: string | null;
   focusEventLineage?: boolean;
+  focusAskAfterRelated?: boolean;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
@@ -2229,6 +2233,7 @@ function PostDetailPopup({
                 focusTeam={focusTeam}
                 landFirstKeyman
                 landFirstRelated
+                focusAskAfterRelated={focusAskAfterRelated}
                 afterList={
                   <>
                     <EvaluationPanel
@@ -4068,6 +4073,7 @@ function PostList({
             openedFromCalendar ||
             openedFromCustomerMaster
           }
+          focusAskAfterRelated={openedFromReportMember}
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
           onSearch={searchBoard}
