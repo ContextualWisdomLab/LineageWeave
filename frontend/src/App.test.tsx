@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { setLocale } from "./i18n";
+import { isoWeekFromCreatedAt } from "./isoWeek";
 
 const signinRedirect = vi.fn();
 const signoutRedirect = vi.fn();
@@ -109,6 +110,16 @@ describe("App, authenticated", () => {
       visibility_label?: string;
       created_at: string;
     };
+    isoWeekOptions?: string[];
+    weekFilteredPosts?: {
+      post_id: string;
+      post_title: string;
+      voc_type_code: string;
+      voc_type_label?: string;
+      visibility_code?: string;
+      visibility_label?: string;
+      created_at: string;
+    }[];
   }): ReturnType<typeof vi.fn> & {
     releaseMe: () => void;
     releaseSecondAsk: () => void;
@@ -1099,12 +1110,23 @@ describe("App, authenticated", () => {
               },
               ...(options?.boardPosts ?? []),
             ];
+        const isoWeekOptions = options?.isoWeekOptions ?? Array.from(
+          new Set(
+            boardPosts
+              .map((post) => isoWeekFromCreatedAt(post.created_at))
+              .filter((week): week is string => Boolean(week)),
+          ),
+        ).sort((left, right) => right.localeCompare(left));
+        const responsePosts =
+          postsUrl.searchParams.get("iso_week") && options?.weekFilteredPosts
+            ? options.weekFilteredPosts
+            : boardPosts;
         return Promise.resolve(
           jsonResponse(
             postsUrl.searchParams.get("search")
               ? []
               : {
-                  posts: boardPosts,
+                  posts: responsePosts,
                   total_count: 1,
                   limit: 50,
                   offset: 0,
@@ -1113,6 +1135,7 @@ describe("App, authenticated", () => {
                     { code: "vop", label: "Voice of Partner" },
                   ],
                   visibility_options: [{ code: "public", label: "Public" }],
+                  iso_week_options: isoWeekOptions,
                 },
           ),
         );
@@ -1987,10 +2010,12 @@ describe("App, authenticated", () => {
     expect(within(board).getByRole("button", { name: "View post: Older Voice of Customer" })).toBeInTheDocument();
 
     const weeklyVoc = within(board).getByRole("button", { name: "Weekly VOC" });
+    await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "title");
     expect(weeklyVoc).toHaveAttribute("aria-pressed", "false");
     await userEvent.click(weeklyVoc);
 
     expect(weeklyVoc).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => expect(within(board).getByLabelText("Sort posts")).toHaveValue("newest"));
     expect(within(board).getByLabelText("Filter by ISO week")).toHaveValue("2026-W01");
     expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
     expect(within(board).queryByRole("button", { name: "View post: Internal memo" })).not.toBeInTheDocument();
@@ -2005,6 +2030,34 @@ describe("App, authenticated", () => {
     expect(weeklyVoc).toHaveAttribute("aria-pressed", "false");
     expect(within(board).getByRole("button", { name: "View post: Internal memo" })).toBeInTheDocument();
     expect(within(board).getByRole("button", { name: "View post: Older Voice of Customer" })).toBeInTheDocument();
+  });
+
+  it("shows authorized ISO weeks supplied by the API even when a week is outside the loaded page", async () => {
+    const fetchMock = stubBackend({
+      isoWeekOptions: ["2026-W08", "2026-W01"],
+      weekFilteredPosts: [
+        {
+          post_id: "post-voc-w08",
+          post_title: "Older page Voice of Customer",
+          voc_type_code: "voc",
+          voc_type_label: "Voice of Customer",
+          visibility_code: "public",
+          visibility_label: "Public",
+          created_at: "2026-02-18T00:00:00Z",
+        },
+      ],
+    });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    await userEvent.selectOptions(within(board).getByLabelText("Filter by ISO week"), "2026-W08");
+    await waitFor(() =>
+      expect(within(board).getByRole("button", { name: "View post: Older page Voice of Customer" })).toBeInTheDocument(),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("iso_week=2026-W08"),
+      expect.anything(),
+    );
   });
 
   it("gets the Weekly VOC week from the authorized newest VOC post, not the loaded page", async () => {
@@ -3037,6 +3090,8 @@ describe("App, authenticated", () => {
     await userEvent.click(calendarButton);
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
   });
 
   it("shows the seeded analysis run on the home page", async () => {
