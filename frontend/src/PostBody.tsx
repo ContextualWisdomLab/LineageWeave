@@ -5,6 +5,7 @@ import type { PostContentUnit, PostImageContent, PostImageRegion } from "./api";
 
 const SAFE_EMBEDDED_IMAGE_SOURCE =
   /^data:image\/(?:png|jpe?g|gif|webp|avif|bmp|x-icon|vnd\.microsoft\.icon);base64,[A-Za-z0-9+/]+={0,2}$/i;
+const RATIO_EPSILON = 1e-9;
 
 function hasPersistedOverlayBox(region: PostImageRegion): boolean {
   const { x_ratio, y_ratio, width_ratio, height_ratio } = region;
@@ -14,7 +15,7 @@ function hasPersistedOverlayBox(region: PostImageRegion): boolean {
   if (x_ratio < 0 || y_ratio < 0 || width_ratio <= 0 || height_ratio <= 0) {
     return false;
   }
-  return x_ratio + width_ratio <= 1 && y_ratio + height_ratio <= 1;
+  return x_ratio + width_ratio <= 1 + RATIO_EPSILON && y_ratio + height_ratio <= 1 + RATIO_EPSILON;
 }
 
 function regionBuyerLabel(region: PostImageRegion): string {
