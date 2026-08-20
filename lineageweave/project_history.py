@@ -1,10 +1,10 @@
 """Build evidence-bound project histories from already-authorized rows.
 
-Callers must apply RBAC, ABAC, source eligibility, and knowledge-cutoff
-filtering before invoking this module. The pure projection layer then orders
-visible source records, preserves explicit and semantic project evidence,
-compares observed responsibility evidence, and exposes persisted lineage as
-related history without promoting it to causality or an HR assignment ledger.
+Callers apply RBAC, ABAC, source eligibility, exact project identity, and
+knowledge-cutoff filtering before invoking this module. The pure projection
+layer orders visible source records, preserves observed and inferred evidence,
+compares responsibility evidence without promoting it to an HR ledger, and
+exposes persisted lineage as related history rather than causality.
 """
 
 from __future__ import annotations
@@ -64,6 +64,14 @@ _EVENT_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
 _VOC_CODES = frozenset({"voc", "vocc", "voco", "vom", "vop"})
 _TRUTH_ORDER = {"observed": 0, "inferred": 1}
 _DISPLAY_NAME_ORDER = {"source_project_name": 0, "semantic_project_name": 1}
+_DIRECT_IDENTITY_FAMILY = {
+    "source_project_code": "source",
+    "semantic_project_key": "semantic",
+}
+_NAME_IDENTITY_FAMILY = {
+    "source_project_name": "source",
+    "semantic_project_name": "semantic",
+}
 
 
 def normalize_project_key(value: str) -> str:
@@ -115,7 +123,7 @@ def classify_project_event(
 def responsibility_transition_code(
     previous_actor_keys: Sequence[str], current_actor_keys: Sequence[str]
 ) -> str:
-    """Compare adjacent observed responsibility evidence.
+    """Compare adjacent responsibility evidence.
 
     Missing evidence on either row is an ``assignment_gap`` evidence state,
     not proof of an operational or HR vacancy. Equal non-empty actor sets are
@@ -139,7 +147,7 @@ def _as_utc(value: datetime) -> str:
 
 
 def _actor_key(role: Mapping[str, Any]) -> str:
-    """Return a stable key for one observed role actor."""
+    """Return a stable key for one responsibility-evidence actor."""
 
     catalog_fields = (
         ("person", role.get("cataloged_person_id")),
@@ -166,6 +174,56 @@ def _score(value: object) -> float:
     if result != result or result in (float("inf"), float("-inf")):
         raise ValueError("lineage score must be finite")
     return result
+
+
+def _normalized_matches(value: object, normalized_key: str) -> bool:
+    """Return whether a non-empty identity value exactly matches the key."""
+
+    if value is None:
+        return False
+    try:
+        return normalize_project_key(str(value)) == normalized_key
+    except ValueError:
+        return False
+
+
+def _direct_identity_families(
+    match_rows: Sequence[Mapping[str, Any]], normalized_key: str
+) -> set[tuple[str, str]]:
+    """Identify events whose code/key directly selected the requested project."""
+
+    direct: set[tuple[str, str]] = set()
+    for row in match_rows:
+        kind = str(row.get("match_kind_code") or "")
+        family = _DIRECT_IDENTITY_FAMILY.get(kind)
+        if family and _normalized_matches(row.get("matched_value"), normalized_key):
+            direct.add((str(row["post_id"]), family))
+    return direct
+
+
+def _match_belongs_to_project(
+    row: Mapping[str, Any],
+    *,
+    normalized_key: str,
+    direct_families: set[tuple[str, str]],
+) -> bool:
+    """Validate one evidence row against its authoritative identity key.
+
+    New callers provide ``identity_key`` so a human display name may differ
+    from the code/key that selected the project. The family fallback keeps the
+    projection compatible with earlier rows that supplied a matching code/key
+    and its paired display name separately.
+    """
+
+    identity_key = row.get("identity_key")
+    if identity_key is not None and str(identity_key).strip():
+        return _normalized_matches(identity_key, normalized_key)
+    matched_value = row.get("matched_value")
+    if _normalized_matches(matched_value, normalized_key):
+        return True
+    kind = str(row.get("match_kind_code") or "")
+    family = _NAME_IDENTITY_FAMILY.get(kind)
+    return bool(family and (str(row["post_id"]), family) in direct_families)
 
 
 def _prior_paths(
@@ -263,6 +321,7 @@ def build_project_history_projection(
     Inputs must already be visible, eligible, and within the requested cutoff.
     Duplicate source rows and role rows are collapsed deterministically. An
     observed source project name outranks an inferred semantic display name.
+    Every evidence item retains its own observed/inferred truth status.
     """
 
     normalized_key = normalize_project_key(project_key)
@@ -292,13 +351,18 @@ def build_project_history_projection(
     matches_by_event: dict[str, list[dict[str, Any]]] = {event_id: [] for event_id in ordered_ids}
     display_names: list[tuple[int, int, str, str]] = []
     seen_matches: set[tuple[str, str, str]] = set()
+    direct_families = _direct_identity_families(match_rows, normalized_key)
     for row in match_rows:
         event_id = str(row["post_id"])
         if event_id not in matches_by_event:
             continue
-        matched_value = str(row["matched_value"])
-        if normalize_project_key(matched_value) != normalized_key:
+        if not _match_belongs_to_project(
+            row,
+            normalized_key=normalized_key,
+            direct_families=direct_families,
+        ):
             continue
+        matched_value = str(row["matched_value"])
         kind = str(row["match_kind_code"])
         key = (event_id, kind, matched_value)
         if key in seen_matches:
@@ -323,7 +387,7 @@ def build_project_history_projection(
                 (
                     _DISPLAY_NAME_ORDER[kind],
                     event_index[event_id],
-                    normalize_project_key(matched_value),
+                    normalize("NFKC", matched_value).strip().lower(),
                     matched_value,
                 )
             )
@@ -338,20 +402,29 @@ def build_project_history_projection(
 
     roles_by_event: dict[str, list[dict[str, Any]]] = {event_id: [] for event_id in ordered_ids}
     actor_keys_by_event: dict[str, list[str]] = {event_id: [] for event_id in ordered_ids}
+    truth_by_event: dict[str, set[str]] = {event_id: set() for event_id in ordered_ids}
     distinct_actor_keys: set[str] = set()
-    seen_roles: set[tuple[str, str, str]] = set()
+    distinct_observed_actor_keys: set[str] = set()
+    seen_roles: set[tuple[str, str, str, str]] = set()
     for row in role_rows:
         event_id = str(row["post_id"])
         if event_id not in roles_by_event:
             continue
         actor_key = _actor_key(row)
         responsibility = str(row["responsibility"])
-        role_key = (event_id, actor_key, responsibility)
+        truth = str(row.get("truth_status_code") or "inferred")
+        if truth not in _TRUTH_ORDER:
+            raise ValueError(f"unsupported responsibility truth status: {truth}")
+        provenance = str(row.get("provenance") or "post_summary_role")
+        role_key = (event_id, actor_key, responsibility, provenance)
         if role_key in seen_roles:
             continue
         seen_roles.add(role_key)
         distinct_actor_keys.add(actor_key)
+        if truth == "observed":
+            distinct_observed_actor_keys.add(actor_key)
         actor_keys_by_event[event_id].append(actor_key)
+        truth_by_event[event_id].add(truth)
         roles_by_event[event_id].append(
             {
                 "actor_key": actor_key,
@@ -359,12 +432,19 @@ def build_project_history_projection(
                 "actor_type_code": str(row["actor_type_code"]),
                 "affiliated_organization_name": row.get("affiliated_organization_name"),
                 "responsibility": responsibility,
-                "truth_status_code": "observed",
-                "provenance": "post_summary_role",
+                "truth_status_code": truth,
+                "provenance": provenance,
             }
         )
     for event_id, roles in roles_by_event.items():
-        roles.sort(key=lambda role: (role["actor_type_code"], role["actor_name"], role["actor_key"]))
+        roles.sort(
+            key=lambda role: (
+                _TRUTH_ORDER[role["truth_status_code"]],
+                role["actor_type_code"],
+                role["actor_name"],
+                role["actor_key"],
+            )
+        )
         actor_keys_by_event[event_id] = sorted(set(actor_keys_by_event[event_id]))
 
     paths_by_event = _prior_paths(
@@ -376,14 +456,21 @@ def build_project_history_projection(
 
     events: list[dict[str, Any]] = []
     previous_actor_keys: Sequence[str] | None = None
+    previous_truth: set[str] | None = None
     for row in ordered_rows:
         event_id = str(row["post_id"])
         current_actor_keys = actor_keys_by_event[event_id]
+        current_truth = truth_by_event[event_id]
         transition = (
             None
             if previous_actor_keys is None
             else responsibility_transition_code(previous_actor_keys, current_actor_keys)
         )
+        transition_truth = None
+        if transition is not None:
+            combined_truth = (previous_truth or set()) | current_truth
+            transition_truth = "inferred" if "inferred" in combined_truth else "observed"
+        evidence = roles_by_event[event_id]
         events.append(
             {
                 "event_id": event_id,
@@ -403,12 +490,17 @@ def build_project_history_projection(
                 "source_stage_code": row.get("source_stage_code"),
                 "source_detail_state_code": row.get("source_detail_state_code"),
                 "project_matches": matches_by_event[event_id],
-                "observed_responsibilities": roles_by_event[event_id],
+                "responsibility_evidence": evidence,
+                "observed_responsibilities": [
+                    item for item in evidence if item["truth_status_code"] == "observed"
+                ],
                 "responsibility_transition_code": transition,
+                "responsibility_transition_truth_status_code": transition_truth,
                 "related_prior_paths": paths_by_event[event_id],
             }
         )
         previous_actor_keys = current_actor_keys
+        previous_truth = current_truth
 
     project_name = min(display_names)[3] if display_names else project_key.strip()
     return {
@@ -419,7 +511,8 @@ def build_project_history_projection(
         "focus_event_id": effective_focus,
         "time_basis_code": PROJECT_HISTORY_TIME_BASIS,
         "event_count": len(events),
-        "distinct_observed_actor_count": len(distinct_actor_keys),
+        "distinct_actor_count": len(distinct_actor_keys),
+        "distinct_observed_actor_count": len(distinct_observed_actor_keys),
         "truncated": bool(truncated),
         "events": events,
     }
