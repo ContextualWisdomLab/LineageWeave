@@ -216,7 +216,7 @@ heads are: #258 `f8d2fa98`, #260 `dfd95d9c`, #261 `bd1b4d2f`, #262 `80445b8a`,
 `35035783`, #276 `635420d2`, #282 `8a59af2f`, #285 `76af0295`, #286
 `1175cd9d`, #287 `554efb9b`, #298 `49c9976f`, #301 `59ccdf91`, #302
 `40b0a8ea`, #303 `f5b23459`, #306 `e0dbc386`, #307 `313d38a4`, #308
-`c01001d1`, and #309 `e7d1b353`.
+`e81aff8c`, and #309 `e7d1b353`.
 
 At this audit no PR had a formal `APPROVED` review. Required checks for the
 updated heads were queued, with no completed failure observed in the aggregate
