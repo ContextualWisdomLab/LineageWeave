@@ -902,6 +902,38 @@ def test_status_write_clock_rejects_unbounded_future_occurrence(registry_db) -> 
             )
 
 
+def test_status_write_clock_accepts_occurrence_inside_one_minute_bound(registry_db) -> None:
+    """The documented one-minute skew bound accepts a near-boundary event."""
+
+    with registry_db.cursor() as cursor:
+        snapshot_id = _insert_snapshot(cursor)
+        account_id = _insert_account(cursor)
+        run_id = _insert_run(
+            cursor,
+            snapshot_id=snapshot_id,
+            account_id=account_id,
+            idempotency_key="bounded-future-status-clock",
+        )
+        cursor.execute(
+            "insert into analysis_run_scope "
+            "(analysis_run_id, scope_kind_code) "
+            "values (%s, 'analysis_scope_all_visible')",
+            (run_id,),
+        )
+        cursor.execute("select clock_timestamp()")
+        db_now = cursor.fetchone()[0]
+        occurred = db_now + timedelta(seconds=59)
+        cursor.execute(
+            "insert into analysis_run_status_event "
+            "(analysis_run_id, status_ordinal, status_code, occurred_at) "
+            "values (%s, 1, 'analysis_status_pending', %s) "
+            "returning occurred_at, recorded_at",
+            (run_id, occurred),
+        )
+        occurred_at, recorded_at = cursor.fetchone()
+    assert recorded_at == occurred_at
+
+
 def test_machine_codes_and_canonical_idempotency_are_fail_closed(registry_db) -> None:
     """Audit identifiers are canonical and failure details stay machine-safe."""
 
