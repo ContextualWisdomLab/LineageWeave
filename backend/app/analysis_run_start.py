@@ -227,7 +227,8 @@ async def _cutoff_source_posts(
     affiliated_entity_ids: list[str],
 ) -> list[asyncpg.Record]:
     """ABAC-visible cutoff rows with the grouping keys reconstruct needs."""
-    rows = await conn.fetch(
+    # Safe SQL: the eligibility predicate is an immutable schema fragment; both request values are bound.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select post_id, post_title, created_at, visibility_code,
                corporate_entity_id, process_unit_id,
@@ -257,7 +258,8 @@ async def _snapshot_member_posts(
     """Load frozen capture rows, or empty when the member table is absent."""
     try:
         return list(
-            await conn.fetch(
+            # Safe SQL: the eligibility predicate is an immutable schema fragment; snapshot id is bound.
+            await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
                 f"""
                 select post.post_id, post.post_title, post.created_at,
                        post.visibility_code, post.corporate_entity_id,

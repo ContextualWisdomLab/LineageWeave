@@ -20,10 +20,10 @@ function minimumPathScore(event: ProjectHistoryEvent): number | null {
   return Math.min(...event.related_prior_paths.map((path) => path.minimum_fused_score));
 }
 
-function initialEventId(projection: ProjectHistoryProjection): string {
+function initialEventId(events: ProjectHistoryEvent[], focusEventId: string | null): string {
   return (
-    projection.events.find((event) => event.event_id === projection.focus_event_id)?.event_id ??
-    projection.events[0]?.event_id ??
+    events.find((event) => event.event_id === focusEventId)?.event_id ??
+    events[0]?.event_id ??
     ""
   );
 }
@@ -39,19 +39,22 @@ export function ProjectHistoryTimeline({
   const instanceId = useId();
   const panelId = `${instanceId}-project-history-panel`;
   const headingId = `${instanceId}-project-history-heading`;
-  const [selectedEventId, setSelectedEventId] = useState(() => initialEventId(projection));
+  const [selectedEventId, setSelectedEventId] = useState(() =>
+    initialEventId(projection.events, projection.focus_event_id),
+  );
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const eventById = new Map(projection.events.map((event) => [event.event_id, event]));
   const selectedEvent =
-    eventById.get(selectedEventId) ?? eventById.get(initialEventId(projection)) ?? null;
+    eventById.get(selectedEventId) ??
+    eventById.get(initialEventId(projection.events, projection.focus_event_id)) ??
+    null;
   const selectedIndex = selectedEvent
     ? projection.events.findIndex((event) => event.event_id === selectedEvent.event_id)
     : -1;
   const selectedTabId = selectedIndex >= 0 ? `${instanceId}-project-history-tab-${selectedIndex}` : undefined;
 
   useEffect(() => {
-    setSelectedEventId(initialEventId(projection));
-    tabRefs.current = [];
+    setSelectedEventId(initialEventId(projection.events, projection.focus_event_id));
   }, [projection.normalized_project_key, projection.focus_event_id, projection.events]);
 
   function selectAt(index: number) {

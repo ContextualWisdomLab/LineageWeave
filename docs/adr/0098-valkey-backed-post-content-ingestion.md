@@ -32,8 +32,12 @@ placed in a stream message.
    bounded provenance metadata from `llm_context`; no raw provider call, model
    selector, monkey patch, or MLX-specific contract is introduced.
 5. The buyer content endpoint returns `processing` while the durable job is
-   queued/running and `ready` only after persisted units exist. The frontend
-   polls that status while continuing to show the source post.
+   queued/running and `ready` only after persisted units exist and, when an
+   embedding model is configured, every unit and every described visual region
+   has the corresponding persisted vector. A previous `succeeded` row with
+   incomplete derived evidence is requeued through Valkey instead of being
+   treated as complete. The frontend polls that status while continuing to
+   show the source post.
 
 ## Consequences
 
@@ -44,3 +48,17 @@ placed in a stream message.
   recovery boundary.
 - Summary generation remains a separate contextual-orchestrator operation;
   this ADR does not hide a slow summary provider behind an in-memory task.
+
+## Completeness invariant (2026-08-20)
+
+The worker claim path MUST use the same `post_content_is_complete` predicate as
+the API enqueue path. A successful job that has units but lacks the configured
+unit or described-region embeddings is still eligible for Valkey requeue and
+MUST NOT be silently skipped by checking only for unit presence.
+
+## Corpus backfill (2026-08-20)
+
+Operational backfill MUST use `scripts/queue_post_content_backfill.py`. It
+selects only non-draft, non-deleted rows with real source context, records the
+same completeness-aware job state in PostgreSQL, and publishes wake-ups through
+Valkey. Direct provider calls are not a substitute for the worker queue.

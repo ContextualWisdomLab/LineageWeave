@@ -108,8 +108,8 @@ describe("ProjectHistoryTimeline", () => {
     const vocTab = screen.getByRole("tab", { name: /VOC received/ });
     expect(vocTab).toHaveAttribute("aria-selected", "true");
     expect(vocTab).toHaveAttribute("aria-current", "step");
-    expect(screen.getByText(/evidence gap/i)).toBeInTheDocument();
-    expect(screen.getByText(/related history, not causation/i)).toBeInTheDocument();
+    expect(screen.getByText(/evidence gap/i, { selector: "dd" })).toBeInTheDocument();
+    expect(screen.getByText(/related history, not causality/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /open source record: VOC received/i }));
     expect(onOpenPost).toHaveBeenCalledWith("post-voc");
