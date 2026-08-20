@@ -97,7 +97,7 @@ _TABLE_CELL_TAGS = frozenset({"td", "th", "w:tc"})
 _LIST_ITEM_START = re.compile(
     r"^(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)"
 )
-_FOOTNOTE_START = re.compile(r"^[*†‡](?=\S)")
+_FOOTNOTE_START = re.compile(r"^(?:[*†‡](?=\S)|\[\d{1,3}\]\s+\S)")
 
 
 def normalize_semantic_text(text: str) -> str:

@@ -115,9 +115,13 @@ def test_chunk_by_dom_preserves_nested_list_order_and_depth() -> None:
 
 
 def test_chunk_by_dom_labels_markerless_footnotes() -> None:
-    chunks = chunk_by_dom("<p>Body text</p><p>*Tier 2: follow-up note</p>")
+    chunks = chunk_by_dom(
+        "<p>Body text<sup>[1]</sup></p>"
+        "<p>[1] Source note</p><p>*Tier 2: follow-up note</p>"
+    )
     assert [(chunk.label, chunk.text) for chunk in chunks] == [
-        ("p", "Body text"),
+        ("p", "Body text[1]"),
+        ("footnote", "[1] Source note"),
         ("footnote", "*Tier 2: follow-up note"),
     ]
 
