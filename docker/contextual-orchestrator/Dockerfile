@@ -3,11 +3,11 @@ FROM python:3.12-slim@sha256:423ed6ab25b1921a477529254bfeeabf5855151dc2c3141699a
 WORKDIR /app
 
 # Reuse the upstream implementation without copying it into LineageWeave.
-# Pin the runtime to ContextualWisdomLab/contextual-orchestrator#791's pushed
-# integration commit until its protected dependency stack merges;
+# Pin the runtime to ContextualWisdomLab/contextual-orchestrator#791's merged
+# integration head until its remaining protected dependency stack merges;
 # this keeps model selection, structured synthesis, and reasoning policy in
 # contextual-orchestrator itself.
-ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/0246e91f107c8dbb82eb0b421d0aeb0f5fe21ecf.tar.gz /tmp/contextual-orchestrator.tar.gz
+ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/4c31c3549537ba4813fe25e2bf4efc3e5b56aa3f.tar.gz /tmp/contextual-orchestrator.tar.gz
 RUN mkdir /tmp/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 -C /tmp/contextual-orchestrator \
     && cp -R /tmp/contextual-orchestrator/contextual_orchestrator /app/contextual_orchestrator \

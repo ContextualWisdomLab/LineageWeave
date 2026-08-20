@@ -17,11 +17,11 @@ mismatch.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `0246e91f107c8dbb82eb0b421d0aeb0f5fe21ecf`, the pushed integration
+commit `4c31c3549537ba4813fe25e2bf4efc3e5b56aa3f`, the merged integration
 head of ContextualWisdomLab/contextual-orchestrator#791. That PR combines
 the temperature negotiation in #779 with the orchestrator-owned embedding
 selection in #789 and remains stacked on #765. The pin remains explicit and
-immutable until the protected PRs merge; it is not a moving `main` reference
+immutable until the remaining protected stack merges; it is not a moving `main` reference
 and it is not a LineageWeave monkey patch.
 
 The runtime contract is:

@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ORCHESTRATOR_COMMIT = "0246e91f107c8dbb82eb0b421d0aeb0f5fe21ecf"
+ORCHESTRATOR_COMMIT = "4c31c3549537ba4813fe25e2bf4efc3e5b56aa3f"
 
 
 def test_orchestrator_runtime_pin_matches_adr() -> None:
