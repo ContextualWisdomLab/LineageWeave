@@ -53,7 +53,6 @@ async def resolve_customer_hint(
     """
     if not resolution_client.available:
         return None
-    # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli -- The eligibility clause is schema-fixed; hint_code is bound through $1.
     rows = await conn.fetch(
         f"""
         select post_title, left(post_body, {_RAW_BODY_SQL_CAP}) as post_body
@@ -97,7 +96,6 @@ async def resolve_customer_hint(
         # name-based lookup above can miss an entity this same hint already
         # created -- corporate_entity_code (deterministic from hint_code)
         # is the stable identity key a retry must key off instead.
-        # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli -- The generated code is a bound value, not part of the SQL statement.
         created = await conn.fetchrow(
             """
             insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code)
