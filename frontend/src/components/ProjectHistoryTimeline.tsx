@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
 import { useLocale } from "../i18n";
 import {
@@ -20,6 +20,14 @@ function minimumPathScore(event: ProjectHistoryEvent): number | null {
   return Math.min(...event.related_prior_paths.map((path) => path.minimum_fused_score));
 }
 
+function initialEventId(projection: ProjectHistoryProjection): string {
+  return (
+    projection.events.find((event) => event.event_id === projection.focus_event_id)?.event_id ??
+    projection.events[0]?.event_id ??
+    ""
+  );
+}
+
 export function ProjectHistoryTimeline({
   projection,
   onOpenPost,
@@ -28,13 +36,23 @@ export function ProjectHistoryTimeline({
   onOpenPost: (postId: string) => void;
 }) {
   const locale = useLocale();
-  const initialEvent =
-    projection.events.find((event) => event.event_id === projection.focus_event_id) ??
-    projection.events[0];
-  const [selectedEventId, setSelectedEventId] = useState(initialEvent?.event_id ?? "");
+  const instanceId = useId();
+  const panelId = `${instanceId}-project-history-panel`;
+  const headingId = `${instanceId}-project-history-heading`;
+  const [selectedEventId, setSelectedEventId] = useState(() => initialEventId(projection));
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const eventById = new Map(projection.events.map((event) => [event.event_id, event]));
-  const selectedEvent = eventById.get(selectedEventId) ?? initialEvent;
+  const selectedEvent =
+    eventById.get(selectedEventId) ?? eventById.get(initialEventId(projection)) ?? null;
+  const selectedIndex = selectedEvent
+    ? projection.events.findIndex((event) => event.event_id === selectedEvent.event_id)
+    : -1;
+  const selectedTabId = selectedIndex >= 0 ? `${instanceId}-project-history-tab-${selectedIndex}` : undefined;
+
+  useEffect(() => {
+    setSelectedEventId(initialEventId(projection));
+    tabRefs.current = [];
+  }, [projection.normalized_project_key, projection.focus_event_id, projection.events]);
 
   function selectAt(index: number) {
     const bounded = Math.max(0, Math.min(index, projection.events.length - 1));
@@ -68,14 +86,12 @@ export function ProjectHistoryTimeline({
     selectAt(target);
   }
 
-  const selectedPanelId = `project-history-panel-${projection.normalized_project_key.replace(/[^a-z0-9_-]+/g, "-")}`;
-
   return (
-    <section className="project-history" aria-labelledby={`${selectedPanelId}-heading`}>
+    <section className="project-history" aria-labelledby={headingId}>
       <header className="project-history-header">
         <div>
           <p className="section-eyebrow">{projection.project_name}</p>
-          <h3 id={`${selectedPanelId}-heading`}>{projectHistoryText(locale, "heading")}</h3>
+          <h3 id={headingId}>{projectHistoryText(locale, "heading")}</h3>
         </div>
         <p className="project-history-counts">
           {projectHistoryText(locale, "summaryCounts", {
@@ -96,13 +112,14 @@ export function ProjectHistoryTimeline({
         className="project-history-tabs"
         role="tablist"
         aria-label={projectHistoryText(locale, "heading")}
-        aria-orientation="horizontal"
       >
         {projection.events.map((event, index) => {
           const selected = event.event_id === selectedEvent?.event_id;
           const current = event.event_id === projection.focus_event_id;
+          const tabId = `${instanceId}-project-history-tab-${index}`;
           return (
             <button
+              id={tabId}
               key={event.event_id}
               ref={(node: HTMLButtonElement | null) => {
                 tabRefs.current[index] = node;
@@ -112,7 +129,7 @@ export function ProjectHistoryTimeline({
               className={current ? "project-history-tab project-history-tab-current" : "project-history-tab"}
               aria-selected={selected}
               aria-current={current ? "step" : undefined}
-              aria-controls={selectedPanelId}
+              aria-controls={panelId}
               tabIndex={selected ? 0 : -1}
               onClick={() => setSelectedEventId(event.event_id)}
               onKeyDown={(keyboardEvent: KeyboardEvent<HTMLButtonElement>) =>
@@ -130,10 +147,10 @@ export function ProjectHistoryTimeline({
 
       {selectedEvent ? (
         <div
-          id={selectedPanelId}
+          id={panelId}
           className="project-history-detail"
           role="tabpanel"
-          aria-label={`${projectHistoryText(locale, "eventDetail")}: ${selectedEvent.event_title}`}
+          aria-labelledby={selectedTabId}
         >
           <div className="project-history-detail-heading">
             <div>
@@ -177,8 +194,8 @@ export function ProjectHistoryTimeline({
             ) : null}
           </dl>
 
-          <section aria-labelledby={`${selectedPanelId}-responsibilities`}>
-            <h5 id={`${selectedPanelId}-responsibilities`}>
+          <section aria-labelledby={`${panelId}-responsibilities`}>
+            <h5 id={`${panelId}-responsibilities`}>
               {projectHistoryText(locale, "responsibilityEvidence")}
             </h5>
             {selectedEvent.observed_responsibilities.length > 0 ? (
@@ -201,8 +218,8 @@ export function ProjectHistoryTimeline({
             )}
           </section>
 
-          <section aria-labelledby={`${selectedPanelId}-paths`}>
-            <h5 id={`${selectedPanelId}-paths`}>{projectHistoryText(locale, "priorHistory")}</h5>
+          <section aria-labelledby={`${panelId}-paths`}>
+            <h5 id={`${panelId}-paths`}>{projectHistoryText(locale, "priorHistory")}</h5>
             {selectedEvent.related_prior_paths.length > 0 ? (
               <ul className="project-history-paths">
                 {selectedEvent.related_prior_paths.map((path) => (
@@ -228,8 +245,8 @@ export function ProjectHistoryTimeline({
           </section>
 
           {selectedEvent.project_matches.length > 0 ? (
-            <section aria-labelledby={`${selectedPanelId}-project-evidence`}>
-              <h5 id={`${selectedPanelId}-project-evidence`}>
+            <section aria-labelledby={`${panelId}-project-evidence`}>
+              <h5 id={`${panelId}-project-evidence`}>
                 {projectHistoryText(locale, "projectEvidence")}
               </h5>
               <ul>
