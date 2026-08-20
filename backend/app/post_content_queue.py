@@ -345,6 +345,61 @@ async def requeue_failed_post_content_job(
     return PostContentJobRequest(post_id, digest, QUEUED, True)
 
 
+async def record_post_content_backfill_success(
+    conn: asyncpg.Connection,
+    post_id: str,
+    body: str,
+) -> PostContentJobRequest:
+    """Synchronize a completed operator backfill with the durable job ledger."""
+    digest = source_body_sha256(body)
+    row = await conn.fetchrow(
+        """
+        select status_code
+        from post_content_ingestion_job
+        where post_id = $1
+        for update
+        """,
+        post_id,
+    )
+    if row is not None and str(row["status_code"]) in {QUEUED, RUNNING}:
+        raise ValueError("cannot finalize a backfill while the job is active")
+    if row is None:
+        await conn.execute(
+            """
+            insert into post_content_ingestion_job
+                (post_id, source_body_sha256, status_code, completed_at)
+            values ($1, $2, $3, now())
+            """,
+            post_id,
+            digest,
+            SUCCEEDED,
+        )
+    else:
+        await conn.execute(
+            """
+            update post_content_ingestion_job
+            set source_body_sha256 = $2,
+                status_code = $3,
+                started_at = null,
+                completed_at = now(),
+                updated_at = now(),
+                last_error_code = null,
+                last_error_detail = null
+            where post_id = $1
+            """,
+            post_id,
+            digest,
+            SUCCEEDED,
+        )
+    await _record_status(
+        conn,
+        post_id,
+        SUCCEEDED,
+        detail_text="operator backfill persisted post-content evidence",
+    )
+    return PostContentJobRequest(post_id, digest, SUCCEEDED, False)
+
+
 async def republish_queued_post_content_jobs(
     client: redis.Redis,
     pool: asyncpg.Pool,

@@ -17,6 +17,7 @@ from backend.app.post_content_queue import (
     QUEUED,
     RUNNING,
     SUCCEEDED,
+    record_post_content_backfill_success,
     requeue_failed_post_content_job,
     post_content_api_status,
     post_content_is_complete,
@@ -331,6 +332,37 @@ def test_explicit_retry_rejects_missing_and_nonterminal_jobs() -> None:
                 "current body",
             )
         )
+
+
+def test_backfill_success_clears_terminal_error_and_records_succeeded() -> None:
+    executed: list[tuple[str, tuple[object, ...]]] = []
+
+    class FakeConnection:
+        async def fetchrow(self, query: str, *_args: object):
+            assert "for update" in query
+            return {"status_code": FAILED}
+
+        async def fetchval(self, query: str, *_args: object) -> int:
+            assert "status_ordinal" in query
+            return 5
+
+        async def execute(self, query: str, *args: object) -> str:
+            executed.append((query, args))
+            return "UPDATE 1" if query.lstrip().startswith("update") else "INSERT 0 1"
+
+    request = asyncio.run(
+        record_post_content_backfill_success(
+            FakeConnection(),
+            "00000000-0000-0000-0000-000000000001",
+            "current body",
+        )
+    )
+
+    assert request.status_code == SUCCEEDED
+    assert request.should_publish is False
+    assert len(executed) == 2
+    assert "last_error_code = null" in executed[0][0]
+    assert executed[1][1][-1] == "operator backfill persisted post-content evidence"
 
 
 def test_recovery_republishes_due_rows_in_queued_at_order() -> None:

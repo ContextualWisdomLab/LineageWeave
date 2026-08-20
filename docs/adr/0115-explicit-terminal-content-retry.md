@@ -24,6 +24,12 @@ directly. It is an operational recovery action, not a buyer-visible status
 override; the worker still performs the normal VISION, structure, and
 embedding completeness checks.
 
+The synchronous operator backfill is a separate repair path. After it
+persists derived evidence, it must call the queue module's ledger-finalization
+function in a database transaction. It must never leave a previously failed
+job marked failed while presenting newly persisted content as a successful
+backfill.
+
 ## Consequences
 
 - Historical terminal jobs can be recovered after a verified root-cause fix.
