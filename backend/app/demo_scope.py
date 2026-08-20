@@ -23,7 +23,8 @@ async def has_real_source_context(
 ) -> bool:
     """Return whether the account can see imported source evidence."""
     return bool(
-        await conn.fetchval(
+        # Safe SQL: this is immutable schema text; authorized entity ids are bound through $1.
+        await conn.fetchval(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             """
             select exists (
                 select 1
