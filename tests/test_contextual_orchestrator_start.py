@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 import types
 from pathlib import Path
@@ -60,6 +61,22 @@ def test_gateway_api_key_accepts_local_compatibility_alias(monkeypatch) -> None:
     monkeypatch.setenv("LLM_API_KEY", "compatibility-key")
 
     assert module._pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY") == "compatibility-key"
+
+
+def test_all_supported_provider_credentials_leave_the_process_environment(monkeypatch) -> None:
+    module = _load_start_module()
+    expected = {
+        "BYTEZ_API_KEY": "bytez-key",
+        "NVIDIA_NIM_API_KEY": "nvidia-key",
+        "NVIDIA_NIM_API_KEY_SUB": "nvidia-sub-key",
+        "OPENROUTER_API_KEY": "openrouter-key",
+        "OPENAI_API_KEY": "openai-key",
+    }
+    for name, value in expected.items():
+        monkeypatch.setenv(name, value)
+
+    assert module._pop_provider_credentials() == expected
+    assert all(name not in os.environ for name in expected)
 
 
 def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch) -> None:

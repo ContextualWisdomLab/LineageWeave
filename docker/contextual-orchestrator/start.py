@@ -12,6 +12,14 @@ import sys
 import json
 from pathlib import Path
 
+_PROVIDER_CREDENTIAL_NAMES = (
+    "BYTEZ_API_KEY",
+    "NVIDIA_NIM_API_KEY",
+    "NVIDIA_NIM_API_KEY_SUB",
+    "OPENROUTER_API_KEY",
+    "OPENAI_API_KEY",
+)
+
 
 def _pop_first_env(*names: str) -> str:
     """Read the first configured alias without leaving credentials in the environment."""
@@ -22,11 +30,22 @@ def _pop_first_env(*names: str) -> str:
     return ""
 
 
+def _pop_provider_credentials() -> dict[str, str]:
+    """Move every configured provider key out of the process environment."""
+    return {
+        name: value
+        for name in _PROVIDER_CREDENTIAL_NAMES
+        if (value := os.environ.pop(name, "").strip())
+    }
+
+
 def main() -> None:
     """Register the provider credential and delegate to the upstream server."""
-    provider_key = _pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY", "NVIDIA_NIM_API_KEY")
+    provider_credentials = _pop_provider_credentials()
+    gateway_key = _pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY")
+    provider_key = gateway_key or next(iter(provider_credentials.values()), "")
     if not provider_key:
-        raise SystemExit("LLM_GATEWAY_API_KEY or LLM_API_KEY is required to start the real LLM service")
+        raise SystemExit("at least one supported provider credential is required to start the real LLM service")
     auth_token = os.environ.get("CONTEXTUAL_ORCHESTRATOR_TOKEN", "").strip()
     if not auth_token:
         raise SystemExit("CONTEXTUAL_ORCHESTRATOR_TOKEN is required to start the authenticated LLM service")
@@ -82,9 +101,24 @@ def main() -> None:
 
     from contextual_orchestrator.credentials import register_credential
 
-    register_credential("NVIDIA_NIM_API_KEY", provider_key)
-    register_credential("LLM_GATEWAY_API_KEY", provider_key)
+    registered_names: set[str] = set()
+
+    def register(name: str, value: str) -> None:
+        if name not in registered_names:
+            register_credential(name, value)
+            registered_names.add(name)
+
+    if gateway_key:
+        register("NVIDIA_NIM_API_KEY", provider_credentials.get("NVIDIA_NIM_API_KEY", gateway_key))
+        register("LLM_GATEWAY_API_KEY", gateway_key)
+    else:
+        register("LLM_GATEWAY_API_KEY", provider_key)
+    for name, value in provider_credentials.items():
+        register(name, value)
     del provider_key
+    del gateway_key
+    del provider_credentials
+    del registered_names
     sys.argv = [
         "contextual_orchestrator",
         "--serve",
