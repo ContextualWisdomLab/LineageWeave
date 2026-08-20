@@ -1757,8 +1757,19 @@ describe("App, authenticated", () => {
       if (url.endsWith("/api/project-history/projects") && method === "GET") {
         return Promise.resolve(
           jsonResponse({
+            contract_version: 1,
+            time_basis_code: "source_post_created_at_fallback",
             knowledge_cutoff: "2026-01-12T12:00:00Z",
-            projects: [{ project_key: "semantic-project", project_name: "Semantic project", event_count: 1 }],
+            project_count: 1,
+            truncated: false,
+            projects: [{
+              normalized_project_key: "semantic-project",
+              project_key: "semantic-project",
+              project_name: "Semantic project",
+              truth_status_code: "inferred",
+              event_count: 1,
+              latest_event_at: "2026-01-01T00:00:00Z",
+            }],
           }),
         );
       }
@@ -1772,7 +1783,9 @@ describe("App, authenticated", () => {
             focus_event_id: "post-1",
             time_basis_code: "source_post_created_at_fallback",
             event_count: 1,
+            distinct_actor_count: 0,
             distinct_observed_actor_count: 0,
+            evidence_boundary_code: "authorized_visible_source_posts",
             truncated: false,
             events: [
               {
@@ -1787,7 +1800,9 @@ describe("App, authenticated", () => {
                 source_stage_code: null,
                 source_detail_state_code: null,
                 project_matches: [],
+                responsibility_evidence: [],
                 observed_responsibilities: [],
+                responsibility_transition_truth_status_code: null,
                 responsibility_transition_code: null,
                 related_prior_paths: [],
               },
@@ -1990,7 +2005,7 @@ describe("App, authenticated", () => {
     );
 
     expect(await screen.findByRole("heading", { name: "Project event timeline" })).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Project" })).toHaveValue("semantic-project");
+    expect(screen.getByRole("combobox", { name: "Select project" })).toHaveValue("semantic-project");
     expect(screen.getByRole("button", { name: "Open source record: Public post" })).toBeInTheDocument();
   });
 

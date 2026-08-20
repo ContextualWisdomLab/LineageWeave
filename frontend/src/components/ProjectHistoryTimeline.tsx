@@ -48,6 +48,8 @@ export function ProjectHistoryTimeline({
     eventById.get(selectedEventId) ??
     eventById.get(initialEventId(projection.events, projection.focus_event_id)) ??
     null;
+  const selectedResponsibilities =
+    selectedEvent?.responsibility_evidence ?? selectedEvent?.observed_responsibilities ?? [];
   const selectedIndex = selectedEvent
     ? projection.events.findIndex((event) => event.event_id === selectedEvent.event_id)
     : -1;
@@ -99,12 +101,17 @@ export function ProjectHistoryTimeline({
         <p className="project-history-counts">
           {projectHistoryText(locale, "summaryCounts", {
             events: projection.event_count,
-            actors: projection.distinct_observed_actor_count,
+            actors: projection.distinct_actor_count,
           })}
         </p>
       </header>
 
       <p className="project-history-time-basis">{projectHistoryText(locale, "documentTime")}</p>
+      {projection.evidence_boundary_code ? (
+        <p className="project-history-boundary">
+          {projectHistoryText(locale, "evidenceBoundary")}
+        </p>
+      ) : null}
       {projection.truncated ? (
         <p className="project-history-warning" role="status">
           {projectHistoryText(locale, "truncated")}
@@ -192,6 +199,14 @@ export function ProjectHistoryTimeline({
                     locale,
                     selectedEvent.responsibility_transition_code,
                   )}
+                  {selectedEvent.responsibility_transition_truth_status_code ? (
+                    <span className="project-history-truth">
+                      {projectHistoryText(
+                        locale,
+                        selectedEvent.responsibility_transition_truth_status_code,
+                      )}
+                    </span>
+                  ) : null}
                 </dd>
               </div>
             ) : null}
@@ -201,18 +216,21 @@ export function ProjectHistoryTimeline({
             <h5 id={`${panelId}-responsibilities`}>
               {projectHistoryText(locale, "responsibilityEvidence")}
             </h5>
-            {selectedEvent.observed_responsibilities.length > 0 ? (
+            {selectedResponsibilities.length > 0 ? (
               <ul className="project-history-responsibilities">
-                {selectedEvent.observed_responsibilities.map((responsibility) => (
-                  <li key={`${responsibility.actor_key}:${responsibility.responsibility}`}>
+                {selectedResponsibilities.map((responsibility) => (
+                  <li
+                    key={`${responsibility.actor_key}:${responsibility.responsibility}:${responsibility.provenance}`}
+                  >
                     <strong>{responsibility.actor_name}</strong>
                     {responsibility.affiliated_organization_name
                       ? ` · ${responsibility.affiliated_organization_name}`
                       : ""}
                     <span>{responsibility.responsibility}</span>
                     <span className="project-history-truth">
-                      {projectHistoryText(locale, "observed")}
+                      {projectHistoryText(locale, responsibility.truth_status_code)}
                     </span>
+                    <span className="project-history-provenance">{responsibility.provenance}</span>
                   </li>
                 ))}
               </ul>
@@ -291,8 +309,10 @@ export function ProjectHistoryTimeline({
                       {projectHistoryTransitionLabel(locale, event.responsibility_transition_code)}
                     </td>
                     <td>
-                      {event.observed_responsibilities.length > 0
-                        ? event.observed_responsibilities.map((row) => row.actor_name).join(", ")
+                      {(event.responsibility_evidence ?? event.observed_responsibilities).length > 0
+                        ? (event.responsibility_evidence ?? event.observed_responsibilities)
+                            .map((row) => row.actor_name)
+                            .join(", ")
                         : projectHistoryText(locale, "notApplicable")}
                     </td>
                     <td>

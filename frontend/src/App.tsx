@@ -75,7 +75,6 @@ import {
   type PostLineage,
   type PostSummary,
   type PostSortOrder,
-  type ProjectHistoryIndexResponse,
   type RankingList,
   type PersonRoleHistoryEntry,
   type RelatedNode,
@@ -92,7 +91,11 @@ import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { ProjectHistoryTimeline } from "./components/ProjectHistoryTimeline";
-import type { ProjectHistoryProjection } from "./projectHistory";
+import {
+  projectHistoryText,
+  type ProjectHistoryIndex,
+  type ProjectHistoryProjection,
+} from "./projectHistory";
 import { subgraphForPost } from "./lineageLayout";
 import {
   isSupportedLocale,
@@ -1797,7 +1800,7 @@ function PostDetailPopup({
       .then((value) => {
         if (isCurrent()) setPost(value);
       })
-      .catch((err) => {
+      .catch(() => {
         if (isCurrent()) setError(String(err));
       });
     const reloadContent = () =>
@@ -4814,10 +4817,11 @@ function ProjectHistoryPanel({
   initialProjectKey?: string | null;
   onOpenPost: (postId: string) => void;
 }) {
-  const [index, setIndex] = useState<ProjectHistoryIndexResponse | null>(null);
+  const [index, setIndex] = useState<ProjectHistoryIndex | null>(null);
   const [selectedProjectKey, setSelectedProjectKey] = useState("");
   const [projection, setProjection] = useState<ProjectHistoryProjection | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+  const locale = useLocale();
   const historyRequest = useRef(0);
 
   useEffect(() => {
@@ -4831,12 +4835,19 @@ function ProjectHistoryPanel({
             ? initialProjectKey
             : current || result.projects[0]?.project_key || "",
         );
-        setError(null);
+        setError(false);
       })
       .catch((err) => {
         if (!active) return;
-        setIndex({ knowledge_cutoff: "", projects: [] });
-        setError(String(err));
+        setIndex({
+          contract_version: 1,
+          time_basis_code: "source_post_created_at_fallback",
+          knowledge_cutoff: "",
+          project_count: 0,
+          truncated: false,
+          projects: [],
+        });
+        setError(true);
       });
     return () => {
       active = false;
@@ -4850,30 +4861,35 @@ function ProjectHistoryPanel({
     }
     const request = ++historyRequest.current;
     setProjection(null);
+    setError(false);
     fetchProjectHistory(accessToken, selectedProjectKey, index.knowledge_cutoff)
       .then((result) => {
         if (request === historyRequest.current) setProjection(result);
       })
       .catch((err) => {
-        if (request === historyRequest.current) setError(String(err));
+        if (request === historyRequest.current) setError(true);
       });
   }, [accessToken, index?.knowledge_cutoff, selectedProjectKey]);
 
   return (
     <section className="buyer-destination" aria-labelledby="project-history-heading">
-      <p className="section-eyebrow">{t("Authorized project evidence")}</p>
-      <h2 id="project-history-heading">{t("Project history")}</h2>
-      <p className="buyer-destination-intro">{t("Select an exact project identity to read its visible history.")}</p>
-      {error ? <p className="error" role="alert">{error}</p> : null}
-      {index === null ? <p role="status">{t("Loading project history...")}</p> : null}
+      <h2 id="project-history-heading">{projectHistoryText(locale, "destinationHeading")}</h2>
+      <p className="buyer-destination-intro">{projectHistoryText(locale, "destinationIntro")}</p>
+      {error ? <p className="error" role="alert">{projectHistoryText(locale, "historyUnavailable")}</p> : null}
+      {index === null ? <p role="status">{projectHistoryText(locale, "loadingProjects")}</p> : null}
       {index?.projects.length === 0 && !error ? (
-        <p className="popup-placeholder">{t("No authorized project evidence is available.")}</p>
+        <p className="popup-placeholder">{projectHistoryText(locale, "noProjects")}</p>
+      ) : null}
+      {index?.truncated ? (
+        <p className="project-history-warning" role="status">
+          {projectHistoryText(locale, "projectListTruncated")}
+        </p>
       ) : null}
       {index && index.projects.length > 0 ? (
         <label>
-          {t("Project")}
+          {projectHistoryText(locale, "selectProject")}
           <select
-            aria-label={t("Project")}
+            aria-label={projectHistoryText(locale, "selectProject")}
             value={selectedProjectKey}
             onChange={(event) => setSelectedProjectKey(event.target.value)}
           >

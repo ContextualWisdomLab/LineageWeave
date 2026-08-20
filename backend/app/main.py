@@ -3242,16 +3242,12 @@ async def read_project_history_projects(
     _require_post_read(account)
     knowledge_cutoff = datetime.now(timezone.utc)
     async with pool.acquire() as conn:
-        projects = await fetch_project_history_index(
+        return await fetch_project_history_index(
             conn,
             knowledge_cutoff=knowledge_cutoff,
             corporate_entity_ids=list(account.corporate_entity_ids),
             limit=limit,
         )
-    return {
-        "knowledge_cutoff": knowledge_cutoff.isoformat().replace("+00:00", "Z"),
-        "projects": projects,
-    }
 
 
 @app.get("/api/project-history")

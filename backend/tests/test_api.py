@@ -1502,7 +1502,8 @@ def test_post_detail_exposes_explicit_and_semantic_project_evidence(
     )
     assert fallback_index.status_code == 200, fallback_index.text
     assert any(
-        project["project_key"] == "source name fallback"
+        project["normalized_project_key"] == "source name fallback"
+        and project["project_name"] == "Source name fallback"
         for project in fallback_index.json()["projects"]
     )
 

@@ -9,6 +9,29 @@ PR #258; protected-main runtime evidence remains pending.
 requirements, technical contracts, implementation evidence, and active PRs.
 An active PR is proposed work, not shipped behavior.
 
+## Exact-head checkpoint (2026-08-20 19:14 Asia/Seoul)
+
+The following is the current GitHub observation used for this branch. It
+supersedes the historical 17:08 snapshot and does not claim protected-main
+behavior. GitHub reports 24 open PRs from #190 through #309; none of the
+#258-and-later stack has an independent `APPROVED` review at this checkpoint.
+
+| PR group | Exact observed heads | Merge observation |
+|---|---|---|
+| #258-#266 | `#258 f8d2fa98`, `#260 dfd95d9c`, `#261 bd1b4d2f`, `#262 80445b8a`, `#263 d670acd5`, `#264 d5dbdf71`, `#266 26a6d9c6` | `BLOCKED`, review required |
+| #270-#276 | `#270 c58aef89`, `#275 35035783`, `#276 55679fa2` | `BLOCKED`, review required or draft |
+| #282-#287 | `#282 6eeaf89d`, `#285 cbb959ce`, `#286 65a461de`, `#287 554efb9b` | `UNSTABLE`/`UNKNOWN`/`BLOCKED`; not merge-ready |
+| #298-#303 | `#298 49c9976f`, `#301 59ccdf91`, `#302 40b0a8ea`, `#303 fe0a4f26` | `UNKNOWN`/`CLEAN`/`UNSTABLE`; independent review pending |
+| #306-#309 | `#306 e0dbc386`, `#307 313d38a4`, `#308 42e6230c`, `#309 e6fd907e` | `UNSTABLE`; independent review pending |
+
+PR #285 received concurrent remote commits through `cbb959ce` while its local
+Buyer wiring was under review. Those commits were incorporated with a normal
+merge; no force push is permitted. The current change adds the missing API/GNB
+connection, exact-input validation, source-name whitespace fallback, a shared
+timeline entry point, Storybook-compatible truth rendering, and live
+PostgreSQL/API regressions. The final exact head and Checks must be recorded
+after the ordinary push.
+
 ## PRD
 
 ### Problem and outcome

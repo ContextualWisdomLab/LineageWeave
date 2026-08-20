@@ -216,17 +216,6 @@ export interface ProjectEvidence {
   provenance: string;
 }
 
-export interface ProjectHistoryIndexItem {
-  project_key: string;
-  project_name: string;
-  event_count: number;
-}
-
-export interface ProjectHistoryIndexResponse {
-  knowledge_cutoff: string;
-  projects: ProjectHistoryIndexItem[];
-}
-
 export interface PostAiSummary {
   post_id: string;
   korean_summary: string;
@@ -432,7 +421,7 @@ export function fetchLineageGraph(accessToken: string, postId?: string): Promise
 
 export function fetchProjectHistoryIndex(
   accessToken: string,
-): Promise<ProjectHistoryIndexResponse> {
+): Promise<import("./projectHistory").ProjectHistoryIndex> {
   return backendFetch("/api/project-history/projects", accessToken);
 }
 
