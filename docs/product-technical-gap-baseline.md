@@ -395,3 +395,29 @@ locator response keeps parent-image OCR/caption evidence but does not invent a
 full-image region row. Buyer OCR that preserves consistent pipe-delimited rows
 is rendered as an HTML table, while ordinary OCR remains readable text. ADRs
 0077 and 0110 record these boundaries.
+
+## Live protected-gate checkpoint: 2026-08-20 22:30 KST
+
+The live repository scan found 35 open pull requests, including two drafts, and
+zero formal `APPROVED` reviews at their observed heads. Therefore no pull
+request is represented here as protected-main truth or as merge-ready.
+
+PR #270's exact head retained its application checks as successful, but the
+external Strix job failed closed after GitHub Models returned HTTP 410 for a
+scheduled retirement brownout. The failed job was re-requested directly against
+that same head and is queued for revalidation; this is provider availability
+evidence, not a source finding and not permission to bypass Strix.
+
+PR #282's exact-head review request was corrected after an earlier comment
+contained a stale SHA. Its duplicate ADR-number repair passed the local full
+backend suite (`776 passed, 16 skipped`), while the remote Checks remain queued.
+
+The central `.github` scheduler source and focused tests confirm that stacked
+pull requests can dispatch the required OpenCode review through the central
+repository when the same-repository dispatch credential is present. Current
+central dispatch runs are queued by Actions capacity; queue presence is not
+treated as approval, a successful review, or a merge result.
+
+This checkpoint is an operational snapshot only. Recompute exact head, formal
+review, required Checks, dependency order, and post-merge SHA immediately before
+any protected merge.
