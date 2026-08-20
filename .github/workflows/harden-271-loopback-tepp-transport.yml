@@ -1,0 +1,138 @@
+name: Harden PR 271 loopback TEPP transport
+
+on:
+  push:
+    branches:
+      - feat/tepp-project-history-ask-v2180
+
+permissions:
+  contents: write
+
+concurrency:
+  group: harden-pr271-loopback-tepp-transport
+  cancel-in-progress: false
+
+jobs:
+  harden:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: astral-sh/setup-uv@v6
+      - name: Add the RED loopback-only transport cases
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tests/test_tepp_project_history.py')
+          source = path.read_text(encoding='utf-8')
+          anchor = '''    assert (
+              project_history_endpoint("https://tepp.example.test/")
+              == "https://tepp.example.test/v1/project-histories"
+          )
+          '''
+          addition = '''    assert (
+              project_history_endpoint("http://127.0.0.1:8080/v1/analysis-runs")
+              == "http://127.0.0.1:8080/v1/project-histories"
+          )
+          assert (
+              project_history_endpoint("http://localhost:8080/")
+              == "http://localhost:8080/v1/project-histories"
+          )
+          '''
+          if addition not in source:
+              if source.count(anchor) != 1:
+                  raise SystemExit('loopback test anchor drifted')
+              source = source.replace(anchor, anchor + addition, 1)
+          path.write_text(source, encoding='utf-8')
+          PY
+          uv sync --frozen --extra dev --extra backend
+          set +e
+          uv run --frozen python -m pytest tests/test_tepp_project_history.py -q > /tmp/red.log 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo 'RED test unexpectedly passed before the transport change.' >&2
+            exit 1
+          fi
+          grep -q 'TEPP project-history URL must be clean HTTPS' /tmp/red.log
+      - name: Implement loopback HTTP while retaining HTTPS elsewhere
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('lineageweave/tepp_project_history.py')
+          source = path.read_text(encoding='utf-8')
+          if 'from ipaddress import ip_address' not in source:
+              source = source.replace(
+                  'from datetime import datetime, timezone\n',
+                  'from datetime import datetime, timezone\nfrom ipaddress import ip_address\n',
+                  1,
+              )
+          old = '''    if (
+              parsed.scheme != "https"
+              or not parsed.hostname
+              or parsed.username is not None
+              or parsed.password is not None
+              or parsed.query
+              or parsed.fragment
+          ):
+              raise TeppProjectHistoryUnavailable("TEPP project-history URL must be clean HTTPS")
+          '''
+          new = '''    hostname = parsed.hostname
+          loopback = False
+          if hostname:
+              if hostname.casefold() == "localhost":
+                  loopback = True
+              else:
+                  try:
+                      loopback = ip_address(hostname).is_loopback
+                  except ValueError:
+                      loopback = False
+          allowed_scheme = parsed.scheme == "https" or (parsed.scheme == "http" and loopback)
+          if (
+              not allowed_scheme
+              or not hostname
+              or parsed.username is not None
+              or parsed.password is not None
+              or parsed.query
+              or parsed.fragment
+          ):
+              raise TeppProjectHistoryUnavailable(
+                  "TEPP project-history URL must be HTTPS or loopback HTTP"
+              )
+          '''
+          if new not in source:
+              if source.count(old) != 1:
+                  raise SystemExit('project_history_endpoint validation anchor drifted')
+              source = source.replace(old, new, 1)
+          path.write_text(source, encoding='utf-8')
+          PY
+      - name: Verify GREEN and the full focused contract
+        run: |
+          uv run --frozen python -m pytest \
+            tests/test_tepp_project_history.py \
+            tests/test_tepp_project_history_ingestion.py -q
+          uv run --frozen python -m compileall -q \
+            lineageweave/tepp_project_history.py \
+            backend/app/tepp_project_history.py \
+            backend/app/main.py
+      - name: Publish the verified transport hardening
+        env:
+          BRANCH_NAME: feat/tepp-project-history-ask-v2180
+        run: |
+          rm -f .github/workflows/harden-271-loopback-tepp-transport.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -- \
+            lineageweave/tepp_project_history.py \
+            tests/test_tepp_project_history.py \
+            .github/workflows/harden-271-loopback-tepp-transport.yml
+          git diff --cached --check
+          git commit -m 'fix: allow TEPP loopback HTTP only'
+          git push origin "HEAD:${BRANCH_NAME}"
