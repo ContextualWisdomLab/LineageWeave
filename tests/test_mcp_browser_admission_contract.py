@@ -45,6 +45,9 @@ def test_integration_guide_names_every_stable_admission_error() -> None:
         assert error_code in guide
     assert "Vary: Origin" in guide
     assert "Mcp-Session-Id" in guide
+    assert "WWW-Authenticate" in guide
+    assert "browser-readable OAuth metadata" in guide
+    assert "prevent process startup" in guide
     assert "Non-browser clients may omit `Origin`" in guide
 
 
@@ -55,6 +58,7 @@ def test_architecture_and_doctoring_trace_the_same_boundary() -> None:
     changelog = _read("CHANGELOG.d/2.13.1-mcp-browser-admission.md")
     assert "Host/Origin transport validation" in adr
     assert "bounded POST body admission" in adr
+    assert "WWW-Authenticate" in adr
     assert "RFC 9112" in references
     assert "WHATWG Fetch CORS protocol" in references
     assert "MCP_MAX_REQUEST_BYTES" in changelog
