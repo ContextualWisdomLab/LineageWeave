@@ -35,9 +35,15 @@ async def load_global_ask_content_blocks(
     conn: Any,
     answer_text: str,
     cited_post_ids: Sequence[str],
-    visible_corporate_entity_ids: Sequence[str] = (),
+    user_account_id: str,
 ) -> tuple[GlobalAskContentBlock, ...]:
-    """Return answer text and images from citations still visible to the caller."""
+    """Return images only when the caller remains authorized at media-read time.
+
+    Source selection and model citation filtering happen earlier in the request,
+    but neither is an authorization lease. The media query therefore resolves
+    the caller's live ``post_read`` grant and corporate affiliations from the
+    database again immediately before any embedded bytes are returned.
+    """
     blocks: list[GlobalAskContentBlock] = [
         GlobalAskContentBlock(type="text", text=answer_text)
     ]
@@ -56,17 +62,30 @@ async def load_global_ask_content_blocks(
 
     rows = await conn.fetch(
         """
-        select post_id, post_title, post_body
-          from source_post
-         where post_id = any($1::uuid[])
-           and (
-                 visibility_code = 'public'
-                 or corporate_entity_id = any($2::uuid[])
+        select sp.post_id, sp.post_title, sp.post_body
+          from source_post sp
+         where sp.post_id = any($1::uuid[])
+           and exists (
+                 select 1
+                   from account_role_assignment ara
+                   join role_permission rp
+                     on rp.access_role_id = ara.access_role_id
+                  where ara.user_account_id = $2::uuid
+                    and rp.permission_code = 'post_read'
                )
-         order by array_position($1::uuid[], post_id)
+           and (
+                 sp.visibility_code = 'public'
+                 or exists (
+                       select 1
+                         from account_affiliation aa
+                        where aa.user_account_id = $2::uuid
+                          and aa.corporate_entity_id = sp.corporate_entity_id
+                     )
+               )
+         order by array_position($1::uuid[], sp.post_id)
         """,
         ordered_ids,
-        list(visible_corporate_entity_ids),
+        user_account_id,
     )
     total_bytes = 0
     image_count = 0
