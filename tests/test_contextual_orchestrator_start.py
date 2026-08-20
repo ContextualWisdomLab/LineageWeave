@@ -52,7 +52,7 @@ def test_gateway_api_key_accepts_local_compatibility_alias(monkeypatch) -> None:
     assert module._pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY") == "compatibility-key"
 
 
-def test_bootstrap_passes_embedding_provider_url_before_deleting_secrets(monkeypatch) -> None:
+def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch) -> None:
     module = _load_start_module()
     captured: dict[str, object] = {}
 
@@ -71,7 +71,11 @@ def test_bootstrap_passes_embedding_provider_url_before_deleting_secrets(monkeyp
             captured["agents"] = json.loads(value)
 
     credentials = types.ModuleType("contextual_orchestrator.credentials")
-    credentials.register_credential = lambda name, value: captured.setdefault("credential", (name, value))
+
+    def register_credential(name: str, value: str) -> None:
+        captured.setdefault("credentials", []).append((name, value))
+
+    credentials.register_credential = register_credential
     server = types.ModuleType("contextual_orchestrator.__main__")
 
     def serve() -> None:
@@ -94,5 +98,23 @@ def test_bootstrap_passes_embedding_provider_url_before_deleting_secrets(monkeyp
 
     argv = captured["argv"]
     assert isinstance(argv, list)
-    assert argv[argv.index("--embedding-provider-url") + 1] == "https://gateway.example/v1"
-    assert argv[argv.index("--embedding-model") + 1] == "embedding-model"
+    assert "--embedding-provider-url" not in argv
+    assert "--embedding-model" not in argv
+    assert captured["credentials"] == [
+        ("NVIDIA_NIM_API_KEY", "provider-key"),
+        ("LLM_GATEWAY_API_KEY", "provider-key"),
+    ]
+    agents = captured["agents"]
+    assert isinstance(agents, dict)
+    embedding_agents = [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])]
+    assert embedding_agents == [
+        {
+            "id": "llm_gateway_embedding_agent",
+            "model": "embedding-model",
+            "base_url": "https://gateway.example/v1",
+            "credential_key": "LLM_GATEWAY_API_KEY",
+            "provider_protocol": "auto",
+            "tags": ["embedding"],
+            "priority": 0,
+        }
+    ]
