@@ -86,6 +86,7 @@ class ContextualOrchestratorEmbeddingClient:
 
     def embed_many(self, texts: list[str]) -> list[list[float]]:
         """Return embeddings for the supplied texts."""
+        self.resolved_model_code = self._model
         if not texts:
             return []
         headers = {"authorization": f"Bearer {self._api_key}"}
