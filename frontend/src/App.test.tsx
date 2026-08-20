@@ -87,6 +87,7 @@ describe("App, authenticated", () => {
     postBody?: string;
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
+    deferCustomerRelated?: boolean;
     boardPosts?: {
       post_id: string;
       post_title: string;
@@ -96,7 +97,11 @@ describe("App, authenticated", () => {
       visibility_label?: string;
       created_at: string;
     }[];
-  }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
+  }): ReturnType<typeof vi.fn> & {
+    releaseMe: () => void;
+    releaseGroupRelated: () => void;
+    releaseDemoRelated: () => void;
+  } {
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -125,6 +130,18 @@ describe("App, authenticated", () => {
     const meReady = options?.deferMe
       ? new Promise<void>((resolve) => {
           releaseMe = resolve;
+        })
+      : Promise.resolve();
+    let releaseGroupRelated = () => {};
+    let releaseDemoRelated = () => {};
+    const groupRelatedReady = options?.deferCustomerRelated
+      ? new Promise<void>((resolve) => {
+          releaseGroupRelated = resolve;
+        })
+      : Promise.resolve();
+    const demoRelatedReady = options?.deferCustomerRelated
+      ? new Promise<void>((resolve) => {
+          releaseDemoRelated = resolve;
         })
       : Promise.resolve();
 
@@ -1369,8 +1386,17 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/corporate-entities/corp-group/related")) {
+        return groupRelatedReady.then(() =>
+          jsonResponse({
+            corporate_entity_id: "corp-group",
+            entity_name: "Demo Group",
+            related: [],
+          }),
+        );
+      }
       if (url.endsWith("/api/corporate-entities/corp-demo/related")) {
-        return Promise.resolve(
+        return demoRelatedReady.then(() =>
           jsonResponse({
             corporate_entity_id: "corp-demo",
             entity_name: "Demo Corp",
@@ -1676,7 +1702,11 @@ describe("App, authenticated", () => {
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
-    return Object.assign(fetchMock, { releaseMe });
+    return Object.assign(fetchMock, {
+      releaseMe,
+      releaseGroupRelated,
+      releaseDemoRelated,
+    });
   }
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
@@ -1966,6 +1996,28 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
     expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the current Customer master loading state when an older request finishes", async () => {
+    const fetchMock = stubBackend({
+      customerEntityHierarchy: true,
+      deferCustomerRelated: true,
+    });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+    const customers = await screen.findByRole("region", { name: "Customer master" });
+    await userEvent.click(within(customers).getByRole("button", { name: /Demo Group/ }));
+    await userEvent.click(within(customers).getByRole("button", { name: /Demo Corp/ }));
+
+    fetchMock.releaseGroupRelated();
+    await waitFor(() => expect(within(customers).getByText("Loading related posts...")).toBeInTheDocument());
+    expect(within(customers).queryByText("No linked posts yet.")).not.toBeInTheDocument();
+
+    fetchMock.releaseDemoRelated();
+    expect(
+      await within(customers).findByRole("button", { name: "Open related post: Public post" }),
+    ).toBeInTheDocument();
   });
 
   it("opening an Ask Agent cited post focuses Event Lineage; a home list open does not", async () => {

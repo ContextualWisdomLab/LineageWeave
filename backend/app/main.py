@@ -102,6 +102,12 @@ from backend.app.analysis_run_start import (
     enqueue_pending_analysis_run,
 )
 from backend.app.analysis_run_worker import run_analysis_run_worker
+from backend.app.post_content_queue import (
+    ensure_post_content_job,
+    post_content_api_status,
+    publish_post_content_event,
+)
+from backend.app.post_content_worker import run_post_content_worker
 from backend.app.source_post_revision import fetch_known_at_revision, parse_as_of_clock
 from backend.app.activity_stream import (
     create_valkey_client,
@@ -178,7 +184,6 @@ from backend.app.demo_scope import (
     has_real_source_context,
     is_demo_scope,
 )
-from lineageweave.post_content_persistence import persist_post_content
 from lineageweave.http_client import HttpClientError
 
 _POST_READ = "post_read"
@@ -203,11 +208,25 @@ async def lifespan(app: FastAPI):
             adjudication_client=_adjudication_client(),
         )
     )
+    app.state.post_content_worker = asyncio.create_task(
+        run_post_content_worker(
+            app.state.valkey,
+            app.state.pool,
+            vision_factory=_vision_client,
+            embedding_factory=_embedding_client,
+            structure_factory=_post_structure_client,
+        )
+    )
     try:
         yield
     finally:
         app.state.analysis_run_worker.cancel()
-        await asyncio.gather(app.state.analysis_run_worker, return_exceptions=True)
+        app.state.post_content_worker.cancel()
+        await asyncio.gather(
+            app.state.analysis_run_worker,
+            app.state.post_content_worker,
+            return_exceptions=True,
+        )
         await app.state.pool.close()
         await app.state.valkey.aclose()
 
@@ -1400,9 +1419,11 @@ async def read_post_content(
     post_id: str,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Return persisted content evidence; never derive or invent buyer copy."""
     await _load_visible_post(post_id, account, pool)
+    queue_event: tuple[str, str] | None = None
     async with pool.acquire() as conn:
         unit_rows = await conn.fetch(
             """
@@ -1418,6 +1439,29 @@ async def read_post_content(
             """,
             post_id,
         )
+        content_status = post_content_api_status(
+            None,
+            content_present=bool(unit_rows),
+        )
+        body_row = await conn.fetchrow(
+            "select post_body from source_post where post_id = $1", post_id
+        )
+        raw_body = None if body_row is None else body_row["post_body"]
+        if isinstance(raw_body, str) and raw_body.strip():
+            content_present = bool(unit_rows)
+            async with conn.transaction():
+                job = await ensure_post_content_job(
+                    conn,
+                    post_id,
+                    raw_body,
+                    content_present=content_present,
+                )
+            content_status = post_content_api_status(
+                job.status_code,
+                content_present=content_present,
+            )
+            if job.should_publish:
+                queue_event = (job.post_id, job.source_body_sha256)
         rows = await conn.fetch(
             """
             select image.post_content_image_id, unit.unit_index, image.mime_type, image.description_status_code,
@@ -1462,6 +1506,12 @@ async def read_post_content(
             """,
             [row["post_content_image_id"] for row in rows],
         ) if rows else []
+    if queue_event is not None:
+        await publish_post_content_event(
+            valkey,
+            post_id=queue_event[0],
+            source_body_digest=queue_event[1],
+        )
     regions_by_image: dict[str, list[dict[str, Any]]] = {}
     for row in region_rows:
         regions_by_image.setdefault(str(row["post_content_image_id"]), []).append(
@@ -1478,6 +1528,7 @@ async def read_post_content(
             }
         )
     return {
+        "status": content_status,
         "units": [
             {
                 "unit_index": row["unit_index"],
@@ -2290,6 +2341,7 @@ async def read_post_summary(
     post_id: str,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """A Korean summary, key events, and R&R for the popup.
 
@@ -2300,6 +2352,7 @@ async def read_post_summary(
     """
     post = await _load_visible_post(post_id, account, pool)
     post_metadata = build_post_llm_metadata(post_id, post)
+    queue_event: tuple[str, str] | None = None
     async with pool.acquire() as conn:
         body_row = await conn.fetchrow(
             "select post_body from source_post where post_id = $1", post_id
@@ -2320,23 +2373,7 @@ async def read_post_summary(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
                 )
-            vision_client = _vision_client()
-            normalized = await asyncio.to_thread(normalize_post_body, raw_body, vision_client)
-            settings = load_settings()
-            embedding_client = _embedding_client()
-            structure_client = _post_structure_client()
-            if vision_client.available or embedding_client.available or structure_client.available:
-                await persist_post_content(
-                    conn,
-                    post_id,
-                    raw_body,
-                    vision_client=vision_client,
-                    embedding_client=embedding_client,
-                    embedding_model_code=settings.embedding_model or None,
-                    normalized_result=normalized,
-                    structure_client=structure_client,
-                    post_title=post["post_title"],
-                )
+            normalized = await asyncio.to_thread(normalize_post_body, raw_body)
             normalized_body = normalized.text
             context_hints = await _load_post_semantic_hints(conn, post_id)
             summarize_with_hints = getattr(client, "summarize_with_hints", None)
@@ -2352,7 +2389,7 @@ async def read_post_summary(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
                 ) from exc
-            return await persist_post_summary(
+            payload = await persist_post_summary(
                 conn,
                 post_id,
                 summary,
@@ -2360,6 +2397,28 @@ async def read_post_summary(
                 hierarchy_inference_client=_corporate_hierarchy_inference_client(),
                 verification_client=_relation_verification_client(),
             )
+        content_present = bool(
+            await conn.fetchval(
+                "select exists(select 1 from post_content_unit where post_id = $1)",
+                post_id,
+            )
+        )
+        async with conn.transaction():
+            job = await ensure_post_content_job(
+                conn,
+                post_id,
+                raw_body,
+                content_present=content_present,
+            )
+        if job.should_publish:
+            queue_event = (job.post_id, job.source_body_sha256)
+    if queue_event is not None:
+        await publish_post_content_event(
+            valkey,
+            post_id=queue_event[0],
+            source_body_digest=queue_event[1],
+        )
+    return payload
 
 
 @app.get("/api/posts/{post_id}/five-w1h")
@@ -2414,6 +2473,7 @@ async def chat_about_post(
     request: ChatRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """In-popup chat: answers `request.question` using this post's own
     content plus its Event-Lineage-linked posts (direct and Knowledge-
@@ -2463,6 +2523,13 @@ async def chat_about_post(
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:
         await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
+    await publish_activity_event(
+        valkey,
+        post_id,
+        "chat_answered",
+        account.user_account_id,
+        f"Chat answered: {question}",
+    )
     return {
         "post_id": post_id,
         "answer_text": answer.answer_text,

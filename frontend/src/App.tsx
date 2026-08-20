@@ -1592,6 +1592,10 @@ const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   ticket_created: "Ticket created",
   ticket_status_changed: "Status changed",
   commitment_derived: "Commitment derived",
+  keymen_extracted: "Keymen extracted",
+  relations_verified: "Relations verified",
+  post_evaluated: "Post evaluated",
+  chat_answered: "Chat answered",
 };
 
 function activityTypeLabel(eventType: string): string {
@@ -1730,15 +1734,25 @@ function PostDetailPopup({
     setFocusPerson(null);
     setFocusEntity(null);
     setFocusTeam(null);
+    let disposed = false;
+    let contentPollTimer: number | undefined;
     const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
     fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
         .then((content) => {
+          if (disposed) return;
           setImageContent(content.images);
           setStructureUnits(content.units);
+          if (content.status === "processing" && contentPollTimer === undefined) {
+            contentPollTimer = window.setTimeout(() => {
+              contentPollTimer = undefined;
+              reloadContent();
+            }, 2000);
+          }
         })
         .catch(() => {
+          if (disposed) return;
           setImageContent([]);
           setStructureUnits([]);
         });
@@ -1780,6 +1794,10 @@ function PostDetailPopup({
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
     fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+    return () => {
+      disposed = true;
+      if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
+    };
   }, [postId, accessToken, liveBodyWarning, knowledgeCutoff]);
 
   const permanentLink = (() => {
@@ -4311,7 +4329,7 @@ function CustomerMasterPanel({
     } catch {
       setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
     } finally {
-      setRelatedLoading(null);
+      setRelatedLoading((current) => (current === entityId ? null : current));
     }
   }
 
