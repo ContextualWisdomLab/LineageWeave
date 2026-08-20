@@ -1,11 +1,13 @@
-# MCP and OAuth references
+# MCP, OAuth, CORS, and HTTP-framing references
 
 ## Standards and research traceability
 
 | External source | LineageWeave decision | Evidence |
 |---|---|---|
-| MCP Streamable HTTP transport | Dedicated `/mcp` ASGI resource server | `backend/app/mcp_server.py`; MCP client tests |
+| MCP Streamable HTTP transport | Dedicated `/mcp` ASGI resource server; validate every present Origin before authentication | `backend/app/mcp_server.py`; Host/Origin tests |
 | MCP Authorization | OAuth protected-resource metadata and bearer validation | `AuthSettings`; unauthenticated HTTP test |
+| WHATWG Fetch CORS protocol | Exact configured browser Origins; bounded method/header surface; `Vary: Origin`; preflight before OAuth | `CORSMiddleware`; `tests/test_mcp_cors_preflight.py` |
+| RFC 9112 HTTP/1.1 message framing | Reject ambiguous `Content-Length`, `Content-Length` plus `Transfer-Encoding`, mismatches, and over-limit streams before parsing | `backend/app/mcp_admission.py`; request-admission tests |
 | RFC 8707 resource indicators | Exact `MCP_AUDIENCE` validation | `KeycloakMcpTokenVerifier`; wrong-audience regression |
 | RFC 9728 protected-resource metadata | SDK-generated resource metadata | HTTP `WWW-Authenticate` regression |
 | Codex MCP configuration | URL plus bearer-token environment variable; optional OAuth login | `docs/integrations/MCP.md` |
@@ -21,7 +23,17 @@ require at least one valid cited external HTTP(S) evidence URL; otherwise the
 result is `insufficient_evidence`. This mirrors FEVER's core distinction between
 a claim label and the evidence required to justify Supported/Refuted judgments.
 
+Browser admission is also separate from product authorization. Exact Host and
+Origin validation runs first; bounded request-body admission runs before OAuth
+and SDK JSON parsing; CORS preflight runs without a bearer token; then the
+existing OAuth, database RBAC, and per-source ABAC controls run. An HTTP framing
+rejection grants no identity and consumes no Global Ask invocation.
+
 ## APA 7th references
+
+Fielding, R. T., Nottingham, M., & Reschke, J. (Eds.). (2022). *HTTP/1.1*
+(RFC 9112). Internet Engineering Task Force.
+https://doi.org/10.17487/RFC9112
 
 Jones, M., Bradley, J., & Sakimura, N. (2020). *Resource indicators for OAuth
 2.0* (RFC 8707). Internet Engineering Task Force.
@@ -34,6 +46,9 @@ in Neural Information Processing Systems, 33*, 9459–9474.
 
 Model Context Protocol. (2026). *Authorization*. Linux Foundation.
 https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization
+
+Model Context Protocol. (2026). *Transports: Streamable HTTP*. Linux Foundation.
+https://modelcontextprotocol.io/specification/2025-11-25/basic/transports
 
 OpenAI. (2026). *Model Context Protocol*. OpenAI Developers.
 https://developers.openai.com/codex/mcp/
@@ -48,3 +63,6 @@ the 2018 Conference of the North American Chapter of the Association for
 Computational Linguistics: Human Language Technologies, Volume 1 (Long Papers)*
 (pp. 809–819). Association for Computational Linguistics.
 https://doi.org/10.18653/v1/N18-1074
+
+WHATWG. (2026). *Fetch* (Living Standard).
+https://fetch.spec.whatwg.org/
