@@ -70,6 +70,11 @@ class _PartialRegionVisionClient(_FakeVisionClient):
         return (ImageRegion(0.25, 0.25, 0.25, 0.25),)
 
 
+class _MalformedLocatorVisionClient(_FakeVisionClient):
+    def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
+        return object()  # type: ignore[return-value]
+
+
 def test_plain_text_passes_through_unchanged() -> None:
     result = normalize_post_body("Just a plain business record, no markup here.")
     assert result.text == "Just a plain business record, no markup here."
@@ -190,6 +195,20 @@ def test_partial_region_parent_failure_keeps_successful_panel_evidence() -> None
     assert result.image_results[0].status_code == "described"
     assert result.image_results[0].regions[0].description is not None
     assert result.image_results[0].description is not None
+
+
+def test_non_iterable_locator_result_falls_back_to_parent_evidence() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    description = ImageDescription(extracted_text="parent", caption="whole", tags=())
+
+    result = normalize_post_body(
+        f'<img src="data:image/png;base64,{b64}"/>',
+        vision_client=_MalformedLocatorVisionClient(description),
+    )
+
+    assert result.image_results[0].status_code == "described"
+    assert result.image_results[0].regions == ()
+    assert result.image_results[0].description == description
 
 
 def test_comparison_operators_in_plain_text_are_not_treated_as_html() -> None:

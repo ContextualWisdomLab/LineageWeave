@@ -165,6 +165,10 @@ def _describe_image_chunk(
             regions = locator(chunk.image_data, chunk.label) if callable(locator) else ()
         except Exception:  # noqa: BLE001 - locator failure falls back to whole-image evidence.
             regions = ()
+        try:
+            regions = tuple(regions or ())
+        except Exception:  # noqa: BLE001 - malformed locator output uses parent evidence.
+            regions = ()
         full_image_region = len(regions) == 1 and regions[0] == ImageRegion(0.0, 0.0, 1.0, 1.0)
         partial_regions = bool(regions) and not full_image_region and not regions_cover_image(regions)
         if not regions or full_image_region:
