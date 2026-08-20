@@ -13,7 +13,7 @@ decision from them.
 | [`PROV_O_IMPLEMENTATION.md`](../PROV_O_IMPLEMENTATION.md) | [0065](0065-prov-o-provenance-boundary.md) |
 | [`PROV_O_IMPLEMENTATION_MATRIX.md`](../PROV_O_IMPLEMENTATION_MATRIX.md) | [0065](0065-prov-o-provenance-boundary.md) |
 | [`image-content-schema.md`](../image-content-schema.md) | [0066](0066-position-preserving-image-content.md) |
-| [`LINEAGE_EDGE_EVIDENCE_REFERENCES.md`](../doctoring/LINEAGE_EDGE_EVIDENCE_REFERENCES.md) | [0099](0099-event-lineage-channel-evidence.md) |
+| [`LINEAGE_EDGE_EVIDENCE_REFERENCES.md`](../doctoring/LINEAGE_EDGE_EVIDENCE_REFERENCES.md) | [0100](0100-event-lineage-channel-evidence.md) |
 
 Runtime evidence under `docs/doctoring/` is not converted into an ADR: it
 records observed results for already-decided behavior.
