@@ -40,7 +40,7 @@ _STOP_WORDS = frozenset(
         "인가요",
     }
 )
-_TOKEN = re.compile(r"[0-9A-Za-z가-힣]+(?:-[0-9A-Za-z가-힣]+)*")
+_TOKEN = re.compile(r"[^\W_]+(?:-[^\W_]+)*", re.UNICODE)
 _EVIDENCE_POST_IDS = re.compile(r"\[evidence_post_id=([^]]+)\]")
 
 
