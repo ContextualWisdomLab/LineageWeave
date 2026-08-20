@@ -2802,6 +2802,8 @@ describe("App, authenticated", () => {
     await userEvent.click(calendarButton);
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
   });
 
   it("shows the seeded analysis run on the home page", async () => {

@@ -3092,10 +3092,12 @@ function CalendarPanel({
   accessToken,
   onSelectPost,
   namedNextAction = false,
+  focusEventLineageOnSelect = false,
 }: {
   accessToken: string;
   onSelectPost: (postId: string, options?: SelectPostOptions) => void;
   namedNextAction?: boolean;
+  focusEventLineageOnSelect?: boolean;
 }) {
   const [calendar, setCalendar] = useState<CalendarResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -3156,7 +3158,12 @@ function CalendarPanel({
                 <button
                   className="post-list-item"
                   aria-label={`${t("Open commitment for:")} ${entry.post_title}`}
-                  onClick={() => onSelectPost(entry.post_id, { fromCalendar: true })}
+                  onClick={() =>
+                    onSelectPost(
+                      entry.post_id,
+                      focusEventLineageOnSelect ? { fromCalendar: true } : undefined,
+                    )
+                  }
                 >
                   <span className="ticket-title">
                     {entry.commitment_summary ?? entry.ticket_title}
@@ -4723,6 +4730,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         <CalendarPanel
           accessToken={accessToken}
           namedNextAction
+          focusEventLineageOnSelect
           onSelectPost={(postId) => {
             setPostToOpen(postId);
             setPostOpenFromCalendar(true);
