@@ -133,7 +133,11 @@ def _merge_region_descriptions(descriptions: list[ImageDescription]) -> ImageDes
 
 def _is_bounded_region(region: ImageRegion) -> bool:
     """Accept only finite, positive regions wholly inside the image."""
+    if not isinstance(region, ImageRegion):
+        return False
     values = (region.x, region.y, region.width, region.height)
+    if not all(isinstance(value, (int, float)) for value in values):
+        return False
     return (
         all(math.isfinite(value) for value in values)
         and 0.0 <= region.x <= 1.0
@@ -180,7 +184,11 @@ def _describe_image_chunk(
             regions = locator(chunk.image_data, chunk.label) if callable(locator) else ()
         except Exception:  # noqa: BLE001 - locator failure falls back to whole-image evidence.
             regions = ()
-        regions = tuple(region for region in regions if _is_bounded_region(region))
+        regions = tuple(
+            region
+            for region in (regions or ())
+            if _is_bounded_region(region)
+        )
         partial_regions = bool(regions) and not regions_cover_image(regions)
         if not regions:
             # No usable locator output still needs one parent-image evidence unit.
