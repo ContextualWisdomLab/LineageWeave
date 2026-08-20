@@ -1,7 +1,7 @@
 # Product technical-gap references
 
 These references are the normative basis for the semantic-unit boundary in
-[ADR 0102](../adr/0102-semantic-document-evidence-contract.md). Dates and
+[ADR 0103](../adr/0103-semantic-document-evidence-contract.md). Dates and
 versions are recorded so a later standards refresh can be reviewed rather
 than silently changing parser behavior.
 
