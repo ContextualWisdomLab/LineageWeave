@@ -21,6 +21,7 @@ new claim of its own, it only combines the two.
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass, field
 
@@ -130,6 +131,20 @@ def _merge_region_descriptions(descriptions: list[ImageDescription]) -> ImageDes
     return ImageDescription(extracted_text=extracted_text, caption=captions, tags=tags)
 
 
+def _is_bounded_region(region: ImageRegion) -> bool:
+    """Accept only finite, positive regions wholly inside the image."""
+    values = (region.x, region.y, region.width, region.height)
+    return (
+        all(math.isfinite(value) for value in values)
+        and 0.0 <= region.x <= 1.0
+        and 0.0 <= region.y <= 1.0
+        and 0.0 < region.width <= 1.0
+        and 0.0 < region.height <= 1.0
+        and region.x + region.width <= 1.0
+        and region.y + region.height <= 1.0
+    )
+
+
 def _describe_image_region(
     region_index: int,
     image_bytes: bytes,
@@ -165,6 +180,7 @@ def _describe_image_chunk(
             regions = locator(chunk.image_data, chunk.label) if callable(locator) else ()
         except Exception:  # noqa: BLE001 - locator failure falls back to whole-image evidence.
             regions = ()
+        regions = tuple(region for region in regions if _is_bounded_region(region))
         partial_regions = bool(regions) and not regions_cover_image(regions)
         if not regions:
             # No usable locator output still needs one parent-image evidence unit.
