@@ -14,7 +14,7 @@ prompt is corrected.
 
 ## Decision
 
-At the image-evidence boundary, normalize captions and suppress captions that
+At the image and visual-region evidence boundary, normalize captions and suppress captions that
 match the known internal instruction forms. Apply the same rule when creating
 LLM/embedding placeholders and when rendering the buyer-facing post body.
 Retain the original image, OCR text, tags, region coordinates, and provenance;

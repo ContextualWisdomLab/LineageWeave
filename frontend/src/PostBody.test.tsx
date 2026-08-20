@@ -330,6 +330,19 @@ describe("PostBody", () => {
             extracted_text: "Visible OCR",
             caption: "이 글의 이미지입니다. Keyman을 추출하거나 질문해 이미지 안의 텍스트를 읽으세요.",
             tags: [],
+            regions: [
+              {
+                region_index: 0,
+                x_ratio: 0,
+                y_ratio: 0,
+                width_ratio: 1,
+                height_ratio: 1,
+                status_code: "described",
+                extracted_text: "Region OCR",
+                caption: "This post is an image. Ask questions to read its text.",
+                tags: [],
+              },
+            ],
           },
         ]}
       />,
@@ -337,5 +350,6 @@ describe("PostBody", () => {
 
     expect(screen.queryByText(/이 글의 이미지입니다/)).not.toBeInTheDocument();
     expect(screen.getByText("Visible OCR")).toBeInTheDocument();
+    expect(screen.getByText("Region OCR")).toBeInTheDocument();
   });
 });

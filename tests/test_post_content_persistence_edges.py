@@ -147,7 +147,11 @@ def test_persists_image_tags_formatting_and_embeddings() -> None:
                         0,
                         ImageRegion(0.0, 0.0, 1.0, 1.0),
                         "described",
-                        SimpleNamespace(caption="panel", extracted_text="panel OCR", tags=("panel",)),
+                        SimpleNamespace(
+                            caption="이 글의 이미지입니다. Keyman을 추출하거나 질문해 이미지 안의 텍스트를 읽으세요.",
+                            extracted_text="panel OCR",
+                            tags=("panel",),
+                        ),
                     ),
                 ),
             ),
@@ -167,7 +171,11 @@ def test_persists_image_tags_formatting_and_embeddings() -> None:
 
     assert count == len(chunks)
     assert embedder.async_calls == 1
-    assert "[image: panel | text: panel OCR]" in embedder.texts
+    assert "[image: no caption available | text: panel OCR]" in embedder.texts
+    assert any(
+        "post_content_image_region" in query and args[-1] is None
+        for query, args in conn.fetchvals
+    )
     assert any("post_content_image" in query for query, _args in conn.fetchvals)
     assert sum("post_content_image_tag" in query for query, _args in conn.executed) == 2
     assert any("post_content_image_region_embedding" in query for query, _args in conn.fetchvals)

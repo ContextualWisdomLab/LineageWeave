@@ -81,7 +81,9 @@ function renderImageEvidence(
           <ol>
             {imageContent.regions.map((region) => (
               <li key={region.region_index}>
-                <span>{region.caption || region.extracted_text || t("Unknown")}</span>
+                <span>
+                  {buyerSafeImageCaption(region.caption) || region.extracted_text || t("Unknown")}
+                </span>
                 {region.tags.length ? (
                   <small>
                     {t("Image tags")}: {region.tags.join(", ")}
