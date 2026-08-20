@@ -1,11 +1,11 @@
-# ADR 0071: Opening a Weekly VOC post focuses Event Lineage
+# ADR 0093: Opening a Weekly VOC post focuses Event Lineage
 
 - Status: Accepted
 - Date: 2026-08-19
 
 ## Context
 
-ADR 0070 names Weekly VOC as an ISO-week list filter and tells the buyer to
+ADR 0092 names Weekly VOC as an ISO-week list filter and tells the buyer to
 open a post to read Event Lineage. Report-member opens already focus the
 popup Event Lineage heading. A home-list open must not steal that focus or
 add that next-action copy.

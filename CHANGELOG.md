@@ -11,7 +11,7 @@ All notable changes to this project are documented here. Format follows
 - Opening a Voice of Customer post from an active Weekly VOC filter now
   focuses Event Lineage and names Keyman and evaluation as the next read.
   Home-list opens do not add that focus or copy. No TEPP theta is
-  invented. No cutoff body is invented (ADR 0071 / ADR 0016).
+  invented. No cutoff body is invented (ADR 0093 / ADR 0016).
 
 ## [2.12.0] - 2026-08-19
 
@@ -21,7 +21,7 @@ All notable changes to this project are documented here. Format follows
   keeps Voice of Customer posts for the latest week present in the loaded
   list (UTC Thursday rule) and tells the buyer to open a post to read
   Event Lineage. Reset filters returns every VOC type and every week.
-  No TEPP theta is invented (ADR 0070).
+  No TEPP theta is invented (ADR 0092).
 
 ## [2.10.0] - 2026-08-18
 
