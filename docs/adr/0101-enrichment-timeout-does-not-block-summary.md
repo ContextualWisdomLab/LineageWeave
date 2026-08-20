@@ -47,4 +47,4 @@ post.
 
 - [ADR 0010](0010-corporate-hierarchy-auto-creation.md)
 - [ADR 0026](0026-tied-organization-similarity.md)
-- [ADR 0100](0100-major-event-requester-processor.md)
+- [ADR 0102](0102-major-event-requester-processor.md)
