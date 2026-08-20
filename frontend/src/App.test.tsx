@@ -1844,6 +1844,30 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
   });
 
+  it("does not scroll Calendar users away from Event Lineage when related evidence lands", async () => {
+    const scrolledIds: string[] = [];
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = function () {
+      scrolledIds.push(this.id);
+    };
+    try {
+      stubBackend();
+      render(<App />);
+
+      await userEvent.click(await screen.findByRole("button", { name: "Calendar" }));
+      const calendar = await screen.findByRole("region", { name: "Calendar" });
+      await userEvent.click(
+        within(calendar).getByRole("button", { name: "Open commitment for: Public post" }),
+      );
+
+      await screen.findByRole("status", { name: "Ask next action" });
+      expect(document.getElementById("post-event-lineage")).toHaveFocus();
+      expect(scrolledIds).not.toContain("post-ask");
+    } finally {
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    }
+  });
+
   it("opening a Calendar commitment focuses Event Lineage; a home list open does not", async () => {
     stubBackend();
     render(<App />);
