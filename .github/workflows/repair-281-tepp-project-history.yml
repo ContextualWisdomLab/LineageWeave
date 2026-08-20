@@ -5,7 +5,7 @@ on:
     branches: [feat/tepp-project-history-buyer-surface-v2180]
   pull_request:
     branches: [feat/event-lineage-node-keeps-gnb-focus-v2170]
-    types: [synchronize]
+    types: [synchronize, edited]
   workflow_dispatch:
 
 permissions:
