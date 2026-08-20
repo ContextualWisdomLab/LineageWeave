@@ -35,8 +35,9 @@ async def load_global_ask_content_blocks(
     conn: Any,
     answer_text: str,
     cited_post_ids: Sequence[str],
+    visible_corporate_entity_ids: Sequence[str] = (),
 ) -> tuple[GlobalAskContentBlock, ...]:
-    """Return answer text plus bounded raster images from cited source posts."""
+    """Return answer text and images from citations still visible to the caller."""
     blocks: list[GlobalAskContentBlock] = [
         GlobalAskContentBlock(type="text", text=answer_text)
     ]
@@ -58,9 +59,14 @@ async def load_global_ask_content_blocks(
         select post_id, post_title, post_body
           from source_post
          where post_id = any($1::uuid[])
+           and (
+                 visibility_code = 'public'
+                 or corporate_entity_id = any($2::uuid[])
+               )
          order by array_position($1::uuid[], post_id)
         """,
         ordered_ids,
+        list(visible_corporate_entity_ids),
     )
     total_bytes = 0
     image_count = 0

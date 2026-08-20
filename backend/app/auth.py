@@ -11,6 +11,7 @@ allowlist) so a mis-set KEYCLOAK_BASE_URL cannot become a file-scheme read.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from dataclasses import dataclass
 from typing import Any
@@ -46,6 +47,11 @@ def _jwks(settings: Settings) -> dict[str, Any]:
             ) from exc
         if not isinstance(payload, dict):
             raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "issuer JWKS is not an object")
+        if not isinstance(payload.get("keys"), list):
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "issuer JWKS keys is not an array",
+            )
         cached = payload
         _jwks_cache[settings.keycloak_jwks_uri] = cached
     return cached
@@ -108,7 +114,7 @@ def decode_access_token(
             algorithms=["RS256"],
             issuer=settings.keycloak_issuer,
             audience=audience,
-            options={"verify_aud": audience is not None},
+            options={"verify_aud": audience is not None, "require": ["exp"]},
         )
     except HTTPException:
         raise
@@ -179,7 +185,7 @@ async def get_current_account(
 ) -> CurrentAccount:
     """Resolve the REST bearer token to a provisioned ``user_account`` row."""
     settings = load_settings()
-    claims = _decode_access_token(credentials.credentials, settings)
+    claims = await asyncio.to_thread(_decode_access_token, credentials.credentials, settings)
     subject = claims.get("sub")
     if not isinstance(subject, str):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "token has no subject")
