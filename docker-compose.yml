@@ -144,7 +144,7 @@ services:
 
   mcp:
     # Dedicated Streamable HTTP process: same image and domain contracts as
-    # the REST backend, but no UI CORS surface and no inbound-token forwarding.
+    # the REST backend, with a distributed principal quota in shared Valkey.
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -160,6 +160,10 @@ services:
       MCP_REQUIRED_SCOPES: ${MCP_REQUIRED_SCOPES:-}
       MCP_ALLOWED_HOSTS: localhost:${MCP_PORT:-18001},127.0.0.1:${MCP_PORT:-18001},mcp:8001
       MCP_ALLOWED_ORIGINS: ${MCP_ALLOWED_ORIGINS:-}
+      VALKEY_URL: redis://valkey:6379/0
+      MCP_GLOBAL_ASK_RATE_LIMIT: ${MCP_GLOBAL_ASK_RATE_LIMIT:-20}
+      MCP_GLOBAL_ASK_RATE_WINDOW_SECONDS: ${MCP_GLOBAL_ASK_RATE_WINDOW_SECONDS:-60}
+      MCP_RATE_LIMIT_UNAVAILABLE_RETRY_SECONDS: ${MCP_RATE_LIMIT_UNAVAILABLE_RETRY_SECONDS:-5}
       LLM_GATEWAY_URL: ${LLM_GATEWAY_URL:-}
       LLM_GATEWAY_API_URL: ${LLM_GATEWAY_API_URL:-}
       LLM_GATEWAY_API_KEY: ${LLM_GATEWAY_API_KEY:-}
@@ -176,6 +180,8 @@ services:
         condition: service_started
       keycloak_mcp_audience:
         condition: service_completed_successfully
+      valkey:
+        condition: service_healthy
       searxng:
         condition: service_healthy
 
