@@ -1,4 +1,5 @@
 import { config } from "./config";
+import type { ProjectHistoryProjection } from "./projectHistory";
 
 export interface PostSummary {
   post_id: string;
@@ -276,9 +277,8 @@ export interface TeppProjectHistoryEvent {
   event_id: string;
   event_type_code: string;
   event_title: string;
-  event_time: string;
+  occurred_at: string;
   available_at: string;
-  availability_basis: string;
   source_post_id: string;
   evidence_text: string;
   actor_ids: string[];
@@ -296,6 +296,7 @@ export interface TeppProjectHistory {
   project_key: string;
   project_name: string;
   focus_event_id: string;
+  knowledge_cutoff: string;
   inference_status: "temporal_association_only";
   participant_count: number;
   history_span_start: string;
@@ -342,7 +343,24 @@ export interface AskAgentResponse {
   timeline?: AskTimelineEntry[];
   tepp_project_history?: TeppProjectHistory | null;
   tepp_project_history_status?: string;
+  external_verification_status: string;
+  external_claims: ExternalClaim[];
   next_action?: string;
+}
+
+export interface ExternalClaimEvidence {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
+export interface ExternalClaim {
+  claim_text: string;
+  claim_kind: string;
+  status_code: string;
+  rationale: string;
+  source_post_ids: string[];
+  evidence: ExternalClaimEvidence[];
 }
 
 export interface AskTimelineEntry {
@@ -902,6 +920,19 @@ export function fetchPostLineage(accessToken: string, postId: string): Promise<P
   return backendFetch(`/api/posts/${postId}/lineage`, accessToken);
 }
 
+export function fetchProjectHistory(
+  accessToken: string,
+  options: { projectKey: string; focusPostId: string; knowledgeCutoff?: string },
+): Promise<ProjectHistoryProjection> {
+  const params = new URLSearchParams();
+  params.set("project_key", options.projectKey);
+  params.set("focus_post_id", options.focusPostId);
+  if (options.knowledgeCutoff) {
+    params.set("knowledge_cutoff", options.knowledgeCutoff);
+  }
+  return backendFetch(`/api/project-history?${params.toString()}`, accessToken);
+}
+
 export function fetchPostChat(accessToken: string, postId: string): Promise<ChatHistory> {
   return backendFetch(`/api/posts/${postId}/chat`, accessToken);
 }
@@ -923,11 +954,22 @@ export function fetchPostProjectHistory(
 export function askAgent(
   accessToken: string,
   question: string,
+  verifyExternalOrSessionId: boolean | string = false,
   sessionId?: string,
 ): Promise<AskAgentResponse> {
+  const verifyExternal = typeof verifyExternalOrSessionId === "boolean"
+    ? verifyExternalOrSessionId
+    : undefined;
+  const existingSessionId = typeof verifyExternalOrSessionId === "string"
+    ? verifyExternalOrSessionId
+    : sessionId;
   return backendFetch("/api/ask", accessToken, {
     method: "POST",
-    body: JSON.stringify({ question, ...(sessionId ? { session_id: sessionId } : {}) }),
+    body: JSON.stringify({
+      question,
+      ...(verifyExternal !== undefined ? { verify_external: verifyExternal } : {}),
+      ...(existingSessionId ? { session_id: existingSessionId } : {}),
+    }),
   });
 }
 

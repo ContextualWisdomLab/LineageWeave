@@ -140,9 +140,8 @@ def build_project_history_request(
                     row.get("source_stage_code"), row.get("voc_type_code")
                 ),
                 event_title=title,
-                event_time=_utc_text(created_at),
+                occurred_at=_utc_text(created_at),
                 available_at=_utc_text(created_at),
-                availability_basis="source_post.created_at",
                 source_post_id=post_id,
                 evidence_text=_evidence_excerpt(row),
                 actor_ids=actor_ids,
@@ -150,7 +149,7 @@ def build_project_history_request(
         )
     if not events or focus_post_id not in {event.event_id for event in events}:
         return None
-    events.sort(key=lambda event: (event.event_time, event.event_id))
+    events.sort(key=lambda event: (event.occurred_at, event.event_id))
     key = idempotency_key or _idempotency_key(
         tenant_workspace_id=tenant_workspace_id,
         project_key=project_key,

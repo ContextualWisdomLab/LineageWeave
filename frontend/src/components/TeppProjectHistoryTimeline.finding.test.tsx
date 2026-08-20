@@ -3,13 +3,14 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { setLocale } from "../i18n";
 import type { TeppProjectHistory } from "../api";
-import { ProjectHistoryTimeline } from "./ProjectHistoryTimeline";
+import { TeppProjectHistoryTimeline } from "./TeppProjectHistoryTimeline";
 
 const history: TeppProjectHistory = {
   contract_version: 1,
   project_key: "project-alpha",
   project_name: "Project Alpha",
   focus_event_id: "event-voc",
+  knowledge_cutoff: "2026-08-19T00:00:00Z",
   inference_status: "temporal_association_only",
   participant_count: 2,
   history_span_start: "2023-06-01T00:00:00Z",
@@ -19,9 +20,8 @@ const history: TeppProjectHistory = {
       event_id: "event-spec",
       event_type_code: "specification_changed",
       event_title: "Specification changed",
-      event_time: "2023-06-01T00:00:00Z",
+      occurred_at: "2023-06-01T00:00:00Z",
       available_at: "2023-06-01T00:00:00Z",
-      availability_basis: "source_post.created_at",
       source_post_id: "post-spec",
       evidence_text: "The specification changed.",
       actor_ids: ["actor-engineering"],
@@ -30,9 +30,8 @@ const history: TeppProjectHistory = {
       event_id: "event-voc",
       event_type_code: "voc_received",
       event_title: "VOC received",
-      event_time: "2026-06-01T00:00:00Z",
+      occurred_at: "2026-06-01T00:00:00Z",
       available_at: "2026-06-01T00:00:00Z",
-      availability_basis: "source_post.created_at",
       source_post_id: "post-voc",
       evidence_text: "A customer VOC was registered.",
       actor_ids: ["actor-engineering", "actor-customer"],
@@ -51,10 +50,10 @@ const history: TeppProjectHistory = {
 
 afterEach(() => setLocale("en"));
 
-describe("ProjectHistoryTimeline finding copy", () => {
+describe("TeppProjectHistoryTimeline finding copy", () => {
   it("renders a Korean non-causal explanation from the versioned finding code", () => {
     setLocale("ko");
-    render(<ProjectHistoryTimeline history={history} onOpenPost={() => undefined} />);
+    render(<TeppProjectHistoryTimeline history={history} onOpenPost={() => undefined} />);
 
     expect(
       screen.getByText(

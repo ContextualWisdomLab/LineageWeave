@@ -1,170 +1,292 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 
+import { useLocale } from "../i18n";
 import {
-  fetchPostProjectHistory,
-  type TeppProjectHistory,
-  type TeppProjectHistoryEnvelope,
-} from "../api";
-import { t, tf, useLocale } from "../i18n";
+  type ProjectHistoryEvent,
+  type ProjectHistoryProjection,
+  projectHistoryEventTypeLabel,
+  projectHistoryText,
+  projectHistoryTransitionLabel,
+} from "../projectHistory";
 import "./ProjectHistoryTimeline.css";
 
-const EVENT_LABELS: Record<string, string> = {
-  contract_awarded: "Contract award",
-  specification_changed: "Specification change",
-  delivered: "Delivery",
-  operational_handoff: "Operational handoff",
-  voc_received: "VOC event",
-  rebid_started: "Rebid started",
-  event_observed: "Project event",
-};
+function formatDate(value: string): string {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.valueOf()) ? value : parsed.toISOString().slice(0, 10);
+}
 
-const FINDING_SUMMARY_KEYS: Record<string, string> = {
-  contract_award_before_focus:
-    "An explicit contract-award event precedes the focus event. This is a temporal association, not a causal conclusion.",
-  specification_change_before_focus:
-    "An explicit specification-change event precedes the focus event. This is a temporal association, not a causal conclusion.",
-};
-
-function dateLabel(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.valueOf())) return value;
-  const year = String(date.getUTCFullYear()).slice(-2);
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  return `'${year}.${month}`;
+function minimumPathScore(event: ProjectHistoryEvent): number | null {
+  if (event.related_prior_paths.length === 0) return null;
+  return Math.min(...event.related_prior_paths.map((path) => path.minimum_fused_score));
 }
 
 export function ProjectHistoryTimeline({
-  history,
+  projection,
   onOpenPost,
 }: {
-  history: TeppProjectHistory;
+  projection: ProjectHistoryProjection;
   onOpenPost: (postId: string) => void;
 }) {
-  useLocale();
-  const finding = history.findings[0];
-  const focusEvent = history.events.find((event) => event.event_id === history.focus_event_id);
-  const listStyle = {
-    "--tepp-event-count": Math.max(1, history.events.length),
-  } as CSSProperties;
+  const locale = useLocale();
+  const initialEvent =
+    projection.events.find((event) => event.event_id === projection.focus_event_id) ??
+    projection.events[0];
+  const [selectedEventId, setSelectedEventId] = useState(initialEvent?.event_id ?? "");
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const eventById = new Map(projection.events.map((event) => [event.event_id, event]));
+  const selectedEvent = eventById.get(selectedEventId) ?? initialEvent;
+
+  function selectAt(index: number) {
+    const bounded = Math.max(0, Math.min(index, projection.events.length - 1));
+    const event = projection.events[bounded];
+    if (!event) return;
+    setSelectedEventId(event.event_id);
+    tabRefs.current[bounded]?.focus();
+  }
+
+  function handleTabKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    let target: number | null = null;
+    switch (event.key) {
+      case "ArrowLeft":
+      case "ArrowUp":
+        target = index === 0 ? projection.events.length - 1 : index - 1;
+        break;
+      case "ArrowRight":
+      case "ArrowDown":
+        target = index === projection.events.length - 1 ? 0 : index + 1;
+        break;
+      case "Home":
+        target = 0;
+        break;
+      case "End":
+        target = projection.events.length - 1;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    selectAt(target);
+  }
+
+  const selectedPanelId = `project-history-panel-${projection.normalized_project_key.replace(/[^a-z0-9_-]+/g, "-")}`;
 
   return (
-    <section className="tepp-project-history" role="region" aria-label={t("TEPP project history")}>
-      <div className="tepp-project-history__header">
+    <section className="project-history" aria-labelledby={`${selectedPanelId}-heading`}>
+      <header className="project-history-header">
         <div>
-          <p className="section-eyebrow">{t("TEPP-connected answer")}</p>
-          <h3>{t("Project event timeline")}</h3>
-          <p>
-            {tf("Connect explicit events for {project} in chronological order within the knowledge cutoff.", {
-              project: history.project_name,
-            })}
-          </p>
+          <p className="section-eyebrow">{projection.project_name}</p>
+          <h3 id={`${selectedPanelId}-heading`}>{projectHistoryText(locale, "heading")}</h3>
         </div>
-        <span className="post-badge">TEPP · v{history.contract_version}</span>
-      </div>
+        <p className="project-history-counts">
+          {projectHistoryText(locale, "summaryCounts", {
+            events: projection.event_count,
+            actors: projection.distinct_observed_actor_count,
+          })}
+        </p>
+      </header>
 
-      <ol className="tepp-project-history__timeline" style={listStyle}>
-        {history.events.map((event) => {
-          const focused = event.event_id === history.focus_event_id;
+      <p className="project-history-time-basis">{projectHistoryText(locale, "documentTime")}</p>
+      {projection.truncated ? (
+        <p className="project-history-warning" role="status">
+          {projectHistoryText(locale, "truncated")}
+        </p>
+      ) : null}
+
+      <div
+        className="project-history-tabs"
+        role="tablist"
+        aria-label={projectHistoryText(locale, "heading")}
+        aria-orientation="horizontal"
+      >
+        {projection.events.map((event, index) => {
+          const selected = event.event_id === selectedEvent?.event_id;
+          const current = event.event_id === projection.focus_event_id;
           return (
-            <li
+            <button
               key={event.event_id}
-              className={focused ? "tepp-project-history__event is-focus" : "tepp-project-history__event"}
+              ref={(node: HTMLButtonElement | null) => {
+                tabRefs.current[index] = node;
+              }}
+              type="button"
+              role="tab"
+              className={current ? "project-history-tab project-history-tab-current" : "project-history-tab"}
+              aria-selected={selected}
+              aria-current={current ? "step" : undefined}
+              aria-controls={selectedPanelId}
+              tabIndex={selected ? 0 : -1}
+              onClick={() => setSelectedEventId(event.event_id)}
+              onKeyDown={(keyboardEvent: KeyboardEvent<HTMLButtonElement>) =>
+                handleTabKey(keyboardEvent, index)
+              }
             >
-              <time dateTime={event.event_time}>{dateLabel(event.event_time)}</time>
-              <button
-                type="button"
-                aria-label={`Open evidence: ${event.event_title}`}
-                aria-current={focused ? "step" : undefined}
-                onClick={() => onOpenPost(event.source_post_id)}
-              >
-                <span className="tepp-project-history__dot" aria-hidden="true" />
-                <strong>{t(EVENT_LABELS[event.event_type_code] ?? event.event_type_code)}</strong>
-                <span>{event.event_title}</span>
-              </button>
-            </li>
+              <span className="project-history-marker" aria-hidden="true" />
+              <time dateTime={event.occurred_at}>{formatDate(event.occurred_at)}</time>
+              <strong>{event.event_title}</strong>
+              <span>{projectHistoryEventTypeLabel(locale, event.event_type_code)}</span>
+            </button>
           );
         })}
-      </ol>
-
-      <div className="tepp-project-history__detail">
-        <h4>{t("Event details")}</h4>
-        <p>
-          {t("Current event:")} {" "}
-          <strong>
-            {focusEvent
-              ? t(EVENT_LABELS[focusEvent.event_type_code] ?? focusEvent.event_title)
-              : t("Unknown")}
-          </strong>
-          {" · "}
-          {t("Participant history:")} {" "}
-          {history.participant_count} {t("participants")}
-        </p>
-        {finding ? (
-          <p>
-            <strong>{t("TEPP finding:")}</strong>{" "}
-            {t(FINDING_SUMMARY_KEYS[finding.finding_code] ?? finding.summary)}
-          </p>
-        ) : (
-          <p>
-            <strong>{t("TEPP finding:")}</strong>{" "}
-            {t("Explicit events were ordered chronologically. No causal conclusion is generated.")}
-          </p>
-        )}
       </div>
 
-      <p className="tepp-project-history__boundary">
-        {t("TEPP explains temporal associations only. It does not generate missing events, participants, causal relationships, or psychometric scores.")}
-      </p>
+      {selectedEvent ? (
+        <div
+          id={selectedPanelId}
+          className="project-history-detail"
+          role="tabpanel"
+          aria-label={`${projectHistoryText(locale, "eventDetail")}: ${selectedEvent.event_title}`}
+        >
+          <div className="project-history-detail-heading">
+            <div>
+              <p className="section-eyebrow">{projectHistoryText(locale, "eventDetail")}</p>
+              <h4>{selectedEvent.event_title}</h4>
+            </div>
+            <button
+              type="button"
+              onClick={() => onOpenPost(selectedEvent.source_post_id)}
+              aria-label={projectHistoryText(locale, "openSourceRecord", {
+                title: selectedEvent.event_title,
+              })}
+            >
+              {projectHistoryText(locale, "openSourceRecord", {
+                title: selectedEvent.event_title,
+              })}
+            </button>
+          </div>
+
+          <dl className="project-history-facts">
+            <div>
+              <dt>{projectHistoryText(locale, "eventDate")}</dt>
+              <dd>{formatDate(selectedEvent.occurred_at)}</dd>
+            </div>
+            <div>
+              <dt>{projectHistoryText(locale, "eventType")}</dt>
+              <dd>{projectHistoryEventTypeLabel(locale, selectedEvent.event_type_code)}</dd>
+            </div>
+            {selectedEvent.responsibility_transition_code ? (
+              <div>
+                <dt>{projectHistoryText(locale, "columnTransition")}</dt>
+                <dd
+                  className={`project-history-transition project-history-transition-${selectedEvent.responsibility_transition_code}`}
+                >
+                  {projectHistoryTransitionLabel(
+                    locale,
+                    selectedEvent.responsibility_transition_code,
+                  )}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+
+          <section aria-labelledby={`${selectedPanelId}-responsibilities`}>
+            <h5 id={`${selectedPanelId}-responsibilities`}>
+              {projectHistoryText(locale, "responsibilityEvidence")}
+            </h5>
+            {selectedEvent.observed_responsibilities.length > 0 ? (
+              <ul className="project-history-responsibilities">
+                {selectedEvent.observed_responsibilities.map((responsibility) => (
+                  <li key={`${responsibility.actor_key}:${responsibility.responsibility}`}>
+                    <strong>{responsibility.actor_name}</strong>
+                    {responsibility.affiliated_organization_name
+                      ? ` · ${responsibility.affiliated_organization_name}`
+                      : ""}
+                    <span>{responsibility.responsibility}</span>
+                    <span className="project-history-truth">
+                      {projectHistoryText(locale, "observed")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>{projectHistoryText(locale, "noResponsibilityEvidence")}</p>
+            )}
+          </section>
+
+          <section aria-labelledby={`${selectedPanelId}-paths`}>
+            <h5 id={`${selectedPanelId}-paths`}>{projectHistoryText(locale, "priorHistory")}</h5>
+            {selectedEvent.related_prior_paths.length > 0 ? (
+              <ul className="project-history-paths">
+                {selectedEvent.related_prior_paths.map((path) => (
+                  <li key={`${path.source_event_id}:${path.target_event_id}`}>
+                    <p>
+                      {path.event_ids
+                        .map((eventId) => eventById.get(eventId)?.event_title ?? eventId)
+                        .join(" → ")}
+                    </p>
+                    <span>{path.minimum_fused_score.toFixed(3)}</span>
+                    <span className="project-history-truth">
+                      {projectHistoryText(locale, "inferred")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>{projectHistoryText(locale, "noPriorHistory")}</p>
+            )}
+            <p className="project-history-boundary">
+              {projectHistoryText(locale, "inferredBoundary")}
+            </p>
+          </section>
+
+          {selectedEvent.project_matches.length > 0 ? (
+            <section aria-labelledby={`${selectedPanelId}-project-evidence`}>
+              <h5 id={`${selectedPanelId}-project-evidence`}>
+                {projectHistoryText(locale, "projectEvidence")}
+              </h5>
+              <ul>
+                {selectedEvent.project_matches.map((match) => (
+                  <li key={`${match.match_kind_code}:${match.matched_value}:${match.provenance}`}>
+                    <strong>{match.matched_value}</strong> · {match.provenance} ·{" "}
+                    {projectHistoryText(locale, match.truth_status_code)}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </div>
+      ) : null}
+
+      <details className="project-history-exact-values">
+        <summary>{projectHistoryText(locale, "exactValues")}</summary>
+        <div className="project-history-table-scroll">
+          <table aria-label={projectHistoryText(locale, "exactTableLabel")}>
+            <thead>
+              <tr>
+                <th scope="col">{projectHistoryText(locale, "columnDate")}</th>
+                <th scope="col">{projectHistoryText(locale, "columnEvent")}</th>
+                <th scope="col">{projectHistoryText(locale, "columnType")}</th>
+                <th scope="col">{projectHistoryText(locale, "columnTransition")}</th>
+                <th scope="col">{projectHistoryText(locale, "columnActors")}</th>
+                <th scope="col">{projectHistoryText(locale, "columnPathScore")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {projection.events.map((event) => {
+                const pathScore = minimumPathScore(event);
+                return (
+                  <tr key={`exact:${event.event_id}`}>
+                    <td>{formatDate(event.occurred_at)}</td>
+                    <th scope="row">{event.event_title}</th>
+                    <td>{projectHistoryEventTypeLabel(locale, event.event_type_code)}</td>
+                    <td>
+                      {projectHistoryTransitionLabel(locale, event.responsibility_transition_code)}
+                    </td>
+                    <td>
+                      {event.observed_responsibilities.length > 0
+                        ? event.observed_responsibilities.map((row) => row.actor_name).join(", ")
+                        : projectHistoryText(locale, "notApplicable")}
+                    </td>
+                    <td>
+                      {pathScore === null
+                        ? projectHistoryText(locale, "notApplicable")
+                        : pathScore.toFixed(3)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </details>
     </section>
   );
-}
-
-export function PostProjectHistory({
-  accessToken,
-  postId,
-  onOpenPost,
-}: {
-  accessToken: string;
-  postId: string;
-  onOpenPost: (postId: string) => void;
-}) {
-  useLocale();
-  const [envelope, setEnvelope] = useState<TeppProjectHistoryEnvelope | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setEnvelope(null);
-    fetchPostProjectHistory(accessToken, postId)
-      .then((result) => {
-        if (!cancelled) setEnvelope(result);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setEnvelope({
-            status: "tepp_unavailable",
-            project_history: null,
-            next_action: "TEPP project history is unavailable.",
-          });
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken, postId]);
-
-  if (envelope === null) {
-    return <p className="popup-placeholder">{t("Loading TEPP project history.")}</p>;
-  }
-  if (!envelope.project_history) {
-    return (
-      <section
-        className="popup-section tepp-project-history-status"
-        aria-label={t("TEPP project history status")}
-      >
-        <h3>{t("Project event timeline")}</h3>
-        <p>{envelope.next_action}</p>
-      </section>
-    );
-  }
-  return <ProjectHistoryTimeline history={envelope.project_history} onOpenPost={onOpenPost} />;
 }

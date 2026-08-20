@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { setLocale } from "../i18n";
-import { ProjectHistoryTimeline } from "./ProjectHistoryTimeline";
+import { TeppProjectHistoryTimeline } from "./TeppProjectHistoryTimeline";
 import type { TeppProjectHistory } from "../api";
 
 const history: TeppProjectHistory = {
@@ -10,6 +10,7 @@ const history: TeppProjectHistory = {
   project_key: "project-alpha",
   project_name: "Project Alpha",
   focus_event_id: "event-voc",
+  knowledge_cutoff: "2026-08-19T00:00:00Z",
   inference_status: "temporal_association_only",
   participant_count: 2,
   history_span_start: "2022-03-01T00:00:00Z",
@@ -19,9 +20,8 @@ const history: TeppProjectHistory = {
       event_id: "event-contract",
       event_type_code: "contract_awarded",
       event_title: "Contract awarded",
-      event_time: "2022-03-01T00:00:00Z",
+      occurred_at: "2022-03-01T00:00:00Z",
       available_at: "2022-03-01T00:00:00Z",
-      availability_basis: "source_post.created_at",
       source_post_id: "post-contract",
       evidence_text: "The order was awarded.",
       actor_ids: ["actor-sales"],
@@ -30,9 +30,8 @@ const history: TeppProjectHistory = {
       event_id: "event-voc",
       event_type_code: "voc_received",
       event_title: "VOC received",
-      event_time: "2026-06-01T00:00:00Z",
+      occurred_at: "2026-06-01T00:00:00Z",
       available_at: "2026-06-01T00:00:00Z",
-      availability_basis: "source_post.created_at",
       source_post_id: "post-voc",
       evidence_text: "A customer VOC was registered.",
       actor_ids: ["actor-sales", "actor-customer"],
@@ -51,10 +50,10 @@ const history: TeppProjectHistory = {
 
 afterEach(() => setLocale("en"));
 
-describe("ProjectHistoryTimeline localization", () => {
+describe("TeppProjectHistoryTimeline localization", () => {
   it("renders English Buyer copy and event labels under the English locale", () => {
     setLocale("en");
-    render(<ProjectHistoryTimeline history={history} onOpenPost={() => undefined} />);
+    render(<TeppProjectHistoryTimeline history={history} onOpenPost={() => undefined} />);
 
     expect(screen.getByText("TEPP-connected answer")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Project event timeline" })).toBeInTheDocument();
@@ -66,7 +65,7 @@ describe("ProjectHistoryTimeline localization", () => {
 
   it("renders Korean Buyer copy and event labels under the Korean locale", () => {
     setLocale("ko");
-    render(<ProjectHistoryTimeline history={history} onOpenPost={() => undefined} />);
+    render(<TeppProjectHistoryTimeline history={history} onOpenPost={() => undefined} />);
 
     expect(screen.getByText("TEPP 연계 응답")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "프로젝트 이벤트 타임라인" })).toBeInTheDocument();

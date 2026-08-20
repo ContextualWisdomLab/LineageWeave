@@ -30,9 +30,8 @@ def _request() -> ProjectHistoryRequest:
                 event_id="event-contract",
                 event_type_code="contract_awarded",
                 event_title="Contract awarded",
-                event_time="2022-03-01T00:00:00Z",
+                occurred_at="2022-03-01T00:00:00Z",
                 available_at="2022-03-01T00:00:00Z",
-                availability_basis="source_post.created_at",
                 source_post_id="post-contract",
                 evidence_text="The order was awarded.",
                 actor_ids=("actor-sales",),
@@ -41,9 +40,8 @@ def _request() -> ProjectHistoryRequest:
                 event_id="event-voc",
                 event_type_code="voc_received",
                 event_title="VOC received",
-                event_time="2026-06-01T00:00:00Z",
+                occurred_at="2026-06-01T00:00:00Z",
                 available_at="2026-06-01T00:00:00Z",
-                availability_basis="source_post.created_at",
                 source_post_id="post-voc",
                 evidence_text="A customer VOC was registered.",
                 actor_ids=("actor-sales", "actor-operations", "actor-customer"),
@@ -59,6 +57,7 @@ def _projection_payload() -> dict[str, object]:
         "project_key": request.project_key,
         "project_name": request.project_name,
         "focus_event_id": request.focus_event_id,
+        "knowledge_cutoff": request.knowledge_cutoff,
         "inference_status": TEMPORAL_ASSOCIATION_ONLY,
         "participant_count": 3,
         "history_span_start": "2022-03-01T00:00:00Z",
@@ -126,6 +125,15 @@ def test_project_history_client_refuses_causal_or_out_of_bundle_results() -> Non
     client = TeppProjectHistoryClient(
         "https://tepp.example.test",
         transport=lambda *_: causal,
+    )
+    with pytest.raises(TeppProjectHistoryUnavailable):
+        client.project(_request())
+
+    changed_cutoff = _projection_payload()
+    changed_cutoff["knowledge_cutoff"] = "2026-08-18T00:00:00Z"
+    client = TeppProjectHistoryClient(
+        "https://tepp.example.test",
+        transport=lambda *_: changed_cutoff,
     )
     with pytest.raises(TeppProjectHistoryUnavailable):
         client.project(_request())

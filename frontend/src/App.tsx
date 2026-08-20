@@ -88,7 +88,10 @@ import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
-import { PostProjectHistory, ProjectHistoryTimeline } from "./components/ProjectHistoryTimeline";
+import {
+  PostProjectHistory,
+  TeppProjectHistoryTimeline,
+} from "./components/TeppProjectHistoryTimeline";
 import { subgraphForPost } from "./lineageLayout";
 import {
   isSupportedLocale,
@@ -976,7 +979,9 @@ function KeymanPanel({
       return;
     }
     const heading = document.getElementById("post-ask");
-    heading?.focus();
+    if (landOnAsk) {
+      heading?.focus();
+    }
     heading?.scrollIntoView?.({ block: "nearest" });
   }, [landFirstRelated, landedRelatedName, landedRelated, landOnAsk]);
 
@@ -1162,7 +1167,7 @@ function KeymanPanel({
     <>
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>{t("Keymen")}</h3>
+        <h3 id="post-keyman" tabIndex={-1}>{t("Keymen")}</h3>
         {canExtract && !orchestratorOff && (
           <details className="operator-action-tools">
             <summary>{t("Evidence operations")}</summary>
@@ -1676,7 +1681,8 @@ function PostDetailPopup({
   liveBodyWarning,
   knowledgeCutoff,
   focusEventLineage,
-  focusAskOnLand,
+  focusKeyman,
+  fromReportMember,
   onClose,
   onSelectPost,
   onSearch,
@@ -1688,7 +1694,8 @@ function PostDetailPopup({
   liveBodyWarning?: string | null;
   knowledgeCutoff?: string | null;
   focusEventLineage?: boolean;
-  focusAskOnLand?: boolean;
+  focusKeyman?: boolean;
+  fromReportMember?: boolean;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
@@ -1938,6 +1945,15 @@ function PostDetailPopup({
     heading?.focus();
     heading?.scrollIntoView?.({ block: "nearest" });
   }, [focusEventLineage, post]);
+
+  useEffect(() => {
+    if (!focusKeyman || !post || keymen === null) {
+      return;
+    }
+    const heading = document.getElementById("post-keyman");
+    heading?.focus();
+    heading?.scrollIntoView?.({ block: "nearest" });
+  }, [focusKeyman, post, keymen, postId]);
 
   return (
     <div className="popup-backdrop" onClick={onClose}>
@@ -2368,8 +2384,8 @@ function PostDetailPopup({
                 focusEntity={focusEntity}
                 focusTeam={focusTeam}
                 landFirstKeyman
-                landFirstRelated
-                landOnAsk={focusAskOnLand}
+                landFirstRelated={Boolean(fromReportMember)}
+                landOnAsk={fromReportMember}
                 afterList={
                   <>
                     <EvaluationPanel
@@ -4244,7 +4260,13 @@ function PostList({
             openedFromCustomerMaster ||
             openedFromAskAgent
           }
-          focusAskOnLand={openedFromReportMember}
+          focusKeyman={
+            openedFromWeeklyVoc ||
+            openedFromCalendar ||
+            openedFromCustomerMaster ||
+            openedFromAskAgent
+          }
+          fromReportMember={openedFromReportMember}
           onClose={closeSelectedPost}
           onSelectPost={(postId) => {
             const cutoffOptions = openedAnalysisRunContext
@@ -4664,7 +4686,7 @@ function CustomerMasterPanel({
   );
 }
 
-function AskAgentPanel({
+export function AskAgentPanel({
   accessToken,
   onOpenPost,
 }: {
@@ -4675,6 +4697,7 @@ function AskAgentPanel({
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [verifyExternal, setVerifyExternal] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>(() =>
     window.sessionStorage.getItem("lineageweave.globalAskSessionId") ?? undefined,
   );
@@ -4686,7 +4709,7 @@ function AskAgentPanel({
     setError(null);
     setAnswer(null);
     try {
-      const nextAnswer = await askAgent(accessToken, normalized, sessionId);
+      const nextAnswer = await askAgent(accessToken, normalized, verifyExternal, sessionId);
       setAnswer(nextAnswer);
       setSessionId(nextAnswer.session_id);
       window.sessionStorage.setItem("lineageweave.globalAskSessionId", nextAnswer.session_id);
@@ -4713,6 +4736,15 @@ function AskAgentPanel({
           rows={4}
         />
       </label>
+      <label className="ask-agent-source">
+        <input
+          type="checkbox"
+          aria-label="Check eligible public claims"
+          checked={verifyExternal}
+          onChange={(event) => setVerifyExternal(event.target.checked)}
+        />
+        <span>{t("Check eligible public claims")}</span>
+      </label>
       <button className="keyman-select" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
         {asking ? t("Asking...") : t("Ask")}
       </button>
@@ -4722,10 +4754,37 @@ function AskAgentPanel({
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
           {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
           {answer.tepp_project_history ? (
-            <ProjectHistoryTimeline
+            <TeppProjectHistoryTimeline
               history={answer.tepp_project_history}
               onOpenPost={onOpenPost}
             />
+          ) : null}
+          {answer.external_claims && answer.external_claims.length > 0 ? (
+            <section className="popup-section" aria-label="Public verification">
+              <h4>Public verification</h4>
+              {answer.external_claims.map((claim) => (
+                <article key={`${claim.claim_kind}:${claim.claim_text}`}>
+                  <p>
+                    {claim.status_code === "claim_supported"
+                      ? "Supported by public evidence"
+                      : claim.status_code === "claim_refuted"
+                        ? "Conflicts with public evidence"
+                        : "Not enough public information"}
+                  </p>
+                  <p>{claim.rationale}</p>
+                  <ul className="post-evidence-list">
+                    {claim.evidence.map((evidence) => (
+                      <li key={evidence.url}>
+                        <a href={evidence.url} target="_blank" rel="noreferrer">
+                          {evidence.title}
+                        </a>
+                        <span>{evidence.snippet}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              ))}
+            </section>
           ) : null}
           {answer.timeline && answer.timeline.length > 0 ? (
             <>

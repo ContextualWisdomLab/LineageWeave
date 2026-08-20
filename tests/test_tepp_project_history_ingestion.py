@@ -86,7 +86,7 @@ def test_build_project_history_request_uses_only_exact_project_and_explicit_stag
         "post-voc",
     ]
     assert request.focus_event_id == "post-voc"
-    assert all(event.availability_basis == "source_post.created_at" for event in request.events)
+    assert all(event.occurred_at == event.available_at for event in request.events)
 
 
 def test_build_project_history_request_refuses_missing_project_or_focus() -> None:

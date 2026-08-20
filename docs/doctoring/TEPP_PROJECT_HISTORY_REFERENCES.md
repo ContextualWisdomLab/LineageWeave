@@ -8,7 +8,7 @@ This doctoring note records the standards and research used by the TEPP-backed B
 |---|---|
 | ISO 8601-1:2019 and RFC 3339 | Exchange absolute event, availability, and knowledge-cutoff clocks as strict timezone-qualified timestamps; emit canonical UTC `Z` values at the TEPP boundary. |
 | W3C Time Ontology in OWL and Allen interval algebra | Keep temporal ordering and interval relations semantically distinct from causal claims. The Buyer projection therefore accepts only `temporal_association_only`. |
-| W3C PROV-O / PROV-DM | Retain the source-post identity and availability basis for every event and require every TEPP finding to cite evidence inside the caller-authorized bundle. |
+| W3C PROV-O / PROV-DM | Retain the source-post identity and evidence-availability clock for every event and require every TEPP finding to cite evidence inside the caller-authorized bundle. LineageWeave keeps the local availability basis in source provenance rather than adding an unpublished field to TEPP's DTO. |
 | RFC 8259 | Use a closed, versioned JSON object contract and reject unknown fields, malformed types, duplicate event identities, and references outside the submitted bundle. |
 | RFC 9110 | Keep HTTP method, status, content-type, and idempotency semantics explicit. Local modular operation may use loopback HTTP; non-loopback service origins require HTTPS. |
 | Allen (1983) | Use deterministic temporal ordering as a qualitative reasoning aid, not as a substitute for causal identification. |
@@ -17,11 +17,13 @@ This doctoring note records the standards and research used by the TEPP-backed B
 
 1. LineageWeave remains the authorization and exact-project evidence selector.
 2. TEPP remains the temporal-contract authority and must preserve the supplied evidence verbatim.
-3. `available_at <= knowledge_cutoff` is mandatory for every event.
+3. `occurred_at <= knowledge_cutoff` and `available_at <= knowledge_cutoff` are mandatory for every event.
 4. A timeline event must open its exact authorized `source_post` evidence.
 5. Missing events, actors, project identities, theta, confidence, and causal conclusions are never invented.
 6. The same projection contract is reused by post reading, Global Ask, and post-scoped Ask.
 7. Browser bearer tokens, review-agent credentials, provider keys, `TEPP_API_KEY`, and database credentials are not forwarded through the project-history request.
+8. The wire field names and closed response shape match TEPP PR #159's Rust contract: `occurred_at`, `available_at`, and a response `knowledge_cutoff`; private aliases such as `event_time` or `availability_basis` are rejected.
+9. The general evidence-bound project history and the TEPP temporal projection use separate React modules (`ProjectHistoryTimeline` and `TeppProjectHistoryTimeline`) so either product surface can evolve or be imported independently.
 
 ## APA 7th references
 

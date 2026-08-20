@@ -81,9 +81,8 @@ class ProjectHistoryEvent:
     event_id: str
     event_type_code: str
     event_title: str
-    event_time: str
+    occurred_at: str
     available_at: str
-    availability_basis: str
     source_post_id: str
     evidence_text: str
     actor_ids: tuple[str, ...] = ()
@@ -92,9 +91,8 @@ class ProjectHistoryEvent:
         "event_id",
         "event_type_code",
         "event_title",
-        "event_time",
+        "occurred_at",
         "available_at",
-        "availability_basis",
         "source_post_id",
         "evidence_text",
         "actor_ids",
@@ -102,10 +100,10 @@ class ProjectHistoryEvent:
 
     def to_wire(self, *, cutoff: datetime | None = None) -> dict[str, Any]:
         """Validate and serialize this event without inferring missing evidence."""
-        event_time = _parse_utc_timestamp(self.event_time, name="event_time")
+        occurred_at = _parse_utc_timestamp(self.occurred_at, name="occurred_at")
         available_at = _parse_utc_timestamp(self.available_at, name="available_at")
-        if cutoff is not None and available_at > cutoff:
-            raise TeppProjectHistoryUnavailable("event was unavailable at the knowledge cutoff")
+        if cutoff is not None and (occurred_at > cutoff or available_at > cutoff):
+            raise TeppProjectHistoryUnavailable("event exceeds the knowledge cutoff")
         actor_ids = tuple(dict.fromkeys(self.actor_ids))
         if len(actor_ids) > _MAX_ACTORS_PER_EVENT:
             raise TeppProjectHistoryUnavailable("event actor count exceeds the contract limit")
@@ -115,11 +113,8 @@ class ProjectHistoryEvent:
                 self.event_type_code, name="event_type_code", maximum=96
             ),
             "event_title": _require_text(self.event_title, name="event_title", maximum=512),
-            "event_time": _utc_text(event_time),
+            "occurred_at": _utc_text(occurred_at),
             "available_at": _utc_text(available_at),
-            "availability_basis": _require_text(
-                self.availability_basis, name="availability_basis", maximum=128
-            ),
             "source_post_id": _require_text(self.source_post_id, name="source_post_id"),
             "evidence_text": _require_text(
                 self.evidence_text, name="evidence_text", maximum=_MAX_EVIDENCE_TEXT
@@ -145,12 +140,11 @@ class ProjectHistoryEvent:
             event_title=_require_text(
                 payload.get("event_title"), name="event_title", maximum=512
             ),
-            event_time=_require_text(payload.get("event_time"), name="event_time", maximum=64),
+            occurred_at=_require_text(
+                payload.get("occurred_at"), name="occurred_at", maximum=64
+            ),
             available_at=_require_text(
                 payload.get("available_at"), name="available_at", maximum=64
-            ),
-            availability_basis=_require_text(
-                payload.get("availability_basis"), name="availability_basis", maximum=128
             ),
             source_post_id=_require_text(
                 payload.get("source_post_id"), name="source_post_id"
@@ -298,6 +292,7 @@ class ProjectHistoryProjection:
     project_key: str
     project_name: str
     focus_event_id: str
+    knowledge_cutoff: str
     inference_status: str
     participant_count: int
     history_span_start: str
@@ -310,6 +305,7 @@ class ProjectHistoryProjection:
         "project_key",
         "project_name",
         "focus_event_id",
+        "knowledge_cutoff",
         "inference_status",
         "participant_count",
         "history_span_start",
@@ -346,7 +342,7 @@ class ProjectHistoryProjection:
         chronological = sorted(
             events,
             key=lambda event: (
-                _parse_utc_timestamp(event.event_time, name="event_time"),
+                _parse_utc_timestamp(event.occurred_at, name="occurred_at"),
                 event.event_id,
             ),
         )
@@ -357,6 +353,14 @@ class ProjectHistoryProjection:
         )
         if focus_event_id != request.focus_event_id:
             raise TeppProjectHistoryUnavailable("TEPP response changed the focus event")
+        knowledge_cutoff = _parse_utc_timestamp(
+            payload.get("knowledge_cutoff"), name="knowledge_cutoff"
+        )
+        request_cutoff = _parse_utc_timestamp(
+            request.knowledge_cutoff, name="knowledge_cutoff"
+        )
+        if knowledge_cutoff != request_cutoff:
+            raise TeppProjectHistoryUnavailable("TEPP response changed the knowledge cutoff")
         project_key = _require_text(payload.get("project_key"), name="project_key")
         project_name = _require_text(
             payload.get("project_name"), name="project_name", maximum=512
@@ -374,8 +378,8 @@ class ProjectHistoryProjection:
             payload.get("history_span_end"), name="history_span_end"
         )
         if not events or span_start != _parse_utc_timestamp(
-            events[0].event_time, name="event_time"
-        ) or span_end != _parse_utc_timestamp(events[-1].event_time, name="event_time"):
+            events[0].occurred_at, name="occurred_at"
+        ) or span_end != _parse_utc_timestamp(events[-1].occurred_at, name="occurred_at"):
             raise TeppProjectHistoryUnavailable("history span does not match ordered events")
         event_ids = set(event_by_id)
         source_post_ids = {event.source_post_id for event in events}
@@ -392,6 +396,7 @@ class ProjectHistoryProjection:
             project_key=project_key,
             project_name=project_name,
             focus_event_id=focus_event_id,
+            knowledge_cutoff=_utc_text(knowledge_cutoff),
             inference_status=TEMPORAL_ASSOCIATION_ONLY,
             participant_count=participant_count,
             history_span_start=_utc_text(span_start),
@@ -407,6 +412,7 @@ class ProjectHistoryProjection:
             "project_key": self.project_key,
             "project_name": self.project_name,
             "focus_event_id": self.focus_event_id,
+            "knowledge_cutoff": self.knowledge_cutoff,
             "inference_status": self.inference_status,
             "participant_count": self.participant_count,
             "history_span_start": self.history_span_start,
