@@ -10,7 +10,10 @@ with the product's five-value constraint: `en`, `ko`, `zh`, `ja`, or `vi`.
 The GNB selector updates both the local display and the authenticated member
 preference through `/api/me/preferences`. On login, the server preference wins
 over browser detection; browser storage remains only the unauthenticated or
-offline fallback.
+offline fallback. If the member changes the GNB selector while the initial
+`/api/me` preference request is still pending, that current interaction wins
+over the late server response and the server update remains the authoritative
+next-login value.
 
 ## Consequences
 

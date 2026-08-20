@@ -93,6 +93,7 @@ import {
   isSupportedLocale,
   LOCALE_LABELS,
   SUPPORTED_LOCALES,
+  getLocale,
   setLocale,
   t,
   tf,
@@ -4537,9 +4538,16 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   useEffect(() => {
     if (!accessToken) return;
     let active = true;
+    const localeBeforeMemberFetch = getLocale();
     fetchMe(accessToken)
       .then((member) => {
-        if (active && isSupportedLocale(member.preferred_locale)) setLocale(member.preferred_locale);
+        if (
+          active &&
+          getLocale() === localeBeforeMemberFetch &&
+          isSupportedLocale(member.preferred_locale)
+        ) {
+          setLocale(member.preferred_locale);
+        }
       })
       .catch(() => undefined);
     return () => {

@@ -84,6 +84,7 @@ describe("App, authenticated", () => {
     pendingTeppRun?: boolean;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
+    preferredLocale?: string | null;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
@@ -140,6 +141,7 @@ describe("App, authenticated", () => {
             user_account_id: options?.admin ? "acct-admin" : "acct-1",
             display_name: options?.admin ? "Demo Admin" : "Demo Analyst",
             permission_codes: options?.admin ? ["post_read", "post_admin"] : ["post_read"],
+            preferred_locale: options?.preferredLocale ?? null,
             corporate_entities: options?.pluralAffiliations
               ? [
                   { corporate_entity_id: "corp-demo", entity_name: "Demo Corp" },
@@ -1890,6 +1892,19 @@ describe("App, authenticated", () => {
         }),
       );
     });
+  });
+
+  it("does not let a late member preference overwrite a new GNB choice", async () => {
+    const backend = stubBackend({ deferMe: true, preferredLocale: "en" });
+    render(<App showLabPanels />);
+
+    const language = await screen.findByRole("combobox", {
+      name: /language|언어|言語|语言|ngôn ngữ/i,
+    });
+    await userEvent.selectOptions(language, "ja");
+    backend.releaseMe();
+
+    await waitFor(() => expect(language).toHaveValue("ja"));
   });
 
   it("rebuilds lineage when the account has post_admin", async () => {
