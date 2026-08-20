@@ -205,8 +205,6 @@ def _timestamp(value: object, field: str, *, optional: bool = False) -> datetime
         raise EventIntelligenceValidationError(
             f"{field} must be an ISO-8601 timestamp"
         ) from exc
-    if parsed.tzinfo is None or parsed.utcoffset() is None:
-        raise EventIntelligenceValidationError(f"{field} must include a UTC offset")
     return parsed
 
 

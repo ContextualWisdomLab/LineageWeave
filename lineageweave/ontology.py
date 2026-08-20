@@ -53,6 +53,7 @@ ONTOLOGY = load_ontology()
 
 
 def _term_subject(lookup_code: str) -> Identifier | None:
+    """Implement the _term_subject operation for this channel."""
     for subject in ONTOLOGY.subjects(LOOKUP_CODE, None):
         if str(ONTOLOGY.value(subject, LOOKUP_CODE)) == lookup_code:
             return subject

@@ -1,7 +1,7 @@
 # Event Intelligence research and standards traceability
 
 **Reviewed:** 2026-08-20
-**Applies to:** ADR 0093, `lineageweave.event_intelligence`, and
+**Applies to:** ADR 0120, `lineageweave.event_intelligence`, and
 `docs/ontology/event-intelligence-profile.ttl`
 
 ## Design traceability
@@ -91,5 +91,5 @@ These sources support typed temporal representation, event detection/tracking,
 provenance, temporal topic artifacts, neuro-symbolic event schemas, and LLMs as
 complementary evaluators. They do **not** establish that a LineageWeave dossier
 is a causal model, that an LLM verdict is ground truth, or that outputs from
-different numerical scales can be averaged. ADR 0093 therefore preserves each
+different numerical scales can be averaged. ADR 0120 therefore preserves each
 authority and uncertainty instead of making those claims.

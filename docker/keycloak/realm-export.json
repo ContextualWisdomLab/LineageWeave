@@ -24,6 +24,16 @@
       "webOrigins": ["http://localhost:5173", "http://localhost:15173"],
       "protocolMappers": [
         {
+          "name": "lineageweave-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "lineageweave-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
           "name": "corp-code",
           "protocol": "openid-connect",
           "protocolMapper": "oidc-usermodel-attribute-mapper",

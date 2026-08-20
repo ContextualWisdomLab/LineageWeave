@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from lineageweave import event_intelligence
 from lineageweave.event_intelligence import (
     CHANNEL_UNAVAILABLE,
     EventIntelligenceDossier,
@@ -109,6 +110,7 @@ def test_digest_is_required_by_default() -> None:
         ("available_time", "2026-08-19T12:00:01Z", "available_time"),
         ("event_start", "2026-08-18T09:00:00", "UTC offset"),
         ("event_start", "not-a-time", "ISO-8601"),
+        ("event_start", "2026-02-30T09:00:00Z", "ISO-8601"),
     ],
 )
 def test_temporal_clocks_prevent_leakage(field: str, value: object, message: str) -> None:
@@ -334,3 +336,33 @@ def test_scalar_and_evidence_list_bounds_are_enforced() -> None:
     payload["claims"][0]["evidence_ids"] = ["source-post", "source-post"]
     with pytest.raises(EventIntelligenceValidationError, match="unique values"):
         event_intelligence_dossier_from_dict(payload, require_digest=False)
+
+
+def test_canonicalization_failure_is_a_domain_error(monkeypatch) -> None:
+    """A JCS encoder failure never escapes as a dependency-specific exception."""
+    dossier = event_intelligence_dossier_from_dict(example())
+
+    def fail(_payload):
+        raise TypeError("synthetic unsupported value")
+
+    monkeypatch.setattr(event_intelligence.rfc8785, "dumps", fail)
+    with pytest.raises(EventIntelligenceValidationError, match="cannot canonicalize"):
+        dossier.dossier_sha256()
+
+
+def test_final_serialization_failure_is_a_domain_error(monkeypatch) -> None:
+    """A failure after digest creation is translated at the JSON boundary."""
+    dossier = event_intelligence_dossier_from_dict(example())
+    real_dumps = event_intelligence.rfc8785.dumps
+    calls = 0
+
+    def fail_second(payload):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise TypeError("synthetic unsupported value")
+        return real_dumps(payload)
+
+    monkeypatch.setattr(event_intelligence.rfc8785, "dumps", fail_second)
+    with pytest.raises(EventIntelligenceValidationError, match="cannot canonicalize"):
+        dossier.to_json()

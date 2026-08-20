@@ -3,7 +3,8 @@
 Candidate and record labels are serialized as untrusted JSON evidence. The
 client requests a structured verdict from contextual-orchestrator and rejects
 free-form, duplicated, non-finite, or otherwise malformed answers instead of
-silently converting them into a numeric lineage signal.
+silently converting them into a numeric lineage signal. The unavailable client
+remains fail-closed, and contextual-orchestrator owns the ``mode="auto"`` route.
 """
 
 from __future__ import annotations
@@ -166,12 +167,12 @@ def _extract_content(body: object) -> object:
 
 
 class ContextualOrchestratorAdjudicationClient:
-    """Use contextual-orchestrator for a strict, trace-requesting judgment.
+    """Request a strict, trace-bearing judgment in orchestrator auto mode.
 
-    The request deliberately keeps ``mode="verify"`` and does not force a
-    provider-specific response-format shortcut. Candidate strings are JSON
-    data rather than executable prompt instructions. Malformed responses raise
-    :class:`AdjudicationFormatError`; they never become a misleading ``0.0``.
+    Candidate strings are JSON data rather than executable prompt instructions.
+    Malformed responses raise :class:`AdjudicationFormatError`; they never become
+    a misleading ``0.0``. The orchestrator owns model and test-time compute
+    selection unless a caller deliberately supplies a supported effort level.
     """
 
     available = True
@@ -181,8 +182,8 @@ class ContextualOrchestratorAdjudicationClient:
         base_url: str,
         api_key: str,
         *,
-        reasoning_effort: str = "high",
-        timeout: float = 60.0,
+        reasoning_effort: str = "auto",
+        timeout: float = 180.0,
     ) -> None:
         """Configure the bounded OpenAI-compatible orchestrator endpoint."""
         self._base_url = base_url.rstrip("/")
@@ -225,9 +226,41 @@ class ContextualOrchestratorAdjudicationClient:
                         ),
                     },
                 ],
-                "mode": "verify",
+                "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
                 "include_orchestration_trace": True,
+                "response_format": {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "lineage_adjudication",
+                        "strict": True,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "required": [
+                                "continuation_probability",
+                                "verdict_code",
+                                "rationale",
+                            ],
+                            "properties": {
+                                "continuation_probability": {
+                                    "type": "number",
+                                    "minimum": 0.0,
+                                    "maximum": 1.0,
+                                },
+                                "verdict_code": {
+                                    "type": "string",
+                                    "enum": sorted(ALLOWED_ADJUDICATION_VERDICTS),
+                                },
+                                "rationale": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": _MAX_RATIONALE_CHARACTERS,
+                                },
+                            },
+                        },
+                    },
+                },
             },
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,

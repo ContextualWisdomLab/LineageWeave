@@ -27,6 +27,21 @@ services:
       timeout: 5s
       retries: 10
 
+  database_migration:
+    build:
+      context: .
+      dockerfile: docker/postgres-init/Dockerfile
+    entrypoint: ["/usr/local/bin/lineageweave-migrate"]
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-lineageweave}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lineageweave_dev_only}
+      POSTGRES_DB: ${POSTGRES_DB:-lineageweave}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   valkey:
     image: valkey/valkey:8-alpine@sha256:a038175878d66b9d274fbf8be73c0305e93798b83917647f167e18cef3c71eec
     ports:
@@ -83,6 +98,55 @@ services:
       postgres:
         condition: service_healthy
 
+  keycloak_mcp_audience:
+    # Startup import skips an existing realm. Reconcile only the dedicated
+    # audience mapper so port changes do not replace persisted identity data.
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["python", "-m", "backend.app.keycloak_audience_reconciler"]
+    environment:
+      KEYCLOAK_ADMIN_BASE_URL: http://keycloak:8080
+      KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin_dev_only}
+      KEYCLOAK_TARGET_REALM: lineageweave-demo
+      KEYCLOAK_TARGET_CLIENT_ID: lineageweave-frontend
+      KEYCLOAK_MCP_MAPPER_NAME: lineageweave-mcp-audience
+      MCP_AUDIENCE: http://localhost:${MCP_PORT:-18001}/mcp
+    depends_on:
+      keycloak:
+        condition: service_started
+    restart: "no"
+
+  orchestrator:
+    # Consume the paper-grounded orchestration service from main; inference
+    # remains behind its authenticated OpenAI-compatible boundary.
+    build:
+      context: ./docker/contextual-orchestrator
+      dockerfile: Dockerfile
+    env_file:
+      - ${HOME}/.env
+    environment:
+      AGENTS_FILE: /app/agents.json
+      PORT: 8000
+      CONTEXTUAL_ORCHESTRATOR_TOKEN: ${CONTEXTUAL_ORCHESTRATOR_TOKEN:-${ORCHESTRATOR_API_KEY:-lineageweave-orchestrator-dev-only}}
+      # Gateway credentials and URL are supplied only by env_file (${HOME}/.env).
+      # Do not repeat them under environment:, where Compose interpolation can
+      # overwrite env_file values with an empty host-shell value.
+      # The upstream default remains 64 KiB for ordinary text APIs. Buyer
+      # image blocks are base64 data URIs, so the multimodal boundary gets an
+      # explicit bounded 8 MiB limit rather than an unbounded request size.
+      CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES: ${CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES:-8388608}
+      CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS: ${CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS:-host.docker.internal}
+    command: ["python", "/app/start.py"]
+    ports:
+      - "${ORCHESTRATOR_PORT:-18000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   backend:
     build:
       context: .
@@ -96,23 +160,44 @@ services:
       KEYCLOAK_ISSUER: http://localhost:${KEYCLOAK_PORT:-18080}/realms/lineageweave-demo
       KEYCLOAK_REALM: lineageweave-demo
       KEYCLOAK_CLIENT_ID: lineageweave-frontend
+      # Production may set these to the real Keyverse OIDC provider. Empty
+      # values keep this stack on its explicit local Keycloak development mode;
+      # no Keyverse-shaped identity service is created by Compose.
+      KEYVERSE_ISSUER: ${KEYVERSE_ISSUER:-}
+      KEYVERSE_CLIENT_ID: ${KEYVERSE_CLIENT_ID:-}
+      KEYVERSE_AUDIENCE: ${KEYVERSE_AUDIENCE:-}
+      KEYVERSE_DISCOVERY_URI: ${KEYVERSE_DISCOVERY_URI:-}
+      KEYVERSE_JWKS_URI: ${KEYVERSE_JWKS_URI:-}
+      OIDC_ISSUER: ${OIDC_ISSUER:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_AUDIENCE: ${OIDC_AUDIENCE:-lineageweave-api}
+      OIDC_DISCOVERY_URI: ${OIDC_DISCOVERY_URI:-}
+      OIDC_JWKS_URI: ${OIDC_JWKS_URI:-}
+      OIDC_CLOCK_SKEW_SECONDS: ${OIDC_CLOCK_SKEW_SECONDS:-5}
       FRONTEND_ORIGINS: http://localhost:${FRONTEND_PORT:-15173}
       VALKEY_URL: redis://valkey:6379/0
       # Empty by default: every LLM/vision channel stays the Null client
       # (dropped, not faked). Set these to a running contextual-orchestrator
-      # to turn the channels on -- NVIDIA_NIM_API_KEY lives on that
-      # orchestrator, never in this compose file.
-      LLM_GATEWAY_URL: ${LLM_GATEWAY_URL:-}
-      LLM_GATEWAY_API_URL: ${LLM_GATEWAY_API_URL:-}
-      LLM_GATEWAY_API_KEY: ${LLM_GATEWAY_API_KEY:-}
-      ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-}
-      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}
-      VISION_MODEL: ${VISION_MODEL:-}
+      # to turn the channels on. Provider credentials use LLM_GATEWAY_API_URL /
+      # LLM_GATEWAY_API_KEY in the orchestrator's private env file.
+      ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8000}
+      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
+      # This is a non-secret embedding contract. Provider credentials remain
+      # private to contextual-orchestrator and are never injected into backend.
+      LLM_GATEWAY_EMBEDDING_MODEL: ${LLM_GATEWAY_EMBEDDING_MODEL:-text-embedding-3-large}
       SEARXNG_BASE_URL: http://searxng:8080
+      TEPP_TRANSPORT_URL: ${TEPP_TRANSPORT_URL:-}
+      TEPP_API_KEY: ${TEPP_API_KEY:-}
+      CALDAV_BASE_URL: ${CALDAV_BASE_URL:-}
+      RANKWEAVE_DISABLED: ${RANKWEAVE_DISABLED:-}
     ports:
       - "${BACKEND_PORT:-18420}:8000"
     depends_on:
       postgres:
+        condition: service_healthy
+      database_migration:
+        condition: service_completed_successfully
+      orchestrator:
         condition: service_healthy
       keycloak:
         condition: service_started
@@ -122,8 +207,7 @@ services:
         condition: service_healthy
 
   mcp:
-    # Dedicated Streamable HTTP process: same image and domain contracts as
-    # the REST backend, but no UI CORS surface and no inbound-token forwarding.
+    # Dedicated OAuth-protected Streamable HTTP resource server.
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -134,25 +218,36 @@ services:
       KEYCLOAK_ISSUER: http://localhost:${KEYCLOAK_PORT:-18080}/realms/lineageweave-demo
       KEYCLOAK_REALM: lineageweave-demo
       KEYCLOAK_CLIENT_ID: lineageweave-frontend
+      KEYVERSE_ISSUER: ${KEYVERSE_ISSUER:-}
+      KEYVERSE_CLIENT_ID: ${KEYVERSE_CLIENT_ID:-}
+      KEYVERSE_AUDIENCE: ${KEYVERSE_AUDIENCE:-}
+      KEYVERSE_DISCOVERY_URI: ${KEYVERSE_DISCOVERY_URI:-}
+      KEYVERSE_JWKS_URI: ${KEYVERSE_JWKS_URI:-}
+      OIDC_ISSUER: ${OIDC_ISSUER:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_AUDIENCE: ${OIDC_AUDIENCE:-lineageweave-api}
+      OIDC_DISCOVERY_URI: ${OIDC_DISCOVERY_URI:-}
+      OIDC_JWKS_URI: ${OIDC_JWKS_URI:-}
+      OIDC_CLOCK_SKEW_SECONDS: ${OIDC_CLOCK_SKEW_SECONDS:-5}
       MCP_RESOURCE_URL: http://localhost:${MCP_PORT:-18001}/mcp
       MCP_AUDIENCE: http://localhost:${MCP_PORT:-18001}/mcp
       MCP_REQUIRED_SCOPES: ${MCP_REQUIRED_SCOPES:-}
       MCP_ALLOWED_HOSTS: localhost:${MCP_PORT:-18001},127.0.0.1:${MCP_PORT:-18001},mcp:8001
       MCP_ALLOWED_ORIGINS: ${MCP_ALLOWED_ORIGINS:-}
-      LLM_GATEWAY_URL: ${LLM_GATEWAY_URL:-}
-      LLM_GATEWAY_API_URL: ${LLM_GATEWAY_API_URL:-}
-      LLM_GATEWAY_API_KEY: ${LLM_GATEWAY_API_KEY:-}
-      ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-}
-      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}
-      VISION_MODEL: ${VISION_MODEL:-}
+      ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8000}
+      ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
       SEARXNG_BASE_URL: http://searxng:8080
     ports:
       - "${MCP_PORT:-18001}:8001"
     depends_on:
       postgres:
         condition: service_healthy
-      keycloak:
-        condition: service_started
+      database_migration:
+        condition: service_completed_successfully
+      orchestrator:
+        condition: service_healthy
+      keycloak_mcp_audience:
+        condition: service_completed_successfully
       searxng:
         condition: service_healthy
 
@@ -160,8 +255,8 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_KEYCLOAK_ISSUER: http://localhost:${KEYCLOAK_PORT:-18080}/realms/lineageweave-demo
-        VITE_KEYCLOAK_CLIENT_ID: lineageweave-frontend
+        VITE_KEYVERSE_ISSUER: ${KEYVERSE_ISSUER:-http://localhost:${KEYCLOAK_PORT:-18080}/realms/lineageweave-demo}
+        VITE_KEYVERSE_CLIENT_ID: ${KEYVERSE_CLIENT_ID:-lineageweave-frontend}
         VITE_BACKEND_BASE_URL: http://localhost:${BACKEND_PORT:-18420}
     ports:
       - "${FRONTEND_PORT:-15173}:8080"

@@ -533,10 +533,11 @@ wheels = [
 
 [[package]]
 name = "lineageweave"
-version = "2.13.0"
-source = { virtual = "." }
+version = "2.17.0"
+source = { editable = "." }
 dependencies = [
     { name = "certifi" },
+    { name = "pillow" },
     { name = "rankweave" },
     { name = "rdflib" },
     { name = "rfc8785" },
@@ -574,7 +575,7 @@ requires-dist = [
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27.0" },
     { name = "jsonschema", marker = "extra == 'dev'", specifier = ">=4.23.0" },
     { name = "mcp", marker = "extra == 'backend'", specifier = "==2.0.0" },
-    { name = "pillow", marker = "extra == 'dev'", specifier = ">=12.3.0" },
+    { name = "pillow", specifier = ">=12.3.0" },
     { name = "psycopg2-binary", marker = "extra == 'dev'", specifier = ">=2.9.12" },
     { name = "pyjwt", extras = ["crypto"], marker = "extra == 'backend'", specifier = ">=2.8.0" },
     { name = "pyjwt", extras = ["crypto"], marker = "extra == 'dev'", specifier = ">=2.8.0" },

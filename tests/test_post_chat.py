@@ -8,11 +8,13 @@ which source(s) contributed, not just that the model produced prose.
 
 from __future__ import annotations
 
+import asyncio
 import os
 
 import pytest
 
 from backend.app.post_chat_ingestion import (
+    _graph_facts_for_posts,
     seeded_demo_chat,
     seeded_demo_commitment_chat,
     seeded_demo_exchanges,
@@ -30,9 +32,12 @@ from lineageweave.post_chat import (
     ChatSourceDocument,
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
+    _render_sources_block,
+    cited_post_evidence,
     cited_post_summaries,
     normalize_chat_question,
     parse_chat_response,
+    render_global_ask_context,
 )
 
 
@@ -162,6 +167,88 @@ def test_cited_post_summaries_keep_citation_order_and_drop_unknown_ids() -> None
     ]
 
 
+def test_cited_post_evidence_hides_prompt_metadata_but_keeps_semantic_facts() -> None:
+    source = ChatSourceDocument(
+        "post-evidence",
+        "Evidence post",
+        "body",
+        evidence_facts=(
+            "project: Semantic project | evidence: Body evidence | ontology_iri: https://example.test/ontology#Project | extraction_method: contextual_orchestrator_semantic | confidence: 0.9 [provenance=post_project_mention]",
+            "Keyman mention: Ada West | context: account lead [provenance=post_person_mention]",
+        ),
+    )
+
+    evidence = cited_post_evidence((source,), ("post-evidence", "missing"))
+
+    assert evidence == [
+        {
+            "post_id": "post-evidence",
+            "facts": [
+                {"kind": "semantic_project", "text": "project: Semantic project | evidence: Body evidence"},
+                {"kind": "semantic_keyman", "text": "Keyman mention: Ada West | context: account lead"},
+            ],
+        }
+    ]
+
+
+def test_chat_render_includes_persisted_graph_facts_with_source_evidence() -> None:
+    source = ChatSourceDocument(
+        "post-graph",
+        "Graph-backed post",
+        "A customer asked for a revised quote.",
+        graph_facts=(
+            'node_person "Ada West" --edge_affiliation--> '
+            'node_corporate_entity "Demo Corp" [evidence_post_id=post-graph]',
+        ),
+        evidence_facts=("source project code=PROJECT-HINT [hint_only]",),
+        occurred_at="2026-01-01T00:00:00+00:00",
+    )
+
+    rendered = _render_sources_block([source])
+
+    assert '"graph_facts"' in rendered
+    assert "Demo Corp" in rendered
+    assert "evidence_post_id=post-graph" in rendered
+    assert '"evidence_facts"' in rendered
+    assert "PROJECT-HINT" in rendered
+    assert '"occurred_at":"2026-01-01T00:00:00+00:00"' in rendered
+
+
+def test_graph_facts_are_hydrated_from_visible_evidence_posts(monkeypatch) -> None:
+    class _Connection:
+        async def fetch(self, _query, _visible_post_ids):
+            return [
+                {
+                    "source_node_type_code": "node_person",
+                    "source_node_id": "person-ada",
+                    "target_node_type_code": "node_corporate_entity",
+                    "target_node_id": "corp-demo",
+                    "edge_type_code": "edge_affiliation",
+                    "edge_weight": 1.0,
+                    "evidence_post_ids": ["post-graph"],
+                }
+            ]
+
+    async def fake_hydrate(_conn, _node_keys):
+        return [
+            {"node_type_code": "node_person", "node_id": "person-ada", "label": "Ada West"},
+            {
+                "node_type_code": "node_corporate_entity",
+                "node_id": "corp-demo",
+                "label": "Demo Corp",
+            },
+        ]
+
+    monkeypatch.setattr("backend.app.post_chat_ingestion.hydrate_related_nodes", fake_hydrate)
+    facts = asyncio.run(_graph_facts_for_posts(_Connection(), ["post-graph"]))
+
+    assert facts == (
+        'node_person "Ada West" --edge_affiliation '
+        '(https://contextualwisdomlab.github.io/lineageweave/ontology#affiliatedWith)--> '
+        'node_corporate_entity "Demo Corp" [evidence_post_id=post-graph]',
+    )
+
+
 def test_parses_a_well_formed_json_object() -> None:
     content = '{"answer_text": "The bid was submitted then revised.", "cited_source_numbers": [1, 2]}'
     answer = parse_chat_response(content, _SOURCES)
@@ -244,3 +331,63 @@ def test_contextual_orchestrator_does_not_cite_an_irrelevant_source() -> None:
 
     assert "post-a" in answer.cited_post_ids
     assert "post-b" not in answer.cited_post_ids
+
+
+def test_contextual_orchestrator_chat_requests_plain_citations(monkeypatch) -> None:
+    observed = {}
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        observed["payload"] = payload
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": '{"answer_text":"근거 답변","cited_source_numbers":[1]}'
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr("lineageweave.post_chat.post_json", fake_post_json)
+    answer = ContextualOrchestratorPostChatClient("https://orchestrator.test", "token").answer(
+        "What happened?", _SOURCES
+    )
+
+    assert answer.answer_text == "근거 답변"
+    assert observed["payload"]["reasoning_effort"] == "auto"
+    assert observed["payload"]["mode"] == "auto"
+    assert observed["payload"]["response_format"]["type"] == "json_schema"
+    assert "untrusted" in observed["payload"]["messages"][0]["content"]
+
+
+def test_global_ask_context_is_explicitly_non_evidentiary() -> None:
+    rendered = render_global_ask_context(
+        "Earlier synthetic decision",
+        ((3, "Synthetic question", "Synthetic answer"),),
+    )
+
+    assert "Compressed prior context" in rendered
+    assert "Turn 3 question: Synthetic question" in rendered
+    assert "Turn 3 answer: Synthetic answer" in rendered
+
+
+def test_contextual_orchestrator_compresses_global_ask_turns(monkeypatch) -> None:
+    observed = {}
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        observed["url"] = url
+        observed["payload"] = payload
+        return {"choices": [{"message": {"content": "Synthetic compressed context"}}]}
+
+    monkeypatch.setattr("lineageweave.post_chat.post_json", fake_post_json)
+    summary = ContextualOrchestratorPostChatClient(
+        "https://orchestrator.test", "token"
+    ).compress_context(
+        "Earlier synthetic context",
+        [(1, "Synthetic question", "Synthetic answer")],
+    )
+
+    assert summary == "Synthetic compressed context"
+    assert observed["url"].endswith("/v1/chat/completions")
+    assert observed["payload"]["mode"] == "auto"
+    assert "Synthetic question" in observed["payload"]["messages"][0]["content"]

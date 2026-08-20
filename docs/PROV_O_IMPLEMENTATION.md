@@ -1,5 +1,8 @@
 # W3C PROV-O implementation
 
+> Normative decision: [ADR 0065](adr/0065-prov-o-provenance-boundary.md).
+> This document is the implementation contract and acceptance evidence.
+
 ## Requirement
 
 LineageWeave must accept, validate, persist, infer, and serialize every normative relation in *PROV-O: The PROV Ontology* without flattening qualified influences or literal-valued properties into the existing navigation graph.

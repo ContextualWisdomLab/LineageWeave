@@ -295,6 +295,6 @@ async def answer_global_question(
             conn,
             answer.answer_text,
             cited_ids,
-            account.corporate_entity_ids,
+            account.user_account_id,
         ),
     )

@@ -8,7 +8,23 @@
   --color-accent-background: rgba(170, 59, 255, 0.1);
   --color-accent-border: rgba(170, 59, 255, 0.5);
   --color-chip-border: #3335;
-  --color-status-alert: #b91c1c;
+  --color-border-subtle: #3335;
+  --color-accent-info: #2563eb;
+  --color-accent-info-background: rgba(37, 99, 235, 0.2);
+  --color-accent-secondary: #7c3aed;
+  --color-accent-secondary-background: rgba(124, 58, 237, 0.2);
+  --badge-actor-person-bg: #e8eaf6;
+  --badge-actor-person-text: #303f9f;
+  --badge-actor-organization-bg: #fff3e0;
+  --badge-actor-organization-text: #9a3412;
+  --badge-actor-team-bg: #e0f2f1;
+  --badge-actor-team-text: #00695c;
+  --badge-status-pending-bg: #e0e0e0;
+  --badge-status-pending-text: #444;
+  --badge-status-success-bg: #d4edda;
+  --badge-status-success-text: #155724;
+  --badge-status-danger-bg: #f8d7da;
+  --badge-status-danger-text: #721c24;
   --space-chip-inline: 0.6rem;
   --space-chip-block: 0.1rem;
   --space-chip-gap: 0.3rem;
@@ -35,6 +51,22 @@
     --color-accent-background: rgba(192, 132, 252, 0.15);
     --color-accent-border: rgba(192, 132, 252, 0.5);
     --color-chip-border: #9ca3af;
-    --color-status-alert: #f87171;
+    --color-border-subtle: rgba(255, 255, 255, 0.2);
+    --color-accent-info: #60a5fa;
+    --color-accent-info-background: rgba(96, 165, 250, 0.2);
+    --color-accent-secondary: #a78bfa;
+    --color-accent-secondary-background: rgba(167, 139, 250, 0.2);
+    --badge-actor-person-bg: rgba(63, 81, 181, 0.25);
+    --badge-actor-person-text: #b3bcf5;
+    --badge-actor-organization-bg: rgba(154, 52, 18, 0.25);
+    --badge-actor-organization-text: #fdba8c;
+    --badge-actor-team-bg: rgba(0, 105, 92, 0.25);
+    --badge-actor-team-text: #5eead4;
+    --badge-status-pending-bg: rgba(255, 255, 255, 0.12);
+    --badge-status-pending-text: #ccc;
+    --badge-status-success-bg: rgba(21, 87, 36, 0.3);
+    --badge-status-success-text: #86e29b;
+    --badge-status-danger-bg: rgba(114, 28, 36, 0.3);
+    --badge-status-danger-text: #f5a3ab;
   }
 }

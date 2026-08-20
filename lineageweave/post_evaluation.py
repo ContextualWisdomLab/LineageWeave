@@ -72,6 +72,7 @@ class NullPostEvaluationClient:
     available = False
 
     def evaluate(self, post_title: str, post_body: str) -> LLMJudgeResult:  # pragma: no cover
+        """Evaluate the post with the configured adjudication channel."""
         raise RuntimeError("NullPostEvaluationClient has no judge channel; check .available first")
 
 
@@ -80,15 +81,21 @@ class _OrchestratorCompleteAdapter:
     ``complete(messages, mode=...)`` contract.
     """
 
-    def __init__(self, base_url: str, api_key: str, *, timeout: float = 60.0) -> None:
+    def __init__(self, base_url: str, api_key: str, *, timeout: float = 180.0) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
         self._timeout = timeout
 
     def complete(self, messages: list[dict[str, Any]], mode: str = "auto") -> dict[str, Any]:
+        """Complete the configured gateway request and return its response."""
         body = post_json(
             f"{self._base_url}/v1/chat/completions",
-            {"messages": messages, "mode": mode, "reasoning_effort": "medium"},
+            {
+                "messages": messages,
+                "mode": mode,
+                "reasoning_effort": "auto",
+                "response_format": {"type": "json_object"},
+            },
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
@@ -104,13 +111,14 @@ class ContextualOrchestratorPostEvaluationClient:
 
     available = True
 
-    def __init__(self, base_url: str, api_key: str, *, timeout: float = 60.0) -> None:
+    def __init__(self, base_url: str, api_key: str, *, timeout: float = 180.0) -> None:
         self._judge = ContextualOrchestratorJudge(
             _OrchestratorCompleteAdapter(base_url, api_key, timeout=timeout),
             mode="auto",
         )
 
     def evaluate(self, post_title: str, post_body: str) -> LLMJudgeResult:
+        """Evaluate the post with the configured adjudication channel."""
         return self._judge.judge(
             task="Score this customer-facing business post against the rubric.",
             answer=f"Title: {post_title}\n\n{post_body}",
