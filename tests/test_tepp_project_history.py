@@ -130,6 +130,22 @@ def test_project_history_client_refuses_causal_or_out_of_bundle_results() -> Non
     with pytest.raises(TeppProjectHistoryUnavailable):
         client.project(_request())
 
+    causal_summary = _projection_payload()
+    findings = causal_summary["findings"]
+    assert isinstance(findings, list)
+    finding = findings[0]
+    assert isinstance(finding, dict)
+    finding["summary"] = (
+        "An explicit contract-award event precedes the focus event. "
+        "This is a temporal association and a causal conclusion."
+    )
+    client = TeppProjectHistoryClient(
+        "https://tepp.example.test",
+        transport=lambda *_: causal_summary,
+    )
+    with pytest.raises(TeppProjectHistoryUnavailable):
+        client.project(_request())
+
     out_of_bundle = _projection_payload()
     findings = out_of_bundle["findings"]
     assert isinstance(findings, list)
