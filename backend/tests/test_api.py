@@ -3407,6 +3407,35 @@ def test_counterparties_resolve_cataloged_org_ids(client, demo_analyst_token, se
     assert by_name["Northridge Grid"]["corporate_entity_id"] is None
 
 
+def test_counterparties_do_not_expose_unauthorized_catalog_entity(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A public post must not resolve a name to a private catalog row."""
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into post_counterparty_entity "
+                "(post_id, counterparty_entity_name, relationship_type_code) "
+                "values (%s, 'Other Corp', 'rel_voc')",
+                (seeded_db["public_post_id"],),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}/counterparties",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    row = next(
+        item for item in response.json()["counterparties"]
+        if item["counterparty_entity_name"] == "Other Corp"
+    )
+    assert row["corporate_entity_id"] is None
+
+
 def test_counterparties_endpoint_is_empty_before_extraction(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         f"/api/posts/{seeded_db['own_private_post_id']}/counterparties",

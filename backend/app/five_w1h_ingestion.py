@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Any
 
 import asyncpg
@@ -18,6 +18,7 @@ async def load_five_w1h_slots(
     conn: asyncpg.Connection,
     post_id: str,
     can_see_post: Callable[[asyncpg.Record], bool],
+    authorized_corporate_entity_ids: Sequence[str] = (),
 ) -> dict[str, Any]:
     """Build 5W1H from stored projections and visible lineage only."""
     summary = await fetch_persisted_summary(conn, post_id) or {}
@@ -41,7 +42,9 @@ async def load_five_w1h_slots(
         )
         linked_titles = [row["post_title"] for row in rows if can_see_post(row)]
 
-    counterparties = await fetch_post_counterparties(conn, post_id)
+    counterparties = await fetch_post_counterparties(
+        conn, post_id, authorized_corporate_entity_ids
+    )
     slots = assemble_five_w1h_slots(
         roles=summary.get("roles_and_responsibilities", []),
         key_events=summary.get("key_events", []),

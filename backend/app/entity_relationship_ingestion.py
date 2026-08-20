@@ -96,7 +96,11 @@ def attach_resolved_entity_ids(
     ]
 
 
-async def fetch_post_counterparties(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
+async def fetch_post_counterparties(
+    conn: asyncpg.Connection,
+    post_id: str,
+    authorized_corporate_entity_ids: Sequence[str] = (),
+) -> list[dict[str, Any]]:
     """Classified counterparties with a cataloged org id when the name resolves.
 
     Unresolved names keep ``corporate_entity_id`` null -- a missing
@@ -114,7 +118,15 @@ async def fetch_post_counterparties(conn: asyncpg.Connection, post_id: str) -> l
         """,
         post_id,
     )
-    candidate_rows = await conn.fetch("select corporate_entity_id, entity_name from corporate_entity")
+    candidate_rows = (
+        await conn.fetch(
+            "select corporate_entity_id, entity_name from corporate_entity "
+            "where corporate_entity_id = any($1::uuid[])",
+            list(authorized_corporate_entity_ids),
+        )
+        if authorized_corporate_entity_ids
+        else []
+    )
     candidates = [
         CorporateEntityCandidate(str(row["corporate_entity_id"]), row["entity_name"])
         for row in candidate_rows
@@ -192,7 +204,11 @@ async def fetch_relationship_network(
         """,
         list(corporate_entity_ids),
     )
-    candidate_rows = await conn.fetch("select corporate_entity_id, entity_name from corporate_entity")
+    candidate_rows = await conn.fetch(
+        "select corporate_entity_id, entity_name from corporate_entity "
+        "where corporate_entity_id = any($1::uuid[])",
+        list(corporate_entity_ids),
+    )
     candidates = [
         CorporateEntityCandidate(str(row["corporate_entity_id"]), row["entity_name"])
         for row in candidate_rows

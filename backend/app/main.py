@@ -1877,7 +1877,9 @@ async def read_post_counterparties(
     """
     post = await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
-        counterparties = await fetch_post_counterparties(conn, post_id)
+        counterparties = await fetch_post_counterparties(
+            conn, post_id, account.corporate_entity_ids
+        )
     return {
         "post_id": str(post["post_id"]),
         "counterparties": counterparties,
@@ -2434,6 +2436,7 @@ async def read_post_five_w1h(
             conn,
             post_id,
             lambda row: _can_see_post(account, row),
+            account.corporate_entity_ids,
         )
 
 
