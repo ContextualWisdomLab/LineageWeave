@@ -63,7 +63,7 @@ class ContextualOrchestratorPostStructureClient:
         "additionalProperties": False,
     }
 
-    def __init__(self, base_url: str, api_key: str, timeout: float = 180.0):
+    def __init__(self, base_url: str, api_key: str, timeout: float = 600.0):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.timeout = timeout
