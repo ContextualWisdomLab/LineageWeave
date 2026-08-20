@@ -82,6 +82,10 @@ private answer as a search query.
     or an indirect Knowledge-Graph neighbor. When cited posts contain raster
     data-URI images, return at most three bounded `ImageContent` blocks after
     the prose; reconstruct them from the cited source body, never from a URL.
+17. Render the Keycloak demo realm's MCP audience from the same
+    `MCP_RESOURCE_URL` used by the MCP service at container start. This keeps a
+    custom published port aligned with exact audience validation without
+    accepting the REST frontend audience as a substitute.
 
 ## Consequences
 
@@ -97,7 +101,9 @@ private answer as a search query.
 - Public corroboration is available without becoming an authorization or truth
   source. Callers retain the decision to cross the search boundary for each
   invocation.
-- Deployments must configure an audience for the exact public MCP resource URL.
+- Deployments must configure an audience for the exact public MCP resource URL;
+  the Compose demo renders that value from `MCP_PORT` for both Keycloak and
+  MCP.
 - Codex deployments should set a tool timeout slightly above 300 seconds so the
   server returns the bounded downstream failure instead of a client timeout.
 

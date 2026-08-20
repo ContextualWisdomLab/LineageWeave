@@ -79,6 +79,21 @@ def test_null_verifier_is_explicitly_unavailable() -> None:
     assert verifier.verify("question", "answer").status_code == verification.STATUS_UNAVAILABLE
 
 
+def test_empty_orchestrator_choices_fail_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A malformed successful HTTP envelope cannot escape as an application error."""
+    verifier = _verifier()
+    monkeypatch.setattr(
+        verification,
+        "get_json",
+        lambda *_args, **_kwargs: {
+            "results": [{"title": "A", "url": "https://a.example", "content": "evidence"}]
+        },
+    )
+    monkeypatch.setattr(verification, "post_json", lambda *_args, **_kwargs: {"choices": []})
+
+    assert verifier.verify("question", "answer").status_code == verification.STATUS_UNAVAILABLE
+
+
 @pytest.mark.parametrize(
     ("searxng_url", "orchestrator_url", "api_key", "message"),
     [

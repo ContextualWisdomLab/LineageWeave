@@ -14,9 +14,15 @@ class _Connection:
         self.rows = rows
         self.requested_ids = None
 
-    async def fetch(self, _sql: str, post_ids):
+    async def fetch(self, _sql: str, post_ids, entity_ids=()):
         self.requested_ids = post_ids
-        return self.rows
+        self.requested_entity_ids = entity_ids
+        return [
+            row
+            for row in self.rows
+            if row.get("visibility_code", "public") == "public"
+            or row.get("corporate_entity_id") in entity_ids
+        ]
 
 
 @pytest.mark.asyncio
@@ -49,6 +55,57 @@ async def test_media_loader_returns_text_and_bounded_cited_raster_images() -> No
     assert all(block.mime_type == "image/png" for block in blocks[1:])
     assert base64.b64decode(blocks[1].data_base64 or "") == base64.b64decode(payload)
     assert blocks[1].unit_index == 0
+
+
+@pytest.mark.asyncio
+async def test_media_loader_rechecks_visibility_before_loading_cited_images() -> None:
+    payload = (
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk"
+        "+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    )
+    body = f'<img src="data:image/png;base64,{payload}">'
+    connection = _Connection(
+        [
+            {
+                "post_id": "11111111-1111-1111-1111-111111111111",
+                "post_title": "Public source",
+                "post_body": body,
+                "visibility_code": "public",
+                "corporate_entity_id": "other-entity",
+            },
+            {
+                "post_id": "22222222-2222-2222-2222-222222222222",
+                "post_title": "Private source outside affiliation",
+                "post_body": body,
+                "visibility_code": "private",
+                "corporate_entity_id": "other-entity",
+            },
+            {
+                "post_id": "33333333-3333-3333-3333-333333333333",
+                "post_title": "Private source in affiliation",
+                "post_body": body,
+                "visibility_code": "private",
+                "corporate_entity_id": "entity-1",
+            },
+        ]
+    )
+
+    blocks = await load_global_ask_content_blocks(
+        connection,
+        "Answer",
+        [
+            "11111111-1111-1111-1111-111111111111",
+            "22222222-2222-2222-2222-222222222222",
+            "33333333-3333-3333-3333-333333333333",
+        ],
+        ["entity-1"],
+    )
+
+    assert connection.requested_entity_ids == ["entity-1"]
+    assert [block.post_id for block in blocks[1:]] == [
+        "11111111-1111-1111-1111-111111111111",
+        "33333333-3333-3333-3333-333333333333",
+    ]
 
 
 @pytest.mark.asyncio

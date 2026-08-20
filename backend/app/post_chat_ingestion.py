@@ -35,6 +35,8 @@ from lineageweave.post_content_normalization import normalize_post_body
 
 from .knowledge_graph import load_visible_subgraph
 
+MAX_CHAT_SOURCE_COUNT = 6
+
 
 @dataclass(frozen=True)
 class LinkedPostIds:
@@ -151,32 +153,41 @@ async def gather_chat_sources(
         "from source_post where post_id = any($1::uuid[])",
         list(candidate_ids),
     )
-    for row in rows:
-        if can_see_post(row):
-            source_metadata = dict(metadata or {})
-            source_metadata["source_post_id"] = str(row["post_id"])
-            sources.append(
-                ChatSourceDocument(
-                    str(row["post_id"]),
-                    row["post_title"],
-                    normalize_post_body(
-                        row["post_body"],
-                        vision_client=vision_client,
-                        session_id=session_id,
-                        metadata=source_metadata,
-                    ).text,
-                    occurred_at=(
-                        row["created_at"].isoformat()
-                        if row.get("created_at") is not None
-                        else None
-                    ),
-                    lineage_relation=(
-                        "direct_lineage"
-                        if str(row["post_id"]) in linked.direct
-                        else "indirect_knowledge_graph"
-                    ),
-                )
+    visible_rows = [row for row in rows if can_see_post(row)]
+    direct_rows = sorted(
+        (row for row in visible_rows if str(row["post_id"]) in linked.direct),
+        key=lambda row: str(row["post_id"]),
+    )
+    indirect_rows = sorted(
+        (row for row in visible_rows if str(row["post_id"]) in linked.indirect),
+        key=lambda row: str(row["post_id"]),
+    )
+    selected_rows = (direct_rows + indirect_rows)[: MAX_CHAT_SOURCE_COUNT - 1]
+    for row in selected_rows:
+        source_metadata = dict(metadata or {})
+        source_metadata["source_post_id"] = str(row["post_id"])
+        sources.append(
+            ChatSourceDocument(
+                str(row["post_id"]),
+                row["post_title"],
+                normalize_post_body(
+                    row["post_body"],
+                    vision_client=vision_client,
+                    session_id=session_id,
+                    metadata=source_metadata,
+                ).text,
+                occurred_at=(
+                    row["created_at"].isoformat()
+                    if row.get("created_at") is not None
+                    else None
+                ),
+                lineage_relation=(
+                    "direct_lineage"
+                    if str(row["post_id"]) in linked.direct
+                    else "indirect_knowledge_graph"
+                ),
             )
+        )
 
     return sources
 

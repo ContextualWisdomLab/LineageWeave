@@ -237,12 +237,13 @@ server responsibilities.
 docker compose up --build postgres keycloak mcp
 ```
 
-The default endpoint is `http://localhost:18001/mcp`. The demo realm adds that
-exact audience to access tokens issued by `lineageweave-frontend`. A different
-host or port requires a corresponding IdP audience and environment change; do
-not accept the REST frontend audience as a substitute. Compose passes
-`MCP_MAX_REQUEST_BYTES` into the dedicated MCP process rather than the product
-REST API.
+The default endpoint is `http://localhost:18001/mcp`. The Compose demo renders
+the same `MCP_RESOURCE_URL` into the Keycloak audience mapper and MCP verifier,
+so `MCP_PORT=19001 docker compose up --build keycloak mcp` keeps exact audience
+validation aligned. A different public host still requires a corresponding
+IdP audience and environment change; do not accept the REST frontend audience
+as a substitute. Compose passes `MCP_MAX_REQUEST_BYTES` into the dedicated MCP
+process rather than the product REST API.
 
 ## Failure behavior
 

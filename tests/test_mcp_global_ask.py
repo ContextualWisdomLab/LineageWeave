@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import pytest
 
@@ -42,7 +42,9 @@ class FakeClient:
     """Synchronous reason-and-cite client used by the application-service tests."""
 
     available: bool = True
-    answer_value: ChatAnswer = ChatAnswer("grounded answer", ("public-post", "outside-source"))
+    answer_value: ChatAnswer = field(
+        default_factory=lambda: ChatAnswer("grounded answer", ("public-post", "outside-source"))
+    )
     error: Exception | None = None
     session_id: str | None = None
     metadata: dict[str, str] | None = None
