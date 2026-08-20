@@ -292,7 +292,24 @@ export interface AskAgentResponse {
   cited_post_evidence?: CitedPostEvidence[];
   source_post_ids: string[];
   timeline?: AskTimelineEntry[];
+  external_verification_status: string;
+  external_claims: ExternalClaim[];
   next_action?: string;
+}
+
+export interface ExternalClaimEvidence {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
+export interface ExternalClaim {
+  claim_text: string;
+  claim_kind: string;
+  status_code: string;
+  rationale: string;
+  source_post_ids: string[];
+  evidence: ExternalClaimEvidence[];
 }
 
 export interface AskTimelineEntry {
@@ -892,11 +909,22 @@ export function askPostChat(accessToken: string, postId: string, question: strin
 export function askAgent(
   accessToken: string,
   question: string,
+  verifyExternalOrSessionId: boolean | string = false,
   sessionId?: string,
 ): Promise<AskAgentResponse> {
+  const verifyExternal = typeof verifyExternalOrSessionId === "boolean"
+    ? verifyExternalOrSessionId
+    : undefined;
+  const existingSessionId = typeof verifyExternalOrSessionId === "string"
+    ? verifyExternalOrSessionId
+    : sessionId;
   return backendFetch("/api/ask", accessToken, {
     method: "POST",
-    body: JSON.stringify({ question, ...(sessionId ? { session_id: sessionId } : {}) }),
+    body: JSON.stringify({
+      question,
+      ...(verifyExternal !== undefined ? { verify_external: verifyExternal } : {}),
+      ...(existingSessionId ? { session_id: existingSessionId } : {}),
+    }),
   });
 }
 
