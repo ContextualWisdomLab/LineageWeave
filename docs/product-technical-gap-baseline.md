@@ -2,7 +2,7 @@
 
 **Snapshot:** 2026-08-20 17:08 (Asia/Seoul)
 **Protected-main baseline:** `origin/main`, product version `2.12.5`  
-**Audited PR head:** #258 at `1c260f20` (`fix: keep summaries available when enrichment times out`)
+**Audited PR head:** #258 at `7d8e9015` (integrated timeout boundary, fixture fix, and concurrent worker repair)
 **Active PR update:** ADR 0101 and the enrichment-timeout changes are pushed to
 PR #258; protected-main runtime evidence remains pending.
 **Purpose:** connect the normative ADRs and research evidence to product
@@ -155,16 +155,17 @@ body, source code, person, organization, or identifier:
 | Derived content | 562,394 semantic units, 1,308 live lineage edges, 48 KG navigation edges, and 95 persisted summaries |
 | Run registry | Three runs: one lineage, one report, one TEPP; latest states are two Succeeded and one Failed |
 | Run evidence | One snapshot with 42,577 members; one persisted reconstruction with 1,281 edges; zero persisted TEPP results |
-| Requester/processor | `post_summary_action` exists with composite actor foreign keys but contains zero rows |
+| Requester/processor | `post_summary_action` exists with composite actor foreign keys; one authorized target refresh stored three action rows |
+| Summary refresh | One authorized target request returned HTTP 200 with contract v5, four key events, one role, three actions, and one project |
 | Authentication | Real synthetic-user OIDC login, live JWKS fetch, and RS256 verification passed |
 | Authorization | Unauthenticated `/api/analysis-runs` and `/api/posts` returned 401; four focused live-Keycloak/PostgreSQL API tests covering authenticated account, list ABAC, direct deny, and missing token passed |
 | Focused contracts | Post-summary and transaction-contract tests: 31 passed, 1 skipped; the skip is not runtime proof for the skipped capability |
 
 These observations prove data presence and the listed boundaries only. They do
 not prove a browser-clicked buyer journey, current TEPP transport success,
-post-summary-action population, or equivalence between every running container
-image and the PR head. The observations and focused checks preceded commit
-`1c260f20` and do not validate its runtime behavior.
+post-summary-action population across the corpus, or equivalence between every
+running container image and the PR head. The target refresh is bounded runtime
+evidence for one authorized post, not a corpus-wide acceptance claim.
 
 ## Active PR audit
 
@@ -216,7 +217,7 @@ the exact-head disposition.
 | P0 | PR #258 is not review/CI complete at its exact current head | #258 is mergeable but BLOCKED: 14 of 22 checks queued, no approval, and four unresolved scanner threads on two SQL modules | Classify each finding against the literal SQL and bound arguments; fix a real flow or add a narrow documented suppression for a false positive, resolve threads, obtain independent approval, and re-check the exact head |
 | P1 | Requirements were implicit across ADRs and architecture phases | No prior PRD/TRD/requirement traceability baseline existed | Keep FR/NFR IDs in this document linked from ADR index; require new product PRs to name affected IDs and runtime evidence |
 | P1 | Active PR topology obscures release truth | 8 blocked, 8 unstable, and 2 dirty; many bases are other open branches | Publish a dependency order, retire obsolete/duplicate branches, and avoid version claims until their base chain reaches main |
-| P1 | ADR 0100 schema exists but current data does not exercise it | Commit `15e1a378` is on PR #258 and the table exists, but 95 summaries yield zero requester/processor action rows | Regenerate an authorized bounded sample, report aggregate accepted/dropped/absent counts, verify source evidence and actor FKs, then exercise the buyer popup without exposing record content |
+| P1 | ADR 0100 is exercised only by a bounded target, not accepted across the corpus | Commit `15e1a378` and the v5 contract are on PR #258; one authorized target refresh stored three action rows, while corpus-wide accepted/dropped/absent counts remain unknown | Regenerate an authorized bounded sample, report aggregate accepted/dropped/absent counts, verify source evidence and actor FKs, then exercise the buyer popup without exposing record content |
 | P1 | ADR 0101 is active-PR behavior but not protected-main behavior | Commit `1c260f20` contains the corrected ADR link, boundary, and focused tests; independent review and protected-main merge remain pending | Re-audit the exact head, obtain independent approval, pass required checks, merge normally, and collect fresh runtime evidence |
 | P1 | ADR status vocabulary is inconsistent and sometimes stale | Several ADRs say “Accepted on this active PR; not protected-main truth” even after branch evolution | Add a mechanical ADR status/link audit that distinguishes Proposed, Accepted-on-PR, Accepted-on-main, and Superseded |
 | P2 | ADR numbering skips 0031 and 0093-0097 while file 0092 titles itself ADR 0031 | File identity and displayed identity differ | Correct the 0092 title or document an intentional alias; reserve or explain skipped numbers in the index |
@@ -230,7 +231,7 @@ the exact-head disposition.
 | Protected main | `origin/main` manifests show 2.12.5 | Existing main contracts only | Fresh main runtime matrix |
 | Historical local runtime | Authenticated PostgreSQL report rebuilds and orchestrator/Vision observations dated 2026-08-18/19 | Those exact bounded observations | Current head/main equivalence and full browser journey |
 | Active PRs | GitHub head/base, review, merge, check, and review-thread states at snapshot | Proposed increments and gate state | Normal merge and post-merge runtime behavior |
-| Local PR checkout | HEAD is PR #258 `1c260f20`; focused OIDC/API/summary checks and aggregate DB queries preceded the timeout-boundary commit | Only the exact observations in the current-data table; no claim for commit `1c260f20` runtime behavior | Full suite/CI, browser journey, external channel results, review, merge, and fresh evidence for the timeout boundary |
+| Local PR checkout | PR #258 was observed at `7d8e9015`; full suite passed and one authorized target summary refresh returned v5/HTTP 200 with persisted actions | Only the exact observations in the current-data table; no claim for protected-main behavior | Full suite/CI, browser journey, external channel results, review, merge, and corpus-level action evidence |
 
 ## Maintenance rule
 
