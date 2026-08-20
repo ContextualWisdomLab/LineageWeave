@@ -98,8 +98,10 @@ jobs:
         run: |
           python3 -m py_compile \
             .github/scripts/implement_282_tepp_project_history.py \
-            .github/scripts/run_implementation_282.py
+            .github/scripts/run_implementation_282.py \
+            .github/scripts/patch_282_loopback_transport.py
           python3 .github/scripts/run_implementation_282.py
+          python3 .github/scripts/patch_282_loopback_transport.py
           python3 - <<'PY'
           from pathlib import Path
 
@@ -167,12 +169,14 @@ jobs:
             .github/workflows/implement-282-tepp-project-history.yml \
             .github/scripts/implement_282_tepp_project_history.py \
             .github/scripts/run_implementation_282.py \
+            .github/scripts/patch_282_loopback_transport.py \
             .implementation_282_paths \
             tests/.noop
           git add -u -- \
             .github/workflows/implement-282-tepp-project-history.yml \
             .github/scripts/implement_282_tepp_project_history.py \
             .github/scripts/run_implementation_282.py \
+            .github/scripts/patch_282_loopback_transport.py \
             tests/.noop
 
           rm -rf .coverage htmlcov frontend/storybook-static
