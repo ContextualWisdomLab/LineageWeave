@@ -4315,7 +4315,7 @@ function CustomerMasterPanel({
     } catch {
       setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
     } finally {
-      setRelatedLoading(null);
+      setRelatedLoading((current) => (current === entityId ? null : current));
     }
   }
 
