@@ -23,7 +23,7 @@ import asyncio
 import json
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Literal
 from uuid import UUID
 
@@ -172,6 +172,7 @@ from backend.app.post_summary_ingestion import (
     persist_post_summary,
     require_summary_source_body,
 )
+from backend.app.tepp_project_history import project_history_for_post_ids
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
@@ -2378,6 +2379,26 @@ async def read_post_five_w1h(
         )
 
 
+@app.get("/api/posts/{post_id}/project-history")
+async def read_post_project_history(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return the cutoff-safe exact-project timeline for one visible post."""
+    await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        return await project_history_for_post_ids(
+            conn,
+            tenant_workspace_id=str(account.user_account_id),
+            corporate_entity_ids=account.corporate_entity_ids,
+            focus_post_id=post_id,
+            source_post_ids=[post_id],
+            knowledge_cutoff=datetime.now(timezone.utc),
+            tepp_transport_url=load_settings().tepp_transport_url,
+        )
+
+
 class ChatRequest(BaseModel):
     """JSON body for ``POST /api/posts/{post_id}/chat``."""
 
@@ -2435,12 +2456,23 @@ async def chat_about_post(
         if stored is not None:
             source_ids = [post_id]
             source_ids.extend(cid for cid in stored["cited_post_ids"] if cid != post_id)
+            history = await project_history_for_post_ids(
+                conn,
+                tenant_workspace_id=str(account.user_account_id),
+                corporate_entity_ids=account.corporate_entity_ids,
+                focus_post_id=post_id,
+                source_post_ids=source_ids,
+                knowledge_cutoff=datetime.now(timezone.utc),
+                tepp_transport_url=load_settings().tepp_transport_url,
+            )
             return {
                 "post_id": post_id,
                 "answer_text": stored["answer_text"],
                 "cited_post_ids": stored["cited_post_ids"],
                 "cited_posts": stored["cited_posts"],
                 "source_post_ids": source_ids,
+                "tepp_project_history": history["project_history"],
+                "tepp_project_history_status": history["status"],
             }
         with use_llm_metadata(post_metadata):
             client = _post_chat_client()
@@ -2461,14 +2493,26 @@ async def chat_about_post(
             "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
+    source_ids = [source.post_id for source in sources]
     async with pool.acquire() as conn:
         await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
+        history = await project_history_for_post_ids(
+            conn,
+            tenant_workspace_id=str(account.user_account_id),
+            corporate_entity_ids=account.corporate_entity_ids,
+            focus_post_id=post_id,
+            source_post_ids=source_ids,
+            knowledge_cutoff=datetime.now(timezone.utc),
+            tepp_transport_url=load_settings().tepp_transport_url,
+        )
     return {
         "post_id": post_id,
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
         "cited_posts": cited_post_summaries(sources, cited_ids),
-        "source_post_ids": [source.post_id for source in sources],
+        "source_post_ids": source_ids,
+        "tepp_project_history": history["project_history"],
+        "tepp_project_history_status": history["status"],
     }
 
 
@@ -2503,6 +2547,8 @@ async def ask_agent(
             "cited_posts": [],
             "source_post_ids": [],
             "cited_post_evidence": [],
+            "tepp_project_history": None,
+            "tepp_project_history_status": "insufficient_project_evidence",
             "next_action": "No authorized source posts are available for this question.",
         }
     try:
@@ -2513,12 +2559,26 @@ async def ask_agent(
             f"Ask Agent is unavailable: {exc}",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
+    source_ids = [source.post_id for source in sources]
+    focus_post_id = cited_ids[0] if cited_ids else source_ids[0]
+    async with pool.acquire() as conn:
+        history = await project_history_for_post_ids(
+            conn,
+            tenant_workspace_id=str(account.user_account_id),
+            corporate_entity_ids=account.corporate_entity_ids,
+            focus_post_id=focus_post_id,
+            source_post_ids=source_ids,
+            knowledge_cutoff=datetime.now(timezone.utc),
+            tepp_transport_url=load_settings().tepp_transport_url,
+        )
     return {
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
         "cited_posts": cited_post_summaries(sources, cited_ids),
         "cited_post_evidence": cited_post_evidence(sources, cited_ids),
-        "source_post_ids": [source.post_id for source in sources],
+        "source_post_ids": source_ids,
+        "tepp_project_history": history["project_history"],
+        "tepp_project_history_status": history["status"],
     }
 
 

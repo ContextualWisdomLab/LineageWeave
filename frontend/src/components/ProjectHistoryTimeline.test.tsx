@@ -69,8 +69,8 @@ describe("ProjectHistoryTimeline", () => {
     expect(screen.getByText(/Project Alpha/)).toBeInTheDocument();
     expect(screen.getByText("Contract awarded")).toBeInTheDocument();
     expect(screen.getByText("Specification changed")).toBeInTheDocument();
-    expect(screen.getByText("VOC received")).toBeInTheDocument();
-    expect(screen.getByText(/3/)).toBeInTheDocument();
+    expect(screen.getAllByText("VOC received")).toHaveLength(2);
+    expect(screen.getByText(/담당 이력:/)).toHaveTextContent("3인");
     expect(screen.getByText(/temporal association/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open evidence: VOC received" })).toHaveAttribute(
       "aria-current",

@@ -88,6 +88,7 @@ import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
+import { PostProjectHistory, ProjectHistoryTimeline } from "./components/ProjectHistoryTimeline";
 import { subgraphForPost } from "./lineageLayout";
 import {
   isSupportedLocale,
@@ -1964,6 +1965,11 @@ function PostDetailPopup({
                 </p>
               )}
             </section>
+            <PostProjectHistory
+              accessToken={accessToken}
+              postId={postId}
+              onOpenPost={(sourcePostId) => onSelectPost?.(sourcePostId)}
+            />
             {(post.source_stage_code ||
               post.source_detail_state_code ||
               post.source_draft_code ||
@@ -4642,6 +4648,12 @@ function AskAgentPanel({
           <h3>{t("Answer")}</h3>
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
           {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
+          {answer.tepp_project_history ? (
+            <ProjectHistoryTimeline
+              history={answer.tepp_project_history}
+              onOpenPost={onOpenPost}
+            />
+          ) : null}
           {answer.cited_posts && answer.cited_posts.length > 0 && (
             <>
               <p className="board-next-action" role="status" aria-label={t("Next action")}>
