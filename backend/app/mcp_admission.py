@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
-from typing import Any
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -90,7 +89,7 @@ def _header_values(scope: Scope, name: bytes) -> tuple[bytes, ...]:
     return tuple(
         value
         for header_name, value in scope.get("headers", [])
-        if header_name.casefold() == name
+        if header_name.lower() == name
     )
 
 
