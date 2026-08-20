@@ -12,8 +12,10 @@ import asyncpg
 import redis.asyncio as redis
 
 from lineageweave.adjudication_client import AdjudicationClient, NullAdjudicationClient
-from lineageweave.lineage_persistence import lineage_edge_specs
-from lineageweave.models import Edge
+from lineageweave.lineage_persistence import (
+    LineageReconstructionSpec,
+    lineage_reconstruction_spec,
+)
 
 from backend.app.analysis_run_start import reconstruction_result_digest
 from backend.app.lineage_ingestion import persist_lineage_edges, records_from_source_posts
@@ -98,8 +100,11 @@ async def _load_eligible_records(pool: asyncpg.Pool):
     return records_from_source_posts(rows)
 
 
-def _reconstruct_edges(records, llm: AdjudicationClient) -> list[Edge]:
-    return lineage_edge_specs(records, llm=llm)
+def _reconstruct_spec(
+    records, llm: AdjudicationClient
+) -> LineageReconstructionSpec:
+    """Reconstruct edges and retain the evidence contract for persistence."""
+    return lineage_reconstruction_spec(records, llm=llm)
 
 
 async def process_lineage_rebuild_job(
@@ -121,7 +126,7 @@ async def process_lineage_rebuild_job(
         if llm_status in {LLM_REQUESTED, LLM_AVAILABLE} and not used_llm:
             llm_status = LLM_UNAVAILABLE
         try:
-            edges = await asyncio.to_thread(_reconstruct_edges, records, selected)
+            spec = await asyncio.to_thread(_reconstruct_spec, records, selected)
             if used_llm:
                 llm_status = LLM_COMPLETED
         except Exception:
@@ -131,18 +136,24 @@ async def process_lineage_rebuild_job(
                     lineage_rebuild_job_id,
                 )
                 llm_status = LLM_FAILED
-                edges = await asyncio.to_thread(
-                    _reconstruct_edges, records, NullAdjudicationClient()
+                spec = await asyncio.to_thread(
+                    _reconstruct_spec, records, NullAdjudicationClient()
                 )
             else:
                 raise
+        edges = list(spec.edges)
         digest = reconstruction_result_digest(edges)
         async with pool.acquire() as conn:
             async with conn.transaction():
                 current = await conn.fetchrow(_CLAIM_SQL, lineage_rebuild_job_id)
                 if current is None or str(current["status_code"]) == CANCELLED:
                     return
-                await persist_lineage_edges(conn, edges)
+                await persist_lineage_edges(
+                    conn,
+                    edges,
+                    channel_weights=spec.channel_weights,
+                    reconstruction_version=spec.reconstruction_version,
+                )
                 await transition_lineage_rebuild_job(
                     conn,
                     lineage_rebuild_job_id,
