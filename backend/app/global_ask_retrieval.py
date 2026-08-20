@@ -202,13 +202,19 @@ def public_external_claim_facts(
         and "node_person" not in fact
     )
     public_semantic_facts = tuple(
-        fact
+        _public_semantic_fact(fact)
         for fact in semantic_facts
         if fact.startswith("project:")
         and "node_person" not in fact
         and not fact.startswith(("actor:", "Keyman mention:"))
     )
     return tuple(dict.fromkeys(public_semantic_facts + public_graph_facts))
+
+
+def _public_semantic_fact(fact: str) -> str:
+    """Keep only the assertion, never the internal project evidence excerpt."""
+
+    return fact.split(" | evidence:", 1)[0].strip()
 
 
 __all__ = [

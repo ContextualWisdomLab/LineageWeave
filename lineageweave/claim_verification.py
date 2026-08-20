@@ -55,6 +55,7 @@ _METADATA_SEGMENT = re.compile(
 )
 _TOKEN = re.compile(r"[^\W_]+(?:-[^\W_]+)*", re.UNICODE)
 _CODE_FENCE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
+_EVIDENCE_POST_IDS = re.compile(r"\[evidence_post_id=([^]]+)\]")
 
 
 @dataclass(frozen=True)
@@ -136,6 +137,7 @@ def _clean_fact(fact: str) -> str:
 
     cleaned = _PROVENANCE_SUFFIX.sub("", fact)
     cleaned = _METADATA_SEGMENT.sub("", cleaned)
+    cleaned = re.split(r"\s*\|\s*evidence:", cleaned, maxsplit=1)[0]
     return " ".join(cleaned.split())
 
 
@@ -194,8 +196,15 @@ def public_claim_candidates(
                 continue
             key = (kind, claim_text)
             post_ids = merged.setdefault(key, [])
-            if source.post_id not in post_ids:
-                post_ids.append(source.post_id)
+            evidence_match = _EVIDENCE_POST_IDS.search(raw_fact)
+            evidence_ids = (
+                [value.strip() for value in evidence_match.group(1).split(",")]
+                if evidence_match is not None
+                else [source.post_id]
+            )
+            for post_id in evidence_ids:
+                if post_id and post_id not in post_ids:
+                    post_ids.append(post_id)
 
     ranked = sorted(
         merged.items(),

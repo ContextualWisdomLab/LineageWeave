@@ -87,4 +87,4 @@ async def test_verify_public_claims_returns_completed_separate_web_evidence(
     assert status_code == VERIFICATION_COMPLETED
     assert len(claims) == 1
     assert claims[0].status_code == CLAIM_SUPPORTED
-    assert verified == ["project: Apollo | evidence: public launch"]
+    assert verified == ["project: Apollo"]
