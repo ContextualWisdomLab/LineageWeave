@@ -178,6 +178,14 @@ def test_channel_score_migration_is_normalized_bounded_and_reversible() -> None:
     assert "primary key (parent_post_id, child_post_id, channel_code)" in migration
     assert "references post_lineage_edge" in migration
     assert "on delete cascade" in migration
+    assert "channel_code in (" in migration
+    for channel_code in (
+        "lineage_channel_temporal",
+        "lineage_channel_secondary_key",
+        "lineage_channel_text",
+        "lineage_channel_llm",
+    ):
+        assert channel_code in migration
     assert "channel_score >= 0" in migration
     assert "channel_score <= 1" in migration
     assert "drop table if exists lineage_edge_channel_score" in rollback
