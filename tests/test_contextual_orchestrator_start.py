@@ -34,6 +34,16 @@ def test_bootstrap_does_not_patch_upstream_model_classes() -> None:
     assert "_apply_provider_models" not in module.__dict__
 
 
+def test_compose_keeps_embedding_selector_inside_orchestrator() -> None:
+    """The backend receives the orchestrator boundary, not its model selector."""
+    compose = (Path(__file__).parents[1] / "docker-compose.yml").read_text(encoding="utf-8")
+    orchestrator = compose.split("\n  orchestrator:\n", 1)[1].split("\n  backend:\n", 1)[0]
+    backend = compose.split("\n  backend:\n", 1)[1].split("\n  frontend:\n", 1)[0]
+
+    assert "env_file:" in orchestrator
+    assert "LLM_GATEWAY_EMBEDDING_MODEL" not in backend
+
+
 def test_provider_api_url_is_canonical_over_compatibility_aliases(monkeypatch) -> None:
     module = _load_start_module()
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://canonical.example/v1")

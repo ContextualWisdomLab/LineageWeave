@@ -21,10 +21,10 @@ These credentials are not interchangeable. The first is the local service
 boundary; the second is the provider credential.
 
 The backend must not load `~/.env` wholesale. Compose injects the provider
-credential and URL only into contextual-orchestrator; the backend receives
-only its internal orchestrator credential and the non-secret embedding model
-identifier. This prevents an unrelated application process from holding the
-provider secret while preserving the single LLM/Vision boundary.
+credential, URL, and embedding-agent allowlist only into
+contextual-orchestrator; the backend receives only its internal orchestrator
+credential. This prevents an unrelated application process from holding a
+provider secret or selector while preserving the single LLM/Vision boundary.
 
 ## Decision
 
