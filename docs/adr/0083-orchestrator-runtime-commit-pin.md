@@ -17,11 +17,12 @@ mismatch.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `cf4a4501fa5057f89b21cad5033c5925755cd150`, the pushed head of
-ContextualWisdomLab/contextual-orchestrator#779, stacked on
-ContextualWisdomLab/contextual-orchestrator#765. The pin remains explicit
-and immutable until the protected PRs merge; it is not a moving `main`
-reference and it is not a LineageWeave monkey patch.
+commit `0246e91f107c8dbb82eb0b421d0aeb0f5fe21ecf`, the pushed integration
+head of ContextualWisdomLab/contextual-orchestrator#791. That PR combines
+the temperature negotiation in #779 with the orchestrator-owned embedding
+selection in #789 and remains stacked on #765. The pin remains explicit and
+immutable until the protected PRs merge; it is not a moving `main` reference
+and it is not a LineageWeave monkey patch.
 
 The runtime contract is:
 
@@ -40,6 +41,10 @@ The runtime contract is:
 - When HTTP 400/422 explicitly proves that `temperature` is unsupported, the
   same endpoint is retried once with only that optional field omitted. Invalid
   values and unrelated 4xx responses remain fail-closed.
+- Embedding requests may omit `model`; the orchestrator selects only an enabled
+  embedding-capable agent and returns the resolved model for provenance.
+- An omitted embedding model fails with `embedding_unavailable` when no eligible
+  agent exists; LineageWeave never supplies a heuristic or provider fallback.
 - An empty seed model is expanded from the configured gateway `/v1/models`
   endpoint; embedding-only rows are not added to the chat agent pool.
 - `json_object`, `json_schema`, and Responses JSON formats run conduct plus
@@ -52,4 +57,4 @@ The runtime contract is:
 - Rebuilding the image is required after the upstream pin changes.
 - Protected-branch review and merge remain external gates; this pin does not
   bypass ContextualWisdomLab/contextual-orchestrator#765 or
-  ContextualWisdomLab/contextual-orchestrator#779.
+  ContextualWisdomLab/contextual-orchestrator#779, #789, or #791.

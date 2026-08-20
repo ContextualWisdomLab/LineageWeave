@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ORCHESTRATOR_COMMIT = "cf4a4501fa5057f89b21cad5033c5925755cd150"
+ORCHESTRATOR_COMMIT = "0246e91f107c8dbb82eb0b421d0aeb0f5fe21ecf"
 
 
 def test_orchestrator_runtime_pin_matches_adr() -> None:
@@ -18,5 +18,5 @@ def test_orchestrator_runtime_pin_matches_adr() -> None:
 
     assert f"contextual-orchestrator/archive/{ORCHESTRATOR_COMMIT}.tar.gz" in dockerfile
     assert f"commit `{ORCHESTRATOR_COMMIT}`" in adr
-    upstream_pr = "ContextualWisdomLab/contextual-orchestrator#779"
+    upstream_pr = "ContextualWisdomLab/contextual-orchestrator#791"
     assert upstream_pr in dockerfile and upstream_pr in adr
