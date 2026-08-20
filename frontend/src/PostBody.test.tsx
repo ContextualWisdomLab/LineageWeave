@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { PostBody } from "./PostBody";
 
@@ -188,5 +189,81 @@ describe("PostBody", () => {
     expect(screen.getByText("diagram, process")).toBeInTheDocument();
     expect(screen.getByText("Main panel")).toBeInTheDocument();
     expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Main panel/ })).not.toBeInTheDocument();
+  });
+
+  it("overlays persisted region boxes on a reattached source image", async () => {
+    const user = userEvent.setup();
+    const source =
+      '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />';
+
+    render(
+      <PostBody
+        body={source}
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "image",
+            unit_label: "img",
+            unit_text: "This post is an image. Ask questions to read its text.",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "",
+          },
+        ]}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "Visible OCR",
+            caption: "A process diagram",
+            tags: ["diagram"],
+            regions: [
+              {
+                region_index: 0,
+                x_ratio: 0.1,
+                y_ratio: 0.2,
+                width_ratio: 0.3,
+                height_ratio: 0.4,
+                status_code: "described",
+                extracted_text: "Region OCR",
+                caption: "Main panel",
+                tags: ["panel"],
+              },
+              {
+                region_index: 1,
+                x_ratio: 0.9,
+                y_ratio: 0.9,
+                width_ratio: 0.5,
+                height_ratio: 0.5,
+                status_code: "described",
+                extracted_text: "Invented box must not render",
+                caption: "Overflow panel",
+                tags: [],
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    const overlay = screen.getByRole("button", { name: "Image region: Main panel" });
+    expect(overlay).toHaveStyle({
+      left: "10%",
+      top: "20%",
+      width: "30%",
+      height: "40%",
+    });
+    expect(screen.queryByRole("button", { name: /Overflow panel/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Invented box must not render/)).not.toBeInTheDocument();
+    expect(screen.getByText("Overflow panel")).toBeInTheDocument();
+
+    overlay.focus();
+    expect(overlay).toHaveFocus();
+    await user.click(overlay);
+    expect(screen.getByText("Current image region: Main panel")).toBeInTheDocument();
   });
 });
