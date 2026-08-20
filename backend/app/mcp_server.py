@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
 from typing import Annotated, Any, Literal
 
+from mcp.client import Client as _McpClientTypeOnly  # noqa: F401
 from mcp.server import MCPServer
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.provider import AccessToken, TokenVerifier
@@ -17,15 +18,21 @@ from mcp.server.transport_security import (
     TransportSecurityMiddleware,
     TransportSecuritySettings,
 )
+from mcp.shared.exceptions import MCPError
 from mcp.types import CallToolResult, ImageContent, TextContent, ToolAnnotations
 from pydantic import AnyHttpUrl, BaseModel, Field
 from starlette.requests import Request
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from backend.app.activity_stream import create_valkey_client
 from backend.app.auth import CurrentAccount, resolve_current_account
 from backend.app.config import Settings, load_settings
 from backend.app.db import create_pool
-from backend.app.global_ask import GlobalAskAnswer, answer_global_question
+from backend.app.global_ask import (
+    GlobalAskAnswer,
+    GlobalAskForbiddenError,
+    answer_global_question,
+)
 from backend.app.global_ask_verification import (
     STATUS_NOT_REQUESTED,
     ExternalVerificationResult,
@@ -34,6 +41,13 @@ from backend.app.global_ask_verification import (
     SearxngOrchestratorGlobalAskVerifier,
 )
 from backend.app.mcp_auth import KeycloakMcpTokenVerifier
+from backend.app.mcp_rate_limit import (
+    GLOBAL_ASK_RATE_LIMIT_ERROR_CODE,
+    GLOBAL_ASK_RATE_LIMIT_UNAVAILABLE_ERROR_CODE,
+    GlobalAskRateLimiter,
+    GlobalAskRateLimitUnavailable,
+    ValkeyGlobalAskRateLimiter,
+)
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.post_chat import ContextualOrchestratorPostChatClient, NullPostChatClient, PostChatClient
 
@@ -74,6 +88,7 @@ class McpAppContext:
     chat_client: PostChatClient
     vision_client: Any
     external_verifier: GlobalAskExternalVerifier
+    rate_limiter: GlobalAskRateLimiter
 
 
 class PreAuthTransportSecurityApp:
@@ -84,7 +99,7 @@ class PreAuthTransportSecurityApp:
     therefore challenge an unauthenticated hostile Host before the transport's
     DNS-rebinding validator runs. This outer ASGI boundary reuses the SDK's own
     validator and rejects invalid transport metadata before any token verifier,
-    database resolver, or Global Ask dependency is invoked.
+    database resolver, quota decision, or Global Ask dependency is invoked.
     """
 
     def __init__(self, app: ASGIApp, settings: TransportSecuritySettings) -> None:
@@ -112,6 +127,7 @@ PoolFactory = Callable[[str], Awaitable[Any]]
 AccountResolver = Callable[[Any, str], Awaitable[CurrentAccount]]
 Answerer = Callable[..., Awaitable[GlobalAskAnswer]]
 AccessTokenProvider = Callable[[], AccessToken | None]
+ValkeyFactory = Callable[[str], Any]
 
 
 def _chat_client(settings: Settings) -> PostChatClient:
@@ -139,6 +155,16 @@ def _external_verifier(settings: Settings) -> GlobalAskExternalVerifier:
     )
 
 
+def _rate_limit_error_data(error_code: str, retry_after_seconds: int) -> dict[str, object]:
+    """Return client-actionable retry data without counters or raw principal ids."""
+    return {
+        "error_code": error_code,
+        "retry_after_seconds": retry_after_seconds,
+        "retryable": True,
+        "scope": "authenticated_principal",
+    }
+
+
 def build_mcp_server(
     settings: Settings | None = None,
     *,
@@ -148,6 +174,8 @@ def build_mcp_server(
     answerer: Answerer = answer_global_question,
     access_token_provider: AccessTokenProvider = get_access_token,
     external_verifier: GlobalAskExternalVerifier | None = None,
+    rate_limiter: GlobalAskRateLimiter | None = None,
+    valkey_factory: ValkeyFactory = create_valkey_client,
 ) -> MCPServer[McpAppContext]:
     """Build a testable OAuth resource server with one read-only Global Ask tool."""
     resolved_settings = settings or load_settings()
@@ -155,8 +183,17 @@ def build_mcp_server(
 
     @asynccontextmanager
     async def lifespan(_: MCPServer) -> AsyncIterator[McpAppContext]:
-        """Open and close the MCP process-wide database and client context."""
+        """Open and close process-wide database, Valkey, and client context."""
         pool = await pool_factory(resolved_settings.database_url)
+        valkey_client = None
+        resolved_rate_limiter = rate_limiter
+        if resolved_rate_limiter is None:
+            valkey_client = valkey_factory(resolved_settings.valkey_url)
+            resolved_rate_limiter = ValkeyGlobalAskRateLimiter(
+                valkey_client,
+                maximum_requests=resolved_settings.mcp_global_ask_rate_limit,
+                window_seconds=resolved_settings.mcp_global_ask_rate_window_seconds,
+            )
         try:
             yield McpAppContext(
                 pool=pool,
@@ -166,9 +203,12 @@ def build_mcp_server(
                     resolved_settings.orchestrator_api_key,
                 ),
                 external_verifier=resolved_external_verifier,
+                rate_limiter=resolved_rate_limiter,
             )
         finally:
             await pool.close()
+            if valkey_client is not None:
+                await valkey_client.aclose()
 
     mcp = MCPServer(
         "lineageweave",
@@ -183,9 +223,10 @@ def build_mcp_server(
             "answer body is never used as a web-search query. External verification is "
             "reported separately and external URLs never become LineageWeave post "
             "authority. Treat insufficient, unavailable, and not_requested as unresolved, "
-            "not as support."
+            "not as support. A structured rate-limit error carries retry_after_seconds; "
+            "retry no sooner than that value."
         ),
-        version="1.0.1",
+        version="1.0.2",
         lifespan=lifespan,
         token_verifier=token_verifier or KeycloakMcpTokenVerifier(resolved_settings),
         auth=AuthSettings(
@@ -201,7 +242,8 @@ def build_mcp_server(
             "Answer from authorized LineageWeave source posts and Event Lineage. "
             "Optionally, with verify_external=true, send the caller's question to the "
             "configured Searxng open-web lane and separately classify the answer against "
-            "bounded retrieved evidence."
+            "bounded retrieved evidence. Invocations are subject to a shared "
+            "authenticated-principal quota."
         ),
         annotations=ToolAnnotations(
             read_only_hint=True,
@@ -220,6 +262,30 @@ def build_mcp_server(
             raise PermissionError("authenticated MCP principal is unavailable")
         dependencies = ctx.request_context.lifespan_context
         account = await account_resolver(dependencies.pool, token.subject)
+        if not account.has_permission("post_read"):
+            raise GlobalAskForbiddenError("account lacks the post_read permission")
+        try:
+            rate_decision = await dependencies.rate_limiter.acquire(
+                account.user_account_id
+            )
+        except GlobalAskRateLimitUnavailable as exc:
+            raise MCPError(
+                code=GLOBAL_ASK_RATE_LIMIT_UNAVAILABLE_ERROR_CODE,
+                message="Global Ask distributed rate limit is unavailable",
+                data=_rate_limit_error_data(
+                    "global_ask_rate_limit_unavailable",
+                    resolved_settings.mcp_rate_limit_unavailable_retry_seconds,
+                ),
+            ) from exc
+        if not rate_decision.allowed:
+            raise MCPError(
+                code=GLOBAL_ASK_RATE_LIMIT_ERROR_CODE,
+                message="Global Ask rate limit exceeded",
+                data=_rate_limit_error_data(
+                    "global_ask_rate_limited",
+                    rate_decision.retry_after_seconds,
+                ),
+            )
         result = await answerer(
             dependencies.pool,
             account,
