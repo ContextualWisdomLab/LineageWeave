@@ -40,8 +40,9 @@ remain grounded in authorized LineageWeave posts. When verification is enabled:
 6. SearXNG returns bounded snippets and URLs. LineageWeave does not server-side
    fetch the returned target URL as part of verification;
 7. contextual-orchestrator adjudicates the claim from only those numbered web
-   snippets in `mode="auto"` with a strict JSON schema; its model, protocol, and
-   reasoning policy remain owned by the orchestrator;
+   snippets in governed `mode="auto"` with `reasoning_effort="auto"` and a
+   strict JSON Schema response contract. The gateway owns model discovery,
+   provider protocol, and reasoning policy; LineageWeave sends no model name;
 8. the result is one of `claim_supported`, `claim_refuted`, or
    `claim_not_enough_information`;
 9. `claim_supported` and `claim_refuted` require at least one cited external
@@ -64,6 +65,13 @@ Current title/body/source-field weighting and direct Event-Lineage expansion
 remain intact. A strong persisted semantic/KG match may outrank a weak body hit.
 A non-empty query with no lexical, semantic, graph, or ontology candidates fails
 closed to no source instead of returning unrelated recent posts.
+
+Multilingual substring lookup uses one direct `ILIKE` predicate per persisted
+text column and one matching `pg_trgm` GIN index per searched field. It does not
+concatenate semantic fields into an expression because that would prevent the
+per-column indexes from serving the search. Query terms and candidate counts
+remain bounded independently of the database planner; the index is an
+acceleration mechanism, not an exhaustive-recall or latency guarantee.
 
 ## SearXNG boundary
 
@@ -113,6 +121,9 @@ Regression coverage must prove:
 - internal post IDs and external URLs never share a citation field;
 - SearXNG/provider failure cannot become `claim_refuted`;
 - evidence-free support/refute verdicts downgrade to not-enough-information;
+- `mode="auto"`, no caller-selected model, system/user untrusted-evidence
+  separation, and strict JSON Schema output;
+- indexable per-column semantic predicates plus forward/rollback indexes;
 - API opt-in remains backward compatible; and
 - changed production modules retain repository-required statement and branch
   coverage.
@@ -121,6 +132,10 @@ Regression coverage must prove:
 
 Lebo, T., Sahoo, S., & McGuinness, D. (Eds.). (2013). *PROV-O: The PROV
 ontology*. World Wide Web Consortium. https://www.w3.org/TR/prov-o/
+
+PostgreSQL Global Development Group. (2026). *pg_trgm—Support for similarity of
+text using trigram matching* (PostgreSQL 17 documentation, Section F.33).
+https://www.postgresql.org/docs/17/pgtrgm.html
 
 SearXNG contributors. (2026). *Search API*. SearXNG documentation.
 https://docs.searxng.org/dev/search_api.html
