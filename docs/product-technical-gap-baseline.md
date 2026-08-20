@@ -578,3 +578,42 @@ runtime; they do not prove protected-main equivalence, complete-corpus
 correctness, authorization coverage, or release readiness. Re-run the same
 aggregate projection against the authorized deployment before treating it as
 buyer-facing evidence.
+
+## Current PR queue checkpoint: 2026-08-21 07:29 KST
+
+The current GitHub queue was re-fetched after the previous checkpoint. The
+following buyer-surface heads are exact at this checkpoint; they remain
+proposed work and are not protected-main evidence. Every listed PR was open
+and blocked at query time, and none had an `APPROVED` review decision.
+
+| PR | Head | Base | Gate state |
+|---:|---|---|---|
+| #331 | `18d85bd9e651f2f1d590bc47da4946e50ec920f3` | `fix/member-locale-bootstrap-race` | `BLOCKED`, review required |
+| #330 | `e14dd956ad2493c42a16076a2adc095e0df5733b` | `codex/normalize-source-indent-semantics` | `BLOCKED`, review required |
+| #329 | `b5b08071ab869854da696566343e97feb04add20` | `fix/validate-partial-image-regions` | `BLOCKED`, review required |
+| #328 | `63dfc21ceb7b57790f236c55ca11a687bf2f34df` | `fix/oidc-deep-link-locale` | `BLOCKED`, review required |
+| #327 | `021f98ed06fc0bee853c2b1a20ca17f0feb16a87` | `main` | `BLOCKED`, approval absent |
+| #326 | `80f44f6508f877dae2db16674a2a2b0cd590ca14` | `main` | `BLOCKED`, review required |
+| #325 | `d80d691cd8ed780a8fb0072199304f595b1ea75e` | `fix/validate-partial-image-regions` | `BLOCKED`, review required |
+| #324 | `7a49d3e36a2375c7e53e9fc34bfe39c7e37def10` | `codex/preserve-partial-image-regions` | `BLOCKED`, review required |
+| #323 | `579bae314551a6ade2ea3d1d89a2df2a8f1331c9` | `main` | `BLOCKED`, review required |
+| #322 | `f316e0ab5507b101744e632d3c1596a3ed674d22` | `fix/stale-summary-buyer-continuity` | `BLOCKED`, review required |
+| #320 | `0f8bc28f116dc4c6e3a04c01d042de53c51e9173` | `codex/normalize-source-indent-semantics` | `BLOCKED`, review required |
+| #319 | `e84994e9145d3f7a1a7849e94c91de02cccf62fc` | `codex/post-structure-case-fixes` | `BLOCKED`, review required |
+| #318 | `a64bdf0a3cee71d79ca3af882ad50ee5aa1f46f2` | `feat/multilingual-organization-label-search` | `BLOCKED`, review required |
+| #317 | `ca3f56ae4e8b7ad815274e9ab25989397654a2c8` | `codex/fix-mixed-body-indentation-311` | `BLOCKED`, review required |
+| #316 | `1d4e65707abbdea2d0d131cbc03742fe9cfb8ab0` | `feat/global-ask-public-claim-verification-v2200` | `BLOCKED`, review required |
+| #314 | `d36e106501af34d09f3541d9bf698c2e2ac8a379` | `fix/stale-summary-buyer-continuity` | `BLOCKED`, review required |
+| #311 | `ab27898860c35120814b02980d70ebbb4137a3d1` | `fix/project-bound-summary-actions` | `BLOCKED`, review required |
+| #309 | `a3b1ec0602998cd354713738b14619d9316dab9a` | `fix/buyer-image-evidence` | `BLOCKED`, review required |
+| #308 | `3072e0100c37d32c964333b491594ca08c6a4a96` | `fix/buyer-image-evidence` | `BLOCKED`, review required |
+| #307 | `516603cc2a327f0558f8e49e30e38c7ae2fa725b` | `fix/oidc-deep-link-locale` | `BLOCKED`, review required |
+| #306 | `fc7969e1d75f840ccbcc02653331bdafc1382036` | `feat/analysis-run-name-evidence-lineage` | `BLOCKED`, review required |
+| #303 | `817681bb0d491c4c71bcf24b0d9554afd34b3a71` | `feat/buyer-evidence-gap-structure` | `BLOCKED`, review required |
+| #302 | `790d6442701a0da1feaeb7b094b8259be957df74` | `feat/analysis-run-name-evidence-lineage` | `BLOCKED`, approval absent |
+
+The queue contains valid stacked work for the known buyer gaps, including
+OIDC deep links, visual-region evidence, semantic table rendering, project
+binding, and Event Lineage navigation. No PR in this checkpoint may be
+described as shipped until its exact current head has independent approval,
+terminal required Checks, a valid dependency base, and a confirmed merge SHA.
