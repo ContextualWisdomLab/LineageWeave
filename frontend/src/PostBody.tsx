@@ -13,7 +13,9 @@ function renderImageEvidence(
       {sourceImage ? (
         <img src={sourceImage.src} alt={imageContent?.caption || t("Embedded image")} />
       ) : null}
-      {imageContent?.caption ? <figcaption>{imageContent.caption}</figcaption> : null}
+      {imageContent?.caption || !sourceImage ? (
+        <figcaption>{imageContent?.caption || t("Embedded image")}</figcaption>
+      ) : null}
       {imageContent?.tags.length ? (
         <p className="post-image-tags">
           <strong>{t("Image tags")}:</strong> {imageContent.tags.join(", ")}
