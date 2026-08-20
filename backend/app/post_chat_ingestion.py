@@ -382,6 +382,8 @@ async def gather_global_chat_sources(
     needed for a much larger corpus; every selected body still uses the same
     image normalization and persisted graph evidence as post-scoped chat.
     """
+    if limit <= 0:
+        return []
     if vision_client is None:
         vision_client = NullImageContentClient()
     search_terms = tuple(
@@ -478,19 +480,25 @@ async def gather_global_chat_sources(
     # flow. Only the top match is expanded -- expanding every keyword hit
     # would let a loosely related term drag in an unrelated lineage chain.
     lineage_neighbor_ids: list[str] = []
-    if candidate_ids:
+    lineage_anchor_id = candidate_ids[0] if candidate_ids else None
+    if lineage_anchor_id:
         lineage_rows = await conn.fetch(
             "select child_post_id as other_id from post_lineage_edge where parent_post_id = $1 "
             "union select parent_post_id as other_id from post_lineage_edge where child_post_id = $1",
-            candidate_ids[0],
+            lineage_anchor_id,
         )
-        lineage_neighbor_ids = [
-            str(row["other_id"])
-            for row in lineage_rows
-            if str(row["other_id"]) not in candidate_scores
-        ]
-        candidate_ids = candidate_ids + lineage_neighbor_ids
-    lineage_anchor_id = candidate_ids[0] if candidate_ids else None
+        lineage_neighbor_ids = sorted(
+            {
+                str(row["other_id"])
+                for row in lineage_rows
+                if str(row["other_id"]) not in candidate_scores
+            }
+        )
+        candidate_ids = list(
+            dict.fromkeys([lineage_anchor_id, *lineage_neighbor_ids, *candidate_ids[1:]])
+        )[:limit]
+    else:
+        candidate_ids = []
     lineage_neighbor_id_set = frozenset(lineage_neighbor_ids)
 
     rows = await conn.fetch(
@@ -510,9 +518,9 @@ async def gather_global_chat_sources(
         """,
         list(authorized_corporate_entity_ids),
         candidate_ids,
-        limit + len(lineage_neighbor_ids),
+        limit,
     )
-    visible_rows = [row for row in rows if can_see_post(row)]
+    visible_rows = [row for row in rows if can_see_post(row)][:limit]
     visible_ids = [str(row["post_id"]) for row in visible_rows]
     anchor_is_visible = lineage_anchor_id in visible_ids
     semantic_facts = await _semantic_facts_for_posts(conn, visible_ids)

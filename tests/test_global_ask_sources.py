@@ -191,6 +191,83 @@ def test_global_sources_keep_unicode_search_terms_for_localized_buyers() -> None
     assert candidate_terms == ["无人机", "ドローン", "dự-án"]
 
 
+def test_global_sources_keep_lineage_expansion_within_requested_limit() -> None:
+    matched_row = {
+        "post_id": "anchor-post",
+        "post_title": "Anchor evidence",
+        "post_body": "anchor body",
+        "visibility_code": "public",
+        "corporate_entity_id": None,
+        "matched_in": "title",
+    }
+    neighbor_ids = [f"neighbor-{index:02d}" for index in range(20)]
+    source_call: tuple[str, tuple[object, ...]] | None = None
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            nonlocal source_call
+            if "matched_in" in query:
+                return [matched_row]
+            if "post_lineage_edge" in query:
+                return [{"other_id": post_id} for post_id in reversed(neighbor_ids)]
+            if "array_position($2::uuid[], post_id)" in query:
+                source_call = (query, args)
+                rows = {
+                    "anchor-post": matched_row,
+                    **{
+                        post_id: {
+                            "post_id": post_id,
+                            "post_title": post_id,
+                            "post_body": "neighbor body",
+                            "visibility_code": "public",
+                            "corporate_entity_id": None,
+                        }
+                        for post_id in neighbor_ids
+                    },
+                }
+                return [rows[post_id] for post_id in args[1]]
+            return []
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda _row: True,
+            question="Anchor evidence",
+            limit=4,
+        )
+    )
+
+    assert source_call is not None
+    _query, source_args = source_call
+    assert source_args[2] == 4
+    assert list(source_args[1]) == [
+        "anchor-post",
+        "neighbor-00",
+        "neighbor-01",
+        "neighbor-02",
+    ]
+    assert [source.post_id for source in sources] == list(source_args[1])
+    assert len(sources) == 4
+
+
+def test_global_sources_return_no_evidence_for_zero_limit() -> None:
+    class FakeConnection:
+        async def fetch(self, _query: str, *_args):
+            raise AssertionError("zero source budget must not query evidence")
+
+    assert (
+        asyncio.run(
+            gather_global_chat_sources(
+                FakeConnection(),
+                lambda _row: True,
+                question="anything",
+                limit=0,
+            )
+        )
+        == []
+    )
+
+
 def test_global_sources_expand_top_match_through_event_lineage() -> None:
     """Global Ask must speak to a connected timeline, not an isolated
     snapshot -- expand the single top-ranked keyword match through its
