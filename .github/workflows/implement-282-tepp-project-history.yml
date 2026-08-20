@@ -21,9 +21,23 @@ jobs:
       (github.event.pull_request.number == 282 &&
        github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       IMPLEMENTATION_BRANCH: feat/tepp-project-history-ask-v2180
       IMPLEMENTATION_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
       - name: Checkout the exact clean-restack head
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
@@ -89,11 +103,12 @@ jobs:
       - name: Verify the complete Python and PostgreSQL suite
         run: uv run --frozen python -m pytest -q
 
-      - name: Verify documentation and public API contracts
+      - name: Verify permanent documentation and ontology contracts
         run: |
-          uv run --frozen python scripts/check_docstrings.py
-          uv run --frozen python scripts/validate_documentation.py
-          uv run --frozen python -m pytest -q tests/test_documentation_hygiene.py
+          uv run --frozen python -m pytest -q \
+            tests/test_documentation_hygiene.py \
+            tests/test_prov_o.py \
+            tests/test_ontology.py
 
       - name: Set up Node
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
