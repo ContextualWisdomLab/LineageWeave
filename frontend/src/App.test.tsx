@@ -1609,26 +1609,54 @@ describe("App, authenticated", () => {
       }
       if (url.endsWith("/api/ask") && method === "POST") {
         askRequestCount += 1;
+        const askBody = JSON.parse(String(init?.body ?? "{}")) as {
+          question?: string;
+          knowledge_cutoff?: string;
+        };
         const ready =
           options?.deferSecondAsk && askRequestCount === 2
             ? secondAskReady
             : Promise.resolve();
+        const cutoffGrounded = Boolean(askBody.knowledge_cutoff);
         return ready.then(() =>
           Promise.resolve(
           jsonResponse({
-            answer_text: "The cited project is supported by the stored semantic evidence.",
+            session_id: "ask-session-1",
+            answer_text: cutoffGrounded
+              ? "By the cutoff Phoenix was still the January kickoff."
+              : "The cited project is supported by the stored semantic evidence.",
             cited_post_ids: ["post-2"],
-            cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
-            cited_post_evidence: [
+            cited_posts: [
               {
                 post_id: "post-2",
-                facts: [
-                  { kind: "semantic_project", text: "project: Semantic project | evidence: Body evidence" },
-                  { kind: "semantic_keyman", text: "Keyman mention: Ada West | context: account lead" },
-                ],
+                post_title: "Linked post",
+                ...(cutoffGrounded
+                  ? {
+                      source_revision_id: "rev-january",
+                      knowledge_cutoff: askBody.knowledge_cutoff,
+                      live_after_cutoff: true,
+                      historical_body_unavailable: false,
+                    }
+                  : {}),
               },
             ],
+            cited_post_evidence: cutoffGrounded
+              ? []
+              : [
+                  {
+                    post_id: "post-2",
+                    facts: [
+                      { kind: "semantic_project", text: "project: Semantic project | evidence: Body evidence" },
+                      { kind: "semantic_keyman", text: "Keyman mention: Ada West | context: account lead" },
+                    ],
+                  },
+                ],
             source_post_ids: ["post-1", "post-2"],
+            grounding_status: cutoffGrounded ? "fully_cutoff_grounded" : "live_only",
+            knowledge_cutoff: askBody.knowledge_cutoff ?? null,
+            next_action: cutoffGrounded
+              ? "This answer is fully grounded at the requested cutoff. Open a cited post to compare the retained body."
+              : undefined,
             timeline: [
               {
                 post_id: "post-1",
@@ -1763,6 +1791,31 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("list", { name: "Event Lineage timeline" })).toBeInTheDocument();
     expect(screen.getByText("2026-01-01T00:00:00Z")).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("names a cutoff-grounded Ask answer and does not call it live-only", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "What did we know about Phoenix?");
+    fireEvent.change(within(ask).getByLabelText("Knowledge cutoff (optional)"), {
+      target: { value: "2026-01-15T12:00" },
+    });
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+
+    expect(
+      await within(ask).findByText("By the cutoff Phoenix was still the January kickoff."),
+    ).toBeInTheDocument();
+    expect(
+      within(ask).getByText(
+        "This answer is fully grounded at the requested cutoff. Open a cited post to compare the retained body.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(ask).getByText("This live source changed after the cutoff.")).toBeInTheDocument();
+    expect(
+      within(ask).queryByText("Authorized cited posts are current. Open a cited post to read Event Lineage."),
+    ).not.toBeInTheDocument();
   });
 
   it("hides previous Ask evidence while a new answer is pending", async () => {

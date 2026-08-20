@@ -1,0 +1,349 @@
+"""Global Ask optional knowledge cutoff keeps retrieval evidence-honest (ADR 0101)."""
+
+from __future__ import annotations
+
+import asyncio
+from datetime import datetime, timezone
+
+from lineageweave.post_chat import (
+    FULLY_CUTOFF_GROUNDED,
+    LIVE_ONLY,
+    PARTIALLY_CUTOFF_GROUNDED,
+    ChatSourceDocument,
+    ask_grounding_status,
+    ask_next_action,
+    cited_post_citations,
+    historical_body_limitations,
+)
+from backend.app.post_chat_ingestion import gather_global_chat_sources
+from backend.app.source_post_revision import parse_as_of_clock
+
+_CUTOFF = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+_JANUARY = datetime(2026, 1, 10, 9, 0, tzinfo=timezone.utc)
+_FEBRUARY = datetime(2026, 2, 10, 9, 0, tzinfo=timezone.utc)
+
+
+def _row(
+    post_id: str,
+    *,
+    title: str,
+    body: str,
+    created_at: datetime,
+    updated_at: datetime | None = None,
+    matched_in: str = "title",
+) -> dict[str, object]:
+    return {
+        "post_id": post_id,
+        "post_title": title,
+        "post_body": body,
+        "visibility_code": "public",
+        "corporate_entity_id": None,
+        "matched_in": matched_in,
+        "created_at": created_at,
+        "updated_at": updated_at or created_at,
+        "source_project_code": "PHOENIX-LIVE",
+    }
+
+
+class _CutoffConnection:
+    def __init__(
+        self,
+        rows: list[dict[str, object]],
+        revisions: list[dict[str, object]],
+        semantic_rows: list[dict[str, object]] | None = None,
+    ) -> None:
+        self.rows = rows
+        self.revisions = revisions
+        self.semantic_rows = semantic_rows or []
+        self.calls: list[tuple[str, tuple[object, ...]]] = []
+
+    async def fetch(self, query: str, *args):
+        self.calls.append((query, args))
+        if "from source_post_revision" in query:
+            cutoff = args[1]
+            wanted = {str(post_id) for post_id in args[0]}
+            return [
+                revision
+                for revision in self.revisions
+                if str(revision["post_id"]) in wanted
+                and revision["written_at"] <= cutoff
+                and (
+                    revision.get("superseded_at") is None
+                    or revision["superseded_at"] > cutoff
+                )
+            ]
+        if "from post_project_mention" in query or "from post_summary_role" in query:
+            return self.semantic_rows
+        if "matched_in" in query:
+            term = str(args[0]).casefold()
+            cutoff = args[1] if len(args) > 1 else None
+            matches = []
+            for row in self.rows:
+                if cutoff is not None and row["created_at"] > cutoff:
+                    continue
+                haystack = f"{row['post_title']} {row['post_body']}".casefold()
+                if term in haystack:
+                    matches.append(row)
+            return matches
+        if "post_lineage_edge" in query:
+            return []
+        if "array_position($2::uuid[], post_id)" in query:
+            cutoff = args[3] if len(args) > 3 else None
+            by_id = {str(row["post_id"]): row for row in self.rows}
+            selected = []
+            for post_id in args[1]:
+                row = by_id.get(str(post_id))
+                if row is None:
+                    continue
+                if cutoff is not None and row["created_at"] > cutoff:
+                    continue
+                selected.append(row)
+            return selected[: args[2]]
+        return []
+
+
+def test_cutoff_uses_retained_revision_not_live_body() -> None:
+    rows = [
+        _row(
+            "phoenix-post",
+            title="Phoenix live rewrite",
+            body="Live delivery window slipped to March.",
+            created_at=_JANUARY,
+            updated_at=_FEBRUARY,
+        )
+    ]
+    revisions = [
+        {
+            "source_post_revision_id": "rev-january",
+            "post_id": "phoenix-post",
+            "post_title": "Phoenix January note",
+            "post_body": "Phoenix kickoff completed in January.",
+            "written_at": _JANUARY,
+            "superseded_at": _FEBRUARY,
+        }
+    ]
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            _CutoffConnection(rows, revisions),
+            lambda _row: True,
+            question="Phoenix",
+            knowledge_cutoff=_CUTOFF,
+        )
+    )
+    assert [source.post_id for source in sources] == ["phoenix-post"]
+    assert sources[0].post_title == "Phoenix January note"
+    assert "January" in sources[0].post_body
+    assert "March" not in sources[0].post_body
+    assert sources[0].source_revision_id == "rev-january"
+    assert sources[0].live_after_cutoff is True
+    assert sources[0].historical_body_unavailable is False
+    assert sources[0].knowledge_cutoff == _CUTOFF.isoformat()
+    assert sources[0].evidence_facts == ()
+
+
+def test_cutoff_excludes_posts_created_after_the_clock() -> None:
+    rows = [
+        _row(
+            "late-post",
+            title="Phoenix February note",
+            body="Phoenix later status.",
+            created_at=_FEBRUARY,
+        )
+    ]
+    connection = _CutoffConnection(rows, [])
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            connection,
+            lambda _row: True,
+            question="Phoenix",
+            knowledge_cutoff=_CUTOFF,
+        )
+    )
+    assert sources == []
+    candidate_query, candidate_args = connection.calls[0]
+    assert "created_at <= $2" in candidate_query
+    assert candidate_args[1] == _CUTOFF
+    source_query = next(query for query, _args in connection.calls if "array_position" in query)
+    assert "created_at <= $4" in source_query
+
+
+def test_cutoff_does_not_leak_current_semantic_facts() -> None:
+    rows = [
+        _row(
+            "semantic-post",
+            title="Operational note",
+            body="No project name in this body.",
+            created_at=_JANUARY,
+        )
+    ]
+    revisions = [
+        {
+            "source_post_revision_id": "rev-ops",
+            "post_id": "semantic-post",
+            "post_title": "Operational note",
+            "post_body": "No project name in this body.",
+            "written_at": _JANUARY,
+            "superseded_at": None,
+        }
+    ]
+    connection = _CutoffConnection(
+        rows,
+        revisions,
+        semantic_rows=[
+            {
+                "post_id": "semantic-post",
+                "fact": "project: later invented project | ontology_iri: urn:test",
+            }
+        ],
+    )
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            connection,
+            lambda _row: True,
+            question="Operational",
+            knowledge_cutoff=_CUTOFF,
+        )
+    )
+    assert sources[0].evidence_facts == ()
+    assert all("post_project_mention" not in query for query, _args in connection.calls)
+    assert all("PHOENIX-LIVE" not in fact for fact in sources[0].evidence_facts)
+
+
+def test_missing_historical_body_is_explicit_and_never_live() -> None:
+    rows = [
+        _row(
+            "body-lost",
+            title="Phoenix live only",
+            body="This live rewrite must not become the cutoff body.",
+            created_at=_JANUARY,
+            updated_at=_FEBRUARY,
+        )
+    ]
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            _CutoffConnection(rows, []),
+            lambda _row: True,
+            question="Phoenix",
+            knowledge_cutoff=_CUTOFF,
+        )
+    )
+    assert sources[0].historical_body_unavailable is True
+    assert sources[0].post_body == ""
+    assert "live rewrite" not in sources[0].post_body
+    assert historical_body_limitations(sources) == [
+        {"post_id": "body-lost", "limitation_code": "historical_body_unavailable"}
+    ]
+    assert ask_grounding_status(sources, _CUTOFF) == PARTIALLY_CUTOFF_GROUNDED
+
+
+def test_two_cutoffs_select_revision_specific_citations() -> None:
+    rows = [
+        _row(
+            "phoenix-post",
+            title="Phoenix live rewrite",
+            body="March window",
+            created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            updated_at=_FEBRUARY,
+        )
+    ]
+    revisions = [
+        {
+            "source_post_revision_id": "rev-early",
+            "post_id": "phoenix-post",
+            "post_title": "Phoenix kickoff",
+            "post_body": "Kickoff body",
+            "written_at": datetime(2026, 1, 1, tzinfo=timezone.utc),
+            "superseded_at": _JANUARY,
+        },
+        {
+            "source_post_revision_id": "rev-mid",
+            "post_id": "phoenix-post",
+            "post_title": "Phoenix follow-up",
+            "post_body": "Follow-up body",
+            "written_at": _JANUARY,
+            "superseded_at": _FEBRUARY,
+        },
+    ]
+    first = asyncio.run(
+        gather_global_chat_sources(
+            _CutoffConnection(rows, revisions),
+            lambda _row: True,
+            question="Phoenix",
+            knowledge_cutoff=datetime(2026, 1, 5, tzinfo=timezone.utc),
+        )
+    )
+    second = asyncio.run(
+        gather_global_chat_sources(
+            _CutoffConnection(rows, revisions),
+            lambda _row: True,
+            question="Phoenix",
+            knowledge_cutoff=_CUTOFF,
+        )
+    )
+    assert first[0].source_revision_id == "rev-early"
+    assert first[0].post_title == "Phoenix kickoff"
+    assert second[0].source_revision_id == "rev-mid"
+    assert second[0].post_title == "Phoenix follow-up"
+    citations = cited_post_citations(second, ["phoenix-post"])
+    assert citations[0]["source_revision_id"] == "rev-mid"
+    assert citations[0]["knowledge_cutoff"] == _CUTOFF.isoformat()
+
+
+def test_live_query_without_cutoff_stays_backward_compatible() -> None:
+    rows = [
+        _row(
+            "phoenix-post",
+            title="Phoenix live rewrite",
+            body="Live delivery window slipped to March.",
+            created_at=_JANUARY,
+            updated_at=_FEBRUARY,
+        )
+    ]
+    connection = _CutoffConnection(
+        rows,
+        [],
+        semantic_rows=[
+            {"post_id": "phoenix-post", "fact": "project: live project | ontology_iri: urn:test"}
+        ],
+    )
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            connection,
+            lambda _row: True,
+            question="Phoenix",
+        )
+    )
+    assert sources[0].post_body.startswith("Live delivery")
+    assert sources[0].knowledge_cutoff is None
+    assert ask_grounding_status(sources, None) == LIVE_ONLY
+    assert "created_at <= $2" not in connection.calls[0][0]
+
+
+def test_parse_cutoff_rejects_unparseable_clocks() -> None:
+    try:
+        parse_as_of_clock("not-a-clock")
+    except ValueError:
+        return
+    raise AssertionError("unparseable knowledge_cutoff must fail closed")
+
+
+def test_ask_next_action_never_calls_live_only_an_as_of_answer() -> None:
+    live = ChatSourceDocument("post-1", "Live", "body")
+    assert ask_grounding_status([live], None) == LIVE_ONLY
+    assert "as-of" not in ask_next_action(LIVE_ONLY, has_sources=True).lower()
+    assert "cutoff" not in ask_next_action(LIVE_ONLY, has_sources=True).lower()
+    unavailable = ChatSourceDocument(
+        "post-1",
+        "Lost",
+        "",
+        historical_body_unavailable=True,
+        knowledge_cutoff=_CUTOFF.isoformat(),
+    )
+    assert ask_grounding_status([unavailable], _CUTOFF) == PARTIALLY_CUTOFF_GROUNDED
+    retained = ChatSourceDocument(
+        "post-1",
+        "Kept",
+        "January body",
+        knowledge_cutoff=_CUTOFF.isoformat(),
+    )
+    assert ask_grounding_status([retained], _CUTOFF) == FULLY_CUTOFF_GROUNDED

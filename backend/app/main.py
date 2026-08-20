@@ -73,8 +73,12 @@ from lineageweave.post_chat import (
     ChatSourceDocument,
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
+    ask_grounding_status,
+    ask_next_action,
+    cited_post_citations,
     cited_post_evidence,
     cited_post_summaries,
+    historical_body_limitations,
     render_global_ask_context,
 )
 from lineageweave.post_content_normalization import normalize_post_body
@@ -2497,6 +2501,7 @@ class GlobalAskRequest(BaseModel):
 
     question: str
     session_id: str | None = None
+    knowledge_cutoff: str | None = None
 
 
 def global_ask_timeline(sources: list[ChatSourceDocument]) -> list[dict[str, str | None]]:
@@ -2627,6 +2632,15 @@ async def ask_agent(
             UUID(request.session_id)
         except ValueError:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Global Ask session not found") from None
+    knowledge_cutoff = None
+    if request.knowledge_cutoff is not None and request.knowledge_cutoff.strip():
+        try:
+            knowledge_cutoff = parse_as_of_clock(request.knowledge_cutoff)
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "knowledge_cutoff must be an ISO-8601 timestamp",
+            ) from exc
     client = _post_chat_client()
     if not client.available:
         raise HTTPException(
@@ -2645,6 +2659,7 @@ async def ask_agent(
             lambda row: _can_see_post(account, row),
             account.corporate_entity_ids,
             question=question,
+            knowledge_cutoff=knowledge_cutoff,
         )
     if conversation.compress_turns:
         compressor = getattr(client, "compress_context", None)
@@ -2676,7 +2691,11 @@ async def ask_agent(
         conversation.summary,
         conversation.recent_turns,
     )
-    if not sources:
+    grounding_status = ask_grounding_status(sources, knowledge_cutoff)
+    limitations = historical_body_limitations(sources)
+    cutoff_text = knowledge_cutoff.isoformat() if knowledge_cutoff is not None else None
+    llm_sources = [source for source in sources if not source.historical_body_unavailable]
+    if not llm_sources:
         async with pool.acquire() as conn:
             await persist_global_ask_turn(conn, conversation.session_id, question, "", ())
         await publish_operation_event(
@@ -2689,17 +2708,20 @@ async def ask_agent(
             "session_id": conversation.session_id,
             "answer_text": "",
             "cited_post_ids": [],
-            "cited_posts": [],
-            "source_post_ids": [],
+            "cited_posts": cited_post_citations(sources, [source.post_id for source in sources]),
+            "source_post_ids": [source.post_id for source in sources],
             "cited_post_evidence": [],
-            "timeline": [],
-            "next_action": "No authorized source posts are available for this question.",
+            "timeline": global_ask_timeline(sources),
+            "knowledge_cutoff": cutoff_text,
+            "grounding_status": grounding_status,
+            "limitations": limitations,
+            "next_action": ask_next_action(grounding_status, has_sources=bool(sources)),
         }
     try:
         answer = await asyncio.to_thread(
             client.answer,
             question,
-            sources,
+            llm_sources,
             conversation_context=conversation_context,
         )
     except (HttpClientError, KeyError, OSError, ValueError) as exc:
@@ -2726,10 +2748,14 @@ async def ask_agent(
         "session_id": conversation.session_id,
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
-        "cited_posts": cited_post_summaries(sources, cited_ids),
-        "cited_post_evidence": cited_post_evidence(sources, cited_ids),
-        "source_post_ids": [source.post_id for source in sources],
-        "timeline": global_ask_timeline(sources),
+        "cited_posts": cited_post_citations(llm_sources, cited_ids),
+        "cited_post_evidence": cited_post_evidence(llm_sources, cited_ids),
+        "source_post_ids": [source.post_id for source in llm_sources],
+        "timeline": global_ask_timeline(llm_sources),
+        "knowledge_cutoff": cutoff_text,
+        "grounding_status": grounding_status,
+        "limitations": limitations,
+        "next_action": ask_next_action(grounding_status, has_sources=True),
     }
 
 

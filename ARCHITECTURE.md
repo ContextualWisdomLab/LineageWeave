@@ -286,7 +286,9 @@ Calendar commitments use the same Event Lineage focus path (ADR 0094),
 Customer master related posts use the same Event Lineage focus path
 (ADR 0095). Ask Agent cited posts use the same Event Lineage focus path
 (ADR 0096). A linked Event Lineage node opened from a focused popup keeps
-those flags (ADR 0097), and the full detail popup includes Korean
+those flags (ADR 0097). Ask Agent accepts an optional knowledge cutoff
+and uses retained `source_post_revision` bodies for that clock (ADR 0101);
+a live query is never labeled as-of. The full detail popup includes Korean
 summary/key-events/R&R, VOC evidence excerpts, an Event Lineage panel
 (direct vs. indirect links; a link opens that post), the Keyman
 affiliate tree (resolved ancestors plus unresolved org roots), Keyman +

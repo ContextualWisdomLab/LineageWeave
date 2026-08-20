@@ -66,6 +66,11 @@ class ChatSourceDocument:
     evidence_facts: tuple[str, ...] = field(default_factory=tuple)
     occurred_at: str | None = None
     timeline_kind: str | None = None
+    source_revision_id: str | None = None
+    evidence_available_at: str | None = None
+    knowledge_cutoff: str | None = None
+    live_after_cutoff: bool = False
+    historical_body_unavailable: bool = False
 
 
 @dataclass(frozen=True)
@@ -93,6 +98,90 @@ def cited_post_summaries(
         for post_id in cited_post_ids
         if post_id in titles
     ]
+
+
+LIVE_ONLY = "live_only"
+FULLY_CUTOFF_GROUNDED = "fully_cutoff_grounded"
+PARTIALLY_CUTOFF_GROUNDED = "partially_cutoff_grounded"
+
+
+def ask_grounding_status(
+    sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
+    knowledge_cutoff: object | None,
+) -> str:
+    """Name whether this answer is live-only or cutoff-grounded.
+
+    A live query is never labeled as-of. A cutoff query that kept every
+    retained body is fully grounded. A cutoff query that dropped any
+    historical body is only partly grounded.
+    """
+    if knowledge_cutoff is None:
+        return LIVE_ONLY
+    if any(source.historical_body_unavailable for source in sources):
+        return PARTIALLY_CUTOFF_GROUNDED
+    return FULLY_CUTOFF_GROUNDED
+
+
+def cited_post_citations(
+    sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
+    cited_post_ids: tuple[str, ...] | list[str],
+) -> list[dict[str, object]]:
+    """Titles plus cutoff provenance for cited ids, in citation order."""
+    by_id = {source.post_id: source for source in sources}
+    citations: list[dict[str, object]] = []
+    for post_id in cited_post_ids:
+        source = by_id.get(post_id)
+        if source is None:
+            continue
+        citation: dict[str, object] = {
+            "post_id": post_id,
+            "post_title": source.post_title,
+        }
+        if source.knowledge_cutoff:
+            citation["source_revision_id"] = source.source_revision_id
+            citation["evidence_available_at"] = source.evidence_available_at
+            citation["knowledge_cutoff"] = source.knowledge_cutoff
+            citation["live_after_cutoff"] = source.live_after_cutoff
+            citation["historical_body_unavailable"] = source.historical_body_unavailable
+        citations.append(citation)
+    return citations
+
+
+def historical_body_limitations(
+    sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
+) -> list[dict[str, str]]:
+    """Return explicit missing-revision limitations, never a live substitute."""
+    return [
+        {
+            "post_id": source.post_id,
+            "limitation_code": "historical_body_unavailable",
+        }
+        for source in sources
+        if source.historical_body_unavailable
+    ]
+
+
+def ask_next_action(
+    grounding_status: str,
+    *,
+    has_sources: bool,
+) -> str:
+    """Buyer next action for live versus cutoff-grounded Ask answers."""
+    if grounding_status == FULLY_CUTOFF_GROUNDED:
+        if not has_sources:
+            return "No authorized source posts are available at this cutoff."
+        return (
+            "This answer is fully grounded at the requested cutoff. "
+            "Open a cited post to compare the retained body."
+        )
+    if grounding_status == PARTIALLY_CUTOFF_GROUNDED:
+        return (
+            "This answer is only partly grounded at the requested cutoff. "
+            "Open a cited post to see which historical bodies were retained."
+        )
+    if not has_sources:
+        return "No authorized source posts are available for this question."
+    return "Authorized cited posts are current. Open a cited post to read Event Lineage."
 
 
 def _buyer_evidence_kind(fact: str) -> str:

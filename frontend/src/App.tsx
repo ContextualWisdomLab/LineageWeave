@@ -4607,6 +4607,30 @@ function CustomerMasterPanel({
   );
 }
 
+function askCitedNextAction(answer: AskAgentResponse): string {
+  if (answer.grounding_status === "fully_cutoff_grounded") {
+    return (
+      answer.next_action ||
+      "This answer is fully grounded at the requested cutoff. Open a cited post to compare the retained body."
+    );
+  }
+  if (answer.grounding_status === "partially_cutoff_grounded") {
+    return (
+      answer.next_action ||
+      "This answer is only partly grounded at the requested cutoff. Open a cited post to see which historical bodies were retained."
+    );
+  }
+  return "Authorized cited posts are current. Open a cited post to read Event Lineage.";
+}
+
+function toKnowledgeCutoffIso(value: string): string | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return undefined;
+  return parsed.toISOString();
+}
+
 function AskAgentPanel({
   accessToken,
   onOpenPost,
@@ -4615,6 +4639,7 @@ function AskAgentPanel({
   onOpenPost: (postId: string) => void;
 }) {
   const [question, setQuestion] = useState("");
+  const [knowledgeCutoff, setKnowledgeCutoff] = useState("");
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
@@ -4629,7 +4654,12 @@ function AskAgentPanel({
     setError(null);
     setAnswer(null);
     try {
-      const nextAnswer = await askAgent(accessToken, normalized, sessionId);
+      const nextAnswer = await askAgent(
+        accessToken,
+        normalized,
+        sessionId,
+        toKnowledgeCutoffIso(knowledgeCutoff),
+      );
       setAnswer(nextAnswer);
       setSessionId(nextAnswer.session_id);
       window.sessionStorage.setItem("lineageweave.globalAskSessionId", nextAnswer.session_id);
@@ -4656,6 +4686,15 @@ function AskAgentPanel({
           rows={4}
         />
       </label>
+      <label className="ask-agent-source">
+        <span>{t("Knowledge cutoff (optional)")}</span>
+        <input
+          type="datetime-local"
+          aria-label={t("Knowledge cutoff (optional)")}
+          value={knowledgeCutoff}
+          onChange={(event) => setKnowledgeCutoff(event.target.value)}
+        />
+      </label>
       <button className="keyman-select" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
         {asking ? t("Asking...") : t("Ask")}
       </button>
@@ -4663,7 +4702,9 @@ function AskAgentPanel({
         <section className="popup-section" aria-label={t("Answer")}>
           <h3>{t("Answer")}</h3>
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
-          {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
+          {answer.next_action && !(answer.cited_posts && answer.cited_posts.length > 0) ? (
+            <p className="post-meta">{t(answer.next_action)}</p>
+          ) : null}
           {answer.timeline && answer.timeline.length > 0 ? (
             <>
               <h4>Event Lineage timeline</h4>
@@ -4687,7 +4728,7 @@ function AskAgentPanel({
           {answer.cited_posts && answer.cited_posts.length > 0 && (
             <>
               <p className="board-next-action" role="status" aria-label={t("Next action")}>
-                {t("Authorized cited posts are current. Open a cited post to read Event Lineage.")}
+                {t(askCitedNextAction(answer))}
               </p>
               <h4>{t("Cited posts")}</h4>
               <ul className="related-post-list">
@@ -4700,6 +4741,14 @@ function AskAgentPanel({
                     >
                       <strong>{post.post_title}</strong>
                     </button>
+                    {post.historical_body_unavailable ? (
+                      <p className="post-meta">
+                        {t("Historical body unavailable for this cited post. The live body was not used.")}
+                      </p>
+                    ) : null}
+                    {post.live_after_cutoff ? (
+                      <p className="post-meta">{t("This live source changed after the cutoff.")}</p>
+                    ) : null}
                     {answer.cited_post_evidence?.find((item) => item.post_id === post.post_id)?.facts.length ? (
                       <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
                         {answer.cited_post_evidence
