@@ -1,0 +1,82 @@
+name: Localize PR 271 TEPP project history
+
+on:
+  push:
+    branches:
+      - feat/tepp-project-history-ask-v2180
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: localize-pr271-tepp-project-history
+  cancel-in-progress: false
+
+jobs:
+  localize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact stacked head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: feat/tepp-project-history-ask-v2180
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Record input head
+        run: git rev-parse HEAD > /tmp/pr271_localization_input_sha
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Apply localized Buyer copy
+        run: python scripts/localize_pr271_tepp_history.py
+
+      - name: Install and verify frontend
+        working-directory: frontend
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Refuse a stale-head publication
+        env:
+          BRANCH_NAME: feat/tepp-project-history-ask-v2180
+        run: |
+          expected="$(cat /tmp/pr271_localization_input_sha)"
+          remote="$(git ls-remote origin "refs/heads/${BRANCH_NAME}" | cut -f1)"
+          test -n "$remote"
+          test "$remote" = "$expected"
+
+      - name: Commit the verified localization
+        env:
+          BRANCH_NAME: feat/tepp-project-history-ask-v2180
+        run: |
+          rm -f scripts/localize_pr271_tepp_history.py
+          rm -f .github/workflows/localize-271-tepp-project-history.yml
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -- \
+            frontend/src/i18n.ts \
+            frontend/src/components/ProjectHistoryTimeline.tsx \
+            frontend/src/components/ProjectHistoryTimeline.i18n.test.tsx \
+            CHANGELOG.d/2.18.0-tepp-project-history-ask.md
+          git add -- scripts/localize_pr271_tepp_history.py .github/workflows/localize-271-tepp-project-history.yml
+          git diff --cached --check
+          git commit -m "feat(frontend): localize TEPP project histories"
+          git push origin "HEAD:${BRANCH_NAME}"
