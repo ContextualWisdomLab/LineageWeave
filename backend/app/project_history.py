@@ -133,9 +133,79 @@ select edge.parent_post_id, edge.child_post_id, edge.fused_score
  order by edge.child_post_id, edge.parent_post_id
 """
 
+_PROJECT_INDEX_SQL = f"""
+with project_rows as (
+    select post.post_id,
+           lower(normalize(coalesce(nullif(btrim(post.source_project_code), ''),
+                                    nullif(btrim(post.source_project_name), '')), NFKC)) as project_key,
+           coalesce(nullif(btrim(post.source_project_name), ''),
+                    nullif(btrim(post.source_project_code), '')) as project_name,
+           0 as display_priority
+      from source_post post
+     where (post.visibility_code = 'public'
+        or post.corporate_entity_id::text = any($2::text[]))
+       and {_ELIGIBILITY}
+       and post.created_at <= $1
+       and nullif(coalesce(nullif(btrim(post.source_project_code), ''),
+                           nullif(btrim(post.source_project_name), '')), '') is not null
+    union all
+    select mention.post_id,
+           lower(normalize(btrim(mention.project_key), NFKC)) as project_key,
+           nullif(btrim(mention.project_name), '') as project_name,
+           1 as display_priority
+      from post_project_mention mention
+      join source_post post on post.post_id = mention.post_id
+     where (post.visibility_code = 'public'
+        or post.corporate_entity_id::text = any($2::text[]))
+       and {_ELIGIBILITY}
+       and post.created_at <= $1
+       and nullif(btrim(mention.project_key), '') is not null
+)
+select project_key,
+       (array_agg(project_name order by display_priority, project_name))[1] as project_name,
+       count(distinct post_id)::int as event_count
+  from project_rows
+ where project_key is not null and project_name is not null
+ group by project_key
+ order by project_name, project_key
+ limit $3
+"""
+
 
 class ProjectHistoryNotFound(LookupError):
     """No authorized project history matched the requested identity."""
+
+
+async def fetch_project_history_index(
+    conn: ProjectHistoryConnection,
+    *,
+    knowledge_cutoff: datetime,
+    corporate_entity_ids: Sequence[str],
+    limit: int = PROJECT_HISTORY_DEFAULT_LIMIT,
+) -> list[dict[str, Any]]:
+    """Return bounded exact project identities from authorized source rows.
+
+    Source project codes/names and persisted semantic mentions are grouped by
+    the same exact Unicode-normalized key used by the history read. The query
+    applies visibility, eligibility, and cutoff before exposing counts.
+    """
+
+    if limit < 1 or limit > PROJECT_HISTORY_MAXIMUM_LIMIT:
+        raise ValueError("project history index limit is outside the supported bound")
+    rows = await conn.fetch(
+        _PROJECT_INDEX_SQL,
+        knowledge_cutoff,
+        list(corporate_entity_ids),
+        limit,
+    )
+    return [
+        {
+            "project_key": str(row["project_key"]),
+            "project_name": str(row["project_name"]),
+            "event_count": int(row["event_count"]),
+        }
+        for row in rows
+    ]
 
 
 async def fetch_project_history_projection(

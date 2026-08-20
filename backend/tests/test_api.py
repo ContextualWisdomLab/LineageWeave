@@ -1476,6 +1476,63 @@ def test_post_detail_exposes_explicit_and_semantic_project_evidence(
     assert listed_post["project_evidence"][0]["project_name"] == "Semantic project"
     assert listed_post["project_evidence"][0]["provenance"] == "post_project_mention.evidence_text"
 
+    index = client.get(
+        "/api/project-history/projects",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert index.status_code == 200, index.text
+    semantic_project = next(
+        project for project in index.json()["projects"] if project["project_key"] == "semantic-project"
+    )
+    assert semantic_project["project_name"] == "Semantic project"
+
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "update source_post set source_project_code = %s, source_project_name = %s where post_id = %s",
+                ("   ", "Source name fallback", seeded_db["public_post_id"]),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+    fallback_index = client.get(
+        "/api/project-history/projects",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert fallback_index.status_code == 200, fallback_index.text
+    assert any(
+        project["project_key"] == "source name fallback"
+        for project in fallback_index.json()["projects"]
+    )
+
+    history = client.get(
+        "/api/project-history",
+        params={
+            "project_key": semantic_project["project_key"],
+            "focus_post_id": seeded_db["public_post_id"],
+            "knowledge_cutoff": index.json()["knowledge_cutoff"],
+        },
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert history.status_code == 200, history.text
+    assert history.json()["project_key"] == "semantic-project"
+    assert history.json()["events"][0]["source_post_id"] == seeded_db["public_post_id"]
+
+    invalid_key = client.get(
+        "/api/project-history",
+        params={"project_key": "   "},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert invalid_key.status_code == 422
+
+    invalid_focus = client.get(
+        "/api/project-history",
+        params={"project_key": "semantic-project", "focus_post_id": "not-a-uuid"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert invalid_focus.status_code == 422
+
 
 def test_post_detail_as_of_returns_the_cutoff_known_body(
     client, demo_analyst_token, seeded_db

@@ -23,7 +23,7 @@ import asyncio
 import json
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Literal
 from uuid import UUID
 
@@ -187,6 +187,12 @@ from backend.app.post_summary_ingestion import (
     require_summary_source_body,
 )
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.project_history import (
+    ProjectHistoryNotFound,
+    fetch_project_history_index,
+    fetch_project_history_projection,
+)
+from lineageweave.project_history import normalize_project_key
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
     has_real_source_context,
@@ -3223,6 +3229,80 @@ async def read_calendar(
             "caldav_next_action": caldav_next_action,
         },
     }
+
+
+@app.get("/api/project-history/projects")
+async def read_project_history_projects(
+    limit: int = Query(64, ge=1, le=128),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return exact project identities available to the signed-in buyer."""
+
+    _require_post_read(account)
+    knowledge_cutoff = datetime.now(timezone.utc)
+    async with pool.acquire() as conn:
+        projects = await fetch_project_history_index(
+            conn,
+            knowledge_cutoff=knowledge_cutoff,
+            corporate_entity_ids=list(account.corporate_entity_ids),
+            limit=limit,
+        )
+    return {
+        "knowledge_cutoff": knowledge_cutoff.isoformat().replace("+00:00", "Z"),
+        "projects": projects,
+    }
+
+
+@app.get("/api/project-history")
+async def read_project_history(
+    project_key: str = Query(..., min_length=1),
+    focus_post_id: str | None = Query(None),
+    knowledge_cutoff: str | None = Query(None),
+    limit: int = Query(64, ge=1, le=128),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return one exact, authorized project history for the Buyer timeline."""
+
+    _require_post_read(account)
+    try:
+        normalized_project_key = normalize_project_key(project_key)
+    except ValueError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "project_key must contain a non-empty exact identity",
+        ) from exc
+    if focus_post_id is not None:
+        try:
+            UUID(focus_post_id)
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "focus_post_id must be a UUID",
+            ) from exc
+    if knowledge_cutoff is None:
+        cutoff = datetime.now(timezone.utc)
+    else:
+        try:
+            cutoff = parse_as_of_clock(knowledge_cutoff)
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "knowledge_cutoff must be an ISO-8601 timestamp",
+            ) from exc
+    async with pool.acquire() as conn:
+        try:
+            return await fetch_project_history_projection(
+                conn,
+                project_key=normalized_project_key,
+                focus_post_id=focus_post_id,
+                knowledge_cutoff=cutoff,
+                corporate_entity_ids=list(account.corporate_entity_ids),
+                limit=limit,
+            )
+        except ProjectHistoryNotFound as exc:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "project history not found") from exc
 
 
 @app.get("/api/rankings")

@@ -1754,6 +1754,47 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/project-history/projects") && method === "GET") {
+        return Promise.resolve(
+          jsonResponse({
+            knowledge_cutoff: "2026-01-12T12:00:00Z",
+            projects: [{ project_key: "semantic-project", project_name: "Semantic project", event_count: 1 }],
+          }),
+        );
+      }
+      if (url.includes("/api/project-history?") && method === "GET") {
+        return Promise.resolve(
+          jsonResponse({
+            contract_version: 1,
+            project_key: "Semantic project",
+            normalized_project_key: "semantic-project",
+            project_name: "Semantic project",
+            focus_event_id: "post-1",
+            time_basis_code: "source_post_created_at_fallback",
+            event_count: 1,
+            distinct_observed_actor_count: 0,
+            truncated: false,
+            events: [
+              {
+                event_id: "post-1",
+                source_post_id: "post-1",
+                event_title: "Public post",
+                event_type_code: "source_recorded",
+                event_type_basis_code: "display_classification",
+                occurred_at: "2026-01-01T00:00:00Z",
+                time_basis_code: "source_post_created_at_fallback",
+                voc_type_code: "voc",
+                source_stage_code: null,
+                source_detail_state_code: null,
+                project_matches: [],
+                observed_responsibilities: [],
+                responsibility_transition_code: null,
+                related_prior_paths: [],
+              },
+            ],
+          }),
+        );
+      }
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -1938,6 +1979,19 @@ describe("App, authenticated", () => {
     const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
     expect(searchInput).toHaveValue("Semantic project");
     expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+  });
+
+  it("opens the shared project history from a semantic project evidence card", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Open project history for: Semantic project" }),
+    );
+
+    expect(await screen.findByRole("heading", { name: "Project event timeline" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Project" })).toHaveValue("semantic-project");
+    expect(screen.getByRole("button", { name: "Open source record: Public post" })).toBeInTheDocument();
   });
 
   it("clicking Weekly VOC keeps the 2026-W01 Voice of Customer post and names Event Lineage as the next action", async () => {

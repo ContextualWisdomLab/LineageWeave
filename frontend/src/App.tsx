@@ -34,6 +34,8 @@ import {
   fetchPeriodComparison,
   fetchPeriodReportIndex,
   fetchPeriodReports,
+  fetchProjectHistory,
+  fetchProjectHistoryIndex,
   fetchPosts,
   fetchRankings,
   fetchRelatedEntity,
@@ -73,6 +75,7 @@ import {
   type PostLineage,
   type PostSummary,
   type PostSortOrder,
+  type ProjectHistoryIndexResponse,
   type RankingList,
   type PersonRoleHistoryEntry,
   type RelatedNode,
@@ -88,6 +91,8 @@ import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
+import { ProjectHistoryTimeline } from "./components/ProjectHistoryTimeline";
+import type { ProjectHistoryProjection } from "./projectHistory";
 import { subgraphForPost } from "./lineageLayout";
 import {
   isSupportedLocale,
@@ -1676,6 +1681,7 @@ function PostDetailPopup({
   knowledgeCutoff,
   focusEventLineage,
   focusAskOnLand,
+  onOpenProjectHistory,
   onClose,
   onSelectPost,
   onSearch,
@@ -1688,6 +1694,7 @@ function PostDetailPopup({
   knowledgeCutoff?: string | null;
   focusEventLineage?: boolean;
   focusAskOnLand?: boolean;
+  onOpenProjectHistory?: (projectKey: string) => void;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
@@ -2148,6 +2155,17 @@ function PostDetailPopup({
                         <strong>{project.project_name}</strong>
                         <span>{t("Search related posts")}</span>
                       </button>{" "}
+                      {onOpenProjectHistory ? (
+                        <button
+                          type="button"
+                          className="related-post-card"
+                          aria-label={tf("Open project history for: {name}", { name: project.project_name })}
+                          onClick={() => onOpenProjectHistory(project.project_key)}
+                        >
+                          <strong>{project.project_name}</strong>
+                          <span>{t("Open project history")}</span>
+                        </button>
+                      ) : null}{" "}
                       {project.confidence === null
                         ? `(${t("Hint only")})`
                         : `(${Math.round(project.confidence * 100)}%)`}
@@ -2587,6 +2605,7 @@ type SelectPostOptions = {
   fromCalendar?: boolean;
   fromCustomerMaster?: boolean;
   fromAskAgent?: boolean;
+  fromProjectHistory?: boolean;
 };
 
 /**
@@ -3635,7 +3654,9 @@ function PostList({
   postOpenFromCalendar = false,
   postOpenFromCustomerMaster = false,
   postOpenFromAskAgent = false,
+  postOpenFromProjectHistory = false,
   onPostOpened,
+  onOpenProjectHistory,
 }: {
   accessToken: string;
   showLabPanels?: boolean;
@@ -3643,7 +3664,9 @@ function PostList({
   postOpenFromCalendar?: boolean;
   postOpenFromCustomerMaster?: boolean;
   postOpenFromAskAgent?: boolean;
+  postOpenFromProjectHistory?: boolean;
   onPostOpened?: () => void;
+  onOpenProjectHistory?: (projectKey: string) => void;
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
@@ -3667,6 +3690,7 @@ function PostList({
   const [openedFromCalendar, setOpenedFromCalendar] = useState(false);
   const [openedFromCustomerMaster, setOpenedFromCustomerMaster] = useState(false);
   const [openedFromAskAgent, setOpenedFromAskAgent] = useState(false);
+  const [openedFromProjectHistory, setOpenedFromProjectHistory] = useState(false);
   const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
   const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
   const [totalPosts, setTotalPosts] = useState(0);
@@ -3725,6 +3749,7 @@ function PostList({
     setOpenedFromCalendar(Boolean(options?.fromCalendar));
     setOpenedFromCustomerMaster(Boolean(options?.fromCustomerMaster));
     setOpenedFromAskAgent(Boolean(options?.fromAskAgent));
+    setOpenedFromProjectHistory(Boolean(options?.fromProjectHistory));
   }
 
   useEffect(() => {
@@ -3733,6 +3758,7 @@ function PostList({
       fromCalendar: postOpenFromCalendar,
       fromCustomerMaster: postOpenFromCustomerMaster,
       fromAskAgent: postOpenFromAskAgent,
+      fromProjectHistory: postOpenFromProjectHistory,
     });
     onPostOpened?.();
   }, [
@@ -3741,6 +3767,7 @@ function PostList({
     postOpenFromCalendar,
     postOpenFromCustomerMaster,
     postOpenFromAskAgent,
+    postOpenFromProjectHistory,
   ]);
 
   function closeSelectedPost() {
@@ -3753,6 +3780,7 @@ function PostList({
     setOpenedFromCalendar(false);
     setOpenedFromCustomerMaster(false);
     setOpenedFromAskAgent(false);
+    setOpenedFromProjectHistory(false);
     const url = new URL(window.location.href);
     if (url.searchParams.has("post")) {
       url.searchParams.delete("post");
@@ -4236,7 +4264,8 @@ function PostList({
             openedFromWeeklyVoc ||
             openedFromCalendar ||
             openedFromCustomerMaster ||
-            openedFromAskAgent
+            openedFromAskAgent ||
+            openedFromProjectHistory
           }
           focusAskOnLand={openedFromReportMember}
           onClose={closeSelectedPost}
@@ -4252,9 +4281,11 @@ function PostList({
               fromCalendar: openedFromCalendar,
               fromCustomerMaster: openedFromCustomerMaster,
               fromAskAgent: openedFromAskAgent,
+              fromProjectHistory: openedFromProjectHistory,
             });
           }}
           onSearch={searchBoard}
+          onOpenProjectHistory={onOpenProjectHistory}
         />
       )}
     </section>
@@ -4774,10 +4805,96 @@ function AskAgentPanel({
   );
 }
 
+function ProjectHistoryPanel({
+  accessToken,
+  initialProjectKey,
+  onOpenPost,
+}: {
+  accessToken: string;
+  initialProjectKey?: string | null;
+  onOpenPost: (postId: string) => void;
+}) {
+  const [index, setIndex] = useState<ProjectHistoryIndexResponse | null>(null);
+  const [selectedProjectKey, setSelectedProjectKey] = useState("");
+  const [projection, setProjection] = useState<ProjectHistoryProjection | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const historyRequest = useRef(0);
+
+  useEffect(() => {
+    let active = true;
+    fetchProjectHistoryIndex(accessToken)
+      .then((result) => {
+        if (!active) return;
+        setIndex(result);
+        setSelectedProjectKey((current) =>
+          initialProjectKey && result.projects.some((project) => project.project_key === initialProjectKey)
+            ? initialProjectKey
+            : current || result.projects[0]?.project_key || "",
+        );
+        setError(null);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setIndex({ knowledge_cutoff: "", projects: [] });
+        setError(String(err));
+      });
+    return () => {
+      active = false;
+    };
+  }, [accessToken, initialProjectKey]);
+
+  useEffect(() => {
+    if (!selectedProjectKey || !index?.knowledge_cutoff) {
+      setProjection(null);
+      return;
+    }
+    const request = ++historyRequest.current;
+    setProjection(null);
+    fetchProjectHistory(accessToken, selectedProjectKey, index.knowledge_cutoff)
+      .then((result) => {
+        if (request === historyRequest.current) setProjection(result);
+      })
+      .catch((err) => {
+        if (request === historyRequest.current) setError(String(err));
+      });
+  }, [accessToken, index?.knowledge_cutoff, selectedProjectKey]);
+
+  return (
+    <section className="buyer-destination" aria-labelledby="project-history-heading">
+      <p className="section-eyebrow">{t("Authorized project evidence")}</p>
+      <h2 id="project-history-heading">{t("Project history")}</h2>
+      <p className="buyer-destination-intro">{t("Select an exact project identity to read its visible history.")}</p>
+      {error ? <p className="error" role="alert">{error}</p> : null}
+      {index === null ? <p role="status">{t("Loading project history...")}</p> : null}
+      {index?.projects.length === 0 && !error ? (
+        <p className="popup-placeholder">{t("No authorized project evidence is available.")}</p>
+      ) : null}
+      {index && index.projects.length > 0 ? (
+        <label>
+          {t("Project")}
+          <select
+            aria-label={t("Project")}
+            value={selectedProjectKey}
+            onChange={(event) => setSelectedProjectKey(event.target.value)}
+          >
+            {index.projects.map((project) => (
+              <option key={project.project_key} value={project.project_key}>
+                {project.project_name} ({project.event_count})
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      {projection ? <ProjectHistoryTimeline projection={projection} onOpenPost={onOpenPost} /> : null}
+    </section>
+  );
+}
+
 export default function App({ showLabPanels = false }: { showLabPanels?: boolean } = {}) {
   useLocale();
   const auth = useAuth();
   const [destination, setDestination] = useState<BuyerDestination>("board");
+  const [projectHistoryKey, setProjectHistoryKey] = useState<string | null>(null);
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("post");
@@ -4785,6 +4902,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   const [postOpenFromCalendar, setPostOpenFromCalendar] = useState(false);
   const [postOpenFromCustomerMaster, setPostOpenFromCustomerMaster] = useState(false);
   const [postOpenFromAskAgent, setPostOpenFromAskAgent] = useState(false);
+  const [postOpenFromProjectHistory, setPostOpenFromProjectHistory] = useState(false);
   // Test-only compatibility for legacy analysis-panel coverage; this prop
   // never forces the panels open outside Vitest. In a real build the
   // advanced-review section (ADR 0037) is gated on PostList's own
@@ -4852,7 +4970,10 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
       </header>
       <BuyerNav
         destination={destination}
-        onChange={setDestination}
+        onChange={(nextDestination) => {
+          if (nextDestination === "project-history") setProjectHistoryKey(null);
+          setDestination(nextDestination);
+        }}
         tools={<LanguageSwitcher accessToken={accessToken} />}
       />
       {destination === "board" ? (
@@ -4863,11 +4984,17 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           postOpenFromCalendar={postOpenFromCalendar}
           postOpenFromCustomerMaster={postOpenFromCustomerMaster}
           postOpenFromAskAgent={postOpenFromAskAgent}
+          postOpenFromProjectHistory={postOpenFromProjectHistory}
           onPostOpened={() => {
             setPostToOpen(null);
             setPostOpenFromCalendar(false);
             setPostOpenFromCustomerMaster(false);
             setPostOpenFromAskAgent(false);
+            setPostOpenFromProjectHistory(false);
+          }}
+          onOpenProjectHistory={(projectKey) => {
+            setProjectHistoryKey(projectKey);
+            setDestination("project-history");
           }}
         />
       ) : null}
@@ -4904,6 +5031,20 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             setPostOpenFromCalendar(false);
             setPostOpenFromCustomerMaster(false);
             setPostOpenFromAskAgent(true);
+            setDestination("board");
+          }}
+        />
+      ) : null}
+      {destination === "project-history" ? (
+        <ProjectHistoryPanel
+          accessToken={accessToken}
+          initialProjectKey={projectHistoryKey}
+          onOpenPost={(postId) => {
+            setPostToOpen(postId);
+            setPostOpenFromCalendar(false);
+            setPostOpenFromCustomerMaster(false);
+            setPostOpenFromAskAgent(false);
+            setPostOpenFromProjectHistory(true);
             setDestination("board");
           }}
         />

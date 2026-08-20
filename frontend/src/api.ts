@@ -216,6 +216,17 @@ export interface ProjectEvidence {
   provenance: string;
 }
 
+export interface ProjectHistoryIndexItem {
+  project_key: string;
+  project_name: string;
+  event_count: number;
+}
+
+export interface ProjectHistoryIndexResponse {
+  knowledge_cutoff: string;
+  projects: ProjectHistoryIndexItem[];
+}
+
 export interface PostAiSummary {
   post_id: string;
   korean_summary: string;
@@ -417,6 +428,24 @@ export interface LineageGraph {
 export function fetchLineageGraph(accessToken: string, postId?: string): Promise<LineageGraph> {
   const query = postId ? `?post_id=${encodeURIComponent(postId)}` : "";
   return backendFetch<LineageGraph>(`/api/lineage${query}`, accessToken);
+}
+
+export function fetchProjectHistoryIndex(
+  accessToken: string,
+): Promise<ProjectHistoryIndexResponse> {
+  return backendFetch("/api/project-history/projects", accessToken);
+}
+
+export function fetchProjectHistory(
+  accessToken: string,
+  projectKey: string,
+  knowledgeCutoff?: string,
+  focusPostId?: string,
+): Promise<import("./projectHistory").ProjectHistoryProjection> {
+  const query = new URLSearchParams({ project_key: projectKey });
+  if (knowledgeCutoff) query.set("knowledge_cutoff", knowledgeCutoff);
+  if (focusPostId) query.set("focus_post_id", focusPostId);
+  return backendFetch(`/api/project-history?${query.toString()}`, accessToken);
 }
 
 export interface CorporateEntityRef {
