@@ -4,6 +4,7 @@ from lineageweave.chunking import (
     ConversationTurn,
     chunk_by_conversation_turn,
     chunk_by_dom,
+    chunk_by_source_body,
     chunk_by_paragraph,
     chunk_by_sentence,
     normalize_semantic_text,
@@ -119,6 +120,22 @@ def test_chunk_by_dom_labels_numeric_superscript_footnotes() -> None:
     ]
 
 
+def test_chunk_by_dom_labels_numeric_superscript_after_body_text() -> None:
+    chunks = chunk_by_dom("<p>Body claim<sup>1</sup> source note.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("footnote", "Body claim1 source note."),
+    ]
+
+
+def test_chunk_by_dom_does_not_treat_non_numeric_superscript_as_footnote() -> None:
+    chunks = chunk_by_dom("<p>Formula x<sup>n</sup> remains prose.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Formula xn remains prose."),
+    ]
+
+
 def test_chunk_by_dom_preserves_nested_list_order_and_depth() -> None:
     chunks = chunk_by_dom(
         "<ol><li>Parent item<ul><li>Child item</li></ul></li></ol>"
@@ -205,6 +222,35 @@ def test_chunk_by_dom_reads_the_css_margin_shorthand_not_just_margin_left() -> N
     assert [outer.indent_width, nested.indent_width] == [7, 10]
     assert outer.indent_width < nested.indent_width
     assert outer.indent_width > 0
+
+
+def test_chunk_by_dom_uses_list_container_depth_as_explicit_indentation() -> None:
+    html = "<ol><li>Outer<ol><li>Nested</li></ol></li></ol>"
+
+    chunks = chunk_by_dom(html)
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [("li", "Outer"), ("li", "Nested")]
+    assert [chunk.indent_width for chunk in chunks] == [4, 8]
+
+
+def test_chunk_by_source_body_splits_plain_lists_and_markdown_tables() -> None:
+    body = """1. Background
+    continuation stays with the first item.
+2. Decision
+
+| Field | Value |
+| --- | --- |
+| Owner | Buyer |
+"""
+
+    chunks = chunk_by_source_body(body)
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("", "1. Background continuation stays with the first item."),
+        ("", "2. Decision"),
+        ("tr", "Field | Value"),
+        ("tr", "Owner | Buyer"),
+    ]
 
 
 def test_chunk_by_dom_joins_visual_continuation_lines_but_keeps_list_items() -> None:

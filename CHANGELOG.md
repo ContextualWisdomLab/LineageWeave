@@ -12,7 +12,7 @@ All notable changes to this project are documented here. Format follows
   HTML/OOXML table rows, and recognizable Markdown table rows across the
   semantic-unit parser and buyer body renderer. See the [product and
   technical gap baseline](docs/product-technical-gap-baseline.md) and
-  [ADR 0102](docs/adr/0102-semantic-document-evidence-contract.md).
+  [ADR 0103](docs/adr/0103-semantic-document-evidence-contract.md).
 - Preserve multiline VISION table rows, render parent and region OCR tables
   accessibly, and request source-visible entity, relationship, layout, and
   document-purpose evidence instead of a generic image caption.
