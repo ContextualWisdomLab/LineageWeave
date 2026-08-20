@@ -16,6 +16,9 @@ placeholder and is not buyer content.
 
 - Render a source image with its accessible caption, OCR, tags, and region
   evidence when the raw data URI is present.
+- At the render boundary, accept only canonical base64 data URIs for inert
+  raster image media types. Reject external, script, SVG, and malformed
+  sources and fall back to persisted caption/OCR/region evidence.
 - When the source image cannot be reattached, render only the persisted
   `PostImageContent` evidence in a figure; never render the image unit's
   internal `unit_text` as buyer prose.

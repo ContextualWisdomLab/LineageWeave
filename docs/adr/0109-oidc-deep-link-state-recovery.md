@@ -15,6 +15,9 @@ when the member's OIDC session is otherwise valid.
 ## Decision
 
 - Keep the OIDC `state.returnUrl` as the first recovery source.
+- Accept only a direct same-origin path, one bounded serialized object, or one
+  object value. Never recursively parse JSON-encoded strings; reject serialized
+  state and return paths longer than 4,096 characters before further handling.
 - Persist the same validated same-origin path in both `sessionStorage` and
   `localStorage` before redirecting to OIDC. `localStorage` is only a bounded
   recovery fallback, not an authentication or authorization store.
