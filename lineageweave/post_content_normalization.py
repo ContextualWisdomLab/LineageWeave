@@ -189,23 +189,26 @@ def _describe_image_chunk(
             for region in (regions or ())
             if _is_bounded_region(region)
         )
-        partial_regions = bool(regions) and not regions_cover_image(regions)
-        if not regions:
-            # No usable locator output still needs one parent-image evidence unit.
-            regions = (ImageRegion(0.0, 0.0, 1.0, 1.0),)
+        full_image_region = len(regions) == 1 and regions[0] == ImageRegion(0.0, 0.0, 1.0, 1.0)
+        partial_regions = bool(regions) and not full_image_region and not regions_cover_image(regions)
+        if not regions or full_image_region:
+            # Missing or full-image locator output is not a decomposed region.
+            # Preserve parent-image evidence below without inventing coordinates.
+            regions = ()
         # ponytail: serialize per-post VISION calls; nested image/region pools
         # overwhelmed the gateway and turned valid region evidence into failures.
         # Reintroduce bounded concurrency only after provider capacity is measured.
-        region_results.extend(
-            _describe_image_region(
-                region_index,
-                chunk.image_data,
-                chunk.label,
-                region,
-                vision_client,
+        if regions:
+            region_results.extend(
+                _describe_image_region(
+                    region_index,
+                    chunk.image_data,
+                    chunk.label,
+                    region,
+                    vision_client,
+                )
+                for region_index, region in enumerate(regions)
             )
-            for region_index, region in enumerate(regions)
-        )
         successful_regions = [
             item.description for item in region_results if item.description is not None
         ]
