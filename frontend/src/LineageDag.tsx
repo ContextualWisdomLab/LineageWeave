@@ -1,9 +1,37 @@
-import type { LineageGraph } from "./api";
+import type { LineageGraph, LineageGraphEdge, LineageGraphNode } from "./api";
 import { t, tf } from "./i18n";
 import { layoutLineageDag } from "./lineageLayout";
 
 function truncateLabel(label: string): string {
   return label.length > 34 ? `${label.slice(0, 33)}…` : label;
+}
+
+function exactScore(value: number | undefined): string {
+  return value === undefined ? t("Not available") : value.toFixed(4);
+}
+
+function edgeEvidenceDescription(
+  edge: LineageGraphEdge,
+  from: LineageGraphNode,
+  to: LineageGraphNode,
+): string {
+  const channelScores = edge.channel_scores ?? {};
+  const parts = [`${t("Fused")} ${exactScore(edge.fused_score)}`];
+  if (channelScores.temporal !== undefined) {
+    parts.push(`${t("Time")} ${exactScore(channelScores.temporal)}`);
+  }
+  if (channelScores.secondary_key !== undefined) {
+    parts.push(
+      `${t("Secondary key")} ${exactScore(channelScores.secondary_key)}`,
+    );
+  }
+  if (channelScores.text !== undefined) {
+    parts.push(`${t("Text")} ${exactScore(channelScores.text)}`);
+  }
+  if (channelScores.llm !== undefined) {
+    parts.push(`${t("LLM")} ${exactScore(channelScores.llm)}`);
+  }
+  return `${from.label} follows ${to.label} — ${parts.join("; ")}`;
 }
 
 export function LineageDag({
@@ -17,13 +45,21 @@ export function LineageDag({
 }) {
   const groups = layoutLineageDag(graph);
   if (graph.nodes.length === 0) {
-    return <p className="lineage-empty">{t("No reconstructed lineage yet. Rebuild after seeding posts.")}</p>;
+    return (
+      <p className="lineage-empty">
+        {t("No reconstructed lineage yet. Rebuild after seeding posts.")}
+      </p>
+    );
   }
+
+  const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
 
   return (
     <div className="lineage-dag" aria-label={t("Reconstructed lineage")}>
       {groups.map((group) => {
-        const byId = Object.fromEntries(group.nodes.map((node) => [node.id, node]));
+        const byId = Object.fromEntries(
+          group.nodes.map((node) => [node.id, node]),
+        );
         return (
           <figure key={group.group} className="lineage-dag-group">
             <figcaption>
@@ -51,18 +87,16 @@ export function LineageDag({
                     className="lineage-dag-edge"
                     d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
                   >
-                    <title>
-                      {tf("{from} follows {to} ({score})", {
-                        from: from.label,
-                        to: to.label,
-                        score: edge.fused_score.toFixed(2),
-                      })}
-                    </title>
+                    <title>{edgeEvidenceDescription(edge, from, to)}</title>
                   </path>
                 );
               })}
               {group.nodes.map((node) => {
-                const kind = node.is_branch_point ? "branch" : node.is_root ? "root" : "node";
+                const kind = node.is_branch_point
+                  ? "branch"
+                  : node.is_root
+                    ? "root"
+                    : "node";
                 const isCurrent = node.id === currentPostId;
                 return (
                   <g
@@ -71,7 +105,9 @@ export function LineageDag({
                     transform={`translate(${node.x}, ${node.y})`}
                     role="button"
                     tabIndex={0}
-                    aria-label={tf("Open post: {label}", { label: node.label })}
+                    aria-label={tf("Open post: {label}", {
+                      label: node.label,
+                    })}
                     aria-current={isCurrent ? "true" : undefined}
                     onClick={() => onSelectPost(node.id)}
                     onKeyDown={(event) => {
@@ -98,6 +134,54 @@ export function LineageDag({
           </figure>
         );
       })}
+      {graph.edges.length > 0 ? (
+        <section className="popup-section" aria-labelledby="lineage-evidence-heading">
+          <h3 id="lineage-evidence-heading">
+            {t("Why these posts are linked")}
+          </h3>
+          <p className="post-meta">
+            {t(
+              "Review exact channel scores before relying on this connection.",
+            )}
+          </p>
+          <div className="post-body-scroll">
+            <table
+              className="post-body-table"
+              aria-label={t("Lineage evidence scores")}
+            >
+              <thead>
+                <tr>
+                  <th scope="col">{t("From")}</th>
+                  <th scope="col">{t("To")}</th>
+                  <th scope="col">{t("Fused")}</th>
+                  <th scope="col">{t("Time")}</th>
+                  <th scope="col">{t("Secondary key")}</th>
+                  <th scope="col">{t("Text")}</th>
+                  <th scope="col">{t("LLM")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {graph.edges.map((edge) => {
+                  const from = nodeById.get(edge.source);
+                  const to = nodeById.get(edge.target);
+                  const channels = edge.channel_scores ?? {};
+                  return (
+                    <tr key={`${edge.source}-${edge.target}`}>
+                      <th scope="row">{from?.label ?? edge.source}</th>
+                      <td>{to?.label ?? edge.target}</td>
+                      <td>{exactScore(edge.fused_score)}</td>
+                      <td>{exactScore(channels.temporal)}</td>
+                      <td>{exactScore(channels.secondary_key)}</td>
+                      <td>{exactScore(channels.text)}</td>
+                      <td>{exactScore(channels.llm)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
