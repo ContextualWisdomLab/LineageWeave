@@ -578,3 +578,47 @@ runtime; they do not prove protected-main equivalence, complete-corpus
 correctness, authorization coverage, or release readiness. Re-run the same
 aggregate projection against the authorized deployment before treating it as
 buyer-facing evidence.
+
+## Current continuation checkpoint: 2026-08-21 08:39 KST
+
+This section supersedes the older PR snapshot above for the PRs explicitly
+re-audited in the current continuation loop. GitHub state is authoritative;
+local tests below are branch-local evidence and are not merge evidence.
+
+| PR | Exact head | Base | Current gate | Current evidence |
+|---|---|---|---|---|
+| #270 authenticated MCP Global Ask | `1881a3cc402d99d8494bd9b936be9099b43ca3e7` | `feat/event-lineage-node-keeps-gnb-focus-v2170` | BLOCKED; review decision empty | Local MCP/auth/Global Ask regression set: 45 passed; import-order correction pushed |
+| #325 product/technical baseline | `d80d691cd8ed780a8fb0072199304f595b1ea75e` | `fix/validate-partial-image-regions` | BLOCKED; REVIEW_REQUIRED | This document, ADR 0102, and chunking changes are proposed, not on protected main |
+| #328 member locale bootstrap | `d0e159872147c7d7bd8bbf042c5552041eb44a4a` | `fix/oidc-deep-link-locale` | BLOCKED; REVIEW_REQUIRED | Local Frontend locale/deep-link set: 82 passed; TypeScript and lint passed |
+| #329 buyer-safe image evidence | `b5b08071ab869854da696566343e97feb04add20` | `fix/validate-partial-image-regions` | BLOCKED; REVIEW_REQUIRED | Local image/normalization/persistence set: 54 backend tests and 13 PostBody tests passed |
+| #330 lineage DAG interaction coverage | `e14dd956ad2493c42a16076a2adc095e0df5733b` | `codex/normalize-source-indent-semantics` | BLOCKED; REVIEW_REQUIRED | Frontend regression-only PR; hosted gate and independent review remain required |
+| #331 OIDC post deep-link regression | `72e842bad482b73974d8ab4f09d2385582c300d6` | `fix/member-locale-bootstrap-race` | BLOCKED; REVIEW_REQUIRED | Deep-link stack remains proposed and must be checked at its exact head |
+| #333 Keyverse-authenticated MCP API keys | `236b83b5af9632f83457dcc822b792dc239bcc7a` | `feat/analysis-run-name-evidence-lineage` | BLOCKED; review decision empty | Remote agent added malformed-revoke coverage; hosted Checks restarted |
+| #334 MCP API-key authentication | `89f19eb1378ac785b80ea344d6f4e6e2bbe4a312` | `agent/authenticated-mcp-global-ask` | BLOCKED; REVIEW_REQUIRED | Depends on #333 migration 0051; local full backend suite: 825 passed, 16 skipped |
+
+### Current closure order
+
+1. Revalidate each exact head after any remote-agent push; never use the older
+   hash as merge evidence.
+2. Merge #258 and its dependent buyer-surface stack only through the repository's
+   required independent review and terminal Checks. Do not treat local evidence,
+   a skipped review, or a queued workflow as approval.
+3. Deploy #333's normalized `mcp_api_key` resource before enabling the API-key
+   authentication path in #334. OIDC remains the fallback identity path when
+   the key table is not installed.
+4. After the relevant stack reaches protected main, run the real browser journey:
+   login screen first, locale preference restoration, GNB navigation, source
+   post popup, semantic image evidence, and MCP authorization. Record only
+   aggregate non-identifying evidence here.
+
+### Newly explicit product gaps
+
+- The MCP key lifecycle and MCP bearer verifier are separate PRs and are not yet
+  jointly deployable on protected main.
+- The locale and OIDC deep-link fixes are separate dependent PRs; local tests do
+  not prove that a logged-in browser session preserves `?post=` on the deployed
+  stack.
+- Buyer-safe image captions are covered locally, but region-level visual evidence
+  and buyer rendering still require post-merge browser evidence.
+- The older aggregate runtime table remains historical. It must not be cited as
+  proof that the current PR heads or protected main contain these changes.
