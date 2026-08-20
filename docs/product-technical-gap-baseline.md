@@ -452,3 +452,16 @@ This proves the login-to-list-to-popup interaction for the current local
 runtime only. It does not prove that the same journey is available on
 protected-main, that private records are universally authorized, or that the
 remote PR Checks have completed.
+
+## Live gate refresh: 2026-08-20 22:54 KST
+
+The current REST audit still finds 35 open pull requests and 12 open issues;
+no current-head independent approval is available for the active merge queue.
+PR #311 is open at `82b7b395` with both required Tests checks queued. PR #258 is
+open at `49804b0f`; its current `Analyze (python)` check is queued and its merge
+state is blocked. Earlier SQL/SAST comments are bound to predecessor commits,
+so they are not treated as current-head failures without a fresh matching scan.
+
+The current evidence supports continued review/check processing, not a merge
+claim. Re-read the exact head, current review commit, all required Checks, and
+stack dependency immediately before any protected merge.
