@@ -10,7 +10,6 @@ from backend.app import global_ask
 from backend.app.auth import CurrentAccount
 from lineageweave.post_chat import ChatAnswer, ChatSourceDocument
 
-
 _ACCOUNT = CurrentAccount(
     user_account_id="account-1",
     external_subject_id="subject-1",

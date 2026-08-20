@@ -12,8 +12,14 @@ from backend.app.auth import CurrentAccount
 from backend.app.config import Settings
 from backend.app.global_ask import GlobalAskAnswer
 from backend.app.global_ask_media import GlobalAskContentBlock
-from backend.app.global_ask_verification import ExternalVerificationResult, STATUS_SUPPORTED
-from lineageweave.post_chat import ContextualOrchestratorPostChatClient, NullPostChatClient
+from backend.app.global_ask_verification import (
+    STATUS_SUPPORTED,
+    ExternalVerificationResult,
+)
+from lineageweave.post_chat import (
+    ContextualOrchestratorPostChatClient,
+    NullPostChatClient,
+)
 
 
 def settings() -> Settings:
