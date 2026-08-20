@@ -26,7 +26,12 @@ placed in a stream message.
    body digest as a wake-up. The worker is at-least-once and idempotent; it
    claims the PostgreSQL row and rechecks the digest before provider work.
 3. A queued-row recovery sweep republishes wake-ups after Valkey loss or
-   process restart. A stale running claim is retryable after fifteen minutes.
+   process restart. The first attempt is immediate; retries become eligible
+   five minutes after `queued_at`, and `queued_at` is refreshed when a retry
+   is scheduled so older due jobs remain ahead of newer work. The worker
+   permits three attempts, then records terminal
+   `post_content_ingestion_attempt_limit`; duplicate wake-ups cannot reopen a
+   terminal failure. A changed source digest starts a new budget.
 4. The worker reuses the existing contextual-orchestrator client factories for
    VISION, structure, and embeddings. It preserves one post session and the
    bounded provenance metadata from `llm_context`; no raw provider call, model
@@ -36,8 +41,11 @@ placed in a stream message.
    embedding model is configured, every unit and every described visual region
    has the corresponding persisted vector. A previous `succeeded` row with
    incomplete derived evidence is requeued through Valkey instead of being
-   treated as complete. The frontend polls that status while continuing to
-   show the source post.
+   treated as complete. The worker verifies that persisted units contain no
+   unresolved structure decisions when structure adjudication is configured.
+   Incomplete provider output is retried with an explicit failure code rather
+   than being reported as succeeded. The frontend polls that status while
+   continuing to show the source post.
 
 ## Consequences
 
@@ -75,9 +83,20 @@ normalized PostgreSQL ledger is scanned and queued/stale rows are republished
 after the cursor is established. This prevents a restart from replaying an
 unbounded historical stream before processing current work.
 
+Lease recovery also fences completion by `attempt_count`. A worker whose
+15-minute lease was reclaimed may finish after the replacement worker has
+started; its success, retry, or terminal failure transition is accepted only
+when the PostgreSQL row is still `running` for that exact attempt. A stale
+worker therefore cannot overwrite the newer attempt or append a false status
+event.
+
 ## Corpus backfill (2026-08-20)
 
 Operational backfill MUST use `scripts/queue_post_content_backfill.py`. It
 selects only non-draft, non-deleted rows with real source context, records the
 same completeness-aware job state in PostgreSQL, and publishes wake-ups through
 Valkey. Direct provider calls are not a substitute for the worker queue.
+
+### Operational timeout for structure adjudication
+
+The contextual-orchestrator structure adjudication request uses a 600-second client timeout by default. Structure inference is an accuracy-critical, structured multi-agent operation rather than a user-facing synchronous request; the longer bound prevents a slow but valid workflow from being downgraded to `unresolved` merely because the client abandoned the response. The durable job remains queued until all non-image units have complete structure evidence.
