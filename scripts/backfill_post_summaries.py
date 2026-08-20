@@ -131,7 +131,7 @@ def _semantic_hints(row: asyncpg.Record) -> str:
         source_company_code=row["source_company_code"],
         source_company_name=row["source_company_name"],
         source_business_unit_code=row["source_process_unit_code"],
-        source_business_unit_name=row["source_process_unit_name"],
+        source_process_unit_name=row["source_process_unit_name"],
         source_sales_pool_code=row["source_sales_pool_code"],
         source_sales_pool_name=row["source_sales_pool_name"],
         source_customer_code=row["source_customer_code"],
