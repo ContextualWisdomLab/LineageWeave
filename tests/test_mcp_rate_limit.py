@@ -46,8 +46,11 @@ async def test_valkey_limiter_uses_one_atomic_script_and_opaque_principal_key() 
     assert decision.retry_after_seconds == 0
     assert len(client.calls) == 1
     script, key_count, key, maximum_requests, window_milliseconds = client.calls[0]
-    assert "redis.call('TIME')" in script
     assert "INCR" in script
+    assert "PEXPIRE" in script
+    assert "PTTL" in script
+    assert "TIME" not in script
+    assert "KEYS[1] .." not in script
     assert key_count == 1
     assert ACCOUNT_ID not in str(key)
     assert str(key).startswith("lineageweave:mcp:global_ask:principal:")
