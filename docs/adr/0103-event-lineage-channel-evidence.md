@@ -1,4 +1,4 @@
-# ADR 0100: Persist Event Lineage channel evidence separately from fused rank
+# ADR 0103: Persist Event Lineage channel evidence separately from fused rank
 
 - Status: Proposed
 - Date: 2026-08-20
