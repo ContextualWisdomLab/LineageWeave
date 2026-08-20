@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
-import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import {
   askPostChat,
   askAgent,
@@ -85,7 +84,6 @@ import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
-import { ApiKeyManager } from "./components/ApiKeyManager";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
@@ -4480,7 +4478,6 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   useLocale();
   const auth = useAuth();
   const [destination, setDestination] = useState<BuyerDestination>("board");
-  const [showApiKeys, setShowApiKeys] = useState(false);
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("post");
@@ -4526,8 +4523,12 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         <LanguageSwitcher />
           <button
             onClick={() => {
-              const returnUrl = returnUrlFromLocation();
-              rememberOidcReturnUrl(returnUrl);
+              const returnUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+              try {
+                window.sessionStorage.setItem("lineageweave.oidc.returnUrl", returnUrl);
+              } catch {
+                // OIDC state remains the primary return-path transport.
+              }
               void auth.signinRedirect({ state: { returnUrl } });
             }}
           >
@@ -4547,9 +4548,6 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         <h1>LineageWeave</h1>
         <div>
           <span>{auth.user?.profile.preferred_username}</span>
-          <button type="button" onClick={() => setShowApiKeys((visible) => !visible)}>
-            {t("API keys")}
-          </button>
           <button onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
         </div>
       </header>
@@ -4558,7 +4556,6 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         onChange={setDestination}
         tools={<LanguageSwitcher accessToken={accessToken} />}
       />
-      {showApiKeys ? <ApiKeyManager accessToken={accessToken} /> : null}
       {destination === "board" ? (
         <PostList
           accessToken={accessToken}
