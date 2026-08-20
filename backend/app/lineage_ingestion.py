@@ -92,7 +92,11 @@ def _public_channel_name(lookup_code: str) -> str:
 
 
 async def persist_lineage_edges(conn: asyncpg.Connection, edges: list[Edge]) -> None:
-    """Replace selected edges and their exact normalized channel evidence."""
+    """Replace selected edges and their exact normalized channel evidence.
+
+    The caller owns the surrounding transaction so the parent-edge replacement
+    and all cascading channel rows commit or roll back together.
+    """
 
     validated_edges = [(edge, _validated_channel_rows(edge)) for edge in edges]
     await conn.execute("delete from post_lineage_edge")
@@ -152,14 +156,6 @@ async def visible_lineage_graph(
     edge_rows = await conn.fetch(
         "select parent_post_id, child_post_id, fused_score from post_lineage_edge"
     )
-    channel_rows = await conn.fetch(
-        "select score.parent_post_id, score.child_post_id, "
-        "score.channel_code, score.channel_score "
-        "from lineage_edge_channel_score score "
-        "join common_lookup_value lookup on lookup.lookup_code = score.channel_code "
-        "order by score.parent_post_id, score.child_post_id, "
-        "lookup.display_order, score.channel_code"
-    )
 
     if focus_post_id is None:
         visible = sorted(
@@ -202,6 +198,20 @@ async def visible_lineage_graph(
         if str(row["parent_post_id"]) in visible_ids
         and str(row["child_post_id"]) in visible_ids
     ]
+
+    channel_rows = []
+    if visible_edges:
+        channel_rows = await conn.fetch(
+            "select score.parent_post_id, score.child_post_id, "
+            "score.channel_code, score.channel_score "
+            "from lineage_edge_channel_score score "
+            "join common_lookup_value lookup on lookup.lookup_code = score.channel_code "
+            "where score.parent_post_id = any($1::uuid[]) "
+            "and score.child_post_id = any($1::uuid[]) "
+            "order by score.parent_post_id, score.child_post_id, "
+            "lookup.display_order, score.channel_code",
+            sorted(visible_ids),
+        )
 
     channel_scores_by_edge: dict[tuple[str, str], dict[str, float]] = {}
     for row in channel_rows:
