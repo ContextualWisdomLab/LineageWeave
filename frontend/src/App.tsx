@@ -1697,7 +1697,7 @@ function PostDetailPopup({
   knowledgeCutoff?: string | null;
   focusEventLineage?: boolean;
   focusAskOnLand?: boolean;
-  onOpenProjectHistory?: (projectKey: string) => void;
+  onOpenProjectHistory?: (projectKey: string, postId: string) => void;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
@@ -2163,7 +2163,7 @@ function PostDetailPopup({
                           type="button"
                           className="related-post-card"
                           aria-label={tf("Open project history for: {name}", { name: project.project_name })}
-                          onClick={() => onOpenProjectHistory(project.project_key)}
+                          onClick={() => onOpenProjectHistory(project.project_key, postId)}
                         >
                           <strong>{project.project_name}</strong>
                           <span>{t("Open project history")}</span>
@@ -3669,7 +3669,7 @@ function PostList({
   postOpenFromAskAgent?: boolean;
   postOpenFromProjectHistory?: boolean;
   onPostOpened?: () => void;
-  onOpenProjectHistory?: (projectKey: string) => void;
+  onOpenProjectHistory?: (projectKey: string, postId: string) => void;
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
@@ -4811,10 +4811,12 @@ function AskAgentPanel({
 function ProjectHistoryPanel({
   accessToken,
   initialProjectKey,
+  initialFocusPostId,
   onOpenPost,
 }: {
   accessToken: string;
   initialProjectKey?: string | null;
+  initialFocusPostId?: string | null;
   onOpenPost: (postId: string) => void;
 }) {
   const [index, setIndex] = useState<ProjectHistoryIndex | null>(null);
@@ -4862,14 +4864,16 @@ function ProjectHistoryPanel({
     const request = ++historyRequest.current;
     setProjection(null);
     setError(false);
-    fetchProjectHistory(accessToken, selectedProjectKey, index.knowledge_cutoff)
+    const focusPostId =
+      initialProjectKey === selectedProjectKey ? initialFocusPostId ?? undefined : undefined;
+    fetchProjectHistory(accessToken, selectedProjectKey, index.knowledge_cutoff, focusPostId)
       .then((result) => {
         if (request === historyRequest.current) setProjection(result);
       })
       .catch(() => {
         if (request === historyRequest.current) setError(true);
       });
-  }, [accessToken, index?.knowledge_cutoff, selectedProjectKey]);
+  }, [accessToken, index?.knowledge_cutoff, initialFocusPostId, initialProjectKey, selectedProjectKey]);
 
   return (
     <section className="buyer-destination" aria-labelledby="project-history-heading">
@@ -4911,6 +4915,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   const auth = useAuth();
   const [destination, setDestination] = useState<BuyerDestination>("board");
   const [projectHistoryKey, setProjectHistoryKey] = useState<string | null>(null);
+  const [projectHistoryFocusPostId, setProjectHistoryFocusPostId] = useState<string | null>(null);
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("post");
@@ -4987,7 +4992,10 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
       <BuyerNav
         destination={destination}
         onChange={(nextDestination) => {
-          if (nextDestination === "project-history") setProjectHistoryKey(null);
+          if (nextDestination === "project-history") {
+            setProjectHistoryKey(null);
+            setProjectHistoryFocusPostId(null);
+          }
           setDestination(nextDestination);
         }}
         tools={<LanguageSwitcher accessToken={accessToken} />}
@@ -5008,8 +5016,9 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             setPostOpenFromAskAgent(false);
             setPostOpenFromProjectHistory(false);
           }}
-          onOpenProjectHistory={(projectKey) => {
+          onOpenProjectHistory={(projectKey, postId) => {
             setProjectHistoryKey(projectKey);
+            setProjectHistoryFocusPostId(postId);
             setDestination("project-history");
           }}
         />
@@ -5055,6 +5064,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         <ProjectHistoryPanel
           accessToken={accessToken}
           initialProjectKey={projectHistoryKey}
+          initialFocusPostId={projectHistoryFocusPostId}
           onOpenPost={(postId) => {
             setPostToOpen(postId);
             setPostOpenFromCalendar(false);

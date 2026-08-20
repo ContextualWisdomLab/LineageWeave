@@ -7,6 +7,7 @@ import { setLocale } from "./i18n";
 const signinRedirect = vi.fn();
 const signoutRedirect = vi.fn();
 let mockAuth: Record<string, unknown>;
+let projectHistoryRequestUrl: string | null = null;
 
 vi.mock("react-oidc-context", () => ({
   useAuth: () => mockAuth,
@@ -16,6 +17,7 @@ beforeEach(() => {
   setLocale("en");
   signinRedirect.mockReset();
   signoutRedirect.mockReset();
+  projectHistoryRequestUrl = null;
   mockAuth = {
     isLoading: false,
     isAuthenticated: false,
@@ -1131,7 +1133,7 @@ describe("App, authenticated", () => {
             visibility_label: "Public",
             project_evidence: [
               {
-                project_key: "source-project",
+                project_key: "semantic-project",
                 project_name: "Semantic project",
                 evidence: "project was described in the body",
                 confidence: 0.9,
@@ -1774,6 +1776,7 @@ describe("App, authenticated", () => {
         );
       }
       if (url.includes("/api/project-history?") && method === "GET") {
+        projectHistoryRequestUrl = url;
         return Promise.resolve(
           jsonResponse({
             contract_version: 1,
@@ -2007,6 +2010,7 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("heading", { name: "Project event timeline" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Select project" })).toHaveValue("semantic-project");
     expect(screen.getByRole("button", { name: "Open source record: Public post" })).toBeInTheDocument();
+    expect(projectHistoryRequestUrl).toContain("focus_post_id=post-1");
   });
 
   it("clicking Weekly VOC keeps the 2026-W01 Voice of Customer post and names Event Lineage as the next action", async () => {
