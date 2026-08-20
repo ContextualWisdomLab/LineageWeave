@@ -18,6 +18,10 @@ must not become embedding text.
 
 - Treat `ol`/`ul` container depth as explicit indentation and persist `li` as
   its own DOM semantic unit.
+- Preserve semantic footnote labels from HTML/Word markers such as
+  `role="doc-footnote"`, footnote containers, `MsoFootnoteText`, and Word
+  footnote reference links; a footnote remains a searchable unit, not a list
+  item inferred only from its leading glyph.
 - For markup-free input, split at authored blank paragraphs and list markers;
   continuation lines remain in the preceding item after visual alignment is
   removed.

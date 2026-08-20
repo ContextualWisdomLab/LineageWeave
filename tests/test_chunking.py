@@ -4,9 +4,9 @@ from lineageweave.chunking import (
     ConversationTurn,
     chunk_by_conversation_turn,
     chunk_by_dom,
-    chunk_by_source_body,
     chunk_by_paragraph,
     chunk_by_sentence,
+    chunk_by_source_body,
     normalize_semantic_text,
 )
 
@@ -109,6 +109,22 @@ def test_chunk_by_dom_labels_markerless_footnotes() -> None:
     assert [(chunk.label, chunk.text) for chunk in chunks] == [
         ("p", "Body text"),
         ("footnote", "*Tier 2: follow-up note"),
+    ]
+
+
+def test_chunk_by_dom_labels_html_and_word_footnote_markup() -> None:
+    html = (
+        "<p>Body text</p>"
+        '<ol class="footnotes"><li id="fn1"><p>HTML footnote body</p></li></ol>'
+        '<p class="MsoFootnoteText"><a href="#_ftnref1"><sup>1</sup></a> Word footnote body</p>'
+    )
+
+    chunks = chunk_by_dom(html)
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Body text"),
+        ("footnote", "HTML footnote body"),
+        ("footnote", "1 Word footnote body"),
     ]
 
 
