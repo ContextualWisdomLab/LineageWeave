@@ -55,12 +55,15 @@ class _RegionVisionClient(_FakeVisionClient):
 
 
 class _PartialRegionVisionClient(_FakeVisionClient):
-    def __init__(self, description: ImageDescription) -> None:
+    def __init__(self, description: ImageDescription, fail_on_call: int | None = None) -> None:
         super().__init__(description)
         self.describe_calls = 0
+        self.fail_on_call = fail_on_call
 
     def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
         self.describe_calls += 1
+        if self.describe_calls == self.fail_on_call:
+            raise RuntimeError("synthetic parent-image provider outage")
         return super().describe(image_bytes, mime_type)
 
     def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
@@ -170,6 +173,23 @@ def test_partial_region_response_retains_panel_and_parent_evidence() -> None:
 
     assert result.image_results[0].regions[0].region == ImageRegion(0.25, 0.25, 0.25, 0.25)
     assert client.describe_calls == 2
+
+
+def test_partial_region_parent_failure_keeps_successful_panel_evidence() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    client = _PartialRegionVisionClient(
+        ImageDescription(extracted_text="panel", caption="panel", tags=()),
+        fail_on_call=2,
+    )
+
+    result = normalize_post_body(
+        f'<img src="data:image/png;base64,{b64}"/>',
+        vision_client=client,
+    )
+
+    assert result.image_results[0].status_code == "described"
+    assert result.image_results[0].regions[0].description is not None
+    assert result.image_results[0].description is not None
 
 
 def test_comparison_operators_in_plain_text_are_not_treated_as_html() -> None:
