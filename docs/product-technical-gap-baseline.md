@@ -465,3 +465,25 @@ coverage. Frontend lint, `134 passed` frontend tests, production build, and
 Storybook build also passed locally. GitHub's two required PR Checks are still
 queued and no formal approval is bound to this exact head, so this is not a
 merge or release claim.
+
+## Fresh runtime aggregate evidence: 2026-08-21 KST
+
+The local Compose runtime was healthy for the backend, frontend, Keycloak,
+contextual-orchestrator, PostgreSQL, and Valkey at the observed development
+endpoints. A bounded PostgreSQL catalog projection recorded the following
+aggregate counts without exporting source text or identifiers:
+
+| Relation | Rows observed |
+|---|---:|
+| `source_post` | 43,839 |
+| `post_summary_role` | 179 |
+| `post_summary_person_mention` | 17 |
+| `post_summary_action` | 88 |
+
+Within `post_summary_action`, 30 rows had a requester assignment, 45 had a
+processor assignment, all 88 retained evidence text, and 85 were bound to a
+project. These figures demonstrate bounded persistence in the current local
+runtime; they do not prove protected-main equivalence, complete-corpus
+correctness, authorization coverage, or release readiness. Re-run the same
+aggregate projection against the authorized deployment before treating it as
+buyer-facing evidence.
