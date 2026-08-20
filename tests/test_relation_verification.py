@@ -53,7 +53,7 @@ class _ResultsHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def log_message(self, format: str, *args) -> None:
+    def log_message(self, format: str, *args) -> None:  # noqa: A002 -- stdlib signature
         return
 
 
