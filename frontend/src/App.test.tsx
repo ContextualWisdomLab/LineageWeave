@@ -1955,7 +1955,7 @@ describe("App, authenticated", () => {
     render(<App showLabPanels />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
-    const image = await screen.findByRole("img", { name: /embedded image at character offset/i });
+    const image = await screen.findByRole("img", { name: "Embedded image" });
     expect(image).toHaveAttribute("src", `data:image/png;base64,${tinyPng}`);
     expect(screen.getByText("Quote attached.")).toBeInTheDocument();
     expect(screen.getByText("Please confirm.")).toBeInTheDocument();
