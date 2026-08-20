@@ -22,7 +22,6 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from backend.app.post_summary_ingestion import persist_post_summary
 from lineageweave.corporate_hierarchy_inference import NullCorporateHierarchyInferenceClient
 from lineageweave.embedding_client import orchestrator_embedding_client
@@ -34,54 +33,6 @@ from lineageweave.post_structure import ContextualOrchestratorPostStructureClien
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient
 from lineageweave.semantic_hints import format_semantic_hints
-
-
-_POST_SELECTION_FROM_SQL = """
-select post.post_id, post.post_title, post.post_body, post.author_account_id,
-       author.display_name as author_name,
-       post.source_author_code, post.source_author_name,
-       post.source_company_code, post.source_company_name,
-       post.source_process_unit_code, post.source_process_unit_name,
-       post.source_sales_pool_code, post.source_sales_pool_name,
-       post.source_customer_code, post.source_customer_name,
-       post.source_project_code, post.source_project_name,
-       post.secondary_grouping_key as project_field,
-       customer.entity_name as customer_name,
-       coalesce(
-           (select array_agg(distinct affiliated.entity_name)
-              from account_affiliation affiliation
-              join corporate_entity affiliated
-                on affiliated.corporate_entity_id = affiliation.corporate_entity_id
-             where affiliation.user_account_id = post.author_account_id),
-           '{}'::text[]
-       ) as author_affiliations
-  from source_post post
-  left join user_account author
-    on author.user_account_id = post.author_account_id
-  left join corporate_entity customer
-    on customer.corporate_entity_id = post.corporate_entity_id
-"""
-
-_SELECT_POSTS_BY_ID_QUERY = f"""
-{_POST_SELECTION_FROM_SQL}
- where {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
-   and post.post_id = any($1::uuid[])
- order by post.created_at, post.post_id
- limit $2::bigint
-"""
-
-_SELECT_UNPROJECTED_POSTS_QUERY = f"""
-{_POST_SELECTION_FROM_SQL}
- where {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
-   and nullif(btrim(post.source_project_code::text), '') is null
-   and nullif(btrim(post.source_project_name::text), '') is null
-   and not exists (
-       select 1 from post_project_mention mention
-        where mention.post_id = post.post_id
-   )
- order by post.created_at, post.post_id
- limit $1::bigint
-"""
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -147,9 +98,102 @@ async def _load_posts(
     limit: int | None,
 ) -> list[asyncpg.Record]:
     """Load explicit IDs or one bounded unprojected-post batch."""
-    if post_ids:
-        return list(await conn.fetch(_SELECT_POSTS_BY_ID_QUERY, post_ids, limit))
-    return list(await conn.fetch(_SELECT_UNPROJECTED_POSTS_QUERY, limit))
+    return list(
+        await conn.fetch(
+            """
+            select post.post_id,
+                   post.post_title,
+                   post.post_body,
+                   post.author_account_id,
+                   author.display_name as author_name,
+                   post.source_author_code,
+                   post.source_author_name,
+                   post.source_company_code,
+                   post.source_company_name,
+                   post.source_process_unit_code,
+                   post.source_process_unit_name,
+                   post.source_sales_pool_code,
+                   post.source_sales_pool_name,
+                   post.source_customer_code,
+                   post.source_customer_name,
+                   post.source_project_code,
+                   post.source_project_name,
+                   post.secondary_grouping_key as project_field,
+                   customer.entity_name as customer_name,
+                   coalesce(
+                       (
+                           select array_agg(distinct affiliated.entity_name)
+                             from account_affiliation affiliation
+                             join corporate_entity affiliated
+                               on affiliated.corporate_entity_id = affiliation.corporate_entity_id
+                            where affiliation.user_account_id = post.author_account_id
+                       ),
+                       '{}'::text[]
+                   ) as author_affiliations
+              from source_post post
+              left join user_account author
+                on author.user_account_id = post.author_account_id
+              left join corporate_entity customer
+                on customer.corporate_entity_id = post.corporate_entity_id
+             where nullif(btrim(post.source_draft_code), '') is null
+               and nullif(btrim(post.source_deleted_flag), '') is null
+               and not (
+                   (
+                       nullif(btrim(post.source_author_code), '') is null
+                       and nullif(btrim(post.source_author_name), '') is null
+                       and nullif(btrim(post.source_company_code), '') is null
+                       and nullif(btrim(post.source_company_name), '') is null
+                       and nullif(btrim(post.source_process_unit_code), '') is null
+                       and nullif(btrim(post.source_process_unit_name), '') is null
+                       and nullif(btrim(post.source_sales_pool_code), '') is null
+                       and nullif(btrim(post.source_sales_pool_name), '') is null
+                       and nullif(btrim(post.source_customer_code), '') is null
+                       and nullif(btrim(post.source_customer_name), '') is null
+                       and nullif(btrim(post.source_project_code), '') is null
+                       and nullif(btrim(post.source_project_name), '') is null
+                   )
+                   and exists (
+                       select 1
+                         from source_post real_post
+                        where (
+                            nullif(btrim(real_post.source_author_code), '') is not null
+                            or nullif(btrim(real_post.source_author_name), '') is not null
+                            or nullif(btrim(real_post.source_company_code), '') is not null
+                            or nullif(btrim(real_post.source_company_name), '') is not null
+                            or nullif(btrim(real_post.source_process_unit_code), '') is not null
+                            or nullif(btrim(real_post.source_process_unit_name), '') is not null
+                            or nullif(btrim(real_post.source_sales_pool_code), '') is not null
+                            or nullif(btrim(real_post.source_sales_pool_name), '') is not null
+                            or nullif(btrim(real_post.source_customer_code), '') is not null
+                            or nullif(btrim(real_post.source_customer_name), '') is not null
+                            or nullif(btrim(real_post.source_project_code), '') is not null
+                            or nullif(btrim(real_post.source_project_name), '') is not null
+                        )
+                   )
+               )
+               and (
+                   (
+                       $1::uuid[] is not null
+                       and post.post_id = any($1::uuid[])
+                   )
+                   or (
+                       $1::uuid[] is null
+                       and nullif(btrim(post.source_project_code::text), '') is null
+                       and nullif(btrim(post.source_project_name::text), '') is null
+                       and not exists (
+                           select 1
+                             from post_project_mention mention
+                            where mention.post_id = post.post_id
+                       )
+                   )
+               )
+             order by post.created_at, post.post_id
+             limit $2::bigint
+            """,
+            post_ids or None,
+            limit,
+        )
+    )
 
 
 async def backfill_post_summaries(

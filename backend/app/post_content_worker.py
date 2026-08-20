@@ -24,6 +24,7 @@ from backend.app.post_content_queue import (
     POST_CONTENT_STREAM_KEY,
     RUNNING,
     SUCCEEDED,
+    post_content_is_complete,
     transition_post_content_job,
     republish_queued_post_content_jobs,
 )
@@ -37,6 +38,8 @@ async def _claim_job(
     pool: asyncpg.Pool,
     post_id: str,
     source_body_digest: str,
+    *,
+    embedding_model_code: str,
 ) -> asyncpg.Record | None:
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -59,11 +62,12 @@ async def _claim_job(
                 return None
             status_code = str(row["job_status_code"])
             if status_code == SUCCEEDED:
-                has_content = await conn.fetchval(
-                    "select exists(select 1 from post_content_unit where post_id = $1)",
+                content_complete = await post_content_is_complete(
+                    conn,
                     post_id,
+                    embedding_model_code=embedding_model_code,
                 )
-                if has_content:
+                if content_complete:
                     return None
             if status_code == RUNNING and row["job_started_at"] is not None:
                 stale = await conn.fetchval(
@@ -113,14 +117,19 @@ async def process_post_content_job(
     embedding_factory: Callable[[], EmbeddingClient],
     structure_factory: Callable[[], PostStructureClient],
 ) -> None:
-    row = await _claim_job(pool, post_id, source_body_digest)
+    settings = load_settings()
+    row = await _claim_job(
+        pool,
+        post_id,
+        source_body_digest,
+        embedding_model_code=settings.embedding_model,
+    )
     if row is None:
         return
     try:
         raw_body = row["post_body"]
         if not isinstance(raw_body, str) or not raw_body.strip():
             raise ValueError("source post has no body")
-        settings = load_settings()
         metadata = build_post_llm_metadata(post_id, row)
         with use_llm_metadata(metadata):
             vision_client = vision_factory()
