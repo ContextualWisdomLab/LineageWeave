@@ -44,7 +44,9 @@ from lineageweave.knowledge_graph import (
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
     ACTOR_TYPE_PERSON,
+    MajorEventAction,
     PostSummary,
+    ProjectMention,
     RoleResponsibility,
 )
 
@@ -264,8 +266,38 @@ async def _exercise_projection_contract(
                         responsibility="검토",
                     ),
                 ),
+                major_event_actions=(
+                    MajorEventAction(
+                        action_text="합성 프로젝트 검토 요청",
+                        requester_actor_name="Summary Person",
+                        processor_actor_name=None,
+                        evidence_text="합성 본문에 프로젝트 검토 요청이 기록됨",
+                        project_key="synthetic-project",
+                    ),
+                    MajorEventAction(
+                        action_text="연결되지 않은 프로젝트 요청",
+                        requester_actor_name=None,
+                        processor_actor_name=None,
+                        evidence_text="프로젝트 연결 근거가 없음",
+                        project_key="unsupported-project",
+                    ),
+                ),
+                project_mentions=(
+                    ProjectMention(
+                        project_name="Synthetic Project",
+                        canonical_name="Synthetic Project",
+                        evidence="합성 본문에 프로젝트명이 있음",
+                        confidence=0.9,
+                    ),
+                ),
             ),
         )
+        summary_payload = await fetch_persisted_summary(connection, post_id)
+        assert summary_payload is not None
+        assert [
+            action["project_name"]
+            for action in summary_payload["major_event_actions"]
+        ] == ["Synthetic Project", None]
 
         keyman_rows = await connection.fetch(
             "select person_id from post_person_mention where post_id = $1",

@@ -41,6 +41,8 @@ actions remain compatible because the new column is nullable.
 ## Verification
 
 - Parser tests cover the new five-column plain response and legacy JSON shape.
-- The migration test verifies the composite foreign key target.
+- The migration test verifies the composite foreign key target, and the
+  PostgreSQL projection regression verifies that a supported project name is
+  returned while an unsupported association remains unassigned.
 - Runtime LLM evaluation remains subject to the contextual-orchestrator test
   environment and uses only synthetic repository fixtures.
