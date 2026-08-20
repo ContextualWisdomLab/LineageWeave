@@ -55,29 +55,6 @@ jobs:
       - name: Resolve only the declared dependency change
         run: uv lock
 
-      - name: Remove the superseded verify-mode architecture caveat
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path("ARCHITECTURE.md")
-          text = path.read_text(encoding="utf-8")
-          start_marker = "> **Known local-test-environment limitation:**"
-          end_marker = "unaffected.\n"
-          assert text.count(start_marker) == 1, "expected one stale verify-mode architecture block"
-          start = text.index(start_marker)
-          end = text.index(end_marker, start) + len(end_marker)
-          replacement = (
-              "> **Contextual-orchestrator contract:** Post Ask and MCP Global Ask use the\n"
-              "> currently supported `mode=\"conduct\"` path for verified multi-step\n"
-              "> reasoning. Model-based verification requires fast-mlsirm in the same\n"
-              "> contextual-orchestrator runtime and fails closed when that dependency or\n"
-              "> its contract is unavailable. LineageWeave never falls back to a direct\n"
-              "> provider or the rejected legacy `verify` mode.\n"
-          )
-          path.write_text(text[:start] + replacement + text[end:], encoding="utf-8")
-          PY
-
       - name: Verify the frozen backend environment and MCP regressions
         run: |
           uv sync --frozen --extra dev --extra backend
@@ -86,16 +63,14 @@ jobs:
             tests/test_global_ask_external_verification.py \
             tests/test_post_chat_*.py
 
-      - name: Commit the regenerated lock and architecture contract
+      - name: Commit the regenerated lock and remove this one-shot workflow
         env:
           TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
+          rm .github/workflows/mcp-lock-refresh.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add uv.lock ARCHITECTURE.md
-          if git diff --cached --quiet; then
-            echo "lock and architecture already match the product contract"
-            exit 0
-          fi
-          git commit -m "build: lock MCP runtime and conduct contract"
+          git add uv.lock .github/workflows/mcp-lock-refresh.yml
+          git diff --cached --check
+          git commit -m "build: lock MCP runtime"
           git push origin "HEAD:${TARGET_BRANCH}"
