@@ -32,3 +32,29 @@ def test_corroborating_evidence_requires_distinctive_org_token() -> None:
         )
         == "https://aurora.example/about"
     )
+
+
+def test_corroborating_evidence_requires_a_majority_of_tokens() -> None:
+    """One ordinary dictionary word in an invented name must not corroborate.
+
+    "Fictitious" and "Nonexistent" are real English words that can appear
+    on an unrelated page by coincidence; a single such match is not
+    evidence the organization itself has a real-world footprint.
+    """
+    assert (
+        relation_verification.corroborating_evidence_url(
+            "Zzqxvthorp Fictitious Nonexistent Org",
+            {"url": "https://unrelated.example/error-page", "content": "This file is fictitious or missing."},
+        )
+        is None
+    )
+    assert (
+        relation_verification.corroborating_evidence_url(
+            "Zzqxvthorp Fictitious Nonexistent Org",
+            {
+                "url": "https://zzqxvthorp.example/about",
+                "content": "Zzqxvthorp Fictitious Nonexistent Org is a real company.",
+            },
+        )
+        == "https://zzqxvthorp.example/about"
+    )
