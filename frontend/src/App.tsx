@@ -2189,6 +2189,27 @@ function PostDetailPopup({
                       </ul>
                     </>
                   )}
+                  {summary.major_event_actions && summary.major_event_actions.length > 0 && (
+                    <>
+                      <h4>{t("Major event actions")}</h4>
+                      <ul className="summary-action-list">
+                        {summary.major_event_actions.map((action, i) => (
+                          <li key={i}>
+                            <strong>{action.action_text}</strong>
+                            <div>
+                              {t("Requester")}: {action.requester_actor_name ?? t("Not stated in source")}
+                            </div>
+                            <div>
+                              {t("Processor")}: {action.processor_actor_name ?? t("Not stated in source")}
+                            </div>
+                            <small>
+                              {t("Evidence")}: {action.evidence_text}
+                            </small>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
                 </>
               ) : summaryError ? (
                 <p className="error">{summaryError}</p>

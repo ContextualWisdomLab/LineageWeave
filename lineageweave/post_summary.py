@@ -59,7 +59,7 @@ PROJECT_MENTION_CONFIDENCE_THRESHOLD = 0.7
 FIVE_W1H_EVIDENCE_SLOTS = frozenset({"when", "where", "why", "how"})
 # Stored rows without this contract version are legacy summaries and must be
 # regenerated from the current source body before the popup treats them as evidence.
-POST_SUMMARY_CONTRACT_VERSION = 4
+POST_SUMMARY_CONTRACT_VERSION = 5
 
 
 @dataclass(frozen=True)
@@ -95,6 +95,30 @@ class RoleResponsibility:
                 f"actor_type_code must be one of {sorted(_VALID_ACTOR_TYPE_CODES)}, "
                 f"got {self.actor_type_code!r}"
             )
+
+
+@dataclass(frozen=True)
+class MajorEventAction:
+    """One source-grounded handoff attached to a major event.
+
+    ``None`` means that the source did not name the requester or processor;
+    it is not permission to infer a person from account metadata.
+    """
+
+    action_text: str
+    requester_actor_name: str | None
+    processor_actor_name: str | None
+    evidence_text: str
+
+    def __post_init__(self) -> None:
+        if not self.action_text.strip() or not self.evidence_text.strip():
+            raise ValueError("major event actions require action and evidence text")
+        for field_name, value in (
+            ("requester_actor_name", self.requester_actor_name),
+            ("processor_actor_name", self.processor_actor_name),
+        ):
+            if value is not None and not value.strip():
+                raise ValueError(f"{field_name} must be non-empty when provided")
 
 
 @dataclass(frozen=True)
@@ -141,6 +165,7 @@ class PostSummary:
     korean_summary: str
     key_events: tuple[str, ...] = field(default_factory=tuple)
     roles_and_responsibilities: tuple[RoleResponsibility, ...] = field(default_factory=tuple)
+    major_event_actions: tuple[MajorEventAction, ...] = field(default_factory=tuple)
     project_mentions: tuple[ProjectMention, ...] = field(default_factory=tuple)
     five_w1h_evidence: tuple[FiveW1HEvidence, ...] = field(default_factory=tuple)
 
@@ -311,7 +336,7 @@ Post body: {body}
 
 _DETAILS_REQUEST_PROMPT_TEMPLATE = """\
 Use only the post evidence below. Do not output analysis or markdown.
-Write exactly these two section markers, each on its own line:
+Write exactly these four section markers, each on its own line:
 
 ROLES:
 <one row per named actor, in this exact column order:>
@@ -341,11 +366,16 @@ Acme Renewables | 기술 세미나 참석 | organization | NONE
 PROJECTS:
 project name | canonical name | shortest supporting evidence | confidence from 0 to 1
 
+ACTIONS:
+major event or action | requester actor name or NONE | processor actor name or NONE | shortest supporting evidence
+
 EVIDENCE:
 slot (when, where, why, or how) | value stated in the post | shortest supporting phrase
 
 Use NONE on the line after a marker when the evidence supports no item. Keep
-each row short. Do not invent actors, projects, affiliations, or confidence.
+each row short. For ACTIONS, requester and processor must be actor names also
+present in ROLES. Use NONE only when the post does not name that actor. Do not
+invent actors, projects, affiliations, actions, or confidence.
 Only write EVIDENCE rows when the post explicitly supports the value; do not
 turn the record's filing timestamp into an event time and do not infer a
 place, reason, or method from a title alone.
@@ -412,11 +442,12 @@ def _parse_plain_summary_details(
 ) -> tuple[
     tuple[RoleResponsibility, ...],
     tuple[ProjectMention, ...],
+    tuple[MajorEventAction, ...],
     tuple[FiveW1HEvidence, ...],
 ] | None:
     """Parse the compact semantic extraction contract without nested JSON."""
     plain = _strip_code_fence(content).strip()
-    markers = list(re.finditer(r"(?im)^\s*(ROLES|PROJECTS|EVIDENCE)\s*:\s*(.*)$", plain))
+    markers = list(re.finditer(r"(?im)^\s*(ROLES|PROJECTS|ACTIONS|EVIDENCE)\s*:\s*(.*)$", plain))
     if not markers:
         return None
 
@@ -528,6 +559,31 @@ def _parse_plain_summary_details(
             )
         except (TypeError, ValueError):
             continue
+    actions: list[MajorEventAction] = []
+    for raw_row in sections.get("ACTIONS", "").splitlines():
+        row = raw_row.strip().lstrip("-* ").strip()
+        if not row or row.casefold() in empty_values:
+            continue
+        parts = [part.strip() for part in row.split("|", 3)]
+        if len(parts) != 4:
+            continue
+        action_text, requester, processor, evidence_text = parts
+        if not action_text or evidence_text.casefold() in empty_values:
+            continue
+        requester_name = None if requester.casefold() in empty_values else requester
+        processor_name = None if processor.casefold() in empty_values else processor
+        try:
+            actions.append(
+                MajorEventAction(
+                    action_text=action_text,
+                    requester_actor_name=requester_name,
+                    processor_actor_name=processor_name,
+                    evidence_text=evidence_text,
+                )
+            )
+        except ValueError:
+            continue
+
     evidence: list[FiveW1HEvidence] = []
     for raw_row in sections.get("EVIDENCE", "").splitlines():
         row = raw_row.strip().lstrip("-* ").strip()
@@ -540,7 +596,7 @@ def _parse_plain_summary_details(
             evidence.append(FiveW1HEvidence(parts[0].casefold(), parts[1], parts[2]))
         except ValueError:
             continue
-    return tuple(roles), tuple(projects), tuple(evidence)
+    return tuple(roles), tuple(projects), tuple(actions), tuple(evidence)
 
 
 def parse_summary_response(content: str) -> PostSummary | None:
@@ -633,6 +689,32 @@ def parse_summary_response(content: str) -> PostSummary | None:
             except ValueError:
                 continue
 
+    actions: list[MajorEventAction] = []
+    raw_actions = parsed.get("major_event_actions") or parsed.get("actions") or []
+    if isinstance(raw_actions, list):
+        for entry in raw_actions:
+            if not isinstance(entry, dict):
+                continue
+            action_text = entry.get("action_text") or entry.get("event_text")
+            evidence_text = entry.get("evidence_text") or entry.get("evidence")
+            requester = entry.get("requester_actor_name")
+            processor = entry.get("processor_actor_name")
+            if not isinstance(action_text, str) or not isinstance(evidence_text, str):
+                continue
+            requester_name = requester.strip() if isinstance(requester, str) and requester.strip() else None
+            processor_name = processor.strip() if isinstance(processor, str) and processor.strip() else None
+            try:
+                actions.append(
+                    MajorEventAction(
+                        action_text=action_text.strip(),
+                        requester_actor_name=requester_name,
+                        processor_actor_name=processor_name,
+                        evidence_text=evidence_text.strip(),
+                    )
+                )
+            except ValueError:
+                continue
+
     five_w1h_raw = parsed.get("five_w1h_evidence") or parsed.get("evidence") or []
     five_w1h_evidence: list[FiveW1HEvidence] = []
     if isinstance(five_w1h_raw, list):
@@ -654,6 +736,7 @@ def parse_summary_response(content: str) -> PostSummary | None:
         korean_summary=korean_summary.strip(),
         key_events=key_events,
         roles_and_responsibilities=tuple(roles),
+        major_event_actions=tuple(actions),
         project_mentions=tuple(project_mentions),
         five_w1h_evidence=tuple(five_w1h_evidence),
     )
@@ -812,11 +895,12 @@ class ContextualOrchestratorPostSummaryClient:
                 "summary semantic response did not match the required format: "
                 f"{details_body['choices'][0]['message']['content']!r}"
             )
-        roles, projects, five_w1h_evidence = details
+        roles, projects, actions, five_w1h_evidence = details
         return PostSummary(
             korean_summary=korean_summary,
             key_events=key_events,
             roles_and_responsibilities=roles,
+            major_event_actions=actions,
             project_mentions=projects,
             five_w1h_evidence=five_w1h_evidence,
         )

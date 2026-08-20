@@ -9,6 +9,7 @@ decision from them.
 
 | Supporting document | Normative ADR |
 |---|---|
+| [`product-technical-gap-baseline.md`](../product-technical-gap-baseline.md) | Product/technical traceability projection across the ADR set; ADRs remain normative |
 | [`lineage-bi-research-notes.md`](../lineage-bi-research-notes.md) | [0084](0084-lineage-research-grounding.md), [0062](0062-semantic-unit-embedding.md), [0064](0064-lineage-evidence-and-tree-assembly.md) |
 | [`PROV_O_IMPLEMENTATION.md`](../PROV_O_IMPLEMENTATION.md) | [0065](0065-prov-o-provenance-boundary.md) |
 | [`PROV_O_IMPLEMENTATION_MATRIX.md`](../PROV_O_IMPLEMENTATION_MATRIX.md) | [0065](0065-prov-o-provenance-boundary.md) |
