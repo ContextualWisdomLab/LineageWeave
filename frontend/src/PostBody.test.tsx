@@ -34,6 +34,17 @@ describe("PostBody", () => {
     expect(screen.getByText("Root item")).toHaveAttribute("data-indent-level", "0");
   });
 
+  it("uses a buyer-facing accessible label instead of a source character offset", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
+      />,
+    );
+
+    expect(screen.getByAltText("Embedded image")).toBeInTheDocument();
+    expect(screen.queryByAltText(/character offset/i)).not.toBeInTheDocument();
+  });
+
   it("renders authoritative LLM structure levels for semantic list units", () => {
     render(
       <PostBody

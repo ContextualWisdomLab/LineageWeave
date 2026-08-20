@@ -26,7 +26,7 @@ function renderSegment(segment: PostBodySegment, index: number, imageContent?: P
         <figure key={`post-body-image-${index}`} className="post-embedded-image">
           <img
             src={segment.src}
-            alt={`${t("Embedded image at character offset")} ${segment.position}`}
+            alt={t("Embedded image")}
           />
           {imageContent?.caption ? <figcaption>{imageContent.caption}</figcaption> : null}
           {imageContent?.extracted_text ? (
