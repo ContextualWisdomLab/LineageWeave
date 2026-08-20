@@ -1,9 +1,9 @@
 import type {
-  LineageChannelEvidence,
   LineageGraph,
   LineageGraphEdge,
   LineageGraphNode,
 } from "./api";
+import type { LineageChannelEvidence } from "./lineageEvidenceApi";
 import { t, tf } from "./i18n";
 import { lineageEvidenceText } from "./lineageEvidenceI18n";
 import { layoutLineageDag } from "./lineageLayout";
@@ -19,7 +19,9 @@ function exactScore(value: number | null | undefined): string {
     : value.toFixed(4);
 }
 
-function legacySignalLabel(signalCode: keyof NonNullable<LineageGraphEdge["channel_scores"]>): string {
+function signalLabel(
+  signalCode: LineageChannelEvidence["signal_code"],
+): string {
   const keyBySignal = {
     temporal: "time",
     secondary_key: "secondaryKey",
@@ -31,8 +33,8 @@ function legacySignalLabel(signalCode: keyof NonNullable<LineageGraphEdge["chann
 
 function edgeEvidenceDescription(
   edge: LineageGraphEdge,
-  from: LineageGraphNode,
-  to: LineageGraphNode,
+  parent: LineageGraphNode,
+  child: LineageGraphNode,
 ): string {
   const parts = [
     `${lineageEvidenceText("fused")} ${exactScore(edge.fused_score)}`,
@@ -41,19 +43,19 @@ function edgeEvidenceDescription(
   if (evidence.length > 0) {
     for (const item of evidence) {
       parts.push(
-        `${item.signal_label} ${exactScore(item.score)} × ${exactScore(item.weight)} = ${exactScore(item.contribution)}`,
+        `${signalLabel(item.signal_code)} ${exactScore(item.score)} × ${exactScore(item.weight)} = ${exactScore(item.contribution)}`,
       );
     }
   } else {
     for (const [signalCode, score] of Object.entries(
       edge.channel_scores ?? {},
-    ) as [keyof NonNullable<LineageGraphEdge["channel_scores"]>, number][]) {
-      parts.push(`${legacySignalLabel(signalCode)} ${exactScore(score)}`);
+    ) as [LineageChannelEvidence["signal_code"], number][]) {
+      parts.push(`${signalLabel(signalCode)} ${exactScore(score)}`);
     }
   }
   return tf("{from} follows {to} ({score})", {
-    from: from.label,
-    to: to.label,
+    from: child.label,
+    to: parent.label,
     score: parts.join("; "),
   });
 }
@@ -79,7 +81,7 @@ function EvidenceTable({ evidence }: { evidence: LineageChannelEvidence[] }) {
             evidence.map((item) => (
               <tr key={item.signal_code}>
                 <td>{item.rank}</td>
-                <th scope="row">{item.signal_label}</th>
+                <th scope="row">{signalLabel(item.signal_code)}</th>
                 <td>{exactScore(item.score)}</td>
                 <td>{exactScore(item.weight)}</td>
                 <td>{exactScore(item.contribution)}</td>
@@ -139,17 +141,19 @@ export function LineageDag({
               aria-label={tf("{group} lineage", { group: group.heading })}
             >
               {group.edges.map((edge) => {
-                const from = byId[edge.source];
-                const to = byId[edge.target];
-                if (!from || !to) return null;
-                const midX = (from.x + to.x) / 2;
+                const parent = byId[edge.source];
+                const child = byId[edge.target];
+                if (!parent || !child) return null;
+                const midX = (parent.x + child.x) / 2;
                 return (
                   <path
                     key={`${edge.source}-${edge.target}`}
                     className="lineage-dag-edge"
-                    d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
+                    d={`M ${parent.x} ${parent.y} C ${midX} ${parent.y}, ${midX} ${child.y}, ${child.x} ${child.y}`}
                   >
-                    <title>{edgeEvidenceDescription(edge, from, to)}</title>
+                    <title>
+                      {edgeEvidenceDescription(edge, parent, child)}
+                    </title>
                   </path>
                 );
               })}
@@ -207,8 +211,8 @@ export function LineageDag({
           </p>
           <div className="lineage-evidence-disclosures">
             {graph.edges.map((edge) => {
-              const from = nodeById.get(edge.source);
-              const to = nodeById.get(edge.target);
+              const parent = nodeById.get(edge.source);
+              const child = nodeById.get(edge.target);
               const evidence = edge.channel_evidence ?? [];
               const llmParticipated = evidence.some(
                 (item) => item.signal_code === "llm",
@@ -221,8 +225,8 @@ export function LineageDag({
                 >
                   <summary>
                     {tf("{from} follows {to} ({score})", {
-                      from: from?.label ?? edge.source,
-                      to: to?.label ?? edge.target,
+                      from: child?.label ?? edge.target,
+                      to: parent?.label ?? edge.source,
                       score: `${lineageEvidenceText("fused")} ${exactScore(edge.fused_score)}`,
                     })}
                   </summary>
