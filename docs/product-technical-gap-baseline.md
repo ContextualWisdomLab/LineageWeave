@@ -618,3 +618,19 @@ OIDC deep links, visual-region evidence, semantic table rendering, project
 binding, and Event Lineage navigation. No PR in this checkpoint may be
 described as shipped until its exact current head has independent approval,
 terminal required Checks, a valid dependency base, and a confirmed merge SHA.
+
+## Exact-head implementation checkpoint: 2026-08-21 08:35 KST
+
+PR #258 advanced to `41036e2cd8095c5e7b9c333fd72c542cb676ef5e` after its exact
+tree was independently reviewed for a production-scope deletion risk. The
+cleanup query now accepts only `DEMO-*` corporate entities; a regression test
+proves that a blank-context row in a non-Demo entity survives an import cleanup.
+The exact tree passed `718 passed, 16 skipped`, and isolated cleanup branch
+coverage is `100%`. The hosted required Checks are queued and Devin Review is
+currently failed, so this is implementation evidence only, not protected-main
+or merge evidence.
+
+The next action is to wait for the exact-head Checks/review gate while
+revalidating the dependent stack from #260 in base order. Do not merge #258 or
+restack a descendant until the formal approval, terminal Checks, and exact
+dependency head are independently confirmed.
