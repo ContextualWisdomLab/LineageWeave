@@ -22,7 +22,9 @@ from backend.app.config import load_settings
 from backend.app.post_content_queue import (
     FAILED,
     POST_CONTENT_STREAM_KEY,
+    QUEUED,
     RUNNING,
+    STALE_RUNNING_INTERVAL,
     SUCCEEDED,
     post_content_is_complete,
     transition_post_content_job,
@@ -31,7 +33,12 @@ from backend.app.post_content_queue import (
 
 _logger = logging.getLogger(__name__)
 _RECOVERY_INTERVAL_SECONDS = 30.0
-_STALE_RUNNING_INTERVAL = "15 minutes"
+
+
+async def _stream_tail(client: redis.Redis) -> str:
+    """Start after historical wake-ups; the normalized ledger drives recovery."""
+    rows = await client.xrevrange(POST_CONTENT_STREAM_KEY, count=1)
+    return str(rows[0][0]) if rows else "0-0"
 
 
 async def _claim_job(
@@ -40,6 +47,7 @@ async def _claim_job(
     source_body_digest: str,
     *,
     embedding_model_code: str,
+    require_structure: bool = False,
 ) -> asyncpg.Record | None:
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -66,6 +74,7 @@ async def _claim_job(
                     conn,
                     post_id,
                     embedding_model_code=embedding_model_code,
+                    require_structure=require_structure,
                 )
                 if content_complete:
                     return None
@@ -73,7 +82,7 @@ async def _claim_job(
                 stale = await conn.fetchval(
                     "select now() - $1 > $2::interval",
                     row["job_started_at"],
-                    _STALE_RUNNING_INTERVAL,
+                    STALE_RUNNING_INTERVAL,
                 )
                 if not stale:
                     return None
@@ -123,6 +132,7 @@ async def process_post_content_job(
         post_id,
         source_body_digest,
         embedding_model_code=settings.embedding_model,
+        require_structure=bool(settings.orchestrator_base_url and settings.orchestrator_api_key),
     )
     if row is None:
         return
@@ -146,6 +156,18 @@ async def process_post_content_job(
                     structure_client=structure_factory(),
                     post_title=str(row["post_title"]),
                 )
+            async with pool.acquire() as conn:
+                complete = await post_content_is_complete(
+                    conn,
+                    post_id,
+                    embedding_model_code=settings.embedding_model,
+                    require_structure=bool(
+                        settings.orchestrator_base_url and settings.orchestrator_api_key
+                    ),
+                )
+                if not complete:
+                    await transition_post_content_job(conn, post_id, QUEUED)
+                    return
     except Exception as exc:  # noqa: BLE001 - durable failure is recorded for retry.
         _logger.exception("post content ingestion failed for post_id=%s", post_id)
         await _finish_job(
@@ -199,7 +221,7 @@ async def run_post_content_worker(
     structure_factory: Callable[[], PostStructureClient],
 ) -> None:
     """Run the at-least-once consumer and periodically recover queued rows."""
-    last_id = "0-0"
+    last_id = await _stream_tail(client)
     last_recovery = 0.0
     while True:
         now = time.monotonic()
