@@ -187,6 +187,13 @@ export interface PostRoleResponsibility {
   catalog_node_type_code?: string | null;
 }
 
+export interface PostMajorEventAction {
+  action_text: string;
+  requester_actor_name: string | null;
+  processor_actor_name: string | null;
+  evidence_text: string;
+}
+
 export interface PostProjectMention {
   project_key: string;
   project_name: string;
@@ -214,6 +221,7 @@ export interface PostAiSummary {
   korean_summary: string;
   key_events: string[];
   roles_and_responsibilities: PostRoleResponsibility[];
+  major_event_actions?: PostMajorEventAction[];
   project_mentions?: PostProjectMention[];
 }
 

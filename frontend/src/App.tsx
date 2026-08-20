@@ -173,17 +173,34 @@ function EvidencePanel({
   onClose?: () => void;
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
+  const [postError, setPostError] = useState(false);
 
   useEffect(() => {
+    let current = true;
     setPost(null);
-    fetchPost(accessToken, postId).then(setPost).catch(() => setPost(null));
+    setPostError(false);
+    fetchPost(accessToken, postId)
+      .then((result) => {
+        if (current) setPost(result);
+      })
+      .catch(() => {
+        if (current) setPostError(true);
+      });
+    return () => {
+      current = false;
+    };
   }, [postId, accessToken]);
 
   return (
     <div className="evidence-panel" role="complementary" aria-label={t("Evidence")}>
       {onClose ? <PopupCloseButton onClose={onClose} label={t("Close evidence panel")} /> : null}
       <h3>{t("Evidence")}</h3>
-      {!post && <p>{t("Loading source post...")}</p>}
+      {!post && !postError && <p>{t("Loading source post...")}</p>}
+      {postError && (
+        <p className="error" role="alert">
+          {t("Source evidence is unavailable. Continue with the saved answer.")}
+        </p>
+      )}
       {post && (
         <>
           <h4>{post.post_title}</h4>
@@ -2272,6 +2289,27 @@ function PostDetailPopup({
                       </ul>
                     </>
                   )}
+                  {summary.major_event_actions && summary.major_event_actions.length > 0 && (
+                    <>
+                      <h4>{t("Major event actions")}</h4>
+                      <ul className="summary-action-list">
+                        {summary.major_event_actions.map((action, i) => (
+                          <li key={i}>
+                            <strong>{action.action_text}</strong>
+                            <div>
+                              {t("Requester")}: {action.requester_actor_name ?? t("Not stated in source")}
+                            </div>
+                            <div>
+                              {t("Processor")}: {action.processor_actor_name ?? t("Not stated in source")}
+                            </div>
+                            <small>
+                              {t("Evidence")}: {action.evidence_text}
+                            </small>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
                 </>
               ) : summaryError ? (
                 <p className="error">{summaryError}</p>
@@ -3856,14 +3894,27 @@ function PostList({
         .filter((week): week is string => Boolean(week)),
     ),
   ).sort((left, right) => right.localeCompare(left));
-  const applyWeeklyVoc = () => {
-    const vocWeek = latestIsoWeek(
-      loadedPosts
-        .filter((post) => post.voc_type_code === "voc")
-        .map((post) => isoWeekFromCreatedAt(post.created_at)),
-    );
-    setTypeFilter(["voc"]);
-    setWeekFilter(vocWeek ?? "all");
+  const applyWeeklyVoc = async () => {
+    try {
+      const latestVocPage = await fetchPosts(
+        accessToken,
+        1,
+        0,
+        undefined,
+        ["voc"],
+        undefined,
+        "newest",
+      );
+      const vocWeek = latestIsoWeek(
+        latestVocPage.posts.map((post) => isoWeekFromCreatedAt(post.created_at)),
+      );
+      setTypeFilter(["voc"]);
+      setWeekFilter(vocWeek ?? "all");
+      setCurrentPage(1);
+      setError(null);
+    } catch (err) {
+      setError(String(err));
+    }
   };
   const hasBoardFilters =
     Boolean(searchInput.trim()) ||
