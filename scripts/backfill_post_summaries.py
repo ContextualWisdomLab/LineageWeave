@@ -142,11 +142,11 @@ async def _load_posts(
               left join corporate_entity customer
                 on customer.corporate_entity_id = post.corporate_entity_id
               left join corporate_entity source_company
-                on source_company.corporate_entity_code = post.source_company_code
+                on source_company.corporate_entity_code = nullif(btrim(post.source_company_code), '')
               left join process_unit source_process_unit
-                on source_process_unit.process_unit_code = post.source_process_unit_code
+                on source_process_unit.process_unit_code = nullif(btrim(post.source_process_unit_code), '')
               left join corporate_entity source_customer
-                on source_customer.corporate_entity_code = post.source_customer_code
+                on source_customer.corporate_entity_code = nullif(btrim(post.source_customer_code), '')
              where nullif(btrim(post.source_draft_code), '') is null
                and nullif(btrim(post.source_deleted_flag), '') is null
                and not (

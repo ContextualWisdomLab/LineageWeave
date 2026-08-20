@@ -1639,11 +1639,11 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
           join user_account author on author.user_account_id = post.author_account_id
           left join corporate_entity customer on customer.corporate_entity_id = post.corporate_entity_id
           left join corporate_entity source_company
-            on source_company.corporate_entity_code = post.source_company_code
+            on source_company.corporate_entity_code = nullif(btrim(post.source_company_code), '')
           left join process_unit source_process_unit
-            on source_process_unit.process_unit_code = post.source_process_unit_code
+            on source_process_unit.process_unit_code = nullif(btrim(post.source_process_unit_code), '')
           left join corporate_entity source_customer
-            on source_customer.corporate_entity_code = post.source_customer_code
+            on source_customer.corporate_entity_code = nullif(btrim(post.source_customer_code), '')
           left join account_affiliation account_aff
             on account_aff.user_account_id = post.author_account_id
           left join corporate_entity affiliated
