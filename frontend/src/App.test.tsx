@@ -98,10 +98,6 @@ describe("App, authenticated", () => {
       visibility_label?: string;
       created_at: string;
     }[];
-  }): ReturnType<typeof vi.fn> & {
-    releaseMe: () => void;
-    releaseGroupRelated: () => void;
-    releaseDemoRelated: () => void;
     latestVocPost?: {
       post_id: string;
       post_title: string;
@@ -111,6 +107,10 @@ describe("App, authenticated", () => {
       visibility_label?: string;
       created_at: string;
     };
+  }): ReturnType<typeof vi.fn> & {
+    releaseMe: () => void;
+    releaseGroupRelated: () => void;
+    releaseDemoRelated: () => void;
   } {
     const statusLabel: Record<string, string> = {
       open: "Open",
