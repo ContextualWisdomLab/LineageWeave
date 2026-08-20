@@ -16,6 +16,7 @@ from backend.app.post_content_queue import (
 
 
 def _parser() -> argparse.ArgumentParser:
+    """Build the operator-only command-line parser."""
     parser = argparse.ArgumentParser(
         description="Explicitly requeue one failed post-content ingestion job."
     )
@@ -61,6 +62,7 @@ async def requeue_post_content(
 
 
 def main() -> None:
+    """Parse the target and run one explicit terminal-job recovery."""
     args = _parser().parse_args()
     settings = load_settings()
     asyncio.run(
