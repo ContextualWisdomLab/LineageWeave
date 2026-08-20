@@ -41,6 +41,36 @@ DEFAULT_CANDIDATE_WINDOW = 50
 # candidates are plausible, which is wrong more often than it is right.
 DEFAULT_MIN_FUSED_SCORE = 0.3
 
+# Corpus-wide rebuilds may contain many bounded windows. The product worker
+# skips the LLM channel when the estimated pair count exceeds this limit
+# rather than blocking HTTP or inventing scores (ADR 0100).
+DEFAULT_PAIR_LIMIT = 10000
+
+
+def estimate_candidate_pairs(
+    records: list[Record],
+    *,
+    candidate_window: int = DEFAULT_CANDIDATE_WINDOW,
+) -> int:
+    """Count parent comparisons ``reconstruct()`` would ask an LLM to judge.
+
+    The first record in a group has no priors. Each later record considers
+    at most ``candidate_window`` earlier records. This estimate never inspects
+    post bodies.
+    """
+    total = 0
+    for group_records in _group_by(records).values():
+        count = len(group_records)
+        if count <= 1:
+            continue
+        priors = count - 1
+        if priors <= candidate_window:
+            total += count * priors // 2
+        else:
+            triangular = candidate_window * (candidate_window + 1) // 2
+            total += triangular + (priors - candidate_window) * candidate_window
+    return total
+
 
 def active_weights(
     llm: AdjudicationClient, weights: dict[str, float] = DEFAULT_CHANNEL_WEIGHTS

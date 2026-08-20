@@ -178,6 +178,11 @@ invent a cited post.
 A linked Event Lineage node opened from that focused popup keeps the
 originating flags (ADR 0097). Do not invent a cited post.
 
+`POST /api/lineage/rebuild` enqueues a durable job (ADR 0100). Do not
+call contextual-orchestrator on the HTTP path. A missing, skipped, or
+failed LLM channel stays unavailable -- never a fabricated score or a
+TEPP theta. Open Event Lineage after the job succeeds.
+
 
 ## Tests
 

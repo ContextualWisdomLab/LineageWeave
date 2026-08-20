@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.22.0] - 2026-08-20
+
+### Added
+
+- Rebuild lineage now queues a durable job instead of calling
+  contextual-orchestrator on the HTTP path. A configured LLM channel is
+  used off the event loop; when that channel is unavailable, skipped, or
+  failed, the three-channel Event Lineage still lands and no LLM score is
+  invented. Open Event Lineage after the job succeeds. No TEPP theta is
+  invented (ADR 0100 / ADR 0064 / ADR 0016).
+
 ## [2.17.0] - 2026-08-19
 
 ### Added

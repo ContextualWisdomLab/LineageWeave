@@ -85,6 +85,7 @@ describe("App, authenticated", () => {
     deferMe?: boolean;
     deferPostOneSummary?: boolean;
     deferSecondAsk?: boolean;
+    queuedRebuild?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
@@ -191,8 +192,48 @@ describe("App, authenticated", () => {
           });
         });
       }
-      if (url.endsWith("/api/lineage/rebuild") && method === "POST") {
-        return Promise.resolve(jsonResponse({ edge_count: 4 }));
+      if (url.includes("/api/lineage/rebuild/") && method === "GET") {
+        return Promise.resolve(
+          jsonResponse({
+            lineage_rebuild_job_id: "job-1",
+            status_code: "lineage_rebuild_succeeded",
+            llm_channel_requested: true,
+            llm_channel_status_code: "lineage_llm_unavailable",
+            pair_estimate: 3,
+            pair_limit: 10000,
+            edge_count: 4,
+            result_sha256: "ab".repeat(32),
+            failure_code: null,
+            knowledge_cutoff: "2026-01-12T00:00:00Z",
+            source_snapshot_sha256: "cd".repeat(32),
+            next_action:
+              "Rebuild succeeded on three channels. Open Event Lineage, then connect contextual-orchestrator to use the LLM channel.",
+          }),
+        );
+      }
+      if (url.includes("/api/lineage/rebuild") && method === "POST") {
+        return Promise.resolve(
+          jsonResponse({
+            lineage_rebuild_job_id: "job-1",
+            status_code: options?.queuedRebuild
+              ? "lineage_rebuild_queued"
+              : "lineage_rebuild_succeeded",
+            llm_channel_requested: true,
+            llm_channel_status_code: options?.queuedRebuild
+              ? "lineage_llm_requested"
+              : "lineage_llm_unavailable",
+            pair_estimate: 3,
+            pair_limit: 10000,
+            edge_count: options?.queuedRebuild ? null : 4,
+            result_sha256: options?.queuedRebuild ? null : "ab".repeat(32),
+            failure_code: null,
+            knowledge_cutoff: "2026-01-12T00:00:00Z",
+            source_snapshot_sha256: "cd".repeat(32),
+            next_action: options?.queuedRebuild
+              ? "Rebuild is queued. Event Lineage updates when it succeeds."
+              : "Rebuild succeeded on three channels. Open Event Lineage, then connect contextual-orchestrator to use the LLM channel.",
+          }),
+        );
       }
       if (url.endsWith("/api/posts/post-1/tickets") && method === "GET") {
         return Promise.resolve(jsonResponse({ tickets }));
@@ -2318,6 +2359,7 @@ describe("App, authenticated", () => {
     const fetchMock = stubBackend({ admin: true });
     render(<App showLabPanels />);
     await userEvent.click(await screen.findByText("Advanced review tools"));
+    expect(await screen.findByText("Use the LLM channel")).toBeInTheDocument();
     await userEvent.click(await screen.findByRole("button", { name: /rebuild lineage/i }));
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
@@ -2325,6 +2367,35 @@ describe("App, authenticated", () => {
         expect.objectContaining({ method: "POST" }),
       ),
     );
+    expect(
+      await screen.findByText(
+        "Rebuild succeeded on three channels. Open Event Lineage, then connect contextual-orchestrator to use the LLM channel.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("polls a queued lineage rebuild until Event Lineage is ready", async () => {
+    const fetchMock = stubBackend({ admin: true, queuedRebuild: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByText("Advanced review tools"));
+    await userEvent.click(await screen.findByRole("button", { name: /rebuild lineage/i }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/lineage/rebuild?"),
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/lineage/rebuild/job-1"),
+        expect.not.objectContaining({ method: "POST" }),
+      ),
+    );
+    expect(
+      await screen.findByText(
+        "Rebuild succeeded on three channels. Open Event Lineage, then connect contextual-orchestrator to use the LLM channel.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("shows the advanced-review section to post_admin without the test-only prop", async () => {

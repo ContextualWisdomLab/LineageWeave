@@ -2,9 +2,9 @@
 
 The reconstruction algorithm stays in ``reconstruct.py``. This module is
 only the persistence contract: one ``Edge`` becomes one
-``(parent_post_id, child_post_id, fused_score)`` row. Seed scripts and a
-future rebuild endpoint share this so they cannot drift from what the
-Event Lineage panel reads.
+``(parent_post_id, child_post_id, fused_score)`` row. Seed scripts, the
+analysis-run worker, and the durable ``POST /api/lineage/rebuild`` job
+share this so they cannot drift from what the Event Lineage panel reads.
 """
 
 from __future__ import annotations

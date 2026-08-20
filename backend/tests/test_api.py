@@ -107,6 +107,11 @@ _GLOBAL_ASK_CONTEXT_MIGRATION = (
     / "migrations"
     / "0052_global_ask_context.sql"
 )
+_LINEAGE_REBUILD_JOB_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0053_lineage_rebuild_job.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -218,6 +223,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
             cur.execute(_ORGANIZATION_CONTEXT_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_CONTEXT_MIGRATION.read_text())
+            cur.execute(_LINEAGE_REBUILD_JOB_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -3684,7 +3690,33 @@ def test_rebuild_lineage_recovers_the_a100_fork(client, demo_analyst_token, seed
 
     rebuild = client.post("/api/lineage/rebuild", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert rebuild.status_code == 200, rebuild.text
-    assert rebuild.json()["edge_count"] >= 2
+    body = rebuild.json()
+    assert "lineage_rebuild_job_id" in body
+    assert body["status_code"] in {
+        "lineage_rebuild_queued",
+        "lineage_rebuild_running",
+        "lineage_rebuild_succeeded",
+    }
+    assert "Event Lineage" in body["next_action"]
+    job_id = body["lineage_rebuild_job_id"]
+
+    import time
+
+    status_body = body
+    deadline = time.time() + 20
+    while time.time() < deadline:
+        status = client.get(
+            f"/api/lineage/rebuild/{job_id}",
+            headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        )
+        assert status.status_code == 200, status.text
+        status_body = status.json()
+        if status_body["status_code"] == "lineage_rebuild_succeeded":
+            break
+        assert status_body["status_code"] != "lineage_rebuild_failed", status_body
+        time.sleep(0.25)
+    assert status_body["status_code"] == "lineage_rebuild_succeeded", status_body
+    assert status_body["edge_count"] >= 2
 
     graph = client.get("/api/lineage", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert graph.status_code == 200

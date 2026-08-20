@@ -56,3 +56,14 @@ def test_migrate_sh_replays_global_ask_context_migration() -> None:
     ).read_text(encoding="utf-8")
 
     assert "0052_*" in script
+
+
+def test_migrate_sh_replays_lineage_rebuild_job_migration() -> None:
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "0053_*" in script

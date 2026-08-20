@@ -105,3 +105,12 @@ cited post.
 From a GNB-focused popup, open a linked Event Lineage node: Event Lineage
 stays focused and names the new post as current (ADR 0097). A home-list
 DAG walk does not. Do not invent a theta.
+
+## Event Lineage rebuild (v2.22.0)
+
+On Board advanced review tools, click **Rebuild lineage**. The request
+queues a durable job and names Event Lineage as the next read (ADR 0100).
+A configured contextual-orchestrator client is used off the HTTP path.
+When that channel is unavailable, the three-channel graph still lands.
+Do not invent a theta or an LLM score.
+
