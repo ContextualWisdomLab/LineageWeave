@@ -640,6 +640,7 @@ async def update_me_preferences(
     preference: LocalePreferenceRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, str]:
     """Persist member preferences without putting them in browser-only state."""
     async with pool.acquire() as conn:
@@ -648,6 +649,12 @@ async def update_me_preferences(
             preference.preferred_locale,
             account.user_account_id,
         )
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "preferences_updated",
+        "Locale preference updated",
+    )
     return {"preferred_locale": preference.preferred_locale}
 
 
@@ -1013,6 +1020,7 @@ async def resolve_customer_master_hint(
     request: CustomerHintResolveRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Resolve one observed customer-hint code to a real corporate_entity.
 
@@ -1047,6 +1055,12 @@ async def resolve_customer_master_hint(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "this hint could not be resolved to a corroborated organization name",
         )
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "customer_hint_resolved",
+        "Customer hint resolved",
+    )
     return resolution
 
 
@@ -1072,6 +1086,7 @@ async def read_lineage_graph(
 async def rebuild_lineage_graph(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Run reconstruct over every source_post and persist post_lineage_edge.
 
@@ -1081,6 +1096,12 @@ async def rebuild_lineage_graph(
     async with pool.acquire() as conn:
         async with conn.transaction():
             edges = await rebuild_lineage(conn)
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "lineage_rebuilt",
+        "Lineage rebuilt",
+    )
     return {"edge_count": len(edges)}
 
 
@@ -2325,6 +2346,7 @@ async def rebuild_period_report_endpoint(
     period_code: str,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Refit or FIPC-score every group in the period. post_admin only."""
     _require_post_admin(account)
@@ -2337,6 +2359,12 @@ async def rebuild_period_report_endpoint(
     async with pool.acquire() as conn:
         async with conn.transaction():
             reports = await rebuild_period_reports(conn, grouping_kind, period_code)
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "period_report_rebuilt",
+        "Period report rebuilt",
+    )
     return {
         "grouping_kind": grouping_kind,
         "period_code": period_code,
@@ -2720,6 +2748,7 @@ async def write_post_bookmark(
     request: PostBookmarkRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
@@ -2739,6 +2768,13 @@ async def write_post_bookmark(
                 account.user_account_id,
                 post_id,
             )
+    await publish_activity_event(
+        valkey,
+        post_id,
+        "bookmark_changed",
+        account.user_account_id,
+        "Post bookmark added" if request.bookmarked else "Post bookmark removed",
+    )
     return {"post_id": post_id, "bookmarked": request.bookmarked}
 
 
@@ -2987,6 +3023,7 @@ async def create_analysis_run(
     request: CreateAnalysisRunRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Record a Pending lineage run on an authorized cutoff capture.
 
@@ -3011,6 +3048,12 @@ async def create_analysis_run(
                 )
             except AnalysisRunCreateError as exc:
                 raise HTTPException(exc.status_code, exc.detail) from exc
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "analysis_run_created",
+        "Analysis run created",
+    )
     return created
 
 
@@ -3055,6 +3098,12 @@ async def start_analysis_run(
             analysis_run_id=analysis_run_id,
             work_kind_code=str(queued.get("run_kind_code") or ""),
             request_sha256=request_digest,
+        )
+        await publish_operation_event(
+            valkey,
+            account.user_account_id,
+            "analysis_run_start_requested",
+            "Analysis run start requested",
         )
     async with pool.acquire() as conn:
         async with conn.transaction():
