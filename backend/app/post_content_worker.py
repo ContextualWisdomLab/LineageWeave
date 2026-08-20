@@ -137,15 +137,18 @@ async def _finish_job(
     post_id: str,
     status_code: str,
     *,
+    expected_attempt_count: int,
     failure_code: str | None = None,
     detail_text: str | None = None,
 ) -> None:
+    """Finish only the attempt that actually owns the running lease."""
     async with pool.acquire() as conn:
         async with conn.transaction():
             await transition_post_content_job(
                 conn,
                 post_id,
                 status_code,
+                expected_attempt_count=expected_attempt_count,
                 failure_code=failure_code,
                 detail_text=detail_text,
             )
@@ -157,17 +160,32 @@ async def _finish_failed_job(
     *,
     failure_code: str,
     detail_text: str,
+    expected_attempt_count: int,
 ) -> None:
-    """Schedule one retry, or persist a terminal operator-visible failure."""
+    """Schedule one retry, or persist a terminal failure for this attempt.
+
+    The running status and attempt number are locked before the transition so
+    a worker whose lease was reclaimed cannot retry or terminally fail a newer
+    attempt.
+    """
     async with pool.acquire() as conn:
         async with conn.transaction():
             attempt_count = int(
                 await conn.fetchval(
-                    "select attempt_count from post_content_ingestion_job where post_id = $1",
+                    """
+                    select attempt_count
+                    from post_content_ingestion_job
+                    where post_id = $1
+                      and status_code = $2
+                    for update
+                    """,
                     post_id,
+                    RUNNING,
                 )
-                or 0
+                or -1
             )
+            if attempt_count != expected_attempt_count:
+                return
             terminal = attempt_count >= POST_CONTENT_MAX_ATTEMPTS
             await transition_post_content_job(
                 conn,
@@ -179,6 +197,7 @@ async def _finish_failed_job(
                     if terminal
                     else detail_text
                 ),
+                expected_attempt_count=expected_attempt_count,
             )
 
 
@@ -201,6 +220,7 @@ async def process_post_content_job(
     )
     if row is None:
         return
+    attempt_count = int(row["job_attempt_count"]) + 1
     try:
         raw_body = row["post_body"]
         if not isinstance(raw_body, str) or not raw_body.strip():
@@ -238,6 +258,7 @@ async def process_post_content_job(
                     post_id,
                     failure_code=_INCOMPLETE_FAILURE_CODE,
                     detail_text="post-content providers did not produce complete persisted evidence",
+                    expected_attempt_count=attempt_count,
                 )
                 return
     except Exception as exc:  # noqa: BLE001 - durable failure is recorded for retry.
@@ -247,9 +268,10 @@ async def process_post_content_job(
             post_id,
             failure_code="post_content_ingestion_failed",
             detail_text=str(exc)[:1000],
+            expected_attempt_count=attempt_count,
         )
         return
-    await _finish_job(pool, post_id, SUCCEEDED)
+    await _finish_job(pool, post_id, SUCCEEDED, expected_attempt_count=attempt_count)
 
 
 async def consume_post_content_stream_once(

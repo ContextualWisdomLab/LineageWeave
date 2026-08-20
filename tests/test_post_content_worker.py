@@ -151,7 +151,7 @@ def test_successful_job_reclaims_when_configured_evidence_is_incomplete(monkeypa
 
 
 def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch) -> None:
-    connection = _Connection(values=[1])
+    connection = _Connection(values=[2])
     pool = _Pool(connection)
 
     async def claim(*_args, **_kwargs):
@@ -194,7 +194,7 @@ def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch)
 
 
 def test_transient_provider_error_is_requeued_before_attempt_limit(monkeypatch) -> None:
-    connection = _Connection(values=[1])
+    connection = _Connection(values=[2])
     pool = _Pool(connection)
 
     async def claim(*_args, **_kwargs):
@@ -241,8 +241,45 @@ def test_failure_at_attempt_limit_is_terminal_and_visible() -> None:
             "00000000-0000-0000-0000-000000000001",
             failure_code="post_content_ingestion_failed",
             detail_text="provider outage",
+            expected_attempt_count=POST_CONTENT_MAX_ATTEMPTS,
         )
     )
 
     updates = [args for query, args in connection.executed if "set status_code" in query]
     assert any(args[1] == FAILED and args[6] == "post_content_ingestion_attempt_limit" for args in updates)
+
+
+def test_stale_worker_cannot_retry_after_lease_recovery() -> None:
+    connection = _Connection(values=[2])
+
+    asyncio.run(
+        post_content_worker._finish_failed_job(
+            _Pool(connection),
+            "00000000-0000-0000-0000-000000000001",
+            failure_code="post_content_ingestion_failed",
+            detail_text="late provider failure",
+            expected_attempt_count=1,
+        )
+    )
+
+    assert not any("set status_code" in query for query, _args in connection.executed)
+
+
+def test_stale_worker_cannot_mark_recovered_attempt_succeeded() -> None:
+    class StaleConnection(_Connection):
+        async def execute(self, query: str, *args: object) -> str:
+            self.executed.append((query, args))
+            return "UPDATE 0" if "update post_content_ingestion_job" in query else "OK"
+
+    connection = StaleConnection()
+
+    asyncio.run(
+        post_content_worker._finish_job(
+            _Pool(connection),
+            "00000000-0000-0000-0000-000000000001",
+            SUCCEEDED,
+            expected_attempt_count=1,
+        )
+    )
+
+    assert not any("insert into post_content_ingestion_job_status_event" in query for query, _args in connection.executed)
