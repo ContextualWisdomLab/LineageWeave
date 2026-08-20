@@ -2,7 +2,7 @@
 
 **Snapshot:** 2026-08-20 17:08 (Asia/Seoul)
 **Protected-main baseline:** `origin/main`, product version `2.12.5`
-**Audited PR head:** #258 at `1c260f20` (`fix: keep summaries available when enrichment times out`)
+**Audited PR head:** #258 at `bf599aca` (integrated timeout boundary, fixture fix, worker repair, and SQL review evidence)
 **Active PR update:** ADR 0101 and the enrichment-timeout changes are pushed to
 PR #258; protected-main runtime evidence remains pending.
 **Purpose:** connect the normative ADRs and research evidence to product
@@ -155,16 +155,17 @@ body, source code, person, organization, or identifier:
 | Derived content | 562,394 semantic units, 1,308 live lineage edges, 48 KG navigation edges, and 95 persisted summaries |
 | Run registry | Three runs: one lineage, one report, one TEPP; latest states are two Succeeded and one Failed |
 | Run evidence | One snapshot with 42,577 members; one persisted reconstruction with 1,281 edges; zero persisted TEPP results |
-| Requester/processor | `post_summary_action` exists with composite actor foreign keys but contains zero rows |
+| Requester/processor | `post_summary_action` exists with composite actor foreign keys; one authorized target refresh stored three action rows |
+| Summary refresh | One authorized target request returned HTTP 200 with contract v5, four key events, one role, three actions, and one project |
 | Authentication | Real synthetic-user OIDC login, live JWKS fetch, and RS256 verification passed |
 | Authorization | Unauthenticated `/api/analysis-runs` and `/api/posts` returned 401; four focused live-Keycloak/PostgreSQL API tests covering authenticated account, list ABAC, direct deny, and missing token passed |
 | Focused contracts | Post-summary and transaction-contract tests: 31 passed, 1 skipped; the skip is not runtime proof for the skipped capability |
 
 These observations prove data presence and the listed boundaries only. They do
 not prove a browser-clicked buyer journey, current TEPP transport success,
-post-summary-action population, or equivalence between every running container
-image and the PR head. The observations and focused checks preceded commit
-`1c260f20` and do not validate its runtime behavior.
+post-summary-action population across the corpus, or equivalence between every
+running container image and the PR head. The target refresh is bounded runtime
+evidence for one authorized post, not a corpus-wide acceptance claim.
 
 ## Active PR audit
 
@@ -212,7 +213,7 @@ the exact-head disposition.
 |---|---|---|---|
 | P0 | No protected-main integrated buyer journey for the active feature stack | Main is 2.12.5; 18 open PRs span dependent and parallel bases | Establish one reviewed integration order, update each exact head, pass required checks, merge without bypass, then run login-to-source browser acceptance on main |
 | P0 | Current runtime proof is incomplete | The current aggregate/OIDC/ABAC checks cover data presence and selected boundaries; 2026-08-18/19 notes cover other slices, but no evidence set proves the entire PR head or main journey | Complete the real-stack matrix on an exact revision: browser login/navigation, Ask, reports, Vision, TEPP availability, action population, and cleanup |
-| P0 | PR #190 conflicts with the repository's existing ADR 0006 identity | Existing 0006 is role/responsibility agent ontology; #190 proposes another 0006 | Close or renumber/rebase after checking whether its decision is already covered; never merge duplicate ADR identity |
+| P0 | PR #190's duplicate ADR identity was corrected but is not protected-main truth | Active PR head `ac1b4e17` now uses ADR 0038 and aligns the entity-resolution claims with implementation; independent review and Checks remain pending | Re-audit exact head, obtain independent approval, pass required Checks, and merge normally; never merge a duplicate ADR identity |
 | P0 | PR #258 is not review/CI complete at its exact current head | #258 is mergeable but BLOCKED: 14 of 22 checks queued, no approval, and four unresolved scanner threads on two SQL modules | Classify each finding against the literal SQL and bound arguments; fix a real flow or add a narrow documented suppression for a false positive, resolve threads, obtain independent approval, and re-check the exact head |
 | P1 | Requirements were implicit across ADRs and architecture phases | No prior PRD/TRD/requirement traceability baseline existed | Keep FR/NFR IDs in this document linked from ADR index; require new product PRs to name affected IDs and runtime evidence |
 | P1 | Active PR topology obscures release truth | 8 blocked, 8 unstable, and 2 dirty; many bases are other open branches | Publish a dependency order, retire obsolete/duplicate branches, and avoid version claims until their base chain reaches main |
@@ -230,7 +231,7 @@ the exact-head disposition.
 | Protected main | `origin/main` manifests show 2.12.5 | Existing main contracts only | Fresh main runtime matrix |
 | Historical local runtime | Authenticated PostgreSQL report rebuilds and orchestrator/Vision observations dated 2026-08-18/19 | Those exact bounded observations | Current head/main equivalence and full browser journey |
 | Active PRs | GitHub head/base, review, merge, check, and review-thread states at snapshot | Proposed increments and gate state | Normal merge and post-merge runtime behavior |
-| Local PR checkout | HEAD is PR #258 `1c260f20`; focused OIDC/API/summary checks and aggregate DB queries preceded the timeout-boundary commit | Only the exact observations in the current-data table; no claim for commit `1c260f20` runtime behavior | Full suite/CI, browser journey, external channel results, review, merge, and fresh evidence for the timeout boundary |
+| Local PR checkout | PR #258 was observed at `bf599aca`; full suite passed and one authorized target summary refresh returned v5/HTTP 200 with persisted actions | Only the exact observations in the current-data table; no claim for protected-main behavior | Full suite/CI, browser journey, external channel results, review, merge, and corpus-level action evidence |
 
 ## Maintenance rule
 

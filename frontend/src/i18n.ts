@@ -237,6 +237,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     linked: "개 연결",
     "is temporarily unavailable.": "을(를) 지금 사용할 수 없습니다.",
     "Loading source post...": "원문을 불러오는 중...",
+    "Source evidence is unavailable. Continue with the saved answer.":
+      "원문 근거를 사용할 수 없습니다. 저장된 답변을 계속 확인하세요.",
     "Sources:": "출처:",
     "Loading lineage...": "계보를 불러오는 중...",
     "Loading VOC evidence...": "VOC 근거를 불러오는 중...",
@@ -577,6 +579,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     linked: "个关联",
     "is temporarily unavailable.": "暂时不可用。",
     "Loading source post...": "正在加载原始文章...",
+    "Source evidence is unavailable. Continue with the saved answer.":
+      "来源证据不可用。请继续查看已保存的答案。",
     "Sources:": "来源：",
     "Loading lineage...": "正在加载谱系...",
     "Loading VOC evidence...": "正在加载客户之声证据...",
@@ -931,6 +935,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     linked: "件の関連",
     "is temporarily unavailable.": "現在利用できません。",
     "Loading source post...": "原文を読み込んでいます...",
+    "Source evidence is unavailable. Continue with the saved answer.":
+      "原文の証拠を利用できません。保存済みの回答を続けて確認してください。",
     "Sources:": "出典：",
     "Loading lineage...": "系譜を読み込んでいます...",
     "Loading VOC evidence...": "VOCの証拠を読み込んでいます...",
@@ -1270,6 +1276,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     linked: "liên kết",
     "is temporarily unavailable.": "hiện tạm thời không khả dụng.",
     "Loading source post...": "Đang tải bài viết gốc...",
+    "Source evidence is unavailable. Continue with the saved answer.":
+      "Bằng chứng nguồn hiện không khả dụng. Hãy tiếp tục với câu trả lời đã lưu.",
     "Sources:": "Nguồn:",
     "Loading lineage...": "Đang tải dòng sự kiện...",
     "Loading VOC evidence...": "Đang tải bằng chứng VOC...",
