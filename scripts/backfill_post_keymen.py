@@ -31,6 +31,32 @@ from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 
 
+_SELECT_POST_BY_ID_QUERY = f"""
+select post_id, post_title, post_body, author_account_id,
+       source_author_code, source_company_code,
+       source_customer_code, source_project_code,
+       source_sales_pool_code, source_process_unit_code
+  from source_post post
+ where post.post_id = $1
+   and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
+"""
+
+_SELECT_POST_BATCH_QUERY = f"""
+select post_id, post_title, post_body, author_account_id,
+       source_author_code, source_company_code,
+       source_customer_code, source_project_code,
+       source_sales_pool_code, source_process_unit_code
+  from source_post post
+ where {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
+   and not exists (
+       select 1 from post_person_mention mention
+        where mention.post_id = post.post_id
+   )
+ order by post.created_at, post.post_id
+ limit $1::bigint
+"""
+
+
 def _first_env(*names: str) -> str:
     return next((os.environ.get(name, "").strip() for name in names if os.environ.get(name, "").strip()), "")
 
@@ -46,41 +72,10 @@ def _orchestrator_config() -> tuple[str, str]:
 async def _select_posts(
     conn: asyncpg.Connection, *, limit: int, post_id: str | None
 ) -> list[asyncpg.Record]:
-    eligibility = SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")
+    """Select one explicit post or one bounded unprojected batch."""
     if post_id:
-        return list(
-            await conn.fetch(
-                f"""
-                select post_id, post_title, post_body, author_account_id,
-                       source_author_code, source_company_code,
-                       source_customer_code, source_project_code,
-                       source_sales_pool_code, source_process_unit_code
-                  from source_post post
-                 where post.post_id = $1
-                   and {eligibility}
-                """,
-                post_id,
-            )
-        )
-    return list(
-        await conn.fetch(
-            f"""
-            select post_id, post_title, post_body, author_account_id,
-                   source_author_code, source_company_code,
-                   source_customer_code, source_project_code,
-                   source_sales_pool_code, source_process_unit_code
-              from source_post post
-             where {eligibility}
-               and not exists (
-                   select 1 from post_person_mention mention
-                    where mention.post_id = post.post_id
-               )
-             order by post.created_at, post.post_id
-             limit $1
-            """,
-            limit,
-        )
-    )
+        return list(await conn.fetch(_SELECT_POST_BY_ID_QUERY, post_id))
+    return list(await conn.fetch(_SELECT_POST_BATCH_QUERY, limit))
 
 
 async def _run(args: argparse.Namespace) -> dict[str, object]:
