@@ -16,7 +16,7 @@ information at the group's mean θ (Lord, 1980 max-info CAT rule) via
 ``fast_mlsirm.information_polytomous`` -- Samejima (1969) GRM /
 Muraki (1993) GPCM, computed in Rust. A missing bank is not invented.
 
-Leftover post–criterion pairs (ADR 0028) come from the residual
+Leftover post–criterion pairs (ADR 0017) come from the residual
 interaction after those IRT main effects: ``R = Y − E[Y|θ, item]``.
 A Gabriel biplot of ``R`` supplies person and item leftover-map
 positions. Closest / farthest pairs are the min / max Euclidean
@@ -258,6 +258,7 @@ def leftover_pairs_for_fit(
 
 
 def _member_scores(post_ids: list[str], scores: dict[str, np.ndarray]) -> tuple[MemberScore, ...]:
+    """Implement the _member_scores operation for this channel."""
     theta = np.asarray(scores["theta_eap"], dtype=np.float64)
     theta_sd = np.asarray(scores["theta_sd"], dtype=np.float64)
     return tuple(
@@ -267,6 +268,7 @@ def _member_scores(post_ids: list[str], scores: dict[str, np.ndarray]) -> tuple[
 
 
 def _category_probabilities(model: str, theta: np.ndarray, fit: PolytomousFit) -> np.ndarray:
+    """Implement the _category_probabilities operation for this channel."""
     if model == "grm":
         return grm_category_probabilities(theta, fit.slope, fit.cat_params)
     return gpcm_category_probabilities(theta, fit.slope, fit.cat_params)

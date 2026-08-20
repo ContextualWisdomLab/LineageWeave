@@ -2,13 +2,9 @@
 
 ADR 0021 reconstructs lineage. ADR 0022 starts TEPP through
 ``tepp_client`` only. ADR 0023 enqueues that work on a durable outbox
-so a crash after Running does not lose the item. ADR 0035 stores a
-published TEPP accepted acknowledgement as aggregate transport
-evidence and never stamps Succeeded from that ack or from a
-LineageWeave-local completed envelope. Accepted evidence stores
-transport-response receipt and row-write time as distinct clocks
-when those instants differ. Period-report stays another path.
-Neither start invents a theta or a calibrated report score.
+so a crash after Running does not lose the item. Period-report stays
+another path. Neither start invents a theta or a calibrated report
+score.
 """
 
 from __future__ import annotations
@@ -25,17 +21,18 @@ from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
     fetch_visible_analysis_run,
 )
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from backend.app.analysis_run_outbox import (
     latest_outbox_delivery_is_claimed,
     latest_outbox_delivery_is_delivered,
     outbox_request_digest,
 )
 from backend.app.lineage_ingestion import records_from_source_posts
+from lineageweave.adjudication_client import AdjudicationClient
 from lineageweave.http_client import HttpClientError, post_json
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
-from lineageweave.tepp_result import TeppAcceptedEvidence, parse_tepp_accepted_evidence
 
 _LINEAGE_KIND = "analysis_run_lineage"
 _TEPP_KIND = "analysis_run_tepp"
@@ -91,7 +88,7 @@ def start_kind_rejection(run_kind_code: str) -> AnalysisRunStartError | None:
     )
 
 
-def configured_tepp_client(transport_url: str = "") -> TeppClient:
+def configured_tepp_client(transport_url: str = "", api_key: str = "") -> TeppClient:
     """Build a TEPP client from an optional HTTP transport URL.
 
     An empty URL keeps the default unavailable transport. A set URL
@@ -104,8 +101,9 @@ def configured_tepp_client(transport_url: str = "") -> TeppClient:
 
     def transport(payload: dict[str, Any]) -> dict[str, Any]:
         try:
-            return post_json(url, payload, headers={}, timeout=30.0)
-        except (HttpClientError, ValueError, TypeError) as exc:
+            headers = {"authorization": f"Bearer {api_key}"} if api_key.strip() else {}
+            return post_json(url, payload, headers=headers, timeout=30.0)
+        except (HttpClientError, OSError, ValueError, TypeError) as exc:
             raise TeppNotAvailable(str(exc)) from exc
 
     return TeppClient(transport=transport)
@@ -132,49 +130,70 @@ def tepp_run_request(
     )
 
 
-def tepp_accepted_clocks(
-    *,
-    started_at: datetime,
-    received_at: datetime,
-    recorded_at: datetime,
-) -> tuple[datetime, datetime]:
-    """Return receipt then row-write clocks, monotonic versus start.
+def _tepp_submission(
+    client: TeppClient,
+    request: AnalysisRunRequest,
+) -> tuple[str, str, dict[str, Any] | None]:
+    """Submit through ``tepp_client`` and require a completed result envelope.
 
-    ``received_at`` is the transport-response receipt. ``recorded_at``
-    is the later row-write instant. A clock that runs backward is
-    clamped forward so ``started_at <= received_at <= recorded_at``.
-    Equal instants stay equal; this helper does not invent a later
-    recorded clock.
+    TEPP's target HTTP contract is asynchronous. An ``accepted`` response is
+    therefore not a measurement and remains ``tepp_result_not_persisted``.
+    Only a provider-authoritative completed envelope can enter the database.
     """
-    receipt = received_at if received_at >= started_at else started_at
-    recorded = recorded_at if recorded_at >= receipt else receipt
-    return receipt, recorded
+    try:
+        response = client.submit_analysis_run(request)
+    except TeppNotAvailable:
+        return _FAILED, "tepp_not_available", None
+    if not isinstance(response, dict):
+        return _FAILED, "tepp_result_not_persisted", None
+    if response.get("status") not in {"completed", "succeeded"}:
+        return _FAILED, "tepp_result_not_persisted", None
+    if not isinstance(response.get("result"), dict):
+        return _FAILED, "tepp_result_not_persisted", None
+    remote_run_id = response.get("analysis_run_id") or response.get("run_id")
+    if not isinstance(remote_run_id, str) or not remote_run_id.strip():
+        return _FAILED, "tepp_result_not_persisted", None
+    return _SUCCEEDED, "", response
 
 
 def tepp_submit_outcome(
     client: TeppClient,
     request: AnalysisRunRequest,
-) -> tuple[str, str | None, TeppAcceptedEvidence | None]:
-    """Submit through ``tepp_client``. Never invent or persist a theta.
+) -> tuple[str, str]:
+    """Compatibility projection of the TEPP submission outcome."""
+    status_code, failure_code, _ = _tepp_submission(client, request)
+    return status_code, failure_code
 
-    A missing transport is ``tepp_not_available``. A published
-    ``AnalysisRunAccepted`` envelope is Failed /
-    ``tepp_completed_result_unsupported`` and returned as aggregate
-    transport evidence. A LineageWeave-local completed envelope or any
-    other unpublished shape is Failed / ``tepp_result_not_persisted``.
-    Succeeded is never stamped from an accepted ack.
-    """
+
+async def _persist_tepp_result(
+    conn: asyncpg.Connection,
+    *,
+    analysis_run_id: str,
+    envelope: dict[str, Any],
+) -> bool:
+    """Persist only a validated, remote-completed TEPP envelope."""
+    remote_run_id = envelope.get("analysis_run_id") or envelope.get("run_id")
+    if not isinstance(remote_run_id, str) or not remote_run_id.strip():
+        return False
+    result_json = json.dumps(envelope, separators=(",", ":"), sort_keys=True)
+    result_sha256 = hashlib.sha256(result_json.encode("utf-8")).hexdigest()
     try:
-        envelope = client.submit_analysis_run(request)
-    except TeppNotAvailable:
-        return _FAILED, "tepp_not_available", None
-    parsed = parse_tepp_accepted_evidence(
-        envelope,
-        expected_idempotency_key=request.idempotency_key,
-    )
-    if parsed is None:
-        return _FAILED, "tepp_result_not_persisted", None
-    return _FAILED, "tepp_completed_result_unsupported", parsed
+        async with conn.transaction():
+            await conn.execute(
+                """
+                insert into analysis_run_tepp_result
+                    (analysis_run_id, remote_run_id, result_json, result_sha256)
+                values ($1, $2, $3::jsonb, $4)
+                on conflict (analysis_run_id) do nothing
+                """,
+                analysis_run_id,
+                remote_run_id,
+                result_json,
+                result_sha256,
+            )
+    except (asyncpg.PostgresError, TypeError, ValueError):
+        return False
+    return True
 
 
 def start_write_conflict_error() -> AnalysisRunStartError:
@@ -208,13 +227,16 @@ async def _cutoff_source_posts(
     affiliated_entity_ids: list[str],
 ) -> list[asyncpg.Record]:
     """ABAC-visible cutoff rows with the grouping keys reconstruct needs."""
-    rows = await conn.fetch(
-        """
+    # Safe SQL: the eligibility predicate is an immutable schema fragment; both request values are bound.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
         select post_id, post_title, created_at, visibility_code,
                corporate_entity_id, process_unit_id,
                thread_group_key, secondary_grouping_key
         from source_post
-        where corporate_entity_id = $1 and created_at <= $2
+        where corporate_entity_id = $1
+          and created_at <= $2
+          and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
         order by created_at, post_title
         """,
         corporate_entity_id,
@@ -236,14 +258,17 @@ async def _snapshot_member_posts(
     """Load frozen capture rows, or empty when the member table is absent."""
     try:
         return list(
-            await conn.fetch(
-                """
+            # Safe SQL: the eligibility predicate is an immutable schema fragment; snapshot id is bound.
+            await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+                f"""
                 select post.post_id, post.post_title, post.created_at,
                        post.visibility_code, post.corporate_entity_id,
                        post.process_unit_id, post.thread_group_key,
                        post.secondary_grouping_key
                 from analysis_source_snapshot_member member
-                join source_post post on post.post_id = member.source_post_id
+                join source_post post
+                  on post.post_id = member.source_post_id
+                 and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
                 where member.analysis_source_snapshot_id = $1
                 order by post.created_at, post.post_title
                 """,
@@ -267,12 +292,11 @@ async def _append_status(
         """
         insert into analysis_run_status_event
             (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
-        values ($1, $2, $3, $4, $5)
+        values ($1, $2, $3, clock_timestamp(), $4)
         """,
         analysis_run_id,
         status_ordinal,
         status_code,
-        occurred_at,
         failure_code,
     )
 
@@ -491,7 +515,7 @@ async def enqueue_pending_analysis_run(
             "or TEPP measurement.",
         )
 
-    now = datetime.now(timezone.utc)
+    now = await conn.fetchval("select clock_timestamp()")
     digest = outbox_request_digest(
         analysis_run_id=str(locked["analysis_run_id"]),
         work_kind_code=str(locked["run_kind_code"]),
@@ -534,16 +558,14 @@ async def deliver_queued_analysis_run(
     account_id: str,
     affiliated_entity_ids: list[str],
     tepp_client: TeppClient | None = None,
+    adjudication_client: AdjudicationClient | None = None,
     valkey_stream_entry_id: str | None = None,
 ) -> dict[str, Any]:
     """Claim the outbox row and finish ThreadWeave or TEPP.
 
     A delivered row replays the stored result. Missing work is 409.
-    TEPP stays Failed when the transport is missing, the envelope is
-    not the published accepted acknowledgement, or TEPP has not
-    published a completed-result contract. A published accepted
-    envelope is stored as aggregate transport evidence. No theta is
-    invented and Succeeded is never stamped.
+    TEPP stays Failed when the transport is missing or the envelope is
+    not persistable. No theta is invented.
     """
     try:
         UUID(analysis_run_id)
@@ -612,6 +634,7 @@ async def deliver_queued_analysis_run(
                 analysis_run_id=analysis_run_id,
                 locked=outbox,
                 affiliated_entity_ids=affiliated_entity_ids,
+                adjudication_client=adjudication_client,
             )
         finished = datetime.now(timezone.utc)
         if finished < now:
@@ -638,6 +661,7 @@ async def start_pending_analysis_run(
     account_id: str,
     affiliated_entity_ids: list[str],
     tepp_client: TeppClient | None = None,
+    adjudication_client: AdjudicationClient | None = None,
     valkey_stream_entry_id: str | None = None,
 ) -> dict[str, Any]:
     """Enqueue then deliver on one connection.
@@ -661,6 +685,7 @@ async def start_pending_analysis_run(
         account_id=account_id,
         affiliated_entity_ids=affiliated_entity_ids,
         tepp_client=tepp_client,
+        adjudication_client=adjudication_client,
         valkey_stream_entry_id=valkey_stream_entry_id,
     )
 
@@ -671,6 +696,7 @@ async def _deliver_lineage_reconstruction(
     analysis_run_id: str,
     locked: asyncpg.Record,
     affiliated_entity_ids: list[str],
+    adjudication_client: AdjudicationClient | None = None,
 ) -> None:
     """Persist ThreadWeave parent choices for the frozen bag."""
     now = datetime.now(timezone.utc)
@@ -687,7 +713,7 @@ async def _deliver_lineage_reconstruction(
             knowledge_cutoff=locked["knowledge_cutoff"],
             affiliated_entity_ids=affiliated_entity_ids,
         )
-    edges = lineage_edge_specs(records_from_source_posts(rows))
+    edges = lineage_edge_specs(records_from_source_posts(rows), llm=adjudication_client)
     digest = reconstruction_result_digest(edges)
     finished = datetime.now(timezone.utc)
     if finished < now:
@@ -695,13 +721,12 @@ async def _deliver_lineage_reconstruction(
     await conn.execute(
         """
         insert into analysis_run_reconstruction
-            (analysis_run_id, result_sha256, edge_count, reconstructed_at)
-        values ($1, $2, $3, $4)
+            (analysis_run_id, result_sha256, edge_count, reconstructed_at, recorded_at)
+        values ($1, $2, $3, clock_timestamp(), clock_timestamp())
         """,
         analysis_run_id,
         digest,
         len(edges),
-        finished,
     )
     for edge in edges:
         await conn.execute(
@@ -726,42 +751,6 @@ async def _deliver_lineage_reconstruction(
     )
 
 
-async def _persist_tepp_accepted(
-    conn: asyncpg.Connection,
-    analysis_run_id: str,
-    evidence: TeppAcceptedEvidence,
-    received_at: datetime,
-    recorded_at: datetime,
-) -> bool:
-    """Store published accepted evidence with receipt and row-write clocks.
-
-    Missing table is not success. Callers pass transport-response
-    receipt as ``received_at`` and the row-write instant as
-    ``recorded_at``. This function binds those two values as given and
-    does not invent a later recorded clock when they are equal.
-    """
-    try:
-        await conn.execute(
-            """
-            insert into analysis_run_tepp_accepted
-                (analysis_run_id, contract_version, accepted_run_id, run_state,
-                 idempotency_key, evidence_sha256, received_at, recorded_at)
-            values ($1, $2, $3, $4, $5, $6, $7, $8)
-            """,
-            analysis_run_id,
-            evidence.contract_version,
-            evidence.accepted_run_id,
-            evidence.run_state,
-            evidence.idempotency_key,
-            evidence.evidence_sha256(),
-            received_at,
-            recorded_at,
-        )
-    except asyncpg.UndefinedTableError:
-        return False
-    return True
-
-
 async def _deliver_tepp_measurement(
     conn: asyncpg.Connection,
     *,
@@ -770,32 +759,30 @@ async def _deliver_tepp_measurement(
     tepp_client: TeppClient,
 ) -> None:
     """Submit the frozen snapshot through ``tepp_client``. Never persist a theta."""
-    started_at = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc)
     request = tepp_run_request(
         idempotency_key=str(locked["idempotency_key"]),
         snapshot_sha256=str(locked["snapshot_sha256"]),
         knowledge_cutoff=locked["knowledge_cutoff"],
         corporate_entity_id=str(locked["corporate_entity_id"]),
     )
-    status_code, failure_code, accepted = tepp_submit_outcome(tepp_client, request)
-    received_at = datetime.now(timezone.utc)
-    recorded_at = datetime.now(timezone.utc)
-    receipt, recorded = tepp_accepted_clocks(
-        started_at=started_at,
-        received_at=received_at,
-        recorded_at=recorded_at,
-    )
-    if accepted is not None:
-        stored = await _persist_tepp_accepted(
-            conn, analysis_run_id, accepted, receipt, recorded
-        )
-        if not stored:
-            status_code, failure_code = _FAILED, "tepp_result_not_persisted"
+    status_code, failure_code, envelope = _tepp_submission(tepp_client, request)
+    if status_code == _SUCCEEDED and envelope is not None:
+        if not await _persist_tepp_result(
+            conn,
+            analysis_run_id=analysis_run_id,
+            envelope=envelope,
+        ):
+            status_code = _FAILED
+            failure_code = "tepp_result_not_persisted"
+    finished = datetime.now(timezone.utc)
+    if finished < now:
+        finished = now
     await _append_status(
         conn,
         analysis_run_id,
         await _next_status_ordinal(conn, analysis_run_id),
         status_code,
-        recorded,
+        finished,
         failure_code,
     )

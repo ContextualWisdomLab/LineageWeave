@@ -88,6 +88,7 @@ class NullCorporateHierarchyInferenceClient:
     available = False
 
     def infer(self, organization_name: str, context_text: str) -> HierarchyProposal | None:
+        """Infer a corporate hierarchy proposal from the supplied context."""
         raise RuntimeError(
             "NullCorporateHierarchyInferenceClient cannot infer; check .available first"
         )
@@ -143,12 +144,12 @@ def parse_inference_response(content: str) -> HierarchyProposal | None:
 
 
 class ContextualOrchestratorHierarchyInferenceClient:
-    """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="route"``."""
+    """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="auto"``."""
 
     available = True
 
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "medium", timeout: float = 30.0
+        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 30.0
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -156,6 +157,7 @@ class ContextualOrchestratorHierarchyInferenceClient:
         self._timeout = timeout
 
     def infer(self, organization_name: str, context_text: str) -> HierarchyProposal | None:
+        """Infer a corporate hierarchy proposal from the supplied context."""
         prompt = _INFERENCE_PROMPT_TEMPLATE.format(
             organization_name=organization_name, context=context_text
         )
@@ -163,7 +165,7 @@ class ContextualOrchestratorHierarchyInferenceClient:
             f"{self._base_url}/v1/chat/completions",
             {
                 "messages": [{"role": "user", "content": prompt}],
-                "mode": "route",
+                "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},

@@ -42,12 +42,14 @@ from lineageweave.knowledge_graph import (
     NODE_PERSON,
     NODE_TEAM,
 )
-from lineageweave.ontology import ontology_annotations
+from lineageweave.ontology import LW, ontology_annotations
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
     ACTOR_TYPE_PERSON,
     ACTOR_TYPE_TEAM,
     PostSummary,
+    POST_SUMMARY_CONTRACT_VERSION,
+    normalize_project_key,
     RoleResponsibility,
 )
 from lineageweave.relation_verification import (
@@ -61,6 +63,19 @@ from .knowledge_graph import persist_edges_for_post
 from .team_ingestion import upsert_team
 
 
+SUMMARY_SOURCE_BODY_MISSING = (
+    "Post summary is unavailable: the source post body is empty. "
+    "Re-import the source record with its body before requesting a summary."
+)
+
+
+def require_summary_source_body(body: str | None) -> str:
+    """Reject summary derivation when the evidence body was not imported."""
+    if not isinstance(body, str) or not body.strip():
+        raise ValueError(SUMMARY_SOURCE_BODY_MISSING)
+    return body
+
+
 async def fetch_persisted_summary(
     conn: asyncpg.Connection, post_id: str
 ) -> dict[str, Any] | None:
@@ -71,10 +86,13 @@ async def fetch_persisted_summary(
     by ``entity_name``. Person chips read ``cataloged_person_id``.
     """
     header = await conn.fetchrow(
-        "select korean_summary from post_summary_result where post_id = $1",
+        "select korean_summary, summary_contract_version "
+        "from post_summary_result where post_id = $1",
         post_id,
     )
     if header is None:
+        return None
+    if header["summary_contract_version"] != POST_SUMMARY_CONTRACT_VERSION:
         return None
     events = await conn.fetch(
         "select event_text from post_summary_event where post_id = $1 order by event_ordinal",
@@ -90,6 +108,25 @@ async def fetch_persisted_summary(
           from post_summary_role role
          where role.post_id = $1
          order by role.actor_name
+        """,
+        post_id,
+    )
+    projects = await conn.fetch(
+        """
+        select project_key, project_name, evidence_text, confidence, ontology_iri,
+               extraction_method
+          from post_project_mention
+         where post_id = $1
+         order by project_name, project_key
+        """,
+        post_id,
+    )
+    actions = await conn.fetch(
+        """
+        select action_text, requester_actor_name, processor_actor_name, evidence_text
+          from post_summary_action
+         where post_id = $1
+         order by action_ordinal
         """,
         post_id,
     )
@@ -122,6 +159,26 @@ async def fetch_persisted_summary(
         "korean_summary": header["korean_summary"],
         "key_events": [row["event_text"] for row in events],
         "roles_and_responsibilities": payload_roles,
+        "major_event_actions": [
+            {
+                "action_text": row["action_text"],
+                "requester_actor_name": row["requester_actor_name"],
+                "processor_actor_name": row["processor_actor_name"],
+                "evidence_text": row["evidence_text"],
+            }
+            for row in actions
+        ],
+        "project_mentions": [
+            {
+                "project_key": row["project_key"],
+                "project_name": row["project_name"],
+                "evidence": row["evidence_text"],
+                "confidence": float(row["confidence"]),
+                "ontology_iri": row["ontology_iri"],
+                "extraction_method": row["extraction_method"],
+            }
+            for row in projects
+        ],
     }
 
 
@@ -149,6 +206,9 @@ async def persist_post_summary(
     summary replacement transaction while all post-owned rows still commit or
     roll back together.
     """
+    if post_body is not None:
+        require_summary_source_body(post_body)
+
     hierarchy_inference_client = (
         hierarchy_inference_client or NullCorporateHierarchyInferenceClient()
     )
@@ -226,12 +286,41 @@ async def _replace_summary_projection(
     )
     await conn.execute("delete from post_team_mention where post_id = $1", post_id)
     await conn.execute("delete from post_organization_mention where post_id = $1", post_id)
+    await conn.execute("delete from post_summary_five_w1h where post_id = $1", post_id)
+    await conn.execute("delete from post_summary_action where post_id = $1", post_id)
     await conn.execute("delete from post_summary_result where post_id = $1", post_id)
+    await conn.execute("delete from post_project_mention where post_id = $1", post_id)
     await conn.execute(
-        "insert into post_summary_result (post_id, korean_summary) values ($1, $2)",
+        "insert into post_summary_result "
+        "(post_id, korean_summary, summary_contract_version) values ($1, $2, $3)",
         post_id,
         summary.korean_summary,
+        POST_SUMMARY_CONTRACT_VERSION,
     )
+    for project in summary.project_mentions:
+        project_key = normalize_project_key(project.canonical_name)
+        if not project_key:
+            continue
+        await conn.execute(
+            """
+            insert into post_project_mention
+                (post_id, project_key, project_name, evidence_text, confidence,
+                 ontology_iri, extraction_method)
+            values ($1, $2, $3, $4, $5, $6, 'contextual_orchestrator_semantic')
+            on conflict (post_id, project_key) do update set
+                project_name = excluded.project_name,
+                evidence_text = excluded.evidence_text,
+                confidence = excluded.confidence,
+                ontology_iri = excluded.ontology_iri,
+                extraction_method = excluded.extraction_method
+            """,
+            post_id,
+            project_key,
+            project.project_name,
+            project.evidence,
+            project.confidence,
+            str(LW.Project),
+        )
     for ordinal, event_text in enumerate(summary.key_events):
         await conn.execute(
             "insert into post_summary_event (post_id, event_ordinal, event_text) "
@@ -239,6 +328,17 @@ async def _replace_summary_projection(
             post_id,
             ordinal,
             event_text,
+        )
+    for ordinal, claim in enumerate(summary.five_w1h_evidence):
+        await conn.execute(
+            "insert into post_summary_five_w1h "
+            "(post_id, slot_code, value_ordinal, value_text, evidence_text) "
+            "values ($1, $2, $3, $4, $5)",
+            post_id,
+            claim.slot_code,
+            ordinal,
+            claim.value_text,
+            claim.evidence_text,
         )
     # ADR 0009 / 0019 / 0027: resolve catalog identity before writing
     # the role row so fetch never reconstructs it by a non-unique name.
@@ -299,6 +399,25 @@ async def _replace_summary_projection(
                 post_id,
                 cataloged_person_id,
             )
+    role_names = {role.actor_name for role in summary.roles_and_responsibilities}
+    for ordinal, action in enumerate(summary.major_event_actions):
+        actor_names = (action.requester_actor_name, action.processor_actor_name)
+        if any(name is not None and name not in role_names for name in actor_names):
+            continue
+        await conn.execute(
+            """
+            insert into post_summary_action
+                (post_id, action_ordinal, action_text, requester_actor_name,
+                 processor_actor_name, evidence_text)
+            values ($1, $2, $3, $4, $5, $6)
+            """,
+            post_id,
+            ordinal,
+            action.action_text,
+            action.requester_actor_name,
+            action.processor_actor_name,
+            action.evidence_text,
+        )
     await persist_edges_for_post(conn, post_id)
 
 

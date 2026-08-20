@@ -84,132 +84,84 @@ All notable changes to this project are documented here. Format follows
   existing convention.
 
 ## [2.12.3] - 2026-08-18
+## [2.17.0] - 2026-08-19
 
 ### Added
 
-- `make seed` inserts Late Demo public post (2026-01-13) so the
-  January 12 Demo Corp lineage and TEPP runs' knowledge cutoff is
-  falsifiable: Demo public post still opens; Late Demo does not.
-  The live post list still shows Late Demo. The cutoff filter
-  itself already lives on this stack (ADR 0016). TEPP honesty is
-  unchanged: accepted acks stay Failed transport evidence, not
-  Succeeded. Never invent a theta.
+- Opening a linked Event Lineage DAG node from a GNB-focused popup now
+  keeps Event Lineage focused and names Keyman and evaluation as the next
+  read. A home-list DAG walk does not add that focus or copy. No TEPP
+  theta is invented. No cited post, customer, week, or cutoff body is
+  invented (ADR 0097 / ADR 0096 / ADR 0016).
 
-## [2.12.2] - 2026-08-18
-
-### Fixed
-
-- Accepted TEPP transport evidence now stores **received** (transport
-  response) and **recorded** (row write) as distinct clocks when those
-  instants differ (ADR 0035 follow-up). After `make seed`, Demo Analyst
-  opens **TEPP measurement · Failed · Demo Corp** Measurement evidence
-  and sees one Received clock when seed receipt and persist share an
-  instant. A later start that persists in a later minute shows both
-  clocks. Digest recomputation is unchanged. Hidden runs stay 404.
-  Never invent a theta.
-
-## [2.12.1] - 2026-08-17
-
-### Fixed
-
-- A published TEPP **accepted** acknowledgement is stored as
-  **aggregate transport evidence** and stays Failed /
-  `tepp_completed_result_unsupported` (ADR 0035). After `make seed`,
-  Demo Analyst opens that Failed Demo Corp row to read contract
-  version, accepted run id, clocks, and a copyable SHA-256. The
-  section says completed-artifact identity is unavailable until TEPP
-  publishes a versioned completed-result contract. A
-  LineageWeave-local `time_multilevel_multi_affiliation` envelope, or
-  any other unpublished completed shape, stays Failed /
-  `tepp_result_not_persisted` and must not stamp Succeeded. Missing
-  `TEPP_TRANSPORT_URL` stays Failed / `tepp_not_available`. Never
-  invent a theta.
-
-## [2.12.0] - 2026-08-17
+## [2.16.0] - 2026-08-19
 
 ### Added
 
-- A persistable TEPP **time / multilevel / multi-affiliation** result
-  is stored on the analysis-run and marked Succeeded (ADR 0034). After
-  `make seed`, Demo Analyst sees **TEPP measurement · Succeeded · Demo
-  Corp** next to the Failed missing-transport row. Home list and detail
-  show measured clocks and affiliation counts. A screen reader on that
-  Succeeded row hears open the run to read those aggregates, not only
-  the title. An `accepted` ack or an envelope this product cannot store
-  stays Failed / `tepp_result_not_persisted`. Missing
-  `TEPP_TRANSPORT_URL` stays Failed / `tepp_not_available`. Never
-  invent a theta.
+- Opening an Ask Agent cited post now focuses Event Lineage and names Keyman
+  and evaluation as the next read. After an authorized answer, Ask Agent
+  names cited posts as current before that open. Home-list opens do not add
+  that focus or copy. No TEPP theta is invented. No cited post is invented
+(ADR 0096 / ADR 0039 / ADR 0016).
 
-## [2.11.0] - 2026-08-17
+## [2.15.0] - 2026-08-19
 
 ### Added
 
-- Home now shows the authorized customer-group tree (Group / Company /
-  Plant) instead of only a flat corp list. After `make seed`, Demo
-  Analyst walks Demo Group → Demo Corp → Demo Plant; a click opens that
-  entity as the corporate-entity report grouping. The post-scoped
-  affiliate tree is unchanged (ADR 0033).
-- Abbreviations on a post are cross-checked against that tree through
-  the existing Searxng client. A unique corroborated hit binds; a down,
-  empty, or tied search stays unbound and does not invent a parent or
-  AUTO row. Seeded `DC` on Demo Corp is synthetic Demo Corp only.
+- Opening a Customer master related post now focuses Event Lineage and names
+  Keyman and evaluation as the next read. Customer master names authorized
+  customer entities as current before that open. Home-list opens do not add
+  that focus or copy. No TEPP theta is invented. No customer is invented
+(ADR 0095 / ADR 0037 / ADR 0016).
 
-## [2.10.4] - 2026-08-17
-
-### Fixed
-
-- After a Demo Corp lineage reconstruction has started, the same
-  granted retention purge empties `analysis_run_lineage_edge`,
-  `analysis_run_reconstruction`, and `analysis_source_snapshot_member`
-  when those tables exist, including their delete-reject triggers
-  (ADR 0032). Follow the same grant + admin + phrase path — do not
-  `DISABLE TRIGGER` as superuser.
-
-## [2.10.3] - 2026-08-17
-
-### Fixed
-
-- Opening a listed analysis-run that then 404s drops that stale row
-  from the home list after an authorized re-read. The next action is
-  announced as a status alert: open a remaining visible run, or
-  request a lineage reconstruction. The message still does not name
-  the thread or the cutoff (ADR 0014 / ADR 0018).
-
-## [2.10.2] - 2026-08-17
-
-### Fixed
-
-- Opening a post whose embedded picture uses invoice-like HTML
-  (`alt="Invoice > 1000"`, unquoted `width`, newlines in the base64)
-  now shows the picture. The raw payload no longer returns when a
-  remote-only or SVG tag is the whole body. Re-export as PNG or JPEG
-  if the type is rejected. The popup, `extract_base64_images`, and
-  `chunk_by_dom` share one raster allowlist (ADR 0031).
-
-## [2.10.1] - 2026-08-17
-
-### Fixed
-
-- Analysis-run list buttons now include the kind-specific next-action
-  sentence in the accessible name (WCAG 2.2 SC 4.1.2). Open a Failed
-  TEPP row: a screen reader hears connect the measurement service, not
-  only the run title. `aria-label` replaces button contents (ADR 0014).
-  No TEPP theta is invented.
-
-## [2.10.0] - 2026-08-17
+## [2.14.0] - 2026-08-19
 
 ### Added
 
-- Home Rankings panel fuses visible posts through `RankWeaveClient`
-  (ADR 0030). After login with the port disabled or the library
-  missing, Demo Analyst sees **Rankings · RankWeave not available**.
-  An accepted hit lists the title; click opens that post. A hidden
-  post is omitted. Never invent a fused score or a theta.
-- Period reports now persist closest and farthest leftover
-  post–criterion pairs after the IRT main effects (Jeon leftover
-  map, ADR 0028 / 0029). After `make seed`, leftover pairs sit above
-  the member list; clicking a pair opens that post. A leftover pair
-  for a hidden post is omitted the same way a hidden member is.
+- Opening a Calendar commitment now focuses Event Lineage and names Keyman
+  and evaluation as the next read. Calendar names authorized commitments
+  as current before that open. Home-list opens do not add that focus or
+  copy. No TEPP theta is invented. No cutoff body is invented
+  (ADR 0094 / ADR 0016).
+
+## [2.13.0] - 2026-08-19
+
+### Added
+
+- Opening a Voice of Customer post from an active Weekly VOC filter now
+  focuses Event Lineage and names Keyman and evaluation as the next read.
+  Home-list opens do not add that focus or copy. No TEPP theta is
+  invented. No cutoff body is invented (ADR 0093 / ADR 0016).
+
+## [2.12.0] - 2026-08-19
+
+### Added
+
+- Board now names Weekly VOC as an ISO-8601 week list filter. The control
+  keeps Voice of Customer posts for the latest week present in the loaded
+  list (UTC Thursday rule) and tells the buyer to open a post to read
+  Event Lineage. Reset filters returns every VOC type and every week.
+  No TEPP theta is invented (ADR 0092).
+
+## [2.10.0] - 2026-08-18
+
+### Added
+
+- Production OIDC can now use a real Keyverse issuer through
+  `KEYVERSE_ISSUER` and `KEYVERSE_CLIENT_ID`. The backend discovers the
+  provider's JWKS and verifies the issuer; Compose keeps local Keycloak only
+  as an explicit development fallback and does not emulate Keyverse.
+
+## [2.11.0] - 2026-08-18
+
+### Added
+
+- Relation verification now preserves a separately authorized internal source
+  post containing the normalized organization and relationship context. The
+  counterparty popup can open that evidence without treating it as an
+  external-search URL or changing the external verification status.
+- Large corpora now use bounded post and Event Lineage landing projections so
+  the React screen remains usable before opening complete post-specific detail.
 
 ## [2.9.0] - 2026-08-17
 
@@ -860,6 +812,25 @@ All notable changes to this project are documented here. Format follows
 - The offline synthetic-batch script's own re-implementation of Keyman
   affiliation persistence was missing `role_title` entirely (a stale
   copy that predated that feature) -- fixed alongside this change.
+## [0.75.0] - 2026-08-17
+
+### Added
+
+- Home Rankings panel fuses visible posts through `RankWeaveClient`
+  (ADR 0024). After login with the port disabled or the library
+  missing, Demo Analyst sees **Rankings · RankWeave not available**.
+  An accepted hit lists the title; click opens that post. A hidden
+  post is omitted. Never invent a fused score or a theta.
+
+## [0.71.2] - 2026-08-17
+
+### Added
+
+- Period reports now persist closest and farthest leftover
+  post–criterion pairs after the IRT main effects (Jeon leftover
+  map). After `make seed`, leftover pairs sit above the member
+  list; clicking a pair opens that post. A leftover pair for a
+  hidden post is omitted the same way a hidden member is.
 
 ## [0.71.0] - 2026-08-14
 

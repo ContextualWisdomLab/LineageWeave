@@ -45,6 +45,15 @@ class _LiveVerificationClient:
         return SimpleNamespace(status_code=STATUS_CORROBORATED)
 
 
+class _TimeoutInferenceClient:
+    """Simulate an unavailable orchestrator during hierarchy enrichment."""
+
+    available = True
+
+    def infer(self, organization_name: str, context_text: str) -> HierarchyProposal:
+        raise TimeoutError("synthetic orchestrator timeout")
+
+
 class _Transaction:
     """Minimal async transaction context manager."""
 
@@ -105,6 +114,22 @@ def test_initial_tie_never_reaches_live_inference_or_creation() -> None:
     assert result is None
     assert inference.calls == 0
     assert verification.calls == 0
+
+
+def test_hierarchy_timeout_leaves_actor_unbound_without_raising() -> None:
+    """Enrichment outage must not discard a source-grounded summary."""
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            object(),
+            "Unresolved Energy",
+            "Synthetic context",
+            _TimeoutInferenceClient(),
+            _LiveVerificationClient(),
+            [],
+        )
+    )
+
+    assert result is None
 
 
 def test_tie_discovered_under_creation_lock_does_not_insert() -> None:

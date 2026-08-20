@@ -1,0 +1,95 @@
+# ADR 0090: Global Ask expands its top match through Event Lineage
+
+- Status: Accepted
+- Date: 2026-08-20
+- Related: [0047](0047-global-ask-semantic-retrieval.md), [0064](0064-lineage-evidence-and-tree-assembly.md), [0084](0084-lineage-research-grounding.md)
+
+## Context
+
+ADR 0047 gave Global Ask's retrieve step the same source-context search
+surface as the board (raw source hints, project mentions, roles, Keyman
+mentions, title, body). That step ranks and returns keyword-matched posts,
+but it never touches `post_lineage_edge` -- the Event-Lineage relation
+`lineageweave.reconstruct` already persists, and the same relation the
+post-scoped chat flow (`gather_chat_sources`) already expands through for a
+single known starting post.
+
+A relevance-correct top match is still one snapshot. A live reproduction
+asking about a specific real event got an accurate answer about that one
+post and nothing about what led up to it or what happened next, even after
+match-specificity ranking (title/body/source-field weighting) was already
+fixed to stop recency from crowding out the right post. The account asking
+almost always wants the event's place in a sequence, not an isolated
+record.
+
+## Decision
+
+After `gather_global_chat_sources` ranks candidates by match specificity,
+it expands only the single top-ranked match through its direct
+`post_lineage_edge` neighbors (parent and child), mirroring the `.direct`
+set `find_linked_post_ids` already computes for the post-scoped flow. The
+expansion:
+
+- Is bounded to the top match only. Expanding every keyword hit was
+  rejected -- a loosely related term matching a second post would drag an
+  unrelated lineage chain into the model's context for no benefit.
+- Never bypasses ABAC. Lineage-neighbor ids are merged into the same
+  candidate set the existing visibility filter (`can_see_post`) already
+  runs over; nothing lineage-adjacent is shown without passing that check.
+- Is additive to the existing bounded source `limit`, not a replacement
+  for it -- the limit grows by exactly the number of lineage neighbors
+  found, so lineage expansion cannot silently starve the keyword-matched
+  candidates of their own slots.
+- Tags each expanded source with an explicit `Event Lineage: reconstructed
+  timeline neighbor of post_id=...` evidence fact, and only when the
+  anchor post itself is visible -- an expanded neighbor must never cite an
+  anchor id the requesting account cannot see.
+
+This is the event-centric temporal retrieval problem DyG-RAG frames
+(Sun et al., 2025): a single temporally-anchored record answers "what does
+this record say," not "what actually happened," which needs the event
+sequence around it.
+
+## Considered alternatives
+
+- Expand every keyword-matched candidate's lineage neighbors, not just the
+  top one: rejected for the reason above -- unbounded relevance drift into
+  the prompt.
+- Increase `limit` and let the ranking naturally surface neighbors if they
+  also match the search terms: rejected -- a genuine lineage predecessor or
+  successor frequently shares no keyword with the question at all (a
+  Kick-off Meeting and its follow-up rarely repeat the same terms), so
+  ranking alone cannot be relied on to surface it.
+
+## Consequences
+
+- Global Ask answers can now speak to a connected sequence of records
+  around its best match, not only that match's own content.
+- The source budget is no longer a fixed constant per request; callers
+  reading `limit` as an upper bound on retrieved posts must account for the
+  lineage-expansion addition.
+- Global Ask conversation continuity is an explicit follow-on contract. An
+  account-owned `global_ask_session` and normalized `global_ask_turn` rows
+  retain the question, answer, and cited post ids; a browser may send the
+  session id back on the next turn. The server creates the id when omitted,
+  and every session lookup is scoped to the requesting account.
+- The current authorized source set is rebuilt and ABAC-filtered on every
+  turn. Prior answers and a compressed conversation summary are continuity
+  context only, never evidence or citations; a changed authorization cannot
+  make an old answer reintroduce a hidden post.
+- Once the retained turns exceed the bounded context budget, the older turns
+  are compressed through contextual-orchestrator using the Wang et al. (2023)
+  recursive-dialogue-summarization grounding. The compressed result records
+  the covered turn ordinal and is passed as explicitly non-evidentiary
+  context. A failed compression is unavailable, not silently replaced with a
+  guessed summary or an unbounded transcript.
+- Every successful Global Ask turn returns the authorized Event Lineage
+  timeline for that request, including an empty timeline when no authorized
+  sources were found.
+
+## Evidence and literature
+
+Full APA 7th-edition entries are maintained in
+[`docs/lineage-bi-research-notes.md`](../lineage-bi-research-notes.md)
+(Sun et al., 2025; Wang et al., 2023), per the paper register ADR 0084
+establishes.

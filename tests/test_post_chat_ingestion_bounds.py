@@ -46,6 +46,8 @@ class _Connection:
         return "anchor body"
 
     async def fetch(self, sql: str, post_ids):
+        if " as fact" in sql or "knowledge_graph_edge" in sql:
+            return []
         if "post_body" in sql:
             self.linked_body_sql = sql
             self.linked_body_ids = tuple(str(post_id) for post_id in post_ids)

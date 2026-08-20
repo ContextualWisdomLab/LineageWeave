@@ -1,16 +1,20 @@
 .PHONY: up down logs smoke seed ps
 
+# Keep provider credentials outside the repository. Compose interpolation must
+# read the same home env file as the orchestrator container's env_file.
+COMPOSE := docker compose --env-file "$$HOME/.env"
+
 up:
-	docker compose up -d
+	$(COMPOSE) up -d
 
 down:
-	docker compose down
+	$(COMPOSE) down
 
 logs:
-	docker compose logs -f
+	$(COMPOSE) logs -f
 
 ps:
-	docker compose ps
+	$(COMPOSE) ps
 
 # Real OIDC round-trip against the running Keycloak container: logs in as
 # the synthetic demo user, verifies the returned JWT's signature against

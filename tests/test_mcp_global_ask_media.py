@@ -81,8 +81,8 @@ async def test_media_loader_returns_text_and_bounded_cited_raster_images() -> No
     assert [block.type for block in blocks] == ["text", "image", "image", "image"]
     assert all(block.mime_type == "image/png" for block in blocks[1:])
     assert base64.b64decode(blocks[1].data_base64 or "") == base64.b64decode(payload)
-    # SVG is rejected before chunking; the first accepted raster is index zero.
-    assert blocks[1].unit_index == 0
+    # The excluded SVG keeps its DOM position; the first raster is unit one.
+    assert blocks[1].unit_index == 1
 
 
 @pytest.mark.asyncio

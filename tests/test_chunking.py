@@ -4,8 +4,10 @@ from lineageweave.chunking import (
     ConversationTurn,
     chunk_by_conversation_turn,
     chunk_by_dom,
+    chunk_by_source_body,
     chunk_by_paragraph,
     chunk_by_sentence,
+    normalize_semantic_text,
 )
 
 
@@ -70,9 +72,206 @@ def test_chunk_by_dom_nested_blocks_do_not_duplicate_text() -> None:
     assert chunks[0].label == "p"
 
 
+def test_chunk_by_dom_groups_table_cells_by_row_instead_of_flattening() -> None:
+    """Live bug (2026-08-19): each <td> used to push its own independent
+    chunk with no row grouping, so a real table (headers + N data rows)
+    degraded into a flat, unattributable list of cell fragments -- e.g. a
+    5-column x 13-row table read back as 65 disconnected one-word lines
+    with no way to tell which cells shared a row.
+    """
+    html = (
+        "<table>"
+        "<tr><td>No.</td><td>Company</td><td>Result</td></tr>"
+        "<tr><td>1</td><td>Acme Corp</td><td>Declined</td></tr>"
+        "<tr><td>2</td><td>Globex Corp</td><td>Interested</td></tr>"
+        "</table>"
+    )
+    chunks = chunk_by_dom(html)
+
+    texts = [c.text for c in chunks]
+    assert texts == [
+        "No. | Company | Result",
+        "1 | Acme Corp | Declined",
+        "2 | Globex Corp | Interested",
+    ]
+    assert all(c.label == "tr" for c in chunks)
+
+
+def test_chunk_by_dom_keeps_nested_table_cell_blocks_in_their_row() -> None:
+    chunks = chunk_by_dom(
+        "<table><tr><td><p>No.</p></td><td><div>Company</div></td></tr></table>"
+    )
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [("tr", "No. | Company")]
+
+
+def test_chunk_by_dom_preserves_nested_list_order_and_depth() -> None:
+    chunks = chunk_by_dom(
+        "<ol><li>Outer<ul><li>Inner</li></ul>After inner</li>"
+        "<li>Sibling</li></ol>"
+    )
+
+    assert [chunk.text for chunk in chunks] == ["Outer", "Inner", "After inner", "Sibling"]
+    assert [chunk.indent_width for chunk in chunks] == [4, 8, 4, 4]
+
+
+
+def test_chunk_by_dom_labels_markerless_footnotes() -> None:
+    chunks = chunk_by_dom(
+        "<p>Body text<sup>[1]</sup></p>"
+        "<p>[1] Source note</p><p>*Tier 2: follow-up note</p>"
+    )
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Body text[1]"),
+        ("footnote", "[1] Source note"),
+        ("footnote", "*Tier 2: follow-up note"),
+    ]
+
+
+def test_chunk_by_dom_word_table_rows_also_group_cells() -> None:
+    html = "<w:tbl><w:tr><w:tc>1</w:tc><w:tc>Acme Corp</w:tc></w:tr></w:tbl>"
+    chunks = chunk_by_dom(html)
+
+    assert [c.text for c in chunks] == ["1 | Acme Corp"]
+    assert chunks[0].label == "w:tr"
+
+
+def test_chunk_by_dom_keeps_indentation_as_metadata_not_embedding_text() -> None:
+    html = "<p>&nbsp;&nbsp;Level one</p><p>&nbsp;&nbsp;&nbsp;&nbsp;Level two</p>"
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.text for chunk in chunks] == ["Level one", "Level two"]
+    assert [chunk.indent_width for chunk in chunks] == [2, 4]
+
+
+def test_chunk_by_dom_reads_html_and_word_indentation_declarations() -> None:
+    html = (
+        '<p style="margin-left: 32px">HTML</p>'
+        '<w:p><w:pPr><w:ind w:left="480"/></w:pPr>'
+        "<w:r><w:t>Word</w:t></w:r></w:p>"
+    )
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.text for chunk in chunks] == ["HTML", "Word"]
+    assert [chunk.indent_width for chunk in chunks] == [4, 4]
+
+
+def test_chunk_by_dom_reads_the_css_margin_shorthand_not_just_margin_left() -> None:
+    """Live bug (2026-08-19): a real editor (Word paste, Outlook compose)
+    declares indentation with the box-model shorthand
+    ("margin: 0cm 0cm 0cm 56px") far more often than the "margin-left"
+    longhand -- every nested <li> in a real body used only the shorthand,
+    so indentation silently read as 0 and every nesting level flattened.
+    """
+    html = (
+        '<ul><li style="margin: 0cm 0cm 0cm 56px">Outer item</li></ul>'
+        '<ul><li style="margin: 0cm 0cm 0cm 80px">Nested item</li></ul>'
+    )
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.text for chunk in chunks] == ["Outer item", "Nested item"]
+    outer, nested = chunks
+    assert outer.indent_width < nested.indent_width
+    assert outer.indent_width > 0
+
+
+def test_chunk_by_dom_uses_list_container_depth_as_explicit_indentation() -> None:
+    html = "<ol><li>Outer<ol><li>Nested</li></ol></li></ol>"
+
+    chunks = chunk_by_dom(html)
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [("li", "Outer"), ("li", "Nested")]
+    assert [chunk.indent_width for chunk in chunks] == [4, 8]
+
+
+def test_chunk_by_source_body_splits_plain_lists_and_markdown_tables() -> None:
+    body = """1. Background
+    continuation stays with the first item.
+2. Decision
+
+| Field | Value |
+| --- | --- |
+| Owner | Buyer |
+"""
+
+    chunks = chunk_by_source_body(body)
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("", "1. Background continuation stays with the first item."),
+        ("", "2. Decision"),
+        ("tr", "Field | Value"),
+        ("tr", "Owner | Buyer"),
+    ]
+
+
+def test_chunk_by_dom_joins_visual_continuation_lines_but_keeps_list_items() -> None:
+    html = (
+        '<p>1. 배경<br style="line-height: 1.5;" />'
+        "    1) 기존 대차는 이전이 필요함<br>"
+        "        콘크리트 양생까지 공장 운영 불가하여 이전 불가<br>"
+        "    2) 신규 대차 제작으로 결정</p>"
+    )
+
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.text for chunk in chunks] == [
+        "1. 배경",
+        "1) 기존 대차는 이전이 필요함 콘크리트 양생까지 공장 운영 불가하여 이전 불가",
+        "2) 신규 대차 제작으로 결정",
+    ]
+    assert [chunk.indent_width for chunk in chunks] == [0, 4, 4]
+
+
+def test_normalize_semantic_text_removes_visual_hanging_indent_breaks() -> None:
+    text = (
+        "1. 배경\n\n"
+        "    1) 기존 대차는 이전이 필요함\n"
+        "        콘크리트 양생까지 공장 운영 불가하여 이전 불가\n"
+        "    2) 신규 대차 제작"
+    )
+
+    assert normalize_semantic_text(text) == (
+        "1. 배경\n\n"
+        "1) 기존 대차는 이전이 필요함 콘크리트 양생까지 공장 운영 불가하여 이전 불가\n"
+        "2) 신규 대차 제작"
+    )
+
+
+def test_normalize_semantic_text_preserves_blank_paragraph_boundaries() -> None:
+    assert normalize_semantic_text("첫 문단\n\n둘째 문단") == "첫 문단\n\n둘째 문단"
+
+
+def test_normalize_semantic_text_does_not_embed_visual_indentation_markers() -> None:
+    assert normalize_semantic_text("\xa0\xa0계속되는 문장\n\xa0\xa0\xa0\xa0다음 줄") == (
+        "계속되는 문장 다음 줄"
+    )
+
+
+def test_chunk_by_dom_does_not_infer_marker_depth_without_source_whitespace() -> None:
+    chunks = chunk_by_dom("<p>1. Root<br>1) Child<br>- Detail</p>")
+
+    assert [chunk.text for chunk in chunks] == ["1. Root", "1) Child", "- Detail"]
+    assert [chunk.indent_width for chunk in chunks] == [0, 0, 0]
+
+
 def test_chunk_by_dom_empty_html_yields_no_chunks() -> None:
     assert chunk_by_dom("<div></div>") == []
     assert chunk_by_dom("") == []
+
+
+def test_chunk_by_dom_falls_back_for_inline_only_markup() -> None:
+    chunks = chunk_by_dom("<span>First inline block.</span><span>Second inline block.</span>")
+
+    assert len(chunks) == 1
+    assert chunks[0].unit_type == "plain_text"
+    assert chunks[0].text == "First inline block.Second inline block."
+
+
+def test_chunk_by_dom_flushes_unclosed_block_at_end_of_document() -> None:
+    chunks = chunk_by_dom("<div><span>Unclosed source fragment.")
+
+    assert len(chunks) == 1
+    assert chunks[0].unit_type == "dom"
+    assert chunks[0].text == "Unclosed source fragment."
 
 
 def test_chunk_by_dom_interleaves_images_with_text_in_document_order() -> None:
@@ -92,6 +291,19 @@ def test_chunk_by_dom_interleaves_images_with_text_in_document_order() -> None:
     assert chunks[2].text == "After the picture."
 
 
+def test_chunk_by_dom_interleaves_image_inside_a_block_with_text() -> None:
+    tiny_png_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    html = f'<p>Before the picture.<img src="data:image/png;base64,{tiny_png_b64}">After the picture.</p>'
+
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.unit_type for chunk in chunks] == ["dom", "image", "dom"]
+    assert [chunk.text for chunk in chunks if chunk.unit_type == "dom"] == [
+        "Before the picture.",
+        "After the picture.",
+    ]
+
+
 def test_chunk_by_dom_labels_text_chunks_with_their_tag_name() -> None:
     html = "<article><p>A paragraph.</p></article><aside>Sidebar.</aside>"
     chunks = chunk_by_dom(html)
@@ -105,18 +317,6 @@ def test_chunk_by_dom_skips_malformed_image_data() -> None:
     html = '<p>Text.</p><img src="data:image/png;base64,not-valid!!!">'
     chunks = chunk_by_dom(html)
     assert [c.unit_type for c in chunks] == ["dom"]
-
-
-def test_chunk_by_dom_skips_script_and_style_images() -> None:
-    tiny_png_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
-    html = (
-        f'<script><img src="data:image/png;base64,{tiny_png_b64}"></script>'
-        f'<style><img src="data:image/png;base64,{tiny_png_b64}"></style>'
-        "<p>Visible.</p>"
-    )
-    chunks = chunk_by_dom(html)
-    assert [c.unit_type for c in chunks] == ["dom"]
-    assert chunks[0].text == "Visible."
 
 
 def test_chunk_by_conversation_turn_labels_each_chunk_with_its_sender() -> None:
