@@ -18,7 +18,8 @@ mismatch.
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
 commit `cf4a4501fa5057f89b21cad5033c5925755cd150`, the pushed head of
-contextual-orchestrator PR #779, stacked on PR #765. The pin remains explicit
+ContextualWisdomLab/contextual-orchestrator#779, stacked on
+ContextualWisdomLab/contextual-orchestrator#765. The pin remains explicit
 and immutable until the protected PRs merge; it is not a moving `main`
 reference and it is not a LineageWeave monkey patch.
 
@@ -50,4 +51,5 @@ The runtime contract is:
   implementation.
 - Rebuilding the image is required after the upstream pin changes.
 - Protected-branch review and merge remain external gates; this pin does not
-  bypass PR #765 or PR #779.
+  bypass ContextualWisdomLab/contextual-orchestrator#765 or
+  ContextualWisdomLab/contextual-orchestrator#779.
