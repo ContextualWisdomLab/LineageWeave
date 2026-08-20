@@ -36,6 +36,26 @@ def test_example_round_trip_is_deterministic() -> None:
     assert dossier.dossier_sha256() == payload["dossier_sha256"]
 
 
+def test_digest_uses_jcs_number_serialization() -> None:
+    """JCS normalizes negative zero instead of inheriting Python JSON spelling."""
+    payload = example()
+    payload.pop("dossier_sha256")
+    payload["knowledge_graph"]["nodes"][0]["relevance"]["estimate"] = -0.0
+    payload["knowledge_graph"]["nodes"][0]["relevance"]["uncertainty_lower"] = 0.0
+    dossier = event_intelligence_dossier_from_dict(payload, require_digest=False)
+    assert '"estimate":0' in dossier.to_json()
+    assert '"estimate":-0.0' not in dossier.to_json()
+
+
+def test_validator_rejects_integers_outside_jcs_safe_range() -> None:
+    """A JSON integer that another runtime rounds cannot enter a dossier."""
+    payload = example()
+    payload.pop("dossier_sha256")
+    payload["knowledge_graph"]["nodes"][0]["relevance"]["estimate"] = 2**53
+    with pytest.raises(EventIntelligenceValidationError, match="IEEE-754 safe integer"):
+        event_intelligence_dossier_from_dict(payload, require_digest=False)
+
+
 def test_composer_mode_adds_digest_without_mutating_input() -> None:
     """An undigested composer payload becomes a detached, digest-bound artifact."""
     payload = example()

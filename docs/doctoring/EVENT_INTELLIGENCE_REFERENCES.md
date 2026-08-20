@@ -37,6 +37,9 @@
 
 ## APA 7th references
 
+Rundgren, A., Jordan, B., & Erdtman, S. (2020). *JSON canonicalization scheme
+(JCS) (RFC 8785).* RFC Editor. https://www.rfc-editor.org/rfc/rfc8785
+
 Blei, D. M., & Lafferty, J. D. (2006). Dynamic topic models. In *Proceedings
 of the 23rd International Conference on Machine Learning* (pp. 113–120).
 Association for Computing Machinery. https://doi.org/10.1145/1143844.1143859

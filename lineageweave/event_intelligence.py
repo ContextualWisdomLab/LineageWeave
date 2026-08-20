@@ -24,6 +24,8 @@ import math
 import re
 from typing import Any
 
+import rfc8785
+
 from .adjudication_client import ALLOWED_ADJUDICATION_VERDICTS
 
 EVENT_INTELLIGENCE_CONTRACT_VERSION = 1
@@ -41,6 +43,7 @@ _SOURCE_SYSTEMS = frozenset(
     }
 )
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_MAX_SAFE_INTEGER = 2**53 - 1
 _RFC3339 = re.compile(
     r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$"
 )
@@ -219,6 +222,10 @@ def _digest(value: object, field: str) -> str:
 def _number(value: object, field: str) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise EventIntelligenceValidationError(f"{field} must be a number")
+    if isinstance(value, int) and not -_MAX_SAFE_INTEGER <= value <= _MAX_SAFE_INTEGER:
+        raise EventIntelligenceValidationError(
+            f"{field} must be representable as an IEEE-754 safe integer"
+        )
     normalized = float(value)
     if not math.isfinite(normalized):
         raise EventIntelligenceValidationError(f"{field} must be finite")
@@ -532,13 +539,12 @@ def _validate_claims(root: Mapping[str, Any], known: set[str]) -> None:
 def _canonical_without_digest(payload: Mapping[str, Any]) -> str:
     value = dict(payload)
     value.pop("dossier_sha256", None)
-    return json.dumps(
-        value,
-        ensure_ascii=False,
-        allow_nan=False,
-        separators=(",", ":"),
-        sort_keys=True,
-    )
+    try:
+        return rfc8785.dumps(value).decode("utf-8")
+    except (TypeError, ValueError, rfc8785.CanonicalizationError) as exc:
+        raise EventIntelligenceValidationError(
+            "dossier contains a value that RFC 8785 cannot canonicalize"
+        ) from exc
 
 
 def _payload_digest(payload: Mapping[str, Any]) -> str:
@@ -573,13 +579,12 @@ class EventIntelligenceDossier:
 
     def to_json(self) -> str:
         """Serialize the dossier as canonical UTF-8 JSON text."""
-        return json.dumps(
-            self.to_dict(),
-            ensure_ascii=False,
-            allow_nan=False,
-            separators=(",", ":"),
-            sort_keys=True,
-        )
+        try:
+            return rfc8785.dumps(self.to_dict()).decode("utf-8")
+        except (TypeError, ValueError, rfc8785.CanonicalizationError) as exc:
+            raise EventIntelligenceValidationError(
+                "dossier contains a value that RFC 8785 cannot canonicalize"
+            ) from exc
 
 
 def event_intelligence_dossier_from_dict(

@@ -28,7 +28,7 @@
     "verdict_code": "supported"
   },
   "contract_version": 1,
-  "dossier_sha256": "73f17911ca1321a7fe108464e805c30e7b44f9f8fb535a01f2f61bdfe1de0164",
+  "dossier_sha256": "4902081d00a1015f40a8d31a011e367b7b61f8f6753dafb447bbb5ad2c68b7c3",
   "event_id": "event-1",
   "event_ontology": [
     {
@@ -135,8 +135,8 @@
         "ontology": {
           "preferred_label": "EventEpisode",
           "semantic_role_code": "event_type",
-          "term_iri": "https://contextualwisdomlab.github.io/lineageweave/event-intelligence#EventEpisode",
-          "vocabulary_version": "1.0.0"
+      "term_iri": "https://contextualwisdomlab.github.io/lineageweave/event-intelligence#EventEpisode",
+      "vocabulary_version": "1.0.0"
         },
         "relevance": {
           "authority_system": "lineageweave_knowledge_graph",
@@ -162,8 +162,8 @@
         "ontology": {
           "preferred_label": "Post",
           "semantic_role_code": "node_type",
-          "term_iri": "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
-          "vocabulary_version": "1.0.0"
+      "term_iri": "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+      "vocabulary_version": "lineageweave-kg-v1"
         },
         "relevance": {
           "authority_system": "lineageweave_knowledge_graph",

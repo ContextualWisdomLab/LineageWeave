@@ -147,6 +147,16 @@ The canonical example is
 `examples/event-intelligence-dossier-v1.json`; the published schema is
 `schemas/event_intelligence_dossier_v1.schema.json`.
 
+## Digest canonicalization
+
+`dossier_sha256` is SHA-256 over the UTF-8 bytes produced by RFC 8785 JSON
+Canonicalization Scheme (JCS) after removing the `dossier_sha256` member. JCS
+recursively sorts object members, preserves array order, emits no whitespace,
+and rejects non-finite numbers; its I-JSON number boundary also prevents an
+unsafe integer from becoming a different value in another runtime. `to_json()`
+uses the same JCS serialization with the digest member present, so a buyer can
+recompute the digest without relying on Python's ordinary JSON formatting.
+
 ## Downstream integration contract
 
 A future backend endpoint should:

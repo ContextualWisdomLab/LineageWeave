@@ -54,7 +54,8 @@ The dossier is a buyer-facing read artifact, not a new estimator. It contains:
    candidate labels as untrusted evidence, requests the orchestration trace, and
    fails closed rather than regex-extracting a number from free-form text;
 8. buyer-facing claims whose complete supporting evidence IDs are explicit;
-9. a SHA-256 over the canonical dossier payload.
+9. a SHA-256 over the RFC 8785 JCS canonical dossier payload after removing
+   `dossier_sha256`; the same JCS profile serializes the wire artifact.
 
 The JSON Schema is `schemas/event_intelligence_dossier_v1.schema.json`. The
 runtime implementation is `lineageweave.event_intelligence`; the validator CLI

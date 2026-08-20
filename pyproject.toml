@@ -16,6 +16,8 @@ dependencies = [
   # Explicit CA bundle for http_client HTTPS posts -- some interpreter
   # distributions don't reliably inherit the OS trust store.
   "certifi>=2024.0.0",
+  # RFC 8785 JCS keeps dossier digests interoperable across producer runtimes.
+  "rfc8785==0.1.4",
   # The standard Python RDF/OWL library -- parses and validates
   # docs/ontology/lineageweave-kg.ttl and the standards-complete PROV-O
   # support profile (ADR 0011). Pure Python, no Rust/C toolchain.
