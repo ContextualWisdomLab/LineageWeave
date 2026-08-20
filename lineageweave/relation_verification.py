@@ -178,7 +178,11 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
     url = result.get("url")
     if not isinstance(url, str) or not url.strip():
         return None
-    host = urlparse(url).netloc.lower()
+    try:
+        parsed_url = urlparse(url)
+        host = (parsed_url.hostname or "").lower()
+    except ValueError:
+        return None
     if not host or any(marker in host for marker in _SEARCH_HOST_MARKERS):
         return None
     tokens = {

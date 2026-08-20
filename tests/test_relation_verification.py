@@ -251,6 +251,21 @@ def test_compound_host_token_is_not_two_name_tokens() -> None:
     )
 
 
+def test_userinfo_tokens_are_not_hostname_evidence() -> None:
+    """URL credentials cannot corroborate an unrelated actual hostname."""
+    assert (
+        corroborating_evidence_url(
+            "Aurora Grid Power",
+            {
+                "url": "https://aurora-grid-power.example@unrelated.example/news",
+                "title": "News",
+                "content": "",
+            },
+        )
+        is None
+    )
+
+
 def test_legal_suffix_alone_is_not_corroboration() -> None:
     """'Corp' is in almost every corporate host; it is not evidence."""
     assert (
