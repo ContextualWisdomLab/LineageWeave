@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - feat/tepp-project-history-ask-v2180
+  pull_request:
+    types: [synchronize]
 
 permissions:
   contents: write
@@ -14,15 +16,19 @@ concurrency:
 
 jobs:
   implement-and-verify:
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.number == 282 &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     env:
       IMPLEMENTATION_BRANCH: feat/tepp-project-history-ask-v2180
-      IMPLEMENTATION_HEAD: ${{ github.sha }}
+      IMPLEMENTATION_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - name: Checkout the exact clean-restack head
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: true
           fetch-depth: 0
 
