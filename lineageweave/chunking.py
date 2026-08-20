@@ -115,11 +115,16 @@ def _is_footnote_block(tag: str, attrs: list[tuple[str, str | None]]) -> bool:
 
 
 def _is_footnote_reference(attrs: list[tuple[str, str | None]]) -> bool:
-    """Recognize Word footnote reference links inside an enclosing paragraph."""
-    return any(
-        ("ftn" in (value or "").casefold() or "footnote" in (value or "").casefold())
+    """Recognize a Word footnote-definition backlink, not its body citation."""
+    values = {
+        name.casefold(): (value or "").casefold()
         for name, value in attrs
         if name.casefold() in {"href", "id", "name"}
+    }
+    href = values.get("href", "")
+    anchor_values = (values.get("id", ""), values.get("name", ""))
+    return "ftnref" in href and any(
+        "ftn" in value and "ftnref" not in value for value in anchor_values
     )
 
 

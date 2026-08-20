@@ -20,8 +20,9 @@ must not become embedding text.
   its own DOM semantic unit.
 - Preserve semantic footnote labels from HTML/Word markers such as
   `role="doc-footnote"`, footnote containers, `MsoFootnoteText`, and Word
-  footnote reference links; a footnote remains a searchable unit, not a list
-  item inferred only from its leading glyph.
+  footnote-definition backlink pairs; a footnote remains a searchable unit,
+  not a list item inferred only from its leading glyph. A body citation must
+  remain part of its enclosing body paragraph.
 - For markup-free input, split at authored blank paragraphs and list markers;
   continuation lines remain in the preceding item after visual alignment is
   removed.
