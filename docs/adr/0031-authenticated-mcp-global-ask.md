@@ -71,6 +71,11 @@ private answer as a search query.
 13. Keep the bearer token inside the resource server. Downstream services use
     their own credentials.
 14. Enable Host and Origin validation for DNS-rebinding protection.
+15. Resolve the contextual-orchestrator URL/key from process environment first,
+    then the user's `~/.env` using `LLM_GATEWAY_URL` (or the compatibility
+    alias `LLM_GATEWAY_API_URL`) and `LLM_GATEWAY_API_KEY`. Never copy, log, or
+    commit the secret; `ORCHESTRATOR_BASE_URL` and `ORCHESTRATOR_API_KEY` are
+    compatibility fallbacks only.
 
 ## Consequences
 
