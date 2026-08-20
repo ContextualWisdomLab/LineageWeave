@@ -56,6 +56,25 @@ the API enqueue path. A successful job that has units but lacks the configured
 unit or described-region embeddings is still eligible for Valkey requeue and
 MUST NOT be silently skipped by checking only for unit presence.
 
+When contextual-orchestrator is configured, the same predicate also requires
+every persisted unit to have a non-`unresolved` structure decision. Without an
+available structure channel, `unresolved` remains an explicit unavailable
+signal rather than a fabricated hierarchy; enabling the channel makes those
+posts eligible for Valkey requeue.
+
+The worker treats a `running` lease older than 15 minutes as stale. Recovery
+does not reset the row or create a second body record; it republishes the
+existing `(post_id, source_body_sha256)` wake-up to Valkey, and `_claim_job`
+reclaims it under the same lease predicate. This keeps a process restart or
+lost consumer from leaving a job permanently running while retaining
+at-least-once persistence semantics.
+
+On worker startup, the stream cursor begins at the current Valkey stream tail,
+not at `0-0`. Historical wake-ups are not authoritative work state; the
+normalized PostgreSQL ledger is scanned and queued/stale rows are republished
+after the cursor is established. This prevents a restart from replaying an
+unbounded historical stream before processing current work.
+
 ## Corpus backfill (2026-08-20)
 
 Operational backfill MUST use `scripts/queue_post_content_backfill.py`. It
