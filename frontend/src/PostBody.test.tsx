@@ -189,4 +189,28 @@ describe("PostBody", () => {
     expect(screen.getByText("Main panel")).toBeInTheDocument();
     expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
   });
+
+  it("keeps source-image placement while showing persisted OCR and caption evidence", () => {
+    render(
+      <PostBody
+        body={'<p>Before</p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" /><p>After</p>'}
+        imageContent={[
+          {
+            unit_index: 1,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "OCR from the source image",
+            caption: "Source diagram",
+            tags: ["diagram"],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByAltText("Source diagram")).toBeInTheDocument();
+    expect(screen.getByText("Source diagram")).toBeInTheDocument();
+    expect(screen.getByText("OCR from the source image")).toBeInTheDocument();
+    expect(screen.getByText("Before").compareDocumentPosition(screen.getByAltText("Source diagram")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByAltText("Source diagram").compareDocumentPosition(screen.getByText("After")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });

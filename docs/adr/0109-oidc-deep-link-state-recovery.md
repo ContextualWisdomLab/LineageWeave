@@ -1,4 +1,4 @@
-# ADR 0103: Recover authenticated deep links across OIDC callback contexts
+# ADR 0109: Recover authenticated deep links across OIDC callback contexts
 
 - Status: Accepted
 - Date: 2026-08-20
