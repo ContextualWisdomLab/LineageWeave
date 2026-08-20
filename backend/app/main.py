@@ -118,6 +118,7 @@ from backend.app.activity_stream import (
     ticket_status_changed_summary,
 )
 from backend.app.affiliate_tree_ingestion import fetch_affiliate_forest, fetch_voc_evidence
+from backend.app.api_key_registry import API_KEY_SCOPE, issue_api_key
 from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
 from backend.app.customer_hint_ingestion import resolve_customer_hint
@@ -618,6 +619,137 @@ async def read_me(
         "permission_codes": sorted(account.permission_codes),
         "corporate_entities": entities,
     }
+
+
+class ApiKeyCreateRequest(BaseModel):
+    key_name: str
+
+
+@app.get("/api/api-keys")
+async def list_api_keys(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """List masked MCP keys owned by the Keyverse-authenticated account."""
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            select api_client_key_id, key_name, key_prefix, created_at,
+                   last_used_at, expires_at, revoked_at
+              from api_client_key
+             where user_account_id = $1
+             order by created_at desc
+            """,
+            account.user_account_id,
+        )
+    return {
+        "api_keys": [
+            {
+                "api_key_id": str(row["api_client_key_id"]),
+                "key_name": row["key_name"],
+                "key_prefix": row["key_prefix"],
+                "scope_codes": [API_KEY_SCOPE],
+                "created_at": row["created_at"],
+                "last_used_at": row["last_used_at"],
+                "expires_at": row["expires_at"],
+                "revoked_at": row["revoked_at"],
+            }
+            for row in rows
+        ]
+    }
+
+
+@app.post("/api/api-keys", status_code=status.HTTP_201_CREATED)
+async def create_api_key(
+    request: ApiKeyCreateRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Issue one MCP key; the secret is returned exactly once."""
+    _require_post_read(account)
+    key_name = " ".join(request.key_name.split())
+    if not 1 <= len(key_name) <= 100:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "key_name must contain 1..100 characters")
+    material = issue_api_key()
+    try:
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                row = await conn.fetchrow(
+                    """
+                    insert into api_client_key
+                        (user_account_id, key_name, key_prefix, secret_digest)
+                    values ($1, $2, $3, $4)
+                    returning api_client_key_id, created_at
+                    """,
+                    account.user_account_id,
+                    key_name,
+                    material.key_prefix,
+                    material.secret_digest,
+                )
+                await conn.execute(
+                    "insert into api_client_key_scope (api_client_key_id, scope_code) values ($1, $2)",
+                    row["api_client_key_id"],
+                    API_KEY_SCOPE,
+                )
+                await conn.execute(
+                    """
+                    insert into api_client_key_event
+                        (api_client_key_id, actor_user_account_id, event_code)
+                    values ($1, $2, 'issued')
+                    """,
+                    row["api_client_key_id"],
+                    account.user_account_id,
+                )
+    except asyncpg.UniqueViolationError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, "an active key with this name already exists") from exc
+    return {
+        "api_key_id": str(row["api_client_key_id"]),
+        "key_name": key_name,
+        "key_prefix": material.key_prefix,
+        "scope_codes": [API_KEY_SCOPE],
+        "api_key": material.value,
+        "created_at": row["created_at"],
+    }
+
+
+@app.delete("/api/api-keys/{api_key_id}")
+async def revoke_api_key(
+    api_key_id: UUID,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, bool]:
+    """Revoke an owned MCP key without exposing its secret or history."""
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            row = await conn.fetchrow(
+                """
+                select api_client_key_id, revoked_at
+                  from api_client_key
+                 where api_client_key_id = $1
+                   and user_account_id = $2
+                """,
+                api_key_id,
+                account.user_account_id,
+            )
+            if row is None:
+                raise HTTPException(status.HTTP_404_NOT_FOUND, "API key not found")
+            if row["revoked_at"] is None:
+                await conn.execute(
+                    "update api_client_key set revoked_at = now() where api_client_key_id = $1",
+                    api_key_id,
+                )
+                await conn.execute(
+                    """
+                    insert into api_client_key_event
+                        (api_client_key_id, actor_user_account_id, event_code)
+                    values ($1, $2, 'revoked')
+                    """,
+                    api_key_id,
+                    account.user_account_id,
+                )
+    return {"revoked": True}
 
 
 class LocalePreferenceRequest(BaseModel):

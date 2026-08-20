@@ -596,6 +596,35 @@ export function fetchPostContent(accessToken: string, postId: string): Promise<P
   return backendFetch<PostContentResponse>(`/api/posts/${postId}/content`, accessToken);
 }
 
+export interface ApiKeyRecord {
+  api_key_id: string;
+  key_name: string;
+  key_prefix: string;
+  scope_codes: string[];
+  created_at: string;
+  last_used_at?: string | null;
+  expires_at?: string | null;
+  revoked_at?: string | null;
+}
+
+export function fetchApiKeys(accessToken: string): Promise<{ api_keys: ApiKeyRecord[] }> {
+  return backendFetch("/api/api-keys", accessToken);
+}
+
+export function createApiKey(
+  accessToken: string,
+  keyName: string,
+): Promise<ApiKeyRecord & { api_key: string }> {
+  return backendFetch("/api/api-keys", accessToken, {
+    method: "POST",
+    body: JSON.stringify({ key_name: keyName }),
+  });
+}
+
+export function revokeApiKey(accessToken: string, apiKeyId: string): Promise<{ revoked: boolean }> {
+  return backendFetch(`/api/api-keys/${apiKeyId}`, accessToken, { method: "DELETE" });
+}
+
 export interface PostBookmark {
   post_id: string;
   bookmarked: boolean;
