@@ -579,7 +579,7 @@ correctness, authorization coverage, or release readiness. Re-run the same
 aggregate projection against the authorized deployment before treating it as
 buyer-facing evidence.
 
-## Current PR queue checkpoint: 2026-08-21 08:11 KST
+## Current PR queue checkpoint: 2026-08-21 08:39 KST
 
 The current GitHub queue was re-fetched after the previous checkpoint. The
 following buyer-surface heads are exact at this checkpoint; they remain
@@ -588,30 +588,36 @@ and blocked at query time, and none had an `APPROVED` review decision.
 
 | PR | Head | Base | Gate state |
 |---:|---|---|---|
-| #331 | `18d85bd9e651f2f1d590bc47da4946e50ec920f3` | `fix/member-locale-bootstrap-race` | `BLOCKED`, review required |
+| #334 | `89f19eb1378ac785b80ea344d6f4e6e2bbe4a312` | `agent/authenticated-mcp-global-ask` | `BLOCKED`, review required |
+| #333 | `236b83b5af9632f83457dcc822b792dc239bcc7a` | `feat/analysis-run-name-evidence-lineage` | `BLOCKED`, approval absent |
+| #332 | `88e721eda91094fd09b98f17ea2a14f188c65f07` | `docs/current-gap-audit` | `BLOCKED`, review required |
+| #331 | `72e842bad482b73974d8ab4f09d2385582c300d6` | `fix/member-locale-bootstrap-race` | `BLOCKED`, review required |
 | #330 | `e14dd956ad2493c42a16076a2adc095e0df5733b` | `codex/normalize-source-indent-semantics` | `BLOCKED`, review required |
 | #329 | `b5b08071ab869854da696566343e97feb04add20` | `fix/validate-partial-image-regions` | `BLOCKED`, review required |
-| #328 | `63dfc21ceb7b57790f236c55ca11a687bf2f34df` | `fix/oidc-deep-link-locale` | `BLOCKED`, review required |
-| #327 | `142819bb154b7fb2dc7497080d897eee4f4a6181` | `main` | `BLOCKED`, approval absent |
+| #328 | `d0e159872147c7d7bd8bbf042c5552041eb44a4a` | `fix/oidc-deep-link-locale` | `BLOCKED`, review required |
+| #327 | `e6ef7cc53bcfef1e3dd61705b9ab243251860730` | `main` | `BLOCKED`, review required |
 | #326 | `80f44f6508f877dae2db16674a2a2b0cd590ca14` | `main` | `BLOCKED`, review required |
 | #325 | `d80d691cd8ed780a8fb0072199304f595b1ea75e` | `fix/validate-partial-image-regions` | `BLOCKED`, review required |
 | #324 | `7a49d3e36a2375c7e53e9fc34bfe39c7e37def10` | `codex/preserve-partial-image-regions` | `BLOCKED`, review required |
 | #323 | `579bae314551a6ade2ea3d1d89a2df2a8f1331c9` | `main` | `BLOCKED`, review required |
-| #322 | `f316e0ab5507b101744e632d3c1596a3ed674d22` | `fix/stale-summary-buyer-continuity` | `BLOCKED`, review required |
+| #322 | `a50a53013d3d4cecb1315843131073c7bb6b2a70` | `fix/stale-summary-buyer-continuity` | `BLOCKED`, review required |
 | #320 | `0f8bc28f116dc4c6e3a04c01d042de53c51e9173` | `codex/normalize-source-indent-semantics` | `BLOCKED`, review required |
 | #319 | `e84994e9145d3f7a1a7849e94c91de02cccf62fc` | `codex/post-structure-case-fixes` | `BLOCKED`, review required |
 | #318 | `8e67050b4cf6ea0a205f7cbafb5492f0a6c164fe` | `feat/multilingual-organization-label-search` | `BLOCKED`, review required |
 | #317 | `ca3f56ae4e8b7ad815274e9ab25989397654a2c8` | `codex/fix-mixed-body-indentation-311` | `BLOCKED`, review required |
-| #316 | `1d4e65707abbdea2d0d131cbc03742fe9cfb8ab0` | `feat/global-ask-public-claim-verification-v2200` | `BLOCKED`, review required |
+| #316 | `94c0c98790e67c70544bb77683bed81ce3007d31` | `feat/global-ask-public-claim-verification-v2200` | `BLOCKED`, review required |
 | #314 | `d36e106501af34d09f3541d9bf698c2e2ac8a379` | `fix/stale-summary-buyer-continuity` | `BLOCKED`, review required |
 | #311 | `ab27898860c35120814b02980d70ebbb4137a3d1` | `fix/project-bound-summary-actions` | `BLOCKED`, review required |
-| #309 | `9c2d26c1931ef5bb9b810122376893578afddba8` | `fix/buyer-image-evidence` | `BLOCKED`, review required |
-| #308 | `3072e0100c37d32c964333b491594ca08c6a4a96` | `fix/buyer-image-evidence` | `BLOCKED`, review required |
-| #307 | `516603cc2a327f0558f8e49e30e38c7ae2fa725b` | `fix/oidc-deep-link-locale` | `BLOCKED`, review required |
-| #306 | `fc7969e1d75f840ccbcc02653331bdafc1382036` | `feat/analysis-run-name-evidence-lineage` | `BLOCKED`, review required |
+| #309 | `d8a938cd6e7e72b8bc0a7b11149afcfcc7820270` | `fix/buyer-image-evidence` | `BLOCKED`, review required |
+| #308 | `1fa42f8bba63ba31ba52ee42496d08f5b40c7e9f` | `fix/buyer-image-evidence` | `BLOCKED`, review required |
+| #307 | `9e17c2a0630a3803ac5a9d6788ef9bc8a1fa9549` | `fix/oidc-deep-link-locale` | `BLOCKED`, review required |
+| #306 | `3a32312b9cf9e368c58d7df5efb0c699dfe73152` | `feat/analysis-run-name-evidence-lineage` | `BLOCKED`, review required |
 | #303 | `817681bb0d491c4c71bcf24b0d9554afd34b3a71` | `feat/buyer-evidence-gap-structure` | `BLOCKED`, review required |
-| #302 | `8ed7eac5dc0e827cfdcfb7143eaa6db7c9c92189` | `feat/analysis-run-name-evidence-lineage` | `BLOCKED`, approval absent |
-| #258 | `dcbd4c14ab66a4734473de402c8c8b321afb50c0` | `main` | `BLOCKED`; Checks queued, Devin review re-requested |
+| #302 | `6ecd42b096398a0c748e1c7fe69ddb66ee25bd7c` | `feat/analysis-run-name-evidence-lineage` | `BLOCKED`, review required |
+| #301 | `7a5fc4b781eb4bd7c0994c73a243bdeaeca243d9` | `feat/event-lineage-node-keeps-gnb-focus-v2170` | `BLOCKED`, review required |
+| #298 | `1e9c3d9337b733b19d03a2ef687b7187f800c1b4` | `feat/global-ask-public-claim-verification-v2200` | `DIRTY`, review required |
+| #275 | `35d33c7c5731069daaf8c23da9d24ab6d79d8074` | `agent/authenticated-mcp-global-ask` | `BLOCKED`, review required |
+| #258 | `41036e2cd8095c5e7b9c333fd72c542cb676ef5e` | `main` | `BLOCKED`, review required |
 
 The queue contains valid stacked work for the known buyer gaps, including
 OIDC deep links, visual-region evidence, semantic table rendering, project
