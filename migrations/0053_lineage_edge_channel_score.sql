@@ -17,7 +17,7 @@ insert into common_lookup_value (
     ('lineage_channel', 'lineage_channel_llm', 'LLM adjudication', 3)
 on conflict (lookup_code) do nothing;
 
-create table lineage_edge_channel_score (
+create table if not exists lineage_edge_channel_score (
     parent_post_id uuid not null,
     child_post_id uuid not null,
     channel_code text not null references common_lookup_value (lookup_code),
@@ -38,7 +38,7 @@ create table lineage_edge_channel_score (
     check (channel_score >= 0 and channel_score <= 1)
 );
 
-create index lineage_edge_channel_score_channel_idx
+create index if not exists lineage_edge_channel_score_channel_idx
     on lineage_edge_channel_score (channel_code, parent_post_id, child_post_id);
 
 comment on table lineage_edge_channel_score is
