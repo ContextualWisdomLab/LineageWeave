@@ -55,6 +55,26 @@ describe("PostBody", () => {
     expect(screen.getByText("- 설치 확인")).toHaveAttribute("data-indent-level", "2");
   });
 
+  it("uses persisted indentation for ordinary paragraphs without table markers", () => {
+    render(
+      <PostBody
+        body="<p>1. 출장 결과</p><p>1) 공통 사항</p>"
+        structureUnits={[0, 1].map((unit_index) => ({
+          unit_index,
+          unit_kind_code: "dom" as const,
+          unit_text: ["1. 출장 결과", "1) 공통 사항"][unit_index],
+          indent_level: unit_index,
+          indent_source_code: "llm" as const,
+          indent_confidence: 0.98,
+          indent_evidence: "Numbering and paragraph context",
+        }))}
+      />,
+    );
+
+    expect(screen.getByText("1. 출장 결과")).toHaveAttribute("data-indent-level", "0");
+    expect(screen.getByText("1) 공통 사항")).toHaveAttribute("data-indent-level", "1");
+  });
+
   it("renders persisted table rows as a table instead of cell paragraphs", () => {
     render(
       <PostBody

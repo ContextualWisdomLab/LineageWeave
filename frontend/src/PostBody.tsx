@@ -137,7 +137,11 @@ export function PostBody({
   let textOrdinal = 0;
   const textUnits = structureUnits.filter((unit) => unit.unit_kind_code !== "image");
   const hasPersistedStructuralUnits = structureUnits.some(
-    (unit) => isStructuredTableRow(unit) || unit.unit_label === "footnote",
+    (unit) =>
+      isStructuredTableRow(unit) ||
+      unit.unit_label === "footnote" ||
+      unit.indent_source_code === "explicit" ||
+      unit.indent_source_code === "llm",
   );
   if (hasPersistedStructuralUnits) {
     return <div className="post-body">{renderStructuredUnits(body, structureUnits, imageContent)}</div>;
