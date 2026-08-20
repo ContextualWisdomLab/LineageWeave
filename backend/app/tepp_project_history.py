@@ -178,6 +178,14 @@ async def _load_project_rows(
     corporate_entity_ids: Iterable[str],
     knowledge_cutoff: datetime,
 ) -> list[Mapping[str, Any]]:
+    """Load a bounded, ABAC-visible exact-project history around one focus post.
+
+    The cited/source IDs are prioritization hints, not a retrieval boundary. A
+    reader opening one VOC must still receive earlier contract, specification,
+    delivery, and handoff evidence from the same authorized project. The focus
+    and cited rows are kept ahead of other history when the 128-event safety
+    bound is reached; Python later restores strict chronological order.
+    """
     focus = await conn.fetchrow(
         """
         select post_id, source_project_code, source_project_name
@@ -189,7 +197,7 @@ async def _load_project_rows(
     if focus is None or not str(focus["source_project_code"] or "").strip():
         return []
     project_key = str(focus["source_project_code"]).strip()
-    allowed_ids = list(dict.fromkeys([focus_post_id, *source_post_ids]))
+    preferred_ids = list(dict.fromkeys([focus_post_id, *source_post_ids]))
     rows = await conn.fetch(
         """
         select post.post_id,
@@ -203,18 +211,23 @@ async def _load_project_rows(
                post.author_account_id::text as author_actor_id
           from source_post post
          where post.source_project_code = $1
-           and post.post_id = any($2::uuid[])
-           and post.created_at <= $3
+           and post.created_at <= $4
            and (
                post.visibility_code = 'public'
-               or post.corporate_entity_id::text = any($4::text[])
+               or post.corporate_entity_id::text = any($5::text[])
            )
-         order by post.created_at, post.post_id
+         order by
+               case when post.post_id = $2::uuid then 0 else 1 end,
+               case when array_position($3::uuid[], post.post_id) is not null then 0 else 1 end,
+               post.created_at desc,
+               post.post_id
+         limit 128
         """,
         project_key,
-        allowed_ids,
+        focus_post_id,
+        preferred_ids,
         knowledge_cutoff,
-        list(corporate_entity_ids),
+        [str(value) for value in corporate_entity_ids],
     )
     return [
         {
