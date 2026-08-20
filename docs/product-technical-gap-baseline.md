@@ -208,41 +208,56 @@ a likely narrow false-positive suppression, not authority to dismiss the
 findings: the required security workflow and independent reviewer must accept
 the exact-head disposition.
 
-## Current exact-head audit: 2026-08-20 18:33
+## Current exact-head audit: 2026-08-20 18:47
 
 The active stack was re-fetched after each normal branch update. The current
-heads are: #258 `f8d2fa98`, #260 `dfd95d9c`, #261 `bd1b4d2f`, #262 `80445b8a`,
-#263 `d670acd5`, #264 `d5dbdf71`, #266 `26a6d9c6`, #270 `10aced61`, #275
-`35035783`, #276 `635420d2`, #282 `8a59af2f`, #285 `76af0295`, #286
-`1175cd9d`, #287 `554efb9b`, #298 `49c9976f`, #301 `59ccdf91`, #302
-`40b0a8ea`, #303 `f5b23459`, #306 `e0dbc386`, #307 `313d38a4`, #308
-`e81aff8c`, and #309 `e7d1b353`.
+heads are: #258 `f8d2fa98d622e4294cf08f24a87a7db697479f4f`, #260
+`dfd95d9cd98b0ea8a51136b5f6615077b837ff1d`, #261
+`bd1b4d2fbb53978b5c231b4aa00531632604f6ec`, #262
+`80445b8acffb356f42a4e8ae4a7b3a1d24b07cb2`, #263
+`d670acd51eb24c6fcf235f9681018d8ce45b19b4`, #264
+`d5dbdf711121384199d5f586a06f5fd04dd32251`, #266
+`26a6d9c61c7a7c8b52c924858a362c728f67a320`, #270
+`3a24c6b774bcfdd539e7e01d11195ce1887e6f12`, #275
+`35035783fae5f1e6763b38dbb6daf3d86934fdf5`, #276
+`635420d29c1637718d7f9ea985b7940ef74a4cac`, #282
+`6eeaf89de45f8f236858164bd211b21f5fddb7c4`, #285
+`4eaeb2305f91fd0d339845bda4b6b23a93cadc11`, #286
+`1175cd9db3fdabb6b31179808092bf058e8cd536`, #287
+`554efb9b047b37c9027296116aa393d94fce6b4b`, #298
+`49c9976fa6ee3792b9adae5b8132365a67c9bb15`, #301
+`59ccdf91bfddfe885be775b5c466819f5350baf5`, #302
+`40b0a8ea22ff7fb6de5419feefaa244cca3070f5`, #303
+`2702fd69ab6000fc6c7bc6cf9ed5d3dfdb362970`, #306
+`e0dbc3860278e13d74b6dadd5be4fd75e9c107b1`, #307
+`313d38a4b58b99aaca279607486684ac04582de5`, #308
+`3c74f1fa536cff3987f38139303f06cd48a8d9c7`, and #309
+`e6fd907ed36d1228729c0df8d6cd22f603051891`.
 
-At this audit no PR had a formal `APPROVED` review. Required checks for the
-updated heads were queued, with no completed failure observed in the aggregate
-GitHub status. This is a gate state, not a merge claim. The parallel buyer
-surface branches were also checked for ADR identity collisions; #308 owns ADR
-0111 and #309 now owns ADR 0112.
+Twenty-four PRs are open in the repository, including the 22 PRs listed above
+from #258 onward. At this audit no PR had a formal `APPROVED` review. Required
+checks for the updated heads were still queued or otherwise non-terminal, with
+no completed failure used as merge evidence. This is a gate state, not a merge
+claim. The parallel buyer-surface branches were also checked for ADR identity
+collisions: #308 owns ADR 0112 and #309 owns ADR 0113.
 
 Local regression evidence for the newly audited branches includes #303 backend
 focused image/persistence/static-SQL tests `49 passed`, #303 frontend `135
-passed`, #306 frontend `130 passed`, #307 frontend `131 passed`, #308 backend
-focused summary/schema/API tests `132 passed, 6 skipped` before the legacy
-delimiter regression was added, #308 focused summary/documentation tests `26
-passed, 1 skipped` after that fix, and #309 frontend `132 passed`. These are
-branch-local observations and do not replace protected Checks or independent
-review.
+passed`, #306 frontend `130 passed`, #307 frontend `131 passed`, #308 full
+backend `723 passed, 16 skipped` plus a focused normalization regression `5
+passed`, and #309 frontend `133 passed`. These are branch-local observations
+and do not replace protected Checks or independent review.
 
 ## Gap register
 
 | Priority | Gap | Evidence | Closure criterion |
 |---|---|---|---|
-| P0 | No protected-main integrated buyer journey for the active feature stack | Main is 2.12.5; 18 open PRs span dependent and parallel bases | Establish one reviewed integration order, update each exact head, pass required checks, merge without bypass, then run login-to-source browser acceptance on main |
+| P0 | No protected-main integrated buyer journey for the active feature stack | Main is 2.12.5; 24 open PRs span dependent and parallel bases | Establish one reviewed integration order, update each exact head, pass required checks, merge without bypass, then run login-to-source browser acceptance on main |
 | P0 | Current runtime proof is incomplete | The current aggregate/OIDC/ABAC checks cover data presence and selected boundaries; 2026-08-18/19 notes cover other slices, but no evidence set proves the entire PR head or main journey | Complete the real-stack matrix on an exact revision: browser login/navigation, Ask, reports, Vision, TEPP availability, action population, and cleanup |
 | P0 | PR #190's duplicate ADR identity was corrected but is not protected-main truth | Active PR head `ac1b4e17` now uses ADR 0038 and aligns the entity-resolution claims with implementation; independent review and Checks remain pending | Re-audit exact head, obtain independent approval, pass required Checks, and merge normally; never merge a duplicate ADR identity |
 | P0 | PR #258 is not review/CI complete at its exact current head | #258 is mergeable but BLOCKED: 14 of 22 checks queued, no approval, and four unresolved scanner threads on two SQL modules | Classify each finding against the literal SQL and bound arguments; fix a real flow or add a narrow documented suppression for a false positive, resolve threads, obtain independent approval, and re-check the exact head |
 | P1 | Requirements were implicit across ADRs and architecture phases | No prior PRD/TRD/requirement traceability baseline existed | Keep FR/NFR IDs in this document linked from ADR index; require new product PRs to name affected IDs and runtime evidence |
-| P1 | Active PR topology obscures release truth | 8 blocked, 8 unstable, and 2 dirty; many bases are other open branches | Publish a dependency order, retire obsolete/duplicate branches, and avoid version claims until their base chain reaches main |
+| P1 | Active PR topology obscures release truth | The current 24-PR snapshot contains blocked, unstable, and unknown merge states; many bases are other open branches | Publish a dependency order, retire obsolete/duplicate branches, and avoid version claims until their base chain reaches main |
 | P1 | ADR 0100 is exercised only by a bounded target, not accepted across the corpus | Commit `15e1a378` and the v5 contract are on PR #258; one authorized target refresh stored three action rows, while corpus-wide accepted/dropped/absent counts remain unknown | Regenerate an authorized bounded sample, report aggregate accepted/dropped/absent counts, verify source evidence and actor FKs, then exercise the buyer popup without exposing record content |
 | P1 | ADR 0101 is active-PR behavior but not protected-main behavior | Commit `1c260f20` contains the corrected ADR link, boundary, and focused tests; independent review and protected-main merge remain pending | Re-audit the exact head, obtain independent approval, pass required checks, merge normally, and collect fresh runtime evidence |
 | P1 | ADR status vocabulary is inconsistent and sometimes stale | Several ADRs say “Accepted on this active PR; not protected-main truth” even after branch evolution | Add a mechanical ADR status/link audit that distinguishes Proposed, Accepted-on-PR, Accepted-on-main, and Superseded |
@@ -257,7 +272,7 @@ review.
 | Protected main | `origin/main` manifests show 2.12.5 | Existing main contracts only | Fresh main runtime matrix |
 | Historical local runtime | Authenticated PostgreSQL report rebuilds and orchestrator/Vision observations dated 2026-08-18/19 | Those exact bounded observations | Current head/main equivalence and full browser journey |
 | Active PRs | GitHub head/base, review, merge, check, and review-thread states at snapshot | Proposed increments and gate state | Normal merge and post-merge runtime behavior |
-| Local PR checkout | PR #258 was observed at `bf599aca`; full suite passed and one authorized target summary refresh returned v5/HTTP 200 with persisted actions | Only the exact observations in the current-data table; no claim for protected-main behavior | Full suite/CI, browser journey, external channel results, review, merge, and corpus-level action evidence |
+| Local PR checkout | PR #258 was re-fetched at `f8d2fa98d622e4294cf08f24a87a7db697479f4f`; its backend suite passed `716`, with `16` integration skips | Only the exact observations in the current-data table; no claim for protected-main behavior | Full suite/CI, browser journey, external channel results, review, merge, and corpus-level action evidence |
 
 ## Maintenance rule
 
