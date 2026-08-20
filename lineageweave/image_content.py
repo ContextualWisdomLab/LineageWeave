@@ -26,9 +26,10 @@ from __future__ import annotations
 
 import base64
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from html.parser import HTMLParser
-from typing import Protocol
+from typing import Any, Protocol
 from urllib.parse import urlparse
 
 from .embedded_image_payload import decode_data_uri_image, source_offset
@@ -134,7 +135,14 @@ class ImageContentClient(Protocol):
 
     available: bool
 
-    def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
+    def describe(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+        *,
+        session_id: str | None = None,
+        metadata: Mapping[str, str] | None = None,
+    ) -> ImageDescription:
         """Return OCR text, caption, and tags for one image.
 
         Implementations must raise if they cannot produce a description.
@@ -149,7 +157,14 @@ class NullImageContentClient:
 
     available = False
 
-    def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:  # pragma: no cover
+    def describe(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+        *,
+        session_id: str | None = None,
+        metadata: Mapping[str, str] | None = None,
+    ) -> ImageDescription:  # pragma: no cover
         raise RuntimeError("NullImageContentClient has no image channel; check .available first")
 
 
@@ -270,24 +285,35 @@ class OpenAiCompatibleVisionClient:
         self._model = model
         self._timeout = timeout
 
-    def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
+    def describe(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+        *,
+        session_id: str | None = None,
+        metadata: Mapping[str, str] | None = None,
+    ) -> ImageDescription:
         data_uri = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
+        request_metadata = dict(metadata or {})
+        if session_id:
+            request_metadata.setdefault("session_id", session_id)
+        payload: dict[str, Any] = {
+            "messages": [
+                {"role": "system", "content": _RESPONSE_FORMAT},
+                {
+                    "role": "user",
+                    "content": [{"type": "image_url", "image_url": {"url": data_uri}}],
+                },
+            ],
+            "mode": "auto",
+            "reasoning_effort": "auto",
+            "max_tokens": 1200,
+        }
+        if request_metadata:
+            payload["metadata"] = request_metadata
         body = post_json(
             f"{self._base_url}/chat/completions",
-            {
-                "model": self._model,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": _RESPONSE_FORMAT},
-                            {"type": "image_url", "image_url": {"url": data_uri}},
-                        ],
-                    }
-                ],
-                "max_tokens": 300,
-                "temperature": 0.0,
-            },
+            payload,
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
@@ -295,17 +321,19 @@ class OpenAiCompatibleVisionClient:
         return _parse_description(content)
 
 
-def orchestrator_vision_client(base_url: str, api_key: str, model: str) -> ImageContentClient:
+def orchestrator_vision_client(base_url: str, api_key: str, model: str = "") -> ImageContentClient:
     """Build a vision client against the same orchestrator root other channels use.
 
     Other clients POST ``{base_url}/v1/chat/completions``;
     :class:`OpenAiCompatibleVisionClient` POSTs ``{base_url}/chat/completions``,
     so this appends ``/v1`` unless already present. An ``http://`` orchestrator
     (local docker) is allowed because the other channels already talk to the
-    same URL. A construct-time error degrades to the unavailable null rather
+    same URL. The optional ``model`` argument is retained for source
+    compatibility but is not sent: contextual-orchestrator owns vision-model
+    discovery. A construct-time error degrades to the unavailable null rather
     than crashing the request that asked for a description.
     """
-    if not (base_url and api_key and model):
+    if not (base_url and api_key):
         return NullImageContentClient()
     parsed = urlparse(base_url)
     vision_base = base_url.rstrip("/")

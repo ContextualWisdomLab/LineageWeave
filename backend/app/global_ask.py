@@ -45,24 +45,34 @@ _STOP_TERMS = frozenset(
 )
 
 _SEARCH_SQL = """
-select post_id, post_title, post_body, visibility_code, corporate_entity_id, created_at,
-       (case when lower(post_title) like '%' || lower($2) || '%' then 3 else 0 end
-        + case when lower(left(post_body, 16384)) like '%' || lower($2) || '%' then 1 else 0 end)
+select p.post_id, p.post_title, p.post_body, p.visibility_code, p.corporate_entity_id,
+       p.author_account_id, p.process_unit_id, p.voc_type_code,
+       p.thread_group_key, p.secondary_grouping_key, ce.corporate_entity_code,
+       pu.process_unit_code, p.created_at,
+       (case when lower(p.post_title) like '%' || lower($2) || '%' then 3 else 0 end
+        + case when lower(left(p.post_body, 16384)) like '%' || lower($2) || '%' then 1 else 0 end)
        as relevance_score
-  from source_post
- where (visibility_code = 'public' or corporate_entity_id = any($1::uuid[]))
-   and (lower(post_title) like '%' || lower($2) || '%'
-        or lower(left(post_body, 16384)) like '%' || lower($2) || '%')
- order by relevance_score desc, created_at desc, post_id desc
+  from source_post p
+  join corporate_entity ce on ce.corporate_entity_id = p.corporate_entity_id
+  left join process_unit pu on pu.process_unit_id = p.process_unit_id
+ where (p.visibility_code = 'public' or p.corporate_entity_id = any($1::uuid[]))
+   and (lower(p.post_title) like '%' || lower($2) || '%'
+        or lower(left(p.post_body, 16384)) like '%' || lower($2) || '%')
+ order by relevance_score desc, p.created_at desc, p.post_id desc
  limit $3
 """
 
 _FALLBACK_SQL = """
-select post_id, post_title, post_body, visibility_code, corporate_entity_id, created_at,
+select p.post_id, p.post_title, p.post_body, p.visibility_code, p.corporate_entity_id,
+       p.author_account_id, p.process_unit_id, p.voc_type_code,
+       p.thread_group_key, p.secondary_grouping_key, ce.corporate_entity_code,
+       pu.process_unit_code, p.created_at,
        0 as relevance_score
-  from source_post
- where visibility_code = 'public' or corporate_entity_id = any($1::uuid[])
- order by created_at desc, post_id desc
+  from source_post p
+  join corporate_entity ce on ce.corporate_entity_id = p.corporate_entity_id
+  left join process_unit pu on pu.process_unit_id = p.process_unit_id
+ where p.visibility_code = 'public' or p.corporate_entity_id = any($1::uuid[])
+ order by p.created_at desc, p.post_id desc
  limit 1
 """
 
@@ -172,6 +182,31 @@ def _bounded_sources(sources: list[ChatSourceDocument]) -> list[ChatSourceDocume
     return bounded
 
 
+def _llm_request_context(anchor: Any, account: CurrentAccount) -> tuple[str, dict[str, str]]:
+    """Build stable per-post correlation and non-secret evidence metadata."""
+    post_id = str(anchor["post_id"])
+    session_id = f"lineageweave:post:{post_id}"
+    metadata = {
+        "session_id": session_id,
+        "post_id": post_id,
+        "requesting_user_account_id": account.user_account_id,
+    }
+    for source_key, metadata_key in (
+        ("author_account_id", "author_account_id"),
+        ("corporate_entity_id", "corporate_entity_id"),
+        ("corporate_entity_code", "corp_code"),
+        ("process_unit_id", "process_unit_id"),
+        ("process_unit_code", "pu_code"),
+        ("voc_type_code", "voc_type_code"),
+        ("thread_group_key", "thread_group_key"),
+        ("secondary_grouping_key", "secondary_grouping_key"),
+    ):
+        value = anchor.get(source_key)
+        if value not in (None, ""):
+            metadata[metadata_key] = str(value)
+    return session_id, metadata
+
+
 async def answer_global_question(
     conn: Any,
     account: CurrentAccount,
@@ -189,12 +224,15 @@ async def answer_global_question(
         raise GlobalAskNoEvidenceError("no authorized LineageWeave evidence is available")
     if not client.available:
         raise GlobalAskUnavailableError("contextual-orchestrator is unavailable")
+    session_id, metadata = _llm_request_context(anchor, account)
     try:
         gathered_sources = await gather_chat_sources(
             conn,
             str(anchor["post_id"]),
             lambda row: _can_see_post(account, row),
             vision_client=vision_client,
+            session_id=session_id,
+            metadata=metadata,
         )
     except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
         raise GlobalAskUnavailableError(f"evidence retrieval failed: {exc}") from exc
@@ -202,7 +240,13 @@ async def answer_global_question(
     if not sources:
         raise GlobalAskNoEvidenceError("no authorized LineageWeave evidence is available")
     try:
-        answer = await asyncio.to_thread(client.answer, normalized_question, sources)
+        answer = await asyncio.to_thread(
+            client.answer,
+            normalized_question,
+            sources,
+            session_id=session_id,
+            metadata=metadata,
+        )
     except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
         raise GlobalAskUnavailableError(f"contextual-orchestrator failed: {exc}") from exc
     source_ids = tuple(source.post_id for source in sources)

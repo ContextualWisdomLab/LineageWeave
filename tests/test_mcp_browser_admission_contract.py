@@ -25,9 +25,13 @@ def test_environment_example_documents_the_bounded_browser_surface() -> None:
 def test_compose_passes_the_request_limit_only_to_the_mcp_service() -> None:
     """The dedicated MCP process receives the admission limit."""
     compose = _read("docker-compose.yml")
-    assert compose.count("MCP_MAX_REQUEST_BYTES:") == 1
     assert "MCP_MAX_REQUEST_BYTES: ${MCP_MAX_REQUEST_BYTES:-65536}" in compose
-    mcp_section = compose.split("\n  mcp:\n", 1)[1].split("\n  frontend:\n", 1)[0]
+    before_mcp, mcp_and_after = compose.split("\n  mcp:\n", 1)
+    mcp_section, after_mcp = mcp_and_after.split("\n  frontend:\n", 1)
+    # The line's own right-hand-side default (${MCP_MAX_REQUEST_BYTES:-65536})
+    # repeats the key text -- a bare substring count is not "one service".
+    assert "MCP_MAX_REQUEST_BYTES:" not in before_mcp
+    assert "MCP_MAX_REQUEST_BYTES:" not in after_mcp
     assert "MCP_ALLOWED_ORIGINS:" in mcp_section
     assert "MCP_MAX_REQUEST_BYTES:" in mcp_section
 

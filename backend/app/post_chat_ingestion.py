@@ -96,6 +96,9 @@ async def gather_chat_sources(
     post_id: str,
     can_see_post: Callable[[asyncpg.Record], bool],
     vision_client: ImageContentClient | None = None,
+    *,
+    session_id: str | None = None,
+    metadata: dict[str, str] | None = None,
 ) -> list[ChatSourceDocument]:
     """Post `post_id` itself, plus every linked post the requesting account
     can actually see -- numbered in the order returned, which is the
@@ -115,11 +118,18 @@ async def gather_chat_sources(
     )
     if this_post is None:
         return []
+    source_metadata = dict(metadata or {})
+    source_metadata["source_post_id"] = str(this_post["post_id"])
     sources = [
         ChatSourceDocument(
             str(this_post["post_id"]),
             this_post["post_title"],
-            normalize_post_body(this_post["post_body"], vision_client=vision_client).text,
+            normalize_post_body(
+                this_post["post_body"],
+                vision_client=vision_client,
+                session_id=session_id,
+                metadata=source_metadata,
+            ).text,
         )
     ]
 
@@ -135,11 +145,18 @@ async def gather_chat_sources(
     )
     for row in rows:
         if can_see_post(row):
+            source_metadata = dict(metadata or {})
+            source_metadata["source_post_id"] = str(row["post_id"])
             sources.append(
                 ChatSourceDocument(
                     str(row["post_id"]),
                     row["post_title"],
-                    normalize_post_body(row["post_body"], vision_client=vision_client).text,
+                    normalize_post_body(
+                        row["post_body"],
+                        vision_client=vision_client,
+                        session_id=session_id,
+                        metadata=source_metadata,
+                    ).text,
                 )
             )
 

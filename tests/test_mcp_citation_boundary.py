@@ -42,7 +42,14 @@ class _OutsideOnlyClient:
 
     available: bool = True
 
-    def answer(self, _question: str, _sources: list[ChatSourceDocument]) -> ChatAnswer:
+    def answer(
+        self,
+        _question: str,
+        _sources: list[ChatSourceDocument],
+        *,
+        session_id: str | None = None,
+        metadata: dict[str, str] | None = None,
+    ) -> ChatAnswer:
         return ChatAnswer("unsupported answer", ("outside-source",))
 
 

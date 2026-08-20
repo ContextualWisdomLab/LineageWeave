@@ -101,6 +101,9 @@ services:
       # (dropped, not faked). Set these to a running contextual-orchestrator
       # to turn the channels on -- NVIDIA_NIM_API_KEY lives on that
       # orchestrator, never in this compose file.
+      LLM_GATEWAY_URL: ${LLM_GATEWAY_URL:-}
+      LLM_GATEWAY_API_URL: ${LLM_GATEWAY_API_URL:-}
+      LLM_GATEWAY_API_KEY: ${LLM_GATEWAY_API_KEY:-}
       ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-}
       ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}
       VISION_MODEL: ${VISION_MODEL:-}
@@ -136,6 +139,9 @@ services:
       MCP_ALLOWED_HOSTS: localhost:${MCP_PORT:-18001},127.0.0.1:${MCP_PORT:-18001},mcp:8001
       MCP_ALLOWED_ORIGINS: ${MCP_ALLOWED_ORIGINS:-}
       MCP_MAX_REQUEST_BYTES: ${MCP_MAX_REQUEST_BYTES:-65536}
+      LLM_GATEWAY_URL: ${LLM_GATEWAY_URL:-}
+      LLM_GATEWAY_API_URL: ${LLM_GATEWAY_API_URL:-}
+      LLM_GATEWAY_API_KEY: ${LLM_GATEWAY_API_KEY:-}
       ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-}
       ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-}
       VISION_MODEL: ${VISION_MODEL:-}

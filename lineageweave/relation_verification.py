@@ -59,6 +59,12 @@ _ORG_TOKEN_STOPWORDS = frozenset(
         "foundation",
         "the",
         "and",
+        "fictitious",
+        "nonexistent",
+        "synthetic",
+        "sample",
+        "example",
+        "unknown",
     }
 )
 
@@ -177,6 +183,8 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
     if not tokens:
         return None
     haystack = f"{host} {result.get('content') or ''}".lower()
-    if any(token in haystack for token in tokens):
+    required_matches = len(tokens) // 2 + 1
+    matches = sum(1 for token in tokens if token in haystack)
+    if matches >= required_matches:
         return url
     return None

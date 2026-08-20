@@ -267,17 +267,14 @@ def _commitment_extraction_client():
 def _vision_client():
     """Live vision client when configured; otherwise the unavailable null.
 
-    Same contextual-orchestrator gateway as every other channel, plus a
-    vision-capable model name (``VISION_MODEL``) -- unlike the other
-    channels, a missing model name alone (base_url/api_key present but no
-    model) also means unavailable, since there is no sane default model
-    to guess.
+    Same contextual-orchestrator gateway as every other channel. Model
+    discovery is owned by contextual-orchestrator; this product never guesses
+    or sends a vision model name.
     """
     settings = load_settings()
     return orchestrator_vision_client(
         settings.orchestrator_base_url,
         settings.orchestrator_api_key,
-        settings.vision_model,
     )
 
 

@@ -3,16 +3,18 @@
 The product keeps retrieval and reasoning as two explicit steps (Lewis et
 al., 2020): the caller assembles authorized source documents and this module
 asks contextual-orchestrator to conduct a verified, source-only answer with
-citations. The supported HTTP orchestration contract is ``mode="conduct"``;
-there is no private ``verify`` mode or direct-provider fallback.
+citations. The supported HTTP orchestration contract is ``mode="auto"``;
+model selection, provider protocol, and reasoning allocation remain owned by
+contextual-orchestrator.
 """
 
 from __future__ import annotations
 
 import json
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import Any, Protocol
 
 from .http_client import post_json
 
@@ -81,7 +83,14 @@ class PostChatClient(Protocol):
 
     available: bool
 
-    def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:
+    def answer(
+        self,
+        question: str,
+        sources: list[ChatSourceDocument],
+        *,
+        session_id: str | None = None,
+        metadata: Mapping[str, str] | None = None,
+    ) -> ChatAnswer:
         """Answer ``question`` using only ``sources``, with citations."""
         raise NotImplementedError
 
@@ -91,29 +100,51 @@ class NullPostChatClient:
 
     available = False
 
-    def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:
+    def answer(
+        self,
+        question: str,
+        sources: list[ChatSourceDocument],
+        *,
+        session_id: str | None = None,
+        metadata: Mapping[str, str] | None = None,
+    ) -> ChatAnswer:
         """Fail explicitly so an absent channel cannot look like an empty answer."""
         raise RuntimeError("NullPostChatClient cannot answer; check .available first")
 
 
-_CHAT_PROMPT_TEMPLATE = """\
-Answer the question below using ONLY the numbered source documents
-provided -- do not use outside knowledge, and do not answer if the
-sources don't actually support an answer (say so instead of guessing).
+_CHAT_SYSTEM_PROMPT = """\
+Answer only from the numbered source documents in the user message.
+Do not use outside knowledge or guess when the sources do not support an answer.
+Track every source number used by the answer. The response format is enforced
+by the gateway; cite only source numbers that actually support the answer.
+"""
 
-For every part of your answer, track which source number(s) it came from.
-
-Reply with ONLY a JSON object (no markdown fences, no prose) with exactly
-these fields:
-  "answer_text": string -- your answer, in prose
-  "cited_source_numbers": array of integers -- every source number (1-based)
-    your answer actually drew from
-
+_CHAT_USER_TEMPLATE = """\
 Sources:
 {sources_block}
 
 Question: {question}
 """
+
+POST_CHAT_RESPONSE_FORMAT: dict[str, Any] = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "lineageweave_post_chat",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "answer_text": {"type": "string"},
+                "cited_source_numbers": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                },
+            },
+            "required": ["answer_text", "cited_source_numbers"],
+            "additionalProperties": False,
+        },
+    },
+}
 
 _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 
@@ -157,12 +188,12 @@ def parse_chat_response(content: str, sources: list[ChatSourceDocument]) -> Chat
 
 
 class ContextualOrchestratorPostChatClient:
-    """Run verified source-only chat through supported ``conduct`` mode.
+    """Run verified source-only chat through contextual-orchestrator ``auto``.
 
-    ``conduct`` is contextual-orchestrator's multi-step workflow contract and
-    includes verification/synthesis when its configured runtime supports those
-    stages. Missing or broken model-based verification fails closed in the
-    orchestrator; LineageWeave never falls back to a direct provider.
+    Model choice, provider protocol, multi-agent workflow, and reasoning
+    effort are delegated to contextual-orchestrator. Missing or broken
+    model-based verification fails closed there; LineageWeave never falls back
+    to a direct provider.
     """
 
     available = True
@@ -172,7 +203,7 @@ class ContextualOrchestratorPostChatClient:
         base_url: str,
         api_key: str,
         *,
-        reasoning_effort: str = "high",
+        reasoning_effort: str = "auto",
         timeout: float = DEFAULT_CHAT_TIMEOUT_SECONDS,
     ) -> None:
         self._base_url = base_url.rstrip("/")
@@ -180,17 +211,33 @@ class ContextualOrchestratorPostChatClient:
         self._reasoning_effort = reasoning_effort
         self._timeout = timeout
 
-    def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:
+    def answer(
+        self,
+        question: str,
+        sources: list[ChatSourceDocument],
+        *,
+        session_id: str | None = None,
+        metadata: Mapping[str, str] | None = None,
+    ) -> ChatAnswer:
         """Call contextual-orchestrator and require the structured citation contract."""
-        prompt = _CHAT_PROMPT_TEMPLATE.format(
+        prompt = _CHAT_USER_TEMPLATE.format(
             sources_block=_render_sources_block(sources), question=question
         )
+        request_metadata = dict(metadata or {})
+        if session_id:
+            request_metadata.setdefault("session_id", session_id)
         body = post_json(
             f"{self._base_url}/v1/chat/completions",
             {
-                "messages": [{"role": "user", "content": prompt}],
-                "mode": "conduct",
+                "messages": [
+                    {"role": "system", "content": _CHAT_SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
+                "max_tokens": 2400,
+                "response_format": POST_CHAT_RESPONSE_FORMAT,
+                **({"metadata": request_metadata} if request_metadata else {}),
             },
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,

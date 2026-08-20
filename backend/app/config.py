@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 
 
 def _csv_setting(name: str, default: str = "") -> list[str]:
@@ -30,6 +31,39 @@ def _bounded_int_setting(
     if not minimum <= value <= maximum:
         raise ValueError(f"{name} must be between {minimum} and {maximum}")
     return value
+
+
+def _home_dotenv_values(names: set[str]) -> dict[str, str]:
+    """Read only requested non-secret setting names from ``~/.env``."""
+    try:
+        lines = (Path.home() / ".env").read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return {}
+    values: dict[str, str] = {}
+    for raw_line in lines:
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[7:].lstrip()
+        key, separator, raw_value = line.partition("=")
+        if not separator or key.strip() not in names:
+            continue
+        value = raw_value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        values[key.strip()] = value
+    return values
+
+
+def _gateway_setting(*names: str) -> str:
+    """Resolve process env first, then the user's home dotenv file."""
+    for name in names:
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    dotenv = _home_dotenv_values(set(names))
+    return next((dotenv[name].strip() for name in names if dotenv.get(name, "").strip()), "")
 
 
 @dataclass(frozen=True)
@@ -59,12 +93,9 @@ class Settings:
     # a fabricated default, when unconfigured (see keyman_ingestion.py).
     orchestrator_base_url: str
     orchestrator_api_key: str
-    # A vision-capable model name on the same contextual-orchestrator gateway
-    # (orchestrator_base_url/_api_key) -- describes embedded post images
-    # before an LLM call or embedding sees the post body (ADR: see
-    # lineageweave/post_content_normalization.py). Empty means the image
-    # channel is unavailable, same "no fake channel" discipline as every
-    # other pluggable client.
+    # Legacy compatibility field. The value is not sent to the gateway:
+    # contextual-orchestrator owns vision-model discovery. The image channel
+    # is unavailable only when the shared gateway credentials are absent.
     vision_model: str
     # Event queue for post/ticket activity (XADD/XRANGE), per the brief's
     # "Event Queue, not MQ" requirement -- see backend/app/activity_stream.py.
@@ -121,8 +152,10 @@ def load_settings() -> Settings:
             "KEYCLOAK_ISSUER", f"{keycloak_base_url}/realms/{keycloak_realm}"
         ),
         frontend_origins=_csv_setting("FRONTEND_ORIGINS", "http://localhost:5173"),
-        orchestrator_base_url=os.environ.get("ORCHESTRATOR_BASE_URL", ""),
-        orchestrator_api_key=os.environ.get("ORCHESTRATOR_API_KEY", ""),
+        orchestrator_base_url=_gateway_setting(
+            "LLM_GATEWAY_URL", "LLM_GATEWAY_API_URL", "ORCHESTRATOR_BASE_URL"
+        ),
+        orchestrator_api_key=_gateway_setting("LLM_GATEWAY_API_KEY", "ORCHESTRATOR_API_KEY"),
         vision_model=os.environ.get("VISION_MODEL", ""),
         valkey_url=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
         searxng_base_url=os.environ.get("SEARXNG_BASE_URL", ""),
