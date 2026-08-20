@@ -61,6 +61,11 @@ _ORG_TOKEN_STOPWORDS = frozenset(
         "and",
     }
 )
+_HANGUL_TOKEN = re.compile(r"[가-힣]+")
+_KOREAN_PARTICLE_SUFFIX = re.compile(
+    r"(?:에게서|한테서|에서는|으로는|이라고|에서|에게|한테|께서|부터|까지|처럼|보다|만큼|"
+    r"으로|이랑|라고|이|가|은|는|을|를|의|에|께|와|과|도|만|로|랑|하고)+"
+)
 
 STATUS_PENDING = "verify_pending"
 STATUS_CORROBORATED = "verify_corroborated"
@@ -108,6 +113,7 @@ class NullRelationVerificationClient:
     available = False
 
     def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:  # pragma: no cover
+        """Reject verification because this client has no search transport."""
         raise RuntimeError(
             "NullRelationVerificationClient has no search channel; check .available first"
         )
@@ -117,20 +123,24 @@ class SearxngRelationVerificationClient:
     """Queries a self-hosted Searxng instance's JSON API for corroborating
     evidence of a claimed organization/relationship.
 
-    The presence/absence signal is deliberately coarse: any search result
-    for "``<organization_name>`` ``<relationship_label>``" is treated as
-    corroboration that the named organization has a real-world footprint
-    consistent with the claim, not proof the specific relationship is
-    true (a genuinely false relationship between two REAL organizations
-    would still return results about each organization separately). This
-    catches the failure mode actually observed from LLM classification --
-    an invented organization name with zero web footprint -- rather than
-    claiming to adjudicate relationship truth from search snippets alone.
+    The presence/absence signal is deliberately coarse: a result whose
+    host or snippet contains every distinctive token in the organization
+    name is treated as corroboration that the named organization has a
+    real-world footprint consistent with the claim, not proof the specific
+    relationship is true (a genuinely false relationship between two REAL
+    organizations would still return results about each organization
+    separately). Requiring every token prevents an unrelated page that
+    happens to contain one common word from corroborating an invented name.
+    This catches the failure mode actually observed from LLM
+    classification -- an invented organization name with zero web
+    footprint -- rather than claiming to adjudicate relationship truth from
+    search snippets alone.
     """
 
     available = True
 
     def __init__(self, base_url: str, *, timeout: float = 15.0) -> None:
+        """Configure a validated Searxng base URL and request timeout."""
         parsed = urlparse(base_url)
         if parsed.scheme not in {"http", "https"}:
             raise ValueError(f"unsupported Searxng base URL scheme: {parsed.scheme or 'missing'}")
@@ -138,6 +148,7 @@ class SearxngRelationVerificationClient:
         self._timeout = timeout
 
     def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:
+        """Return the first corroborating result, or an explicit negative result."""
         query = f"{organization_name} {relationship_label}"
         body = get_json(
             f"{self._base_url}/search?q={quote(query, safe='')}&format=json",
@@ -159,24 +170,46 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
     """Return ``result['url']`` when it is a real-world footprint of ``organization_name``.
 
     Search engines echo the query in result titles, so "any hit" is not
-    corroboration. A result counts only when a distinctive name token
+    corroboration. A result counts only when every distinctive name token
     appears in the host or snippet, and the host is not itself a search
-    page. Missing or empty URLs are not evidence.
+    page. The title is intentionally excluded because search engines echo
+    the query there. Missing or empty URLs are not evidence.
     """
     url = result.get("url")
     if not isinstance(url, str) or not url.strip():
         return None
-    host = urlparse(url).netloc.lower()
+    try:
+        parsed_url = urlparse(url)
+        host = (parsed_url.hostname or "").lower()
+    except ValueError:
+        return None
+    if parsed_url.scheme not in {"http", "https"}:
+        return None
     if not host or any(marker in host for marker in _SEARCH_HOST_MARKERS):
         return None
-    tokens = [
+    tokens = {
         token.lower()
         for token in _ORG_TOKEN.findall(organization_name)
         if token.lower() not in _ORG_TOKEN_STOPWORDS
-    ]
+    }
     if not tokens:
         return None
-    haystack = f"{host} {result.get('content') or ''}".lower()
-    if any(token in haystack for token in tokens):
+    haystack_tokens = {
+        token.lower()
+        for token in _ORG_TOKEN.findall(f"{host} {result.get('content') or ''}")
+    }
+    if all(
+        any(_organization_token_matches(token, candidate) for candidate in haystack_tokens)
+        for token in tokens
+    ):
         return url
     return None
+
+
+def _organization_token_matches(expected: str, observed: str) -> bool:
+    """Match exact tokens, or a Hangul token followed only by Korean particles."""
+    if expected == observed:
+        return True
+    if not _HANGUL_TOKEN.fullmatch(expected) or not observed.startswith(expected):
+        return False
+    return _KOREAN_PARTICLE_SUFFIX.fullmatch(observed[len(expected) :]) is not None
