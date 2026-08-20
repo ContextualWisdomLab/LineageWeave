@@ -66,6 +66,7 @@ def _serve() -> tuple[HTTPServer, str]:
 
 
 def test_null_client_is_unavailable_not_silently_uncorroborated() -> None:
+    """A missing search channel is unavailable, not a negative finding."""
     client = NullRelationVerificationClient()
     assert client.available is False
     with pytest.raises(RuntimeError):
@@ -73,6 +74,7 @@ def test_null_client_is_unavailable_not_silently_uncorroborated() -> None:
 
 
 def test_searxng_client_reports_corroborated_with_evidence_url() -> None:
+    """A matching result returns corroboration and its evidence URL."""
     server, base = _serve()
     try:
         client = SearxngRelationVerificationClient(base_url=base)
@@ -87,6 +89,7 @@ def test_searxng_client_reports_corroborated_with_evidence_url() -> None:
 
 
 def test_searxng_client_reports_uncorroborated_with_no_evidence_url_when_search_is_empty() -> None:
+    """An empty result set remains explicitly uncorroborated."""
     server, base = _serve()
     try:
         client = SearxngRelationVerificationClient(base_url=base)
@@ -99,6 +102,7 @@ def test_searxng_client_reports_uncorroborated_with_no_evidence_url_when_search_
 
 
 def test_query_echo_on_a_search_host_is_not_corroboration() -> None:
+    """A search-result URL and echoed title cannot become evidence."""
     assert (
         corroborating_evidence_url(
             "Zzqxvthorp Fictitious Nonexistent Org",
@@ -113,6 +117,7 @@ def test_query_echo_on_a_search_host_is_not_corroboration() -> None:
 
 
 def test_org_token_in_result_host_is_corroboration() -> None:
+    """A distinctive organization token in the host is evidence."""
     assert (
         corroborating_evidence_url(
             "Acme Corp",
@@ -138,6 +143,7 @@ def test_partial_multi_token_name_is_not_corroboration() -> None:
 
 
 def test_all_distinctive_multi_token_name_parts_are_corroboration() -> None:
+    """All distinctive name tokens may be distributed across host and content."""
     assert (
         corroborating_evidence_url(
             "Aurora Grid Power",
@@ -148,6 +154,32 @@ def test_all_distinctive_multi_token_name_parts_are_corroboration() -> None:
             },
         )
         == "https://aurora-grid.example/news"
+    )
+
+
+def test_title_only_full_name_is_not_corroboration() -> None:
+    """A title echo alone is not an organization footprint."""
+    assert (
+        corroborating_evidence_url(
+            "Aurora Grid Power",
+            {
+                "url": "https://news.example/item",
+                "title": "Aurora Grid Power",
+                "content": "",
+            },
+        )
+        is None
+    )
+
+
+def test_compound_host_token_is_not_two_name_tokens() -> None:
+    """A compound host word must not match separate organization tokens."""
+    assert (
+        corroborating_evidence_url(
+            "Green House",
+            {"url": "https://greenhouse.example/news", "title": "News", "content": ""},
+        )
+        is None
     )
 
 
@@ -163,6 +195,7 @@ def test_legal_suffix_alone_is_not_corroboration() -> None:
 
 
 def test_hangul_org_name_token_is_corroboration() -> None:
+    """A complete Hangul organization token in content is evidence."""
     assert (
         corroborating_evidence_url(
             "한빛그리드",
@@ -177,5 +210,6 @@ def test_hangul_org_name_token_is_corroboration() -> None:
 
 
 def test_searxng_client_refuses_non_http_scheme() -> None:
+    """The client rejects non-HTTP URLs before making a request."""
     with pytest.raises(ValueError, match="unsupported Searxng base URL scheme"):
         SearxngRelationVerificationClient(base_url="file:///etc/passwd")

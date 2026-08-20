@@ -173,14 +173,17 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
     host = urlparse(url).netloc.lower()
     if not host or any(marker in host for marker in _SEARCH_HOST_MARKERS):
         return None
-    tokens = [
+    tokens = {
         token.lower()
         for token in _ORG_TOKEN.findall(organization_name)
         if token.lower() not in _ORG_TOKEN_STOPWORDS
-    ]
+    }
     if not tokens:
         return None
-    haystack = f"{host} {result.get('content') or ''}".lower()
-    if all(token in haystack for token in tokens):
+    haystack_tokens = {
+        token.lower()
+        for token in _ORG_TOKEN.findall(f"{host} {result.get('content') or ''}")
+    }
+    if tokens <= haystack_tokens:
         return url
     return None
