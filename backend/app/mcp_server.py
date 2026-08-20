@@ -258,7 +258,11 @@ def build_mcp_http_app(
             "MCP-Protocol-Version",
             "Mcp-Session-Id",
         ],
-        expose_headers=["MCP-Protocol-Version", "Mcp-Session-Id"],
+        expose_headers=[
+            "MCP-Protocol-Version",
+            "Mcp-Session-Id",
+            "WWW-Authenticate",
+        ],
         allow_credentials=False,
         max_age=600,
     )
