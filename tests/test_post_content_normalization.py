@@ -220,7 +220,8 @@ def test_locator_failure_falls_back_to_parent_image_evidence() -> None:
     )
 
     assert result.image_results[0].status_code == "described"
-    assert result.image_results[0].regions[0].region == ImageRegion(0.0, 0.0, 1.0, 1.0)
+    assert result.image_results[0].regions == ()
+    assert result.image_results[0].description == description
 
 
 def test_empty_locator_result_falls_back_to_parent_image_evidence() -> None:
@@ -233,7 +234,8 @@ def test_empty_locator_result_falls_back_to_parent_image_evidence() -> None:
     )
 
     assert result.image_results[0].status_code == "described"
-    assert result.image_results[0].regions[0].region == ImageRegion(0.0, 0.0, 1.0, 1.0)
+    assert result.image_results[0].regions == ()
+    assert result.image_results[0].description == description
 
 
 def test_partial_locator_with_no_successful_description_fails_closed() -> None:
