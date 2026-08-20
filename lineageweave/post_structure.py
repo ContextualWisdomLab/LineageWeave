@@ -106,6 +106,7 @@ class ContextualOrchestratorPostStructureClient:
                 },
                 "mode": "auto",
                 "reasoning_effort": "auto",
+                "max_tokens": 4096,
             },
             headers={"authorization": f"Bearer {self.api_key}"},
             timeout=self.timeout,

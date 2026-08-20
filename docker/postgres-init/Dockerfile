@@ -18,7 +18,7 @@ COPY migrations/0009_shared_metric_bank.sql /docker-entrypoint-initdb.d/10-share
 COPY migrations/0010_report_item_information.sql /docker-entrypoint-initdb.d/11-report-item-information.sql
 COPY migrations/0011_post_chat_result.sql /docker-entrypoint-initdb.d/12-post-chat-result.sql
 COPY migrations/0012_report_leftover_pair.sql /docker-entrypoint-initdb.d/13-report-leftover-pair.sql
-COPY migrations/0012_role_responsibility_agent_type.sql /docker-entrypoint-initdb.d/14-role-responsibility-agent-type.sql
+COPY migrations/0060_role_responsibility_agent_type.sql /docker-entrypoint-initdb.d/14-role-responsibility-agent-type.sql
 COPY migrations/0013_person_job_title.sql /docker-entrypoint-initdb.d/15-person-job-title.sql
 COPY migrations/0014_role_responsibility_team_actor_type.sql /docker-entrypoint-initdb.d/16-role-responsibility-team-actor-type.sql
 COPY migrations/0015_organization_name_resolution.sql /docker-entrypoint-initdb.d/17-organization-name-resolution.sql
