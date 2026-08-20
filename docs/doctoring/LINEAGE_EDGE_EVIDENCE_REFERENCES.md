@@ -1,13 +1,13 @@
 # Event Lineage edge-evidence research and standards traceability
 
-**Status:** Supporting doctoring for proposed ADR 0099. It does not promote an
+**Status:** Supporting doctoring for proposed ADR 0100. It does not promote an
 active-PR implementation to protected-main truth.
 
 | Evidence source | Product implication | Owning artifact | Executable evidence |
 |---|---|---|---|
-| Topic Detection and Tracking treats story links as uncertain detection evidence assembled from multiple signals rather than unquestioned fact. | Preserve independent channel scores and show them beside the fused selection value. | ADR 0064; ADR 0099 | `tests/test_lineage_channel_evidence.py`; `frontend/src/LineageDag.test.tsx` |
-| Record linkage begins with fallible blocking and comparison evidence rather than a self-authenticating identity relation. | Secondary-key agreement remains one explicit channel and never becomes authority by itself. | `lineageweave/channels.py`; ADR 0099 | true-channel persistence and exact-value UI tests |
-| W3C PROV-O separates entities, activities, agents, derivations, and attribution. | Keep reconstructed edge evidence distinct from source facts, external verification, and TEPP/fast-mlsirm measurement artifacts. | ADR 0065; ADR 0099 | normalized schema, ABAC projection tests, API/UI type contract |
+| Topic Detection and Tracking treats story links as uncertain detection evidence assembled from multiple signals rather than unquestioned fact. | Preserve independent channel scores and show them beside the fused selection value. | ADR 0064; ADR 0100 | `tests/test_lineage_channel_evidence.py`; `frontend/src/LineageDag.test.tsx` |
+| Record linkage begins with fallible blocking and comparison evidence rather than a self-authenticating identity relation. | Secondary-key agreement remains one explicit channel and never becomes authority by itself. | `lineageweave/channels.py`; ADR 0100 | true-channel persistence and exact-value UI tests |
+| W3C PROV-O separates entities, activities, agents, derivations, and attribution. | Keep reconstructed edge evidence distinct from source facts, external verification, and TEPP/fast-mlsirm measurement artifacts. | ADR 0065; ADR 0100 | normalized schema, ABAC projection tests, API/UI type contract |
 
 ## APA 7th references
 
