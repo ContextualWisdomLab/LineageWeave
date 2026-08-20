@@ -12,7 +12,7 @@ import hashlib
 import math
 from typing import Any, TypeVar
 
-from .chunking import Chunk, chunk_by_dom, normalize_semantic_text
+from .chunking import Chunk, chunk_by_source_body
 from .embedding_client import EmbeddingClient
 from .image_content import ImageContentClient, ImageDescription
 from .post_content_normalization import ImageContentResult, normalize_post_body
@@ -79,9 +79,7 @@ async def persist_post_content(
     guessed vector. The raw body remains in ``source_post`` for future retry.
     """
     normalized = normalized_result or normalize_post_body(body, vision_client)
-    chunks = chunk_by_dom(body)
-    if not chunks and body:
-        chunks = [Chunk(text=normalize_semantic_text(body), unit_type="plain_text", index=0)]
+    chunks = chunk_by_source_body(body)
     image_results = {result.chunk_index: result for result in normalized.image_results}
     formatting = {hint.chunk_index: hint.style for hint in normalized.formatting_hints}
 
