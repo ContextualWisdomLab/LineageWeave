@@ -14,7 +14,7 @@ class _Connection:
         self.cached = cached
         self.executed: list[tuple[str, tuple[object, ...]]] = []
 
-    async def fetchrow(self, _query: str, _raw_name: str):
+    async def fetchrow(self, _query: str, _raw_name: str, _context_sha256: str):
         return self.cached
 
     async def execute(self, query: str, *args: object) -> str:
@@ -44,6 +44,18 @@ def test_cached_verified_name_is_returned_without_resolution() -> None:
     result = asyncio.run(ingestion.resolve_organization_name(conn, _UnavailableClient(), _Client(), "AGP", "context"))
     assert result == "Aurora Grid Power"
     assert conn.executed == []
+
+
+def test_cache_key_includes_context_digest(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ingestion, "resolve_and_verify_organization_name", lambda *_args: _resolution(STATUS_CORROBORATED))
+    conn = _Connection()
+    result = asyncio.run(ingestion.resolve_organization_name(conn, _Client(), _Client(), "AGP", "different context"))
+
+    assert result == "Aurora Grid Power"
+    query, args = conn.executed[0]
+    assert "context_sha256" in query
+    assert args[0] == "AGP"
+    assert len(args[1]) == 64
 
 
 def test_cached_unverified_name_stays_raw() -> None:
