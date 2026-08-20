@@ -646,3 +646,18 @@ Review are running for this new head; no protected merge claim is made.
 
 The next action is to reconcile the new #309 checks and formal approval against
 its current base before any dependent merge or restack.
+
+## Exact-head restack checkpoint: 2026-08-21 08:42 KST
+
+Concurrent stack updates changed the exact heads without force-push: PR #302
+now targets the #258 head `41036e2cd8095c5e7b9c333fd72c542cb676ef5e` at
+`6ecd42b096398a0c748e1c7fe69ddb66ee25bd7c`, and PR #327 advanced with a
+non-HTTP(S) evidence-link guard to
+`e6ef7cc53bcfef1e3dd61705b9ab243251860730`. Local exact validation passed for
+#302 (`739 passed, 16 skipped`; frontend `137 passed`, lint/build/Storybook) and
+#327 (`573 passed, 16 skipped`; focused relation verification `25 passed`,
+100% line/branch coverage). Hosted Checks and formal approvals remain open.
+
+The next action is to re-read each current head and terminal Checks before
+merging; predecessor review and check results do not transfer across these
+concurrent head changes.
