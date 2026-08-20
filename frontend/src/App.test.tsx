@@ -770,24 +770,6 @@ describe("App, authenticated", () => {
           }),
         );
       }
-      if (url.endsWith("/api/customer-master")) {
-        return Promise.resolve(
-          jsonResponse({
-            corporate_entities: [
-              {
-                corporate_entity_id: "corp-demo",
-                entity_name: "Demo Corp",
-                corporate_entity_code: "DEMO-CORP-01",
-                entity_level_code: "company",
-                parent_entity_id: null,
-              },
-            ],
-            keymen: [],
-            source_customer_hints: [],
-            source_author_hints: [],
-          }),
-        );
-      }
       if (url.endsWith("/api/rankings")) {
         const rankings = options?.rankings ?? {
           status: "unavailable" as const,
