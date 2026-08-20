@@ -45,6 +45,17 @@ from lineageweave.caldav_client import (
     CALDAV_UNAVAILABLE_NEXT_ACTION,
     build_caldav_client,
 )
+from lineageweave.claim_verification import (
+    CLAIM_NOT_ENOUGH_INFORMATION,
+    SearxngOrchestratedClaimVerificationClient,
+    VERIFICATION_COMPLETED,
+    VERIFICATION_NO_PUBLIC_CLAIMS,
+    VERIFICATION_SKIPPED,
+    VERIFICATION_UNAVAILABLE,
+    ClaimVerificationResult,
+    NullClaimVerificationClient,
+    public_claim_candidates,
+)
 from lineageweave.entity_relationship_classification import (
     ContextualOrchestratorEntityRelationshipClient,
     NullEntityRelationshipClient,
@@ -368,6 +379,22 @@ def _post_chat_client():
         return NullPostChatClient()
     return ContextualOrchestratorPostChatClient(
         base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+    )
+
+
+def _claim_verification_client():
+    """Return the opt-in public-evidence channel, or its unavailable null."""
+    settings = load_settings()
+    if not (
+        settings.searxng_base_url
+        and settings.orchestrator_base_url
+        and settings.orchestrator_api_key
+    ):
+        return NullClaimVerificationClient()
+    return SearxngOrchestratedClaimVerificationClient(
+        settings.searxng_base_url,
+        settings.orchestrator_base_url,
+        settings.orchestrator_api_key,
     )
 
 
@@ -2497,6 +2524,7 @@ class GlobalAskRequest(BaseModel):
 
     question: str
     session_id: str | None = None
+    verify_external: bool = False
 
 
 def global_ask_timeline(sources: list[ChatSourceDocument]) -> list[dict[str, str | None]]:
@@ -2518,6 +2546,55 @@ def global_ask_timeline(sources: list[ChatSourceDocument]) -> list[dict[str, str
         }
         for source in ordered
     ]
+
+
+def _verification_next_action(status_code: str) -> str:
+    """Give the Buyer a bounded action without treating web evidence as authority."""
+
+    return {
+        VERIFICATION_SKIPPED: "Enable public verification to check eligible public claims.",
+        VERIFICATION_UNAVAILABLE: "Configure public search and contextual-orchestrator, then retry.",
+        VERIFICATION_NO_PUBLIC_CLAIMS: "Inspect the internal cited posts; no public claim was eligible.",
+        VERIFICATION_COMPLETED: "Inspect public evidence separately before any governed graph review.",
+        CLAIM_NOT_ENOUGH_INFORMATION: "Collect stronger authoritative evidence before accepting the claim.",
+    }.get(status_code, "Inspect the authorized cited posts and their evidence.")
+
+
+async def _verify_public_claims(
+    question: str,
+    sources: list[ChatSourceDocument],
+    public_post_ids: list[str] | tuple[str, ...],
+    *,
+    verify_external: bool,
+) -> tuple[str, tuple[ClaimVerificationResult, ...]]:
+    """Verify only explicit, bounded, public claims outside the internal answer."""
+
+    if not verify_external:
+        return VERIFICATION_SKIPPED, ()
+    authorized_ids = frozenset(str(post_id) for post_id in public_post_ids)
+    claims = tuple(
+        claim
+        for claim in public_claim_candidates(sources, question)
+        if set(claim.source_post_ids).issubset(authorized_ids)
+    )
+    if not claims:
+        return VERIFICATION_NO_PUBLIC_CLAIMS, ()
+    client = _claim_verification_client()
+    if not client.available:
+        return VERIFICATION_UNAVAILABLE, ()
+    try:
+        results = tuple(
+            await asyncio.gather(
+                *(asyncio.to_thread(client.verify, claim) for claim in claims)
+            )
+        )
+    except (HttpClientError, KeyError, OSError, TypeError, ValueError):
+        return VERIFICATION_UNAVAILABLE, ()
+    return VERIFICATION_COMPLETED, tuple(
+        result
+        for result in results
+        if set(result.source_post_ids).issubset(authorized_ids)
+    )
 
 
 @app.get("/api/posts/{post_id}/chat")
@@ -2677,6 +2754,12 @@ async def ask_agent(
         conversation.recent_turns,
     )
     if not sources:
+        verification_status, external_claims = await _verify_public_claims(
+            question,
+            sources,
+            (),
+            verify_external=request.verify_external,
+        )
         async with pool.acquire() as conn:
             await persist_global_ask_turn(conn, conversation.session_id, question, "", ())
         await publish_operation_event(
@@ -2693,7 +2776,9 @@ async def ask_agent(
             "source_post_ids": [],
             "cited_post_evidence": [],
             "timeline": [],
-            "next_action": "No authorized source posts are available for this question.",
+            "external_verification_status": verification_status,
+            "external_claims": [claim.to_payload() for claim in external_claims],
+            "next_action": _verification_next_action(verification_status),
         }
     try:
         answer = await asyncio.to_thread(
@@ -2708,6 +2793,12 @@ async def ask_agent(
             f"Ask Agent is unavailable: {exc}",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
+    verification_status, external_claims = await _verify_public_claims(
+        question,
+        sources,
+        cited_ids,
+        verify_external=request.verify_external,
+    )
     async with pool.acquire() as conn:
         await persist_global_ask_turn(
             conn,
@@ -2730,6 +2821,9 @@ async def ask_agent(
         "cited_post_evidence": cited_post_evidence(sources, cited_ids),
         "source_post_ids": [source.post_id for source in sources],
         "timeline": global_ask_timeline(sources),
+        "external_verification_status": verification_status,
+        "external_claims": [claim.to_payload() for claim in external_claims],
+        "next_action": _verification_next_action(verification_status),
     }
 
 
