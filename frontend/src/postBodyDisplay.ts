@@ -101,7 +101,7 @@ function stripHtmlTags(text: string): string {
     .replace(BREAK_TAG, "\n")
     .replace(BLOCK_TAG, (tag) => {
       const closing = /^<\//.test(tag);
-      const listContainer = /^<\s*(?:ul|ol|oi)\b/i.test(tag);
+      const listContainer = /^<\s*\/?\s*(?:ul|ol|oi)\b/i.test(tag);
       if (closing) {
         if (listContainer) listDepth = Math.max(0, listDepth - 1);
         return "\n\n";
@@ -111,7 +111,7 @@ function stripHtmlTags(text: string): string {
         return "\n\n";
       }
       if (/^<\s*li\b/i.test(tag)) {
-        return indentMarker(Math.max(listDepth * 4, declaredIndentWidth(tag)));
+        return `\n\n${indentMarker(Math.max(listDepth * 4, declaredIndentWidth(tag)))}`;
       }
       return `\n\n${indentMarker(declaredIndentWidth(tag))}`;
     })

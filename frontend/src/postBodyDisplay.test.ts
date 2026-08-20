@@ -88,6 +88,20 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("resets indentation between separate top-level lists", () => {
+    expect(splitPostBody("<ul><li>First</li></ul><ul><li>Second</li></ul>")).toEqual([
+      { kind: "text", text: "First", indentLevel: 1 },
+      { kind: "text", text: "Second", indentLevel: 1 },
+    ]);
+  });
+
+  it("keeps list items separate when optional closing tags are omitted", () => {
+    expect(splitPostBody("<ul><li>First<li>Second</ul>")).toEqual([
+      { kind: "text", text: "First", indentLevel: 1 },
+      { kind: "text", text: "Second", indentLevel: 1 },
+    ]);
+  });
+
   it("preserves prose around the supported Markdown table shape", () => {
     expect(
       splitMarkdownTableBody("Intro.\n\n| Project | Status |\n| --- | --- |\n| Alpha | Ready |\n\nNext action."),
