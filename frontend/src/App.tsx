@@ -3094,10 +3094,12 @@ function CalendarPanel({
   accessToken,
   onSelectPost,
   namedNextAction = false,
+  focusEventLineageOnSelect = false,
 }: {
   accessToken: string;
   onSelectPost: (postId: string, options?: SelectPostOptions) => void;
   namedNextAction?: boolean;
+  focusEventLineageOnSelect?: boolean;
 }) {
   const [calendar, setCalendar] = useState<CalendarResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -3158,7 +3160,12 @@ function CalendarPanel({
                 <button
                   className="post-list-item"
                   aria-label={`${t("Open commitment for:")} ${entry.post_title}`}
-                  onClick={() => onSelectPost(entry.post_id, { fromCalendar: true })}
+                  onClick={() =>
+                    onSelectPost(
+                      entry.post_id,
+                      focusEventLineageOnSelect ? { fromCalendar: true } : undefined,
+                    )
+                  }
                 >
                   <span className="ticket-title">
                     {entry.commitment_summary ?? entry.ticket_title}
@@ -3598,6 +3605,7 @@ function PostList({
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [vocTypeFilterOptions, setVocTypeFilterOptions] = useState<PostFilterOption[]>([]);
   const [weekFilter, setWeekFilter] = useState("all");
+  const [isoWeekFilterOptions, setIsoWeekFilterOptions] = useState<string[]>([]);
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
@@ -3701,12 +3709,14 @@ function PostList({
         typeFilter.length > 0 ? typeFilter : undefined,
         visibilityFilter === "all" ? undefined : visibilityFilter,
         sort,
+        weekFilter === "all" ? undefined : weekFilter,
       );
       if (requestId !== postsRequest.current) return;
       setPosts(response.posts);
       setTotalPosts(response.total_count);
       setVocTypeFilterOptions(response.voc_type_options ?? []);
       setVisibilityFilterOptions(response.visibility_options ?? []);
+      setIsoWeekFilterOptions(response.iso_week_options ?? []);
       setCurrentPage(page);
     } catch (err) {
       if (requestId !== postsRequest.current) return;
@@ -3714,7 +3724,7 @@ function PostList({
     } finally {
       if (requestId === postsRequest.current) setLoadingPage(false);
     }
-  }, [accessToken, searchQuery, sortOrder, typeFilter, visibilityFilter]);
+  }, [accessToken, searchQuery, sortOrder, typeFilter, visibilityFilter, weekFilter]);
 
   useEffect(() => {
     void loadPostPage(1);
@@ -3800,13 +3810,15 @@ function PostList({
     });
   const weeklyVocActive =
     typeFilter.length === 1 && typeFilter[0] === "voc" && weekFilter !== "all";
-  const weekOptions = Array.from(
-    new Set(
-      loadedPosts
-        .map((post) => isoWeekFromCreatedAt(post.created_at))
-        .filter((week): week is string => Boolean(week)),
-    ),
-  ).sort((left, right) => right.localeCompare(left));
+  const weekOptions = isoWeekFilterOptions.length
+    ? isoWeekFilterOptions
+    : Array.from(
+        new Set(
+          loadedPosts
+            .map((post) => isoWeekFromCreatedAt(post.created_at))
+            .filter((week): week is string => Boolean(week)),
+        ),
+      ).sort((left, right) => right.localeCompare(left));
   const applyWeeklyVoc = async () => {
     try {
       const latestVocPage = await fetchPosts(
@@ -3823,6 +3835,7 @@ function PostList({
       );
       setTypeFilter(["voc"]);
       setWeekFilter(vocWeek ?? "all");
+      setSortOrder("newest");
       setCurrentPage(1);
       setError(null);
     } catch (err) {
@@ -4767,6 +4780,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         <CalendarPanel
           accessToken={accessToken}
           namedNextAction
+          focusEventLineageOnSelect
           onSelectPost={(postId) => {
             setPostToOpen(postId);
             setPostOpenFromCalendar(true);
