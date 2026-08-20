@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
+import { setLocale } from "./i18n";
 
 const signinRedirect = vi.fn();
 const signoutRedirect = vi.fn();
@@ -12,6 +13,7 @@ vi.mock("react-oidc-context", () => ({
 }));
 
 beforeEach(() => {
+  setLocale("en");
   signinRedirect.mockReset();
   signoutRedirect.mockReset();
   mockAuth = {
