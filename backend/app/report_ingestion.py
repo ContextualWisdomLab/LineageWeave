@@ -229,7 +229,10 @@ async def load_period_evaluation_rows(
         query = _EVAL_ROWS_PROJECT_WEEK if kind == "week" else _EVAL_ROWS_PROJECT_MONTH
     else:
         query = _EVAL_ROWS_WEEK if kind == "week" else _EVAL_ROWS_MONTH
-    return await conn.fetch(query, RUBRIC_VERSION, period_code)
+    # Safe SQL: query is selected only from immutable module constants; period values are bound.
+    return await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        query, RUBRIC_VERSION, period_code
+    )
 
 
 async def load_shared_item_bank(
@@ -241,7 +244,8 @@ async def load_shared_item_bank(
     header_sql = (
         _SHARED_BANK_HEADER_WEEK if kind == "week" else _SHARED_BANK_HEADER_MONTH
     )
-    header = await conn.fetchrow(
+    # Safe SQL: header_sql is selected only from immutable module constants; keys are bound.
+    header = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         header_sql,
         SHARED_METRIC_KIND,
         SHARED_METRIC_KEY,
@@ -282,7 +286,8 @@ async def load_previous_group_mean(
 ) -> float | None:
     """Mean θ of the latest earlier period for this grouping key."""
     kind, _, _ = parse_period_code(period_code)
-    header = await conn.fetchrow(
+    # Safe SQL: the period query is selected only from immutable module constants; keys are bound.
+    header = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         _PREVIOUS_MEAN_WEEK if kind == "week" else _PREVIOUS_MEAN_MONTH,
         grouping_kind,
         grouping_key,
@@ -302,7 +307,8 @@ async def load_anchor_item_bank(
 ) -> tuple[ItemBank, float] | None:
     """Latest earlier period's item bank and mean θ, if one exists."""
     kind, _, _ = parse_period_code(period_code)
-    header = await conn.fetchrow(
+    # Safe SQL: the period query is selected only from immutable module constants; keys are bound.
+    header = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         _ANCHOR_HEADER_WEEK if kind == "week" else _ANCHOR_HEADER_MONTH,
         grouping_kind,
         grouping_key,
@@ -541,7 +547,8 @@ async def fetch_period_reports(
         period_code,
         RUBRIC_VERSION,
     )
-    members = await conn.fetch(
+    # Safe SQL: the source-context expression is an immutable schema fragment; report keys are bound.
+    members = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select m.grouping_key, m.post_id, m.theta_eap, m.theta_sd, p.post_title,
                p.visibility_code, p.corporate_entity_id,
@@ -590,7 +597,8 @@ async def fetch_period_reports(
         period_code,
         RUBRIC_VERSION,
     )
-    leftover = await conn.fetch(
+    # Safe SQL: the source-context expression is an immutable schema fragment; report keys are bound.
+    leftover = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select lp.grouping_key, lp.pair_kind, lp.post_id, lp.criterion_code,
                lp.leftover_distance, lp.leftover_residual, p.post_title,
@@ -720,7 +728,8 @@ async def list_period_report_summaries(
         grouping_kind,
         RUBRIC_VERSION,
     )
-    members = await conn.fetch(
+    # Safe SQL: the source-context expression is an immutable schema fragment; report keys are bound.
+    members = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select m.grouping_key, m.period_code, p.visibility_code, p.corporate_entity_id
                , ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
@@ -835,7 +844,8 @@ async def fetch_period_comparison(
         RUBRIC_VERSION,
         list(GROUPING_KINDS),
     )
-    members = await conn.fetch(
+    # Safe SQL: the source-context expression is an immutable schema fragment; grouping filters are bound.
+    members = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select m.grouping_kind, m.grouping_key, p.visibility_code, p.corporate_entity_id
                , ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
