@@ -395,3 +395,20 @@ nesting in the buyer view.
 - Integration status: PR #319 is not protected-main truth; exact parent head,
   formal review, terminal Checks, and post-merge browser evidence remain
   required.
+
+## Partial visual-region checkpoint: 2026-08-20
+
+The visual locator contract may return valid salient panels without complete
+image coverage. The normalizer now keeps those panel coordinates for
+region-level OCR and embeddings, then analyzes the original parent image once
+so uncovered text is not silently lost. Empty or invalid locator output keeps
+the existing whole-image fallback.
+
+- Decision record: ADR 0104
+- Implementation: PR #320, stacked on PR #319
+- Local evidence: backend `731 passed, 16 skipped`; focused image/normalization
+  tests `39 passed`; frontend lint, `134 passed`, build, and Storybook build
+  passed.
+- Integration status: PR #320 is not protected-main truth; exact stack heads,
+  formal review, terminal Checks, and authorized post-merge image evidence
+  remain required.
