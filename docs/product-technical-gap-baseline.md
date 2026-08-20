@@ -452,3 +452,14 @@ parent-image fallback preserves an honest image-level outcome.
   persistence-edge, and normalization tests `52 passed`.
 - Integration status: PR #324 is not protected-main truth; its exact current
   head, formal review, terminal Checks, and browser evidence remain required.
+
+## Exact-head refresh: 2026-08-20 23:41 KST
+
+PR #324 advanced to exact head
+`71f0940cb3881b2f5452ae79fa45f033dff56a9d` after the malformed-locator
+fallback and its edge tests were added. The local Python regression completed
+`740 passed, 16 skipped`; the normalization module remains at `100%` branch
+coverage. Frontend lint, `134 passed` frontend tests, production build, and
+Storybook build also passed locally. GitHub's two required PR Checks are still
+queued and no formal approval is bound to this exact head, so this is not a
+merge or release claim.
