@@ -1,0 +1,230 @@
+name: One-shot Ask Agent stale-answer repair
+
+on:
+  push:
+    branches:
+      - feat/ask-agent-open-focus-event-lineage-v2160
+    paths:
+      - .github/workflows/repair-ask-agent-stale-answer.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-ask-agent-stale-answer
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/ask-agent-open-focus-event-lineage-v2160
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Require the live branch to match this run
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin feat/ask-agent-open-focus-event-lineage-v2160
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse origin/feat/ask-agent-open-focus-event-lineage-v2160)" = "$GITHUB_SHA"
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install the committed frontend lock
+        working-directory: frontend
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Add the pending-answer regression only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("frontend/src/App.test.tsx")
+          text = path.read_text()
+
+          option_anchor = "    deferMe?: boolean;\n"
+          if text.count(option_anchor) != 1:
+              raise SystemExit("Ask defer option anchor changed")
+          text = text.replace(
+              option_anchor,
+              option_anchor + "    deferSecondAsk?: boolean;\n",
+              1,
+          )
+
+          return_type = "  }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {"
+          if text.count(return_type) != 1:
+              raise SystemExit("Ask stub return type anchor changed")
+          text = text.replace(
+              return_type,
+              "  }): ReturnType<typeof vi.fn> & {\n"
+              "    releaseMe: () => void;\n"
+              "    releaseSecondAsk: () => void;\n"
+              "  } {",
+              1,
+          )
+
+          promise_anchor = "      : Promise.resolve();\n\n    const fetchMock"
+          if text.count(promise_anchor) != 1:
+              raise SystemExit("Ask stub promise anchor changed")
+          deferred = (
+              "      : Promise.resolve();\n"
+              "    let releaseSecondAsk = () => {};\n"
+              "    const secondAskReady = options?.deferSecondAsk\n"
+              "      ? new Promise<void>((resolve) => {\n"
+              "          releaseSecondAsk = resolve;\n"
+              "        })\n"
+              "      : Promise.resolve();\n"
+              "    let askRequestCount = 0;\n\n"
+              "    const fetchMock"
+          )
+          text = text.replace(promise_anchor, deferred, 1)
+
+          route_start = text.index(
+              '      if (url.endsWith("/api/ask") && method === "POST") {'
+          )
+          route_end = text.index(
+              '      if (url.endsWith("/api/customer-master")',
+              route_start,
+          )
+          block = text[route_start:route_end]
+          return_anchor = "        return Promise.resolve(\n"
+          if block.count(return_anchor) != 1:
+              raise SystemExit("Ask route promise anchor changed")
+          block = block.replace(
+              return_anchor,
+              "        askRequestCount += 1;\n"
+              "        const ready =\n"
+              "          options?.deferSecondAsk && askRequestCount === 2\n"
+              "            ? secondAskReady\n"
+              "            : Promise.resolve();\n"
+              "        return ready.then(() =>\n",
+              1,
+          )
+          text = text[:route_start] + block + text[route_end:]
+
+          assign_anchor = "    return Object.assign(fetchMock, { releaseMe });"
+          if text.count(assign_anchor) != 1:
+              raise SystemExit("Ask stub return assignment changed")
+          text = text.replace(
+              assign_anchor,
+              "    return Object.assign(fetchMock, { releaseMe, releaseSecondAsk });",
+              1,
+          )
+
+          test_anchor = '  it("opening an Ask Agent cited post focuses Event Lineage; a home list open does not", async () => {'
+          if text.count(test_anchor) != 1:
+              raise SystemExit("Ask Agent test anchor changed")
+          regression = '''  it("hides the previous Ask Agent evidence while a new answer is pending", async () => {
+            const fetchMock = stubBackend({ deferSecondAsk: true });
+            render(<App />);
+
+            await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+            const ask = await screen.findByRole("region", { name: "Ask Agent" });
+            const question = within(ask).getByRole("textbox", { name: "Ask a question" });
+            await userEvent.type(question, "Which project?");
+            await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+            expect(
+              await within(ask).findByText(
+                "The cited project is supported by the stored semantic evidence.",
+              ),
+            ).toBeInTheDocument();
+            expect(within(ask).getByLabelText("Next action")).toBeInTheDocument();
+
+            await userEvent.clear(question);
+            await userEvent.type(question, "Which person?");
+            await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+
+            expect(within(ask).getByRole("button", { name: "Asking..." })).toBeDisabled();
+            expect(
+              within(ask).queryByText(
+                "The cited project is supported by the stored semantic evidence.",
+              ),
+            ).not.toBeInTheDocument();
+            expect(within(ask).queryByLabelText("Next action")).not.toBeInTheDocument();
+
+            fetchMock.releaseSecondAsk();
+            expect(
+              await within(ask).findByText(
+                "The cited project is supported by the stored semantic evidence.",
+              ),
+            ).toBeInTheDocument();
+          });
+
+'''
+          path.write_text(text.replace(test_anchor, regression + test_anchor, 1))
+          PY
+          git diff --check -- frontend/src/App.test.tsx
+
+      - name: Verify RED reproduces stale cited evidence
+        working-directory: frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          pnpm exec vitest run src/App.test.tsx \
+            -t "hides the previous Ask Agent evidence while a new answer is pending" \
+            2>&1 | tee /tmp/ask-red.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "Regression unexpectedly passed before the production fix" >&2
+            exit 1
+          fi
+          grep -Eq "failed|FAIL" /tmp/ask-red.log
+
+      - name: Clear superseded evidence when a new Ask starts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("frontend/src/App.tsx")
+          text = path.read_text()
+          panel_start = text.index("function AskAgentPanel({")
+          panel_end = text.index("\n\nfunction CustomerMasterPanel", panel_start)
+          block = text[panel_start:panel_end]
+          old = "    setAsking(true);\n    setError(null);\n    try {"
+          new = "    setAsking(true);\n    setError(null);\n    setAnswer(null);\n    try {"
+          if block.count(old) != 1:
+              raise SystemExit("Ask Agent pending-state anchor changed")
+          block = block.replace(old, new, 1)
+          path.write_text(text[:panel_start] + block + text[panel_end:])
+          PY
+          git diff --check -- frontend/src/App.tsx frontend/src/App.test.tsx
+
+      - name: Verify GREEN and complete frontend
+        working-directory: frontend
+        run: |
+          pnpm exec vitest run src/App.test.tsx \
+            -t "hides the previous Ask Agent evidence while a new answer is pending"
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Publish only the exact tested branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/feat/ask-agent-open-focus-event-lineage-v2160 | cut -f1)" = "$GITHUB_SHA"
+          git rm .github/workflows/repair-ask-agent-stale-answer.yml
+          git config user.name "CWL Buyer Surface Repair"
+          git config user.email "actions@users.noreply.github.com"
+          git add -- frontend/src/App.tsx frontend/src/App.test.tsx
+          git diff --cached --check
+          git commit -m "fix(ui): clear superseded Ask evidence"
+          git push origin HEAD:feat/ask-agent-open-focus-event-lineage-v2160
