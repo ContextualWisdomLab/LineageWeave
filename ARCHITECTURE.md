@@ -84,17 +84,12 @@ flowchart LR
 | `server.py` | Stdlib HTTP server: `GET /api/lineage` (JSON graph) + static viewer |
 | `web/index.html` | Self-contained SVG DAG viewer, no build step, no external script dependency |
 
-> **Known local-test-environment limitation:** `adjudication_client.py`'s
-> `mode="verify"` call depends on contextual-orchestrator's
-> `TaskOrchestrator.route_and_verify`, which as of this writing is still
-> an open, unmerged upstream PR
-> (`ContextualWisdomLab/contextual-orchestrator#149`). Until it merges,
-> the four adjudication/chat tests that exercise `mode="verify"` against
-> a real orchestrator fail with `invalid_mode` (the deployed `main` only
-> accepts `auto`/`route`/`conduct`) -- confirmed by reproducing the same
-> `400` directly against the orchestrator's own `/v1/chat/completions`,
-> not caused by anything in this repo. `mode="route"` (every other
-> pluggable client) is unaffected.
+> **Contextual-orchestrator contract:** Post Ask and MCP Global Ask use the
+> currently supported `mode="conduct"` path for verified multi-step
+> reasoning. Model-based verification requires fast-mlsirm in the same
+> contextual-orchestrator runtime and fails closed when that dependency or
+> its contract is unavailable. LineageWeave never falls back to a direct
+> provider or the rejected legacy `verify` mode.
 
 ## Design decisions worth naming
 
