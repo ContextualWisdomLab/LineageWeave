@@ -55,6 +55,8 @@ class ChatSourceDocument:
     post_id: str
     post_title: str
     post_body: str
+    occurred_at: str | None = None
+    lineage_relation: str = "source"
 
 
 @dataclass(frozen=True)

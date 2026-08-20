@@ -114,24 +114,32 @@ async def gather_chat_sources(
         vision_client = NullImageContentClient()
 
     this_post = await conn.fetchrow(
-        "select post_id, post_title, post_body from source_post where post_id = $1", post_id
+        "select post_id, post_title, post_body, created_at "
+        "from source_post where post_id = $1",
+        post_id,
     )
     if this_post is None:
         return []
     source_metadata = dict(metadata or {})
     source_metadata["source_post_id"] = str(this_post["post_id"])
     sources = [
-        ChatSourceDocument(
-            str(this_post["post_id"]),
-            this_post["post_title"],
-            normalize_post_body(
+            ChatSourceDocument(
+                str(this_post["post_id"]),
+                this_post["post_title"],
+                normalize_post_body(
                 this_post["post_body"],
                 vision_client=vision_client,
                 session_id=session_id,
-                metadata=source_metadata,
-            ).text,
-        )
-    ]
+                    metadata=source_metadata,
+                ).text,
+                occurred_at=(
+                    this_post["created_at"].isoformat()
+                    if this_post.get("created_at") is not None
+                    else None
+                ),
+                lineage_relation="anchor",
+            )
+        ]
 
     linked = await find_linked_post_ids(conn, post_id)
     candidate_ids = linked.direct | linked.indirect
@@ -139,7 +147,7 @@ async def gather_chat_sources(
         return sources
 
     rows = await conn.fetch(
-        "select post_id, post_title, post_body, visibility_code, corporate_entity_id "
+        "select post_id, post_title, post_body, visibility_code, corporate_entity_id, created_at "
         "from source_post where post_id = any($1::uuid[])",
         list(candidate_ids),
     )
@@ -157,6 +165,16 @@ async def gather_chat_sources(
                         session_id=session_id,
                         metadata=source_metadata,
                     ).text,
+                    occurred_at=(
+                        row["created_at"].isoformat()
+                        if row.get("created_at") is not None
+                        else None
+                    ),
+                    lineage_relation=(
+                        "direct_lineage"
+                        if str(row["post_id"]) in linked.direct
+                        else "indirect_knowledge_graph"
+                    ),
                 )
             )
 

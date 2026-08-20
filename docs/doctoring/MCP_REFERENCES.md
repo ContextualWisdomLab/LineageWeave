@@ -21,6 +21,11 @@ require at least one valid cited external HTTP(S) evidence URL; otherwise the
 result is `insufficient_evidence`. This mirrors FEVER's core distinction between
 a claim label and the evidence required to justify Supported/Refuted judgments.
 
+The chronological source timeline follows the same retrieval boundary as the
+answer, preserving event order without fabricating dates. Inline raster
+content follows the data-URL parsing boundary and remains bounded before MCP
+serialization.
+
 ## APA 7th references
 
 Jones, M., Bradley, J., & Sakimura, N. (2020). *Resource indicators for OAuth
@@ -48,3 +53,6 @@ the 2018 Conference of the North American Chapter of the Association for
 Computational Linguistics: Human Language Technologies, Volume 1 (Long Papers)*
 (pp. 809–819). Association for Computational Linguistics.
 https://doi.org/10.18653/v1/N18-1074
+
+Masinter, L. (1998). *The “data” URL scheme* (RFC 2397). Internet Engineering
+Task Force. https://doi.org/10.17487/RFC2397
