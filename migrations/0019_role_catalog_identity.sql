@@ -33,7 +33,7 @@ update post_summary_role role
   from (
         select mention.post_id,
                org.entity_name,
-               min(org.corporate_entity_id) as corporate_entity_id
+               min(org.corporate_entity_id::text)::uuid as corporate_entity_id
           from post_organization_mention mention
           join corporate_entity org
             on org.corporate_entity_id = mention.corporate_entity_id

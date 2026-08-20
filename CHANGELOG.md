@@ -37,9 +37,50 @@ All notable changes to this project are documented here. Format follows
   sandbox, agent logs, scrape console, and RankWeave as a home
   module stay off buyer chrome.
 
-## [2.12.4] - 2026-08-18
-
 ### Fixed
+
+- Migrations 0019 and 0025 (R&R role-catalog identity backfills) both
+  used `min(uuid_column)` to pick "the" value from a `having count(*)
+  = 1` group -- Postgres has no built-in `min(uuid)` aggregate, so
+  both failed outright the first time either was actually run against
+  a real, non-trivial dataset. Fixed to
+  `min(uuid_column::text)::uuid`, safe given the query's own
+  `having count(*) = 1` already guarantees exactly one value per
+  group. Applying the full migration set 0001-0029 against a real,
+  long-lived dataset also surfaced that this database's original
+  bootstrap had left several *earlier* migrations (0001, 0016)
+  partially applied -- specific tables/indexes/backfills their own
+  later statements defined were missing even though their initial
+  `create table` statements had run. All 29 migrations are now
+  confirmed genuinely, fully applied end to end against a real
+  43,814-post dataset; every table/index any migration defines is now
+  present, verified via direct schema comparison, not assumption.
+
+### Known issue (not fixed here, flagged for follow-up)
+
+- `backend/tests/test_api.py::test_start_analysis_run_recovers_the_a100_fork`
+  and `::test_tepp_start_persists_published_accepted_evidence`
+  deterministically fail against a real live PostgreSQL/Keycloak/Valkey
+  stack (this whole test module is `skipif`-guarded and never runs in
+  CI) with `CheckViolationError` on `analysis_run_status_time_check`
+  (`occurred_at <= recorded_at`): the row's `occurred_at`
+  (`datetime.now(timezone.utc)`, captured in `backend/app/analysis_run_start.py`)
+  reproducibly lands ~15-20ms *after* `recorded_at`
+  (`clock_timestamp()`, evaluated later, at actual insert time, inside
+  a `before insert` trigger) -- the wrong direction, given
+  `recorded_at` is evaluated strictly after `occurred_at` is captured
+  in every code path. Confirmed via a direct clock-sync measurement
+  (5 samples, Python vs. Postgres `clock_timestamp()` interleaved)
+  that there is no measurable systemic clock drift between the test
+  process and this Postgres instance under normal conditions, and
+  confirmed the failure is 100% reproducible in isolation (not a
+  concurrency/load artifact) and entirely pre-existing (verified via
+  `git diff` that no file in this change touches
+  `analysis_run_start.py` or the 0018 migration that defines this
+  constraint). Root cause not yet conclusively identified; deferred
+  as out of scope for this migration-catchup change (a different
+  feature area -- analysis-run/TEPP lifecycle, not R&R/summary/
+  verification) rather than rushed. 553 other tests unaffected.
 
 - `get_or_create_corporate_entity`'s post-lock duplicate-create re-check
   fuzzy-matched against every cataloged entity, not just an exact

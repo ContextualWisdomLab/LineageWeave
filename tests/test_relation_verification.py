@@ -133,6 +133,36 @@ def test_legal_suffix_alone_is_not_corroboration() -> None:
     )
 
 
+def test_a_single_ordinary_word_in_an_invented_name_is_not_corroboration() -> None:
+    """"Fictitious"/"Nonexistent" are real English words a fake name can
+
+    coincidentally match on an unrelated page; a multi-token name needs
+    a majority of its tokens to co-occur, not just one.
+    """
+    assert (
+        corroborating_evidence_url(
+            "Zzqxvthorp Fictitious Nonexistent Org",
+            {
+                "url": "https://unrelated.example/error-page",
+                "title": "Error",
+                "content": "This file is fictitious or missing.",
+            },
+        )
+        is None
+    )
+    assert (
+        corroborating_evidence_url(
+            "Zzqxvthorp Fictitious Nonexistent Org",
+            {
+                "url": "https://zzqxvthorp.example/about",
+                "title": "About",
+                "content": "Zzqxvthorp Fictitious Nonexistent Org is a real company.",
+            },
+        )
+        == "https://zzqxvthorp.example/about"
+    )
+
+
 def test_hangul_org_name_token_is_corroboration() -> None:
     assert (
         corroborating_evidence_url(
