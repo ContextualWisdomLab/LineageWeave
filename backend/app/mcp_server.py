@@ -90,6 +90,8 @@ class PreAuthTransportSecurityApp:
             is_post=request.method == "POST",
         )
         if rejection is not None:
+            if request.headers.get("origin") is not None:
+                rejection.headers.add_vary_header("Origin")
             await rejection(scope, receive, send)
             return
         await self._app(scope, receive, send)
