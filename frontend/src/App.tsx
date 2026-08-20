@@ -103,6 +103,7 @@ import {
   analysisRunTargetClock,
   type AnalysisRunNavigationContext,
 } from "./analysisRunNavigation";
+import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -957,7 +958,9 @@ function KeymanPanel({
       return;
     }
     const heading = document.getElementById("post-ask");
-    heading?.focus();
+    if (landOnAsk) {
+      heading?.focus();
+    }
     heading?.scrollIntoView?.({ block: "nearest" });
   }, [landFirstRelated, landedRelatedName, landedRelated, landOnAsk]);
 
@@ -1143,7 +1146,7 @@ function KeymanPanel({
     <>
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>{t("Keymen")}</h3>
+        <h3 id="post-keyman" tabIndex={-1}>{t("Keymen")}</h3>
         {canExtract && !orchestratorOff && (
           <details className="operator-action-tools">
             <summary>{t("Evidence operations")}</summary>
@@ -1596,6 +1599,10 @@ const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   ticket_created: "Ticket created",
   ticket_status_changed: "Status changed",
   commitment_derived: "Commitment derived",
+  keymen_extracted: "Keymen extracted",
+  relations_verified: "Relations verified",
+  post_evaluated: "Post evaluated",
+  chat_answered: "Chat answered",
 };
 
 function activityTypeLabel(eventType: string): string {
@@ -1653,7 +1660,8 @@ function PostDetailPopup({
   liveBodyWarning,
   knowledgeCutoff,
   focusEventLineage,
-  focusAskOnLand,
+  focusKeyman,
+  fromReportMember,
   onClose,
   onSelectPost,
   onSearch,
@@ -1665,7 +1673,8 @@ function PostDetailPopup({
   liveBodyWarning?: string | null;
   knowledgeCutoff?: string | null;
   focusEventLineage?: boolean;
-  focusAskOnLand?: boolean;
+  focusKeyman?: boolean;
+  fromReportMember?: boolean;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
@@ -1761,6 +1770,8 @@ function PostDetailPopup({
     setFocusPerson(null);
     setFocusEntity(null);
     setFocusTeam(null);
+    let disposed = false;
+    let contentPollTimer: number | undefined;
     const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
     fetchPost(accessToken, postId, asOf)
       .then((value) => {
@@ -1772,12 +1783,18 @@ function PostDetailPopup({
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
         .then((content) => {
-          if (!isCurrent()) return;
+          if (disposed || !isCurrent()) return;
           setImageContent(content.images);
           setStructureUnits(content.units);
+          if (content.status === "processing" && contentPollTimer === undefined) {
+            contentPollTimer = window.setTimeout(() => {
+              contentPollTimer = undefined;
+              reloadContent();
+            }, 2000);
+          }
         })
         .catch(() => {
-          if (!isCurrent()) return;
+          if (disposed || !isCurrent()) return;
           setImageContent([]);
           setStructureUnits([]);
         });
@@ -1855,6 +1872,8 @@ function PostDetailPopup({
       });
 
     return () => {
+      disposed = true;
+      if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
       if (isCurrent()) detailRequestGeneration.current = generation + 1;
     };
   }, [postId, accessToken, liveBodyWarning, knowledgeCutoff]);
@@ -1905,6 +1924,15 @@ function PostDetailPopup({
     heading?.focus();
     heading?.scrollIntoView?.({ block: "nearest" });
   }, [focusEventLineage, post]);
+
+  useEffect(() => {
+    if (!focusKeyman || !post || keymen === null) {
+      return;
+    }
+    const heading = document.getElementById("post-keyman");
+    heading?.focus();
+    heading?.scrollIntoView?.({ block: "nearest" });
+  }, [focusKeyman, post, keymen, postId]);
 
   return (
     <div className="popup-backdrop" onClick={onClose}>
@@ -2309,8 +2337,8 @@ function PostDetailPopup({
                 focusEntity={focusEntity}
                 focusTeam={focusTeam}
                 landFirstKeyman
-                landFirstRelated
-                landOnAsk={focusAskOnLand}
+                landFirstRelated={Boolean(fromReportMember)}
+                landOnAsk={fromReportMember}
                 afterList={
                   <>
                     <EvaluationPanel
@@ -4172,7 +4200,13 @@ function PostList({
             openedFromCustomerMaster ||
             openedFromAskAgent
           }
-          focusAskOnLand={openedFromReportMember}
+          focusKeyman={
+            openedFromWeeklyVoc ||
+            openedFromCalendar ||
+            openedFromCustomerMaster ||
+            openedFromAskAgent
+          }
+          fromReportMember={openedFromReportMember}
           onClose={closeSelectedPost}
           onSelectPost={(postId) => {
             const cutoffOptions = openedAnalysisRunContext
@@ -4409,7 +4443,7 @@ function CustomerMasterPanel({
     } catch {
       setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
     } finally {
-      setRelatedLoading(null);
+      setRelatedLoading((current) => (current === entityId ? null : current));
     }
   }
 
@@ -4603,14 +4637,21 @@ function AskAgentPanel({
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [sessionId, setSessionId] = useState<string | undefined>(() =>
+    window.sessionStorage.getItem("lineageweave.globalAskSessionId") ?? undefined,
+  );
 
   async function handleAsk() {
     const normalized = question.trim();
     if (!normalized) return;
     setAsking(true);
     setError(null);
+    setAnswer(null);
     try {
-      setAnswer(await askAgent(accessToken, normalized));
+      const nextAnswer = await askAgent(accessToken, normalized, sessionId);
+      setAnswer(nextAnswer);
+      setSessionId(nextAnswer.session_id);
+      window.sessionStorage.setItem("lineageweave.globalAskSessionId", nextAnswer.session_id);
     } catch (err) {
       setAnswer(null);
       setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
@@ -4642,6 +4683,26 @@ function AskAgentPanel({
           <h3>{t("Answer")}</h3>
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
           {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
+          {answer.timeline && answer.timeline.length > 0 ? (
+            <>
+              <h4>Event Lineage timeline</h4>
+              <ol className="related-post-list" aria-label="Event Lineage timeline">
+                {answer.timeline.map((event) => (
+                  <li key={event.post_id}>
+                    <button
+                      type="button"
+                      className="post-list-item"
+                      aria-label={`${t("Open timeline post:")} ${event.post_title}`}
+                      onClick={() => onOpenPost(event.post_id)}
+                    >
+                      <strong>{event.post_title}</strong>
+                      {event.occurred_at ? <time dateTime={event.occurred_at}>{event.occurred_at}</time> : null}
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </>
+          ) : null}
           {answer.cited_posts && answer.cited_posts.length > 0 && (
             <>
               <p className="board-next-action" role="status" aria-label={t("Next action")}>
@@ -4733,12 +4794,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         <LanguageSwitcher />
           <button
             onClick={() => {
-              const returnUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-              try {
-                window.sessionStorage.setItem("lineageweave.oidc.returnUrl", returnUrl);
-              } catch {
-                // OIDC state remains the primary return-path transport.
-              }
+              const returnUrl = returnUrlFromLocation();
+              rememberOidcReturnUrl(returnUrl);
               void auth.signinRedirect({ state: { returnUrl } });
             }}
           >

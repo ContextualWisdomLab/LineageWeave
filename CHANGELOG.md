@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.19.0] - 2026-08-20
+
+### Added
+
+- Opening a Board Weekly VOC post, Calendar commitment, Customer master
+  related post, or Ask Agent cited post now keeps Event Lineage current
+  and focuses Keyman as the named next read. A linked Event Lineage DAG
+  walk from that popup keeps the same Keyman focus. A home-list open
+  does not add that focus or copy. No TEPP theta is invented. No cited
+  post, customer, week, or cutoff body is invented (ADR 0100 / ADR 0097
+  / ADR 0016).
+
 ## [2.17.0] - 2026-08-19
 
 ### Added
@@ -32,7 +44,7 @@ All notable changes to this project are documented here. Format follows
   Keyman and evaluation as the next read. Customer master names authorized
   customer entities as current before that open. Home-list opens do not add
   that focus or copy. No TEPP theta is invented. No customer is invented
-(ADR 0095 / ADR 0037 / ADR 0016).
+  (ADR 0095 / ADR 0037 / ADR 0016).
 
 ## [2.14.0] - 2026-08-19
 

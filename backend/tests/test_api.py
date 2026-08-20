@@ -88,8 +88,24 @@ _MEMBER_LOCALE_MIGRATION = (
 _IMAGE_REGION_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0045_post_content_image_regions.sql"
 )
+_IMAGE_REGION_EMBEDDING_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0047_post_content_image_region_embeddings.sql"
+)
 _SUMMARY_FIVE_W1H_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0048_post_summary_five_w1h.sql"
+)
+_POST_CONTENT_QUEUE_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0050_post_content_ingestion_queue.sql"
+)
+_ORGANIZATION_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0051_context_scoped_organization_name_resolution.sql"
+)
+_GLOBAL_ASK_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0052_global_ask_context.sql"
 )
 
 
@@ -197,7 +213,11 @@ def seeded_db(demo_analyst_token):
             )
             cur.execute(_MEMBER_LOCALE_MIGRATION.read_text())
             cur.execute(_IMAGE_REGION_MIGRATION.read_text())
+            cur.execute(_IMAGE_REGION_EMBEDDING_MIGRATION.read_text())
             cur.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text())
+            cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
+            cur.execute(_ORGANIZATION_CONTEXT_MIGRATION.read_text())
+            cur.execute(_GLOBAL_ASK_CONTEXT_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -3240,6 +3260,43 @@ def test_evaluate_publishes_an_activity_event(client, demo_analyst_token, seeded
     assert "1 rubric criterion response" in events[0]["summary"]
 
 
+def test_live_chat_answer_publishes_an_activity_event(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Live gap (2026-08-20): a live (non-cached) chat answer is a real,
+    consequential LLM call, same discipline as extract-keymen/evaluate --
+    it must publish to the post's activity feed too. A stored/seeded
+    answer (no live call made) must not.
+    """
+    from lineageweave.post_chat import ChatAnswer
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeChatClient:
+        available = True
+
+        def answer(self, question: str, sources) -> ChatAnswer:
+            return ChatAnswer(answer_text="a live answer", cited_post_ids=())
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FakeChatClient())
+
+    post_id = seeded_db["own_private_post_id"]
+    response = client.post(
+        f"/api/posts/{post_id}/chat",
+        json={"question": "What happened here that no seed already answers?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+
+    activity_response = client.get(
+        f"/api/posts/{post_id}/activity",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    events = activity_response.json()["events"]
+    assert events[0]["event_type"] == "chat_answered"
+    assert "What happened here that no seed already answers?" in events[0]["summary"]
+
+
 def test_evaluate_is_unavailable_without_orchestrator(client, demo_analyst_token, seeded_db) -> None:
     os.environ.pop("ORCHESTRATOR_BASE_URL", None)
     os.environ.pop("ORCHESTRATOR_API_KEY", None)
@@ -3364,6 +3421,35 @@ def test_counterparties_resolve_cataloged_org_ids(client, demo_analyst_token, se
     by_name = {row["counterparty_entity_name"]: row for row in response.json()["counterparties"]}
     assert by_name["Test Corp"]["corporate_entity_id"] == seeded_db["own_corp_id"]
     assert by_name["Northridge Grid"]["corporate_entity_id"] is None
+
+
+def test_counterparties_do_not_expose_unauthorized_catalog_entity(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A public post must not resolve a name to a private catalog row."""
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into post_counterparty_entity "
+                "(post_id, counterparty_entity_name, relationship_type_code) "
+                "values (%s, 'Other Corp', 'rel_voc')",
+                (seeded_db["public_post_id"],),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}/counterparties",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    row = next(
+        item for item in response.json()["counterparties"]
+        if item["counterparty_entity_name"] == "Other Corp"
+    )
+    assert row["corporate_entity_id"] is None
 
 
 def test_counterparties_endpoint_is_empty_before_extraction(client, demo_analyst_token, seeded_db) -> None:

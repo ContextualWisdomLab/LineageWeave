@@ -23,6 +23,9 @@ abbreviated name creates its own unmatched, un-linkable free-text
 string in `person_affiliation`/R&R -- the same organization looks like
 N different unknown entities across N posts, each failing to link into
 the corporate hierarchy a human reader would recognize instantly.
+The reverse failure is equally unsafe: the same short name can refer to
+different organizations in different post contexts, so a context-free cache
+can link later mentions to the first model answer by accident.
 
 ## Decision
 
@@ -62,11 +65,14 @@ itself already established: a wrong resolution corrupts every
 downstream Knowledge Graph link through it, so "did not resolve" must
 stay a real, distinguishable outcome from "resolved to X."
 
-Persistence: a new `organization_name_resolution` cache table
-(`migrations/0015_organization_name_resolution.sql`), keyed by
-`raw_organization_name` -- the same abbreviation is resolved once, not
-re-queried on every one of its (potentially many) mentions across
-posts. `verification_status_code` reuses the existing
+Persistence: the `organization_name_resolution` cache table
+(`migrations/0015_organization_name_resolution.sql`, extended by a later
+migration that adds `context_sha256`) is keyed by
+`raw_organization_name` plus a SHA-256 digest of the bounded post context.
+The context body is not persisted in the cache. Exact-context reprocessing
+can reuse a result, while a homonymous abbreviation in a different context
+gets a separate resolution instead of inheriting the first answer.
+`verification_status_code` reuses the existing
 `relation_verification_status` lookup category rather than a
 near-duplicate one: a resolved name is corroborated/uncorroborated the
 exact same way a classified relationship already is.
@@ -102,6 +108,9 @@ canonical form too rather than reintroducing the raw abbreviation.
 - Every channel here follows the existing pluggable-client discipline:
   `NullOrganizationNameResolutionClient`/an unavailable verification
   client degrade to "use the raw name," never a fabricated resolution.
+- Context-sensitive caching follows entity-linking evidence that ambiguous
+  mentions must be disambiguated with document-level semantic context, not a
+  name-only lookup (Rama-Maneiro, Vidal, & Lama, 2020).
 
 ## Related
 
@@ -116,5 +125,7 @@ stage rather than duplicating it.
 Miles, A., & Bechhofer, S. (Eds.). (2009). *SKOS simple knowledge organization system reference*. World Wide Web Consortium. https://www.w3.org/TR/skos-reference/
 
 Bhattacharya, I., & Getoor, L. (2007). Collective entity resolution in relational data. *ACM Transactions on Knowledge Discovery from Data*, 1(1), Article 5. https://doi.org/10.1145/1217299.1217304
+
+Rama-Maneiro, E., Vidal, J. C., & Lama, M. (2020). Collective disambiguation in entity linking based on topic coherence in semantic graphs. *Knowledge-Based Systems, 199*, Article 105967. https://doi.org/10.1016/j.knosys.2020.105967
 
 Thorne, J., Vlachos, A., Christodoulopoulos, C., & Mittal, A. (2018). FEVER: A large-scale dataset for fact extraction and VERification. In *Proceedings of the 2018 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies* (pp. 809–819). Association for Computational Linguistics. https://doi.org/10.18653/v1/N18-1074
