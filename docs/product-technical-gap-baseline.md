@@ -427,6 +427,7 @@ are not release evidence.
 | #322 | `fix/stale-summary-buyer-continuity` -> `feat/orchestrator-owned-embedding-consumer` | `a6a1d8fe8b17ad095e507f5d16b93c984e6de5db` | `UNSTABLE`; Full test and frontend Checks queued |
 | #320 | `codex/normalize-source-indent-semantics` -> `codex/preserve-partial-image-regions` | `41d164c570fe232cc1e38a766439e4093d80cb84` | `UNSTABLE`; stacked visual evidence change |
 | #324 | `codex/preserve-partial-image-regions` -> `fix/validate-partial-image-regions` | `a4627d6e1d04b4782a696c74d67303e1143038e0` | `UNSTABLE`; Full test and frontend Checks queued |
+| #325 | `fix/validate-partial-image-regions` -> `docs/current-gap-audit` | `ec47fbfac5a02ed58980dace6180da5af6e9f5a3` | `UNKNOWN`; Full test, frontend, and Devin Review pending |
 | #789 | `main` -> contextual-orchestrator embedding capability branch | `3a80d91b8c879e57d30ab87af664546b8712fb15` | `REVIEW_REQUIRED`, `BLOCKED`; upstream Checks queued |
 
 The current implementation checkpoints are local/branch evidence only:
