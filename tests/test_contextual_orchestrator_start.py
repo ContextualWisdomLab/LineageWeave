@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
+import types
 from pathlib import Path
 
 
@@ -48,3 +50,49 @@ def test_gateway_api_key_accepts_local_compatibility_alias(monkeypatch) -> None:
     monkeypatch.setenv("LLM_API_KEY", "compatibility-key")
 
     assert module._pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY") == "compatibility-key"
+
+
+def test_bootstrap_passes_embedding_provider_url_before_deleting_secrets(monkeypatch) -> None:
+    module = _load_start_module()
+    captured: dict[str, object] = {}
+
+    class FakePath:
+        def __init__(self, value: str) -> None:
+            self.value = value
+
+        def read_text(self, *, encoding: str) -> str:
+            assert self.value == "/app/agents.json"
+            assert encoding == "utf-8"
+            return json.dumps({"agents": [{}]})
+
+        def write_text(self, value: str, *, encoding: str) -> None:
+            assert self.value == "/tmp/lineageweave-agents.json"
+            assert encoding == "utf-8"
+            captured["agents"] = json.loads(value)
+
+    credentials = types.ModuleType("contextual_orchestrator.credentials")
+    credentials.register_credential = lambda name, value: captured.setdefault("credential", (name, value))
+    server = types.ModuleType("contextual_orchestrator.__main__")
+
+    def serve() -> None:
+        captured["argv"] = list(sys.argv)
+
+    server.main = serve
+    package = types.ModuleType("contextual_orchestrator")
+    package.__path__ = []
+    monkeypatch.setitem(sys.modules, "contextual_orchestrator", package)
+    monkeypatch.setitem(sys.modules, "contextual_orchestrator.credentials", credentials)
+    monkeypatch.setitem(sys.modules, "contextual_orchestrator.__main__", server)
+    monkeypatch.setattr(module, "Path", FakePath)
+    monkeypatch.setattr(sys, "argv", ["start.py"])
+    monkeypatch.setenv("LLM_GATEWAY_API_KEY", "provider-key")
+    monkeypatch.setenv("CONTEXTUAL_ORCHESTRATOR_TOKEN", "orchestrator-token")
+    monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://gateway.example")
+    monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "embedding-model")
+
+    module.main()
+
+    argv = captured["argv"]
+    assert isinstance(argv, list)
+    assert argv[argv.index("--embedding-provider-url") + 1] == "https://gateway.example/v1"
+    assert argv[argv.index("--embedding-model") + 1] == "embedding-model"

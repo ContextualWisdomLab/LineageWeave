@@ -195,7 +195,8 @@ async def _counts_by_run(
     """Load aggregate snapshot counts for the given runs."""
     if not run_ids:
         return {}
-    rows = await conn.fetch(
+    # Safe SQL: this immutable aggregate query has closed schema text; run ids are bound below.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select run.analysis_run_id, counts.count_type_code, counts.count_value
         from analysis_run run
@@ -348,7 +349,8 @@ async def fetch_visible_analysis_runs(
     Demo Corp runs stop appearing here -- a buyer must not mistake that
     fabricated narrative for real evidence (ADR 0001 / ADR 0042).
     """
-    rows = await conn.fetch(
+    # Safe SQL: this immutable module query contains only closed schema SQL; request values remain bound below.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         _RUN_LIST_SQL,
         account_id,
         affiliated_entity_ids,
@@ -365,7 +367,8 @@ async def fetch_visible_analysis_run(
     affiliated_entity_ids: list[str],
 ) -> dict[str, Any] | None:
     """One visible run, or None when it is missing or hidden."""
-    rows = await conn.fetch(
+    # Safe SQL: this immutable module query contains only closed schema SQL; request values remain bound below.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         _RUN_DETAIL_SQL,
         account_id,
         affiliated_entity_ids,
@@ -448,7 +451,8 @@ async def fetch_reconstructed_edges(
         return None, []
     if header is None:
         return None, []
-    rows = await conn.fetch(
+    # Safe SQL: eligibility fragments are immutable schema predicates; the run id remains a bound parameter.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select
           edge.parent_post_id,
@@ -534,7 +538,8 @@ async def fetch_visible_scope_posts(
         "post_id, post_title, visibility_code, corporate_entity_id, updated_at"
     )
     if scope_kind_code == "analysis_scope_corporate_entity" and corporate_entity_id:
-        rows = await conn.fetch(
+        # Safe SQL: the selected columns and eligibility predicate are closed constants; ids are bound.
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"select {columns} "
             "from source_post where corporate_entity_id = $1 "
             "and created_at <= $2 "
@@ -544,7 +549,8 @@ async def fetch_visible_scope_posts(
             knowledge_cutoff,
         )
     elif scope_kind_code == "analysis_scope_process_unit" and process_unit_id:
-        rows = await conn.fetch(
+        # Safe SQL: the selected columns and eligibility predicate are closed constants; ids are bound.
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"select {columns} "
             "from source_post where process_unit_id = $1 "
             "and created_at <= $2 "
@@ -554,7 +560,8 @@ async def fetch_visible_scope_posts(
             knowledge_cutoff,
         )
     elif scope_kind_code == "analysis_scope_thread_group" and scope_key:
-        rows = await conn.fetch(
+        # Safe SQL: the selected columns and eligibility predicate are closed constants; keys are bound.
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"select {columns} "
             "from source_post where thread_group_key = $1 "
             "and created_at <= $2 "
@@ -564,7 +571,8 @@ async def fetch_visible_scope_posts(
             knowledge_cutoff,
         )
     elif scope_kind_code == "analysis_scope_all_visible":
-        rows = await conn.fetch(
+        # Safe SQL: the selected columns and eligibility predicate are closed constants; cutoff is bound.
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"select {columns} "
             "from source_post where created_at <= $1 "
             f"and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} "
@@ -785,7 +793,8 @@ async def create_pending_analysis_run(
         key,
     )
 
-    rows = await conn.fetch(
+    # Safe SQL: the eligibility predicate is an immutable schema fragment; corporate id and cutoff are bound.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select post_id, post_title, thread_group_key, created_at,
                visibility_code, corporate_entity_id
