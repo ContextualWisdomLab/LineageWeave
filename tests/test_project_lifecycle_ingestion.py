@@ -41,6 +41,7 @@ _ROOT = Path(__file__).resolve().parents[1]
 _INITIAL_MIGRATION = _ROOT / "migrations" / "0001_initial_schema.sql"
 _SOURCE_IDENTITY_MIGRATION = _ROOT / "migrations" / "0037_source_record_identity.sql"
 _LIFECYCLE_MIGRATION = _ROOT / "migrations" / "0054_project_lifecycle_ingestion.sql"
+_LIFECYCLE_ROLLBACK = _ROOT / "migrations" / "rollback" / "0054_project_lifecycle_ingestion.sql"
 
 
 def _postgres_available() -> bool:
@@ -593,3 +594,30 @@ def test_withdrawal_of_unknown_source_is_idempotent_not_found(lifecycle_database
             await connection.close()
 
     assert asyncio.run(run()) == {"status_code": "not_found"}
+
+
+def test_lifecycle_rollback_removes_the_migration_owned_tables(lifecycle_database) -> None:
+    """A deployment rollback removes only the 0054 lifecycle schema objects."""
+    dsn, _ = lifecycle_database
+    connection = psycopg2.connect(dsn)
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(_LIFECYCLE_ROLLBACK.read_text(encoding="utf-8"))
+            cursor.execute(
+                """
+                select count(*)
+                  from information_schema.tables
+                 where table_schema = 'public'
+                   and table_name in (
+                       'project_identity', 'project_source_system',
+                       'project_event_mapping', 'project_source_record',
+                       'project_lifecycle_event', 'project_event_evidence',
+                       'project_actor', 'project_event_responsibility',
+                       'project_event_relation', 'project_lifecycle_audit'
+                   )
+                """
+            )
+            assert cursor.fetchone()[0] == 0
+        connection.commit()
+    finally:
+        connection.close()
