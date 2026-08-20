@@ -27,6 +27,14 @@ create table lineage_edge_channel_score (
     foreign key (parent_post_id, child_post_id)
         references post_lineage_edge (parent_post_id, child_post_id)
         on delete cascade,
+    check (
+        channel_code in (
+            'lineage_channel_temporal',
+            'lineage_channel_secondary_key',
+            'lineage_channel_text',
+            'lineage_channel_llm'
+        )
+    ),
     check (channel_score >= 0 and channel_score <= 1)
 );
 
