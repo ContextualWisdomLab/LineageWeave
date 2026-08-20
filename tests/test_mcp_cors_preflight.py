@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
+import pytest
 from starlette.testclient import TestClient
 
 from backend.app import mcp_server
@@ -68,6 +69,26 @@ def _initialize_request() -> dict[str, object]:
             "clientInfo": {"name": "test", "version": "1"},
         },
     }
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "*",
+        "null",
+        "ftp://buyer.example",
+        "https://user@buyer.example",
+        "https://buyer.example/path",
+        "https://buyer.example?query=1",
+        "https://buyer.example#fragment",
+    ],
+)
+def test_unsafe_configured_browser_origin_prevents_startup(origin: str) -> None:
+    """The operator cannot turn an exact-Origin contract into reflection/wildcard CORS."""
+    cfg = replace(_settings(), mcp_allowed_origins=[origin])
+    server = mcp_server.build_mcp_server(cfg)
+    with pytest.raises(ValueError, match="MCP_ALLOWED_ORIGINS"):
+        mcp_server.build_mcp_http_app(server, cfg)
 
 
 def test_allowed_exact_origin_preflight_finishes_before_oauth() -> None:
