@@ -464,10 +464,6 @@ coverage. Frontend lint, `134 passed` frontend tests, production build, and
 Storybook build also passed locally. GitHub's two required PR Checks are still
 queued and no formal approval is bound to this exact head, so this is not a
 merge or release claim.
- - Integration status: PR #320 is not protected-main truth; exact stack heads,
-   formal review, terminal Checks, and authorized post-merge image evidence
-   remain required.
-
  ## Image locator and buyer table checkpoint: 2026-08-20
 
 A first bounded private reprocessing run completed five parent-image
