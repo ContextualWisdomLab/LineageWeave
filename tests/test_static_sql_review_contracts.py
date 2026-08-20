@@ -12,9 +12,14 @@ from lineageweave.post_structure import PostStructureClient
 
 ROOT = Path(__file__).resolve().parents[1]
 SQL_REVIEW_PATHS = (
+    "backend/app/analysis_run_ingestion.py",
+    "backend/app/analysis_run_start.py",
     "backend/app/customer_hint_ingestion.py",
     "backend/app/demo_scope.py",
     "backend/app/entity_relationship_ingestion.py",
+    "backend/app/knowledge_graph.py",
+    "backend/app/main.py",
+    "backend/app/report_ingestion.py",
     "lineageweave/synthetic_seed_cleanup.py",
     "scripts/backfill_post_content.py",
     "scripts/backfill_post_keymen.py",
@@ -61,6 +66,24 @@ def test_asyncpg_calls_use_literal_or_module_query_constant(relative_path: str) 
 
     assert not violations, f"dynamic asyncpg statements at lines {violations} in {relative_path}"
     assert "nosemgrep:" not in source
+
+
+def test_sql_review_inventory_matches_the_failed_exact_scan() -> None:
+    """Do not silently omit a module that the exact Semgrep run identified."""
+    assert SQL_REVIEW_PATHS == (
+        "backend/app/analysis_run_ingestion.py",
+        "backend/app/analysis_run_start.py",
+        "backend/app/customer_hint_ingestion.py",
+        "backend/app/demo_scope.py",
+        "backend/app/entity_relationship_ingestion.py",
+        "backend/app/knowledge_graph.py",
+        "backend/app/main.py",
+        "backend/app/report_ingestion.py",
+        "lineageweave/synthetic_seed_cleanup.py",
+        "scripts/backfill_post_content.py",
+        "scripts/backfill_post_keymen.py",
+        "scripts/backfill_post_summaries.py",
+    )
 
 
 def test_post_structure_protocol_stub_fails_explicitly() -> None:
