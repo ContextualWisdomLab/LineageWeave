@@ -1692,6 +1692,7 @@ function PostDetailPopup({
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<PostAiSummary | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [summaryRetry, setSummaryRetry] = useState(0);
   const [fiveW1H, setFiveW1H] = useState<PostFiveW1H | null>(null);
   const [keymen, setKeymen] = useState<Keyman[] | null>(null);
   const [sourceAuthorContext, setSourceAuthorContext] = useState<SourceAuthorContext | null>(null);
@@ -1778,15 +1779,6 @@ function PostDetailPopup({
     fetchPostEvaluation(accessToken, postId)
       .then((r) => setEvaluation(r.responses))
       .catch(() => setEvaluation([]));
-    fetchPostSummary(accessToken, postId)
-      .then((value) => {
-        setSummary(value);
-        reloadContent();
-      })
-      .catch((err) => {
-        setSummary(null);
-        setSummaryError(summaryFetchError(err));
-      });
     fetchPostFiveW1H(accessToken, postId)
       .then(setFiveW1H)
       .catch(() => setFiveW1H(null));
@@ -1812,6 +1804,24 @@ function PostDetailPopup({
       if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
     };
   }, [postId, accessToken, liveBodyWarning, knowledgeCutoff]);
+
+  useEffect(() => {
+    let disposed = false;
+    setSummary(null);
+    setSummaryError(null);
+    fetchPostSummary(accessToken, postId)
+      .then((value) => {
+        if (!disposed) setSummary(value);
+      })
+      .catch((err) => {
+        if (disposed) return;
+        setSummary(null);
+        setSummaryError(summaryFetchError(err));
+      });
+    return () => {
+      disposed = true;
+    };
+  }, [postId, accessToken, summaryRetry]);
 
   const permanentLink = (() => {
     const url = new URL(window.location.href);
@@ -2096,6 +2106,14 @@ function PostDetailPopup({
               <h3>{t("Summary")}</h3>
               {summary ? (
                 <>
+                  {summary.summary_status === "stale" ? (
+                    <p className="post-meta" role="status">
+                      {t("Last saved summary shown. Retry semantic refresh.")} {" "}
+                      <button type="button" onClick={() => setSummaryRetry((value) => value + 1)}>
+                        {t("Retry summary refresh")}
+                      </button>
+                    </p>
+                  ) : null}
                   <p>{summary.korean_summary}</p>
                   {(summary.key_event_details?.length ?? summary.key_events.length) > 0 && (
                     <>

@@ -220,6 +220,8 @@ export interface ProjectEvidence {
 export interface PostAiSummary {
   post_id: string;
   korean_summary: string;
+  summary_status?: "current" | "stale";
+  summary_contract_version?: number | null;
   key_events: string[];
   key_event_details?: PostKeyEvent[];
   roles_and_responsibilities: PostRoleResponsibility[];

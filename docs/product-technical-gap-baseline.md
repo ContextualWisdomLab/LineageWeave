@@ -339,3 +339,20 @@ The integrated `60b52f26` checkpoint passes the full backend suite: `723 passed,
 16 skipped`, with no test failures. Frontend lint, `131 passed`, and production
 build also pass. Four existing dependency deprecation/security warnings remain
 non-failing and are not reclassified as product evidence.
+
+## Stale-summary continuity checkpoint: 2026-08-20
+
+The private PostgreSQL runtime showed three inspected target rows with summary
+contract versions `2`, `5`, and `5`, while the current contract is `6`. The
+same aggregate inspection found persisted 5W1H rows for the two newer rows,
+but a current-contract read rejected their older summary projections and
+re-entered the live LLM path. This made a temporary gateway failure look like
+missing product evidence even though the source body and prior projection
+still existed.
+
+ADR 0114 now keeps the default current-contract boundary, but permits the
+summary endpoint to return an explicitly labelled stale projection when a
+refresh is unavailable or incomplete. The buyer popup shows the saved-summary
+state and exposes a retry action; a successful contextual-orchestrator refresh
+still performs the only replacement. No private post identifiers or body text
+are recorded here.
