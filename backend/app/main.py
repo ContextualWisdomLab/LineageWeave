@@ -1156,7 +1156,8 @@ async def rebuild_lineage_graph(
     client = _adjudication_client()
     async with pool.acquire() as conn:
         async with conn.transaction():
-            rows = await conn.fetch(
+            # Safe SQL: the eligibility predicate is an immutable schema fragment; no user SQL is interpolated.
+            rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
                 "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
                 "process_unit_id, thread_group_key, secondary_grouping_key "
                 f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
