@@ -1,10 +1,10 @@
 """Build evidence-bound project histories from already-authorized rows.
 
-The module is deliberately storage-agnostic. Callers must apply RBAC, ABAC,
-source eligibility, and knowledge-cutoff filtering before invoking it. It then
-orders visible source records, keeps explicit and semantic project matches
-separate, projects observed responsibility evidence, and explains persisted
-lineage paths without promoting them to causal or authoritative facts.
+Callers must apply RBAC, ABAC, source eligibility, and knowledge-cutoff
+filtering before invoking this module. The pure projection layer then orders
+visible source records, preserves explicit and semantic project evidence,
+compares observed responsibility evidence, and exposes persisted lineage as
+related history without promoting it to causality or an HR assignment ledger.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from typing import Any
 from unicodedata import normalize
 
 PROJECT_HISTORY_CONTRACT_VERSION = 1
-PROJECT_HISTORY_TIME_BASIS = "document_time"
+PROJECT_HISTORY_TIME_BASIS = "source_post_created_at_fallback"
 PROJECT_HISTORY_MAX_DEPTH = 8
 PROJECT_HISTORY_MAX_PATHS_PER_EVENT = 32
 
@@ -62,14 +62,16 @@ _EVENT_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ),
 )
 _VOC_CODES = frozenset({"voc", "vocc", "voco", "vom", "vop"})
+_TRUTH_ORDER = {"observed": 0, "inferred": 1}
+_DISPLAY_NAME_ORDER = {"source_project_name": 0, "semantic_project_name": 1}
 
 
 def normalize_project_key(value: str) -> str:
     """Return the exact project-identity comparison key.
 
-    Compatibility normalization lets full-width and compatibility forms match
-    while preserving a deterministic, locale-neutral lower-case comparison.
-    Empty values are rejected rather than becoming a match-all key.
+    Unicode compatibility normalization lets full-width and compatibility
+    forms match without introducing fuzzy identity. Empty and oversized keys
+    fail closed.
     """
 
     normalized = normalize("NFKC", value).strip().lower()
@@ -88,12 +90,15 @@ def classify_project_event(
     voc_type_code: str | None,
     is_focus: bool,
 ) -> str:
-    """Classify a display event from explicit source text and codes.
+    """Return a non-authoritative display classification for one source row.
 
-    The code is presentation metadata only. It never creates a new event or
-    changes the truth status of the source record.
+    Explicit title/stage/state markers take precedence. Every already-visible
+    VOC-family row is labelled as VOC, not only the currently selected row.
+    ``is_focus`` is retained for contract compatibility but never changes the
+    truth status or creates an event.
     """
 
+    del is_focus
     text = " ".join(
         part.strip().lower()
         for part in (title, source_stage_code or "", source_detail_state_code or "")
@@ -102,7 +107,7 @@ def classify_project_event(
     for event_code, patterns in _EVENT_PATTERNS:
         if any(pattern in text for pattern in patterns):
             return event_code
-    if is_focus and (voc_type_code or "").strip().lower() in _VOC_CODES:
+    if (voc_type_code or "").strip().lower() in _VOC_CODES:
         return "voc_received"
     return "source_recorded"
 
@@ -110,11 +115,11 @@ def classify_project_event(
 def responsibility_transition_code(
     previous_actor_keys: Sequence[str], current_actor_keys: Sequence[str]
 ) -> str:
-    """Classify adjacent observed responsibility evidence.
+    """Compare adjacent observed responsibility evidence.
 
-    Missing evidence on either event is an ``assignment_gap``. Equal non-empty
-    actor sets are ``continuous``; different non-empty sets are ``handoff``.
-    The result describes document evidence, not an HR assignment fact.
+    Missing evidence on either row is an ``assignment_gap`` evidence state,
+    not proof of an operational or HR vacancy. Equal non-empty actor sets are
+    continuous; different non-empty sets are a handoff.
     """
 
     previous = frozenset(key for key in previous_actor_keys if key)
@@ -127,14 +132,14 @@ def responsibility_transition_code(
 
 
 def _as_utc(value: datetime) -> str:
-    """Serialize a datetime as canonical UTC RFC 3339 text."""
+    """Serialize a source clock as canonical UTC RFC 3339 text."""
 
     aware = value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
     return aware.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def _actor_key(role: Mapping[str, Any]) -> str:
-    """Return a stable key for one observed R&R actor."""
+    """Return a stable key for one observed role actor."""
 
     catalog_fields = (
         ("person", role.get("cataloged_person_id")),
@@ -170,7 +175,7 @@ def _prior_paths(
     maximum_depth: int,
     maximum_paths_per_event: int,
 ) -> dict[str, list[dict[str, Any]]]:
-    """Return one deterministic shortest visible path per prior event."""
+    """Return deterministic shortest visible predecessor paths per event."""
 
     event_index = {event_id: index for index, event_id in enumerate(ordered_event_ids)}
     reverse_edges: dict[str, list[dict[str, Any]]] = {event_id: [] for event_id in ordered_event_ids}
@@ -255,9 +260,9 @@ def build_project_history_projection(
 ) -> dict[str, Any]:
     """Build the versioned Buyer project-history projection.
 
-    All input rows must already be visible, eligible, and within the requested
-    knowledge cutoff. Duplicate event rows are collapsed by ``post_id`` and the
-    final chronology is stable on ``(created_at, post_id)``.
+    Inputs must already be visible, eligible, and within the requested cutoff.
+    Duplicate source rows and role rows are collapsed deterministically. An
+    observed source project name outranks an inferred semantic display name.
     """
 
     normalized_key = normalize_project_key(project_key)
@@ -272,16 +277,20 @@ def build_project_history_projection(
         current = deduplicated.get(event_id)
         if current is None or (row["created_at"], event_id) < (current["created_at"], event_id):
             deduplicated[event_id] = row
-    ordered_rows = sorted(deduplicated.values(), key=lambda row: (row["created_at"], str(row["post_id"])))
+    ordered_rows = sorted(
+        deduplicated.values(),
+        key=lambda row: (row["created_at"], str(row["post_id"])),
+    )
     if not ordered_rows:
         raise ValueError("project history requires at least one visible event")
     ordered_ids = [str(row["post_id"]) for row in ordered_rows]
+    event_index = {event_id: index for index, event_id in enumerate(ordered_ids)}
     effective_focus = focus_event_id or ordered_ids[-1]
-    if effective_focus not in set(ordered_ids):
+    if effective_focus not in event_index:
         raise ValueError("focus event is not in the visible project history")
 
     matches_by_event: dict[str, list[dict[str, Any]]] = {event_id: [] for event_id in ordered_ids}
-    display_names: list[str] = []
+    display_names: list[tuple[int, int, str, str]] = []
     seen_matches: set[tuple[str, str, str]] = set()
     for row in match_rows:
         event_id = str(row["post_id"])
@@ -309,19 +318,38 @@ def build_project_history_projection(
                 "provenance": str(row["provenance"]),
             }
         )
-        if kind.endswith("name"):
-            display_names.append(matched_value)
+        if kind in _DISPLAY_NAME_ORDER:
+            display_names.append(
+                (
+                    _DISPLAY_NAME_ORDER[kind],
+                    event_index[event_id],
+                    normalize_project_key(matched_value),
+                    matched_value,
+                )
+            )
     for matches in matches_by_event.values():
-        matches.sort(key=lambda item: (item["truth_status_code"], item["match_kind_code"], item["matched_value"]))
+        matches.sort(
+            key=lambda item: (
+                _TRUTH_ORDER[item["truth_status_code"]],
+                item["match_kind_code"],
+                item["matched_value"],
+            )
+        )
 
     roles_by_event: dict[str, list[dict[str, Any]]] = {event_id: [] for event_id in ordered_ids}
     actor_keys_by_event: dict[str, list[str]] = {event_id: [] for event_id in ordered_ids}
     distinct_actor_keys: set[str] = set()
+    seen_roles: set[tuple[str, str, str]] = set()
     for row in role_rows:
         event_id = str(row["post_id"])
         if event_id not in roles_by_event:
             continue
         actor_key = _actor_key(row)
+        responsibility = str(row["responsibility"])
+        role_key = (event_id, actor_key, responsibility)
+        if role_key in seen_roles:
+            continue
+        seen_roles.add(role_key)
         distinct_actor_keys.add(actor_key)
         actor_keys_by_event[event_id].append(actor_key)
         roles_by_event[event_id].append(
@@ -330,13 +358,14 @@ def build_project_history_projection(
                 "actor_name": str(row["actor_name"]),
                 "actor_type_code": str(row["actor_type_code"]),
                 "affiliated_organization_name": row.get("affiliated_organization_name"),
-                "responsibility": str(row["responsibility"]),
+                "responsibility": responsibility,
                 "truth_status_code": "observed",
                 "provenance": "post_summary_role",
             }
         )
-    for roles in roles_by_event.values():
+    for event_id, roles in roles_by_event.items():
         roles.sort(key=lambda role: (role["actor_type_code"], role["actor_name"], role["actor_key"]))
+        actor_keys_by_event[event_id] = sorted(set(actor_keys_by_event[event_id]))
 
     paths_by_event = _prior_paths(
         ordered_ids,
@@ -381,7 +410,7 @@ def build_project_history_projection(
         )
         previous_actor_keys = current_actor_keys
 
-    project_name = display_names[0] if display_names else project_key.strip()
+    project_name = min(display_names)[3] if display_names else project_key.strip()
     return {
         "contract_version": PROJECT_HISTORY_CONTRACT_VERSION,
         "project_key": project_key.strip(),
