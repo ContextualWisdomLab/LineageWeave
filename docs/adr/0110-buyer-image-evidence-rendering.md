@@ -1,4 +1,4 @@
-# ADR 0104: Render image evidence as buyer content, not LLM instructions
+# ADR 0110: Render image evidence as buyer content, not LLM instructions
 
 - Status: Accepted
 - Date: 2026-08-20
@@ -21,6 +21,8 @@ placeholder and is not buyer content.
   internal `unit_text` as buyer prose.
 - Keep parent and region evidence visibly distinct, and translate the label
   used for image tags through the five-locale UI catalog.
+- When OCR preserves a consistent pipe-delimited row structure, render that
+  evidence as a buyer-facing HTML table; otherwise keep it as readable text.
 - Continue retaining the original source body and normalized image provenance;
   this is a presentation boundary, not evidence deletion.
 

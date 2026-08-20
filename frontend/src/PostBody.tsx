@@ -3,6 +3,40 @@ import { t } from "./i18n";
 import type { PostContentUnit, PostImageContent } from "./api";
 import type { ReactNode } from "react";
 
+function parsePipeDelimitedTable(text: string): string[][] | null {
+  const rows = text
+    .split(/\r?\n/)
+    .map((row) => {
+      const cells = row.split("|").map((cell) => cell.trim());
+      if (cells[0] === "") cells.shift();
+      if (cells[cells.length - 1] === "") cells.pop();
+      return cells;
+    })
+    .filter((row) => !row.every((cell) => /^:?-{3,}:?$/.test(cell)))
+    .filter((row) => row.length > 1 && row.some(Boolean));
+  if (rows.length < 2 || rows.some((row) => row.length !== rows[0].length)) return null;
+  if (rows[0].length < 2) return null;
+  return rows;
+}
+
+function renderImageText(text: string) {
+  const rows = parsePipeDelimitedTable(text);
+  if (!rows) return <p>{text}</p>;
+  return (
+    <table className="post-body-table post-image-text-table">
+      <tbody>
+        {rows.map((row, rowIndex) => (
+          <tr key={`post-image-text-row-${rowIndex}`}>
+            {row.map((cell, cellIndex) => (
+              <td key={`post-image-text-cell-${rowIndex}-${cellIndex}`}>{cell}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 function renderImageEvidence(
   index: number,
   imageContent?: PostImageContent,
@@ -24,7 +58,7 @@ function renderImageEvidence(
       {imageContent?.extracted_text ? (
         <details className="post-image-text">
           <summary>{t("Text detected in image")}</summary>
-          <p>{imageContent.extracted_text}</p>
+          {renderImageText(imageContent.extracted_text)}
         </details>
       ) : null}
       {imageContent?.regions?.length ? (
