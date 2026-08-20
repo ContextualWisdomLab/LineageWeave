@@ -4626,7 +4626,7 @@ function CustomerMasterPanel({
   );
 }
 
-function AskAgentPanel({
+export function AskAgentPanel({
   accessToken,
   onOpenPost,
 }: {
@@ -4637,6 +4637,7 @@ function AskAgentPanel({
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [verifyExternal, setVerifyExternal] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>(() =>
     window.sessionStorage.getItem("lineageweave.globalAskSessionId") ?? undefined,
   );
@@ -4648,7 +4649,7 @@ function AskAgentPanel({
     setError(null);
     setAnswer(null);
     try {
-      const nextAnswer = await askAgent(accessToken, normalized, sessionId);
+      const nextAnswer = await askAgent(accessToken, normalized, verifyExternal, sessionId);
       setAnswer(nextAnswer);
       setSessionId(nextAnswer.session_id);
       window.sessionStorage.setItem("lineageweave.globalAskSessionId", nextAnswer.session_id);
@@ -4675,6 +4676,15 @@ function AskAgentPanel({
           rows={4}
         />
       </label>
+      <label className="ask-agent-source">
+        <input
+          type="checkbox"
+          aria-label="Check eligible public claims"
+          checked={verifyExternal}
+          onChange={(event) => setVerifyExternal(event.target.checked)}
+        />
+        <span>{t("Check eligible public claims")}</span>
+      </label>
       <button className="keyman-select" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
         {asking ? t("Asking...") : t("Ask")}
       </button>
@@ -4683,6 +4693,33 @@ function AskAgentPanel({
           <h3>{t("Answer")}</h3>
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
           {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
+          {answer.external_claims && answer.external_claims.length > 0 ? (
+            <section className="popup-section" aria-label="Public verification">
+              <h4>Public verification</h4>
+              {answer.external_claims.map((claim) => (
+                <article key={`${claim.claim_kind}:${claim.claim_text}`}>
+                  <p>
+                    {claim.status_code === "claim_supported"
+                      ? "Supported by public evidence"
+                      : claim.status_code === "claim_refuted"
+                        ? "Conflicts with public evidence"
+                        : "Not enough public information"}
+                  </p>
+                  <p>{claim.rationale}</p>
+                  <ul className="post-evidence-list">
+                    {claim.evidence.map((evidence) => (
+                      <li key={evidence.url}>
+                        <a href={evidence.url} target="_blank" rel="noreferrer">
+                          {evidence.title}
+                        </a>
+                        <span>{evidence.snippet}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              ))}
+            </section>
+          ) : null}
           {answer.timeline && answer.timeline.length > 0 ? (
             <>
               <h4>Event Lineage timeline</h4>

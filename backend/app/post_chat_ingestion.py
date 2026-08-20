@@ -18,7 +18,6 @@ chain of its own top match.
 from __future__ import annotations
 
 import asyncio
-import re
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable
 from uuid import uuid4
@@ -44,6 +43,12 @@ from lineageweave.post_chat import (
 from lineageweave.post_content_normalization import normalize_post_body
 
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
+from .global_ask_retrieval import (
+    global_ask_query_terms,
+    public_external_claim_facts,
+    semantic_candidate_post_ids,
+)
+from lineageweave.claim_verification import GlobalAskSourceDocument
 from lineageweave.ontology import ontology_annotations
 
 
@@ -337,7 +342,6 @@ _SOURCE_HINT_FIELDS = (
     ("source_project_name", "source project name"),
 )
 
-_GLOBAL_ASK_TERM_PATTERN = re.compile(r"[^\W_]+(?:-[^\W_]+)*", re.UNICODE)
 _POST_CHAT_SOURCE_LIMIT = 8
 _POST_CHAT_CANDIDATE_LIMIT = 32
 
@@ -569,38 +573,7 @@ async def gather_global_chat_sources(
         return []
     if vision_client is None:
         vision_client = NullImageContentClient()
-    search_terms = tuple(
-        dict.fromkeys(
-            token.casefold()
-            for token in _GLOBAL_ASK_TERM_PATTERN.findall(question or "")
-            if len(token) >= 2
-            and token.casefold()
-            not in {
-                "which",
-                "what",
-                "where",
-                "when",
-                "who",
-                "why",
-                "how",
-                "the",
-                "this",
-                "that",
-                "posts",
-                "post",
-                "글",
-                "게시글",
-                "질문",
-                "관련",
-                "확인되는",
-                "핵심",
-                "사실",
-                "무엇",
-                "무엇인가요",
-                "인가요",
-            }
-        )
-    )[:8]
+    search_terms = global_ask_query_terms(question)
     # A post whose title names the exact thing asked about is a far more
     # specific match than one that only shares a generic term (a common
     # word, or a hit buried in a 16KB body prefix); weighting every match
@@ -652,8 +625,25 @@ async def gather_global_chat_sources(
         for row in candidate_rows:
             post_id = str(row["post_id"])
             candidate_scores[post_id] = candidate_scores.get(post_id, 0.0) + _MATCH_WEIGHT[row["matched_in"]]
+    semantic_candidate_ids = await semantic_candidate_post_ids(
+        conn,
+        question,
+        maximum_candidates=128,
+    )
+    semantic_rank = {post_id: rank for rank, post_id in enumerate(semantic_candidate_ids)}
+    for post_id in semantic_candidate_ids:
+        candidate_scores[post_id] = candidate_scores.get(post_id, 0.0) + 4.0
+    if question and not candidate_scores:
+        return []
     candidate_budget = min(_POST_CHAT_CANDIDATE_LIMIT, max(limit, limit * 4))
-    candidate_ids = sorted(candidate_scores, key=lambda post_id: candidate_scores[post_id], reverse=True)
+    candidate_ids = sorted(
+        candidate_scores,
+        key=lambda post_id: (
+            -candidate_scores[post_id],
+            semantic_rank.get(post_id, len(semantic_candidate_ids)),
+            post_id,
+        ),
+    )
 
     # A keyword match only proves one post's text is relevant -- the
     # account asking almost always wants to know what happened before and
@@ -685,8 +675,9 @@ async def gather_global_chat_sources(
         candidate_ids = candidate_ids[:candidate_budget]
     lineage_neighbor_id_set = frozenset(lineage_neighbor_ids)
 
+    candidate_predicate = "and post_id = any($2::uuid[])" if question else ""
     rows = await conn.fetch(
-        """
+        f"""
         select post_id, post_title, post_body, visibility_code, corporate_entity_id,
                created_at,
                source_system_code, source_record_key, source_author_code, source_author_name,
@@ -695,8 +686,9 @@ async def gather_global_chat_sources(
                source_customer_code, source_customer_name,
                source_project_code, source_project_name
           from source_post
-         where visibility_code = 'public'
-            or corporate_entity_id::text = any($1::text[])
+         where (visibility_code = 'public'
+            or corporate_entity_id::text = any($1::text[]))
+           {candidate_predicate}
          order by array_position($2::uuid[], post_id) nulls last,
                   created_at desc, post_id desc
          limit $3
@@ -705,11 +697,21 @@ async def gather_global_chat_sources(
         candidate_ids,
         limit,
     )
-    visible_rows = [row for row in rows if can_see_post(row)][:limit]
+    candidate_id_set = frozenset(candidate_ids)
+    visible_rows = [
+        row
+        for row in rows
+        if (not question or str(row["post_id"]) in candidate_id_set) and can_see_post(row)
+    ][:limit]
     visible_ids = [str(row["post_id"]) for row in visible_rows]
     anchor_is_visible = lineage_anchor_id in visible_ids
     semantic_facts = await _semantic_facts_for_posts(conn, visible_ids)
     graph_facts = (await _graph_facts_for_posts(conn, visible_ids))[:16]
+    public_post_ids = frozenset(
+        str(row["post_id"])
+        for row in visible_rows
+        if row.get("visibility_code") == "public"
+    )
     sources: list[ChatSourceDocument] = []
     for index, row in enumerate(visible_rows):
         normalized_body = await _normalize_post_body_text(row["post_body"], vision_client)
@@ -724,8 +726,14 @@ async def gather_global_chat_sources(
             if post_id in lineage_neighbor_id_set and anchor_is_visible
             else ()
         )
+        external_facts = public_external_claim_facts(
+            row,
+            semantic_facts.get(post_id, ()),
+            graph_facts,
+            public_post_ids,
+        )
         sources.append(
-            ChatSourceDocument(
+            GlobalAskSourceDocument(
                 post_id,
                 row["post_title"],
                 normalized_body,
@@ -741,6 +749,7 @@ async def gather_global_chat_sources(
                     if post_id == lineage_anchor_id
                     else "keyword_match"
                 ),
+                external_claim_facts=external_facts,
             )
         )
     return sources
