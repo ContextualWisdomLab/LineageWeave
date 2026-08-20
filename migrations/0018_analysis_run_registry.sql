@@ -471,6 +471,7 @@ declare
     previous_status_code text;
     previous_occurred_at timestamptz;
     run_requested_at timestamptz;
+    database_now timestamptz;
 begin
     -- The immutable parent row is a per-run serialization lock. It prevents
     -- concurrent writers from both accepting the same next ordinal.
@@ -492,11 +493,14 @@ begin
     if new.occurred_at < run_requested_at then
         raise exception 'analysis_run_status_before_request';
     end if;
-    -- Raise recorded_at to occurrence when Python's clock is ahead of
-    -- PostgreSQL clock_timestamp() (live ~15-20ms). Do not clamp
-    -- occurred_at down: that would break monotonicity against
-    -- previously stored Python-ahead events.
-    new.recorded_at := greatest(clock_timestamp(), new.occurred_at);
+    -- Permit bounded client clock skew, but do not accept arbitrary future
+    -- events that would manufacture audit time. Do not clamp occurred_at
+    -- down: that would break monotonicity against Python-ahead events.
+    database_now := clock_timestamp();
+    if new.occurred_at > database_now + interval '1 minute' then
+        raise exception 'analysis_run_status_time_too_far_in_future';
+    end if;
+    new.recorded_at := greatest(database_now, new.occurred_at);
 
     select status_ordinal, status_code, occurred_at
       into previous_ordinal, previous_status_code, previous_occurred_at

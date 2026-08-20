@@ -269,7 +269,7 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     rollback = _REGISTRY_ROLLBACK.read_text(encoding="utf-8")
     dockerfile = _POSTGRES_IMAGE.read_text(encoding="utf-8")
     created_tables = set(
-        re.findall(r"create table if not exists\s+([a-z0-9_]+)", migration, re.I)
+        re.findall(r"create table if not exists\s+([a-z0-9_]+)", migration, re.IGNORECASE)
     )
     assert _REQUIRED_TABLES <= created_tables
     assert "analysis_run_records" not in created_tables
@@ -377,7 +377,7 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
         r"|create or replace function\s+([a-z0-9_]+)"
         r"|create role\s+([a-z0-9_]+)",
         retention,
-        re.I,
+        re.IGNORECASE,
     ):
         name = object_name[0] or object_name[1] or object_name[2]
         assert len(name.split("_")) >= 2, name
@@ -396,7 +396,8 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert "analysis_run_scope_required" in migration
     assert "enforce_analysis_source_count_freeze" in migration
     assert "enforce_analysis_run_status_transition" in migration
-    assert "greatest(clock_timestamp(), new.occurred_at)" in migration
+    assert "greatest(database_now, new.occurred_at)" in migration
+    assert "analysis_run_status_time_too_far_in_future" in migration
     assert "new.recorded_at := clock_timestamp();" not in migration
     assert "new.occurred_at :=" not in migration
     assert "analysis_run_current_status" in migration
@@ -409,7 +410,7 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
         r"create or replace view\s+([a-z0-9_]+)",
     )
     for pattern in object_patterns:
-        for object_name in re.findall(pattern, migration, re.I):
+        for object_name in re.findall(pattern, migration, re.IGNORECASE):
             assert len(object_name.split("_")) >= 2, object_name
 
 
@@ -821,7 +822,8 @@ def test_status_write_clock_migration_is_wired() -> None:
     dockerfile = _POSTGRES_IMAGE.read_text(encoding="utf-8")
     seed = (_ROOT / "scripts" / "seed_demo_data.py").read_text(encoding="utf-8")
     assert "create or replace function enforce_analysis_run_status_transition" in migration
-    assert "greatest(clock_timestamp(), new.occurred_at)" in migration
+    assert "greatest(database_now, new.occurred_at)" in migration
+    assert "analysis_run_status_time_too_far_in_future" in migration
     assert "new.occurred_at :=" not in migration
     assert "drop table" not in migration.casefold()
     assert "0030_analysis_run_status_write_clock.sql" in dockerfile
@@ -834,13 +836,13 @@ def test_status_write_clock_migration_is_wired() -> None:
     for object_name in re.findall(
         r"create or replace function\s+([a-z0-9_]+)",
         migration,
-        re.I,
+        re.IGNORECASE,
     ):
         assert len(object_name.split("_")) >= 2, object_name
 
 
 def test_status_write_clock_covers_python_ahead_occurrence(registry_db) -> None:
-    """Python-ahead occurred_at must persist with recorded_at >= occurred_at."""
+    """Python-ahead occurred_at must persist as the recorded_at source."""
 
     with registry_db.cursor() as cursor:
         snapshot_id = _insert_snapshot(cursor)
@@ -859,7 +861,7 @@ def test_status_write_clock_covers_python_ahead_occurrence(registry_db) -> None:
         )
         cursor.execute("select clock_timestamp()")
         db_now = cursor.fetchone()[0]
-        occurred = db_now + timedelta(milliseconds=20)
+        occurred = db_now + timedelta(seconds=5)
         cursor.execute(
             "insert into analysis_run_status_event "
             "(analysis_run_id, status_ordinal, status_code, occurred_at) "
@@ -868,7 +870,36 @@ def test_status_write_clock_covers_python_ahead_occurrence(registry_db) -> None:
             (run_id, occurred),
         )
         occurred_at, recorded_at = cursor.fetchone()
-    assert recorded_at >= occurred_at
+    assert recorded_at == occurred_at
+
+
+def test_status_write_clock_rejects_unbounded_future_occurrence(registry_db) -> None:
+    """A client cannot manufacture an audit event more than one minute ahead."""
+
+    with registry_db.cursor() as cursor:
+        snapshot_id = _insert_snapshot(cursor)
+        account_id = _insert_account(cursor)
+        run_id = _insert_run(
+            cursor,
+            snapshot_id=snapshot_id,
+            account_id=account_id,
+            idempotency_key="future-status-clock",
+        )
+        cursor.execute(
+            "insert into analysis_run_scope "
+            "(analysis_run_id, scope_kind_code) "
+            "values (%s, 'analysis_scope_all_visible')",
+            (run_id,),
+        )
+        cursor.execute("select clock_timestamp()")
+        db_now = cursor.fetchone()[0]
+        with pytest.raises(psycopg2.errors.RaiseException, match="time_too_far_in_future"):
+            cursor.execute(
+                "insert into analysis_run_status_event "
+                "(analysis_run_id, status_ordinal, status_code, occurred_at) "
+                "values (%s, 1, 'analysis_status_pending', %s)",
+                (run_id, db_now + timedelta(minutes=2)),
+            )
 
 
 def test_machine_codes_and_canonical_idempotency_are_fail_closed(registry_db) -> None:
