@@ -35,6 +35,15 @@ _EXCERPT_LENGTH = 1500
 #: fully parsing megabytes of raw HTML first.
 _RAW_BODY_SQL_CAP = 20000
 
+_CUSTOMER_HINT_SAMPLE_QUERY = f"""
+select post_title, left(post_body, {_RAW_BODY_SQL_CAP}) as post_body
+  from source_post
+ where source_customer_code = $1
+   and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
+ order by created_at desc
+ limit {_SAMPLE_POST_LIMIT}
+"""
+
 
 async def resolve_customer_hint(
     conn: asyncpg.Connection,
@@ -53,17 +62,7 @@ async def resolve_customer_hint(
     """
     if not resolution_client.available:
         return None
-    rows = await conn.fetch(
-        f"""
-        select post_title, left(post_body, {_RAW_BODY_SQL_CAP}) as post_body
-          from source_post
-         where source_customer_code = $1
-           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
-         order by created_at desc
-         limit {_SAMPLE_POST_LIMIT}
-        """,
-        hint_code,
-    )
+    rows = await conn.fetch(_CUSTOMER_HINT_SAMPLE_QUERY, hint_code)
     if not rows:
         return None
 
@@ -96,6 +95,7 @@ async def resolve_customer_hint(
         # name-based lookup above can miss an entity this same hint already
         # created -- corporate_entity_code (deterministic from hint_code)
         # is the stable identity key a retry must key off instead.
+        entity_code = f"HINT-{hint_code}"
         created = await conn.fetchrow(
             """
             insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code)
@@ -104,7 +104,7 @@ async def resolve_customer_hint(
             do update set entity_name = excluded.entity_name
             returning corporate_entity_id
             """,
-            f"HINT-{hint_code}",
+            entity_code,
             entity_name,
         )
         entity_id = created["corporate_entity_id"]
