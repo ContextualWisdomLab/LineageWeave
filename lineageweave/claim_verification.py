@@ -4,7 +4,7 @@ Global Ask answers remain grounded in authorized LineageWeave posts. This
 module adds an explicitly opt-in public verification lane for claims that the
 retrieval layer has already marked safe for public egress. SearXNG retrieves
 bounded public snippets and contextual-orchestrator adjudicates those snippets
-in ``mode="verify"``.
+through its provider-neutral ``mode="auto"`` contract.
 
 External corroboration is evidence, never graph authority. TEPP and fast-mlsirm
 artifacts remain measurement evidence and are intentionally ineligible for this
@@ -420,8 +420,42 @@ class SearxngOrchestratedClaimVerificationClient:
         body = post_json(
             f"{self._orchestrator_base_url}/v1/chat/completions",
             {
-                "messages": [{"role": "user", "content": prompt}],
-                "mode": "verify",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a public-claim evidence adjudicator. Follow the requested "
+                            "JSON schema exactly, cite only supplied evidence numbers, and never "
+                            "treat an unsupported claim as supported."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                "response_format": {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "public_claim_verification",
+                        "strict": True,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "status_code": {
+                                    "type": "string",
+                                    "enum": sorted(_ALLOWED_CLAIM_STATUSES),
+                                },
+                                "rationale": {"type": "string"},
+                                "evidence_numbers": {
+                                    "type": "array",
+                                    "items": {"type": "integer", "minimum": 1},
+                                    "maxItems": self._maximum_results,
+                                },
+                            },
+                            "required": ["status_code", "rationale", "evidence_numbers"],
+                            "additionalProperties": False,
+                        },
+                    },
+                },
+                "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},

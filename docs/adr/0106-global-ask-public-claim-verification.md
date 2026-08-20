@@ -40,8 +40,8 @@ remain grounded in authorized LineageWeave posts. When verification is enabled:
 6. SearXNG returns bounded snippets and URLs. LineageWeave does not server-side
    fetch the returned target URL as part of verification;
 7. contextual-orchestrator adjudicates the claim from only those numbered web
-   snippets in `mode="verify"`; its model/reasoning policy remains owned by the
-   orchestrator;
+   snippets in `mode="auto"` with a strict JSON schema; its model, protocol, and
+   reasoning policy remain owned by the orchestrator;
 8. the result is one of `claim_supported`, `claim_refuted`, or
    `claim_not_enough_information`;
 9. `claim_supported` and `claim_refuted` require at least one cited external
