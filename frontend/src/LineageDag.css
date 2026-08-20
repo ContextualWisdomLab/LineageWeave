@@ -1,0 +1,33 @@
+.lineage-evidence-scroll {
+  overflow-x: auto;
+}
+
+.lineage-evidence-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.lineage-evidence-table th,
+.lineage-evidence-table td {
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  vertical-align: top;
+  text-align: left;
+}
+
+.lineage-evidence-table thead th {
+  color: var(--text-h);
+  background: var(--surface-muted);
+}
+
+.lineage-evidence-table tbody th {
+  color: var(--text-h);
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .lineage-evidence-table {
+    min-width: 52rem;
+  }
+}
