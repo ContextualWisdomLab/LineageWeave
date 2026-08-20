@@ -29,3 +29,4 @@ smoke:
 seed:
 	@test -n "$${KEYCLOAK_ADMIN_PASSWORD:-}" || { echo "KEYCLOAK_ADMIN_PASSWORD is required" >&2; exit 1; }; \
 	python3 scripts/seed_demo_data.py
+	python3 scripts/seed_project_history.py

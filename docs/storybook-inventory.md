@@ -21,3 +21,11 @@ Design Tokens Community Group. (2025). *Design Tokens Format Module 1.0*
 
 Storybook. (2026). *Storybook for React & Vite*.
 https://storybook.js.org/docs/get-started/frameworks/react-vite
+
+## Project lifecycle history
+
+`Buyer/Project history timeline` covers the complete lifecycle, no-assignment,
+single-assignment, hidden-evidence-removed, truncated, and empty-evidence
+states. The stories use synthetic data and preserve the same source-opening,
+non-causal relation, responsive, and handover-gap contracts as the production
+component (ADR 0100; Figma `SBpgot7uTvMxEaxUwvoc0S`, node `308:2`).

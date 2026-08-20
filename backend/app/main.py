@@ -173,6 +173,7 @@ from backend.app.post_summary_ingestion import (
     require_summary_source_body,
 )
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.project_history import fetch_project_history
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
     has_real_source_context,
@@ -623,6 +624,25 @@ async def update_me_preferences(
             account.user_account_id,
         )
     return {"preferred_locale": preference.preferred_locale}
+
+
+@app.get("/api/projects/{project_key}/history")
+async def read_project_history(
+    project_key: str,
+    limit: int = Query(default=200, ge=1, le=500),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return one bounded project lifecycle after RBAC and evidence ABAC."""
+
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        return await fetch_project_history(
+            conn,
+            project_key,
+            account.corporate_entity_ids,
+            limit=limit,
+        )
 
 
 @app.get("/api/customer-master")

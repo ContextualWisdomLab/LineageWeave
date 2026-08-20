@@ -208,6 +208,62 @@ export interface ProjectEvidence {
   provenance: string;
 }
 
+export interface ProjectHistoryEvent {
+  project_history_event_id: string;
+  event_type_code: string;
+  event_type_label: string;
+  event_title: string;
+  occurred_at: string;
+  ended_at: string | null;
+  evidence_post_id: string;
+  evidence_post_title: string;
+  ontology_iri: string;
+  evidence_count: number;
+}
+
+export interface ProjectEventRelation {
+  source_project_history_event_id: string;
+  target_project_history_event_id: string;
+  relation_type_code: string;
+  relation_type_label: string;
+  evidence_post_id: string;
+  evidence_post_title: string;
+  relation_confidence: number | null;
+  causal: false;
+}
+
+export interface ProjectResponsibilityAssignment {
+  project_responsibility_assignment_id: string;
+  cataloged_person_id: string;
+  person_name: string;
+  responsibility_role_code: string;
+  responsibility_role_label: string;
+  valid_from: string;
+  valid_to: string | null;
+  evidence_post_id: string;
+  evidence_post_title: string;
+}
+
+export interface ProjectHandoverGap {
+  previous_assignment_id: string;
+  next_assignment_id: string;
+  gap_start: string;
+  gap_end: string;
+  gap_days: number;
+  gap_basis: "visible_assignment_evidence";
+}
+
+export interface ProjectHistory {
+  project_key: string;
+  project_name: string;
+  events: ProjectHistoryEvent[];
+  relations: ProjectEventRelation[];
+  responsibility_assignments: ProjectResponsibilityAssignment[];
+  handover_gaps: ProjectHandoverGap[];
+  truncated: boolean;
+  evidence_boundary: "authorized_source_posts_only";
+}
+
 export interface PostAiSummary {
   post_id: string;
   korean_summary: string;
@@ -589,6 +645,18 @@ export function fetchPost(
 ): Promise<PostDetail> {
   const query = asOf ? `?as_of=${encodeURIComponent(asOf)}` : "";
   return backendFetch<PostDetail>(`/api/posts/${postId}${query}`, accessToken);
+}
+
+export function fetchProjectHistory(
+  accessToken: string,
+  projectKey: string,
+  limit = 200,
+): Promise<ProjectHistory> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return backendFetch<ProjectHistory>(
+    `/api/projects/${encodeURIComponent(projectKey)}/history?${params.toString()}`,
+    accessToken,
+  );
 }
 
 export function fetchPostContent(accessToken: string, postId: string): Promise<PostContentResponse> {

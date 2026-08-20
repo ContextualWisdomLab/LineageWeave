@@ -1,0 +1,55 @@
+@prefix : <https://contextualwisdomlab.github.io/lineageweave/project-history#> .
+@prefix lw: <https://contextualwisdomlab.github.io/lineageweave/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix time: <http://www.w3.org/2006/time#> .
+
+<https://contextualwisdomlab.github.io/lineageweave/project-history>
+    a owl:Ontology ;
+    rdfs:label "LineageWeave Project History Profile"@en ;
+    rdfs:comment "OWL-Time and PROV-O projection for evidence-backed project lifecycle events and responsibility intervals. PostgreSQL remains authoritative."@en .
+
+:ProjectHistoryEvent
+    a owl:Class ;
+    rdfs:subClassOf prov:Activity, time:TemporalEntity ;
+    rdfs:label "Project history event"@en .
+
+:OrderAwardEvent a owl:Class ; rdfs:subClassOf :ProjectHistoryEvent .
+:SpecificationChangeEvent a owl:Class ; rdfs:subClassOf :ProjectHistoryEvent .
+:DeliveryEvent a owl:Class ; rdfs:subClassOf :ProjectHistoryEvent .
+:VoiceOfCustomerEvent a owl:Class ; rdfs:subClassOf :ProjectHistoryEvent .
+:RebidEvent a owl:Class ; rdfs:subClassOf :ProjectHistoryEvent .
+
+:ResponsibilityAssignment
+    a owl:Class ;
+    rdfs:subClassOf prov:Association, time:ProperInterval ;
+    rdfs:label "Project responsibility assignment"@en .
+
+:hasProjectEvidence
+    a owl:ObjectProperty ;
+    rdfs:domain :ProjectHistoryEvent ;
+    rdfs:range lw:Post ;
+    rdfs:subPropertyOf prov:used ;
+    rdfs:label "has project evidence"@en .
+
+:followsProjectEvent
+    a owl:ObjectProperty ;
+    rdfs:domain :ProjectHistoryEvent ;
+    rdfs:range :ProjectHistoryEvent ;
+    rdfs:subPropertyOf time:after ;
+    rdfs:label "follows project event"@en .
+
+:revisesProjectEvent
+    a owl:ObjectProperty ;
+    rdfs:domain :ProjectHistoryEvent ;
+    rdfs:range :ProjectHistoryEvent ;
+    rdfs:label "revises project event"@en .
+
+:projectRelatedTo
+    a owl:ObjectProperty, owl:SymmetricProperty ;
+    rdfs:domain :ProjectHistoryEvent ;
+    rdfs:range :ProjectHistoryEvent ;
+    rdfs:label "project related to"@en ;
+    rdfs:comment "An evidence-backed association that does not assert causality."@en .

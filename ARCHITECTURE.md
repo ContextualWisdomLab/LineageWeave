@@ -962,3 +962,15 @@ so it also covers the multi-entity opposite-order case a per-name lock
 would still deadlock on. Every already-cataloged entity still resolves
 through the unchanged, lock-free similarity-matching fast path; only
 the rare creation branch serializes.
+
+## Evidence-bound project lifecycle history
+
+`project_history_project`, `project_history_event`,
+`project_event_relation`, and `project_responsibility_assignment` form the
+normalized PostgreSQL authority for project history. The API reuses the Buyer
+post eligibility and corporate visibility boundary before it publishes an
+event, relation, assignment, or derived handover gap. The post detail popup
+renders the resulting bounded read model through `ProjectHistoryPanel`; the
+OWL-Time/PROV-O profile in `docs/ontology/project-history-profile.ttl` is an
+interoperability projection, not an authorization source or causal reasoner
+(ADR 0100).

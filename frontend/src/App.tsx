@@ -83,6 +83,7 @@ import { CitationChip } from "./components/CitationChip";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
+import { ProjectHistoryPanel } from "./components/ProjectHistoryTimeline";
 import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
@@ -2258,6 +2259,13 @@ function PostDetailPopup({
                 <p className="popup-placeholder">{t("No summary is available for this record yet.")}</p>
               )}
             </section>
+
+            <ProjectHistoryPanel
+              accessToken={accessToken}
+              projectEvidence={post.project_evidence ?? []}
+              currentPostId={postId}
+              onOpenPost={onSelectPost}
+            />
 
             {!focusEventLineage && (
               <EvaluationPanel
