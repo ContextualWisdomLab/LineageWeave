@@ -202,6 +202,14 @@ def test_orchestrator_vision_client_does_not_double_v1() -> None:
     assert client._base_url == "https://gateway.example/v1"
 
 
+def test_orchestrator_vision_client_allows_deep_agent_runtime() -> None:
+    """A valid VISION result must not be cut off by the former 180s limit."""
+    client = orchestrator_vision_client("https://gateway.example", "key")
+
+    assert isinstance(client, OpenAiCompatibleVisionClient)
+    assert client._timeout == 600.0
+
+
 def test_orchestrator_vision_client_is_null_when_unconfigured() -> None:
     client = orchestrator_vision_client("", "")
     assert isinstance(client, NullImageContentClient)

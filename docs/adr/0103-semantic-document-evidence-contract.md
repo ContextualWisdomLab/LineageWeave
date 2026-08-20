@@ -39,7 +39,9 @@ recognizable header/separator/data shape and otherwise preserves plain text.
 6. Apply the same narrow Markdown-table renderer to persisted image OCR.
    VISION output may use multiple `TEXT` lines so row boundaries survive; its
    caption names only visible entities, relationships, layout, and document
-   purpose rather than offering a generic one-sentence description.
+   purpose rather than offering a generic one-sentence description. The
+   client allows 600 seconds for deep orchestrator work; a 180-second local
+   cutoff already terminated a valid live response before delivery.
 
 ## Rejected alternatives
 
