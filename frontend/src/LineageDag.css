@@ -93,6 +93,15 @@
 }
 
 @media print {
+  .lineage-dag,
+  .lineage-dag * {
+    visibility: visible;
+  }
+
+  .lineage-dag {
+    position: static;
+  }
+
   .lineage-evidence-disclosure {
     break-inside: avoid;
   }

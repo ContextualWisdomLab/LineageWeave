@@ -1,6 +1,17 @@
 begin;
 
+do $$
+begin
+    if to_regclass('public.lineage_edge_channel_score') is not null then
+        execute 'drop trigger if exists '
+            'lineage_edge_channel_contribution_validate '
+            'on lineage_edge_channel_score';
+    end if;
+end
+$$;
+
 drop table if exists lineage_edge_channel_score;
+drop function if exists validate_lineage_edge_channel_contribution();
 
 drop index if exists post_lineage_edge_reconstruction_run_idx;
 alter table post_lineage_edge
