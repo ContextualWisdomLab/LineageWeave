@@ -111,7 +111,6 @@ async def backfill_post_content(
                 "where unit.post_id = post.post_id and embedding.post_content_unit_id is null))"
             )
         limit_sql = "" if limit is None else f" limit {int(limit)}"
-        # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli -- Predicate fragments are fixed source-schema constants; post IDs and limit are validated/bound values.
         selected_rows = await conn.fetch(
             f"""
             select post.post_id
