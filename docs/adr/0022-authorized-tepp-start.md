@@ -37,6 +37,8 @@ authorized transaction:
 4. submits through `TeppClient`. An empty `TEPP_TRANSPORT_URL` keeps the
    default unavailable transport. A set URL POSTs the published wire
    payload through the http(s)-only helper. File URLs stay unavailable;
+   `AnalysisRunRequest` rejects non-v1 versions and blank/non-text required
+   fields before the transport is called, matching TEPP's v1 JSON Schema;
 5. appends Failed / `tepp_not_available` when the transport is missing
    or refused, or Failed / `tepp_result_not_persisted` when TEPP accepts
    an envelope this product cannot store yet.
@@ -94,3 +96,7 @@ World Wide Web Consortium. https://www.w3.org/TR/prov-dm/
 
 World Wide Web Consortium. (2013). *PROV-O: The PROV ontology* (W3C
 Recommendation). https://www.w3.org/TR/prov-o/
+
+ContextualWisdomLab. (2026). *TEPP API and modular integration contract*
+([Computer software documentation]). GitHub.
+https://github.com/ContextualWisdomLab/TEPP/blob/main/docs/API_CONTRACT.md
