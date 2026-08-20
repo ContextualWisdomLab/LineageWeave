@@ -1,5 +1,65 @@
+.lineage-evidence-warning {
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.75rem;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-bg);
+}
+
+.lineage-evidence-disclosures {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.lineage-evidence-disclosure {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--bg);
+}
+
+.lineage-evidence-disclosure > summary {
+  padding: 0.75rem;
+  color: var(--text-h);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lineage-evidence-disclosure[open] > summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.lineage-evidence-disclosure > :not(summary) {
+  margin-inline: 0.75rem;
+}
+
+.lineage-evidence-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  margin-block: 0.75rem;
+}
+
+.lineage-evidence-metadata > div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.lineage-evidence-metadata dt {
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.lineage-evidence-metadata dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
 .lineage-evidence-scroll {
   overflow-x: auto;
+  margin-bottom: 0.75rem;
 }
 
 .lineage-evidence-table {
@@ -28,6 +88,24 @@
 
 @media (max-width: 640px) {
   .lineage-evidence-table {
-    min-width: 52rem;
+    min-width: 36rem;
+  }
+}
+
+@media print {
+  .lineage-evidence-disclosure {
+    break-inside: avoid;
+  }
+
+  .lineage-evidence-disclosure > summary {
+    list-style: none;
+  }
+
+  .lineage-evidence-scroll {
+    overflow: visible;
+  }
+
+  .lineage-evidence-table {
+    min-width: 0;
   }
 }
