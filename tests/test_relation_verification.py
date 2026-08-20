@@ -29,7 +29,7 @@ from lineageweave.relation_verification import (
 class _ResultsHandler(BaseHTTPRequestHandler):
     received_query: str = ""
 
-    def do_GET(self) -> None:  # noqa: N802 -- BaseHTTPRequestHandler API
+    def do_GET(self) -> None:
         parsed = urlparse(self.path)
         query = parse_qs(parsed.query)
         type(self).received_query = query.get("q", [""])[0]
@@ -53,7 +53,7 @@ class _ResultsHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def log_message(self, format: str, *args) -> None:  # noqa: A002 -- stdlib signature
+    def log_message(self, format: str, *args) -> None:
         return
 
 
@@ -119,6 +119,35 @@ def test_org_token_in_result_host_is_corroboration() -> None:
             {"url": "https://www.acme.example/news", "title": "News", "content": ""},
         )
         == "https://www.acme.example/news"
+    )
+
+
+def test_partial_multi_token_name_is_not_corroboration() -> None:
+    """One generic token must not validate an invented multi-token name."""
+    assert (
+        corroborating_evidence_url(
+            "Fictitious Nonexistent Org",
+            {
+                "url": "https://microsoft.example/news",
+                "title": "Fictitious names, domains, and addresses",
+                "content": "This page discusses fictitious names.",
+            },
+        )
+        is None
+    )
+
+
+def test_all_distinctive_multi_token_name_parts_are_corroboration() -> None:
+    assert (
+        corroborating_evidence_url(
+            "Aurora Grid Power",
+            {
+                "url": "https://aurora-grid.example/news",
+                "title": "Aurora Grid Power",
+                "content": "Aurora Grid Power announced a delivery window.",
+            },
+        )
+        == "https://aurora-grid.example/news"
     )
 
 

@@ -117,15 +117,18 @@ class SearxngRelationVerificationClient:
     """Queries a self-hosted Searxng instance's JSON API for corroborating
     evidence of a claimed organization/relationship.
 
-    The presence/absence signal is deliberately coarse: any search result
-    for "``<organization_name>`` ``<relationship_label>``" is treated as
-    corroboration that the named organization has a real-world footprint
-    consistent with the claim, not proof the specific relationship is
-    true (a genuinely false relationship between two REAL organizations
-    would still return results about each organization separately). This
-    catches the failure mode actually observed from LLM classification --
-    an invented organization name with zero web footprint -- rather than
-    claiming to adjudicate relationship truth from search snippets alone.
+    The presence/absence signal is deliberately coarse: a result whose
+    host or snippet contains every distinctive token in the organization
+    name is treated as corroboration that the named organization has a
+    real-world footprint consistent with the claim, not proof the specific
+    relationship is true (a genuinely false relationship between two REAL
+    organizations would still return results about each organization
+    separately). Requiring every token prevents an unrelated page that
+    happens to contain one common word from corroborating an invented name.
+    This catches the failure mode actually observed from LLM
+    classification -- an invented organization name with zero web
+    footprint -- rather than claiming to adjudicate relationship truth from
+    search snippets alone.
     """
 
     available = True
@@ -159,9 +162,10 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
     """Return ``result['url']`` when it is a real-world footprint of ``organization_name``.
 
     Search engines echo the query in result titles, so "any hit" is not
-    corroboration. A result counts only when a distinctive name token
+    corroboration. A result counts only when every distinctive name token
     appears in the host or snippet, and the host is not itself a search
-    page. Missing or empty URLs are not evidence.
+    page. The title is intentionally excluded because search engines echo
+    the query there. Missing or empty URLs are not evidence.
     """
     url = result.get("url")
     if not isinstance(url, str) or not url.strip():
@@ -177,6 +181,6 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
     if not tokens:
         return None
     haystack = f"{host} {result.get('content') or ''}".lower()
-    if any(token in haystack for token in tokens):
+    if all(token in haystack for token in tokens):
         return url
     return None
