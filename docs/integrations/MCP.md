@@ -37,8 +37,15 @@ The timeline is calculated from the same authorized source bundle used by the
 answer. It is ordered by each post's persisted `created_at` and distinguishes
 the anchor from direct Event-Lineage and indirect Knowledge-Graph context. A
 successful answer is therefore actionable as a sequence, not just an unordered
-citation list. Inline images are emitted only for cited posts, limited to three
-images and four MiB total, with PNG, JPEG, WebP, and GIF accepted.
+citation list.
+
+Inline images are emitted only for cited posts, limited to three images and four
+MiB total, with PNG, JPEG, WebP, and GIF accepted. A citation is not a media
+authorization lease: immediately before any raster bytes are serialized,
+LineageWeave queries the database again for the requesting account's live
+`post_read` grant and current corporate affiliations. If either was revoked
+since source selection, affected images are omitted. The answer remains bounded
+and never substitutes a remote image URL or stale cached media.
 
 The reason-and-cite call uses contextual-orchestrator's `mode="auto"` and
 `reasoning_effort="auto"` contract. The gateway chooses the model, provider
@@ -83,7 +90,9 @@ The MCP endpoint is an OAuth protected resource:
 5. the token `sub` must resolve to a provisioned `user_account`;
 6. the account must have `post_read`;
 7. every candidate and every lineage-expanded internal source is checked
-   against the existing public-or-affiliated ABAC rule.
+   against the existing public-or-affiliated ABAC rule;
+8. cited media is authorized again from live database permission and affiliation
+   state immediately before byte disclosure.
 
 The inbound bearer token is never forwarded to contextual-orchestrator,
 Searxng, or any other downstream service. Provider credentials remain service
@@ -153,16 +162,39 @@ server responsibilities.
 
 ## Local Compose
 
+Start the required services with the one-shot audience reconciler included:
+
 ```bash
-docker compose up --build postgres keycloak mcp
+docker compose up --build postgres keycloak keycloak_mcp_audience mcp
 ```
 
-The default endpoint is `http://localhost:18001/mcp`. The Compose demo renders
-the same `MCP_RESOURCE_URL` into the Keycloak audience mapper and MCP verifier,
-so `MCP_PORT=19001 docker compose up --build keycloak mcp` keeps exact audience
-validation aligned. A different public host still requires a corresponding
-IdP audience and environment change; do not accept the REST frontend audience
-as a substitute.
+The default endpoint is `http://localhost:18001/mcp`. A fresh demo database
+receives the audience through the rendered realm import template. Keycloak
+startup import deliberately skips a realm that already exists, so the separate
+`keycloak_mcp_audience` service then authenticates to the local Admin REST API
+and reconciles **only** the `lineageweave-mcp-audience` mapper on the
+`lineageweave-frontend` client. The MCP service waits for that one-shot job to
+finish successfully.
+
+Consequently, changing the local published port is non-destructive:
+
+```bash
+MCP_PORT=19001 docker compose up --build keycloak keycloak_mcp_audience mcp
+```
+
+The reconciler changes the existing mapper from
+`http://localhost:18001/mcp` to `http://localhost:19001/mcp` without replacing
+the realm, users, roles, sessions, or unrelated client configuration. Re-running
+it with the same audience is idempotent. Duplicate same-name mappers, a
+conflicting mapper type, unsafe audience URLs, missing target clients, or
+unavailable administration fail closed and prevent MCP startup.
+
+The Compose demo uses its bootstrap administrator for this bounded local
+reconciliation. A production deployment should provision a narrower Keycloak
+service account or external identity-management reconciler with only the client
+and protocol-mapper permissions it needs. A different public host still
+requires a corresponding exact IdP audience and environment change; do not
+accept the REST frontend audience as a substitute.
 
 ## Failure behavior
 
@@ -171,17 +203,20 @@ as a substitute.
 - valid bearer without a required OAuth scope: HTTP `403`
 - unprovisioned subject or missing `post_read`: tool error, no evidence returned
 - no matching authorized evidence: tool error, no unrelated recent-post fallback
+- permission or affiliation revoked before media read: affected image blocks omitted
 - contextual-orchestrator unavailable, malformed, or uncited: tool error, no invented answer
 - unknown internal citation ID: omitted; all-unknown citations fail the call
 - external verification not requested: `not_requested`, no search call
 - external search/judge unavailable: primary answer remains, external status `unavailable`
 - externally supported/refuted without a valid cited public URL: `insufficient_evidence`
+- persistent Keycloak mapper cannot be reconciled: MCP container does not start
 
 ## Operational checks
 
 A release must exercise the MCP SDK client against the in-process server, assert
 tool annotations and structured output, verify Host and unauthenticated HTTP
 rejection, and run the same auth, ABAC, source-boundary, citation,
-contextual-orchestrator mode, explicit-consent, untrusted-input, URL-safety, and
-external-evidence regressions in the normal test suite. `uv.lock` remains
+contextual-orchestrator mode, explicit-consent, untrusted-input, URL-safety,
+external-evidence, live-media-authorization, and persistent-audience
+reconciliation regressions in the normal test suite. `uv.lock` remains
 authoritative for the MCP SDK version.
