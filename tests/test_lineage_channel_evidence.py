@@ -84,9 +84,12 @@ def test_persist_lineage_edges_rejects_unknown_or_out_of_range_channel_evidence(
 
 
 class _ReadConnection:
-    """Return a complete edge plus independently persisted channel rows."""
+    """Return one visible edge and record the bounded channel query."""
 
-    async def fetch(self, query: str) -> list[dict[str, Any]]:
+    def __init__(self) -> None:
+        self.channel_arguments: tuple[Any, ...] | None = None
+
+    async def fetch(self, query: str, *arguments: Any) -> list[dict[str, Any]]:
         if "from source_post" in query:
             return [
                 {
@@ -111,6 +114,7 @@ class _ReadConnection:
                 },
             ]
         if "from lineage_edge_channel_score" in query:
+            self.channel_arguments = arguments
             return [
                 {
                     "parent_post_id": "post-a",
@@ -143,7 +147,8 @@ class _ReadConnection:
 
 
 def test_visible_lineage_graph_exposes_exact_channel_scores_without_inventing_llm() -> None:
-    graph = asyncio.run(visible_lineage_graph(_ReadConnection(), lambda row: True))
+    connection = _ReadConnection()
+    graph = asyncio.run(visible_lineage_graph(connection, lambda row: True))
 
     assert graph["edges"] == [
         {
@@ -158,6 +163,7 @@ def test_visible_lineage_graph_exposes_exact_channel_scores_without_inventing_ll
         }
     ]
     assert "llm" not in graph["edges"][0]["channel_scores"]
+    assert connection.channel_arguments == (["post-a", "post-b"],)
 
 
 def test_channel_score_migration_is_normalized_bounded_and_reversible() -> None:
