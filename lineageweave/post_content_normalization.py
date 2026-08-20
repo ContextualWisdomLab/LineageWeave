@@ -165,9 +165,9 @@ def _describe_image_chunk(
             regions = locator(chunk.image_data, chunk.label) if callable(locator) else ()
         except Exception:  # noqa: BLE001 - locator failure falls back to whole-image evidence.
             regions = ()
-        if not regions_cover_image(regions):
-            # A provider may return only a salient crop even when the contract asks for
-            # full-image coverage. Preserve the missing evidence with one bounded region.
+        partial_regions = bool(regions) and not regions_cover_image(regions)
+        if not regions:
+            # No usable locator output still needs one parent-image evidence unit.
             regions = (ImageRegion(0.0, 0.0, 1.0, 1.0),)
         # ponytail: serialize per-post VISION calls; nested image/region pools
         # overwhelmed the gateway and turned valid region evidence into failures.
@@ -185,11 +185,22 @@ def _describe_image_chunk(
         successful_regions = [
             item.description for item in region_results if item.description is not None
         ]
-        description = (
-            _merge_region_descriptions(successful_regions)
-            if successful_regions
-            else vision_client.describe(chunk.image_data, chunk.label)
-        )
+        if partial_regions:
+            # Keep valid salient panels instead of replacing them with a full-image
+            # crop, then ask once more for the uncovered parent image so text outside
+            # those panels remains searchable and its original location is preserved.
+            try:
+                description = vision_client.describe(chunk.image_data, chunk.label)
+            except Exception:
+                if not successful_regions:
+                    raise
+                description = _merge_region_descriptions(successful_regions)
+        else:
+            description = (
+                _merge_region_descriptions(successful_regions)
+                if successful_regions
+                else vision_client.describe(chunk.image_data, chunk.label)
+            )
     except Exception:  # noqa: BLE001 - a provider failure must not drop the whole post.
         return ImageContentResult(chunk.index, chunk.label, "failed"), None, "[image: content unavailable]"
 

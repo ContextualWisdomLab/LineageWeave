@@ -55,6 +55,14 @@ class _RegionVisionClient(_FakeVisionClient):
 
 
 class _PartialRegionVisionClient(_FakeVisionClient):
+    def __init__(self, description: ImageDescription) -> None:
+        super().__init__(description)
+        self.describe_calls = 0
+
+    def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
+        self.describe_calls += 1
+        return super().describe(image_bytes, mime_type)
+
     def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
         return (ImageRegion(0.25, 0.25, 0.25, 0.25),)
 
@@ -152,17 +160,16 @@ def test_image_analysis_preserves_post_scoped_llm_metadata() -> None:
     assert all(seen == metadata for seen in client.seen_metadata)
 
 
-def test_partial_region_response_falls_back_to_full_image_evidence() -> None:
+def test_partial_region_response_retains_panel_and_parent_evidence() -> None:
     b64 = base64.b64encode(_PNG_1X1).decode("ascii")
     html = f'<img src="data:image/png;base64,{b64}"/>'
-    result = normalize_post_body(
-        html,
-        vision_client=_PartialRegionVisionClient(
-            ImageDescription(extracted_text="whole image", caption="whole", tags=())
-        ),
+    client = _PartialRegionVisionClient(
+        ImageDescription(extracted_text="whole image", caption="whole", tags=())
     )
+    result = normalize_post_body(html, vision_client=client)
 
-    assert result.image_results[0].regions[0].region == ImageRegion(0.0, 0.0, 1.0, 1.0)
+    assert result.image_results[0].regions[0].region == ImageRegion(0.25, 0.25, 0.25, 0.25)
+    assert client.describe_calls == 2
 
 
 def test_comparison_operators_in_plain_text_are_not_treated_as_html() -> None:
