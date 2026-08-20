@@ -268,7 +268,7 @@ async def _exercise_projection_contract(
             PostSummary(
                 korean_summary="합성 요약",
                 key_event_details=(
-                    KeyEvent(event_text="합성 프로젝트 검토", project_key="synthetic-project"),
+                    KeyEvent(event_text="합성 프로젝트 검토", project_key="Synthetic Project"),
                 ),
                 roles_and_responsibilities=(
                     RoleResponsibility(
@@ -282,7 +282,7 @@ async def _exercise_projection_contract(
                         requester_actor_name="Summary Person",
                         processor_actor_name=None,
                         evidence_text="합성 본문에 프로젝트 검토 요청이 기록됨",
-                        project_key="synthetic-project",
+                        project_key="Synthetic Project",
                     ),
                     MajorEventAction(
                         action_text="연결되지 않은 프로젝트 요청",

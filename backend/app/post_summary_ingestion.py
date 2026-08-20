@@ -352,7 +352,14 @@ async def _replace_summary_projection(
         if normalize_project_key(project.canonical_name)
     }
     for ordinal, event in enumerate(event_details):
-        project_key = event.project_key if event.project_key in project_keys else None
+        normalized_event_project_key = (
+            normalize_project_key(event.project_key) if event.project_key else None
+        )
+        project_key = (
+            normalized_event_project_key
+            if normalized_event_project_key in project_keys
+            else None
+        )
         await conn.execute(
             "insert into post_summary_event (post_id, event_ordinal, event_text, project_key) "
             "values ($1, $2, $3, $4)",
@@ -441,7 +448,14 @@ async def _replace_summary_projection(
         actor_names = (action.requester_actor_name, action.processor_actor_name)
         if any(name is not None and name not in role_names for name in actor_names):
             continue
-        project_key = action.project_key if action.project_key in project_keys else None
+        normalized_action_project_key = (
+            normalize_project_key(action.project_key) if action.project_key else None
+        )
+        project_key = (
+            normalized_action_project_key
+            if normalized_action_project_key in project_keys
+            else None
+        )
         await conn.execute(
             """
             insert into post_summary_action
