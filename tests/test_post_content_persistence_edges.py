@@ -176,3 +176,27 @@ def test_unavailable_embedding_channel_is_skipped_and_empty_body_is_safe() -> No
         == 0
     )
     assert not any("post_content_embedding" in query for query, _args in conn.fetchvals)
+
+
+def test_source_only_whitespace_is_not_persisted_as_explicit_depth() -> None:
+    """Presentation alignment must not become authoritative hierarchy."""
+    conn = _Connection()
+
+    assert (
+        _persist(
+            conn,
+            "post-4",
+            "<p>&nbsp;&nbsp;First item</p><p>&nbsp;&nbsp;&nbsp;&nbsp;Second item</p>",
+        )
+        == 2
+    )
+
+    structure_rows = [
+        args
+        for query, args in conn.executed
+        if "insert into post_content_unit_structure" in query
+    ]
+    assert [(args[1], args[2]) for args in structure_rows] == [
+        (0, "unresolved"),
+        (0, "unresolved"),
+    ]

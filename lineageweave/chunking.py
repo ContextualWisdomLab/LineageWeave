@@ -225,6 +225,9 @@ class Chunk:
         indent_width: source indentation in semantic units, retained as
             structural metadata while presentation whitespace is removed from
             ``text``.
+        declared_indent_width: indentation declared by HTML/CSS/OOXML or a
+            nested list container. Source-only leading spaces are excluded so
+            callers can distinguish authored structure from visual alignment.
     """
 
     text: str
@@ -234,6 +237,7 @@ class Chunk:
     image_data: bytes | None = field(default=None, compare=True)
     style: str | None = None
     indent_width: int = 0
+    declared_indent_width: int = 0
 
 
 def chunk_by_paragraph(text: str) -> list[Chunk]:
@@ -307,7 +311,7 @@ class _BlockTextExtractor(HTMLParser):
         # ("image", (mime_type, bytes), "", None) -- a single sequence in
         # true document order, so an image's index among its siblings
         # reflects where it actually sat.
-        self._finished: list[tuple[str, object, str, str | None, int]] = []
+        self._finished: list[tuple[str, object, str, str | None, int, int]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Collect relevant text state when an HTML start tag is encountered."""
@@ -316,7 +320,7 @@ class _BlockTextExtractor(HTMLParser):
             if src:
                 decoded = _decode_data_uri_image(src)
                 if decoded is not None:
-                    self._finished.append(("image", decoded, "", None, 0))
+                    self._finished.append(("image", decoded, "", None, 0, 0))
             return
         if tag in {"br", "w:br"} and self._stack:
             self._stack[-1][1].append("\n")
@@ -372,7 +376,14 @@ class _BlockTextExtractor(HTMLParser):
                 indent_width = declared_width + source_indent
                 label = "footnote" if _FOOTNOTE_START.match(text) else tag_name
                 self._finished.append(
-                    ("text", text, label, style, indent_width)
+                    (
+                        "text",
+                        text,
+                        label,
+                        style,
+                        indent_width,
+                        declared_width,
+                    )
                 )
 
     def handle_data(self, data: str) -> None:
@@ -390,7 +401,7 @@ class _BlockTextExtractor(HTMLParser):
         elif text.strip() or had_nbsp:
             self._unscoped_buffer.append(text)
 
-    def finished(self) -> list[tuple[str, object, str, str | None, int]]:
+    def finished(self) -> list[tuple[str, object, str, str | None, int, int]]:
         """Return the normalized records collected from the HTML fragment."""
         while self._stack:
             declared_width = sum(entry[3] for entry in self._stack)
@@ -399,7 +410,9 @@ class _BlockTextExtractor(HTMLParser):
         if not self._finished:
             fallback = normalize_semantic_text("".join(self._unscoped_buffer))
             if fallback:
-                return [("text", fallback, "", None, _source_indent_width(fallback))]
+                return [
+                    ("text", fallback, "", None, _source_indent_width(fallback), 0)
+                ]
         return self._finished
 
 
@@ -508,7 +521,14 @@ def chunk_by_dom(html: str) -> list[Chunk]:
     parser.feed(html)
     entries = parser.finished()
     chunks: list[Chunk] = []
-    for index, (kind, value, tag_name, style, indent_width) in enumerate(entries):
+    for index, (
+        kind,
+        value,
+        tag_name,
+        style,
+        indent_width,
+        declared_indent_width,
+    ) in enumerate(entries):
         if kind == "text":
             chunks.append(
                 Chunk(
@@ -518,6 +538,7 @@ def chunk_by_dom(html: str) -> list[Chunk]:
                     label=tag_name,
                     style=style,
                     indent_width=indent_width,
+                    declared_indent_width=declared_indent_width,
                 )
             )
         else:
@@ -546,6 +567,7 @@ def chunk_by_source_body(body: str) -> list[Chunk]:
             index=index,
             label=label,
             indent_width=indent_width,
+            declared_indent_width=0,
         )
         for index, (text, indent_width, label) in enumerate(_split_plain_text_units(body))
     ]

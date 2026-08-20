@@ -126,6 +126,7 @@ def test_chunk_by_dom_keeps_indentation_as_metadata_not_embedding_text() -> None
 
     assert [chunk.text for chunk in chunks] == ["Level one", "Level two"]
     assert [chunk.indent_width for chunk in chunks] == [2, 4]
+    assert [chunk.declared_indent_width for chunk in chunks] == [0, 0]
 
 
 def test_chunk_by_dom_reads_html_and_word_indentation_declarations() -> None:
@@ -138,6 +139,7 @@ def test_chunk_by_dom_reads_html_and_word_indentation_declarations() -> None:
 
     assert [chunk.text for chunk in chunks] == ["HTML", "Word"]
     assert [chunk.indent_width for chunk in chunks] == [4, 4]
+    assert [chunk.declared_indent_width for chunk in chunks] == [4, 4]
 
 
 def test_chunk_by_dom_reads_the_css_margin_shorthand_not_just_margin_left() -> None:
