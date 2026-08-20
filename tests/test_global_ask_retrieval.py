@@ -14,6 +14,19 @@ def test_global_ask_query_terms_are_bounded_deduplicated_and_stopword_filtered()
     assert retrieval.global_ask_query_terms("Apollo", maximum_terms=0) == ()
 
 
+def test_global_ask_query_terms_preserve_multilingual_words_and_compound_codes() -> None:
+    assert retrieval.global_ask_query_terms(
+        "客户 项目 顧客 プロジェクト dự-án P41-4182-202405-0015"
+    ) == (
+        "客户",
+        "项目",
+        "顧客",
+        "プロジェクト",
+        "dự-án",
+        "p41-4182-202405-0015",
+    )
+
+
 def test_graph_fact_evidence_post_ids_extracts_all_named_sources() -> None:
     fact = (
         'node_team "Apollo" --edge_team_affiliation--> node_organization "Acme" '
