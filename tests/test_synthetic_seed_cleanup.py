@@ -84,6 +84,14 @@ def test_cleanup_deletes_only_entangled_synthetic_rows(migrated_db: str) -> None
     async def run() -> dict[str, int]:
         conn = await asyncpg.connect(migrated_db)
         try:
+            empty_result = await cleanup_synthetic_seed(conn, apply=True)
+            assert empty_result == {
+                "candidate_posts": 0,
+                "blocked_posts": 0,
+                "deletable_posts": 0,
+                "deleted_posts": 0,
+            }
+
             # 'corporate_entity_level'/'company' and 'voc_type'/'voc' are already
             # seeded by migrations 0016 and 0042 respectively; inserting them again
             # here would violate common_lookup_value's primary key.
