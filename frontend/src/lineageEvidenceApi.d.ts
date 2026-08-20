@@ -1,16 +1,17 @@
 import "./api";
 
-declare module "./api" {
-  interface LineageChannelEvidence {
-    /** Stable public signal code; missing signals are absent, never zero-filled. */
-    signal_code: "temporal" | "secondary_key" | "text" | "llm";
-    signal_label: string;
-    score: number;
-    weight: number;
-    contribution: number;
-    rank: number;
-  }
+/** One ranked, auditable channel contribution for a selected lineage edge. */
+export interface LineageChannelEvidence {
+  /** Stable public signal code; missing signals are absent, never zero-filled. */
+  signal_code: "temporal" | "secondary_key" | "text" | "llm";
+  signal_label: string;
+  score: number;
+  weight: number;
+  contribution: number;
+  rank: number;
+}
 
+declare module "./api" {
   interface LineageGraphEdge {
     /** Backward-compatible exact score map. */
     channel_scores?: Partial<
