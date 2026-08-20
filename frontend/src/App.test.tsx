@@ -73,6 +73,7 @@ describe("App, authenticated", () => {
       }[];
     };
     chatUnavailable?: boolean;
+    evidenceUnavailable?: boolean;
     searchUnavailable?: boolean;
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
@@ -1139,6 +1140,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ images: [] }));
       }
       if (url.endsWith("/api/posts/post-2")) {
+        if (options?.evidenceUnavailable) {
+          return Promise.resolve(new Response("unavailable", { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             post_id: "post-2",
@@ -2322,6 +2326,22 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
+  });
+
+  it("stops loading and gives the buyer a next action when cited evidence is unavailable", async () => {
+    stubBackend({ evidenceUnavailable: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.type(await screen.findByPlaceholderText(/what happened/i), "What happened?");
+    await userEvent.click(screen.getByRole("button", { name: /^ask$/i }));
+    const evidenceChips = await screen.findAllByRole("button", { name: "Open evidence: Linked post" });
+    await userEvent.click(evidenceChips[evidenceChips.length - 1]);
+
+    expect(
+      await screen.findByText("Source evidence is unavailable. Continue with the saved answer."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Loading source post...")).not.toBeInTheDocument();
   });
 
   it("shows a clear empty state when chat is 503 without an orchestrator", async () => {
