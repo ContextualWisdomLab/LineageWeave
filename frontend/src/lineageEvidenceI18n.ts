@@ -12,6 +12,15 @@ export const LINEAGE_EVIDENCE_KEYS = [
   "text",
   "llm",
   "notAvailable",
+  "rank",
+  "signal",
+  "score",
+  "weight",
+  "contribution",
+  "version",
+  "generatedAt",
+  "inferredNotice",
+  "llmNotUsed",
 ] as const;
 
 export type LineageEvidenceKey = (typeof LINEAGE_EVIDENCE_KEYS)[number];
@@ -28,12 +37,18 @@ const ENGLISH: Record<LineageEvidenceKey, string> = {
   text: "Text similarity",
   llm: "LLM adjudication",
   notAvailable: "Not available",
+  rank: "Rank",
+  signal: "Signal",
+  score: "Score",
+  weight: "Weight",
+  contribution: "Contribution",
+  version: "Reconstruction version",
+  generatedAt: "Reconstructed at",
+  inferredNotice: "This connection is inferred evidence, not a causal fact.",
+  llmNotUsed: "No LLM adjudication participated in this connection.",
 };
 
-const TRANSLATIONS: Record<
-  Locale,
-  Record<LineageEvidenceKey, string>
-> = {
+const TRANSLATIONS: Record<Locale, Record<LineageEvidenceKey, string>> = {
   en: ENGLISH,
   ko: {
     whyLinked: "이 게시물이 연결된 이유",
@@ -47,6 +62,15 @@ const TRANSLATIONS: Record<
     text: "텍스트 유사도",
     llm: "LLM 판정",
     notAvailable: "사용할 수 없음",
+    rank: "순위",
+    signal: "신호",
+    score: "점수",
+    weight: "가중치",
+    contribution: "기여도",
+    version: "재구성 버전",
+    generatedAt: "재구성 시각",
+    inferredNotice: "이 연결은 추론된 근거이며 인과적 사실이 아닙니다.",
+    llmNotUsed: "이 연결에는 LLM 판정이 사용되지 않았습니다.",
   },
   zh: {
     whyLinked: "这些帖子为何相连",
@@ -60,6 +84,15 @@ const TRANSLATIONS: Record<
     text: "文本相似度",
     llm: "LLM 判定",
     notAvailable: "不可用",
+    rank: "排名",
+    signal: "信号",
+    score: "分数",
+    weight: "权重",
+    contribution: "贡献",
+    version: "重建版本",
+    generatedAt: "重建时间",
+    inferredNotice: "此连接是推断证据，并非因果事实。",
+    llmNotUsed: "此连接未使用 LLM 判定。",
   },
   ja: {
     whyLinked: "これらの投稿が関連付けられた理由",
@@ -74,6 +107,15 @@ const TRANSLATIONS: Record<
     text: "テキスト類似度",
     llm: "LLM 判定",
     notAvailable: "利用不可",
+    rank: "順位",
+    signal: "シグナル",
+    score: "スコア",
+    weight: "重み",
+    contribution: "寄与度",
+    version: "再構成バージョン",
+    generatedAt: "再構成日時",
+    inferredNotice: "この関連は推論された証拠であり、因果的事実ではありません。",
+    llmNotUsed: "この関連ではLLM判定は使用されていません。",
   },
   vi: {
     whyLinked: "Vì sao các bài viết này được liên kết",
@@ -88,6 +130,15 @@ const TRANSLATIONS: Record<
     text: "Độ tương đồng văn bản",
     llm: "Phán định LLM",
     notAvailable: "Không khả dụng",
+    rank: "Xếp hạng",
+    signal: "Tín hiệu",
+    score: "Điểm",
+    weight: "Trọng số",
+    contribution: "Mức đóng góp",
+    version: "Phiên bản tái dựng",
+    generatedAt: "Thời điểm tái dựng",
+    inferredNotice: "Liên kết này là bằng chứng suy luận, không phải sự thật nhân quả.",
+    llmNotUsed: "Không có phán định LLM nào tham gia vào liên kết này.",
   },
 };
 
