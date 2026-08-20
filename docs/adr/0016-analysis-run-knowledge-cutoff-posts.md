@@ -45,9 +45,8 @@ run.
 ## Consequences
 
 - After `make seed`, the Demo Corp lineage run lists Demo public post
-  and other in-cutoff Demo Corp titles. Late Demo public post
-  (2026-01-13) and the later fixture account-review post (2026-02-10)
-  do not appear. The live post list still shows Late Demo.
+  and other in-cutoff Demo Corp titles. The later fixture account-review
+  post (2026-02-10) does not appear.
 - Open the run: Demo public post is marked updated after cutoff
   (`updated_at` 2026-01-13). Demo private post is not.
 - Open a marked title: the popup shows **Body this run knew** from
@@ -62,13 +61,6 @@ run.
 - Thread-group *run list* visibility now uses the same cutoff
   (ADR 0018). A later public post cannot surface a previously hidden
   thread-group run.
-
-## Follow-up — v2.12.3 Late Demo own-corp counter-example
-
-v2.12.3 seeds Late Demo public post on 2026-01-13 so the January 12
-Demo Corp lineage and TEPP runs can prove the existing
-`created_at <= knowledge_cutoff` filter. This is not a second cutoff
-and does not change TEPP honesty.
 
 ## References
 

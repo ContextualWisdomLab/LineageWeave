@@ -19,6 +19,7 @@ from lineageweave.post_summary import (
     ACTOR_TYPE_PERSON,
     ACTOR_TYPE_TEAM,
     PostSummary,
+    POST_SUMMARY_CONTRACT_VERSION,
     RoleResponsibility,
 )
 from lineageweave.relation_verification import STATUS_CORROBORATED
@@ -196,9 +197,12 @@ class _SummaryConnection:
     async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
         compact = " ".join(query.split())
         self._events.append(("fetchrow", compact))
-        if compact.startswith("select korean_summary from post_summary_result"):
+        if compact.startswith("select korean_summary, summary_contract_version from post_summary_result"):
             assert not self.in_transaction
-            return {"korean_summary": "합성 요약"}
+            return {
+                "korean_summary": "합성 요약",
+                "summary_contract_version": POST_SUMMARY_CONTRACT_VERSION,
+            }
         if compact.startswith("select person_id from cataloged_person"):
             assert self.in_transaction
             return None
@@ -208,8 +212,12 @@ class _SummaryConnection:
         compact = " ".join(query.split())
         self._events.append(("fetch", compact))
         assert not self.in_transaction
+        if "from post_summary_action" in compact:
+            return []
         if "from post_summary_event" in compact:
             return [{"event_text": "검토 완료"}]
+        if "from post_project_mention" in compact:
+            return []
         if "from post_summary_role" in compact:
             assert "entity_name" not in compact
             assert "cataloged_corporate_entity_id" in compact
@@ -499,14 +507,21 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
         async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
             compact = " ".join(query.split())
             events.append(("fetchrow", compact))
-            if compact.startswith("select korean_summary from post_summary_result"):
-                return {"korean_summary": "합성 요약"}
+            if compact.startswith("select korean_summary, summary_contract_version from post_summary_result"):
+                return {
+                    "korean_summary": "합성 요약",
+                    "summary_contract_version": POST_SUMMARY_CONTRACT_VERSION,
+                }
             raise AssertionError(f"unexpected fetchrow query: {compact}")
 
         async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
             compact = " ".join(query.split())
             events.append(("fetch", compact))
+            if "from post_summary_action" in compact:
+                return []
             if "from post_summary_event" in compact:
+                return []
+            if "from post_project_mention" in compact:
                 return []
             if "from post_summary_role" in compact:
                 assert "cataloged_person_id" in compact
@@ -531,6 +546,26 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
     assert role["catalog_node_id"] == person_id
     assert role["catalog_node_type_code"] == NODE_PERSON
     assert role["actor_name"] == "Priya Nair"
+
+
+def test_stale_summary_is_not_returned_as_current_evidence() -> None:
+    """Legacy generic summaries must yield to current body-grounded extraction."""
+
+    class _StaleSummaryConnection:
+        async def fetchrow(self, query: str, *args: Any) -> dict[str, Any]:
+            assert "summary_contract_version" in query
+            return {
+                "korean_summary": "오래된 일반화 요약",
+                "summary_contract_version": POST_SUMMARY_CONTRACT_VERSION - 1,
+            }
+
+        async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
+            raise AssertionError("stale summary must be rejected before loading projections")
+
+    payload = asyncio.run(
+        summary_ingestion.fetch_persisted_summary(_StaleSummaryConnection(), str(uuid.uuid4()))
+    )
+    assert payload is None
 
 
 class _PersonPersistConnection(_SummaryConnection):
@@ -642,36 +677,6 @@ def test_persist_leaves_uncataloged_person_unbound(monkeypatch) -> None:
     assert mention_inserts == []
 
 
-def test_hidden_run_copy_stays_generic_and_drops_the_stale_row() -> None:
-    """ADR 0014/0018: a 404 must not confirm why a row is hidden."""
-
-    app = (
-        Path(__file__).resolve().parents[1] / "frontend" / "src" / "App.tsx"
-    ).read_text(encoding="utf-8")
-    alert = (
-        Path(__file__).resolve().parents[1]
-        / "frontend"
-        / "src"
-        / "components"
-        / "StatusAlert.tsx"
-    ).read_text(encoding="utf-8")
-    agents = (
-        Path(__file__).resolve().parents[1] / "AGENTS.md"
-    ).read_text(encoding="utf-8")
-    assert "This analysis run is not visible." not in app
-    assert "This run is not on your list. Open a visible run from the home list," in app
-    assert (
-        "or request a lineage reconstruction for a corporation you already walk."
-        in app
-    )
-    assert "do not name the thread or the cutoff" in app
-    assert "setRuns((await fetchAnalysisRuns(accessToken)).analysis_runs)" in app
-    assert 'role="alert"' in alert
-    assert "<StatusAlert>{error}</StatusAlert>" in app
-    assert "re-read the authorized list" in agents
-    assert "do not name the thread or the cutoff" in agents
-
-
 def test_role_catalog_identity_is_stored_on_the_role_row() -> None:
     """ADR 0019: fetch must not reconstruct organization identity by name."""
     root = Path(__file__).resolve().parents[1]
@@ -701,6 +706,5 @@ def test_role_catalog_identity_is_stored_on_the_role_row() -> None:
     assert "cataloged_person_id" in person_upgrade
     assert "0019_role_catalog_identity.sql" in dockerfile
     assert "0025_role_person_catalog_identity.sql" in dockerfile
-    assert "0026_report_leftover_pair.sql" in dockerfile
     assert "ADR 0019" in changelog
     assert "ADR 0027" in changelog

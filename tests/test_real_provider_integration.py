@@ -17,41 +17,37 @@ import pytest
 
 from lineageweave.adjudication_client import ContextualOrchestratorAdjudicationClient
 from lineageweave.embedding_client import (
-    OpenAiCompatibleEmbeddingClient,
+    ContextualOrchestratorEmbeddingClient,
     chunked_max_similarity,
     cosine_similarity,
 )
 from lineageweave.fixtures import ambiguous_keyman_post
-from lineageweave.image_content import OpenAiCompatibleVisionClient
+from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.keyman_extraction import (
     COUNTERPARTY,
     OUR_SIDE,
     ContextualOrchestratorKeymanExtractionClient,
 )
 
-_EMBEDDING_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_EMBEDDING_BASE_URL")
-_EMBEDDING_API_KEY = os.environ.get("LINEAGEWEAVE_TEST_EMBEDDING_API_KEY")
 _EMBEDDING_MODEL = os.environ.get("LINEAGEWEAVE_TEST_EMBEDDING_MODEL", "text-embedding-3-large")
 
 _ORCHESTRATOR_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL")
 _ORCHESTRATOR_API_KEY = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY")
 
-_VISION_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_VISION_BASE_URL")
-_VISION_API_KEY = os.environ.get("LINEAGEWEAVE_TEST_VISION_API_KEY")
 _VISION_MODEL = os.environ.get("LINEAGEWEAVE_TEST_VISION_MODEL", "gpt-4.1-mini")
 
 
 @pytest.mark.skipif(
-    not (_EMBEDDING_BASE_URL and _EMBEDDING_API_KEY),
-    reason="set LINEAGEWEAVE_TEST_EMBEDDING_BASE_URL and LINEAGEWEAVE_TEST_EMBEDDING_API_KEY to run",
+    not (_ORCHESTRATOR_BASE_URL and _ORCHESTRATOR_API_KEY),
+    reason="set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run",
 )
-def test_openai_compatible_embedding_client_scores_similar_text_higher() -> None:
+def test_contextual_orchestrator_embedding_client_returns_real_vectors() -> None:
     """A real embedding call, with a real, meaningful assertion: two labels
     about the same synthetic topic must cosine-score higher than two about
     unrelated synthetic topics -- not just "the call didn't crash".
     """
-    client = OpenAiCompatibleEmbeddingClient(
-        base_url=_EMBEDDING_BASE_URL, api_key=_EMBEDDING_API_KEY, model=_EMBEDDING_MODEL
+    client = ContextualOrchestratorEmbeddingClient(
+        base_url=_ORCHESTRATOR_BASE_URL, api_key=_ORCHESTRATOR_API_KEY, model=_EMBEDDING_MODEL
     )
 
     a = client.embed("Quarterly budget review meeting notes")
@@ -64,11 +60,12 @@ def test_openai_compatible_embedding_client_scores_similar_text_higher() -> None
     assert 0.0 <= related_score <= 1.0
     assert 0.0 <= unrelated_score <= 1.0
     assert related_score > unrelated_score
+    assert len(a) > 8
 
 
 @pytest.mark.skipif(
-    not (_EMBEDDING_BASE_URL and _EMBEDDING_API_KEY),
-    reason="set LINEAGEWEAVE_TEST_EMBEDDING_BASE_URL and LINEAGEWEAVE_TEST_EMBEDDING_API_KEY to run",
+    not (_ORCHESTRATOR_BASE_URL and _ORCHESTRATOR_API_KEY),
+    reason="set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run",
 )
 def test_chunked_embedding_finds_a_relevant_unit_buried_in_a_longer_document() -> None:
     """The real case chunking exists for: a short relevant passage sitting
@@ -76,8 +73,8 @@ def test_chunked_embedding_finds_a_relevant_unit_buried_in_a_longer_document() -
     embedding dilutes the relevant passage with everything around it;
     chunked max-pooled similarity should not.
     """
-    client = OpenAiCompatibleEmbeddingClient(
-        base_url=_EMBEDDING_BASE_URL, api_key=_EMBEDDING_API_KEY, model=_EMBEDDING_MODEL
+    client = ContextualOrchestratorEmbeddingClient(
+        base_url=_ORCHESTRATOR_BASE_URL, api_key=_ORCHESTRATOR_API_KEY, model=_EMBEDDING_MODEL
     )
 
     query = "Quarterly budget review meeting notes"
@@ -97,8 +94,8 @@ def test_chunked_embedding_finds_a_relevant_unit_buried_in_a_longer_document() -
 
 
 @pytest.mark.skipif(
-    not (_VISION_BASE_URL and _VISION_API_KEY),
-    reason="set LINEAGEWEAVE_TEST_VISION_BASE_URL and LINEAGEWEAVE_TEST_VISION_API_KEY to run",
+    not (_ORCHESTRATOR_BASE_URL and _ORCHESTRATOR_API_KEY),
+    reason="set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run",
 )
 def test_vision_client_performs_real_ocr_on_a_generated_image() -> None:
     """Generate a real PNG with real rendered text (Pillow, not a fixture
@@ -115,9 +112,8 @@ def test_vision_client_performs_real_ocr_on_a_generated_image() -> None:
     buffer = BytesIO()
     image.save(buffer, format="PNG")
 
-    client = OpenAiCompatibleVisionClient(
-        base_url=_VISION_BASE_URL, api_key=_VISION_API_KEY, model=_VISION_MODEL
-    )
+    client = orchestrator_vision_client(_ORCHESTRATOR_BASE_URL, _ORCHESTRATOR_API_KEY, _VISION_MODEL)
+    assert client.available
     description = client.describe(buffer.getvalue(), "image/png")
 
     assert "48213" in description.extracted_text

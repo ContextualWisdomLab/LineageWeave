@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from backend.app.analysis_run_start import configured_tepp_client
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 
 
@@ -49,3 +50,19 @@ def test_custom_transport_receives_the_exact_wire_payload() -> None:
     assert result == {"status": "accepted"}
     assert received["contract_version"] == 1
     assert received["snapshot_id"] == "demo-snapshot-1"
+
+
+def test_configured_transport_sends_optional_bearer_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    received = {}
+
+    def fake_post_json(url: str, payload: dict, *, headers: dict, timeout: float) -> dict:
+        received.update(url=url, payload=payload, headers=headers, timeout=timeout)
+        return {"status": "accepted"}
+
+    monkeypatch.setattr("backend.app.analysis_run_start.post_json", fake_post_json)
+    client = configured_tepp_client("https://tepp.example/v1/analysis-runs", "test-key")
+
+    client.submit_analysis_run(_sample_request())
+
+    assert received["headers"] == {"authorization": "Bearer test-key"}
+    assert received["payload"] == _sample_request().to_json()
