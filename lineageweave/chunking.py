@@ -70,6 +70,8 @@ _DOM_BLOCK_TAGS = frozenset(
         "li",
         "footnote",
         "endnote",
+        "w:footnote",
+        "w:endnote",
         "tr",
         "blockquote",
         "h1",
@@ -104,7 +106,7 @@ _FOOTNOTE_START = re.compile(r"^[*†‡](?=\S)")
 
 def _is_footnote_block(tag: str, attrs: list[tuple[str, str | None]]) -> bool:
     """Recognize semantic footnote markup emitted by HTML and Word exports."""
-    if tag.casefold() in {"footnote", "endnote"}:
+    if tag.casefold().rsplit(":", 1)[-1] in {"footnote", "endnote"}:
         return True
     values = " ".join(
         value or ""
