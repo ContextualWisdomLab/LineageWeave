@@ -255,3 +255,20 @@ skipped`, frontend `168 passed`, lint, production build, and Storybook build.
 GitHub's two required checks are queued for this exact head, and no formal
 independent approval has been observed; this is therefore a repaired PR, not
 protected-main or release evidence.
+
+## Exact-head organization identity repair: PR #318, 2026-08-21 KST
+
+The verified organization-label path previously joined the resolved display
+name to `corporate_entity.entity_name`. That could cross-match two catalog
+entities with the same label. The current head `a64bdf0a3cee71d79ca3af882ad50ee5aa1f46f2`,
+restacked on PR #316 current head `1d4e65707abbdea2d0d131cbc03742fe9cfb8ab0`,
+adds the normalized `resolved_corporate_entity_id` foreign key, links only a
+corroborated raw-name/context row inside the Keyman write transaction, and
+replays migrations `0055_*` and `0103_*` for existing Compose volumes. No
+historical row is backfilled by display name (ADR 0122).
+
+The exact-head local evidence is Python `783 passed, 16 skipped, 4 warnings`,
+frontend `169 passed`, lint, production build, Storybook build, `actionlint`,
+and `git diff --check`. Hosted Checks remain queued and no formal independent
+approval has been observed; this is proposed PR evidence, not protected-main
+or release evidence.
