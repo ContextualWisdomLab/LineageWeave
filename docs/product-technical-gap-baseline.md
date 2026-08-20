@@ -1,7 +1,10 @@
 # Product, technical, and gap baseline
 
-**Snapshot:** 2026-08-20 (Asia/Seoul)  
+**Snapshot:** 2026-08-20 17:08 (Asia/Seoul)
 **Protected-main baseline:** `origin/main`, product version `2.12.5`  
+**Audited PR head:** #258 at `1c260f20` (`fix: keep summaries available when enrichment times out`)
+**Active PR update:** ADR 0101 and the enrichment-timeout changes are pushed to
+PR #258; protected-main runtime evidence remains pending.
 **Purpose:** connect the normative ADRs and research evidence to product
 requirements, technical contracts, implementation evidence, and active PRs.
 An active PR is proposed work, not shipped behavior.
@@ -61,7 +64,8 @@ claims that an unmerged PR or historical runtime observation is live behavior.
 | FR-08 | LLM, structured output, embedding, and Vision work crosses contextual-orchestrator with one post session and bounded provenance; provider/model/protocol selection stays upstream. | ADR 0030, 0045, 0052, 0070-0077, 0079, 0081-0088 | Orchestrator clients, Compose boundary, historical gateway observations |
 | FR-09 | Period reports use real fast-mlsirm results; missing cells remain missing and leftover pairs are residual-derived and navigable. | ADR 0003, 0034-0035, 0048-0050 | Historical authenticated report rebuilds; report tests and schema |
 | FR-10 | Standard provenance uses normalized PROV-O relations; qualified influence implies its unqualified relation and KG edges remain a navigation projection. | ADR 0011, 0065 | PROV-O implementation matrices, ontology, CI contract |
-| FR-11 | Post summaries expose evidence-bearing events and R&R. Requester/processor actions remain active-PR behavior until ADR 0100 and its migration/code reach protected main. | ADR 0052, ADR 0100 | Commit `15e1a378` contains the contract, migration, persistence, popup, i18n, and tests; PR review and protected-main merge remain pending |
+| FR-11 | Post summaries expose evidence-bearing events and R&R. Requester/processor actions are nullable and may only name actors already bound to the same post summary. | ADR 0052, ADR 0100 | Commit `15e1a378` is on PR #258 and the schema exists locally; the current database has zero populated action rows, so buyer-data acceptance remains unproven |
+| FR-12 | A hierarchy-enrichment timeout leaves the source-grounded summary readable and the actor unbound; it never creates a guessed catalog identity. | ADR 0101, ADR 0010, ADR 0026 | Commit `1c260f20` contains the boundary, ADR, and focused test; independent review, protected-main merge, and fresh runtime evidence remain pending |
 
 ## TRD
 
@@ -138,23 +142,47 @@ sequenceDiagram
 | NFR-05 | Synthetic fixtures only; runtime validation returns aggregate, non-identifying evidence | repository scan and evidence-document review |
 | NFR-06 | ADR-first architectural change and paper-grounded model policy | ADR link check and review; unsupported policies remain unavailable |
 
+## Current aggregate data and runtime evidence
+
+Observed from the running local Compose stack without selecting a post title,
+body, source code, person, organization, or identifier:
+
+| Evidence | Observed result |
+|---|---|
+| Stack availability | PostgreSQL, Valkey, and contextual-orchestrator healthy; backend and frontend running; backend `/healthz` and frontend `/` returned HTTP 200 |
+| Source boundary | 43,839 source posts: 43,814 have both source-system and source-record identity; 25 lack that import identity |
+| Source state/body | 43,814 rows carry source-state evidence; 43,438 rows have a non-empty body; 87,297 source revisions persist |
+| Derived content | 562,394 semantic units, 1,308 live lineage edges, 48 KG navigation edges, and 95 persisted summaries |
+| Run registry | Three runs: one lineage, one report, one TEPP; latest states are two Succeeded and one Failed |
+| Run evidence | One snapshot with 42,577 members; one persisted reconstruction with 1,281 edges; zero persisted TEPP results |
+| Requester/processor | `post_summary_action` exists with composite actor foreign keys but contains zero rows |
+| Authentication | Real synthetic-user OIDC login, live JWKS fetch, and RS256 verification passed |
+| Authorization | Unauthenticated `/api/analysis-runs` and `/api/posts` returned 401; four focused live-Keycloak/PostgreSQL API tests covering authenticated account, list ABAC, direct deny, and missing token passed |
+| Focused contracts | Post-summary and transaction-contract tests: 31 passed, 1 skipped; the skip is not runtime proof for the skipped capability |
+
+These observations prove data presence and the listed boundaries only. They do
+not prove a browser-clicked buyer journey, current TEPP transport success,
+post-summary-action population, or equivalence between every running container
+image and the PR head. The observations and focused checks preceded commit
+`1c260f20` and do not validate its runtime behavior.
+
 ## Active PR audit
 
-GitHub reported 18 open PRs at the snapshot: 5 drafts, 8 requiring review;
-merge state was 8 `BLOCKED`, 7 `UNSTABLE`, 2 `DIRTY`, and 1 `CLEAN`.
+GitHub reported 18 open PRs at the snapshot: all were marked Ready and 8
+required review; merge state was 8 `BLOCKED`, 8 `UNSTABLE`, and 2 `DIRTY`.
 Queued checks and review gates mean none of these rows is protected-main truth.
 
 | PR | Proposed increment | Base → head | Snapshot state |
 |---|---|---|---|
 | #301 | Global Ask knowledge cutoff | `#264 stack` → `v2.23.0` | Ready / UNSTABLE |
-| #298 | bounded async lineage LLM rebuild | `#276` → `v2.22.0` | Draft / UNSTABLE |
-| #287 | exact Event Lineage channel evidence | `#276` → feature | Draft / UNSTABLE |
-| #286 | exact byte-bounded MCP browser admission | `#270` → fix | Draft / CLEAN |
+| #298 | bounded async lineage LLM rebuild | `#276` → `v2.22.0` | Ready / UNSTABLE |
+| #287 | exact Event Lineage channel evidence | `#276` → feature | Ready / UNSTABLE |
+| #286 | exact byte-bounded MCP browser admission | `#270` → fix | Ready / UNSTABLE |
 | #285 | project lifecycle timeline | `#264 stack` → `v2.18.4` | Ready / UNSTABLE |
 | #282 | TEPP project history in read/Ask | `#264 stack` → `v2.18.0` | Ready / UNSTABLE |
-| #276 | public verification of Global Ask claims | `#266` → `v2.20.0` | Draft / UNSTABLE |
+| #276 | public verification of Global Ask claims | `#266` → `v2.20.0` | Ready / UNSTABLE |
 | #275 | evidence-bound Event Intelligence | `#270` → `v2.18.3` | Ready / UNSTABLE |
-| #270 | authenticated MCP Global Ask | `main` → feature | Draft / BLOCKED / review required |
+| #270 | authenticated MCP Global Ask | `main` → feature | Ready / BLOCKED / review required |
 | #266 | Event Lineage to Keyman focus | `#264` → `v2.19.0` | Ready / BLOCKED / review required |
 | #264 | keep Event Lineage DAG focus | `#263` → `v2.17.0` | Ready / BLOCKED / review required |
 | #263 | Ask citation to Event Lineage | `#262` → `v2.16.0` | Ready / BLOCKED / review required |
@@ -171,16 +199,25 @@ on intermediate heads rather than one integration head. Green checks on a
 child do not prove that the stack is mergeable or that the behavior exists on
 main.
 
+Manual triage of #258's four unresolved scanner threads found literal SQL in
+`entity_relationship_ingestion.py` and `demo_scope.py`; request-derived entity
+ids are passed as `$1` arguments rather than interpolated. This is evidence for
+a likely narrow false-positive suppression, not authority to dismiss the
+findings: the required security workflow and independent reviewer must accept
+the exact-head disposition.
+
 ## Gap register
 
 | Priority | Gap | Evidence | Closure criterion |
 |---|---|---|---|
 | P0 | No protected-main integrated buyer journey for the active feature stack | Main is 2.12.5; 18 open PRs span dependent and parallel bases | Establish one reviewed integration order, update each exact head, pass required checks, merge without bypass, then run login-to-source browser acceptance on main |
-| P0 | Current runtime proof is historical and slice-specific | Doctoring files cover 2026-08-18/19 report, gateway, and Vision slices; they do not prove the 2026-08-20 PR heads | Produce a fresh aggregate real-stack matrix for main: identity, ABAC allow/deny, import, lineage, Ask/navigation, report, Vision, TEPP availability, and cleanup |
+| P0 | Current runtime proof is incomplete | The current aggregate/OIDC/ABAC checks cover data presence and selected boundaries; 2026-08-18/19 notes cover other slices, but no evidence set proves the entire PR head or main journey | Complete the real-stack matrix on an exact revision: browser login/navigation, Ask, reports, Vision, TEPP availability, action population, and cleanup |
 | P0 | PR #190 conflicts with the repository's existing ADR 0006 identity | Existing 0006 is role/responsibility agent ontology; #190 proposes another 0006 | Close or renumber/rebase after checking whether its decision is already covered; never merge duplicate ADR identity |
+| P0 | PR #258 is not review/CI complete at its exact current head | #258 is mergeable but BLOCKED: 14 of 22 checks queued, no approval, and four unresolved scanner threads on two SQL modules | Classify each finding against the literal SQL and bound arguments; fix a real flow or add a narrow documented suppression for a false positive, resolve threads, obtain independent approval, and re-check the exact head |
 | P1 | Requirements were implicit across ADRs and architecture phases | No prior PRD/TRD/requirement traceability baseline existed | Keep FR/NFR IDs in this document linked from ADR index; require new product PRs to name affected IDs and runtime evidence |
-| P1 | Active PR topology obscures release truth | 8 blocked, 7 unstable, 2 dirty, only 1 clean; many bases are other open branches | Publish a dependency order, retire obsolete/duplicate branches, and avoid version claims until their base chain reaches main |
-| P1 | ADR 0100 is active-PR behavior but not protected-main behavior | Commit `15e1a378` contains ADR 0100, migration, code, and tests; the PR still requires independent review and checks | Keep the decision traceable as active-PR work; claim it as shipped only after review, required checks, merge, and fresh runtime evidence |
+| P1 | Active PR topology obscures release truth | 8 blocked, 8 unstable, and 2 dirty; many bases are other open branches | Publish a dependency order, retire obsolete/duplicate branches, and avoid version claims until their base chain reaches main |
+| P1 | ADR 0100 schema exists but current data does not exercise it | Commit `15e1a378` is on PR #258 and the table exists, but 95 summaries yield zero requester/processor action rows | Regenerate an authorized bounded sample, report aggregate accepted/dropped/absent counts, verify source evidence and actor FKs, then exercise the buyer popup without exposing record content |
+| P1 | ADR 0101 is active-PR behavior but not protected-main behavior | Commit `1c260f20` contains the corrected ADR link, boundary, and focused tests; independent review and protected-main merge remain pending | Re-audit the exact head, obtain independent approval, pass required checks, merge normally, and collect fresh runtime evidence |
 | P1 | ADR status vocabulary is inconsistent and sometimes stale | Several ADRs say “Accepted on this active PR; not protected-main truth” even after branch evolution | Add a mechanical ADR status/link audit that distinguishes Proposed, Accepted-on-PR, Accepted-on-main, and Superseded |
 | P2 | ADR numbering skips 0031 and 0093-0097 while file 0092 titles itself ADR 0031 | File identity and displayed identity differ | Correct the 0092 title or document an intentional alias; reserve or explain skipped numbers in the index |
 | P2 | Product measures lack explicit targets | Research supports evidence boundaries but not universal model-quality thresholds | Define targets only from an approved evaluation protocol and authorized labeled aggregate dataset; do not invent accuracy goals |
@@ -192,8 +229,8 @@ main.
 |---|---|---|---|
 | Protected main | `origin/main` manifests show 2.12.5 | Existing main contracts only | Fresh main runtime matrix |
 | Historical local runtime | Authenticated PostgreSQL report rebuilds and orchestrator/Vision observations dated 2026-08-18/19 | Those exact bounded observations | Current head/main equivalence and full browser journey |
-| Active PRs | GitHub head/base, review, merge, and check states at snapshot | Proposed increments and gate state | Normal merge and post-merge runtime behavior |
-| Local worktree | Commit `15e1a378` is pushed to the active PR; this document and ADR index are local documentation work | Active-PR implementation plus documentation maintenance | Independent review, required checks, protected-main merge, and fresh runtime evidence |
+| Active PRs | GitHub head/base, review, merge, check, and review-thread states at snapshot | Proposed increments and gate state | Normal merge and post-merge runtime behavior |
+| Local PR checkout | HEAD is PR #258 `1c260f20`; focused OIDC/API/summary checks and aggregate DB queries preceded the timeout-boundary commit | Only the exact observations in the current-data table; no claim for commit `1c260f20` runtime behavior | Full suite/CI, browser journey, external channel results, review, merge, and fresh evidence for the timeout boundary |
 
 ## Maintenance rule
 
