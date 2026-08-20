@@ -8,7 +8,6 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
 from typing import Annotated, Any, Literal
 
-from mcp.client import Client as _McpClientTypeOnly  # noqa: F401
 from mcp.server import MCPServer
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.provider import AccessToken, TokenVerifier
@@ -19,7 +18,7 @@ from mcp.server.transport_security import (
     TransportSecuritySettings,
 )
 from mcp.shared.exceptions import MCPError
-from mcp.types import CallToolResult, ImageContent, TextContent, ToolAnnotations
+from mcp.types import CallToolResult, ErrorData, ImageContent, TextContent, ToolAnnotations
 from pydantic import AnyHttpUrl, BaseModel, Field
 from starlette.requests import Request
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -186,15 +185,15 @@ def build_mcp_server(
         """Open and close process-wide database, Valkey, and client context."""
         pool = await pool_factory(resolved_settings.database_url)
         valkey_client = None
-        resolved_rate_limiter = rate_limiter
-        if resolved_rate_limiter is None:
-            valkey_client = valkey_factory(resolved_settings.valkey_url)
-            resolved_rate_limiter = ValkeyGlobalAskRateLimiter(
-                valkey_client,
-                maximum_requests=resolved_settings.mcp_global_ask_rate_limit,
-                window_seconds=resolved_settings.mcp_global_ask_rate_window_seconds,
-            )
         try:
+            resolved_rate_limiter = rate_limiter
+            if resolved_rate_limiter is None:
+                valkey_client = valkey_factory(resolved_settings.valkey_url)
+                resolved_rate_limiter = ValkeyGlobalAskRateLimiter(
+                    valkey_client,
+                    maximum_requests=resolved_settings.mcp_global_ask_rate_limit,
+                    window_seconds=resolved_settings.mcp_global_ask_rate_window_seconds,
+                )
             yield McpAppContext(
                 pool=pool,
                 chat_client=_chat_client(resolved_settings),
@@ -206,9 +205,11 @@ def build_mcp_server(
                 rate_limiter=resolved_rate_limiter,
             )
         finally:
-            await pool.close()
-            if valkey_client is not None:
-                await valkey_client.aclose()
+            try:
+                if valkey_client is not None:
+                    await valkey_client.aclose()
+            finally:
+                await pool.close()
 
     mcp = MCPServer(
         "lineageweave",
@@ -270,21 +271,25 @@ def build_mcp_server(
             )
         except GlobalAskRateLimitUnavailable as exc:
             raise MCPError(
-                code=GLOBAL_ASK_RATE_LIMIT_UNAVAILABLE_ERROR_CODE,
-                message="Global Ask distributed rate limit is unavailable",
-                data=_rate_limit_error_data(
-                    "global_ask_rate_limit_unavailable",
-                    resolved_settings.mcp_rate_limit_unavailable_retry_seconds,
-                ),
+                ErrorData(
+                    code=GLOBAL_ASK_RATE_LIMIT_UNAVAILABLE_ERROR_CODE,
+                    message="Global Ask distributed rate limit is unavailable",
+                    data=_rate_limit_error_data(
+                        "global_ask_rate_limit_unavailable",
+                        resolved_settings.mcp_rate_limit_unavailable_retry_seconds,
+                    ),
+                )
             ) from exc
         if not rate_decision.allowed:
             raise MCPError(
-                code=GLOBAL_ASK_RATE_LIMIT_ERROR_CODE,
-                message="Global Ask rate limit exceeded",
-                data=_rate_limit_error_data(
-                    "global_ask_rate_limited",
-                    rate_decision.retry_after_seconds,
-                ),
+                ErrorData(
+                    code=GLOBAL_ASK_RATE_LIMIT_ERROR_CODE,
+                    message="Global Ask rate limit exceeded",
+                    data=_rate_limit_error_data(
+                        "global_ask_rate_limited",
+                        rate_decision.retry_after_seconds,
+                    ),
+                )
             )
         result = await answerer(
             dependencies.pool,
