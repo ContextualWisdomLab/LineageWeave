@@ -378,3 +378,20 @@ The explicit terminal retry and ledger-finalization contract is recorded in
 ADR 0115. PR #311 remains an active stacked delivery candidate; its required
 checks and formal approval must be rechecked at the exact current head before
 any protected merge claim.
+
+## Source-only indentation checkpoint: 2026-08-20
+
+The semantic-unit parser now keeps source leading whitespace and declared
+HTML/CSS/OOXML or list-container indentation as separate evidence. Visual
+alignment alone cannot become an `explicit` hierarchy level; it is sent to
+contextual-orchestrator when available and otherwise remains `unresolved` at
+level zero. This prevents mixed editor exports from manufacturing deep list
+nesting in the buyer view.
+
+- Decision record: ADR 0103
+- Implementation: PR #319, stacked on the adjacent-table correction in PR #317
+- Local evidence: backend `731 passed, 16 skipped`; frontend `134 passed`, lint,
+  build, and Storybook build passed.
+- Integration status: PR #319 is not protected-main truth; exact parent head,
+  formal review, terminal Checks, and post-merge browser evidence remain
+  required.
