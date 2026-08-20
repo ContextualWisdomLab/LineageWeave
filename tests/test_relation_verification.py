@@ -122,6 +122,21 @@ def test_org_token_in_result_host_is_corroboration() -> None:
     )
 
 
+def test_one_incidental_multi_token_snippet_word_is_not_corroboration() -> None:
+    """An unrelated page must not prove a fabricated multi-token name."""
+    assert (
+        corroborating_evidence_url(
+            "Zzqxvthorp Fictitious Nonexistent Org",
+            {
+                "url": "https://learn.example/legal/fictitious-names",
+                "title": "Fictitious names and domains",
+                "content": "Guidance about fictitious names.",
+            },
+        )
+        is None
+    )
+
+
 def test_legal_suffix_alone_is_not_corroboration() -> None:
     """'Corp' is in almost every corporate host; it is not evidence."""
     assert (

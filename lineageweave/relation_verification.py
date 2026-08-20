@@ -59,6 +59,15 @@ _ORG_TOKEN_STOPWORDS = frozenset(
         "foundation",
         "the",
         "and",
+        "dummy",
+        "example",
+        "fake",
+        "fictitious",
+        "imaginary",
+        "nonexistent",
+        "placeholder",
+        "sample",
+        "test",
     }
 )
 
@@ -158,10 +167,12 @@ class SearxngRelationVerificationClient:
 def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -> str | None:
     """Return ``result['url']`` when it is a real-world footprint of ``organization_name``.
 
-    Search engines echo the query in result titles, so "any hit" is not
-    corroboration. A result counts only when a distinctive name token
-    appears in the host or snippet, and the host is not itself a search
-    page. Missing or empty URLs are not evidence.
+    Search engines echo query terms in result snippets, so one incidental
+    token is not corroboration for a multi-token name. A result counts when
+    a distinctive token appears in the host, or when a one-token name appears
+    in the snippet, or when at least two distinctive name tokens appear in
+    the snippet. The host must not itself be a search page. Missing or empty
+    URLs are not evidence.
     """
     url = result.get("url")
     if not isinstance(url, str) or not url.strip():
@@ -176,7 +187,12 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
     ]
     if not tokens:
         return None
-    haystack = f"{host} {result.get('content') or ''}".lower()
-    if any(token in haystack for token in tokens):
+    host_text = host.lower()
+    content_text = str(result.get("content") or "").lower()
+    if any(token in host_text for token in tokens):
+        return url
+    content_matches = sum(token in content_text for token in tokens)
+    required_content_matches = 1 if len(tokens) == 1 else 2
+    if content_matches >= required_content_matches:
         return url
     return None

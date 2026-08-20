@@ -189,7 +189,14 @@ async def get_or_create_corporate_entity(
             normalized_name,
             await _reload_candidates(conn),
         )
-        if fresh.kind == RESOLUTION_UNIQUE and fresh.catalog_id is not None:
+        if (
+            fresh.kind == RESOLUTION_UNIQUE
+            and fresh.catalog_id is not None
+            and fresh.catalog_id != parent_entity_id
+        ):
+            # The inferred parent is intentionally a distinct hierarchy node;
+            # its fuzzy name match must not absorb the child during the
+            # post-recursion concurrency check.
             _remember_candidate(candidates, fresh.catalog_id, normalized_name)
             return fresh.catalog_id
         if fresh.kind == RESOLUTION_TIE:
