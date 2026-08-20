@@ -579,7 +579,7 @@ correctness, authorization coverage, or release readiness. Re-run the same
 aggregate projection against the authorized deployment before treating it as
 buyer-facing evidence.
 
-## Current PR queue checkpoint: 2026-08-21 07:29 KST
+## Current PR queue checkpoint: 2026-08-21 07:39 KST
 
 The current GitHub queue was re-fetched after the previous checkpoint. The
 following buyer-surface heads are exact at this checkpoint; they remain
@@ -600,7 +600,7 @@ and blocked at query time, and none had an `APPROVED` review decision.
 | #322 | `f316e0ab5507b101744e632d3c1596a3ed674d22` | `fix/stale-summary-buyer-continuity` | `BLOCKED`, review required |
 | #320 | `0f8bc28f116dc4c6e3a04c01d042de53c51e9173` | `codex/normalize-source-indent-semantics` | `BLOCKED`, review required |
 | #319 | `e84994e9145d3f7a1a7849e94c91de02cccf62fc` | `codex/post-structure-case-fixes` | `BLOCKED`, review required |
-| #318 | `a64bdf0a3cee71d79ca3af882ad50ee5aa1f46f2` | `feat/multilingual-organization-label-search` | `BLOCKED`, review required |
+| #318 | `8e67050b4cf6ea0a205f7cbafb5492f0a6c164fe` | `feat/multilingual-organization-label-search` | `BLOCKED`, review required |
 | #317 | `ca3f56ae4e8b7ad815274e9ab25989397654a2c8` | `codex/fix-mixed-body-indentation-311` | `BLOCKED`, review required |
 | #316 | `1d4e65707abbdea2d0d131cbc03742fe9cfb8ab0` | `feat/global-ask-public-claim-verification-v2200` | `BLOCKED`, review required |
 | #314 | `d36e106501af34d09f3541d9bf698c2e2ac8a379` | `fix/stale-summary-buyer-continuity` | `BLOCKED`, review required |
@@ -610,7 +610,7 @@ and blocked at query time, and none had an `APPROVED` review decision.
 | #307 | `516603cc2a327f0558f8e49e30e38c7ae2fa725b` | `fix/oidc-deep-link-locale` | `BLOCKED`, review required |
 | #306 | `fc7969e1d75f840ccbcc02653331bdafc1382036` | `feat/analysis-run-name-evidence-lineage` | `BLOCKED`, review required |
 | #303 | `817681bb0d491c4c71bcf24b0d9554afd34b3a71` | `feat/buyer-evidence-gap-structure` | `BLOCKED`, review required |
-| #302 | `790d6442701a0da1feaeb7b094b8259be957df74` | `feat/analysis-run-name-evidence-lineage` | `BLOCKED`, approval absent |
+| #302 | `a111d8c1c7bc411fc94ffc002cd48f0655bdbb0d` | `feat/analysis-run-name-evidence-lineage` | `BLOCKED`, approval absent |
 | #258 | `d1d49308a703a249138ae85eb9baef3c48ddecd4` | `main` | `BLOCKED`; coverage queued, Strix in progress, Devin failed |
 
 The queue contains valid stacked work for the known buyer gaps, including
