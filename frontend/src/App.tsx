@@ -1691,31 +1691,58 @@ function PostDetailPopup({
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
   const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
 
+  const detailRequestGeneration = useRef(0);
+
   function reloadKeymen() {
+    const generation = detailRequestGeneration.current;
     fetchPostKeymen(accessToken, postId)
       .then((r) => {
+        if (detailRequestGeneration.current !== generation) return;
         setKeymen(r.keymen);
         setSourceAuthorContext(r.source_author_context ?? null);
       })
       .catch(() => {
+        if (detailRequestGeneration.current !== generation) return;
         setKeymen([]);
         setSourceAuthorContext(null);
       });
     fetchPostAffiliateTree(accessToken, postId)
-      .then((r) => setAffiliateTrees(r.trees))
-      .catch(() => setAffiliateTrees([]));
-    fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+      .then((r) => {
+        if (detailRequestGeneration.current === generation) setAffiliateTrees(r.trees);
+      })
+      .catch(() => {
+        if (detailRequestGeneration.current === generation) setAffiliateTrees([]);
+      });
+    fetchPostVocEvidence(accessToken, postId)
+      .then((value) => {
+        if (detailRequestGeneration.current === generation) setVocEvidence(value);
+      })
+      .catch(() => {
+        if (detailRequestGeneration.current === generation) setVocEvidence(null);
+      });
     reloadCounterparties();
   }
 
   function reloadCounterparties() {
+    const generation = detailRequestGeneration.current;
     fetchPostCounterparties(accessToken, postId)
-      .then((r) => setCounterparties(r.counterparties))
-      .catch(() => setCounterparties([]));
+      .then((r) => {
+        if (detailRequestGeneration.current === generation) {
+          setCounterparties(r.counterparties);
+        }
+      })
+      .catch(() => {
+        if (detailRequestGeneration.current === generation) setCounterparties([]);
+      });
   }
 
   useEffect(() => {
+    const generation = detailRequestGeneration.current + 1;
+    detailRequestGeneration.current = generation;
+    const isCurrent = () => detailRequestGeneration.current === generation;
+
     setPost(null);
+    setImageContent([]);
     setStructureUnits([]);
     setBookmarked(null);
     setBookmarkSaving(false);
@@ -1735,55 +1762,101 @@ function PostDetailPopup({
     setFocusEntity(null);
     setFocusTeam(null);
     const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
-    fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
+    fetchPost(accessToken, postId, asOf)
+      .then((value) => {
+        if (isCurrent()) setPost(value);
+      })
+      .catch((err) => {
+        if (isCurrent()) setError(String(err));
+      });
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
         .then((content) => {
+          if (!isCurrent()) return;
           setImageContent(content.images);
           setStructureUnits(content.units);
         })
         .catch(() => {
+          if (!isCurrent()) return;
           setImageContent([]);
           setStructureUnits([]);
         });
-    reloadContent();
+    void reloadContent();
     fetchPostBookmark(accessToken, postId)
-      .then((r) => setBookmarked(r.bookmarked))
+      .then((r) => {
+        if (isCurrent()) setBookmarked(r.bookmarked);
+      })
       .catch(() => {
-        setBookmarked(null);
+        if (isCurrent()) setBookmarked(null);
       });
     fetchPostEvaluation(accessToken, postId)
-      .then((r) => setEvaluation(r.responses))
-      .catch(() => setEvaluation([]));
+      .then((r) => {
+        if (isCurrent()) setEvaluation(r.responses);
+      })
+      .catch(() => {
+        if (isCurrent()) setEvaluation([]);
+      });
     fetchPostSummary(accessToken, postId)
       .then((value) => {
+        if (!isCurrent()) return;
         setSummary(value);
-        reloadContent();
+        void reloadContent();
       })
       .catch((err) => {
+        if (!isCurrent()) return;
         setSummary(null);
         setSummaryError(summaryFetchError(err));
       });
     fetchPostFiveW1H(accessToken, postId)
-      .then(setFiveW1H)
-      .catch(() => setFiveW1H(null));
+      .then((value) => {
+        if (isCurrent()) setFiveW1H(value);
+      })
+      .catch(() => {
+        if (isCurrent()) setFiveW1H(null);
+      });
     fetchPostKeymen(accessToken, postId)
       .then((r) => {
+        if (!isCurrent()) return;
         setKeymen(r.keymen);
         setSourceAuthorContext(r.source_author_context ?? null);
       })
       .catch(() => {
+        if (!isCurrent()) return;
         setKeymen([]);
         setSourceAuthorContext(null);
       });
     fetchPostCounterparties(accessToken, postId)
-      .then((r) => setCounterparties(r.counterparties))
-      .catch(() => setCounterparties([]));
-    fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
+      .then((r) => {
+        if (isCurrent()) setCounterparties(r.counterparties);
+      })
+      .catch(() => {
+        if (isCurrent()) setCounterparties([]);
+      });
+    fetchPostLineage(accessToken, postId)
+      .then((value) => {
+        if (isCurrent()) setLineage(value);
+      })
+      .catch(() => {
+        if (isCurrent()) setLineage(null);
+      });
     fetchPostAffiliateTree(accessToken, postId)
-      .then((r) => setAffiliateTrees(r.trees))
-      .catch(() => setAffiliateTrees([]));
-    fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+      .then((r) => {
+        if (isCurrent()) setAffiliateTrees(r.trees);
+      })
+      .catch(() => {
+        if (isCurrent()) setAffiliateTrees([]);
+      });
+    fetchPostVocEvidence(accessToken, postId)
+      .then((value) => {
+        if (isCurrent()) setVocEvidence(value);
+      })
+      .catch(() => {
+        if (isCurrent()) setVocEvidence(null);
+      });
+
+    return () => {
+      if (isCurrent()) detailRequestGeneration.current = generation + 1;
+    };
   }, [postId, accessToken, liveBodyWarning, knowledgeCutoff]);
 
   const permanentLink = (() => {
