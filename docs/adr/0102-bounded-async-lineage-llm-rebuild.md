@@ -1,4 +1,4 @@
-# ADR 0100: Bounded asynchronous lineage rebuild with an optional LLM channel
+# ADR 0102: Bounded asynchronous lineage rebuild with an optional LLM channel
 
 - Status: Accepted
 - Date: 2026-08-20
