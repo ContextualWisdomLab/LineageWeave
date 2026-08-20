@@ -9,7 +9,6 @@ import pytest
 
 from lineageweave.post_structure import PostStructureClient
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SQL_REVIEW_PATHS = (
     "backend/app/analysis_run_ingestion.py",

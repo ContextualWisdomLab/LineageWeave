@@ -16,12 +16,12 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from backend.app.post_content_queue import (  # noqa: E402
+from backend.app.config import load_settings
+from backend.app.post_content_queue import (
     ensure_post_content_job,
     post_content_is_complete,
     publish_post_content_event,
 )
-from backend.app.config import load_settings  # noqa: E402
 
 
 def _parser() -> argparse.ArgumentParser:

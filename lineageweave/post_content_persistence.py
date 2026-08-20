@@ -10,24 +10,27 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import math
-from typing import Any, TypeVar
+from typing import Any
 
 from .chunking import Chunk, chunk_by_source_body
 from .embedding_client import EmbeddingClient
 from .image_content import ImageContentClient, ImageDescription
 from .post_content_normalization import ImageContentResult, normalize_post_body
-from .post_structure import NullPostStructureClient, PostStructureClient, StructureDecision
+from .post_structure import (
+    NullPostStructureClient,
+    PostStructureClient,
+    StructureDecision,
+)
 
 _LLM_BATCH_MAX_UNITS = 32
 _LLM_BATCH_MAX_CHARS = 24_000
 _STRUCTURE_UNIT_MAX_CHARS = 8_000
-_BatchKey = TypeVar("_BatchKey")
-
-
-def _bounded_unit_batches(units: list[tuple[_BatchKey, str]]) -> list[list[tuple[_BatchKey, str]]]:
+def _bounded_unit_batches[BatchKey](
+    units: list[tuple[BatchKey, str]],
+) -> list[list[tuple[BatchKey, str]]]:
     """Keep provider requests bounded without changing persisted source units."""
-    batches: list[list[tuple[int, str]]] = []
-    batch: list[tuple[int, str]] = []
+    batches: list[list[tuple[BatchKey, str]]] = []
+    batch: list[tuple[BatchKey, str]] = []
     batch_chars = 0
     for unit in units:
         unit_chars = len(unit[1])
@@ -154,7 +157,7 @@ async def persist_post_content(
                 for decision in decisions:
                     if decision.unit_index in unresolved_indexes:
                         structure_by_index[decision.unit_index] = decision
-            except Exception:  # noqa: BLE001 - failed batches remain unresolved for retry.
+            except Exception:  # noqa: BLE001, S112 - failed batches remain unresolved for retry.
                 continue
     for chunk in unresolved:
         structure_by_index.setdefault(
@@ -198,7 +201,7 @@ async def persist_post_content(
                             [float(value) for value in vector],
                             batch_model_code.strip() if isinstance(batch_model_code, str) else None,
                         )
-            except Exception:  # noqa: BLE001 - failed batches remain absent for retry.
+            except Exception:  # noqa: BLE001, S112 - failed batches remain absent for retry.
                 continue
 
     async with conn.transaction():

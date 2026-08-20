@@ -23,12 +23,21 @@ if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from backend.app.post_content_queue import record_post_content_backfill_success
-from lineageweave.embedding_client import NullEmbeddingClient, orchestrator_embedding_client
-from lineageweave.image_content import NullImageContentClient, orchestrator_vision_client
+from lineageweave.embedding_client import (
+    NullEmbeddingClient,
+    orchestrator_embedding_client,
+)
+from lineageweave.image_content import (
+    NullImageContentClient,
+    orchestrator_vision_client,
+)
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
-from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
+from lineageweave.post_structure import (
+    ContextualOrchestratorPostStructureClient,
+    NullPostStructureClient,
+)
 
 
 def _parser() -> argparse.ArgumentParser:

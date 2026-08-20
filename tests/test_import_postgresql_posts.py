@@ -1,17 +1,17 @@
 import uuid
-from types import SimpleNamespace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from scripts.import_postgresql_posts import (
-    _parser,
     _normalize_voc_type,
-    _source_post_id,
+    _parser,
     _source_code_matches,
+    _source_post_id,
+    _validate_corporate_entity_scope,
     _validate_source_mapping,
     _validate_source_rows,
-    _validate_corporate_entity_scope,
 )
 
 

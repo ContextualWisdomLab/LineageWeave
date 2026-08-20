@@ -14,7 +14,7 @@ import os
 import sys
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -27,13 +27,15 @@ if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from backend.app.lineage_ingestion import rebuild_lineage
-from lineageweave.synthetic_seed_cleanup import cleanup_synthetic_seed
 from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_persistence import persist_post_content
-from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
-
+from lineageweave.post_structure import (
+    ContextualOrchestratorPostStructureClient,
+    NullPostStructureClient,
+)
+from lineageweave.synthetic_seed_cleanup import cleanup_synthetic_seed
 
 SOURCE_NAMESPACE = uuid.UUID("b6e4b1d6-5fd0-4ca1-92b0-8f7a4e2df83e")
 
@@ -176,7 +178,7 @@ def _value(row: Any, column: str | None, default: Any = None) -> Any:
     """Read an optional mapped field without guessing absent source data."""
     if column is None:
         return default
-    if column not in row.keys():
+    if column not in row:
         raise KeyError(f"source query did not return mapped column {column!r}")
     return row[column]
 
@@ -198,7 +200,7 @@ def _timestamp(value: Any) -> datetime:
     """Normalize a source timestamp for asyncpg timestamptz parameters."""
     if not isinstance(value, datetime):
         raise TypeError("created/updated source values must be datetime instances")
-    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value
 
 
 def _source_code_matches(
