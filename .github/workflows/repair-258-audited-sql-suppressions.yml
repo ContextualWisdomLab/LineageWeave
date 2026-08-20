@@ -1,0 +1,396 @@
+name: Repair PR 258 audited safe SQL suppressions
+
+on:
+  push:
+    branches: [feat/analysis-run-name-evidence-lineage]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-258-audited-safe-sql
+  cancel-in-progress: true
+
+jobs:
+  red-green-audited-safe-sql:
+    runs-on: ubuntu-latest
+    env:
+      REPAIR_BRANCH: feat/analysis-run-name-evidence-lineage
+      REPAIR_BASE_SHA: ${{ github.sha }}
+      SEMGREP_IMAGE: semgrep/semgrep@sha256:2b33f46ba66cf8cc2ad59ccfa7d22951fd00c632c38f1339e84ec8e6e641a942
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Install committed dependencies
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Materialize deterministic repair helper
+        shell: bash
+        run: |
+          cat > /tmp/repair_safe_sql.py <<'PY'
+          from __future__ import annotations
+
+          from pathlib import Path
+
+          ASYNCPG_RULE = "python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli"
+          SQLALCHEMY_RULE = "python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query"
+
+          def write(path: str, text: str) -> None:
+              Path(path).write_text(text, encoding="utf-8")
+
+          def read(path: str) -> str:
+              return Path(path).read_text(encoding="utf-8")
+
+          def replace_once(text: str, old: str, new: str, *, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected one anchor, found {count}")
+              return text.replace(old, new, 1)
+
+          def normalize_existing_suppressions(path: str) -> None:
+              lines = read(path).splitlines()
+              output: list[str] = []
+              pending: tuple[str, str] | None = None
+              for line in lines:
+                  stripped = line.strip()
+                  if stripped.startswith("# nosemgrep:"):
+                      payload = stripped.removeprefix("# nosemgrep:").strip()
+                      rule_part, separator, reason = payload.partition(" -- ")
+                      rule = rule_part.strip()
+                      if rule == "python.lang.security.audit.sqli.asyncpg-sqli":
+                          rule = ASYNCPG_RULE
+                      if rule not in {ASYNCPG_RULE, SQLALCHEMY_RULE}:
+                          raise SystemExit(f"{path}: unreviewed suppression rule {rule}")
+                      if not separator or not reason.strip():
+                          raise SystemExit(f"{path}: suppression requires a written audit reason")
+                      pending = (rule, reason.strip())
+                      continue
+                  if pending is not None and stripped:
+                      if "await conn." not in line:
+                          raise SystemExit(
+                              f"{path}: suppression is not adjacent to an asyncpg call: {line!r}"
+                          )
+                      indent = line[: len(line) - len(line.lstrip())]
+                      output.append(f"{indent}# Safe SQL: {pending[1]}")
+                      output.append(f"{line}  # nosemgrep: {pending[0]}")
+                      pending = None
+                      continue
+                  output.append(line)
+              if pending is not None:
+                  raise SystemExit(f"{path}: dangling suppression")
+              write(path, "\n".join(output) + "\n")
+
+          def add_inline(
+              path: str,
+              anchor: str,
+              *,
+              rule: str,
+              reason: str,
+              label: str,
+          ) -> None:
+              text = read(path)
+              first_line, *rest = anchor.splitlines()
+              replacement_first = (
+                  f"{first_line}\n"
+                  f"{first_line[: len(first_line) - len(first_line.lstrip())]}# Safe SQL: {reason}\n"
+              )
+              # The anchor's first line is contextual. The second line is the
+              # call that receives the precise same-line nosemgrep directive.
+              if not rest:
+                  raise SystemExit(f"{label}: anchor needs a context line and call line")
+              call_line = rest[0]
+              replacement = replacement_first + call_line + f"  # nosemgrep: {rule}"
+              if len(rest) > 1:
+                  replacement += "\n" + "\n".join(rest[1:])
+              text = replace_once(text, anchor, replacement, label=label)
+              write(path, text)
+
+          def add_call_suppression(
+              path: str,
+              anchor: str,
+              *,
+              reason: str,
+              label: str,
+          ) -> None:
+              add_inline(path, anchor, rule=ASYNCPG_RULE, reason=reason, label=label)
+
+          def green() -> None:
+              for path in (
+                  "backend/app/customer_hint_ingestion.py",
+                  "backend/app/demo_scope.py",
+                  "backend/app/entity_relationship_ingestion.py",
+                  "backend/app/main.py",
+                  "lineageweave/synthetic_seed_cleanup.py",
+                  "scripts/backfill_post_content.py",
+                  "scripts/backfill_post_keymen.py",
+                  "scripts/backfill_post_summaries.py",
+              ):
+                  normalize_existing_suppressions(path)
+
+              add_call_suppression(
+                  "backend/app/analysis_run_ingestion.py",
+                  "    Runs the account requested or whose scope they may already walk.\n    rows = await conn.fetch(",
+                  reason="The query is the module-level static _RUN_LIST_SQL contract; account and affiliation values remain asyncpg parameters.",
+                  label="analysis run list",
+              )
+              add_call_suppression(
+                  "backend/app/analysis_run_ingestion.py",
+                  "    \"\"\"One visible run, or None when it is missing or hidden.\"\"\"\n    rows = await conn.fetch(",
+                  reason="The query is the module-level static _RUN_DETAIL_SQL contract; run, account, and affiliation values remain asyncpg parameters.",
+                  label="analysis run detail",
+              )
+              add_call_suppression(
+                  "backend/app/analysis_run_ingestion.py",
+                  "    if header is None:\n        return None, []\n    rows = await conn.fetch(",
+                  reason="Only two schema-fixed source eligibility predicates are composed; analysis_run_id remains the $1 parameter.",
+                  label="reconstructed edges",
+              )
+              add_call_suppression(
+                  "backend/app/analysis_run_ingestion.py",
+                  "    existing = await conn.fetchrow(\n        \"\"\"\n        select analysis_run_id, configuration_sha256\n        from analysis_run\n        where requested_by_account_id = $1 and idempotency_key = $2\n        \"\"\",\n        account_id,\n        key,\n    )\n\n    rows = await conn.fetch(",
+                  reason="Only the schema-fixed source eligibility predicate is composed; corporate entity and cutoff remain $1 and $2 parameters.",
+                  label="analysis capture source rows",
+              )
+
+              add_call_suppression(
+                  "backend/app/analysis_run_start.py",
+                  "    \"\"\"ABAC-visible cutoff rows with the grouping keys reconstruct needs.\"\"\"\n    rows = await conn.fetch(",
+                  reason="Only the schema-fixed source eligibility predicate is composed; entity and cutoff remain asyncpg parameters.",
+                  label="cutoff source rows",
+              )
+              add_call_suppression(
+                  "backend/app/analysis_run_start.py",
+                  "        return list(\n            await conn.fetch(",
+                  reason="Only the schema-fixed source eligibility predicate is composed; snapshot_id remains the $1 parameter.",
+                  label="snapshot member rows",
+              )
+
+              add_call_suppression(
+                  "backend/app/knowledge_graph.py",
+                  "    \"\"\"Visible post ids supported by Keyman or R&R person evidence.\"\"\"\n    rows = await conn.fetch(",
+                  reason="Only the schema-fixed source eligibility predicate is composed; person_id remains the $1 parameter.",
+                  label="person mention posts",
+              )
+              add_call_suppression(
+                  "backend/app/knowledge_graph.py",
+                  "    \"\"\"Visible posts that mention an entity via a person or a direct org mention.\"\"\"\n    rows = await conn.fetch(",
+                  reason="Only the schema-fixed source eligibility predicate is composed; entity_id remains the $1 parameter.",
+                  label="affiliation posts",
+              )
+              add_call_suppression(
+                  "backend/app/knowledge_graph.py",
+                  "    \"\"\"Visible post ids supported by a cataloged team mention.\"\"\"\n    rows = await conn.fetch(",
+                  reason="Only the schema-fixed source eligibility predicate is composed; team_id remains the $1 parameter.",
+                  label="team mention posts",
+              )
+
+              add_call_suppression(
+                  "backend/app/report_ingestion.py",
+                  "    members = await conn.fetch(\n        f\"\"\"\n        select m.grouping_key, m.post_id, m.theta_eap, m.theta_sd, p.post_title,",
+                  reason="Only the module-level fixed source-context predicate is composed; grouping, period, and rubric remain parameters.",
+                  label="period report members",
+              )
+              add_call_suppression(
+                  "backend/app/report_ingestion.py",
+                  "    leftover = await conn.fetch(\n        f\"\"\"\n        select lp.grouping_key, lp.pair_kind, lp.post_id, lp.criterion_code,",
+                  reason="Only the module-level fixed source-context predicate is composed; grouping, period, and rubric remain parameters.",
+                  label="period report leftovers",
+              )
+              add_call_suppression(
+                  "backend/app/report_ingestion.py",
+                  "    members = await conn.fetch(\n        f\"\"\"\n        select m.grouping_key, m.period_code, p.visibility_code, p.corporate_entity_id",
+                  reason="Only the module-level fixed source-context predicate is composed; grouping and rubric remain parameters.",
+                  label="period summary members",
+              )
+              add_call_suppression(
+                  "backend/app/report_ingestion.py",
+                  "    members = await conn.fetch(\n        f\"\"\"\n        select m.grouping_kind, m.grouping_key, p.visibility_code, p.corporate_entity_id",
+                  reason="Only the module-level fixed source-context predicate is composed; period, rubric, and grouping kinds remain parameters.",
+                  label="period comparison members",
+              )
+
+              post_structure = read("lineageweave/post_structure.py")
+              old = """    def infer(
+                  self, post_title: str, units: list[dict[str, object]]
+              ) -> tuple[StructureDecision, ...]: ...
+          """
+              new = """    def infer(
+                  self, post_title: str, units: list[dict[str, object]]
+              ) -> tuple[StructureDecision, ...]:
+                  \"\"\"Return structure decisions from a concrete implementation.\"\"\"
+                  raise NotImplementedError
+          """
+              post_structure = replace_once(
+                  post_structure,
+                  old,
+                  new,
+                  label="PostStructureClient protocol body",
+              )
+              write("lineageweave/post_structure.py", post_structure)
+
+              test = f'''from pathlib import Path
+
+import pytest
+
+from lineageweave.post_structure import PostStructureClient
+
+ASYNCPG_RULE = "{ASYNCPG_RULE}"
+SQLALCHEMY_RULE = "{SQLALCHEMY_RULE}"
+ALLOWED_RULES = {{ASYNCPG_RULE, SQLALCHEMY_RULE}}
+
+
+def test_every_semgrep_sql_suppression_is_precise_and_justified() -> None:
+    suppressions: list[tuple[Path, int, str]] = []
+    for root in (Path("backend"), Path("lineageweave"), Path("scripts")):
+        for path in sorted(root.rglob("*.py")):
+            lines = path.read_text(encoding="utf-8").splitlines()
+            for index, line in enumerate(lines):
+                marker = "# nosemgrep: "
+                if marker not in line:
+                    continue
+                rule = line.split(marker, 1)[1].strip()
+                suppressions.append((path, index + 1, rule))
+                assert rule in ALLOWED_RULES, (path, index + 1, rule)
+                assert index > 0 and lines[index - 1].strip().startswith("# Safe SQL:"), (
+                    path,
+                    index + 1,
+                    "missing adjacent Safe SQL audit reason",
+                )
+    assert len(suppressions) == 30, suppressions
+
+
+def test_post_structure_protocol_default_is_explicit() -> None:
+    with pytest.raises(NotImplementedError):
+        PostStructureClient.infer(object(), "Post", [])
+'''
+              write("tests/test_semgrep_sql_suppressions.py", test)
+
+          if __name__ == "__main__":
+              green()
+          PY
+          python -m py_compile /tmp/repair_safe_sql.py
+
+      - name: RED - prove audit and protocol contracts are absent
+        shell: bash
+        run: |
+          cat > tests/test_semgrep_sql_suppressions.py <<'PY'
+          from pathlib import Path
+
+          import pytest
+
+          from lineageweave.post_structure import PostStructureClient
+
+          ASYNCPG_RULE = "python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli"
+          SQLALCHEMY_RULE = "python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query"
+
+          def test_every_semgrep_sql_suppression_is_precise_and_justified() -> None:
+              suppressions = []
+              for root in (Path("backend"), Path("lineageweave"), Path("scripts")):
+                  for path in sorted(root.rglob("*.py")):
+                      lines = path.read_text(encoding="utf-8").splitlines()
+                      for index, line in enumerate(lines):
+                          if "# nosemgrep: " not in line:
+                              continue
+                          rule = line.split("# nosemgrep: ", 1)[1].strip()
+                          suppressions.append((path, index + 1, rule))
+                          assert rule in {ASYNCPG_RULE, SQLALCHEMY_RULE}
+                          assert index > 0 and lines[index - 1].strip().startswith("# Safe SQL:")
+              assert len(suppressions) == 30
+
+          def test_post_structure_protocol_default_is_explicit() -> None:
+              with pytest.raises(NotImplementedError):
+                  PostStructureClient.infer(object(), "Post", [])
+          PY
+          set +e
+          uv run --frozen python -m pytest -q tests/test_semgrep_sql_suppressions.py > /tmp/red.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/red.log
+          test "$rc" -ne 0
+          grep -Eq "AssertionError|NotImplementedError|30" /tmp/red.log
+          git reset --hard HEAD
+          git clean -fd
+
+      - name: GREEN - apply audited scoped suppressions and explicit protocol body
+        run: python /tmp/repair_safe_sql.py
+
+      - name: Verify focused contracts
+        run: uv run --frozen python -m pytest -q tests/test_semgrep_sql_suppressions.py
+
+      - name: Verify Semgrep has no unsuppressed Medium-or-higher finding
+        shell: bash
+        run: |
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}:/src" \
+            -w /src \
+            -e SEMGREP_SEND_METRICS=off \
+            --entrypoint semgrep \
+            "${SEMGREP_IMAGE}" \
+            scan \
+            --config=p/default \
+            --severity=WARNING \
+            --severity=ERROR \
+            --exclude=.github/workflows \
+            --exclude='docs/research/**/standards' \
+            --error \
+            --metrics=off
+
+      - name: Verify complete Python repository
+        run: |
+          uv run --frozen python -m pytest -q
+          uv run --frozen python -m compileall -q lineageweave backend/app scripts
+
+      - name: Publish only the exact verified branch
+        shell: bash
+        run: |
+          rm -f .github/workflows/repair-258-audited-sql-suppressions.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            backend/app/analysis_run_ingestion.py \
+            backend/app/analysis_run_start.py \
+            backend/app/customer_hint_ingestion.py \
+            backend/app/demo_scope.py \
+            backend/app/entity_relationship_ingestion.py \
+            backend/app/knowledge_graph.py \
+            backend/app/main.py \
+            backend/app/report_ingestion.py \
+            lineageweave/post_structure.py \
+            lineageweave/synthetic_seed_cleanup.py \
+            scripts/backfill_post_content.py \
+            scripts/backfill_post_keymen.py \
+            scripts/backfill_post_summaries.py \
+            tests/test_semgrep_sql_suppressions.py
+          git add -u -- .github/workflows/repair-258-audited-sql-suppressions.yml
+          git diff --cached --check
+          git commit -m "security: scope and verify safe SQL suppressions"
+          test -z "$(git status --porcelain)"
+          git fetch origin "${REPAIR_BRANCH}"
+          remote_head="$(git rev-parse "origin/${REPAIR_BRANCH}")"
+          if [ "$remote_head" != "$REPAIR_BASE_SHA" ]; then
+            echo "branch moved from ${REPAIR_BASE_SHA} to ${remote_head}; refusing unverified publication" >&2
+            exit 1
+          fi
+          git push origin "HEAD:${REPAIR_BRANCH}"
