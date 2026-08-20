@@ -63,7 +63,6 @@ def main() -> None:
 
     register_credential("NVIDIA_NIM_API_KEY", provider_key)
     register_credential("LLM_GATEWAY_API_KEY", provider_key)
-    del provider_url
     del provider_key
     sys.argv = [
         "contextual_orchestrator",
@@ -88,6 +87,7 @@ def main() -> None:
         "--max-body-bytes",
         str(max_body_bytes),
     ]
+    del provider_url
     del auth_token
     from contextual_orchestrator.__main__ import main as serve
 
