@@ -13,6 +13,7 @@ from typing import Any
 
 import asyncpg
 
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.corporate_hierarchy_resolution import (
     CorporateEntityCandidate,
     resolve_corporate_entity,
@@ -21,12 +22,52 @@ from lineageweave.entity_relationship_classification import (
     EntityRelationshipClient,
     OrganizationRelationship,
 )
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 
 #: Same cap as read_customer_master()'s other observed-evidence lists
 #: (source_customer_hints / source_author_hints) -- a bound on rows
 #: returned to the API, independent of the frontend's own render cap.
 _RELATIONSHIP_NETWORK_LIMIT = 100
+
+_RELATIONSHIP_NETWORK_QUERY = f"""
+with scoped as (
+    select counterparty.counterparty_entity_name,
+           counterparty.relationship_type_code,
+           lookup.lookup_label as relationship_label
+      from post_counterparty_entity counterparty
+      join source_post post on post.post_id = counterparty.post_id
+      join common_lookup_value lookup
+        on lookup.lookup_code = counterparty.relationship_type_code
+     where (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
+       and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+), grouped as (
+    select counterparty_entity_name, relationship_type_code, relationship_label,
+           count(*) as post_count
+      from scoped
+     group by counterparty_entity_name, relationship_type_code, relationship_label
+), entity_totals as (
+    select counterparty_entity_name, sum(post_count) as total_post_count
+      from grouped
+     group by counterparty_entity_name
+), top_entities as materialized (
+    select counterparty_entity_name, total_post_count
+      from entity_totals
+     order by total_post_count desc, counterparty_entity_name
+     limit {_RELATIONSHIP_NETWORK_LIMIT}
+)
+select top_entities.counterparty_entity_name, top_entities.total_post_count,
+       json_agg(
+           json_build_object(
+               'relationship_type_code', grouped.relationship_type_code,
+               'relationship_label', grouped.relationship_label,
+               'post_count', grouped.post_count
+           )
+           order by grouped.post_count desc, grouped.relationship_type_code
+       ) as relationships
+  from top_entities
+  join grouped on grouped.counterparty_entity_name = top_entities.counterparty_entity_name
+ group by top_entities.counterparty_entity_name, top_entities.total_post_count
+ order by top_entities.total_post_count desc, top_entities.counterparty_entity_name
+"""
 
 
 async def ingest_post_entity_relationships(
@@ -218,46 +259,7 @@ async def fetch_relationship_network(
     if not corporate_entity_ids:
         return []
     rows = await conn.fetch(
-        f"""
-        with scoped as (
-            select counterparty.counterparty_entity_name,
-                   counterparty.relationship_type_code,
-                   lookup.lookup_label as relationship_label
-              from post_counterparty_entity counterparty
-              join source_post post on post.post_id = counterparty.post_id
-              join common_lookup_value lookup
-                on lookup.lookup_code = counterparty.relationship_type_code
-             where (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
-               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
-        ), grouped as (
-            select counterparty_entity_name, relationship_type_code, relationship_label,
-                   count(*) as post_count
-              from scoped
-             group by counterparty_entity_name, relationship_type_code, relationship_label
-        ), entity_totals as (
-            select counterparty_entity_name, sum(post_count) as total_post_count
-              from grouped
-             group by counterparty_entity_name
-        ), top_entities as materialized (
-            select counterparty_entity_name, total_post_count
-              from entity_totals
-             order by total_post_count desc, counterparty_entity_name
-             limit {_RELATIONSHIP_NETWORK_LIMIT}
-        )
-        select top_entities.counterparty_entity_name, top_entities.total_post_count,
-               json_agg(
-                   json_build_object(
-                       'relationship_type_code', grouped.relationship_type_code,
-                       'relationship_label', grouped.relationship_label,
-                       'post_count', grouped.post_count
-                   )
-                   order by grouped.post_count desc, grouped.relationship_type_code
-               ) as relationships
-          from top_entities
-          join grouped on grouped.counterparty_entity_name = top_entities.counterparty_entity_name
-         group by top_entities.counterparty_entity_name, top_entities.total_post_count
-         order by top_entities.total_post_count desc, top_entities.counterparty_entity_name
-        """,
+        _RELATIONSHIP_NETWORK_QUERY,
         list(corporate_entity_ids),
     )
     candidate_rows = await conn.fetch(
