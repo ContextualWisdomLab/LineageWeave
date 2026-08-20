@@ -381,20 +381,24 @@ any protected merge claim.
 
 ## Image locator and buyer table checkpoint: 2026-08-20
 
-A bounded private reprocessing run completed five parent-image descriptions,
-five region embeddings, and zero unresolved text-structure decisions. The
-stored region coordinates were all the full-image box, however; aggregate
-inspection found five full-image boxes, zero decomposed boxes, and four
-described region rows. This proves the parent image channel is usable, but it
-does not prove detailed visual decomposition. The observed full-image boxes
-were emitted by the locator and exposed a missing guard rather than evidence
-of five meaningful regions.
+A first bounded private reprocessing run completed five parent-image
+descriptions and five region embeddings, but aggregate inspection found five
+full-image boxes, zero decomposed boxes, and four described region rows. Those
+boxes were emitted by the locator and were not evidence of five meaningful
+regions. After the full-image guard was deployed, a second bounded run
+completed five parent-image descriptions, zero region rows, zero region
+embeddings, and 21 total unit/image embedding rows. The final aggregate was
+zero full-image boxes, zero decomposed boxes, and zero described region rows.
+The parent image channel is usable; detailed visual decomposition remains an
+unproven capability rather than a fabricated success.
 
-The normalization path now preserves that distinction: an invalid or partial
-locator response keeps parent-image OCR/caption evidence but does not invent a
-full-image region row. Buyer OCR that preserves consistent pipe-delimited rows
-is rendered as an HTML table, while ordinary OCR remains readable text. ADRs
-0077 and 0110 record these boundaries.
+The normalization path now preserves that distinction: an invalid, partial, or
+single full-image locator response keeps parent-image OCR/caption evidence but
+does not invent a full-image region row. Buyer OCR that preserves consistent
+pipe-delimited rows is rendered as an HTML table, while ordinary OCR remains
+readable text. ADRs 0077 and 0110 record these boundaries. The gateway emitted
+BrokenPipe errors after timed-out client calls during the bounded run, so the
+locator/region latency budget remains an open operational gap.
 
 ## Live protected-gate checkpoint: 2026-08-20 22:30 KST
 
