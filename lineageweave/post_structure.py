@@ -24,7 +24,8 @@ class PostStructureClient(Protocol):
 
     def infer(
         self, post_title: str, units: list[dict[str, object]]
-    ) -> tuple[StructureDecision, ...]: ...
+    ) -> tuple[StructureDecision, ...]:
+        raise NotImplementedError
 
 
 class NullPostStructureClient:

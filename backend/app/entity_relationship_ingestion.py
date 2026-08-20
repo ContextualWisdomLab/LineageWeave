@@ -217,7 +217,6 @@ async def fetch_relationship_network(
     """
     if not corporate_entity_ids:
         return []
-    # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli -- Only the fixed source_* predicate and bounded network limit are composed; entity IDs are $1.
     rows = await conn.fetch(
         f"""
         with scoped as (
