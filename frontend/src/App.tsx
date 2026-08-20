@@ -830,7 +830,7 @@ function KeymanPanel({
   focusTeam,
   landFirstKeyman,
   landFirstRelated,
-  focusAskAfterRelated,
+  landOnAsk,
   afterList,
 }: {
   postId: string;
@@ -845,7 +845,7 @@ function KeymanPanel({
   focusTeam?: { teamId: string; teamName: string } | null;
   landFirstKeyman?: boolean;
   landFirstRelated?: boolean;
-  focusAskAfterRelated?: boolean;
+  landOnAsk?: boolean;
   afterList?: ReactNode;
 }) {
   const [related, setRelated] = useState<RelatedNode[] | null>(null);
@@ -953,13 +953,15 @@ function KeymanPanel({
   }, [accessToken, landFirstRelated, related]);
 
   useEffect(() => {
-    if (!landFirstRelated || !focusAskAfterRelated || !landedRelatedName || landedRelated === null) {
+    if (!landFirstRelated || !landedRelatedName || landedRelated === null) {
       return;
     }
     const heading = document.getElementById("post-ask");
-    heading?.focus();
+    if (landOnAsk) {
+      heading?.focus();
+    }
     heading?.scrollIntoView?.({ block: "nearest" });
-  }, [landFirstRelated, focusAskAfterRelated, landedRelatedName, landedRelated]);
+  }, [landFirstRelated, landedRelatedName, landedRelated, landOnAsk]);
 
   useEffect(() => {
     if (!focusPerson) return;
@@ -1653,7 +1655,7 @@ function PostDetailPopup({
   liveBodyWarning,
   knowledgeCutoff,
   focusEventLineage,
-  focusAskAfterRelated,
+  focusAskOnLand,
   onClose,
   onSelectPost,
   onSearch,
@@ -1665,7 +1667,7 @@ function PostDetailPopup({
   liveBodyWarning?: string | null;
   knowledgeCutoff?: string | null;
   focusEventLineage?: boolean;
-  focusAskAfterRelated?: boolean;
+  focusAskOnLand?: boolean;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
@@ -2237,7 +2239,7 @@ function PostDetailPopup({
                 focusTeam={focusTeam}
                 landFirstKeyman
                 landFirstRelated
-                focusAskAfterRelated={focusAskAfterRelated}
+                landOnAsk={focusAskOnLand}
                 afterList={
                   <>
                     <EvaluationPanel
@@ -4099,7 +4101,7 @@ function PostList({
             openedFromCustomerMaster ||
             openedFromAskAgent
           }
-          focusAskAfterRelated={openedFromReportMember}
+          focusAskOnLand={openedFromReportMember}
           onClose={closeSelectedPost}
           onSelectPost={(postId) => {
             const cutoffOptions = openedAnalysisRunContext
