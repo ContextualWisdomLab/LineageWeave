@@ -173,6 +173,11 @@ def test_missing_empty_or_relative_url_is_not_evidence(url: object) -> None:
     assert corroborating_evidence_url("Acme Corp", {"url": url}) is None
 
 
+def test_malformed_ipv6_url_is_not_evidence() -> None:
+    """Malformed bracketed hosts fail closed instead of crashing verification."""
+    assert corroborating_evidence_url("Acme Corp", {"url": "https://[::1/x"}) is None
+
+
 def test_name_with_only_legal_suffixes_has_no_distinctive_token() -> None:
     """Legal suffix stopwords alone cannot identify an organization."""
     assert (
