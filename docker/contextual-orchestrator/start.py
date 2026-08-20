@@ -36,7 +36,6 @@ def main() -> None:
         raise SystemExit("LLM_GATEWAY_API_URL or LLM_GATEWAY_URL is required to start the gateway")
     if not provider_url.rstrip("/").endswith("/v1"):
         provider_url = provider_url.rstrip("/") + "/v1"
-    embedding_provider_url = provider_url
     raw_limit = os.environ.pop("LLM_GATEWAY_MAX_OUTPUT_TOKENS", "4096").strip()
     try:
         max_output_tokens = int(raw_limit)
@@ -51,8 +50,6 @@ def main() -> None:
         raise SystemExit("CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES must be an integer") from exc
     if not 64 * 1024 <= max_body_bytes <= 64 * 1024 * 1024:
         raise SystemExit("CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES must be between 65536 and 67108864")
-    embedding_model = os.environ.pop("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
-
     agents_path = Path("/tmp/lineageweave-agents.json")
     agents = json.loads(Path("/app/agents.json").read_text(encoding="utf-8"))
     for agent in agents["agents"]:
@@ -85,10 +82,6 @@ def main() -> None:
         str(max_output_tokens),
         "--max-body-bytes",
         str(max_body_bytes),
-        "--embedding-provider-url",
-        embedding_provider_url,
-        "--embedding-model",
-        embedding_model,
     ]
     del auth_token
     from contextual_orchestrator.__main__ import main as serve
