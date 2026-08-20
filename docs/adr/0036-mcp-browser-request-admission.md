@@ -16,10 +16,12 @@ requirements that a non-browser MCP client does not:
    checked only after SDK JSON parsing is not a resource boundary.
 
 If preflight reaches OAuth first, the browser cannot complete the request even
-when its exact Origin is allowed. If the server relies only on a declared
-length, a chunked or otherwise streamed body can allocate and decode more data
-than the intended MCP request envelope. Ambiguous `Content-Length` and
-`Transfer-Encoding` combinations also create inconsistent framing boundaries.
+when its exact Origin is allowed. If the OAuth `WWW-Authenticate` challenge is
+not exposed, browser JavaScript also cannot read the protected-resource
+metadata needed for discovery. If the server relies only on a declared length,
+a chunked or otherwise streamed body can allocate and decode more data than the
+intended MCP request envelope. Ambiguous `Content-Length` and
+`Transfer-Encoding` combinations create inconsistent framing boundaries.
 
 The MCP Streamable HTTP specification requires Origin validation on incoming
 connections to prevent DNS rebinding. RFC 9112 defines request framing and
@@ -34,12 +36,16 @@ for browser access.
    OAuth, database access, MCP parsing, or a tool invocation.
 2. Handle an exact allowed-Origin CORS preflight outside OAuth. Never use `*`,
    suffix matching, prefix matching, credentials, or Origin reflection.
+   Configured Origins must be exact HTTP(S) origins without credentials, path,
+   query, or fragment; an unsafe entry prevents process startup.
 3. Limit the browser contract to the Streamable HTTP methods used by the SDK:
    `GET`, `POST`, and `DELETE`. Permit only the request headers needed by MCP
    and OAuth: `Accept`, `Authorization`, `Content-Type`, `Last-Event-ID`,
    `MCP-Protocol-Version`, and `Mcp-Session-Id`.
-4. Expose only `MCP-Protocol-Version` and `Mcp-Session-Id` to browser clients.
-   Origin-sensitive responses include `Vary: Origin`.
+4. Expose only `MCP-Protocol-Version`, `Mcp-Session-Id`, and
+   `WWW-Authenticate` to browser clients. The first two carry the MCP transport
+   contract; the last lets an allowed client read OAuth protected-resource
+   discovery. Origin-sensitive responses include `Vary: Origin`.
 5. Preserve non-browser clients: a request without `Origin` remains valid and
    reaches the existing OAuth boundary.
 6. Place a pure-ASGI body admission wrapper after Host/Origin validation and
@@ -79,8 +85,8 @@ Host/Origin transport validation
 
 ## Consequences
 
-- Browser MCP clients can complete preflight without weakening OAuth or exact
-  Origin validation.
+- Browser MCP clients can complete preflight and read the OAuth discovery
+  challenge without weakening exact-Origin validation.
 - Fixed-length and streamed requests share one byte envelope before expensive
   parsing or authentication work.
 - A valid request is buffered once at the MCP ingress. The configured upper
@@ -97,6 +103,8 @@ Host/Origin transport validation
   unusable because preflight has no bearer token.
 - **Wildcard CORS:** permits arbitrary websites to address the protected MCP
   resource and defeats the exact-Origin contract.
+- **Document-only exact-Origin rules:** leave an operator able to configure a
+  wildcard or non-origin URL and silently weaken the runtime boundary.
 - **Trust `Content-Length` only:** does not bound a streamed body and cannot
   defend against header/body disagreement.
 - **Require `Content-Length` on every request:** unnecessarily rejects valid
