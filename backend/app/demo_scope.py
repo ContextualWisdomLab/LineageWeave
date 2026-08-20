@@ -12,31 +12,6 @@ from __future__ import annotations
 
 import asyncpg
 
-from .post_eligibility import source_context_present_sql
-
-
-_HAS_REAL_SOURCE_CONTEXT_QUERY = """
-select exists (
-    select 1
-      from source_post
-     where (visibility_code = 'public'
-            or corporate_entity_id = any($1::uuid[]))
-       and ({source_context_sql})
-)
-""".format(source_context_sql=source_context_present_sql("source_post"))
-
-_FETCH_DEMO_CORPORATE_ENTITY_IDS_QUERY = """
-select entity.corporate_entity_id
-  from corporate_entity entity
- where entity.corporate_entity_code like 'DEMO-%'
-   and not exists (
-       select 1
-         from source_post real_post
-        where real_post.corporate_entity_id = entity.corporate_entity_id
-          and ({source_context_sql})
-   )
-""".format(source_context_sql=source_context_present_sql("real_post"))
-
 
 def is_demo_scope(corporate_entity_code: str | None) -> bool:
     """True for `make seed`'s synthetic Demo Corp tree (``DEMO-*`` codes)."""
@@ -49,7 +24,28 @@ async def has_real_source_context(
     """Return whether the account can see imported source evidence."""
     return bool(
         await conn.fetchval(
-            _HAS_REAL_SOURCE_CONTEXT_QUERY,
+            """
+            select exists (
+                select 1
+                  from source_post
+                 where (visibility_code = 'public'
+                        or corporate_entity_id = any($1::uuid[]))
+                   and (
+                       nullif(btrim(source_post.source_author_code), '') is not null
+                       or nullif(btrim(source_post.source_author_name), '') is not null
+                       or nullif(btrim(source_post.source_company_code), '') is not null
+                       or nullif(btrim(source_post.source_company_name), '') is not null
+                       or nullif(btrim(source_post.source_process_unit_code), '') is not null
+                       or nullif(btrim(source_post.source_process_unit_name), '') is not null
+                       or nullif(btrim(source_post.source_sales_pool_code), '') is not null
+                       or nullif(btrim(source_post.source_sales_pool_name), '') is not null
+                       or nullif(btrim(source_post.source_customer_code), '') is not null
+                       or nullif(btrim(source_post.source_customer_name), '') is not null
+                       or nullif(btrim(source_post.source_project_code), '') is not null
+                       or nullif(btrim(source_post.source_project_name), '') is not null
+                   )
+            )
+            """,
             list(corporate_entity_ids),
         )
     )
@@ -57,5 +53,30 @@ async def has_real_source_context(
 
 async def fetch_demo_corporate_entity_ids(conn: asyncpg.Connection) -> set[str]:
     """Return synthetic-only Demo entity IDs, excluding imported entities."""
-    rows = await conn.fetch(_FETCH_DEMO_CORPORATE_ENTITY_IDS_QUERY)
+    rows = await conn.fetch(
+        """
+        select entity.corporate_entity_id
+          from corporate_entity entity
+         where entity.corporate_entity_code like 'DEMO-%'
+           and not exists (
+               select 1
+                 from source_post real_post
+                where real_post.corporate_entity_id = entity.corporate_entity_id
+                  and (
+                      nullif(btrim(real_post.source_author_code), '') is not null
+                      or nullif(btrim(real_post.source_author_name), '') is not null
+                      or nullif(btrim(real_post.source_company_code), '') is not null
+                      or nullif(btrim(real_post.source_company_name), '') is not null
+                      or nullif(btrim(real_post.source_process_unit_code), '') is not null
+                      or nullif(btrim(real_post.source_process_unit_name), '') is not null
+                      or nullif(btrim(real_post.source_sales_pool_code), '') is not null
+                      or nullif(btrim(real_post.source_sales_pool_name), '') is not null
+                      or nullif(btrim(real_post.source_customer_code), '') is not null
+                      or nullif(btrim(real_post.source_customer_name), '') is not null
+                      or nullif(btrim(real_post.source_project_code), '') is not null
+                      or nullif(btrim(real_post.source_project_name), '') is not null
+                  )
+           )
+        """
+    )
     return {str(row["corporate_entity_id"]) for row in rows}

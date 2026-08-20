@@ -10,147 +10,45 @@ from __future__ import annotations
 from typing import Any
 
 
-SOURCE_CONTEXT_COLUMNS = (
-    "source_author_code",
-    "source_author_name",
-    "source_company_code",
-    "source_company_name",
-    "source_process_unit_code",
-    "source_process_unit_name",
-    "source_sales_pool_code",
-    "source_sales_pool_name",
-    "source_customer_code",
-    "source_customer_name",
-    "source_project_code",
-    "source_project_name",
-)
-
-
-def _missing_source_context(alias: str = "post") -> str:
-    """Return the fixed predicate that identifies absent imported evidence."""
-    return " and ".join(
-        f"nullif(btrim({alias}.{column}), '') is null" for column in SOURCE_CONTEXT_COLUMNS
-    )
-
-
-def _has_source_context(alias: str = "post") -> str:
-    """Return the fixed predicate that identifies present imported evidence."""
-    return " or ".join(
-        f"nullif(btrim({alias}.{column}), '') is not null" for column in SOURCE_CONTEXT_COLUMNS
-    )
-
-
-_CANDIDATE_POSTS_QUERY = f"""
-select post.post_id
-  from source_post post
- where ({_missing_source_context()})
-   and exists (
-       select 1
-         from source_post real_post
-        where real_post.corporate_entity_id = post.corporate_entity_id
-          and ({_has_source_context('real_post')})
-   )
-"""
-
-_BLOCKED_POSTS_QUERY = """
-select distinct post_id
-  from (
-      select source_post_id as post_id
-        from analysis_source_snapshot_member
-       where source_post_id = any($1::uuid[])
-      union
-      select child_post_id as post_id
-        from analysis_run_lineage_edge
-       where child_post_id = any($1::uuid[])
-      union
-      select parent_post_id as post_id
-        from analysis_run_lineage_edge
-       where parent_post_id = any($1::uuid[])
-  ) referenced
-"""
-
-_CREATE_CLEANUP_TARGET_SQL = """
-create temporary table if not exists synthetic_cleanup_target_post (
-    post_id uuid primary key
-) on commit drop
-"""
-
-_CLEAR_CLEANUP_TARGET_SQL = "truncate table pg_temp.synthetic_cleanup_target_post"
-
-_INSERT_CLEANUP_TARGETS_QUERY = """
-insert into pg_temp.synthetic_cleanup_target_post (post_id)
-select unnest($1::uuid[])
-"""
-
-# The catalog decides which single-column non-cascading foreign keys require
-# cleanup. Dynamic identifier rendering stays inside PostgreSQL's quote-aware
-# format(%I) rather than entering an asyncpg statement from Python. The only
-# nullable supporting reference is nulled; immutable analysis references are
-# precluded by _BLOCKED_POSTS_QUERY and are never mutated here.
-_CLEANUP_REFERENCES_SQL = """
-do $cleanup$
-declare
-    reference_row record;
-begin
-    for reference_row in
-        select child_ns.nspname as child_schema,
-               child_table.relname as child_table,
-               child_column.attname as child_column
-          from pg_constraint constraint_row
-          join pg_class parent_table
-            on parent_table.oid = constraint_row.confrelid
-          join pg_class child_table
-            on child_table.oid = constraint_row.conrelid
-          join pg_namespace child_ns
-            on child_ns.oid = child_table.relnamespace
-          join pg_attribute child_column
-            on child_column.attrelid = child_table.oid
-           and child_column.attnum = constraint_row.conkey[1]
-         where parent_table.oid = 'source_post'::regclass
-           and constraint_row.contype = 'f'
-           and constraint_row.confdeltype <> 'c'
-           and array_length(constraint_row.conkey, 1) = 1
-    loop
-        if reference_row.child_table in (
-            'analysis_source_snapshot_member',
-            'analysis_run_lineage_edge'
-        ) then
-            continue;
-        end if;
-
-        if reference_row.child_table = 'post_counterparty_entity'
-           and reference_row.child_column = 'verification_evidence_post_id' then
-            execute format(
-                'update %I.%I set %I = null where %I in '
-                '(select post_id from pg_temp.synthetic_cleanup_target_post)',
-                reference_row.child_schema,
-                reference_row.child_table,
-                reference_row.child_column,
-                reference_row.child_column
-            );
-        else
-            execute format(
-                'delete from %I.%I where %I in '
-                '(select post_id from pg_temp.synthetic_cleanup_target_post)',
-                reference_row.child_schema,
-                reference_row.child_table,
-                reference_row.child_column
-            );
-        end if;
-    end loop;
-
-    delete from source_post
-     where post_id in (
-         select post_id from pg_temp.synthetic_cleanup_target_post
-     );
-end
-$cleanup$
-"""
-
-
 async def cleanup_synthetic_seed(conn: Any, *, apply: bool = False) -> dict[str, int]:
     """Dry-run or apply conservative row-level synthetic cleanup."""
-    candidates = await conn.fetch(_CANDIDATE_POSTS_QUERY)
+    candidates = await conn.fetch(
+        """
+        select post.post_id
+          from source_post post
+         where nullif(btrim(post.source_author_code), '') is null
+           and nullif(btrim(post.source_author_name), '') is null
+           and nullif(btrim(post.source_company_code), '') is null
+           and nullif(btrim(post.source_company_name), '') is null
+           and nullif(btrim(post.source_process_unit_code), '') is null
+           and nullif(btrim(post.source_process_unit_name), '') is null
+           and nullif(btrim(post.source_sales_pool_code), '') is null
+           and nullif(btrim(post.source_sales_pool_name), '') is null
+           and nullif(btrim(post.source_customer_code), '') is null
+           and nullif(btrim(post.source_customer_name), '') is null
+           and nullif(btrim(post.source_project_code), '') is null
+           and nullif(btrim(post.source_project_name), '') is null
+           and exists (
+               select 1
+                 from source_post real_post
+                where real_post.corporate_entity_id = post.corporate_entity_id
+                  and (
+                      nullif(btrim(real_post.source_author_code), '') is not null
+                      or nullif(btrim(real_post.source_author_name), '') is not null
+                      or nullif(btrim(real_post.source_company_code), '') is not null
+                      or nullif(btrim(real_post.source_company_name), '') is not null
+                      or nullif(btrim(real_post.source_process_unit_code), '') is not null
+                      or nullif(btrim(real_post.source_process_unit_name), '') is not null
+                      or nullif(btrim(real_post.source_sales_pool_code), '') is not null
+                      or nullif(btrim(real_post.source_sales_pool_name), '') is not null
+                      or nullif(btrim(real_post.source_customer_code), '') is not null
+                      or nullif(btrim(real_post.source_customer_name), '') is not null
+                      or nullif(btrim(real_post.source_project_code), '') is not null
+                      or nullif(btrim(real_post.source_project_name), '') is not null
+                  )
+           )
+        """
+    )
     candidate_ids = [row["post_id"] for row in candidates]
     if not candidate_ids:
         return {
@@ -160,7 +58,25 @@ async def cleanup_synthetic_seed(conn: Any, *, apply: bool = False) -> dict[str,
             "deleted_posts": 0,
         }
 
-    blocked = await conn.fetch(_BLOCKED_POSTS_QUERY, candidate_ids)
+    blocked = await conn.fetch(
+        """
+        select distinct post_id
+          from (
+              select source_post_id as post_id
+                from analysis_source_snapshot_member
+               where source_post_id = any($1::uuid[])
+              union
+              select child_post_id as post_id
+                from analysis_run_lineage_edge
+               where child_post_id = any($1::uuid[])
+              union
+              select parent_post_id as post_id
+                from analysis_run_lineage_edge
+               where parent_post_id = any($1::uuid[])
+          ) referenced
+        """,
+        candidate_ids,
+    )
     blocked_ids = {row["post_id"] for row in blocked}
     deletable_ids = [post_id for post_id in candidate_ids if post_id not in blocked_ids]
     if not apply or not deletable_ids:
@@ -172,10 +88,86 @@ async def cleanup_synthetic_seed(conn: Any, *, apply: bool = False) -> dict[str,
         }
 
     async with conn.transaction():
-        await conn.execute(_CREATE_CLEANUP_TARGET_SQL)
-        await conn.execute(_CLEAR_CLEANUP_TARGET_SQL)
-        await conn.execute(_INSERT_CLEANUP_TARGETS_QUERY, deletable_ids)
-        await conn.execute(_CLEANUP_REFERENCES_SQL)
+        await conn.execute(
+            """
+            create temporary table if not exists synthetic_cleanup_target_post (
+                post_id uuid primary key
+            ) on commit drop
+            """
+        )
+        await conn.execute("truncate table pg_temp.synthetic_cleanup_target_post")
+        await conn.execute(
+            """
+            insert into pg_temp.synthetic_cleanup_target_post (post_id)
+            select unnest($1::uuid[])
+            """,
+            deletable_ids,
+        )
+        # The catalog chooses only single-column, non-cascading foreign keys
+        # that reference source_post. Identifier rendering remains inside
+        # PostgreSQL's quote-aware format(%I); Python never composes identifiers.
+        # Immutable analysis references were excluded above and are never mutated.
+        await conn.execute(
+            """
+            do $cleanup$
+            declare
+                reference_row record;
+            begin
+                for reference_row in
+                    select child_ns.nspname as child_schema,
+                           child_table.relname as child_table,
+                           child_column.attname as child_column
+                      from pg_constraint constraint_row
+                      join pg_class parent_table
+                        on parent_table.oid = constraint_row.confrelid
+                      join pg_class child_table
+                        on child_table.oid = constraint_row.conrelid
+                      join pg_namespace child_ns
+                        on child_ns.oid = child_table.relnamespace
+                      join pg_attribute child_column
+                        on child_column.attrelid = child_table.oid
+                       and child_column.attnum = constraint_row.conkey[1]
+                     where parent_table.oid = 'source_post'::regclass
+                       and constraint_row.contype = 'f'
+                       and constraint_row.confdeltype <> 'c'
+                       and array_length(constraint_row.conkey, 1) = 1
+                loop
+                    if reference_row.child_table in (
+                        'analysis_source_snapshot_member',
+                        'analysis_run_lineage_edge'
+                    ) then
+                        continue;
+                    end if;
+
+                    if reference_row.child_table = 'post_counterparty_entity'
+                       and reference_row.child_column = 'verification_evidence_post_id' then
+                        execute format(
+                            'update %I.%I set %I = null where %I in '
+                            '(select post_id from pg_temp.synthetic_cleanup_target_post)',
+                            reference_row.child_schema,
+                            reference_row.child_table,
+                            reference_row.child_column,
+                            reference_row.child_column
+                        );
+                    else
+                        execute format(
+                            'delete from %I.%I where %I in '
+                            '(select post_id from pg_temp.synthetic_cleanup_target_post)',
+                            reference_row.child_schema,
+                            reference_row.child_table,
+                            reference_row.child_column
+                        );
+                    end if;
+                end loop;
+
+                delete from source_post
+                 where post_id in (
+                     select post_id from pg_temp.synthetic_cleanup_target_post
+                 );
+            end
+            $cleanup$
+            """
+        )
         await conn.execute(
             """
             delete from account_affiliation affiliation
