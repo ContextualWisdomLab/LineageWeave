@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 import math
 from typing import Any, TypeVar
 
@@ -26,6 +27,7 @@ _LLM_BATCH_MAX_UNITS = 32
 _LLM_BATCH_MAX_CHARS = 24_000
 _STRUCTURE_UNIT_MAX_CHARS = 8_000
 _BatchKey = TypeVar("_BatchKey")
+_LOGGER = logging.getLogger(__name__)
 
 
 def _bounded_unit_batches(  # noqa: UP047 - retain Python 3.10 compatibility.
@@ -168,8 +170,15 @@ async def persist_post_content(
                 for decision in decisions:
                     if decision.unit_index in unresolved_indexes:
                         structure_by_index[decision.unit_index] = decision
-            except (OSError, RuntimeError, ValueError):
-                continue
+            except (OSError, RuntimeError, ValueError) as exc:
+                _LOGGER.warning(
+                    "post content structure batch unavailable",
+                    extra={
+                        "post_id": post_id,
+                        "batch_size": len(batch),
+                        "exception_type": type(exc).__name__,
+                    },
+                )
     for chunk in unresolved:
         structure_by_index.setdefault(
             chunk.index,
@@ -206,8 +215,15 @@ async def persist_post_content(
                         for value in vector
                     ):
                         vectors[embedding_key] = [float(value) for value in vector]
-            except (OSError, RuntimeError, ValueError):
-                continue
+            except (OSError, RuntimeError, ValueError) as exc:
+                _LOGGER.warning(
+                    "post content embedding batch unavailable",
+                    extra={
+                        "post_id": post_id,
+                        "batch_size": len(batch),
+                        "exception_type": type(exc).__name__,
+                    },
+                )
 
     async with conn.transaction():
         await conn.execute("delete from post_content_unit where post_id = $1", post_id)
