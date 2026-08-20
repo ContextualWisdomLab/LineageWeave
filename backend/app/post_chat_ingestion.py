@@ -675,9 +675,8 @@ async def gather_global_chat_sources(
         candidate_ids = candidate_ids[:candidate_budget]
     lineage_neighbor_id_set = frozenset(lineage_neighbor_ids)
 
-    candidate_predicate = "and post_id = any($2::uuid[])" if question else ""
     rows = await conn.fetch(
-        f"""
+        """
         select post_id, post_title, post_body, visibility_code, corporate_entity_id,
                created_at,
                source_system_code, source_record_key, source_author_code, source_author_name,
@@ -688,7 +687,7 @@ async def gather_global_chat_sources(
           from source_post
          where (visibility_code = 'public'
             or corporate_entity_id::text = any($1::text[]))
-           {candidate_predicate}
+           and (not $4::boolean or post_id = any($2::uuid[]))
          order by array_position($2::uuid[], post_id) nulls last,
                   created_at desc, post_id desc
          limit $3
@@ -696,6 +695,7 @@ async def gather_global_chat_sources(
         list(authorized_corporate_entity_ids),
         candidate_ids,
         limit,
+        bool(question),
     )
     candidate_id_set = frozenset(candidate_ids)
     visible_rows = [
