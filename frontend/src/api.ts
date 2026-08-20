@@ -521,6 +521,40 @@ export function fetchMe(accessToken: string): Promise<CurrentUser> {
   return backendFetch<CurrentUser>("/api/me", accessToken);
 }
 
+export interface McpApiKey {
+  mcp_api_key_id: string;
+  display_name: string;
+  key_prefix: string;
+  created_at: string;
+  expires_at: string | null;
+  revoked_at: string | null;
+}
+
+export interface CreatedMcpApiKey extends McpApiKey {
+  api_key: string;
+}
+
+export function fetchMcpApiKeys(accessToken: string): Promise<{ api_keys: McpApiKey[] }> {
+  return backendFetch<{ api_keys: McpApiKey[] }>("/api/mcp/api-keys", accessToken);
+}
+
+export function createMcpApiKey(
+  accessToken: string,
+  displayName: string,
+  expiresAt: string | null,
+): Promise<CreatedMcpApiKey> {
+  return backendFetch<CreatedMcpApiKey>("/api/mcp/api-keys", accessToken, {
+    method: "POST",
+    body: JSON.stringify({ display_name: displayName, expires_at: expiresAt }),
+  });
+}
+
+export function revokeMcpApiKey(accessToken: string, keyId: string): Promise<McpApiKey> {
+  return backendFetch<McpApiKey>(`/api/mcp/api-keys/${encodeURIComponent(keyId)}/revoke`, accessToken, {
+    method: "POST",
+  });
+}
+
 export function setPreferredLocale(
   accessToken: string,
   preferredLocale: string,

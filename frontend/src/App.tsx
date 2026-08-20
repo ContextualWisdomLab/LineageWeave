@@ -84,6 +84,7 @@ import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
+import { McpApiKeysPanel } from "./components/McpApiKeysPanel";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
@@ -4626,6 +4627,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           }}
         />
       ) : null}
+      {destination === "settings" ? <McpApiKeysPanel accessToken={accessToken} /> : null}
     </main>
   );
 }

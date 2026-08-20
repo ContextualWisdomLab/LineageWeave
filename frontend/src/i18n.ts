@@ -1353,6 +1353,98 @@ function detectLocale(): Locale {
   return isLocale(prefix) ? prefix : "en";
 }
 
+const MCP_API_KEY_TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
+  ko: {
+    Settings: "설정",
+    "API keys": "API 키",
+    "Manage MCP access keys for this account.": "이 계정의 MCP 접근 키를 관리하세요.",
+    "Key label": "키 이름",
+    "Create key": "키 생성",
+    "Creating...": "생성 중...",
+    "No MCP keys have been created.": "생성된 MCP 키가 없습니다.",
+    "Copy key": "키 복사",
+    Revoke: "폐기",
+    "Revoking...": "폐기 중...",
+    Created: "생성일",
+    Expires: "만료일",
+    Revoked: "폐기됨",
+    "A new key is shown once. Store it before leaving this page.":
+      "새 키는 한 번만 표시됩니다. 이 페이지를 떠나기 전에 보관하세요.",
+    "Key label is required.": "키 이름을 입력하세요.",
+    "The key could not be loaded.": "키를 불러오지 못했습니다.",
+    "The key could not be created.": "키를 생성하지 못했습니다.",
+    "The key could not be revoked.": "키를 폐기하지 못했습니다.",
+    "MCP key created.": "MCP 키가 생성되었습니다.",
+    "MCP key revoked.": "MCP 키가 폐기되었습니다.",
+  },
+  zh: {
+    Settings: "设置",
+    "API keys": "API 密钥",
+    "Manage MCP access keys for this account.": "管理此账户的 MCP 访问密钥。",
+    "Key label": "密钥名称",
+    "Create key": "创建密钥",
+    "Creating...": "创建中...",
+    "No MCP keys have been created.": "尚未创建 MCP 密钥。",
+    "Copy key": "复制密钥",
+    Revoke: "撤销",
+    "Revoking...": "撤销中...",
+    Created: "创建时间",
+    Expires: "到期时间",
+    Revoked: "已撤销",
+    "A new key is shown once. Store it before leaving this page.": "新密钥只显示一次。离开此页前请保存。",
+    "Key label is required.": "请输入密钥名称。",
+    "The key could not be loaded.": "无法加载密钥。",
+    "The key could not be created.": "无法创建密钥。",
+    "The key could not be revoked.": "无法撤销密钥。",
+    "MCP key created.": "MCP 密钥已创建。",
+    "MCP key revoked.": "MCP 密钥已撤销。",
+  },
+  ja: {
+    Settings: "設定",
+    "API keys": "API キー",
+    "Manage MCP access keys for this account.": "このアカウントの MCP アクセスキーを管理します。",
+    "Key label": "キー名",
+    "Create key": "キーを作成",
+    "Creating...": "作成中...",
+    "No MCP keys have been created.": "MCP キーはまだ作成されていません。",
+    "Copy key": "キーをコピー",
+    Revoke: "失効",
+    "Revoking...": "失効中...",
+    Created: "作成日",
+    Expires: "有効期限",
+    Revoked: "失効済み",
+    "A new key is shown once. Store it before leaving this page.": "新しいキーは一度だけ表示されます。移動前に保存してください。",
+    "Key label is required.": "キー名を入力してください。",
+    "The key could not be loaded.": "キーを読み込めませんでした。",
+    "The key could not be created.": "キーを作成できませんでした。",
+    "The key could not be revoked.": "キーを失効できませんでした。",
+    "MCP key created.": "MCP キーを作成しました。",
+    "MCP key revoked.": "MCP キーを失効しました。",
+  },
+  vi: {
+    Settings: "Cài đặt",
+    "API keys": "Khóa API",
+    "Manage MCP access keys for this account.": "Quản lý khóa truy cập MCP của tài khoản này.",
+    "Key label": "Tên khóa",
+    "Create key": "Tạo khóa",
+    "Creating...": "Đang tạo...",
+    "No MCP keys have been created.": "Chưa có khóa MCP nào được tạo.",
+    "Copy key": "Sao chép khóa",
+    Revoke: "Thu hồi",
+    "Revoking...": "Đang thu hồi...",
+    Created: "Đã tạo",
+    Expires: "Hết hạn",
+    Revoked: "Đã thu hồi",
+    "A new key is shown once. Store it before leaving this page.": "Khóa mới chỉ hiển thị một lần. Hãy lưu trước khi rời trang.",
+    "Key label is required.": "Cần nhập tên khóa.",
+    "The key could not be loaded.": "Không thể tải khóa.",
+    "The key could not be created.": "Không thể tạo khóa.",
+    "The key could not be revoked.": "Không thể thu hồi khóa.",
+    "MCP key created.": "Đã tạo khóa MCP.",
+    "MCP key revoked.": "Đã thu hồi khóa MCP.",
+  },
+};
+
 let currentLocale: Locale = detectLocale();
 const listeners = new Set<() => void>();
 
@@ -1390,7 +1482,7 @@ export function useLocale(): Locale {
 }
 
 export function t(key: string): string {
-  return TRANSLATIONS[currentLocale]?.[key] ?? key;
+  return TRANSLATIONS[currentLocale]?.[key] ?? MCP_API_KEY_TRANSLATIONS[currentLocale]?.[key] ?? key;
 }
 
 export function tf(key: string, values: Record<string, string | number>): string {

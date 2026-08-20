@@ -166,6 +166,12 @@ from backend.app.knowledge_graph import (
     visible_team_mention_post_ids,
 )
 from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
+from backend.app.mcp_api_keys import (
+    CreateMcpApiKeyRequest,
+    create_mcp_api_key,
+    list_mcp_api_keys,
+    revoke_mcp_api_key,
+)
 from backend.app.post_chat_ingestion import (
     fetch_persisted_chat,
     fetch_persisted_chats,
@@ -239,6 +245,45 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH"],
     allow_headers=["Authorization"],
 )
+
+
+@app.get("/api/mcp/api-keys")
+async def read_mcp_api_keys(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """List MCP key metadata for the Keyverse-authenticated account."""
+    async with pool.acquire() as conn:
+        keys = await list_mcp_api_keys(conn, account.user_account_id)
+    return {"api_keys": keys}
+
+
+@app.post("/api/mcp/api-keys", status_code=status.HTTP_201_CREATED)
+async def create_account_mcp_api_key(
+    request: CreateMcpApiKeyRequest,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Create one account-owned MCP key and reveal its secret once."""
+    try:
+        async with pool.acquire() as conn:
+            return await create_mcp_api_key(conn, account.user_account_id, request)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+
+
+@app.post("/api/mcp/api-keys/{mcp_api_key_id}/revoke")
+async def revoke_account_mcp_api_key(
+    mcp_api_key_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Revoke only a key owned by the Keyverse-authenticated account."""
+    async with pool.acquire() as conn:
+        key = await revoke_mcp_api_key(conn, account.user_account_id, mcp_api_key_id)
+    if key is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "MCP API key was not found")
+    return key
 
 
 def _require_post_read(account: CurrentAccount) -> None:

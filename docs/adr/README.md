@@ -14,6 +14,7 @@ decision from them.
 | [`PROV_O_IMPLEMENTATION.md`](../PROV_O_IMPLEMENTATION.md) | [0065](0065-prov-o-provenance-boundary.md) |
 | [`PROV_O_IMPLEMENTATION_MATRIX.md`](../PROV_O_IMPLEMENTATION_MATRIX.md) | [0065](0065-prov-o-provenance-boundary.md) |
 | [`image-content-schema.md`](../image-content-schema.md) | [0066](0066-position-preserving-image-content.md) |
+| MCP API-key lifecycle | [0103](0103-keyverse-authenticated-mcp-api-keys.md) |
 
 Runtime evidence under `docs/doctoring/` is not converted into an ADR: it
 records observed results for already-decided behavior.

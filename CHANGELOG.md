@@ -8,6 +8,9 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Authenticated buyers can now manage LineageWeave-owned MCP API keys from
+  the Settings destination. Keyverse remains the OIDC identity boundary;
+  LineageWeave stores only a digest and reveals a new secret once.
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
