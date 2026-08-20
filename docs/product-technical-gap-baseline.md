@@ -622,3 +622,17 @@ local tests below are branch-local evidence and are not merge evidence.
   and buyer rendering still require post-merge browser evidence.
 - The older aggregate runtime table remains historical. It must not be cited as
   proof that the current PR heads or protected main contain these changes.
+
+### Queue roots carried forward from the prior checkpoint
+
+The current root entries from the preceding queue audit were revalidated before
+this update and remain proposed, not shipped:
+
+| PR | Exact head | Current gate |
+|---|---|---|
+| #258 buyer evidence board and ontology surface | `41036e2cd8095c5e7b9c333fd72c542cb676ef5e` | BLOCKED; REVIEW_REQUIRED |
+| #309 persisted buyer image-region overlays | `d8a938cd6e7e72b8bc0a7b11149afcfcc7820270` | BLOCKED; REVIEW_REQUIRED |
+
+This continuation checkpoint supersedes the earlier #332 documentation-only
+snapshot by retaining its root-head evidence and adding the later MCP, locale,
+image-caption, and DAG gate state above.
