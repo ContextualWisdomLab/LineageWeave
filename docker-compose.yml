@@ -163,7 +163,7 @@ services:
       ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
       # This is a non-secret embedding contract. Provider credentials remain
       # private to contextual-orchestrator and are never injected into backend.
-      LLM_GATEWAY_EMBEDDING_MODEL: ${LLM_GATEWAY_EMBEDDING_MODEL:-}
+      LLM_GATEWAY_EMBEDDING_MODEL: ${LLM_GATEWAY_EMBEDDING_MODEL:-text-embedding-3-large}
       SEARXNG_BASE_URL: http://searxng:8080
       TEPP_TRANSPORT_URL: ${TEPP_TRANSPORT_URL:-}
       TEPP_API_KEY: ${TEPP_API_KEY:-}
