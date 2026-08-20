@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 from types import SimpleNamespace
 
+import asyncpg
 import pytest
 
 from backend.app.mcp_auth import KeycloakMcpTokenVerifier
@@ -20,6 +21,13 @@ class FakePool:
     async def fetchrow(self, _query: str, key_hash: str) -> dict[str, object] | None:
         self.received_hash = key_hash
         return self.row
+
+
+class MissingKeyTablePool:
+    """Pool substitute for a deployment where PR #333 is not applied yet."""
+
+    async def fetchrow(self, _query: str, _key_hash: str) -> None:
+        raise asyncpg.UndefinedTableError("mcp_api_key is not installed")
 
 
 def _settings() -> SimpleNamespace:
@@ -62,3 +70,11 @@ async def test_api_key_is_unavailable_before_the_mcp_lifespan_binds_a_pool() -> 
     verifier = KeycloakMcpTokenVerifier(_settings())  # type: ignore[arg-type]
 
     assert await verifier.verify_token("lw_mcp_not-bound") is None
+
+
+@pytest.mark.asyncio
+async def test_missing_key_table_fails_closed_without_affecting_oidc_verification() -> None:
+    verifier = KeycloakMcpTokenVerifier(_settings())  # type: ignore[arg-type]
+    verifier.bind_api_key_pool(MissingKeyTablePool())
+
+    assert await verifier.verify_token("lw_mcp_schema-not-ready") is None
