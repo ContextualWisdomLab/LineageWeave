@@ -77,12 +77,19 @@ class _MixedValidityRegionVisionClient(_PartialRegionVisionClient):
             ImageRegion(0.25, 0.25, 0.25, 0.25),
             ImageRegion(-0.1, 0.0, 0.5, 0.5),
             ImageRegion(0.0, 0.0, float("nan"), 0.5),
+            ImageRegion(None, 0.0, 0.5, 0.5),  # type: ignore[arg-type]
+            object(),  # type: ignore[arg-type]
         )
 
 
 class _LocatorFailureVisionClient(_FakeVisionClient):
     def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
         raise RuntimeError("synthetic locator outage")
+
+
+class _EmptyLocatorVisionClient(_FakeVisionClient):
+    def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
+        return None  # type: ignore[return-value]
 
 
 class _PartialRegionFailureVisionClient(_FakeVisionClient):
@@ -210,6 +217,19 @@ def test_locator_failure_falls_back_to_parent_image_evidence() -> None:
     result = normalize_post_body(
         f'<img src="data:image/png;base64,{b64}"/>',
         vision_client=_LocatorFailureVisionClient(description),
+    )
+
+    assert result.image_results[0].status_code == "described"
+    assert result.image_results[0].regions[0].region == ImageRegion(0.0, 0.0, 1.0, 1.0)
+
+
+def test_empty_locator_result_falls_back_to_parent_image_evidence() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    description = ImageDescription(extracted_text="parent", caption="whole image", tags=())
+
+    result = normalize_post_body(
+        f'<img src="data:image/png;base64,{b64}"/>',
+        vision_client=_EmptyLocatorVisionClient(description),
     )
 
     assert result.image_results[0].status_code == "described"
