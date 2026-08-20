@@ -1,0 +1,51 @@
+name: Advance TEPP Buyer stack
+
+on:
+  push:
+    branches:
+      - automation/advance-tepp-buyer-stack-20260820
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  checks: read
+  contents: write
+  pull-requests: write
+  statuses: read
+
+concurrency:
+  group: advance-lineageweave-tepp-buyer-stack
+  cancel-in-progress: false
+
+jobs:
+  advance:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout automation branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: automation/advance-tepp-buyer-stack-20260820
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Advance at most one gated stack mutation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python .github/scripts/advance_pr_stack.py \
+            --stack 258,260,261,262,263,264,271 \
+            --output stack_status.json
+          cat stack_status.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Persist the exact status snapshot
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -- stack_status.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "chore: record Buyer stack gate status [skip ci]"
+          git push origin HEAD:automation/advance-tepp-buyer-stack-20260820
