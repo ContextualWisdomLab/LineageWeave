@@ -52,7 +52,7 @@ def test_gateway_api_key_accepts_local_compatibility_alias(monkeypatch) -> None:
     assert module._pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY") == "compatibility-key"
 
 
-def test_bootstrap_passes_embedding_provider_url_before_deleting_secrets(monkeypatch) -> None:
+def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch) -> None:
     module = _load_start_module()
     captured: dict[str, object] = {}
 
@@ -92,7 +92,18 @@ def test_bootstrap_passes_embedding_provider_url_before_deleting_secrets(monkeyp
 
     module.main()
 
+    agents = captured["agents"]
+    assert isinstance(agents, dict)
+    assert agents["agents"][-1] == {
+        "id": "llm_gateway_embedding_agent",
+        "model": "embedding-model",
+        "base_url": "https://gateway.example/v1",
+        "credential_key": "LLM_GATEWAY_API_KEY",
+        "provider_protocol": "auto",
+        "tags": ["embedding"],
+        "priority": 0,
+    }
     argv = captured["argv"]
     assert isinstance(argv, list)
-    assert argv[argv.index("--embedding-provider-url") + 1] == "https://gateway.example/v1"
-    assert argv[argv.index("--embedding-model") + 1] == "embedding-model"
+    assert "--embedding-provider-url" not in argv
+    assert "--embedding-model" not in argv
