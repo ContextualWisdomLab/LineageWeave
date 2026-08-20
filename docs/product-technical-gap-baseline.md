@@ -1,7 +1,7 @@
 # Product, technical, and gap baseline
 
 **Snapshot:** 2026-08-20 17:08 (Asia/Seoul)
-**Protected-main baseline:** `origin/main`, product version `2.12.5`  
+**Protected-main baseline:** `origin/main`, product version `2.12.5`
 **Audited PR head:** #258 at `bf599aca` (integrated timeout boundary, fixture fix, worker repair, and SQL review evidence)
 **Active PR update:** ADR 0101 and the enrichment-timeout changes are pushed to
 PR #258; protected-main runtime evidence remains pending.
