@@ -112,10 +112,13 @@ async def persist_post_content(
         chunk for chunk, unit_text, _style in prepared
         if chunk.unit_type != "image" and unit_text
     ]
-    explicit_widths = [
-        int(chunk.indent_width) for chunk in text_chunks if int(chunk.indent_width) > 0
-    ]
-    indent_unit = math.gcd(*explicit_widths) if explicit_widths else 0
+    explicit_widths = sorted(
+        {int(chunk.indent_width) for chunk in text_chunks if int(chunk.indent_width) > 0}
+    )
+    # CSS/XML indentation values are presentation widths, not semantic depth.
+    # Rank the observed widths instead of dividing by a gcd: 56px and 80px
+    # are two nesting levels even when their pixel-unit gcd is 1.
+    explicit_levels = {width: level for level, width in enumerate(explicit_widths, start=1)}
     unresolved = [chunk for chunk in text_chunks if int(chunk.indent_width) <= 0]
     unresolved_indexes = {chunk.index for chunk in unresolved}
     structure_by_index: dict[int, StructureDecision] = {}
@@ -124,7 +127,7 @@ async def persist_post_content(
         if width > 0:
             structure_by_index[chunk.index] = StructureDecision(
                 unit_index=chunk.index,
-                indent_level=max(1, round(width / indent_unit)) if indent_unit else 1,
+                    indent_level=explicit_levels[width],
                 confidence=1.0,
                 evidence="Explicit HTML, CSS, or OOXML indentation.",
                 source_code="explicit",

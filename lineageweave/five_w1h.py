@@ -52,19 +52,14 @@ def assemble_five_w1h_slots(
     key_events: list[str],
     counterparties: list[str] | None = None,
     lineage_node_labels: list[str] | None = None,
+    evidence_claims: list[dict[str, Any]] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     """Assemble only persisted, authorized evidence into six slots.
 
-    There is no ``created_at`` parameter on purpose: the source post's
-    creation timestamp is ``prov:generatedAtTime`` for the *record*
-    (when the source system filed this post), not evidence of when the
-    event the post narrates took place -- a live real post proved these
-    can disagree by days (a trip report filed two days after the trip it
-    describes). Treating the record's filing time as the event's time is
-    the same kind of unearned claim this module already forbids for an
-    LLM guess, just from a timestamp instead of a model. Until a real
-    stated-date extraction is persisted somewhere, "when" stays empty
-    rather than showing a plausible-looking wrong answer.
+    There is no ``created_at`` fallback on purpose: the source post's
+    creation timestamp is ``prov:generatedAtTime`` for the *record*, not
+    evidence of when the narrated event took place. When/where/why/how are
+    populated only by an explicitly extracted claim with source evidence.
     """
     slots: dict[str, list[dict[str, Any]]] = {slot: [] for slot in FIVE_W1H_SLOTS}
 
@@ -87,6 +82,18 @@ def assemble_five_w1h_slots(
         item = _value(event, "post_summary_event", _SLOT_LOOKUP_CODES["what"])
         if item:
             slots["what"].append(item)
+
+    for claim in evidence_claims or []:
+        slot = claim.get("slot_code")
+        if slot not in {"when", "where", "why", "how"}:
+            continue
+        item = _value(
+            claim.get("value_text"),
+            "post_summary_five_w1h",
+        )
+        if item:
+            item["evidence_text"] = claim.get("evidence_text", "")
+            slots[slot].append(item)
     if not slots["what"]:
         for title in lineage_node_labels or []:
             item = _value(title, "post_lineage_edge", _SLOT_LOOKUP_CODES["what"])

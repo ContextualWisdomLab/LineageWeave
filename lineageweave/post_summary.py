@@ -56,9 +56,10 @@ ACTOR_TYPE_ORGANIZATION = "prov_organization"
 ACTOR_TYPE_TEAM = "prov_team"
 _VALID_ACTOR_TYPE_CODES = frozenset({ACTOR_TYPE_PERSON, ACTOR_TYPE_ORGANIZATION, ACTOR_TYPE_TEAM})
 PROJECT_MENTION_CONFIDENCE_THRESHOLD = 0.7
+FIVE_W1H_EVIDENCE_SLOTS = frozenset({"when", "where", "why", "how"})
 # Stored rows without this contract version are legacy summaries and must be
 # regenerated from the current source body before the popup treats them as evidence.
-POST_SUMMARY_CONTRACT_VERSION = 2
+POST_SUMMARY_CONTRACT_VERSION = 3
 
 
 @dataclass(frozen=True)
@@ -112,6 +113,21 @@ class ProjectMention:
             raise ValueError("project mention confidence must be between 0 and 1")
 
 
+@dataclass(frozen=True)
+class FiveW1HEvidence:
+    """One explicitly stated 5W1H value and its supporting source phrase."""
+
+    slot_code: str
+    value_text: str
+    evidence_text: str
+
+    def __post_init__(self) -> None:
+        if self.slot_code not in FIVE_W1H_EVIDENCE_SLOTS:
+            raise ValueError(f"unsupported 5W1H evidence slot: {self.slot_code!r}")
+        if not self.value_text.strip() or not self.evidence_text.strip():
+            raise ValueError("5W1H evidence requires a value and supporting text")
+
+
 def normalize_project_key(project_name: str) -> str:
     """Stable comparison key; raw/canonical labels and evidence stay separate."""
     normalized = unicodedata.normalize("NFKC", project_name).casefold()
@@ -126,6 +142,7 @@ class PostSummary:
     key_events: tuple[str, ...] = field(default_factory=tuple)
     roles_and_responsibilities: tuple[RoleResponsibility, ...] = field(default_factory=tuple)
     project_mentions: tuple[ProjectMention, ...] = field(default_factory=tuple)
+    five_w1h_evidence: tuple[FiveW1HEvidence, ...] = field(default_factory=tuple)
 
 
 class PostSummaryClient(Protocol):
@@ -222,6 +239,9 @@ these fields:
   "project_mentions": array of objects, each with:
     "project_name": string, "canonical_name": string, "evidence": string,
     "confidence": number
+  "five_w1h_evidence": array of objects, each with:
+    "slot_code": exactly "when", "where", "why", or "how",
+    "value_text": string, "evidence_text": string
 
 Post title: {title}
 Post body: {body}
@@ -267,6 +287,10 @@ thread -- not just one topic told out of order), address each as its own
 compact 발단-전개-결론 unit and clearly distinguish them (state which
 matter each sentence belongs to) instead of blending them into one
 narrative as if they were a single continuous story.
+
+When two or more projects or matters are present, every key event must name
+the project or matter it belongs to. Do not emit a generic event such as
+"협의 진행" when the source identifies which project was discussed.
 
 Example shape (fictional content, format only):
 Acme Electronics 제3공장에서 케이블 배선 설계 누락이 발견되어 2월 12일
@@ -316,8 +340,14 @@ Acme Renewables | 기술 세미나 참석 | organization | NONE
 PROJECTS:
 project name | canonical name | shortest supporting evidence | confidence from 0 to 1
 
+EVIDENCE:
+slot (when, where, why, or how) | value stated in the post | shortest supporting phrase
+
 Use NONE on the line after a marker when the evidence supports no item. Keep
 each row short. Do not invent actors, projects, affiliations, or confidence.
+Only write EVIDENCE rows when the post explicitly supports the value; do not
+turn the record's filing timestamp into an event time and do not infer a
+place, reason, or method from a title alone.
 Treat structured context hints as weak priors, not facts. A customer value
 such as 기타, 미등록고객, unknown, or other cannot confirm a project by itself.
 Field roles are strict: source_business_unit_code and
@@ -378,10 +408,14 @@ def _parse_plain_summary_details(
     *,
     post_title: str = "",
     context_hints: str = "",
-) -> tuple[tuple[RoleResponsibility, ...], tuple[ProjectMention, ...]] | None:
+) -> tuple[
+    tuple[RoleResponsibility, ...],
+    tuple[ProjectMention, ...],
+    tuple[FiveW1HEvidence, ...],
+] | None:
     """Parse the compact semantic extraction contract without nested JSON."""
     plain = _strip_code_fence(content).strip()
-    markers = list(re.finditer(r"(?im)^\s*(ROLES|PROJECTS)\s*:\s*(.*)$", plain))
+    markers = list(re.finditer(r"(?im)^\s*(ROLES|PROJECTS|EVIDENCE)\s*:\s*(.*)$", plain))
     if not markers:
         return None
 
@@ -493,7 +527,19 @@ def _parse_plain_summary_details(
             )
         except (TypeError, ValueError):
             continue
-    return tuple(roles), tuple(projects)
+    evidence: list[FiveW1HEvidence] = []
+    for raw_row in sections.get("EVIDENCE", "").splitlines():
+        row = raw_row.strip().lstrip("-* ").strip()
+        if not row or row.casefold() in empty_values:
+            continue
+        parts = [part.strip() for part in row.split("|", 2)]
+        if len(parts) != 3 or parts[0].casefold() not in FIVE_W1H_EVIDENCE_SLOTS:
+            continue
+        try:
+            evidence.append(FiveW1HEvidence(parts[0].casefold(), parts[1], parts[2]))
+        except ValueError:
+            continue
+    return tuple(roles), tuple(projects), tuple(evidence)
 
 
 def parse_summary_response(content: str) -> PostSummary | None:
@@ -586,11 +632,29 @@ def parse_summary_response(content: str) -> PostSummary | None:
             except ValueError:
                 continue
 
+    five_w1h_raw = parsed.get("five_w1h_evidence") or parsed.get("evidence") or []
+    five_w1h_evidence: list[FiveW1HEvidence] = []
+    if isinstance(five_w1h_raw, list):
+        for entry in five_w1h_raw:
+            if not isinstance(entry, dict):
+                continue
+            try:
+                five_w1h_evidence.append(
+                    FiveW1HEvidence(
+                        str(entry.get("slot_code", "")).strip().casefold(),
+                        str(entry.get("value_text", "")).strip(),
+                        str(entry.get("evidence_text", "")).strip(),
+                    )
+                )
+            except ValueError:
+                continue
+
     return PostSummary(
         korean_summary=korean_summary.strip(),
         key_events=key_events,
         roles_and_responsibilities=tuple(roles),
         project_mentions=tuple(project_mentions),
+        five_w1h_evidence=tuple(five_w1h_evidence),
     )
 
 
@@ -745,10 +809,11 @@ class ContextualOrchestratorPostSummaryClient:
                 "summary semantic response did not match the required format: "
                 f"{details_body['choices'][0]['message']['content']!r}"
             )
-        roles, projects = details
+        roles, projects, five_w1h_evidence = details
         return PostSummary(
             korean_summary=korean_summary,
             key_events=key_events,
             roles_and_responsibilities=roles,
             project_mentions=projects,
+            five_w1h_evidence=five_w1h_evidence,
         )

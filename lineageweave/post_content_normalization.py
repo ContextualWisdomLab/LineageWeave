@@ -31,6 +31,7 @@ from .image_content import (
     ImageRegion,
     NullImageContentClient,
     crop_image_region,
+    regions_cover_image,
 )
 
 # Real HTML tags only -- a VOC body like "qty < 50 and price > 10" is
@@ -176,6 +177,13 @@ def normalize_post_body(
                         regions = locator(chunk.image_data, chunk.label) if callable(locator) else ()
                     except Exception:  # noqa: BLE001 - locator failure falls back to whole-image evidence.
                         regions = ()
+                    if not regions_cover_image(regions):
+                        # A provider may return only a salient crop even when
+                        # the contract asks for full-image coverage. Preserve
+                        # the missing evidence by forcing one bounded,
+                        # full-image description instead of accepting a
+                        # partial region as complete analysis.
+                        regions = (ImageRegion(0.0, 0.0, 1.0, 1.0),)
                     for region_index, region in enumerate(regions):
                         try:
                             cropped, cropped_mime = crop_image_region(chunk.image_data, chunk.label, region)

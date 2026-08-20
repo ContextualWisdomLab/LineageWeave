@@ -40,6 +40,11 @@ class _RegionVisionClient(_FakeVisionClient):
         return (ImageRegion(0.0, 0.0, 1.0, 1.0),)
 
 
+class _PartialRegionVisionClient(_FakeVisionClient):
+    def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
+        return (ImageRegion(0.25, 0.25, 0.25, 0.25),)
+
+
 def test_plain_text_passes_through_unchanged() -> None:
     result = normalize_post_body("Just a plain business record, no markup here.")
     assert result.text == "Just a plain business record, no markup here."
@@ -110,6 +115,19 @@ def test_image_regions_are_cropped_and_described_as_independent_evidence() -> No
     assert result.image_results[0].regions[0].region == ImageRegion(0.0, 0.0, 1.0, 1.0)
     assert result.image_results[0].regions[0].description == description
     assert "panel text" in result.text
+
+
+def test_partial_region_response_falls_back_to_full_image_evidence() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    html = f'<img src="data:image/png;base64,{b64}"/>'
+    result = normalize_post_body(
+        html,
+        vision_client=_PartialRegionVisionClient(
+            ImageDescription(extracted_text="whole image", caption="whole", tags=())
+        ),
+    )
+
+    assert result.image_results[0].regions[0].region == ImageRegion(0.0, 0.0, 1.0, 1.0)
 
 
 def test_comparison_operators_in_plain_text_are_not_treated_as_html() -> None:

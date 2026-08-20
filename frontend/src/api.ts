@@ -90,6 +90,7 @@ export interface PostContentResponse {
 export interface PostContentUnit {
   unit_index: number;
   unit_kind_code: string;
+  unit_label?: string;
   unit_text: string;
   indent_level: number;
   indent_source_code: "explicit" | "llm" | "unresolved";
@@ -218,6 +219,7 @@ export interface PostAiSummary {
 export interface FiveW1HValue {
   text: string;
   source: string;
+  evidence_text?: string;
   ontology_codes: string[];
   ontology_annotations: Record<string, string>;
 }

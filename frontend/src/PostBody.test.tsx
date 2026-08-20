@@ -54,4 +54,60 @@ describe("PostBody", () => {
     expect(screen.getByText("1) 공통 사항")).toHaveAttribute("data-indent-level", "1");
     expect(screen.getByText("- 설치 확인")).toHaveAttribute("data-indent-level", "2");
   });
+
+  it("renders persisted table rows as a table instead of cell paragraphs", () => {
+    render(
+      <PostBody
+        body="<table><tr><td>No.</td><td>Company</td></tr><tr><td>1</td><td>Acme</td></tr></table>"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "dom",
+            unit_label: "tr",
+            unit_text: "No. | Company",
+            indent_level: 0,
+            indent_source_code: "explicit",
+            indent_confidence: 1,
+            indent_evidence: "table row",
+          },
+          {
+            unit_index: 1,
+            unit_kind_code: "dom",
+            unit_label: "tr",
+            unit_text: "1 | Acme",
+            indent_level: 0,
+            indent_source_code: "explicit",
+            indent_confidence: 1,
+            indent_evidence: "table row",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getAllByRole("row")).toHaveLength(2);
+    expect(screen.queryAllByText("No.")).toHaveLength(1);
+  });
+
+  it("marks persisted footnotes as footnote evidence", () => {
+    render(
+      <PostBody
+        body="<p>*Tier 2: note</p>"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "dom",
+            unit_label: "footnote",
+            unit_text: "*Tier 2: note",
+            indent_level: 0,
+            indent_source_code: "explicit",
+            indent_confidence: 1,
+            indent_evidence: "footnote marker",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("*Tier 2: note")).toHaveAttribute("data-content-kind", "footnote");
+  });
 });

@@ -84,6 +84,26 @@ def test_parses_a_well_formed_json_object() -> None:
     assert role.affiliated_organization_name == "Westfield Power"
 
 
+def test_parses_explicit_five_w1h_evidence_with_source_phrase() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary":"요약", "key_events":[], '
+        '"five_w1h_evidence":[{"slot_code":"when", "value_text":"3월 4일", '
+        '"evidence_text":"3월 4일 현장 회의"}]}'
+    )
+    assert summary is not None
+    assert summary.five_w1h_evidence[0].slot_code == "when"
+    assert summary.five_w1h_evidence[0].evidence_text == "3월 4일 현장 회의"
+
+
+def test_parses_plain_summary_evidence_section() -> None:
+    details = _parse_plain_summary_details(
+        "ROLES:\nNONE\nPROJECTS:\nNONE\nEVIDENCE:\n"
+        "where | 제3공장 | 제3공장에서 협의했다"
+    )
+    assert details is not None
+    assert details[2][0].value_text == "제3공장"
+
+
 def test_organization_actor_is_not_forced_into_a_person_slot() -> None:
     """A named actor that is genuinely an organization (e.g. our own
     company acting in its own name, not a named individual) must parse
@@ -247,7 +267,7 @@ def test_title_match_can_supply_explicit_project_evidence_but_not_a_guess() -> N
         "ROLES:\nNONE\nPROJECTS:\nUnrelated project | NONE | 1",
         post_title="Follow-up after the Northridge transformer bid workshop",
     )
-    assert unrelated == ((), ())
+    assert unrelated == ((), (), ())
 
 
 def test_role_matching_the_hinted_account_name_is_dropped_not_cataloged() -> None:

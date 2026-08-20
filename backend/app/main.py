@@ -1406,7 +1406,7 @@ async def read_post_content(
     async with pool.acquire() as conn:
         unit_rows = await conn.fetch(
             """
-            select unit.unit_index, unit.unit_kind_code, unit.unit_text,
+            select unit.unit_index, unit.unit_kind_code, unit.unit_label, unit.unit_text,
                    coalesce(structure.indent_level, 0) as indent_level,
                    structure.decision_source_code, structure.confidence,
                    structure.evidence_text
@@ -1482,6 +1482,7 @@ async def read_post_content(
             {
                 "unit_index": row["unit_index"],
                 "unit_kind_code": row["unit_kind_code"],
+                "unit_label": row["unit_label"],
                 "unit_text": row["unit_text"],
                 "indent_level": row["indent_level"],
                 "indent_source_code": row["decision_source_code"] or "unresolved",

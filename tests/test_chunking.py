@@ -96,6 +96,21 @@ def test_chunk_by_dom_groups_table_cells_by_row_instead_of_flattening() -> None:
     assert all(c.label == "tr" for c in chunks)
 
 
+def test_chunk_by_dom_keeps_nested_table_cell_blocks_in_their_row() -> None:
+    chunks = chunk_by_dom(
+        "<table><tr><td><p>No.</p></td><td><div>Company</div></td></tr></table>"
+    )
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [("tr", "No. | Company")]
+
+
+def test_chunk_by_dom_labels_markerless_footnotes() -> None:
+    chunks = chunk_by_dom("<p>Body text</p><p>*Tier 2: follow-up note</p>")
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Body text"),
+        ("footnote", "*Tier 2: follow-up note"),
+    ]
+
+
 def test_chunk_by_dom_word_table_rows_also_group_cells() -> None:
     html = "<w:tbl><w:tr><w:tc>1</w:tc><w:tc>Acme Corp</w:tc></w:tr></w:tbl>"
     chunks = chunk_by_dom(html)

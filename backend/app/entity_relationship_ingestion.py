@@ -43,33 +43,37 @@ async def ingest_post_entity_relationships(
     should check `client.available` first, same discipline as every other
     pluggable channel in this repo.
     """
-    if not organization_names:
-        return []
-
-    relationships = await asyncio.to_thread(
-        client.classify, post_title, post_body, organization_names
-    )
-
-    for relationship in relationships:
-        await conn.execute(
-            """
-            insert into post_counterparty_entity (post_id, counterparty_entity_name, relationship_type_code)
-            values ($1, $2, $3)
-            on conflict (post_id, counterparty_entity_name)
-            do update set
-                relationship_type_code = excluded.relationship_type_code,
-                -- A re-classification invalidates any prior verification --
-                -- that search was run against the OLD relationship_label,
-                -- see relation_verification.py.
-                verification_status_code = 'verify_pending',
-                verification_evidence_url = null,
-                verification_evidence_post_id = null,
-                verification_checked_at = null
-            """,
-            post_id,
-            relationship.organization_name,
-            relationship.relationship_type_code,
+    if organization_names:
+        relationships = await asyncio.to_thread(
+            client.classify, post_title, post_body, organization_names
         )
+    else:
+        relationships = []
+
+    requested_names = set(organization_names)
+    relationships = [
+        relationship
+        for relationship in relationships
+        if relationship.organization_name in requested_names
+    ]
+    # This is a replacement projection, not an append-only cache. A later
+    # extraction can remove an organization (including an our-side-only
+    # affiliation), so stale relationship rows must disappear atomically.
+    async with conn.transaction():
+        await conn.execute(
+            "delete from post_counterparty_entity where post_id = $1",
+            post_id,
+        )
+        for relationship in relationships:
+            await conn.execute(
+                """
+                insert into post_counterparty_entity (post_id, counterparty_entity_name, relationship_type_code)
+                values ($1, $2, $3)
+                """,
+                post_id,
+                relationship.organization_name,
+                relationship.relationship_type_code,
+            )
 
     return relationships
 

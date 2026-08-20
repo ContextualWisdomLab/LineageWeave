@@ -318,6 +318,23 @@
   white-space: pre-wrap;
 }
 
+.post-body-footnote {
+  padding-inline-start: 1rem;
+  font-size: 0.9em;
+}
+
+.post-body-table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow-wrap: anywhere;
+}
+
+.post-body-table td {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--post-image-border);
+  vertical-align: top;
+}
+
 .post-embedded-image {
   margin: 0;
   padding: var(--post-image-padding);

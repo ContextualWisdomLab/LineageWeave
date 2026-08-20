@@ -93,8 +93,9 @@ _TABLE_ROW_TAGS = frozenset({"tr", "w:tr"})
 _TABLE_CELL_TAGS = frozenset({"td", "th", "w:tc"})
 
 _LIST_ITEM_START = re.compile(
-    r"^(?:[-*•·]\s+|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)"
+    r"^(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)"
 )
+_FOOTNOTE_START = re.compile(r"^[*†‡](?=\S)")
 
 
 def normalize_semantic_text(text: str) -> str:
@@ -331,6 +332,11 @@ class _BlockTextExtractor(HTMLParser):
             if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS and self._stack[-1][1]:
                 self._stack[-1][1].append(" | ")
             return
+        # A rich-text editor commonly wraps a table cell in a nested <p> or
+        # <div>. Keep that content in the open row; otherwise the nested block
+        # closes first and destroys the row/column boundary.
+        if any(entry[0] in _TABLE_ROW_TAGS for entry in self._stack):
+            return
         if tag in _DOM_BLOCK_TAGS:
             style = next((value for name, value in attrs if name == "style" and value), None)
             self._stack.append((tag, [], style, _declared_indent_width(tag, attrs)))
@@ -343,7 +349,7 @@ class _BlockTextExtractor(HTMLParser):
 
     def handle_endtag(self, tag: str) -> None:
         """Close the relevant text state when an HTML end tag is encountered."""
-        if tag in _DOM_BLOCK_TAGS and self._stack:
+        if tag in _DOM_BLOCK_TAGS and self._stack and self._stack[-1][0] == tag:
             declared_width = sum(entry[3] for entry in self._stack)
             tag_name, buffer, style, _ = self._stack.pop()
             self._finish_block(tag_name, buffer, style, declared_width)
@@ -357,8 +363,9 @@ class _BlockTextExtractor(HTMLParser):
             text = normalize_semantic_text(raw_unit)
             if text:
                 indent_width = declared_width + source_indent
+                label = "footnote" if _FOOTNOTE_START.match(text) else tag_name
                 self._finished.append(
-                    ("text", text, tag_name, style, indent_width)
+                    ("text", text, label, style, indent_width)
                 )
 
     def handle_data(self, data: str) -> None:

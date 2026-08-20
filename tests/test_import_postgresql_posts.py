@@ -1,3 +1,4 @@
+import uuid
 from types import SimpleNamespace
 
 import pytest
@@ -5,6 +6,7 @@ import pytest
 from scripts.import_postgresql_posts import (
     _parser,
     _normalize_voc_type,
+    _source_post_id,
     _source_code_matches,
     _validate_source_mapping,
     _validate_source_rows,
@@ -67,6 +69,23 @@ def test_importer_preflights_identity_and_body_before_target_mutation() -> None:
         )
 
 
+def test_importer_keeps_source_record_key_separate_from_source_uuid() -> None:
+    mapping = SimpleNamespace(post_id="guid_field")
+    source_uuid = "01234567-89ab-cdef-0123-456789abcdef"
+
+    assert _source_post_id(
+        {"guid_field": source_uuid}, mapping, "source", "human-entered-source-key"
+    ) == uuid.UUID(source_uuid)
+
+
+def test_importer_derives_legacy_post_uuid_without_a_post_id_mapping() -> None:
+    mapping = SimpleNamespace(post_id=None)
+
+    assert _source_post_id(
+        {}, mapping, "source", "human-entered-source-key"
+    ) == uuid.uuid5(uuid.UUID("b6e4b1d6-5fd0-4ca1-92b0-8f7a4e2df83e"), "source:human-entered-source-key")
+
+
 def test_importer_rejects_duplicate_active_source_identity() -> None:
     mapping = SimpleNamespace(record_key="record_key", body="body", draft="draft_state", deleted=None)
 
@@ -80,6 +99,36 @@ def test_importer_rejects_duplicate_active_source_identity() -> None:
             ["Y"],
             [],
         )
+
+
+def test_importer_allows_repeated_lookup_keys_when_source_uuids_are_distinct() -> None:
+    mapping = SimpleNamespace(
+        record_key="record_key",
+        post_id="post_id",
+        body="body",
+        draft="draft_state",
+        deleted=None,
+    )
+
+    _validate_source_rows(
+        [
+            {
+                "record_key": "same",
+                "post_id": "01234567-89ab-cdef-0123-456789abcdef",
+                "body": "first",
+                "draft_state": "N",
+            },
+            {
+                "record_key": "same",
+                "post_id": "11234567-89ab-cdef-0123-456789abcdef",
+                "body": "second",
+                "draft_state": "N",
+            },
+        ],
+        mapping,
+        ["Y"],
+        [],
+    )
 
 
 def test_importer_always_requires_verified_publication_state() -> None:

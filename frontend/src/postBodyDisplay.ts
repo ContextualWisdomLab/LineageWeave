@@ -8,7 +8,7 @@
  */
 
 export type PostBodySegment =
-  | { kind: "text"; text: string; indentLevel?: number }
+  | { kind: "text"; text: string; indentLevel?: number; role?: "footnote" }
   | { kind: "image"; src: string; mimeType: string; position: number };
 
 const DATA_URI_IMG =
@@ -19,7 +19,8 @@ const BREAK_TAG = /<br\b[^>]*>/gi;
 const BLOCK_TAG =
   /<\/?(?:article|blockquote|div|h[1-6]|li|ol|p|section|table|tbody|td|tfoot|th|thead|tr|ul|w:p|w:tbl|w:tr|w:tc)\b[^>]*>/gi;
 const WORD_INDENT_TAG = /<w:ind\b[^>]*\/?\s*>/gi;
-const LIST_ITEM_START = /^\s*(?:[-*•·]\s+|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)/;
+const LIST_ITEM_START = /^\s*(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)/;
+const FOOTNOTE_START = /^\s*[*†‡](?=\S)/;
 const INDENT_MARKER = "\u0001lw-indent:";
 const INDENT_MARKER_END = "\u0002";
 const INDENT_MARKER_PATTERN = /lw-indent:(\d+)/g;
@@ -70,6 +71,11 @@ function declaredIndentWidth(tag: string): number {
     /(?:^|;)\s*(?:margin-left|padding-left|padding-inline-start|text-indent)\s*:\s*([^;]+)/gi,
   )) {
     width += lengthToIndentUnits(match[1]);
+  }
+  for (const match of style.matchAll(/(?:^|;)\s*(?:margin|padding)\s*:\s*([^;]+)/gi)) {
+    const parts = match[1].trim().split(/\s+/);
+    const left = parts.length >= 4 ? parts[3] : parts.length >= 2 ? parts[1] : parts[0];
+    width += lengthToIndentUnits(left);
   }
   for (const match of tag.matchAll(
     /\b(?:w:)?(?:left|start|firstline)\s*=\s*["'](-?\d+)["']/gi,
@@ -202,6 +208,7 @@ function pushText(segments: PostBodySegment[], raw: string, indentUnit: number):
         kind: "text",
         text: normalized,
         ...(indentLevel > 0 ? { indentLevel } : {}),
+        ...(FOOTNOTE_START.test(normalized) ? { role: "footnote" as const } : {}),
       });
     }
   }

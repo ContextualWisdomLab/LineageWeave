@@ -47,6 +47,20 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("reads CSS box shorthand indentation and markerless footnotes", () => {
+    expect(
+      splitPostBody(
+        '<ul><li style="margin: 0cm 0cm 0cm 56px">Outer</li></ul>' +
+          '<ul><li style="margin: 0cm 0cm 0cm 80px">Nested</li></ul>' +
+          "<p>*Tier 2: note</p>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "Outer", indentLevel: 7 },
+      { kind: "text", text: "Nested", indentLevel: 10 },
+      { kind: "text", text: "*Tier 2: note", role: "footnote" },
+    ]);
+  });
+
   it("leaves a plain-text post unchanged so existing popups keep their wording", () => {
     expect(splitPostBody("The full body text.")).toEqual([
       { kind: "text", text: "The full body text." },

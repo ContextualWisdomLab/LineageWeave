@@ -14,17 +14,20 @@ new imports, deleted rows, or incomplete target data can change that result.
 
 ## Decision
 
-- Populate `source_record_key` only from the immutable source identifier during
-  import, or from an externally governed mapping artifact that independently
-  records the source identifier-to-target-post relationship.
+- Populate the internal `post_id` from the immutable source UUID during import
+  and preserve any separate source lookup key in `source_record_key`, or use an
+  externally governed mapping artifact that independently records the source
+  identifier-to-target-post relationship.
 - Never reconcile or backfill source identity from title, date, customer,
   process unit, project, author, or any combination of those fields.
 - Keep a target body with no source identity unbound. Do not overwrite it or
   attach a source identifier merely because a natural-key query returns one
   current candidate.
-- Exact source-ID search is authoritative only for persisted
-  `source_record_key` values. If the source identifier was not imported, the
-  board must report that the source identity is unavailable rather than guess.
+- Exact source-ID search is authoritative only for persisted source UUID or
+  `source_record_key` values. A source lookup key is not assumed unique; the
+  board may return every authorized post carrying that exact key. If the source
+  identifier was not imported, the board must report that the source identity is
+  unavailable rather than guess.
 - The body-bearing importer continues to preflight source identity and body
   completeness before mutating the target. A source without body evidence is
   not converted into a title-only post.

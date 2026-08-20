@@ -17,6 +17,7 @@ const EVIDENCE_SOURCE_LABELS: Record<string, string> = {
   post_summary_role: "Extracted role",
   "post_summary_role.affiliated_organization_name": "Extracted affiliation",
   post_summary_event: "Extracted key event",
+  post_summary_five_w1h: "Extracted source evidence",
   post_lineage_edge: "Linked post title",
   post_counterparty_entity: "Recorded counterparty",
 };
@@ -45,6 +46,7 @@ export function FiveW1H({ slots }: { slots: FiveW1HSlot[] | null }) {
                         <details className="semantic-provenance">
                           <summary>{t("Evidence provenance")}</summary>
                           <span className="post-badge">{evidenceSourceLabel(value.source)}</span>
+                          {value.evidence_text ? <span>{value.evidence_text}</span> : null}
                           {value.ontology_codes.map((code) => (
                             <span className="post-badge" key={code}>
                               {t("Ontology class")}: {t(value.ontology_annotations.ontology_label ?? code)}

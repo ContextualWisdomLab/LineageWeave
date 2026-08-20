@@ -39,3 +39,26 @@ def test_five_w1h_uses_visible_lineage_title_only_as_what_fallback() -> None:
     assert what["values"][0]["source"] == "post_lineage_edge"
     assert why["values"] == []
     assert why["empty_next_action_code"] == "inspect_source_body_or_related_posts"
+
+
+def test_five_w1h_uses_only_explicit_claims_for_missing_dimensions() -> None:
+    slots = assemble_five_w1h_slots(
+        roles=[],
+        key_events=[],
+        evidence_claims=[
+            {
+                "slot_code": "when",
+                "value_text": "2026년 3월 4일",
+                "evidence_text": "3월 4일 현장 회의",
+            },
+            {
+                "slot_code": "how",
+                "value_text": "화상 회의로",
+                "evidence_text": "화상으로 협의했다",
+            },
+        ],
+    )
+    assert slots["when"][0]["source"] == "post_summary_five_w1h"
+    assert slots["when"][0]["evidence_text"] == "3월 4일 현장 회의"
+    assert slots["how"][0]["text"] == "화상 회의로"
+    assert slots["where"] == []

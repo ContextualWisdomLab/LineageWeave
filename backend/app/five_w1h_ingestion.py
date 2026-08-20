@@ -21,6 +21,15 @@ async def load_five_w1h_slots(
 ) -> dict[str, Any]:
     """Build 5W1H from stored projections and visible lineage only."""
     summary = await fetch_persisted_summary(conn, post_id) or {}
+    evidence_claims = await conn.fetch(
+        """
+        select slot_code, value_text, evidence_text
+          from post_summary_five_w1h
+         where post_id = $1
+         order by slot_code, value_ordinal
+        """,
+        post_id,
+    )
     linked = await find_linked_post_ids(conn, post_id)
     candidate_ids = sorted(linked.direct | linked.indirect)
     linked_titles: list[str] = []
@@ -38,5 +47,6 @@ async def load_five_w1h_slots(
         key_events=summary.get("key_events", []),
         counterparties=[row["counterparty_entity_name"] for row in counterparties],
         lineage_node_labels=linked_titles,
+        evidence_claims=[dict(row) for row in evidence_claims],
     )
     return {"post_id": post_id, "slots": slots_payload(slots)}
