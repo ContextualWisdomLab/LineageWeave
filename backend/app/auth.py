@@ -27,13 +27,22 @@ from backend.app.db import get_pool
 from lineageweave.http_client import HttpClientError, get_json
 
 _bearer_scheme = HTTPBearer(auto_error=True)
-_jwks_cache: dict[str, dict] = {}
+_jwks_cache: dict[tuple[str, str, str], dict] = {}
 
 
-def _jwks(settings: Settings) -> dict:
-    """Return the configured OIDC provider's JWKS, cached by issuer."""
-    cache_key = settings.oidc_issuer
-    cached = _jwks_cache.get(cache_key)
+def _jwks_cache_key(settings: Settings) -> tuple[str, str, str]:
+    """Bind cached keys to the exact issuer and key-discovery configuration."""
+    return (
+        settings.oidc_issuer,
+        settings.oidc_discovery_uri,
+        settings.oidc_jwks_uri_override,
+    )
+
+
+def _jwks(settings: Settings, *, force_refresh: bool = False) -> dict:
+    """Return provider JWKS, refreshing explicitly when signing keys rotate."""
+    cache_key = _jwks_cache_key(settings)
+    cached = None if force_refresh else _jwks_cache.get(cache_key)
     if cached is None:
         try:
             if settings.oidc_jwks_uri_override:
@@ -54,13 +63,45 @@ def _jwks(settings: Settings) -> dict:
 
 
 def _signing_key_from_jwks(jwks: dict, token: str):
-    """Pick the JWKS RSA key that matches the JWT kid, without urllib."""
-    header = jwt.get_unverified_header(token)
+    """Require a non-empty JWT ``kid`` and an exact acceptable RSA key match."""
+    try:
+        header = jwt.get_unverified_header(token)
+    except jwt.PyJWTError as exc:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid access-token header") from exc
+    if header.get("alg") != "RS256":
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token must use RS256")
     kid = header.get("kid")
+    if not isinstance(kid, str) or not kid.strip():
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token must include a non-empty kid")
     for key in jwks.get("keys", []):
-        if kid is None or key.get("kid") == kid:
+        if not isinstance(key, dict) or key.get("kid") != kid:
+            continue
+        if key.get("kty") != "RSA":
+            continue
+        if key.get("alg") not in (None, "RS256"):
+            continue
+        if key.get("use") not in (None, "sig"):
+            continue
+        key_ops = key.get("key_ops")
+        if key_ops is not None and (
+            not isinstance(key_ops, list) or "verify" not in key_ops
+        ):
+            continue
+        try:
             return RSAAlgorithm.from_jwk(json.dumps(key))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "matching JWKS key is invalid") from exc
     raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"no JWKS key matched kid={kid!r}")
+
+
+def _signing_key(settings: Settings, token: str):
+    """Resolve a signing key and refresh JWKS once when a new ``kid`` appears."""
+    try:
+        return _signing_key_from_jwks(_jwks(settings), token)
+    except HTTPException as exc:
+        if not str(exc.detail).startswith("no JWKS key matched kid="):
+            raise
+    return _signing_key_from_jwks(_jwks(settings, force_refresh=True), token)
 
 
 @dataclass(frozen=True)
@@ -80,18 +121,24 @@ class CurrentAccount:
 
 
 def _decode_access_token(token: str, settings: Settings) -> dict:
+    """Validate signature, issuer, resource audience, time claims, and subject."""
     try:
-        signing_key = _signing_key_from_jwks(_jwks(settings), token)
-        return jwt.decode(
+        claims = jwt.decode(
             token,
-            key=signing_key,
+            key=_signing_key(settings, token),
             algorithms=["RS256"],
             issuer=settings.oidc_issuer,
+            audience=settings.oidc_audience,
             leeway=settings.oidc_clock_skew_seconds,
-            options={"verify_aud": False},
         )
+    except HTTPException:
+        raise
     except jwt.PyJWTError as exc:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"invalid token: {exc}") from exc
+    subject = claims.get("sub")
+    if not isinstance(subject, str) or not subject.strip():
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token has no subject")
+    return claims
 
 
 async def get_current_account(

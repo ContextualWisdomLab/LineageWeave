@@ -1,4 +1,4 @@
-# ADR 0075: A linked Event Lineage node keeps GNB focus
+# ADR 0097: A linked Event Lineage node keeps GNB focus
 
 - Status: Accepted
 - Date: 2026-08-19
@@ -7,7 +7,7 @@
 
 Opening a Board Weekly VOC post, Calendar commitment, Customer master
 related post, Ask Agent cited post, or report member already focuses
-Event Lineage (ADR 0071 / ADR 0072 / ADR 0073 / ADR 0074). Clicking a
+Event Lineage (ADR 0093 / ADR 0094 / ADR 0095 / ADR 0096). Clicking a
 linked Event Lineage DAG node then called `selectPost` without those
 flags. The popup switched records and dropped the GNB focus contract:
 Keyman and evaluation were no longer named next.

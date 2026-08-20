@@ -25,7 +25,7 @@ class AdjudicationClient(Protocol):
 
     def judge(self, candidate_label: str, record_label: str) -> float:
         """Score the candidate and record labels for semantic adjudication."""
-        ...
+        raise NotImplementedError
 
 
 class NullAdjudicationClient:
@@ -44,16 +44,14 @@ _CONFIDENCE_PATTERN = re.compile(r"([01](?:\.\d+)?)")
 class ContextualOrchestratorAdjudicationClient:
     """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="auto"``.
 
-    Reasoning effort defaults to ``"high"`` -- an adjudication call is
-    exactly the low-volume, judgment-heavy case Fugu/Conductor/TRINITY-style
-    test-time-compute allocation argues for spending more effort on
-    (contextual-orchestrator's ``reasoning_effort`` request field).
+    Reasoning effort defaults to ``"auto"`` so contextual-orchestrator owns
+    test-time-compute allocation; callers may still request an explicit level.
     """
 
     available = True
 
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "high", timeout: float = 180.0
+        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 180.0
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key

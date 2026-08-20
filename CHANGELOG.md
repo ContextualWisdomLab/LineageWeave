@@ -12,7 +12,7 @@ All notable changes to this project are documented here. Format follows
   keeps Event Lineage focused and names Keyman and evaluation as the next
   read. A home-list DAG walk does not add that focus or copy. No TEPP
   theta is invented. No cited post, customer, week, or cutoff body is
-  invented (ADR 0075 / ADR 0074 / ADR 0016).
+  invented (ADR 0097 / ADR 0096 / ADR 0016).
 
 ## [2.16.0] - 2026-08-19
 
@@ -22,7 +22,7 @@ All notable changes to this project are documented here. Format follows
   and evaluation as the next read. After an authorized answer, Ask Agent
   names cited posts as current before that open. Home-list opens do not add
   that focus or copy. No TEPP theta is invented. No cited post is invented
-  (ADR 0074 / ADR 0039 / ADR 0016).
+(ADR 0096 / ADR 0039 / ADR 0016).
 
 ## [2.15.0] - 2026-08-19
 
@@ -32,7 +32,7 @@ All notable changes to this project are documented here. Format follows
   Keyman and evaluation as the next read. Customer master names authorized
   customer entities as current before that open. Home-list opens do not add
   that focus or copy. No TEPP theta is invented. No customer is invented
-  (ADR 0073 / ADR 0037 / ADR 0016).
+(ADR 0095 / ADR 0037 / ADR 0016).
 
 ## [2.14.0] - 2026-08-19
 
@@ -42,7 +42,7 @@ All notable changes to this project are documented here. Format follows
   and evaluation as the next read. Calendar names authorized commitments
   as current before that open. Home-list opens do not add that focus or
   copy. No TEPP theta is invented. No cutoff body is invented
-  (ADR 0072 / ADR 0016).
+  (ADR 0094 / ADR 0016).
 
 ## [2.13.0] - 2026-08-19
 
@@ -51,7 +51,7 @@ All notable changes to this project are documented here. Format follows
 - Opening a Voice of Customer post from an active Weekly VOC filter now
   focuses Event Lineage and names Keyman and evaluation as the next read.
   Home-list opens do not add that focus or copy. No TEPP theta is
-  invented. No cutoff body is invented (ADR 0071 / ADR 0016).
+  invented. No cutoff body is invented (ADR 0093 / ADR 0016).
 
 ## [2.12.0] - 2026-08-19
 
@@ -61,7 +61,7 @@ All notable changes to this project are documented here. Format follows
   keeps Voice of Customer posts for the latest week present in the loaded
   list (UTC Thursday rule) and tells the buyer to open a post to read
   Event Lineage. Reset filters returns every VOC type and every week.
-  No TEPP theta is invented (ADR 0070).
+  No TEPP theta is invented (ADR 0092).
 
 ## [2.10.0] - 2026-08-18
 

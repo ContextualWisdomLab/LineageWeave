@@ -89,7 +89,7 @@ def test_parse_chat_response_strips_fence_and_drops_invalid_citations() -> None:
     assert parse_chat_response('{"answer_text":""}', sources) is None
 
 
-def test_contextual_chat_client_uses_route_mode_and_evidence_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_contextual_chat_client_uses_auto_mode_and_evidence_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, object] = {}
 
     def fake_post_json(url: str, payload: dict, *, headers: dict[str, str], timeout: float) -> dict:
@@ -111,7 +111,7 @@ def test_contextual_chat_client_uses_route_mode_and_evidence_prompt(monkeypatch:
     assert answer.cited_post_ids == ("post-a",)
     assert captured["url"] == "https://orchestrator/v1/chat/completions"
     payload = captured["payload"]
-    assert payload["mode"] == "route"
+    assert payload["mode"] == "auto"
     assert payload["reasoning_effort"] == "low"
     assert "fact" in payload["messages"][0]["content"]
 

@@ -75,37 +75,33 @@ panel.
 
 On Board, click **Weekly VOC**. Voice of Customer posts for the latest
 ISO-8601 week stay; other VOC types and older weeks drop out. The Board
-names Event Lineage as the next read (ADR 0070). Open a remaining post:
+names Event Lineage as the next read (ADR 0092). Open a remaining post:
 Event Lineage takes focus and names Keyman and evaluation next
-(ADR 0071). A home-list open does not. Do not invent a theta.
+(ADR 0093). A home-list open does not. Do not invent a theta.
 
 ## Calendar open (v2.14.0)
 
 Open Calendar. Authorized commitments are current. Open a commitment:
 Event Lineage takes focus and names Keyman and evaluation next
-(ADR 0072). A home-list open does not. Do not invent a theta or a
+(ADR 0094). A home-list open does not. Do not invent a theta or a
 CalDAV event.
 
 ## Customer master open (v2.15.0)
 
 Open Customer master. Authorized customer entities are current. Open a
 related post: Event Lineage takes focus and names Keyman and evaluation
-next (ADR 0073). A home-list open does not. Do not invent a theta or a
+next (ADR 0095). A home-list open does not. Do not invent a theta or a
 customer.
 
 ## Ask Agent open (v2.16.0)
 
 Open Ask Agent. After an authorized answer, cited posts are current. Open
 a cited post: Event Lineage takes focus and names Keyman and evaluation
-next (ADR 0074). A home-list open does not. Do not invent a theta or a
+next (ADR 0096). A home-list open does not. Do not invent a theta or a
 cited post.
 
 ## Event Lineage DAG walk (v2.17.0)
 
 From a GNB-focused popup, open a linked Event Lineage node: Event Lineage
-stays focused and names the new post as current (ADR 0075). A home-list
+stays focused and names the new post as current (ADR 0097). A home-list
 DAG walk does not. Do not invent a theta.
-
-
-
-

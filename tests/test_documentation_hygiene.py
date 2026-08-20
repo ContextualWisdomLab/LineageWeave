@@ -27,6 +27,8 @@ def test_adr_numbers_are_unique_and_documents_are_not_placeholders() -> None:
 
     numbered_paths: list[tuple[str, Path]] = []
     for path in paths:
+        if path.name == "README.md":
+            continue
         match = _ADR_NAME.fullmatch(path.name)
         assert match is not None, f"ADR filename is not numbered: {path.name}"
         numbered_paths.append((match.group("number"), path))

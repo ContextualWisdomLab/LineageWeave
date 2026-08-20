@@ -48,6 +48,7 @@ def test_keyverse_issuer_overrides_local_keycloak_and_uses_oidc_discovery(monkey
     """Production Keyverse configuration is standard OIDC, not a local mock."""
     monkeypatch.setenv("KEYVERSE_ISSUER", "https://keyverse.example/tenant/acme")
     monkeypatch.setenv("KEYVERSE_CLIENT_ID", "lineageweave-production")
+    monkeypatch.setenv("KEYVERSE_AUDIENCE", "lineageweave-api")
     monkeypatch.delenv("KEYVERSE_DISCOVERY_URI", raising=False)
     monkeypatch.delenv("KEYVERSE_JWKS_URI", raising=False)
 

@@ -21,16 +21,19 @@ new claim of its own, it only combines the two.
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
+from itertools import repeat
 import re
 from dataclasses import dataclass, field
 
-from .chunking import Chunk, chunk_by_dom
+from .chunking import Chunk, chunk_by_dom, normalize_semantic_text
 from .image_content import (
     ImageContentClient,
     ImageDescription,
     ImageRegion,
     NullImageContentClient,
     crop_image_region,
+    regions_cover_image,
 )
 
 # Real HTML tags only -- a VOC body like "qty < 50 and price > 10" is
@@ -129,6 +132,60 @@ def _merge_region_descriptions(descriptions: list[ImageDescription]) -> ImageDes
     return ImageDescription(extracted_text=extracted_text, caption=captions, tags=tags)
 
 
+def _describe_image_chunk(
+    chunk: Chunk, vision_client: ImageContentClient
+) -> tuple[ImageContentResult, ImageDescription | None, str]:
+    """Analyze one image chunk and keep its evidence and failure state."""
+    result = ImageContentResult(
+        chunk_index=chunk.index,
+        mime_type=chunk.label,
+        status_code="unavailable",
+    )
+    if not vision_client.available or chunk.image_data is None:
+        return result, None, "[image: content unavailable]"
+
+    region_results: list[ImageRegionResult] = []
+    try:
+        locator = getattr(vision_client, "locate_regions", None)
+        try:
+            regions = locator(chunk.image_data, chunk.label) if callable(locator) else ()
+        except Exception:  # noqa: BLE001 - locator failure falls back to whole-image evidence.
+            regions = ()
+        if not regions_cover_image(regions):
+            # A provider may return only a salient crop even when the contract asks for
+            # full-image coverage. Preserve the missing evidence with one bounded region.
+            regions = (ImageRegion(0.0, 0.0, 1.0, 1.0),)
+        for region_index, region in enumerate(regions):
+            try:
+                cropped, cropped_mime = crop_image_region(chunk.image_data, chunk.label, region)
+                region_description = vision_client.describe(cropped, cropped_mime)
+            except Exception:  # noqa: BLE001 - one bad region must not drop other evidence.
+                region_results.append(ImageRegionResult(region_index, region, "failed"))
+            else:
+                region_results.append(
+                    ImageRegionResult(region_index, region, "described", region_description)
+                )
+        successful_regions = [
+            item.description for item in region_results if item.description is not None
+        ]
+        description = (
+            _merge_region_descriptions(successful_regions)
+            if successful_regions
+            else vision_client.describe(chunk.image_data, chunk.label)
+        )
+    except Exception:  # noqa: BLE001 - a provider failure must not drop the whole post.
+        return ImageContentResult(chunk.index, chunk.label, "failed"), None, "[image: content unavailable]"
+
+    result = ImageContentResult(
+        chunk_index=chunk.index,
+        mime_type=chunk.label,
+        status_code="described",
+        description=description,
+        regions=tuple(region_results),
+    )
+    return result, description, _image_placeholder(description)
+
+
 def normalize_post_body(
     body: str, vision_client: ImageContentClient | None = None
 ) -> NormalizedPostContent:
@@ -147,13 +204,25 @@ def normalize_post_body(
         vision_client = NullImageContentClient()
 
     if not _looks_like_html(body):
-        return NormalizedPostContent(text=body)
+        return NormalizedPostContent(text=normalize_semantic_text(body))
 
     chunks: list[Chunk] = chunk_by_dom(body)
     text_parts: list[str] = []
     formatting_hints: list[FormattingHint] = []
     image_descriptions: list[ImageDescription] = []
     image_results: list[ImageContentResult] = []
+    image_outcomes: dict[int, tuple[ImageContentResult, ImageDescription | None, str]] = {}
+    image_chunks = [chunk for chunk in chunks if chunk.unit_type == "image"]
+    if image_chunks and vision_client.available:
+        # ponytail: cap independent provider calls at eight; raise only with measured throughput need.
+        with ThreadPoolExecutor(max_workers=min(8, len(image_chunks))) as executor:
+            image_outcomes.update(
+                zip(
+                    (chunk.index for chunk in image_chunks),
+                    executor.map(_describe_image_chunk, image_chunks, repeat(vision_client)),
+                    strict=True,
+                )
+            )
 
     for chunk in chunks:
         if chunk.unit_type == "dom":
@@ -163,56 +232,17 @@ def normalize_post_body(
                     FormattingHint(chunk_index=chunk.index, tag=chunk.label, style=chunk.style)
                 )
         elif chunk.unit_type == "image":
-            result = ImageContentResult(
-                chunk_index=chunk.index,
-                mime_type=chunk.label,
-                status_code="unavailable",
+            result, description, placeholder = image_outcomes.get(
+                chunk.index,
+                (
+                    ImageContentResult(chunk.index, chunk.label, "unavailable"),
+                    None,
+                    "[image: content unavailable]",
+                ),
             )
-            if vision_client.available and chunk.image_data is not None:
-                region_results: list[ImageRegionResult] = []
-                try:
-                    locator = getattr(vision_client, "locate_regions", None)
-                    try:
-                        regions = locator(chunk.image_data, chunk.label) if callable(locator) else ()
-                    except Exception:  # noqa: BLE001 - locator failure falls back to whole-image evidence.
-                        regions = ()
-                    for region_index, region in enumerate(regions):
-                        try:
-                            cropped, cropped_mime = crop_image_region(chunk.image_data, chunk.label, region)
-                            region_description = vision_client.describe(cropped, cropped_mime)
-                        except Exception:  # noqa: BLE001 - one bad region must not drop other evidence.
-                            region_results.append(ImageRegionResult(region_index, region, "failed"))
-                        else:
-                            region_results.append(
-                                ImageRegionResult(region_index, region, "described", region_description)
-                            )
-                    successful_regions = [
-                        result.description for result in region_results if result.description is not None
-                    ]
-                    description = (
-                        _merge_region_descriptions(successful_regions)
-                        if successful_regions
-                        else vision_client.describe(chunk.image_data, chunk.label)
-                    )
-                except Exception:  # noqa: BLE001 - a provider failure must not drop the whole post.
-                    text_parts.append("[image: content unavailable]")
-                    result = ImageContentResult(
-                        chunk_index=chunk.index,
-                        mime_type=chunk.label,
-                        status_code="failed",
-                    )
-                else:
-                    image_descriptions.append(description)
-                    result = ImageContentResult(
-                        chunk_index=chunk.index,
-                        mime_type=chunk.label,
-                        status_code="described",
-                        description=description,
-                        regions=tuple(region_results),
-                    )
-                    text_parts.append(_image_placeholder(description))
-            else:
-                text_parts.append("[image: content unavailable]")
+            if description is not None:
+                image_descriptions.append(description)
+            text_parts.append(placeholder)
             image_results.append(result)
 
     return NormalizedPostContent(

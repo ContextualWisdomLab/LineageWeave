@@ -11,6 +11,7 @@ import asyncpg
 import redis.asyncio as redis
 from uuid import UUID
 
+from lineageweave.adjudication_client import AdjudicationClient
 from lineageweave.tepp_client import TeppClient
 
 from backend.app.analysis_run_outbox import OUTBOX_STREAM_KEY
@@ -23,6 +24,7 @@ async def consume_analysis_run_stream_once(
     *,
     last_id: str,
     tepp_client: TeppClient,
+    adjudication_client: AdjudicationClient,
 ) -> str:
     """Consume one batch and return the last inspected Valkey entry id.
 
@@ -55,6 +57,7 @@ async def consume_analysis_run_stream_once(
                                 account_id=str(owner["requested_by_account_id"]),
                                 affiliated_entity_ids=[],
                                 tepp_client=tepp_client,
+                                adjudication_client=adjudication_client,
                                 valkey_stream_entry_id=str(entry_id),
                             )
             last_id = str(entry_id)
@@ -66,6 +69,7 @@ async def run_analysis_run_worker(
     pool: asyncpg.Pool,
     *,
     tepp_client: TeppClient,
+    adjudication_client: AdjudicationClient,
 ) -> None:
     """Run the single-process wake-up consumer until task cancellation."""
     last_id = "0-0"
@@ -75,4 +79,5 @@ async def run_analysis_run_worker(
             pool,
             last_id=last_id,
             tepp_client=tepp_client,
+            adjudication_client=adjudication_client,
         )

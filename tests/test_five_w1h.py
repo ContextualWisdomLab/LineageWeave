@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from lineageweave.five_w1h import assemble_five_w1h_slots, slots_payload
 
 
@@ -13,13 +11,16 @@ def test_five_w1h_keeps_persisted_evidence_and_leaves_unsupported_slots_empty() 
             }
         ],
         key_events=["검사 일정 확정"],
-        created_at=datetime(2026, 8, 19, 9, 30, tzinfo=timezone.utc),
         counterparties=["Northwind Labs"],
     )
 
     assert [item["text"] for item in slots["who"]] == ["Ada West"]
     assert [item["text"] for item in slots["what"]] == ["검사 일정 확정"]
-    assert slots["when"][0]["text"].startswith("2026-08-19T09:30:00")
+    # "when" has no persisted evidence of the narrated event's own time --
+    # source_post.created_at is the record's filing time, a different
+    # PROV-O category (prov:generatedAtTime), and must not be shown here
+    # as if it answered "when did this happen" (see five_w1h.py).
+    assert slots["when"] == []
     assert {item["text"] for item in slots["where"]} == {"Demo Corp", "Northwind Labs"}
     assert slots["why"] == []
     assert slots["how"] == []
@@ -29,7 +30,6 @@ def test_five_w1h_uses_visible_lineage_title_only_as_what_fallback() -> None:
     slots = assemble_five_w1h_slots(
         roles=[],
         key_events=[],
-        created_at=None,
         lineage_node_labels=["검사 후속 조치"],
     )
 
@@ -39,3 +39,26 @@ def test_five_w1h_uses_visible_lineage_title_only_as_what_fallback() -> None:
     assert what["values"][0]["source"] == "post_lineage_edge"
     assert why["values"] == []
     assert why["empty_next_action_code"] == "inspect_source_body_or_related_posts"
+
+
+def test_five_w1h_uses_only_explicit_claims_for_missing_dimensions() -> None:
+    slots = assemble_five_w1h_slots(
+        roles=[],
+        key_events=[],
+        evidence_claims=[
+            {
+                "slot_code": "when",
+                "value_text": "2026년 3월 4일",
+                "evidence_text": "3월 4일 현장 회의",
+            },
+            {
+                "slot_code": "how",
+                "value_text": "화상 회의로",
+                "evidence_text": "화상으로 협의했다",
+            },
+        ],
+    )
+    assert slots["when"][0]["source"] == "post_summary_five_w1h"
+    assert slots["when"][0]["evidence_text"] == "3월 4일 현장 회의"
+    assert slots["how"][0]["text"] == "화상 회의로"
+    assert slots["where"] == []

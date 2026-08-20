@@ -29,6 +29,7 @@ from lineageweave.corporate_hierarchy_resolution import (
     CorporateEntityCandidate,
     score_corporate_entity,
 )
+from lineageweave.http_client import HttpClientError
 from lineageweave.relation_verification import (
     STATUS_CORROBORATED,
     RelationVerificationClient,
@@ -146,11 +147,19 @@ async def get_or_create_corporate_entity(
     if proposal is None or not verification_client.available:
         return None
 
-    placement_result = await asyncio.to_thread(
-        verification_client.verify,
-        normalized_name,
-        _hierarchy_verification_label(proposal),
-    )
+    try:
+        placement_result = await asyncio.to_thread(
+            verification_client.verify,
+            normalized_name,
+            _hierarchy_verification_label(proposal),
+        )
+    except (HttpClientError, OSError):
+        # A transient search-provider failure (DNS, timeout, non-2xx) here
+        # must not crash the caller (extract-keymen / post summary
+        # ingestion) -- treat it the same as "not corroborated this run":
+        # the entity simply isn't auto-created, same conservative outcome
+        # as a real search that found nothing.
+        return None
     if placement_result.status_code != STATUS_CORROBORATED:
         return None
 
@@ -160,11 +169,16 @@ async def get_or_create_corporate_entity(
         normalized_parent = proposal.parent_name.strip()
         if not normalized_parent or normalized_parent.casefold() in visited_names:
             return None
-        parent_result = await asyncio.to_thread(
-            verification_client.verify,
-            normalized_parent,
-            f"immediate parent of {normalized_name}",
-        )
+        try:
+            parent_result = await asyncio.to_thread(
+                verification_client.verify,
+                normalized_parent,
+                f"immediate parent of {normalized_name}",
+            )
+        except (HttpClientError, OSError):
+            # Same fail-closed-without-crashing behavior as the placement
+            # verification above.
+            return None
         if parent_result.status_code != STATUS_CORROBORATED:
             return None
         parent_entity_id = await get_or_create_corporate_entity(

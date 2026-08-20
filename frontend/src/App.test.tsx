@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
+import { setLocale } from "./i18n";
 
 const signinRedirect = vi.fn();
 const signoutRedirect = vi.fn();
@@ -12,6 +13,7 @@ vi.mock("react-oidc-context", () => ({
 }));
 
 beforeEach(() => {
+  setLocale("en");
   signinRedirect.mockReset();
   signoutRedirect.mockReset();
   mockAuth = {
@@ -34,6 +36,11 @@ describe("App, unauthenticated", () => {
     const button = screen.getByRole("button", { name: /log in/i });
     await userEvent.click(button);
     expect(signinRedirect).toHaveBeenCalledTimes(1);
+    expect(signinRedirect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
+      }),
+    );
   });
 });
 
@@ -76,8 +83,11 @@ describe("App, authenticated", () => {
     pendingTeppRun?: boolean;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
+    deferPostOneSummary?: boolean;
     meFailed?: boolean;
     postBody?: string;
+    manyCustomerHints?: number;
+    customerEntityHierarchy?: boolean;
     boardPosts?: {
       post_id: string;
       post_title: string;
@@ -87,7 +97,10 @@ describe("App, authenticated", () => {
       visibility_label?: string;
       created_at: string;
     }[];
-  }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
+  }): ReturnType<typeof vi.fn> & {
+    releaseMe: () => void;
+    releasePostOneSummary: () => void;
+  } {
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -110,6 +123,7 @@ describe("App, authenticated", () => {
     let nextEventId = 1;
     let createdPendingLineage: Record<string, unknown> | null = null;
     let createdPendingTepp: Record<string, unknown> | null = null;
+    let resolvedHintCode: string | null = null;
 
     let releaseMe = () => {};
     const meReady = options?.deferMe
@@ -117,11 +131,21 @@ describe("App, authenticated", () => {
           releaseMe = resolve;
         })
       : Promise.resolve();
+    let releasePostOneSummary = () => {};
+    const postOneSummaryReady = options?.deferPostOneSummary
+      ? new Promise<void>((resolve) => {
+          releasePostOneSummary = resolve;
+        })
+      : Promise.resolve();
 
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
+      if (url.endsWith("/api/me/preferences") && method === "PATCH") {
+        const body = JSON.parse(String(init?.body));
+        return Promise.resolve(jsonResponse({ preferred_locale: body.preferred_locale }));
+      }
       if (url.endsWith("/api/me")) {
         return meReady.then(() => {
           if (options?.meFailed) {
@@ -759,24 +783,6 @@ describe("App, authenticated", () => {
           }),
         );
       }
-      if (url.endsWith("/api/customer-master")) {
-        return Promise.resolve(
-          jsonResponse({
-            corporate_entities: [
-              {
-                corporate_entity_id: "corp-demo",
-                entity_name: "Demo Corp",
-                corporate_entity_code: "DEMO-CORP-01",
-                entity_level_code: "company",
-                parent_entity_id: null,
-              },
-            ],
-            keymen: [],
-            source_customer_hints: [],
-            source_author_hints: [],
-          }),
-        );
-      }
       if (url.endsWith("/api/rankings")) {
         const rankings = options?.rankings ?? {
           status: "unavailable" as const,
@@ -981,7 +987,7 @@ describe("App, authenticated", () => {
       if (url.includes("/api/reports/") && method === "POST") {
         return Promise.resolve(jsonResponse({ group_count: 1 }));
       }
-      if (url.endsWith("/api/lineage")) {
+      if (url.includes("/api/lineage") && method === "GET") {
         return Promise.resolve(
           jsonResponse({
             nodes: [
@@ -1048,18 +1054,28 @@ describe("App, authenticated", () => {
           jsonResponse(
             postsUrl.searchParams.get("search")
               ? []
-              : [
-                  {
-                    post_id: "post-1",
-                    post_title: "Public post",
-                    voc_type_code: "voc",
-                    voc_type_label: "Voice of Customer",
-                    visibility_code: "public",
-                    visibility_label: "Public",
-                    created_at: "2026-01-01T00:00:00Z",
-                  },
-                  ...(options?.boardPosts ?? []),
-                ],
+              : {
+                  posts: [
+                    {
+                      post_id: "post-1",
+                      post_title: "Public post",
+                      voc_type_code: "voc",
+                      voc_type_label: "Voice of Customer",
+                      visibility_code: "public",
+                      visibility_label: "Public",
+                      created_at: "2026-01-01T00:00:00Z",
+                    },
+                    ...(options?.boardPosts ?? []),
+                  ],
+                  total_count: 1,
+                  limit: 50,
+                  offset: 0,
+                  voc_type_options: [
+                    { code: "voc", label: "Voice of Customer" },
+                    { code: "vop", label: "Voice of Partner" },
+                  ],
+                  visibility_options: [{ code: "public", label: "Public" }],
+                },
           ),
         );
       }
@@ -1140,7 +1156,7 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/summary")) {
-        return Promise.resolve(
+        return postOneSummaryReady.then(() =>
           jsonResponse({
             post_id: "post-1",
             korean_summary: "이것은 요약입니다.",
@@ -1248,6 +1264,7 @@ describe("App, authenticated", () => {
             person_id: "person-priya",
             person_name: "Priya Nair",
             person_side_code: "counterparty",
+            role_history: [],
             related: [
               {
                 node_id: "person-ada",
@@ -1269,6 +1286,22 @@ describe("App, authenticated", () => {
             person_id: "person-ada",
             person_name: "Ada West",
             person_side_code: "our_side",
+            role_history: [
+              {
+                post_id: "post-early",
+                post_title: "Early post",
+                created_at: "2026-01-01T00:00:00Z",
+                responsibility: "junior account rep",
+                affiliated_organization_name: "Northwind Labs",
+              },
+              {
+                post_id: "post-later",
+                post_title: "Later post",
+                created_at: "2026-06-01T00:00:00Z",
+                responsibility: "account lead",
+                affiliated_organization_name: "Demo Corp",
+              },
+            ],
             related: [
               {
                 node_id: "person-priya",
@@ -1560,10 +1593,100 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/customer-master") && method === "GET") {
+        return Promise.resolve(
+          jsonResponse({
+            corporate_entities: options?.customerEntityHierarchy
+              ? [
+                  {
+                    corporate_entity_id: "corp-group",
+                    corporate_entity_code: "DEMO-GROUP-01",
+                    entity_name: "Demo Group",
+                    entity_level_code: "group",
+                    entity_level_label: "Group",
+                    parent_entity_id: null,
+                  },
+                  {
+                    corporate_entity_id: "corp-demo",
+                    corporate_entity_code: "DEMO-CORP-01",
+                    entity_name: "Demo Corp",
+                    entity_level_code: "company",
+                    entity_level_label: "Company",
+                    parent_entity_id: "corp-group",
+                  },
+                ]
+              : [
+                  {
+                    corporate_entity_id: "corp-demo",
+                    corporate_entity_code: "DEMO-CORP-01",
+                    entity_name: "Demo Corp",
+                    entity_level_code: "company",
+                    entity_level_label: "Company",
+                    parent_entity_id: null,
+                  },
+                ],
+            keymen: [
+              {
+                person_id: "person-1",
+                person_name: "Ada West",
+                person_side_code: "our_side",
+                person_side_label: "Our side",
+                last_known_job_title: null,
+                affiliations: [],
+              },
+            ],
+            source_customer_hints: options?.manyCustomerHints
+              ? Array.from({ length: options.manyCustomerHints }, (_, index) => ({
+                  customer_code: `CUST-${index}`,
+                  customer_name: resolvedHintCode === `CUST-${index}` ? "Southfield Utilities" : null,
+                  post_count: options.manyCustomerHints! - index,
+                  related_posts: [],
+                  resolution_status: resolvedHintCode === `CUST-${index}` ? "resolved" : "hint_only",
+                  hint_trust: "normal",
+                  provenance: "source_post.source_customer_code",
+                }))
+              : [],
+            source_author_hints: [],
+            relationship_network: [
+              {
+                counterparty_entity_name: "Northridge Grid",
+                corporate_entity_id: null,
+                total_post_count: 2,
+                relationships: [
+                  { relationship_type_code: "rel_voc", relationship_label: "Voice of Customer", post_count: 1 },
+                  { relationship_type_code: "rel_voco", relationship_label: "Voice of Competitor", post_count: 1 },
+                ],
+                multi_role: true,
+              },
+              {
+                counterparty_entity_name: "Solo Role Corp",
+                corporate_entity_id: null,
+                total_post_count: 1,
+                relationships: [
+                  { relationship_type_code: "rel_vos", relationship_label: "Voice of Supplier", post_count: 1 },
+                ],
+                multi_role: false,
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/customer-master/resolve-hint") && method === "POST") {
+        const body = JSON.parse(String(init?.body));
+        resolvedHintCode = body.hint_code;
+        return Promise.resolve(
+          jsonResponse({
+            corporate_entity_id: "corp-southfield",
+            entity_name: "Southfield Utilities",
+            linked_post_count: 3,
+            verification_evidence_url: "https://example.org/southfield",
+          }),
+        );
+      }
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
-    return Object.assign(fetchMock, { releaseMe });
+    return Object.assign(fetchMock, { releaseMe, releasePostOneSummary });
   }
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
@@ -1578,6 +1701,114 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
+    // Live UI finding (2026-08-19): read_customer_master() skipped the
+    // common_lookup_value join both endpoints elsewhere already use,
+    // so the panel showed raw codes ("company", "our_side") whenever
+    // a Keyman had no last_known_job_title -- confirm the human labels
+    // render and the raw codes never leak into visible text.
+    stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    expect(await screen.findByText("Demo Corp")).toBeInTheDocument();
+    expect(screen.getByText("DEMO-CORP-01 · Company")).toBeInTheDocument();
+    expect(screen.getByText("Ada West")).toBeInTheDocument();
+    expect(screen.getByText("Our side")).toBeInTheDocument();
+    expect(screen.queryByText("company", { exact: true })).not.toBeInTheDocument();
+    expect(screen.queryByText("our_side", { exact: true })).not.toBeInTheDocument();
+  });
+
+  it("nests a corporate entity under its parent instead of a flat list", async () => {
+    // Live bug (2026-08-19): corporate_entities already carries
+    // parent_entity_id and the codebase already builds a real forest from
+    // it elsewhere (lineageweave/affiliate_tree.py, the post-detail
+    // popup's Affiliate tree) -- Customer Master's own entity list never
+    // did, so a holding company and its subsidiary rendered as two
+    // unrelated top-level rows with no visual hierarchy at all.
+    stubBackend({ customerEntityHierarchy: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    expect(await screen.findByText("Demo Group")).toBeInTheDocument();
+    const subsidiaryRow = screen.getByText("Demo Corp").closest("li");
+    expect(subsidiaryRow).not.toBeNull();
+    const parentRow = screen.getByText("Demo Group").closest("li");
+    expect(parentRow).not.toBeNull();
+    // The subsidiary's <li> is nested inside the parent's <li>, not a
+    // sibling at the same top level.
+    expect(parentRow?.contains(subsidiaryRow)).toBe(true);
+  });
+
+  it("shows every observed relationship role for a counterparty, flagging multi-role names", async () => {
+    // Feature request (2026-08-19): a real counterparty is not limited
+    // to one role -- a customer in one post can be a competitor,
+    // supplier, or partner in another. The Customer Master screen must
+    // surface the whole observed network per name, not just one role.
+    stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    expect(await screen.findByText("Northridge Grid")).toBeInTheDocument();
+    expect(screen.getByText("Voice of Customer (1), Voice of Competitor (1)")).toBeInTheDocument();
+    expect(screen.getByText("Multiple roles observed")).toBeInTheDocument();
+
+    expect(screen.getByText("Solo Role Corp")).toBeInTheDocument();
+    expect(screen.getByText("Voice of Supplier (1)")).toBeInTheDocument();
+    // Solo Role Corp has exactly one observed role -- no badge for it.
+    const soloRow = screen.getByText("Solo Role Corp").closest("li");
+    expect(soloRow).not.toBeNull();
+    expect(within(soloRow as HTMLElement).queryByText("Multiple roles observed")).not.toBeInTheDocument();
+  });
+
+  it("lets a post_admin account resolve an unresolved customer hint into a real name", async () => {
+    // Feature (2026-08-19): a Customer Master hint (an opaque customer
+    // code with no name) previously had no action at all -- a dead end
+    // even for an admin account. Resolving now creates/binds a real
+    // corporate_entity and the panel reloads to show the resolved name.
+    stubBackend({ admin: true, manyCustomerHints: 1 });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    expect(await screen.findByText("CUST-0")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Resolve" }));
+
+    expect(await screen.findByText("Southfield Utilities")).toBeInTheDocument();
+  });
+
+  it("hides the resolve action from an account without post_admin", async () => {
+    stubBackend({ manyCustomerHints: 1 });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    expect(await screen.findByText("CUST-0")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Resolve" })).not.toBeInTheDocument();
+  });
+
+  it("caps the observed customer identifier list instead of rendering all of them", async () => {
+    // Live UI finding (2026-08-19): real imported data routinely hits the
+    // backend's 100-row cap on source_customer_hints; rendering all of
+    // them (each with its own collapsed-but-mounted Related posts
+    // details) pushed the page to a ~37,000px scroll height. Confirm the
+    // frontend now truncates and says so, matching VISIBLE_POSTS_RENDER_LIMIT's
+    // established pattern elsewhere in this screen.
+    stubBackend({ manyCustomerHints: 45 });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    expect(await screen.findByText("CUST-0")).toBeInTheDocument();
+    expect(screen.getByText(/Showing the first 30 of 45 observed customer identifiers/)).toBeInTheDocument();
+    expect(screen.getByText("CUST-29")).toBeInTheDocument();
+    expect(screen.queryByText("CUST-30")).not.toBeInTheDocument();
+    expect(screen.queryByText("CUST-44")).not.toBeInTheDocument();
   });
 
   it("searches the board from a semantic project mention", async () => {
@@ -1666,6 +1897,30 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
   });
 
+  it("does not scroll Calendar users away from Event Lineage when related evidence lands", async () => {
+    const scrolledIds: string[] = [];
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = function () {
+      scrolledIds.push(this.id);
+    };
+    try {
+      stubBackend();
+      render(<App />);
+
+      await userEvent.click(await screen.findByRole("button", { name: "Calendar" }));
+      const calendar = await screen.findByRole("region", { name: "Calendar" });
+      await userEvent.click(
+        within(calendar).getByRole("button", { name: "Open commitment for: Public post" }),
+      );
+
+      await screen.findByRole("status", { name: "Ask next action" });
+      expect(document.getElementById("post-event-lineage")).toHaveFocus();
+      expect(scrolledIds).not.toContain("post-ask");
+    } finally {
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    }
+  });
+
   it("opening a Calendar commitment focuses Event Lineage; a home list open does not", async () => {
     stubBackend();
     render(<App />);
@@ -1752,6 +2007,31 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
   });
 
+  it("ignores a stale summary after Event Lineage navigation changes the selected post", async () => {
+    const fetchMock = stubBackend({ deferPostOneSummary: true });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    await userEvent.click(
+      within(board).getByRole("button", { name: "View post: Public post" }),
+    );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+
+    const linkedPosts = screen.getAllByLabelText("Open post: Linked post");
+    await userEvent.click(linkedPosts[linkedPosts.length - 1]);
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    expect(await screen.findByText("연결된 글입니다.")).toBeInTheDocument();
+
+    fetchMock.releasePostOneSummary();
+
+    await waitFor(() => {
+      expect(screen.getByText("연결된 글입니다.")).toBeInTheDocument();
+      expect(screen.queryByText("이것은 요약입니다.")).not.toBeInTheDocument();
+    });
+  });
+
   it("opening a linked Event Lineage node from Ask Agent keeps GNB focus; a home-list DAG walk does not", async () => {
     stubBackend();
     render(<App />);
@@ -1815,6 +2095,7 @@ describe("App, authenticated", () => {
     expect(within(board).getByLabelText("Search semantic evidence")).toHaveAttribute("type", "search");
     expect(within(board).getByRole("list", { name: "Board posts" })).toBeInTheDocument();
     expect(within(board).getByText(/Posts shown:/)).toBeInTheDocument();
+    expect(within(board).getByLabelText("Voice of Partner")).toBeInTheDocument();
 
     await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "title");
     await waitFor(() =>
@@ -1893,6 +2174,26 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("heading", { name: "Related posts" })).toBeInTheDocument();
   });
 
+  it("persists the authenticated member's language preference", async () => {
+    const fetchMock = stubBackend();
+    render(<App showLabPanels />);
+
+    const language = await screen.findByRole("combobox", {
+      name: /language|언어|言語|语言|ngôn ngữ/i,
+    });
+    await userEvent.selectOptions(language, "ja");
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/me/preferences"),
+        expect.objectContaining({
+          method: "PATCH",
+          body: JSON.stringify({ preferred_locale: "ja" }),
+        }),
+      );
+    });
+  });
+
   it("rebuilds lineage when the account has post_admin", async () => {
     const fetchMock = stubBackend({ admin: true });
     render(<App showLabPanels />);
@@ -1933,7 +2234,7 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByText("Evidence provenance"));
     expect(screen.getByText(/Ontology class:/)).toBeInTheDocument();
     expect(screen.getByText(/Extraction source: Semantic extraction/)).toBeInTheDocument();
-    expect(screen.getByText(/Evidence provenance: Stored semantic evidence/)).toBeInTheDocument();
+    expect(screen.getByText(/Evidence field: Stored semantic evidence/)).toBeInTheDocument();
     expect(screen.queryByText("contextual_orchestrator_semantic")).not.toBeInTheDocument();
     expect(screen.queryByText("https://contextualwisdomlab.github.io/lineageweave/ontology#Project")).not.toBeInTheDocument();
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
@@ -2156,6 +2457,14 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Related to Ada West").closest(".related-keymen")).not.toHaveTextContent(
       "Priya Nair (Person)",
     );
+    // Feature request (2026-08-19): clicking a Keyman should show how
+    // their responsibility/organization changed over time, in order.
+    const roleHistoryList = screen.getByRole("list", { name: "Role history: Ada West" });
+    expect(roleHistoryList).toHaveTextContent("junior account rep at Northwind Labs");
+    expect(roleHistoryList).toHaveTextContent("account lead at Demo Corp");
+    const historyItems = within(roleHistoryList).getAllByRole("listitem");
+    expect(historyItems[0]).toHaveTextContent("junior account rep");
+    expect(historyItems[1]).toHaveTextContent("account lead");
     expect(
       screen.getByRole("button", {
         name: "Related nodes for Priya Nair (Counterparty)",

@@ -19,5 +19,5 @@ def test_adjudication_uses_supported_auto_mode_and_long_local_timeout(monkeypatc
     assert client.judge("workshop", "follow-up bid") == 0.75
     assert captured["url"] == "http://orchestrator:8000/v1/chat/completions"
     assert captured["payload"]["mode"] == "auto"
-    assert captured["payload"]["reasoning_effort"] == "high"
+    assert captured["payload"]["reasoning_effort"] == "auto"
     assert captured["timeout"] == 180.0

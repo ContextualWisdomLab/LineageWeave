@@ -9,7 +9,6 @@ which source(s) contributed, not just that the model produced prose.
 from __future__ import annotations
 
 import asyncio
-import json
 import os
 
 import pytest
@@ -352,6 +351,6 @@ def test_contextual_orchestrator_chat_requests_plain_citations(monkeypatch) -> N
     )
 
     assert answer.answer_text == "근거 답변"
-    assert observed["payload"]["reasoning_effort"] == "none"
-    assert observed["payload"]["mode"] == "route"
+    assert observed["payload"]["reasoning_effort"] == "auto"
+    assert observed["payload"]["mode"] == "auto"
     assert "CITED SOURCES" in observed["payload"]["messages"][0]["content"]

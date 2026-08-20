@@ -6,7 +6,6 @@ slots are intentional: an absent claim must not become an LLM guess.
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any
 
 from .ontology import ontology_annotations
@@ -51,11 +50,17 @@ def assemble_five_w1h_slots(
     *,
     roles: list[dict[str, Any]],
     key_events: list[str],
-    created_at: datetime | str | None,
     counterparties: list[str] | None = None,
     lineage_node_labels: list[str] | None = None,
+    evidence_claims: list[dict[str, Any]] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
-    """Assemble only persisted, authorized evidence into six slots."""
+    """Assemble only persisted, authorized evidence into six slots.
+
+    There is no ``created_at`` fallback on purpose: the source post's
+    creation timestamp is ``prov:generatedAtTime`` for the *record*, not
+    evidence of when the narrated event took place. When/where/why/how are
+    populated only by an explicitly extracted claim with source evidence.
+    """
     slots: dict[str, list[dict[str, Any]]] = {slot: [] for slot in FIVE_W1H_SLOTS}
 
     for role in roles:
@@ -77,17 +82,23 @@ def assemble_five_w1h_slots(
         item = _value(event, "post_summary_event", _SLOT_LOOKUP_CODES["what"])
         if item:
             slots["what"].append(item)
+
+    for claim in evidence_claims or []:
+        slot = claim.get("slot_code")
+        if slot not in {"when", "where", "why", "how"}:
+            continue
+        item = _value(
+            claim.get("value_text"),
+            "post_summary_five_w1h",
+        )
+        if item:
+            item["evidence_text"] = claim.get("evidence_text", "")
+            slots[slot].append(item)
     if not slots["what"]:
         for title in lineage_node_labels or []:
             item = _value(title, "post_lineage_edge", _SLOT_LOOKUP_CODES["what"])
             if item:
                 slots["what"].append(item)
-
-    if created_at is not None:
-        timestamp = created_at.isoformat() if isinstance(created_at, datetime) else str(created_at)
-        item = _value(timestamp, "source_post.created_at")
-        if item:
-            slots["when"].append(item)
 
     for name in counterparties or []:
         item = _value(name, "post_counterparty_entity", ("prov_organization",))

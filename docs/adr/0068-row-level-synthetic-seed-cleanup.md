@@ -26,6 +26,13 @@ and deleting the analysis registry would destroy immutable run evidence.
 - Only unreferenced synthetic rows and their non-analysis derived rows may be
   removed. A shared `DEMO-CORP-*` entity is retained while any real post,
   process unit, affiliation, or child entity still references it.
+- If a historical import did share a `DEMO-*` scope, repair the live source
+  rows by their stable source identity and explicit source company/PU codes
+  into non-`DEMO-*` authorization scopes before removing the Demo affiliation
+  from the real account. If a source company name is unavailable, expose the
+  source code as an explicitly marked source scope; never invent a company
+  name. The immutable analysis-run registry is not rewritten during this
+  repair.
 
 ## Consequences
 

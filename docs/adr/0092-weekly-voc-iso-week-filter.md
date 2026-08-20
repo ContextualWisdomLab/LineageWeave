@@ -1,4 +1,4 @@
-# ADR 0070: Weekly VOC is an ISO-8601 week list filter
+# ADR 0092: Weekly VOC is an ISO-8601 week list filter
 
 - Status: Accepted
 - Date: 2026-08-19
@@ -32,4 +32,4 @@ Weekly VOC is a Board list filter, not a report and not ADR 0051 named hints.
   replacing it.
 - Posts whose `created_at` cannot be parsed contribute no week and cannot
   be selected by this filter.
-- Home-list and Customer-master opens are unchanged until ADR 0071.
+- Home-list and Customer-master opens are unchanged until ADR 0093.

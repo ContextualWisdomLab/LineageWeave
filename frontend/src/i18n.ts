@@ -47,6 +47,12 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Advanced review tools": "고급 검토 도구",
     "Evidence operations": "증거 처리",
     "Evidence provenance": "근거 출처",
+    "Evidence field": "근거 필드",
+    "Extracted role": "추출된 역할",
+    "Extracted affiliation": "추출된 소속",
+    "Extracted key event": "추출된 주요 사건",
+    "Linked post title": "연결된 게시물 제목",
+    "Recorded counterparty": "기록된 거래처",
     "Ontology class": "온톨로지 분류",
     "Extraction source": "추출 경로",
     "Explicit source field": "명시 원본 필드",
@@ -145,6 +151,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Customer master could not be loaded.": "고객 마스터를 불러오지 못했습니다.",
     "No customer entities are connected to this account.": "이 계정에 연결된 고객 엔터티가 없습니다.",
     "Observed customer evidence": "관찰된 고객 증거",
+    "Relationship network": "관계 네트워크",
+    "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
+      "거래처는 시간에 따라 여러 역할을 동시에 가질 수 있습니다 -- 한 게시물에서는 고객이지만 다른 게시물에서는 경쟁사, 공급자, 파트너일 수 있습니다. 가장 빈번한 역할만이 아니라 관측된 모든 역할을 표시합니다.",
+    "Multiple roles observed": "복수 역할 관측됨",
     "Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.": "원본 식별자는 힌트일 뿐이며, 고객에 연결하기 전에 온톨로지와 의미 증거로 확인해야 합니다.",
     "Unresolved source identifier": "미해결 원본 식별자",
     "Weak source hint": "신뢰도가 낮은 원본 힌트",
@@ -184,6 +194,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Loading related nodes...": "관련 노드를 불러오는 중...",
     "No related nodes in the visible graph.": "현재 그래프에 표시할 관련 노드가 없습니다.",
     "Evidence trail": "증거 추적",
+    "Role history": "역할 이력",
+    "{responsibility} at {organization}": "{organization}에서 {responsibility}",
     "Open record": "기록 열기",
     "Direct relation": "직접 연결",
     "Indirect relation": "간접 연결",
@@ -249,6 +261,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Rebuild lineage": "계보 다시 만들기",
     "Extracting...": "추출하는 중...",
     "Extract Keymen": "핵심 담당자 새로 고침",
+    Resolve: "해결",
+    "Resolving...": "해결하는 중...",
+    "This hint could not be resolved to a corroborated organization name.":
+      "이 힌트를 검증된 조직명으로 해결할 수 없습니다.",
     "Evaluating...": "평가하는 중...",
     "Evaluate post": "평가 새로 고침",
     "Verifying...": "확인하는 중...",
@@ -259,8 +275,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Embedded image at character offset": "문자 위치의 첨부 이미지",
     "Text detected in image": "이미지에서 인식된 텍스트",
     "Image regions": "이미지 영역",
-    "Image from this post. Extract Keyman or ask a question to read text inside it.":
-      "이 글의 이미지입니다. Keyman을 추출하거나 질문해 이미지 안의 텍스트를 읽으세요.",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
       "첨부 이미지를 해독할 수 없습니다. 원문을 다시 내보내고 다시 여세요.",
     "What happened between these events?": "이 사건들 사이에 무슨 일이 있었나요?",
@@ -329,6 +343,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Saved evidence is still available.": "저장된 근거는 계속 확인할 수 있습니다.",
     "Showing the first {shown} of {total} posts known at this cutoff.":
       "이 기준 시점에 알려진 {total}개 글 중 처음 {shown}개를 표시합니다.",
+    "Showing the first {shown} of {total} observed customer identifiers, ranked by post count.":
+      "관측된 고객 식별자 {total}개 중 게시물 수 기준 상위 {shown}개를 표시합니다.",
+    "Showing the first {shown} of {total} observed source authors, ranked by post count.":
+      "관측된 원본 작성자 {total}명 중 게시물 수 기준 상위 {shown}명을 표시합니다.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "대화형 질문을 지금 사용할 수 없습니다. 저장된 근거는 계속 확인할 수 있습니다.",
   },
@@ -361,6 +379,12 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Advanced review tools": "高级审查工具",
     "Evidence operations": "证据操作",
     "Evidence provenance": "证据来源",
+    "Evidence field": "证据字段",
+    "Extracted role": "提取的角色",
+    "Extracted affiliation": "提取的所属机构",
+    "Extracted key event": "提取的关键事件",
+    "Linked post title": "关联帖子标题",
+    "Recorded counterparty": "记录的交易对手",
     "Ontology class": "本体分类",
     "Extraction source": "提取路径",
     "Explicit source field": "显式源字段",
@@ -459,6 +483,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Customer master could not be loaded.": "无法加载客户主数据。",
     "No customer entities are connected to this account.": "此账户没有连接的客户实体。",
     "Observed customer evidence": "观测到的客户证据",
+    "Relationship network": "关系网络",
+    "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
+      "同一交易对手可能随时间拥有多个角色 -- 在一篇文章中是客户,在另一篇文章中可能是竞争对手、供应商或合作伙伴。会列出观测到的每一个角色,而不仅是最频繁的那个。",
+    "Multiple roles observed": "观测到多个角色",
     "Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.": "源标识符仅是提示；绑定客户前必须通过本体和语义证据解析它们。",
     "Unresolved source identifier": "未解析的源标识符",
     "Weak source hint": "低可信源提示",
@@ -498,6 +526,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Loading related nodes...": "正在加载相关节点...",
     "No related nodes in the visible graph.": "当前图谱中没有可显示的相关节点。",
     "Evidence trail": "证据轨迹",
+    "Role history": "角色历史",
+    "{responsibility} at {organization}": "在{organization} {responsibility}",
     "Open record": "打开记录",
     "Direct relation": "直接关联",
     "Indirect relation": "间接关联",
@@ -562,6 +592,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Rebuild lineage": "重建谱系",
     "Extracting...": "正在提取...",
     "Extract Keymen": "刷新关键联系人",
+    Resolve: "解析",
+    "Resolving...": "正在解析...",
+    "This hint could not be resolved to a corroborated organization name.":
+      "该线索无法解析为已验证的组织名称。",
     "Evaluating...": "正在评估...",
     "Evaluate post": "刷新评估",
     "Verifying...": "正在核验...",
@@ -572,8 +606,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Embedded image at character offset": "字符位置的嵌入图像",
     "Text detected in image": "图像中识别的文字",
     "Image regions": "图像区域",
-    "Image from this post. Extract Keyman or ask a question to read text inside it.":
-      "此文章中的图像。提取关键联系人或提问，以读取图像中的文字。",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
       "无法解码嵌入图像。请重新导出原始文章后再打开。",
     "What happened between these events?": "这些事件之间发生了什么？",
@@ -642,6 +674,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Saved evidence is still available.": "仍可查看已保存的证据。",
     "Showing the first {shown} of {total} posts known at this cutoff.":
       "显示此截止时间已知的 {total} 篇文章中的前 {shown} 篇。",
+    "Showing the first {shown} of {total} observed customer identifiers, ranked by post count.":
+      "显示按文章数排序的 {total} 个已观察客户标识符中的前 {shown} 个。",
+    "Showing the first {shown} of {total} observed source authors, ranked by post count.":
+      "显示按文章数排序的 {total} 位已观察来源作者中的前 {shown} 位。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "交互式提问暂不可用；已保存的证据仍可查看。",
   },
@@ -698,6 +734,12 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Advanced review tools": "高度なレビュー ツール",
     "Evidence operations": "証拠操作",
     "Evidence provenance": "証拠の出所",
+    "Evidence field": "証拠項目",
+    "Extracted role": "抽出された役割",
+    "Extracted affiliation": "抽出された所属",
+    "Extracted key event": "抽出された主要イベント",
+    "Linked post title": "リンクされた投稿タイトル",
+    "Recorded counterparty": "記録された取引先",
     "Ontology class": "オントロジー分類",
     "Extraction source": "抽出経路",
     "Explicit source field": "明示されたソースフィールド",
@@ -796,6 +838,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Customer master could not be loaded.": "顧客マスターを読み込めませんでした。",
     "No customer entities are connected to this account.": "このアカウントに接続された顧客エンティティはありません。",
     "Observed customer evidence": "観測された顧客証拠",
+    "Relationship network": "関係ネットワーク",
+    "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
+      "取引先は時間の経過とともに複数の役割を持つことがあります -- ある投稿では顧客でも、別の投稿では競合他社、サプライヤー、またはパートナーである場合があります。最も頻繁な役割だけでなく、観測されたすべての役割を表示します。",
+    "Multiple roles observed": "複数の役割が観測されました",
     "Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.": "ソース識別子はヒントにすぎません。顧客に紐付ける前にオントロジーと意味証拠で解決する必要があります。",
     "Unresolved source identifier": "未解決のソース識別子",
     "Weak source hint": "信頼度の低いソースヒント",
@@ -835,6 +881,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Loading related nodes...": "関連ノードを読み込んでいます...",
     "No related nodes in the visible graph.": "現在のグラフに表示できる関連ノードはありません。",
     "Evidence trail": "証拠の流れ",
+    "Role history": "役割の履歴",
+    "{responsibility} at {organization}": "{organization}にて{responsibility}",
     "Open record": "記録を開く",
     "Direct relation": "直接関連",
     "Indirect relation": "間接関連",
@@ -890,6 +938,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Rebuild lineage": "系譜を再構築",
     "Extracting...": "抽出中...",
     "Extract Keymen": "キーパーソンを更新",
+    Resolve: "解決",
+    "Resolving...": "解決中...",
+    "This hint could not be resolved to a corroborated organization name.":
+      "このヒントは検証済みの組織名に解決できませんでした。",
     "Evaluating...": "評価中...",
     "Evaluate post": "評価を更新",
     "Verifying...": "確認中...",
@@ -900,8 +952,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Embedded image at character offset": "文字オフセットの埋め込み画像",
     "Text detected in image": "画像から認識されたテキスト",
     "Image regions": "画像領域",
-    "Image from this post. Extract Keyman or ask a question to read text inside it.":
-      "この投稿の画像です。キーパーソンを抽出するか質問して、画像内の文字を読み取ってください。",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
       "埋め込み画像をデコードできませんでした。原文を再エクスポートして、もう一度開いてください。",
     "What happened between these events?": "これらのイベントの間に何が起きましたか？",
@@ -955,6 +1005,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Saved evidence is still available.": "保存された証拠は引き続き確認できます。",
     "Showing the first {shown} of {total} posts known at this cutoff.":
       "この基準時点で把握されている{total}件の投稿のうち、最初の{shown}件を表示しています。",
+    "Showing the first {shown} of {total} observed customer identifiers, ranked by post count.":
+      "投稿数順に、観測された{total}件の顧客識別子のうち上位{shown}件を表示しています。",
+    "Showing the first {shown} of {total} observed source authors, ranked by post count.":
+      "投稿数順に、観測された{total}名の元投稿者のうち上位{shown}名を表示しています。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "対話形式の質問は現在利用できません。保存された証拠は確認できます。",
   },
@@ -1011,6 +1065,12 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Advanced review tools": "Công cụ rà soát nâng cao",
     "Evidence operations": "Thao tác bằng chứng",
     "Evidence provenance": "Nguồn gốc bằng chứng",
+    "Evidence field": "Trường bằng chứng",
+    "Extracted role": "Vai trò đã trích xuất",
+    "Extracted affiliation": "Đơn vị liên kết đã trích xuất",
+    "Extracted key event": "Sự kiện chính đã trích xuất",
+    "Linked post title": "Tiêu đề bài viết liên kết",
+    "Recorded counterparty": "Đối tác đã ghi nhận",
     "Ontology class": "Lớp ontology",
     "Extraction source": "Nguồn trích xuất",
     "Explicit source field": "Trường nguồn rõ ràng",
@@ -1109,6 +1169,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Customer master could not be loaded.": "Không thể tải danh mục khách hàng.",
     "No customer entities are connected to this account.": "Tài khoản này chưa được kết nối với thực thể khách hàng nào.",
     "Observed customer evidence": "Bằng chứng khách hàng được quan sát",
+    "Relationship network": "Mạng lưới quan hệ",
+    "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
+      "Một đối tác có thể giữ nhiều vai trò theo thời gian -- là khách hàng trong bài viết này nhưng có thể là đối thủ cạnh tranh, nhà cung cấp, hoặc đối tác trong bài viết khác. Mọi vai trò được quan sát đều được liệt kê, không chỉ vai trò phổ biến nhất.",
+    "Multiple roles observed": "Đã quan sát nhiều vai trò",
     "Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.": "Mã định danh nguồn chỉ là gợi ý; ontology và bằng chứng ngữ nghĩa phải phân giải trước khi gắn với khách hàng.",
     "Unresolved source identifier": "Mã định danh nguồn chưa được phân giải",
     "Weak source hint": "Gợi ý nguồn có độ tin cậy thấp",
@@ -1148,6 +1212,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Loading related nodes...": "Đang tải các nút liên quan...",
     "No related nodes in the visible graph.": "Không có nút liên quan để hiển thị trong đồ thị hiện tại.",
     "Evidence trail": "Chuỗi bằng chứng",
+    "Role history": "Lịch sử vai trò",
+    "{responsibility} at {organization}": "{responsibility} tại {organization}",
     "Open record": "Mở bản ghi",
     "Direct relation": "Liên hệ trực tiếp",
     "Indirect relation": "Liên hệ gián tiếp",
@@ -1203,6 +1269,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Rebuild lineage": "Xây dựng lại dòng sự kiện",
     "Extracting...": "Đang trích xuất...",
     "Extract Keymen": "Làm mới người liên hệ chính",
+    Resolve: "Xử lý",
+    "Resolving...": "Đang xử lý...",
+    "This hint could not be resolved to a corroborated organization name.":
+      "Không thể xử lý gợi ý này thành tên tổ chức đã được xác minh.",
     "Evaluating...": "Đang đánh giá...",
     "Evaluate post": "Làm mới đánh giá",
     "Verifying...": "Đang kiểm tra...",
@@ -1213,8 +1283,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Embedded image at character offset": "Hình ảnh nhúng tại vị trí ký tự",
     "Text detected in image": "Văn bản nhận dạng trong hình ảnh",
     "Image regions": "Các vùng trong hình ảnh",
-    "Image from this post. Extract Keyman or ask a question to read text inside it.":
-      "Hình ảnh trong bài viết này. Hãy trích xuất người liên hệ chính hoặc đặt câu hỏi để đọc chữ bên trong.",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
       "Không thể giải mã hình ảnh nhúng. Hãy xuất lại bài viết gốc rồi mở lại.",
     "What happened between these events?": "Điều gì đã xảy ra giữa các sự kiện này?",
@@ -1268,6 +1336,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Saved evidence is still available.": "Bằng chứng đã lưu vẫn có thể xem.",
     "Showing the first {shown} of {total} posts known at this cutoff.":
       "Đang hiển thị {shown} bài viết đầu tiên trong số {total} bài viết được biết tại thời điểm chốt này.",
+    "Showing the first {shown} of {total} observed customer identifiers, ranked by post count.":
+      "Đang hiển thị {shown} mã định danh khách hàng hàng đầu trong số {total} mã định danh đã quan sát, xếp theo số bài viết.",
+    "Showing the first {shown} of {total} observed source authors, ranked by post count.":
+      "Đang hiển thị {shown} tác giả nguồn hàng đầu trong số {total} tác giả đã quan sát, xếp theo số bài viết.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "Câu hỏi tương tác hiện không khả dụng; bằng chứng đã lưu vẫn có thể xem.",
   },

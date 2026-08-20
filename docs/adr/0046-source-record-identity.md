@@ -2,18 +2,23 @@
 
 ## Context
 
-`source_post.post_id` is an internal UUID. The private importer derives it
-from `source_system_code` and the source row's opaque `record_key`, but the
-record key was discarded after UUID generation. That made an authorized buyer
-unable to find a record by the identifier shown by the source system and made
-the evidence trail incomplete.
+`source_post.post_id` is an internal UUID. Some source systems provide both a
+UUID record identity and a separate opaque record key that users enter when
+searching. Treating those values as one field either changes the stable post
+UUID or discards the searchable source identity.
 
 ## Decision
 
 Persist `source_system_code` and `source_record_key` on `source_post` as a
-nullable source identity pair. Existing synthetic rows remain valid with no
-source identity. The pair is unique when present, and the raw key is exposed
-only through the existing authorized post API.
+nullable source identity pair. The private importer accepts an optional
+source UUID column for `post_id`; when it is supplied, that UUID remains the
+internal post identity while `record_key_column` is preserved independently.
+Without that optional column, the existing deterministic UUID derivation is
+retained for compatibility. Existing synthetic rows remain valid with no
+source identity. The pair is an indexed lookup, not a uniqueness constraint:
+a source export may repeat a human-entered lookup key for distinct immutable
+source UUIDs. The raw key is exposed only through the existing authorized post
+API.
 
 Board search matches the source system and key exactly, and applies trigram
 similarity to the key for short transcription errors. The internal UUID stays
