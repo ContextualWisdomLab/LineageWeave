@@ -87,6 +87,7 @@ def main() -> None:
         "--max-body-bytes",
         str(max_body_bytes),
     ]
+    del provider_url
     del auth_token
     from contextual_orchestrator.__main__ import main as serve
 
