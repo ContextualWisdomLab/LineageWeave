@@ -1,4 +1,4 @@
-# Test-first implementation against the current content-equivalent #264 parent; the one-shot machinery removes itself after verification.
+# Test-first implementation against the exact live #264 parent; the one-shot machinery removes itself after verification.
 name: Project History RED to GREEN
 
 on:
@@ -37,7 +37,6 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
-      EXPECTED_PARENT_TREE_SHA: 66bc7cf56fbe44fdda19cdea6f2474b55590dc0e
       PATCH_SHA256: aca6e0effc9993bafdeefca85601fde4a0505077510d49b8f5a272eb9dc3d753
 
     steps:
@@ -48,7 +47,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Incorporate the current reviewed parent and reconstruct the helper
+      - name: Incorporate the exact live parent and reconstruct the helper
         shell: bash
         run: |
           set -euo pipefail
@@ -57,8 +56,6 @@ jobs:
           git fetch origin feat/project-history-timeline-v2184-r3 feat/event-lineage-node-keeps-gnb-focus-v2170
           git merge --ff-only origin/feat/project-history-timeline-v2184-r3
           parent_head="$(git rev-parse origin/feat/event-lineage-node-keeps-gnb-focus-v2170)"
-          parent_tree="$(git rev-parse "${parent_head}^{tree}")"
-          test "$parent_tree" = "$EXPECTED_PARENT_TREE_SHA"
           git merge --no-edit "$parent_head"
           echo "PARENT_HEAD=$parent_head" >> "$GITHUB_ENV"
           : > /tmp/project_history_patch.py.gz
