@@ -19,6 +19,7 @@ from mcp.server.transport_security import (
 )
 from mcp.types import ToolAnnotations
 from pydantic import AnyHttpUrl, BaseModel, Field
+from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -33,6 +34,7 @@ from backend.app.global_ask_verification import (
     NullGlobalAskExternalVerifier,
     SearxngOrchestratorGlobalAskVerifier,
 )
+from backend.app.mcp_admission import BoundedRequestBodyApp
 from backend.app.mcp_auth import KeycloakMcpTokenVerifier
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.post_chat import ContextualOrchestratorPostChatClient, NullPostChatClient, PostChatClient
@@ -235,14 +237,34 @@ def build_mcp_http_app(
     server: MCPServer[McpAppContext],
     settings: Settings,
 ) -> ASGIApp:
-    """Build the Streamable HTTP app with transport checks outside OAuth."""
+    """Build exact-origin, byte-bounded Streamable HTTP outside OAuth."""
     transport_security = TransportSecuritySettings(
         enable_dns_rebinding_protection=True,
         allowed_hosts=settings.mcp_allowed_hosts,
         allowed_origins=settings.mcp_allowed_origins,
     )
     sdk_app = server.streamable_http_app(transport_security=transport_security)
-    return PreAuthTransportSecurityApp(sdk_app, transport_security)
+    cors_app = CORSMiddleware(
+        sdk_app,
+        allow_origins=settings.mcp_allowed_origins,
+        allow_methods=["GET", "POST", "DELETE"],
+        allow_headers=[
+            "Accept",
+            "Authorization",
+            "Content-Type",
+            "Last-Event-ID",
+            "MCP-Protocol-Version",
+            "Mcp-Session-Id",
+        ],
+        expose_headers=["MCP-Protocol-Version", "Mcp-Session-Id"],
+        allow_credentials=False,
+        max_age=600,
+    )
+    bounded_app = BoundedRequestBodyApp(
+        cors_app,
+        maximum_bytes=settings.mcp_max_request_bytes,
+    )
+    return PreAuthTransportSecurityApp(bounded_app, transport_security)
 
 
 _settings = load_settings()
