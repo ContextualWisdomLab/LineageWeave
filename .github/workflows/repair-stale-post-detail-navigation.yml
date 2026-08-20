@@ -1,0 +1,213 @@
+name: One-shot stale post detail navigation repair
+
+on:
+  push:
+    branches:
+      - feat/event-lineage-node-keeps-gnb-focus-v2170
+    paths:
+      - .github/workflows/repair-stale-post-detail-navigation.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-stale-post-detail-navigation
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact repair head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/event-lineage-node-keeps-gnb-focus-v2170
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Require the live branch to match this run
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin feat/event-lineage-node-keeps-gnb-focus-v2170
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse origin/feat/event-lineage-node-keeps-gnb-focus-v2170)" = "$GITHUB_SHA"
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install the committed frontend lock
+        working-directory: frontend
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Add post-identity regressions only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("frontend/src/App.test.tsx")
+          text = path.read_text()
+
+          def replace_once(old: str, new: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected one test anchor, found {count}: {old[:80]!r}")
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              "    deferMe?: boolean;\n    meFailed?: boolean;",
+              "    deferMe?: boolean;\n    deferPostOneSummary?: boolean;\n    meFailed?: boolean;",
+          )
+          replace_once(
+              "  }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {",
+              "  }): ReturnType<typeof vi.fn> & {\n    releaseMe: () => void;\n    releasePostOneSummary: () => void;\n  } {",
+          )
+          replace_once(
+              "    const meReady = options?.deferMe\n      ? new Promise<void>((resolve) => {\n          releaseMe = resolve;\n        })\n      : Promise.resolve();\n\n    const fetchMock",
+              "    const meReady = options?.deferMe\n      ? new Promise<void>((resolve) => {\n          releaseMe = resolve;\n        })\n      : Promise.resolve();\n    let releasePostOneSummary = () => {};\n    const postOneSummaryReady = options?.deferPostOneSummary\n      ? new Promise<void>((resolve) => {\n          releasePostOneSummary = resolve;\n        })\n      : Promise.resolve();\n\n    const fetchMock",
+          )
+
+          start = text.index('      if (url.endsWith("/api/posts/post-1/summary")) {')
+          end = text.index('      if (url.endsWith("/api/posts/post-2/summary")) {', start)
+          block = text[start:end]
+          old_return = "        return Promise.resolve(\n"
+          if block.count(old_return) != 1:
+              raise SystemExit("post-1 summary promise anchor changed")
+          block = block.replace(old_return, "        return postOneSummaryReady.then(() =>\n", 1)
+          text = text[:start] + block + text[end:]
+
+          replace_once(
+              '    return Object.assign(fetchMock, { releaseMe });',
+              '    return Object.assign(fetchMock, { releaseMe, releasePostOneSummary });',
+          )
+
+          anchor = '  it("opening a linked Event Lineage node from Ask Agent keeps GNB focus; a home-list DAG walk does not", async () => {'
+          if text.count(anchor) != 1:
+              raise SystemExit("DAG-walk test insertion anchor changed")
+          regressions = '''  it("ignores a stale summary after Event Lineage navigation changes the selected post", async () => {
+            const fetchMock = stubBackend({ deferPostOneSummary: true });
+            render(<App />);
+
+            const board = await screen.findByRole("region", { name: "Board" });
+            await userEvent.click(
+              within(board).getByRole("button", { name: "View post: Public post" }),
+            );
+            await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+
+            const linkedPosts = screen.getAllByLabelText("Open post: Linked post");
+            await userEvent.click(linkedPosts[linkedPosts.length - 1]);
+            await waitFor(() =>
+              expect(
+                screen.getByText("The evidence panel should show exactly this text."),
+              ).toBeInTheDocument(),
+            );
+            expect(await screen.findByText("연결된 글입니다.")).toBeInTheDocument();
+
+            fetchMock.releasePostOneSummary();
+
+            await waitFor(() => {
+              expect(screen.getByText("연결된 글입니다.")).toBeInTheDocument();
+              expect(screen.queryByText("이것은 요약입니다.")).not.toBeInTheDocument();
+            });
+          });
+
+          it("clears Keyman drill state when Event Lineage opens a different post", async () => {
+            stubBackend();
+            render(<App />);
+
+            const board = await screen.findByRole("region", { name: "Board" });
+            await userEvent.click(within(board).getByRole("button", { name: "Weekly VOC" }));
+            await userEvent.click(
+              within(board).getByRole("button", { name: "View post: Public post" }),
+            );
+            expect(
+              await screen.findByRole("heading", { name: "Related to Ada West" }),
+            ).toBeInTheDocument();
+
+            const linkedPosts = screen.getAllByLabelText("Open post: Linked post");
+            await userEvent.click(linkedPosts[linkedPosts.length - 1]);
+            await waitFor(() =>
+              expect(
+                screen.getByText("The evidence panel should show exactly this text."),
+              ).toBeInTheDocument(),
+            );
+
+            expect(
+              screen.queryByRole("heading", { name: "Related to Ada West" }),
+            ).not.toBeInTheDocument();
+            expect(
+              screen.queryByRole("status", { name: "Related next action" }),
+            ).not.toBeInTheDocument();
+          });
+
+'''
+          path.write_text(text.replace(anchor, regressions + anchor, 1))
+          PY
+          git diff --check -- frontend/src/App.test.tsx
+
+      - name: Verify RED reproduces reused popup state
+        working-directory: frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          pnpm exec vitest run src/App.test.tsx -t "stale summary|clears Keyman drill state" 2>&1 | tee /tmp/post-identity-red.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "Regressions unexpectedly passed before the production fix" >&2
+            exit 1
+          fi
+          grep -Eq "failed|FAIL" /tmp/post-identity-red.log
+
+      - name: Key the popup by the selected post identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("frontend/src/App.tsx")
+          text = path.read_text()
+          old = '''      {selectedPostId && (
+            <PostDetailPopup
+              postId={selectedPostId}'''
+          new = '''      {selectedPostId && (
+            <PostDetailPopup
+              key={selectedPostId}
+              postId={selectedPostId}'''
+          if text.count(old) != 1:
+              raise SystemExit("PostDetailPopup identity anchor changed")
+          path.write_text(text.replace(old, new, 1))
+          PY
+          git diff --check -- frontend/src/App.tsx frontend/src/App.test.tsx
+
+      - name: Verify GREEN and the complete frontend
+        working-directory: frontend
+        run: |
+          pnpm exec vitest run src/App.test.tsx -t "stale summary|clears Keyman drill state"
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Publish only the exact tested branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/feat/event-lineage-node-keeps-gnb-focus-v2170 | cut -f1)" = "$GITHUB_SHA"
+          git rm .github/workflows/repair-stale-post-detail-navigation.yml
+          git config user.name "CWL Buyer Surface Repair"
+          git config user.email "actions@users.noreply.github.com"
+          git add -- frontend/src/App.tsx frontend/src/App.test.tsx
+          git diff --cached --check
+          git commit -m "fix(ui): isolate post detail state by record"
+          git push origin HEAD:feat/event-lineage-node-keeps-gnb-focus-v2170
