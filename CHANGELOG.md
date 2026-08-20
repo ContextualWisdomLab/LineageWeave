@@ -4,14 +4,13 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.18.4] - 2026-08-20
+## [2.18.0] - 2026-08-20
 
 ### Added
 
-- Proposed Buyer Project history destination and post-detail entry point for
-  bounded, authorized exact-project chronology. The feature remains pending
-  protected-main review and Checks; it does not claim release until those
-  gates pass (ADR 0111).
+- Added a Buyer Project history destination and post-detail entry point for
+  bounded, authorized exact-project chronology. The release remains pending
+  protected-main review and Checks (ADR 0111).
 
 ## [2.17.0] - 2026-08-19
 
