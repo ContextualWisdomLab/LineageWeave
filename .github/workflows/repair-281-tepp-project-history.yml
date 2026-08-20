@@ -16,6 +16,7 @@ jobs:
   integrate-and-verify:
     if: github.ref == 'refs/heads/feat/tepp-project-history-buyer-surface-v2180'
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     env:
       REPAIR_BRANCH: feat/tepp-project-history-buyer-surface-v2180
       REPAIR_BASE_SHA: ${{ github.sha }}
