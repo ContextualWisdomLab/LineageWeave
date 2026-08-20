@@ -1,4 +1,4 @@
-# ADR 0031: Authenticated MCP Global Ask
+# ADR 0037: Authenticated MCP Global Ask
 
 - **Status:** Accepted
 - **Date:** 2026-08-20
