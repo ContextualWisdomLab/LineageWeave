@@ -277,3 +277,17 @@ LineageWeave must continue to send model, reasoning-effort, protocol, and
 VISION selection through contextual-orchestrator. Until the upstream contract
 is integrated into the runtime base used by LineageWeave, this gap remains
 open for deployment acceptance.
+
+### Project-bound summary-event checkpoint
+
+The mixed-project summary gap is now addressed in the buyer contract. Summary
+key events retain the legacy text list, while `key_event_details` carries the
+resolved project display name. Persistence stores only a `project_key` that
+passes the same-post `post_project_mention` foreign key; ambiguous or
+unsupported proposals remain unbound.
+
+- Decision record: ADR 0112
+- Schema change: migration 0102
+- Buyer surface: project labels are rendered without exposing internal keys
+- Evidence: parser, transaction, real PostgreSQL projection, schema, frontend
+  lint, and frontend test checks pass on the checkpoint branch

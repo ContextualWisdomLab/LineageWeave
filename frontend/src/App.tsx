@@ -2097,12 +2097,15 @@ function PostDetailPopup({
               {summary ? (
                 <>
                   <p>{summary.korean_summary}</p>
-                  {summary.key_events.length > 0 && (
+                  {(summary.key_event_details?.length ?? summary.key_events.length) > 0 && (
                     <>
                       <h4>{t("Key events")}</h4>
                       <ul>
-                        {summary.key_events.map((event, i) => (
-                          <li key={i}>{event}</li>
+                        {(summary.key_event_details ?? summary.key_events.map((event) => ({ event_text: event, project_name: null }))).map((event, i) => (
+                          <li key={i}>
+                            {event.project_name ? <strong>{event.project_name}: </strong> : null}
+                            {event.event_text}
+                          </li>
                         ))}
                       </ul>
                     </>

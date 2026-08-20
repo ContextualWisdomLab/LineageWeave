@@ -44,6 +44,7 @@ from lineageweave.knowledge_graph import (
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
     ACTOR_TYPE_PERSON,
+    KeyEvent,
     MajorEventAction,
     PostSummary,
     ProjectMention,
@@ -70,6 +71,11 @@ _PROJECT_BOUND_ACTION_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "0101_project_bound_major_event_action.sql"
+)
+_PROJECT_BOUND_EVENT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0102_project_bound_summary_event.sql"
 )
 _SEMANTIC_SEARCH_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0032_semantic_search_trigram.sql"
@@ -158,6 +164,7 @@ def projection_database() -> str:
                 cursor.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(
                     """
                     insert into common_lookup_value
@@ -260,6 +267,9 @@ async def _exercise_projection_contract(
             post_id,
             PostSummary(
                 korean_summary="합성 요약",
+                key_event_details=(
+                    KeyEvent(event_text="합성 프로젝트 검토", project_key="synthetic-project"),
+                ),
                 roles_and_responsibilities=(
                     RoleResponsibility(
                         actor_name="Summary Person",
@@ -298,6 +308,9 @@ async def _exercise_projection_contract(
             action["project_name"]
             for action in summary_payload["major_event_actions"]
         ] == ["Synthetic Project", None]
+        assert summary_payload["key_event_details"] == [
+            {"event_text": "합성 프로젝트 검토", "project_name": "Synthetic Project"}
+        ]
 
         keyman_rows = await connection.fetch(
             "select person_id from post_person_mention where post_id = $1",

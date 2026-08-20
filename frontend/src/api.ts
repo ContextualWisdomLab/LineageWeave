@@ -221,9 +221,15 @@ export interface PostAiSummary {
   post_id: string;
   korean_summary: string;
   key_events: string[];
+  key_event_details?: PostKeyEvent[];
   roles_and_responsibilities: PostRoleResponsibility[];
   major_event_actions?: PostMajorEventAction[];
   project_mentions?: PostProjectMention[];
+}
+
+export interface PostKeyEvent {
+  event_text: string;
+  project_name?: string | null;
 }
 
 export interface FiveW1HValue {

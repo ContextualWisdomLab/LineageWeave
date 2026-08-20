@@ -59,7 +59,7 @@ PROJECT_MENTION_CONFIDENCE_THRESHOLD = 0.7
 FIVE_W1H_EVIDENCE_SLOTS = frozenset({"when", "where", "why", "how"})
 # Stored rows without this contract version are legacy summaries and must be
 # regenerated from the current source body before the popup treats them as evidence.
-POST_SUMMARY_CONTRACT_VERSION = 5
+POST_SUMMARY_CONTRACT_VERSION = 6
 
 
 @dataclass(frozen=True)
@@ -140,6 +140,20 @@ class ProjectMention:
 
 
 @dataclass(frozen=True)
+class KeyEvent:
+    """One source-grounded event, optionally bound to a named project."""
+
+    event_text: str
+    project_key: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.event_text.strip():
+            raise ValueError("key events require event text")
+        if self.project_key is not None and not self.project_key.strip():
+            raise ValueError("project_key must be non-empty when provided")
+
+
+@dataclass(frozen=True)
 class FiveW1HEvidence:
     """One explicitly stated 5W1H value and its supporting source phrase."""
 
@@ -176,6 +190,7 @@ class PostSummary:
 
     korean_summary: str
     key_events: tuple[str, ...] = field(default_factory=tuple)
+    key_event_details: tuple[KeyEvent, ...] = field(default_factory=tuple)
     roles_and_responsibilities: tuple[RoleResponsibility, ...] = field(default_factory=tuple)
     major_event_actions: tuple[MajorEventAction, ...] = field(default_factory=tuple)
     project_mentions: tuple[ProjectMention, ...] = field(default_factory=tuple)
@@ -338,9 +353,11 @@ Acme Electronics 제3공장에서 케이블 배선 설계 누락이 발견되어
 설계팀이 다음 주까지 수정 도면을 제출하기로 했다.
 
 Then write a new line beginning KEY EVENTS: followed by up to four short
-event phrases separated by semicolons. If the evidence covers multiple
-distinct matters, include events from each of them, not only the first
-or most prominent one. If there are no events, write NONE.
+event phrases separated by semicolons. When a project or matter is named,
+write each event as `project canonical key :: event phrase`; use `NONE ::`
+only when the event is not attributable to a named project. If the evidence
+covers multiple distinct matters, include events from each of them, not only
+the first or most prominent one. If there are no events, write NONE.
 Context hints are weak evidence only: {context_hints}
 Post title: {title}
 Post body: {body}
@@ -412,7 +429,9 @@ def _strip_code_fence(content: str) -> str:
     return match.group(1) if match else content
 
 
-def _parse_plain_summary_response(content: str) -> tuple[str, tuple[str, ...]] | None:
+def _parse_plain_summary_response(
+    content: str,
+) -> tuple[str, tuple[str, ...], tuple[KeyEvent, ...]] | None:
     """Parse the provider-compatible plain summary and event marker."""
     plain = _strip_code_fence(content).strip()
     match = re.search(r"(?im)^\s*KEY EVENTS\s*:\s*", plain)
@@ -420,12 +439,24 @@ def _parse_plain_summary_response(content: str) -> tuple[str, tuple[str, ...]] |
         return (plain, ()) if plain else None
     summary = plain[: match.start()].strip()
     raw_events = plain[match.end() :].strip()
-    events = tuple(
-        event.strip(" -*\t")
-        for event in re.split(r";|\n", raw_events)
-        if event.strip(" -*\t") and event.strip(" -*\t").upper() != "NONE"
-    )
-    return (summary, events) if summary else None
+    events: list[str] = []
+    details: list[KeyEvent] = []
+    for raw_event in re.split(r";|\n", raw_events):
+        event = raw_event.strip(" -*\t")
+        if not event or event.upper() == "NONE":
+            continue
+        if "::" in event:
+            project_raw, event_text = (part.strip() for part in event.split("::", 1))
+            event_text = event_text.strip(" -*\t")
+            project_key = _parse_optional_project_key(project_raw)
+        else:
+            event_text = event
+            project_key = None
+        if not event_text or event_text.upper() == "NONE":
+            continue
+        events.append(event_text)
+        details.append(KeyEvent(event_text=event_text, project_key=project_key))
+    return (summary, tuple(events), tuple(details)) if summary else None
 
 
 _HINT_VALUE_PATTERN = re.compile(r"(?:^|;)\s*author_account_name=([^;\[]+?)\s*(?:\[|;|$)")
@@ -638,9 +669,29 @@ def parse_summary_response(content: str) -> PostSummary | None:
         return None
 
     key_events_raw = parsed.get("key_events") or []
-    key_events = tuple(e.strip() for e in key_events_raw if isinstance(e, str) and e.strip()) if isinstance(
-        key_events_raw, list
-    ) else ()
+    key_events: list[str] = []
+    key_event_details: list[KeyEvent] = []
+    if isinstance(key_events_raw, list):
+        for entry in key_events_raw:
+            if isinstance(entry, str) and entry.strip():
+                parsed_event = _parse_plain_summary_response(f"summary\nKEY EVENTS: {entry}")
+                if parsed_event is not None:
+                    _summary, events, details = parsed_event
+                    key_events.extend(events)
+                    key_event_details.extend(details)
+            elif isinstance(entry, dict):
+                event_text = entry.get("event_text") or entry.get("event")
+                if not isinstance(event_text, str) or not event_text.strip():
+                    continue
+                project_key = _parse_optional_project_key(
+                    entry.get("project_key") or entry.get("project_name")
+                )
+                try:
+                    detail = KeyEvent(event_text=event_text.strip(), project_key=project_key)
+                except ValueError:
+                    continue
+                key_events.append(detail.event_text)
+                key_event_details.append(detail)
 
     rr_raw = parsed.get("roles_and_responsibilities") or []
     roles: list[RoleResponsibility] = []
@@ -757,7 +808,8 @@ def parse_summary_response(content: str) -> PostSummary | None:
 
     return PostSummary(
         korean_summary=korean_summary.strip(),
-        key_events=key_events,
+        key_events=tuple(key_events),
+        key_event_details=tuple(key_event_details),
         roles_and_responsibilities=tuple(roles),
         major_event_actions=tuple(actions),
         project_mentions=tuple(project_mentions),
@@ -887,7 +939,7 @@ class ContextualOrchestratorPostSummaryClient:
         parsed = _parse_plain_summary_response(content)
         if parsed is None:
             raise ValueError(f"summary response did not match the required format: {content!r}")
-        korean_summary, key_events = parsed
+        korean_summary, key_events, key_event_details = parsed
         details_body = post_json(
             f"{self._base_url}/v1/chat/completions",
             {
@@ -922,6 +974,7 @@ class ContextualOrchestratorPostSummaryClient:
         return PostSummary(
             korean_summary=korean_summary,
             key_events=key_events,
+            key_event_details=key_event_details,
             roles_and_responsibilities=roles,
             major_event_actions=actions,
             project_mentions=projects,

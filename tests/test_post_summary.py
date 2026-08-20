@@ -26,6 +26,7 @@ from lineageweave.post_summary import (
     NullPostSummaryClient,
     RoleResponsibility,
     _SUMMARY_REQUEST_PROMPT_TEMPLATE,
+    _parse_plain_summary_response,
     _parse_plain_summary_details,
     parse_summary_response,
 )
@@ -141,6 +142,27 @@ def test_json_project_name_is_normalized_for_legacy_action_contract() -> None:
     )
     assert summary is not None
     assert summary.major_event_actions[0].project_key == "hvdc-pilot"
+
+
+def test_parses_project_bound_key_event_without_leaking_internal_key_to_text() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary":"요약", "key_events":[{"event_text":"도면 검토",'
+        '"project_key":"HVDC Pilot"}]}'
+    )
+    assert summary is not None
+    assert summary.key_events == ("도면 검토",)
+    assert summary.key_event_details[0].project_key == "hvdc-pilot"
+
+
+def test_parses_project_bound_plain_key_event() -> None:
+    parsed = _parse_plain_summary_response(
+        "회의 요약\nKEY EVENTS: hvdc-pilot :: 도면 검토; NONE :: 공통 일정 확인"
+    )
+    assert parsed is not None
+    _summary, events, details = parsed
+    assert events == ("도면 검토", "공통 일정 확인")
+    assert details[0].project_key == "hvdc-pilot"
+    assert details[1].project_key is None
 
 
 def test_organization_actor_is_not_forced_into_a_person_slot() -> None:

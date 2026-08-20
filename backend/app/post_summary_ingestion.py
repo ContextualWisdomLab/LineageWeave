@@ -47,6 +47,7 @@ from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
     ACTOR_TYPE_PERSON,
     ACTOR_TYPE_TEAM,
+    KeyEvent,
     PostSummary,
     POST_SUMMARY_CONTRACT_VERSION,
     normalize_project_key,
@@ -95,7 +96,15 @@ async def fetch_persisted_summary(
     if header["summary_contract_version"] != POST_SUMMARY_CONTRACT_VERSION:
         return None
     events = await conn.fetch(
-        "select event_text from post_summary_event where post_id = $1 order by event_ordinal",
+        """
+        select event.event_text, event.project_key, mention.project_name
+          from post_summary_event event
+          left join post_project_mention mention
+            on mention.post_id = event.post_id
+           and mention.project_key = event.project_key
+         where event.post_id = $1
+         order by event.event_ordinal
+        """,
         post_id,
     )
     roles = await conn.fetch(
@@ -163,6 +172,13 @@ async def fetch_persisted_summary(
         "post_id": post_id,
         "korean_summary": header["korean_summary"],
         "key_events": [row["event_text"] for row in events],
+        "key_event_details": [
+            {
+                "event_text": row["event_text"],
+                "project_name": row.get("project_name"),
+            }
+            for row in events
+        ],
         "roles_and_responsibilities": payload_roles,
         "major_event_actions": [
             {
@@ -327,13 +343,23 @@ async def _replace_summary_projection(
             project.confidence,
             str(LW.Project),
         )
-    for ordinal, event_text in enumerate(summary.key_events):
+    event_details = summary.key_event_details or tuple(
+        KeyEvent(event_text=event_text) for event_text in summary.key_events
+    )
+    project_keys = {
+        normalize_project_key(project.canonical_name)
+        for project in summary.project_mentions
+        if normalize_project_key(project.canonical_name)
+    }
+    for ordinal, event in enumerate(event_details):
+        project_key = event.project_key if event.project_key in project_keys else None
         await conn.execute(
-            "insert into post_summary_event (post_id, event_ordinal, event_text) "
-            "values ($1, $2, $3)",
+            "insert into post_summary_event (post_id, event_ordinal, event_text, project_key) "
+            "values ($1, $2, $3, $4)",
             post_id,
             ordinal,
-            event_text,
+            event.event_text,
+            project_key,
         )
     for ordinal, claim in enumerate(summary.five_w1h_evidence):
         await conn.execute(

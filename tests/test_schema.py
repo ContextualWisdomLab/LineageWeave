@@ -38,6 +38,11 @@ _PROJECT_BOUND_ACTION_MIGRATION = (
     / "migrations"
     / "0101_project_bound_major_event_action.sql"
 )
+_PROJECT_BOUND_EVENT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0102_project_bound_summary_event.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -73,6 +78,7 @@ def schema_db():
                 cur.execute(_PROJECT_MENTION_MIGRATION.read_text())
                 cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
+                cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -133,6 +139,18 @@ def test_major_event_action_project_reference_is_normalized(schema_db) -> None:
             select confrelid::regclass::text
               from pg_constraint
              where conname = 'post_summary_action_project_mention_fk'
+            """
+        )
+        assert cur.fetchone()[0] == "post_project_mention"
+
+
+def test_summary_event_project_reference_is_normalized(schema_db) -> None:
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select confrelid::regclass::text
+              from pg_constraint
+             where conname = 'post_summary_event_project_mention_fk'
             """
         )
         assert cur.fetchone()[0] == "post_project_mention"
