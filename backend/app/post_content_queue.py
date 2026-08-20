@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import timedelta
 from dataclasses import dataclass
 from typing import Any
 
@@ -14,6 +15,7 @@ QUEUED = "post_content_ingestion_queued"
 RUNNING = "post_content_ingestion_running"
 SUCCEEDED = "post_content_ingestion_succeeded"
 FAILED = "post_content_ingestion_failed"
+STALE_RUNNING_INTERVAL = timedelta(minutes=15)
 _ACTIVE = {QUEUED, RUNNING}
 
 
@@ -45,8 +47,9 @@ async def post_content_is_complete(
     post_id: str,
     *,
     embedding_model_code: str,
+    require_structure: bool = False,
 ) -> bool:
-    """Require configured semantic and described-region evidence before ready."""
+    """Require configured semantic, structure, and region evidence before ready."""
     return bool(
         await conn.fetchval(
             """
@@ -56,7 +59,7 @@ async def post_content_is_complete(
                         where unit.post_id = $1
                    )
                and (
-                       $2 = ''
+                   $2 = ''
                        or (
                            not exists(
                                select 1
@@ -83,9 +86,25 @@ async def post_content_is_complete(
                            )
                        )
                    )
+               and (
+                       not $3::boolean
+                       or not exists(
+                           select 1
+                             from post_content_unit unit
+                             left join post_content_unit_structure structure
+                               on structure.post_content_unit_id = unit.post_content_unit_id
+                            where unit.post_id = $1
+                              and unit.unit_kind_code <> 'image'
+                              and (
+                                  structure.post_content_unit_structure_id is null
+                                  or structure.decision_source_code = 'unresolved'
+                              )
+                       )
+                   )
             """,
             post_id,
             embedding_model_code,
+            require_structure,
         )
     )
 
@@ -265,17 +284,24 @@ async def republish_queued_post_content_jobs(
     *,
     limit: int = 100,
 ) -> int:
-    """Recover queued rows when Valkey was unavailable or its stream was lost."""
+    """Recover queued rows and stale running leases when Valkey lost wake-ups."""
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
             select post_id, source_body_sha256
             from post_content_ingestion_job
             where status_code = $1
+               or (
+                   status_code = $2
+                   and started_at is not null
+                   and started_at < now() - $3::interval
+               )
             order by queued_at
-            limit $2
+            limit $4
             """,
             QUEUED,
+            RUNNING,
+            STALE_RUNNING_INTERVAL,
             limit,
         )
     published = 0

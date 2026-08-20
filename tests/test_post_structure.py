@@ -41,3 +41,4 @@ def test_structure_client_validates_complete_decisions(monkeypatch) -> None:
     assert response_format["type"] == "json_schema"
     assert response_format["json_schema"]["strict"] is True
     assert response_format["json_schema"]["schema"]["required"] == ["decisions"]
+    assert captured[0]["max_tokens"] == 4096
