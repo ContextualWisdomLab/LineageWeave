@@ -68,10 +68,12 @@ async def semantic_candidate_post_ids(
 
     Project mentions, responsibility/affiliation evidence, Keyman names, and
     organization/team catalogs use one ``ILIKE`` predicate per indexed column.
-    This preserves multilingual substring lookup without wrapping indexed fields
-    in an expression that forces a sequential scan. Ontology lookup codes are
-    applied only to graph lookup-code columns. The function never returns source
-    text and nomination never grants access.
+    Search-corroborated raw/canonical organization-name pairs additionally
+    nominate direct organization mentions and affiliated people's posts; pending
+    or uncorroborated aliases do not. This preserves multilingual substring lookup
+    without wrapping indexed fields in an expression that forces a sequential
+    scan. Ontology lookup codes are applied only to graph lookup-code columns.
+    The function never returns source text and nomination never grants access.
     """
 
     if maximum_candidates <= 0:
@@ -84,6 +86,15 @@ async def semantic_candidate_post_ids(
         """
         with query_terms as (
             select unnest($1::text[]) as term
+        ), verified_organization as (
+            select distinct entity.corporate_entity_id
+              from organization_name_resolution resolution
+              join corporate_entity entity
+                on entity.entity_name = resolution.resolved_organization_name
+              join query_terms term
+                on resolution.raw_organization_name ilike '%' || term.term || '%'
+                or resolution.resolved_organization_name ilike '%' || term.term || '%'
+             where resolution.verification_status_code = 'verify_corroborated'
         ), candidate_post as (
             select mention.post_id, post.created_at
               from post_project_mention mention
@@ -125,6 +136,20 @@ async def semantic_candidate_post_ids(
                     select 1 from query_terms term
                      where entity.entity_name ilike '%' || term.term || '%'
                 )
+            union all
+            select mention.post_id, post.created_at
+              from post_organization_mention mention
+              join verified_organization organization
+                on organization.corporate_entity_id = mention.corporate_entity_id
+              join source_post post on post.post_id = mention.post_id
+            union all
+            select mention.post_id, post.created_at
+              from post_person_mention mention
+              join person_affiliation affiliation
+                on affiliation.person_id = mention.person_id
+              join verified_organization organization
+                on organization.corporate_entity_id = affiliation.affiliated_corporate_entity_id
+              join source_post post on post.post_id = mention.post_id
             union all
             select mention.post_id, post.created_at
               from post_team_mention mention

@@ -127,6 +127,11 @@ async def test_semantic_candidate_post_ids_is_bounded_deduplicated_and_indexable
     assert "post_summary_role" in query
     assert "post_person_mention" in query
     assert "post_organization_mention" in query
+    assert "organization_name_resolution" in query
+    assert "resolution.verification_status_code = 'verify_corroborated'" in query
+    assert "resolution.raw_organization_name ilike" in query
+    assert "resolution.resolved_organization_name ilike" in query
+    assert "person_affiliation" in query
     assert "post_team_mention" in query
     assert "knowledge_graph_edge_evidence" in query
 
