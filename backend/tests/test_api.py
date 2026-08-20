@@ -88,6 +88,9 @@ _MEMBER_LOCALE_MIGRATION = (
 _IMAGE_REGION_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0045_post_content_image_regions.sql"
 )
+_IMAGE_REGION_EMBEDDING_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0047_post_content_image_region_embeddings.sql"
+)
 _SUMMARY_FIVE_W1H_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0048_post_summary_five_w1h.sql"
 )
@@ -200,6 +203,7 @@ def seeded_db(demo_analyst_token):
             )
             cur.execute(_MEMBER_LOCALE_MIGRATION.read_text())
             cur.execute(_IMAGE_REGION_MIGRATION.read_text())
+            cur.execute(_IMAGE_REGION_EMBEDDING_MIGRATION.read_text())
             cur.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text())
             cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
             cur.execute(
