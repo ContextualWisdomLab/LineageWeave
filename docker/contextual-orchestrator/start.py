@@ -57,6 +57,27 @@ def main() -> None:
         agent["credential_key"] = "LLM_GATEWAY_API_KEY"
         agent.setdefault("provider_protocol", "auto")
     embedding_model = os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
+    if embedding_model:
+        embedding_agents = [
+            agent
+            for agent in agents["agents"]
+            if "embedding" in agent.get("tags", [])
+        ]
+        if embedding_agents:
+            for agent in embedding_agents:
+                agent["model"] = embedding_model
+        else:
+            agents["agents"].append(
+                {
+                    "id": "llm_gateway_embedding_agent",
+                    "model": embedding_model,
+                    "base_url": provider_url,
+                    "credential_key": "LLM_GATEWAY_API_KEY",
+                    "provider_protocol": "auto",
+                    "tags": ["embedding"],
+                    "priority": 0,
+                }
+            )
     agents_path.write_text(json.dumps(agents), encoding="utf-8")
 
     from contextual_orchestrator.credentials import register_credential
@@ -80,10 +101,6 @@ def main() -> None:
         auth_token,
         "--max-output-tokens",
         str(max_output_tokens),
-        "--embedding-provider-url",
-        provider_url,
-        "--embedding-model",
-        embedding_model,
         "--max-body-bytes",
         str(max_body_bytes),
     ]
