@@ -1,4 +1,4 @@
-# ADR 0104: Render image evidence as buyer content, not LLM instructions
+# ADR 0110: Render image evidence as buyer content, not LLM instructions
 
 - Status: Accepted
 - Date: 2026-08-20
