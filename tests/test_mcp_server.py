@@ -11,6 +11,7 @@ from backend.app import mcp_server
 from backend.app.auth import CurrentAccount
 from backend.app.config import Settings
 from backend.app.global_ask import GlobalAskAnswer
+from backend.app.global_ask_media import GlobalAskContentBlock
 from backend.app.global_ask_verification import ExternalVerificationResult, STATUS_SUPPORTED
 from lineageweave.post_chat import ContextualOrchestratorPostChatClient, NullPostChatClient
 
@@ -92,6 +93,18 @@ async def test_global_ask_tool_is_read_only_structured_and_closes_lifespan() -> 
             cited_post_ids=("post-1",),
             cited_posts=({"post_id": "post-1", "post_title": "Evidence"},),
             source_post_ids=("post-1",),
+            content_blocks=(
+                GlobalAskContentBlock(type="text", text="Grounded"),
+                GlobalAskContentBlock(
+                    type="image",
+                    post_id="post-1",
+                    unit_index=0,
+                    mime_type="image/png",
+                    data_base64="c3ludGhldGljLWltYWdl",
+                    alt_text="Evidence - source image 1",
+                    caption="Evidence",
+                ),
+            ),
         )
 
     token = AccessToken(
@@ -122,12 +135,40 @@ async def test_global_ask_tool_is_read_only_structured_and_closes_lifespan() -> 
             {"question": "What happened?", "verify_external": True},
         )
         assert not result.is_error
+        assert result.content[0].type == "text"
+        assert result.content[0].text == "Grounded"
+        assert result.content[1].type == "image"
+        assert result.content[1].mime_type == "image/png"
+        assert result.content[1].data == "c3ludGhldGljLWltYWdl"
         assert result.structured_content == {
             "answer_text": "Grounded",
             "anchor_post_id": "post-1",
             "cited_post_ids": ["post-1"],
             "cited_posts": [{"post_id": "post-1", "post_title": "Evidence"}],
             "source_post_ids": ["post-1"],
+            "timeline": [],
+            "content_blocks": [
+                {
+                    "type": "text",
+                    "text": "Grounded",
+                    "post_id": None,
+                    "unit_index": None,
+                    "mime_type": None,
+                    "data_base64": None,
+                    "alt_text": None,
+                    "caption": None,
+                },
+                {
+                    "type": "image",
+                    "text": None,
+                    "post_id": "post-1",
+                    "unit_index": 0,
+                    "mime_type": "image/png",
+                    "data_base64": "c3ludGhldGljLWltYWdl",
+                    "alt_text": "Evidence - source image 1",
+                    "caption": "Evidence",
+                },
+            ],
             "external_verification_status": "supported",
             "external_evidence_urls": ["https://evidence.example/fact"],
             "external_verification_rationale": "Independent evidence supports the material claim.",

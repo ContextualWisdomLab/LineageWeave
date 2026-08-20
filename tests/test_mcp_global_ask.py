@@ -111,8 +111,20 @@ async def test_global_ask_reuses_rbac_abac_bounds_sources_and_filters_citations(
         assert kwargs["session_id"] == "lineageweave:post:public-post"
         assert kwargs["metadata"]["post_id"] == "public-post"
         return [
-            ChatSourceDocument("public-post", "Public", "A" * 6000),
-            ChatSourceDocument("linked-post", "Linked", "linked evidence"),
+            ChatSourceDocument(
+                "public-post",
+                "Public",
+                "A" * 6000,
+                occurred_at="2026-03-10T00:00:00+00:00",
+                lineage_relation="anchor",
+            ),
+            ChatSourceDocument(
+                "linked-post",
+                "Linked",
+                "linked evidence",
+                occurred_at="2026-03-03T00:00:00+00:00",
+                lineage_relation="direct_lineage",
+            ),
             *[ChatSourceDocument(f"extra-{i}", "Extra", "extra") for i in range(10)],
         ]
 
@@ -131,6 +143,20 @@ async def test_global_ask_reuses_rbac_abac_bounds_sources_and_filters_citations(
         "extra-3",
     )
     assert result.cited_posts == ({"post_id": "public-post", "post_title": "Public"},)
+    assert result.timeline == (
+        {
+            "post_id": "linked-post",
+            "post_title": "Linked",
+            "occurred_at": "2026-03-03T00:00:00+00:00",
+            "lineage_relation": "direct_lineage",
+        },
+        {
+            "post_id": "public-post",
+            "post_title": "Public",
+            "occurred_at": "2026-03-10T00:00:00+00:00",
+            "lineage_relation": "anchor",
+        },
+    )
     sql = conn.calls[0][0]
     assert "visibility_code = 'public'" in sql
     assert "p.corporate_entity_id = any($1::uuid[])" in sql
