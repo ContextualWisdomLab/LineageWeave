@@ -3,6 +3,9 @@ import { splitPostBody, type PostBodySegment } from "./postBodyDisplay";
 import { t } from "./i18n";
 import type { PostContentUnit, PostImageContent, PostImageRegion } from "./api";
 
+const SAFE_EMBEDDED_IMAGE_SOURCE =
+  /^data:image\/(?:png|jpe?g|gif|webp|avif|bmp|x-icon|vnd\.microsoft\.icon);base64,[A-Za-z0-9+/]+={0,2}$/i;
+
 function hasPersistedOverlayBox(region: PostImageRegion): boolean {
   const { x_ratio, y_ratio, width_ratio, height_ratio } = region;
   if (![x_ratio, y_ratio, width_ratio, height_ratio].every((value) => Number.isFinite(value))) {
@@ -27,14 +30,16 @@ function ImageEvidenceFigure({
 }) {
   const [selectedRegionIndex, setSelectedRegionIndex] = useState<number | null>(null);
   const regions = imageContent?.regions ?? [];
-  const overlayRegions = sourceImage ? regions.filter(hasPersistedOverlayBox) : [];
+  const sourceImageSrc =
+    sourceImage && SAFE_EMBEDDED_IMAGE_SOURCE.test(sourceImage.src) ? sourceImage.src : undefined;
+  const overlayRegions = sourceImageSrc ? regions.filter(hasPersistedOverlayBox) : [];
   const selectedRegion = overlayRegions.find((region) => region.region_index === selectedRegionIndex);
 
   return (
     <figure className="post-embedded-image">
-      {sourceImage ? (
+      {sourceImageSrc ? (
         <div className="post-embedded-image-frame">
-          <img src={sourceImage.src} alt={imageContent?.caption || t("Embedded image")} />
+          <img src={sourceImageSrc} alt={imageContent?.caption || t("Embedded image")} />
           {overlayRegions.length ? (
             <div className="post-image-region-overlays" role="group" aria-label={t("Image regions")}>
               {overlayRegions.map((region) => {
@@ -66,7 +71,7 @@ function ImageEvidenceFigure({
           ) : null}
         </div>
       ) : null}
-      {imageContent?.caption || !sourceImage ? (
+      {imageContent?.caption || !sourceImageSrc ? (
         <figcaption>{imageContent?.caption || t("Embedded image")}</figcaption>
       ) : null}
       {selectedRegion ? (
