@@ -36,6 +36,7 @@ jobs:
           --health-retries 5
     env:
       IMPLEMENTATION_BRANCH: feat/tepp-project-history-ask-v2180
+      RESTACK_BASE_BRANCH: feat/event-lineage-node-keeps-gnb-focus-v2170
       IMPLEMENTATION_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
       LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
@@ -45,6 +46,14 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: true
           fetch-depth: 0
+
+      - name: Restack on the current PR 264 base
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "${RESTACK_BASE_BRANCH}"
+          git merge --no-edit --no-ff "origin/${RESTACK_BASE_BRANCH}"
 
       - name: Set up Python and locked dependency manager
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
@@ -91,6 +100,22 @@ jobs:
             .github/scripts/implement_282_tepp_project_history.py \
             .github/scripts/run_implementation_282.py
           python3 .github/scripts/run_implementation_282.py
+          python3 - <<'PY'
+          from pathlib import Path
+
+          manifest = Path(".implementation_282_paths")
+          if not manifest.is_file():
+              raise SystemExit("implementation path manifest was not generated")
+          for raw_path in manifest.read_text(encoding="utf-8").splitlines():
+              path = Path(raw_path)
+              if not path.is_file():
+                  continue
+              try:
+                  content = path.read_text(encoding="utf-8")
+              except UnicodeDecodeError:
+                  continue
+              path.write_text(content.rstrip() + "\n", encoding="utf-8")
+          PY
           git diff --check
 
       - name: Verify focused Python contracts
@@ -142,11 +167,13 @@ jobs:
             .github/workflows/implement-282-tepp-project-history.yml \
             .github/scripts/implement_282_tepp_project_history.py \
             .github/scripts/run_implementation_282.py \
-            .implementation_282_paths
+            .implementation_282_paths \
+            tests/.noop
           git add -u -- \
             .github/workflows/implement-282-tepp-project-history.yml \
             .github/scripts/implement_282_tepp_project_history.py \
-            .github/scripts/run_implementation_282.py
+            .github/scripts/run_implementation_282.py \
+            tests/.noop
 
           rm -rf .coverage htmlcov frontend/storybook-static
           git diff --cached --check
