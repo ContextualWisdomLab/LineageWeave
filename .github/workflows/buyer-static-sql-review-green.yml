@@ -1,0 +1,134 @@
+# One-shot completion of the already committed RED static SQL review contracts.
+name: Buyer Static SQL Review GREEN
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - feat/analysis-run-name-evidence-lineage
+    paths:
+      - .github/workflows/buyer-static-sql-review-green.yml
+      - .github/scripts/apply_buyer_static_sql_review.py
+
+permissions:
+  contents: write
+
+concurrency:
+  group: buyer-static-sql-review-green
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    if: github.event.pull_request.head.ref == 'fix/buyer-static-sql-review-contracts'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+      EXPECTED_PARENT_SHA: d65986a2ba2eb25c06a474459bad3c379197b60d
+
+    steps:
+      - name: Check out exact repair branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: fix/buyer-static-sql-review-contracts
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Verify unchanged parent and transform syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin feat/analysis-run-name-evidence-lineage fix/buyer-static-sql-review-contracts
+          test "$(git rev-parse origin/feat/analysis-run-name-evidence-lineage)" = "$EXPECTED_PARENT_SHA"
+          test "$(git merge-base "$EXPECTED_PARENT_SHA" HEAD)" = "$EXPECTED_PARENT_SHA"
+          python -m py_compile .github/scripts/apply_buyer_static_sql_review.py
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "24"
+
+      - name: Install exact dependencies
+        run: |
+          uv sync --frozen --extra dev --extra backend
+          corepack enable
+          pnpm --dir frontend install --frozen-lockfile
+
+      - name: Apply GREEN implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/apply_buyer_static_sql_review.py
+          uv run --frozen python -m compileall -q backend lineageweave scripts tests
+          git diff --check
+
+      - name: Verify focused security and utility contracts
+        run: >-
+          uv run --frozen python -m pytest -q
+          tests/test_static_sql_review_contracts.py
+          tests/test_catalog_sql.py
+          tests/test_synthetic_seed_cleanup.py
+          tests/test_import_postgresql_posts.py
+
+      - name: Verify complete Python and PostgreSQL suite
+        run: uv run --frozen python -m pytest -q
+
+      - name: Verify Buyer frontend
+        working-directory: frontend
+        run: |
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Verify no reviewed suppression or one-shot residue enters production
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -R "nosemgrep:" \
+            backend/app/customer_hint_ingestion.py \
+            backend/app/demo_scope.py \
+            backend/app/entity_relationship_ingestion.py \
+            lineageweave/synthetic_seed_cleanup.py \
+            scripts/backfill_post_content.py \
+            scripts/backfill_post_keymen.py \
+            scripts/backfill_post_summaries.py
+          git diff --check
+
+      - name: Publish verified production commit only against exact parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/feat/analysis-run-name-evidence-lineage | cut -f1)" = "$EXPECTED_PARENT_SHA"
+          git config user.name "CWL Static SQL Review Agent"
+          git config user.email "actions@users.noreply.github.com"
+          git rm .github/workflows/buyer-static-sql-review-green.yml
+          git rm .github/scripts/apply_buyer_static_sql_review.py
+          git add -A
+          git commit -m "fix(security): centralize reviewed SQL composition"
+          git pull --rebase origin fix/buyer-static-sql-review-contracts
+          git push origin HEAD:fix/buyer-static-sql-review-contracts
