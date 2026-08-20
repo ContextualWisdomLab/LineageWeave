@@ -197,8 +197,9 @@ sequenceDiagram
 
 ## Current aggregate data and runtime evidence
 
-Observed from the running local Compose stack without selecting a post title,
-body, source code, person, organization, or identifier:
+Observed from the running local Compose stack; the browser path used a
+synthetic login and opened one authorized source post, but no title, body,
+source code, person, organization, or identifier was recorded:
 
 | Evidence | Observed result |
 |---|---|
@@ -212,13 +213,15 @@ body, source code, person, organization, or identifier:
 | Summary refresh | One authorized target request returned HTTP 200 with contract v5, four key events, one role, three actions, and one project |
 | Authentication | Real synthetic-user OIDC login, live JWKS fetch, and RS256 verification passed |
 | Authorization | Unauthenticated `/api/analysis-runs` and `/api/posts` returned 401; four focused live-Keycloak/PostgreSQL API tests covering authenticated account, list ABAC, direct deny, and missing token passed |
+| Browser navigation | 2026-08-20 Playwright browser flow completed synthetic OIDC login, loaded the authorized board, opened one authorized post, and closed its detail view |
 | Focused contracts | Post-summary and transaction-contract tests: 31 passed, 1 skipped; the skip is not runtime proof for the skipped capability |
 
 These observations prove data presence and the listed boundaries only. They do
-not prove a browser-clicked buyer journey, current TEPP transport success,
-post-summary-action population across the corpus, or equivalence between every
-running container image and the PR head. The target refresh is bounded runtime
-evidence for one authorized post, not a corpus-wide acceptance claim.
+prove one browser-clicked buyer journey on the local stack, but they do not
+prove current TEPP transport success, post-summary-action population across the
+corpus, or equivalence between every running container image and the PR head.
+The target refresh and browser flow are bounded runtime evidence, not a
+corpus-wide acceptance claim.
 
 ## Active PR audit
 
@@ -266,7 +269,7 @@ the exact-head disposition.
 | Priority | Gap | Evidence | Closure criterion |
 |---|---|---|---|
 | P0 | No protected-main integrated buyer journey for the active feature stack | Main is 2.12.5; 18 open PRs span dependent and parallel bases | Establish one reviewed integration order, update each exact head, pass required checks, merge without bypass, then run login-to-source browser acceptance on main |
-| P0 | Current runtime proof is incomplete | The current aggregate/OIDC/ABAC checks cover data presence and selected boundaries; 2026-08-18/19 notes cover other slices, but no evidence set proves the entire PR head or main journey | Complete the real-stack matrix on an exact revision: browser login/navigation, Ask, reports, Vision, TEPP availability, action population, and cleanup |
+| P0 | Current runtime proof is incomplete | Aggregate/OIDC/ABAC checks and a 2026-08-20 local browser login/navigation flow cover selected boundaries, but no evidence set proves the entire PR head or main journey | Repeat the real-stack matrix on an exact integrated revision: browser login/navigation, Ask, reports, Vision, TEPP availability, action population, and cleanup |
 | P0 | PR #190's duplicate ADR identity was corrected but is not protected-main truth | Active PR head `ac1b4e17` now uses ADR 0038 and aligns the entity-resolution claims with implementation; independent review and Checks remain pending | Re-audit exact head, obtain independent approval, pass required Checks, and merge normally; never merge a duplicate ADR identity |
 | P0 | PR #258 is not review/CI complete at its exact current head | #258 is mergeable but BLOCKED: 14 of 22 checks queued, no approval, and four unresolved scanner threads on two SQL modules | Classify each finding against the literal SQL and bound arguments; fix a real flow or add a narrow documented suppression for a false positive, resolve threads, obtain independent approval, and re-check the exact head |
 | P1 | Requirements were implicit across ADRs and architecture phases | No prior PRD/TRD/requirement traceability baseline existed | Keep FR/NFR IDs in this document linked from ADR index; require new product PRs to name affected IDs and runtime evidence |
