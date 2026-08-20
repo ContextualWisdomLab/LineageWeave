@@ -18,7 +18,7 @@
 
 .lineage-evidence-table thead th {
   color: var(--text-h);
-  background: var(--surface-muted);
+  background: var(--code-bg);
 }
 
 .lineage-evidence-table tbody th {
