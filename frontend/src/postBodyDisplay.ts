@@ -28,6 +28,8 @@ const FOOTNOTE_START = /^\s*[*†‡]+(?=\S)/;
 const INDENT_MARKER = "\u0001lw-indent:";
 const INDENT_MARKER_END = "\u0002";
 const INDENT_MARKER_PATTERN = /lw-indent:(\d+)/g;
+const NUMERIC_FOOTNOTE_MARKER = "\u0003lw-numeric-footnote\u0004";
+const NUMERIC_SUPERSCRIPT = /<sup\b[^>]*>\s*(\d{1,3})\s*<\/sup>/gi;
 
 function stripIndentMarkers(value: string): string {
   return value
@@ -215,11 +217,13 @@ function isDecodableBase64(raw: string): boolean {
 }
 
 function pushText(segments: PostBodySegment[], raw: string, indentUnit: number): void {
-  const hasNumericSuperscriptMarker = /<sup\b[^>]*>\s*\d{1,3}\s*<\/sup>/i.test(raw);
-  const text = stripHtmlTags(raw);
+  const text = stripHtmlTags(
+    raw.replace(NUMERIC_SUPERSCRIPT, `${NUMERIC_FOOTNOTE_MARKER}$1`),
+  );
   for (const paragraph of splitSemanticParagraphs(text)) {
+    const hasNumericSuperscriptMarker = paragraph.includes(NUMERIC_FOOTNOTE_MARKER);
     const indentLevel = indentationLevel(paragraph, indentUnit);
-    const normalized = stripIndentMarkers(paragraph)
+    const normalized = stripIndentMarkers(paragraph.replaceAll(NUMERIC_FOOTNOTE_MARKER, ""))
       .replace(/^[ \t]+/, "")
       .replace(/[ \t]+$/gm, "");
     if (normalized.trim()) {
