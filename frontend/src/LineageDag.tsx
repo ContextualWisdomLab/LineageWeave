@@ -1,6 +1,7 @@
 import type { LineageGraph, LineageGraphEdge, LineageGraphNode } from "./api";
 import { t, tf } from "./i18n";
 import { layoutLineageDag } from "./lineageLayout";
+import "./LineageDag.css";
 
 function truncateLabel(label: string): string {
   return label.length > 34 ? `${label.slice(0, 33)}…` : label;
@@ -144,9 +145,9 @@ export function LineageDag({
               "Review exact channel scores before relying on this connection.",
             )}
           </p>
-          <div className="post-body-scroll">
+          <div className="lineage-evidence-scroll">
             <table
-              className="post-body-table"
+              className="lineage-evidence-table"
               aria-label={t("Lineage evidence scores")}
             >
               <thead>
