@@ -4,6 +4,14 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `make smoke` and `make seed` now run through the locked project `uv`
+  environment, so local OIDC and synthetic-data workflows resolve the same
+  pinned dependencies as CI.
+
 ## [2.12.5] - 2026-08-18
 
 ### Fixed
