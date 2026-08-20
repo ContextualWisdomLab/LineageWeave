@@ -36,14 +36,16 @@ placed in a stream message.
    VISION, structure, and embeddings. It preserves one post session and the
    bounded provenance metadata from `llm_context`; no raw provider call, model
    selector, monkey patch, or MLX-specific contract is introduced.
-5. The worker verifies that persisted units contain no unresolved structure
-   decisions when structure adjudication is configured, and that every
-   embeddable unit has a vector when embeddings are configured. Incomplete
-   provider output is retried with an explicit failure code rather than being
-   reported as succeeded.
-6. The buyer content endpoint returns `processing` while the durable job is
-   queued/running and `ready` only after persisted units exist. The frontend
-   polls that status while continuing to show the source post.
+5. The buyer content endpoint returns `processing` while the durable job is
+   queued/running and `ready` only after persisted units exist and, when an
+   embedding model is configured, every unit and every described visual region
+   has the corresponding persisted vector. A previous `succeeded` row with
+   incomplete derived evidence is requeued through Valkey instead of being
+   treated as complete. The worker verifies that persisted units contain no
+   unresolved structure decisions when structure adjudication is configured.
+   Incomplete provider output is retried with an explicit failure code rather
+   than being reported as succeeded. The frontend polls that status while
+   continuing to show the source post.
 
 ## Consequences
 
@@ -54,3 +56,40 @@ placed in a stream message.
   recovery boundary.
 - Summary generation remains a separate contextual-orchestrator operation;
   this ADR does not hide a slow summary provider behind an in-memory task.
+
+## Completeness invariant (2026-08-20)
+
+The worker claim path MUST use the same `post_content_is_complete` predicate as
+the API enqueue path. A successful job that has units but lacks the configured
+unit or described-region embeddings is still eligible for Valkey requeue and
+MUST NOT be silently skipped by checking only for unit presence.
+
+When contextual-orchestrator is configured, the same predicate also requires
+every persisted unit to have a non-`unresolved` structure decision. Without an
+available structure channel, `unresolved` remains an explicit unavailable
+signal rather than a fabricated hierarchy; enabling the channel makes those
+posts eligible for Valkey requeue.
+
+The worker treats a `running` lease older than 15 minutes as stale. Recovery
+does not reset the row or create a second body record; it republishes the
+existing `(post_id, source_body_sha256)` wake-up to Valkey, and `_claim_job`
+reclaims it under the same lease predicate. This keeps a process restart or
+lost consumer from leaving a job permanently running while retaining
+at-least-once persistence semantics.
+
+On worker startup, the stream cursor begins at the current Valkey stream tail,
+not at `0-0`. Historical wake-ups are not authoritative work state; the
+normalized PostgreSQL ledger is scanned and queued/stale rows are republished
+after the cursor is established. This prevents a restart from replaying an
+unbounded historical stream before processing current work.
+
+## Corpus backfill (2026-08-20)
+
+Operational backfill MUST use `scripts/queue_post_content_backfill.py`. It
+selects only non-draft, non-deleted rows with real source context, records the
+same completeness-aware job state in PostgreSQL, and publishes wake-ups through
+Valkey. Direct provider calls are not a substitute for the worker queue.
+
+### Operational timeout for structure adjudication
+
+The contextual-orchestrator structure adjudication request uses a 600-second client timeout by default. Structure inference is an accuracy-critical, structured multi-agent operation rather than a user-facing synchronous request; the longer bound prevents a slow but valid workflow from being downgraded to `unresolved` merely because the client abandoned the response. The durable job remains queued until all non-image units have complete structure evidence.

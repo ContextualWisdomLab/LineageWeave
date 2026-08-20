@@ -26,75 +26,32 @@ from backend.app.post_content_queue import (
     POST_CONTENT_STREAM_KEY,
     QUEUED,
     RUNNING,
+    STALE_RUNNING_INTERVAL,
     SUCCEEDED,
+    post_content_is_complete,
     transition_post_content_job,
     republish_queued_post_content_jobs,
 )
 
 _logger = logging.getLogger(__name__)
 _RECOVERY_INTERVAL_SECONDS = 30.0
-_STALE_RUNNING_INTERVAL = "15 minutes"
 _INCOMPLETE_FAILURE_CODE = "post_content_ingestion_incomplete"
 _ATTEMPT_LIMIT_FAILURE_CODE = "post_content_ingestion_attempt_limit"
 
 
-class IncompletePostContentError(RuntimeError):
-    """Indicate that a provider response did not produce complete evidence."""
-
-
-async def _post_content_is_complete(
-    pool: asyncpg.Pool,
-    post_id: str,
-    *,
-    require_structure: bool,
-    require_embeddings: bool,
-) -> bool:
-    """Check persisted evidence completeness without trusting provider optimism."""
-    async with pool.acquire() as conn:
-        result = await conn.fetchval(
-            """
-            select exists(
-                       select 1
-                       from post_content_unit
-                       where post_id = $1
-                   )
-               and (
-                       not $2::boolean
-                       or not exists(
-                           select 1
-                           from post_content_unit unit
-                           join post_content_unit_structure structure
-                             on structure.post_content_unit_id = unit.post_content_unit_id
-                           where unit.post_id = $1
-                             and structure.decision_source_code = 'unresolved'
-                       )
-                   )
-               and (
-                       not $3::boolean
-                       or not exists(
-                           select 1
-                           from post_content_unit unit
-                           where unit.post_id = $1
-                             and unit.unit_text <> ''
-                             and not exists(
-                                 select 1
-                                 from post_content_embedding embedding
-                                 where embedding.post_content_unit_id = unit.post_content_unit_id
-                             )
-                       )
-                   )
-            """,
-            post_id,
-            require_structure,
-            require_embeddings,
-        )
-    return bool(result)
+async def _stream_tail(client: redis.Redis) -> str:
+    """Start after historical wake-ups; the normalized ledger drives recovery."""
+    rows = await client.xrevrange(POST_CONTENT_STREAM_KEY, count=1)
+    return str(rows[0][0]) if rows else "0-0"
 
 
 async def _claim_job(
     pool: asyncpg.Pool,
     post_id: str,
     source_body_digest: str,
+    *,
+    embedding_model_code: str,
+    require_structure: bool = False,
 ) -> asyncpg.Record | None:
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -147,17 +104,19 @@ async def _claim_job(
                 if not retry_ready:
                     return None
             if status_code == SUCCEEDED:
-                has_content = await conn.fetchval(
-                    "select exists(select 1 from post_content_unit where post_id = $1)",
+                content_complete = await post_content_is_complete(
+                    conn,
                     post_id,
+                    embedding_model_code=embedding_model_code,
+                    require_structure=require_structure,
                 )
-                if has_content:
+                if content_complete:
                     return None
             if status_code == RUNNING and row["job_started_at"] is not None:
                 stale = await conn.fetchval(
                     "select now() - $1 > $2::interval",
                     row["job_started_at"],
-                    _STALE_RUNNING_INTERVAL,
+                    STALE_RUNNING_INTERVAL,
                 )
                 if not stale:
                     return None
@@ -232,14 +191,20 @@ async def process_post_content_job(
     embedding_factory: Callable[[], EmbeddingClient],
     structure_factory: Callable[[], PostStructureClient],
 ) -> None:
-    row = await _claim_job(pool, post_id, source_body_digest)
+    settings = load_settings()
+    row = await _claim_job(
+        pool,
+        post_id,
+        source_body_digest,
+        embedding_model_code=settings.embedding_model,
+        require_structure=bool(settings.orchestrator_base_url and settings.orchestrator_api_key),
+    )
     if row is None:
         return
     try:
         raw_body = row["post_body"]
         if not isinstance(raw_body, str) or not raw_body.strip():
             raise ValueError("source post has no body")
-        settings = load_settings()
         metadata = build_post_llm_metadata(post_id, row)
         embedding_client = embedding_factory()
         structure_client = structure_factory()
@@ -258,25 +223,29 @@ async def process_post_content_job(
                     structure_client=structure_client,
                     post_title=str(row["post_title"]),
                 )
-            if not await _post_content_is_complete(
-                pool,
-                post_id,
-                require_structure=structure_client.available,
-                require_embeddings=embedding_client.available and bool(settings.embedding_model),
-            ):
-                raise IncompletePostContentError(
-                    "post-content providers did not produce complete persisted evidence"
+            async with pool.acquire() as conn:
+                complete = await post_content_is_complete(
+                    conn,
+                    post_id,
+                    embedding_model_code=settings.embedding_model,
+                    require_structure=bool(
+                        settings.orchestrator_base_url and settings.orchestrator_api_key
+                    ),
                 )
+            if not complete:
+                await _finish_failed_job(
+                    pool,
+                    post_id,
+                    failure_code=_INCOMPLETE_FAILURE_CODE,
+                    detail_text="post-content providers did not produce complete persisted evidence",
+                )
+                return
     except Exception as exc:  # noqa: BLE001 - durable failure is recorded for retry.
         _logger.exception("post content ingestion failed for post_id=%s", post_id)
         await _finish_failed_job(
             pool,
             post_id,
-            failure_code=(
-                _INCOMPLETE_FAILURE_CODE
-                if isinstance(exc, IncompletePostContentError)
-                else "post_content_ingestion_failed"
-            ),
+            failure_code="post_content_ingestion_failed",
             detail_text=str(exc)[:1000],
         )
         return
@@ -323,7 +292,7 @@ async def run_post_content_worker(
     structure_factory: Callable[[], PostStructureClient],
 ) -> None:
     """Run the at-least-once consumer and periodically recover queued rows."""
-    last_id = "0-0"
+    last_id = await _stream_tail(client)
     last_recovery = 0.0
     while True:
         now = time.monotonic()

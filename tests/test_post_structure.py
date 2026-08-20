@@ -35,9 +35,11 @@ def test_structure_client_validates_complete_decisions(monkeypatch) -> None:
     )
     client = ContextualOrchestratorPostStructureClient("http://orchestrator", "test-key")
 
+    assert client.timeout == 600.0
     assert client.infer("Title", [{"unit_index": 0, "text": "1. Heading"}])[0].indent_level == 0
     assert len(captured) == 1
     response_format = captured[0]["response_format"]
     assert response_format["type"] == "json_schema"
     assert response_format["json_schema"]["strict"] is True
     assert response_format["json_schema"]["schema"]["required"] == ["decisions"]
+    assert captured[0]["max_tokens"] == 4096

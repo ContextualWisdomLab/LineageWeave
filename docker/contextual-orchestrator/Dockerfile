@@ -6,7 +6,7 @@ WORKDIR /app
 # Pin the runtime to PR #765's pushed commit until that protected PR merges;
 # this keeps model selection, structured synthesis, and reasoning policy in
 # contextual-orchestrator itself.
-ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/6db772e.tar.gz /tmp/contextual-orchestrator.tar.gz
+ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/7df051a.tar.gz /tmp/contextual-orchestrator.tar.gz
 RUN mkdir /tmp/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 -C /tmp/contextual-orchestrator \
     && cp -R /tmp/contextual-orchestrator/contextual_orchestrator /app/contextual_orchestrator \

@@ -161,9 +161,14 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
     """Return ``result['url']`` when it is a real-world footprint of ``organization_name``.
 
     Search engines echo the query in result titles, so "any hit" is not
-    corroboration. A result counts only when a distinctive name token
-    appears in the host or snippet, and the host is not itself a search
-    page. Missing or empty URLs are not evidence.
+    corroboration. A single distinctive token is not enough either -- an
+    invented name can still contain an ordinary dictionary word (e.g.
+    "Fictitious", "Nonexistent") that coincidentally appears on an
+    unrelated page, so a genuine multi-token name requires a majority of
+    its tokens to co-occur in the same result; a one-token name has no
+    majority to require and falls back to that single token. The host
+    must also not itself be a search page. Missing or empty URLs are not
+    evidence.
     """
     url = result.get("url")
     if not isinstance(url, str) or not url.strip():

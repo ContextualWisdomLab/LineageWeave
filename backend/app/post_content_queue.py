@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import timedelta
 from dataclasses import dataclass
 from typing import Any
 
@@ -14,6 +15,7 @@ QUEUED = "post_content_ingestion_queued"
 RUNNING = "post_content_ingestion_running"
 SUCCEEDED = "post_content_ingestion_succeeded"
 FAILED = "post_content_ingestion_failed"
+STALE_RUNNING_INTERVAL = timedelta(minutes=15)
 _ACTIVE = {QUEUED, RUNNING}
 POST_CONTENT_MAX_ATTEMPTS = 3
 POST_CONTENT_RETRY_INTERVAL = "5 minutes"
@@ -40,6 +42,73 @@ def post_content_api_status(status_code: str | None, *, content_present: bool) -
     if content_present:
         return "ready"
     return "unavailable"
+
+
+async def post_content_is_complete(
+    conn: asyncpg.Connection,
+    post_id: str,
+    *,
+    embedding_model_code: str,
+    require_structure: bool = False,
+) -> bool:
+    """Require configured semantic, structure, and region evidence before ready."""
+    return bool(
+        await conn.fetchval(
+            """
+            select exists(
+                       select 1
+                         from post_content_unit unit
+                        where unit.post_id = $1
+                   )
+               and (
+                   $2 = ''
+                       or (
+                           not exists(
+                               select 1
+                                 from post_content_unit unit
+                                 left join post_content_embedding embedding
+                                   on embedding.post_content_unit_id = unit.post_content_unit_id
+                                  and embedding.embedding_model_code = $2
+                                where unit.post_id = $1
+                                  and embedding.post_content_embedding_id is null
+                           )
+                           and not exists(
+                               select 1
+                                 from post_content_unit unit
+                                 join post_content_image image
+                                   on image.post_content_unit_id = unit.post_content_unit_id
+                                 join post_content_image_region region
+                                   on region.post_content_image_id = image.post_content_image_id
+                                 left join post_content_image_region_embedding embedding
+                                   on embedding.post_content_image_region_id = region.post_content_image_region_id
+                                  and embedding.embedding_model_code = $2
+                                where unit.post_id = $1
+                                  and region.description_status_code = 'described'
+                                  and embedding.post_content_image_region_embedding_id is null
+                           )
+                       )
+                   )
+               and (
+                       not $3::boolean
+                       or not exists(
+                           select 1
+                             from post_content_unit unit
+                             left join post_content_unit_structure structure
+                               on structure.post_content_unit_id = unit.post_content_unit_id
+                            where unit.post_id = $1
+                              and unit.unit_kind_code <> 'image'
+                              and (
+                                  structure.post_content_unit_structure_id is null
+                                  or structure.decision_source_code = 'unresolved'
+                              )
+                       )
+                   )
+            """,
+            post_id,
+            embedding_model_code,
+            require_structure,
+        )
+    )
 
 
 def post_content_stream_fields(*, post_id: str, source_body_digest: str) -> dict[str, str]:
@@ -149,7 +218,7 @@ async def ensure_post_content_job(
     post_id: str,
     body: str,
     *,
-    content_present: bool,
+    content_complete: bool,
 ) -> PostContentJobRequest:
     """Create or requeue the job for the current source-body digest."""
     digest = source_body_sha256(body)
@@ -163,7 +232,7 @@ async def ensure_post_content_job(
         post_id,
     )
     if row is None:
-        initial_status = SUCCEEDED if content_present else QUEUED
+        initial_status = SUCCEEDED if content_complete else QUEUED
         await conn.execute(
             """
             insert into post_content_ingestion_job
@@ -185,7 +254,7 @@ async def ensure_post_content_job(
     status_code = str(row["status_code"])
     needs_requeue = (
         str(row["source_body_sha256"]) != digest
-        or (status_code == SUCCEEDED and not content_present)
+        or (status_code == SUCCEEDED and not content_complete)
     )
     if needs_requeue:
         await conn.execute(
@@ -222,22 +291,31 @@ async def republish_queued_post_content_jobs(
     *,
     limit: int = 100,
 ) -> int:
-    """Recover queued rows when Valkey was unavailable or its stream was lost."""
+    """Recover queued rows and stale running leases when Valkey lost wake-ups."""
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
             select post_id, source_body_sha256
             from post_content_ingestion_job
-            where status_code = $1
-              and (
-                  attempt_count = 0
-                  or queued_at <= now() - $2::interval
-              )
+            where (
+                status_code = $1
+                and (
+                    attempt_count = 0
+                    or queued_at <= now() - $2::interval
+                )
+            )
+               or (
+                    status_code = $3
+                    and started_at is not null
+                    and started_at < now() - $4::interval
+               )
             order by queued_at
-            limit $3
+            limit $5
             """,
             QUEUED,
             POST_CONTENT_RETRY_INTERVAL,
+            RUNNING,
+            STALE_RUNNING_INTERVAL,
             limit,
         )
     published = 0

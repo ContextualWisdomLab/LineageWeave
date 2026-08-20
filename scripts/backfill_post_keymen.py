@@ -23,7 +23,6 @@ from backend.app.main import (
     _organization_name_resolution_client,
     _relation_verification_client,
 )
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.http_client import HttpClientError
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.keyman_extraction import ContextualOrchestratorKeymanExtractionClient
@@ -46,39 +45,108 @@ def _orchestrator_config() -> tuple[str, str]:
 async def _select_posts(
     conn: asyncpg.Connection, *, limit: int, post_id: str | None
 ) -> list[asyncpg.Record]:
-    eligibility = SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")
+    """Select one explicit post or one bounded unprojected batch."""
     if post_id:
         return list(
-            # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli -- Eligibility is a fixed source-schema predicate; post_id is an asyncpg parameter.
             await conn.fetch(
-                f"""
+                """
                 select post_id, post_title, post_body, author_account_id,
                        source_author_code, source_company_code,
                        source_customer_code, source_project_code,
                        source_sales_pool_code, source_process_unit_code
                   from source_post post
                  where post.post_id = $1
-                   and {eligibility}
+                   and nullif(btrim(post.source_draft_code), '') is null
+                   and nullif(btrim(post.source_deleted_flag), '') is null
+                   and not (
+                       (
+                           nullif(btrim(post.source_author_code), '') is null
+                           and nullif(btrim(post.source_author_name), '') is null
+                           and nullif(btrim(post.source_company_code), '') is null
+                           and nullif(btrim(post.source_company_name), '') is null
+                           and nullif(btrim(post.source_process_unit_code), '') is null
+                           and nullif(btrim(post.source_process_unit_name), '') is null
+                           and nullif(btrim(post.source_sales_pool_code), '') is null
+                           and nullif(btrim(post.source_sales_pool_name), '') is null
+                           and nullif(btrim(post.source_customer_code), '') is null
+                           and nullif(btrim(post.source_customer_name), '') is null
+                           and nullif(btrim(post.source_project_code), '') is null
+                           and nullif(btrim(post.source_project_name), '') is null
+                       )
+                       and exists (
+                           select 1
+                             from source_post real_post
+                            where (
+                                nullif(btrim(real_post.source_author_code), '') is not null
+                                or nullif(btrim(real_post.source_author_name), '') is not null
+                                or nullif(btrim(real_post.source_company_code), '') is not null
+                                or nullif(btrim(real_post.source_company_name), '') is not null
+                                or nullif(btrim(real_post.source_process_unit_code), '') is not null
+                                or nullif(btrim(real_post.source_process_unit_name), '') is not null
+                                or nullif(btrim(real_post.source_sales_pool_code), '') is not null
+                                or nullif(btrim(real_post.source_sales_pool_name), '') is not null
+                                or nullif(btrim(real_post.source_customer_code), '') is not null
+                                or nullif(btrim(real_post.source_customer_name), '') is not null
+                                or nullif(btrim(real_post.source_project_code), '') is not null
+                                or nullif(btrim(real_post.source_project_name), '') is not null
+                            )
+                       )
+                   )
                 """,
                 post_id,
             )
         )
     return list(
-        # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli -- Eligibility is a fixed source-schema predicate; limit is an asyncpg parameter.
         await conn.fetch(
-            f"""
+            """
             select post_id, post_title, post_body, author_account_id,
                    source_author_code, source_company_code,
                    source_customer_code, source_project_code,
                    source_sales_pool_code, source_process_unit_code
               from source_post post
-             where {eligibility}
+             where nullif(btrim(post.source_draft_code), '') is null
+               and nullif(btrim(post.source_deleted_flag), '') is null
+               and not (
+                   (
+                       nullif(btrim(post.source_author_code), '') is null
+                       and nullif(btrim(post.source_author_name), '') is null
+                       and nullif(btrim(post.source_company_code), '') is null
+                       and nullif(btrim(post.source_company_name), '') is null
+                       and nullif(btrim(post.source_process_unit_code), '') is null
+                       and nullif(btrim(post.source_process_unit_name), '') is null
+                       and nullif(btrim(post.source_sales_pool_code), '') is null
+                       and nullif(btrim(post.source_sales_pool_name), '') is null
+                       and nullif(btrim(post.source_customer_code), '') is null
+                       and nullif(btrim(post.source_customer_name), '') is null
+                       and nullif(btrim(post.source_project_code), '') is null
+                       and nullif(btrim(post.source_project_name), '') is null
+                   )
+                   and exists (
+                       select 1
+                         from source_post real_post
+                        where (
+                            nullif(btrim(real_post.source_author_code), '') is not null
+                            or nullif(btrim(real_post.source_author_name), '') is not null
+                            or nullif(btrim(real_post.source_company_code), '') is not null
+                            or nullif(btrim(real_post.source_company_name), '') is not null
+                            or nullif(btrim(real_post.source_process_unit_code), '') is not null
+                            or nullif(btrim(real_post.source_process_unit_name), '') is not null
+                            or nullif(btrim(real_post.source_sales_pool_code), '') is not null
+                            or nullif(btrim(real_post.source_sales_pool_name), '') is not null
+                            or nullif(btrim(real_post.source_customer_code), '') is not null
+                            or nullif(btrim(real_post.source_customer_name), '') is not null
+                            or nullif(btrim(real_post.source_project_code), '') is not null
+                            or nullif(btrim(real_post.source_project_name), '') is not null
+                        )
+                   )
+               )
                and not exists (
-                   select 1 from post_person_mention mention
+                   select 1
+                     from post_person_mention mention
                     where mention.post_id = post.post_id
                )
              order by post.created_at, post.post_id
-             limit $1
+             limit $1::bigint
             """,
             limit,
         )

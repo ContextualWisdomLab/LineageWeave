@@ -10,10 +10,12 @@ from backend.app.post_content_queue import (
     FAILED,
     POST_CONTENT_RETRY_INTERVAL,
     POST_CONTENT_STREAM_KEY,
+    STALE_RUNNING_INTERVAL,
     QUEUED,
     RUNNING,
     SUCCEEDED,
     post_content_api_status,
+    post_content_is_complete,
     post_content_stream_fields,
     source_body_sha256,
 )
@@ -42,6 +44,95 @@ def test_api_status_does_not_call_failed_content_ready() -> None:
     assert post_content_api_status(FAILED, content_present=True) == "unavailable"
 
 
+def test_embedding_gap_is_not_complete_content() -> None:
+    class FakeConnection:
+        async def fetchval(self, query: str, *_args: object) -> int:
+            assert "post_content_embedding" in query
+            assert "post_content_image_region_embedding" in query
+            assert "unit_kind_code <> 'image'" in query
+            return 0
+
+    assert (
+        asyncio.run(
+            post_content_is_complete(
+                FakeConnection(),
+                "00000000-0000-0000-0000-000000000001",
+                embedding_model_code="text-embedding-3-large",
+            )
+        )
+        is False
+    )
+
+
+def test_structure_gap_is_part_of_orchestrated_completeness() -> None:
+    class FakeConnection:
+        async def fetchval(self, query: str, *_args: object) -> int:
+            assert "post_content_unit_structure" in query
+            assert "decision_source_code = 'unresolved'" in query
+            return 0
+
+    assert (
+        asyncio.run(
+            post_content_is_complete(
+                FakeConnection(),
+                "00000000-0000-0000-0000-000000000001",
+                embedding_model_code="text-embedding-3-large",
+                require_structure=True,
+            )
+        )
+        is False
+    )
+
+
+def test_republish_query_recovers_due_queue_and_stale_running_leases() -> None:
+    from backend.app import post_content_queue
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args: object):
+            assert "status_code = $1" in query
+            assert "status_code = $3" in query
+            assert "started_at < now() - $4::interval" in query
+            assert args[0] == QUEUED
+            assert args[2] == RUNNING
+            assert args[1] == POST_CONTENT_RETRY_INTERVAL
+            return [
+                {
+                    "post_id": "00000000-0000-0000-0000-000000000001",
+                    "source_body_sha256": "a" * 64,
+                }
+            ]
+
+    class Acquire:
+        async def __aenter__(self):
+            return FakeConnection()
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    class Pool:
+        def acquire(self):
+            return Acquire()
+
+    class Client:
+        pass
+
+    published: list[tuple[str, str]] = []
+
+    async def publish(_client, *, post_id: str, source_body_digest: str) -> bool:
+        published.append((post_id, source_body_digest))
+        return True
+
+    original = post_content_queue.publish_post_content_event
+    post_content_queue.publish_post_content_event = publish
+    try:
+        assert asyncio.run(
+            post_content_queue.republish_queued_post_content_jobs(Client(), Pool())
+        ) == 1
+    finally:
+        post_content_queue.publish_post_content_event = original
+    assert published == [("00000000-0000-0000-0000-000000000001", "a" * 64)]
+
+
 def test_existing_units_are_requeued_when_the_source_digest_changes() -> None:
     from backend.app.post_content_queue import ensure_post_content_job
 
@@ -67,7 +158,7 @@ def test_existing_units_are_requeued_when_the_source_digest_changes() -> None:
             conn,
             "00000000-0000-0000-0000-000000000001",
             "new body",
-            content_present=True,
+            content_complete=True,
         )
     )
 
@@ -98,7 +189,7 @@ def test_existing_units_register_as_succeeded_without_a_wakeup() -> None:
             conn,
             "00000000-0000-0000-0000-000000000001",
             "existing body",
-            content_present=True,
+            content_complete=True,
         )
     )
 
@@ -128,7 +219,7 @@ def test_failed_same_body_is_not_requeued_by_a_read_poll() -> None:
             FakeConnection(),
             "00000000-0000-0000-0000-000000000001",
             "same body",
-            content_present=False,
+            content_complete=False,
         )
     )
 
@@ -161,7 +252,7 @@ def test_changed_body_resets_a_terminal_job_and_republishes() -> None:
             conn,
             "00000000-0000-0000-0000-000000000001",
             "new body",
-            content_present=False,
+            content_complete=False,
         )
     )
 
@@ -220,7 +311,7 @@ def test_recovery_republishes_due_rows_in_queued_at_order() -> None:
     assert client.events == [("first", "a" * 64), ("second", "b" * 64)]
     assert "queued_at <= now() - $2::interval" in connection.query
     assert "order by queued_at" in connection.query
-    assert connection.args == (QUEUED, POST_CONTENT_RETRY_INTERVAL, 2)
+    assert connection.args == (QUEUED, POST_CONTENT_RETRY_INTERVAL, RUNNING, STALE_RUNNING_INTERVAL, 2)
 
 
 def test_migration_contains_normalized_job_and_status_event_tables() -> None:
