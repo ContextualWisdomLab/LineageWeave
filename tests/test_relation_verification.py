@@ -18,6 +18,7 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 
 from lineageweave.relation_verification import (
+    RelationVerificationClient,
     STATUS_CORROBORATED,
     STATUS_UNCORROBORATED,
     NullRelationVerificationClient,
@@ -33,7 +34,16 @@ class _ResultsHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         query = parse_qs(parsed.query)
         type(self).received_query = query.get("q", [""])[0]
-        if "Acme" in type(self).received_query:
+        if "NoList" in type(self).received_query:
+            payload = {"query": type(self).received_query, "results": {}}
+        elif "Skip" in type(self).received_query:
+            payload = {"query": type(self).received_query, "results": [None]}
+        elif "NoEvidence" in type(self).received_query:
+            payload = {
+                "query": type(self).received_query,
+                "results": [{"url": "https://example.com/item", "content": ""}],
+            }
+        elif "Acme" in type(self).received_query:
             payload = {
                 "query": type(self).received_query,
                 "results": [
@@ -72,6 +82,12 @@ def test_null_client_is_unavailable_not_silently_uncorroborated() -> None:
         client.verify("Acme Corp", "Voice of Customer")
 
 
+def test_protocol_stub_raises_instead_of_returning_a_fake_result() -> None:
+    """The protocol's executable stub must fail if called directly."""
+    with pytest.raises(NotImplementedError):
+        RelationVerificationClient.verify(object(), "Acme", "Voice of Customer")
+
+
 def test_searxng_client_reports_corroborated_with_evidence_url() -> None:
     server, base = _serve()
     try:
@@ -91,6 +107,21 @@ def test_searxng_client_reports_uncorroborated_with_no_evidence_url_when_search_
     try:
         client = SearxngRelationVerificationClient(base_url=base)
         result = client.verify("Totally Fictitious Nonexistent Org", "Voice of Customer")
+    finally:
+        server.shutdown()
+
+    assert result.status_code == STATUS_UNCORROBORATED
+    assert result.evidence_url is None
+
+
+@pytest.mark.parametrize("organization_name", ["NoList", "Skip", "NoEvidence"])
+def test_searxng_client_fails_closed_for_unusable_results(organization_name: str) -> None:
+    """Malformed and unciting search results remain explicitly uncorroborated."""
+    server, base = _serve()
+    try:
+        result = SearxngRelationVerificationClient(base_url=base).verify(
+            organization_name, "Voice of Customer"
+        )
     finally:
         server.shutdown()
 
@@ -128,6 +159,33 @@ def test_legal_suffix_alone_is_not_corroboration() -> None:
         corroborating_evidence_url(
             "Acme Corp",
             {"url": "https://randomcorp.example/news", "title": "News", "content": ""},
+        )
+        is None
+    )
+
+
+def test_fixture_descriptors_do_not_corrobate_an_unrelated_search_hit() -> None:
+    """Generic synthetic-data words must not stand in for organization identity."""
+    assert (
+        corroborating_evidence_url(
+            "Zzqxvthorp Fictitious Nonexistent Org",
+            {
+                "url": "https://learn.microsoft.com/writing-style",
+                "title": "Fictitious names and addresses",
+                "content": "Documentation explains fictitious and nonexistent examples.",
+            },
+        )
+        is None
+    )
+
+
+def test_missing_url_and_all_generic_tokens_are_not_evidence() -> None:
+    """Missing URLs and names made only of fixture words cannot cite evidence."""
+    assert corroborating_evidence_url("Acme Corp", {"content": "Acme"}) is None
+    assert (
+        corroborating_evidence_url(
+            "Fictitious Nonexistent Org",
+            {"url": "https://example.com/item", "content": "Fictitious"},
         )
         is None
     )

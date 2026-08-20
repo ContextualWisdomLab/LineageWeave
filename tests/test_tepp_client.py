@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
@@ -28,6 +30,29 @@ def test_to_json_matches_tepp_published_schema_shape() -> None:
         "model_contract_version": "v1",
         "output_profile": "graphml",
     }
+
+
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("idempotency_key", " "),
+        ("tenant_workspace_id", None),
+        ("snapshot_id", "\t"),
+        ("knowledge_cutoff", ""),
+        ("model_contract_version", "\n"),
+        ("output_profile", None),
+    ],
+)
+def test_request_rejects_non_blank_schema_fields(field_name: str, value: object) -> None:
+    """A v1 request must not send blank or non-text required fields."""
+    with pytest.raises(ValueError, match=field_name):
+        replace(_sample_request(), **{field_name: value})
+
+
+def test_request_rejects_unknown_contract_version() -> None:
+    """The adapter must not silently emit a request for another contract."""
+    with pytest.raises(ValueError, match="contract_version=1"):
+        replace(_sample_request(), contract_version=2)
 
 
 def test_default_transport_fails_closed_until_tepp_ships_http() -> None:

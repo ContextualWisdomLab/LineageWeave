@@ -56,6 +56,13 @@ _ORG_TOKEN_STOPWORDS = frozenset(
         "group",
         "holdings",
         "limited",
+        # Fixture descriptors are search vocabulary, not organization identity.
+        "fictitious",
+        "nonexistent",
+        "placeholder",
+        "sample",
+        "example",
+        "demo",
         "foundation",
         "the",
         "and",
