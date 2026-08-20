@@ -15,7 +15,7 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `4e05fa6`, the pushed head of contextual-orchestrator PR #765. The pin
+commit `6db772e`, the pushed head of contextual-orchestrator PR #765. The pin
 remains explicit and immutable until the protected PR merges; it is not a
 moving `main` reference and it is not a LineageWeave monkey patch.
 

@@ -740,7 +740,7 @@ def _parse_summary_details(
 
 
 class ContextualOrchestratorPostSummaryClient:
-    """Derive summary and semantic evidence through two ``mode="route"`` calls."""
+    """Derive summary and semantic evidence through two ``mode="auto"`` calls."""
 
     available = True
 
