@@ -1749,6 +1749,23 @@ describe("App, authenticated", () => {
     });
   }
 
+  async function expectGnbKeymanFocus(postTitle: string) {
+    await waitFor(() => expect(document.getElementById("post-keyman")).toHaveFocus());
+    const lineageNext = screen.getByRole("status", { name: "Event Lineage next action" });
+    expect(lineageNext).toHaveTextContent(
+      `${postTitle} is current in Event Lineage. Read Keyman and evaluation next.`,
+    );
+    const keyman = screen.getByRole("heading", { name: "Keymen" });
+    expect(lineageNext.compareDocumentPosition(keyman) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  }
+
+  async function expectHomeListSkipsGnbKeymanFocus() {
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Keymen" })).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(document.getElementById("post-keyman")).not.toHaveFocus();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+  }
+
   it("renders safe Ask Agent evidence under each cited post", async () => {
     stubBackend();
     render(<App />);
@@ -1982,20 +1999,16 @@ describe("App, authenticated", () => {
     await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).toHaveFocus();
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Public post");
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
     await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
-    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    await expectHomeListSkipsGnbKeymanFocus();
   });
 
-  it("does not scroll Calendar users away from Event Lineage when related evidence lands", async () => {
+  it("never runs the report-member Ask auto-land chain for a Calendar open (ADR 0100)", async () => {
     const scrolledIds: string[] = [];
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
     HTMLElement.prototype.scrollIntoView = function () {
@@ -2011,8 +2024,8 @@ describe("App, authenticated", () => {
         within(calendar).getByRole("button", { name: "Open commitment for: Public post" }),
       );
 
-      await screen.findByRole("status", { name: "Ask next action" });
-      expect(document.getElementById("post-event-lineage")).toHaveFocus();
+      await expectGnbKeymanFocus("Public post");
+      expect(screen.queryByRole("status", { name: "Ask next action" })).not.toBeInTheDocument();
       expect(scrolledIds).not.toContain("post-ask");
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
@@ -2033,17 +2046,13 @@ describe("App, authenticated", () => {
     );
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).toHaveFocus();
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Public post");
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     const board = screen.getByRole("region", { name: "Board" });
     await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
-    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    await expectHomeListSkipsGnbKeymanFocus();
   });
 
   it("opening a Customer master related post focuses Event Lineage; a home list open does not", async () => {
@@ -2061,10 +2070,7 @@ describe("App, authenticated", () => {
     );
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).toHaveFocus();
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Public post");
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     const boardAfterCustomer = screen.getByRole("region", { name: "Board" });
@@ -2072,8 +2078,7 @@ describe("App, authenticated", () => {
       within(boardAfterCustomer).getByRole("button", { name: "View post: Public post" }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
-    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    await expectHomeListSkipsGnbKeymanFocus();
   });
 
   it("keeps the current Customer master loading state when an older request finishes", async () => {
@@ -2114,17 +2119,13 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
-    expect(document.getElementById("post-event-lineage")).toHaveFocus();
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Linked post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Linked post");
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     const boardAfterAsk = screen.getByRole("region", { name: "Board" });
     await userEvent.click(within(boardAfterAsk).getByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
-    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    await expectHomeListSkipsGnbKeymanFocus();
   });
 
   it("ignores a stale summary after Event Lineage navigation changes the selected post", async () => {
@@ -2165,16 +2166,11 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Linked post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Linked post");
 
     await userEvent.click(screen.getByLabelText("Open post: Public post"));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).toHaveFocus();
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Public post");
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     const boardAfterAsk = screen.getByRole("region", { name: "Board" });
@@ -2184,8 +2180,7 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
-    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
-    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    await expectHomeListSkipsGnbKeymanFocus();
   });
 
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
