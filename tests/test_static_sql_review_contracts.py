@@ -19,6 +19,7 @@ SQL_REVIEW_PATHS = (
     "scripts/backfill_post_content.py",
     "scripts/backfill_post_keymen.py",
     "scripts/backfill_post_summaries.py",
+    "scripts/queue_post_content_backfill.py",
 )
 ASYNC_STATEMENT_METHODS = {"execute", "fetch", "fetchrow", "fetchval"}
 
