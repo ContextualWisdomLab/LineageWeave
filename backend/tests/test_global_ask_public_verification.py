@@ -6,10 +6,12 @@ import pytest
 
 from backend.app import main
 from lineageweave.claim_verification import (
+    CLAIM_NOT_ENOUGH_INFORMATION,
     CLAIM_SUPPORTED,
     VERIFICATION_COMPLETED,
     VERIFICATION_NO_PUBLIC_CLAIMS,
     VERIFICATION_SKIPPED,
+    VERIFICATION_UNAVAILABLE,
     ClaimVerificationResult,
     GlobalAskSourceDocument,
 )
@@ -28,6 +30,45 @@ def test_global_ask_external_verification_is_backward_compatible_opt_in() -> Non
     request = main.GlobalAskRequest(question="Apollo")
     assert request.verify_external is False
     assert main.GlobalAskRequest(question="Apollo", verify_external=True).verify_external is True
+
+
+@pytest.mark.parametrize(
+    ("status_code", "expected"),
+    [
+        (VERIFICATION_SKIPPED, "Enable public verification to check eligible public claims."),
+        (
+            VERIFICATION_UNAVAILABLE,
+            "Configure public search and contextual-orchestrator, then retry.",
+        ),
+        (
+            VERIFICATION_NO_PUBLIC_CLAIMS,
+            "Inspect the internal cited posts; no public claim was eligible.",
+        ),
+        (
+            VERIFICATION_COMPLETED,
+            "Inspect public evidence separately before any governed graph review.",
+        ),
+        (
+            CLAIM_NOT_ENOUGH_INFORMATION,
+            "Collect stronger authoritative evidence before accepting the claim.",
+        ),
+        ("unknown", "Inspect the authorized cited posts and their evidence."),
+    ],
+)
+def test_verification_next_actions_are_stable_translation_keys(
+    status_code: str,
+    expected: str,
+) -> None:
+    """Every verification state returns one frontend translation key."""
+    assert main._verification_next_action(status_code) == expected
+
+
+def test_no_source_next_action_takes_priority_over_verification_state() -> None:
+    """An empty authorized source set keeps its specific buyer guidance."""
+    assert main._verification_next_action(
+        VERIFICATION_SKIPPED,
+        has_authorized_sources=False,
+    ) == "No authorized source posts are available for this question."
 
 
 @pytest.mark.anyio

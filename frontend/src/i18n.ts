@@ -184,6 +184,18 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic role": "의미 기반 역할",
     "Semantic Keyman": "의미 기반 핵심 담당자",
     "No authorized source posts are available for this question.": "이 질문에 사용할 수 있는 권한 있는 원문이 없습니다.",
+    "Enable public verification to check eligible public claims.":
+      "공개 검증을 켜서 검증 가능한 공개 주장을 확인하세요.",
+    "Configure public search and contextual-orchestrator, then retry.":
+      "공개 검색과 contextual-orchestrator를 구성한 뒤 다시 시도하세요.",
+    "Inspect the internal cited posts; no public claim was eligible.":
+      "내부 인용 글을 확인하세요. 공개 검증 대상 주장이 없습니다.",
+    "Inspect public evidence separately before any governed graph review.":
+      "관리되는 그래프 검토 전에 공개 증거를 별도로 확인하세요.",
+    "Collect stronger authoritative evidence before accepting the claim.":
+      "주장을 받아들이기 전에 더 강한 권위 있는 증거를 수집하세요.",
+    "Inspect the authorized cited posts and their evidence.":
+      "권한이 있는 인용 글과 그 증거를 확인하세요.",
     "Choose an authorized post before asking a question.": "질문하기 전에 권한이 있는 글을 선택하세요.",
     "Loading source posts...": "질문할 원문을 불러오는 중...",
     "Source posts could not be loaded.": "질문할 원문을 불러오지 못했습니다.",
@@ -526,6 +538,18 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic role": "语义角色",
     "Semantic Keyman": "语义关键人员",
     "No authorized source posts are available for this question.": "没有可用于此问题的已授权来源文章。",
+    "Enable public verification to check eligible public claims.":
+      "启用公开验证以检查符合条件的公开声明。",
+    "Configure public search and contextual-orchestrator, then retry.":
+      "配置公开搜索和 contextual-orchestrator，然后重试。",
+    "Inspect the internal cited posts; no public claim was eligible.":
+      "检查内部引用文章；没有符合条件的公开声明。",
+    "Inspect public evidence separately before any governed graph review.":
+      "在进行受控图谱审查前，先单独检查公开证据。",
+    "Collect stronger authoritative evidence before accepting the claim.":
+      "在接受该声明前，收集更有力的权威证据。",
+    "Inspect the authorized cited posts and their evidence.":
+      "检查已授权的引用文章及其证据。",
     "Choose an authorized post before asking a question.": "提问前请选择有权限查看的文章。",
     "Loading source posts...": "正在加载问题来源文章...",
     "Source posts could not be loaded.": "无法加载问题来源文章。",
@@ -891,6 +915,18 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic role": "意味的な役割",
     "Semantic Keyman": "意味的なキーパーソン",
     "No authorized source posts are available for this question.": "この質問に利用できる許可済みの原文投稿はありません。",
+    "Enable public verification to check eligible public claims.":
+      "公開検証を有効にして、対象となる公開主張を確認してください。",
+    "Configure public search and contextual-orchestrator, then retry.":
+      "公開検索と contextual-orchestrator を設定してから再試行してください。",
+    "Inspect the internal cited posts; no public claim was eligible.":
+      "内部の引用投稿を確認してください。公開検証の対象となる主張はありません。",
+    "Inspect public evidence separately before any governed graph review.":
+      "管理されたグラフレビューの前に、公開証拠を別途確認してください。",
+    "Collect stronger authoritative evidence before accepting the claim.":
+      "主張を受け入れる前に、より強い権威ある証拠を収集してください。",
+    "Inspect the authorized cited posts and their evidence.":
+      "許可された引用投稿とその証拠を確認してください。",
     "Choose an authorized post before asking a question.": "質問する前に閲覧権限のある投稿を選択してください。",
     "Loading source posts...": "質問の原文を読み込んでいます...",
     "Source posts could not be loaded.": "質問の原文を読み込めませんでした。",
@@ -1232,6 +1268,18 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic role": "Vai trò ngữ nghĩa",
     "Semantic Keyman": "Keyman ngữ nghĩa",
     "No authorized source posts are available for this question.": "Không có bài viết nguồn được cấp quyền cho câu hỏi này.",
+    "Enable public verification to check eligible public claims.":
+      "Bật xác minh công khai để kiểm tra các tuyên bố công khai đủ điều kiện.",
+    "Configure public search and contextual-orchestrator, then retry.":
+      "Cấu hình tìm kiếm công khai và contextual-orchestrator, rồi thử lại.",
+    "Inspect the internal cited posts; no public claim was eligible.":
+      "Kiểm tra các bài viết được trích dẫn nội bộ; không có tuyên bố công khai nào đủ điều kiện.",
+    "Inspect public evidence separately before any governed graph review.":
+      "Kiểm tra riêng bằng chứng công khai trước khi xem xét đồ thị có quản trị.",
+    "Collect stronger authoritative evidence before accepting the claim.":
+      "Thu thập bằng chứng có thẩm quyền mạnh hơn trước khi chấp nhận tuyên bố.",
+    "Inspect the authorized cited posts and their evidence.":
+      "Kiểm tra các bài viết trích dẫn được cấp quyền và bằng chứng của chúng.",
     "Choose an authorized post before asking a question.": "Hãy chọn một bài viết được cấp quyền trước khi đặt câu hỏi.",
     "Loading source posts...": "Đang tải bài viết nguồn cho câu hỏi...",
     "Source posts could not be loaded.": "Không thể tải bài viết nguồn cho câu hỏi.",
