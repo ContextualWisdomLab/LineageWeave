@@ -1,0 +1,82 @@
+name: Request exact-head stack review
+
+on:
+  push:
+    branches:
+      - automation/advance-tepp-buyer-stack-20260820
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  request:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout status snapshot
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: automation/advance-tepp-buyer-stack-20260820
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Request review only for an exact-head approval blocker
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          path = Path("stack_status.json")
+          if not path.exists():
+              raise SystemExit(0)
+          status = json.loads(path.read_text(encoding="utf-8"))
+          number = status.get("blocked_at")
+          if not isinstance(number, int):
+              raise SystemExit(0)
+          record = next(
+              (row for row in status.get("pulls", []) if row.get("number") == number),
+              {},
+          )
+          blockers = set(record.get("blockers") or [])
+          if "independent exact-head approval is missing" not in blockers:
+              raise SystemExit(0)
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          subprocess.run(
+              [
+                  "gh", "api", f"repos/{repo}/pulls/{number}/requested_reviewers",
+                  "--method", "POST",
+                  "--raw-field", "reviewers[]=copilot-pull-request-reviewer[bot]",
+              ],
+              check=False,
+          )
+
+          marker = "<!-- CWL_EXACT_HEAD_REVIEW_REQUEST -->"
+          comments = json.loads(
+              subprocess.check_output(
+                  ["gh", "api", f"repos/{repo}/issues/{number}/comments?per_page=100"],
+                  text=True,
+              )
+          )
+          if any(marker in str(comment.get("body") or "") for comment in comments):
+              raise SystemExit(0)
+          body = (
+              f"{marker}\n"
+              "@coderabbitai review\n\n"
+              "Please review the exact current head. Focus on the stacked "
+              "Buyer-surface contract, RBAC/ABAC and cutoff preservation, "
+              "TEPP evidence-bundle confinement, credential-free transport, "
+              "localized accessible timeline behavior, and non-causal authority boundary."
+          )
+          subprocess.run(
+              ["gh", "pr", "comment", str(number), "--repo", repo, "--body", body],
+              check=True,
+          )
+          PY
