@@ -84,6 +84,8 @@ def regions_cover_image(regions: tuple[ImageRegion, ...] | list[ImageRegion]) ->
     """
     if not regions:
         return False
+    if len(regions) == 1 and regions[0] == ImageRegion(0.0, 0.0, 1.0, 1.0):
+        return False
     sample_count = 32
     points = range(sample_count + 1)
     return all(

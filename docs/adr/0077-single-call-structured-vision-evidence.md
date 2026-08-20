@@ -18,9 +18,10 @@ failed run left no content artifact or vector.
 Each DOM image first crosses the contextual-orchestrator VISION boundary with
 one `json_object` region-location request. Accepted normalized regions are
 cropped locally, and each crop crosses the same orchestrated `describe`
-boundary for OCR, caption, and tags. If no region is returned, the whole image
-is described once. LineageWeave persists the image and image-region evidence
-without inventing coordinates. Every request uses `mode=auto` and
+boundary for OCR, caption, and tags. A single `(0, 0, 1, 1)` response is not a
+decomposition and is rejected as locator evidence. If no meaningful region is
+returned, the whole image is described once. LineageWeave persists the image
+and image-region evidence without inventing coordinates. Every request uses `mode=auto` and
 `reasoning_effort=auto`; it does not select a provider model or force a
 sampling temperature. Direct provider calls and monkey patches remain
 forbidden.
@@ -33,8 +34,9 @@ boundary decision, not a removal of orchestrator schema support.
 
 ## Consequences
 
-- Region-level evidence remains queryable, and a locator failure degrades to
-  whole-image evidence without fabricating a full-image region row.
+- Region-level evidence remains queryable, and a locator failure or a
+  single full-image box degrades to whole-image evidence without fabricating a
+  full-image region row.
 - The parser boundary enforces normalized coordinate bounds and the documented
   JSON object shape without claiming provider schema support that the live
   multimodal path does not currently satisfy.

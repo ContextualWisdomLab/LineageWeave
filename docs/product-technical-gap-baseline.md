@@ -383,9 +383,12 @@ any protected merge claim.
 
 A bounded private reprocessing run completed five parent-image descriptions,
 five region embeddings, and zero unresolved text-structure decisions. The
-stored region coordinates were all the full-image box, however; a separate
-locator probe exceeded the bounded diagnostic timeout. This proves the parent
-image channel is usable, but it does not prove detailed visual decomposition.
+stored region coordinates were all the full-image box, however; aggregate
+inspection found five full-image boxes, zero decomposed boxes, and four
+described region rows. This proves the parent image channel is usable, but it
+does not prove detailed visual decomposition. The observed full-image boxes
+were emitted by the locator and exposed a missing guard rather than evidence
+of five meaningful regions.
 
 The normalization path now preserves that distinction: an invalid or partial
 locator response keeps parent-image OCR/caption evidence but does not invent a
