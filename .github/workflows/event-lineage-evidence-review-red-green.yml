@@ -1,0 +1,161 @@
+# One-shot test-first review repair; successful publication removes this workflow and its transform.
+name: Event Lineage Evidence Review RED to GREEN
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - feat/event-lineage-channel-evidence-v2210
+    paths:
+      - .github/workflows/event-lineage-evidence-review-red-green.yml
+      - .github/scripts/apply_event_lineage_evidence_review.py
+
+permissions:
+  contents: write
+
+concurrency:
+  group: event-lineage-evidence-review-v2210
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    if: github.event.pull_request.head.ref == 'fix/event-lineage-evidence-review-v2210'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+      EXPECTED_PARENT_SHA: 0871e679231ff85d38e763f34b8dcc43ea582107
+
+    steps:
+      - name: Check out the exact repair branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: fix/event-lineage-evidence-review-v2210
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Verify exact immutable parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin feat/event-lineage-channel-evidence-v2210 fix/event-lineage-evidence-review-v2210
+          test "$(git rev-parse origin/feat/event-lineage-channel-evidence-v2210)" = "$EXPECTED_PARENT_SHA"
+          test "$(git merge-base "$EXPECTED_PARENT_SHA" HEAD)" = "$EXPECTED_PARENT_SHA"
+          python -m py_compile .github/scripts/apply_event_lineage_evidence_review.py
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "24"
+
+      - name: Install exact dependencies
+        run: |
+          uv sync --frozen --extra dev --extra backend
+          corepack enable
+          pnpm --dir frontend install --frozen-lockfile
+
+      - name: Commit the failing review contracts
+        id: red
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/apply_event_lineage_evidence_review.py red
+          git config user.name "CWL Event Lineage Review Agent"
+          git config user.email "actions@users.noreply.github.com"
+          git add tests/test_migration_replay.py frontend/src/LineageDag.test.tsx
+          git commit -m "test(lineage): specify replay and edge truth"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Prove the committed contracts are RED
+        shell: bash
+        run: |
+          set -uo pipefail
+          set +e
+          uv run --frozen python -m pytest -q tests/test_migration_replay.py \
+            2>&1 | tee /tmp/event-lineage-red-python.log
+          python_status=${PIPESTATUS[0]}
+          pnpm --dir frontend run test -- LineageDag \
+            2>&1 | tee /tmp/event-lineage-red-frontend.log
+          frontend_status=${PIPESTATUS[0]}
+          set -e
+          test "$python_status" -ne 0
+          test "$frontend_status" -ne 0
+          grep -F "0052_*" /tmp/event-lineage-red-python.log
+          grep -Eq "Follow-up event follows Initial event|localizes the parent-to-child relation" \
+            /tmp/event-lineage-red-frontend.log
+          echo "RED commit ${{ steps.red.outputs.sha }} reproduced both defects."
+
+      - name: Apply the minimum GREEN repair
+        run: |
+          set -euo pipefail
+          python .github/scripts/apply_event_lineage_evidence_review.py green
+          git diff --check
+          uv run --frozen python -m compileall -q backend lineageweave tests
+
+      - name: Verify focused Python contracts
+        run: >-
+          uv run --frozen python -m pytest -q
+          tests/test_migration_replay.py
+          tests/test_lineage_channel_evidence.py
+          tests/test_lineage_ingestion.py
+
+      - name: Verify focused Buyer contracts
+        working-directory: frontend
+        run: pnpm run test -- LineageDag lineageEvidenceI18n
+
+      - name: Verify the complete Python and PostgreSQL suite
+        run: uv run --frozen python -m pytest -q
+
+      - name: Verify the complete Buyer surface
+        working-directory: frontend
+        run: |
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Verify review invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F '0051_*|0052_*' docker/postgres-init/migrate.sh
+          grep -F 'edgeDescription: "{child} follows {parent} ({score})"' frontend/src/lineageEvidenceI18n.ts
+          grep -F 'lineageEvidenceEdgeDescription(' frontend/src/LineageDag.tsx
+          ! grep -F 'tf("{from} follows {to} ({score})"' frontend/src/LineageDag.tsx
+          git diff --check
+
+      - name: Publish only against the unchanged exact parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/feat/event-lineage-channel-evidence-v2210 | cut -f1)" = "$EXPECTED_PARENT_SHA"
+          git rm .github/workflows/event-lineage-evidence-review-red-green.yml
+          git rm .github/scripts/apply_event_lineage_evidence_review.py
+          git add -A
+          git commit -m "fix(lineage): preserve edge truth and migration replay"
+          git pull --rebase origin fix/event-lineage-evidence-review-v2210
+          git push origin HEAD:fix/event-lineage-evidence-review-v2210
