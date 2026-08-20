@@ -30,7 +30,6 @@ async def has_real_source_context(
     PostgreSQL import always does (see ``scripts/import_postgresql_posts.py``).
     """
     return bool(
-        # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli -- Only the fixed source_* column predicate is composed; account IDs remain an asyncpg parameter.
         await conn.fetchval(
             """
             select exists (
@@ -53,7 +52,6 @@ async def fetch_demo_corporate_entity_ids(conn: asyncpg.Connection) -> set[str]:
     code is therefore only a seed hint; row-level ``source_*`` evidence decides
     whether the entity is synthetic-only.
     """
-    # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli -- Only the fixed source_* column predicate is composed; entity IDs are not interpolated into SQL.
     rows = await conn.fetch(
         """
         select entity.corporate_entity_id

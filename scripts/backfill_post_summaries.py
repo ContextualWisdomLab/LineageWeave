@@ -112,7 +112,6 @@ async def _load_posts(
             ]
         )
     limit_sql = "" if limit is None else f" limit {int(limit)}"
-    # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli -- Predicate fragments are fixed source-schema constants; post IDs and limit are validated/bound values.
     return await conn.fetch(
         f"""
         select post.post_id, post.post_title, post.post_body, post.author_account_id,
