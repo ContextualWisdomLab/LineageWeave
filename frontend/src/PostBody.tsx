@@ -57,7 +57,11 @@ function renderSegment(segment: PostBodySegment, index: number, imageContent?: P
 }
 
 function isStructuredTableRow(unit: PostContentUnit): boolean {
-  return unit.unit_label === "tr" || unit.unit_label === "w:tr";
+  return (
+    unit.unit_label === "tr" ||
+    unit.unit_label === "w:tr" ||
+    unit.unit_kind_code === "table_row"
+  );
 }
 
 function renderStructuredUnits(
@@ -70,6 +74,10 @@ function renderStructuredUnits(
   );
   const rendered: ReactNode[] = [];
   let imageOrdinal = 0;
+  let textOrdinal = 0;
+  const sourceTextSegments = splitPostBody(body).filter(
+    (segment): segment is Extract<PostBodySegment, { kind: "text" }> => segment.kind === "text",
+  );
   let index = 0;
   while (index < structureUnits.length) {
     const unit = structureUnits[index];
@@ -105,15 +113,22 @@ function renderStructuredUnits(
       );
       continue;
     }
+    const sourceText = sourceTextSegments[textOrdinal++];
+    const persistedIndent =
+      unit.indent_level > 0 &&
+      (unit.indent_source_code === "explicit" || unit.indent_source_code === "llm")
+        ? unit.indent_level
+        : undefined;
     rendered.push(
       renderSegment(
         {
           kind: "text",
           text: unit.unit_text,
-          ...(unit.unit_label === "footnote" ? { role: "footnote" as const } : {}),
-          ...(unit.indent_level > 0 &&
-          (unit.indent_source_code === "explicit" || unit.indent_source_code === "llm")
-            ? { indentLevel: unit.indent_level }
+          ...(unit.unit_label === "footnote" || sourceText?.role === "footnote"
+            ? { role: "footnote" as const }
+            : {}),
+          ...(persistedIndent ?? sourceText?.indentLevel
+            ? { indentLevel: persistedIndent ?? sourceText?.indentLevel }
             : {}),
         },
         index,
@@ -134,15 +149,7 @@ export function PostBody({
   structureUnits?: PostContentUnit[];
 }) {
   let imageOrdinal = 0;
-  let textOrdinal = 0;
-  const textUnits = structureUnits.filter((unit) => unit.unit_kind_code !== "image");
-  const hasPersistedStructuralUnits = structureUnits.some(
-    (unit) =>
-      isStructuredTableRow(unit) ||
-      unit.unit_label === "footnote" ||
-      unit.indent_source_code === "explicit" ||
-      unit.indent_source_code === "llm",
-  );
+  const hasPersistedStructuralUnits = structureUnits.length > 0;
   if (hasPersistedStructuralUnits) {
     return <div className="post-body">{renderStructuredUnits(body, structureUnits, imageContent)}</div>;
   }
@@ -151,16 +158,7 @@ export function PostBody({
       {splitPostBody(body).map((segment, index) => {
         const content = segment.kind === "image" ? imageContent[imageOrdinal++] : undefined;
         if (segment.kind !== "text") return renderSegment(segment, index, content);
-        const structure = textUnits[textOrdinal++];
-        const authoritativeStructure =
-          structure?.indent_source_code === "explicit" || structure?.indent_source_code === "llm";
-        return renderSegment(
-          authoritativeStructure
-            ? { ...segment, indentLevel: structure.indent_level || undefined }
-            : segment,
-          index,
-          content,
-        );
+        return renderSegment(segment, index, content);
       })}
     </div>
   );
