@@ -83,6 +83,16 @@ function isStructuredTableRow(unit: PostContentUnit): boolean {
   );
 }
 
+/**
+ * Match a persisted unit to its source-rendering counterpart without relying
+ * on ordinal position. Tables and images can occupy a source display segment
+ * without being ordinary text units, so ordinal matching shifts indentation
+ * for every later unresolved unit.
+ */
+function normalizedUnitText(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
 function renderStructuredUnits(
   body: string,
   structureUnits: PostContentUnit[],
@@ -93,10 +103,21 @@ function renderStructuredUnits(
   );
   const rendered: ReactNode[] = [];
   let imageOrdinal = 0;
-  let textOrdinal = 0;
   const sourceTextSegments = splitPostBody(body).filter(
     (segment): segment is Extract<PostBodySegment, { kind: "text" }> => segment.kind === "text",
   );
+  const consumedSourceText = new Set<number>();
+  const sourceTextForUnit = (unitText: string) => {
+    const expected = normalizedUnitText(unitText);
+    const sourceIndex = sourceTextSegments.findIndex(
+      (segment, candidateIndex) =>
+        !consumedSourceText.has(candidateIndex) &&
+        normalizedUnitText(segment.text) === expected,
+    );
+    if (sourceIndex < 0) return undefined;
+    consumedSourceText.add(sourceIndex);
+    return sourceTextSegments[sourceIndex];
+  };
   let index = 0;
   while (index < structureUnits.length) {
     const unit = structureUnits[index];
@@ -132,7 +153,7 @@ function renderStructuredUnits(
       );
       continue;
     }
-    const sourceText = sourceTextSegments[textOrdinal++];
+    const sourceText = sourceTextForUnit(unit.unit_text);
     const persistedIndent =
       unit.indent_level > 0 &&
       (unit.indent_source_code === "explicit" || unit.indent_source_code === "llm")

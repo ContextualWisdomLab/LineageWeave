@@ -120,6 +120,37 @@ describe("PostBody", () => {
     expect(screen.queryAllByText("No.")).toHaveLength(1);
   });
 
+  it("keeps source indentation after a persisted table unit", () => {
+    render(
+      <PostBody
+        body="<table><tr><td>No.</td><td>Company</td></tr></table><p>&nbsp;&nbsp;Nested item</p>"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "dom",
+            unit_label: "tr",
+            unit_text: "No. | Company",
+            indent_level: 0,
+            indent_source_code: "explicit",
+            indent_confidence: 1,
+            indent_evidence: "table row",
+          },
+          {
+            unit_index: 1,
+            unit_kind_code: "dom",
+            unit_text: "Nested item",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Nested item")).toHaveAttribute("data-indent-level", "1");
+  });
+
   it("marks persisted footnotes as footnote evidence", () => {
     render(
       <PostBody
