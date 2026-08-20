@@ -138,7 +138,8 @@ async def persist_lineage_edges(
 
     Validation finishes before the first database statement. The caller owns
     the surrounding transaction so the run, profile, parent edges, and channel
-    children either commit together or all roll back.
+    children either commit together or all roll back. Superseded run profiles
+    are removed after their cascading edge evidence has been replaced.
     """
 
     version = reconstruction_version.strip()
@@ -148,6 +149,17 @@ async def persist_lineage_edges(
     validated_edges = [
         (edge, _validated_channel_rows(edge, profile)) for edge in edges
     ]
+
+    if not validated_edges:
+        await conn.execute("delete from post_lineage_edge")
+        await conn.execute(
+            "delete from lineage_reconstruction_run old_run "
+            "where not exists ("
+            "select 1 from post_lineage_edge edge "
+            "where edge.lineage_reconstruction_run_id = "
+            "old_run.lineage_reconstruction_run_id)"
+        )
+        return
 
     reconstruction_run_id = uuid4()
     generated_at = datetime.now(timezone.utc)
@@ -192,6 +204,16 @@ async def persist_lineage_edges(
                 channel_score,
                 channel_contribution,
             )
+
+    await conn.execute(
+        "delete from lineage_reconstruction_run old_run "
+        "where old_run.lineage_reconstruction_run_id <> $1 "
+        "and not exists ("
+        "select 1 from post_lineage_edge edge "
+        "where edge.lineage_reconstruction_run_id = "
+        "old_run.lineage_reconstruction_run_id)",
+        reconstruction_run_id,
+    )
 
 
 async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
@@ -259,7 +281,8 @@ async def visible_lineage_graph(
     )
     visible_all = [row for row in posts if can_see_post(row)]
     edge_rows = await conn.fetch(
-        "select parent_post_id, child_post_id, fused_score from post_lineage_edge"
+        "select parent_post_id, child_post_id, fused_score, "
+        "lineage_reconstruction_run_id from post_lineage_edge"
     )
 
     if focus_post_id is None:
@@ -400,12 +423,26 @@ async def visible_lineage_graph(
         edge_key = (str(row["parent_post_id"]), str(row["child_post_id"]))
         evidence = _ranked_channel_evidence(raw_evidence_by_edge.get(edge_key, []))
         fused_score = float(row["fused_score"])
-        if evidence and not math.isclose(
-            sum(item["contribution"] for item in evidence),
-            fused_score,
-            abs_tol=_FUSION_TOLERANCE,
-        ):
-            raise ValueError("persisted lineage evidence does not reconcile to fused score")
+        run_id = row.get("lineage_reconstruction_run_id")
+        if run_id is not None and not evidence:
+            raise ValueError("persisted lineage run is missing channel evidence")
+        if run_id is None and evidence:
+            raise ValueError("lineage channel evidence has no reconstruction run")
+        if evidence:
+            if not math.isclose(
+                sum(item["weight"] for item in evidence),
+                1.0,
+                abs_tol=_FUSION_TOLERANCE,
+            ):
+                raise ValueError("persisted lineage channel weights do not sum to 1")
+            if not math.isclose(
+                sum(item["contribution"] for item in evidence),
+                fused_score,
+                abs_tol=_FUSION_TOLERANCE,
+            ):
+                raise ValueError(
+                    "persisted lineage evidence does not reconcile to fused score"
+                )
         reconstruction = reconstruction_by_edge.get(edge_key)
         edges.append(
             {
