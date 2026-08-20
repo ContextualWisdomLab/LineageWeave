@@ -92,7 +92,11 @@ def _image_placeholder(description: ImageDescription) -> str:
 
 
 def normalize_post_body(
-    body: str, vision_client: ImageContentClient | None = None
+    body: str,
+    vision_client: ImageContentClient | None = None,
+    *,
+    session_id: str | None = None,
+    metadata: dict[str, str] | None = None,
 ) -> NormalizedPostContent:
     """Turn a raw ``post_body`` into text safe for an LLM/embedding call.
 
@@ -126,7 +130,15 @@ def normalize_post_body(
         elif chunk.unit_type == "image":
             if vision_client.available and chunk.image_data is not None:
                 try:
-                    description = vision_client.describe(chunk.image_data, chunk.label)
+                    if session_id is None and not metadata:
+                        description = vision_client.describe(chunk.image_data, chunk.label)
+                    else:
+                        description = vision_client.describe(
+                            chunk.image_data,
+                            chunk.label,
+                            session_id=session_id,
+                            metadata=metadata,
+                        )
                 except Exception:  # noqa: BLE001 - a provider failure must not drop the whole post.
                     text_parts.append("[image: content unavailable]")
                 else:

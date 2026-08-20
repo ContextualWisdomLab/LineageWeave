@@ -5,7 +5,6 @@ from dataclasses import replace
 import pytest
 from mcp.client import Client
 from mcp.server.auth.provider import AccessToken
-from mcp.server.transport_security import TransportSecuritySettings
 from starlette.testclient import TestClient
 
 from backend.app import mcp_server
@@ -197,19 +196,14 @@ def _initialize_request() -> dict[str, object]:
 
 
 def test_streamable_http_rejects_unauthenticated_request() -> None:
+    cfg = settings()
     pool = FakePool()
 
     async def pool_factory(_database_url: str):
         return pool
 
-    server = mcp_server.build_mcp_server(settings(), pool_factory=pool_factory)
-    app = server.streamable_http_app(
-        transport_security=TransportSecuritySettings(
-            enable_dns_rebinding_protection=True,
-            allowed_hosts=["testserver"],
-            allowed_origins=[],
-        )
-    )
+    server = mcp_server.build_mcp_server(cfg, pool_factory=pool_factory)
+    app = mcp_server.build_mcp_http_app(server, cfg)
     with TestClient(app) as client:
         response = client.post(
             "/mcp",
@@ -223,19 +217,14 @@ def test_streamable_http_rejects_unauthenticated_request() -> None:
 
 def test_streamable_http_rejects_untrusted_host_before_authentication() -> None:
     """DNS-rebinding protection rejects a hostile Host before token processing."""
+    cfg = settings()
     pool = FakePool()
 
     async def pool_factory(_database_url: str):
         return pool
 
-    server = mcp_server.build_mcp_server(settings(), pool_factory=pool_factory)
-    app = server.streamable_http_app(
-        transport_security=TransportSecuritySettings(
-            enable_dns_rebinding_protection=True,
-            allowed_hosts=["testserver"],
-            allowed_origins=[],
-        )
-    )
+    server = mcp_server.build_mcp_server(cfg, pool_factory=pool_factory)
+    app = mcp_server.build_mcp_http_app(server, cfg)
     with TestClient(app) as client:
         response = client.post(
             "/mcp",
@@ -246,6 +235,31 @@ def test_streamable_http_rejects_untrusted_host_before_authentication() -> None:
             },
         )
     assert response.status_code == 421
+    assert "www-authenticate" not in response.headers
+    assert pool.closed is True
+
+
+def test_streamable_http_rejects_untrusted_origin_before_authentication() -> None:
+    """A hostile browser Origin fails before OAuth or MCP request handling."""
+    cfg = replace(settings(), mcp_allowed_origins=["https://buyer.example"])
+    pool = FakePool()
+
+    async def pool_factory(_database_url: str):
+        return pool
+
+    server = mcp_server.build_mcp_server(cfg, pool_factory=pool_factory)
+    app = mcp_server.build_mcp_http_app(server, cfg)
+    with TestClient(app) as client:
+        response = client.post(
+            "/mcp",
+            json=_initialize_request(),
+            headers={
+                "Origin": "https://attacker.example",
+                "MCP-Protocol-Version": "2025-11-25",
+            },
+        )
+    assert response.status_code == 403
+    assert "www-authenticate" not in response.headers
     assert pool.closed is True
 
 

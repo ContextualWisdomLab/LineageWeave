@@ -1,0 +1,502 @@
+name: Implement multimodal MCP Global Ask once
+
+on:
+  push:
+    branches:
+      - agent/authenticated-mcp-global-ask
+    paths:
+      - .github/workflows/mcp-global-ask-multimodal-one-shot.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mcp-global-ask-multimodal-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  implement:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact MCP branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: agent/authenticated-mcp-global-ask
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Install current locked environment
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Write RED media regressions
+        run: |
+          cat > tests/test_mcp_global_ask_media.py <<'PY'
+          """Regressions for cited raster images in MCP Global Ask."""
+
+          from __future__ import annotations
+
+          import base64
+
+          import pytest
+
+          from backend.app.global_ask_media import load_global_ask_content_blocks
+
+
+          class _Connection:
+              def __init__(self, rows):
+                  self.rows = rows
+                  self.requested_ids = None
+
+              async def fetch(self, _sql: str, post_ids):
+                  self.requested_ids = post_ids
+                  return self.rows
+
+
+          @pytest.mark.asyncio
+          async def test_media_loader_returns_text_and_bounded_cited_raster_images() -> None:
+              png = base64.b64encode(b"project-timeline").decode("ascii")
+              svg = base64.b64encode(b"<svg/>").decode("ascii")
+              body = '<img src="data:image/svg+xml;base64,' + svg + '">'
+              body += "".join(f'<img src="data:image/png;base64,{png}">' for _ in range(5))
+              connection = _Connection(
+                  [
+                      {
+                          "post_id": "11111111-1111-1111-1111-111111111111",
+                          "post_title": "Project history screen",
+                          "post_body": body,
+                      }
+                  ]
+              )
+
+              blocks = await load_global_ask_content_blocks(
+                  connection,
+                  "The timeline connects award through rebid.",
+                  ["11111111-1111-1111-1111-111111111111"],
+              )
+
+              assert len(connection.requested_ids) == 1
+              assert [block.type for block in blocks] == ["text", "image", "image", "image"]
+              assert all(block.mime_type == "image/png" for block in blocks[1:])
+              assert base64.b64decode(blocks[1].data_base64 or "") == b"project-timeline"
+
+
+          @pytest.mark.asyncio
+          async def test_media_loader_drops_invalid_citation_ids_without_querying() -> None:
+              connection = _Connection([])
+              blocks = await load_global_ask_content_blocks(connection, "Text only", ["outside-source"])
+              assert len(blocks) == 1
+              assert blocks[0].text == "Text only"
+              assert connection.requested_ids is None
+          PY
+
+      - name: Verify RED failure is causal
+        run: |
+          set +e
+          uv run --frozen python -m pytest -q tests/test_mcp_global_ask_media.py > /tmp/mcp-media-red.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/mcp-media-red.log
+          test "$status" -ne 0
+          grep -q "global_ask_media" /tmp/mcp-media-red.log
+
+      - name: Apply minimal multimodal implementation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding="utf-8")
+              if new in text:
+                  return
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one replacement anchor, found {count}")
+              target.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          Path("backend/app/global_ask_media.py").write_text('''"""Bounded inline images for authorized, cited Global Ask sources."""
+
+from __future__ import annotations
+
+import base64
+from dataclasses import dataclass
+from typing import Any, Literal, Sequence
+from uuid import UUID
+
+from lineageweave.chunking import chunk_by_dom
+
+MAX_GLOBAL_ASK_IMAGE_COUNT = 3
+MAX_GLOBAL_ASK_IMAGE_BYTES = 2 * 1024 * 1024
+MAX_GLOBAL_ASK_TOTAL_IMAGE_BYTES = 4 * 1024 * 1024
+_ALLOWED_IMAGE_MIME_TYPES = frozenset(
+    {"image/png", "image/jpeg", "image/webp", "image/gif"}
+)
+
+
+@dataclass(frozen=True)
+class GlobalAskContentBlock:
+    """One text or inline-image block returned to an MCP host."""
+
+    type: Literal["text", "image"]
+    text: str | None = None
+    post_id: str | None = None
+    unit_index: int | None = None
+    mime_type: str | None = None
+    data_base64: str | None = None
+    alt_text: str | None = None
+    caption: str | None = None
+
+
+async def load_global_ask_content_blocks(
+    conn: Any,
+    answer_text: str,
+    cited_post_ids: Sequence[str],
+) -> tuple[GlobalAskContentBlock, ...]:
+    """Return text first, then bounded raster images from cited post bodies."""
+    blocks: list[GlobalAskContentBlock] = [
+        GlobalAskContentBlock(type="text", text=answer_text)
+    ]
+    ordered_ids: list[UUID] = []
+    seen: set[UUID] = set()
+    for post_id in cited_post_ids:
+        try:
+            parsed = UUID(post_id)
+        except (TypeError, ValueError):
+            continue
+        if parsed in seen:
+            continue
+        seen.add(parsed)
+        ordered_ids.append(parsed)
+    if not ordered_ids:
+        return tuple(blocks)
+
+    rows = await conn.fetch(
+        """
+        select post_id, post_title, post_body
+          from source_post
+         where post_id = any($1::uuid[])
+         order by array_position($1::uuid[], post_id)
+        """,
+        ordered_ids,
+    )
+    total_bytes = 0
+    image_count = 0
+    for row in rows:
+        post_id = str(row["post_id"])
+        post_title = str(row["post_title"] or "Source post")
+        for chunk in chunk_by_dom(str(row["post_body"] or "")):
+            if chunk.unit_type != "image" or chunk.image_data is None:
+                continue
+            mime_type = chunk.label.casefold()
+            if mime_type not in _ALLOWED_IMAGE_MIME_TYPES:
+                continue
+            byte_length = len(chunk.image_data)
+            if byte_length == 0 or byte_length > MAX_GLOBAL_ASK_IMAGE_BYTES:
+                continue
+            if total_bytes + byte_length > MAX_GLOBAL_ASK_TOTAL_IMAGE_BYTES:
+                return tuple(blocks)
+            blocks.append(
+                GlobalAskContentBlock(
+                    type="image",
+                    post_id=post_id,
+                    unit_index=chunk.index,
+                    mime_type=mime_type,
+                    data_base64=base64.b64encode(chunk.image_data).decode("ascii"),
+                    alt_text=f"{post_title} — source image {chunk.index + 1}",
+                    caption=post_title,
+                )
+            )
+            image_count += 1
+            total_bytes += byte_length
+            if image_count == MAX_GLOBAL_ASK_IMAGE_COUNT:
+                return tuple(blocks)
+    return tuple(blocks)
+''', encoding="utf-8")
+
+          replace_once(
+              "backend/app/global_ask.py",
+              "from backend.app.auth import CurrentAccount\n",
+              "from backend.app.auth import CurrentAccount\n"
+              "from backend.app.global_ask_media import (\n"
+              "    GlobalAskContentBlock,\n"
+              "    load_global_ask_content_blocks,\n"
+              ")\n",
+          )
+          replace_once(
+              "backend/app/global_ask.py",
+              "    source_post_ids: tuple[str, ...]\n",
+              "    source_post_ids: tuple[str, ...]\n"
+              "    content_blocks: tuple[GlobalAskContentBlock, ...] = ()\n",
+          )
+          replace_once(
+              "backend/app/global_ask.py",
+              "    cited_posts = tuple(cited_post_summaries(sources, cited_ids))\n    return GlobalAskAnswer(\n",
+              "    cited_posts = tuple(cited_post_summaries(sources, cited_ids))\n"
+              "    content_blocks = await load_global_ask_content_blocks(\n"
+              "        conn, answer.answer_text, cited_ids\n"
+              "    )\n"
+              "    return GlobalAskAnswer(\n",
+          )
+          replace_once(
+              "backend/app/global_ask.py",
+              "        source_post_ids=source_ids,\n    )\n",
+              "        source_post_ids=source_ids,\n"
+              "        content_blocks=content_blocks,\n"
+              "    )\n",
+          )
+
+          replace_once(
+              "backend/app/mcp_server.py",
+              "from typing import Any\n",
+              "from typing import Annotated, Any, Literal\n",
+          )
+          replace_once(
+              "backend/app/mcp_server.py",
+              "from mcp.types import ToolAnnotations\n",
+              "from mcp.types import CallToolResult, ImageContent, TextContent, ToolAnnotations\n",
+          )
+          replace_once(
+              "backend/app/mcp_server.py",
+              "class GlobalAskResult(BaseModel):\n",
+              '''class GlobalAskContentBlockModel(BaseModel):
+    """Structured metadata for one text or image response block."""
+
+    type: Literal["text", "image"]
+    text: str | None = None
+    post_id: str | None = None
+    unit_index: int | None = None
+    mime_type: str | None = None
+    data_base64: str | None = None
+    alt_text: str | None = None
+    caption: str | None = None
+
+
+class GlobalAskResult(BaseModel):
+''',
+          )
+          replace_once(
+              "backend/app/mcp_server.py",
+              "    answer_text: str\n    anchor_post_id: str\n",
+              "    answer_text: str\n"
+              "    content_blocks: list[GlobalAskContentBlockModel] = Field(default_factory=list)\n"
+              "    anchor_post_id: str\n",
+          )
+          replace_once(
+              "backend/app/mcp_server.py",
+              '        version="1.0.0",\n',
+              '        version="1.0.1",\n',
+          )
+          replace_once(
+              "backend/app/mcp_server.py",
+              "    ) -> GlobalAskResult:\n",
+              "    ) -> Annotated[CallToolResult, GlobalAskResult]:\n",
+          )
+          replace_once(
+              "backend/app/mcp_server.py",
+              "        return GlobalAskResult(\n            **asdict(result),\n            external_verification_status=verification.status_code,\n            external_evidence_urls=list(verification.evidence_urls),\n            external_verification_rationale=verification.rationale,\n        )\n",
+              '''        structured = GlobalAskResult(
+            **asdict(result),
+            external_verification_status=verification.status_code,
+            external_evidence_urls=list(verification.evidence_urls),
+            external_verification_rationale=verification.rationale,
+        )
+        content = [TextContent(type="text", text=result.answer_text)]
+        for block in result.content_blocks:
+            if block.type != "image" or not block.data_base64 or not block.mime_type:
+                continue
+            content.append(
+                ImageContent(
+                    type="image",
+                    data=block.data_base64,
+                    mime_type=block.mime_type,
+                )
+            )
+        return CallToolResult(
+            content=content,
+            structured_content=structured.model_dump(mode="json"),
+        )
+''',
+          )
+
+          replace_once(
+              "tests/test_mcp_server.py",
+              "from mcp.server.transport_security import TransportSecuritySettings\n",
+              "from mcp.server.transport_security import TransportSecuritySettings\n"
+              "from mcp.types import ImageContent, TextContent\n",
+          )
+          replace_once(
+              "tests/test_mcp_server.py",
+              "from backend.app.global_ask import GlobalAskAnswer\n",
+              "from backend.app.global_ask import GlobalAskAnswer\n"
+              "from backend.app.global_ask_media import GlobalAskContentBlock\n",
+          )
+          replace_once(
+              "tests/test_mcp_server.py",
+              "            source_post_ids=(\"post-1\",),\n        )\n",
+              "            source_post_ids=(\"post-1\",),\n"
+              "            content_blocks=(\n"
+              "                GlobalAskContentBlock(type=\"text\", text=\"Grounded\"),\n"
+              "                GlobalAskContentBlock(\n"
+              "                    type=\"image\",\n"
+              "                    post_id=\"post-1\",\n"
+              "                    unit_index=0,\n"
+              "                    mime_type=\"image/png\",\n"
+              "                    data_base64=\"cHJvamVjdC10aW1lbGluZQ==\",\n"
+              "                    alt_text=\"Project timeline mockup\",\n"
+              "                    caption=\"Evidence\",\n"
+              "                ),\n"
+              "            ),\n"
+              "        )\n",
+          )
+          replace_once(
+              "tests/test_mcp_server.py",
+              "        assert not result.is_error\n        assert result.structured_content == {\n",
+              "        assert not result.is_error\n"
+              "        assert isinstance(result.content[0], TextContent)\n"
+              "        assert result.content[0].text == \"Grounded\"\n"
+              "        assert isinstance(result.content[1], ImageContent)\n"
+              "        assert result.content[1].mime_type == \"image/png\"\n"
+              "        assert result.content[1].data == \"cHJvamVjdC10aW1lbGluZQ==\"\n"
+              "        assert result.structured_content == {\n",
+          )
+          replace_once(
+              "tests/test_mcp_server.py",
+              "            \"answer_text\": \"Grounded\",\n            \"anchor_post_id\": \"post-1\",\n",
+              "            \"answer_text\": \"Grounded\",\n"
+              "            \"content_blocks\": [\n"
+              "                {\n"
+              "                    \"type\": \"text\",\n"
+              "                    \"text\": \"Grounded\",\n"
+              "                    \"post_id\": None,\n"
+              "                    \"unit_index\": None,\n"
+              "                    \"mime_type\": None,\n"
+              "                    \"data_base64\": None,\n"
+              "                    \"alt_text\": None,\n"
+              "                    \"caption\": None,\n"
+              "                },\n"
+              "                {\n"
+              "                    \"type\": \"image\",\n"
+              "                    \"text\": None,\n"
+              "                    \"post_id\": \"post-1\",\n"
+              "                    \"unit_index\": 0,\n"
+              "                    \"mime_type\": \"image/png\",\n"
+              "                    \"data_base64\": \"cHJvamVjdC10aW1lbGluZQ==\",\n"
+              "                    \"alt_text\": \"Project timeline mockup\",\n"
+              "                    \"caption\": \"Evidence\",\n"
+              "                },\n"
+              "            ],\n"
+              "            \"anchor_post_id\": \"post-1\",\n",
+          )
+
+          fragment = Path("CHANGELOG.d/2.13.0-authenticated-mcp-global-ask.md")
+          fragment_text = fragment.read_text(encoding="utf-8")
+          media_entry = (
+              "\n- MCP Global Ask now emits the answer as `TextContent` followed by up to three "
+              "bounded `ImageContent` blocks reconstructed only from authorized cited post bodies. "
+              "The structured response carries captions and alternative text; SVG/active media and "
+              "oversized payloads fail closed.\n"
+          )
+          if media_entry.strip() not in fragment_text:
+              fragment.write_text(fragment_text.rstrip() + media_entry, encoding="utf-8")
+
+          integration = Path("docs/integrations/MCP.md")
+          integration_text = integration.read_text(encoding="utf-8")
+          marker = "## Multimodal Global Ask"
+          if marker not in integration_text:
+              integration.write_text(
+                  integration_text
+                  + '''
+
+## Multimodal Global Ask
+
+When an authorized cited post contains embedded raster images, `global_ask`
+returns the prose as MCP `TextContent` and follows it with up to three MCP
+`ImageContent` blocks. `structuredContent.content_blocks` preserves the cited
+post id, document unit index, MIME type, caption, and alternative text. Images
+are restricted to PNG, JPEG, WebP, and GIF, with 2 MiB per-image and 4 MiB
+aggregate limits. SVG and other active media are not emitted.
+''',
+                  encoding="utf-8",
+              )
+
+          refs = Path("docs/doctoring/MCP_REFERENCES.md")
+          refs_text = refs.read_text(encoding="utf-8")
+          reference = "\nMasinter, L. (1998). *The “data” URL scheme* (RFC 2397). RFC Editor. https://doi.org/10.17487/RFC2397\n"
+          if reference.strip() not in refs_text:
+              refs.write_text(refs_text.rstrip() + reference, encoding="utf-8")
+
+          adr = Path("docs/adr/0031-authenticated-mcp-global-ask.md")
+          adr_text = adr.read_text(encoding="utf-8")
+          adr_marker = "## Multimodal result boundary"
+          if adr_marker not in adr_text:
+              adr.write_text(
+                  adr_text
+                  + '''
+
+## Multimodal result boundary
+
+The MCP tool may emit raster images only when their owning posts survived the
+same RBAC/ABAC retrieval boundary and were actually cited by the answer. The
+server reconstructs bytes from the original cited body, never from an external
+URL, and returns bounded MCP `ImageContent` alongside structured caption and
+alternative-text metadata. Active image formats and oversized payloads are
+excluded.
+''',
+                  encoding="utf-8",
+              )
+          PY
+
+      - name: Verify GREEN MCP and application regressions
+        run: |
+          uv run --frozen python -m pytest -q \
+            tests/test_mcp_global_ask_media.py \
+            tests/test_mcp_global_ask.py \
+            tests/test_mcp_server.py \
+            tests/test_mcp_external_opt_in.py \
+            tests/test_mcp_external_optin.py \
+            tests/test_mcp_citation_boundary.py
+
+      - name: Verify source and diff hygiene
+        run: |
+          python -m compileall -q backend/app tests
+          git diff --check
+
+      - name: Commit exact verified implementation
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          git fetch origin agent/authenticated-mcp-global-ask
+          test "$(git rev-parse origin/agent/authenticated-mcp-global-ask)" = "$EXPECTED_HEAD"
+          rm .github/workflows/mcp-global-ask-multimodal-one-shot.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            backend/app/global_ask_media.py \
+            backend/app/global_ask.py \
+            backend/app/mcp_server.py \
+            tests/test_mcp_global_ask_media.py \
+            tests/test_mcp_server.py \
+            CHANGELOG.d/2.13.0-authenticated-mcp-global-ask.md \
+            docs/integrations/MCP.md \
+            docs/doctoring/MCP_REFERENCES.md \
+            docs/adr/0031-authenticated-mcp-global-ask.md \
+            .github/workflows/mcp-global-ask-multimodal-one-shot.yml
+          git commit -m "feat: return cited images from MCP Global Ask"
+          git push origin HEAD:agent/authenticated-mcp-global-ask
