@@ -133,7 +133,7 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
             {"parent_post_id": "post-a", "child_post_id": "post-b", "fused_score": 0.8}
         ]
 
-        async def fetch(self, query: str):
+        async def fetch(self, query: str, *arguments):
             if "lineage_edge_channel_score" in query:
                 return []
             if "post_lineage_edge" in query:
