@@ -66,7 +66,7 @@ describe("ProjectHistoryTimeline", () => {
     render(<ProjectHistoryTimeline history={history} onOpenPost={onOpenPost} />);
 
     expect(screen.getByRole("region", { name: "TEPP project history" })).toBeInTheDocument();
-    expect(screen.getByText("Project Alpha")).toBeInTheDocument();
+    expect(screen.getByText(/Project Alpha/)).toBeInTheDocument();
     expect(screen.getByText("Contract awarded")).toBeInTheDocument();
     expect(screen.getByText("Specification changed")).toBeInTheDocument();
     expect(screen.getByText("VOC received")).toBeInTheDocument();
