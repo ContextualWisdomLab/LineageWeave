@@ -94,8 +94,10 @@ RBAC is mandatory regardless; production deployments should provision and
 require `lineageweave:ask`.
 
 DNS-rebinding protection is enabled. Do not disable it to make a deployment
-work; add only the real public hostname and, for browser MCP clients, exact
-allowed origins.
+work; add only the real public hostname and exact browser origins. Each
+`MCP_ALLOWED_ORIGINS` entry must be an HTTP(S) origin with no wildcard,
+credentials, path, query, or fragment. `*`, `null`, malformed entries, and
+non-origin URLs prevent process startup.
 
 ## Browser admission boundary
 
@@ -120,10 +122,13 @@ Allowed request headers:
 Exposed response headers:
   MCP-Protocol-Version
   Mcp-Session-Id
+  WWW-Authenticate
 Credentials/cookies: disabled
 Preflight cache: 600 seconds
 ```
 
+`WWW-Authenticate` is exposed so an allowed browser client can read the OAuth
+protected-resource metadata challenge. It does not expose a credential.
 LineageWeave never reflects an arbitrary Origin and never accepts `*`. Prefix,
 suffix, `null`, and unrelated Origins fail with HTTP `403`. Origin-sensitive
 responses include `Vary: Origin`. Non-browser clients may omit `Origin`; they
@@ -225,11 +230,12 @@ REST API.
 
 ## Failure behavior
 
+- unsafe configured browser Origin: process startup fails
 - untrusted Host: HTTP `421` before authentication
 - invalid present Origin: HTTP `403` before authentication
 - invalid browser preflight: HTTP `400` or `403`, no bearer challenge
 - oversized or ambiguously framed POST: HTTP `400` or `413` before authentication
-- no bearer or invalid bearer: HTTP `401`
+- no bearer or invalid bearer: HTTP `401`, with browser-readable OAuth metadata for an allowed Origin
 - valid bearer without a required OAuth scope: HTTP `403`
 - unprovisioned subject or missing `post_read`: tool error, no evidence returned
 - no matching authorized evidence: tool error, no unrelated recent-post fallback
@@ -243,7 +249,8 @@ REST API.
 
 A release must exercise the MCP SDK client against the in-process server, assert
 tool annotations and structured output, verify pre-auth Host, Origin, CORS,
-request-byte, and unauthenticated HTTP behavior, and run the same auth, ABAC,
-source-boundary, citation, contextual-orchestrator mode, explicit-consent,
-untrusted-input, URL-safety, and external-evidence regressions in the normal
-test suite. `uv.lock` remains authoritative for the MCP SDK version.
+request-byte, OAuth-discovery, and unauthenticated HTTP behavior, and run the
+same auth, ABAC, source-boundary, citation, contextual-orchestrator mode,
+explicit-consent, untrusted-input, URL-safety, and external-evidence regressions
+in the normal test suite. `uv.lock` remains authoritative for the MCP SDK
+version.
