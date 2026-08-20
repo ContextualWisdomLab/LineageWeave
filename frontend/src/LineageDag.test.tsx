@@ -1,7 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LineageDag } from "./LineageDag";
 import type { LineageGraph } from "./api";
+import { setLocale } from "./i18n";
 
 const graph: LineageGraph = {
   nodes: [
@@ -37,6 +38,10 @@ const graph: LineageGraph = {
 };
 
 describe("LineageDag evidence disclosure", () => {
+  beforeEach(() => {
+    setLocale("en");
+  });
+
   it("renders an exact-value table and does not invent an unavailable LLM score", () => {
     render(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
 
@@ -58,10 +63,10 @@ describe("LineageDag evidence disclosure", () => {
     );
 
     const edgeTitle = container.querySelector(".lineage-dag-edge title");
-    expect(edgeTitle?.textContent).toContain("Fused 0.7800");
-    expect(edgeTitle?.textContent).toContain("Time 0.9000");
-    expect(edgeTitle?.textContent).toContain("Secondary key 1.0000");
-    expect(edgeTitle?.textContent).toContain("Text 0.4200");
-    expect(edgeTitle?.textContent).not.toContain("LLM 0.0000");
+    expect(edgeTitle?.textContent).toContain("Fused score 0.7800");
+    expect(edgeTitle?.textContent).toContain("Time proximity 0.9000");
+    expect(edgeTitle?.textContent).toContain("Secondary-key match 1.0000");
+    expect(edgeTitle?.textContent).toContain("Text similarity 0.4200");
+    expect(edgeTitle?.textContent).not.toContain("LLM adjudication 0.0000");
   });
 });
