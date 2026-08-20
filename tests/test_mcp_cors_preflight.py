@@ -96,7 +96,7 @@ def test_allowed_exact_origin_preflight_finishes_before_oauth() -> None:
 
 
 def test_allowed_origin_post_reaches_oauth_with_cors_response_contract() -> None:
-    """An allowed browser Origin receives CORS metadata on the OAuth challenge."""
+    """An allowed browser Origin can read the OAuth discovery challenge."""
     app, pool = _app()
     with TestClient(app) as client:
         response = client.post(
@@ -113,6 +113,7 @@ def test_allowed_origin_post_reaches_oauth_with_cors_response_contract() -> None
     exposed = response.headers["access-control-expose-headers"].casefold()
     assert "mcp-session-id" in exposed
     assert "mcp-protocol-version" in exposed
+    assert "www-authenticate" in exposed
     assert "resource_metadata" in response.headers["www-authenticate"]
     assert pool.closed is True
 
