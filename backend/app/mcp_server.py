@@ -38,7 +38,11 @@ from backend.app.global_ask_verification import (
 from backend.app.mcp_admission import BoundedRequestBodyApp
 from backend.app.mcp_auth import KeycloakMcpTokenVerifier
 from lineageweave.image_content import orchestrator_vision_client
-from lineageweave.post_chat import ContextualOrchestratorPostChatClient, NullPostChatClient, PostChatClient
+from lineageweave.post_chat import (
+    ContextualOrchestratorPostChatClient,
+    NullPostChatClient,
+    PostChatClient,
+)
 
 
 class GlobalAskContentBlockModel(BaseModel):
