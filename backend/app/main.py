@@ -279,6 +279,10 @@ async def revoke_account_mcp_api_key(
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
     """Revoke only a key owned by the Keyverse-authenticated account."""
+    try:
+        UUID(mcp_api_key_id)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "MCP API key was not found") from exc
     async with pool.acquire() as conn:
         key = await revoke_mcp_api_key(conn, account.user_account_id, mcp_api_key_id)
     if key is None:
