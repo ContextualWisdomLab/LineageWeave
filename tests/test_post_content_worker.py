@@ -6,7 +6,7 @@ import asyncio
 from typing import Any
 
 from backend.app import post_content_worker
-from backend.app.post_content_queue import SUCCEEDED
+from backend.app.post_content_queue import POST_CONTENT_STREAM_KEY, SUCCEEDED
 
 
 class _Transaction:
@@ -60,12 +60,25 @@ class _Pool:
         return _Acquire(self.connection)
 
 
+def test_worker_starts_after_historical_stream_tail() -> None:
+    class Client:
+        async def xrevrange(self, key: str, *, count: int):
+            assert key == POST_CONTENT_STREAM_KEY
+            assert count == 1
+            return [("123-0", {})]
+
+    assert asyncio.run(post_content_worker._stream_tail(Client())) == "123-0"
+
+
 def test_worker_reclaims_successful_job_when_embeddings_are_incomplete(monkeypatch) -> None:
     pool = _Pool()
     calls: list[str] = []
 
-    async def incomplete(_connection, post_id: str, *, embedding_model_code: str) -> bool:
+    async def incomplete(
+        _connection, post_id: str, *, embedding_model_code: str, require_structure: bool
+    ) -> bool:
         calls.append(f"{post_id}:{embedding_model_code}")
+        assert require_structure is True
         return False
 
     monkeypatch.setattr(post_content_worker, "post_content_is_complete", incomplete)
@@ -76,6 +89,7 @@ def test_worker_reclaims_successful_job_when_embeddings_are_incomplete(monkeypat
             "00000000-0000-0000-0000-000000000001",
             "a" * 64,
             embedding_model_code="text-embedding-3-large",
+            require_structure=True,
         )
     )
 
@@ -87,8 +101,11 @@ def test_worker_reclaims_successful_job_when_embeddings_are_incomplete(monkeypat
 def test_worker_skips_successful_job_only_when_complete(monkeypatch) -> None:
     pool = _Pool()
 
-    async def complete(_connection, _post_id: str, *, embedding_model_code: str) -> bool:
+    async def complete(
+        _connection, _post_id: str, *, embedding_model_code: str, require_structure: bool
+    ) -> bool:
         assert embedding_model_code == "text-embedding-3-large"
+        assert require_structure is True
         return True
 
     monkeypatch.setattr(post_content_worker, "post_content_is_complete", complete)
@@ -99,6 +116,7 @@ def test_worker_skips_successful_job_only_when_complete(monkeypatch) -> None:
             "00000000-0000-0000-0000-000000000001",
             "a" * 64,
             embedding_model_code="text-embedding-3-large",
+            require_structure=True,
         )
     )
 
