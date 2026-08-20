@@ -8,6 +8,8 @@ nodes, and a Keyman who is only mentioned on such posts is forbidden.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
@@ -442,6 +444,65 @@ async def load_visible_subgraph(
     )
     return [edge_spec_from_row(row) for row in rows]
 
+
+@dataclass(frozen=True)
+class CompactAffiliation:
+    """Authorized compact affiliation for one related-node person."""
+
+    identity_count: int
+    display_name: str | None = None
+
+    @property
+    def ambiguous(self) -> bool:
+        """Return whether more than one organization identity is known."""
+        return self.identity_count > 1
+
+
+def compact_affiliation_summaries(
+    rows: list[Mapping[str, Any]],
+) -> dict[str, CompactAffiliation]:
+    """Summarize affiliations without inventing a primary organization."""
+    catalog_ids: dict[str, set[str]] = {}
+    catalog_labels: dict[str, dict[str, str]] = {}
+    unresolved_labels: dict[str, dict[str, str]] = {}
+    for row in rows:
+        person_id = str(row["person_id"])
+        raw_name = (row["affiliated_organization_name"] or "").strip()
+        catalog_id = row["affiliated_corporate_entity_id"]
+        catalog_name = (row["catalog_entity_name"] or "").strip()
+        if catalog_id is not None:
+            identity = str(catalog_id)
+            catalog_ids.setdefault(person_id, set()).add(identity)
+            label = catalog_name or raw_name
+            if label:
+                catalog_labels.setdefault(person_id, {})[identity] = label
+            continue
+        if raw_name:
+            unresolved_labels.setdefault(person_id, {}).setdefault(
+                raw_name.casefold(), raw_name
+            )
+
+    summaries: dict[str, CompactAffiliation] = {}
+    for person_id in set(catalog_ids) | set(unresolved_labels):
+        labels_by_id = catalog_labels.get(person_id, {})
+        catalog_name_fold = {name.casefold() for name in labels_by_id.values()}
+        leftover_names = {
+            name
+            for fold, name in unresolved_labels.get(person_id, {}).items()
+            if fold not in catalog_name_fold
+        }
+        identity_count = len(catalog_ids.get(person_id, set())) + len(leftover_names)
+        if identity_count == 0:
+            continue
+        display_name: str | None = None
+        if identity_count == 1:
+            display_name = next(iter(leftover_names), None)
+            if display_name is None and labels_by_id:
+                display_name = next(iter(labels_by_id.values()))
+        summaries[person_id] = CompactAffiliation(identity_count, display_name)
+    return summaries
+
+
 async def hydrate_related_nodes(
     conn: asyncpg.Connection,
     related: list[tuple[str, float]],
@@ -450,6 +511,8 @@ async def hydrate_related_nodes(
 
     Unknown ids are dropped. Ontology fields are omitted (not faked)
     when ``node_type_code`` has no term in lineageweave-kg.ttl.
+    Person and organization nodes carry decision-relevant affiliation and
+    entity-level labels when the catalog provides them.
     """
     person_ids: list[str] = []
     post_ids: list[str] = []
@@ -475,6 +538,20 @@ async def hydrate_related_nodes(
             person_ids,
         )
     } if person_ids else {}
+    affiliations = compact_affiliation_summaries(
+        await conn.fetch(
+            """
+            select pa.person_id, pa.affiliated_organization_name,
+                   pa.affiliated_corporate_entity_id,
+                   ce.entity_name as catalog_entity_name
+            from person_affiliation pa
+            left join corporate_entity ce
+              on ce.corporate_entity_id = pa.affiliated_corporate_entity_id
+            where pa.person_id = any($1::uuid[])
+            """,
+            person_ids,
+        )
+    ) if person_ids else {}
     posts = {
         str(row["post_id"]): row
         for row in await conn.fetch(
@@ -485,7 +562,8 @@ async def hydrate_related_nodes(
     corps = {
         str(row["corporate_entity_id"]): row
         for row in await conn.fetch(
-            "select corporate_entity_id, entity_name from corporate_entity where corporate_entity_id = any($1::uuid[])",
+            "select corporate_entity_id, entity_name, entity_level_code "
+            "from corporate_entity where corporate_entity_id = any($1::uuid[])",
             corp_ids,
         )
     } if corp_ids else {}
@@ -499,6 +577,9 @@ async def hydrate_related_nodes(
 
     side_labels = await labels_for_codes(
         conn, [row["person_side_code"] for row in people.values()]
+    )
+    level_labels = await labels_for_codes(
+        conn, [row["entity_level_code"] for row in corps.values()]
     )
 
     payload: list[dict[str, Any]] = []
@@ -514,10 +595,19 @@ async def hydrate_related_nodes(
             item["label"] = people[node_id]["person_name"]
             item["person_side_code"] = side
             item["person_side_label"] = side_labels.get(side, side)
+            summary = affiliations.get(node_id)
+            if summary is not None:
+                if summary.display_name:
+                    item["affiliation_organization_name"] = summary.display_name
+                if summary.ambiguous:
+                    item["affiliation_ambiguous"] = True
         elif node_type_code == NODE_POST and node_id in posts:
             item["label"] = posts[node_id]["post_title"]
         elif node_type_code == NODE_CORPORATE_ENTITY and node_id in corps:
             item["label"] = corps[node_id]["entity_name"]
+            level = corps[node_id]["entity_level_code"]
+            item["entity_level_code"] = level
+            item["entity_level_label"] = level_labels.get(level, level)
         elif node_type_code == NODE_TEAM and node_id in teams:
             item["label"] = teams[node_id]["team_name"]
         else:

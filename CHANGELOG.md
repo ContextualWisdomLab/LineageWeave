@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.6] - 2026-08-20
+
+### Changed
+
+- Related-node chips now show authorized business context: a unique
+  affiliation, a truthful `multiple organizations` signal, or the
+  cataloged entity level. Post chips retain the source title only.
+- The plural-affiliation panel tells the buyer to read the complete
+  Keyman list before continuing the graph walk, preserving every
+  membership instead of inventing a primary organization.
+
 ## [2.12.5] - 2026-08-18
 
 ### Fixed

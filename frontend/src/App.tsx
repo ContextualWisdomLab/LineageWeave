@@ -76,6 +76,8 @@ import { StatusAlert } from "./components/StatusAlert";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { subgraphForPost } from "./lineageLayout";
+import { RelatedNodeChip } from "./RelatedNodeChip";
+import { relatedAffiliationNextAction } from "./relatedNodeCaption";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -872,6 +874,11 @@ function KeymanPanel({
   const relatedBlock = selectedName ? (
     <div className="related-keymen">
       <h4>Related to {selectedName}</h4>
+      {related !== null && related.some((node) => node.affiliation_ambiguous) ? (
+        <p className="related-affiliation-hint">
+          {relatedAffiliationNextAction(Boolean(keymen && keymen.length > 0))}
+        </p>
+      ) : null}
       {related === null ? (
         <p>Loading related nodes...</p>
       ) : related.length === 0 ? (
@@ -891,54 +898,48 @@ function KeymanPanel({
                 }
                 return (
                   <li key={key}>
-                    <button
-                      className="keyman-select"
-                      aria-label={`Open related post: ${node.label ?? node.node_id}`}
-                      onClick={() => onSelectPost(node.node_id)}
-                    >
-                      {caption}
-                    </button>
+                    <RelatedNodeChip
+                      node={node}
+                      action="open_post"
+                      onSelect={(selected) => onSelectPost(selected.node_id)}
+                    />
                   </li>
                 );
               case NODE_PERSON:
                 return (
                   <li key={key}>
-                    <button
-                      className="keyman-select"
-                      aria-label={`Related nodes for ${caption}`}
-                      aria-current={
-                        landFirstRelated && related[0]?.node_id === node.node_id
-                          ? "true"
-                          : undefined
+                    <RelatedNodeChip
+                      node={node}
+                      action="walk_person"
+                      current={landFirstRelated && related[0]?.node_id === node.node_id}
+                      onSelect={(selected) =>
+                        handleSelect(selected.node_id, selected.label ?? selected.node_id)
                       }
-                      onClick={() => handleSelect(node.node_id, node.label ?? node.node_id)}
-                    >
-                      {caption}
-                    </button>
+                    />
                   </li>
                 );
               case NODE_CORPORATE_ENTITY:
                 return (
                   <li key={key}>
-                    <button
-                      className="keyman-select"
-                      aria-label={`Related nodes for ${node.label ?? node.node_id}`}
-                      onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
-                    >
-                      {caption}
-                    </button>
+                    <RelatedNodeChip
+                      node={node}
+                      action="walk_entity"
+                      onSelect={(selected) =>
+                        handleSelectEntity(selected.node_id, selected.label ?? selected.node_id)
+                      }
+                    />
                   </li>
                 );
               case NODE_TEAM:
                 return (
                   <li key={key}>
-                    <button
-                      className="keyman-select"
-                      aria-label={`Related nodes for ${node.label ?? node.node_id}`}
-                      onClick={() => handleSelectTeam(node.node_id, node.label ?? node.node_id)}
-                    >
-                      {caption}
-                    </button>
+                    <RelatedNodeChip
+                      node={node}
+                      action="walk_team"
+                      onSelect={(selected) =>
+                        handleSelectTeam(selected.node_id, selected.label ?? selected.node_id)
+                      }
+                    />
                   </li>
                 );
               default: {

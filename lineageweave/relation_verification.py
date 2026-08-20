@@ -159,9 +159,10 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
     """Return ``result['url']`` when it is a real-world footprint of ``organization_name``.
 
     Search engines echo the query in result titles, so "any hit" is not
-    corroboration. A result counts only when a distinctive name token
+    corroboration. A result counts only when every distinctive name token
     appears in the host or snippet, and the host is not itself a search
-    page. Missing or empty URLs are not evidence.
+    page. This prevents a generic word such as ``fictitious`` from
+    corroborating an unrelated page. Missing or empty URLs are not evidence.
     """
     url = result.get("url")
     if not isinstance(url, str) or not url.strip():
@@ -177,6 +178,6 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
     if not tokens:
         return None
     haystack = f"{host} {result.get('content') or ''}".lower()
-    if any(token in haystack for token in tokens):
+    if all(token in haystack for token in tokens):
         return url
     return None

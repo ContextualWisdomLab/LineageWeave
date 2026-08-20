@@ -94,6 +94,10 @@ export interface RelatedNode {
   label?: string;
   person_side_code?: string;
   person_side_label?: string;
+  affiliation_organization_name?: string;
+  affiliation_ambiguous?: boolean;
+  entity_level_code?: string;
+  entity_level_label?: string;
   ontology_iri?: string;
   ontology_label?: string;
 }

@@ -335,6 +335,13 @@ Keyman sides are labeled from `common_lookup_value` (`Our side`,
 codes when a label exists. Related-node person chips use the same
 side lookup label (for example, `Our side` or `Counterparty`) rather
 than exposing the generic PROV-O `Person` class as business context.
+When a person has several distinct affiliation identities, the API emits
+`affiliation_ambiguous` and the reusable `RelatedNodeChip` says
+`multiple organizations`; it never chooses the first row as a primary.
+When exactly one identity remains, the chip includes that organization.
+Organization chips use the cataloged entity-level label and post chips use
+the source title only. The full N:N list stays visible on the Keyman panel,
+which names the next action before the buyer continues the walk.
 
 `GET /api/posts` and `GET /api/posts/{post_id}` include
 `voc_type_label` / `visibility_label` from `common_lookup_value` so

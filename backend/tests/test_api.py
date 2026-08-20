@@ -1904,6 +1904,13 @@ def test_related_keymen_use_rwr_and_hide_invisible_posts(client, demo_analyst_to
     assert counterpart["ontology_iri"].endswith("#Person")
     assert counterpart["person_side_code"] == "counterparty"
     assert counterpart["person_side_label"] == "Counterparty"
+    assert "affiliation_organization_name" not in counterpart
+    assert counterpart["affiliation_ambiguous"] is True
+    corp_nodes = [
+        node for node in body["related"] if node["node_type_code"] == "node_corporate_entity"
+    ]
+    assert corp_nodes
+    assert all(node.get("entity_level_label") for node in corp_nodes)
     own_post = by_id[seeded_db["own_private_post_id"]]
     assert own_post["ontology_label"] == "Post"
 
@@ -1926,6 +1933,8 @@ def test_related_corporate_entity_uses_rwr_and_hides_invisible_posts(
     our_person = next(node for node in body["related"] if node["node_id"] == seeded_db["our_person_id"])
     assert our_person["person_side_code"] == "our_side"
     assert our_person["person_side_label"] == "Our side"
+    assert our_person["affiliation_organization_name"] == "Test Corp"
+    assert "affiliation_ambiguous" not in our_person
     assert seeded_db["other_private_post_id"] not in related_ids
     assert seeded_db["hidden_person_id"] not in related_ids
 
