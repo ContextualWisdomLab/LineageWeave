@@ -215,7 +215,7 @@ def build_mcp_server(
         lifespan=lifespan,
         token_verifier=token_verifier or KeycloakMcpTokenVerifier(resolved_settings),
         auth=AuthSettings(
-            issuer_url=AnyHttpUrl(resolved_settings.keycloak_issuer),
+            issuer_url=AnyHttpUrl(resolved_settings.oidc_issuer),
             resource_server_url=AnyHttpUrl(resolved_settings.mcp_resource_url),
             required_scopes=resolved_settings.mcp_required_scopes,
         ),

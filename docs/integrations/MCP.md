@@ -201,12 +201,12 @@ External verification additionally requires all three service settings:
 
 ```text
 SEARXNG_BASE_URL=https://search.internal.example
-LLM_GATEWAY_URL=https://orchestrator.internal.example
+LLM_GATEWAY_API_URL=https://orchestrator.internal.example
 LLM_GATEWAY_API_KEY=<service credential>
 ```
 
 The backend reads process environment first and then `~/.env` for these
-gateway settings. `LLM_GATEWAY_API_URL` and the older `ORCHESTRATOR_*` names
+gateway settings. `LLM_GATEWAY_URL` and the older `ORCHESTRATOR_*` names
 remain compatibility aliases. Never copy, log, commit, or ship the secret.
 
 An absent channel returns `unavailable` after explicit opt-in; it never

@@ -1,6 +1,7 @@
-"""Environment-driven settings. No file-based config, no defaults that
-silently point at a real deployment -- every value is either a genuinely
-safe local-dev default or must be set explicitly.
+"""Environment-driven settings with a runtime-only home dotenv fallback.
+
+Only the shared orchestrator endpoint and credential aliases may fall back to
+``~/.env``. Values are never copied into the repository or emitted in logs.
 """
 
 from __future__ import annotations
@@ -34,7 +35,7 @@ def _bounded_int_setting(
 
 
 def _home_dotenv_values(names: set[str]) -> dict[str, str]:
-    """Read only requested non-secret setting names from ``~/.env``."""
+    """Read only requested runtime setting names from the user's home dotenv."""
     try:
         lines = (Path.home() / ".env").read_text(encoding="utf-8").splitlines()
     except OSError:
@@ -57,7 +58,7 @@ def _home_dotenv_values(names: set[str]) -> dict[str, str]:
 
 
 def _gateway_setting(*names: str) -> str:
-    """Resolve process env first, then the user's home dotenv file."""
+    """Resolve a gateway setting from process env, then the home dotenv."""
     for name in names:
         value = os.environ.get(name, "").strip()
         if value:
@@ -85,42 +86,33 @@ class Settings:
     # docker-compose the two differ (internal DNS name vs. the
     # host-published port a browser actually hits).
     keycloak_issuer: str
+    # Production may use the organization's Keyverse OIDC issuer. The
+    # keycloak fields above remain the explicit local-development fallback.
+    oidc_issuer: str
+    oidc_client_id: str
+    # Resource audience the backend accepts. This is deliberately separate
+    # from the browser OAuth client id: an access token issued for another
+    # resource at the same trusted issuer must not become a LineageWeave API
+    # credential merely because its signature is valid.
+    oidc_audience: str
+    oidc_discovery_uri: str
+    oidc_jwks_uri_override: str
+    oidc_clock_skew_seconds: int
     # Exact browser origins allowed by CORS. Comma-separated FRONTEND_ORIGINS;
     # never a wildcard -- the backend only serves the product UI.
     frontend_origins: list[str]
-    # Keyman extraction is a hard dependency of POST /api/posts/{id}/extract-keymen
-    # only -- every other endpoint works with these unset. Empty string, not
-    # a fabricated default, when unconfigured (see keyman_ingestion.py).
     orchestrator_base_url: str
     orchestrator_api_key: str
-    # Legacy compatibility field. The value is not sent to the gateway:
-    # contextual-orchestrator owns vision-model discovery. The image channel
-    # is unavailable only when the shared gateway credentials are absent.
-    vision_model: str
-    # Event queue for post/ticket activity (XADD/XRANGE), per the brief's
-    # "Event Queue, not MQ" requirement -- see backend/app/activity_stream.py.
+    embedding_model: str
     valkey_url: str
-    # Self-hosted Searxng instance relation_verification.py's real client
-    # checks Knowledge Graph relation inferences against (ADR 0005). Empty
-    # means the verification channel is unavailable, same "no fake
-    # channel" discipline as every other pluggable client.
     searxng_base_url: str
-    # Optional TEPP HTTP transport. Empty keeps TeppClient's default
-    # unavailable transport. Never a local psychometric substitute.
     tepp_transport_url: str
-    # RankWeave ranking port (ADR 0030). True = fail-closed
-    # RankWeaveNotAvailable -- never invent a fused score. Default false
-    # uses the in-process library already required by reconstruct.py.
+    tepp_api_key: str
+    caldav_base_url: str
     rankweave_disabled: bool
-    # Public Streamable HTTP MCP resource URL. It is also the default JWT
-    # audience, so tokens issued for the REST frontend cannot be replayed
-    # unless the IdP explicitly includes this resource audience.
     mcp_resource_url: str = "http://localhost:18001/mcp"
     mcp_audience: str = "http://localhost:18001/mcp"
-    # Optional OAuth scopes are enforced by the MCP SDK. Product RBAC and
-    # ABAC are always enforced in addition, even when this list is empty.
     mcp_required_scopes: list[str] = field(default_factory=list)
-    # Exact Host/Origin allowlists for MCP DNS-rebinding protection.
     mcp_allowed_hosts: list[str] = field(
         default_factory=lambda: ["localhost:*", "127.0.0.1:*", "mcp:8001"]
     )
@@ -139,6 +131,45 @@ def load_settings() -> Settings:
     """Read Settings from the environment, with local-dev defaults only."""
     keycloak_base_url = os.environ.get("KEYCLOAK_BASE_URL", "http://localhost:18080")
     keycloak_realm = os.environ.get("KEYCLOAK_REALM", "lineageweave-demo")
+    keycloak_client_id = os.environ.get("KEYCLOAK_CLIENT_ID", "lineageweave-frontend")
+    keycloak_issuer = os.environ.get(
+        "KEYCLOAK_ISSUER", f"{keycloak_base_url}/realms/{keycloak_realm}"
+    )
+    keyverse_issuer = os.environ.get("KEYVERSE_ISSUER", "").strip()
+    generic_oidc_issuer = os.environ.get("OIDC_ISSUER", "").strip()
+    external_oidc = bool(keyverse_issuer or generic_oidc_issuer)
+    oidc_issuer = (keyverse_issuer or generic_oidc_issuer or keycloak_issuer).rstrip("/")
+    oidc_client_id = (
+        os.environ.get("KEYVERSE_CLIENT_ID", "").strip()
+        or os.environ.get("OIDC_CLIENT_ID", "").strip()
+        or keycloak_client_id
+    )
+    configured_audience = (
+        os.environ.get("KEYVERSE_AUDIENCE", "").strip()
+        or os.environ.get("OIDC_AUDIENCE", "").strip()
+    )
+    if external_oidc and not configured_audience:
+        raise ValueError(
+            "external OIDC requires KEYVERSE_AUDIENCE or OIDC_AUDIENCE; "
+            "do not infer a resource-server audience from the browser client id"
+        )
+    oidc_audience = configured_audience or "lineageweave-api"
+    oidc_discovery_uri = os.environ.get("KEYVERSE_DISCOVERY_URI", "").strip() or os.environ.get(
+        "OIDC_DISCOVERY_URI", ""
+    ).strip()
+    if not oidc_discovery_uri:
+        discovery_base = oidc_issuer if external_oidc else keycloak_base_url
+        oidc_discovery_uri = (
+            f"{discovery_base.rstrip('/')}/realms/{keycloak_realm}/.well-known/openid-configuration"
+            if not external_oidc
+            else f"{discovery_base.rstrip('/')}/.well-known/openid-configuration"
+        )
+    try:
+        oidc_clock_skew_seconds = int(os.environ.get("OIDC_CLOCK_SKEW_SECONDS", "5"))
+    except ValueError as exc:
+        raise ValueError("OIDC_CLOCK_SKEW_SECONDS must be an integer") from exc
+    if not 0 <= oidc_clock_skew_seconds <= 60:
+        raise ValueError("OIDC_CLOCK_SKEW_SECONDS must be between 0 and 60")
     mcp_resource_url = os.environ.get("MCP_RESOURCE_URL", "http://localhost:18001/mcp")
     return Settings(
         database_url=os.environ.get(
@@ -147,19 +178,33 @@ def load_settings() -> Settings:
         ),
         keycloak_base_url=keycloak_base_url,
         keycloak_realm=keycloak_realm,
-        keycloak_client_id=os.environ.get("KEYCLOAK_CLIENT_ID", "lineageweave-frontend"),
-        keycloak_issuer=os.environ.get(
-            "KEYCLOAK_ISSUER", f"{keycloak_base_url}/realms/{keycloak_realm}"
+        keycloak_client_id=keycloak_client_id,
+        keycloak_issuer=keycloak_issuer,
+        oidc_issuer=oidc_issuer,
+        oidc_client_id=oidc_client_id,
+        oidc_audience=oidc_audience,
+        oidc_discovery_uri=oidc_discovery_uri,
+        oidc_jwks_uri_override=(
+            os.environ.get("KEYVERSE_JWKS_URI", "").strip()
+            or os.environ.get("OIDC_JWKS_URI", "").strip()
+            or (
+                f"{keycloak_base_url}/realms/{keycloak_realm}/protocol/openid-connect/certs"
+                if not external_oidc
+                else ""
+            )
         ),
+        oidc_clock_skew_seconds=oidc_clock_skew_seconds,
         frontend_origins=_csv_setting("FRONTEND_ORIGINS", "http://localhost:5173"),
         orchestrator_base_url=_gateway_setting(
-            "LLM_GATEWAY_URL", "LLM_GATEWAY_API_URL", "ORCHESTRATOR_BASE_URL"
+            "LLM_GATEWAY_API_URL", "LLM_GATEWAY_URL", "ORCHESTRATOR_BASE_URL"
         ),
         orchestrator_api_key=_gateway_setting("LLM_GATEWAY_API_KEY", "ORCHESTRATOR_API_KEY"),
-        vision_model=os.environ.get("VISION_MODEL", ""),
+        embedding_model=os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip(),
         valkey_url=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
         searxng_base_url=os.environ.get("SEARXNG_BASE_URL", ""),
         tepp_transport_url=os.environ.get("TEPP_TRANSPORT_URL", ""),
+        tepp_api_key=os.environ.get("TEPP_API_KEY", ""),
+        caldav_base_url=os.environ.get("CALDAV_BASE_URL", "").strip(),
         rankweave_disabled=os.environ.get("RANKWEAVE_DISABLED", "")
         .strip()
         .lower()

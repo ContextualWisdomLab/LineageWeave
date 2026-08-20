@@ -14,7 +14,7 @@
 | Retrieval-augmented generation | Retrieve authorized sources, then source-only reason-and-cite | `backend/app/global_ask.py`; `lineageweave.post_chat` |
 | FEVER claim verification | Keep Supported / Refuted / insufficient-evidence judgment tied to retrieved evidence, not model memory | `backend/app/global_ask_verification.py`; external-verification regressions |
 | Data-boundary minimization | Open-web verification is explicit opt-in; the internal answer body is never a Searxng search query | `global_ask(..., verify_external=false)`; privacy-boundary regression |
-| Keycloak startup realm import | Treat `--import-realm` as fresh-environment bootstrap because an existing realm is skipped | `docker/keycloak/entrypoint.sh`; ADR 0037 |
+| Keycloak startup realm import | Treat `--import-realm` as fresh-environment bootstrap because an existing realm is skipped | `docker/keycloak/entrypoint.sh`; ADR 0109 |
 | Keycloak Admin REST protocol-mapper endpoints | Reconcile only the named MCP audience mapper with bounded GET/POST/PUT operations | `backend/app/keycloak_audience_reconciler.py`; persistent-port-change regressions |
 | Point-of-disclosure authorization | Re-check live `post_read` and corporate affiliation state before cited image bytes leave the database boundary | `backend/app/global_ask_media.py`; permission-revocation regressions |
 

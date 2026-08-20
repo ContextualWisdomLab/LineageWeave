@@ -27,6 +27,7 @@ import jwt
 from jwt.algorithms import RSAAlgorithm
 
 from lineageweave.http_client import HttpClientError, get_json, post_form
+from backend.app.config import load_settings
 
 REALM = "lineageweave-demo"
 CLIENT_ID = "lineageweave-frontend"
@@ -95,6 +96,7 @@ def run(base_url: str) -> int:
         # proves the identity-provider round-trip, not backend-side audience
         # scoping, so audience verification is intentionally left to that
         # later, backend-specific check.
+        leeway=load_settings().oidc_clock_skew_seconds,
         options={"verify_aud": False},
     )
 

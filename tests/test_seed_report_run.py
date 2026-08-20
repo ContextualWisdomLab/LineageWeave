@@ -91,8 +91,15 @@ def test_seed_demo_report_run_inserts_succeeded_report_without_a_theta() -> None
         if "insert into analysis_run_scope" in sql
     ]
     assert any(
-        event_params is not None and "2026-W02" in event_params
+        event_params is not None
+        and "corp-1" in event_params
+        and "2026-W02" not in event_params
         for event_params in scope_params
+    )
+    assert all(
+        "scope_key" not in sql
+        for sql in cursor.statements
+        if "insert into analysis_run_scope" in sql
     )
     assert not any(
         event_params is not None

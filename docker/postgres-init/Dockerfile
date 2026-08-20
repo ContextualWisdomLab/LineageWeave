@@ -17,24 +17,42 @@ COPY migrations/0008_post_summary_result.sql /docker-entrypoint-initdb.d/09-post
 COPY migrations/0009_shared_metric_bank.sql /docker-entrypoint-initdb.d/10-shared-metric-bank.sql
 COPY migrations/0010_report_item_information.sql /docker-entrypoint-initdb.d/11-report-item-information.sql
 COPY migrations/0011_post_chat_result.sql /docker-entrypoint-initdb.d/12-post-chat-result.sql
-COPY migrations/0012_role_responsibility_agent_type.sql /docker-entrypoint-initdb.d/13-role-responsibility-agent-type.sql
-COPY migrations/0013_person_job_title.sql /docker-entrypoint-initdb.d/14-person-job-title.sql
-COPY migrations/0014_role_responsibility_team_actor_type.sql /docker-entrypoint-initdb.d/15-role-responsibility-team-actor-type.sql
-COPY migrations/0015_organization_name_resolution.sql /docker-entrypoint-initdb.d/16-organization-name-resolution.sql
-COPY migrations/0016_cross_post_actor_identity.sql /docker-entrypoint-initdb.d/17-cross-post-actor-identity.sql
-COPY migrations/0017_prov_o_standard_relations.sql /docker-entrypoint-initdb.d/18-prov-o-standard-relations.sql
-COPY migrations/0018_analysis_run_registry.sql /docker-entrypoint-initdb.d/19-analysis-run-registry.sql
-COPY migrations/0019_role_catalog_identity.sql /docker-entrypoint-initdb.d/20-role-catalog-identity.sql
-COPY migrations/0020_analysis_run_retention_purge.sql /docker-entrypoint-initdb.d/21-analysis-run-retention-purge.sql
-COPY migrations/0021_analysis_run_reconstruction.sql /docker-entrypoint-initdb.d/22-analysis-run-reconstruction.sql
-COPY migrations/0022_analysis_source_snapshot_member.sql /docker-entrypoint-initdb.d/23-analysis-source-snapshot-member.sql
-COPY migrations/0023_analysis_run_outbox.sql /docker-entrypoint-initdb.d/24-analysis-run-outbox.sql
-COPY migrations/0024_source_post_revision.sql /docker-entrypoint-initdb.d/25-source-post-revision.sql
-COPY migrations/0025_role_person_catalog_identity.sql /docker-entrypoint-initdb.d/26-role-person-catalog-identity.sql
-COPY migrations/0026_report_leftover_pair.sql /docker-entrypoint-initdb.d/27-report-leftover-pair.sql
-COPY migrations/0027_abbreviation_tree_corroboration.sql /docker-entrypoint-initdb.d/28-abbreviation-tree-corroboration.sql
-COPY migrations/0028_analysis_run_tepp_result.sql /docker-entrypoint-initdb.d/29-analysis-run-tepp-result.sql
-COPY migrations/0029_analysis_run_tepp_accepted.sql /docker-entrypoint-initdb.d/30-analysis-run-tepp-accepted.sql
+COPY migrations/0012_report_leftover_pair.sql /docker-entrypoint-initdb.d/13-report-leftover-pair.sql
+COPY migrations/0060_role_responsibility_agent_type.sql /docker-entrypoint-initdb.d/14-role-responsibility-agent-type.sql
+COPY migrations/0013_person_job_title.sql /docker-entrypoint-initdb.d/15-person-job-title.sql
+COPY migrations/0014_role_responsibility_team_actor_type.sql /docker-entrypoint-initdb.d/16-role-responsibility-team-actor-type.sql
+COPY migrations/0015_organization_name_resolution.sql /docker-entrypoint-initdb.d/17-organization-name-resolution.sql
+COPY migrations/0016_cross_post_actor_identity.sql /docker-entrypoint-initdb.d/18-cross-post-actor-identity.sql
+COPY migrations/0017_prov_o_standard_relations.sql /docker-entrypoint-initdb.d/19-prov-o-standard-relations.sql
+COPY migrations/0018_analysis_run_registry.sql /docker-entrypoint-initdb.d/20-analysis-run-registry.sql
+COPY migrations/0019_role_catalog_identity.sql /docker-entrypoint-initdb.d/21-role-catalog-identity.sql
+COPY migrations/0020_analysis_run_retention_purge.sql /docker-entrypoint-initdb.d/22-analysis-run-retention-purge.sql
+COPY migrations/0021_analysis_run_reconstruction.sql /docker-entrypoint-initdb.d/23-analysis-run-reconstruction.sql
+COPY migrations/0022_analysis_source_snapshot_member.sql /docker-entrypoint-initdb.d/24-analysis-source-snapshot-member.sql
+COPY migrations/0023_analysis_run_outbox.sql /docker-entrypoint-initdb.d/25-analysis-run-outbox.sql
+COPY migrations/0024_source_post_revision.sql /docker-entrypoint-initdb.d/26-source-post-revision.sql
+COPY migrations/0025_role_person_catalog_identity.sql /docker-entrypoint-initdb.d/27-role-person-catalog-identity.sql
+COPY migrations/0026_post_content_artifacts.sql /docker-entrypoint-initdb.d/28-post-content-artifacts.sql
+COPY migrations/0027_analysis_run_tepp_result.sql /docker-entrypoint-initdb.d/29-analysis-run-tepp-result.sql
+COPY migrations/0028_internal_relation_evidence.sql /docker-entrypoint-initdb.d/30-internal-relation-evidence.sql
+COPY migrations/0029_report_team_grouping.sql /docker-entrypoint-initdb.d/31-report-team-grouping.sql
+COPY migrations/0030_report_project_grouping.sql /docker-entrypoint-initdb.d/32-report-project-grouping.sql
+COPY migrations/0031_semantic_project_mentions.sql /docker-entrypoint-initdb.d/33-semantic-project-mentions.sql
+COPY migrations/0032_semantic_search_trigram.sql /docker-entrypoint-initdb.d/34-semantic-search-trigram.sql
+COPY migrations/0033_source_state_provenance.sql /docker-entrypoint-initdb.d/35-source-state-provenance.sql
+COPY migrations/0034_source_context_provenance.sql /docker-entrypoint-initdb.d/36-source-context-provenance.sql
+COPY migrations/0035_body_search_prefix.sql /docker-entrypoint-initdb.d/37-body-search-prefix.sql
+COPY migrations/0036_normalized_body_search.sql /docker-entrypoint-initdb.d/38-normalized-body-search.sql
+COPY migrations/0037_source_record_identity.sql /docker-entrypoint-initdb.d/39-source-record-identity.sql
+COPY migrations/0038_source_named_hints.sql /docker-entrypoint-initdb.d/40-source-named-hints.sql
+COPY migrations/0039_source_org_named_hints.sql /docker-entrypoint-initdb.d/41-source-org-named-hints.sql
+COPY migrations/0040_post_summary_contract.sql /docker-entrypoint-initdb.d/42-post-summary-contract.sql
+
+COPY migrations/ /opt/lineageweave/migrations/
+COPY docker/postgres-init/migrate.sh /usr/local/bin/lineageweave-migrate
+USER root
+RUN chmod 0755 /usr/local/bin/lineageweave-migrate
+
 # Official image already drops to this account at runtime; declare it so
 # the Dockerfile itself satisfies DS-0002 (explicit non-root USER).
 USER postgres

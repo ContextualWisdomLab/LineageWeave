@@ -57,7 +57,7 @@ def test_integration_guide_names_every_stable_admission_error() -> None:
 
 def test_architecture_and_doctoring_trace_the_same_boundary() -> None:
     """The accepted decision and standards register are both present."""
-    adr = _read("docs/adr/0036-mcp-browser-request-admission.md")
+    adr = _read("docs/adr/0119-mcp-browser-request-admission.md")
     references = _read("docs/doctoring/MCP_REFERENCES.md")
     changelog = _read("CHANGELOG.d/2.13.1-mcp-browser-admission.md")
     assert "Host/Origin transport validation" in adr
