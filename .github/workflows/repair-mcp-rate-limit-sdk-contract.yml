@@ -48,54 +48,52 @@ jobs:
           version: "0.11.28"
           enable-cache: false
 
-      - name: Materialize the pinned SDK error constructor
+      - name: Materialize the pinned SDK and explicit test dependency contracts
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
 
-          path = Path("backend/app/mcp_server.py")
-          source = path.read_text(encoding="utf-8")
-          replacements = (
-              (
-                  "from mcp.types import CallToolResult, ErrorData, ImageContent, TextContent, ToolAnnotations",
-                  "from mcp.types import CallToolResult, ImageContent, TextContent, ToolAnnotations",
-              ),
-              (
-                  '''            raise MCPError(
-                      ErrorData(
-                          code=GLOBAL_ASK_RATE_LIMIT_UNAVAILABLE_ERROR_CODE,
-                          message="Global Ask distributed rate limit is unavailable",
-                          data=_rate_limit_error_data(
-                              "global_ask_rate_limit_unavailable",
-                              resolved_settings.mcp_rate_limit_unavailable_retry_seconds,
-                          ),
-                      )
-                  ) from exc
-          ''',
-                  '''            raise MCPError(
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              source = target.read_text(encoding="utf-8")
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one replacement, found {count}")
+              target.write_text(source.replace(old, new), encoding="utf-8")
+
+          replace_once(
+              "backend/app/mcp_server.py",
+              "from mcp.types import CallToolResult, ErrorData, ImageContent, TextContent, ToolAnnotations",
+              "from mcp.types import CallToolResult, ImageContent, TextContent, ToolAnnotations",
+          )
+          replace_once(
+              "backend/app/mcp_server.py",
+              '''            raise MCPError(
+                  ErrorData(
                       code=GLOBAL_ASK_RATE_LIMIT_UNAVAILABLE_ERROR_CODE,
                       message="Global Ask distributed rate limit is unavailable",
                       data=_rate_limit_error_data(
                           "global_ask_rate_limit_unavailable",
                           resolved_settings.mcp_rate_limit_unavailable_retry_seconds,
                       ),
-                  ) from exc
-          ''',
-              ),
-              (
-                  '''            raise MCPError(
-                      ErrorData(
-                          code=GLOBAL_ASK_RATE_LIMIT_ERROR_CODE,
-                          message="Global Ask rate limit exceeded",
-                          data=_rate_limit_error_data(
-                              "global_ask_rate_limited",
-                              rate_decision.retry_after_seconds,
-                          ),
-                      )
                   )
+              ) from exc
           ''',
-                  '''            raise MCPError(
+              '''            raise MCPError(
+                  code=GLOBAL_ASK_RATE_LIMIT_UNAVAILABLE_ERROR_CODE,
+                  message="Global Ask distributed rate limit is unavailable",
+                  data=_rate_limit_error_data(
+                      "global_ask_rate_limit_unavailable",
+                      resolved_settings.mcp_rate_limit_unavailable_retry_seconds,
+                  ),
+              ) from exc
+          ''',
+          )
+          replace_once(
+              "backend/app/mcp_server.py",
+              '''            raise MCPError(
+                  ErrorData(
                       code=GLOBAL_ASK_RATE_LIMIT_ERROR_CODE,
                       message="Global Ask rate limit exceeded",
                       data=_rate_limit_error_data(
@@ -103,15 +101,46 @@ jobs:
                           rate_decision.retry_after_seconds,
                       ),
                   )
+              )
           ''',
-              ),
+              '''            raise MCPError(
+                  code=GLOBAL_ASK_RATE_LIMIT_ERROR_CODE,
+                  message="Global Ask rate limit exceeded",
+                  data=_rate_limit_error_data(
+                      "global_ask_rate_limited",
+                      rate_decision.retry_after_seconds,
+                  ),
+              )
+          ''',
           )
-          for old, new in replacements:
-              count = source.count(old)
-              if count != 1:
-                  raise SystemExit(f"expected one SDK-contract replacement, found {count}")
-              source = source.replace(old, new)
-          path.write_text(source, encoding="utf-8")
+
+          support_import = (
+              "from backend.tests.mcp_rate_limit_test_support import AllowAllRateLimiter\n"
+          )
+          replace_once(
+              "tests/test_mcp_server.py",
+              "from backend.app.global_ask_verification import (\n    ExternalVerificationResult,\n    GlobalAskExternalVerifier,\n)\n",
+              "from backend.app.global_ask_verification import (\n    ExternalVerificationResult,\n    GlobalAskExternalVerifier,\n)\n" + support_import,
+          )
+          replace_once(
+              "tests/test_mcp_server.py",
+              "        external_verifier=verifier,\n    )\n",
+              "        external_verifier=verifier,\n        rate_limiter=AllowAllRateLimiter(),\n    )\n",
+          )
+          for path in (
+              "tests/test_mcp_external_opt_in.py",
+              "tests/test_mcp_external_optin.py",
+          ):
+              replace_once(
+                  path,
+                  "from backend.app.global_ask import GlobalAskAnswer\n",
+                  "from backend.app.global_ask import GlobalAskAnswer\n" + support_import,
+              )
+              replace_once(
+                  path,
+                  "        external_verifier=",
+                  "        rate_limiter=AllowAllRateLimiter(),\n        external_verifier=",
+              )
           PY
 
       - name: Verify focused and live Valkey contracts
@@ -121,9 +150,12 @@ jobs:
           uv sync --frozen --extra dev --extra backend
           uv run --frozen python -m pytest -q \
             tests/test_mcp_rate_limit.py \
+            tests/test_mcp_rate_limit_valkey.py \
             tests/test_config.py \
             tests/test_mcp_server.py \
-            tests/test_mcp_global_ask.py
+            tests/test_mcp_global_ask.py \
+            tests/test_mcp_external_opt_in.py \
+            tests/test_mcp_external_optin.py
           uv run --frozen python -m compileall -q backend lineageweave tests
           git diff --check
 
