@@ -424,9 +424,9 @@ are not release evidence.
 |---|---|---|---|
 | #258 | `main` -> `feat/analysis-run-name-evidence-lineage` | `49804b0fef503be1697b8be61919b022b615ef2f` | `REVIEW_REQUIRED`, `BLOCKED`; no independent approval observed |
 | #323 | `main` -> `fix/tepp-request-contract-validation` | `1a27efec6863cd3439a4c6023e1c625ce4d7abf2` | `REVIEW_REQUIRED`, `BLOCKED`; required Checks queued |
-| #322 | `fix/stale-summary-buyer-continuity` -> `feat/orchestrator-owned-embedding-consumer` | `a6a1d8fe8b17ad095e507f5d16b93c984e6de5db` | `UNSTABLE`; Full test and frontend Checks queued |
+| #322 | `fix/stale-summary-buyer-continuity` -> `feat/orchestrator-owned-embedding-consumer` | `7b710453d27286c307986fb3b0bad4ac27d7c8af` | `UNSTABLE`; Full test and frontend Checks queued; Devin Review pending |
 | #320 | `codex/normalize-source-indent-semantics` -> `codex/preserve-partial-image-regions` | `41d164c570fe232cc1e38a766439e4093d80cb84` | `UNSTABLE`; stacked visual evidence change |
-| #324 | `codex/preserve-partial-image-regions` -> `fix/validate-partial-image-regions` | `3a335ad493a260c5f623797288138472a15210cb` | `UNSTABLE`; Full test and frontend Checks queued |
+| #324 | `codex/preserve-partial-image-regions` -> `fix/validate-partial-image-regions` | `71f0940cb3881b2f5452ae79fa45f033dff56a9d` | `UNSTABLE`; Full test and frontend Checks queued; fresh Devin Review pending |
 | #325 | `fix/validate-partial-image-regions` -> `docs/current-gap-audit` | `ecc6c477` | `UNKNOWN`; base synchronized; required Checks and fresh review pending |
 | #789 | `main` -> contextual-orchestrator embedding capability branch | `3a80d91b8c879e57d30ab87af664546b8712fb15` | `REVIEW_REQUIRED`, `BLOCKED`; upstream Checks queued |
 
