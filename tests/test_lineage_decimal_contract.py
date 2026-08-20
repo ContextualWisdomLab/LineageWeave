@@ -20,5 +20,7 @@ def test_lineage_evidence_uses_fixed_precision_decimals() -> None:
     assert "lineage_edge_channel_contribution_validate" in migration
     assert "do update set" in migration
     assert "display_order = excluded.display_order" in migration
-    assert "drop trigger if exists lineage_edge_channel_contribution_validate" in rollback
+    assert "to_regclass('public.lineage_edge_channel_score')" in rollback
+    assert "drop trigger if exists" in rollback
+    assert "lineage_edge_channel_contribution_validate" in rollback
     assert "drop function if exists validate_lineage_edge_channel_contribution" in rollback
