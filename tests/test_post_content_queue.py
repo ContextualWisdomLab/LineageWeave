@@ -8,6 +8,7 @@ from pathlib import Path
 
 from backend.app.post_content_queue import (
     FAILED,
+    POST_CONTENT_RETRY_INTERVAL,
     POST_CONTENT_STREAM_KEY,
     QUEUED,
     RUNNING,
@@ -104,6 +105,122 @@ def test_existing_units_register_as_succeeded_without_a_wakeup() -> None:
     assert job.status_code == SUCCEEDED
     assert job.should_publish is False
     assert any("insert into post_content_ingestion_job" in query for query, _args in conn.executed)
+
+
+def test_failed_same_body_is_not_requeued_by_a_read_poll() -> None:
+    from backend.app.post_content_queue import ensure_post_content_job
+
+    class FakeConnection:
+        async def fetchrow(self, _query: str, _post_id: str):
+            return {
+                "source_body_sha256": source_body_sha256("same body"),
+                "status_code": FAILED,
+            }
+
+        async def fetchval(self, _query: str, _post_id: str) -> int:
+            return 0
+
+        async def execute(self, *_args: object) -> None:
+            raise AssertionError("a failed job must remain terminal for the same digest")
+
+    job = asyncio.run(
+        ensure_post_content_job(
+            FakeConnection(),
+            "00000000-0000-0000-0000-000000000001",
+            "same body",
+            content_present=False,
+        )
+    )
+
+    assert job.status_code == FAILED
+    assert job.should_publish is False
+
+
+def test_changed_body_resets_a_terminal_job_and_republishes() -> None:
+    from backend.app.post_content_queue import ensure_post_content_job
+
+    class FakeConnection:
+        def __init__(self) -> None:
+            self.executed: list[tuple[str, tuple[object, ...]]] = []
+
+        async def fetchrow(self, _query: str, _post_id: str):
+            return {
+                "source_body_sha256": source_body_sha256("old body"),
+                "status_code": FAILED,
+            }
+
+        async def fetchval(self, _query: str, _post_id: str) -> int:
+            return 0
+
+        async def execute(self, query: str, *args: object) -> None:
+            self.executed.append((query, args))
+
+    conn = FakeConnection()
+    job = asyncio.run(
+        ensure_post_content_job(
+            conn,
+            "00000000-0000-0000-0000-000000000001",
+            "new body",
+            content_present=False,
+        )
+    )
+
+    assert job.status_code == QUEUED
+    assert job.should_publish is True
+    assert any("attempt_count = 0" in query for query, _args in conn.executed)
+
+
+def test_recovery_query_carries_one_bounded_retry_interval() -> None:
+    assert POST_CONTENT_RETRY_INTERVAL == "5 minutes"
+    migration = (_ROOT / "migrations" / "0050_post_content_ingestion_queue.sql").read_text()
+    assert "queued_at timestamptz not null" in migration
+
+
+def test_recovery_republishes_due_rows_in_queued_at_order() -> None:
+    from contextlib import asynccontextmanager
+
+    from backend.app.post_content_queue import republish_queued_post_content_jobs
+
+    class FakeConnection:
+        def __init__(self) -> None:
+            self.query = ""
+            self.args: tuple[object, ...] = ()
+
+        async def fetch(self, query: str, *args: object):
+            self.query = query
+            self.args = args
+            return [
+                {"post_id": "first", "source_body_sha256": "a" * 64},
+                {"post_id": "second", "source_body_sha256": "b" * 64},
+            ]
+
+    class FakePool:
+        def __init__(self, connection: FakeConnection) -> None:
+            self.connection = connection
+
+        @asynccontextmanager
+        async def acquire(self):
+            yield self.connection
+
+    class FakeClient:
+        def __init__(self) -> None:
+            self.events: list[tuple[str, str]] = []
+
+        async def xadd(self, _stream: str, fields: dict[str, str], **_kwargs: object) -> str:
+            self.events.append((fields["post_id"], fields["source_body_sha256"]))
+            return str(len(self.events))
+
+    connection = FakeConnection()
+    client = FakeClient()
+    published = asyncio.run(
+        republish_queued_post_content_jobs(client, FakePool(connection), limit=2)
+    )
+
+    assert published == 2
+    assert client.events == [("first", "a" * 64), ("second", "b" * 64)]
+    assert "queued_at <= now() - $2::interval" in connection.query
+    assert "order by queued_at" in connection.query
+    assert connection.args == (QUEUED, POST_CONTENT_RETRY_INTERVAL, 2)
 
 
 def test_migration_contains_normalized_job_and_status_event_tables() -> None:

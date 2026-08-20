@@ -26,12 +26,22 @@ placed in a stream message.
    body digest as a wake-up. The worker is at-least-once and idempotent; it
    claims the PostgreSQL row and rechecks the digest before provider work.
 3. A queued-row recovery sweep republishes wake-ups after Valkey loss or
-   process restart. A stale running claim is retryable after fifteen minutes.
+   process restart. The first attempt is immediate; retries become eligible
+   five minutes after `queued_at`, and `queued_at` is refreshed when a retry
+   is scheduled so older due jobs remain ahead of newer work. The worker
+   permits three attempts, then records terminal
+   `post_content_ingestion_attempt_limit`; duplicate wake-ups cannot reopen a
+   terminal failure. A changed source digest starts a new budget.
 4. The worker reuses the existing contextual-orchestrator client factories for
    VISION, structure, and embeddings. It preserves one post session and the
    bounded provenance metadata from `llm_context`; no raw provider call, model
    selector, monkey patch, or MLX-specific contract is introduced.
-5. The buyer content endpoint returns `processing` while the durable job is
+5. The worker verifies that persisted units contain no unresolved structure
+   decisions when structure adjudication is configured, and that every
+   embeddable unit has a vector when embeddings are configured. Incomplete
+   provider output is retried with an explicit failure code rather than being
+   reported as succeeded.
+6. The buyer content endpoint returns `processing` while the durable job is
    queued/running and `ready` only after persisted units exist. The frontend
    polls that status while continuing to show the source post.
 

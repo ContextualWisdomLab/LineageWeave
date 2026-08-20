@@ -15,6 +15,8 @@ RUNNING = "post_content_ingestion_running"
 SUCCEEDED = "post_content_ingestion_succeeded"
 FAILED = "post_content_ingestion_failed"
 _ACTIVE = {QUEUED, RUNNING}
+POST_CONTENT_MAX_ATTEMPTS = 3
+POST_CONTENT_RETRY_INTERVAL = "5 minutes"
 
 
 @dataclass(frozen=True)
@@ -112,11 +114,16 @@ async def transition_post_content_job(
         """
         update post_content_ingestion_job
         set status_code = $2,
-            started_at = case when $2 = $3 then now() else started_at end,
+            started_at = case
+                when $2 = $3 then now()
+                when $2 = $6 then null
+                else started_at
+            end,
             completed_at = case when $2 in ($4, $5) then now() else null end,
+            queued_at = case when $2 = $6 then now() else queued_at end,
             updated_at = now(),
-            last_error_code = $6,
-            last_error_detail = $7
+            last_error_code = $7,
+            last_error_detail = $8
         where post_id = $1
         """,
         post_id,
@@ -124,6 +131,7 @@ async def transition_post_content_job(
         RUNNING,
         SUCCEEDED,
         FAILED,
+        QUEUED,
         failure_code,
         detail_text,
     )
@@ -177,7 +185,6 @@ async def ensure_post_content_job(
     status_code = str(row["status_code"])
     needs_requeue = (
         str(row["source_body_sha256"]) != digest
-        or status_code == FAILED
         or (status_code == SUCCEEDED and not content_present)
     )
     if needs_requeue:
@@ -222,10 +229,15 @@ async def republish_queued_post_content_jobs(
             select post_id, source_body_sha256
             from post_content_ingestion_job
             where status_code = $1
+              and (
+                  attempt_count = 0
+                  or queued_at <= now() - $2::interval
+              )
             order by queued_at
-            limit $2
+            limit $3
             """,
             QUEUED,
+            POST_CONTENT_RETRY_INTERVAL,
             limit,
         )
     published = 0
