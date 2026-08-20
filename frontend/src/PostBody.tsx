@@ -37,17 +37,22 @@ function renderImageText(text: string) {
   );
 }
 
+const SAFE_EMBEDDED_IMAGE_SOURCE =
+  /^data:image\/(?:png|jpe?g|gif|webp|avif|bmp|x-icon|vnd\.microsoft\.icon);base64,[A-Za-z0-9+/]+={0,2}$/i;
+
 function renderImageEvidence(
   index: number,
   imageContent?: PostImageContent,
   sourceImage?: Extract<PostBodySegment, { kind: "image" }>,
 ) {
+  const sourceImageSrc =
+    sourceImage && SAFE_EMBEDDED_IMAGE_SOURCE.test(sourceImage.src) ? sourceImage.src : undefined;
   return (
     <figure key={`post-body-image-${index}`} className="post-embedded-image">
-      {sourceImage ? (
-        <img src={sourceImage.src} alt={imageContent?.caption || t("Embedded image")} />
+      {sourceImageSrc ? (
+        <img src={sourceImageSrc} alt={imageContent?.caption || t("Embedded image")} />
       ) : null}
-      {imageContent?.caption || !sourceImage ? (
+      {imageContent?.caption || !sourceImageSrc ? (
         <figcaption>{imageContent?.caption || t("Embedded image")}</figcaption>
       ) : null}
       {imageContent?.tags.length ? (
