@@ -17,6 +17,7 @@ chain of its own top match.
 
 from __future__ import annotations
 
+import asyncio
 import re
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable
@@ -54,6 +55,19 @@ class LinkedPostIds:
 
     direct: frozenset[str]
     indirect: frozenset[str]
+
+
+async def _normalize_post_body_text(
+    body: str,
+    vision_client: ImageContentClient,
+) -> str:
+    """Normalize one source body without blocking the request event loop."""
+    normalized = await asyncio.to_thread(
+        normalize_post_body,
+        body,
+        vision_client=vision_client,
+    )
+    return normalized.text
 
 
 async def _graph_facts_for_posts(
@@ -146,6 +160,10 @@ _SOURCE_HINT_FIELDS = (
     ("source_project_code", "source project code"),
     ("source_project_name", "source project name"),
 )
+
+_GLOBAL_ASK_TERM_PATTERN = re.compile(r"[^\W_]+(?:-[^\W_]+)*", re.UNICODE)
+_POST_CHAT_SOURCE_LIMIT = 8
+_POST_CHAT_CANDIDATE_LIMIT = 32
 
 
 def _source_hint_facts(row: Any) -> tuple[str, ...]:
@@ -253,10 +271,13 @@ async def gather_chat_sources(
     can_see_post: Callable[[asyncpg.Record], bool],
     vision_client: ImageContentClient | None = None,
 ) -> list[ChatSourceDocument]:
-    """Post `post_id` itself, plus every linked post the requesting account
-    can actually see -- numbered in the order returned, which is the
-    order `post_chat`'s citations refer back to. Every source's body is
-    normalized (HTML tags/base64 images never reach the reason-and-cite
+    """Post `post_id` plus a bounded, deterministic linked-source window.
+
+    Direct Event Lineage neighbors precede indirect Knowledge Graph
+    neighbors; both groups are identifier-sorted before ABAC filtering. The
+    current post plus at most seven visible linked posts become the numbered
+    source set that `post_chat` citations refer back to. Every source's body
+    is normalized (HTML tags/base64 images never reach the reason-and-cite
     LLM call raw) before becoming a `ChatSourceDocument` -- see
     `lineageweave.post_content_normalization`. `vision_client` defaults
     to unavailable (embedded images become an explicit placeholder, not
@@ -279,17 +300,24 @@ async def gather_chat_sources(
         return []
     source_id = str(this_post["post_id"])
     semantic_facts = await _semantic_facts_for_posts(conn, [source_id])
+    normalized_body = await _normalize_post_body_text(
+        this_post["post_body"],
+        vision_client,
+    )
     sources = [
         ChatSourceDocument(
             source_id,
             this_post["post_title"],
-            normalize_post_body(this_post["post_body"], vision_client=vision_client).text,
+            normalized_body,
             evidence_facts=_source_hint_facts(this_post) + semantic_facts.get(source_id, ()),
         )
     ]
 
     linked = await find_linked_post_ids(conn, post_id)
-    candidate_ids = linked.direct | linked.indirect
+    candidate_ids = [
+        *sorted(linked.direct),
+        *sorted(linked.indirect),
+    ][:_POST_CHAT_CANDIDATE_LIMIT]
     if not candidate_ids:
         return sources
 
@@ -300,15 +328,20 @@ async def gather_chat_sources(
         "source_process_unit_name, source_sales_pool_code, source_sales_pool_name, "
         "source_customer_code, source_customer_name, "
         "source_project_code, source_project_name "
-        "from source_post where post_id = any($1::uuid[])",
-        list(candidate_ids),
+        "from source_post where post_id = any($1::uuid[]) "
+        "order by array_position($1::uuid[], post_id) limit $2",
+        candidate_ids,
+        _POST_CHAT_CANDIDATE_LIMIT,
     )
     visible_source_ids = [post_id]
     visible_rows: list[asyncpg.Record] = []
     for row in rows:
-        if can_see_post(row):
-            visible_rows.append(row)
-            visible_source_ids.append(str(row["post_id"]))
+        if not can_see_post(row):
+            continue
+        visible_rows.append(row)
+        visible_source_ids.append(str(row["post_id"]))
+        if len(visible_rows) >= _POST_CHAT_SOURCE_LIMIT - 1:
+            break
 
     semantic_facts = await _semantic_facts_for_posts(conn, visible_source_ids)
     graph_facts = await _graph_facts_for_posts(conn, visible_source_ids)
@@ -320,11 +353,12 @@ async def gather_chat_sources(
         evidence_facts=sources[0].evidence_facts,
     )
     for row in visible_rows:
+        normalized_body = await _normalize_post_body_text(row["post_body"], vision_client)
         sources.append(
             ChatSourceDocument(
                 str(row["post_id"]),
                 row["post_title"],
-                normalize_post_body(row["post_body"], vision_client=vision_client).text,
+                normalized_body,
                 evidence_facts=_source_hint_facts(row)
                 + semantic_facts.get(str(row["post_id"]), ()),
             )
@@ -348,12 +382,14 @@ async def gather_global_chat_sources(
     needed for a much larger corpus; every selected body still uses the same
     image normalization and persisted graph evidence as post-scoped chat.
     """
+    if limit <= 0:
+        return []
     if vision_client is None:
         vision_client = NullImageContentClient()
     search_terms = tuple(
         dict.fromkeys(
             token.casefold()
-            for token in re.findall(r"[0-9A-Za-z가-힣]+(?:-[0-9A-Za-z가-힣]+)*", question or "")
+            for token in _GLOBAL_ASK_TERM_PATTERN.findall(question or "")
             if len(token) >= 2
             and token.casefold()
             not in {
@@ -444,19 +480,25 @@ async def gather_global_chat_sources(
     # flow. Only the top match is expanded -- expanding every keyword hit
     # would let a loosely related term drag in an unrelated lineage chain.
     lineage_neighbor_ids: list[str] = []
-    if candidate_ids:
+    lineage_anchor_id = candidate_ids[0] if candidate_ids else None
+    if lineage_anchor_id:
         lineage_rows = await conn.fetch(
             "select child_post_id as other_id from post_lineage_edge where parent_post_id = $1 "
             "union select parent_post_id as other_id from post_lineage_edge where child_post_id = $1",
-            candidate_ids[0],
+            lineage_anchor_id,
         )
-        lineage_neighbor_ids = [
-            str(row["other_id"])
-            for row in lineage_rows
-            if str(row["other_id"]) not in candidate_scores
-        ]
-        candidate_ids = candidate_ids + lineage_neighbor_ids
-    lineage_anchor_id = candidate_ids[0] if candidate_ids else None
+        lineage_neighbor_ids = sorted(
+            {
+                str(row["other_id"])
+                for row in lineage_rows
+                if str(row["other_id"]) not in candidate_scores
+            }
+        )
+        candidate_ids = list(
+            dict.fromkeys([lineage_anchor_id, *lineage_neighbor_ids, *candidate_ids[1:]])
+        )[:limit]
+    else:
+        candidate_ids = []
     lineage_neighbor_id_set = frozenset(lineage_neighbor_ids)
 
     rows = await conn.fetch(
@@ -476,18 +518,16 @@ async def gather_global_chat_sources(
         """,
         list(authorized_corporate_entity_ids),
         candidate_ids,
-        limit + len(lineage_neighbor_ids),
+        limit,
     )
-    visible_rows = [row for row in rows if can_see_post(row)]
+    visible_rows = [row for row in rows if can_see_post(row)][:limit]
     visible_ids = [str(row["post_id"]) for row in visible_rows]
     anchor_is_visible = lineage_anchor_id in visible_ids
     semantic_facts = await _semantic_facts_for_posts(conn, visible_ids)
     graph_facts = (await _graph_facts_for_posts(conn, visible_ids))[:16]
     sources: list[ChatSourceDocument] = []
     for index, row in enumerate(visible_rows):
-        normalized_body = normalize_post_body(
-            row["post_body"], vision_client=vision_client
-        ).text
+        normalized_body = await _normalize_post_body_text(row["post_body"], vision_client)
         if len(normalized_body) > 4000:
             normalized_body = (
                 normalized_body[:4000]

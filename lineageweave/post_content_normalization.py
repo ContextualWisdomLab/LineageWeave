@@ -22,6 +22,7 @@ new claim of its own, it only combines the two.
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from contextvars import Context, copy_context
 from itertools import repeat
 import re
 from dataclasses import dataclass, field
@@ -186,6 +187,15 @@ def _describe_image_chunk(
     return result, description, _image_placeholder(description)
 
 
+def _describe_image_chunk_in_context(
+    context: Context,
+    chunk: Chunk,
+    vision_client: ImageContentClient,
+) -> tuple[ImageContentResult, ImageDescription | None, str]:
+    """Run one parallel vision task with the caller's request context."""
+    return context.run(_describe_image_chunk, chunk, vision_client)
+
+
 def normalize_post_body(
     body: str, vision_client: ImageContentClient | None = None
 ) -> NormalizedPostContent:
@@ -219,7 +229,12 @@ def normalize_post_body(
             image_outcomes.update(
                 zip(
                     (chunk.index for chunk in image_chunks),
-                    executor.map(_describe_image_chunk, image_chunks, repeat(vision_client)),
+                    executor.map(
+                        _describe_image_chunk_in_context,
+                        (copy_context() for _ in image_chunks),
+                        image_chunks,
+                        repeat(vision_client),
+                    ),
                     strict=True,
                 )
             )
