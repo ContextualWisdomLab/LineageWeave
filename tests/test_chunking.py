@@ -104,6 +104,18 @@ def test_chunk_by_dom_keeps_nested_table_cell_blocks_in_their_row() -> None:
     assert [(chunk.label, chunk.text) for chunk in chunks] == [("tr", "No. | Company")]
 
 
+def test_chunk_by_dom_keeps_cell_lists_inside_their_table_row() -> None:
+    """A list inside a cell stays readable and grouped with its row."""
+    chunks = chunk_by_dom(
+        "<table><tr><td>Items:<ul><li>A</li><li>B</li></ul></td>"
+        "<td>Owner</td></tr></table>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "Items: A B | Owner")
+    ]
+
+
 def test_chunk_by_dom_labels_markerless_footnotes() -> None:
     chunks = chunk_by_dom("<p>Body text</p><p>*Tier 2: follow-up note</p>")
     assert [(chunk.label, chunk.text) for chunk in chunks] == [

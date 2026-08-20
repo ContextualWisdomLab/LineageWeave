@@ -347,6 +347,16 @@ class _BlockTextExtractor(HTMLParser):
                 indent_width + _declared_indent_width(tag, attrs),
             )
             return
+        if tag in _TABLE_CELL_TAGS:
+            if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS and self._stack[-1][1]:
+                self._stack[-1][1].append(" | ")
+            return
+        # Nested blocks belong to the open table row. Keep list-item text
+        # readable without letting a nested list become a separate chunk.
+        if any(entry[0] in _TABLE_ROW_TAGS for entry in self._stack):
+            if tag == "li" and self._stack[-1][1]:
+                self._stack[-1][1].append(" ")
+            return
         if tag in _LIST_CONTAINER_TAGS:
             # Emit a parent list item before entering its nested list. Closing
             # tags otherwise make the child appear before the parent in the
@@ -363,15 +373,6 @@ class _BlockTextExtractor(HTMLParser):
                 )
             style = next((value for name, value in attrs if name == "style" and value), None)
             self._stack.append((tag, [], style, _declared_indent_width(tag, attrs)))
-            return
-        if tag in _TABLE_CELL_TAGS:
-            if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS and self._stack[-1][1]:
-                self._stack[-1][1].append(" | ")
-            return
-        # A rich-text editor commonly wraps a table cell in a nested <p> or
-        # <div>. Keep that content in the open row; otherwise the nested block
-        # closes first and destroys the row/column boundary.
-        if any(entry[0] in _TABLE_ROW_TAGS for entry in self._stack):
             return
         if tag in _DOM_BLOCK_TAGS:
             if self._stack and self._stack[-1][1]:
