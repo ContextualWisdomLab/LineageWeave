@@ -56,12 +56,13 @@ jobs:
 
           ASYNCPG_RULE = "python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli"
           SQLALCHEMY_RULE = "python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query"
-
-          def write(path: str, text: str) -> None:
-              Path(path).write_text(text, encoding="utf-8")
+          ALLOWED_RULES = {ASYNCPG_RULE, SQLALCHEMY_RULE}
 
           def read(path: str) -> str:
               return Path(path).read_text(encoding="utf-8")
+
+          def write(path: str, text: str) -> None:
+              Path(path).write_text(text, encoding="utf-8")
 
           def replace_once(text: str, old: str, new: str, *, label: str) -> str:
               count = text.count(old)
@@ -69,7 +70,14 @@ jobs:
                   raise SystemExit(f"{label}: expected one anchor, found {count}")
               return text.replace(old, new, 1)
 
-          def normalize_existing_suppressions(path: str) -> None:
+          def canonical_rule(rule: str) -> str:
+              if rule == "python.lang.security.audit.sqli.asyncpg-sqli":
+                  return ASYNCPG_RULE
+              if rule in ALLOWED_RULES:
+                  return rule
+              raise SystemExit(f"unreviewed suppression rule: {rule}")
+
+          def normalize_existing(path: str) -> None:
               lines = read(path).splitlines()
               output: list[str] = []
               pending: tuple[str, str] | None = None
@@ -77,15 +85,10 @@ jobs:
                   stripped = line.strip()
                   if stripped.startswith("# nosemgrep:"):
                       payload = stripped.removeprefix("# nosemgrep:").strip()
-                      rule_part, separator, reason = payload.partition(" -- ")
-                      rule = rule_part.strip()
-                      if rule == "python.lang.security.audit.sqli.asyncpg-sqli":
-                          rule = ASYNCPG_RULE
-                      if rule not in {ASYNCPG_RULE, SQLALCHEMY_RULE}:
-                          raise SystemExit(f"{path}: unreviewed suppression rule {rule}")
+                      rule_text, separator, reason = payload.partition(" -- ")
                       if not separator or not reason.strip():
-                          raise SystemExit(f"{path}: suppression requires a written audit reason")
-                      pending = (rule, reason.strip())
+                          raise SystemExit(f"{path}: suppression has no audit reason")
+                      pending = (canonical_rule(rule_text.strip()), reason.strip())
                       continue
                   if pending is not None and stripped:
                       if "await conn." not in line:
@@ -102,39 +105,40 @@ jobs:
                   raise SystemExit(f"{path}: dangling suppression")
               write(path, "\n".join(output) + "\n")
 
-          def add_inline(
+          def annotate(
               path: str,
               anchor: str,
               *,
-              rule: str,
+              call_fragment: str,
               reason: str,
+              rule: str = ASYNCPG_RULE,
               label: str,
           ) -> None:
               text = read(path)
-              first_line, *rest = anchor.splitlines()
-              replacement_first = (
-                  f"{first_line}\n"
-                  f"{first_line[: len(first_line) - len(first_line.lstrip())]}# Safe SQL: {reason}\n"
+              if text.count(anchor) != 1:
+                  raise SystemExit(
+                      f"{label}: expected one anchor in {path}, found {text.count(anchor)}"
+                  )
+              block = anchor.splitlines()
+              indexes = [i for i, line in enumerate(block) if call_fragment in line]
+              if len(indexes) != 1:
+                  raise SystemExit(f"{label}: call fragment is not unique inside anchor")
+              index = indexes[0]
+              call_line = block[index]
+              if "# nosemgrep:" in call_line:
+                  raise SystemExit(f"{label}: call is already suppressed")
+              indent = call_line[: len(call_line) - len(call_line.lstrip())]
+              block.insert(index, f"{indent}# Safe SQL: {reason}")
+              block[index + 1] = f"{call_line}  # nosemgrep: {rule}"
+              write(
+                  path,
+                  replace_once(
+                      text,
+                      anchor,
+                      "\n".join(block),
+                      label=label,
+                  ),
               )
-              # The anchor's first line is contextual. The second line is the
-              # call that receives the precise same-line nosemgrep directive.
-              if not rest:
-                  raise SystemExit(f"{label}: anchor needs a context line and call line")
-              call_line = rest[0]
-              replacement = replacement_first + call_line + f"  # nosemgrep: {rule}"
-              if len(rest) > 1:
-                  replacement += "\n" + "\n".join(rest[1:])
-              text = replace_once(text, anchor, replacement, label=label)
-              write(path, text)
-
-          def add_call_suppression(
-              path: str,
-              anchor: str,
-              *,
-              reason: str,
-              label: str,
-          ) -> None:
-              add_inline(path, anchor, rule=ASYNCPG_RULE, reason=reason, label=label)
 
           def green() -> None:
               for path in (
@@ -147,108 +151,118 @@ jobs:
                   "scripts/backfill_post_keymen.py",
                   "scripts/backfill_post_summaries.py",
               ):
-                  normalize_existing_suppressions(path)
+                  normalize_existing(path)
 
-              add_call_suppression(
+              annotate(
                   "backend/app/analysis_run_ingestion.py",
-                  "    Runs the account requested or whose scope they may already walk.\n    rows = await conn.fetch(",
+                  "    rows = await conn.fetch(\n        _RUN_LIST_SQL,",
+                  call_fragment="rows = await conn.fetch(",
                   reason="The query is the module-level static _RUN_LIST_SQL contract; account and affiliation values remain asyncpg parameters.",
                   label="analysis run list",
               )
-              add_call_suppression(
+              annotate(
                   "backend/app/analysis_run_ingestion.py",
-                  "    \"\"\"One visible run, or None when it is missing or hidden.\"\"\"\n    rows = await conn.fetch(",
+                  "    rows = await conn.fetch(\n        _RUN_DETAIL_SQL,",
+                  call_fragment="rows = await conn.fetch(",
                   reason="The query is the module-level static _RUN_DETAIL_SQL contract; run, account, and affiliation values remain asyncpg parameters.",
                   label="analysis run detail",
               )
-              add_call_suppression(
+              annotate(
                   "backend/app/analysis_run_ingestion.py",
-                  "    if header is None:\n        return None, []\n    rows = await conn.fetch(",
+                  "    rows = await conn.fetch(\n        f\"\"\"\n        select\n          edge.parent_post_id,",
+                  call_fragment="rows = await conn.fetch(",
                   reason="Only two schema-fixed source eligibility predicates are composed; analysis_run_id remains the $1 parameter.",
                   label="reconstructed edges",
               )
-              add_call_suppression(
+              annotate(
                   "backend/app/analysis_run_ingestion.py",
-                  "    existing = await conn.fetchrow(\n        \"\"\"\n        select analysis_run_id, configuration_sha256\n        from analysis_run\n        where requested_by_account_id = $1 and idempotency_key = $2\n        \"\"\",\n        account_id,\n        key,\n    )\n\n    rows = await conn.fetch(",
+                  "    rows = await conn.fetch(\n        f\"\"\"\n        select post_id, post_title, thread_group_key, created_at,",
+                  call_fragment="rows = await conn.fetch(",
                   reason="Only the schema-fixed source eligibility predicate is composed; corporate entity and cutoff remain $1 and $2 parameters.",
                   label="analysis capture source rows",
               )
 
-              add_call_suppression(
+              annotate(
                   "backend/app/analysis_run_start.py",
-                  "    \"\"\"ABAC-visible cutoff rows with the grouping keys reconstruct needs.\"\"\"\n    rows = await conn.fetch(",
+                  "    rows = await conn.fetch(\n        f\"\"\"\n        select post_id, post_title, created_at, visibility_code,",
+                  call_fragment="rows = await conn.fetch(",
                   reason="Only the schema-fixed source eligibility predicate is composed; entity and cutoff remain asyncpg parameters.",
                   label="cutoff source rows",
               )
-              add_call_suppression(
+              annotate(
                   "backend/app/analysis_run_start.py",
-                  "        return list(\n            await conn.fetch(",
+                  "            await conn.fetch(\n                f\"\"\"\n                select post.post_id, post.post_title, post.created_at,",
+                  call_fragment="await conn.fetch(",
                   reason="Only the schema-fixed source eligibility predicate is composed; snapshot_id remains the $1 parameter.",
                   label="snapshot member rows",
               )
 
-              add_call_suppression(
+              annotate(
                   "backend/app/knowledge_graph.py",
-                  "    \"\"\"Visible post ids supported by Keyman or R&R person evidence.\"\"\"\n    rows = await conn.fetch(",
+                  "    rows = await conn.fetch(\n        f\"\"\"\n        select post.post_id, post.visibility_code, post.corporate_entity_id\n          from combined_post_person_mention mention",
+                  call_fragment="rows = await conn.fetch(",
                   reason="Only the schema-fixed source eligibility predicate is composed; person_id remains the $1 parameter.",
                   label="person mention posts",
               )
-              add_call_suppression(
+              annotate(
                   "backend/app/knowledge_graph.py",
-                  "    \"\"\"Visible posts that mention an entity via a person or a direct org mention.\"\"\"\n    rows = await conn.fetch(",
+                  "    rows = await conn.fetch(\n        f\"\"\"\n        select distinct post.post_id, post.visibility_code,",
+                  call_fragment="rows = await conn.fetch(",
                   reason="Only the schema-fixed source eligibility predicate is composed; entity_id remains the $1 parameter.",
                   label="affiliation posts",
               )
-              add_call_suppression(
+              annotate(
                   "backend/app/knowledge_graph.py",
-                  "    \"\"\"Visible post ids supported by a cataloged team mention.\"\"\"\n    rows = await conn.fetch(",
+                  "    rows = await conn.fetch(\n        f\"\"\"\n        select post.post_id, post.visibility_code, post.corporate_entity_id\n          from post_team_mention mention",
+                  call_fragment="rows = await conn.fetch(",
                   reason="Only the schema-fixed source eligibility predicate is composed; team_id remains the $1 parameter.",
                   label="team mention posts",
               )
 
-              add_call_suppression(
+              annotate(
                   "backend/app/report_ingestion.py",
                   "    members = await conn.fetch(\n        f\"\"\"\n        select m.grouping_key, m.post_id, m.theta_eap, m.theta_sd, p.post_title,",
+                  call_fragment="members = await conn.fetch(",
                   reason="Only the module-level fixed source-context predicate is composed; grouping, period, and rubric remain parameters.",
                   label="period report members",
               )
-              add_call_suppression(
+              annotate(
                   "backend/app/report_ingestion.py",
                   "    leftover = await conn.fetch(\n        f\"\"\"\n        select lp.grouping_key, lp.pair_kind, lp.post_id, lp.criterion_code,",
+                  call_fragment="leftover = await conn.fetch(",
                   reason="Only the module-level fixed source-context predicate is composed; grouping, period, and rubric remain parameters.",
                   label="period report leftovers",
               )
-              add_call_suppression(
+              annotate(
                   "backend/app/report_ingestion.py",
                   "    members = await conn.fetch(\n        f\"\"\"\n        select m.grouping_key, m.period_code, p.visibility_code, p.corporate_entity_id",
+                  call_fragment="members = await conn.fetch(",
                   reason="Only the module-level fixed source-context predicate is composed; grouping and rubric remain parameters.",
                   label="period summary members",
               )
-              add_call_suppression(
+              annotate(
                   "backend/app/report_ingestion.py",
                   "    members = await conn.fetch(\n        f\"\"\"\n        select m.grouping_kind, m.grouping_key, p.visibility_code, p.corporate_entity_id",
+                  call_fragment="members = await conn.fetch(",
                   reason="Only the module-level fixed source-context predicate is composed; period, rubric, and grouping kinds remain parameters.",
                   label="period comparison members",
               )
 
-              post_structure = read("lineageweave/post_structure.py")
-              old = """    def infer(
-                  self, post_title: str, units: list[dict[str, object]]
-              ) -> tuple[StructureDecision, ...]: ...
-          """
-              new = """    def infer(
-                  self, post_title: str, units: list[dict[str, object]]
-              ) -> tuple[StructureDecision, ...]:
-                  \"\"\"Return structure decisions from a concrete implementation.\"\"\"
-                  raise NotImplementedError
-          """
-              post_structure = replace_once(
-                  post_structure,
-                  old,
-                  new,
-                  label="PostStructureClient protocol body",
+              path = "lineageweave/post_structure.py"
+              text = read(path)
+              old = (
+                  "    def infer(\n"
+                  "        self, post_title: str, units: list[dict[str, object]]\n"
+                  "    ) -> tuple[StructureDecision, ...]: ...\n"
               )
-              write("lineageweave/post_structure.py", post_structure)
+              new = (
+                  "    def infer(\n"
+                  "        self, post_title: str, units: list[dict[str, object]]\n"
+                  "    ) -> tuple[StructureDecision, ...]:\n"
+                  "        \"\"\"Return structure decisions from a concrete implementation.\"\"\"\n"
+                  "        raise NotImplementedError\n"
+              )
+              write(path, replace_once(text, old, new, label="PostStructureClient protocol body"))
 
               test = f'''from pathlib import Path
 
