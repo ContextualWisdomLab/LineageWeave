@@ -42,6 +42,10 @@ recognizable header/separator/data shape and otherwise preserves plain text.
    purpose rather than offering a generic one-sentence description. The
    client allows 600 seconds for deep orchestrator work; a 180-second local
    cutoff already terminated a valid live response before delivery.
+7. Serialize replacement per source post and reject a same-image retry when
+   its content hash matches non-empty persisted OCR but the retry returns no
+   OCR. Provider completion is transport evidence, not permission to erase a
+   stronger prior observation.
 
 ## Rejected alternatives
 
@@ -60,6 +64,8 @@ recognizable header/separator/data shape and otherwise preserves plain text.
   markup or image base64.
 - The database keeps the existing normalized unit tables; this decision adds
   no denormalized JSON field or new service.
+- A weaker same-image VISION retry fails before replacement, leaving the
+  prior committed evidence available for a later orchestrator retry.
 - Markdown dialects outside the narrow recognized shape remain plain text and
   are reported as a future parser extension rather than guessed.
 
@@ -68,4 +74,5 @@ recognizable header/separator/data shape and otherwise preserves plain text.
 The baseline's synthetic tests cover numeric superscript footnotes, marker
 footnotes, nested `ol`/`ul`/`oi` order and depth, HTML/OOXML rows, Markdown
 rows, React table rendering, and unresolved indentation. Full CI remains the
-release gate.
+release gate. A persistence regression test proves that an empty same-hash
+VISION retry cannot delete previously observed OCR.

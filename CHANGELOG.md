@@ -16,7 +16,8 @@ All notable changes to this project are documented here. Format follows
 - Preserve multiline VISION table rows, render parent and region OCR tables
   accessibly, and request source-visible entity, relationship, layout, and
   document-purpose evidence instead of a generic image caption. VISION calls
-  now share the structure channel's 600-second deep-agent runtime boundary.
+  now share the structure channel's 600-second deep-agent runtime boundary;
+  an empty same-image retry can no longer erase previously observed OCR.
 
 ## [2.10.0] - 2026-08-18
 
