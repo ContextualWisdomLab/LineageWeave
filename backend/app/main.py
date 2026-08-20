@@ -107,6 +107,7 @@ from backend.app.analysis_run_worker import run_analysis_run_worker
 from backend.app.post_content_queue import (
     ensure_post_content_job,
     post_content_api_status,
+    post_content_is_complete,
     publish_post_content_event,
 )
 from backend.app.post_content_worker import run_post_content_worker
@@ -1483,12 +1484,17 @@ async def read_post_content(
         raw_body = None if body_row is None else body_row["post_body"]
         if isinstance(raw_body, str) and raw_body.strip():
             content_present = bool(unit_rows)
+            content_complete = await post_content_is_complete(
+                conn,
+                post_id,
+                embedding_model_code=load_settings().embedding_model,
+            )
             async with conn.transaction():
                 job = await ensure_post_content_job(
                     conn,
                     post_id,
                     raw_body,
-                    content_present=content_present,
+                    content_complete=content_complete,
                 )
             content_status = post_content_api_status(
                 job.status_code,
@@ -2440,18 +2446,17 @@ async def read_post_summary(
                 hierarchy_inference_client=_corporate_hierarchy_inference_client(),
                 verification_client=_relation_verification_client(),
             )
-        content_present = bool(
-            await conn.fetchval(
-                "select exists(select 1 from post_content_unit where post_id = $1)",
-                post_id,
-            )
+        content_complete = await post_content_is_complete(
+            conn,
+            post_id,
+            embedding_model_code=load_settings().embedding_model,
         )
         async with conn.transaction():
             job = await ensure_post_content_job(
                 conn,
                 post_id,
                 raw_body,
-                content_present=content_present,
+                content_complete=content_complete,
             )
         if job.should_publish:
             queue_event = (job.post_id, job.source_body_sha256)
