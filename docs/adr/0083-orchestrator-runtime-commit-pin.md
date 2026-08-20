@@ -10,14 +10,17 @@ The orchestrator's `auto` reasoning mode is an internal routing decision and
 must not be forwarded as an upstream provider `reasoning_effort` value. The
 runtime also must discover provider models from the configured gateway rather
 than requiring `LLM_GATEWAY_MODEL`, and structured requests must remain
-multi-agent.
+multi-agent. Some provider deployments accept only their default sampling
+temperature; retrying the same rejected value cannot recover that capability
+mismatch.
 
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `6db772e`, the pushed head of contextual-orchestrator PR #765. The pin
-remains explicit and immutable until the protected PR merges; it is not a
-moving `main` reference and it is not a LineageWeave monkey patch.
+commit `cf4a4501fa5057f89b21cad5033c5925755cd150`, the pushed head of
+contextual-orchestrator PR #779, stacked on PR #765. The pin remains explicit
+and immutable until the protected PRs merge; it is not a moving `main`
+reference and it is not a LineageWeave monkey patch.
 
 The runtime contract is:
 
@@ -33,6 +36,9 @@ The runtime contract is:
   reconciliation prompt; independent VISION worker evidence is retained instead.
 - A provider 4xx is reported as a failed orchestration attempt, never as a
   successful empty semantic result.
+- When HTTP 400/422 explicitly proves that `temperature` is unsupported, the
+  same endpoint is retried once with only that optional field omitted. Invalid
+  values and unrelated 4xx responses remain fail-closed.
 - An empty seed model is expanded from the configured gateway `/v1/models`
   endpoint; embedding-only rows are not added to the chat agent pool.
 - `json_object`, `json_schema`, and Responses JSON formats run conduct plus
@@ -44,4 +50,4 @@ The runtime contract is:
   implementation.
 - Rebuilding the image is required after the upstream pin changes.
 - Protected-branch review and merge remain external gates; this pin does not
-  bypass PR #765.
+  bypass PR #765 or PR #779.
