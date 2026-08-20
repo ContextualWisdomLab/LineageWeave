@@ -1,0 +1,12 @@
+begin;
+drop table if exists project_event_relation;
+drop table if exists project_event_responsibility;
+drop table if exists project_event_evidence;
+drop table if exists project_lifecycle_event;
+drop table if exists project_lifecycle_audit;
+drop table if exists project_source_record;
+drop table if exists project_event_mapping;
+drop table if exists project_actor;
+drop table if exists project_source_system;
+drop table if exists project_identity;
+commit;

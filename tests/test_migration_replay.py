@@ -56,3 +56,15 @@ def test_migrate_sh_replays_global_ask_context_migration() -> None:
     ).read_text(encoding="utf-8")
 
     assert "0052_*" in script
+
+
+def test_migrate_sh_replays_project_lifecycle_ingestion_migration() -> None:
+    """Existing Compose volumes must receive authoritative lifecycle tables."""
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "0054_*" in script

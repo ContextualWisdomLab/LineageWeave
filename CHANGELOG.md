@@ -8,6 +8,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Proposed source-owned project lifecycle ingestion with explicit versioned
+  event mappings, evidence-bound writes, idempotent replacement, withdrawal,
+  and aggregate audit digests (ADR 0112). This remains pending protected
+  review and Checks and is not a release claim.
 - Proposed Buyer Project history destination and post-detail entry point for
   bounded, authorized exact-project chronology. The feature remains pending
   protected-main review and Checks; it does not claim release until those

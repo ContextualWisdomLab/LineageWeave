@@ -203,6 +203,7 @@ Queued checks and review gates mean none of these rows is protected-main truth.
 | #287 | exact Event Lineage channel evidence | `#276` → feature | Ready / UNSTABLE |
 | #286 | exact byte-bounded MCP browser admission | `#270` → fix | Ready / UNSTABLE |
 | #285 | project lifecycle timeline | `#264 stack` → `v2.18.4` | Ready / UNSTABLE |
+| #284 | authoritative project lifecycle ingestion | `#285 stack` → proposed 0054 writer boundary | Implementation on stacked PR; not protected-main |
 | #282 | TEPP project history in read/Ask | `#264 stack` → `v2.18.0` | Ready / UNSTABLE |
 | #276 | public verification of Global Ask claims | `#266` → `v2.20.0` | Ready / UNSTABLE |
 | #275 | evidence-bound Event Intelligence | `#270` → `v2.18.3` | Ready / UNSTABLE |

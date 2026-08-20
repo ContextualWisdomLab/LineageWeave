@@ -15,5 +15,7 @@ decision from them.
 | [`PROV_O_IMPLEMENTATION_MATRIX.md`](../PROV_O_IMPLEMENTATION_MATRIX.md) | [0065](0065-prov-o-provenance-boundary.md) |
 | [`image-content-schema.md`](../image-content-schema.md) | [0066](0066-position-preserving-image-content.md) |
 
+The current project-history source-of-truth boundary is defined by [0112](0112-authoritative-project-lifecycle-ingestion.md).
+
 Runtime evidence under `docs/doctoring/` is not converted into an ADR: it
 records observed results for already-decided behavior.
