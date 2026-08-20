@@ -170,6 +170,27 @@ def test_global_sources_keep_hyphenated_source_codes_atomic() -> None:
     assert candidate_terms == ["p41-4182-202405-0015"]
 
 
+def test_global_sources_keep_unicode_search_terms_for_localized_buyers() -> None:
+    calls: list[tuple[str, tuple[object, ...]]] = []
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            calls.append((query, args))
+            return []
+
+    asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda row: True,
+            question="无人机 ドローン dự-án",
+            limit=4,
+        )
+    )
+
+    candidate_terms = [args[0] for query, args in calls if "matched_in" in query]
+    assert candidate_terms == ["无人机", "ドローン", "dự-án"]
+
+
 def test_global_sources_expand_top_match_through_event_lineage() -> None:
     """Global Ask must speak to a connected timeline, not an isolated
     snapshot -- expand the single top-ranked keyword match through its

@@ -161,6 +161,8 @@ _SOURCE_HINT_FIELDS = (
     ("source_project_name", "source project name"),
 )
 
+_GLOBAL_ASK_TERM_PATTERN = re.compile(r"[^\W_]+(?:-[^\W_]+)*", re.UNICODE)
+
 
 def _source_hint_facts(row: Any) -> tuple[str, ...]:
     """Render raw source fields as explicitly weak, column-level evidence."""
@@ -372,7 +374,7 @@ async def gather_global_chat_sources(
     search_terms = tuple(
         dict.fromkeys(
             token.casefold()
-            for token in re.findall(r"[0-9A-Za-z가-힣]+(?:-[0-9A-Za-z가-힣]+)*", question or "")
+            for token in _GLOBAL_ASK_TERM_PATTERN.findall(question or "")
             if len(token) >= 2
             and token.casefold()
             not in {
