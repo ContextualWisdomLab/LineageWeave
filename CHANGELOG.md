@@ -4,6 +4,86 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `make smoke` and `make seed` now run through the locked project `uv`
+  environment, so local OIDC and synthetic-data workflows resolve the same
+  pinned dependencies as CI.
+
+## [2.12.5] - 2026-08-18
+
+### Fixed
+
+- Migrations 0019 and 0025 (R&R role-catalog identity backfills) both
+  used `min(uuid_column)` to pick "the" value from a `having count(*)
+  = 1` group -- Postgres has no built-in `min(uuid)` aggregate, so
+  both failed outright the first time either was actually run against
+  a real, non-trivial dataset. Fixed to
+  `min(uuid_column::text)::uuid`, safe given the query's own
+  `having count(*) = 1` already guarantees exactly one value per
+  group. Applying the full migration set 0001-0029 against a real,
+  long-lived dataset also surfaced that this database's original
+  bootstrap had left several *earlier* migrations (0001, 0016)
+  partially applied -- specific tables/indexes/backfills their own
+  later statements defined were missing even though their initial
+  `create table` statements had run. All 29 migrations are now
+  confirmed genuinely, fully applied end to end against a real
+  43,814-post dataset; every table/index any migration defines is now
+  present, verified via direct schema comparison, not assumption.
+
+### Known issue (not fixed here, flagged for follow-up)
+
+- `backend/tests/test_api.py::test_start_analysis_run_recovers_the_a100_fork`
+  and `::test_tepp_start_persists_published_accepted_evidence`
+  deterministically fail against a real live PostgreSQL/Keycloak/Valkey
+  stack (this whole test module is `skipif`-guarded and never runs in
+  CI) with `CheckViolationError` on `analysis_run_status_time_check`
+  (`occurred_at <= recorded_at`): the row's `occurred_at`
+  (`datetime.now(timezone.utc)`, captured in `backend/app/analysis_run_start.py`)
+  reproducibly lands ~15-20ms *after* `recorded_at`
+  (`clock_timestamp()`, evaluated later, at actual insert time, inside
+  a `before insert` trigger) -- the wrong direction, given
+  `recorded_at` is evaluated strictly after `occurred_at` is captured
+  in every code path. Confirmed via a direct clock-sync measurement
+  (5 samples, Python vs. Postgres `clock_timestamp()` interleaved)
+  that there is no measurable systemic clock drift between the test
+  process and this Postgres instance under normal conditions, and
+  confirmed the failure is 100% reproducible in isolation (not a
+  concurrency/load artifact) and entirely pre-existing (verified via
+  `git diff` that no file in this change touches
+  `analysis_run_start.py` or the 0018 migration that defines this
+  constraint). Root cause not yet conclusively identified; deferred
+  as out of scope for this migration-catchup change (a different
+  feature area -- analysis-run/TEPP lifecycle, not R&R/summary/
+  verification) rather than rushed. 553 other tests unaffected.
+
+- `get_or_create_corporate_entity`'s post-lock duplicate-create re-check
+  fuzzy-matched against every cataloged entity, not just an exact
+  concurrent duplicate of the entity being created. A newly-created
+  parent whose name is a prefix of the child now being created (e.g.
+  "Acme" as parent of "Acme Gwangju Plant") scored ~0.7 similarity
+  against that child under the shared 0.6 threshold, so the child was
+  silently bound to its own parent's id instead of getting its own
+  catalog row -- undermining exactly the "통합 고객사 계열 tree AI"
+  (integrated customer affiliate tree) hierarchy the feature exists
+  for. The re-check now requires an exact post-normalization match
+  (`min_similarity=1.0`); real mention resolution against the full
+  candidate set is unchanged. Caught locally by
+  `test_first_mention_of_a_new_counterparty_creates_a_real_corporate_entity`,
+  which requires a live PostgreSQL/Keycloak/Valkey stack and is
+  therefore skipped in CI (`make up` required) -- confirmed CI's own
+  "Full test suite" run has never actually executed this assertion.
+- `test_start_analysis_run_recovers_the_a100_fork` seeded
+  `snapshot_sha256`/`configuration_sha256`/`code_revision_sha` with
+  `"t"`/`"u"`/`"v"`-repeated literals; none are valid hex characters,
+  so the very first insert failed its own `analysis_source_snapshot`
+  check constraint every time this test actually ran. Same CI-blind
+  gap as above -- fixed to valid hex placeholders matching this file's
+  existing convention.
+
+## [2.12.3] - 2026-08-18
 ## [2.17.0] - 2026-08-19
 
 ### Added
