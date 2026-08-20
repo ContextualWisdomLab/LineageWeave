@@ -75,7 +75,6 @@ panel.
 
 On Board, click **Weekly VOC**. Voice of Customer posts for the latest
 ISO-8601 week stay; other VOC types and older weeks drop out. The Board
-names Event Lineage as the next read (ADR 0070). Open a remaining post:
+names Event Lineage as the next read (ADR 0092). Open a remaining post:
 Event Lineage takes focus and names Keyman and evaluation next
-(ADR 0071). A home-list open does not. Do not invent a theta.
-
+(ADR 0093). A home-list open does not. Do not invent a theta.

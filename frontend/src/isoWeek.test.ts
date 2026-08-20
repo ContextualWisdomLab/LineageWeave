@@ -18,6 +18,17 @@ describe("isoWeekFromCreatedAt", () => {
     expect(isoWeekFromCreatedAt(undefined)).toBeNull();
     expect(isoWeekFromCreatedAt("not-a-date")).toBeNull();
   });
+
+  it("rejects timestamps whose Gregorian calendar date is impossible", () => {
+    expect(isoWeekFromCreatedAt("2026-02-29T00:00:00Z")).toBeNull();
+    expect(isoWeekFromCreatedAt("2026-02-30T00:00:00Z")).toBeNull();
+    expect(isoWeekFromCreatedAt("2026-00-01T00:00:00Z")).toBeNull();
+    expect(isoWeekFromCreatedAt("2024-02-29T00:00:00Z")).toBe("2024-W09");
+  });
+
+  it("uses the UTC date when an offset crosses an ISO-week boundary", () => {
+    expect(isoWeekFromCreatedAt("2026-01-05T00:30:00+09:00")).toBe("2026-W01");
+  });
 });
 
 describe("latestIsoWeek", () => {
