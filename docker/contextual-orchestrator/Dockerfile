@@ -3,7 +3,7 @@ FROM python:3.12-slim@sha256:423ed6ab25b1921a477529254bfeeabf5855151dc2c3141699a
 WORKDIR /app
 
 # Reuse the upstream implementation without copying it into LineageWeave.
-# Pin the runtime to PR #779's pushed commit until that protected PR merges;
+# Pin the runtime to ContextualWisdomLab/contextual-orchestrator#779's pushed commit until that protected PR merges;
 # this keeps model selection, structured synthesis, and reasoning policy in
 # contextual-orchestrator itself.
 ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/cf4a4501fa5057f89b21cad5033c5925755cd150.tar.gz /tmp/contextual-orchestrator.tar.gz

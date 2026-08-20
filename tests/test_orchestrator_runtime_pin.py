@@ -18,4 +18,5 @@ def test_orchestrator_runtime_pin_matches_adr() -> None:
 
     assert f"contextual-orchestrator/archive/{ORCHESTRATOR_COMMIT}.tar.gz" in dockerfile
     assert f"commit `{ORCHESTRATOR_COMMIT}`" in adr
-    assert "PR #779" in dockerfile and "PR #779" in adr
+    upstream_pr = "ContextualWisdomLab/contextual-orchestrator#779"
+    assert upstream_pr in dockerfile and upstream_pr in adr
