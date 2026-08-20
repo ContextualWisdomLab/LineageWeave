@@ -53,7 +53,7 @@ _PROVENANCE_SUFFIX = re.compile(
 _METADATA_SEGMENT = re.compile(
     r"\s*\|\s*(?:extraction_method|confidence):\s*[^|\[]+"
 )
-_TOKEN = re.compile(r"[0-9A-Za-z가-힣_:/#.-]{2,}")
+_TOKEN = re.compile(r"[^\W_]+(?:-[^\W_]+)*", re.UNICODE)
 _CODE_FENCE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 
 
@@ -154,7 +154,11 @@ def _claim_kind(fact: str) -> str | None:
 
 
 def _question_tokens(question: str) -> frozenset[str]:
-    return frozenset(token.casefold() for token in _TOKEN.findall(question))
+    return frozenset(
+        token.casefold()
+        for token in _TOKEN.findall(question)
+        if len(token) >= 2
+    )
 
 
 def public_claim_candidates(
