@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
-import type { ProjectHistoryProjection } from "../projectHistory";
+import type { ProjectHistoryProjection, ProjectHistoryTruthStatus } from "../projectHistory";
 import { ProjectHistoryTimeline } from "./ProjectHistoryTimeline";
 
 const event = (
@@ -10,34 +10,45 @@ const event = (
   occurredAt: string,
   transition: "continuous" | "handoff" | "assignment_gap" | null,
   actorName?: string,
-) => ({
-  event_id: eventId,
-  source_post_id: `post-${eventId}`,
-  event_title: title,
-  event_type_code: type,
-  event_type_basis_code: "display_classification" as const,
-  occurred_at: occurredAt,
-  time_basis_code: "document_time" as const,
-  voc_type_code: eventId === "voc" ? "voc" : "vom",
-  source_stage_code: null,
-  source_detail_state_code: null,
-  project_matches: [],
-  observed_responsibilities: actorName
+  truthStatus: ProjectHistoryTruthStatus = "observed",
+) => {
+  const responsibilityEvidence = actorName
     ? [
         {
           actor_key: `actor:${actorName}`,
           actor_name: actorName,
           actor_type_code: "prov_person",
           affiliated_organization_name: "Demo Corp",
-          responsibility: `Own ${title.toLowerCase()}`,
-          truth_status_code: "observed" as const,
-          provenance: "post_summary_role" as const,
+          responsibility:
+            truthStatus === "observed" ? "Source author" : `Coordinate ${title.toLowerCase()}`,
+          truth_status_code: truthStatus,
+          provenance:
+            truthStatus === "observed" ? "source_post.source_author" : "post_summary_role",
         },
       ]
-    : [],
-  responsibility_transition_code: transition,
-  related_prior_paths: [],
-});
+    : [];
+  return {
+    event_id: eventId,
+    source_post_id: `post-${eventId}`,
+    event_title: title,
+    event_type_code: type,
+    event_type_basis_code: "display_classification" as const,
+    occurred_at: occurredAt,
+    time_basis_code: "document_time" as const,
+    voc_type_code: eventId === "voc" ? "voc" : "vom",
+    source_stage_code: null,
+    source_detail_state_code: null,
+    project_matches: [],
+    responsibility_evidence: responsibilityEvidence,
+    observed_responsibilities: responsibilityEvidence.filter(
+      (row) => row.truth_status_code === "observed",
+    ),
+    responsibility_transition_code: transition,
+    responsibility_transition_truth_status_code:
+      transition === null ? null : truthStatus,
+    related_prior_paths: [],
+  };
+};
 
 const projection: ProjectHistoryProjection = {
   contract_version: 1,
@@ -46,8 +57,11 @@ const projection: ProjectHistoryProjection = {
   project_name: "Northridge renewal",
   focus_event_id: "voc",
   time_basis_code: "document_time",
+  knowledge_cutoff: "2026-08-20T00:00:00Z",
+  evidence_boundary_code: "authorized_visible_source_posts",
   event_count: 5,
-  distinct_observed_actor_count: 3,
+  distinct_actor_count: 3,
+  distinct_observed_actor_count: 2,
   truncated: false,
   events: [
     event("award", "Contract awarded", "contract_awarded", "2022-03-11T09:00:00Z", null, "Ada West"),
@@ -59,9 +73,25 @@ const projection: ProjectHistoryProjection = {
       "continuous",
       "Ada West",
     ),
-    event("delivery", "Delivery confirmed", "delivered", "2024-02-20T09:00:00Z", "handoff", "Priya Nair"),
+    event(
+      "delivery",
+      "Delivery confirmed",
+      "delivered",
+      "2024-02-20T09:00:00Z",
+      "handoff",
+      "Priya Nair",
+      "inferred",
+    ),
     event("voc", "VOC received", "voc_received", "2026-07-30T09:00:00Z", "assignment_gap"),
-    event("rebid", "Rebid started", "rebid_started", "2026-08-10T09:00:00Z", "assignment_gap", "Bid team"),
+    event(
+      "rebid",
+      "Rebid started",
+      "rebid_started",
+      "2026-08-10T09:00:00Z",
+      "assignment_gap",
+      "Bid team",
+      "inferred",
+    ),
   ],
 };
 
@@ -95,3 +125,26 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const AwardToRebid: Story = {};
+
+export const TruncatedAtSelectedVoc: Story = {
+  args: {
+    projection: {
+      ...projection,
+      truncated: true,
+    },
+  },
+};
+
+export const ResponsibilityEvidenceGap: Story = {
+  args: {
+    projection: {
+      ...projection,
+      focus_event_id: "voc",
+      events: projection.events.map((row) =>
+        row.event_id === "voc"
+          ? { ...row, responsibility_evidence: [], observed_responsibilities: [] }
+          : row,
+      ),
+    },
+  },
+};
