@@ -81,3 +81,7 @@ Operational backfill MUST use `scripts/queue_post_content_backfill.py`. It
 selects only non-draft, non-deleted rows with real source context, records the
 same completeness-aware job state in PostgreSQL, and publishes wake-ups through
 Valkey. Direct provider calls are not a substitute for the worker queue.
+
+### Operational timeout for structure adjudication
+
+The contextual-orchestrator structure adjudication request uses a 600-second client timeout by default. Structure inference is an accuracy-critical, structured multi-agent operation rather than a user-facing synchronous request; the longer bound prevents a slow but valid workflow from being downgraded to `unresolved` merely because the client abandoned the response. The durable job remains queued until all non-image units have complete structure evidence.
