@@ -133,6 +133,21 @@ def test_legal_suffix_alone_is_not_corroboration() -> None:
     )
 
 
+def test_generic_nonexistence_words_are_not_corroboration() -> None:
+    """Search hits for generic fixture wording do not verify an org name."""
+    assert (
+        corroborating_evidence_url(
+            "Zzqxvthorp Fictitious Nonexistent Org",
+            {
+                "url": "https://www.example.com/about-fictitious-organizations",
+                "title": "Fictitious organizations",
+                "content": "A generic example about nonexistent organizations.",
+            },
+        )
+        is None
+    )
+
+
 def test_hangul_org_name_token_is_corroboration() -> None:
     assert (
         corroborating_evidence_url(

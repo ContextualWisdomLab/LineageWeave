@@ -22,6 +22,9 @@ from lineageweave.entity_relationship_classification import (
     OrganizationRelationship,
 )
 
+# Keep the relationship-network response bounded independently of frontend caps.
+_RELATIONSHIP_NETWORK_LIMIT = 100
+
 
 async def ingest_post_entity_relationships(
     conn: asyncpg.Connection,
