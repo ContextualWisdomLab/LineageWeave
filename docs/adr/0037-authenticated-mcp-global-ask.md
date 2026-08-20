@@ -76,6 +76,12 @@ private answer as a search query.
     alias `LLM_GATEWAY_API_URL`) and `LLM_GATEWAY_API_KEY`. Never copy, log, or
     commit the secret; `ORCHESTRATOR_BASE_URL` and `ORCHESTRATOR_API_KEY` are
     compatibility fallbacks only.
+16. Return the authorized source bundle as a chronological `timeline` in every
+    successful Global Ask result. Each entry retains its source post id, title,
+    timestamp, and whether it is the anchor, a direct Event-Lineage neighbor,
+    or an indirect Knowledge-Graph neighbor. When cited posts contain raster
+    data-URI images, return at most three bounded `ImageContent` blocks after
+    the prose; reconstruct them from the cited source body, never from a URL.
 
 ## Consequences
 

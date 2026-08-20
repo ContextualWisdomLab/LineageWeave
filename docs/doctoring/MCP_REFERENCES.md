@@ -29,6 +29,11 @@ and SDK JSON parsing; CORS preflight runs without a bearer token; then the
 existing OAuth, database RBAC, and per-source ABAC controls run. An HTTP framing
 rejection grants no identity and consumes no Global Ask invocation.
 
+The chronological source timeline follows the same retrieval boundary as the
+answer, preserving event order without fabricating dates. Inline raster
+content follows the data-URL parsing boundary and remains bounded before MCP
+serialization.
+
 ## APA 7th references
 
 Fielding, R. T., Nottingham, M., & Reschke, J. (Eds.). (2022). *HTTP/1.1*
@@ -66,3 +71,6 @@ https://doi.org/10.18653/v1/N18-1074
 
 WHATWG. (2026). *Fetch* (Living Standard).
 https://fetch.spec.whatwg.org/
+
+Masinter, L. (1998). *The “data” URL scheme* (RFC 2397). Internet Engineering
+Task Force. https://doi.org/10.17487/RFC2397

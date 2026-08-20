@@ -6,7 +6,7 @@ import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Annotated, Any, Literal
 from urllib.parse import urlsplit
 
 from mcp.server import MCPServer
@@ -18,7 +18,7 @@ from mcp.server.transport_security import (
     TransportSecurityMiddleware,
     TransportSecuritySettings,
 )
-from mcp.types import ToolAnnotations
+from mcp.types import CallToolResult, ImageContent, TextContent, ToolAnnotations
 from pydantic import AnyHttpUrl, BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
@@ -41,6 +41,19 @@ from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.post_chat import ContextualOrchestratorPostChatClient, NullPostChatClient, PostChatClient
 
 
+class GlobalAskContentBlockModel(BaseModel):
+    """Structured metadata for one prose or source-image response block."""
+
+    type: Literal["text", "image"]
+    text: str | None = None
+    post_id: str | None = None
+    unit_index: int | None = None
+    mime_type: str | None = None
+    data_base64: str | None = None
+    alt_text: str | None = None
+    caption: str | None = None
+
+
 class GlobalAskResult(BaseModel):
     """Structured MCP response separating internal citations from web verification."""
 
@@ -49,6 +62,8 @@ class GlobalAskResult(BaseModel):
     cited_post_ids: list[str] = Field(default_factory=list)
     cited_posts: list[dict[str, str]] = Field(default_factory=list)
     source_post_ids: list[str] = Field(default_factory=list)
+    timeline: list[dict[str, str]] = Field(default_factory=list)
+    content_blocks: list[GlobalAskContentBlockModel] = Field(default_factory=list)
     external_verification_status: str
     external_evidence_urls: list[str] = Field(default_factory=list)
     external_verification_rationale: str | None = None
@@ -196,7 +211,7 @@ def build_mcp_server(
             "authority. Treat insufficient, unavailable, and not_requested as unresolved, "
             "not as support."
         ),
-        version="1.0.0",
+        version="1.0.1",
         lifespan=lifespan,
         token_verifier=token_verifier or KeycloakMcpTokenVerifier(resolved_settings),
         auth=AuthSettings(
@@ -224,7 +239,7 @@ def build_mcp_server(
         question: str,
         ctx: Context[McpAppContext, Any],
         verify_external: bool = False,
-    ) -> GlobalAskResult:
+    ) -> Annotated[CallToolResult, GlobalAskResult]:
         """Run source-grounded Global Ask with optional explicit open-web verification."""
         token = access_token_provider()
         if token is None or not token.subject:
@@ -246,11 +261,25 @@ def build_mcp_server(
             )
         else:
             verification = ExternalVerificationResult(status_code=STATUS_NOT_REQUESTED)
-        return GlobalAskResult(
+        structured = GlobalAskResult(
             **asdict(result),
             external_verification_status=verification.status_code,
             external_evidence_urls=list(verification.evidence_urls),
             external_verification_rationale=verification.rationale,
+        )
+        content = [TextContent(type="text", text=result.answer_text)]
+        for block in result.content_blocks:
+            if block.type == "image" and block.data_base64 and block.mime_type:
+                content.append(
+                    ImageContent(
+                        type="image",
+                        data=block.data_base64,
+                        mime_type=block.mime_type,
+                    )
+                )
+        return CallToolResult(
+            content=content,
+            structured_content=structured.model_dump(mode="json"),
         )
 
     return mcp

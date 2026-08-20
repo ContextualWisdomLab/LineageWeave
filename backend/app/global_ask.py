@@ -5,9 +5,11 @@ from __future__ import annotations
 import asyncio
 import re
 from dataclasses import dataclass, replace
+from datetime import datetime
 from typing import Any
 
 from backend.app.auth import CurrentAccount
+from backend.app.global_ask_media import GlobalAskContentBlock, load_global_ask_content_blocks
 from backend.app.post_chat_ingestion import gather_chat_sources
 from lineageweave.http_client import HttpClientError
 from lineageweave.post_chat import (
@@ -102,6 +104,31 @@ class GlobalAskAnswer:
     cited_post_ids: tuple[str, ...]
     cited_posts: tuple[dict[str, str], ...]
     source_post_ids: tuple[str, ...]
+    timeline: tuple[dict[str, str], ...] = ()
+    content_blocks: tuple[GlobalAskContentBlock, ...] = ()
+
+
+def _timeline(sources: list[ChatSourceDocument]) -> tuple[dict[str, str], ...]:
+    """Return the authorized source bundle as a dated, relation-labelled timeline."""
+    dated = [source for source in sources if source.occurred_at]
+
+    def sort_key(source: ChatSourceDocument) -> tuple[datetime, str]:
+        assert source.occurred_at is not None
+        try:
+            occurred_at = datetime.fromisoformat(source.occurred_at.replace("Z", "+00:00"))
+        except ValueError:
+            occurred_at = datetime.max
+        return occurred_at, source.post_id
+
+    return tuple(
+        {
+            "post_id": source.post_id,
+            "post_title": source.post_title,
+            "occurred_at": source.occurred_at,
+            "lineage_relation": source.lineage_relation,
+        }
+        for source in sorted(dated, key=sort_key)
+    )
 
 
 def validate_global_question(question: str) -> str:
@@ -263,4 +290,6 @@ async def answer_global_question(
         cited_post_ids=cited_ids,
         cited_posts=cited_posts,
         source_post_ids=source_ids,
+        timeline=_timeline(sources),
+        content_blocks=await load_global_ask_content_blocks(conn, answer.answer_text, cited_ids),
     )

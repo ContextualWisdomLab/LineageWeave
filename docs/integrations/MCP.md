@@ -23,12 +23,22 @@ The response separates two evidence planes.
 - the selected `anchor_post_id`
 - `source_post_ids` for every bounded source passed to the reasoner
 - `cited_post_ids` and `cited_posts`
+- `timeline`: chronological source entries with `post_id`, `post_title`,
+  `occurred_at`, and `lineage_relation`
+- `content_blocks`: bounded prose and cited raster-image metadata
 
 The tool never promotes an inferred answer to an authoritative fact. Citation
 IDs not present in the authorized internal source bundle are discarded; if no
 authorized citation remains, the call fails instead of returning unsupported
 prose. No Global Ask row is written merely because an MCP client asked a
 question.
+
+The timeline is calculated from the same authorized source bundle used by the
+answer. It is ordered by each post's persisted `created_at` and distinguishes
+the anchor from direct Event-Lineage and indirect Knowledge-Graph context. A
+successful answer is therefore actionable as a sequence, not just an unordered
+citation list. Inline images are emitted only for cited posts, limited to three
+images and four MiB total, with PNG, JPEG, WebP, and GIF accepted.
 
 The reason-and-cite call uses contextual-orchestrator's `mode="auto"` and
 `reasoning_effort="auto"` contract. The gateway chooses the model, provider
