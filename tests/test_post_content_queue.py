@@ -7,6 +7,8 @@ import re
 from datetime import timedelta
 from pathlib import Path
 
+import pytest
+
 from backend.app.post_content_queue import (
     FAILED,
     POST_CONTENT_RETRY_INTERVAL,
@@ -299,6 +301,36 @@ def test_explicit_retry_resets_only_one_failed_job() -> None:
     assert len(executed) == 2
     assert "attempt_count = 0" in executed[0][0]
     assert executed[1][1][-1] == "operator requested an explicit post-content retry"
+
+
+def test_explicit_retry_rejects_missing_and_nonterminal_jobs() -> None:
+    """The operator command cannot create a job or reset an active job."""
+
+    class MissingConnection:
+        async def fetchrow(self, _query: str, *_args: object):
+            return None
+
+    with pytest.raises(ValueError, match="does not exist"):
+        asyncio.run(
+            requeue_failed_post_content_job(
+                MissingConnection(),
+                "00000000-0000-0000-0000-000000000001",
+                "current body",
+            )
+        )
+
+    class QueuedConnection:
+        async def fetchrow(self, _query: str, *_args: object):
+            return {"status_code": QUEUED}
+
+    with pytest.raises(ValueError, match="only a failed"):
+        asyncio.run(
+            requeue_failed_post_content_job(
+                QueuedConnection(),
+                "00000000-0000-0000-0000-000000000001",
+                "current body",
+            )
+        )
 
 
 def test_recovery_republishes_due_rows_in_queued_at_order() -> None:
