@@ -137,6 +137,7 @@ def test_matching_observed_project_code_keeps_its_distinct_display_name() -> Non
             {
                 "post_id": event_id,
                 "match_kind_code": "source_project_name",
+                "identity_key": "P-100",
                 "matched_value": "Transformer renewal",
                 "confidence": None,
                 "ontology_iri": None,
@@ -152,6 +153,39 @@ def test_matching_observed_project_code_keeps_its_distinct_display_name() -> Non
         "P-100",
         "Transformer renewal",
     ]
+
+
+def test_project_name_cannot_inherit_a_sibling_project_identity() -> None:
+    """A display-name row without its own key cannot leak another project."""
+
+    event_id = "00000000-0000-0000-0000-000000000001"
+    projection = build_project_history_projection(
+        project_key="P-100",
+        focus_event_id=event_id,
+        event_rows=[_event_row(event_id)],
+        match_rows=[
+            {
+                "post_id": event_id,
+                "match_kind_code": "source_project_code",
+                "matched_value": "P-100",
+                "confidence": None,
+                "ontology_iri": None,
+                "provenance": "source_post.source_project_code",
+            },
+            {
+                "post_id": event_id,
+                "match_kind_code": "source_project_name",
+                "matched_value": "Unrelated project",
+                "confidence": None,
+                "ontology_iri": None,
+                "provenance": "source_post.source_project_name",
+            },
+        ],
+        role_rows=[],
+        edge_rows=[],
+    )
+
+    assert [row["matched_value"] for row in projection["events"][0]["project_matches"]] == ["P-100"]
 
 
 def test_summary_responsibilities_remain_inferred_evidence() -> None:

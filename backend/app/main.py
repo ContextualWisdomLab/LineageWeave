@@ -188,6 +188,10 @@ from backend.app.post_summary_ingestion import (
 )
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from backend.app.project_history import (
+    PROJECT_HISTORY_DEFAULT_LIMIT,
+    PROJECT_HISTORY_MAXIMUM_LIMIT,
+    PROJECT_INDEX_DEFAULT_LIMIT,
+    PROJECT_INDEX_MAXIMUM_LIMIT,
     ProjectHistoryNotFound,
     fetch_project_history_index,
     fetch_project_history_projection,
@@ -3233,7 +3237,7 @@ async def read_calendar(
 
 @app.get("/api/project-history/projects")
 async def read_project_history_projects(
-    limit: int = Query(64, ge=1, le=128),
+    limit: int = Query(PROJECT_INDEX_DEFAULT_LIMIT, ge=1, le=PROJECT_INDEX_MAXIMUM_LIMIT),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
@@ -3255,7 +3259,7 @@ async def read_project_history(
     project_key: str = Query(..., min_length=1),
     focus_post_id: str | None = Query(None),
     knowledge_cutoff: str | None = Query(None),
-    limit: int = Query(64, ge=1, le=128),
+    limit: int = Query(PROJECT_HISTORY_DEFAULT_LIMIT, ge=1, le=PROJECT_HISTORY_MAXIMUM_LIMIT),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
@@ -3291,7 +3295,7 @@ async def read_project_history(
         try:
             return await fetch_project_history_projection(
                 conn,
-                project_key=normalized_project_key,
+                project_key=project_key,
                 focus_post_id=focus_post_id,
                 knowledge_cutoff=cutoff,
                 corporate_entity_ids=list(account.corporate_entity_ids),
