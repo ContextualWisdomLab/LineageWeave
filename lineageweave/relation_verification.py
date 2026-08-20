@@ -183,6 +183,8 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
         host = (parsed_url.hostname or "").lower()
     except ValueError:
         return None
+    if parsed_url.scheme not in {"http", "https"}:
+        return None
     if not host or any(marker in host for marker in _SEARCH_HOST_MARKERS):
         return None
     tokens = {

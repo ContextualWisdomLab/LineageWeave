@@ -173,6 +173,12 @@ def test_missing_empty_or_relative_url_is_not_evidence(url: object) -> None:
     assert corroborating_evidence_url("Acme Corp", {"url": url}) is None
 
 
+@pytest.mark.parametrize("url", ["file://acme.example/item", "javascript://acme.example/item"])
+def test_non_http_evidence_url_is_not_accepted(url: str) -> None:
+    """Evidence links must be browser-safe HTTP(S) resources."""
+    assert corroborating_evidence_url("Acme Corp", {"url": url}) is None
+
+
 def test_malformed_ipv6_url_is_not_evidence() -> None:
     """Malformed bracketed hosts fail closed instead of crashing verification."""
     assert corroborating_evidence_url("Acme Corp", {"url": "https://[::1/x"}) is None
