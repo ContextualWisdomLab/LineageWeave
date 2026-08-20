@@ -105,6 +105,15 @@ describe("App, authenticated", () => {
     releaseGroupRelated: () => void;
     releaseDemoRelated: () => void;
     releasePostOneSummary: () => void;
+    latestVocPost?: {
+      post_id: string;
+      post_title: string;
+      voc_type_code: string;
+      voc_type_label?: string;
+      visibility_code?: string;
+      visibility_label?: string;
+      created_at: string;
+    };
   } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -1074,23 +1083,27 @@ describe("App, authenticated", () => {
       }
       const postsUrl = new URL(url, "https://backend.test");
       if (postsUrl.pathname === "/api/posts") {
+        const vocRequest = postsUrl.searchParams.get("voc_type") === "voc";
+        const boardPosts = vocRequest && options?.latestVocPost
+          ? [options.latestVocPost]
+          : [
+              {
+                post_id: "post-1",
+                post_title: "Public post",
+                voc_type_code: "voc",
+                voc_type_label: "Voice of Customer",
+                visibility_code: "public",
+                visibility_label: "Public",
+                created_at: "2026-01-01T00:00:00Z",
+              },
+              ...(options?.boardPosts ?? []),
+            ];
         return Promise.resolve(
           jsonResponse(
             postsUrl.searchParams.get("search")
               ? []
               : {
-                  posts: [
-                    {
-                      post_id: "post-1",
-                      post_title: "Public post",
-                      voc_type_code: "voc",
-                      voc_type_label: "Voice of Customer",
-                      visibility_code: "public",
-                      visibility_label: "Public",
-                      created_at: "2026-01-01T00:00:00Z",
-                    },
-                    ...(options?.boardPosts ?? []),
-                  ],
+                  posts: boardPosts,
                   total_count: 1,
                   limit: 50,
                   offset: 0,
@@ -1971,6 +1984,47 @@ describe("App, authenticated", () => {
     expect(weeklyVoc).toHaveAttribute("aria-pressed", "false");
     expect(within(board).getByRole("button", { name: "View post: Internal memo" })).toBeInTheDocument();
     expect(within(board).getByRole("button", { name: "View post: Older Voice of Customer" })).toBeInTheDocument();
+  });
+
+  it("gets the Weekly VOC week from the authorized newest VOC post, not the loaded page", async () => {
+    const fetchMock = stubBackend({
+      boardPosts: [
+        {
+          post_id: "post-voc-old",
+          post_title: "Older Voice of Customer",
+          voc_type_code: "voc",
+          voc_type_label: "Voice of Customer",
+          visibility_code: "public",
+          visibility_label: "Public",
+          created_at: "2025-12-22T00:00:00Z",
+        },
+      ],
+      latestVocPost: {
+        post_id: "post-voc-new",
+        post_title: "Newest Voice of Customer",
+        voc_type_code: "voc",
+        voc_type_label: "Voice of Customer",
+        visibility_code: "public",
+        visibility_label: "Public",
+        created_at: "2026-02-18T00:00:00Z",
+      },
+    });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    await userEvent.click(within(board).getByRole("button", { name: "Weekly VOC" }));
+
+    await waitFor(() => expect(within(board).getByLabelText("Filter by ISO week")).toHaveValue("2026-W08"));
+    expect(within(board).getByRole("button", { name: "View post: Newest Voice of Customer" })).toBeInTheDocument();
+    expect(within(board).queryByRole("button", { name: "View post: Older Voice of Customer" })).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("limit=1"),
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: "Bearer test-access-token" }) }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("voc_type=voc"),
+      expect.anything(),
+    );
   });
 
   it("opening a Weekly VOC post focuses Event Lineage; a home list open does not", async () => {
