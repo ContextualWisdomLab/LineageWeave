@@ -4529,6 +4529,7 @@ function AskAgentPanel({
     if (!normalized) return;
     setAsking(true);
     setError(null);
+    setAnswer(null);
     try {
       setAnswer(await askAgent(accessToken, normalized));
     } catch (err) {

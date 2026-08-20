@@ -83,6 +83,7 @@ describe("App, authenticated", () => {
     pendingTeppRun?: boolean;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
+    deferSecondAsk?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
@@ -99,6 +100,7 @@ describe("App, authenticated", () => {
     }[];
   }): ReturnType<typeof vi.fn> & {
     releaseMe: () => void;
+    releaseSecondAsk: () => void;
     releaseGroupRelated: () => void;
     releaseDemoRelated: () => void;
   } {
@@ -132,6 +134,13 @@ describe("App, authenticated", () => {
           releaseMe = resolve;
         })
       : Promise.resolve();
+    let releaseSecondAsk = () => {};
+    const secondAskReady = options?.deferSecondAsk
+      ? new Promise<void>((resolve) => {
+          releaseSecondAsk = resolve;
+        })
+      : Promise.resolve();
+    let askRequestCount = 0;
     let releaseGroupRelated = () => {};
     let releaseDemoRelated = () => {};
     const groupRelatedReady = options?.deferCustomerRelated
@@ -1591,7 +1600,13 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/ask") && method === "POST") {
-        return Promise.resolve(
+        askRequestCount += 1;
+        const ready =
+          options?.deferSecondAsk && askRequestCount === 2
+            ? secondAskReady
+            : Promise.resolve();
+        return ready.then(() =>
+          Promise.resolve(
           jsonResponse({
             answer_text: "The cited project is supported by the stored semantic evidence.",
             cited_post_ids: ["post-2"],
@@ -1607,6 +1622,7 @@ describe("App, authenticated", () => {
             ],
             source_post_ids: ["post-1", "post-2"],
           }),
+          ),
         );
       }
       if (url.endsWith("/api/customer-master") && method === "GET") {
@@ -1704,6 +1720,7 @@ describe("App, authenticated", () => {
     vi.stubGlobal("fetch", fetchMock);
     return Object.assign(fetchMock, {
       releaseMe,
+      releaseSecondAsk,
       releaseGroupRelated,
       releaseDemoRelated,
     });
@@ -1721,6 +1738,42 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("hides previous Ask evidence while a new answer is pending", async () => {
+    const fetchMock = stubBackend({ deferSecondAsk: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    const question = within(ask).getByRole("textbox", { name: "Ask a question" });
+    await userEvent.type(question, "Which project?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+    expect(
+      await within(ask).findByText(
+        "The cited project is supported by the stored semantic evidence.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(ask).getByLabelText("Next action")).toBeInTheDocument();
+
+    await userEvent.clear(question);
+    await userEvent.type(question, "Which person?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+
+    expect(within(ask).getByRole("button", { name: "Asking..." })).toBeDisabled();
+    expect(
+      within(ask).queryByText(
+        "The cited project is supported by the stored semantic evidence.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(within(ask).queryByLabelText("Next action")).not.toBeInTheDocument();
+
+    fetchMock.releaseSecondAsk();
+    expect(
+      await within(ask).findByText(
+        "The cited project is supported by the stored semantic evidence.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
