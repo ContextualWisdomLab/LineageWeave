@@ -9,10 +9,10 @@ remains fail-closed, and contextual-orchestrator owns the ``mode="auto"`` route.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import dataclass
 import json
 import math
+from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Any, Protocol
 
 from .http_client import post_json
@@ -31,6 +31,10 @@ class AdjudicationFormatError(ValueError):
     """Raised when contextual-orchestrator returns an invalid adjudication."""
 
 
+class AdjudicationUnavailableError(RuntimeError):
+    """Raised when a valid judgment contains no continuation evidence."""
+
+
 @dataclass(frozen=True, slots=True)
 class AdjudicationDecision:
     """A structured, evidence-bounded lineage continuation judgment."""
@@ -47,7 +51,10 @@ class AdjudicationDecision:
                 "continuation_probability must be a finite JSON number"
             )
         normalized_probability = float(probability)
-        if not math.isfinite(normalized_probability) or not 0.0 <= normalized_probability <= 1.0:
+        if (
+            not math.isfinite(normalized_probability)
+            or not 0.0 <= normalized_probability <= 1.0
+        ):
             raise AdjudicationFormatError(
                 "continuation_probability must be between 0.0 and 1.0"
             )
@@ -72,13 +79,13 @@ class AdjudicationClient(Protocol):
 
     def judge(self, candidate_label: str, record_label: str) -> float:
         """Return the direct-continuation probability for one pair."""
-        ...
+        raise NotImplementedError  # pragma: no cover - protocol declaration
 
     def judge_decision(
         self, candidate_label: str, record_label: str
     ) -> AdjudicationDecision:
         """Return the complete structured decision for one pair."""
-        ...
+        raise NotImplementedError  # pragma: no cover - protocol declaration
 
 
 class NullAdjudicationClient:
@@ -86,15 +93,21 @@ class NullAdjudicationClient:
 
     available = False
 
-    def judge(self, candidate_label: str, record_label: str) -> float:  # pragma: no cover
+    def judge(
+        self, candidate_label: str, record_label: str
+    ) -> float:  # pragma: no cover
         """Reject use when callers ignored :attr:`available`."""
-        raise RuntimeError("NullAdjudicationClient has no llm channel; check .available first")
+        raise RuntimeError(
+            "NullAdjudicationClient has no llm channel; check .available first"
+        )
 
     def judge_decision(
         self, candidate_label: str, record_label: str
     ) -> AdjudicationDecision:  # pragma: no cover
         """Reject use when callers ignored :attr:`available`."""
-        raise RuntimeError("NullAdjudicationClient has no llm channel; check .available first")
+        raise RuntimeError(
+            "NullAdjudicationClient has no llm channel; check .available first"
+        )
 
 
 def _bounded_label(value: str, *, field_name: str) -> str:
@@ -270,18 +283,19 @@ class ContextualOrchestratorAdjudicationClient:
     def judge(self, candidate_label: str, record_label: str) -> float:
         """Return the probability while preserving the legacy float protocol."""
         decision = self.judge_decision(candidate_label, record_label)
-        if decision.verdict_code != "supported":
-            raise AdjudicationFormatError(
-                "non-supported adjudication verdict cannot become a continuation signal"
+        if decision.verdict_code == "insufficient_evidence":
+            raise AdjudicationUnavailableError(
+                "insufficient adjudication evidence has no continuation signal"
             )
         return decision.continuation_probability
 
 
 __all__ = [
+    "ALLOWED_ADJUDICATION_VERDICTS",
     "AdjudicationClient",
     "AdjudicationDecision",
     "AdjudicationFormatError",
-    "ALLOWED_ADJUDICATION_VERDICTS",
+    "AdjudicationUnavailableError",
     "ContextualOrchestratorAdjudicationClient",
     "NullAdjudicationClient",
 ]

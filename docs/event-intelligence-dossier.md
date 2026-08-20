@@ -90,8 +90,9 @@ measurement are not treated as the same scale. The orchestrator channel has no
 The lineage pair-adjudication client no longer asks for a bare number and no
 longer searches arbitrary prose with a regular expression. It sends candidate
 labels as a canonical JSON data object under a system instruction that marks
-them untrusted, requests `mode=verify`, high reasoning effort, and an
-orchestration trace, then accepts exactly these fields:
+them untrusted, requests orchestrator-owned `mode=auto`, automatic reasoning
+effort, an orchestration trace, and a strict JSON Schema response, then accepts
+exactly these fields:
 
 ```json
 {
@@ -103,8 +104,10 @@ orchestration trace, then accepts exactly these fields:
 
 Code fences, extra or missing fields, duplicate keys, non-finite values, and
 out-of-range probabilities fail closed. The compatibility `judge()` method
-returns only the validated probability; `judge_decision()` exposes the full
-structured decision for dossier composition.
+returns a validated supported or refuted probability. An
+`insufficient_evidence` result drops and renormalizes the LLM channel for that
+candidate comparison; `judge_decision()` exposes the full structured decision
+for dossier composition.
 
 ## Validate an artifact
 
@@ -123,7 +126,8 @@ Successful output is a compact machine-readable receipt:
 
 Invalid UTF-8, malformed JSON, unknown fields, missing fields, altered digests,
 cutoff leakage, dangling graph edges, or unknown evidence references produce a
-bounded JSON error on stderr and exit code `2`. Source text and Python
+bounded JSON error on stderr and exit code `2`. A correction-oriented error may
+name a field path or offending identifier; full source content and Python
 tracebacks are not printed.
 
 ## Python composition

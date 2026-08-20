@@ -44,6 +44,29 @@ def test_schema_declares_strict_draft_2020_12_contract() -> None:
     assert graph["edges"]["uniqueItems"] is True
 
 
+@pytest.mark.parametrize("field", ["event_id", "event_title", "source_snapshot_id"])
+def test_schema_matches_runtime_root_string_bounds(field: str) -> None:
+    """Published root string limits reject what production rejects."""
+    payload = load_example()
+    payload[field] = "x" * 257
+    assert not Draft202012Validator(load_schema()).is_valid(payload)
+    with pytest.raises(EventIntelligenceValidationError, match="at most 256"):
+        event_intelligence_dossier_from_dict(payload, require_digest=False)
+
+
+@pytest.mark.parametrize(
+    "timestamp",
+    ["2026-08-19T10:00:00", "2026-08-19 10:00:00Z", "2026-08-19T10:00:00+0000"],
+)
+def test_schema_asserts_rfc3339_timestamp_syntax_without_format_checker(
+    timestamp: str,
+) -> None:
+    """The schema pattern rejects loose ISO forms without optional tooling."""
+    payload = load_example()
+    payload["temporal_context"]["event_start"] = timestamp
+    assert not Draft202012Validator(load_schema()).is_valid(payload)
+
+
 def test_canonical_example_round_trips_through_production_validator() -> None:
     """The example reconstructs and preserves its committed self-digest."""
     payload = load_example()
@@ -60,7 +83,9 @@ def test_runtime_validator_owns_evidence_id_uniqueness() -> None:
     duplicate["source_uri"] = "urn:test:duplicate-source"
     payload["evidence"].append(duplicate)
     assert Draft202012Validator(load_schema()).is_valid(payload)
-    with pytest.raises(EventIntelligenceValidationError, match="evidence ids must be unique"):
+    with pytest.raises(
+        EventIntelligenceValidationError, match="evidence ids must be unique"
+    ):
         event_intelligence_dossier_from_dict(payload, require_digest=False)
 
 
@@ -99,21 +124,29 @@ def test_validator_refuses_non_object_roots(mutator, message: str) -> None:
         event_intelligence_dossier_from_dict(invalid)
 
 
-def test_validator_refuses_missing_fields_non_arrays_and_invalid_channel_status() -> None:
+def test_validator_refuses_missing_fields_non_arrays_and_invalid_channel_status() -> (
+    None
+):
     """Wire reconstruction fails closed at structural boundaries."""
     payload = load_example()
     payload.pop("claims")
-    with pytest.raises(EventIntelligenceValidationError, match="missing fields: claims"):
+    with pytest.raises(
+        EventIntelligenceValidationError, match="missing fields: claims"
+    ):
         event_intelligence_dossier_from_dict(payload)
 
     payload = load_example()
     payload["claims"] = "not-an-array"
-    with pytest.raises(EventIntelligenceValidationError, match="claims must be an array"):
+    with pytest.raises(
+        EventIntelligenceValidationError, match="claims must be an array"
+    ):
         event_intelligence_dossier_from_dict(payload)
 
     payload = load_example()
     payload["tepp"] = {"status_code": "pending"}
-    with pytest.raises(EventIntelligenceValidationError, match="available or unavailable"):
+    with pytest.raises(
+        EventIntelligenceValidationError, match="available or unavailable"
+    ):
         event_intelligence_dossier_from_dict(payload)
 
 
@@ -133,4 +166,7 @@ def test_validator_refuses_unavailable_knowledge_graph_and_digest_tampering() ->
 def test_composer_mode_accepts_an_existing_valid_digest() -> None:
     """Composer mode can verify an already-digested payload without requiring removal."""
     payload = load_example()
-    assert event_intelligence_dossier_from_dict(payload, require_digest=False).to_dict() == payload
+    assert (
+        event_intelligence_dossier_from_dict(payload, require_digest=False).to_dict()
+        == payload
+    )

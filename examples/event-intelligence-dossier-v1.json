@@ -162,8 +162,8 @@
         "ontology": {
           "preferred_label": "Post",
           "semantic_role_code": "node_type",
-      "term_iri": "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
-      "vocabulary_version": "lineageweave-kg-v1"
+          "term_iri": "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+          "vocabulary_version": "lineageweave-kg-v1"
         },
         "relevance": {
           "authority_system": "lineageweave_knowledge_graph",

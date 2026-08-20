@@ -18,7 +18,9 @@ or promoting an inferred relation to fact.
 - Fuse independent temporal, secondary-key, text/embedding, and optional LLM
   channels through the RankWeave weighted convex fusion contract. A missing
   channel is dropped and weights are renormalized; it is never replaced with a
-  fabricated negative or score.
+  fabricated negative or score. A structured `refuted` verdict remains a real
+  negative score; `insufficient_evidence` drops the LLM channel for that whole
+  candidate comparison so every candidate is ranked with the same weights.
 - Keep the channel-score breakdown and provenance on every candidate decision.
   Candidates below the minimum fused-score floor remain roots rather than being
   force-attached.
