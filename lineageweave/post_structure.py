@@ -24,7 +24,8 @@ class PostStructureClient(Protocol):
 
     def infer(
         self, post_title: str, units: list[dict[str, object]]
-    ) -> tuple[StructureDecision, ...]: ...
+    ) -> tuple[StructureDecision, ...]:
+        raise NotImplementedError
 
 
 class NullPostStructureClient:
@@ -105,6 +106,7 @@ class ContextualOrchestratorPostStructureClient:
                 },
                 "mode": "auto",
                 "reasoning_effort": "auto",
+                "max_tokens": 4096,
             },
             headers={"authorization": f"Bearer {self.api_key}"},
             timeout=self.timeout,

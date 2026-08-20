@@ -83,6 +83,7 @@ export interface PostImageRegion {
 }
 
 export interface PostContentResponse {
+  status?: "ready" | "processing" | "unavailable";
   units: PostContentUnit[];
   images: PostImageContent[];
 }
@@ -263,12 +264,52 @@ export interface CitedPostEvidence {
   facts: CitedPostEvidenceFact[];
 }
 
+export interface TeppProjectHistoryEvent {
+  event_id: string;
+  event_type_code: string;
+  event_title: string;
+  event_time: string;
+  available_at: string;
+  availability_basis: string;
+  source_post_id: string;
+  evidence_text: string;
+  actor_ids: string[];
+}
+
+export interface TeppProjectHistoryFinding {
+  finding_code: string;
+  summary: string;
+  related_event_ids: string[];
+  evidence_post_ids: string[];
+}
+
+export interface TeppProjectHistory {
+  contract_version: number;
+  project_key: string;
+  project_name: string;
+  focus_event_id: string;
+  inference_status: "temporal_association_only";
+  participant_count: number;
+  history_span_start: string;
+  history_span_end: string;
+  events: TeppProjectHistoryEvent[];
+  findings: TeppProjectHistoryFinding[];
+}
+
+export interface TeppProjectHistoryEnvelope {
+  status: string;
+  project_history: TeppProjectHistory | null;
+  next_action: string;
+}
+
 export interface ChatAnswer {
   post_id: string;
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
   source_post_ids: string[];
+  tepp_project_history?: TeppProjectHistory | null;
+  tepp_project_history_status?: string;
 }
 
 export interface ChatExchange {
@@ -284,12 +325,23 @@ export interface ChatHistory {
 }
 
 export interface AskAgentResponse {
+  session_id: string;
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
   cited_post_evidence?: CitedPostEvidence[];
   source_post_ids: string[];
+  timeline?: AskTimelineEntry[];
+  tepp_project_history?: TeppProjectHistory | null;
+  tepp_project_history_status?: string;
   next_action?: string;
+}
+
+export interface AskTimelineEntry {
+  post_id: string;
+  post_title: string;
+  occurred_at: string | null;
+  timeline_kind: string | null;
 }
 
 export interface IssueTicket {
@@ -853,10 +905,21 @@ export function askPostChat(accessToken: string, postId: string, question: strin
   });
 }
 
-export function askAgent(accessToken: string, question: string): Promise<AskAgentResponse> {
+export function fetchPostProjectHistory(
+  accessToken: string,
+  postId: string,
+): Promise<TeppProjectHistoryEnvelope> {
+  return backendFetch(`/api/posts/${postId}/project-history`, accessToken);
+}
+
+export function askAgent(
+  accessToken: string,
+  question: string,
+  sessionId?: string,
+): Promise<AskAgentResponse> {
   return backendFetch("/api/ask", accessToken, {
     method: "POST",
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, ...(sessionId ? { session_id: sessionId } : {}) }),
   });
 }
 

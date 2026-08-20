@@ -130,6 +130,22 @@ def test_project_history_client_refuses_causal_or_out_of_bundle_results() -> Non
     with pytest.raises(TeppProjectHistoryUnavailable):
         client.project(_request())
 
+    causal_summary = _projection_payload()
+    findings = causal_summary["findings"]
+    assert isinstance(findings, list)
+    finding = findings[0]
+    assert isinstance(finding, dict)
+    finding["summary"] = (
+        "An explicit contract-award event precedes the focus event. "
+        "This is a temporal association and a causal conclusion."
+    )
+    client = TeppProjectHistoryClient(
+        "https://tepp.example.test",
+        transport=lambda *_: causal_summary,
+    )
+    with pytest.raises(TeppProjectHistoryUnavailable):
+        client.project(_request())
+
     out_of_bundle = _projection_payload()
     findings = out_of_bundle["findings"]
     assert isinstance(findings, list)
@@ -153,7 +169,28 @@ def test_project_history_endpoint_and_unavailable_boundary_fail_closed() -> None
         project_history_endpoint("https://tepp.example.test/")
         == "https://tepp.example.test/v1/project-histories"
     )
-    for hostile in ("", "file:///tmp/tepp", "http://tepp.example.test", "https://user@host"):
+    assert (
+        project_history_endpoint("http://127.0.0.1:45123/v1/analysis-runs")
+        == "http://127.0.0.1:45123/v1/project-histories"
+    )
+    assert (
+        project_history_endpoint("http://localhost:45123")
+        == "http://localhost:45123/v1/project-histories"
+    )
+    assert (
+        project_history_endpoint("http://[::1]:45123/")
+        == "http://[::1]:45123/v1/project-histories"
+    )
+    for hostile in (
+        "",
+        "file:///tmp/tepp",
+        "http://tepp.example.test",
+        "http://0.0.0.0:45123",
+        "https://user@host",
+        "https://host:bad-port",
+        "https://host/path",
+        "https://host\n.invalid",
+    ):
         with pytest.raises(TeppProjectHistoryUnavailable):
             project_history_endpoint(hostile)
 

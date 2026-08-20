@@ -59,7 +59,7 @@ PROJECT_MENTION_CONFIDENCE_THRESHOLD = 0.7
 FIVE_W1H_EVIDENCE_SLOTS = frozenset({"when", "where", "why", "how"})
 # Stored rows without this contract version are legacy summaries and must be
 # regenerated from the current source body before the popup treats them as evidence.
-POST_SUMMARY_CONTRACT_VERSION = 3
+POST_SUMMARY_CONTRACT_VERSION = 4
 
 
 @dataclass(frozen=True)
@@ -246,6 +246,7 @@ these fields:
 Post title: {title}
 Post body: {body}
 """
+_SUMMARY_MAX_TOKENS = 2048
 
 _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 
@@ -575,12 +576,16 @@ def parse_summary_response(content: str) -> PostSummary | None:
             name = entry.get("actor_name")
             responsibility = entry.get("responsibility")
             actor_type_raw = entry.get("actor_type")
-            if actor_type_raw == "organization":
+            if actor_type_raw is None:
+                actor_type_code = ACTOR_TYPE_PERSON
+            elif actor_type_raw == "person":
+                actor_type_code = ACTOR_TYPE_PERSON
+            elif actor_type_raw == "organization":
                 actor_type_code = ACTOR_TYPE_ORGANIZATION
             elif actor_type_raw == "team":
                 actor_type_code = ACTOR_TYPE_TEAM
             else:
-                actor_type_code = ACTOR_TYPE_PERSON
+                continue
             affiliation_raw = entry.get("affiliated_organization_name")
             affiliated_organization_name = (
                 affiliation_raw.strip()
@@ -771,6 +776,7 @@ class ContextualOrchestratorPostSummaryClient:
                 "messages": [{"role": "user", "content": prompt}],
                 "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
+                "max_tokens": _SUMMARY_MAX_TOKENS,
             },
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
@@ -795,6 +801,7 @@ class ContextualOrchestratorPostSummaryClient:
                 ],
                 "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
+                "max_tokens": _SUMMARY_MAX_TOKENS,
             },
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,

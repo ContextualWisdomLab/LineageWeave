@@ -159,6 +159,17 @@ def test_missing_actor_type_defaults_to_person() -> None:
     assert summary.roles_and_responsibilities[0].affiliated_organization_name is None
 
 
+def test_explicit_unknown_actor_type_is_dropped() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary": "요약", "roles_and_responsibilities": [{'
+        '"actor_name": "Synthetic Team", "responsibility": "검토", '
+        '"actor_type": "department"}]}'
+    )
+
+    assert summary is not None
+    assert summary.roles_and_responsibilities == ()
+
+
 def test_missing_korean_summary_returns_none() -> None:
     content = '{"key_events": [], "roles_and_responsibilities": []}'
     assert parse_summary_response(content) is None

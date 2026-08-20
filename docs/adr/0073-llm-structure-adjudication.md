@@ -23,6 +23,11 @@ Post structure is resolved in this order:
 Structure evidence is stored one-to-one in the normalized
 post_content_unit_structure table. The buyer UI uses the resolved level for
 indentation and never renders an LLM instruction or internal prompt text.
+Persisted explicit or adjudicated structure is authoritative for ordinary
+paragraph units as well as tables and footnotes; the presence of a special
+DOM label must not decide whether the evidence is rendered. An unresolved-only
+payload may retain source presentation as a visible fallback, but it cannot
+override a resolved unit.
 
 All LLM and vision requests continue through contextual-orchestrator. The
 caller does not select an LLM model.

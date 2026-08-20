@@ -23,7 +23,7 @@ import asyncio
 import json
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Literal
 from uuid import UUID
 
@@ -70,10 +70,12 @@ from lineageweave.organization_name_resolution import (
     NullOrganizationNameResolutionClient,
 )
 from lineageweave.post_chat import (
+    ChatSourceDocument,
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
     cited_post_evidence,
     cited_post_summaries,
+    render_global_ask_context,
 )
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_evaluation import (
@@ -102,11 +104,19 @@ from backend.app.analysis_run_start import (
     enqueue_pending_analysis_run,
 )
 from backend.app.analysis_run_worker import run_analysis_run_worker
+from backend.app.post_content_queue import (
+    ensure_post_content_job,
+    post_content_api_status,
+    post_content_is_complete,
+    publish_post_content_event,
+)
+from backend.app.post_content_worker import run_post_content_worker
 from backend.app.source_post_revision import fetch_known_at_revision, parse_as_of_clock
 from backend.app.activity_stream import (
     create_valkey_client,
     get_valkey,
     publish_activity_event,
+    publish_operation_event,
     read_activity_events,
     ticket_created_summary,
     ticket_status_changed_summary,
@@ -160,11 +170,15 @@ from backend.app.knowledge_graph import (
 )
 from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
 from backend.app.post_chat_ingestion import (
+    ensure_global_ask_session,
     fetch_persisted_chat,
     fetch_persisted_chats,
     find_linked_post_ids,
     gather_chat_sources,
     gather_global_chat_sources,
+    load_global_ask_context,
+    persist_global_ask_summary,
+    persist_global_ask_turn,
     persist_post_chat,
 )
 from backend.app.post_summary_ingestion import (
@@ -172,13 +186,13 @@ from backend.app.post_summary_ingestion import (
     persist_post_summary,
     require_summary_source_body,
 )
+from backend.app.tepp_project_history import project_history_for_post_ids
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
     has_real_source_context,
     is_demo_scope,
 )
-from lineageweave.post_content_persistence import persist_post_content
 from lineageweave.http_client import HttpClientError
 
 _POST_READ = "post_read"
@@ -203,11 +217,25 @@ async def lifespan(app: FastAPI):
             adjudication_client=_adjudication_client(),
         )
     )
+    app.state.post_content_worker = asyncio.create_task(
+        run_post_content_worker(
+            app.state.valkey,
+            app.state.pool,
+            vision_factory=_vision_client,
+            embedding_factory=_embedding_client,
+            structure_factory=_post_structure_client,
+        )
+    )
     try:
         yield
     finally:
         app.state.analysis_run_worker.cancel()
-        await asyncio.gather(app.state.analysis_run_worker, return_exceptions=True)
+        app.state.post_content_worker.cancel()
+        await asyncio.gather(
+            app.state.analysis_run_worker,
+            app.state.post_content_worker,
+            return_exceptions=True,
+        )
         await app.state.pool.close()
         await app.state.valkey.aclose()
 
@@ -549,8 +577,14 @@ async def _post_filter_options(
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
-    visibility_rows = await conn.fetch(visibility_sql, list(corporate_entity_ids))
-    type_rows = await conn.fetch(type_sql, list(corporate_entity_ids))
+    # Safe SQL: both query strings are closed lookup statements; entity ids remain asyncpg parameters.
+    visibility_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        visibility_sql, list(corporate_entity_ids)
+    )
+    # Safe SQL: both query strings are closed lookup statements; entity ids remain asyncpg parameters.
+    type_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        type_sql, list(corporate_entity_ids)
+    )
     return (
         [{"code": row["code"], "label": row["label"]} for row in type_rows],
         [{"code": row["code"], "label": row["label"]} for row in visibility_rows],
@@ -614,6 +648,7 @@ async def update_me_preferences(
     preference: LocalePreferenceRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, str]:
     """Persist member preferences without putting them in browser-only state."""
     async with pool.acquire() as conn:
@@ -622,6 +657,12 @@ async def update_me_preferences(
             preference.preferred_locale,
             account.user_account_id,
         )
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "preferences_updated",
+        "Locale preference updated",
+    )
     return {"preferred_locale": preference.preferred_locale}
 
 
@@ -642,7 +683,8 @@ async def read_customer_master(
         }
 
     async with pool.acquire() as conn:
-        source_customer_rows = await conn.fetch(
+        # Safe SQL: the evidence query uses only closed schema fragments; authorized entity ids are bound.
+        source_customer_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"""
             with scoped as (
                 select post_id, post_title, created_at,
@@ -701,7 +743,8 @@ async def read_customer_master(
             """,
             list(account.corporate_entity_ids),
         )
-        source_author_rows = await conn.fetch(
+        # Safe SQL: the evidence query uses only closed schema fragments; authorized entity ids are bound.
+        source_author_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"""
             with scoped as (
                 select post.post_id, post.post_title, post.created_at,
@@ -987,6 +1030,7 @@ async def resolve_customer_master_hint(
     request: CustomerHintResolveRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Resolve one observed customer-hint code to a real corporate_entity.
 
@@ -1021,6 +1065,12 @@ async def resolve_customer_master_hint(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "this hint could not be resolved to a corroborated organization name",
         )
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "customer_hint_resolved",
+        "Customer hint resolved",
+    )
     return resolution
 
 
@@ -1046,6 +1096,7 @@ async def read_lineage_graph(
 async def rebuild_lineage_graph(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Run reconstruct over every source_post and persist post_lineage_edge.
 
@@ -1055,6 +1106,12 @@ async def rebuild_lineage_graph(
     async with pool.acquire() as conn:
         async with conn.transaction():
             edges = await rebuild_lineage(conn)
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "lineage_rebuilt",
+        "Lineage rebuilt",
+    )
     return {"edge_count": len(edges)}
 
 
@@ -1078,7 +1135,8 @@ async def list_posts(
         )
         body_search_ids: list[str] = []
         if search_term:
-            body_rows = await conn.fetch(
+            # Safe SQL: search SQL is a closed schema query; search_term is bound through $1.
+            body_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
                 f"""
                 select post_id
                   from source_post
@@ -1099,7 +1157,8 @@ async def list_posts(
                 search_term,
             )
             body_search_ids = [str(row["post_id"]) for row in body_rows]
-        rows = await conn.fetch(
+        # Safe SQL: page SQL is a closed schema query; every request value is an asyncpg parameter.
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"""
             with page as (
                 select post.post_id, post.post_title, post.voc_type_code, post.visibility_code,
@@ -1362,7 +1421,8 @@ async def read_post(
                 "then compare the known body with the live body.",
             ) from exc
     async with pool.acquire() as conn:
-        row = await conn.fetchrow(
+        # Safe SQL: the eligibility predicate is an immutable schema fragment; post id is bound.
+        row = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             "select post_id, post_title, post_body, voc_type_code, visibility_code, "
             "source_stage_code, source_detail_state_code, source_draft_code, source_deleted_flag, "
                 "source_author_code, source_author_name, source_company_code, source_company_name, "
@@ -1400,9 +1460,11 @@ async def read_post_content(
     post_id: str,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Return persisted content evidence; never derive or invent buyer copy."""
     await _load_visible_post(post_id, account, pool)
+    queue_event: tuple[str, str] | None = None
     async with pool.acquire() as conn:
         unit_rows = await conn.fetch(
             """
@@ -1418,6 +1480,38 @@ async def read_post_content(
             """,
             post_id,
         )
+        content_status = post_content_api_status(
+            None,
+            content_present=bool(unit_rows),
+        )
+        body_row = await conn.fetchrow(
+            "select post_body from source_post where post_id = $1", post_id
+        )
+        raw_body = None if body_row is None else body_row["post_body"]
+        if isinstance(raw_body, str) and raw_body.strip():
+            content_present = bool(unit_rows)
+            content_complete = await post_content_is_complete(
+                conn,
+                post_id,
+                embedding_model_code=load_settings().embedding_model,
+                require_structure=bool(
+                    load_settings().orchestrator_base_url
+                    and load_settings().orchestrator_api_key
+                ),
+            )
+            async with conn.transaction():
+                job = await ensure_post_content_job(
+                    conn,
+                    post_id,
+                    raw_body,
+                    content_complete=content_complete,
+                )
+            content_status = post_content_api_status(
+                job.status_code,
+                content_present=content_present,
+            )
+            if job.should_publish:
+                queue_event = (job.post_id, job.source_body_sha256)
         rows = await conn.fetch(
             """
             select image.post_content_image_id, unit.unit_index, image.mime_type, image.description_status_code,
@@ -1462,6 +1556,12 @@ async def read_post_content(
             """,
             [row["post_content_image_id"] for row in rows],
         ) if rows else []
+    if queue_event is not None:
+        await publish_post_content_event(
+            valkey,
+            post_id=queue_event[0],
+            source_body_digest=queue_event[1],
+        )
     regions_by_image: dict[str, list[dict[str, Any]]] = {}
     for row in region_rows:
         regions_by_image.setdefault(str(row["post_content_image_id"]), []).append(
@@ -1478,6 +1578,7 @@ async def read_post_content(
             }
         )
     return {
+        "status": content_status,
         "units": [
             {
                 "unit_index": row["unit_index"],
@@ -1514,7 +1615,8 @@ async def _load_visible_post(
     """Load one post the account may see, or raise 404 / 403."""
     _require_post_read(account)
     async with pool.acquire() as conn:
-        row = await conn.fetchrow(
+        # Safe SQL: the eligibility predicate is an immutable schema fragment; post id is bound.
+        row = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             """
             select source_post.post_id, source_post.post_title, source_post.voc_type_code,
                    source_post.visibility_code, source_post.corporate_entity_id,
@@ -1826,7 +1928,9 @@ async def read_post_counterparties(
     """
     post = await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
-        counterparties = await fetch_post_counterparties(conn, post_id)
+        counterparties = await fetch_post_counterparties(
+            conn, post_id, account.corporate_entity_ids
+        )
     return {
         "post_id": str(post["post_id"]),
         "counterparties": counterparties,
@@ -2039,7 +2143,8 @@ async def read_post_lineage(
         candidate_ids = linked.direct | linked.indirect
         rows = {}
         if candidate_ids:
-            fetched = await conn.fetch(
+            # Safe SQL: the eligibility predicate is an immutable schema fragment; candidate ids are bound.
+            fetched = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
                 "select post_id, post_title, visibility_code, corporate_entity_id, "
                 "btrim(left(source_post_search_text(post_body), 420)) as post_body_excerpt, "
                 "char_length(coalesce(post_body, '')) > 420 as post_body_truncated "
@@ -2265,6 +2370,7 @@ async def rebuild_period_report_endpoint(
     period_code: str,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Refit or FIPC-score every group in the period. post_admin only."""
     _require_post_admin(account)
@@ -2277,6 +2383,12 @@ async def rebuild_period_report_endpoint(
     async with pool.acquire() as conn:
         async with conn.transaction():
             reports = await rebuild_period_reports(conn, grouping_kind, period_code)
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "period_report_rebuilt",
+        "Period report rebuilt",
+    )
     return {
         "grouping_kind": grouping_kind,
         "period_code": period_code,
@@ -2290,6 +2402,7 @@ async def read_post_summary(
     post_id: str,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """A Korean summary, key events, and R&R for the popup.
 
@@ -2300,6 +2413,7 @@ async def read_post_summary(
     """
     post = await _load_visible_post(post_id, account, pool)
     post_metadata = build_post_llm_metadata(post_id, post)
+    queue_event: tuple[str, str] | None = None
     async with pool.acquire() as conn:
         body_row = await conn.fetchrow(
             "select post_body from source_post where post_id = $1", post_id
@@ -2320,23 +2434,7 @@ async def read_post_summary(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
                 )
-            vision_client = _vision_client()
-            normalized = await asyncio.to_thread(normalize_post_body, raw_body, vision_client)
-            settings = load_settings()
-            embedding_client = _embedding_client()
-            structure_client = _post_structure_client()
-            if vision_client.available or embedding_client.available or structure_client.available:
-                await persist_post_content(
-                    conn,
-                    post_id,
-                    raw_body,
-                    vision_client=vision_client,
-                    embedding_client=embedding_client,
-                    embedding_model_code=settings.embedding_model or None,
-                    normalized_result=normalized,
-                    structure_client=structure_client,
-                    post_title=post["post_title"],
-                )
+            normalized = await asyncio.to_thread(normalize_post_body, raw_body)
             normalized_body = normalized.text
             context_hints = await _load_post_semantic_hints(conn, post_id)
             summarize_with_hints = getattr(client, "summarize_with_hints", None)
@@ -2352,7 +2450,7 @@ async def read_post_summary(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
                 ) from exc
-            return await persist_post_summary(
+            payload = await persist_post_summary(
                 conn,
                 post_id,
                 summary,
@@ -2360,6 +2458,31 @@ async def read_post_summary(
                 hierarchy_inference_client=_corporate_hierarchy_inference_client(),
                 verification_client=_relation_verification_client(),
             )
+        content_complete = await post_content_is_complete(
+            conn,
+            post_id,
+            embedding_model_code=load_settings().embedding_model,
+            require_structure=bool(
+                load_settings().orchestrator_base_url
+                and load_settings().orchestrator_api_key
+            ),
+        )
+        async with conn.transaction():
+            job = await ensure_post_content_job(
+                conn,
+                post_id,
+                raw_body,
+                content_complete=content_complete,
+            )
+        if job.should_publish:
+            queue_event = (job.post_id, job.source_body_sha256)
+    if queue_event is not None:
+        await publish_post_content_event(
+            valkey,
+            post_id=queue_event[0],
+            source_body_digest=queue_event[1],
+        )
+    return payload
 
 
 @app.get("/api/posts/{post_id}/five-w1h")
@@ -2375,6 +2498,27 @@ async def read_post_five_w1h(
             conn,
             post_id,
             lambda row: _can_see_post(account, row),
+            account.corporate_entity_ids,
+        )
+
+
+@app.get("/api/posts/{post_id}/project-history")
+async def read_post_project_history(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return the cutoff-safe exact-project timeline for one visible post."""
+    await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        return await project_history_for_post_ids(
+            conn,
+            tenant_workspace_id=str(account.user_account_id),
+            corporate_entity_ids=account.corporate_entity_ids,
+            focus_post_id=post_id,
+            source_post_ids=[post_id],
+            knowledge_cutoff=datetime.now(timezone.utc),
+            tepp_transport_url=load_settings().tepp_transport_url,
         )
 
 
@@ -2388,6 +2532,28 @@ class GlobalAskRequest(BaseModel):
     """JSON body for the buyer's source-grounded Global Ask Agent."""
 
     question: str
+    session_id: str | None = None
+
+
+def global_ask_timeline(sources: list[ChatSourceDocument]) -> list[dict[str, str | None]]:
+    """Return every authorized Ask source in event order, not citation order."""
+    ordered = sorted(
+        sources,
+        key=lambda source: (
+            source.occurred_at is None,
+            source.occurred_at or "",
+            source.post_id,
+        ),
+    )
+    return [
+        {
+            "post_id": source.post_id,
+            "post_title": source.post_title,
+            "occurred_at": source.occurred_at,
+            "timeline_kind": source.timeline_kind,
+        }
+        for source in ordered
+    ]
 
 
 @app.get("/api/posts/{post_id}/chat")
@@ -2414,6 +2580,7 @@ async def chat_about_post(
     request: ChatRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """In-popup chat: answers `request.question` using this post's own
     content plus its Event-Lineage-linked posts (direct and Knowledge-
@@ -2435,12 +2602,23 @@ async def chat_about_post(
         if stored is not None:
             source_ids = [post_id]
             source_ids.extend(cid for cid in stored["cited_post_ids"] if cid != post_id)
+            history = await project_history_for_post_ids(
+                conn,
+                tenant_workspace_id=str(account.user_account_id),
+                corporate_entity_ids=account.corporate_entity_ids,
+                focus_post_id=post_id,
+                source_post_ids=source_ids,
+                knowledge_cutoff=datetime.now(timezone.utc),
+                tepp_transport_url=load_settings().tepp_transport_url,
+            )
             return {
                 "post_id": post_id,
                 "answer_text": stored["answer_text"],
                 "cited_post_ids": stored["cited_post_ids"],
                 "cited_posts": stored["cited_posts"],
                 "source_post_ids": source_ids,
+                "tepp_project_history": history["project_history"],
+                "tepp_project_history_status": history["status"],
             }
         with use_llm_metadata(post_metadata):
             client = _post_chat_client()
@@ -2461,14 +2639,33 @@ async def chat_about_post(
             "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
+    source_ids = [source.post_id for source in sources]
     async with pool.acquire() as conn:
         await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
+        history = await project_history_for_post_ids(
+            conn,
+            tenant_workspace_id=str(account.user_account_id),
+            corporate_entity_ids=account.corporate_entity_ids,
+            focus_post_id=post_id,
+            source_post_ids=source_ids,
+            knowledge_cutoff=datetime.now(timezone.utc),
+            tepp_transport_url=load_settings().tepp_transport_url,
+        )
+    await publish_activity_event(
+        valkey,
+        post_id,
+        "chat_answered",
+        account.user_account_id,
+        f"Chat answered: {question}",
+    )
     return {
         "post_id": post_id,
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
         "cited_posts": cited_post_summaries(sources, cited_ids),
-        "source_post_ids": [source.post_id for source in sources],
+        "source_post_ids": source_ids,
+        "tepp_project_history": history["project_history"],
+        "tepp_project_history_status": history["status"],
     }
 
 
@@ -2477,12 +2674,18 @@ async def ask_agent(
     request: GlobalAskRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Answer a buyer question from authorized post and graph evidence."""
     question = request.question.strip()
     if not question:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
     _require_post_read(account)
+    if request.session_id is not None:
+        try:
+            UUID(request.session_id)
+        except ValueError:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Global Ask session not found") from None
     client = _post_chat_client()
     if not client.available:
         raise HTTPException(
@@ -2490,35 +2693,117 @@ async def ask_agent(
             "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
         )
     async with pool.acquire() as conn:
+        session_id = await ensure_global_ask_session(
+            conn, account.user_account_id, request.session_id
+        )
+        if session_id is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Global Ask session not found")
+        conversation = await load_global_ask_context(conn, session_id)
         sources = await gather_global_chat_sources(
             conn,
             lambda row: _can_see_post(account, row),
             account.corporate_entity_ids,
             question=question,
         )
+    if conversation.compress_turns:
+        compressor = getattr(client, "compress_context", None)
+        if not callable(compressor):
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent conversation context compression is unavailable",
+            )
+        try:
+            compressed = await asyncio.to_thread(
+                compressor,
+                conversation.summary,
+                list(conversation.compress_turns),
+            )
+            async with pool.acquire() as conn:
+                await persist_global_ask_summary(
+                    conn,
+                    conversation.session_id,
+                    compressed,
+                    conversation.compress_turns[-1][0],
+                )
+                conversation = await load_global_ask_context(conn, conversation.session_id)
+        except (HttpClientError, KeyError, OSError, ValueError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent conversation context compression is unavailable",
+            ) from exc
+    conversation_context = render_global_ask_context(
+        conversation.summary,
+        conversation.recent_turns,
+    )
     if not sources:
+        async with pool.acquire() as conn:
+            await persist_global_ask_turn(conn, conversation.session_id, question, "", ())
+        await publish_operation_event(
+            valkey,
+            account.user_account_id,
+            "global_ask_completed",
+            "Global Ask completed with no authorized source posts",
+        )
         return {
+            "session_id": conversation.session_id,
             "answer_text": "",
             "cited_post_ids": [],
             "cited_posts": [],
             "source_post_ids": [],
             "cited_post_evidence": [],
+            "timeline": [],
+            "tepp_project_history": None,
+            "tepp_project_history_status": "insufficient_project_evidence",
             "next_action": "No authorized source posts are available for this question.",
         }
     try:
-        answer = await asyncio.to_thread(client.answer, question, sources)
+        answer = await asyncio.to_thread(
+            client.answer,
+            question,
+            sources,
+            conversation_context=conversation_context,
+        )
     except (HttpClientError, KeyError, OSError, ValueError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             f"Ask Agent is unavailable: {exc}",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
+    source_ids = [source.post_id for source in sources]
+    focus_post_id = cited_ids[0] if cited_ids else source_ids[0]
+    async with pool.acquire() as conn:
+        await persist_global_ask_turn(
+            conn,
+            conversation.session_id,
+            question,
+            answer.answer_text,
+            cited_ids,
+        )
+        history = await project_history_for_post_ids(
+            conn,
+            tenant_workspace_id=str(account.user_account_id),
+            corporate_entity_ids=account.corporate_entity_ids,
+            focus_post_id=focus_post_id,
+            source_post_ids=source_ids,
+            knowledge_cutoff=datetime.now(timezone.utc),
+            tepp_transport_url=load_settings().tepp_transport_url,
+        )
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "global_ask_completed",
+        f"Global Ask completed with {len(cited_ids)} cited source post(s)",
+    )
     return {
+        "session_id": conversation.session_id,
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
         "cited_posts": cited_post_summaries(sources, cited_ids),
         "cited_post_evidence": cited_post_evidence(sources, cited_ids),
-        "source_post_ids": [source.post_id for source in sources],
+        "source_post_ids": source_ids,
+        "timeline": global_ask_timeline(sources),
+        "tepp_project_history": history["project_history"],
+        "tepp_project_history_status": history["status"],
     }
 
 
@@ -2548,6 +2833,7 @@ async def write_post_bookmark(
     request: PostBookmarkRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
@@ -2567,6 +2853,13 @@ async def write_post_bookmark(
                 account.user_account_id,
                 post_id,
             )
+    await publish_activity_event(
+        valkey,
+        post_id,
+        "bookmark_changed",
+        account.user_account_id,
+        "Post bookmark added" if request.bookmarked else "Post bookmark removed",
+    )
     return {"post_id": post_id, "bookmarked": request.bookmarked}
 
 
@@ -2815,6 +3108,7 @@ async def create_analysis_run(
     request: CreateAnalysisRunRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Record a Pending lineage run on an authorized cutoff capture.
 
@@ -2839,6 +3133,12 @@ async def create_analysis_run(
                 )
             except AnalysisRunCreateError as exc:
                 raise HTTPException(exc.status_code, exc.detail) from exc
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "analysis_run_created",
+        "Analysis run created",
+    )
     return created
 
 
@@ -2883,6 +3183,12 @@ async def start_analysis_run(
             analysis_run_id=analysis_run_id,
             work_kind_code=str(queued.get("run_kind_code") or ""),
             request_sha256=request_digest,
+        )
+        await publish_operation_event(
+            valkey,
+            account.user_account_id,
+            "analysis_run_start_requested",
+            "Analysis run start requested",
         )
     async with pool.acquire() as conn:
         async with conn.transaction():

@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-18
+- Source-identity uniqueness: superseded by [0046](0046-source-record-identity.md) and [0057](0057-immutable-source-identity-reconciliation.md)
 
 ## Context
 
@@ -16,10 +17,11 @@ made real records appear to belong to the demo identity.
 - Preserve caller-mapped raw source context separately from the authenticated
   account and authorization scope: author code/name, company code, business
   unit (PU), sales pool, customer code, and project code.
-- Require the caller-mapped source record key to be a stable unique identity
-  for each active source row. Do not synthesize identity from title, date,
-  customer, PU, or other display fields; the importer rejects duplicate active
-  keys before any target mutation.
+- Preserve the caller-mapped source record key as lookup evidence. It may repeat
+  across distinct immutable source UUIDs; do not use it as a uniqueness
+  constraint. Do not synthesize identity from title, date, customer, PU, or
+  other display fields; the importer rejects duplicate rows only when no
+  distinct immutable source UUID separates them.
 - Treat `ZCRHT811.VOCCTS` (`voccts_field`) as the source post body when that
   column is available. A missing body remains missing; do not summarize a
   title-only row.

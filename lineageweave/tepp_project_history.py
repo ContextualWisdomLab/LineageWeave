@@ -265,7 +265,11 @@ class ProjectHistoryFinding:
             )
         summary = _require_text(payload.get("summary"), name="finding.summary", maximum=2_000)
         lowered_summary = summary.casefold()
-        if "temporal association" not in lowered_summary or "causal" not in lowered_summary:
+        non_causal_boundary = any(
+            marker in lowered_summary
+            for marker in ("not causal", "not a causal", "non-causal", "non causal")
+        )
+        if "temporal association" not in lowered_summary or not non_causal_boundary:
             raise TeppProjectHistoryUnavailable("finding summary omitted temporal/non-causal boundary")
         return cls(
             finding_code=_require_text(
@@ -413,20 +417,26 @@ class ProjectHistoryProjection:
 
 
 def project_history_endpoint(transport_url: str) -> str:
-    """Resolve TEPP's project-history path from a configured HTTPS service URL."""
+    """Resolve TEPP's endpoint, permitting HTTP only for local loopback."""
     candidate = transport_url.strip()
     if not candidate:
         raise TeppProjectHistoryUnavailable("TEPP project-history transport is not configured")
+    if any(ord(character) < 0x20 for character in candidate):
+        raise TeppProjectHistoryUnavailable("TEPP project-history URL contains a control character")
     parsed = urlsplit(candidate)
+    hostname = parsed.hostname.casefold() if parsed.hostname else ""
+    loopback = hostname in {"localhost", "127.0.0.1", "::1"}
     if (
         parsed.scheme != "https"
-        or not parsed.hostname
-        or parsed.username is not None
-        or parsed.password is not None
-        or parsed.query
-        or parsed.fragment
-    ):
-        raise TeppProjectHistoryUnavailable("TEPP project-history URL must be clean HTTPS")
+        and not (parsed.scheme == "http" and loopback)
+    ) or not hostname or parsed.username is not None or parsed.password is not None or parsed.query or parsed.fragment:
+        raise TeppProjectHistoryUnavailable(
+            "TEPP project-history URL must be HTTPS; HTTP is allowed only for loopback"
+        )
+    try:
+        parsed.port
+    except ValueError as exc:
+        raise TeppProjectHistoryUnavailable("TEPP project-history URL has an invalid port") from exc
     path = parsed.path.rstrip("/")
     if path.endswith("/v1/analysis-runs"):
         path = path[: -len("/v1/analysis-runs")]

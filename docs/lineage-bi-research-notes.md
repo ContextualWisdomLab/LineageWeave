@@ -370,12 +370,11 @@ source limit -- expanding every keyword hit instead of only the top one
 was rejected because a loosely related term would otherwise drag in an
 unrelated lineage chain into the model's context.
 
-Global Ask's chat turns are not yet persisted as a running conversation --
-each question is answered independently, so there is no multi-turn
-context to compress. Recursive dialogue summarization (Wang et al., 2023)
-is the grounding this repository would use if/when Global Ask grows a
-persisted conversation thread that can exceed a bounded context window:
-summarize-and-replace older turns instead of an unbounded transcript or a
-hard truncation that silently drops earlier decisions. This is recorded
-here as the citation this feature would build on, not as a claim that
-conversation-level compression is implemented today.
+Global Ask retains an account-owned normalized conversation thread. Current
+authorized source retrieval still runs on every turn; prior answers are
+continuity context, not evidence. When the bounded context budget is
+exceeded, older turns are summarized and replaced through the
+contextual-orchestrator rather than silently truncating an unbounded
+transcript. Recursive dialogue summarization (Wang et al., 2023) grounds that
+compression boundary; the stored summary records which turn ordinal it
+covers and is explicitly excluded from citation evidence.
