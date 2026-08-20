@@ -85,9 +85,9 @@ function isStructuredTableRow(unit: PostContentUnit): boolean {
 
 /**
  * Match a persisted unit to its source-rendering counterpart without relying
- * on ordinal position. Tables and images can occupy a source display segment
- * without being ordinary text units, so ordinal matching shifts indentation
- * for every later unresolved unit.
+ * on ordinal position. A table row can occupy a persisted non-text unit while
+ * its source display is still one text segment, so ordinal matching shifts
+ * indentation for every later unresolved unit.
  */
 function normalizedUnitText(value: string): string {
   return value.replace(/\s+/g, " ").trim();
