@@ -6,6 +6,10 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import pytest
+from fastapi import HTTPException
+
+from backend.app.main import revoke_account_mcp_api_key
 from backend.app.mcp_api_keys import (
     KEY_PREFIX,
     CreateMcpApiKeyRequest,
@@ -82,6 +86,14 @@ def test_resolve_rejects_non_mcp_key_and_returns_account_for_live_key() -> None:
     assert asyncio.run(resolve_mcp_api_key(conn, "not-a-lineageweave-key")) is None
     resolved = asyncio.run(resolve_mcp_api_key(conn, f"{KEY_PREFIX}secret"))
     assert resolved == {"mcp_api_key_id": "key-id", "user_account_id": "account-id", "display_name": "automation"}
+
+
+def test_revoke_route_rejects_malformed_id_before_database_access() -> None:
+    """Malformed path values fail closed without touching the connection pool."""
+    with pytest.raises(HTTPException) as raised:
+        asyncio.run(revoke_account_mcp_api_key("not-a-uuid", object(), object()))
+
+    assert raised.value.status_code == 404
 
 
 def test_schema_has_owner_foreign_key_and_no_secret_column() -> None:
