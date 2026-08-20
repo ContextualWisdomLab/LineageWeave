@@ -29,7 +29,7 @@ def test_only_global_ask_sources_can_contribute_public_claims() -> None:
 
 def test_public_claim_candidates_keep_public_semantic_and_graph_claims_bounded() -> None:
     source = _public_source(
-        "project: Apollo | evidence: Acme launch | ontology_iri: https://example.test/ontology#Project | extraction_method: llm | confidence: 0.90 [provenance=post_project_mention]",
+        "project: Apollo | evidence: Alice shared bearer-token=secret | ontology_iri: https://example.test/ontology#Project | extraction_method: llm | confidence: 0.90 [provenance=post_project_mention]",
         'node_team "Apollo Team" --edge_team_affiliation (https://example.test/ontology#teamAffiliation)--> node_organization "Acme" [evidence_post_id=11111111-1111-1111-1111-111111111111]',
         'node_person "Alice" --edge_affiliation--> node_organization "Acme" [evidence_post_id=11111111-1111-1111-1111-111111111111]',
     )
@@ -42,8 +42,9 @@ def test_public_claim_candidates_keep_public_semantic_and_graph_claims_bounded()
     ]
     assert all("node_person" not in claim.claim_text for claim in claims)
     assert claims[0].source_post_ids == (source.post_id,)
-    assert "extraction_method" not in claims[1].claim_text
-    assert "confidence" not in claims[1].claim_text
+    assert claims[1].claim_text == "project: Apollo"
+    assert "Alice" not in claims[1].claim_text
+    assert "secret" not in claims[1].claim_text
 
 
 def test_public_claim_candidates_preserve_multilingual_relevance() -> None:
@@ -62,7 +63,7 @@ def test_public_claim_candidates_preserve_multilingual_relevance() -> None:
     )
 
     assert [claim.claim_text for claim in claims] == [
-        "project: 客户项目 プロジェクト dự-án | evidence: public launch"
+        "project: 客户项目 プロジェクト dự-án"
     ]
 
 
@@ -170,7 +171,7 @@ def test_searxng_orchestrated_client_uses_verify_mode_and_selected_evidence(monk
         "secret",
     )
     claim = cv.PublicClaimCandidate(
-        "project: Apollo | evidence: Acme launch",
+        "project: Apollo",
         "semantic_project",
         ("11111111-1111-1111-1111-111111111111",),
     )
