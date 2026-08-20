@@ -1593,6 +1593,10 @@ async def read_post_content(
                 conn,
                 post_id,
                 embedding_model_code=load_settings().embedding_model,
+                require_structure=bool(
+                    load_settings().orchestrator_base_url
+                    and load_settings().orchestrator_api_key
+                ),
             )
             async with conn.transaction():
                 job = await ensure_post_content_job(
@@ -2557,6 +2561,10 @@ async def read_post_summary(
             conn,
             post_id,
             embedding_model_code=load_settings().embedding_model,
+            require_structure=bool(
+                load_settings().orchestrator_base_url
+                and load_settings().orchestrator_api_key
+            ),
         )
         async with conn.transaction():
             job = await ensure_post_content_job(

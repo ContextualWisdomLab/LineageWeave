@@ -59,7 +59,7 @@ PROJECT_MENTION_CONFIDENCE_THRESHOLD = 0.7
 FIVE_W1H_EVIDENCE_SLOTS = frozenset({"when", "where", "why", "how"})
 # Stored rows without this contract version are legacy summaries and must be
 # regenerated from the current source body before the popup treats them as evidence.
-POST_SUMMARY_CONTRACT_VERSION = 3
+POST_SUMMARY_CONTRACT_VERSION = 4
 
 
 @dataclass(frozen=True)
