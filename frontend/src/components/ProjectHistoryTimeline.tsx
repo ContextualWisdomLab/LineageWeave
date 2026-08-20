@@ -50,6 +50,7 @@ export function ProjectHistoryTimeline({
     null;
   const selectedResponsibilities =
     selectedEvent?.responsibility_evidence ?? selectedEvent?.observed_responsibilities ?? [];
+  const actorCount = projection.distinct_actor_count ?? projection.distinct_observed_actor_count;
   const selectedIndex = selectedEvent
     ? projection.events.findIndex((event) => event.event_id === selectedEvent.event_id)
     : -1;
@@ -101,7 +102,7 @@ export function ProjectHistoryTimeline({
         <p className="project-history-counts">
           {projectHistoryText(locale, "summaryCounts", {
             events: projection.event_count,
-            actors: projection.distinct_actor_count,
+            actors: actorCount,
           })}
         </p>
       </header>

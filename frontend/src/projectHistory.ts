@@ -53,10 +53,10 @@ export interface ProjectHistoryEvent {
   source_stage_code: string | null;
   source_detail_state_code: string | null;
   project_matches: ProjectHistoryMatch[];
-  responsibility_evidence: ProjectHistoryResponsibility[];
+  responsibility_evidence?: ProjectHistoryResponsibility[];
   observed_responsibilities: ProjectHistoryResponsibility[];
   responsibility_transition_code: ResponsibilityTransitionCode | null;
-  responsibility_transition_truth_status_code: ProjectHistoryTruthStatus | null;
+  responsibility_transition_truth_status_code?: ProjectHistoryTruthStatus | null;
   related_prior_paths: ProjectHistoryPriorPath[];
 }
 
@@ -70,7 +70,7 @@ export interface ProjectHistoryProjection {
   knowledge_cutoff?: string;
   evidence_boundary_code?: "authorized_visible_source_posts" | string;
   event_count: number;
-  distinct_actor_count: number;
+  distinct_actor_count?: number;
   distinct_observed_actor_count: number;
   truncated: boolean;
   events: ProjectHistoryEvent[];

@@ -1800,7 +1800,7 @@ function PostDetailPopup({
       .then((value) => {
         if (isCurrent()) setPost(value);
       })
-      .catch(() => {
+      .catch((err) => {
         if (isCurrent()) setError(String(err));
       });
     const reloadContent = () =>
@@ -4837,7 +4837,7 @@ function ProjectHistoryPanel({
         );
         setError(false);
       })
-      .catch((err) => {
+      .catch(() => {
         if (!active) return;
         setIndex({
           contract_version: 1,
@@ -4866,7 +4866,7 @@ function ProjectHistoryPanel({
       .then((result) => {
         if (request === historyRequest.current) setProjection(result);
       })
-      .catch((err) => {
+      .catch(() => {
         if (request === historyRequest.current) setError(true);
       });
   }, [accessToken, index?.knowledge_cutoff, selectedProjectKey]);
