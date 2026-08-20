@@ -9,8 +9,10 @@ tests/test_image_content.py and does not need re-proving here.
 from __future__ import annotations
 
 import base64
+from threading import Lock
 
 from lineageweave.image_content import ImageDescription, ImageRegion
+from lineageweave.llm_context import current_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 
 _PNG_1X1 = base64.b64decode(
@@ -33,6 +35,18 @@ class _FailingVisionClient:
 
     def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
         raise RuntimeError("provider is down")
+
+
+class _MetadataCapturingVisionClient(_FakeVisionClient):
+    def __init__(self, description: ImageDescription) -> None:
+        super().__init__(description)
+        self._lock = Lock()
+        self.seen_metadata: list[dict[str, str] | None] = []
+
+    def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
+        with self._lock:
+            self.seen_metadata.append(current_llm_metadata())
+        return super().describe(image_bytes, mime_type)
 
 
 class _RegionVisionClient(_FakeVisionClient):
@@ -115,6 +129,27 @@ def test_image_regions_are_cropped_and_described_as_independent_evidence() -> No
     assert result.image_results[0].regions[0].region == ImageRegion(0.0, 0.0, 1.0, 1.0)
     assert result.image_results[0].regions[0].description == description
     assert "panel text" in result.text
+
+
+def test_parallel_image_analysis_preserves_post_scoped_llm_metadata() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    html = (
+        f'<img src="data:image/png;base64,{b64}"/>'
+        f'<img src="data:image/png;base64,{b64}"/>'
+    )
+    description = ImageDescription(extracted_text="Q3 2026", caption="a chart", tags=("chart",))
+    client = _MetadataCapturingVisionClient(description)
+    metadata = {
+        "lineageweave_post_id": "post-1",
+        "lineageweave_pu": "PU-01",
+    }
+
+    with use_llm_metadata(metadata):
+        result = normalize_post_body(html, vision_client=client)
+
+    assert len(result.image_descriptions) == 2
+    assert len(client.seen_metadata) == 2
+    assert all(seen == metadata for seen in client.seen_metadata)
 
 
 def test_partial_region_response_falls_back_to_full_image_evidence() -> None:
