@@ -6,6 +6,13 @@ on:
       - "agent/authenticated-mcp-global-ask"
     paths:
       - ".github/workflows/repair-mcp-source-visibility.yml"
+  pull_request:
+    branches:
+      - main
+    types: [synchronize]
+    paths:
+      - ".github/workflows/repair-mcp-source-visibility.yml"
+      - "tests/test_post_chat_ingestion_bounds.py"
 
 permissions:
   contents: write
@@ -17,7 +24,9 @@ concurrency:
 jobs:
   repair:
     name: Enforce source visibility before loading bodies
-    if: github.actor != 'github-actions[bot]'
+    if: >-
+      github.actor != 'github-actions[bot]' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.number == 270)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact feature branch
