@@ -949,13 +949,11 @@ function KeymanPanel({
   }, [accessToken, landFirstRelated, related]);
 
   useEffect(() => {
-    if (!landFirstRelated || !landedRelatedName || landedRelated === null) {
+    if (!landFirstRelated || !landOnAsk || !landedRelatedName || landedRelated === null) {
       return;
     }
     const heading = document.getElementById("post-ask");
-    if (landOnAsk) {
-      heading?.focus();
-    }
+    heading?.focus();
     heading?.scrollIntoView?.({ block: "nearest" });
   }, [landFirstRelated, landedRelatedName, landedRelated, landOnAsk]);
 
