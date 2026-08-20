@@ -1,22 +1,14 @@
-"""Bootstrap keeps explicit Vision model selection inside the orchestrator."""
+"""Bootstrap delegates model and provider protocol behavior to the orchestrator."""
 
 from __future__ import annotations
 
 import importlib.util
 import sys
 from pathlib import Path
-from types import ModuleType
 
 
 def _load_start_module():
-    stubs = {
-        "embedding_compat": ModuleType("embedding_compat"),
-        "provider_policy": ModuleType("provider_policy"),
-        "vision_compat": ModuleType("vision_compat"),
-    }
-    stubs["embedding_compat"].install_provider_embedding_support = lambda *args: None
-    stubs["provider_policy"].is_local_mlx_provider = lambda value: False
-    stubs["vision_compat"].install_multimodal_chat_support = lambda: None
+    stubs = {}
     previous = {name: sys.modules.get(name) for name in stubs}
     sys.modules.update(stubs)
     try:
@@ -34,26 +26,10 @@ def _load_start_module():
                 sys.modules[name] = previous_module
 
 
-def test_explicit_vision_model_does_not_get_replaced_by_text_model() -> None:
+def test_bootstrap_does_not_patch_upstream_model_classes() -> None:
     module = _load_start_module()
-    agents = [
-        {"id": "vision", "model": "default-vision", "tags": ["vision"]},
-        {"id": "text", "model": "default-text", "tags": ["writing"]},
-    ]
-
-    module._apply_provider_models(agents, "text-model", "vision-model")
-
-    assert agents[0]["model"] == "vision-model"
-    assert agents[1]["model"] == "text-model"
-
-
-def test_text_model_is_used_when_no_vision_override_exists() -> None:
-    module = _load_start_module()
-    agents = [{"id": "vision", "model": "default-vision", "tags": ["vision"]}]
-
-    module._apply_provider_models(agents, "text-model", "")
-
-    assert agents[0]["model"] == "text-model"
+    assert "ModelClient" not in module.__dict__
+    assert "_apply_provider_models" not in module.__dict__
 
 
 def test_provider_api_url_is_canonical_over_compatibility_aliases(monkeypatch) -> None:

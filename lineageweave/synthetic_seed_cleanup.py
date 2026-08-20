@@ -63,10 +63,7 @@ async def cleanup_synthetic_seed(conn: Any, *, apply: bool = False) -> dict[str,
         f"""
         select post.post_id
           from source_post post
-          join corporate_entity entity
-            on entity.corporate_entity_id = post.corporate_entity_id
-         where entity.corporate_entity_code like 'DEMO-%'
-           and ({_missing_source_context()})
+         where ({_missing_source_context()})
            and exists (
                select 1
                  from source_post real_post

@@ -93,7 +93,7 @@ class _OrchestratorCompleteAdapter:
             {
                 "messages": messages,
                 "mode": mode,
-                "reasoning_effort": "medium",
+                "reasoning_effort": "auto",
                 "response_format": {"type": "json_object"},
             },
             headers={"authorization": f"Bearer {self._api_key}"},

@@ -56,9 +56,10 @@ ACTOR_TYPE_ORGANIZATION = "prov_organization"
 ACTOR_TYPE_TEAM = "prov_team"
 _VALID_ACTOR_TYPE_CODES = frozenset({ACTOR_TYPE_PERSON, ACTOR_TYPE_ORGANIZATION, ACTOR_TYPE_TEAM})
 PROJECT_MENTION_CONFIDENCE_THRESHOLD = 0.7
+FIVE_W1H_EVIDENCE_SLOTS = frozenset({"when", "where", "why", "how"})
 # Stored rows without this contract version are legacy summaries and must be
 # regenerated from the current source body before the popup treats them as evidence.
-POST_SUMMARY_CONTRACT_VERSION = 2
+POST_SUMMARY_CONTRACT_VERSION = 3
 
 
 @dataclass(frozen=True)
@@ -112,6 +113,21 @@ class ProjectMention:
             raise ValueError("project mention confidence must be between 0 and 1")
 
 
+@dataclass(frozen=True)
+class FiveW1HEvidence:
+    """One explicitly stated 5W1H value and its supporting source phrase."""
+
+    slot_code: str
+    value_text: str
+    evidence_text: str
+
+    def __post_init__(self) -> None:
+        if self.slot_code not in FIVE_W1H_EVIDENCE_SLOTS:
+            raise ValueError(f"unsupported 5W1H evidence slot: {self.slot_code!r}")
+        if not self.value_text.strip() or not self.evidence_text.strip():
+            raise ValueError("5W1H evidence requires a value and supporting text")
+
+
 def normalize_project_key(project_name: str) -> str:
     """Stable comparison key; raw/canonical labels and evidence stay separate."""
     normalized = unicodedata.normalize("NFKC", project_name).casefold()
@@ -126,6 +142,7 @@ class PostSummary:
     key_events: tuple[str, ...] = field(default_factory=tuple)
     roles_and_responsibilities: tuple[RoleResponsibility, ...] = field(default_factory=tuple)
     project_mentions: tuple[ProjectMention, ...] = field(default_factory=tuple)
+    five_w1h_evidence: tuple[FiveW1HEvidence, ...] = field(default_factory=tuple)
 
 
 class PostSummaryClient(Protocol):
@@ -222,6 +239,9 @@ these fields:
   "project_mentions": array of objects, each with:
     "project_name": string, "canonical_name": string, "evidence": string,
     "confidence": number
+  "five_w1h_evidence": array of objects, each with:
+    "slot_code": exactly "when", "where", "why", or "how",
+    "value_text": string, "evidence_text": string
 
 Post title: {title}
 Post body: {body}
@@ -232,13 +252,57 @@ _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 # The full legacy contract remains parseable for persisted/test responses. The
 # local provider is more reliable when the two nested-array groups are split.
 _SUMMARY_REQUEST_PROMPT_TEMPLATE = """\
-Write a concise Korean 5W1H summary in at most four sentences using only
-the evidence below. State who, what, when, where, why, and how when
-supported; write "본문에 없음" for a missing dimension. Do not invent
-facts or a generic report sentence.
+Write a concise Korean summary in five to seven complete sentences using
+only the evidence below. Weave who, what, when, where, why, and how into
+natural flowing prose -- do NOT write a "누가: ... 언제: ... 어디서: ..."
+label-value list; that is a table, not a summary. Use "본문에 없음" only
+inside a sentence for a dimension the evidence genuinely lacks, never as
+a standalone label line. Do not invent facts or a generic report
+sentence.
+
+Name every person and organization by their actual stated name whenever
+the text gives one. "PM들이 참석했다" ("PMs attended") is not acceptable
+when the text names them ("홍길동 PM, 김철수 PM이 참석했다") -- a title-only
+collective reference is a lost fact, not an acceptable compression, even
+though it costs more words. The same applies to organizations: name the
+specific company/team the text gives, not a generic "관계자" or
+"업체" placeholder.
+
+Structure the prose as three parts, in order, without labeling them:
+1. 발단 (trigger): what event, request, or problem started this post.
+2. 전개 (development): what was investigated, discussed, or done as a
+   result -- include any option considered, tradeoff weighed, or
+   disagreement, not only the final action.
+3. 결론 (conclusion): what was decided or concluded, and the next
+   action -- who does what next, or what remains open. If the evidence
+   states no decision or next step, say so explicitly (e.g. "다음 조치는
+   본문에 없음") rather than inventing one.
+A reader must be able to tell, from the prose alone, what triggered this
+post, what was actually considered, and what was decided or left open --
+not just a flat restatement of facts in body order.
+
+If the evidence covers two or more clearly distinct, unrelated matters
+(e.g. different projects, different customers, or topics with no shared
+thread -- not just one topic told out of order), address each as its own
+compact 발단-전개-결론 unit and clearly distinguish them (state which
+matter each sentence belongs to) instead of blending them into one
+narrative as if they were a single continuous story.
+
+When two or more projects or matters are present, every key event must name
+the project or matter it belongs to. Do not emit a generic event such as
+"협의 진행" when the source identifies which project was discussed.
+
+Example shape (fictional content, format only):
+Acme Electronics 제3공장에서 케이블 배선 설계 누락이 발견되어 2월 12일
+기술 회의가 소집되었다. 회의에서 홍길동 PM은 전선관 규격을 그대로 쓸지
+재설계할지를 두고 설계팀과 논의했으며, 재설계 시 발생하는 일정 지연이
+쟁점이 되었다. 결론적으로 규격은 유지하되 배선 경로만 변경하기로 했고,
+설계팀이 다음 주까지 수정 도면을 제출하기로 했다.
 
 Then write a new line beginning KEY EVENTS: followed by up to four short
-event phrases separated by semicolons. If there are no events, write NONE.
+event phrases separated by semicolons. If the evidence covers multiple
+distinct matters, include events from each of them, not only the first
+or most prominent one. If there are no events, write NONE.
 Context hints are weak evidence only: {context_hints}
 Post title: {title}
 Post body: {body}
@@ -249,13 +313,41 @@ Use only the post evidence below. Do not output analysis or markdown.
 Write exactly these two section markers, each on its own line:
 
 ROLES:
-actor | responsibility | person, organization, or team | affiliation or NONE
+<one row per named actor, in this exact column order:>
+actor name | responsibility | person, organization, or team | affiliation or NONE
+
+Column 1 is always the actor's own name (a person's name, an organization's
+name, or a team's name) -- never a role description or a category label
+such as "meeting participant" or "attendee". Column 3 must be exactly one
+of the three words person, organization, or team -- never a name. One row
+per distinct actor: when several different people share the same
+responsibility (e.g. a list of meeting attendees), write one row per
+person and repeat the responsibility text on each row rather than merging
+them into a single row.
+
+Never write a ROLES row for the account/system identity named in the
+context hints (author_account_name, author_account_id, and similar) --
+those hints describe who is viewing or importing this record, not a
+participant the post text names. Only write a row for that name if the
+post title or body independently names that same person doing something
+-- an account name appearing only in the hints is not post evidence.
+
+Worked examples (fictional names, format only, not real post's content):
+홍길동 | 견적 승인 검토 | person | Acme Electronics
+Acme Renewables | 기술 세미나 참석 | organization | NONE
+설계팀 | 도면 검토 지원 | team | Acme Electronics
 
 PROJECTS:
 project name | canonical name | shortest supporting evidence | confidence from 0 to 1
 
+EVIDENCE:
+slot (when, where, why, or how) | value stated in the post | shortest supporting phrase
+
 Use NONE on the line after a marker when the evidence supports no item. Keep
 each row short. Do not invent actors, projects, affiliations, or confidence.
+Only write EVIDENCE rows when the post explicitly supports the value; do not
+turn the record's filing timestamp into an event time and do not infer a
+place, reason, or method from a title alone.
 Treat structured context hints as weak priors, not facts. A customer value
 such as 기타, 미등록고객, unknown, or other cannot confirm a project by itself.
 Field roles are strict: source_business_unit_code and
@@ -292,14 +384,38 @@ def _parse_plain_summary_response(content: str) -> tuple[str, tuple[str, ...]] |
     return (summary, events) if summary else None
 
 
+_HINT_VALUE_PATTERN = re.compile(r"(?:^|;)\s*author_account_name=([^;\[]+?)\s*(?:\[|;|$)")
+
+
+def _hallucinated_account_name(context_hints: str) -> str | None:
+    """The logged-in account's display name, if the hint string carries one.
+
+    Live finding (2026-08-19): the model twice wrote a ROLES row for
+    this exact value -- e.g. "Demo Analyst | 발주처 면담 및 대책 협의 |
+    person | Demo Corp" -- even though that name never appears in the
+    post body. author_account_name describes who is viewing/importing
+    the record, not a participant named in the text; the prompt now says
+    so explicitly, but this is the belt-and-suspenders check since a
+    fabricated actor with a fabricated responsibility is worse than a
+    dropped one.
+    """
+    match = _HINT_VALUE_PATTERN.search(context_hints)
+    return match.group(1).strip() if match else None
+
+
 def _parse_plain_summary_details(
     content: str,
     *,
     post_title: str = "",
-) -> tuple[tuple[RoleResponsibility, ...], tuple[ProjectMention, ...]] | None:
+    context_hints: str = "",
+) -> tuple[
+    tuple[RoleResponsibility, ...],
+    tuple[ProjectMention, ...],
+    tuple[FiveW1HEvidence, ...],
+] | None:
     """Parse the compact semantic extraction contract without nested JSON."""
     plain = _strip_code_fence(content).strip()
-    markers = list(re.finditer(r"(?im)^\s*(ROLES|PROJECTS)\s*:\s*(.*)$", plain))
+    markers = list(re.finditer(r"(?im)^\s*(ROLES|PROJECTS|EVIDENCE)\s*:\s*(.*)$", plain))
     if not markers:
         return None
 
@@ -313,10 +429,28 @@ def _parse_plain_summary_details(
         return None
 
     empty_values = frozenset({"", "none", "null", "n/a", "unknown", "없음", "미상"})
+    # The model occasionally echoes _DETAILS_REQUEST_PROMPT_TEMPLATE's own
+    # column-header line or one of its worked-example rows back verbatim
+    # as if it were a data row. These would otherwise usually get dropped
+    # by the actor_type lookup below anyway (their 3rd column doesn't say
+    # "person"/"organization"/"team"), but that is an accident of their
+    # specific wording, not a real filter -- skip them by exact match so
+    # the intent is explicit and doesn't depend on that accident holding
+    # for every future prompt edit.
+    _template_echo_rows = frozenset(
+        row.casefold()
+        for row in (
+            "actor name | responsibility | person, organization, or team | affiliation or none",
+            "홍길동 | 견적 승인 검토 | person | acme electronics",
+            "acme renewables | 기술 세미나 참석 | organization | none",
+            "설계팀 | 도면 검토 지원 | team | acme electronics",
+        )
+    )
+    hallucinated_account_name = _hallucinated_account_name(context_hints)
     roles: list[RoleResponsibility] = []
     for raw_row in sections["ROLES"].splitlines():
         row = raw_row.strip().lstrip("-* ").strip()
-        if not row or row.casefold() in empty_values:
+        if not row or row.casefold() in empty_values or row.casefold() in _template_echo_rows:
             continue
         parts = [part.strip() for part in row.split("|", 3)]
         if len(parts) == 3:
@@ -326,6 +460,11 @@ def _parse_plain_summary_details(
             actor_name, responsibility, actor_type, affiliation = parts
         else:
             continue
+        if (
+            hallucinated_account_name is not None
+            and actor_name.casefold() == hallucinated_account_name.casefold()
+        ):
+            continue
         actor_type_code = {
             "person": ACTOR_TYPE_PERSON,
             "organization": ACTOR_TYPE_ORGANIZATION,
@@ -334,6 +473,17 @@ def _parse_plain_summary_details(
             ACTOR_TYPE_ORGANIZATION: ACTOR_TYPE_ORGANIZATION,
             ACTOR_TYPE_TEAM: ACTOR_TYPE_TEAM,
         }.get(actor_type.casefold())
+        # A row whose 3rd column isn't literally person/organization/team is
+        # not recoverable by reshuffling columns: nothing here tells us
+        # which of the other 3 fields actually holds the real actor name
+        # (see the 2026-08-19 live finding where the model put a
+        # description like "Q&A participant" in column 1 and the real
+        # name in column 3 for a run of grouped meeting-attendee rows).
+        # Guessing would risk cataloging a role description as a person's
+        # name. Dropping the row is the same "no fake positive" discipline
+        # this module already documents for a missing summary -- if this
+        # keeps recurring after the worked examples above, the fix is a
+        # better prompt/model, not a column-guessing heuristic here.
         if not actor_type_code or not actor_name or not responsibility:
             continue
         roles.append(
@@ -377,7 +527,19 @@ def _parse_plain_summary_details(
             )
         except (TypeError, ValueError):
             continue
-    return tuple(roles), tuple(projects)
+    evidence: list[FiveW1HEvidence] = []
+    for raw_row in sections.get("EVIDENCE", "").splitlines():
+        row = raw_row.strip().lstrip("-* ").strip()
+        if not row or row.casefold() in empty_values:
+            continue
+        parts = [part.strip() for part in row.split("|", 2)]
+        if len(parts) != 3 or parts[0].casefold() not in FIVE_W1H_EVIDENCE_SLOTS:
+            continue
+        try:
+            evidence.append(FiveW1HEvidence(parts[0].casefold(), parts[1], parts[2]))
+        except ValueError:
+            continue
+    return tuple(roles), tuple(projects), tuple(evidence)
 
 
 def parse_summary_response(content: str) -> PostSummary | None:
@@ -470,11 +632,29 @@ def parse_summary_response(content: str) -> PostSummary | None:
             except ValueError:
                 continue
 
+    five_w1h_raw = parsed.get("five_w1h_evidence") or parsed.get("evidence") or []
+    five_w1h_evidence: list[FiveW1HEvidence] = []
+    if isinstance(five_w1h_raw, list):
+        for entry in five_w1h_raw:
+            if not isinstance(entry, dict):
+                continue
+            try:
+                five_w1h_evidence.append(
+                    FiveW1HEvidence(
+                        str(entry.get("slot_code", "")).strip().casefold(),
+                        str(entry.get("value_text", "")).strip(),
+                        str(entry.get("evidence_text", "")).strip(),
+                    )
+                )
+            except ValueError:
+                continue
+
     return PostSummary(
         korean_summary=korean_summary.strip(),
         key_events=key_events,
         roles_and_responsibilities=tuple(roles),
         project_mentions=tuple(project_mentions),
+        five_w1h_evidence=tuple(five_w1h_evidence),
     )
 
 
@@ -560,12 +740,12 @@ def _parse_summary_details(
 
 
 class ContextualOrchestratorPostSummaryClient:
-    """Derive summary and semantic evidence through two ``mode="route"`` calls."""
+    """Derive summary and semantic evidence through two ``mode="auto"`` calls."""
 
     available = True
 
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "none", timeout: float = 60.0
+        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 60.0
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -589,7 +769,7 @@ class ContextualOrchestratorPostSummaryClient:
             f"{self._base_url}/v1/chat/completions",
             {
                 "messages": [{"role": "user", "content": prompt}],
-                "mode": "route",
+                "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},
@@ -613,7 +793,7 @@ class ContextualOrchestratorPostSummaryClient:
                         ),
                     }
                 ],
-                "mode": "route",
+                "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},
@@ -622,16 +802,18 @@ class ContextualOrchestratorPostSummaryClient:
         details = _parse_plain_summary_details(
             details_body["choices"][0]["message"]["content"],
             post_title=post_title,
+            context_hints=context_hints,
         )
         if details is None:
             raise ValueError(
                 "summary semantic response did not match the required format: "
                 f"{details_body['choices'][0]['message']['content']!r}"
             )
-        roles, projects = details
+        roles, projects, five_w1h_evidence = details
         return PostSummary(
             korean_summary=korean_summary,
             key_events=key_events,
             roles_and_responsibilities=roles,
             project_mentions=projects,
+            five_w1h_evidence=five_w1h_evidence,
         )

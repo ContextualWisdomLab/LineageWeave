@@ -237,7 +237,11 @@ Resnick, P. (2008). *Internet Message Format* (RFC 5322). IETF. https://doi.org/
 
 See, A., Liu, P. J., & Manning, C. D. (2017). Get to the point: Summarization with pointer-generator networks. In *Proceedings of the 55th Annual Meeting of the Association for Computational Linguistics* (Vol. 1, pp. 1073-1083). Association for Computational Linguistics. https://doi.org/10.18653/v1/P17-1099
 
+Sun, Q., Yuan, J., He, S., Guan, X., Yuan, H., Fu, X., Li, J., & Yu, P. S. (2025). *DyG-RAG: Dynamic graph retrieval-augmented generation with event-centric reasoning*. arXiv. https://arxiv.org/abs/2507.13396
+
 Tong, H., Faloutsos, C., & Pan, J.-Y. (2006). Fast random walk with restart and its applications. *Proceedings of the Sixth International Conference on Data Mining (ICDM'06)*, 613-622. https://doi.org/10.1109/ICDM.2006.70
+
+Wang, Q., Fu, Y., Cao, Y., Wang, S., Tian, Z., & Ding, L. (2023). *Recursively summarizing enables long-term dialogue memory in large language models*. arXiv. https://arxiv.org/abs/2308.15022
 
 WHATWG. (2026). *HTML Living Standard — sections 4.3 (sectioning content) and 4.4 (grouping content)*. https://html.spec.whatwg.org/
 
@@ -344,3 +348,34 @@ model answers using only those sources and reports which ones it actually
 drew from). This is the Agentic retrieve-reason-cite shape the product
 brief asks for without adding a full agent-framework dependency for what
 two functions and a structured prompt already do.
+
+## Global Ask timeline expansion and conversation continuity (Phase 5)
+
+`gather_global_chat_sources` (`backend/app/post_chat_ingestion.py`) had a
+retrieve step with no lineage expansion at all: it ranked keyword-matched
+posts by match specificity, but never pulled in a matched post's own
+Event-Lineage neighbors. A relevance-correct top match is still a single
+snapshot, not the connected sequence of records around it -- a live
+question about one event returned an accurate answer about that one post
+alone when the account actually wanted to know what led up to it and what
+happened next. This is exactly the event-centric temporal retrieval
+problem DyG-RAG frames: retrieving one temporally-anchored record and
+stopping there answers "what does this record say" but not "what actually
+happened," which needs the surrounding event sequence (Sun et al., 2025).
+The fix expands the single top-ranked match through its direct
+`post_lineage_edge` neighbors (the same relation `reconstruct.py` already
+persists, reused rather than re-derived) so the source set can speak to a
+connected timeline, still ABAC-filtered and still bounded by the existing
+source limit -- expanding every keyword hit instead of only the top one
+was rejected because a loosely related term would otherwise drag in an
+unrelated lineage chain into the model's context.
+
+Global Ask's chat turns are not yet persisted as a running conversation --
+each question is answered independently, so there is no multi-turn
+context to compress. Recursive dialogue summarization (Wang et al., 2023)
+is the grounding this repository would use if/when Global Ask grows a
+persisted conversation thread that can exceed a bounded context window:
+summarize-and-replace older turns instead of an unbounded transcript or a
+hard truncation that silently drops earlier decisions. This is recorded
+here as the citation this feature would build on, not as a claim that
+conversation-level compression is implemented today.

@@ -558,6 +558,56 @@ async def related_for_person(
     return await related_for_start(conn, NODE_PERSON, person_id, visible_post_ids)
 
 
+async def fetch_person_role_history(
+    conn: asyncpg.Connection,
+    person_id: str,
+    visible_post_ids: list[str],
+) -> list[dict[str, Any]]:
+    """This Keyman's responsibility and affiliated organization across time.
+
+    RWR's related-nodes view answers "what else connects to this
+    person"; it does not answer "how has this specific person's role
+    changed" -- the same cataloged_person can be affiliated with
+    different organizations, or described with a different
+    responsibility, in posts at different times (a job change, a title
+    change, a move between projects). ``post_summary_role`` already
+    carries this per post; this simply orders it chronologically for
+    one person instead of leaving a buyer to open every post that
+    mentions them and compare manually.
+
+    ``visible_post_ids`` must already be ABAC-filtered by the caller
+    (see ``visible_mention_post_ids``); this function does not itself
+    check visibility. An empty result means no role classification
+    exists for this person on any post the account can see, not that
+    the person is unknown.
+    """
+    if not visible_post_ids:
+        return []
+    rows = await conn.fetch(
+        """
+        select role.post_id, post.post_title, post.created_at,
+               role.responsibility, role.affiliated_organization_name
+          from post_summary_role role
+          join source_post post on post.post_id = role.post_id
+         where role.cataloged_person_id = $1
+           and role.post_id = any($2::uuid[])
+         order by post.created_at asc, role.post_id
+        """,
+        person_id,
+        visible_post_ids,
+    )
+    return [
+        {
+            "post_id": str(row["post_id"]),
+            "post_title": row["post_title"],
+            "created_at": row["created_at"].isoformat(),
+            "responsibility": row["responsibility"],
+            "affiliated_organization_name": row["affiliated_organization_name"],
+        }
+        for row in rows
+    ]
+
+
 async def related_for_entity(
     conn: asyncpg.Connection,
     entity_id: str,

@@ -1,6 +1,7 @@
 import { splitPostBody, type PostBodySegment } from "./postBodyDisplay";
 import { t } from "./i18n";
-import type { PostImageContent } from "./api";
+import type { PostContentUnit, PostImageContent } from "./api";
+import type { ReactNode } from "react";
 
 function renderSegment(segment: PostBodySegment, index: number, imageContent?: PostImageContent) {
   switch (segment.kind) {
@@ -8,7 +9,8 @@ function renderSegment(segment: PostBodySegment, index: number, imageContent?: P
       return (
         <p
           key={`post-body-text-${index}`}
-          className="post-body-text"
+          className={`post-body-text${segment.role === "footnote" ? " post-body-footnote" : ""}`}
+          data-content-kind={segment.role ?? "text"}
           data-indent-level={segment.indentLevel ?? 0}
           style={
             segment.indentLevel
@@ -54,13 +56,107 @@ function renderSegment(segment: PostBodySegment, index: number, imageContent?: P
   }
 }
 
-export function PostBody({ body, imageContent = [] }: { body: string; imageContent?: PostImageContent[] }) {
+function isStructuredTableRow(unit: PostContentUnit): boolean {
+  return unit.unit_label === "tr" || unit.unit_label === "w:tr";
+}
+
+function renderStructuredUnits(
+  body: string,
+  structureUnits: PostContentUnit[],
+  imageContent: PostImageContent[],
+): ReactNode[] {
+  const sourceImages = splitPostBody(body).filter(
+    (segment): segment is Extract<PostBodySegment, { kind: "image" }> => segment.kind === "image",
+  );
+  const rendered: ReactNode[] = [];
   let imageOrdinal = 0;
+  let index = 0;
+  while (index < structureUnits.length) {
+    const unit = structureUnits[index];
+    if (unit.unit_kind_code === "image") {
+      const sourceImage = sourceImages[imageOrdinal++];
+      const content = imageContent.find((item) => item.unit_index === unit.unit_index);
+      rendered.push(
+        sourceImage
+          ? renderSegment(sourceImage, index, content)
+          : renderSegment({ kind: "text", text: unit.unit_text }, index, content),
+      );
+      index += 1;
+      continue;
+    }
+    if (isStructuredTableRow(unit)) {
+      const rows: PostContentUnit[] = [];
+      while (index < structureUnits.length && isStructuredTableRow(structureUnits[index])) {
+        rows.push(structureUnits[index]);
+        index += 1;
+      }
+      rendered.push(
+        <table className="post-body-table" key={`post-body-table-${index}`}>
+          <tbody>
+            {rows.map((row, rowIndex) => (
+              <tr key={`post-body-table-row-${row.unit_index}-${rowIndex}`}>
+                {row.unit_text.split(/\s*\|\s*/).map((cell, cellIndex) => (
+                  <td key={`post-body-table-cell-${row.unit_index}-${cellIndex}`}>{cell}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>,
+      );
+      continue;
+    }
+    rendered.push(
+      renderSegment(
+        {
+          kind: "text",
+          text: unit.unit_text,
+          ...(unit.unit_label === "footnote" ? { role: "footnote" as const } : {}),
+          ...(unit.indent_level > 0 &&
+          (unit.indent_source_code === "explicit" || unit.indent_source_code === "llm")
+            ? { indentLevel: unit.indent_level }
+            : {}),
+        },
+        index,
+      ),
+    );
+    index += 1;
+  }
+  return rendered;
+}
+
+export function PostBody({
+  body,
+  imageContent = [],
+  structureUnits = [],
+}: {
+  body: string;
+  imageContent?: PostImageContent[];
+  structureUnits?: PostContentUnit[];
+}) {
+  let imageOrdinal = 0;
+  let textOrdinal = 0;
+  const textUnits = structureUnits.filter((unit) => unit.unit_kind_code !== "image");
+  const hasPersistedStructuralUnits = structureUnits.some(
+    (unit) => isStructuredTableRow(unit) || unit.unit_label === "footnote",
+  );
+  if (hasPersistedStructuralUnits) {
+    return <div className="post-body">{renderStructuredUnits(body, structureUnits, imageContent)}</div>;
+  }
   return (
     <div className="post-body">
       {splitPostBody(body).map((segment, index) => {
         const content = segment.kind === "image" ? imageContent[imageOrdinal++] : undefined;
-        return renderSegment(segment, index, content);
+        if (segment.kind !== "text") return renderSegment(segment, index, content);
+        const structure = textUnits[textOrdinal++];
+        const authoritativeStructure =
+          structure?.indent_source_code === "explicit" || structure?.indent_source_code === "llm";
+        return renderSegment(
+          authoritativeStructure
+            ? { ...segment, indentLevel: structure.indent_level || undefined }
+            : segment,
+          index,
+          content,
+        );
       })}
     </div>
   );

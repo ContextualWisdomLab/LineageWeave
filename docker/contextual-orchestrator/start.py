@@ -12,10 +12,6 @@ import sys
 import json
 from pathlib import Path
 
-from embedding_compat import install_provider_embedding_support
-from provider_policy import is_local_mlx_provider
-from vision_compat import install_multimodal_chat_support
-
 
 def _pop_first_env(*names: str) -> str:
     """Read the first configured alias without leaving credentials in the environment."""
@@ -24,75 +20,6 @@ def _pop_first_env(*names: str) -> str:
         if value:
             return value
     return ""
-
-
-def _allow_local_mlx_provider() -> None:
-    """Permit only the explicit Compose local-MLX HTTP endpoint.
-
-    ponytail: exact host:port exception for local development; production
-    providers retain contextual-orchestrator's HTTPS/public-address checks.
-    """
-    if os.environ.get("LINEAGEWEAVE_ALLOW_LOCAL_LLM_HTTP") != "1":
-        return
-    from contextual_orchestrator.credentials import get_credential
-    from contextual_orchestrator.orchestrator import ModelClient
-
-    upstream_validate = ModelClient._validate_provider
-
-    def validate_provider(self, agent):
-        if is_local_mlx_provider(agent.base_url):
-            if get_credential(agent.credential_name) is None:
-                raise RuntimeError(f"{agent.id} requires a resolvable KV credential")
-            return
-        upstream_validate(self, agent)
-
-    ModelClient._validate_provider = validate_provider
-
-
-def _configure_provider_output_budget(*, local_mlx: bool) -> None:
-    """Keep local MLX generation bounded without changing external defaults."""
-    from contextual_orchestrator.orchestrator import ModelClient
-
-    default = "256" if local_mlx else "2048"
-    raw_limit = os.environ.get("LLM_GATEWAY_MAX_OUTPUT_TOKENS", default).strip()
-    try:
-        max_output_tokens = int(raw_limit)
-    except ValueError as exc:
-        raise SystemExit("LLM_GATEWAY_MAX_OUTPUT_TOKENS must be an integer") from exc
-    if not 64 <= max_output_tokens <= 4096:
-        raise SystemExit("LLM_GATEWAY_MAX_OUTPUT_TOKENS must be between 64 and 4096")
-
-    if getattr(ModelClient, "_lineageweave_output_budget", None) is not None:
-        return
-    original_init = ModelClient.__init__
-
-    def init(self, *args, **kwargs):
-        kwargs.setdefault("max_output_tokens", max_output_tokens)
-        original_init(self, *args, **kwargs)
-
-    ModelClient.__init__ = init
-    ModelClient._lineageweave_output_budget = max_output_tokens
-    if local_mlx:
-        original_send = ModelClient._send
-
-        def send(self, agent, payload):
-            payload = {**payload, "chat_template_kwargs": {"enable_thinking": False}}
-            return original_send(self, agent, payload)
-
-        ModelClient._send = send
-        ModelClient._lineageweave_disable_thinking = True
-
-
-def _apply_provider_models(
-    agents: list[dict[str, object]], provider_model: str, vision_model: str
-) -> None:
-    """Apply text and explicit Vision model overrides without crossing channels."""
-    for agent in agents:
-        tags = agent.get("tags", [])
-        if vision_model and isinstance(tags, list) and "vision" in tags:
-            agent["model"] = vision_model
-        elif provider_model:
-            agent["model"] = provider_model
 
 
 def main() -> None:
@@ -106,12 +33,24 @@ def main() -> None:
 
     provider_url = _pop_first_env("LLM_GATEWAY_API_URL", "LLM_GATEWAY_URL", "LLM_API_GATEWAY")
     if not provider_url:
-        provider_url = "https://integrate.api.nvidia.com/v1"
+        raise SystemExit("LLM_GATEWAY_API_URL or LLM_GATEWAY_URL is required to start the gateway")
     if not provider_url.rstrip("/").endswith("/v1"):
         provider_url = provider_url.rstrip("/") + "/v1"
-    local_mlx = is_local_mlx_provider(provider_url)
-    provider_model = os.environ.pop("LLM_GATEWAY_MODEL", "").strip()
-    vision_model = os.environ.pop("VISION_MODEL", "").strip()
+    embedding_provider_url = provider_url
+    raw_limit = os.environ.pop("LLM_GATEWAY_MAX_OUTPUT_TOKENS", "4096").strip()
+    try:
+        max_output_tokens = int(raw_limit)
+    except ValueError as exc:
+        raise SystemExit("LLM_GATEWAY_MAX_OUTPUT_TOKENS must be an integer") from exc
+    if not 64 <= max_output_tokens <= 4096:
+        raise SystemExit("LLM_GATEWAY_MAX_OUTPUT_TOKENS must be between 64 and 4096")
+    raw_body_limit = os.environ.pop("CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES", str(8 * 1024 * 1024)).strip()
+    try:
+        max_body_bytes = int(raw_body_limit)
+    except ValueError as exc:
+        raise SystemExit("CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES must be an integer") from exc
+    if not 64 * 1024 <= max_body_bytes <= 64 * 1024 * 1024:
+        raise SystemExit("CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES must be between 65536 and 67108864")
     embedding_model = os.environ.pop("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
 
     agents_path = Path("/tmp/lineageweave-agents.json")
@@ -119,17 +58,13 @@ def main() -> None:
     for agent in agents["agents"]:
         agent["base_url"] = provider_url
         agent["credential_key"] = "LLM_GATEWAY_API_KEY"
-    _apply_provider_models(agents["agents"], provider_model, vision_model)
+        agent.setdefault("provider_protocol", "auto")
     agents_path.write_text(json.dumps(agents), encoding="utf-8")
 
     from contextual_orchestrator.credentials import register_credential
 
     register_credential("NVIDIA_NIM_API_KEY", provider_key)
     register_credential("LLM_GATEWAY_API_KEY", provider_key)
-    _allow_local_mlx_provider()
-    _configure_provider_output_budget(local_mlx=local_mlx)
-    install_provider_embedding_support(provider_url, embedding_model)
-    install_multimodal_chat_support()
     del provider_url
     del provider_key
     sys.argv = [
@@ -137,6 +72,8 @@ def main() -> None:
         "--serve",
         "--agents",
         str(agents_path),
+        "--auto-discover-model-agents",
+        "--allow-discovery-failures",
         "--host",
         "0.0.0.0",
         "--port",
@@ -144,6 +81,14 @@ def main() -> None:
         "--allow-public-bind",
         "--auth-token",
         auth_token,
+        "--max-output-tokens",
+        str(max_output_tokens),
+        "--max-body-bytes",
+        str(max_body_bytes),
+        "--embedding-provider-url",
+        embedding_provider_url,
+        "--embedding-model",
+        embedding_model,
     ]
     del auth_token
     from contextual_orchestrator.__main__ import main as serve

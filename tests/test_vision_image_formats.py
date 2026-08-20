@@ -36,3 +36,17 @@ def test_transparent_raster_pixels_are_composited_to_white() -> None:
         assert output.mode == "RGB"
         assert output.getpixel((0, 0)) == (255, 255, 255)
         assert output.getpixel((1, 0)) == (0, 0, 255)
+
+
+def test_large_payloads_are_dimension_and_byte_bounded() -> None:
+    source = Image.effect_noise((5000, 3000), 100).convert("RGB")
+    encoded = BytesIO()
+    source.save(encoded, format="PNG")
+
+    normalized, mime_type = normalize_vision_image(encoded.getvalue(), "image/png")
+
+    assert len(normalized) <= 8 * 1024 * 1024
+    with Image.open(BytesIO(normalized)) as output:
+        assert max(output.size) <= 4096
+        assert output.mode == "RGB"
+        assert mime_type in {"image/png", "image/jpeg"}

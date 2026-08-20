@@ -2,7 +2,8 @@
   "agents": [
     {
       "id": "multimodal_reasoning_agent",
-      "model": "mlx-community/gemma-4-e4b-it-4bit",
+      "model": "",
+      "provider_protocol": "auto",
       "base_url": "https://integrate.api.nvidia.com/v1",
       "credential_key": "LLM_GATEWAY_API_KEY",
       "tags": [

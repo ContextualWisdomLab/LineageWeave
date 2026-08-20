@@ -83,7 +83,19 @@ export interface PostImageRegion {
 }
 
 export interface PostContentResponse {
+  units: PostContentUnit[];
   images: PostImageContent[];
+}
+
+export interface PostContentUnit {
+  unit_index: number;
+  unit_kind_code: string;
+  unit_label?: string;
+  unit_text: string;
+  indent_level: number;
+  indent_source_code: "explicit" | "llm" | "unresolved";
+  indent_confidence: number;
+  indent_evidence: string;
 }
 
 export interface Affiliation {
@@ -207,6 +219,7 @@ export interface PostAiSummary {
 export interface FiveW1HValue {
   text: string;
   source: string;
+  evidence_text?: string;
   ontology_codes: string[];
   ontology_annotations: Record<string, string>;
 }
@@ -383,8 +396,9 @@ export interface LineageGraph {
   truncated?: boolean;
 }
 
-export function fetchLineageGraph(accessToken: string): Promise<LineageGraph> {
-  return backendFetch<LineageGraph>("/api/lineage", accessToken);
+export function fetchLineageGraph(accessToken: string, postId?: string): Promise<LineageGraph> {
+  const query = postId ? `?post_id=${encodeURIComponent(postId)}` : "";
+  return backendFetch<LineageGraph>(`/api/lineage${query}`, accessToken);
 }
 
 export interface CorporateEntityRef {
@@ -395,6 +409,7 @@ export interface CorporateEntityRef {
 export interface CustomerMasterEntity extends CorporateEntityRef {
   corporate_entity_code: string;
   entity_level_code: string;
+  entity_level_label: string;
   parent_entity_id: string | null;
 }
 
@@ -409,6 +424,7 @@ export interface CustomerMasterKeyman {
   person_id: string;
   person_name: string;
   person_side_code: string;
+  person_side_label: string;
   last_known_job_title: string | null;
   affiliations: CustomerMasterKeymanAffiliation[];
 }
@@ -462,11 +478,26 @@ export interface SourceAuthorHint {
   provenance: string;
 }
 
+export interface CounterpartyRelationshipRole {
+  relationship_type_code: string;
+  relationship_label: string;
+  post_count: number;
+}
+
+export interface RelationshipNetworkEntry {
+  counterparty_entity_name: string;
+  corporate_entity_id: string | null;
+  total_post_count: number;
+  relationships: CounterpartyRelationshipRole[];
+  multi_role: boolean;
+}
+
 export interface CustomerMasterResponse {
   corporate_entities: CustomerMasterEntity[];
   keymen: CustomerMasterKeyman[];
   source_customer_hints: SourceCustomerHint[];
   source_author_hints: SourceAuthorHint[];
+  relationship_network: RelationshipNetworkEntry[];
 }
 
 export interface CurrentUser {
@@ -481,8 +512,11 @@ export function fetchMe(accessToken: string): Promise<CurrentUser> {
   return backendFetch<CurrentUser>("/api/me", accessToken);
 }
 
-export function setPreferredLocale(accessToken: string, preferredLocale: string): Promise<CurrentUser> {
-  return backendFetch<CurrentUser>("/api/me/preferences", accessToken, {
+export function setPreferredLocale(
+  accessToken: string,
+  preferredLocale: string,
+): Promise<{ preferred_locale: string }> {
+  return backendFetch<{ preferred_locale: string }>("/api/me/preferences", accessToken, {
     method: "PATCH",
     body: JSON.stringify({ preferred_locale: preferredLocale }),
   });
@@ -490,6 +524,23 @@ export function setPreferredLocale(accessToken: string, preferredLocale: string)
 
 export function fetchCustomerMaster(accessToken: string): Promise<CustomerMasterResponse> {
   return backendFetch<CustomerMasterResponse>("/api/customer-master", accessToken);
+}
+
+export interface CustomerHintResolution {
+  corporate_entity_id: string;
+  entity_name: string;
+  linked_post_count: number;
+  verification_evidence_url: string | null;
+}
+
+export function resolveCustomerHint(
+  accessToken: string,
+  hintCode: string,
+): Promise<CustomerHintResolution> {
+  return backendFetch<CustomerHintResolution>("/api/customer-master/resolve-hint", accessToken, {
+    method: "POST",
+    body: JSON.stringify({ hint_code: hintCode }),
+  });
 }
 
 export function rebuildLineage(accessToken: string): Promise<{ edge_count: number }> {
@@ -589,10 +640,24 @@ export function fetchPostVocEvidence(accessToken: string, postId: string): Promi
   return backendFetch(`/api/posts/${postId}/voc-evidence`, accessToken);
 }
 
+export interface PersonRoleHistoryEntry {
+  post_id: string;
+  post_title: string;
+  created_at: string;
+  responsibility: string;
+  affiliated_organization_name: string | null;
+}
+
 export function fetchRelatedKeymen(
   accessToken: string,
   personId: string,
-): Promise<{ person_id: string; person_name: string; person_side_code: string; related: RelatedNode[] }> {
+): Promise<{
+  person_id: string;
+  person_name: string;
+  person_side_code: string;
+  related: RelatedNode[];
+  role_history?: PersonRoleHistoryEntry[];
+}> {
   return backendFetch(`/api/keymen/${personId}/related`, accessToken);
 }
 

@@ -28,6 +28,7 @@ from backend.app.analysis_run_outbox import (
     outbox_request_digest,
 )
 from backend.app.lineage_ingestion import records_from_source_posts
+from lineageweave.adjudication_client import AdjudicationClient
 from lineageweave.http_client import HttpClientError, post_json
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge
@@ -555,6 +556,7 @@ async def deliver_queued_analysis_run(
     account_id: str,
     affiliated_entity_ids: list[str],
     tepp_client: TeppClient | None = None,
+    adjudication_client: AdjudicationClient | None = None,
     valkey_stream_entry_id: str | None = None,
 ) -> dict[str, Any]:
     """Claim the outbox row and finish ThreadWeave or TEPP.
@@ -630,6 +632,7 @@ async def deliver_queued_analysis_run(
                 analysis_run_id=analysis_run_id,
                 locked=outbox,
                 affiliated_entity_ids=affiliated_entity_ids,
+                adjudication_client=adjudication_client,
             )
         finished = datetime.now(timezone.utc)
         if finished < now:
@@ -656,6 +659,7 @@ async def start_pending_analysis_run(
     account_id: str,
     affiliated_entity_ids: list[str],
     tepp_client: TeppClient | None = None,
+    adjudication_client: AdjudicationClient | None = None,
     valkey_stream_entry_id: str | None = None,
 ) -> dict[str, Any]:
     """Enqueue then deliver on one connection.
@@ -679,6 +683,7 @@ async def start_pending_analysis_run(
         account_id=account_id,
         affiliated_entity_ids=affiliated_entity_ids,
         tepp_client=tepp_client,
+        adjudication_client=adjudication_client,
         valkey_stream_entry_id=valkey_stream_entry_id,
     )
 
@@ -689,6 +694,7 @@ async def _deliver_lineage_reconstruction(
     analysis_run_id: str,
     locked: asyncpg.Record,
     affiliated_entity_ids: list[str],
+    adjudication_client: AdjudicationClient | None = None,
 ) -> None:
     """Persist ThreadWeave parent choices for the frozen bag."""
     now = datetime.now(timezone.utc)
@@ -705,7 +711,7 @@ async def _deliver_lineage_reconstruction(
             knowledge_cutoff=locked["knowledge_cutoff"],
             affiliated_entity_ids=affiliated_entity_ids,
         )
-    edges = lineage_edge_specs(records_from_source_posts(rows))
+    edges = lineage_edge_specs(records_from_source_posts(rows), llm=adjudication_client)
     digest = reconstruction_result_digest(edges)
     finished = datetime.now(timezone.utc)
     if finished < now:

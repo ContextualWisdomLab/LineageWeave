@@ -1,4 +1,4 @@
-# ADR 0073: Opening a Customer master related post focuses Event Lineage
+# ADR 0095: Opening a Customer master related post focuses Event Lineage
 
 - Status: Accepted
 - Date: 2026-08-19
@@ -6,7 +6,7 @@
 ## Context
 
 Board Weekly VOC and Calendar commitment opens already focus Event Lineage
-(ADR 0071 / ADR 0072). Customer master is the remaining buyer GNB destination
+(ADR 0093 / ADR 0094). Customer master is the remaining buyer GNB destination
 that opens an authorized related post. That open was a home-list open: the
 popup body appeared and Event Lineage did not take focus.
 

@@ -100,8 +100,8 @@ def test_structured_consumers_request_auto_mode(
 
     invoke(client_factory())
 
-    expected_mode = "route" if module_name == "lineageweave.post_summary" else "auto"
-    assert observed["payload"]["mode"] == expected_mode
+    assert observed["payload"]["mode"] == "auto"
+    assert observed["payload"]["reasoning_effort"] == "auto"
     if module_name == "lineageweave.post_summary":
         assert call_count == 2
 
@@ -142,3 +142,4 @@ def test_post_evaluation_judge_defaults_to_auto(monkeypatch) -> None:
     client.evaluate("Title", "Body")
 
     assert observed["payload"]["mode"] == "auto"
+    assert observed["payload"]["reasoning_effort"] == "auto"

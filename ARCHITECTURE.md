@@ -126,8 +126,9 @@ flowchart LR
 
 ## Standards and citations
 
-See [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md)
-for the full APA 7th reference list this design is grounded in.
+See [ADR 0084](docs/adr/0084-lineage-research-grounding.md) for the normative
+research-grounding policy and [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md)
+for the full APA 7th reference list and supporting aggregate evidence.
 
 ## Product schema (Phase 1 of a larger roadmap)
 
@@ -280,13 +281,13 @@ HTML. `src/api.ts` calls the FastAPI backend directly with the token
 Keycloak issued; `src/App.tsx` renders a git-branch SVG of
 `GET /api/lineage` (click a node to open that post; `post_admin` can
 rebuild), the post list with a named Weekly VOC ISO-8601 week filter
-(ADR 0070; opening that filtered post focuses Event Lineage, ADR 0071).
-Calendar commitments use the same Event Lineage focus path (ADR 0072).
+(ADR 0092; opening that filtered post focuses Event Lineage, ADR 0093).
+Calendar commitments use the same Event Lineage focus path (ADR 0094).
 Customer master related posts use the same Event Lineage focus path
-(ADR 0073). Ask Agent cited posts use the same Event Lineage focus path
-(ADR 0074). A linked Event Lineage node opened from a focused popup
-keeps those flags (ADR 0075) and then focuses Keyman as the named next
-read (ADR 0076).
+(ADR 0095). Ask Agent cited posts use the same Event Lineage focus path
+(ADR 0096). A linked Event Lineage node opened from a focused popup
+keeps those flags (ADR 0097) and then focuses Keyman as the named next
+read (ADR 0098).
 The full detail popup includes Korean
 summary/key-events/R&R, VOC evidence excerpts, an Event Lineage panel
 (direct vs. indirect links; a link opens that post), the Keyman
@@ -703,15 +704,13 @@ when absent) alongside its text -- `_BlockTextExtractor` tracks it
 through the existing start/end-tag stack rather than adding a second
 pass over the document.
 
-Wiring: `backend/app/config.py` gained `Settings.vision_model` (env
-`VISION_MODEL`) -- empty means the vision channel is unavailable, the
-same "no fake channel" discipline as every other pluggable client, not a
-guessed default model. `backend/app/main.py`'s `_vision_client()` factory
+Wiring: `backend/app/main.py`'s `_vision_client()` factory
 returns a real `OpenAiCompatibleVisionClient` (via
 `orchestrator_vision_client`, which appends `/v1` so the same
 `ORCHESTRATOR_BASE_URL` other channels use lands on
-`/v1/chat/completions`) only when base URL, API key, and model are all
-set, else `NullImageContentClient()`; it is
+`/v1/chat/completions`) when base URL and API key are set, else
+`NullImageContentClient()`. The request omits `model`; contextual-orchestrator
+selects the registered vision-capable agent. It is
 called at all three raw-`post_body`-reading endpoints (`extract-keymen`,
 post summary, commitment derivation) and threaded through
 `post_chat_ingestion.gather_chat_sources()` so every RAG source document

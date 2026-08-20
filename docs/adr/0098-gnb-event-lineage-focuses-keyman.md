@@ -1,4 +1,4 @@
-# ADR 0076: GNB Event Lineage focuses Keyman as the next read
+# ADR 0098: GNB Event Lineage focuses Keyman as the next read
 
 - Status: Accepted
 - Date: 2026-08-20
@@ -7,8 +7,8 @@
 
 Opening a Board Weekly VOC post, Calendar commitment, Customer master
 related post, or Ask Agent cited post already focuses Event Lineage and
-names Keyman and evaluation as the next read (ADR 0071 / ADR 0072 /
-ADR 0073 / ADR 0074 / ADR 0075). A linked Event Lineage DAG walk keeps
+names Keyman and evaluation as the next read (ADR 0093 / ADR 0094 /
+ADR 0095 / ADR 0096 / ADR 0097). A linked Event Lineage DAG walk keeps
 those originating flags. The named next action was not landable: focus
 stayed on Event Lineage, and the report-member auto-land chain then
 skipped ahead to Ask.

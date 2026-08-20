@@ -1,0 +1,102 @@
+name: One-shot TEPP buyer integration repair
+
+on:
+  push:
+    branches:
+      - feat/analysis-run-name-evidence-lineage
+    paths:
+      - .github/workflows/repair-tepp-buyer-integration.yml
+      - .github/repair/apply_tepp_buyer_integration.py
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-tepp-buyer-integration
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/analysis-run-name-evidence-lineage
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Fast-forward to the live branch tip
+        run: |
+          git fetch origin feat/analysis-run-name-evidence-lineage
+          git merge --ff-only origin/feat/analysis-run-name-evidence-lineage
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Apply the bounded patch
+        run: |
+          sed -i 's/0090-tepp-accepted-buyer-evidence/0091-tepp-accepted-buyer-evidence/g; s/ADR 0090/ADR 0091/g' .github/repair/apply_tepp_buyer_integration.py
+          python -m py_compile .github/repair/apply_tepp_buyer_integration.py
+          python .github/repair/apply_tepp_buyer_integration.py
+          python -m compileall -q lineageweave backend tests
+
+      - name: Install locked Python dependencies
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Verify the TEPP integration slice
+        run: |
+          uv run --frozen python -m pytest -q \
+            tests/test_tepp_client.py \
+            tests/test_tepp_result.py \
+            tests/test_analysis_run_start.py \
+            tests/test_analysis_run_tepp_accepted_schema.py \
+            tests/test_http_client.py
+
+      - name: Install and verify the buyer frontend
+        working-directory: frontend
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm run lint
+          pnpm run test -- TeppMeasurementStatus App
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Commit the verified repair and remove one-shot machinery
+        run: |
+          git rm .github/workflows/repair-tepp-buyer-integration.yml
+          git rm .github/repair/apply_tepp_buyer_integration.py
+          git config user.name "CWL TEPP Integration Repair"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(buyer): connect TEPP accepted evidence end to end"
+          git pull --rebase origin feat/analysis-run-name-evidence-lineage
+          git push origin HEAD:feat/analysis-run-name-evidence-lineage

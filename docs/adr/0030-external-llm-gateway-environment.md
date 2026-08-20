@@ -20,6 +20,12 @@ Compose has two distinct authenticated hops:
 These credentials are not interchangeable. The first is the local service
 boundary; the second is the provider credential.
 
+The backend must not load `~/.env` wholesale. Compose injects the provider
+credential and URL only into contextual-orchestrator; the backend receives
+only its internal orchestrator credential and the non-secret embedding model
+identifier. This prevents an unrelated application process from holding the
+provider secret while preserving the single LLM/Vision boundary.
+
 ## Decision
 
 For GitHub Actions and any deployment that injects canonical secrets, the
@@ -58,11 +64,10 @@ local score, summary, extraction, or answer when the gateway is unavailable.
   `host.docker.internal:8080` text gateway and `host.docker.internal:18082`
   Vision gateway when `LINEAGEWEAVE_ALLOW_LOCAL_LLM_HTTP=1`; arbitrary local
   HTTP ports remain rejected.
-- `LLM_GATEWAY_MODEL` must be authorized by that gateway. A local-MLX model
-  name cannot be assumed to be available on an external provider.
-- `VISION_MODEL` is an optional model override for agents tagged `vision`.
-  It is applied inside contextual-orchestrator only; `LLM_GATEWAY_MODEL` must
-  not silently replace an explicitly configured Vision model.
+- `LLM_GATEWAY_MODEL` and `VISION_MODEL` are not selected by LineageWeave.
+  When they are blank, contextual-orchestrator resolves the registered agent
+  model, so a local or provider-specific model name cannot leak into this
+  application or be assumed available on an external gateway.
 - `LLM_GATEWAY_EMBEDDING_MODEL` is the explicit allowlisted semantic embedding
   model. If it is absent, contextual-orchestrator rejects embedding work
   instead of returning its standalone eight-dimensional heuristic vector.
@@ -77,6 +82,12 @@ sends image bytes directly to `LLM_GATEWAY_API_URL`. The contextual-orchestrator
 container validates the supported `text` and `image_url` blocks and forwards
 the multimodal request to the configured provider. Image data is excluded from
 the text used for workflow routing and reasoning classification.
+
+The upstream HTTP server keeps its ordinary JSON body default at 64 KiB. The
+LineageWeave Compose bootstrap passes the explicit bounded
+`CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES` value, defaulting to 8 MiB, because
+normalized image blocks are base64 data URIs. The limit is bounded at 64 MiB;
+unbounded request bodies and per-image provider bypasses are forbidden.
 
 The selected provider/model must actually support multimodal `image_url`
 content. A text-only gateway response such as `Only 'text' content type is
