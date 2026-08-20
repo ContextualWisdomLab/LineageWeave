@@ -514,7 +514,7 @@ export function setPreferredLocale(
   accessToken: string,
   preferredLocale: string,
 ): Promise<{ preferred_locale: string }> {
-  return backendFetch<CurrentUser>("/api/me/preferences", accessToken, {
+  return backendFetch<{ preferred_locale: string }>("/api/me/preferences", accessToken, {
     method: "PATCH",
     body: JSON.stringify({ preferred_locale: preferredLocale }),
   });
