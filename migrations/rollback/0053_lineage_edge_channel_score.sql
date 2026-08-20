@@ -1,5 +1,8 @@
 begin;
 
+drop trigger if exists lineage_edge_channel_contribution_validate
+    on lineage_edge_channel_score;
+drop function if exists validate_lineage_edge_channel_contribution();
 drop table if exists lineage_edge_channel_score;
 
 drop index if exists post_lineage_edge_reconstruction_run_idx;
