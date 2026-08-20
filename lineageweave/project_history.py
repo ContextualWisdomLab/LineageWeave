@@ -9,6 +9,7 @@ lineage paths without promoting them to causal or authoritative facts.
 
 from __future__ import annotations
 
+import math
 from collections import deque
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
@@ -158,7 +159,7 @@ def _score(value: object) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float, Decimal)):
         raise ValueError("lineage score must be numeric")
     result = float(value)
-    if result != result or result in (float("inf"), float("-inf")):
+    if not math.isfinite(result):
         raise ValueError("lineage score must be finite")
     return result
 
@@ -244,153 +245,139 @@ def _prior_paths(
 def build_project_history_projection(
     *,
     project_key: str,
-    focus_event_id: str | None,
+    focus_event_id: str,
     event_rows: Sequence[Mapping[str, Any]],
     match_rows: Sequence[Mapping[str, Any]],
     role_rows: Sequence[Mapping[str, Any]],
     edge_rows: Sequence[Mapping[str, Any]],
-    truncated: bool = False,
     maximum_depth: int = PROJECT_HISTORY_MAX_DEPTH,
     maximum_paths_per_event: int = PROJECT_HISTORY_MAX_PATHS_PER_EVENT,
 ) -> dict[str, Any]:
-    """Build the versioned Buyer project-history projection.
+    """Build a deterministic project-history projection from visible evidence.
 
-    All input rows must already be visible, eligible, and within the requested
-    knowledge cutoff. Duplicate event rows are collapsed by ``post_id`` and the
-    final chronology is stable on ``(created_at, post_id)``.
+    Every input row must already be caller-authorized. The function does not
+    query storage or infer missing project membership, people, dates, or edges.
     """
 
+    if not 1 <= maximum_depth <= PROJECT_HISTORY_MAX_DEPTH:
+        raise ValueError(f"maximum_depth must be between 1 and {PROJECT_HISTORY_MAX_DEPTH}")
+    if not 1 <= maximum_paths_per_event <= PROJECT_HISTORY_MAX_PATHS_PER_EVENT:
+        raise ValueError(
+            "maximum_paths_per_event must be between 1 and "
+            f"{PROJECT_HISTORY_MAX_PATHS_PER_EVENT}"
+        )
     normalized_key = normalize_project_key(project_key)
-    if maximum_depth < 1 or maximum_depth > PROJECT_HISTORY_MAX_DEPTH:
-        raise ValueError("maximum_depth is outside the supported bound")
-    if maximum_paths_per_event < 1 or maximum_paths_per_event > PROJECT_HISTORY_MAX_PATHS_PER_EVENT:
-        raise ValueError("maximum_paths_per_event is outside the supported bound")
-
-    deduplicated: dict[str, Mapping[str, Any]] = {}
+    unique_events: dict[str, Mapping[str, Any]] = {}
     for row in event_rows:
-        event_id = str(row["post_id"])
-        current = deduplicated.get(event_id)
-        if current is None or (row["created_at"], event_id) < (current["created_at"], event_id):
-            deduplicated[event_id] = row
-    ordered_rows = sorted(deduplicated.values(), key=lambda row: (row["created_at"], str(row["post_id"])))
-    if not ordered_rows:
-        raise ValueError("project history requires at least one visible event")
-    ordered_ids = [str(row["post_id"]) for row in ordered_rows]
-    effective_focus = focus_event_id or ordered_ids[-1]
-    if effective_focus not in set(ordered_ids):
-        raise ValueError("focus event is not in the visible project history")
+        post_id = str(row["post_id"])
+        unique_events.setdefault(post_id, row)
+    if focus_event_id not in unique_events:
+        raise ValueError("focus event must be visible in the project history")
+    ordered_events = sorted(
+        unique_events.values(),
+        key=lambda row: (row["created_at"], str(row["post_id"])),
+    )
+    event_ids = [str(row["post_id"]) for row in ordered_events]
 
-    matches_by_event: dict[str, list[dict[str, Any]]] = {event_id: [] for event_id in ordered_ids}
-    display_names: list[str] = []
+    matches_by_post: dict[str, list[dict[str, Any]]] = {event_id: [] for event_id in event_ids}
     seen_matches: set[tuple[str, str, str]] = set()
     for row in match_rows:
-        event_id = str(row["post_id"])
-        if event_id not in matches_by_event:
+        post_id = str(row["post_id"])
+        if post_id not in matches_by_post:
             continue
+        match_kind = str(row["match_kind_code"])
         matched_value = str(row["matched_value"])
         if normalize_project_key(matched_value) != normalized_key:
             continue
-        kind = str(row["match_kind_code"])
-        key = (event_id, kind, matched_value)
-        if key in seen_matches:
+        dedupe_key = (post_id, match_kind, matched_value)
+        if dedupe_key in seen_matches:
             continue
-        seen_matches.add(key)
-        confidence = row.get("confidence")
-        if confidence is not None:
-            confidence = _score(confidence)
-        truth = "observed" if kind.startswith("source_") else "inferred"
-        matches_by_event[event_id].append(
+        seen_matches.add(dedupe_key)
+        matches_by_post[post_id].append(
             {
-                "match_kind_code": kind,
+                "match_kind_code": match_kind,
                 "matched_value": matched_value,
-                "truth_status_code": truth,
-                "confidence": confidence,
+                "confidence": row.get("confidence"),
                 "ontology_iri": row.get("ontology_iri"),
-                "provenance": str(row["provenance"]),
+                "provenance": row.get("provenance"),
             }
         )
-        if kind.endswith("name"):
-            display_names.append(matched_value)
-    for matches in matches_by_event.values():
-        matches.sort(key=lambda item: (item["truth_status_code"], item["match_kind_code"], item["matched_value"]))
 
-    roles_by_event: dict[str, list[dict[str, Any]]] = {event_id: [] for event_id in ordered_ids}
-    actor_keys_by_event: dict[str, list[str]] = {event_id: [] for event_id in ordered_ids}
-    distinct_actor_keys: set[str] = set()
+    roles_by_post: dict[str, list[dict[str, Any]]] = {event_id: [] for event_id in event_ids}
     for row in role_rows:
-        event_id = str(row["post_id"])
-        if event_id not in roles_by_event:
+        post_id = str(row["post_id"])
+        if post_id not in roles_by_post:
             continue
-        actor_key = _actor_key(row)
-        distinct_actor_keys.add(actor_key)
-        actor_keys_by_event[event_id].append(actor_key)
-        roles_by_event[event_id].append(
+        roles_by_post[post_id].append(
             {
-                "actor_key": actor_key,
-                "actor_name": str(row["actor_name"]),
-                "actor_type_code": str(row["actor_type_code"]),
+                "actor_key": _actor_key(row),
+                "actor_name": row.get("actor_name"),
+                "responsibility": row.get("responsibility"),
+                "actor_type_code": row.get("actor_type_code"),
                 "affiliated_organization_name": row.get("affiliated_organization_name"),
-                "responsibility": str(row["responsibility"]),
-                "truth_status_code": "observed",
-                "provenance": "post_summary_role",
+                "cataloged_person_id": row.get("cataloged_person_id"),
+                "cataloged_team_id": row.get("cataloged_team_id"),
+                "cataloged_corporate_entity_id": row.get("cataloged_corporate_entity_id"),
             }
         )
-    for roles in roles_by_event.values():
-        roles.sort(key=lambda role: (role["actor_type_code"], role["actor_name"], role["actor_key"]))
+    for roles in roles_by_post.values():
+        roles.sort(key=lambda role: (role["actor_key"], str(role.get("responsibility") or "")))
 
-    paths_by_event = _prior_paths(
-        ordered_ids,
+    paths_by_post = _prior_paths(
+        event_ids,
         edge_rows,
         maximum_depth=maximum_depth,
         maximum_paths_per_event=maximum_paths_per_event,
     )
-
-    events: list[dict[str, Any]] = []
-    previous_actor_keys: Sequence[str] | None = None
-    for row in ordered_rows:
+    projected_events: list[dict[str, Any]] = []
+    previous_actor_keys: list[str] | None = None
+    for row in ordered_events:
         event_id = str(row["post_id"])
-        current_actor_keys = actor_keys_by_event[event_id]
+        actor_keys = [role["actor_key"] for role in roles_by_post[event_id]]
         transition = (
             None
             if previous_actor_keys is None
-            else responsibility_transition_code(previous_actor_keys, current_actor_keys)
+            else responsibility_transition_code(previous_actor_keys, actor_keys)
         )
-        events.append(
+        projected_events.append(
             {
                 "event_id": event_id,
-                "source_post_id": event_id,
-                "event_title": str(row["post_title"]),
-                "event_type_code": classify_project_event(
+                "post_title": str(row["post_title"]),
+                "occurred_at": _as_utc(row["created_at"]),
+                "event_code": classify_project_event(
                     title=str(row["post_title"]),
                     source_stage_code=row.get("source_stage_code"),
                     source_detail_state_code=row.get("source_detail_state_code"),
                     voc_type_code=row.get("voc_type_code"),
-                    is_focus=event_id == effective_focus,
+                    is_focus=event_id == focus_event_id,
                 ),
-                "event_type_basis_code": "display_classification",
-                "occurred_at": _as_utc(row["created_at"]),
-                "time_basis_code": PROJECT_HISTORY_TIME_BASIS,
-                "voc_type_code": row.get("voc_type_code"),
-                "source_stage_code": row.get("source_stage_code"),
-                "source_detail_state_code": row.get("source_detail_state_code"),
-                "project_matches": matches_by_event[event_id],
-                "observed_responsibilities": roles_by_event[event_id],
+                "is_focus": event_id == focus_event_id,
+                "project_matches": sorted(
+                    matches_by_post[event_id],
+                    key=lambda item: (
+                        item["match_kind_code"],
+                        item["matched_value"],
+                    ),
+                ),
+                "observed_responsibilities": roles_by_post[event_id],
                 "responsibility_transition_code": transition,
-                "related_prior_paths": paths_by_event[event_id],
+                "related_prior_paths": paths_by_post[event_id],
             }
         )
-        previous_actor_keys = current_actor_keys
+        previous_actor_keys = actor_keys
 
-    project_name = display_names[0] if display_names else project_key.strip()
+    distinct_actor_keys = {
+        role["actor_key"]
+        for roles in roles_by_post.values()
+        for role in roles
+        if role["actor_key"]
+    }
     return {
         "contract_version": PROJECT_HISTORY_CONTRACT_VERSION,
-        "project_key": project_key.strip(),
-        "normalized_project_key": normalized_key,
-        "project_name": project_name,
-        "focus_event_id": effective_focus,
-        "time_basis_code": PROJECT_HISTORY_TIME_BASIS,
-        "event_count": len(events),
+        "project_key": normalized_key,
+        "time_basis": PROJECT_HISTORY_TIME_BASIS,
+        "focus_event_id": focus_event_id,
+        "event_count": len(projected_events),
         "distinct_observed_actor_count": len(distinct_actor_keys),
-        "truncated": bool(truncated),
-        "events": events,
+        "events": projected_events,
     }
