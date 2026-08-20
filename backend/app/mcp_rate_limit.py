@@ -15,6 +15,8 @@ import math
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from redis.exceptions import RedisError
+
 GLOBAL_ASK_RATE_LIMIT_ERROR_CODE = -32029
 GLOBAL_ASK_RATE_LIMIT_UNAVAILABLE_ERROR_CODE = -32028
 DEFAULT_RATE_LIMIT_KEY_PREFIX = "lineageweave:mcp:global_ask:principal"
@@ -103,7 +105,7 @@ class ValkeyGlobalAskRateLimiter:
                 self._maximum_requests,
                 self._window_seconds * 1000,
             )
-        except (OSError, TimeoutError, TypeError, ValueError) as exc:
+        except (RedisError, OSError, TimeoutError, TypeError, ValueError) as exc:
             raise GlobalAskRateLimitUnavailable(
                 "distributed rate-limit backend is unavailable"
             ) from exc
