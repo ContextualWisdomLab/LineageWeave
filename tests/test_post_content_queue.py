@@ -13,6 +13,7 @@ from backend.app.post_content_queue import (
     RUNNING,
     SUCCEEDED,
     post_content_api_status,
+    post_content_is_complete,
     post_content_stream_fields,
     source_body_sha256,
 )
@@ -41,6 +42,25 @@ def test_api_status_does_not_call_failed_content_ready() -> None:
     assert post_content_api_status(FAILED, content_present=True) == "unavailable"
 
 
+def test_embedding_gap_is_not_complete_content() -> None:
+    class FakeConnection:
+        async def fetchval(self, query: str, *_args: object) -> int:
+            assert "post_content_embedding" in query
+            assert "post_content_image_region_embedding" in query
+            return 0
+
+    assert (
+        asyncio.run(
+            post_content_is_complete(
+                FakeConnection(),
+                "00000000-0000-0000-0000-000000000001",
+                embedding_model_code="text-embedding-3-large",
+            )
+        )
+        is False
+    )
+
+
 def test_existing_units_are_requeued_when_the_source_digest_changes() -> None:
     from backend.app.post_content_queue import ensure_post_content_job
 
@@ -66,7 +86,7 @@ def test_existing_units_are_requeued_when_the_source_digest_changes() -> None:
             conn,
             "00000000-0000-0000-0000-000000000001",
             "new body",
-            content_present=True,
+            content_complete=True,
         )
     )
 
@@ -97,7 +117,7 @@ def test_existing_units_register_as_succeeded_without_a_wakeup() -> None:
             conn,
             "00000000-0000-0000-0000-000000000001",
             "existing body",
-            content_present=True,
+            content_complete=True,
         )
     )
 
