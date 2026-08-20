@@ -103,6 +103,17 @@ def test_chunk_by_dom_keeps_nested_table_cell_blocks_in_their_row() -> None:
     assert [(chunk.label, chunk.text) for chunk in chunks] == [("tr", "No. | Company")]
 
 
+def test_chunk_by_dom_preserves_nested_list_order_and_depth() -> None:
+    chunks = chunk_by_dom(
+        "<ol><li>Outer<ul><li>Inner</li></ul>After inner</li>"
+        "<li>Sibling</li></ol>"
+    )
+
+    assert [chunk.text for chunk in chunks] == ["Outer", "Inner", "After inner", "Sibling"]
+    assert [chunk.indent_width for chunk in chunks] == [4, 8, 4, 4]
+
+
+
 def test_chunk_by_dom_labels_markerless_footnotes() -> None:
     chunks = chunk_by_dom("<p>Body text</p><p>*Tier 2: follow-up note</p>")
     assert [(chunk.label, chunk.text) for chunk in chunks] == [
@@ -244,6 +255,19 @@ def test_chunk_by_dom_interleaves_images_with_text_in_document_order() -> None:
     assert chunks[1].label == "image/png"
     assert chunks[1].image_data is not None
     assert chunks[2].text == "After the picture."
+
+
+def test_chunk_by_dom_interleaves_image_inside_a_block_with_text() -> None:
+    tiny_png_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    html = f'<p>Before the picture.<img src="data:image/png;base64,{tiny_png_b64}">After the picture.</p>'
+
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.unit_type for chunk in chunks] == ["dom", "image", "dom"]
+    assert [chunk.text for chunk in chunks if chunk.unit_type == "dom"] == [
+        "Before the picture.",
+        "After the picture.",
+    ]
 
 
 def test_chunk_by_dom_labels_text_chunks_with_their_tag_name() -> None:

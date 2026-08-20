@@ -99,6 +99,11 @@ _ORGANIZATION_CONTEXT_MIGRATION = (
     / "migrations"
     / "0051_context_scoped_organization_name_resolution.sql"
 )
+_GLOBAL_ASK_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0052_global_ask_context.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -208,6 +213,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text())
             cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
             cur.execute(_ORGANIZATION_CONTEXT_MIGRATION.read_text())
+            cur.execute(_GLOBAL_ASK_CONTEXT_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "

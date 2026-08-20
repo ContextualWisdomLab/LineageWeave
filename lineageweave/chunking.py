@@ -65,6 +65,8 @@ _DOM_BLOCK_TAGS = frozenset(
         "footer",
         "div",
         "p",
+        "ul",
+        "ol",
         "li",
         "tr",
         "blockquote",
@@ -310,6 +312,8 @@ class _BlockTextExtractor(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Collect relevant text state when an HTML start tag is encountered."""
         if tag == "img":
+            if self._stack:
+                self._flush_current_buffer()
             src = next((value for name, value in attrs if name == "src" and value), None)
             if src:
                 decoded = _decode_data_uri_image(src)
@@ -338,6 +342,8 @@ class _BlockTextExtractor(HTMLParser):
         if any(entry[0] in _TABLE_ROW_TAGS for entry in self._stack):
             return
         if tag in _DOM_BLOCK_TAGS:
+            if self._stack:
+                self._flush_current_buffer()
             style = next((value for name, value in attrs if name == "style" and value), None)
             self._stack.append((tag, [], style, _declared_indent_width(tag, attrs)))
 
@@ -353,6 +359,19 @@ class _BlockTextExtractor(HTMLParser):
             declared_width = sum(entry[3] for entry in self._stack)
             tag_name, buffer, style, _ = self._stack.pop()
             self._finish_block(tag_name, buffer, style, declared_width)
+
+    def _flush_current_buffer(self) -> None:
+        """Emit direct parent text before a nested block or embedded image."""
+        tag_name, buffer, style, _ = self._stack[-1]
+        if not buffer:
+            return
+        self._stack[-1] = (tag_name, [], style, self._stack[-1][3])
+        self._finish_block(
+            tag_name,
+            buffer,
+            style,
+            sum(entry[3] for entry in self._stack),
+        )
 
     def _finish_block(
         self, tag_name: str, buffer: list[str], style: str | None, declared_width: int

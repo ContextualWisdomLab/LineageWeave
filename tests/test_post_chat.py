@@ -37,6 +37,7 @@ from lineageweave.post_chat import (
     cited_post_summaries,
     normalize_chat_question,
     parse_chat_response,
+    render_global_ask_context,
 )
 
 
@@ -356,3 +357,36 @@ def test_contextual_orchestrator_chat_requests_plain_citations(monkeypatch) -> N
     assert observed["payload"]["reasoning_effort"] == "auto"
     assert observed["payload"]["mode"] == "auto"
     assert "CITED SOURCES" in observed["payload"]["messages"][0]["content"]
+
+
+def test_global_ask_context_is_explicitly_non_evidentiary() -> None:
+    rendered = render_global_ask_context(
+        "Earlier synthetic decision",
+        ((3, "Synthetic question", "Synthetic answer"),),
+    )
+
+    assert "Compressed prior context" in rendered
+    assert "Turn 3 question: Synthetic question" in rendered
+    assert "Turn 3 answer: Synthetic answer" in rendered
+
+
+def test_contextual_orchestrator_compresses_global_ask_turns(monkeypatch) -> None:
+    observed = {}
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        observed["url"] = url
+        observed["payload"] = payload
+        return {"choices": [{"message": {"content": "Synthetic compressed context"}}]}
+
+    monkeypatch.setattr("lineageweave.post_chat.post_json", fake_post_json)
+    summary = ContextualOrchestratorPostChatClient(
+        "https://orchestrator.test", "token"
+    ).compress_context(
+        "Earlier synthetic context",
+        [(1, "Synthetic question", "Synthetic answer")],
+    )
+
+    assert summary == "Synthetic compressed context"
+    assert observed["url"].endswith("/v1/chat/completions")
+    assert observed["payload"]["mode"] == "auto"
+    assert "Synthetic question" in observed["payload"]["messages"][0]["content"]

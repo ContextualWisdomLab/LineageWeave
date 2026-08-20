@@ -75,6 +75,7 @@ from lineageweave.post_chat import (
     NullPostChatClient,
     cited_post_evidence,
     cited_post_summaries,
+    render_global_ask_context,
 )
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_evaluation import (
@@ -114,6 +115,7 @@ from backend.app.activity_stream import (
     create_valkey_client,
     get_valkey,
     publish_activity_event,
+    publish_operation_event,
     read_activity_events,
     ticket_created_summary,
     ticket_status_changed_summary,
@@ -167,11 +169,15 @@ from backend.app.knowledge_graph import (
 )
 from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
 from backend.app.post_chat_ingestion import (
+    ensure_global_ask_session,
     fetch_persisted_chat,
     fetch_persisted_chats,
     find_linked_post_ids,
     gather_chat_sources,
     gather_global_chat_sources,
+    load_global_ask_context,
+    persist_global_ask_summary,
+    persist_global_ask_turn,
     persist_post_chat,
 )
 from backend.app.post_summary_ingestion import (
@@ -2451,6 +2457,7 @@ class GlobalAskRequest(BaseModel):
     """JSON body for the buyer's source-grounded Global Ask Agent."""
 
     question: str
+    session_id: str | None = None
 
 
 def global_ask_timeline(sources: list[ChatSourceDocument]) -> list[dict[str, str | None]]:
@@ -2569,12 +2576,18 @@ async def ask_agent(
     request: GlobalAskRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Answer a buyer question from authorized post and graph evidence."""
     question = request.question.strip()
     if not question:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
     _require_post_read(account)
+    if request.session_id is not None:
+        try:
+            UUID(request.session_id)
+        except ValueError:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Global Ask session not found") from None
     client = _post_chat_client()
     if not client.available:
         raise HTTPException(
@@ -2582,14 +2595,59 @@ async def ask_agent(
             "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
         )
     async with pool.acquire() as conn:
+        session_id = await ensure_global_ask_session(
+            conn, account.user_account_id, request.session_id
+        )
+        if session_id is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Global Ask session not found")
+        conversation = await load_global_ask_context(conn, session_id)
         sources = await gather_global_chat_sources(
             conn,
             lambda row: _can_see_post(account, row),
             account.corporate_entity_ids,
             question=question,
         )
+    if conversation.compress_turns:
+        compressor = getattr(client, "compress_context", None)
+        if not callable(compressor):
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent conversation context compression is unavailable",
+            )
+        try:
+            compressed = await asyncio.to_thread(
+                compressor,
+                conversation.summary,
+                list(conversation.compress_turns),
+            )
+            async with pool.acquire() as conn:
+                await persist_global_ask_summary(
+                    conn,
+                    conversation.session_id,
+                    compressed,
+                    conversation.compress_turns[-1][0],
+                )
+                conversation = await load_global_ask_context(conn, conversation.session_id)
+        except (HttpClientError, KeyError, OSError, ValueError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent conversation context compression is unavailable",
+            ) from exc
+    conversation_context = render_global_ask_context(
+        conversation.summary,
+        conversation.recent_turns,
+    )
     if not sources:
+        async with pool.acquire() as conn:
+            await persist_global_ask_turn(conn, conversation.session_id, question, "", ())
+        await publish_operation_event(
+            valkey,
+            account.user_account_id,
+            "global_ask_completed",
+            "Global Ask completed with no authorized source posts",
+        )
         return {
+            "session_id": conversation.session_id,
             "answer_text": "",
             "cited_post_ids": [],
             "cited_posts": [],
@@ -2599,14 +2657,34 @@ async def ask_agent(
             "next_action": "No authorized source posts are available for this question.",
         }
     try:
-        answer = await asyncio.to_thread(client.answer, question, sources)
+        answer = await asyncio.to_thread(
+            client.answer,
+            question,
+            sources,
+            conversation_context=conversation_context,
+        )
     except (HttpClientError, KeyError, OSError, ValueError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             f"Ask Agent is unavailable: {exc}",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
+    async with pool.acquire() as conn:
+        await persist_global_ask_turn(
+            conn,
+            conversation.session_id,
+            question,
+            answer.answer_text,
+            cited_ids,
+        )
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "global_ask_completed",
+        f"Global Ask completed with {len(cited_ids)} cited source post(s)",
+    )
     return {
+        "session_id": conversation.session_id,
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
         "cited_posts": cited_post_summaries(sources, cited_ids),

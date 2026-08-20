@@ -285,6 +285,7 @@ export interface ChatHistory {
 }
 
 export interface AskAgentResponse {
+  session_id: string;
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
@@ -862,10 +863,14 @@ export function askPostChat(accessToken: string, postId: string, question: strin
   });
 }
 
-export function askAgent(accessToken: string, question: string): Promise<AskAgentResponse> {
+export function askAgent(
+  accessToken: string,
+  question: string,
+  sessionId?: string,
+): Promise<AskAgentResponse> {
   return backendFetch("/api/ask", accessToken, {
     method: "POST",
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, ...(sessionId ? { session_id: sessionId } : {}) }),
   });
 }
 

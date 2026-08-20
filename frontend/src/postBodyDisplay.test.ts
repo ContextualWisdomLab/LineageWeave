@@ -61,6 +61,19 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("keeps nested list items in source order with their list depth", () => {
+    expect(
+      splitPostBody(
+        "<ol><li>Outer<ul><li>Inner</li></ul>After inner</li><li>Sibling</li></ol>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "Outer", indentLevel: 1 },
+      { kind: "text", text: "Inner", indentLevel: 2 },
+      { kind: "text", text: "After inner", indentLevel: 1 },
+      { kind: "text", text: "Sibling", indentLevel: 1 },
+    ]);
+  });
+
   it("leaves a plain-text post unchanged so existing popups keep their wording", () => {
     expect(splitPostBody("The full body text.")).toEqual([
       { kind: "text", text: "The full body text." },

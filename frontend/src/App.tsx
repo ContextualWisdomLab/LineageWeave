@@ -4617,6 +4617,9 @@ function AskAgentPanel({
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [sessionId, setSessionId] = useState<string | undefined>(() =>
+    window.sessionStorage.getItem("lineageweave.globalAskSessionId") ?? undefined,
+  );
 
   async function handleAsk() {
     const normalized = question.trim();
@@ -4624,7 +4627,10 @@ function AskAgentPanel({
     setAsking(true);
     setError(null);
     try {
-      setAnswer(await askAgent(accessToken, normalized));
+      const nextAnswer = await askAgent(accessToken, normalized, sessionId);
+      setAnswer(nextAnswer);
+      setSessionId(nextAnswer.session_id);
+      window.sessionStorage.setItem("lineageweave.globalAskSessionId", nextAnswer.session_id);
     } catch (err) {
       setAnswer(null);
       setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
