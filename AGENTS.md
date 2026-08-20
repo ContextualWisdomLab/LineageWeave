@@ -130,7 +130,7 @@ contextual-orchestrator owns model discovery and selection.
   `This post is an image` to a buyer. When a source image can be reattached,
   draw only persisted visual-region boxes; never invent coordinates. If the
   bitmap is missing or a box is invalid, keep the region list and do not
-  fabricate a locator (ADR 0110 / 0111).
+  fabricate a locator (ADR 0110 / 0112).
 
 ## Source parsing and semantic units
 

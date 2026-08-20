@@ -1,4 +1,4 @@
-# ADR 0111: Overlay persisted visual-region boxes on the source image
+# ADR 0112: Overlay persisted visual-region boxes on the source image
 
 - Status: Accepted
 - Date: 2026-08-20
