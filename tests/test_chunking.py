@@ -128,6 +128,20 @@ def test_chunk_by_dom_labels_html_and_word_footnote_markup() -> None:
     ]
 
 
+def test_chunk_by_dom_does_not_label_body_footnote_citation_as_footnote() -> None:
+    html = (
+        '<p>Body cites <a href="#_ftn1" name="_ftnref1">[1]</a>.</p>'
+        '<p><a href="#_ftnref1" name="_ftn1">[1]</a> Footnote definition.</p>'
+    )
+
+    chunks = chunk_by_dom(html)
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Body cites [1]."),
+        ("footnote", "[1] Footnote definition."),
+    ]
+
+
 def test_chunk_by_dom_labels_ooxml_footnote_containers() -> None:
     chunks = chunk_by_dom(
         "<w:footnote w:id='1'><w:p>OOXML footnote body</w:p></w:footnote>"

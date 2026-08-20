@@ -425,10 +425,10 @@ are not release evidence.
 |---|---|---|---|
 | #258 | `main` -> `feat/analysis-run-name-evidence-lineage` | `49804b0fef503be1697b8be61919b022b615ef2f` | `REVIEW_REQUIRED`, `BLOCKED`; no independent approval observed |
 | #323 | `main` -> `fix/tepp-request-contract-validation` | `1a27efec6863cd3439a4c6023e1c625ce4d7abf2` | `REVIEW_REQUIRED`, `BLOCKED`; required Checks queued |
-| #322 | `fix/stale-summary-buyer-continuity` -> `feat/orchestrator-owned-embedding-consumer` | `7b710453d27286c307986fb3b0bad4ac27d7c8af` | `CLEAN`; Full test and frontend Checks SUCCESS; Devin no issues; independent approval pending |
+| #322 | `fix/stale-summary-buyer-continuity` -> `feat/orchestrator-owned-embedding-consumer` | `1126cfa026876d2427a6f6cf6001eaa8ac609ad5` | `BLOCKED`; per-batch embedding model provenance reset and regression covered; required Checks and fresh independent approval pending |
 | #320 | `codex/normalize-source-indent-semantics` -> `codex/preserve-partial-image-regions` | `41d164c570fe232cc1e38a766439e4093d80cb84` | `CLEAN`; Full test and frontend Checks SUCCESS; independent approval pending |
 | #324 | `codex/preserve-partial-image-regions` -> `fix/validate-partial-image-regions` | `fdd62a6f8317c93f9ba5fc27393cfb26c69e584a` | `CLEAN`; Full test and frontend Checks SUCCESS; independent approval pending |
-| #325 | `fix/validate-partial-image-regions` -> `docs/current-gap-audit` | `66e3e557c333423f2db0dac9bd16373b360a0034` | `UNSTABLE`; semantic HTML/Word footnote units preserved; required Checks and fresh independent approval pending |
+| #325 | `fix/validate-partial-image-regions` -> `docs/current-gap-audit` | `4f87b109e6b423dd3429ec226403c63dfc6eac87` | `UNSTABLE`; semantic HTML/Word/OOXML footnote units preserved, body citations remain body text, fresh runtime aggregate evidence is recorded, and #322 provenance guard is tracked; required Checks and fresh independent approval pending |
 | #789 | `main` -> contextual-orchestrator embedding capability branch | `3a80d91b8c879e57d30ab87af664546b8712fb15` | `REVIEW_REQUIRED`, `BLOCKED`; upstream Checks queued |
 
 The current implementation checkpoints are local/branch evidence only:
@@ -556,3 +556,25 @@ so they are not treated as current-head failures without a fresh matching scan.
   The current evidence supports continued review/check processing, not a merge
   claim. Re-read the exact head, current review commit, all required Checks, and
   stack dependency immediately before any protected merge.
+
+## Fresh runtime aggregate evidence: 2026-08-21 KST
+
+The local Compose runtime was healthy for the backend, frontend, Keycloak,
+contextual-orchestrator, PostgreSQL, and Valkey at the observed development
+endpoints. A bounded PostgreSQL catalog projection recorded the following
+aggregate counts without exporting source text or identifiers:
+
+| Relation | Rows observed |
+|---|---:|
+| `source_post` | 43,839 |
+| `post_summary_role` | 179 |
+| `post_summary_person_mention` | 17 |
+| `post_summary_action` | 88 |
+
+Within `post_summary_action`, 30 rows had a requester assignment, 45 had a
+processor assignment, all 88 retained evidence text, and 85 were bound to a
+project. These figures demonstrate bounded persistence in the current local
+runtime; they do not prove protected-main equivalence, complete-corpus
+correctness, authorization coverage, or release readiness. Re-run the same
+aggregate projection against the authorized deployment before treating it as
+buyer-facing evidence.
