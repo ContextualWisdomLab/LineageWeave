@@ -18,7 +18,7 @@ def _segment(value: dict) -> str:
 
 
 def _unsigned_token(header: dict) -> str:
-    return f"{_segment(header)}.{_segment({'sub': 'subject'})}.signature"
+    return f"{_segment(header)}.{_segment({'sub': 'subject'})}.{_segment({'test': 'signature'})}"
 
 
 def test_signing_key_requires_nonempty_exact_kid(monkeypatch: pytest.MonkeyPatch) -> None:

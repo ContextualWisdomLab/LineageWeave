@@ -5,6 +5,23 @@ export function isoWeekFromCreatedAt(createdAt: string | null | undefined): stri
   if (!createdAt) {
     return null;
   }
+  const datePrefix = /^(\d{4})-(\d{2})-(\d{2})T/.exec(createdAt);
+  if (!datePrefix) {
+    return null;
+  }
+  const year = Number(datePrefix[1]);
+  const month = Number(datePrefix[2]);
+  const day = Number(datePrefix[3]);
+  const calendarDate = new Date(0);
+  calendarDate.setUTCHours(0, 0, 0, 0);
+  calendarDate.setUTCFullYear(year, month - 1, day);
+  if (
+    calendarDate.getUTCFullYear() !== year ||
+    calendarDate.getUTCMonth() !== month - 1 ||
+    calendarDate.getUTCDate() !== day
+  ) {
+    return null;
+  }
   const parsed = new Date(createdAt);
   if (Number.isNaN(parsed.getTime())) {
     return null;

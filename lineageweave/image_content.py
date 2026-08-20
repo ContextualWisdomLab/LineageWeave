@@ -287,7 +287,7 @@ class OpenAiCompatibleVisionClient:
         api_key: str,
         model: str | None = None,
         *,
-        timeout: float = 60.0,
+        timeout: float = 180.0,
         allow_insecure_http: bool = False,
     ) -> None:
         parsed = urlparse(base_url)
