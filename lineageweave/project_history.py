@@ -252,11 +252,14 @@ def build_project_history_projection(
     edge_rows: Sequence[Mapping[str, Any]],
     maximum_depth: int = PROJECT_HISTORY_MAX_DEPTH,
     maximum_paths_per_event: int = PROJECT_HISTORY_MAX_PATHS_PER_EVENT,
+    truncated: bool = False,
 ) -> dict[str, Any]:
     """Build a deterministic project-history projection from visible evidence.
 
     Every input row must already be caller-authorized. The function does not
     query storage or infer missing project membership, people, dates, or edges.
+    ``truncated`` records that the storage boundary returned a bounded slice;
+    it does not imply that any hidden row was inspected or inferred.
     """
 
     if not 1 <= maximum_depth <= PROJECT_HISTORY_MAX_DEPTH:
@@ -342,7 +345,7 @@ def build_project_history_projection(
         projected_events.append(
             {
                 "event_id": event_id,
-                "post_title": str(row["post_title"]),
+                "event_title": str(row["post_title"]),
                 "occurred_at": _as_utc(row["created_at"]),
                 "event_code": classify_project_event(
                     title=str(row["post_title"]),
@@ -379,5 +382,6 @@ def build_project_history_projection(
         "focus_event_id": focus_event_id,
         "event_count": len(projected_events),
         "distinct_observed_actor_count": len(distinct_actor_keys),
+        "truncated": truncated,
         "events": projected_events,
     }
