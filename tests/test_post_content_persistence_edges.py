@@ -5,9 +5,11 @@ from contextlib import asynccontextmanager
 from types import SimpleNamespace
 
 from lineageweave.chunking import chunk_by_dom
+from lineageweave.image_content import ImageRegion
 from lineageweave.post_content_normalization import (
     FormattingHint,
     ImageContentResult,
+    ImageRegionResult,
     NormalizedPostContent,
 )
 from lineageweave.post_content_persistence import _render_image_text, persist_post_content
@@ -42,8 +44,12 @@ class _EmbedMany:
 
     async_calls = 0
 
+    def __init__(self) -> None:
+        self.texts: list[str] = []
+
     def embed_many(self, texts: list[str]) -> list[list[float]]:
         self.async_calls += 1
+        self.texts.extend(texts)
         return [[1.0, 2.0] for _ in texts]
 
 
@@ -107,6 +113,14 @@ def test_persists_image_tags_formatting_and_embeddings() -> None:
                 "image/png",
                 "described",
                 SimpleNamespace(caption="diagram", extracted_text="OCR", tags=("one", "two")),
+                regions=(
+                    ImageRegionResult(
+                        0,
+                        ImageRegion(0.0, 0.0, 1.0, 1.0),
+                        "described",
+                        SimpleNamespace(caption="panel", extracted_text="panel OCR", tags=("panel",)),
+                    ),
+                ),
             ),
         ),
     )
@@ -124,8 +138,11 @@ def test_persists_image_tags_formatting_and_embeddings() -> None:
 
     assert count == len(chunks)
     assert embedder.async_calls == 1
+    assert "[image: panel | text: panel OCR]" in embedder.texts
     assert any("post_content_image" in query for query, _args in conn.fetchvals)
     assert sum("post_content_image_tag" in query for query, _args in conn.executed) == 2
+    assert any("post_content_image_region_embedding" in query for query, _args in conn.fetchvals)
+    assert sum("post_content_image_region_embedding_value" in query for query, _args in conn.executed) == 2
     assert any("post_content_embedding" in query for query, _args in conn.fetchvals)
     assert sum("post_content_embedding_value" in query for query, _args in conn.executed) == 2 * len(chunks)
 

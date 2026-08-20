@@ -10,20 +10,21 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import math
-from typing import Any
+from typing import Any, TypeVar
 
 from .chunking import Chunk, chunk_by_dom, normalize_semantic_text
 from .embedding_client import EmbeddingClient
-from .image_content import ImageContentClient
+from .image_content import ImageContentClient, ImageDescription
 from .post_content_normalization import ImageContentResult, normalize_post_body
 from .post_structure import NullPostStructureClient, PostStructureClient, StructureDecision
 
 _LLM_BATCH_MAX_UNITS = 32
 _LLM_BATCH_MAX_CHARS = 24_000
 _STRUCTURE_UNIT_MAX_CHARS = 8_000
+_BatchKey = TypeVar("_BatchKey")
 
 
-def _bounded_unit_batches(units: list[tuple[int, str]]) -> list[list[tuple[int, str]]]:
+def _bounded_unit_batches(units: list[tuple[_BatchKey, str]]) -> list[list[tuple[_BatchKey, str]]]:
     """Keep provider requests bounded without changing persisted source units."""
     batches: list[list[tuple[int, str]]] = []
     batch: list[tuple[int, str]] = []
@@ -44,15 +45,19 @@ def _bounded_unit_batches(units: list[tuple[int, str]]) -> list[list[tuple[int, 
     return batches
 
 
-def _render_image_text(result: ImageContentResult | None) -> str:
-    """Render the same searchable placeholder used by normalization."""
-    if result is None or result.description is None:
+def _render_description(description: ImageDescription | None) -> str:
+    """Render one image or visual-region description as searchable text."""
+    if description is None:
         return "[image: content unavailable]"
-    description = result.description
     caption = description.caption or "no caption available"
     if description.extracted_text.strip():
         return f"[image: {caption} | text: {description.extracted_text.strip()}]"
     return f"[image: {caption}]"
+
+
+def _render_image_text(result: ImageContentResult | None) -> str:
+    """Render the same searchable placeholder used by normalization."""
+    return _render_description(result.description if result else None)
 
 
 async def persist_post_content(
@@ -88,6 +93,20 @@ async def persist_post_content(
         else:
             unit_text = chunk.text
         prepared.append((chunk, unit_text, formatting.get(chunk.index)))
+
+    region_embeddable: list[tuple[str, str]] = []
+    for chunk, _unit_text, _style in prepared:
+        if chunk.unit_type != "image":
+            continue
+        result = image_results.get(chunk.index)
+        for region in result.regions if result else ():
+            if region.description is not None:
+                region_embeddable.append(
+                    (
+                        f"region:{chunk.index}:{region.region_index}",
+                        _render_description(region.description),
+                    )
+                )
 
     text_chunks = [
         chunk for chunk, unit_text, _style in prepared
@@ -148,9 +167,13 @@ async def persist_post_content(
             ),
         )
 
-    vectors: list[tuple[int, list[float]]] = []
+    vectors: dict[str, list[float]] = {}
     if embedding_client is not None and embedding_client.available and embedding_model_code:
-        embeddable = [(chunk.index, unit_text) for chunk, unit_text, _style in prepared if unit_text]
+        embeddable = [
+            (f"unit:{chunk.index}", unit_text)
+            for chunk, unit_text, _style in prepared
+            if unit_text
+        ] + region_embeddable
         embed_many = getattr(embedding_client, "embed_many", None)
         for batch in _bounded_unit_batches(embeddable):
             try:
@@ -162,12 +185,12 @@ async def persist_post_content(
                         (index, await asyncio.to_thread(embedding_client.embed, text))
                         for index, text in batch
                     ]
-                for unit_index, vector in candidates:
+                for embedding_key, vector in candidates:
                     if isinstance(vector, list) and vector and all(
                         isinstance(value, (int, float)) and math.isfinite(float(value))
                         for value in vector
                     ):
-                        vectors.append((unit_index, [float(value) for value in vector]))
+                        vectors[embedding_key] = [float(value) for value in vector]
             except Exception:  # noqa: BLE001 - failed batches remain absent for retry.
                 continue
 
@@ -257,9 +280,33 @@ async def persist_post_content(
                         region_id,
                         tag,
                     )
+                vector = vectors.get(f"region:{chunk.index}:{region.region_index}")
+                if embedding_model_code and vector:
+                    region_embedding_id = await conn.fetchval(
+                        """
+                        insert into post_content_image_region_embedding
+                            (post_content_image_region_id, embedding_model_code,
+                             embedding_dimension_count)
+                        values ($1, $2, $3)
+                        returning post_content_image_region_embedding_id
+                        """,
+                        region_id,
+                        embedding_model_code,
+                        len(vector),
+                    )
+                    for dimension_index, dimension_value in enumerate(vector):
+                        await conn.execute(
+                            "insert into post_content_image_region_embedding_value (post_content_image_region_embedding_id, dimension_index, dimension_value) values ($1, $2, $3)",
+                            region_embedding_id,
+                            dimension_index,
+                            dimension_value,
+                        )
 
         if embedding_model_code:
-            for unit_index, vector in vectors:
+            for embedding_key, vector in vectors.items():
+                if not embedding_key.startswith("unit:"):
+                    continue
+                unit_index = int(embedding_key.removeprefix("unit:"))
                 embedding_id = await conn.fetchval(
                     """
                     insert into post_content_embedding
