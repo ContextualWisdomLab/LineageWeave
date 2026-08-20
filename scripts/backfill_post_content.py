@@ -22,6 +22,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
+from backend.app.post_content_queue import record_post_content_backfill_success
 from lineageweave.embedding_client import NullEmbeddingClient, orchestrator_embedding_client
 from lineageweave.image_content import NullImageContentClient, orchestrator_vision_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
@@ -227,6 +228,12 @@ async def backfill_post_content(
                     structure_client=structure_client,
                     post_title=row["post_title"],
                 )
+                async with conn.transaction():
+                    await record_post_content_backfill_success(
+                        conn,
+                        str(row["post_id"]),
+                        str(row["post_body"] or ""),
+                    )
             result["processed_posts"] += 1
             if described_images:
                 result["described_posts"] += 1
