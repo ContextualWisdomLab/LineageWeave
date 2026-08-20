@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from backend.app.post_chat_ingestion import (
+    LinkedPostIds,
     fetch_persisted_chat,
     fetch_persisted_chats,
     gather_chat_sources,
@@ -105,6 +106,103 @@ def test_gather_chat_sources_keeps_the_event_loop_responsive_during_body_normali
     asyncio.run(exercise())
 
     assert order.index("event_loop_progress") < order.index("normalization_finished")
+
+
+def test_gather_chat_sources_bounds_and_orders_linked_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root_id = "00000000-0000-0000-0000-000000000000"
+    direct_ids = frozenset(
+        f"00000000-0000-0000-0000-{index:012d}" for index in range(1, 21)
+    )
+    indirect_ids = frozenset(
+        f"00000000-0000-0000-0001-{index:012d}" for index in range(1, 21)
+    )
+
+    async def fake_find_linked_post_ids(_conn: object, _post_id: str) -> LinkedPostIds:
+        return LinkedPostIds(direct=direct_ids, indirect=indirect_ids)
+
+    monkeypatch.setattr(
+        "backend.app.post_chat_ingestion.find_linked_post_ids",
+        fake_find_linked_post_ids,
+    )
+
+    class SourceBudgetConnection:
+        def __init__(self) -> None:
+            self.candidate_ids: list[str] = []
+            self.candidate_query = ""
+
+        async def fetchrow(self, query: str, *_args: object):
+            if "from source_post where post_id" not in query:
+                return None
+            return {
+                "post_id": root_id,
+                "post_title": "Root post",
+                "post_body": "Root body",
+                **{
+                    field_name: None
+                    for field_name in (
+                        "source_system_code",
+                        "source_record_key",
+                        "source_author_code",
+                        "source_author_name",
+                        "source_company_code",
+                        "source_company_name",
+                        "source_process_unit_code",
+                        "source_process_unit_name",
+                        "source_sales_pool_code",
+                        "source_sales_pool_name",
+                        "source_customer_code",
+                        "source_customer_name",
+                        "source_project_code",
+                        "source_project_name",
+                    )
+                },
+            }
+
+        async def fetch(self, query: str, *args: object):
+            if "from source_post where post_id = any" not in query:
+                return []
+            self.candidate_query = query
+            self.candidate_ids = list(args[0])
+            return [
+                {
+                    "post_id": post_id,
+                    "post_title": f"Post {post_id}",
+                    "post_body": "Body",
+                    "visibility_code": "public",
+                    "corporate_entity_id": None,
+                    **{
+                        field_name: None
+                        for field_name in (
+                            "source_system_code",
+                            "source_record_key",
+                            "source_author_code",
+                            "source_author_name",
+                            "source_company_code",
+                            "source_company_name",
+                            "source_process_unit_code",
+                            "source_process_unit_name",
+                            "source_sales_pool_code",
+                            "source_sales_pool_name",
+                            "source_customer_code",
+                            "source_customer_name",
+                            "source_project_code",
+                            "source_project_name",
+                        )
+                    },
+                }
+                for post_id in self.candidate_ids
+            ]
+
+    conn = SourceBudgetConnection()
+    sources = asyncio.run(gather_chat_sources(conn, root_id, lambda _row: True))
+
+    expected_candidates = [*sorted(direct_ids), *sorted(indirect_ids)][:32]
+    assert conn.candidate_ids == expected_candidates
+    assert "array_position" in conn.candidate_query
+    assert [source.post_id for source in sources] == [root_id, *expected_candidates[:7]]
+    assert len(sources) == 8
 
 
 def test_normalize_question_rejects_empty_and_collapses_whitespace() -> None:

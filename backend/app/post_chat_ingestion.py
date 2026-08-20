@@ -162,6 +162,8 @@ _SOURCE_HINT_FIELDS = (
 )
 
 _GLOBAL_ASK_TERM_PATTERN = re.compile(r"[^\W_]+(?:-[^\W_]+)*", re.UNICODE)
+_POST_CHAT_SOURCE_LIMIT = 8
+_POST_CHAT_CANDIDATE_LIMIT = 32
 
 
 def _source_hint_facts(row: Any) -> tuple[str, ...]:
@@ -269,10 +271,13 @@ async def gather_chat_sources(
     can_see_post: Callable[[asyncpg.Record], bool],
     vision_client: ImageContentClient | None = None,
 ) -> list[ChatSourceDocument]:
-    """Post `post_id` itself, plus every linked post the requesting account
-    can actually see -- numbered in the order returned, which is the
-    order `post_chat`'s citations refer back to. Every source's body is
-    normalized (HTML tags/base64 images never reach the reason-and-cite
+    """Post `post_id` plus a bounded, deterministic linked-source window.
+
+    Direct Event Lineage neighbors precede indirect Knowledge Graph
+    neighbors; both groups are identifier-sorted before ABAC filtering. The
+    current post plus at most seven visible linked posts become the numbered
+    source set that `post_chat` citations refer back to. Every source's body
+    is normalized (HTML tags/base64 images never reach the reason-and-cite
     LLM call raw) before becoming a `ChatSourceDocument` -- see
     `lineageweave.post_content_normalization`. `vision_client` defaults
     to unavailable (embedded images become an explicit placeholder, not
@@ -309,7 +314,10 @@ async def gather_chat_sources(
     ]
 
     linked = await find_linked_post_ids(conn, post_id)
-    candidate_ids = linked.direct | linked.indirect
+    candidate_ids = [
+        *sorted(linked.direct),
+        *sorted(linked.indirect),
+    ][:_POST_CHAT_CANDIDATE_LIMIT]
     if not candidate_ids:
         return sources
 
@@ -320,15 +328,20 @@ async def gather_chat_sources(
         "source_process_unit_name, source_sales_pool_code, source_sales_pool_name, "
         "source_customer_code, source_customer_name, "
         "source_project_code, source_project_name "
-        "from source_post where post_id = any($1::uuid[])",
-        list(candidate_ids),
+        "from source_post where post_id = any($1::uuid[]) "
+        "order by array_position($1::uuid[], post_id) limit $2",
+        candidate_ids,
+        _POST_CHAT_CANDIDATE_LIMIT,
     )
     visible_source_ids = [post_id]
     visible_rows: list[asyncpg.Record] = []
     for row in rows:
-        if can_see_post(row):
-            visible_rows.append(row)
-            visible_source_ids.append(str(row["post_id"]))
+        if not can_see_post(row):
+            continue
+        visible_rows.append(row)
+        visible_source_ids.append(str(row["post_id"]))
+        if len(visible_rows) >= _POST_CHAT_SOURCE_LIMIT - 1:
+            break
 
     semantic_facts = await _semantic_facts_for_posts(conn, visible_source_ids)
     graph_facts = await _graph_facts_for_posts(conn, visible_source_ids)
