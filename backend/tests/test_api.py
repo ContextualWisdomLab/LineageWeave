@@ -428,7 +428,12 @@ def seeded_db(demo_analyst_token):
                 "Ada West at Test Corp followed up with Priya Nair at Northridge Grid about the delayed shipment. "
                 "The weather in Gwangju was irrelevant.",
             )
-            other_private_post_id = _insert_post("Other-corp private post", other_corp_id, "private")
+            other_private_post_id = _insert_post(
+                "Other-corp private post",
+                other_corp_id,
+                "private",
+                created_at="2026-02-03T12:00:00Z",
+            )
             late_own_private_post_id = _insert_post(
                 "Late own-corp private post",
                 own_corp_id,
@@ -1372,6 +1377,7 @@ def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, 
     assert {option["code"] for option in payload["visibility_options"]} == {"public", "private"}
     assert next(option for option in payload["visibility_options"] if option["code"] == "public")["label"] == "Public"
     assert set(payload["iso_week_options"]) == {"2026-W02", "2026-W04"}
+    assert "2026-W06" not in payload["iso_week_options"]
 
 
 def test_post_list_supports_bounded_offset_pages(client, demo_analyst_token, seeded_db) -> None:
