@@ -52,3 +52,4 @@ include = ["lineageweave*", "backend*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "backend/tests"]
+pythonpath = ["."]
