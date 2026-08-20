@@ -167,17 +167,34 @@ function EvidencePanel({
   onClose?: () => void;
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
+  const [postError, setPostError] = useState(false);
 
   useEffect(() => {
+    let current = true;
     setPost(null);
-    fetchPost(accessToken, postId).then(setPost).catch(() => setPost(null));
+    setPostError(false);
+    fetchPost(accessToken, postId)
+      .then((result) => {
+        if (current) setPost(result);
+      })
+      .catch(() => {
+        if (current) setPostError(true);
+      });
+    return () => {
+      current = false;
+    };
   }, [postId, accessToken]);
 
   return (
     <div className="evidence-panel" role="complementary" aria-label={t("Evidence")}>
       {onClose ? <PopupCloseButton onClose={onClose} label={t("Close evidence panel")} /> : null}
       <h3>{t("Evidence")}</h3>
-      {!post && <p>{t("Loading source post...")}</p>}
+      {!post && !postError && <p>{t("Loading source post...")}</p>}
+      {postError && (
+        <p className="error" role="alert">
+          {t("Source evidence is unavailable. Continue with the saved answer.")}
+        </p>
+      )}
       {post && (
         <>
           <h4>{post.post_title}</h4>
