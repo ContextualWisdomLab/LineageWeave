@@ -42,8 +42,13 @@ def test_graph_fact_evidence_post_ids_extracts_all_named_sources() -> None:
     assert retrieval.graph_fact_evidence_post_ids("no provenance") == frozenset()
 
 
-def test_public_external_claim_facts_never_exports_people_private_or_partial_graph_evidence() -> None:
-    project = "project: Apollo | evidence: Acme launch"
+def test_public_external_claim_facts_never_exports_people_private_or_raw_project_evidence() -> None:
+    project = (
+        "project: Apollo | evidence: Alice shared bearer-token=secret "
+        "| ontology_iri: https://example.test/ontology#Project "
+        "| extraction_method: llm | confidence: 0.90 "
+        "[provenance=post_project_mention]"
+    )
     actor = "actor: Alice | responsibility: sponsor"
     keyman = "Keyman mention: Alice"
     fully_public_graph = (
@@ -70,7 +75,9 @@ def test_public_external_claim_facts_never_exports_people_private_or_partial_gra
         public_ids,
     )
 
-    assert facts == (project, fully_public_graph)
+    assert facts == ("project: Apollo", fully_public_graph)
+    assert "Alice" not in " ".join(facts)
+    assert "secret" not in " ".join(facts)
     assert retrieval.public_external_claim_facts(
         {"visibility_code": "private"},
         (project,),
