@@ -21,9 +21,6 @@ new claim of its own, it only combines the two.
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
-from contextvars import Context, copy_context
-from itertools import repeat
 import re
 from dataclasses import dataclass, field
 
@@ -149,25 +146,6 @@ def _describe_image_region(
     return ImageRegionResult(region_index, region, "described", description)
 
 
-def _describe_image_region_in_context(
-    context: Context,
-    region_index: int,
-    image_bytes: bytes,
-    mime_type: str,
-    region: ImageRegion,
-    vision_client: ImageContentClient,
-) -> ImageRegionResult:
-    """Run a region task with the post's metadata context attached."""
-    return context.run(
-        _describe_image_region,
-        region_index,
-        image_bytes,
-        mime_type,
-        region,
-        vision_client,
-    )
-
-
 def _describe_image_chunk(
     chunk: Chunk, vision_client: ImageContentClient
 ) -> tuple[ImageContentResult, ImageDescription | None, str]:
@@ -191,20 +169,19 @@ def _describe_image_chunk(
             # A provider may return only a salient crop even when the contract asks for
             # full-image coverage. Preserve the missing evidence with one bounded region.
             regions = (ImageRegion(0.0, 0.0, 1.0, 1.0),)
-        # Keep each region's request bounded and preserve LLM metadata while avoiding
-        # serial timeout multiplication for image panels.
-        with ThreadPoolExecutor(max_workers=min(8, len(regions))) as executor:
-            region_results.extend(
-                executor.map(
-                    _describe_image_region_in_context,
-                    (copy_context() for _ in regions),
-                    range(len(regions)),
-                    repeat(chunk.image_data),
-                    repeat(chunk.label),
-                    regions,
-                    repeat(vision_client),
-                )
+        # ponytail: serialize per-post VISION calls; nested image/region pools
+        # overwhelmed the gateway and turned valid region evidence into failures.
+        # Reintroduce bounded concurrency only after provider capacity is measured.
+        region_results.extend(
+            _describe_image_region(
+                region_index,
+                chunk.image_data,
+                chunk.label,
+                region,
+                vision_client,
             )
+            for region_index, region in enumerate(regions)
+        )
         successful_regions = [
             item.description for item in region_results if item.description is not None
         ]
@@ -224,15 +201,6 @@ def _describe_image_chunk(
         regions=tuple(region_results),
     )
     return result, description, _image_placeholder(description)
-
-
-def _describe_image_chunk_in_context(
-    context: Context,
-    chunk: Chunk,
-    vision_client: ImageContentClient,
-) -> tuple[ImageContentResult, ImageDescription | None, str]:
-    """Run one parallel vision task with the caller's request context."""
-    return context.run(_describe_image_chunk, chunk, vision_client)
 
 
 def normalize_post_body(
@@ -263,20 +231,8 @@ def normalize_post_body(
     image_outcomes: dict[int, tuple[ImageContentResult, ImageDescription | None, str]] = {}
     image_chunks = [chunk for chunk in chunks if chunk.unit_type == "image"]
     if image_chunks and vision_client.available:
-        # ponytail: cap independent provider calls at eight; raise only with measured throughput need.
-        with ThreadPoolExecutor(max_workers=min(8, len(image_chunks))) as executor:
-            image_outcomes.update(
-                zip(
-                    (chunk.index for chunk in image_chunks),
-                    executor.map(
-                        _describe_image_chunk_in_context,
-                        (copy_context() for _ in image_chunks),
-                        image_chunks,
-                        repeat(vision_client),
-                    ),
-                    strict=True,
-                )
-            )
+        for chunk in image_chunks:
+            image_outcomes[chunk.index] = _describe_image_chunk(chunk, vision_client)
 
     for chunk in chunks:
         if chunk.unit_type == "dom":

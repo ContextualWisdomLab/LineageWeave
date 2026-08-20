@@ -131,7 +131,7 @@ def test_image_regions_are_cropped_and_described_as_independent_evidence() -> No
     assert "panel text" in result.text
 
 
-def test_parallel_image_analysis_preserves_post_scoped_llm_metadata() -> None:
+def test_image_analysis_preserves_post_scoped_llm_metadata() -> None:
     b64 = base64.b64encode(_PNG_1X1).decode("ascii")
     html = (
         f'<img src="data:image/png;base64,{b64}"/>'
