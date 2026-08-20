@@ -17,6 +17,7 @@ chain of its own top match.
 
 from __future__ import annotations
 
+import asyncio
 import re
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable
@@ -54,6 +55,19 @@ class LinkedPostIds:
 
     direct: frozenset[str]
     indirect: frozenset[str]
+
+
+async def _normalize_post_body_text(
+    body: str,
+    vision_client: ImageContentClient,
+) -> str:
+    """Normalize one source body without blocking the request event loop."""
+    normalized = await asyncio.to_thread(
+        normalize_post_body,
+        body,
+        vision_client=vision_client,
+    )
+    return normalized.text
 
 
 async def _graph_facts_for_posts(
@@ -279,11 +293,15 @@ async def gather_chat_sources(
         return []
     source_id = str(this_post["post_id"])
     semantic_facts = await _semantic_facts_for_posts(conn, [source_id])
+    normalized_body = await _normalize_post_body_text(
+        this_post["post_body"],
+        vision_client,
+    )
     sources = [
         ChatSourceDocument(
             source_id,
             this_post["post_title"],
-            normalize_post_body(this_post["post_body"], vision_client=vision_client).text,
+            normalized_body,
             evidence_facts=_source_hint_facts(this_post) + semantic_facts.get(source_id, ()),
         )
     ]
@@ -320,11 +338,12 @@ async def gather_chat_sources(
         evidence_facts=sources[0].evidence_facts,
     )
     for row in visible_rows:
+        normalized_body = await _normalize_post_body_text(row["post_body"], vision_client)
         sources.append(
             ChatSourceDocument(
                 str(row["post_id"]),
                 row["post_title"],
-                normalize_post_body(row["post_body"], vision_client=vision_client).text,
+                normalized_body,
                 evidence_facts=_source_hint_facts(row)
                 + semantic_facts.get(str(row["post_id"]), ()),
             )
@@ -485,9 +504,7 @@ async def gather_global_chat_sources(
     graph_facts = (await _graph_facts_for_posts(conn, visible_ids))[:16]
     sources: list[ChatSourceDocument] = []
     for index, row in enumerate(visible_rows):
-        normalized_body = normalize_post_body(
-            row["post_body"], vision_client=vision_client
-        ).text
+        normalized_body = await _normalize_post_body_text(row["post_body"], vision_client)
         if len(normalized_body) > 4000:
             normalized_body = (
                 normalized_body[:4000]
