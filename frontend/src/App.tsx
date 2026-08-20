@@ -4200,7 +4200,6 @@ function PostList({
             openedFromCustomerMaster ||
             openedFromAskAgent
           }
-          focusAskOnLand={openedFromReportMember}
           focusKeyman={
             openedFromWeeklyVoc ||
             openedFromCalendar ||
