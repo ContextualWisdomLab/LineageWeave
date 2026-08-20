@@ -59,6 +59,12 @@ _ORG_TOKEN_STOPWORDS = frozenset(
         "foundation",
         "the",
         "and",
+        "fictitious",
+        "nonexistent",
+        "synthetic",
+        "sample",
+        "example",
+        "unknown",
     }
 )
 

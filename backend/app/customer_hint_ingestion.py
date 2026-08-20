@@ -21,28 +21,8 @@ from lineageweave.organization_name_resolution import resolve_and_verify_organiz
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVerificationClient
 
-from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 
-#: How many of a hint's posts to read as resolution evidence -- enough
-#: context for the LLM to recognize the real organization without
-#: hitting an unbounded prompt for a hint shared by thousands of posts.
-_SAMPLE_POST_LIMIT = 5
 _EXCERPT_LENGTH = 1500
-#: Live bug (2026-08-19): a bulk-imported hint's posts can be pathological
-#: (a 12MB post_body seen in production), so this caps what's even
-#: transferred/parsed before normalize_post_body ever sees it -- relying
-#: on _EXCERPT_LENGTH's post-normalization slice alone still means
-#: fully parsing megabytes of raw HTML first.
-_RAW_BODY_SQL_CAP = 20000
-
-_CUSTOMER_HINT_SAMPLE_QUERY = f"""
-select post_title, left(post_body, {_RAW_BODY_SQL_CAP}) as post_body
-  from source_post
- where source_customer_code = $1
-   and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
- order by created_at desc
- limit {_SAMPLE_POST_LIMIT}
-"""
 
 
 async def resolve_customer_hint(
@@ -62,7 +42,55 @@ async def resolve_customer_hint(
     """
     if not resolution_client.available:
         return None
-    rows = await conn.fetch(_CUSTOMER_HINT_SAMPLE_QUERY, hint_code)
+    # Five rows and 20,000 raw body characters per row bound both transfer and
+    # parsing before deterministic normalization. The SQL remains literal;
+    # only the observed hint code is a bound value.
+    rows = await conn.fetch(
+        """
+        select post_title, left(post_body, 20000) as post_body
+          from source_post
+         where source_customer_code = $1
+           and nullif(btrim(source_post.source_draft_code), '') is null
+           and nullif(btrim(source_post.source_deleted_flag), '') is null
+           and not (
+               (
+                   nullif(btrim(source_post.source_author_code), '') is null
+                   and nullif(btrim(source_post.source_author_name), '') is null
+                   and nullif(btrim(source_post.source_company_code), '') is null
+                   and nullif(btrim(source_post.source_company_name), '') is null
+                   and nullif(btrim(source_post.source_process_unit_code), '') is null
+                   and nullif(btrim(source_post.source_process_unit_name), '') is null
+                   and nullif(btrim(source_post.source_sales_pool_code), '') is null
+                   and nullif(btrim(source_post.source_sales_pool_name), '') is null
+                   and nullif(btrim(source_post.source_customer_code), '') is null
+                   and nullif(btrim(source_post.source_customer_name), '') is null
+                   and nullif(btrim(source_post.source_project_code), '') is null
+                   and nullif(btrim(source_post.source_project_name), '') is null
+               )
+               and exists (
+                   select 1
+                     from source_post real_post
+                    where (
+                        nullif(btrim(real_post.source_author_code), '') is not null
+                        or nullif(btrim(real_post.source_author_name), '') is not null
+                        or nullif(btrim(real_post.source_company_code), '') is not null
+                        or nullif(btrim(real_post.source_company_name), '') is not null
+                        or nullif(btrim(real_post.source_process_unit_code), '') is not null
+                        or nullif(btrim(real_post.source_process_unit_name), '') is not null
+                        or nullif(btrim(real_post.source_sales_pool_code), '') is not null
+                        or nullif(btrim(real_post.source_sales_pool_name), '') is not null
+                        or nullif(btrim(real_post.source_customer_code), '') is not null
+                        or nullif(btrim(real_post.source_customer_name), '') is not null
+                        or nullif(btrim(real_post.source_project_code), '') is not null
+                        or nullif(btrim(real_post.source_project_name), '') is not null
+                    )
+               )
+           )
+         order by created_at desc
+         limit 5
+        """,
+        hint_code,
+    )
     if not rows:
         return None
 
