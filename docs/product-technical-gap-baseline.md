@@ -2,7 +2,7 @@
 
 **Snapshot:** 2026-08-20 17:08 (Asia/Seoul)
 **Protected-main baseline:** `origin/main`, product version `2.12.5`
-**Audited PR head:** #258 at `4ba1533f` (latest observed timeout boundary, fixture fix, worker repair, and SQL review evidence)
+**Audited PR head:** #258 at `b83be708a9dc705df7485e1b18e779439bfb7b71` (current exact branch head; protected-main runtime evidence remains pending)
 **Active PR update:** ADR 0101 and the enrichment-timeout changes are pushed to
 PR #258; protected-main runtime evidence remains pending.
 **Stacked product-gap update:** ADR 0103 defines the source-order semantic-unit
