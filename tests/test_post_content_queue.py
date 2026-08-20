@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+from datetime import timedelta
 from pathlib import Path
 
 from backend.app.post_content_queue import (
@@ -262,7 +263,7 @@ def test_changed_body_resets_a_terminal_job_and_republishes() -> None:
 
 
 def test_recovery_query_carries_one_bounded_retry_interval() -> None:
-    assert POST_CONTENT_RETRY_INTERVAL == "5 minutes"
+    assert POST_CONTENT_RETRY_INTERVAL == timedelta(minutes=5)
     migration = (_ROOT / "migrations" / "0050_post_content_ingestion_queue.sql").read_text()
     assert "queued_at timestamptz not null" in migration
 

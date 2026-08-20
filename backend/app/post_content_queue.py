@@ -18,7 +18,7 @@ FAILED = "post_content_ingestion_failed"
 STALE_RUNNING_INTERVAL = timedelta(minutes=15)
 _ACTIVE = {QUEUED, RUNNING}
 POST_CONTENT_MAX_ATTEMPTS = 3
-POST_CONTENT_RETRY_INTERVAL = "5 minutes"
+POST_CONTENT_RETRY_INTERVAL = timedelta(minutes=5)
 
 
 @dataclass(frozen=True)
