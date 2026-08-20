@@ -38,7 +38,7 @@ def settings() -> Settings:
     )
 
 
-def signed_token(*, audience: str, include_kid: bool = True):
+def signed_token(*, audience: str, include_kid: bool = True, include_exp: bool = True):
     """Create an RS256 token and matching public JWKS."""
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     public_jwk = json.loads(RSAAlgorithm.to_jwk(private_key.public_key()))
@@ -50,9 +50,10 @@ def signed_token(*, audience: str, include_kid: bool = True):
         "aud": audience,
         "azp": "codex-client",
         "scope": "openid lineageweave:ask",
-        "exp": now + 600,
         "iat": now,
     }
+    if include_exp:
+        claims["exp"] = now + 600
     headers = {"kid": "key-1"} if include_kid else {}
     return jwt.encode(claims, private_key, algorithm="RS256", headers=headers), {
         "keys": [public_jwk]
@@ -116,6 +117,18 @@ def test_jwks_cache_fetch_validation_and_failures(monkeypatch: pytest.MonkeyPatc
         auth._jwks(cfg)
 
     auth._jwks_cache.clear()
+    monkeypatch.setattr(auth, "get_json", lambda *_args, **_kwargs: {"keys": "not-a-list"})
+    with pytest.raises(HTTPException, match="keys is not an array"):
+        auth._jwks(cfg)
+    assert cfg.keycloak_jwks_uri not in auth._jwks_cache
+
+    responses = iter(({"keys": None}, {"keys": []}))
+    monkeypatch.setattr(auth, "get_json", lambda *_args, **_kwargs: next(responses))
+    with pytest.raises(HTTPException, match="keys is not an array"):
+        auth._jwks(cfg)
+    assert auth._jwks(cfg) == {"keys": []}
+
+    auth._jwks_cache.clear()
 
     def unavailable(*_args, **_kwargs):
         raise OSError("down")
@@ -144,6 +157,11 @@ def test_decode_access_token_requires_exact_kid_and_resource_audience(
     monkeypatch.setattr(auth, "_jwks", lambda _: wrong_jwks)
     with pytest.raises(HTTPException, match="invalid token"):
         auth.decode_access_token(wrong_aud, cfg, audience=cfg.mcp_audience)
+
+    no_exp_token, no_exp_jwks = signed_token(audience=cfg.mcp_audience, include_exp=False)
+    monkeypatch.setattr(auth, "_jwks", lambda _: no_exp_jwks)
+    with pytest.raises(HTTPException, match="exp"):
+        auth.decode_access_token(no_exp_token, cfg, audience=cfg.mcp_audience)
 
 
 def test_signing_key_rejects_bad_headers_keys_and_ambiguity() -> None:

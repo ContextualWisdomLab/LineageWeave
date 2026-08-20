@@ -54,7 +54,7 @@
           "protocol": "openid-connect",
           "protocolMapper": "oidc-audience-mapper",
           "config": {
-            "included.custom.audience": "http://localhost:18001/mcp",
+            "included.custom.audience": "__MCP_RESOURCE_URL__",
             "id.token.claim": "false",
             "access.token.claim": "true",
             "lightweight.claim": "false"

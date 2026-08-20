@@ -273,7 +273,7 @@ class SearxngOrchestratorGlobalAskVerifier:
                 timeout=self._verification_timeout,
             )
             parsed = _parse_judgment(body["choices"][0]["message"]["content"])
-        except (HttpClientError, KeyError, OSError, TypeError, ValueError):
+        except (HttpClientError, IndexError, KeyError, OSError, TypeError, ValueError):
             return ExternalVerificationResult(status_code=STATUS_UNAVAILABLE)
         if parsed is None or parsed.get("status_code") not in _ALLOWED_STATUSES:
             return ExternalVerificationResult(status_code=STATUS_UNAVAILABLE)

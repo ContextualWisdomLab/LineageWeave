@@ -291,5 +291,10 @@ async def answer_global_question(
         cited_posts=cited_posts,
         source_post_ids=source_ids,
         timeline=_timeline(sources),
-        content_blocks=await load_global_ask_content_blocks(conn, answer.answer_text, cited_ids),
+        content_blocks=await load_global_ask_content_blocks(
+            conn,
+            answer.answer_text,
+            cited_ids,
+            account.corporate_entity_ids,
+        ),
     )
