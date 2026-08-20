@@ -83,10 +83,11 @@ ADR 0007's `:RoleActorTeam`, but a distinct term -- `:Team` is a
 per-row `actor_type_code` classification, the same
 `:Person`/`:RoleActorPerson` split ADR 0006 already established).
 `:mentionsTeam` / `:teamAffiliatedWith` / `:mentionsOrganization` are
-new, distinct object properties rather than widening `:mentions`'s
-domain/range -- stating `rdfs:domain :mentions` twice (once `:Person`,
-once `:Team`) would let RDFS entail every `:mentions` subject is BOTH,
-which is false.
+new, distinct object properties rather than widening `:mentionedIn`'s
+domain/range -- stating `rdfs:domain :mentionedIn` twice (once `:Person`,
+once `:Team`) would let RDFS entail every `:mentionedIn` subject is BOTH,
+which is false. The natural-language `:mentions` property is retained as
+the declared inverse of canonical `:mentionedIn` for RDF consumers.
 
 ## Consequences
 
