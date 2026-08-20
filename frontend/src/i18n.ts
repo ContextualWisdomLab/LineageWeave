@@ -130,6 +130,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "권한이 있는 고객 엔터티가 현재 표시되어 있습니다. 이벤트 계보를 읽으려면 관련 글을 여세요.",
     "Authorized cited posts are current. Open a cited post to read Event Lineage.":
       "권한이 있는 인용 글이 현재 표시되어 있습니다. 이벤트 계보를 읽으려면 인용 글을 여세요.",
+    "Corroborated organization labels are current. Open a cited post to read Event Lineage.":
+      "뒷받침된 조직 이름이 현재 표시되어 있습니다. 이벤트 계보를 읽으려면 인용 글을 여세요.",
     "Open cited post:": "인용 글 열기:",
     "Filter by visibility": "공개 여부로 필터",
     "Sort posts": "글 정렬",
@@ -183,6 +185,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic project": "의미 기반 프로젝트",
     "Semantic role": "의미 기반 역할",
     "Semantic Keyman": "의미 기반 핵심 담당자",
+    "Verified organization label": "검증된 조직 이름",
     "No authorized source posts are available for this question.": "이 질문에 사용할 수 있는 권한 있는 원문이 없습니다.",
     "Choose an authorized post before asking a question.": "질문하기 전에 권한이 있는 글을 선택하세요.",
     "Loading source posts...": "질문할 원문을 불러오는 중...",
@@ -472,6 +475,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "已授权客户实体为当前内容。打开一篇相关文章阅读事件谱系。",
     "Authorized cited posts are current. Open a cited post to read Event Lineage.":
       "已授权引用文章为当前内容。打开一篇引用文章阅读事件谱系。",
+    "Corroborated organization labels are current. Open a cited post to read Event Lineage.":
+      "已核实的组织名称为当前内容。打开一篇引用文章阅读事件谱系。",
     "Open cited post:": "打开引用文章：",
     "Filter by visibility": "按公开状态筛选",
     "Sort posts": "排序文章",
@@ -525,6 +530,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic project": "语义项目",
     "Semantic role": "语义角色",
     "Semantic Keyman": "语义关键人员",
+    "Verified organization label": "已核实的组织名称",
     "No authorized source posts are available for this question.": "没有可用于此问题的已授权来源文章。",
     "Choose an authorized post before asking a question.": "提问前请选择有权限查看的文章。",
     "Loading source posts...": "正在加载问题来源文章...",
@@ -837,6 +843,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "権限のある顧客エンティティが現在表示されています。イベント系譜を読むには関連投稿を開いてください。",
     "Authorized cited posts are current. Open a cited post to read Event Lineage.":
       "権限のある引用投稿が現在表示されています。イベント系譜を読むには引用投稿を開いてください。",
+    "Corroborated organization labels are current. Open a cited post to read Event Lineage.":
+      "裏付けられた組織名が現在表示されています。イベント系譜を読むには引用投稿を開いてください。",
     "Open cited post:": "引用投稿を開く:",
     "Filter by visibility": "公開状態で絞り込み",
     "Sort posts": "投稿を並べ替え",
@@ -890,6 +898,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic project": "意味的なプロジェクト",
     "Semantic role": "意味的な役割",
     "Semantic Keyman": "意味的なキーパーソン",
+    "Verified organization label": "確認済みの組織名",
     "No authorized source posts are available for this question.": "この質問に利用できる許可済みの原文投稿はありません。",
     "Choose an authorized post before asking a question.": "質問する前に閲覧権限のある投稿を選択してください。",
     "Loading source posts...": "質問の原文を読み込んでいます...",
@@ -1178,6 +1187,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Các thực thể khách hàng được cấp quyền đang hiện tại. Hãy mở một bài liên quan để đọc Dòng sự kiện.",
     "Authorized cited posts are current. Open a cited post to read Event Lineage.":
       "Các bài được trích dẫn được cấp quyền đang hiện tại. Hãy mở một bài trích dẫn để đọc Dòng sự kiện.",
+    "Corroborated organization labels are current. Open a cited post to read Event Lineage.":
+      "Các nhãn tổ chức được xác minh đang hiện tại. Hãy mở một bài trích dẫn để đọc Dòng sự kiện.",
     "Open cited post:": "Mở bài trích dẫn:",
     "Filter by visibility": "Lọc theo trạng thái hiển thị",
     "Sort posts": "Sắp xếp bài viết",
@@ -1231,6 +1242,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic project": "Dự án ngữ nghĩa",
     "Semantic role": "Vai trò ngữ nghĩa",
     "Semantic Keyman": "Keyman ngữ nghĩa",
+    "Verified organization label": "Nhãn tổ chức đã xác minh",
     "No authorized source posts are available for this question.": "Không có bài viết nguồn được cấp quyền cho câu hỏi này.",
     "Choose an authorized post before asking a question.": "Hãy chọn một bài viết được cấp quyền trước khi đặt câu hỏi.",
     "Loading source posts...": "Đang tải bài viết nguồn cho câu hỏi...",

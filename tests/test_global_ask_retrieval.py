@@ -101,6 +101,18 @@ class _FakeConnection:
         ]
 
 
+class _LabelConnection:
+    def __init__(self, rows: list[dict[str, str]]) -> None:
+        self.rows = rows
+        self.arguments = None
+        self.query = None
+
+    async def fetch(self, query: str, *arguments):
+        self.query = query
+        self.arguments = arguments
+        return self.rows
+
+
 @pytest.mark.anyio
 async def test_semantic_candidate_post_ids_is_bounded_deduplicated_and_indexable(
     monkeypatch,
@@ -168,4 +180,83 @@ async def test_semantic_candidate_post_ids_skips_empty_or_zero_budget(monkeypatc
     )
     assert await retrieval.semantic_candidate_post_ids(connection, "", maximum_candidates=8) == []
     assert await retrieval.semantic_candidate_post_ids(connection, "Apollo", maximum_candidates=0) == []
+    assert connection.query is None
+
+
+def test_verified_organization_label_fact_keeps_raw_and_canonical_separate() -> None:
+    assert (
+        retrieval.verified_organization_label_fact("DC", "Demo Corp")
+        == "verified organization label: DC → Demo Corp"
+    )
+    assert retrieval.VERIFIED_ORGANIZATION_LABEL_NEXT_ACTION == (
+        "Corroborated organization labels are current. Open a cited post to read Event Lineage."
+    )
+
+
+@pytest.mark.anyio
+async def test_verified_organization_label_facts_disclose_corroborated_pairs_only() -> None:
+    connection = _LabelConnection(
+        [
+            {
+                "post_id": "11111111-1111-1111-1111-111111111111",
+                "raw_organization_name": "DC",
+                "resolved_organization_name": "Demo Corp",
+            },
+            {
+                "post_id": "11111111-1111-1111-1111-111111111111",
+                "raw_organization_name": "DC",
+                "resolved_organization_name": "Demo Corp",
+            },
+            {
+                "post_id": "22222222-2222-2222-2222-222222222222",
+                "raw_organization_name": "AGP",
+                "resolved_organization_name": "Aurora Grid Power",
+            },
+        ]
+    )
+
+    facts = await retrieval.verified_organization_label_facts(
+        connection,
+        "Which DC posts mention Demo Corp?",
+        [
+            "11111111-1111-1111-1111-111111111111",
+            "22222222-2222-2222-2222-222222222222",
+        ],
+    )
+
+    assert facts == {
+        "11111111-1111-1111-1111-111111111111": (
+            "verified organization label: DC → Demo Corp",
+        ),
+        "22222222-2222-2222-2222-222222222222": (
+            "verified organization label: AGP → Aurora Grid Power",
+        ),
+    }
+    query = connection.query.casefold()
+    assert "matched_organization_label" in query
+    assert "organization_name_resolution" in query
+    assert "resolution.verification_status_code = 'verify_corroborated'" in query
+    assert "verify_pending" not in query
+    assert "verify_uncorroborated" not in query
+    assert "resolution.raw_organization_name ilike" in query
+    assert "resolution.resolved_organization_name ilike" in query
+    assert "post_organization_mention" in query
+    assert "person_affiliation" in query
+    assert "concat_ws" not in query
+    assert connection.arguments[0] == ["dc", "mention", "demo", "corp"]
+    assert connection.arguments[1] == [
+        "11111111-1111-1111-1111-111111111111",
+        "22222222-2222-2222-2222-222222222222",
+    ]
+
+
+@pytest.mark.anyio
+async def test_verified_organization_label_facts_skip_empty_question_or_posts() -> None:
+    connection = _LabelConnection([])
+    assert await retrieval.verified_organization_label_facts(connection, "DC", []) == {}
+    assert await retrieval.verified_organization_label_facts(
+        connection,
+        "",
+        ["11111111-1111-1111-1111-111111111111"],
+    ) == {}
     assert connection.query is None

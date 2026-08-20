@@ -88,3 +88,23 @@ async def test_verify_public_claims_returns_completed_separate_web_evidence(
     assert len(claims) == 1
     assert claims[0].status_code == CLAIM_SUPPORTED
     assert verified == ["project: Apollo"]
+
+
+def test_ask_next_action_names_event_lineage_for_verified_organization_labels() -> None:
+    evidence = [
+        {
+            "post_id": "11111111-1111-1111-1111-111111111111",
+            "facts": [
+                {
+                    "kind": "verified_organization_label",
+                    "text": "verified organization label: DC → Demo Corp",
+                }
+            ],
+        }
+    ]
+    assert main._ask_next_action(VERIFICATION_SKIPPED, evidence) == (
+        "Corroborated organization labels are current. Open a cited post to read Event Lineage."
+    )
+    assert main._ask_next_action(VERIFICATION_SKIPPED, []) == (
+        "Enable public verification to check eligible public claims."
+    )

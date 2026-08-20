@@ -96,6 +96,8 @@ def cited_post_summaries(
 
 
 def _buyer_evidence_kind(fact: str) -> str:
+    if fact.startswith("verified organization label:"):
+        return "verified_organization_label"
     if fact.startswith("project:"):
         return "semantic_project"
     if fact.startswith("actor:"):
