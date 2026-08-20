@@ -243,8 +243,8 @@ def test_cleanup_deletes_only_entangled_synthetic_rows(migrated_db: str) -> None
                 await conn.fetchval(
                     "select count(*) from source_post where post_id = $1", non_demo_synthetic_post
                 )
-                == 0
-            ), "row-level source evidence, not the corporate entity code, selects synthetic cleanup candidates"
+                == 1
+            ), "non-Demo corporate entities must never be synthetic cleanup candidates"
 
             counterparty_row = await conn.fetchrow(
                 "select verification_evidence_post_id from post_counterparty_entity where post_id = $1",
@@ -270,7 +270,7 @@ def test_cleanup_deletes_only_entangled_synthetic_rows(migrated_db: str) -> None
             await conn.close()
 
     result = asyncio.run(run())
-    assert result["candidate_posts"] == 3
+    assert result["candidate_posts"] == 2
     assert result["blocked_posts"] == 1
-    assert result["deletable_posts"] == 2
-    assert result["deleted_posts"] == 2
+    assert result["deletable_posts"] == 1
+    assert result["deleted_posts"] == 1
