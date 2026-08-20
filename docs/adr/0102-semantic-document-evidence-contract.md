@@ -1,4 +1,4 @@
-# ADR 0101 — Preserve semantic document evidence across source and buyer views
+# ADR 0102 — Preserve semantic document evidence across source and buyer views
 
 **Decision status:** Proposed on the stacked product-gap branch  
 **Date:** 2026-08-20  

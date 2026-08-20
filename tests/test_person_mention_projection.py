@@ -61,6 +61,9 @@ _POST_SUMMARY_CONTRACT_MIGRATION = (
 _SUMMARY_FIVE_W1H_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0048_post_summary_five_w1h.sql"
 )
+_MAJOR_EVENT_ACTION_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0100_major_event_action.sql"
+)
 _SEMANTIC_SEARCH_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0032_semantic_search_trigram.sql"
 )
