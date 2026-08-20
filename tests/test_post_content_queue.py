@@ -47,6 +47,7 @@ def test_embedding_gap_is_not_complete_content() -> None:
         async def fetchval(self, query: str, *_args: object) -> int:
             assert "post_content_embedding" in query
             assert "post_content_image_region_embedding" in query
+            assert "unit_kind_code <> 'image'" in query
             return 0
 
     assert (
@@ -59,6 +60,74 @@ def test_embedding_gap_is_not_complete_content() -> None:
         )
         is False
     )
+
+
+def test_structure_gap_is_part_of_orchestrated_completeness() -> None:
+    class FakeConnection:
+        async def fetchval(self, query: str, *_args: object) -> int:
+            assert "post_content_unit_structure" in query
+            assert "decision_source_code = 'unresolved'" in query
+            return 0
+
+    assert (
+        asyncio.run(
+            post_content_is_complete(
+                FakeConnection(),
+                "00000000-0000-0000-0000-000000000001",
+                embedding_model_code="text-embedding-3-large",
+                require_structure=True,
+            )
+        )
+        is False
+    )
+
+
+def test_republish_query_recovers_only_stale_running_leases() -> None:
+    from backend.app import post_content_queue
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args: object):
+            assert "status_code = $1" in query
+            assert "status_code = $2" in query
+            assert "started_at < now() - $3::interval" in query
+            assert args[0] == QUEUED
+            assert args[1] == RUNNING
+            return [
+                {
+                    "post_id": "00000000-0000-0000-0000-000000000001",
+                    "source_body_sha256": "a" * 64,
+                }
+            ]
+
+    class Acquire:
+        async def __aenter__(self):
+            return FakeConnection()
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+    class Pool:
+        def acquire(self):
+            return Acquire()
+
+    class Client:
+        pass
+
+    published: list[tuple[str, str]] = []
+
+    async def publish(_client, *, post_id: str, source_body_digest: str) -> bool:
+        published.append((post_id, source_body_digest))
+        return True
+
+    original = post_content_queue.publish_post_content_event
+    post_content_queue.publish_post_content_event = publish
+    try:
+        assert asyncio.run(
+            post_content_queue.republish_queued_post_content_jobs(Client(), Pool())
+        ) == 1
+    finally:
+        post_content_queue.publish_post_content_event = original
+    assert published == [("00000000-0000-0000-0000-000000000001", "a" * 64)]
 
 
 def test_existing_units_are_requeued_when_the_source_digest_changes() -> None:

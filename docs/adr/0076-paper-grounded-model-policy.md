@@ -17,6 +17,13 @@ and Conductor for model-pool, routing, workflow, role, and quality/latency
 trade-off principles. Those papers do not justify ranking a particular
 provider's model names as universally better.
 
+The protocol portion is governed separately by the provider contract. The
+current OpenAI Responses reference documents `reasoning.effort` values
+including `none`, `minimal`, `low`, `medium`, `high`, and `xhigh`, and recommends
+`json_schema` over the older `json_object` mode where Structured Outputs are
+supported. These are wire-compatibility facts, not evidence that one model is
+better than another.
+
 ## Decision
 
 1. Every model-related architectural decision MUST cite a paper in the
@@ -73,3 +80,7 @@ provider's model names as universally better.
 - [Learning to Orchestrate Agents in Natural Language with the Conductor](https://arxiv.org/abs/2512.04388).
 - [MLX official repository](https://github.com/ml-explore/mlx).
 - [MLX official documentation](https://ml-explore.github.io/mlx/).
+- [OpenAI Responses API reference: reasoning and structured outputs](https://platform.openai.com/docs/api-reference/responses).
+- [OpenAI Responses API quickstart: multimodal input and tools](https://platform.openai.com/docs/quickstart).
+- [Improving Factuality and Reasoning in Language Models through Multiagent Debate](https://arxiv.org/abs/2305.14325).
+- [Encouraging Divergent Thinking in Large Language Models through Multi-Agent Debate](https://arxiv.org/abs/2305.19118).

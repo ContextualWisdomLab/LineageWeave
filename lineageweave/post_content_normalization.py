@@ -133,6 +133,41 @@ def _merge_region_descriptions(descriptions: list[ImageDescription]) -> ImageDes
     return ImageDescription(extracted_text=extracted_text, caption=captions, tags=tags)
 
 
+def _describe_image_region(
+    region_index: int,
+    image_bytes: bytes,
+    mime_type: str,
+    region: ImageRegion,
+    vision_client: ImageContentClient,
+) -> ImageRegionResult:
+    """Describe one region without allowing one failed crop to cancel siblings."""
+    try:
+        cropped, cropped_mime = crop_image_region(image_bytes, mime_type, region)
+        description = vision_client.describe(cropped, cropped_mime)
+    except Exception:  # noqa: BLE001 - preserve the region-level failure evidence.
+        return ImageRegionResult(region_index, region, "failed")
+    return ImageRegionResult(region_index, region, "described", description)
+
+
+def _describe_image_region_in_context(
+    context: Context,
+    region_index: int,
+    image_bytes: bytes,
+    mime_type: str,
+    region: ImageRegion,
+    vision_client: ImageContentClient,
+) -> ImageRegionResult:
+    """Run a region task with the post's metadata context attached."""
+    return context.run(
+        _describe_image_region,
+        region_index,
+        image_bytes,
+        mime_type,
+        region,
+        vision_client,
+    )
+
+
 def _describe_image_chunk(
     chunk: Chunk, vision_client: ImageContentClient
 ) -> tuple[ImageContentResult, ImageDescription | None, str]:
@@ -156,16 +191,20 @@ def _describe_image_chunk(
             # A provider may return only a salient crop even when the contract asks for
             # full-image coverage. Preserve the missing evidence with one bounded region.
             regions = (ImageRegion(0.0, 0.0, 1.0, 1.0),)
-        for region_index, region in enumerate(regions):
-            try:
-                cropped, cropped_mime = crop_image_region(chunk.image_data, chunk.label, region)
-                region_description = vision_client.describe(cropped, cropped_mime)
-            except Exception:  # noqa: BLE001 - one bad region must not drop other evidence.
-                region_results.append(ImageRegionResult(region_index, region, "failed"))
-            else:
-                region_results.append(
-                    ImageRegionResult(region_index, region, "described", region_description)
+        # Keep each region's request bounded and preserve LLM metadata while avoiding
+        # serial timeout multiplication for image panels.
+        with ThreadPoolExecutor(max_workers=min(8, len(regions))) as executor:
+            region_results.extend(
+                executor.map(
+                    _describe_image_region_in_context,
+                    (copy_context() for _ in regions),
+                    range(len(regions)),
+                    repeat(chunk.image_data),
+                    repeat(chunk.label),
+                    regions,
+                    repeat(vision_client),
                 )
+            )
         successful_regions = [
             item.description for item in region_results if item.description is not None
         ]

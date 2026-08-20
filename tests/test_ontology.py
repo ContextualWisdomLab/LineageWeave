@@ -38,7 +38,7 @@ _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo
 # prov_team), 0016 (ADR 0009: node_team/edge_mention_team/
 # edge_team_affiliation/edge_mention_organization).
 _ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
-    Path(__file__).resolve().parents[1] / "migrations" / "0012_role_responsibility_agent_type.sql",
+    Path(__file__).resolve().parents[1] / "migrations" / "0060_role_responsibility_agent_type.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0014_role_responsibility_team_actor_type.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0016_cross_post_actor_identity.sql",
 )
