@@ -22,7 +22,7 @@ character-count split:
 - **dom**: sectioning-content element boundaries (WHATWG HTML Living
   Standard / W3C HTML5 -- ``article``, ``section``, ``nav``, ``aside``,
   ``header``, ``footer``, headings ``h1``-``h6``, and flow-content block
-  boundaries ``div``, ``p``, ``li``, ``tr`` -- a table row, not each
+  boundaries ``div``, ``p``, ``li``, ``ol``, ``ul``, ``tr`` -- a table row, not each
   cell, since cells sharing a row are one unit; see ``_TABLE_CELL_TAGS``).
   Relevant once a source
   document is HTML/MHTML rather than plain text (e.g. a raw ingested
@@ -65,6 +65,8 @@ _DOM_BLOCK_TAGS = frozenset(
         "footer",
         "div",
         "p",
+        "ol",
+        "ul",
         "li",
         "tr",
         "blockquote",
@@ -338,6 +340,11 @@ class _BlockTextExtractor(HTMLParser):
         if any(entry[0] in _TABLE_ROW_TAGS for entry in self._stack):
             return
         if tag in _DOM_BLOCK_TAGS:
+            if self._stack and self._stack[-1][1]:
+                tag_name, buffer, style, _ = self._stack[-1]
+                declared_width = sum(entry[3] for entry in self._stack)
+                self._finish_block(tag_name, buffer, style, declared_width)
+                buffer.clear()
             style = next((value for name, value in attrs if name == "style" and value), None)
             self._stack.append((tag, [], style, _declared_indent_width(tag, attrs)))
 
@@ -419,6 +426,70 @@ def _split_dom_units(raw_text: str) -> list[tuple[str, int]]:
     return units
 
 
+_MARKDOWN_TABLE_SEPARATOR = re.compile(
+    r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$"
+)
+
+
+def _is_markdown_table_row(line: str) -> bool:
+    """Recognize a pipe row only when it has at least two cells."""
+    cells = line.strip().strip("|").split("|")
+    return len(cells) >= 2 and all(cell.strip() for cell in cells)
+
+
+def _render_markdown_table_row(line: str) -> str:
+    """Keep Markdown table columns as searchable row evidence."""
+    return " | ".join(cell.strip() for cell in line.strip().strip("|").split("|"))
+
+
+def _split_plain_text_units(text: str) -> list[tuple[str, int, str]]:
+    """Split markup-free source into paragraphs, list items, and table rows."""
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    units: list[tuple[str, int, str]] = []
+    current: list[str] = []
+
+    def flush() -> None:
+        if current:
+            raw_unit = "\n".join(current)
+            normalized = normalize_semantic_text(raw_unit)
+            if normalized:
+                units.append((normalized, _source_indent_width(raw_unit), ""))
+            current.clear()
+
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        if not line.strip():
+            flush()
+            index += 1
+            continue
+        if _is_markdown_table_row(line):
+            rows: list[str] = []
+            while index < len(lines) and _is_markdown_table_row(lines[index]):
+                rows.append(lines[index])
+                index += 1
+            data_rows = [row for row in rows if not _MARKDOWN_TABLE_SEPARATOR.match(row)]
+            if len(data_rows) >= 2:
+                flush()
+                units.extend(
+                    (
+                        _render_markdown_table_row(row),
+                        _source_indent_width(row),
+                        "tr",
+                    )
+                    for row in data_rows
+                )
+                continue
+            current.extend(rows)
+            continue
+        if current and _LIST_ITEM_START.match(line.strip()):
+            flush()
+        current.append(line.rstrip())
+        index += 1
+    flush()
+    return units
+
+
 def chunk_by_dom(html: str) -> list[Chunk]:
     """Split HTML/MHTML content at sectioning/flow block-element boundaries,
     plus one ``"image"`` chunk per embedded base64 ``<img>``, all in a
@@ -461,6 +532,23 @@ def chunk_by_dom(html: str) -> list[Chunk]:
                 )
             )
     return chunks
+
+
+def chunk_by_source_body(body: str) -> list[Chunk]:
+    """Chunk either a DOM body or markup-free authored semantic units."""
+    dom_chunks = chunk_by_dom(body)
+    if re.search(r"<[A-Za-z][^>]*>", body):
+        return dom_chunks
+    return [
+        Chunk(
+            text=text,
+            unit_type="plain_text",
+            index=index,
+            label=label,
+            indent_width=indent_width,
+        )
+        for index, (text, indent_width, label) in enumerate(_split_plain_text_units(body))
+    ]
 
 
 @dataclass(frozen=True)
