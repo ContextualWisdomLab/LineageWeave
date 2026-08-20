@@ -45,7 +45,7 @@ flowchart LR
 
     subgraph External services, all optional
         EMB[Embedding provider<br/>swap in for the text channel]
-        ORC[contextual-orchestrator<br/>mode=verify, llm channel]
+        ORC[contextual-orchestrator<br/>mode=auto, llm channel]
         TEPP[TEPP<br/>AnalysisRunRequest v1,<br/>calibrated measurement]
     end
 
@@ -84,11 +84,11 @@ flowchart LR
 | `server.py` | Stdlib HTTP server: `GET /api/lineage` (JSON graph) + static viewer |
 | `web/index.html` | Self-contained SVG DAG viewer, no build step, no external script dependency |
 
-> **Contextual-orchestrator contract:** Post Ask and MCP Global Ask use the
-> currently supported `mode="conduct"` path for verified multi-step
-> reasoning. Model-based verification requires fast-mlsirm in the same
-> contextual-orchestrator runtime and fails closed when that dependency or
-> its contract is unavailable. LineageWeave never falls back to a direct
+> **Contextual-orchestrator contract:** Post Ask and MCP Global Ask use
+> `mode="auto"` and `reasoning_effort="auto"`; the gateway owns model
+> discovery, provider protocol, and multi-agent reasoning. Requests carry a
+> stable post-scoped session id and non-secret evidence metadata. Structured
+> responses use `json_schema`. LineageWeave never falls back to a direct
 > provider or the rejected legacy `verify` mode.
 
 ## Design decisions worth naming
@@ -701,15 +701,12 @@ when absent) alongside its text -- `_BlockTextExtractor` tracks it
 through the existing start/end-tag stack rather than adding a second
 pass over the document.
 
-Wiring: `backend/app/config.py` gained `Settings.vision_model` (env
-`VISION_MODEL`) -- empty means the vision channel is unavailable, the
-same "no fake channel" discipline as every other pluggable client, not a
-guessed default model. `backend/app/main.py`'s `_vision_client()` factory
-returns a real `OpenAiCompatibleVisionClient` (via
-`orchestrator_vision_client`, which appends `/v1` so the same
-`ORCHESTRATOR_BASE_URL` other channels use lands on
-`/v1/chat/completions`) only when base URL, API key, and model are all
-set, else `NullImageContentClient()`; it is
+Wiring: `backend/app/main.py`'s `_vision_client()` factory returns a real
+`OpenAiCompatibleVisionClient` (via `orchestrator_vision_client`, which
+appends `/v1` so the same `ORCHESTRATOR_BASE_URL` other channels use lands on
+`/v1/chat/completions`) only when the shared base URL and API key are set,
+else `NullImageContentClient()`; contextual-orchestrator owns vision-model
+discovery and receives no caller-selected model; it is
 called at all three raw-`post_body`-reading endpoints (`extract-keymen`,
 post summary, commitment derivation) and threaded through
 `post_chat_ingestion.gather_chat_sources()` so every RAG source document

@@ -149,7 +149,6 @@ def build_mcp_server(
                 vision_client=orchestrator_vision_client(
                     resolved_settings.orchestrator_base_url,
                     resolved_settings.orchestrator_api_key,
-                    resolved_settings.vision_model,
                 ),
                 external_verifier=resolved_external_verifier,
             )

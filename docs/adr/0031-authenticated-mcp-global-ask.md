@@ -17,9 +17,10 @@ answers. The MCP surface should adapt those responsibilities, not reimplement
 or bypass them.
 
 The current contextual-orchestrator HTTP contract accepts `auto`, `route`, and
-`conduct`; it rejects the older LineageWeave `verify` request. `conduct` is the
-supported verified multi-step workflow and fails closed when its model-based
-verification dependency is unavailable.
+`conduct`; it rejects the older LineageWeave `verify` request. This product
+uses `auto`: contextual-orchestrator owns model discovery, provider protocol
+(including Responses-only providers), multi-agent synthesis, and reasoning
+allocation. The caller must not select a model.
 
 Some buyer questions concern Knowledge Graph, ontology, or semantic claims that
 benefit from independent public corroboration. That lane must be explicit and
@@ -45,10 +46,14 @@ private answer as a search query.
    source gatherer with ABAC re-checking.
 6. Limit retrieval terms, candidate rows, source count, and source-body bytes
    before invoking contextual-orchestrator.
-7. Use contextual-orchestrator `mode="conduct"`, high reasoning effort, and a
-   finite 300-second downstream timeout. Never call a direct provider or the
-   rejected legacy `verify` mode.
-8. Return internal source and citation identities. Drop citations outside the
+7. Use contextual-orchestrator `mode="auto"`, `reasoning_effort="auto"`, and a
+   finite 300-second downstream timeout. Use a strict `json_schema` response
+   contract and `system` instructions on Chat Completions; the orchestrator
+   translates them to `developer` for Responses providers. Never call a direct
+   provider or the rejected legacy `verify` mode.
+8. Give every request about one post the stable session id
+   `lineageweave:post:{post_id}` and non-secret metadata for the post,
+   author, PU, corp code, and requesting account. Drop citations outside the
    authorized source bundle and reject an answer when no authorized citation
    remains. Do not persist a Global Ask exchange as a side effect.
 9. Permit open-web corroboration only when the caller explicitly sends
@@ -75,9 +80,9 @@ private answer as a search query.
   the same authoritative database.
 - Answers remain inferred, evidence-grounded results; they do not become
   authoritative audit events or lineage facts.
-- A configured contextual-orchestrator with a working conduct verification
-  runtime remains required for a live internal answer. The server fails closed
-  rather than substituting a local model, direct provider, or canned prose.
+- A configured contextual-orchestrator with a working `auto` runtime remains
+  required for a live internal answer. The server fails closed rather than
+  substituting a local model, direct provider, or canned prose.
 - Public corroboration is available without becoming an authorization or truth
   source. Callers retain the decision to cross the search boundary for each
   invocation.

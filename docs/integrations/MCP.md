@@ -30,11 +30,13 @@ authorized citation remains, the call fails instead of returning unsupported
 prose. No Global Ask row is written merely because an MCP client asked a
 question.
 
-The reason-and-cite call uses contextual-orchestrator's supported
-`mode="conduct"` contract with high reasoning effort. It does not use the
-rejected legacy `verify` mode and never falls back to a direct model provider.
-The downstream call is bounded to 300 seconds so verified orchestration is not
-prematurely cut off while remaining finite.
+The reason-and-cite call uses contextual-orchestrator's `mode="auto"` and
+`reasoning_effort="auto"` contract. The gateway chooses the model, provider
+protocol, and multi-agent workflow, including Responses-only providers; this
+client never sends a model name or falls back to a direct provider. It sends a
+strict `json_schema` response contract and post-scoped `session_id` plus
+non-secret post/author/PU/corp metadata. The downstream call is bounded to 300
+seconds while remaining finite.
 
 ### Explicit external corroboration
 

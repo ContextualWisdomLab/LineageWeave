@@ -41,12 +41,9 @@ class Settings:
     # a fabricated default, when unconfigured (see keyman_ingestion.py).
     orchestrator_base_url: str
     orchestrator_api_key: str
-    # A vision-capable model name on the same contextual-orchestrator gateway
-    # (orchestrator_base_url/_api_key) -- describes embedded post images
-    # before an LLM call or embedding sees the post body (ADR: see
-    # lineageweave/post_content_normalization.py). Empty means the image
-    # channel is unavailable, same "no fake channel" discipline as every
-    # other pluggable client.
+    # Legacy compatibility field. The value is not sent to the gateway:
+    # contextual-orchestrator owns vision-model discovery. The image channel
+    # is unavailable only when the shared gateway credentials are absent.
     vision_model: str
     # Event queue for post/ticket activity (XADD/XRANGE), per the brief's
     # "Event Queue, not MQ" requirement -- see backend/app/activity_stream.py.

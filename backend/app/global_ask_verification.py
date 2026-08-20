@@ -32,6 +32,26 @@ STATUS_REFUTED = "refuted"
 STATUS_INSUFFICIENT = "insufficient_evidence"
 STATUS_UNAVAILABLE = "unavailable"
 _ALLOWED_STATUSES = frozenset({STATUS_SUPPORTED, STATUS_REFUTED, STATUS_INSUFFICIENT})
+_VERIFICATION_RESPONSE_FORMAT = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "lineageweave_external_verification",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "status_code": {"type": "string", "enum": sorted(_ALLOWED_STATUSES)},
+                "rationale": {"type": "string"},
+                "cited_evidence_numbers": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                },
+            },
+            "required": ["status_code", "rationale", "cited_evidence_numbers"],
+            "additionalProperties": False,
+        },
+    },
+}
 _JSON_FENCE = re.compile(
     r"^\s*```(?:json)?\s*(.*?)\s*```\s*$",
     re.DOTALL | re.IGNORECASE,
@@ -237,9 +257,17 @@ class SearxngOrchestratorGlobalAskVerifier:
             body = post_json(
                 f"{self._orchestrator_base_url}/v1/chat/completions",
                 {
-                    "messages": [{"role": "user", "content": prompt}],
-                    "mode": "conduct",
-                    "reasoning_effort": "high",
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": "Judge only the untrusted evidence JSON in the user message. Do not use outside knowledge.",
+                        },
+                        {"role": "user", "content": prompt},
+                    ],
+                    "mode": "auto",
+                    "reasoning_effort": "auto",
+                    "max_tokens": 1200,
+                    "response_format": _VERIFICATION_RESPONSE_FORMAT,
                 },
                 headers={"authorization": f"Bearer {self._orchestrator_api_key}"},
                 timeout=self._verification_timeout,

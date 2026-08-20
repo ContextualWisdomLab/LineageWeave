@@ -44,12 +44,23 @@ class FakeClient:
     available: bool = True
     answer_value: ChatAnswer = ChatAnswer("grounded answer", ("public-post", "outside-source"))
     error: Exception | None = None
+    session_id: str | None = None
+    metadata: dict[str, str] | None = None
 
-    def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:
+    def answer(
+        self,
+        question: str,
+        sources: list[ChatSourceDocument],
+        *,
+        session_id: str | None = None,
+        metadata: dict[str, str] | None = None,
+    ) -> ChatAnswer:
         if self.error is not None:
             raise self.error
         assert question
         assert len(sources) <= global_ask.MAX_GLOBAL_SOURCES
+        self.session_id = session_id
+        self.metadata = metadata
         return self.answer_value
 
 
@@ -91,12 +102,14 @@ async def test_global_ask_reuses_rbac_abac_bounds_sources_and_filters_citations(
 ) -> None:
     conn = FakeConnection(search_rows={"demo": [UNAUTHORIZED, PUBLIC]})
 
-    async def gather(conn_, post_id, can_see_post, vision_client=None):
+    async def gather(conn_, post_id, can_see_post, vision_client=None, **kwargs):
         assert conn_ is conn
         assert post_id == "public-post"
         assert can_see_post(PUBLIC)
         assert not can_see_post(UNAUTHORIZED)
         assert vision_client is None
+        assert kwargs["session_id"] == "lineageweave:post:public-post"
+        assert kwargs["metadata"]["post_id"] == "public-post"
         return [
             ChatSourceDocument("public-post", "Public", "A" * 6000),
             ChatSourceDocument("linked-post", "Linked", "linked evidence"),
@@ -104,9 +117,8 @@ async def test_global_ask_reuses_rbac_abac_bounds_sources_and_filters_citations(
         ]
 
     monkeypatch.setattr(global_ask, "gather_chat_sources", gather)
-    result = await global_ask.answer_global_question(
-        conn, ACCOUNT, FakeClient(), "What happened at Demo Corp?"
-    )
+    client = FakeClient()
+    result = await global_ask.answer_global_question(conn, ACCOUNT, client, "What happened at Demo Corp?")
     assert result.answer_text == "grounded answer"
     assert result.anchor_post_id == "public-post"
     assert result.cited_post_ids == ("public-post",)
@@ -121,7 +133,14 @@ async def test_global_ask_reuses_rbac_abac_bounds_sources_and_filters_citations(
     assert result.cited_posts == ({"post_id": "public-post", "post_title": "Public"},)
     sql = conn.calls[0][0]
     assert "visibility_code = 'public'" in sql
-    assert "corporate_entity_id = any($1::uuid[])" in sql
+    assert "p.corporate_entity_id = any($1::uuid[])" in sql
+    assert client.session_id == "lineageweave:post:public-post"
+    assert client.metadata == {
+        "session_id": "lineageweave:post:public-post",
+        "post_id": "public-post",
+        "requesting_user_account_id": "account-1",
+        "corporate_entity_id": "22222222-2222-2222-2222-222222222222",
+    }
 
 
 @pytest.mark.asyncio
