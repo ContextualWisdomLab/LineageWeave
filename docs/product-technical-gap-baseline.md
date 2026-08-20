@@ -2,7 +2,7 @@
 
 **Snapshot:** 2026-08-20 17:08 (Asia/Seoul)
 **Protected-main baseline:** `origin/main`, product version `2.12.5`  
-**Audited PR head:** #258 at `7d8e9015` (integrated timeout boundary, fixture fix, and concurrent worker repair)
+**Audited PR head:** #258 at `bf599aca` (integrated timeout boundary, fixture fix, worker repair, and SQL review evidence)
 **Active PR update:** ADR 0101 and the enrichment-timeout changes are pushed to
 PR #258; protected-main runtime evidence remains pending.
 **Purpose:** connect the normative ADRs and research evidence to product
@@ -64,7 +64,7 @@ claims that an unmerged PR or historical runtime observation is live behavior.
 | FR-08 | LLM, structured output, embedding, and Vision work crosses contextual-orchestrator with one post session and bounded provenance; provider/model/protocol selection stays upstream. | ADR 0030, 0045, 0052, 0070-0077, 0079, 0081-0088 | Orchestrator clients, Compose boundary, historical gateway observations |
 | FR-09 | Period reports use real fast-mlsirm results; missing cells remain missing and leftover pairs are residual-derived and navigable. | ADR 0003, 0034-0035, 0048-0050 | Historical authenticated report rebuilds; report tests and schema |
 | FR-10 | Standard provenance uses normalized PROV-O relations; qualified influence implies its unqualified relation and KG edges remain a navigation projection. | ADR 0011, 0065 | PROV-O implementation matrices, ontology, CI contract |
-| FR-11 | Post summaries expose evidence-bearing events and R&R. Requester/processor actions are nullable and may only name actors already bound to the same post summary. | ADR 0052, ADR 0100 | Commit `15e1a378` is on PR #258 and the schema exists locally; the current database has zero populated action rows, so buyer-data acceptance remains unproven |
+| FR-11 | Post summaries expose evidence-bearing events and R&R. Requester/processor actions are nullable and may only name actors already bound to the same post summary. | ADR 0052, ADR 0100 | Commit `15e1a378` is on PR #258; one authorized target refresh stored three action rows, while corpus-wide buyer-data acceptance remains unproven |
 | FR-12 | A hierarchy-enrichment timeout leaves the source-grounded summary readable and the actor unbound; it never creates a guessed catalog identity. | ADR 0101, ADR 0010, ADR 0026 | Commit `1c260f20` contains the boundary, ADR, and focused test; independent review, protected-main merge, and fresh runtime evidence remain pending |
 
 ## TRD
@@ -231,7 +231,7 @@ the exact-head disposition.
 | Protected main | `origin/main` manifests show 2.12.5 | Existing main contracts only | Fresh main runtime matrix |
 | Historical local runtime | Authenticated PostgreSQL report rebuilds and orchestrator/Vision observations dated 2026-08-18/19 | Those exact bounded observations | Current head/main equivalence and full browser journey |
 | Active PRs | GitHub head/base, review, merge, check, and review-thread states at snapshot | Proposed increments and gate state | Normal merge and post-merge runtime behavior |
-| Local PR checkout | PR #258 was observed at `7d8e9015`; full suite passed and one authorized target summary refresh returned v5/HTTP 200 with persisted actions | Only the exact observations in the current-data table; no claim for protected-main behavior | Full suite/CI, browser journey, external channel results, review, merge, and corpus-level action evidence |
+| Local PR checkout | PR #258 was observed at `bf599aca`; full suite passed and one authorized target summary refresh returned v5/HTTP 200 with persisted actions | Only the exact observations in the current-data table; no claim for protected-main behavior | Full suite/CI, browser journey, external channel results, review, merge, and corpus-level action evidence |
 
 ## Maintenance rule
 
