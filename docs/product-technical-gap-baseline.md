@@ -317,3 +317,10 @@ unsupported proposals remain unbound.
 - Buyer surface: project labels are rendered without exposing internal keys
 - Evidence: parser, transaction, real PostgreSQL projection, schema, frontend
   lint, and frontend test checks pass on the checkpoint branch
+
+### Verification update
+
+The integrated `60b52f26` checkpoint passes the full backend suite: `723 passed,
+16 skipped`, with no test failures. Frontend lint, `131 passed`, and production
+build also pass. Four existing dependency deprecation/security warnings remain
+non-failing and are not reclassified as product evidence.
