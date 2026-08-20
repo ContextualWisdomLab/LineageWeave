@@ -27,6 +27,13 @@ benefit from independent public corroboration. That lane must be explicit and
 must not turn public snippets into internal authority or silently export a
 private answer as a search query.
 
+Two authorization clocks also matter. Source selection and model citation
+filtering establish what the caller may use for reasoning at those moments, but
+they are not authorization leases for a later media read. Likewise, Keycloak
+startup import creates a fresh demo realm but intentionally skips a realm that
+already exists. A persisted realm therefore needs a bounded reconciliation path
+when the deployment's exact MCP audience changes.
+
 ## Decision
 
 1. Run MCP as a dedicated ASGI process using MCP Python SDK 2.0.0 and
@@ -79,13 +86,25 @@ private answer as a search query.
 16. Return the authorized source bundle as a chronological `timeline` in every
     successful Global Ask result. Each entry retains its source post id, title,
     timestamp, and whether it is the anchor, a direct Event-Lineage neighbor,
-    or an indirect Knowledge-Graph neighbor. When cited posts contain raster
-    data-URI images, return at most three bounded `ImageContent` blocks after
-    the prose; reconstruct them from the cited source body, never from a URL.
-17. Render the Keycloak demo realm's MCP audience from the same
-    `MCP_RESOURCE_URL` used by the MCP service at container start. This keeps a
-    custom published port aligned with exact audience validation without
-    accepting the REST frontend audience as a substitute.
+    or an indirect Knowledge-Graph neighbor.
+17. When cited posts contain raster data-URI images, return at most three
+    bounded `ImageContent` blocks after the prose. Immediately before returning
+    bytes, query the database again for the requesting `user_account_id`, its
+    live `post_read` grant, and its current `account_affiliation` rows. Citation
+    membership alone never authorizes media. A revoked permission or affiliation
+    removes the affected media from the response, including between source
+    selection and media serialization.
+18. For a fresh demo realm, render the import template's MCP audience from the
+    same `MCP_RESOURCE_URL` used by the MCP service. Treat this as bootstrap only:
+    Keycloak startup import skips an existing realm and must not be represented
+    as a migration mechanism.
+19. For a persisted demo realm, run a bounded, idempotent Admin REST reconciler
+    that owns only the `lineageweave-mcp-audience` mapper on the
+    `lineageweave-frontend` client. It resolves the client UUID, creates the
+    mapper when absent, updates only its audience configuration when stale, and
+    fails closed on duplicate or conflicting mapper types. The MCP process starts
+    only after this one-shot reconciliation succeeds. Never overwrite or delete
+    the realm to change one mapper.
 
 ## Consequences
 
@@ -101,9 +120,17 @@ private answer as a search query.
 - Public corroboration is available without becoming an authorization or truth
   source. Callers retain the decision to cross the search boundary for each
   invocation.
-- Deployments must configure an audience for the exact public MCP resource URL;
-  the Compose demo renders that value from `MCP_PORT` for both Keycloak and
-  MCP.
+- A citation can remain visible in answer metadata while its inline image is
+  omitted after a live permission or affiliation change. This is deliberate:
+  the current authorization decision governs byte disclosure.
+- Deployments must configure an audience for the exact public MCP resource URL.
+  Fresh Compose realms receive it during bootstrap; persisted realms reconcile
+  the dedicated mapper before MCP starts. A port change therefore does not
+  require deleting Keycloak state.
+- The local demo reconciler currently uses the bootstrap administrator through
+  the Keycloak Admin REST API. Production deployments should replace that broad
+  bootstrap identity with a narrowly provisioned service account or external
+  identity-management reconciliation process.
 - Codex deployments should set a tool timeout slightly above 300 seconds so the
   server returns the bounded downstream failure instead of a client timeout.
 
@@ -123,3 +150,10 @@ private answer as a search query.
   consent and misrepresents a normally closed-world evidence tool.
 - **Search the internal answer text:** can disclose private evidence-derived
   content to the public-search boundary and invites prompt/search injection.
+- **Treat selected citation IDs as a media authorization lease:** allows stale
+  affiliation or permission state to disclose source bytes after revocation.
+- **Rely on `--import-realm` to update a persisted audience mapper:** Keycloak
+  skips an already-existing realm during startup import.
+- **Override or delete the entire realm for one audience change:** risks losing
+  unrelated identity state and broadens a mapper migration into a destructive
+  administration operation.
