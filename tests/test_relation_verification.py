@@ -21,19 +21,34 @@ from lineageweave.relation_verification import (
     STATUS_CORROBORATED,
     STATUS_UNCORROBORATED,
     NullRelationVerificationClient,
+    RelationVerificationClient,
     SearxngRelationVerificationClient,
     corroborating_evidence_url,
 )
 
 
 class _ResultsHandler(BaseHTTPRequestHandler):
+    """Serve deterministic search responses over the real HTTP boundary."""
+
     received_query: str = ""
 
     def do_GET(self) -> None:
+        """Return the response shape selected by the received search query."""
         parsed = urlparse(self.path)
         query = parse_qs(parsed.query)
         type(self).received_query = query.get("q", [""])[0]
-        if "Acme" in type(self).received_query:
+        if "Malformed" in type(self).received_query:
+            payload = {"query": type(self).received_query, "results": {"unexpected": True}}
+        elif "Mixed" in type(self).received_query:
+            payload = {
+                "query": type(self).received_query,
+                "results": [
+                    None,
+                    {"url": "https://other.example/item", "content": "unrelated"},
+                    {"url": "https://mixed.example/item", "content": "Mixed Signal"},
+                ],
+            }
+        elif "Acme" in type(self).received_query:
             payload = {
                 "query": type(self).received_query,
                 "results": [
@@ -54,10 +69,12 @@ class _ResultsHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def log_message(self, format: str, *args) -> None:  # noqa: A002 -- stdlib signature
+        """Keep the test server quiet while preserving the stdlib signature."""
         return
 
 
 def _serve() -> tuple[HTTPServer, str]:
+    """Start an ephemeral local HTTP server and return its base URL."""
     server = HTTPServer(("127.0.0.1", 0), _ResultsHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -71,6 +88,12 @@ def test_null_client_is_unavailable_not_silently_uncorroborated() -> None:
     assert client.available is False
     with pytest.raises(RuntimeError):
         client.verify("Acme Corp", "Voice of Customer")
+
+
+def test_protocol_stub_cannot_be_mistaken_for_a_verification() -> None:
+    """The protocol's runtime stub fails instead of fabricating a result."""
+    with pytest.raises(NotImplementedError):
+        RelationVerificationClient.verify(object(), "Acme Corp", "Voice of Customer")
 
 
 def test_searxng_client_reports_corroborated_with_evidence_url() -> None:
@@ -101,6 +124,34 @@ def test_searxng_client_reports_uncorroborated_with_no_evidence_url_when_search_
     assert result.evidence_url is None
 
 
+def test_searxng_client_rejects_malformed_results_shape() -> None:
+    """A non-list result collection cannot become corroborating evidence."""
+    server, base = _serve()
+    try:
+        result = SearxngRelationVerificationClient(base_url=base).verify(
+            "Malformed Organization", "Supplier"
+        )
+    finally:
+        server.shutdown()
+
+    assert result.status_code == STATUS_UNCORROBORATED
+    assert result.evidence_url is None
+
+
+def test_searxng_client_skips_invalid_and_unrelated_results() -> None:
+    """The client scans past invalid and unrelated entries to real evidence."""
+    server, base = _serve()
+    try:
+        result = SearxngRelationVerificationClient(base_url=base).verify(
+            "Mixed Signal", "Supplier"
+        )
+    finally:
+        server.shutdown()
+
+    assert result.status_code == STATUS_CORROBORATED
+    assert result.evidence_url == "https://mixed.example/item"
+
+
 def test_query_echo_on_a_search_host_is_not_corroboration() -> None:
     """A search-result URL and echoed title cannot become evidence."""
     assert (
@@ -111,6 +162,23 @@ def test_query_echo_on_a_search_host_is_not_corroboration() -> None:
                 "title": "Zzqxvthorp Fictitious Nonexistent Org - Google Search",
                 "content": "",
             },
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize("url", [None, "", "relative-path"])
+def test_missing_empty_or_relative_url_is_not_evidence(url: object) -> None:
+    """Evidence needs a non-empty absolute URL with a real host."""
+    assert corroborating_evidence_url("Acme Corp", {"url": url}) is None
+
+
+def test_name_with_only_legal_suffixes_has_no_distinctive_token() -> None:
+    """Legal suffix stopwords alone cannot identify an organization."""
+    assert (
+        corroborating_evidence_url(
+            "Corp Ltd",
+            {"url": "https://business.example/item", "content": "Corp Ltd"},
         )
         is None
     )
@@ -206,6 +274,36 @@ def test_hangul_org_name_token_is_corroboration() -> None:
             },
         )
         == "https://news.example/item"
+    )
+
+
+def test_hangul_org_name_with_particle_is_corroboration() -> None:
+    """A Korean particle attached to the complete name keeps the token match."""
+    assert (
+        corroborating_evidence_url(
+            "한빛그리드",
+            {
+                "url": "https://news.example/item",
+                "title": "News",
+                "content": "한빛그리드가 공급 일정을 발표했다.",
+            },
+        )
+        == "https://news.example/item"
+    )
+
+
+def test_longer_hangul_business_name_is_not_a_particle_match() -> None:
+    """An unrelated longer Korean name must not satisfy a shorter name token."""
+    assert (
+        corroborating_evidence_url(
+            "한빛그리드",
+            {
+                "url": "https://news.example/item",
+                "title": "News",
+                "content": "한빛그리드솔루션이 공급 일정을 발표했다.",
+            },
+        )
+        is None
     )
 
 
