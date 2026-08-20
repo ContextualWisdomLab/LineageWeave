@@ -15,6 +15,24 @@ def _csv_setting(name: str, default: str = "") -> list[str]:
     return [value.strip() for value in os.environ.get(name, default).split(",") if value.strip()]
 
 
+def _bounded_int_setting(
+    name: str,
+    default: int,
+    *,
+    minimum: int,
+    maximum: int,
+) -> int:
+    """Read one base-10 integer and fail closed outside its configured bounds."""
+    raw_value = os.environ.get(name, str(default)).strip()
+    try:
+        value = int(raw_value, 10)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a base-10 integer") from exc
+    if not minimum <= value <= maximum:
+        raise ValueError(f"{name} must be between {minimum} and {maximum}")
+    return value
+
+
 def _home_dotenv_values(names: set[str]) -> dict[str, str]:
     """Read only requested non-secret setting names from ``~/.env``."""
     try:
@@ -79,8 +97,9 @@ class Settings:
     # contextual-orchestrator owns vision-model discovery. The image channel
     # is unavailable only when the shared gateway credentials are absent.
     vision_model: str
-    # Event queue for post/ticket activity (XADD/XRANGE), per the brief's
-    # "Event Queue, not MQ" requirement -- see backend/app/activity_stream.py.
+    # Event queue for post/ticket activity and the distributed MCP invocation
+    # limiter. A rate-limit backend outage fails closed; it never degrades to a
+    # per-process counter that can be bypassed by changing replicas.
     valkey_url: str
     # Self-hosted Searxng instance relation_verification.py's real client
     # checks Knowledge Graph relation inferences against (ADR 0005). Empty
@@ -107,6 +126,11 @@ class Settings:
         default_factory=lambda: ["localhost:*", "127.0.0.1:*", "mcp:8001"]
     )
     mcp_allowed_origins: list[str] = field(default_factory=list)
+    # Shared fixed-window policy for authenticated Global Ask invocations.
+    mcp_global_ask_rate_limit: int = 20
+    mcp_global_ask_rate_window_seconds: int = 60
+    # Retry metadata when the distributed limiter itself is unavailable.
+    mcp_rate_limit_unavailable_retry_seconds: int = 5
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -150,4 +174,22 @@ def load_settings() -> Settings:
             "MCP_ALLOWED_HOSTS", "localhost:*,127.0.0.1:*,mcp:8001"
         ),
         mcp_allowed_origins=_csv_setting("MCP_ALLOWED_ORIGINS"),
+        mcp_global_ask_rate_limit=_bounded_int_setting(
+            "MCP_GLOBAL_ASK_RATE_LIMIT",
+            20,
+            minimum=1,
+            maximum=10_000,
+        ),
+        mcp_global_ask_rate_window_seconds=_bounded_int_setting(
+            "MCP_GLOBAL_ASK_RATE_WINDOW_SECONDS",
+            60,
+            minimum=1,
+            maximum=86_400,
+        ),
+        mcp_rate_limit_unavailable_retry_seconds=_bounded_int_setting(
+            "MCP_RATE_LIMIT_UNAVAILABLE_RETRY_SECONDS",
+            5,
+            minimum=1,
+            maximum=300,
+        ),
     )
