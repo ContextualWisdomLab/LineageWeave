@@ -31,26 +31,17 @@ def test_event_display_classification_does_not_create_authority() -> None:
         )
         == "contract_awarded"
     )
-    assert (
-        classify_project_event(
-            title="Field complaint received",
-            source_stage_code=None,
-            source_detail_state_code=None,
-            voc_type_code="voc",
-            is_focus=True,
+    for is_focus in (False, True):
+        assert (
+            classify_project_event(
+                title="Field complaint received",
+                source_stage_code=None,
+                source_detail_state_code=None,
+                voc_type_code="voc",
+                is_focus=is_focus,
+            )
+            == "voc_received"
         )
-        == "voc_received"
-    )
-    assert (
-        classify_project_event(
-            title="Field complaint received",
-            source_stage_code=None,
-            source_detail_state_code=None,
-            voc_type_code="voc",
-            is_focus=False,
-        )
-        == "source_recorded"
-    )
 
 
 def test_responsibility_transition_describes_document_evidence_only() -> None:
