@@ -64,14 +64,6 @@ _EVENT_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
 _VOC_CODES = frozenset({"voc", "vocc", "voco", "vom", "vop"})
 _TRUTH_ORDER = {"observed": 0, "inferred": 1}
 _DISPLAY_NAME_ORDER = {"source_project_name": 0, "semantic_project_name": 1}
-_DIRECT_IDENTITY_FAMILY = {
-    "source_project_code": "source",
-    "semantic_project_key": "semantic",
-}
-_NAME_IDENTITY_FAMILY = {
-    "source_project_name": "source",
-    "semantic_project_name": "semantic",
-}
 
 
 def normalize_project_key(value: str) -> str:
@@ -187,43 +179,24 @@ def _normalized_matches(value: object, normalized_key: str) -> bool:
         return False
 
 
-def _direct_identity_families(
-    match_rows: Sequence[Mapping[str, Any]], normalized_key: str
-) -> set[tuple[str, str]]:
-    """Identify events whose code/key directly selected the requested project."""
-
-    direct: set[tuple[str, str]] = set()
-    for row in match_rows:
-        kind = str(row.get("match_kind_code") or "")
-        family = _DIRECT_IDENTITY_FAMILY.get(kind)
-        if family and _normalized_matches(row.get("matched_value"), normalized_key):
-            direct.add((str(row["post_id"]), family))
-    return direct
-
-
 def _match_belongs_to_project(
     row: Mapping[str, Any],
     *,
     normalized_key: str,
-    direct_families: set[tuple[str, str]],
 ) -> bool:
     """Validate one evidence row against its authoritative identity key.
 
     New callers provide ``identity_key`` so a human display name may differ
-    from the code/key that selected the project. The family fallback keeps the
-    projection compatible with earlier rows that supplied a matching code/key
-    and its paired display name separately.
+    from the code/key that selected the project. Rows without that authoritative
+    identity can only match on their own value; a sibling row must never make a
+    second project appear in this history.
     """
 
     identity_key = row.get("identity_key")
     if identity_key is not None and str(identity_key).strip():
         return _normalized_matches(identity_key, normalized_key)
     matched_value = row.get("matched_value")
-    if _normalized_matches(matched_value, normalized_key):
-        return True
-    kind = str(row.get("match_kind_code") or "")
-    family = _NAME_IDENTITY_FAMILY.get(kind)
-    return bool(family and (str(row["post_id"]), family) in direct_families)
+    return _normalized_matches(matched_value, normalized_key)
 
 
 def _prior_paths(
@@ -351,7 +324,6 @@ def build_project_history_projection(
     matches_by_event: dict[str, list[dict[str, Any]]] = {event_id: [] for event_id in ordered_ids}
     display_names: list[tuple[int, int, str, str]] = []
     seen_matches: set[tuple[str, str, str]] = set()
-    direct_families = _direct_identity_families(match_rows, normalized_key)
     for row in match_rows:
         event_id = str(row["post_id"])
         if event_id not in matches_by_event:
@@ -359,7 +331,6 @@ def build_project_history_projection(
         if not _match_belongs_to_project(
             row,
             normalized_key=normalized_key,
-            direct_families=direct_families,
         ):
             continue
         matched_value = str(row["matched_value"])

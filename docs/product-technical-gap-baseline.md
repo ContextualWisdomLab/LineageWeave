@@ -32,6 +32,36 @@ timeline entry point, Storybook-compatible truth rendering, and live
 PostgreSQL/API regressions. The final exact head and Checks must be recorded
 after the ordinary push.
 
+## Exact-head refresh (2026-08-20 19:50 Asia/Seoul)
+
+This refresh supersedes the 19:14 checkpoint for the PRs it names. It records
+GitHub observations, not protected-main behavior. The repository has 25 open
+PRs; no approval or queued Check is treated as merge evidence.
+
+| PR | Exact observed head | Current observation |
+|---|---|---|
+| #258 | `f8d2fa98` | `BLOCKED`, review required |
+| #260-#266 | `dfd95d9c`, `bd1b4d2f`, `80445b8a`, `d670acd5`, `d5dbdf71`, `26a6d9c6` | stacked, review required; #264 is `DIRTY` |
+| #282 | `6eeaf89d` | `CLEAN`, no formal approval |
+| #285 | `30dae74a` | `UNSTABLE`, exact-head Checks queued, no formal approval |
+| #287 | `26fa7346` | `UNKNOWN`, review required, exact-head Checks queued |
+| #298-#303 | `49c9976f`, `59ccdf91`, `40b0a8ea`, `b7e6e82d` | mixed `DIRTY`/`CLEAN`/`UNSTABLE`, review pending |
+| #306-#311 | `e0dbc386`, `a4d1de59`, `42e6230c`, `e6fd907e`, `d8b7f561` | `CLEAN`/`UNSTABLE`, review pending |
+
+The #285 exact head includes the independent review repairs for case-preserving
+project identity, route-specific bounds, and sibling-project match isolation;
+the local tree recorded `741 passed, 16 skipped`. The #287 exact head removes
+the Semgrep dynamic-SQL findings and aligns public claim adjudication with the
+contextual-orchestrator `mode=auto` strict structured contract; its local tree
+recorded `791 passed, 16 skipped`. Both remain open until current-head Checks
+and protected approval are observed.
+
+The organization-owned `.github` repository already provides the hourly
+commercial-readiness coordinator at cron `7 * * * *` and the review/merge
+scheduler's hourly fallback. This repository does not add a competing local
+timer; the central OpenCode/scheduler credential boundary remains authoritative
+and `COPILOT_GITHUB_TOKEN` is not used.
+
 ## PRD
 
 ### Problem and outcome
