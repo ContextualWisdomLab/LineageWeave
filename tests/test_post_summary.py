@@ -26,6 +26,7 @@ from lineageweave.post_summary import (
     NullPostSummaryClient,
     RoleResponsibility,
     _SUMMARY_REQUEST_PROMPT_TEMPLATE,
+    _parse_optional_project_key,
     _parse_plain_summary_response,
     _parse_plain_summary_details,
     parse_summary_response,
@@ -177,6 +178,12 @@ def test_parses_project_bound_plain_key_event() -> None:
     assert events == ("도면 검토", "공통 일정 확인")
     assert details[0].project_key == "hvdc-pilot"
     assert details[1].project_key is None
+
+
+def test_optional_project_key_normalizes_unicode_and_rejects_sentinels() -> None:
+    assert _parse_optional_project_key("  Project  Ω ") == "project-ω"
+    for sentinel in (None, "", "  ", "None", "N/A", "unknown", 42):
+        assert _parse_optional_project_key(sentinel) is None
 
 
 def test_organization_actor_is_not_forced_into_a_person_slot() -> None:
