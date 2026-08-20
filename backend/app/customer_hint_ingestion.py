@@ -124,7 +124,8 @@ async def resolve_customer_hint(
         # created -- corporate_entity_code (deterministic from hint_code)
         # is the stable identity key a retry must key off instead.
         entity_code = f"HINT-{hint_code}"
-        created = await conn.fetchrow(
+        # Safe SQL: the statement is a literal migration-shaped query; both observed values are bound.
+        created = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             """
             insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code)
             values ($1, $2, 'company')
