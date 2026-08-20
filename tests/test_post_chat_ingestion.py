@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import asyncio
+from threading import Event, Timer
+from types import SimpleNamespace
 
 import pytest
 
 from backend.app.post_chat_ingestion import (
     fetch_persisted_chat,
     fetch_persisted_chats,
+    gather_chat_sources,
     normalize_chat_question,
     persist_post_chat,
 )
@@ -34,6 +37,74 @@ class _Connection:
         if "question_norm from post_chat_result" in query:
             return [{"question_norm": "question"}]
         return self.citations
+
+
+class _SourceConnection:
+    async def fetchrow(self, query: str, *_args: object):
+        if "from source_post where post_id" not in query:
+            return None
+        return {
+            "post_id": "post-1",
+            "post_title": "Public post",
+            "post_body": "<p>Body</p>",
+            "source_system_code": None,
+            "source_record_key": None,
+            "source_author_code": None,
+            "source_author_name": None,
+            "source_company_code": None,
+            "source_company_name": None,
+            "source_process_unit_code": None,
+            "source_process_unit_name": None,
+            "source_sales_pool_code": None,
+            "source_sales_pool_name": None,
+            "source_customer_code": None,
+            "source_customer_name": None,
+            "source_project_code": None,
+            "source_project_name": None,
+        }
+
+    async def fetch(self, _query: str, *_args: object):
+        return []
+
+
+def test_gather_chat_sources_keeps_the_event_loop_responsive_during_body_normalization(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    order: list[str] = []
+    release = Event()
+
+    def blocking_normalize(_body: str, *, vision_client: object) -> SimpleNamespace:
+        del vision_client
+        order.append("normalization_started")
+        assert release.wait(timeout=1.0)
+        order.append("normalization_finished")
+        return SimpleNamespace(text="normalized body")
+
+    monkeypatch.setattr(
+        "backend.app.post_chat_ingestion.normalize_post_body",
+        blocking_normalize,
+    )
+
+    async def exercise() -> None:
+        loop = asyncio.get_running_loop()
+        timer = Timer(0.2, release.set)
+        timer.start()
+        loop.call_later(0.01, order.append, "event_loop_progress")
+        try:
+            sources = await gather_chat_sources(
+                _SourceConnection(),
+                "post-1",
+                lambda _row: True,
+            )
+            await asyncio.sleep(0)
+        finally:
+            release.set()
+            timer.cancel()
+        assert sources[0].post_body == "normalized body"
+
+    asyncio.run(exercise())
+
+    assert order.index("event_loop_progress") < order.index("normalization_finished")
 
 
 def test_normalize_question_rejects_empty_and_collapses_whitespace() -> None:
