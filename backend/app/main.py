@@ -1956,7 +1956,9 @@ async def extract_post_keymen(
             # tags dilute the model's attention and a base64 payload sent as
             # literal text either blows the token budget or is silently
             # ignored (see lineageweave/post_content_normalization.py).
-            post_body = normalize_post_body(raw_body, vision_client=_vision_client()).text
+            post_body = (
+                await asyncio.to_thread(normalize_post_body, raw_body, _vision_client())
+            ).text
             context_hints = await _load_post_semantic_hints(conn, post_id)
             mentions = await ingest_post_keymen(
                 conn,
@@ -2114,8 +2116,12 @@ async def evaluate_post(
             )
         async with pool.acquire() as conn:
             body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-        normalized_body = normalize_post_body(
-            "" if body_row is None else body_row["post_body"], vision_client=_vision_client()
+        normalized_body = (
+            await asyncio.to_thread(
+                normalize_post_body,
+                "" if body_row is None else body_row["post_body"],
+                _vision_client(),
+            )
         ).text
         async with pool.acquire() as conn:
             rows = await ingest_post_evaluation(
@@ -2315,7 +2321,7 @@ async def read_post_summary(
                     "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
                 )
             vision_client = _vision_client()
-            normalized = normalize_post_body(raw_body, vision_client=vision_client)
+            normalized = await asyncio.to_thread(normalize_post_body, raw_body, vision_client)
             settings = load_settings()
             embedding_client = _embedding_client()
             structure_client = _post_structure_client()
@@ -2735,7 +2741,9 @@ async def derive_post_commitment(
             )
         async with pool.acquire() as conn:
             body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-        normalized_body = normalize_post_body(body_row["post_body"], vision_client=_vision_client()).text
+        normalized_body = (
+            await asyncio.to_thread(normalize_post_body, body_row["post_body"], _vision_client())
+        ).text
         # TimeML/TempEval document creation time, not wall-clock now: "by next
         # Friday" in a January post must resolve to that January, not to the
         # Friday after the operator clicked Derive.
