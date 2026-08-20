@@ -15,6 +15,7 @@ from backend.app.post_content_queue import (
     QUEUED,
     RUNNING,
     SUCCEEDED,
+    requeue_failed_post_content_job,
     post_content_api_status,
     post_content_is_complete,
     post_content_stream_fields,
@@ -266,6 +267,38 @@ def test_recovery_query_carries_one_bounded_retry_interval() -> None:
     assert POST_CONTENT_RETRY_INTERVAL == timedelta(minutes=5)
     migration = (_ROOT / "migrations" / "0050_post_content_ingestion_queue.sql").read_text()
     assert "queued_at timestamptz not null" in migration
+
+
+def test_explicit_retry_resets_only_one_failed_job() -> None:
+    executed: list[tuple[str, tuple[object, ...]]] = []
+
+    class FakeConnection:
+        async def fetchrow(self, query: str, *_args: object):
+            assert "for update" in query
+            return {"status_code": FAILED}
+
+        async def fetchval(self, query: str, *_args: object) -> int:
+            assert "status_ordinal" in query
+            return 4
+
+        async def execute(self, query: str, *args: object) -> str:
+            executed.append((query, args))
+            return "UPDATE 1" if query.lstrip().startswith("update") else "INSERT 0 1"
+
+    request = asyncio.run(
+        requeue_failed_post_content_job(
+            FakeConnection(),
+            "00000000-0000-0000-0000-000000000001",
+            "current body",
+        )
+    )
+
+    assert request.status_code == QUEUED
+    assert request.should_publish is True
+    assert request.source_body_sha256 == source_body_sha256("current body")
+    assert len(executed) == 2
+    assert "attempt_count = 0" in executed[0][0]
+    assert executed[1][1][-1] == "operator requested an explicit post-content retry"
 
 
 def test_recovery_republishes_due_rows_in_queued_at_order() -> None:
