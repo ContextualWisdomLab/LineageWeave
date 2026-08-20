@@ -32,7 +32,7 @@ def _writes(
     return [
         arguments
         for query, arguments in connection.calls
-        if f"insert into {table_name}" in query
+        if f"insert into {table_name} (" in " ".join(query.split())
     ]
 
 
@@ -266,6 +266,7 @@ class _ReadConnection:
                     "parent_post_id": "post-a",
                     "child_post_id": "post-b",
                     "fused_score": 0.685,
+                    "lineage_reconstruction_run_id": "run-1",
                 }
             ]
         raise AssertionError(f"unexpected query: {query}")

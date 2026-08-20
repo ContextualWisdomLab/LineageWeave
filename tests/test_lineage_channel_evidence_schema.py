@@ -101,7 +101,7 @@ def test_migration_reapplies_and_creates_normalized_authority(evidence_schema_db
 def test_schema_rejects_invalid_weight_contribution_and_orphan_signal(
     evidence_schema_db,
 ) -> None:
-    run_id = uuid.uuid4()
+    run_id = str(uuid.uuid4())
     with evidence_schema_db.cursor() as cursor:
         cursor.execute(
             "insert into lineage_reconstruction_run "
@@ -125,7 +125,7 @@ def test_schema_rejects_invalid_weight_contribution_and_orphan_signal(
                 "(parent_post_id, child_post_id, channel_code, channel_score, "
                 "channel_contribution) values (%s, %s, "
                 "'lineage_channel_text', 0.5, 0.5)",
-                (uuid.uuid4(), uuid.uuid4()),
+                (str(uuid.uuid4()), str(uuid.uuid4())),
             )
     evidence_schema_db.rollback()
 
