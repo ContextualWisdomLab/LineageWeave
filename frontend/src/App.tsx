@@ -1704,6 +1704,7 @@ function PostDetailPopup({
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
   const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
+  const contentReloadRef = useRef<() => void>(() => undefined);
 
   function reloadKeymen() {
     fetchPostKeymen(accessToken, postId)
@@ -1770,6 +1771,7 @@ function PostDetailPopup({
           setImageContent([]);
           setStructureUnits([]);
         });
+    contentReloadRef.current = reloadContent;
     reloadContent();
     fetchPostBookmark(accessToken, postId)
       .then((r) => setBookmarked(r.bookmarked))
@@ -1802,6 +1804,9 @@ function PostDetailPopup({
     return () => {
       disposed = true;
       if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
+      if (contentReloadRef.current === reloadContent) {
+        contentReloadRef.current = () => undefined;
+      }
     };
   }, [postId, accessToken, liveBodyWarning, knowledgeCutoff]);
 
@@ -1811,7 +1816,10 @@ function PostDetailPopup({
     setSummaryError(null);
     fetchPostSummary(accessToken, postId)
       .then((value) => {
-        if (!disposed) setSummary(value);
+        if (!disposed) {
+          setSummary(value);
+          contentReloadRef.current();
+        }
       })
       .catch((err) => {
         if (disposed) return;

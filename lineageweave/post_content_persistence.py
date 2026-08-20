@@ -16,7 +16,11 @@ from .chunking import Chunk, chunk_by_source_body
 from .embedding_client import EmbeddingClient
 from .image_content import ImageContentClient, ImageDescription
 from .post_content_normalization import ImageContentResult, normalize_post_body
-from .post_structure import NullPostStructureClient, PostStructureClient, StructureDecision
+from .post_structure import (
+    NullPostStructureClient,
+    PostStructureClient,
+    StructureDecision,
+)
 
 _LLM_BATCH_MAX_UNITS = 32
 _LLM_BATCH_MAX_CHARS = 24_000
@@ -24,10 +28,12 @@ _STRUCTURE_UNIT_MAX_CHARS = 8_000
 _BatchKey = TypeVar("_BatchKey")
 
 
-def _bounded_unit_batches(units: list[tuple[_BatchKey, str]]) -> list[list[tuple[_BatchKey, str]]]:
+def _bounded_unit_batches(  # noqa: UP047 - retain Python 3.10 compatibility.
+    units: list[tuple[_BatchKey, str]],
+) -> list[list[tuple[_BatchKey, str]]]:
     """Keep provider requests bounded without changing persisted source units."""
-    batches: list[list[tuple[int, str]]] = []
-    batch: list[tuple[int, str]] = []
+    batches: list[list[tuple[_BatchKey, str]]] = []
+    batch: list[tuple[_BatchKey, str]] = []
     batch_chars = 0
     for unit in units:
         unit_chars = len(unit[1])
@@ -133,7 +139,7 @@ async def persist_post_content(
         if width > 0:
             structure_by_index[chunk.index] = StructureDecision(
                 unit_index=chunk.index,
-                    indent_level=explicit_levels[width],
+                indent_level=explicit_levels[width],
                 confidence=1.0,
                 evidence="Explicit HTML, CSS, or OOXML indentation.",
                 source_code="explicit",
@@ -162,7 +168,7 @@ async def persist_post_content(
                 for decision in decisions:
                     if decision.unit_index in unresolved_indexes:
                         structure_by_index[decision.unit_index] = decision
-            except Exception:  # noqa: BLE001 - failed batches remain unresolved for retry.
+            except (OSError, RuntimeError, ValueError):
                 continue
     for chunk in unresolved:
         structure_by_index.setdefault(
@@ -200,7 +206,7 @@ async def persist_post_content(
                         for value in vector
                     ):
                         vectors[embedding_key] = [float(value) for value in vector]
-            except Exception:  # noqa: BLE001 - failed batches remain absent for retry.
+            except (OSError, RuntimeError, ValueError):
                 continue
 
     async with conn.transaction():
