@@ -15,6 +15,10 @@ only the panels would instead lose text outside them.
 
 - Keep every valid, bounded locator region even when the collection does not
   cover the full image.
+- Before cropping or persistence, discard locator boxes that are non-finite,
+  zero-sized, negative, or extend outside the normalized image bounds. If no
+  bounded region remains, use the parent-sized fallback rather than treating
+  malformed provider output as buyer evidence.
 - Describe each retained region independently and persist its coordinates and
   status as before.
 - For a partial collection, also describe the original parent image once so
