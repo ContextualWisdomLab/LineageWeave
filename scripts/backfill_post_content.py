@@ -22,57 +22,12 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.embedding_client import NullEmbeddingClient, orchestrator_embedding_client
 from lineageweave.image_content import NullImageContentClient, orchestrator_vision_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
 from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
-
-
-_SELECT_POSTS_BY_ID_QUERY = f"""
-select post.post_id
-  from source_post post
- where {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
-   and post.post_id = any($1::uuid[])
- order by post.created_at, post.post_id
- limit $2::bigint
-"""
-
-_SELECT_POSTS_WITHOUT_UNITS_QUERY = f"""
-select post.post_id
-  from source_post post
- where {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
-   and not exists (
-       select 1 from post_content_unit unit
-        where unit.post_id = post.post_id
-   )
- order by post.created_at, post.post_id
- limit $1::bigint
-"""
-
-_SELECT_POSTS_WITH_MISSING_CONTENT_QUERY = f"""
-select post.post_id
-  from source_post post
- where {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
-   and (
-       not exists (
-           select 1 from post_content_unit unit
-            where unit.post_id = post.post_id
-       )
-       or exists (
-           select 1
-             from post_content_unit unit
-             left join post_content_embedding embedding
-               on embedding.post_content_unit_id = unit.post_content_unit_id
-            where unit.post_id = post.post_id
-              and embedding.post_content_unit_id is null
-       )
-   )
- order by post.created_at, post.post_id
- limit $1::bigint
-"""
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -139,12 +94,90 @@ async def backfill_post_content(
         )
     conn = await asyncpg.connect(target_dsn)
     try:
-        if post_ids:
-            selected_rows = await conn.fetch(_SELECT_POSTS_BY_ID_QUERY, post_ids, limit)
-        elif normalize_only:
-            selected_rows = await conn.fetch(_SELECT_POSTS_WITHOUT_UNITS_QUERY, limit)
-        else:
-            selected_rows = await conn.fetch(_SELECT_POSTS_WITH_MISSING_CONTENT_QUERY, limit)
+        selected_rows = await conn.fetch(
+            """
+            select post.post_id
+              from source_post post
+             where nullif(btrim(post.source_draft_code), '') is null
+               and nullif(btrim(post.source_deleted_flag), '') is null
+               and not (
+                   (
+                       nullif(btrim(post.source_author_code), '') is null
+                       and nullif(btrim(post.source_author_name), '') is null
+                       and nullif(btrim(post.source_company_code), '') is null
+                       and nullif(btrim(post.source_company_name), '') is null
+                       and nullif(btrim(post.source_process_unit_code), '') is null
+                       and nullif(btrim(post.source_process_unit_name), '') is null
+                       and nullif(btrim(post.source_sales_pool_code), '') is null
+                       and nullif(btrim(post.source_sales_pool_name), '') is null
+                       and nullif(btrim(post.source_customer_code), '') is null
+                       and nullif(btrim(post.source_customer_name), '') is null
+                       and nullif(btrim(post.source_project_code), '') is null
+                       and nullif(btrim(post.source_project_name), '') is null
+                   )
+                   and exists (
+                       select 1
+                         from source_post real_post
+                        where (
+                            nullif(btrim(real_post.source_author_code), '') is not null
+                            or nullif(btrim(real_post.source_author_name), '') is not null
+                            or nullif(btrim(real_post.source_company_code), '') is not null
+                            or nullif(btrim(real_post.source_company_name), '') is not null
+                            or nullif(btrim(real_post.source_process_unit_code), '') is not null
+                            or nullif(btrim(real_post.source_process_unit_name), '') is not null
+                            or nullif(btrim(real_post.source_sales_pool_code), '') is not null
+                            or nullif(btrim(real_post.source_sales_pool_name), '') is not null
+                            or nullif(btrim(real_post.source_customer_code), '') is not null
+                            or nullif(btrim(real_post.source_customer_name), '') is not null
+                            or nullif(btrim(real_post.source_project_code), '') is not null
+                            or nullif(btrim(real_post.source_project_name), '') is not null
+                        )
+                   )
+               )
+               and (
+                   (
+                       $1::uuid[] is not null
+                       and post.post_id = any($1::uuid[])
+                   )
+                   or (
+                       $1::uuid[] is null
+                       and (
+                           (
+                               $2::boolean
+                               and not exists (
+                                   select 1
+                                     from post_content_unit unit
+                                    where unit.post_id = post.post_id
+                               )
+                           )
+                           or (
+                               not $2::boolean
+                               and (
+                                   not exists (
+                                       select 1
+                                         from post_content_unit unit
+                                        where unit.post_id = post.post_id
+                                   )
+                                   or exists (
+                                       select 1
+                                         from post_content_unit unit
+                                         left join post_content_embedding embedding
+                                           on embedding.post_content_unit_id = unit.post_content_unit_id
+                                        where unit.post_id = post.post_id
+                                          and embedding.post_content_unit_id is null
+                                   )
+                               )
+                           )
+                       )
+                   )
+               )
+             order by post.created_at, post.post_id
+             limit $3::bigint
+            """,
+            post_ids or None,
+            normalize_only,
+            limit,
+        )
         if post_ids and len(selected_rows) != len(post_ids):
             raise ValueError("one or more requested post IDs were not found")
 
