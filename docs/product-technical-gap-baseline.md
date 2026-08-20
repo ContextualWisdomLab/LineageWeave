@@ -426,13 +426,14 @@ are not release evidence.
 | #323 | `main` -> `fix/tepp-request-contract-validation` | `1a27efec6863cd3439a4c6023e1c625ce4d7abf2` | `REVIEW_REQUIRED`, `BLOCKED`; required Checks queued |
 | #322 | `fix/stale-summary-buyer-continuity` -> `feat/orchestrator-owned-embedding-consumer` | `a6a1d8fe8b17ad095e507f5d16b93c984e6de5db` | `UNSTABLE`; Full test and frontend Checks queued |
 | #320 | `codex/normalize-source-indent-semantics` -> `codex/preserve-partial-image-regions` | `41d164c570fe232cc1e38a766439e4093d80cb84` | `UNSTABLE`; stacked visual evidence change |
-| #324 | `codex/preserve-partial-image-regions` -> `fix/validate-partial-image-regions` | `a4627d6e1d04b4782a696c74d67303e1143038e0` | `UNSTABLE`; Full test and frontend Checks queued |
+| #324 | `codex/preserve-partial-image-regions` -> `fix/validate-partial-image-regions` | `3a335ad493a260c5f623797288138472a15210cb` | `UNSTABLE`; Full test and frontend Checks queued |
 | #325 | `fix/validate-partial-image-regions` -> `docs/current-gap-audit` | `ec47fbfac5a02ed58980dace6180da5af6e9f5a3` | `UNKNOWN`; Full test, frontend, and Devin Review pending |
 | #789 | `main` -> contextual-orchestrator embedding capability branch | `3a80d91b8c879e57d30ab87af664546b8712fb15` | `REVIEW_REQUIRED`, `BLOCKED`; upstream Checks queued |
 
 The current implementation checkpoints are local/branch evidence only:
-LineageWeave embedding model discovery is recorded in ADR 0118, and visual
-locator validation is stacked in #324. Exact-head OpenCode review requests were
+The LineageWeave consumer-side embedding model discovery change is proposed in
+PR #322; its ADR 0118 is intentionally not claimed as present on this stacked
+branch. Visual locator validation is stacked in #324. Exact-head OpenCode review requests were
 issued for #258, #322, #323, #324, and upstream #789. No protected branch was
 approved, force-pushed, or merged from this audit.
 
