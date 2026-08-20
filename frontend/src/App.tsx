@@ -3574,6 +3574,7 @@ function PostList({
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [vocTypeFilterOptions, setVocTypeFilterOptions] = useState<PostFilterOption[]>([]);
   const [weekFilter, setWeekFilter] = useState("all");
+  const [isoWeekFilterOptions, setIsoWeekFilterOptions] = useState<string[]>([]);
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
@@ -3667,6 +3668,7 @@ function PostList({
       setTotalPosts(response.total_count);
       setVocTypeFilterOptions(response.voc_type_options ?? []);
       setVisibilityFilterOptions(response.visibility_options ?? []);
+      setIsoWeekFilterOptions(response.iso_week_options ?? []);
       setCurrentPage(page);
     } catch (err) {
       if (requestId !== postsRequest.current) return;
@@ -3760,13 +3762,15 @@ function PostList({
     });
   const weeklyVocActive =
     typeFilter.length === 1 && typeFilter[0] === "voc" && weekFilter !== "all";
-  const weekOptions = Array.from(
-    new Set(
-      loadedPosts
-        .map((post) => isoWeekFromCreatedAt(post.created_at))
-        .filter((week): week is string => Boolean(week)),
-    ),
-  ).sort((left, right) => right.localeCompare(left));
+  const weekOptions = isoWeekFilterOptions.length
+    ? isoWeekFilterOptions
+    : Array.from(
+        new Set(
+          loadedPosts
+            .map((post) => isoWeekFromCreatedAt(post.created_at))
+            .filter((week): week is string => Boolean(week)),
+        ),
+      ).sort((left, right) => right.localeCompare(left));
   const applyWeeklyVoc = async () => {
     try {
       const latestVocPage = await fetchPosts(
@@ -3783,6 +3787,7 @@ function PostList({
       );
       setTypeFilter(["voc"]);
       setWeekFilter(vocWeek ?? "all");
+      setSortOrder("newest");
       setCurrentPage(1);
       setError(null);
     } catch (err) {

@@ -1371,6 +1371,7 @@ def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, 
     assert {option["code"] for option in payload["voc_type_options"]} == {"voc"}
     assert {option["code"] for option in payload["visibility_options"]} == {"public", "private"}
     assert next(option for option in payload["visibility_options"] if option["code"] == "public")["label"] == "Public"
+    assert set(payload["iso_week_options"]) == {"2026-W02", "2026-W04"}
 
 
 def test_post_list_supports_bounded_offset_pages(client, demo_analyst_token, seeded_db) -> None:

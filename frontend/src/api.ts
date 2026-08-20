@@ -39,6 +39,7 @@ export interface PostPage {
   offset: number;
   voc_type_options?: PostFilterOption[];
   visibility_options?: PostFilterOption[];
+  iso_week_options?: string[];
 }
 
 export interface PostFilterOption {

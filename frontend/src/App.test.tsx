@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { setLocale } from "./i18n";
+import { isoWeekFromCreatedAt } from "./isoWeek";
 
 const signinRedirect = vi.fn();
 const signoutRedirect = vi.fn();
@@ -106,6 +107,7 @@ describe("App, authenticated", () => {
       visibility_label?: string;
       created_at: string;
     };
+    isoWeekOptions?: string[];
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -1062,6 +1064,13 @@ describe("App, authenticated", () => {
               },
               ...(options?.boardPosts ?? []),
             ];
+        const isoWeekOptions = options?.isoWeekOptions ?? Array.from(
+          new Set(
+            boardPosts
+              .map((post) => isoWeekFromCreatedAt(post.created_at))
+              .filter((week): week is string => Boolean(week)),
+          ),
+        ).sort((left, right) => right.localeCompare(left));
         return Promise.resolve(
           jsonResponse(
             postsUrl.searchParams.get("search")
@@ -1076,6 +1085,7 @@ describe("App, authenticated", () => {
                     { code: "vop", label: "Voice of Partner" },
                   ],
                   visibility_options: [{ code: "public", label: "Public" }],
+                  iso_week_options: isoWeekOptions,
                 },
           ),
         );
@@ -1819,10 +1829,12 @@ describe("App, authenticated", () => {
     expect(within(board).getByRole("button", { name: "View post: Older Voice of Customer" })).toBeInTheDocument();
 
     const weeklyVoc = within(board).getByRole("button", { name: "Weekly VOC" });
+    await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "title");
     expect(weeklyVoc).toHaveAttribute("aria-pressed", "false");
     await userEvent.click(weeklyVoc);
 
     expect(weeklyVoc).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => expect(within(board).getByLabelText("Sort posts")).toHaveValue("newest"));
     expect(within(board).getByLabelText("Filter by ISO week")).toHaveValue("2026-W01");
     expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
     expect(within(board).queryByRole("button", { name: "View post: Internal memo" })).not.toBeInTheDocument();
@@ -1837,6 +1849,14 @@ describe("App, authenticated", () => {
     expect(weeklyVoc).toHaveAttribute("aria-pressed", "false");
     expect(within(board).getByRole("button", { name: "View post: Internal memo" })).toBeInTheDocument();
     expect(within(board).getByRole("button", { name: "View post: Older Voice of Customer" })).toBeInTheDocument();
+  });
+
+  it("shows authorized ISO weeks supplied by the API even when a week is outside the loaded page", async () => {
+    stubBackend({ isoWeekOptions: ["2026-W08", "2026-W01"] });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(within(board).getByRole("option", { name: "2026-W08" })).toBeInTheDocument();
   });
 
   it("gets the Weekly VOC week from the authorized newest VOC post, not the loaded page", async () => {

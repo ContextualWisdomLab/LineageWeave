@@ -541,7 +541,7 @@ async def _lookup_post_labels(conn: asyncpg.Connection, rows: list[asyncpg.Recor
 
 async def _post_filter_options(
     conn: asyncpg.Connection, corporate_entity_ids: frozenset[str]
-) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+) -> tuple[list[dict[str, str]], list[dict[str, str]], list[str]]:
     """Return every authorized filter value, not only values on the current page."""
     visibility_sql = f"""
         select distinct post.visibility_code as code,
@@ -569,6 +569,15 @@ async def _post_filter_options(
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
+    week_sql = f"""
+        select distinct to_char(post.created_at at time zone 'UTC', 'IYYY-"W"IW') as iso_week
+          from source_post post
+         where (post.visibility_code = 'public'
+            or post.corporate_entity_id::text = any($1::text[]))
+           and post.created_at is not null
+           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+         order by iso_week desc
+    """
     # Safe SQL: both query strings are closed lookup statements; entity ids remain asyncpg parameters.
     visibility_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         visibility_sql, list(corporate_entity_ids)
@@ -577,9 +586,13 @@ async def _post_filter_options(
     type_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         type_sql, list(corporate_entity_ids)
     )
+    week_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        week_sql, list(corporate_entity_ids)
+    )
     return (
         [{"code": row["code"], "label": row["label"]} for row in type_rows],
         [{"code": row["code"], "label": row["label"]} for row in visibility_rows],
+        [row["iso_week"] for row in week_rows],
     )
 
 
@@ -1101,7 +1114,7 @@ async def list_posts(
     _require_post_read(account)
     search_term = search.strip() if search and search.strip() else None
     async with pool.acquire() as conn:
-        voc_type_options, visibility_options = await _post_filter_options(
+        voc_type_options, visibility_options, iso_week_options = await _post_filter_options(
             conn, account.corporate_entity_ids
         )
         body_search_ids: list[str] = []
@@ -1362,6 +1375,7 @@ async def list_posts(
         "offset": offset,
         "voc_type_options": voc_type_options,
         "visibility_options": visibility_options,
+        "iso_week_options": iso_week_options,
     }
 
 
