@@ -83,6 +83,5 @@ Event Lineage takes focus and names Keyman and evaluation next
 
 Open Calendar. Authorized commitments are current. Open a commitment:
 Event Lineage takes focus and names Keyman and evaluation next
-(ADR 0072). A home-list open does not. Do not invent a theta or a
+(ADR 0094). A home-list open does not. Do not invent a theta or a
 CalDAV event.
-

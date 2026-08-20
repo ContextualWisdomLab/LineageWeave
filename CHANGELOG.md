@@ -12,7 +12,7 @@ All notable changes to this project are documented here. Format follows
   and evaluation as the next read. Calendar names authorized commitments
   as current before that open. Home-list opens do not add that focus or
   copy. No TEPP theta is invented. No cutoff body is invented
-  (ADR 0072 / ADR 0016).
+  (ADR 0094 / ADR 0016).
 
 ## [2.13.0] - 2026-08-19
 

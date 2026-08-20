@@ -282,7 +282,7 @@ Keycloak issued; `src/App.tsx` renders a git-branch SVG of
 `GET /api/lineage` (click a node to open that post; `post_admin` can
 rebuild), the post list with a named Weekly VOC ISO-8601 week filter
 (ADR 0092; opening that filtered post focuses Event Lineage, ADR 0093),
-Calendar commitments use the same Event Lineage focus path (ADR 0072),
+Calendar commitments use the same Event Lineage focus path (ADR 0094),
 and a full detail popup: Korean
 summary/key-events/R&R, VOC evidence excerpts, an Event Lineage panel
 (direct vs. indirect links; a link opens that post), the Keyman

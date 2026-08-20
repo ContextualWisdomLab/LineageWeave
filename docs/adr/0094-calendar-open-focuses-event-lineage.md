@@ -1,11 +1,11 @@
-# ADR 0072: Opening a Calendar commitment focuses Event Lineage
+# ADR 0094: Opening a Calendar commitment focuses Event Lineage
 
 - Status: Accepted
 - Date: 2026-08-19
 
 ## Context
 
-Board Weekly VOC opens already focus Event Lineage (ADR 0071). Calendar is
+Board Weekly VOC opens already focus Event Lineage (ADR 0093). Calendar is
 the other buyer destination that opens a source post from an authorized
 commitment. That open was a home-list open: the popup body appeared and
 Event Lineage did not take focus.
