@@ -83,6 +83,7 @@ export interface PostImageRegion {
 }
 
 export interface PostContentResponse {
+  status?: "ready" | "processing" | "unavailable";
   units: PostContentUnit[];
   images: PostImageContent[];
 }

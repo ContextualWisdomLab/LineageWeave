@@ -1729,15 +1729,25 @@ function PostDetailPopup({
     setFocusPerson(null);
     setFocusEntity(null);
     setFocusTeam(null);
+    let disposed = false;
+    let contentPollTimer: number | undefined;
     const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
     fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
         .then((content) => {
+          if (disposed) return;
           setImageContent(content.images);
           setStructureUnits(content.units);
+          if (content.status === "processing" && contentPollTimer === undefined) {
+            contentPollTimer = window.setTimeout(() => {
+              contentPollTimer = undefined;
+              reloadContent();
+            }, 2000);
+          }
         })
         .catch(() => {
+          if (disposed) return;
           setImageContent([]);
           setStructureUnits([]);
         });
@@ -1779,6 +1789,10 @@ function PostDetailPopup({
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
     fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+    return () => {
+      disposed = true;
+      if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
+    };
   }, [postId, accessToken, liveBodyWarning, knowledgeCutoff]);
 
   const permanentLink = (() => {

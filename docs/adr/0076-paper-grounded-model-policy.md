@@ -50,6 +50,12 @@ provider's model names as universally better.
    exception. Provider-specific protocol and capability translation belongs
    to contextual-orchestrator.
 
+   The official MLX documentation describes MLX as an Apple-Silicon array
+   framework with Python, C++, and Swift APIs, not as this product's provider
+   gateway contract. A local MLX or `mlx-vlm` runtime may therefore appear in
+   private diagnostic evidence, but it cannot be a LineageWeave configuration,
+   routing, or capability contract.
+
 ## Consequences
 
 - ADR 0072's first-catalog-model behavior is historical and non-normative.
@@ -65,3 +71,5 @@ provider's model names as universally better.
 - Sakana AI. (2026). *Fugu technical report*.
 - [TRINITY: An Evolved LLM Coordinator](https://arxiv.org/abs/2512.04695).
 - [Learning to Orchestrate Agents in Natural Language with the Conductor](https://arxiv.org/abs/2512.04388).
+- [MLX official repository](https://github.com/ml-explore/mlx).
+- [MLX official documentation](https://ml-explore.github.io/mlx/).
