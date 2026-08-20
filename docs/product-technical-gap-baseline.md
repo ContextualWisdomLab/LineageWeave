@@ -634,3 +634,15 @@ The next action is to wait for the exact-head Checks/review gate while
 revalidating the dependent stack from #260 in base order. Do not merge #258 or
 restack a descendant until the formal approval, terminal Checks, and exact
 dependency head are independently confirmed.
+
+## Exact-head image-evidence checkpoint: 2026-08-21 08:36 KST
+
+PR #309 advanced to `d8a938cd6e7e72b8bc0a7b11149afcfcc7820270` after the exact
+head review identified and covered two low-severity buyer-surface edges: a
+small floating-point tolerance at valid image boundaries and deselection when
+the active overlay is clicked again. The exact frontend tree passed `137
+passed`, lint, TypeScript build, and Storybook build. Hosted checks and Devin
+Review are running for this new head; no protected merge claim is made.
+
+The next action is to reconcile the new #309 checks and formal approval against
+its current base before any dependent merge or restack.
