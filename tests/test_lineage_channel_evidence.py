@@ -177,7 +177,8 @@ def test_channel_score_migration_is_normalized_bounded_and_reversible() -> None:
         encoding="utf-8"
     )
 
-    assert "create table lineage_edge_channel_score" in migration
+    assert "create table if not exists lineage_edge_channel_score" in migration
+    assert "create index if not exists lineage_edge_channel_score_channel_idx" in migration
     assert "primary key (parent_post_id, child_post_id, channel_code)" in migration
     assert "references post_lineage_edge" in migration
     assert "on delete cascade" in migration
