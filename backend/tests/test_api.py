@@ -115,6 +115,9 @@ _LINEAGE_REBUILD_JOB_MIGRATION = (
     / "migrations"
     / "0053_lineage_rebuild_job.sql"
 )
+_MAJOR_EVENT_ACTION_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0100_major_event_action.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -228,6 +231,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_ORGANIZATION_CONTEXT_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_CONTEXT_MIGRATION.read_text())
             cur.execute(_LINEAGE_REBUILD_JOB_MIGRATION.read_text())
+            cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
