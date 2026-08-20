@@ -19,6 +19,7 @@ SQL_REVIEW_PATHS = (
     "backend/app/entity_relationship_ingestion.py",
     "backend/app/knowledge_graph.py",
     "backend/app/main.py",
+    "backend/app/post_chat_ingestion.py",
     "backend/app/report_ingestion.py",
     "backend/app/tepp_project_history.py",
     "lineageweave/synthetic_seed_cleanup.py",

@@ -203,7 +203,7 @@ async def fetch_project_history_rows(
     can_see: Callable[[Mapping[str, Any]], bool],
 ) -> list[dict[str, Any]]:
     """Load a bounded, project-coherent, ABAC-visible source evidence set."""
-    # Safe SQL: the template is repository-owned, the alias is the fixed literal source_post, and every runtime value uses asyncpg parameters.
+    # Safe SQL: the eligibility predicate and alias are immutable module constants; post id is bound.
     focus = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select post_id, post_title, post_body, voc_type_code, visibility_code,
@@ -220,7 +220,7 @@ async def fetch_project_history_rows(
         return []
     project_code = str(focus["source_project_code"] or "").strip() or None
     grouping_key = str(focus["secondary_grouping_key"] or "").strip() or None
-    # Safe SQL: the template is repository-owned, the alias is the fixed literal post, and all source identifiers/clocks use asyncpg parameters.
+    # Safe SQL: the eligibility predicate and alias are immutable module constants; all values are bound.
     rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select post.post_id, post.post_title, post.voc_type_code,

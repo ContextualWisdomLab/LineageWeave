@@ -446,7 +446,12 @@ def seeded_db(demo_analyst_token):
                 "Ada West at Test Corp followed up with Priya Nair at Northridge Grid about the delayed shipment. "
                 "The weather in Gwangju was irrelevant.",
             )
-            other_private_post_id = _insert_post("Other-corp private post", other_corp_id, "private")
+            other_private_post_id = _insert_post(
+                "Other-corp private post",
+                other_corp_id,
+                "private",
+                created_at="2026-02-03T12:00:00Z",
+            )
             late_own_private_post_id = _insert_post(
                 "Late own-corp private post",
                 own_corp_id,
@@ -1389,6 +1394,8 @@ def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, 
     assert {option["code"] for option in payload["voc_type_options"]} == {"voc"}
     assert {option["code"] for option in payload["visibility_options"]} == {"public", "private"}
     assert next(option for option in payload["visibility_options"] if option["code"] == "public")["label"] == "Public"
+    assert set(payload["iso_week_options"]) == {"2026-W02", "2026-W04"}
+    assert "2026-W06" not in payload["iso_week_options"]
 
 
 def test_post_list_supports_bounded_offset_pages(client, demo_analyst_token, seeded_db) -> None:
@@ -1407,6 +1414,15 @@ def test_post_list_supports_bounded_offset_pages(client, demo_analyst_token, see
     )
     assert title_sorted.status_code == 200, title_sorted.text
     assert title_sorted.json()["posts"][0]["post_title"] == "Edited own-corp private post"
+
+    week_filtered = client.get(
+        "/api/posts?iso_week=2026-W04",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert week_filtered.status_code == 200, week_filtered.text
+    assert [post["post_title"] for post in week_filtered.json()["posts"]] == [
+        "Late own-corp private post"
+    ]
 
     invalid_sort = client.get(
         "/api/posts?sort=unsupported",
