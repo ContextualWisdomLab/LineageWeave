@@ -1,4 +1,4 @@
-# ADR 0092: Use a durable PostgreSQL ledger with Valkey wake-ups for post-content ingestion
+# ADR 0098: Use a durable PostgreSQL ledger with Valkey wake-ups for post-content ingestion
 
 - Status: Accepted
 - Date: 2026-08-20
