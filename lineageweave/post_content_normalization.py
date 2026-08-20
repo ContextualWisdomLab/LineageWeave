@@ -166,22 +166,23 @@ def _describe_image_chunk(
         except Exception:  # noqa: BLE001 - locator failure falls back to whole-image evidence.
             regions = ()
         if not regions_cover_image(regions):
-            # A provider may return only a salient crop even when the contract asks for
-            # full-image coverage. Preserve the missing evidence with one bounded region.
-            regions = (ImageRegion(0.0, 0.0, 1.0, 1.0),)
+            # A partial or missing locator result is not a region. Preserve parent-image
+            # evidence below without inventing full-image coordinates.
+            regions = ()
         # ponytail: serialize per-post VISION calls; nested image/region pools
         # overwhelmed the gateway and turned valid region evidence into failures.
         # Reintroduce bounded concurrency only after provider capacity is measured.
-        region_results.extend(
-            _describe_image_region(
-                region_index,
-                chunk.image_data,
-                chunk.label,
-                region,
-                vision_client,
+        if regions:
+            region_results.extend(
+                _describe_image_region(
+                    region_index,
+                    chunk.image_data,
+                    chunk.label,
+                    region,
+                    vision_client,
+                )
+                for region_index, region in enumerate(regions)
             )
-            for region_index, region in enumerate(regions)
-        )
         successful_regions = [
             item.description for item in region_results if item.description is not None
         ]

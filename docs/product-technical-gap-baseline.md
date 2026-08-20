@@ -1,11 +1,12 @@
 # Product, technical, and gap baseline
 
-**Snapshot:** 2026-08-20 18:33 (Asia/Seoul)
-**Protected-main baseline:** `origin/main`, product version `2.12.5`  
-**Audited PR head:** #258 at `f8d2fa98d622e4294cf08f24a87a7db697479f4f` (semantic source-unit boundaries and the preceding queue, ontology, and review fixes)
-**Active PR update:** The current #258 head has local backend `716 passed, 16 skipped`
-and frontend lint, 129 tests, build, and Storybook build passing; protected-main
-runtime evidence, formal approval, and required GitHub Checks remain pending.
+**Snapshot:** 2026-08-21 05:46 (Asia/Seoul)
+**Protected-main baseline:** `origin/main`, product version `2.12.5`
+**Audited PR head:** #258 at `b83be708a9dc705df7485e1b18e779439bfb7b71` (current exact branch head; protected-main runtime evidence remains pending)
+**Active PR update:** Hosted Full test, frontend, PROV-O, CodeQL, SAST, supply-chain,
+and security Checks are successful on the current #258 head; Devin Review is
+failed and the OpenCode coverage check remains pending. Formal approval and
+protected-main acceptance are still required.
 **Purpose:** connect the normative ADRs and research evidence to product
 requirements, technical contracts, implementation evidence, and active PRs.
 An active PR is proposed work, not shipped behavior.
@@ -379,7 +380,7 @@ ADR 0115. PR #311 remains an active stacked delivery candidate; its required
 checks and formal approval must be rechecked at the exact current head before
 any protected merge claim.
 
-## Source-only indentation checkpoint: 2026-08-20
+ ## Source-only indentation checkpoint: 2026-08-20
 
 The semantic-unit parser now keeps source leading whitespace and declared
 HTML/CSS/OOXML or list-container indentation as separate evidence. Visual
@@ -395,3 +396,90 @@ nesting in the buyer view.
 - Integration status: PR #319 is not protected-main truth; exact parent head,
   formal review, terminal Checks, and post-merge browser evidence remain
   required.
+
+ ## Image locator and buyer table checkpoint: 2026-08-20
+
+A first bounded private reprocessing run completed five parent-image
+descriptions and five region embeddings, but aggregate inspection found five
+full-image boxes, zero decomposed boxes, and four described region rows. Those
+boxes were emitted by the locator and were not evidence of five meaningful
+regions. After the full-image guard was deployed, a second bounded run
+completed five parent-image descriptions, zero region rows, zero region
+embeddings, and 21 total unit/image embedding rows. The final aggregate was
+zero full-image boxes, zero decomposed boxes, and zero described region rows.
+The parent image channel is usable; detailed visual decomposition remains an
+unproven capability rather than a fabricated success.
+
+The normalization path now preserves that distinction: an invalid, partial, or
+single full-image locator response keeps parent-image OCR/caption evidence but
+does not invent a full-image region row. Buyer OCR that preserves consistent
+pipe-delimited rows is rendered as an HTML table, while ordinary OCR remains
+readable text. ADRs 0077 and 0110 record these boundaries. The gateway emitted
+BrokenPipe errors after timed-out client calls during the bounded run, so the
+locator/region latency budget remains an open operational gap.
+
+## Live protected-gate checkpoint: 2026-08-20 22:30 KST
+
+The live repository scan found 35 open pull requests, including two drafts, and
+zero formal `APPROVED` reviews at their observed heads. Therefore no pull
+request is represented here as protected-main truth or as merge-ready.
+
+PR #270's exact head retained its application checks as successful, but the
+external Strix job failed closed after GitHub Models returned HTTP 410 for a
+scheduled retirement brownout. The failed job was re-requested directly against
+that same head and is queued for revalidation; this is provider availability
+evidence, not a source finding and not permission to bypass Strix.
+
+PR #282's exact-head review request was corrected after an earlier comment
+contained a stale SHA. Its duplicate ADR-number repair passed the local full
+backend suite (`776 passed, 16 skipped`), while the remote Checks remain queued.
+
+The central `.github` scheduler source and focused tests confirm that stacked
+pull requests can dispatch the required OpenCode review through the central
+repository when the same-repository dispatch credential is present. Current
+central dispatch runs are queued by Actions capacity; queue presence is not
+treated as approval, a successful review, or a merge result.
+
+This checkpoint is an operational snapshot only. Recompute exact head, formal
+review, required Checks, dependency order, and post-merge SHA immediately before
+any protected merge.
+
+## Exact-head validation checkpoint: 2026-08-20 22:45 KST
+
+The current stacked delivery head `efd4aab2` passed the local validation matrix:
+the backend suite completed with `731 passed, 16 skipped`, frontend lint passed,
+Vitest completed with `133 passed`, and the production Vite and Storybook builds
+completed successfully. These results cover the checked-out stack only; the
+remote PR Checks for #311 remain queued and no independent formal approval is
+present.
+
+The current branch is clean and its local HEAD equals the remote branch HEAD.
+The product baseline therefore records these results as reproducible delivery
+evidence, not as protected-main release evidence.
+
+## Live browser acceptance checkpoint: 2026-08-20 22:55 KST
+
+Against the running Compose stack, a Playwright browser completed the synthetic
+OIDC login round trip, loaded a 50-item authorized board page, opened the first
+post-detail popup, waited for its asynchronous evidence projection, and closed
+the popup. The rendered popup contained 14 sections and 15 headings; the
+observed `/api/me`, `/api/posts`, and detail/lineage calls returned HTTP 200.
+No source identifier, title, body, or person name is stored in this baseline.
+
+This proves the login-to-list-to-popup interaction for the current local
+runtime only. It does not prove that the same journey is available on
+protected-main, that private records are universally authorized, or that the
+remote PR Checks have completed.
+
+## Live gate refresh: 2026-08-20 22:54 KST
+
+The current REST audit still finds 35 open pull requests and 12 open issues;
+no current-head independent approval is available for the active merge queue.
+PR #311 is open at `82b7b395` with both required Tests checks queued. PR #258 is
+open at `49804b0f`; its current `Analyze (python)` check is queued and its merge
+state is blocked. Earlier SQL/SAST comments are bound to predecessor commits,
+so they are not treated as current-head failures without a fresh matching scan.
+
+ The current evidence supports continued review/check processing, not a merge
+ claim. Re-read the exact head, current review commit, all required Checks, and
+ stack dependency immediately before any protected merge.
