@@ -1596,6 +1596,10 @@ const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   ticket_created: "Ticket created",
   ticket_status_changed: "Status changed",
   commitment_derived: "Commitment derived",
+  keymen_extracted: "Keymen extracted",
+  relations_verified: "Relations verified",
+  post_evaluated: "Post evaluated",
+  chat_answered: "Chat answered",
 };
 
 function activityTypeLabel(eventType: string): string {
@@ -1761,6 +1765,8 @@ function PostDetailPopup({
     setFocusPerson(null);
     setFocusEntity(null);
     setFocusTeam(null);
+    let disposed = false;
+    let contentPollTimer: number | undefined;
     const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
     fetchPost(accessToken, postId, asOf)
       .then((value) => {
@@ -1772,12 +1778,18 @@ function PostDetailPopup({
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
         .then((content) => {
-          if (!isCurrent()) return;
+          if (disposed || !isCurrent()) return;
           setImageContent(content.images);
           setStructureUnits(content.units);
+          if (content.status === "processing" && contentPollTimer === undefined) {
+            contentPollTimer = window.setTimeout(() => {
+              contentPollTimer = undefined;
+              reloadContent();
+            }, 2000);
+          }
         })
         .catch(() => {
-          if (!isCurrent()) return;
+          if (disposed || !isCurrent()) return;
           setImageContent([]);
           setStructureUnits([]);
         });
@@ -1855,6 +1867,8 @@ function PostDetailPopup({
       });
 
     return () => {
+      disposed = true;
+      if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
       if (isCurrent()) detailRequestGeneration.current = generation + 1;
     };
   }, [postId, accessToken, liveBodyWarning, knowledgeCutoff]);
@@ -4409,7 +4423,7 @@ function CustomerMasterPanel({
     } catch {
       setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
     } finally {
-      setRelatedLoading(null);
+      setRelatedLoading((current) => (current === entityId ? null : current));
     }
   }
 

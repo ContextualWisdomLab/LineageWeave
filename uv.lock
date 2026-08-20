@@ -454,8 +454,8 @@ wheels = [
 
 [[package]]
 name = "lineageweave"
-version = "2.11.0"
-source = { virtual = "." }
+version = "2.12.6"
+source = { editable = "." }
 dependencies = [
     { name = "certifi" },
     { name = "pillow" },

@@ -246,6 +246,7 @@ these fields:
 Post title: {title}
 Post body: {body}
 """
+_SUMMARY_MAX_TOKENS = 2048
 
 _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 
@@ -771,6 +772,7 @@ class ContextualOrchestratorPostSummaryClient:
                 "messages": [{"role": "user", "content": prompt}],
                 "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
+                "max_tokens": _SUMMARY_MAX_TOKENS,
             },
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
@@ -795,6 +797,7 @@ class ContextualOrchestratorPostSummaryClient:
                 ],
                 "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
+                "max_tokens": _SUMMARY_MAX_TOKENS,
             },
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,

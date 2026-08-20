@@ -91,6 +91,9 @@ _IMAGE_REGION_MIGRATION = (
 _SUMMARY_FIVE_W1H_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0048_post_summary_five_w1h.sql"
 )
+_POST_CONTENT_QUEUE_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0050_post_content_ingestion_queue.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -198,6 +201,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_MEMBER_LOCALE_MIGRATION.read_text())
             cur.execute(_IMAGE_REGION_MIGRATION.read_text())
             cur.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text())
+            cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -3238,6 +3242,43 @@ def test_evaluate_publishes_an_activity_event(client, demo_analyst_token, seeded
     events = activity_response.json()["events"]
     assert events[0]["event_type"] == "post_evaluated"
     assert "1 rubric criterion response" in events[0]["summary"]
+
+
+def test_live_chat_answer_publishes_an_activity_event(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Live gap (2026-08-20): a live (non-cached) chat answer is a real,
+    consequential LLM call, same discipline as extract-keymen/evaluate --
+    it must publish to the post's activity feed too. A stored/seeded
+    answer (no live call made) must not.
+    """
+    from lineageweave.post_chat import ChatAnswer
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeChatClient:
+        available = True
+
+        def answer(self, question: str, sources) -> ChatAnswer:
+            return ChatAnswer(answer_text="a live answer", cited_post_ids=())
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FakeChatClient())
+
+    post_id = seeded_db["own_private_post_id"]
+    response = client.post(
+        f"/api/posts/{post_id}/chat",
+        json={"question": "What happened here that no seed already answers?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+
+    activity_response = client.get(
+        f"/api/posts/{post_id}/activity",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    events = activity_response.json()["events"]
+    assert events[0]["event_type"] == "chat_answered"
+    assert "What happened here that no seed already answers?" in events[0]["summary"]
 
 
 def test_evaluate_is_unavailable_without_orchestrator(client, demo_analyst_token, seeded_db) -> None:
