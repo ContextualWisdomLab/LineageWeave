@@ -52,6 +52,15 @@ def test_gateway_api_key_accepts_local_compatibility_alias(monkeypatch) -> None:
     assert module._pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY") == "compatibility-key"
 
 
+def test_env_file_quotes_are_not_part_of_transport_values(monkeypatch) -> None:
+    module = _load_start_module()
+    monkeypatch.setenv("LLM_GATEWAY_API_KEY", "'provider-key'")
+    monkeypatch.setenv("LLM_GATEWAY_API_URL", '"https://gateway.example/v1"')
+
+    assert module._pop_first_env("LLM_GATEWAY_API_KEY") == "provider-key"
+    assert module._pop_first_env("LLM_GATEWAY_API_URL") == "https://gateway.example/v1"
+
+
 def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch) -> None:
     module = _load_start_module()
     captured: dict[str, object] = {}
