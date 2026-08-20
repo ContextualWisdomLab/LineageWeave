@@ -8,17 +8,19 @@
  */
 
 export type PostBodySegment =
-  | { kind: "text"; text: string; indentLevel?: number }
+  | { kind: "text"; text: string; indentLevel?: number; role?: "footnote" }
   | { kind: "image"; src: string; mimeType: string; position: number };
 
 const DATA_URI_IMG =
   /<img\b[^>]*\bsrc\s*=\s*["']data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)["'][^>]*>/gi;
 
 const HTML_TAG = /<\/?[a-zA-Z][^>]*>/g;
-const BREAK_TAG = /<br\s*\/?\s*>/gi;
+const BREAK_TAG = /<br\b[^>]*>/gi;
 const BLOCK_TAG =
   /<\/?(?:article|blockquote|div|h[1-6]|li|ol|p|section|table|tbody|td|tfoot|th|thead|tr|ul|w:p|w:tbl|w:tr|w:tc)\b[^>]*>/gi;
 const WORD_INDENT_TAG = /<w:ind\b[^>]*\/?\s*>/gi;
+const LIST_ITEM_START = /^\s*(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)/;
+const FOOTNOTE_START = /^\s*[*†‡](?=\S)/;
 const INDENT_MARKER = "\u0001lw-indent:";
 const INDENT_MARKER_END = "\u0002";
 const INDENT_MARKER_PATTERN = /lw-indent:(\d+)/g;
@@ -33,6 +35,18 @@ function stripIndentMarkers(value: string): string {
 }
 
 import { t } from "./i18n";
+
+export function decodeHtmlEntities(text: string): string {
+  const decoder = document.createElement("textarea");
+  let decoded = text;
+  for (let pass = 0; pass < 3; pass += 1) {
+    decoder.innerHTML = decoded;
+    const next = decoder.value;
+    if (next === decoded) break;
+    decoded = next;
+  }
+  return decoded.replace(/\u00a0/g, " ");
+}
 
 function lengthToIndentUnits(value: string): number {
   const match = value
@@ -58,6 +72,11 @@ function declaredIndentWidth(tag: string): number {
   )) {
     width += lengthToIndentUnits(match[1]);
   }
+  for (const match of style.matchAll(/(?:^|;)\s*(?:margin|padding)\s*:\s*([^;]+)/gi)) {
+    const parts = match[1].trim().split(/\s+/);
+    const left = parts.length >= 4 ? parts[3] : parts.length >= 2 ? parts[1] : parts[0];
+    width += lengthToIndentUnits(left);
+  }
   for (const match of tag.matchAll(
     /\b(?:w:)?(?:left|start|firstline)\s*=\s*["'](-?\d+)["']/gi,
   )) {
@@ -81,28 +100,40 @@ function stripHtmlTags(text: string): string {
   const withoutTags = withBoundaries.replace(HTML_TAG, (tag) =>
     /^<\/?w:/i.test(tag) ? "" : " ",
   );
-  const decoder = document.createElement("textarea");
-  let decoded = withoutTags;
-  for (let pass = 0; pass < 3; pass += 1) {
-    decoder.innerHTML = decoded;
-    const next = decoder.value;
-    if (next === decoded) {
-      break;
-    }
-    decoded = next;
-  }
+  const decoded = decodeHtmlEntities(withoutTags);
   return decoded
     .split("\n")
     .map((line) => {
       if (!line.trim()) return "";
       const leading = line.match(/^[^\S\n]*/)?.[0] ?? "";
-      return `${leading.replace(/\u00a0/g, " ")}${line
+      return `${leading}${line
         .slice(leading.length)
         .replace(/[^\S\n]+/g, " ")}`;
     })
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .replace(/^\n+|\n+$/g, "");
+}
+
+function splitSemanticParagraphs(text: string): string[] {
+  const paragraphs: string[] = [];
+  let lines: string[] = [];
+  const flush = () => {
+    const paragraph = lines.join(" ").trimEnd();
+    if (paragraph.trim()) paragraphs.push(paragraph);
+    lines = [];
+  };
+
+  for (const line of text.split("\n")) {
+    if (!line.trim()) {
+      flush();
+      continue;
+    }
+    if (lines.length > 0 && LIST_ITEM_START.test(line)) flush();
+    lines.push(lines.length === 0 ? line.replace(/[ \t]+$/g, "") : line.trim());
+  }
+  flush();
+  return paragraphs;
 }
 
 function indentationWidth(line: string): number {
@@ -146,11 +177,11 @@ function indentationLevel(text: string, unit: number): number {
   const withoutMarkers = stripIndentMarkers(text);
   const firstLine = withoutMarkers.split("\n").find((line) => line.trim()) ?? "";
   const width = indentationWidth(firstLine);
-  if (unit <= 0) return 0;
-  return Math.max(
-    width > 0 ? Math.round(width / unit) : 0,
-    declaredWidth > 0 ? Math.round(declaredWidth / unit) : 0,
+  const explicitLevel = Math.max(
+    unit > 0 && width > 0 ? Math.round(width / unit) : 0,
+    unit > 0 && declaredWidth > 0 ? Math.round(declaredWidth / unit) : 0,
   );
+  return explicitLevel;
 }
 
 function isDecodableBase64(raw: string): boolean {
@@ -167,7 +198,7 @@ function isDecodableBase64(raw: string): boolean {
 
 function pushText(segments: PostBodySegment[], raw: string, indentUnit: number): void {
   const text = stripHtmlTags(raw);
-  for (const paragraph of text.split(/\n{2,}/)) {
+  for (const paragraph of splitSemanticParagraphs(text)) {
     const indentLevel = indentationLevel(paragraph, indentUnit);
     const normalized = stripIndentMarkers(paragraph)
       .replace(/^[ \t]+/, "")
@@ -177,6 +208,7 @@ function pushText(segments: PostBodySegment[], raw: string, indentUnit: number):
         kind: "text",
         text: normalized,
         ...(indentLevel > 0 ? { indentLevel } : {}),
+        ...(FOOTNOTE_START.test(normalized) ? { role: "footnote" as const } : {}),
       });
     }
   }

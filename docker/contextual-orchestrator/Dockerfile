@@ -3,8 +3,9 @@ FROM python:3.12-slim@sha256:423ed6ab25b1921a477529254bfeeabf5855151dc2c3141699a
 WORKDIR /app
 
 # Reuse the upstream implementation without copying it into LineageWeave.
-# The archive is pinned to the main commit used by this integration.
-ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/6841b71935e0b7cb98fb52bcb4709cc5100c8d87.tar.gz /tmp/contextual-orchestrator.tar.gz
+# Pin the runtime to PR #761's pushed commit until that protected PR merges;
+# this keeps reasoning_effort=auto ownership in contextual-orchestrator itself.
+ADD https://github.com/ContextualWisdomLab/contextual-orchestrator/archive/0298693.tar.gz /tmp/contextual-orchestrator.tar.gz
 RUN mkdir /tmp/contextual-orchestrator \
     && tar -xzf /tmp/contextual-orchestrator.tar.gz --strip-components=1 -C /tmp/contextual-orchestrator \
     && cp -R /tmp/contextual-orchestrator/contextual_orchestrator /app/contextual_orchestrator \
@@ -14,9 +15,6 @@ RUN mkdir /tmp/contextual-orchestrator \
 
 COPY agents.json /app/agents.json
 COPY start.py /app/start.py
-COPY provider_policy.py /app/provider_policy.py
-COPY vision_compat.py /app/vision_compat.py
-COPY embedding_compat.py /app/embedding_compat.py
 
 ENV AGENTS_FILE=/app/agents.json \
     PORT=8000

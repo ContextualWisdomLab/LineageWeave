@@ -30,7 +30,9 @@ from backend.app.lineage_ingestion import rebuild_lineage
 from lineageweave.synthetic_seed_cleanup import cleanup_synthetic_seed
 from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.image_content import orchestrator_vision_client
+from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_persistence import persist_post_content
+from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
 
 
 SOURCE_NAMESPACE = uuid.UUID("b6e4b1d6-5fd0-4ca1-92b0-8f7a4e2df83e")
@@ -61,6 +63,7 @@ class ColumnMapping:
     """Names returned by the caller's source query."""
 
     record_key: str
+    post_id: str | None
     title: str
     body: str
     created_at: str
@@ -96,6 +99,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--query-file", type=Path, required=True)
     parser.add_argument("--source-system-code", required=True)
     parser.add_argument("--record-key-column", required=True)
+    parser.add_argument(
+        "--post-id-column",
+        help="optional source UUID column for post_id; otherwise derive it from record key",
+    )
     parser.add_argument("--title-column", required=True)
     parser.add_argument("--body-column", required=True)
     parser.add_argument("--created-at-column", required=True)
@@ -178,6 +185,19 @@ def _value(row: Any, column: str | None, default: Any = None) -> Any:
     return row[column]
 
 
+def _source_post_id(row: Any, mapping: ColumnMapping, source_system_code: str, record_key: str) -> uuid.UUID:
+    """Keep a source UUID independent from the human-entered source record key."""
+    if mapping.post_id is None:
+        return uuid.uuid5(SOURCE_NAMESPACE, f"{source_system_code}:{record_key}")
+    raw_post_id = str(_value(row, mapping.post_id, "") or "").strip()
+    if not raw_post_id:
+        raise ValueError(f"source post id cannot be empty in mapped column {mapping.post_id!r}")
+    try:
+        return uuid.UUID(raw_post_id)
+    except ValueError as exc:
+        raise ValueError(f"source post id is not a UUID: {raw_post_id!r}") from exc
+
+
 def _timestamp(value: Any) -> datetime:
     """Normalize a source timestamp for asyncpg timestamptz parameters."""
     if not isinstance(value, datetime):
@@ -234,6 +254,9 @@ def _validate_source_rows(
 ) -> None:
     """Reject incomplete source evidence before the target is mutated."""
     _validate_publication_state(rows, mapping, excluded_draft_values)
+    seen_record_keys: dict[str, int] = {}
+    seen_post_ids: dict[uuid.UUID, int] = {}
+    post_id_column = getattr(mapping, "post_id", None)
     for row_number, row in enumerate(rows, start=1):
         if _source_code_matches(row, mapping.draft, excluded_draft_values) or _source_code_matches(
             row, mapping.deleted, excluded_deleted_values
@@ -242,6 +265,21 @@ def _validate_source_rows(
         record_key = str(_value(row, mapping.record_key) or "").strip()
         if not record_key:
             raise ValueError(f"source record key cannot be empty at source row {row_number}")
+        if post_id_column is None:
+            previous_row = seen_record_keys.get(record_key)
+            if previous_row is not None:
+                raise ValueError(
+                    f"duplicate source record key at source rows {previous_row} and {row_number}"
+                )
+            seen_record_keys[record_key] = row_number
+        else:
+            post_id = _source_post_id(row, mapping, "validation", record_key)
+            previous_row = seen_post_ids.get(post_id)
+            if previous_row is not None:
+                raise ValueError(
+                    f"duplicate source post id at source rows {previous_row} and {row_number}"
+                )
+            seen_post_ids[post_id] = row_number
         body = str(_value(row, mapping.body) or "")
         if not body.strip():
             raise ValueError(f"source post body cannot be empty at source row {row_number}")
@@ -308,6 +346,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
     )
     mapping = ColumnMapping(
         record_key=args.record_key_column,
+        post_id=args.post_id_column,
         title=args.title_column,
         body=args.body_column,
         created_at=args.created_at_column,
@@ -351,12 +390,18 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
         vision_client = orchestrator_vision_client(
             os.environ.get("ORCHESTRATOR_BASE_URL", ""),
             os.environ.get("ORCHESTRATOR_API_KEY", ""),
-            os.environ.get("VISION_MODEL", ""),
         )
         embedding_client = orchestrator_embedding_client(
             os.environ.get("ORCHESTRATOR_BASE_URL", ""),
             os.environ.get("ORCHESTRATOR_API_KEY", ""),
             args.embedding_model,
+        )
+        orchestrator_base_url = os.environ.get("ORCHESTRATOR_BASE_URL", "")
+        orchestrator_api_key = os.environ.get("ORCHESTRATOR_API_KEY", "")
+        structure_client = (
+            ContextualOrchestratorPostStructureClient(orchestrator_base_url, orchestrator_api_key)
+            if orchestrator_base_url and orchestrator_api_key
+            else NullPostStructureClient()
         )
         for row in rows:
             if _source_code_matches(row, mapping.draft, args.exclude_draft_value) or _source_code_matches(
@@ -367,7 +412,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             record_key = str(_value(row, mapping.record_key)).strip()
             created_at = _timestamp(_value(row, mapping.created_at))
             updated_at = _timestamp(_value(row, mapping.updated_at, created_at))
-            post_id = uuid.uuid5(SOURCE_NAMESPACE, f"{args.source_system_code}:{record_key}")
+            post_id = _source_post_id(row, mapping, args.source_system_code, record_key)
             title = str(_value(row, mapping.title, "") or "")
             body = str(_value(row, mapping.body, "") or "")
             voc_type_code = _normalize_voc_type(
@@ -465,14 +510,29 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 body,
                 updated_at,
             )
-            await persist_post_content(
-                target,
+            metadata = build_post_llm_metadata(
                 str(post_id),
-                body,
-                vision_client=vision_client,
-                embedding_client=embedding_client,
-                embedding_model_code=args.embedding_model or None,
+                {
+                    "author_account_id": account_id,
+                    "source_process_unit_code": _value(row, mapping.source_business_unit),
+                    "source_author_code": _value(row, mapping.author_code),
+                    "source_company_code": _value(row, mapping.company_code),
+                    "source_customer_code": _value(row, mapping.customer_code),
+                    "source_project_code": _value(row, mapping.project_code),
+                    "source_sales_pool_code": _value(row, mapping.sales_pool),
+                },
             )
+            with use_llm_metadata(metadata):
+                await persist_post_content(
+                    target,
+                    str(post_id),
+                    body,
+                    vision_client=vision_client,
+                    embedding_client=embedding_client,
+                    embedding_model_code=args.embedding_model or None,
+                    structure_client=structure_client,
+                    post_title=title,
+                )
             imported += 1
         cleanup = await cleanup_synthetic_seed(target, apply=True)
         edges = await rebuild_lineage(target)

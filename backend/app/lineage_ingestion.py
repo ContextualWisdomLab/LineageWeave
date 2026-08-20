@@ -88,6 +88,7 @@ async def visible_lineage_graph(
     conn: asyncpg.Connection,
     can_see_post,
     limit: int = 500,
+    focus_post_id: str | None = None,
 ) -> dict[str, Any]:
     """ABAC-filtered graph bounded for the browser's initial viewport.
 
@@ -101,15 +102,47 @@ async def visible_lineage_graph(
         f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
     )
     visible_all = [row for row in posts if can_see_post(row)]
-    visible = sorted(
-        visible_all,
-        key=lambda row: (row["created_at"], str(row["post_id"])),
-        reverse=True,
-    )[:limit]
-    visible_ids = {str(row["post_id"]) for row in visible}
     edge_rows = await conn.fetch(
         "select parent_post_id, child_post_id, fused_score from post_lineage_edge"
     )
+
+    if focus_post_id is None:
+        visible = sorted(
+            visible_all,
+            key=lambda row: (row["created_at"], str(row["post_id"])),
+            reverse=True,
+        )[:limit]
+        truncated = len(visible_all) > len(visible)
+    else:
+        focus_id = str(focus_post_id)
+        focus_visible = any(str(row["post_id"]) == focus_id for row in visible_all)
+        neighbors: dict[str, set[str]] = {}
+        for edge in edge_rows:
+            parent_id = str(edge["parent_post_id"])
+            child_id = str(edge["child_post_id"])
+            neighbors.setdefault(parent_id, set()).add(child_id)
+            neighbors.setdefault(child_id, set()).add(parent_id)
+
+        component_ids: set[str] = set()
+        frontier = [focus_id] if focus_visible else []
+        while frontier:
+            current_id = frontier.pop()
+            if current_id in component_ids:
+                continue
+            component_ids.add(current_id)
+            frontier.extend(neighbors.get(current_id, set()) - component_ids)
+
+        # An isolated post has no DAG to render; the post-lineage endpoint
+        # still reports its empty direct/indirect lists.
+        if len(component_ids) <= 1:
+            visible = []
+        else:
+            visible = [
+                row for row in visible_all if str(row["post_id"]) in component_ids
+            ]
+        truncated = False
+
+    visible_ids = {str(row["post_id"]) for row in visible}
     visible_edges = [
         row
         for row in edge_rows
@@ -140,4 +173,4 @@ async def visible_lineage_graph(
         }
         for row in visible_edges
     ]
-    return {"nodes": nodes, "edges": edges, "truncated": len(visible_all) > len(visible)}
+    return {"nodes": nodes, "edges": edges, "truncated": truncated}

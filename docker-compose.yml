@@ -109,23 +109,14 @@ services:
       AGENTS_FILE: /app/agents.json
       PORT: 8000
       CONTEXTUAL_ORCHESTRATOR_TOKEN: ${CONTEXTUAL_ORCHESTRATOR_TOKEN:-${ORCHESTRATOR_API_KEY:-lineageweave-orchestrator-dev-only}}
-      # Canonical gateway variables win. The LLM_API_* fallback is only for
-      # the operator's ~/.env compatibility contract; GitHub injects the
-      # canonical names directly.
-      # API_URL is canonical; URL and LLM_API_GATEWAY are compatibility aliases.
-      LLM_GATEWAY_API_URL: ${LLM_GATEWAY_API_URL:-${LLM_GATEWAY_URL:-${LLM_API_GATEWAY:-http://host.docker.internal:8080/v1}}}
-      LLM_GATEWAY_URL: ${LLM_GATEWAY_API_URL:-${LLM_GATEWAY_URL:-${LLM_API_GATEWAY:-http://host.docker.internal:8080/v1}}}
-      LLM_GATEWAY_MODEL: ${LLM_GATEWAY_MODEL:-mlx-community/gemma-4-e4b-it-4bit}
-      VISION_MODEL: ${VISION_MODEL:-${LLM_GATEWAY_MODEL:-mlx-community/gemma-4-e4b-it-4bit}}
-      LLM_GATEWAY_EMBEDDING_MODEL: ${LLM_GATEWAY_EMBEDDING_MODEL:-}
-      # Buyer summaries and Ask answers must finish their JSON contract; the
-      # local-MLX bootstrap default of 256 tokens truncates evidence arrays.
-      LLM_GATEWAY_MAX_OUTPUT_TOKENS: ${LLM_GATEWAY_MAX_OUTPUT_TOKENS:-4096}
-      LLM_GATEWAY_API_KEY: ${LLM_GATEWAY_API_KEY:-${LLM_API_KEY:-lineageweave-local-mlx-dev-only}}
+      # Gateway credentials and URL are supplied only by env_file (${HOME}/.env).
+      # Do not repeat them under environment:, where Compose interpolation can
+      # overwrite env_file values with an empty host-shell value.
+      # The upstream default remains 64 KiB for ordinary text APIs. Buyer
+      # image blocks are base64 data URIs, so the multimodal boundary gets an
+      # explicit bounded 8 MiB limit rather than an unbounded request size.
+      CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES: ${CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES:-8388608}
       CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS: ${CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS:-host.docker.internal}
-      # Enables the exact local-MLX exception; bootstrap applies it only when
-      # LLM_GATEWAY_API_URL is the explicit text (8080) or Vision (18082) endpoint.
-      LINEAGEWEAVE_ALLOW_LOCAL_LLM_HTTP: "1"
     command: ["python", "/app/start.py"]
     ports:
       - "${ORCHESTRATOR_PORT:-18000}:8000"
@@ -153,8 +144,15 @@ services:
       # no Keyverse-shaped identity service is created by Compose.
       KEYVERSE_ISSUER: ${KEYVERSE_ISSUER:-}
       KEYVERSE_CLIENT_ID: ${KEYVERSE_CLIENT_ID:-}
+      KEYVERSE_AUDIENCE: ${KEYVERSE_AUDIENCE:-}
       KEYVERSE_DISCOVERY_URI: ${KEYVERSE_DISCOVERY_URI:-}
       KEYVERSE_JWKS_URI: ${KEYVERSE_JWKS_URI:-}
+      OIDC_ISSUER: ${OIDC_ISSUER:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_AUDIENCE: ${OIDC_AUDIENCE:-lineageweave-api}
+      OIDC_DISCOVERY_URI: ${OIDC_DISCOVERY_URI:-}
+      OIDC_JWKS_URI: ${OIDC_JWKS_URI:-}
+      OIDC_CLOCK_SKEW_SECONDS: ${OIDC_CLOCK_SKEW_SECONDS:-5}
       FRONTEND_ORIGINS: http://localhost:${FRONTEND_PORT:-15173}
       VALKEY_URL: redis://valkey:6379/0
       # Empty by default: every LLM/vision channel stays the Null client
@@ -163,12 +161,14 @@ services:
       # LLM_GATEWAY_API_KEY in the orchestrator's private env file.
       ORCHESTRATOR_BASE_URL: ${ORCHESTRATOR_BASE_URL:-http://orchestrator:8000}
       ORCHESTRATOR_API_KEY: ${ORCHESTRATOR_API_KEY:-${CONTEXTUAL_ORCHESTRATOR_TOKEN:-lineageweave-orchestrator-dev-only}}
-      VISION_MODEL: ${VISION_MODEL:-${LLM_GATEWAY_MODEL:-mlx-community/gemma-4-e4b-it-4bit}}
+      # This is a non-secret embedding contract. Provider credentials remain
+      # private to contextual-orchestrator and are never injected into backend.
       LLM_GATEWAY_EMBEDDING_MODEL: ${LLM_GATEWAY_EMBEDDING_MODEL:-}
       SEARXNG_BASE_URL: http://searxng:8080
       TEPP_TRANSPORT_URL: ${TEPP_TRANSPORT_URL:-}
       TEPP_API_KEY: ${TEPP_API_KEY:-}
       CALDAV_BASE_URL: ${CALDAV_BASE_URL:-}
+      RANKWEAVE_DISABLED: ${RANKWEAVE_DISABLED:-}
     ports:
       - "${BACKEND_PORT:-18420}:8000"
     depends_on:

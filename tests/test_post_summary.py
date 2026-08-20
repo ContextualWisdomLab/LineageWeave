@@ -11,7 +11,6 @@ warranty language messy), which is exactly the "non-trivial" shape Phase
 from __future__ import annotations
 
 import os
-import json
 
 import pytest
 
@@ -26,6 +25,7 @@ from lineageweave.post_summary import (
     ContextualOrchestratorPostSummaryClient,
     NullPostSummaryClient,
     RoleResponsibility,
+    _SUMMARY_REQUEST_PROMPT_TEMPLATE,
     _parse_plain_summary_details,
     parse_summary_response,
 )
@@ -36,6 +36,29 @@ def test_null_summary_client_is_unavailable_not_empty_summary() -> None:
     assert client.available is False
     with pytest.raises(RuntimeError):
         client.summarize("any title", "any body")
+
+
+def test_summary_prompt_requires_trigger_development_conclusion_structure() -> None:
+    """Feature request (2026-08-19): a flat 5W1H restatement in body
+    order was ruled a bug -- the prompt must ask for a legible
+    발단(trigger)/전개(development)/결론(conclusion) narrative arc so a
+    reader can tell what triggered the post, what was actually
+    considered, and what was decided or left open.
+    """
+    for marker in ("발단", "전개", "결론", "다음 조치는"):
+        assert marker in _SUMMARY_REQUEST_PROMPT_TEMPLATE
+
+
+def test_summary_prompt_requires_naming_actual_people_not_generic_titles() -> None:
+    """Live bug (2026-08-19): a real post's summary said "PM들이
+    참석했다" (a generic "PMs attended") even though the post body
+    literally named each attendee -- the same names a separate R&R
+    extraction call correctly pulled out. The summary call has no
+    knowledge of that separate call's output, so the summary prompt
+    itself must demand real names, not rely on R&R to carry them.
+    """
+    assert "PM들이 참석했다" in _SUMMARY_REQUEST_PROMPT_TEMPLATE
+    assert "홍길동" in _SUMMARY_REQUEST_PROMPT_TEMPLATE
 
 
 def test_summary_requires_imported_source_body() -> None:
@@ -59,6 +82,26 @@ def test_parses_a_well_formed_json_object() -> None:
     assert role.actor_name == "Jordan Hale"
     assert role.actor_type_code == "prov_person"
     assert role.affiliated_organization_name == "Westfield Power"
+
+
+def test_parses_explicit_five_w1h_evidence_with_source_phrase() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary":"요약", "key_events":[], '
+        '"five_w1h_evidence":[{"slot_code":"when", "value_text":"3월 4일", '
+        '"evidence_text":"3월 4일 현장 회의"}]}'
+    )
+    assert summary is not None
+    assert summary.five_w1h_evidence[0].slot_code == "when"
+    assert summary.five_w1h_evidence[0].evidence_text == "3월 4일 현장 회의"
+
+
+def test_parses_plain_summary_evidence_section() -> None:
+    details = _parse_plain_summary_details(
+        "ROLES:\nNONE\nPROJECTS:\nNONE\nEVIDENCE:\n"
+        "where | 제3공장 | 제3공장에서 협의했다"
+    )
+    assert details is not None
+    assert details[2][0].value_text == "제3공장"
 
 
 def test_organization_actor_is_not_forced_into_a_person_slot() -> None:
@@ -200,7 +243,7 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
     assert summary.korean_summary == "본문 근거 요약"
     assert summary.key_events == ("후속 확인",)
     assert len(observed) == 2
-    assert all(payload["mode"] == "route" for payload in observed)
+    assert all(payload["mode"] == "auto" for payload in observed)
     assert "KEY EVENTS" in observed[0]["messages"][0]["content"]
     details_prompt = observed[1]["messages"][0]["content"]
     assert "source_process_unit_name are PU/business-unit hints only" in details_prompt
@@ -224,7 +267,25 @@ def test_title_match_can_supply_explicit_project_evidence_but_not_a_guess() -> N
         "ROLES:\nNONE\nPROJECTS:\nUnrelated project | NONE | 1",
         post_title="Follow-up after the Northridge transformer bid workshop",
     )
-    assert unrelated == ((), ())
+    assert unrelated == ((), (), ())
+
+
+def test_role_matching_the_hinted_account_name_is_dropped_not_cataloged() -> None:
+    """Live finding: the model wrote a ROLES row for the logged-in
+    account's display name (from author_account_name in the hints)
+    even though that name never appeared in the post text -- see
+    _hallucinated_account_name's docstring.
+    """
+    details = _parse_plain_summary_details(
+        "ROLES:\n"
+        "Demo Analyst | met the customer | person | Demo Corp\n"
+        "Jordi Gil | approved the quote | person | Northwind Labs\n"
+        "PROJECTS:\nNONE",
+        context_hints="author_account_name=Demo Analyst [source_field=user_account.display_name]; "
+        "author_affiliations=Demo Corp [source_field=account_affiliation.corporate_entity_id]",
+    )
+    assert details is not None
+    assert [role.actor_name for role in details[0]] == ["Jordi Gil"]
 
 
 _ORCHESTRATOR_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL")

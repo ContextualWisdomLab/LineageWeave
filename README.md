@@ -27,7 +27,9 @@ signal reliably tells you which record continues which -- see
 the validation numbers and the literature this design follows. LineageWeave
 fuses several independent, individually-weak signals (temporal proximity, a
 shared grouping key, text similarity, and an optional LLM judgment) instead
-of trusting any one of them alone.
+of trusting any one of them alone. The normative research-grounding policy is
+[ADR 0084](docs/adr/0084-lineage-research-grounding.md); the linked notes
+retain the supporting bibliography and aggregate evidence.
 
 ## How it fits with the rest of the ecosystem
 
@@ -111,9 +113,11 @@ make down
 
 Outside GitHub, `make up` reads `~/.env` through Compose's `--env-file`.
 Configure the contextual-orchestrator provider there with
-`LLM_GATEWAY_URL` and `LLM_GATEWAY_API_KEY`; the key is never committed or
-printed. `ORCHESTRATOR_BASE_URL` and `ORCHESTRATOR_API_KEY` are separate,
-internal LineageWeave-to-orchestrator settings.
+`LLM_GATEWAY_API_URL` and `LLM_GATEWAY_API_KEY`; the key is never committed or
+printed. `LLM_GATEWAY_URL`, `LLM_API_GATEWAY`, and `LLM_API_KEY` remain
+compatibility aliases only. `ORCHESTRATOR_BASE_URL` and
+`ORCHESTRATOR_API_KEY` are separate, internal
+LineageWeave-to-orchestrator settings.
 
 Postgres and Keycloak are built (`docker/postgres-init/`, `docker/keycloak/`)
 rather than bind-mounted, so the keycloak database's init script and the

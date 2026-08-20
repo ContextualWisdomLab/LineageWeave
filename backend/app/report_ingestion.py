@@ -17,12 +17,14 @@ from lineageweave.period_report import (
 from lineageweave.post_evaluation import CRITERION_CODES, RUBRIC_VERSION
 
 from .knowledge_graph import labels_for_codes
+from .post_eligibility import source_context_present_sql
 
 GROUPING_KINDS = frozenset({"process_unit", "corporate_entity", "thread_group", "team", "project"})
 SHARED_METRIC_KIND = "shared_metric"
 SHARED_METRIC_KEY = "all"
 _WEEK_PERIOD = re.compile(r"^(\d{4})-W(\d{2})$")
 _MONTH_PERIOD = re.compile(r"^(\d{4})-(\d{2})$")
+_SOURCE_CONTEXT_PRESENT_SQL = source_context_present_sql("p")
 
 
 def parse_period_code(period_code: str) -> tuple[str, int, int]:
@@ -540,9 +542,10 @@ async def fetch_period_reports(
         RUBRIC_VERSION,
     )
     members = await conn.fetch(
-        """
+        f"""
         select m.grouping_key, m.post_id, m.theta_eap, m.theta_sd, p.post_title,
                p.visibility_code, p.corporate_entity_id,
+               ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context,
                t.due_date as ticket_due_date, t.ticket_title, t.ticket_status_code
         from report_member_score m
         join source_post p on p.post_id = m.post_id
@@ -588,10 +591,11 @@ async def fetch_period_reports(
         RUBRIC_VERSION,
     )
     leftover = await conn.fetch(
-        """
+        f"""
         select lp.grouping_key, lp.pair_kind, lp.post_id, lp.criterion_code,
                lp.leftover_distance, lp.leftover_residual, p.post_title,
-               p.visibility_code, p.corporate_entity_id
+               p.visibility_code, p.corporate_entity_id,
+               ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_leftover_pair lp
         join source_post p on p.post_id = lp.post_id
         where lp.grouping_kind = $1 and lp.period_code = $2 and lp.rubric_version = $3
@@ -652,6 +656,7 @@ async def fetch_period_reports(
                         "theta_sd": float(row["theta_sd"]),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),
+                        "has_real_source_context": bool(row["has_real_source_context"]),
                         "ticket_due_date": (
                             None
                             if row["ticket_due_date"] is None
@@ -687,6 +692,7 @@ async def fetch_period_reports(
                         "leftover_residual": float(row["leftover_residual"]),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),
+                        "has_real_source_context": bool(row["has_real_source_context"]),
                     }
                     for row in leftover_by_group.get(header["grouping_key"], [])
                 ],
@@ -715,8 +721,9 @@ async def list_period_report_summaries(
         RUBRIC_VERSION,
     )
     members = await conn.fetch(
-        """
+        f"""
         select m.grouping_key, m.period_code, p.visibility_code, p.corporate_entity_id
+               , ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_member_score m
         join source_post p on p.post_id = m.post_id
         where m.grouping_kind = $1 and m.rubric_version = $2
@@ -767,6 +774,7 @@ async def list_period_report_summaries(
                 {
                     "visibility_code": member["visibility_code"],
                     "corporate_entity_id": str(member["corporate_entity_id"]),
+                    "has_real_source_context": bool(member["has_real_source_context"]),
                 }
                 for member in members_by_key.get((row["grouping_key"], row["period_code"]), [])
             ],
@@ -828,8 +836,9 @@ async def fetch_period_comparison(
         list(GROUPING_KINDS),
     )
     members = await conn.fetch(
-        """
+        f"""
         select m.grouping_kind, m.grouping_key, p.visibility_code, p.corporate_entity_id
+               , ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_member_score m
         join source_post p on p.post_id = m.post_id
         where m.period_code = $1 and m.rubric_version = $2
@@ -857,6 +866,7 @@ async def fetch_period_comparison(
                     {
                         "visibility_code": member["visibility_code"],
                         "corporate_entity_id": str(member["corporate_entity_id"]),
+                        "has_real_source_context": bool(member["has_real_source_context"]),
                     }
                     for member in members_by_key.get((row["grouping_kind"], row["grouping_key"]), [])
                 ],

@@ -6,6 +6,13 @@ documents `lineageweave.post_chat`'s reason-and-cite step answers from.
 ABAC is re-checked per candidate post here, never trusted from the
 Knowledge Graph traversal alone -- a KG edge says two posts are related,
 not that the requesting account may see both.
+
+`gather_global_chat_sources` (Global Ask, no starting post) also expands
+its single best keyword match through the same `post_lineage_edge`
+neighbors, so an answer speaks to a connected timeline rather than one
+isolated snapshot -- it does not have a starting post to run the
+Knowledge Graph's indirect random-walk expansion from, only the lineage
+chain of its own top match.
 """
 
 from __future__ import annotations
@@ -346,8 +353,9 @@ async def gather_global_chat_sources(
     search_terms = tuple(
         dict.fromkeys(
             token.casefold()
-            for token in re.findall(r"[0-9A-Za-z가-힣]{2,}", question or "")
-            if token.casefold()
+            for token in re.findall(r"[0-9A-Za-z가-힣]+(?:-[0-9A-Za-z가-힣]+)*", question or "")
+            if len(token) >= 2
+            and token.casefold()
             not in {
                 "which",
                 "what",
@@ -374,30 +382,38 @@ async def gather_global_chat_sources(
             }
         )
     )[:8]
-    candidate_ids: list[str] = []
+    # A post whose title names the exact thing asked about is a far more
+    # specific match than one that only shares a generic term (a common
+    # word, or a hit buried in a 16KB body prefix); weighting every match
+    # equally and then falling back on created_at desc as the only
+    # tiebreak let recency crowd out relevance -- a year-old post whose
+    # title is an exact company-name match lost to four newer, only
+    # loosely related posts in a live reproduction of this bug.
+    _MATCH_WEIGHT = {"title": 3.0, "body": 1.0, "source_field": 1.0}
+    candidate_scores: dict[str, float] = {}
     for term in search_terms:
         candidate_rows = await conn.fetch(
             """
-            select post_id
+            select post_id, matched_in
               from (
-                   (select post_id, created_at
+                   (select post_id, created_at, 'title' as matched_in
                       from source_post
                      where post_title ilike '%' || $1 || '%'
                      limit 32)
                     union all
-                   (select post_id, created_at
+                   (select post_id, created_at, 'body' as matched_in
                       from source_post
                      where lower(left(source_post_search_text(post_body), 16384))
                                like '%' || lower($1) || '%'
                      limit 32)
                     union all
-                   (select post_id, created_at
+                   (select post_id, created_at, 'body' as matched_in
                       from source_post
                      where to_tsvector('simple', source_post_search_text(post_body))
                                @@ plainto_tsquery('simple', $1)
                      limit 32)
                     union all
-                   (select post_id, created_at
+                   (select post_id, created_at, 'source_field' as matched_in
                       from source_post
                      where concat_ws(' ', source_system_code, source_record_key,
                                       source_author_code, source_author_name,
@@ -414,8 +430,35 @@ async def gather_global_chat_sources(
             """,
             term,
         )
-        candidate_ids.extend(str(row["post_id"]) for row in candidate_rows)
-    candidate_ids = list(dict.fromkeys(candidate_ids))
+        for row in candidate_rows:
+            post_id = str(row["post_id"])
+            candidate_scores[post_id] = candidate_scores.get(post_id, 0.0) + _MATCH_WEIGHT[row["matched_in"]]
+    candidate_ids = sorted(candidate_scores, key=lambda post_id: candidate_scores[post_id], reverse=True)
+
+    # A keyword match only proves one post's text is relevant -- the
+    # account asking almost always wants to know what happened before and
+    # after that event too, not just this one snapshot. Expand the single
+    # best match through its direct Event Lineage neighbors
+    # (`post_lineage_edge`, `lineageweave.reconstruct`'s output), mirroring
+    # `find_linked_post_ids`'s `.direct` set used by the post-scoped chat
+    # flow. Only the top match is expanded -- expanding every keyword hit
+    # would let a loosely related term drag in an unrelated lineage chain.
+    lineage_neighbor_ids: list[str] = []
+    if candidate_ids:
+        lineage_rows = await conn.fetch(
+            "select child_post_id as other_id from post_lineage_edge where parent_post_id = $1 "
+            "union select parent_post_id as other_id from post_lineage_edge where child_post_id = $1",
+            candidate_ids[0],
+        )
+        lineage_neighbor_ids = [
+            str(row["other_id"])
+            for row in lineage_rows
+            if str(row["other_id"]) not in candidate_scores
+        ]
+        candidate_ids = candidate_ids + lineage_neighbor_ids
+    lineage_anchor_id = candidate_ids[0] if candidate_ids else None
+    lineage_neighbor_id_set = frozenset(lineage_neighbor_ids)
+
     rows = await conn.fetch(
         """
         select post_id, post_title, post_body, visibility_code, corporate_entity_id,
@@ -427,16 +470,17 @@ async def gather_global_chat_sources(
           from source_post
          where visibility_code = 'public'
             or corporate_entity_id::text = any($1::text[])
-         order by case when post_id = any($2::uuid[]) then 0 else 1 end,
+         order by array_position($2::uuid[], post_id) nulls last,
                   created_at desc, post_id desc
          limit $3
         """,
         list(authorized_corporate_entity_ids),
         candidate_ids,
-        limit,
+        limit + len(lineage_neighbor_ids),
     )
     visible_rows = [row for row in rows if can_see_post(row)]
     visible_ids = [str(row["post_id"]) for row in visible_rows]
+    anchor_is_visible = lineage_anchor_id in visible_ids
     semantic_facts = await _semantic_facts_for_posts(conn, visible_ids)
     graph_facts = (await _graph_facts_for_posts(conn, visible_ids))[:16]
     sources: list[ChatSourceDocument] = []
@@ -449,14 +493,21 @@ async def gather_global_chat_sources(
                 normalized_body[:4000]
                 + "\n[Source body truncated for Global Ask; open the cited post for the full body.]"
             )
+        post_id = str(row["post_id"])
+        lineage_fact = (
+            (f"Event Lineage: reconstructed timeline neighbor of post_id={lineage_anchor_id}",)
+            if post_id in lineage_neighbor_id_set and anchor_is_visible
+            else ()
+        )
         sources.append(
             ChatSourceDocument(
-                str(row["post_id"]),
+                post_id,
                 row["post_title"],
                 normalized_body,
                 graph_facts=graph_facts if index == 0 else (),
                 evidence_facts=_source_hint_facts(row)
-                + semantic_facts.get(str(row["post_id"]), ()),
+                + semantic_facts.get(post_id, ())
+                + lineage_fact,
             )
         )
     return sources

@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import asyncpg
 
+from .post_eligibility import source_context_present_sql
+
 
 def is_demo_scope(corporate_entity_code: str | None) -> bool:
     """True for `make seed`'s synthetic Demo Corp tree (``DEMO-*`` codes)."""
@@ -35,34 +37,32 @@ async def has_real_source_context(
                   from source_post
                  where (visibility_code = 'public'
                         or corporate_entity_id = any($1::uuid[]))
-                   and (
-                        nullif(btrim(source_author_code), '') is not null
-                        or nullif(btrim(source_author_name), '') is not null
-                        or nullif(btrim(source_company_code), '') is not null
-                        or nullif(btrim(source_company_name), '') is not null
-                        or nullif(btrim(source_process_unit_code), '') is not null
-                        or nullif(btrim(source_process_unit_name), '') is not null
-                        or nullif(btrim(source_sales_pool_code), '') is not null
-                        or nullif(btrim(source_sales_pool_name), '') is not null
-                        or nullif(btrim(source_customer_code), '') is not null
-                        or nullif(btrim(source_customer_name), '') is not null
-                        or nullif(btrim(source_project_code), '') is not null
-                        or nullif(btrim(source_project_name), '') is not null
-                   )
+                   and ({source_context_sql})
             )
-            """,
+            """.format(source_context_sql=source_context_present_sql("source_post")),
             list(corporate_entity_ids),
         )
     )
 
 
 async def fetch_demo_corporate_entity_ids(conn: asyncpg.Connection) -> set[str]:
-    """The `make seed` Demo Corp tree's corporate_entity_ids.
+    """Synthetic-only Demo entity ids, excluding shared real-import entities.
 
-    Small, cacheable-by-caller lookup, not an ABAC gate on its own -- callers
-    still apply `has_real_source_context` before treating a row as hideable.
+    A real import may have reused a historical ``DEMO-*`` entity code. Entity
+    code is therefore only a seed hint; row-level ``source_*`` evidence decides
+    whether the entity is synthetic-only.
     """
     rows = await conn.fetch(
-        "select corporate_entity_id from corporate_entity where corporate_entity_code like 'DEMO-%'"
+        """
+        select entity.corporate_entity_id
+          from corporate_entity entity
+         where entity.corporate_entity_code like 'DEMO-%'
+           and not exists (
+               select 1
+                 from source_post real_post
+                where real_post.corporate_entity_id = entity.corporate_entity_id
+                  and ({source_context_sql})
+           )
+        """.format(source_context_sql=source_context_present_sql("real_post"))
     )
     return {str(row["corporate_entity_id"]) for row in rows}

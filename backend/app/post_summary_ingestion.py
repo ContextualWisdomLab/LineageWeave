@@ -268,6 +268,7 @@ async def _replace_summary_projection(
     )
     await conn.execute("delete from post_team_mention where post_id = $1", post_id)
     await conn.execute("delete from post_organization_mention where post_id = $1", post_id)
+    await conn.execute("delete from post_summary_five_w1h where post_id = $1", post_id)
     await conn.execute("delete from post_summary_result where post_id = $1", post_id)
     await conn.execute("delete from post_project_mention where post_id = $1", post_id)
     await conn.execute(
@@ -308,6 +309,17 @@ async def _replace_summary_projection(
             post_id,
             ordinal,
             event_text,
+        )
+    for ordinal, claim in enumerate(summary.five_w1h_evidence):
+        await conn.execute(
+            "insert into post_summary_five_w1h "
+            "(post_id, slot_code, value_ordinal, value_text, evidence_text) "
+            "values ($1, $2, $3, $4, $5)",
+            post_id,
+            claim.slot_code,
+            ordinal,
+            claim.value_text,
+            claim.evidence_text,
         )
     # ADR 0009 / 0019 / 0027: resolve catalog identity before writing
     # the role row so fetch never reconstructs it by a non-unique name.

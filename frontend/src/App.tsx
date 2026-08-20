@@ -14,6 +14,7 @@ import {
   fetchAnalysisRuns,
   fetchCalendar,
   fetchCustomerMaster,
+  resolveCustomerHint,
   fetchLineageGraph,
   fetchMe,
   fetchPost,
@@ -52,6 +53,7 @@ import {
   type ChatAnswer,
   type ChatExchange,
   type CorporateEntityRef,
+  type CustomerMasterEntity,
   type CustomerMasterResponse,
   type Counterparty,
   type EvaluationResponse,
@@ -62,6 +64,7 @@ import {
   type PostAiSummary,
   type PostFiveW1H,
   type PostDetail,
+  type PostContentUnit,
   type PostImageContent,
   type PostFilterOption,
   type PeriodComparison,
@@ -71,6 +74,7 @@ import {
   type PostSummary,
   type PostSortOrder,
   type RankingList,
+  type PersonRoleHistoryEntry,
   type RelatedNode,
   type RelatedNodeType,
   type VocEvidence,
@@ -82,6 +86,7 @@ import { PopupCloseButton } from "./components/PopupCloseButton";
 import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
+import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
 import {
@@ -451,6 +456,7 @@ function EventLineageSection({
   currentNextAction?: string | null;
 }) {
   if (!lineage) return <p>{t("Loading lineage...")}</p>;
+  if (!graph) return <p>{t("Loading lineage...")}</p>;
   const scoped = graph ? subgraphForPost(graph, postId) : { nodes: [], edges: [] };
   const hasLinks = lineage.direct.length > 0 || lineage.indirect.length > 0;
   if (scoped.nodes.length === 0) {
@@ -824,6 +830,7 @@ function KeymanPanel({
   focusTeam,
   landFirstKeyman,
   landFirstRelated,
+  focusAskAfterRelated,
   afterList,
 }: {
   postId: string;
@@ -838,9 +845,11 @@ function KeymanPanel({
   focusTeam?: { teamId: string; teamName: string } | null;
   landFirstKeyman?: boolean;
   landFirstRelated?: boolean;
+  focusAskAfterRelated?: boolean;
   afterList?: ReactNode;
 }) {
   const [related, setRelated] = useState<RelatedNode[] | null>(null);
+  const [roleHistory, setRoleHistory] = useState<PersonRoleHistoryEntry[]>([]);
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [landedRelated, setLandedRelated] = useState<RelatedNode[] | null>(null);
   const [landedRelatedName, setLandedRelatedName] = useState<string | null>(null);
@@ -858,9 +867,13 @@ function KeymanPanel({
     const requestId = ++relatedRequest.current;
     setSelectedName(personName);
     setRelated(null);
+    setRoleHistory([]);
     try {
       const result = await fetchRelatedKeymen(accessToken, personId);
-      if (requestId === relatedRequest.current) setRelated(result.related);
+      if (requestId === relatedRequest.current) {
+        setRelated(result.related);
+        setRoleHistory(result.role_history ?? []);
+      }
     } catch {
       if (requestId === relatedRequest.current) setRelated([]);
     }
@@ -870,6 +883,7 @@ function KeymanPanel({
     const requestId = ++relatedRequest.current;
     setSelectedName(entityName);
     setRelated(null);
+    setRoleHistory([]);
     try {
       const result = await fetchRelatedEntity(accessToken, entityId);
       if (requestId === relatedRequest.current) setRelated(result.related);
@@ -882,6 +896,7 @@ function KeymanPanel({
     const requestId = ++relatedRequest.current;
     setSelectedName(teamName);
     setRelated(null);
+    setRoleHistory([]);
     try {
       const result = await fetchRelatedTeam(accessToken, teamId);
       if (requestId === relatedRequest.current) setRelated(result.related);
@@ -898,9 +913,13 @@ function KeymanPanel({
     const requestId = ++relatedRequest.current;
     setSelectedName(first.person_name);
     setRelated(null);
+    setRoleHistory([]);
     fetchRelatedKeymen(accessToken, first.person_id)
       .then((result) => {
-        if (requestId === relatedRequest.current) setRelated(result.related);
+        if (requestId === relatedRequest.current) {
+          setRelated(result.related);
+          setRoleHistory(result.role_history ?? []);
+        }
       })
       .catch(() => {
         if (requestId === relatedRequest.current) setRelated([]);
@@ -934,22 +953,26 @@ function KeymanPanel({
   }, [accessToken, landFirstRelated, related]);
 
   useEffect(() => {
-    if (!landFirstRelated || !landedRelatedName || landedRelated === null) {
+    if (!landFirstRelated || !focusAskAfterRelated || !landedRelatedName || landedRelated === null) {
       return;
     }
     const heading = document.getElementById("post-ask");
     heading?.focus();
     heading?.scrollIntoView?.({ block: "nearest" });
-  }, [landFirstRelated, landedRelatedName, landedRelated]);
+  }, [landFirstRelated, focusAskAfterRelated, landedRelatedName, landedRelated]);
 
   useEffect(() => {
     if (!focusPerson) return;
     const requestId = ++relatedRequest.current;
     setSelectedName(focusPerson.personName);
     setRelated(null);
+    setRoleHistory([]);
     fetchRelatedKeymen(accessToken, focusPerson.personId)
       .then((result) => {
-        if (requestId === relatedRequest.current) setRelated(result.related);
+        if (requestId === relatedRequest.current) {
+          setRelated(result.related);
+          setRoleHistory(result.role_history ?? []);
+        }
       })
       .catch(() => {
         if (requestId === relatedRequest.current) setRelated([]);
@@ -961,6 +984,7 @@ function KeymanPanel({
     const requestId = ++relatedRequest.current;
     setSelectedName(focusEntity.entityName);
     setRelated(null);
+    setRoleHistory([]);
     fetchRelatedEntity(accessToken, focusEntity.entityId)
       .then((result) => {
         if (requestId === relatedRequest.current) setRelated(result.related);
@@ -1004,6 +1028,26 @@ function KeymanPanel({
   const relatedBlock = selectedName ? (
     <div className="related-keymen">
       <h4>{t("Related to")} {selectedName}</h4>
+      {roleHistory.length > 0 ? (
+        <div className="role-history">
+          <p className="section-eyebrow">{t("Role history")}</p>
+          <ol aria-label={`${t("Role history")}: ${selectedName}`}>
+            {roleHistory.map((entry) => (
+              <li key={entry.post_id}>
+                <span className="post-badge">{entry.created_at.slice(0, 10)}</span>
+                <span>
+                  {entry.affiliated_organization_name
+                    ? tf("{responsibility} at {organization}", {
+                        responsibility: entry.responsibility,
+                        organization: entry.affiliated_organization_name,
+                      })
+                    : entry.responsibility}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
       {related === null ? (
         <p>{t("Loading related nodes...")}</p>
       ) : related.length === 0 ? (
@@ -1609,6 +1653,7 @@ function PostDetailPopup({
   liveBodyWarning,
   knowledgeCutoff,
   focusEventLineage,
+  focusAskAfterRelated,
   onClose,
   onSelectPost,
   onSearch,
@@ -1620,12 +1665,14 @@ function PostDetailPopup({
   liveBodyWarning?: string | null;
   knowledgeCutoff?: string | null;
   focusEventLineage?: boolean;
+  focusAskAfterRelated?: boolean;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [imageContent, setImageContent] = useState<PostImageContent[]>([]);
+  const [structureUnits, setStructureUnits] = useState<PostContentUnit[]>([]);
   const [bookmarked, setBookmarked] = useState<boolean | null>(null);
   const [bookmarkSaving, setBookmarkSaving] = useState(false);
   const [postActionStatus, setPostActionStatus] = useState<string | null>(null);
@@ -1669,6 +1716,7 @@ function PostDetailPopup({
 
   useEffect(() => {
     setPost(null);
+    setStructureUnits([]);
     setBookmarked(null);
     setBookmarkSaving(false);
     setPostActionStatus(null);
@@ -1690,8 +1738,14 @@ function PostDetailPopup({
     fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
-        .then((content) => setImageContent(content.images))
-        .catch(() => setImageContent([]));
+        .then((content) => {
+          setImageContent(content.images);
+          setStructureUnits(content.units);
+        })
+        .catch(() => {
+          setImageContent([]);
+          setStructureUnits([]);
+        });
     reloadContent();
     fetchPostBookmark(accessToken, postId)
       .then((r) => setBookmarked(r.bookmarked))
@@ -1830,7 +1884,7 @@ function PostDetailPopup({
             <section className="popup-section post-source-body" aria-label={t("Post body")}>
               <h3>{t("Post body")}</h3>
               {post.post_body.trim() ? (
-                <PostBody body={post.post_body} imageContent={imageContent} />
+                <PostBody body={post.post_body} imageContent={imageContent} structureUnits={structureUnits} />
               ) : (
                 <p className="popup-placeholder" role="status">
                   {t("Source body was not imported; summary and semantic extraction are unavailable.")}
@@ -2002,7 +2056,7 @@ function PostDetailPopup({
                           {t("Extraction source")}: {projectExtractionLabel(project.extraction_method)}
                         </span>
                         <span className="post-badge">
-                          {t("Evidence provenance")}: {projectProvenanceLabel(project.provenance)}
+                          {t("Evidence field")}: {projectProvenanceLabel(project.provenance)}
                         </span>
                       </details>
                     </li>
@@ -2183,6 +2237,7 @@ function PostDetailPopup({
                 focusTeam={focusTeam}
                 landFirstKeyman
                 landFirstRelated
+                focusAskAfterRelated={focusAskAfterRelated}
                 afterList={
                   <>
                     <EvaluationPanel
@@ -2578,6 +2633,14 @@ function analysisRunPostOpenOptions(run: AnalysisRun, postId: string): SelectPos
 
 const VISIBLE_POSTS_RENDER_LIMIT = 200;
 
+// Live finding (2026-08-19): the backend already caps source_customer_hints
+// / source_author_hints at 100 rows each, but real imported data hits that
+// cap routinely (unresolved codes are the common case), and each row's own
+// "Related posts" details -- collapsed by default but still mounted in the
+// DOM -- pushed the page to a ~37,000px scroll height. Same pattern as
+// VISIBLE_POSTS_RENDER_LIMIT above: cap the initial render, name the total.
+const HINT_RENDER_LIMIT = 30;
+
 function AnalysisRunsPanel({
   accessToken,
   currentReportPeriod,
@@ -2896,10 +2959,10 @@ function AnalysisRunsPanel({
                       className="keyman-select"
                       aria-label={analysisRunLivePostButtonLabel(post)}
                       onClick={() =>
-                        onSelectPost(
-                          post.post_id,
-                          analysisRunPostOpenOptions(selected, post.post_id),
-                        )
+                        onSelectPost(post.post_id, {
+                          liveAfterCutoff: Boolean(post.live_after_cutoff),
+                          knowledgeCutoff: selected.knowledge_cutoff,
+                        })
                       }
                     >
                       {post.post_title}
@@ -3439,17 +3502,6 @@ function ReportsPanel({
 const POST_PAGE_SIZE = 50;
 type BoardSortOrder = PostSortOrder;
 
-// The five source VOC type codes (ADR 0060) -- declared directly rather
-// than derived from the board's authorized-values response, since the
-// checkbox filter is a fixed, known vocabulary.
-const VOC_TYPE_CHECKBOXES = [
-  { code: "voc", label: "VOC" },
-  { code: "vocc", label: "VOCC" },
-  { code: "voco", label: "VOCO" },
-  { code: "vop", label: "VOP" },
-  { code: "vom", label: "VOM" },
-];
-
 function PostList({
   accessToken,
   showLabPanels = false,
@@ -3469,6 +3521,7 @@ function PostList({
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
+  const [focusedGraph, setFocusedGraph] = useState<LineageGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [openedAfterCutoff, setOpenedAfterCutoff] = useState(false);
@@ -3496,10 +3549,12 @@ function PostList({
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
+  const [vocTypeFilterOptions, setVocTypeFilterOptions] = useState<PostFilterOption[]>([]);
   const [weekFilter, setWeekFilter] = useState("all");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
+  const postsRequest = useRef(0);
 
   function openReportFromAnalysisRun(
     periodCode: string,
@@ -3535,6 +3590,7 @@ function PostList({
 
   function selectPost(postId: string, options?: SelectPostOptions) {
     setSelectedPostId(postId);
+    setFocusedGraph(null);
     setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
     setOpenedAnalysisRunContext(options?.analysisRunContext ?? null);
@@ -3588,6 +3644,7 @@ function PostList({
   }
 
   const loadPostPage = useCallback(async (page: number, query = searchQuery, sort = sortOrder) => {
+    const requestId = ++postsRequest.current;
     setLoadingPage(true);
     setError(null);
     try {
@@ -3600,14 +3657,17 @@ function PostList({
         visibilityFilter === "all" ? undefined : visibilityFilter,
         sort,
       );
+      if (requestId !== postsRequest.current) return;
       setPosts(response.posts);
       setTotalPosts(response.total_count);
+      setVocTypeFilterOptions(response.voc_type_options ?? []);
       setVisibilityFilterOptions(response.visibility_options ?? []);
       setCurrentPage(page);
     } catch (err) {
+      if (requestId !== postsRequest.current) return;
       setError(String(err));
     } finally {
-      setLoadingPage(false);
+      if (requestId === postsRequest.current) setLoadingPage(false);
     }
   }, [accessToken, searchQuery, sortOrder, typeFilter, visibilityFilter]);
 
@@ -3630,6 +3690,24 @@ function PostList({
       });
   }, [accessToken]);
 
+  useEffect(() => {
+    if (!selectedPostId) {
+      setFocusedGraph(null);
+      return;
+    }
+    let active = true;
+    fetchLineageGraph(accessToken, selectedPostId)
+      .then((nextGraph) => {
+        if (active) setFocusedGraph(nextGraph);
+      })
+      .catch(() => {
+        if (active) setFocusedGraph({ nodes: [], edges: [] });
+      });
+    return () => {
+      active = false;
+    };
+  }, [accessToken, selectedPostId]);
+
   async function handleRebuild() {
     setRebuilding(true);
     setRebuildError(null);
@@ -3651,6 +3729,14 @@ function PostList({
         .map((code) => ({
           code,
           label: loadedPosts.find((post) => post.visibility_code === code)?.visibility_label ?? code,
+        }));
+  const vocTypeOptions = vocTypeFilterOptions.length
+    ? vocTypeFilterOptions
+    : Array.from(new Set(loadedPosts.map((post) => post.voc_type_code)))
+        .sort()
+        .map((code) => ({
+          code,
+          label: loadedPosts.find((post) => post.voc_type_code === code)?.voc_type_label ?? code,
         }));
   const filteredPosts = loadedPosts
     .filter((post) => {
@@ -3759,7 +3845,7 @@ function PostList({
             <p className="board-search-help post-meta">{t("Search includes post text and semantic evidence.")}</p>
             <fieldset className="board-voc-type-filter">
               <legend>{t("Filter by VOC type")}</legend>
-              {VOC_TYPE_CHECKBOXES.map((option) => (
+              {vocTypeOptions.map((option) => (
                 <label key={option.code}>
                   <input
                     type="checkbox"
@@ -3872,18 +3958,18 @@ function PostList({
                           className="post-body-excerpt"
                           aria-label={t("Post body preview")}
                         >
-                          {post.post_body_excerpt || t("No post body.")}
+                          {decodeHtmlEntities(post.post_body_excerpt || t("No post body."))}
                           {post.post_body_truncated ? " ..." : ""}
                         </span>
-                        <span className="post-meta">
-                          {t("Publication state")}: {t(
-                            post.publication_state_code === "source_draft_marker"
-                              ? "Source draft marker present"
-                              : post.publication_state_code === "source_deletion_marker"
-                                ? "Source deletion marker present"
-                                : "Publication state unknown",
-                          )}
-                        </span>
+                        {post.publication_state_code && post.publication_state_code !== "publication_state_unknown" ? (
+                          <span className="post-meta">
+                            {t("Publication state")}: {t(
+                              post.publication_state_code === "source_draft_marker"
+                                ? "Source draft marker present"
+                                : "Source deletion marker present",
+                            )}
+                          </span>
+                        ) : null}
                         {post.source_project_code ? (
                           <span className="post-meta">
                             {t("Source project code")}: {post.source_project_code}
@@ -4001,7 +4087,7 @@ function PostList({
           postId={selectedPostId}
           accessToken={accessToken}
           canExtract={canRebuild}
-          graph={graph}
+          graph={focusedGraph ?? graph}
           liveBodyWarning={
             openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
           }
@@ -4013,6 +4099,7 @@ function PostList({
             openedFromCustomerMaster ||
             openedFromAskAgent
           }
+          focusAskAfterRelated={openedFromReportMember}
           onClose={closeSelectedPost}
           onSelectPost={(postId) => {
             const cutoffOptions = openedAnalysisRunContext
@@ -4032,6 +4119,116 @@ function PostList({
         />
       )}
     </section>
+  );
+}
+
+interface CustomerEntityTreeNode {
+  entity: CustomerMasterEntity;
+  children: CustomerEntityTreeNode[];
+}
+
+// Live bug (2026-08-19): Customer Master's own entity list rendered every
+// corporate_entity as an independent top-level row, even though the API
+// already carries parent_entity_id and the codebase already knows how to
+// build a real forest from it (lineageweave/affiliate_tree.py, used for
+// the post-detail popup's Affiliate tree) -- a group holding company and
+// its subsidiaries showed up as an unrelated flat list with no visual
+// hierarchy at all. A parent not present in this account's own visible
+// entity list (a real possibility -- ABAC can authorize a child entity
+// without its parent) is not dropped; that entity becomes a root here
+// instead of disappearing.
+function buildCustomerEntityTree(entities: CustomerMasterEntity[]): CustomerEntityTreeNode[] {
+  const byId = new Map(entities.map((entity) => [entity.corporate_entity_id, entity]));
+  const childrenByParent = new Map<string, CustomerMasterEntity[]>();
+  const roots: CustomerMasterEntity[] = [];
+  for (const entity of entities) {
+    if (entity.parent_entity_id && byId.has(entity.parent_entity_id)) {
+      const siblings = childrenByParent.get(entity.parent_entity_id) ?? [];
+      siblings.push(entity);
+      childrenByParent.set(entity.parent_entity_id, siblings);
+    } else {
+      roots.push(entity);
+    }
+  }
+  const toNode = (entity: CustomerMasterEntity): CustomerEntityTreeNode => ({
+    entity,
+    children: (childrenByParent.get(entity.corporate_entity_id) ?? []).map(toNode),
+  });
+  return roots.map(toNode);
+}
+
+function CustomerEntityTreeRow({
+  node,
+  depth,
+  expandedEntityId,
+  relatedByEntity,
+  relatedLoading,
+  onToggle,
+  onOpenPost,
+}: {
+  node: CustomerEntityTreeNode;
+  depth: number;
+  expandedEntityId: string | null;
+  relatedByEntity: Record<string, RelatedNode[]>;
+  relatedLoading: string | null;
+  onToggle: (entityId: string) => void;
+  onOpenPost: (postId: string) => void;
+}) {
+  const { entity, children } = node;
+  const relatedPosts = (relatedByEntity[entity.corporate_entity_id] ?? []).filter(
+    (related) => related.node_type_code === NODE_POST,
+  );
+  return (
+    <li style={{ marginInlineStart: depth * 20 }}>
+      <button
+        type="button"
+        className="customer-entity-button"
+        aria-expanded={expandedEntityId === entity.corporate_entity_id}
+        onClick={() => onToggle(entity.corporate_entity_id)}
+      >
+        <strong>{entity.entity_name}</strong>
+        <span>{entity.corporate_entity_code} · {entity.entity_level_label}</span>
+      </button>
+      {expandedEntityId === entity.corporate_entity_id ? (
+        <div className="customer-related-posts">
+          {relatedLoading === entity.corporate_entity_id ? <p>{t("Loading related posts...")}</p> : null}
+          {relatedLoading !== entity.corporate_entity_id && relatedPosts.length === 0 ? (
+            <p className="popup-placeholder">{t("No linked posts yet.")}</p>
+          ) : null}
+          {relatedPosts.length > 0 ? (
+            <ul aria-label={`${t("Related posts")}: ${entity.entity_name}`}>
+              {relatedPosts.map((related) => (
+                <li key={related.node_id}>
+                  <CustomerRelatedPostCard
+                    postId={related.node_id}
+                    postTitle={related.label ?? related.node_id}
+                    postBodyExcerpt={related.post_body_excerpt}
+                    postBodyTruncated={related.post_body_truncated}
+                    onOpenPost={onOpenPost}
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+      {children.length > 0 ? (
+        <ul className="customer-master-list customer-master-tree-children" aria-label={tf("Affiliates of {name}", { name: entity.entity_name })}>
+          {children.map((child) => (
+            <CustomerEntityTreeRow
+              key={child.entity.corporate_entity_id}
+              node={child}
+              depth={depth + 1}
+              expandedEntityId={expandedEntityId}
+              relatedByEntity={relatedByEntity}
+              relatedLoading={relatedLoading}
+              onToggle={onToggle}
+              onOpenPost={onOpenPost}
+            />
+          ))}
+        </ul>
+      ) : null}
+    </li>
   );
 }
 
@@ -4079,14 +4276,51 @@ function CustomerMasterPanel({
   const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
   const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
   const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
+  const [resolvingHint, setResolvingHint] = useState<string | null>(null);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+  // Fetched independently, same pattern as PostList's own canRebuild --
+  // CustomerMasterPanel is a sibling of PostList under App, not a child,
+  // so it cannot read PostList's local post_admin check.
+  const [canResolveHints, setCanResolveHints] = useState(false);
 
   useEffect(() => {
-    setMaster(null);
+    let active = true;
+    fetchMe(accessToken)
+      .then((member) => {
+        if (active) setCanResolveHints(member.permission_codes.includes("post_admin"));
+      })
+      .catch(() => {
+        if (active) setCanResolveHints(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [accessToken]);
+
+  const loadMaster = useCallback(() => {
     setError(null);
-    fetchCustomerMaster(accessToken)
+    return fetchCustomerMaster(accessToken)
       .then(setMaster)
       .catch(() => setError(t("Customer master could not be loaded.")));
   }, [accessToken]);
+
+  useEffect(() => {
+    setMaster(null);
+    void loadMaster();
+  }, [loadMaster]);
+
+  async function handleResolveHint(hintCode: string) {
+    setResolvingHint(hintCode);
+    setResolveError(null);
+    try {
+      await resolveCustomerHint(accessToken, hintCode);
+      await loadMaster();
+    } catch {
+      setResolveError(t("This hint could not be resolved to a corroborated organization name."));
+    } finally {
+      setResolvingHint(null);
+    }
+  }
 
   async function toggleEntity(entityId: string) {
     if (expandedEntityId === entityId) {
@@ -4122,49 +4356,43 @@ function CustomerMasterPanel({
         <p className="popup-placeholder">{t("No customer entities are connected to this account.")}</p>
       ) : null}
       {master && master.corporate_entities.length > 0 ? (
-        <ul className="customer-master-list">
-          {master.corporate_entities.map((entity) => {
-            const relatedPosts = (relatedByEntity[entity.corporate_entity_id] ?? []).filter(
-              (node) => node.node_type_code === NODE_POST,
-            );
-            return (
-            <li key={entity.corporate_entity_id}>
-              <button
-                type="button"
-                className="customer-entity-button"
-                aria-expanded={expandedEntityId === entity.corporate_entity_id}
-                onClick={() => toggleEntity(entity.corporate_entity_id)}
-              >
-                <strong>{entity.entity_name}</strong>
-                <span>{entity.corporate_entity_code} · {entity.entity_level_code}</span>
-              </button>
-              {expandedEntityId === entity.corporate_entity_id ? (
-                <div className="customer-related-posts">
-                  {relatedLoading === entity.corporate_entity_id ? <p>{t("Loading related posts...")}</p> : null}
-                  {relatedLoading !== entity.corporate_entity_id && relatedPosts.length === 0 ? (
-                    <p className="popup-placeholder">{t("No linked posts yet.")}</p>
-                  ) : null}
-                  {relatedPosts.length > 0 ? (
-                      <ul aria-label={`${t("Related posts")}: ${entity.entity_name}`}>
-                      {relatedPosts.map((node) => (
-                        <li key={node.node_id}>
-                          <CustomerRelatedPostCard
-                            postId={node.node_id}
-                            postTitle={node.label ?? node.node_id}
-                            postBodyExcerpt={node.post_body_excerpt}
-                            postBodyTruncated={node.post_body_truncated}
-                            onOpenPost={onOpenPost}
-                          />
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-              ) : null}
-            </li>
-            );
-          })}
+        <ul className="customer-master-list customer-master-tree" aria-label={t("Customer entities available to this account.")}>
+          {buildCustomerEntityTree(master.corporate_entities).map((node) => (
+            <CustomerEntityTreeRow
+              key={node.entity.corporate_entity_id}
+              node={node}
+              depth={0}
+              expandedEntityId={expandedEntityId}
+              relatedByEntity={relatedByEntity}
+              relatedLoading={relatedLoading}
+              onToggle={toggleEntity}
+              onOpenPost={onOpenPost}
+            />
+          ))}
         </ul>
+      ) : null}
+      {master && (master.relationship_network ?? []).length > 0 ? (
+        <section className="customer-keymen" aria-labelledby="relationship-network-heading">
+          <h3 id="relationship-network-heading">{t("Relationship network")}</h3>
+          <p className="buyer-destination-intro">
+            {t("A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.")}
+          </p>
+          <ul className="customer-master-list">
+            {(master.relationship_network ?? []).map((entry) => (
+              <li key={entry.counterparty_entity_name}>
+                <strong>{entry.counterparty_entity_name}</strong>
+                {entry.multi_role ? (
+                  <span className="post-badge">{t("Multiple roles observed")}</span>
+                ) : null}
+                <span>
+                  {entry.relationships
+                    .map((role) => `${role.relationship_label} (${role.post_count})`)
+                    .join(", ")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
       {master && master.source_customer_hints.length > 0 ? (
         <section className="customer-keymen" aria-labelledby="observed-customer-evidence-heading">
@@ -4172,14 +4400,31 @@ function CustomerMasterPanel({
           <p className="buyer-destination-intro">
             {t("Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.")}
           </p>
+          {master.source_customer_hints.length > HINT_RENDER_LIMIT && (
+            <p className="post-meta">
+              {tf("Showing the first {shown} of {total} observed customer identifiers, ranked by post count.", {
+                shown: HINT_RENDER_LIMIT,
+                total: master.source_customer_hints.length,
+              })}
+            </p>
+          )}
+          {resolveError ? <p className="error">{resolveError}</p> : null}
           <ul className="customer-master-list">
-            {master.source_customer_hints.map((hint) => (
+            {master.source_customer_hints.slice(0, HINT_RENDER_LIMIT).map((hint) => (
               <li key={`${hint.customer_code ?? "name"}:${hint.customer_name ?? "unknown"}`}>
                 <strong>{hint.customer_name ?? hint.customer_code ?? t("Unresolved source identifier")}</strong>
                 {hint.customer_name && hint.customer_code ? <span>{hint.customer_code}</span> : null}
                 <span>{t("Unresolved source identifier")}</span>
                 <span>{t(hint.hint_trust === "low" ? "Weak source hint" : "Source hint")}</span>
                 <span>{hint.post_count} {t("posts")}</span>
+                {canResolveHints && hint.customer_code ? (
+                  <button
+                    onClick={() => void handleResolveHint(hint.customer_code as string)}
+                    disabled={resolvingHint === hint.customer_code}
+                  >
+                    {resolvingHint === hint.customer_code ? t("Resolving...") : t("Resolve")}
+                  </button>
+                ) : null}
                 {hint.related_posts.length > 0 ? (
                   <details>
                     <summary>{t("Related posts")} ({hint.related_posts.length})</summary>
@@ -4206,8 +4451,16 @@ function CustomerMasterPanel({
       {master && master.source_author_hints.length > 0 ? (
         <section className="customer-keymen" aria-labelledby="source-author-evidence-heading">
           <h3 id="source-author-evidence-heading">{t("Source author evidence")}</h3>
+          {master.source_author_hints.length > HINT_RENDER_LIMIT && (
+            <p className="post-meta">
+              {tf("Showing the first {shown} of {total} observed source authors, ranked by post count.", {
+                shown: HINT_RENDER_LIMIT,
+                total: master.source_author_hints.length,
+              })}
+            </p>
+          )}
           <ul className="customer-master-list">
-            {master.source_author_hints.map((hint) => (
+            {master.source_author_hints.slice(0, HINT_RENDER_LIMIT).map((hint) => (
               <li key={`${hint.author_code}:${hint.author_account_id}`}>
                 <strong>{hint.author_name ?? hint.author_code}</strong>
                 <details>
@@ -4255,7 +4508,7 @@ function CustomerMasterPanel({
             {master.keymen.map((person) => (
               <li key={person.person_id}>
                 <strong>{person.person_name}</strong>
-                <span>{person.last_known_job_title ?? person.person_side_code}</span>
+                <span>{person.last_known_job_title ?? person.person_side_label}</span>
                 <span>{person.affiliations.map((affiliation) => affiliation.entity_name ?? affiliation.organization_name).join(", ")}</span>
               </li>
             ))}
@@ -4375,6 +4628,12 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
 
   useEffect(() => {
     if (!accessToken) return;
+    const postId = new URLSearchParams(window.location.search).get("post");
+    if (postId) setPostToOpen(postId);
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (!accessToken) return;
     let active = true;
     fetchMe(accessToken)
       .then((member) => {
@@ -4399,7 +4658,19 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
       <main className="centered">
         <h1>LineageWeave</h1>
         <LanguageSwitcher />
-        <button onClick={() => auth.signinRedirect()}>{t("Log in")}</button>
+          <button
+            onClick={() => {
+              const returnUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+              try {
+                window.sessionStorage.setItem("lineageweave.oidc.returnUrl", returnUrl);
+              } catch {
+                // OIDC state remains the primary return-path transport.
+              }
+              void auth.signinRedirect({ state: { returnUrl } });
+            }}
+          >
+            {t("Log in")}
+          </button>
       </main>
     );
   }

@@ -14,6 +14,18 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("splits attribute-bearing visual list breaks into semantic segments", () => {
+    expect(
+      splitPostBody(
+        '<p>1. Background<br style="line-height: 1.5;" />1) Existing unit<br />wrapped continuation<br />2) New unit</p>',
+      ),
+    ).toEqual([
+      { kind: "text", text: "1. Background" },
+      { kind: "text", text: "1) Existing unit wrapped continuation" },
+      { kind: "text", text: "2) New unit" },
+    ]);
+  });
+
   it("evaluates nbsp indentation levels from the document's observed unit", () => {
     expect(
       splitPostBody("<p>&nbsp;&nbsp;Level one</p><p>&nbsp;&nbsp;&nbsp;&nbsp;Level two</p><p>Root</p>"),
@@ -32,6 +44,20 @@ describe("splitPostBody", () => {
     ).toEqual([
       { kind: "text", text: "HTML", indentLevel: 1 },
       { kind: "text", text: "Word", indentLevel: 1 },
+    ]);
+  });
+
+  it("reads CSS box shorthand indentation and markerless footnotes", () => {
+    expect(
+      splitPostBody(
+        '<ul><li style="margin: 0cm 0cm 0cm 56px">Outer</li></ul>' +
+          '<ul><li style="margin: 0cm 0cm 0cm 80px">Nested</li></ul>' +
+          "<p>*Tier 2: note</p>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "Outer", indentLevel: 7 },
+      { kind: "text", text: "Nested", indentLevel: 10 },
+      { kind: "text", text: "*Tier 2: note", role: "footnote" },
     ]);
   });
 

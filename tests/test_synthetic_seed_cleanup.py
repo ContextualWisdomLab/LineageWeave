@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import subprocess
 import uuid
 from pathlib import Path
 
@@ -56,12 +57,15 @@ def migrated_db():
     admin_conn.close()
 
     db_dsn = _ADMIN_DSN.rsplit("/", 1)[0] + f"/{db_name}"
-    conn = psycopg2.connect(db_dsn)
-    conn.autocommit = True
-    with conn.cursor() as cur:
-        for migration in sorted(_MIGRATIONS_DIR.glob("*.sql")):
-            cur.execute(migration.read_text())
-    conn.close()
+    # psql, not psycopg2 cur.execute(), matches docker/postgres-init/migrate.sh:
+    # a few migrations use CREATE INDEX CONCURRENTLY, which errors under
+    # psycopg2's implicit multi-statement transaction wrapping but not under
+    # psql's one-statement-at-a-time execution of a -f file.
+    for migration in sorted(_MIGRATIONS_DIR.glob("*.sql")):
+        subprocess.run(
+            ["psql", "-X", "-v", "ON_ERROR_STOP=1", db_dsn, "-f", str(migration)],
+            check=True,
+        )
 
     yield db_dsn
 
@@ -80,6 +84,14 @@ def test_cleanup_deletes_only_entangled_synthetic_rows(migrated_db: str) -> None
     async def run() -> dict[str, int]:
         conn = await asyncpg.connect(migrated_db)
         try:
+            # 'corporate_entity_level'/'company' and 'voc_type'/'voc' are already
+            # seeded by migrations 0016 and 0042 respectively; inserting them again
+            # here would violate common_lookup_value's primary key.
+            await conn.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
+                "('post_visibility', 'public', 'Public'), "
+                "('entity_relationship_type', 'rel_voc', 'Voice of Customer')"
+            )
             demo_entity = await conn.fetchval(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
                 "values ('DEMO-CORP-01', 'Demo Corp', 'company') returning corporate_entity_id"
@@ -136,6 +148,34 @@ def test_cleanup_deletes_only_entangled_synthetic_rows(migrated_db: str) -> None
                 account,
                 demo_entity,
                 demo_pu,
+            )
+            imported_entity = await conn.fetchval(
+                "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
+                "values ('IMPORTED-CORP-01', 'Imported Corp', 'company') returning corporate_entity_id"
+            )
+            imported_pu = await conn.fetchval(
+                "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
+                "values ($1, 'IMPORTED-PU-A', 'Imported Unit') returning process_unit_id",
+                imported_entity,
+            )
+            non_demo_synthetic_post = await conn.fetchval(
+                "insert into source_post "
+                "(author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, "
+                " voc_type_code, visibility_code, created_at, updated_at) "
+                "values ($1, $2, $3, 'Synthetic row outside Demo code', 'synthetic body 3', 'voc', 'public', now(), now()) "
+                "returning post_id",
+                account,
+                imported_entity,
+                imported_pu,
+            )
+            await conn.execute(
+                "insert into source_post "
+                "(author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, "
+                " voc_type_code, visibility_code, source_author_code, created_at, updated_at) "
+                "values ($1, $2, $3, 'Real row outside Demo code', 'real body 2', 'voc', 'public', 'REAL-AUTHOR-2', now(), now())",
+                account,
+                imported_entity,
+                imported_pu,
             )
             snapshot = await conn.fetchval(
                 "insert into analysis_source_snapshot "
@@ -199,6 +239,12 @@ def test_cleanup_deletes_only_entangled_synthetic_rows(migrated_db: str) -> None
                 )
                 == 1
             ), "a synthetic post referenced by an analysis-run snapshot must never be deleted"
+            assert (
+                await conn.fetchval(
+                    "select count(*) from source_post where post_id = $1", non_demo_synthetic_post
+                )
+                == 0
+            ), "row-level source evidence, not the corporate entity code, selects synthetic cleanup candidates"
 
             counterparty_row = await conn.fetchrow(
                 "select verification_evidence_post_id from post_counterparty_entity where post_id = $1",
@@ -224,7 +270,7 @@ def test_cleanup_deletes_only_entangled_synthetic_rows(migrated_db: str) -> None
             await conn.close()
 
     result = asyncio.run(run())
-    assert result["candidate_posts"] == 2
+    assert result["candidate_posts"] == 3
     assert result["blocked_posts"] == 1
-    assert result["deletable_posts"] == 1
-    assert result["deleted_posts"] == 1
+    assert result["deletable_posts"] == 2
+    assert result["deleted_posts"] == 2

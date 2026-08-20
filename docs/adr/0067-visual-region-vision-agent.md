@@ -30,7 +30,9 @@ parent image, region order, normalized box, model, and processing status.
 
 Region text is an additional semantic unit under ADR 0062. The buyer view
 shows only persisted OCR/caption evidence; it must never show an internal
-instruction such as “extract Keyman” as source-post content.
+instruction such as “extract Keyman” as source-post content. Existing posts
+are reprocessed only by an explicit operator backfill with selected post IDs;
+the buyer read path never starts an unbounded VISION job.
 
 ## Consequences
 
@@ -38,6 +40,7 @@ instruction such as “extract Keyman” as source-post content.
 - A region locator call plus one call per accepted crop costs more than a
   whole-image call; the implementation must cap regions and keep the parent
   image fallback for provider failures.
-- The normalized region tables and embedding linkage must land before the
-  agent is enabled for live reprocessing. Until then, existing whole-image
-  artifacts remain valid evidence and are not relabeled as region evidence.
+- The normalized region tables and embedding linkage are written by the same
+  persistence transaction used during import and by the selected-post
+  backfill command. A provider failure leaves the post eligible for retry and
+  is never presented as successful image evidence.
