@@ -3,6 +3,49 @@ import { t } from "./i18n";
 import type { PostContentUnit, PostImageContent } from "./api";
 import type { ReactNode } from "react";
 
+function renderImageEvidence(
+  index: number,
+  imageContent?: PostImageContent,
+  sourceImage?: Extract<PostBodySegment, { kind: "image" }>,
+) {
+  return (
+    <figure key={`post-body-image-${index}`} className="post-embedded-image">
+      {sourceImage ? (
+        <img src={sourceImage.src} alt={imageContent?.caption || t("Embedded image")} />
+      ) : null}
+      {imageContent?.caption ? <figcaption>{imageContent.caption}</figcaption> : null}
+      {imageContent?.tags.length ? (
+        <p className="post-image-tags">
+          <strong>{t("Image tags")}:</strong> {imageContent.tags.join(", ")}
+        </p>
+      ) : null}
+      {imageContent?.extracted_text ? (
+        <details className="post-image-text">
+          <summary>{t("Text detected in image")}</summary>
+          <p>{imageContent.extracted_text}</p>
+        </details>
+      ) : null}
+      {imageContent?.regions?.length ? (
+        <details className="post-image-regions">
+          <summary>{t("Image regions")}</summary>
+          <ol>
+            {imageContent.regions.map((region) => (
+              <li key={region.region_index}>
+                <span>{region.caption || region.extracted_text || t("Unknown")}</span>
+                {region.tags.length ? (
+                  <small>
+                    {t("Image tags")}: {region.tags.join(", ")}
+                  </small>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+        </details>
+      ) : null}
+    </figure>
+  );
+}
+
 function renderSegment(segment: PostBodySegment, index: number, imageContent?: PostImageContent) {
   switch (segment.kind) {
     case "text":
@@ -22,33 +65,7 @@ function renderSegment(segment: PostBodySegment, index: number, imageContent?: P
         </p>
       );
     case "image":
-      return (
-        <figure key={`post-body-image-${index}`} className="post-embedded-image">
-          <img
-            src={segment.src}
-            alt={t("Embedded image")}
-          />
-          {imageContent?.caption ? <figcaption>{imageContent.caption}</figcaption> : null}
-          {imageContent?.extracted_text ? (
-            <details className="post-image-text">
-              <summary>{t("Text detected in image")}</summary>
-              <p>{imageContent.extracted_text}</p>
-            </details>
-          ) : null}
-          {imageContent?.regions?.length ? (
-            <details className="post-image-regions">
-              <summary>{t("Image regions")}</summary>
-              <ol>
-                {imageContent.regions.map((region) => (
-                  <li key={region.region_index}>
-                    {region.caption || region.extracted_text || t("Unknown")}
-                  </li>
-                ))}
-              </ol>
-            </details>
-          ) : null}
-        </figure>
-      );
+      return renderImageEvidence(index, imageContent, segment);
     default: {
       const _exhaustive: never = segment;
       throw new Error(`unexpected post body segment: ${JSON.stringify(_exhaustive)}`);
@@ -87,7 +104,7 @@ function renderStructuredUnits(
       rendered.push(
         sourceImage
           ? renderSegment(sourceImage, index, content)
-          : renderSegment({ kind: "text", text: unit.unit_text }, index, content),
+          : renderImageEvidence(index, content),
       );
       index += 1;
       continue;

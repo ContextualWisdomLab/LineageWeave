@@ -141,4 +141,52 @@ describe("PostBody", () => {
 
     expect(screen.getByText("*Tier 2: note")).toHaveAttribute("data-content-kind", "footnote");
   });
+
+  it("renders persisted image evidence without exposing the internal LLM instruction", () => {
+    render(
+      <PostBody
+        body="<p>[internal image instruction]</p>"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "image",
+            unit_label: "img",
+            unit_text: "This post is an image. Ask questions to read its text.",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "",
+          },
+        ]}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "Visible OCR",
+            caption: "A process diagram",
+            tags: ["diagram", "process"],
+            regions: [
+              {
+                region_index: 0,
+                x_ratio: 0,
+                y_ratio: 0,
+                width_ratio: 1,
+                height_ratio: 1,
+                status_code: "described",
+                extracted_text: "Region OCR",
+                caption: "Main panel",
+                tags: ["panel"],
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("A process diagram")).toBeInTheDocument();
+    expect(screen.getByText("diagram, process")).toBeInTheDocument();
+    expect(screen.getByText("Main panel")).toBeInTheDocument();
+    expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
+  });
 });
