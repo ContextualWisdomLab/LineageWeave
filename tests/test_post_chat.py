@@ -200,6 +200,7 @@ def test_chat_render_includes_persisted_graph_facts_with_source_evidence() -> No
             'node_corporate_entity "Demo Corp" [evidence_post_id=post-graph]',
         ),
         evidence_facts=("source project code=PROJECT-HINT [hint_only]",),
+        occurred_at="2026-01-01T00:00:00+00:00",
     )
 
     rendered = _render_sources_block([source])
@@ -209,6 +210,7 @@ def test_chat_render_includes_persisted_graph_facts_with_source_evidence() -> No
     assert "evidence_post_id=post-graph" in rendered
     assert "Persisted source/semantic evidence" in rendered
     assert "PROJECT-HINT" in rendered
+    assert "Occurred at: 2026-01-01T00:00:00+00:00" in rendered
 
 
 def test_graph_facts_are_hydrated_from_visible_evidence_posts(monkeypatch) -> None:

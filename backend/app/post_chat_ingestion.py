@@ -178,6 +178,13 @@ def _source_hint_facts(row: Any) -> tuple[str, ...]:
     return tuple(facts)
 
 
+def _timestamp_text(row: Any) -> str | None:
+    value = row.get("created_at")
+    if value is None:
+        return None
+    return value.isoformat() if hasattr(value, "isoformat") else str(value)
+
+
 async def _semantic_facts_for_posts(
     conn: asyncpg.Connection, post_ids: list[str]
 ) -> dict[str, tuple[str, ...]]:
@@ -504,6 +511,7 @@ async def gather_global_chat_sources(
     rows = await conn.fetch(
         """
         select post_id, post_title, post_body, visibility_code, corporate_entity_id,
+               created_at,
                source_system_code, source_record_key, source_author_code, source_author_name,
                source_company_code, source_company_name, source_process_unit_code,
                source_process_unit_name, source_sales_pool_code, source_sales_pool_name,
@@ -548,6 +556,14 @@ async def gather_global_chat_sources(
                 evidence_facts=_source_hint_facts(row)
                 + semantic_facts.get(post_id, ())
                 + lineage_fact,
+                occurred_at=_timestamp_text(row),
+                timeline_kind=(
+                    "lineage_neighbor"
+                    if post_id in lineage_neighbor_id_set and anchor_is_visible
+                    else "lineage_anchor"
+                    if post_id == lineage_anchor_id
+                    else "keyword_match"
+                ),
             )
         )
     return sources

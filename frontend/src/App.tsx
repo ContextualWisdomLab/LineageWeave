@@ -4656,6 +4656,26 @@ function AskAgentPanel({
           <h3>{t("Answer")}</h3>
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
           {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
+          {answer.timeline && answer.timeline.length > 0 ? (
+            <>
+              <h4>Event Lineage timeline</h4>
+              <ol className="related-post-list" aria-label="Event Lineage timeline">
+                {answer.timeline.map((event) => (
+                  <li key={event.post_id}>
+                    <button
+                      type="button"
+                      className="post-list-item"
+                      aria-label={`${t("Open timeline post:")} ${event.post_title}`}
+                      onClick={() => onOpenPost(event.post_id)}
+                    >
+                      <strong>{event.post_title}</strong>
+                      {event.occurred_at ? <time dateTime={event.occurred_at}>{event.occurred_at}</time> : null}
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </>
+          ) : null}
           {answer.cited_posts && answer.cited_posts.length > 0 && (
             <>
               <p className="board-next-action" role="status" aria-label={t("Next action")}>

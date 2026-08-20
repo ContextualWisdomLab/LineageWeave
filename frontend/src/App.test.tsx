@@ -1614,6 +1614,20 @@ describe("App, authenticated", () => {
               },
             ],
             source_post_ids: ["post-1", "post-2"],
+            timeline: [
+              {
+                post_id: "post-1",
+                post_title: "Public post",
+                occurred_at: "2026-01-01T00:00:00Z",
+                timeline_kind: "lineage_anchor",
+              },
+              {
+                post_id: "post-2",
+                post_title: "Linked post",
+                occurred_at: "2026-01-02T00:00:00Z",
+                timeline_kind: "lineage_neighbor",
+              },
+            ],
           }),
         );
       }
@@ -1729,6 +1743,8 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("list", { name: "Evidence facts" })).toBeInTheDocument();
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Event Lineage timeline" })).toBeInTheDocument();
+    expect(screen.getByText("2026-01-01T00:00:00Z")).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
   });
 

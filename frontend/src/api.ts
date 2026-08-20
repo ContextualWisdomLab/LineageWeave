@@ -290,7 +290,15 @@ export interface AskAgentResponse {
   cited_posts?: CitedPostRef[];
   cited_post_evidence?: CitedPostEvidence[];
   source_post_ids: string[];
+  timeline?: AskTimelineEntry[];
   next_action?: string;
+}
+
+export interface AskTimelineEntry {
+  post_id: string;
+  post_title: string;
+  occurred_at: string | null;
+  timeline_kind: string | null;
 }
 
 export interface IssueTicket {

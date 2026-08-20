@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 
 from backend.app.post_chat_ingestion import gather_global_chat_sources
+from backend.app.main import global_ask_timeline
 
 
 def test_global_sources_apply_visibility_before_normalization() -> None:
@@ -199,6 +201,7 @@ def test_global_sources_keep_lineage_expansion_within_requested_limit() -> None:
         "visibility_code": "public",
         "corporate_entity_id": None,
         "matched_in": "title",
+        "created_at": datetime(2026, 1, 2, tzinfo=timezone.utc),
     }
     neighbor_ids = [f"neighbor-{index:02d}" for index in range(20)]
     source_call: tuple[str, tuple[object, ...]] | None = None
@@ -281,6 +284,7 @@ def test_global_sources_expand_top_match_through_event_lineage() -> None:
         "visibility_code": "public",
         "corporate_entity_id": None,
         "matched_in": "title",
+        "created_at": datetime(2026, 1, 2, tzinfo=timezone.utc),
     }
     lineage_row = {
         "post_id": "event-1",
@@ -288,6 +292,7 @@ def test_global_sources_expand_top_match_through_event_lineage() -> None:
         "post_body": "kickoff body",
         "visibility_code": "public",
         "corporate_entity_id": None,
+        "created_at": datetime(2026, 1, 1, tzinfo=timezone.utc),
     }
 
     class FakeConnection:
@@ -315,6 +320,12 @@ def test_global_sources_expand_top_match_through_event_lineage() -> None:
         "Event Lineage: reconstructed timeline neighbor of post_id=event-2" in fact
         for fact in sources[1].evidence_facts
     )
+    assert sources[0].occurred_at == "2026-01-02T00:00:00+00:00"
+    assert sources[0].timeline_kind == "lineage_anchor"
+    assert sources[1].occurred_at == "2026-01-01T00:00:00+00:00"
+    assert sources[1].timeline_kind == "lineage_neighbor"
+    timeline = global_ask_timeline(sources)
+    assert [event["post_id"] for event in timeline] == ["event-1", "event-2"]
 
 
 def test_global_sources_do_not_leak_lineage_anchor_id_when_anchor_is_invisible() -> None:

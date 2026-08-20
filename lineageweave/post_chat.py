@@ -64,6 +64,8 @@ class ChatSourceDocument:
     post_body: str
     graph_facts: tuple[str, ...] = field(default_factory=tuple)
     evidence_facts: tuple[str, ...] = field(default_factory=tuple)
+    occurred_at: str | None = None
+    timeline_kind: str | None = None
 
 
 @dataclass(frozen=True)
@@ -226,9 +228,11 @@ def _render_sources_block(sources: list[ChatSourceDocument]) -> str:
                 "raw source hints as resolved ontology assertions):\n"
                 + "\n".join(f"- {fact}" for fact in source.evidence_facts)
             )
+        occurred_block = f"Occurred at: {source.occurred_at}\n" if source.occurred_at else ""
         blocks.append(
             f"[Source {i}] (post_id={source.post_id})\n"
-            f"Title: {source.post_title}\n{body}{graph_block}{evidence_block}"
+            f"Title: {source.post_title}\n"
+            f"{occurred_block}{body}{graph_block}{evidence_block}"
         )
     return "\n\n".join(blocks)
 

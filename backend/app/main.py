@@ -70,6 +70,7 @@ from lineageweave.organization_name_resolution import (
     NullOrganizationNameResolutionClient,
 )
 from lineageweave.post_chat import (
+    ChatSourceDocument,
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
     cited_post_evidence,
@@ -2452,6 +2453,27 @@ class GlobalAskRequest(BaseModel):
     question: str
 
 
+def global_ask_timeline(sources: list[ChatSourceDocument]) -> list[dict[str, str | None]]:
+    """Return every authorized Ask source in event order, not citation order."""
+    ordered = sorted(
+        sources,
+        key=lambda source: (
+            source.occurred_at is None,
+            source.occurred_at or "",
+            source.post_id,
+        ),
+    )
+    return [
+        {
+            "post_id": source.post_id,
+            "post_title": source.post_title,
+            "occurred_at": source.occurred_at,
+            "timeline_kind": source.timeline_kind,
+        }
+        for source in ordered
+    ]
+
+
 @app.get("/api/posts/{post_id}/chat")
 async def read_post_chat(
     post_id: str,
@@ -2573,6 +2595,7 @@ async def ask_agent(
             "cited_posts": [],
             "source_post_ids": [],
             "cited_post_evidence": [],
+            "timeline": [],
             "next_action": "No authorized source posts are available for this question.",
         }
     try:
@@ -2589,6 +2612,7 @@ async def ask_agent(
         "cited_posts": cited_post_summaries(sources, cited_ids),
         "cited_post_evidence": cited_post_evidence(sources, cited_ids),
         "source_post_ids": [source.post_id for source in sources],
+        "timeline": global_ask_timeline(sources),
     }
 
 
