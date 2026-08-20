@@ -46,6 +46,11 @@ class _FakeConnection:
             return self.lexical_rows
         if "select child_post_id as other_id" in query:
             return []
+        if "matched_organization_label" in query:
+            # The integration fixture has no corroborated label rows. Keep
+            # the new post-ABAC evidence lookup explicit so this double tracks
+            # the production query contract instead of rejecting it.
+            return []
         if "select post_id, post_title, post_body" in query:
             self.final_query_calls += 1
             return self.final_rows
