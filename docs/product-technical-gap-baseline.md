@@ -1,11 +1,12 @@
 # Product, technical, and gap baseline
 
-**Snapshot:** 2026-08-20 18:33 (Asia/Seoul)
-**Protected-main baseline:** `origin/main`, product version `2.12.5`  
-**Audited PR head:** #258 at `f8d2fa98d622e4294cf08f24a87a7db697479f4f` (semantic source-unit boundaries and the preceding queue, ontology, and review fixes)
-**Active PR update:** The current #258 head has local backend `716 passed, 16 skipped`
-and frontend lint, 129 tests, build, and Storybook build passing; protected-main
-runtime evidence, formal approval, and required GitHub Checks remain pending.
+**Snapshot:** 2026-08-21 05:46 (Asia/Seoul)
+**Protected-main baseline:** `origin/main`, product version `2.12.5`
+**Audited PR head:** #258 at `b83be708a9dc705df7485e1b18e779439bfb7b71` (current exact branch head; protected-main runtime evidence remains pending)
+**Active PR update:** Hosted Full test, frontend, PROV-O, CodeQL, SAST, supply-chain,
+and security Checks are successful on the current #258 head; Devin Review is
+failed and the OpenCode coverage check remains pending. Formal approval and
+protected-main acceptance are still required.
 **Purpose:** connect the normative ADRs and research evidence to product
 requirements, technical contracts, implementation evidence, and active PRs.
 An active PR is proposed work, not shipped behavior.

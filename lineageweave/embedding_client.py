@@ -122,7 +122,7 @@ class ContextualOrchestratorEmbeddingClient:
                     timeout=self._timeout,
                 )
                 self._record_resolved_model(response)
-            
+
         vectors = self._vectors(response, len(texts))
         if vectors is None:
             raise ValueError("embedding response did not contain a complete vector batch")
