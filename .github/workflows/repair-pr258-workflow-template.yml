@@ -1,0 +1,61 @@
+name: Repair PR 258 one-shot template once
+
+on:
+  push:
+    branches:
+      - "feat/analysis-run-name-evidence-lineage"
+    paths:
+      - ".github/workflows/repair-pr258-workflow-template.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-pr258-static-sql-review
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    name: Correct the SQL template and retrigger the exact one-shot
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact feature branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/analysis-run-name-evidence-lineage
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Correct the one-shot workflow
+        shell: python
+        run: |
+          from pathlib import Path
+
+          workflow_path = Path(".github/workflows/repair-pr258-static-sql-review.yml")
+          workflow = workflow_path.read_text(encoding="utf-8")
+          old_guard = "    if: github.actor != 'github-actions[bot]'\n"
+          if old_guard not in workflow:
+              raise SystemExit("expected one-shot actor guard was not found")
+          workflow = workflow.replace(
+              old_guard,
+              "    if: github.repository_owner == 'ContextualWisdomLab'\n",
+              1,
+          )
+          placeholder = "{{_POST_SELECTION_FROM_SQL}}"
+          if workflow.count(placeholder) != 2:
+              raise SystemExit("expected two escaped projection placeholders")
+          workflow = workflow.replace(placeholder, "{_POST_SELECTION_FROM_SQL}")
+          workflow_path.write_text(workflow, encoding="utf-8")
+          Path(".github/workflows/repair-pr258-workflow-template.yml").unlink()
+
+      - name: Publish only the corrected one-shot
+        env:
+          TARGET_BRANCH: feat/analysis-run-name-evidence-lineage
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A .github/workflows
+          git diff --cached --check
+          git commit -m "ci: correct PR 258 static SQL repair template"
+          git push origin "HEAD:${TARGET_BRANCH}"
