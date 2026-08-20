@@ -611,6 +611,7 @@ and blocked at query time, and none had an `APPROVED` review decision.
 | #306 | `fc7969e1d75f840ccbcc02653331bdafc1382036` | `feat/analysis-run-name-evidence-lineage` | `BLOCKED`, review required |
 | #303 | `817681bb0d491c4c71bcf24b0d9554afd34b3a71` | `feat/buyer-evidence-gap-structure` | `BLOCKED`, review required |
 | #302 | `790d6442701a0da1feaeb7b094b8259be957df74` | `feat/analysis-run-name-evidence-lineage` | `BLOCKED`, approval absent |
+| #258 | `d1d49308a703a249138ae85eb9baef3c48ddecd4` | `main` | `BLOCKED`; coverage queued, Strix in progress, Devin failed |
 
 The queue contains valid stacked work for the known buyer gaps, including
 OIDC deep links, visual-region evidence, semantic table rendering, project
