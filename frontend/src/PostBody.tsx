@@ -22,10 +22,20 @@ function parsePipeDelimitedTable(text: string): string[][] | null {
 function renderImageText(text: string) {
   const rows = parsePipeDelimitedTable(text);
   if (!rows) return <p>{text}</p>;
+  const [header, ...bodyRows] = rows;
   return (
     <table className="post-body-table post-image-text-table">
+      <thead>
+        <tr>
+          {header.map((cell, cellIndex) => (
+            <th key={`post-image-text-header-${cellIndex}`} scope="col">
+              {cell}
+            </th>
+          ))}
+        </tr>
+      </thead>
       <tbody>
-        {rows.map((row, rowIndex) => (
+        {bodyRows.map((row, rowIndex) => (
           <tr key={`post-image-text-row-${rowIndex}`}>
             {row.map((cell, cellIndex) => (
               <td key={`post-image-text-cell-${rowIndex}-${cellIndex}`}>{cell}</td>
@@ -131,7 +141,14 @@ function ImageEvidenceFigure({
           <ol>
             {regions.map((region) => (
               <li key={region.region_index}>
-                <span>{regionBuyerLabel(region)}</span>
+                {region.caption ? <p>{region.caption}</p> : null}
+                {region.extracted_text ? (
+                  <div className="post-image-region-text">
+                    {renderImageText(region.extracted_text)}
+                  </div>
+                ) : region.caption ? null : (
+                  <span>{t("Unknown")}</span>
+                )}
                 {region.tags.length ? (
                   <small>
                     {t("Image tags")}: {region.tags.join(", ")}
