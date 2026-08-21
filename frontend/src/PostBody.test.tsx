@@ -295,6 +295,44 @@ describe("PostBody", () => {
     expect(screen.getByText("Panel")).toBeInTheDocument();
   });
 
+  it("keeps escaped pipes and does not invent headers for unmarked region OCR", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "| Item | State |\n| --- | --- |\n| Review \\| approve | Ready |",
+            caption: "A table image",
+            tags: [],
+            regions: [
+              {
+                region_index: 0,
+                x_ratio: 0,
+                y_ratio: 0,
+                width_ratio: 1,
+                height_ratio: 1,
+                status_code: "described",
+                extracted_text: "| 1 | Panel |\n| 2 | Ready |",
+                caption: "An OCR region without a Markdown header marker.",
+                tags: [],
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Review | approve")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Item" })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "1" })).not.toBeInTheDocument();
+    expect(document.querySelector(".post-image-region-text p")?.textContent).toBe(
+      "| 1 | Panel |\n| 2 | Ready |",
+    );
+  });
+
   it("keeps source-image placement while showing persisted OCR and caption evidence", () => {
     render(
       <PostBody
