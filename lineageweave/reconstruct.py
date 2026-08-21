@@ -87,13 +87,7 @@ def _best_parent(
             "text": text_similarity_score(candidate, record),
         }
         if "llm" in weights:
-            try:
-                scores["llm"] = llm.judge(candidate.label, record.label)
-            except AdjudicationClientError:
-                # Keep one malformed model reply from discarding the complete
-                # reconstruction. The external contract adapter has its own
-                # stricter boundary and still raises a stable contract error.
-                scores["llm"] = 0.0
+            scores["llm"] = llm.judge(candidate.label, record.label)
         for channel, score in scores.items():
             channel_results[channel].append((candidate.record_id, score))
             per_candidate_scores[candidate.record_id][channel] = score
@@ -119,7 +113,15 @@ def _reconstruct_group(
     edges: list[Edge] = []
     for index, record in enumerate(ordered):
         candidates = ordered[max(0, index - window) : index]
-        parent_choice = _best_parent(record, candidates, llm, weights, min_score)
+        try:
+            parent_choice = _best_parent(record, candidates, llm, weights, min_score)
+        except AdjudicationClientError:
+            # A malformed optional provider response makes that channel
+            # unavailable for this reconstruction; deterministic channels must
+            # continue with their renormalized weights.
+            llm = NullAdjudicationClient()
+            weights = active_weights(llm, weights)
+            parent_choice = _best_parent(record, candidates, llm, weights, min_score)
         references: list[str] = []
         if parent_choice is not None:
             parent, score, channel_scores = parent_choice
