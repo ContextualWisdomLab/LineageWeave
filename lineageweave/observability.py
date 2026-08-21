@@ -9,15 +9,17 @@ from __future__ import annotations
 
 import logging
 import os
+import traceback
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from typing import Any
 
 try:
-    from opentelemetry import trace
+    from opentelemetry import metrics, trace
     from opentelemetry.propagate import inject as _otel_inject
     from opentelemetry.trace import Status, StatusCode
 except ImportError:  # pragma: no cover - dependency is declared by the project
+    metrics = None  # type: ignore[assignment]
     trace = None  # type: ignore[assignment]
     _otel_inject = None
     Status = None  # type: ignore[assignment,misc]
@@ -26,14 +28,27 @@ except ImportError:  # pragma: no cover - dependency is declared by the project
 _LOGGER = logging.getLogger(__name__)
 _CONFIGURED = False
 _TRACER_NAME = "lineageweave"
+_FAILURE_COUNTER: Any = None
+_SERVER_FAILURE_OUTCOMES = {"provider_unavailable", "internal_error"}
 
 
 def _otlp_trace_endpoint(endpoint: str) -> str:
     """Turn an OTLP base endpoint into the explicit HTTP traces endpoint."""
+    return _otlp_signal_endpoint(endpoint, "traces")
+
+
+def _otlp_signal_endpoint(endpoint: str, signal: str) -> str:
+    """Turn an OTLP base endpoint into one explicit HTTP signal endpoint."""
     normalized = endpoint.rstrip("/")
-    if normalized.casefold().endswith("/v1/traces"):
+    suffix = f"/v1/{signal}"
+    if normalized.casefold().endswith(suffix):
         return normalized
-    return f"{normalized}/v1/traces"
+    return f"{normalized}{suffix}"
+
+
+def _otlp_metric_endpoint(endpoint: str) -> str:
+    """Turn an OTLP base endpoint into the explicit HTTP metrics endpoint."""
+    return _otlp_signal_endpoint(endpoint, "metrics")
 
 
 def current_session_id() -> str | None:
@@ -74,7 +89,7 @@ def _safe_attributes(
 
 
 def configure_telemetry(service_name: str = "lineageweave") -> None:
-    """Configure one OTLP trace provider when an operator supplied an endpoint."""
+    """Configure OTLP traces and bounded failure metrics when enabled."""
     global _CONFIGURED
     if _CONFIGURED or os.getenv("OTEL_SDK_DISABLED", "").lower() == "true":
         return
@@ -90,7 +105,7 @@ def configure_telemetry(service_name: str = "lineageweave") -> None:
         from opentelemetry.sdk.trace import TracerProvider
         from opentelemetry.sdk.trace.export import BatchSpanProcessor
     except ImportError:  # pragma: no cover - guarded by the runtime extra
-        _LOGGER.warning("OpenTelemetry SDK/exporter is unavailable")
+        _LOGGER.warning("OpenTelemetry trace SDK/exporter is unavailable")
         return
 
     resource = Resource.create({
@@ -104,6 +119,129 @@ def configure_telemetry(service_name: str = "lineageweave") -> None:
         )
     )
     trace.set_tracer_provider(provider)
+    if metrics is None:
+        return
+    try:
+        from opentelemetry.exporter.otlp.proto.http.metric_exporter import (
+            OTLPMetricExporter,
+        )
+        from opentelemetry.sdk.metrics import MeterProvider
+        from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+    except ImportError:  # pragma: no cover - guarded by the runtime extra
+        _LOGGER.warning("OpenTelemetry metric SDK/exporter is unavailable")
+        return
+    metrics.set_meter_provider(
+        MeterProvider(
+            resource=resource,
+            metric_readers=[
+                PeriodicExportingMetricReader(
+                    OTLPMetricExporter(endpoint=_otlp_metric_endpoint(endpoint))
+                )
+            ],
+        )
+    )
+
+
+def _failure_counter() -> Any:
+    """Return the OTel counter without making telemetry a request dependency."""
+    global _FAILURE_COUNTER
+    if _FAILURE_COUNTER is None and metrics is not None:
+        _FAILURE_COUNTER = metrics.get_meter(_TRACER_NAME).create_counter(
+            "lineageweave.server.failures",
+            description="Server failures classified by operation and outcome",
+        )
+    return _FAILURE_COUNTER
+
+
+def _stack_trace_without_exception(exc: BaseException) -> str:
+    """Bound a stack trace while excluding the exception value/message."""
+    if exc.__traceback__ is None:
+        return ""
+    return "".join(traceback.format_tb(exc.__traceback__))[:4096]
+
+
+def _annotate_failure_span(
+    span: Any,
+    operation_code: str,
+    outcome: str,
+    error_type: str,
+    stack_trace: str,
+) -> None:
+    """Attach only bounded classification data to an active span."""
+    safe = _safe_attributes(
+        {
+            "lineageweave.operation_code": operation_code,
+            "lineageweave.failure_outcome": outcome,
+            "lineageweave.error_type": error_type,
+        }
+    )
+    for key, value in safe.items():
+        span.set_attribute(key, value)
+    event_attributes: dict[str, str] = {"exception.type": error_type}
+    if stack_trace:
+        event_attributes["exception.stacktrace"] = stack_trace
+    span.add_event("exception", event_attributes)
+    if Status is not None and StatusCode is not None:
+        span.set_status(Status(StatusCode.ERROR))
+
+
+def record_server_failure(
+    operation_code: str,
+    exc: BaseException,
+    *,
+    outcome: str,
+) -> None:
+    """Record a classified server failure without storing exception content.
+
+    ``provider_unavailable`` and ``internal_error`` are the only metric
+    outcomes. The error class is retained in logs and spans, while the
+    exception value is intentionally never serialized.
+    """
+    if outcome not in _SERVER_FAILURE_OUTCOMES:
+        raise ValueError(f"unsupported server failure outcome: {outcome}")
+    bounded_operation = operation_code.strip()[:64]
+    error_type = type(exc).__name__[:128]
+    session_id = current_session_id() or ""
+    counter = _failure_counter()
+    if counter is not None:
+        try:
+            counter.add(
+                1,
+                {
+                    "lineageweave.operation_code": bounded_operation,
+                    "lineageweave.failure_outcome": outcome,
+                },
+            )
+        except Exception:  # noqa: BLE001  # telemetry failure must not mask API failure
+            _LOGGER.warning("telemetry.metric_recording_failed")
+
+    stack_trace = (
+        _stack_trace_without_exception(exc) if outcome == "internal_error" else ""
+    )
+    if trace is not None:
+        current = trace.get_current_span()
+        if current is not None and current.is_recording():
+            _annotate_failure_span(
+                current, bounded_operation, outcome, error_type, stack_trace
+            )
+        else:
+            tracer = trace.get_tracer(_TRACER_NAME)
+            with tracer.start_as_current_span("lineageweave.server.failure") as span:
+                _annotate_failure_span(
+                    span, bounded_operation, outcome, error_type, stack_trace
+                )
+
+    _LOGGER.log(
+        logging.ERROR if outcome == "internal_error" else logging.WARNING,
+        "lineageweave.server_failure",
+        extra={
+            "operation_code": bounded_operation,
+            "failure_outcome": outcome,
+            "error_type": error_type,
+            "session_id": session_id,
+            "stack_trace": stack_trace,
+        },
+    )
 
 
 @contextmanager
@@ -124,7 +262,10 @@ def traced(
             yield span
         except Exception as exc:
             if Status is not None and StatusCode is not None:
-                span.record_exception(exc)
+                span.add_event(
+                    "exception",
+                    {"exception.type": type(exc).__name__[:128]},
+                )
                 span.set_status(Status(StatusCode.ERROR))
             _LOGGER.warning(
                 "telemetry.operation_failed operation=%s error_type=%s session_id=%s",

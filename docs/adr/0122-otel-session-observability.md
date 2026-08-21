@@ -28,21 +28,32 @@ control contract in [ADR 0009](https://github.com/ContextualWisdomLab/governance
 3. LineageWeave emits bounded HTTP and Valkey operation spans. Valkey spans
    identify the operation and logical stream kind, not the stream key, post
    body, summary, actor, source identifiers, token, or provider response.
-4. Failure logs contain operation, error type, status, and the bounded session
-   correlation only. They do not become a second evidence database. GRC may
-   consume aggregate control evidence and OTLP-derived SLO signals through its
-   existing contracts; LineageWeave does not copy GRC tables or credentials.
-5. No ad hoc session table is introduced. The existing normalized post-scoped
+4. Failure telemetry uses two fixed outcomes: `provider_unavailable` for
+   explicitly classified provider, transport, or schema failures, and
+   `internal_error` for unexpected programming failures. The counter labels
+   contain only operation code and outcome, so high-cardinality session IDs and
+   exception classes remain in bounded structured logs and traces instead of
+   metric labels.
+5. Failure logs contain operation, error type, status, and the bounded session
+   correlation only. Unexpected failures may include a bounded stack trace,
+   but never the exception value, prompt, response, source body, credential,
+   actor, or tenant identifier. They do not become a second evidence database.
+   GRC may consume aggregate control evidence and OTLP-derived SLO signals
+   through its existing contracts; LineageWeave does not copy GRC tables or
+   credentials.
+6. No ad hoc session table is introduced. The existing normalized post-scoped
    session metadata remains the source of correlation.
 
 ## Consequences
 
 Operators can follow a slow or failed post-content job from the LineageWeave
 HTTP client through contextual-orchestrator and Valkey without exposing source
-content. An OTLP collector is a deployment concern, not a local default, so a
-developer stack remains usable without a telemetry backend. Raw session IDs
-remain correlation data and must not be used as tenant, actor, or evidence
-labels in GRC dashboards.
+content. Global Ask and post chat return a buyer-safe generic 503 while GRC
+can distinguish provider unavailability from an internal defect. An OTLP
+collector is a deployment concern, not a local default, so a developer stack
+remains usable without a telemetry backend. Raw session IDs remain
+correlation data and must not be used as tenant, actor, or evidence labels in
+GRC dashboards.
 
 ## References
 
