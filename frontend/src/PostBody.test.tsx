@@ -276,6 +276,7 @@ describe("PostBody", () => {
       />,
     );
 
+    expect(screen.getAllByRole("row")).toHaveLength(2);
   });
 
   it("renders table-shaped image OCR as accessible evidence", () => {

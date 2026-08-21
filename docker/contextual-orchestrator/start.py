@@ -14,9 +14,11 @@ from pathlib import Path
 
 
 def _pop_first_env(*names: str) -> str:
-    """Read the first configured alias without leaving credentials in the environment."""
+    """Read the first alias, removing quotes preserved by Docker env files."""
     for name in names:
         value = os.environ.pop(name, "").strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
         if value:
             return value
     return ""

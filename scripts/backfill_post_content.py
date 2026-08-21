@@ -55,6 +55,15 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+async def _ensure_open_connection(
+    conn: asyncpg.Connection, target_dsn: str
+) -> asyncpg.Connection:
+    """Reconnect after a database restart without repeating VISION work."""
+    if not conn.is_closed():
+        return conn
+    return await asyncpg.connect(target_dsn)
+
+
 async def backfill_post_content(
     target_dsn: str,
     raw_post_ids: list[str] | None,
@@ -217,6 +226,7 @@ async def backfill_post_content(
                 if described_images == 0 and not normalized.text.strip():
                     result["skipped_posts"] += 1
                     continue
+                conn = await _ensure_open_connection(conn, target_dsn)
                 await persist_post_content(
                     conn,
                     str(row["post_id"]),

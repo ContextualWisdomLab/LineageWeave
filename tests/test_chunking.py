@@ -221,6 +221,21 @@ def test_chunk_by_dom_keeps_markdown_table_rows_as_searchable_units() -> None:
     ]
 
 
+def test_chunk_by_dom_preserves_escaped_markdown_pipes_and_rejects_short_delimiters() -> None:
+    escaped = chunk_by_dom(
+        "| Field | Notes |\n| --- | --- |\n| Owner | Ready \\| review |"
+    )
+    assert [(chunk.label, chunk.text) for chunk in escaped] == [
+        ("markdown_tr", "Field | Notes"),
+        ("markdown_tr", "Owner | Ready | review"),
+    ]
+
+    short_delimiter = chunk_by_dom(
+        "| Field | Value |\n| -- | -- |\n| Owner | Buyer |"
+    )
+    assert all(chunk.label != "markdown_tr" for chunk in short_delimiter)
+
+
 def test_chunk_by_dom_keeps_prose_around_markdown_table_rows() -> None:
     """Prose surrounding a Markdown table stays in document order."""
     chunks = chunk_by_dom(

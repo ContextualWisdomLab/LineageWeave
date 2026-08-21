@@ -82,20 +82,20 @@ function renderImageEvidence(
         </details>
       ) : null}
       {imageContent?.regions?.length ? (
-            <details className="post-image-regions">
-              <summary>{t("Image regions")}</summary>
-              <ol>
-                {imageContent.regions.map((region) => (
-                  <li key={region.region_index}>
-                    {region.caption ? <p>{region.caption}</p> : null}
-                    {region.extracted_text ? (
-                      <div className="post-image-region-text">
-                        {renderImageText(region.extracted_text)}
-                      </div>
-                    ) : region.caption ? null : (
-                      t("Unknown")
-                    )}
-                    {region.tags.length ? (
+        <details className="post-image-regions">
+          <summary>{t("Image regions")}</summary>
+          <ol>
+            {imageContent.regions.map((region) => (
+              <li key={region.region_index}>
+                {region.caption ? <p>{region.caption}</p> : null}
+                {region.extracted_text ? (
+                  <div className="post-image-region-text">
+                    {renderImageText(region.extracted_text)}
+                  </div>
+                ) : region.caption ? null : (
+                  t("Unknown")
+                )}
+                {region.tags.length ? (
                   <small>
                     {t("Image tags")}: {region.tags.join(", ")}
                   </small>
