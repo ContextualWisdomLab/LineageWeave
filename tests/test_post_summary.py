@@ -14,7 +14,10 @@ import os
 
 import pytest
 
-from backend.app.post_summary_ingestion import require_summary_source_body, seeded_fixture_summary
+from backend.app.post_summary_ingestion import (
+    require_summary_source_body,
+    seeded_fixture_summary,
+)
 from lineageweave.fixtures import (
     ambiguous_commitment_post,
     ambiguous_keyman_post,
@@ -22,13 +25,13 @@ from lineageweave.fixtures import (
     sample_records,
 )
 from lineageweave.post_summary import (
+    _SUMMARY_REQUEST_PROMPT_TEMPLATE,
     ContextualOrchestratorPostSummaryClient,
     NullPostSummaryClient,
     RoleResponsibility,
-    _SUMMARY_REQUEST_PROMPT_TEMPLATE,
     _parse_optional_project_key,
-    _parse_plain_summary_response,
     _parse_plain_summary_details,
+    _parse_plain_summary_response,
     parse_summary_response,
 )
 
