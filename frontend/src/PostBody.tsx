@@ -186,7 +186,7 @@ function renderSegment(segment: PostBodySegment, index: number, imageContent?: P
     case "image":
       return (
         <ImageEvidenceFigure
-          key={`post-body-image-${index}`}
+          key={`post-body-image-${index}-${imageContent?.unit_index ?? "unknown"}-${imageContent?.caption ?? ""}-${segment.src}`}
           imageContent={imageContent}
           sourceImage={segment}
         />

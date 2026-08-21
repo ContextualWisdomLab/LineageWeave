@@ -495,4 +495,71 @@ describe("PostBody", () => {
     expect(screen.getByText("Before").compareDocumentPosition(screen.getByAltText("Source diagram")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByAltText("Source diagram").compareDocumentPosition(screen.getByText("After")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+
+  it("clears a selected region when the displayed post image changes", async () => {
+    const user = userEvent.setup();
+    const firstSource =
+      '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />';
+    const secondSource = '<img src="data:image/png;base64,QUJDREVGRw==" />';
+    const structureUnits = [
+      {
+        unit_index: 0,
+        unit_kind_code: "image" as const,
+        unit_label: "img",
+        unit_text: "This post is an image. Ask questions to read its text.",
+        indent_level: 0,
+        indent_source_code: "unresolved" as const,
+        indent_confidence: 0,
+        indent_evidence: "",
+      },
+    ];
+    const region = {
+      region_index: 0,
+      x_ratio: 0.1,
+      y_ratio: 0.2,
+      width_ratio: 0.3,
+      height_ratio: 0.4,
+      status_code: "described",
+      extracted_text: "Region OCR",
+      caption: "Main panel",
+      tags: [],
+    };
+    const { rerender } = render(
+      <PostBody
+        body={firstSource}
+        structureUnits={structureUnits}
+        imageContent={[{
+          unit_index: 0,
+          mime_type: "image/png",
+          status_code: "described",
+          extracted_text: "First OCR",
+          caption: "First diagram",
+          tags: [],
+          regions: [region],
+        }]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Main panel/ }));
+    expect(screen.getByText(/Current image region: Main panel/)).toBeInTheDocument();
+
+    rerender(
+      <PostBody
+        body={secondSource}
+        structureUnits={structureUnits}
+        imageContent={[{
+          unit_index: 0,
+          mime_type: "image/png",
+          status_code: "described",
+          extracted_text: "Second OCR",
+          caption: "Second diagram",
+          tags: [],
+          regions: [{ ...region, caption: "Second panel" }],
+        }]}
+      />,
+    );
+
+    expect(screen.getByAltText("Second diagram")).toBeInTheDocument();
+    expect(screen.queryByText(/Current image region/)).not.toBeInTheDocument();
+  });
 });

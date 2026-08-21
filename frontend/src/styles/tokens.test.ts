@@ -47,6 +47,16 @@ const RETIRED_LIGHT_ONLY_HEX = [
   "#721c24",
 ];
 
+const APP_CHROME_SELECTORS = [
+  ".app-shell",
+  ".login-screen",
+  ".login-card",
+  ".app-header-title",
+  ".app-footer",
+  ".btn-primary",
+  ".btn-secondary",
+];
+
 describe("design tokens", () => {
   it("defines every badge/accent token in both the light and dark blocks", () => {
     for (const token of BADGE_AND_ACCENT_TOKENS) {
@@ -68,6 +78,12 @@ describe("design tokens", () => {
   it("keeps App.css's badge/accent declarations pointed at var(), not literals", () => {
     for (const token of BADGE_AND_ACCENT_TOKENS) {
       expect(appCss, `App.css never references var(${token})`).toContain(`var(${token})`);
+    }
+  });
+
+  it("keeps the login and application chrome selectors defined", () => {
+    for (const selector of APP_CHROME_SELECTORS) {
+      expect(appCss, `${selector} must keep a buyer-facing style`).toContain(selector);
     }
   });
 });

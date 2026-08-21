@@ -24,9 +24,15 @@ see which panel of the source image supplied that evidence.
   only from persisted region caption or extracted text.
 - Translate overlay and current-region labels through the five-locale UI
   catalog.
+- Reset the selected region when the rendered source image changes, so a
+  stayed-open post popup cannot carry a selection into another post.
+- Keep the shared login, header, footer, and button selectors defined in the
+  same stylesheet; image-overlay work must not remove application chrome.
 
 ## Consequences
 
 Buyers can locate panel-level evidence on the source image. Search and
 embedding remain bound to the existing region tables. A missing bitmap still
-fails closed to the list rather than fabricating a locator.
+fails closed to the list rather than fabricating a locator, and moving between
+posts does not show a stale selection. The shared-chrome selector regression
+also keeps the login and application shell usable while this feature evolves.
