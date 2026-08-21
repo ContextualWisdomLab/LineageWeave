@@ -19,8 +19,9 @@ from __future__ import annotations
 
 import asyncio
 import re
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from typing import Any, Callable, Iterable
+from typing import Any
 
 import asyncpg
 
@@ -33,6 +34,7 @@ from lineageweave.knowledge_graph import (
     random_walk_with_restart,
     select_related_nodes,
 )
+from lineageweave.ontology import ontology_annotations
 from lineageweave.post_chat import (
     CANONICAL_CHAT_QUESTION,
     CANONICAL_COMMITMENT_QUESTION,
@@ -44,7 +46,6 @@ from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.source_lineage_hints import source_lineage_hint_facts
 
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
-from lineageweave.ontology import ontology_annotations
 
 
 @dataclass(frozen=True)
