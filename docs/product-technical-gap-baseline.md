@@ -12,7 +12,7 @@ Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
 Current PR exact head observed before this documentation update:
-`35c89cfcc37f230a0a6f979e9be908186ff609c9`. The authenticated
+`1982348b1e2a92ec559da953d4c1d4431f325aa6`. The authenticated
 browser evidence below used the frontend image built from the preceding source
 head; the intervening remote commits add locale/test coverage and the current
 head still needs a clean acceptance rebuild.
