@@ -85,7 +85,7 @@ Open PRs at the same observation:
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `a7782ec05198e137399e1543cefa6a732693b0f6` (the exact parent
+- PR #368: `head` `d867bb3f9b23e2ede5858415707e1f75a8781a87` (the exact parent
   observed for this baseline update), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
@@ -94,7 +94,7 @@ Open PRs at the same observation:
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #384: `head` `e4c4a3c8709a4e57654c08a838f568a1582abee3`, base
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
-- PR #387: `head` `4faf9a31371195c5ec63fca42a5afbb93a95369b`, base `main`
+- PR #387: `head` `df2519c09b224f05ac84e6997abd3b4f1bb94cb6`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #388: `head` `f145b83f68731d6f31c3e1b1de59fd7be8f62001`, base
   `feat/event-lineage-channel-evidence`
@@ -239,6 +239,18 @@ Observed at `2026-08-21T17:20:10Z` on PR #388's exact head
 - Local frontend verification passed lint, 144 Vitest tests, and the
   production build. Hosted Checks were queued and no independent approval or
   merge commit was present.
+
+Observed at `2026-08-21T17:25:46Z` on PR #387's exact head
+`df2519c09b224f05ac84e6997abd3b4f1bb94cb6`:
+
+- The Event Lineage channel-evidence persistence check now budgets one
+  half-quantum per six-decimal contribution plus a small floating-point guard,
+  so normal three- and four-channel edges cannot abort rebuild/import solely
+  because of storage rounding.
+- A four-channel regression covers the former failure boundary. Local
+  verification passed 769 backend tests with 17 environment skips, 20 focused
+  lineage tests, and `git diff --check`; hosted Checks were queued and no
+  independent approval or merge commit was present.
 
 ## 6. Organization OpenTelemetry Evidence Boundary
 
