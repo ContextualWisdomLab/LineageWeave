@@ -86,6 +86,19 @@ def test_preferred_literal_uses_english_before_untagged_and_other_languages() ->
     assert builder._preferred_literal(graph, term, builder.RDFS.label) == "English"
 
 
+def test_render_term_uses_skos_preferred_label_without_rdfs_label() -> None:
+    builder = _load_builder()
+    graph = Graph()
+    term = builder.URIRef("https://example.test/ontology#RawFragment")
+    graph.add((term, builder.RDF.type, builder.SKOS.Concept))
+    graph.add((term, builder.SKOS.prefLabel, builder.Literal("Human label", lang="en")))
+
+    rendered = builder._render_term(graph, term, {term})
+
+    assert ">Human label</h3>" in rendered
+    assert 'aria-label="Link to Human label"' in rendered
+
+
 def test_serializations_round_trip_to_the_source_graph(tmp_path: Path) -> None:
     builder = _load_builder()
     output = tmp_path / "site"
