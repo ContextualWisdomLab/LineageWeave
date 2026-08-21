@@ -296,7 +296,7 @@ export function splitPostBody(body: string): PostBodySegment[] {
   }
   pushText(segments, body.slice(lastIndex), indentUnit);
   if (segments.length === 0) {
-    return [{ kind: "text", text: stripHtmlTags(body) }];
+    return [{ kind: "text", text: stripIndentMarkers(stripHtmlTags(body)) }];
   }
   return segments;
 }

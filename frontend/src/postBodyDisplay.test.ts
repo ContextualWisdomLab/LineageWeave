@@ -88,6 +88,10 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("does not expose control markers for an empty footnote container", () => {
+    expect(splitPostBody('<ol class="footnotes"></ol>')).toEqual([{ kind: "text", text: "" }]);
+  });
+
   it("leaves a plain-text post unchanged so existing popups keep their wording", () => {
     expect(splitPostBody("The full body text.")).toEqual([
       { kind: "text", text: "The full body text." },
