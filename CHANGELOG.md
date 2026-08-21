@@ -37,6 +37,8 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Removed the completed one-shot Global Ask package-manager repair workflow;
+  normal product CI remains the only branch validation path.
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
