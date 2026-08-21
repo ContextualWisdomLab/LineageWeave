@@ -109,6 +109,8 @@ def registry_db():
                 cursor.execute(_INITIAL_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_REGISTRY_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_RETENTION_MIGRATION.read_text(encoding="utf-8"))
+                # Exercise the additive upgrade used by existing volumes.
+                cursor.execute(_WRITE_CLOCK_MIGRATION.read_text(encoding="utf-8"))
             yield connection
         finally:
             connection.close()
@@ -902,8 +904,11 @@ def test_status_write_clock_rejects_unbounded_future_occurrence(registry_db) -> 
             )
 
 
-def test_status_write_clock_accepts_occurrence_inside_one_minute_bound(registry_db) -> None:
-    """The documented one-minute skew bound accepts a near-boundary event."""
+@pytest.mark.parametrize("skew_seconds", [59, 60])
+def test_status_write_clock_accepts_occurrence_inside_one_minute_bound(
+    registry_db, skew_seconds: int
+) -> None:
+    """The documented one-minute skew bound accepts its near boundary."""
 
     with registry_db.cursor() as cursor:
         snapshot_id = _insert_snapshot(cursor)
@@ -912,7 +917,7 @@ def test_status_write_clock_accepts_occurrence_inside_one_minute_bound(registry_
             cursor,
             snapshot_id=snapshot_id,
             account_id=account_id,
-            idempotency_key="bounded-future-status-clock",
+            idempotency_key=f"bounded-future-status-clock-{skew_seconds}",
         )
         cursor.execute(
             "insert into analysis_run_scope "
@@ -922,7 +927,7 @@ def test_status_write_clock_accepts_occurrence_inside_one_minute_bound(registry_
         )
         cursor.execute("select clock_timestamp()")
         db_now = cursor.fetchone()[0]
-        occurred = db_now + timedelta(seconds=59)
+        occurred = db_now + timedelta(seconds=skew_seconds)
         cursor.execute(
             "insert into analysis_run_status_event "
             "(analysis_run_id, status_ordinal, status_code, occurred_at) "
