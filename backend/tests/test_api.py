@@ -1832,6 +1832,14 @@ def test_post_list_filters_and_lists_source_detail_state_codes(
         "Late own-corp private post",
     }
 
+    blank_voc_filter = client.get("/api/posts?voc_type=", headers=headers)
+    assert blank_voc_filter.status_code == 200, blank_voc_filter.text
+    assert {post["post_title"] for post in blank_voc_filter.json()["posts"]} == {
+        "Public post",
+        "Own-corp private post",
+        "Late own-corp private post",
+    }
+
     filtered = client.get("/api/posts?source_detail_state=D", headers=headers)
     assert filtered.status_code == 200, filtered.text
     assert [post["post_title"] for post in filtered.json()["posts"]] == [
