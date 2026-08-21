@@ -11,7 +11,7 @@
 - **Indentation**: synthetic cases `case-indent-01` and `case-indent-02` retain
   corpus coverage gaps; PR #391 adds the common nested HTML-list depth fix and
   regression coverage, while authorized production/browser evidence remains open.
-- **Image/Table OCR**: synthetic case `case-image-table-01` still needs region-aware table OCR, markdown rendering, and sufficiently detailed buyer-safe image evidence.
+- **Image/Table OCR**: synthetic case `case-image-table-01` now has region-aware table OCR, markdown rendering, and buyer-visible normalized region locations through stacked PR #395; authorized production/browser evidence and complete image-region coverage remain open.
 - **Math/Superscripts**: synthetic case `case-math-01` covers bounded metric normalization such as m³; arbitrary formula semantics and authorized runtime verification remain open after PR #344.
 - **Missing UI Elements**: synthetic case `case-dag-01` tracks the Event Lineage DAG surface; current source includes the DAG, but corpus coverage and browser evidence remain open.
 
@@ -455,6 +455,29 @@ Observed at `2026-08-21T18:39:50Z` on PR #349's exact head
   static SQL review contract repair passed 17 focused tests and compilation;
   hosted Checks remained non-terminal and no independent approval was present.
 
+Observed at `2026-08-21T19:33:40Z` from the GitHub API:
+
+- PR #392 is open at exact head `1412313d421445c1246a6970c5ab71a6304a483d`,
+  targeting protected `main`; its required Checks are queued and no formal
+  independent approval is present. Stacked PR #395 added buyer-visible image
+  region locations and merged normally into the feature branch with merge
+  commit `8502f261931b4a06ba19a33da470a47c53ed02b3`; this is not a protected
+  `main` merge.
+- PR #393 is open at exact head
+  `97baed032533a71c6a04b51d7c70df6df535e53b`, with auto-merge armed and all
+  current hosted Checks queued. PR #394 is open at exact head
+  `5602096b61272a2ccb0c9997cbaddd261fa165af`, also with its required Checks
+  queued; its source-indentation evidence change has local focused verification
+  but no protected merge claim.
+- LineageWeave PR #383 is open at exact head
+  `4eaa07172fde827f4ad89580326a0d2db5ceb0e4`, with its OTel/API/Valkey/session
+  Checks queued and normal auto-merge armed. Governance-risk-compliance PR #51
+  remains open at exact head `1a8f90dd15f37ffc86b8a0efd217a8b2812e5f99`;
+  product checks are successful while its shared OSV output check remains
+  queued, and the GRC repository does not permit auto-merge.
+- These observations are current queue evidence only. They do not convert
+  queued Checks into success or authorize a protected merge.
+
 ## 6. Organization OpenTelemetry Evidence Boundary
 
 The organization GRC boundary is governance-risk-compliance PR #51 at exact
@@ -466,7 +489,7 @@ it must not copy prompts, post bodies, images, provider responses, secrets, or
 an ad-hoc `user_account + post_id` session key.
 
 LineageWeave PR #383 at exact head
-`b1d32a93632164cf1379f24fc9aca71c5d29b746` emits bounded API/Valkey/session
+`4eaa07172fde827f4ad89580326a0d2db5ceb0e4` emits bounded API/Valkey/session
 telemetry, and contextual-orchestrator PR #818 at exact head
 `51531d0c1144427c67649da3233bcbe1c5d53858` preserves the same post-scoped
 session correlation across provider, Responses, structured-output, VISION, and
@@ -482,7 +505,8 @@ or bypass is authorized until the central repair and exact-head Checks pass.
 
 ## 7. Next Implementation Order
 
-1. Revalidate open PRs #258, #349, #355, #368, #373, #383, #387, and #392 at
+1. Revalidate open PRs #258, #349, #355, #368, #373, #383, #387, #392, #393,
+   and #394 at
    their exact current heads as Checks and formal independent approvals arrive;
    the #388/#389/#390 stack merges are already recorded above, so process the
   open #387 parent only after its current-head gates pass. PR #392 is a
