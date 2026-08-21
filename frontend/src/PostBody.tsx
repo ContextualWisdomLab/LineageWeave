@@ -19,21 +19,27 @@ function parsePipeDelimitedTable(text: string): string[][] | null {
   return rows;
 }
 
-function renderImageText(text: string) {
+function renderPipeTable(text: string, className: string, keyPrefix: string): ReactNode | null {
   const rows = parsePipeDelimitedTable(text);
-  if (!rows) return <p>{text}</p>;
+  if (!rows) return null;
   return (
-    <table className="post-body-table post-image-text-table">
+    <table className={className} data-content-kind="table">
       <tbody>
         {rows.map((row, rowIndex) => (
-          <tr key={`post-image-text-row-${rowIndex}`}>
+          <tr key={`${keyPrefix}-row-${rowIndex}`}>
             {row.map((cell, cellIndex) => (
-              <td key={`post-image-text-cell-${rowIndex}-${cellIndex}`}>{cell}</td>
+              <td key={`${keyPrefix}-cell-${rowIndex}-${cellIndex}`}>{cell}</td>
             ))}
           </tr>
         ))}
       </tbody>
     </table>
+  );
+}
+
+function renderImageText(text: string) {
+  return (
+    renderPipeTable(text, "post-body-table post-image-text-table", "post-image-text") ?? <p>{text}</p>
   );
 }
 
@@ -112,6 +118,13 @@ function renderSegment(segment: PostBodySegment, index: number, imageContent?: P
       throw new Error(`unexpected post body segment: ${JSON.stringify(_exhaustive)}`);
     }
   }
+}
+
+function renderTextSegment(segment: Extract<PostBodySegment, { kind: "text" }>, index: number) {
+  return (
+    renderPipeTable(segment.text, "post-body-table post-markdown-table", `post-markdown-${index}`) ??
+    renderSegment(segment, index)
+  );
 }
 
 function isStructuredTableRow(unit: PostContentUnit): boolean {
@@ -274,7 +287,7 @@ export function PostBody({
       {splitPostBody(body).map((segment, index) => {
         const content = segment.kind === "image" ? imageContent[imageOrdinal++] : undefined;
         if (segment.kind !== "text") return renderSegment(segment, index, content);
-        return renderSegment(segment, index, content);
+        return renderTextSegment(segment, index);
       })}
     </div>
   );

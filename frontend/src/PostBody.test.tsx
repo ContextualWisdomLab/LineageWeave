@@ -295,6 +295,20 @@ describe("PostBody", () => {
     expect(screen.getByText("Panel")).toBeInTheDocument();
   });
 
+  it("renders a Markdown table in the source body and keeps empty cells", () => {
+    render(
+      <PostBody
+        body={"Before\n\n| Field | Value | Note |\n| --- | --- | --- |\n| Owner | Buyer | |\n\nAfter"}
+      />,
+    );
+
+    expect(screen.getByRole("table")).toHaveClass("post-markdown-table");
+    expect(screen.getAllByRole("row")).toHaveLength(2);
+    expect(screen.getByText("Owner")).toBeInTheDocument();
+    expect(screen.getByText("Before")).toBeInTheDocument();
+    expect(screen.getByText("After")).toBeInTheDocument();
+  });
+
   it("keeps source-image placement while showing persisted OCR and caption evidence", () => {
     render(
       <PostBody
