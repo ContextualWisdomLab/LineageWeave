@@ -50,10 +50,29 @@ def test_build_publishes_dereferenceable_html_and_machine_formats(tmp_path: Path
     assert '<link rel="canonical" href="https://contextualwisdomlab.github.io/LineageWeave/ontology">' in html
     assert 'id="Post"' in html
     assert 'href="#Post"' in html
-    assert "A &lt;source&gt; post &amp; evidence." in html
+    assert "LineageWeave Knowledge Graph Ontology" in html
     assert "ontology.ttl" in html
     assert "ontology.jsonld" in html
     assert "ontology.nt" in html
+
+
+def test_render_term_escapes_untrusted_ontology_text() -> None:
+    builder = _load_builder()
+    graph = Graph()
+    term = builder.URIRef("https://example.test/ontology#Unsafe")
+    graph.add((term, builder.RDF.type, builder.OWL.Class))
+    graph.add(
+        (term, builder.RDFS.label, builder.Literal("<script>alert(1)</script>"))
+    )
+    graph.add(
+        (term, builder.RDFS.comment, builder.Literal("A <source> & evidence."))
+    )
+
+    rendered = builder._render_term(graph, term, {term})
+
+    assert "<script>alert(1)</script>" not in rendered
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in rendered
+    assert "A &lt;source&gt; &amp; evidence." in rendered
 
 
 def test_serializations_round_trip_to_the_source_graph(tmp_path: Path) -> None:
