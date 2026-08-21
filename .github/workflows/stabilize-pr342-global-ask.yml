@@ -1,0 +1,397 @@
+name: Stabilize PR 342 Global Ask
+
+on:
+  push:
+    branches:
+      - feat/project-history-ask-surfaces-v2200
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stabilize-pr342-global-ask-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  red_green:
+    name: Reproduce, repair, and verify
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Install committed lock
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Add regression tests before production changes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          ask_test = Path("tests/test_ask_project_history.py")
+          source = ask_test.read_text(encoding="utf-8")
+          old = '''    source_queries = [query for query, _args in calls if "array_position($2::uuid[], post_id)" in query]
+          assert candidate_queries
+          assert all("source_draft_code" in query and "created_at <= $3" in query for query in candidate_queries)
+          assert source_queries
+          assert "source_deleted_flag" in source_queries[0]
+          assert "created_at <= $4" in source_queries[0]
+          '''
+          new = '''    source_calls = [
+              (query, args)
+              for query, args in calls
+              if "array_position($2::uuid[], post_id)" in query
+          ]
+          assert candidate_queries
+          assert all("source_draft_code" in query and "created_at <= $3" in query for query in candidate_queries)
+          assert source_calls
+          source_query, source_args = source_calls[0]
+          assert "source_deleted_flag" in source_query
+          assert "created_at <= $4" in source_query
+          assert source_args[3] == CUTOFF
+          '''
+          if source.count(old) != 1:
+              raise SystemExit("Global Ask regression-test anchor changed")
+          ask_test.write_text(source.replace(old, new, 1), encoding="utf-8")
+
+          Path("tests/test_global_ask_cutoff_postgres.py").write_text(
+              '''"""PostgreSQL regression for the final Global Ask cutoff boundary."""
+
+          from __future__ import annotations
+
+          import asyncio
+          import os
+          from datetime import UTC, datetime
+
+          import asyncpg
+          import pytest
+
+          from backend.app.post_chat_ingestion import gather_global_chat_sources
+
+
+          CUTOFF = datetime(2026, 8, 20, 12, 0, tzinfo=UTC)
+          POSTGRES_DSN = os.environ.get("LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN")
+
+
+          @pytest.mark.skipif(POSTGRES_DSN is None, reason="requires PostgreSQL integration DSN")
+          def test_final_global_source_query_binds_the_cutoff_in_real_postgresql() -> None:
+              """The final authorized-source SQL binds every positional parameter."""
+
+              async def scenario() -> None:
+                  connection = await asyncpg.connect(POSTGRES_DSN)
+                  try:
+                      await connection.execute(
+                          """
+                          create temporary table source_post (
+                              post_id uuid primary key,
+                              post_title text,
+                              post_body text,
+                              visibility_code text,
+                              corporate_entity_id uuid,
+                              created_at timestamptz,
+                              source_system_code text,
+                              source_record_key text,
+                              source_author_code text,
+                              source_author_name text,
+                              source_company_code text,
+                              source_company_name text,
+                              source_process_unit_code text,
+                              source_process_unit_name text,
+                              source_sales_pool_code text,
+                              source_sales_pool_name text,
+                              source_customer_code text,
+                              source_customer_name text,
+                              source_project_code text,
+                              source_project_name text,
+                              source_draft_code text,
+                              source_deleted_flag text
+                          )
+                          """
+                      )
+
+                      class PostgresBoundary:
+                          """Execute only the final source query against PostgreSQL."""
+
+                          def __init__(self) -> None:
+                              self.final_args: tuple[object, ...] | None = None
+
+                          async def fetch(self, query: str, *args: object):
+                              if "array_position($2::uuid[], post_id)" in query:
+                                  self.final_args = args
+                                  return await connection.fetch(query, *args)
+                              return []
+
+                      boundary = PostgresBoundary()
+                      result = await gather_global_chat_sources(
+                          boundary,
+                          lambda _row: True,
+                          ["00000000-0000-4000-8000-000000000001"],
+                          question="synthetic project",
+                          limit=2,
+                          knowledge_cutoff=CUTOFF,
+                      )
+                      assert result == []
+                      assert boundary.final_args is not None
+                      assert boundary.final_args[3] == CUTOFF
+                  finally:
+                      await connection.close()
+
+              asyncio.run(scenario())
+          ''',
+              encoding="utf-8",
+          )
+
+          Path("tests/test_migration_identity.py").write_text(
+              '''"""Migration identity and replay-window contracts."""
+
+          from __future__ import annotations
+
+          from collections import Counter
+          from pathlib import Path
+
+
+          ROOT = Path(__file__).resolve().parents[1]
+
+
+          def test_forward_migration_numeric_prefixes_are_unique() -> None:
+              """Every forward migration has one unambiguous numeric identity."""
+
+              migrations = sorted((ROOT / "migrations").glob("[0-9][0-9][0-9][0-9]_*.sql"))
+              counts = Counter(path.name.split("_", 1)[0] for path in migrations)
+              duplicates = sorted(prefix for prefix, count in counts.items() if count > 1)
+              assert duplicates == []
+
+
+          def test_post_chat_cutoff_uses_the_next_unique_replayable_migration() -> None:
+              """The Ask cutoff migration remains independently addressable and replayed."""
+
+              forward = ROOT / "migrations/0054_post_chat_knowledge_cutoff.sql"
+              rollback = ROOT / "migrations/rollback/0054_post_chat_knowledge_cutoff.sql"
+              script = (ROOT / "docker/postgres-init/migrate.sh").read_text(encoding="utf-8")
+              assert forward.is_file()
+              assert rollback.is_file()
+              assert not (ROOT / "migrations/0053_post_chat_knowledge_cutoff.sql").exists()
+              assert "0054_*" in script
+          ''',
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Verify RED for the missing cutoff bind
+        run: |
+          set +e
+          uv run --frozen python -m pytest \
+            tests/test_ask_project_history.py::test_global_source_retrieval_applies_cutoff_and_publication_eligibility \
+            -q > /tmp/red-global.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/red-global.log
+          if [ "$status" -eq 0 ]; then
+            echo "::error::Global Ask regression did not reproduce before the fix."
+            exit 1
+          fi
+          grep -E "IndexError|tuple index out of range" /tmp/red-global.log >/dev/null
+
+      - name: Verify RED against real PostgreSQL
+        run: |
+          set +e
+          uv run --frozen python -m pytest tests/test_global_ask_cutoff_postgres.py -q \
+            > /tmp/red-postgres.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/red-postgres.log
+          if [ "$status" -eq 0 ]; then
+            echo "::error::PostgreSQL accepted the unbound cutoff query before the fix."
+            exit 1
+          fi
+          grep -Ei "expects 4 arguments|4 arguments.*3.*passed|server expects" \
+            /tmp/red-postgres.log >/dev/null
+
+      - name: Verify RED for duplicate migration identity
+        run: |
+          set +e
+          uv run --frozen python -m pytest \
+            tests/test_migration_identity.py::test_forward_migration_numeric_prefixes_are_unique \
+            -q > /tmp/red-migration.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/red-migration.log
+          if [ "$status" -eq 0 ]; then
+            echo "::error::Duplicate migration prefix was not reproduced before the fix."
+            exit 1
+          fi
+          grep "0053" /tmp/red-migration.log >/dev/null
+
+      - name: Apply the minimal product fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          ingestion = Path("backend/app/post_chat_ingestion.py")
+          source = ingestion.read_text(encoding="utf-8")
+          old = '''        list(authorized_corporate_entity_ids),
+              candidate_ids,
+              limit,
+          )
+          visible_rows = '''
+          new = '''        list(authorized_corporate_entity_ids),
+              candidate_ids,
+              limit,
+              cutoff,
+          )
+          visible_rows = '''
+          if source.count(old) != 1:
+              raise SystemExit("Global Ask cutoff-bind anchor changed")
+          ingestion.write_text(source.replace(old, new, 1), encoding="utf-8")
+
+          forward_old = Path("migrations/0053_post_chat_knowledge_cutoff.sql")
+          forward_new = Path("migrations/0054_post_chat_knowledge_cutoff.sql")
+          rollback_old = Path("migrations/rollback/0053_post_chat_knowledge_cutoff.sql")
+          rollback_new = Path("migrations/rollback/0054_post_chat_knowledge_cutoff.sql")
+          if forward_new.exists() or rollback_new.exists():
+              raise SystemExit("0054 migration target already exists")
+          forward_old.rename(forward_new)
+          rollback_old.rename(rollback_new)
+
+          replacements = {
+              Path("backend/tests/test_api.py"): (
+                  "0053_post_chat_knowledge_cutoff.sql",
+                  "0054_post_chat_knowledge_cutoff.sql",
+              ),
+              Path("tests/test_ask_project_history_cutoff.py"): (
+                  "0053_post_chat_knowledge_cutoff.sql",
+                  "0054_post_chat_knowledge_cutoff.sql",
+              ),
+              Path("docker/postgres-init/migrate.sh"): (
+                  "0051_*|0052_*|0053_*) ;;",
+                  "0051_*|0052_*|0053_*|0054_*) ;;",
+              ),
+          }
+          for path, (old_text, new_text) in replacements.items():
+              text = path.read_text(encoding="utf-8")
+              if old_text not in text:
+                  raise SystemExit(f"Expected migration reference missing in {path}")
+              path.write_text(text.replace(old_text, new_text), encoding="utf-8")
+
+          cutoff_test = Path("tests/test_ask_project_history_cutoff.py")
+          text = cutoff_test.read_text(encoding="utf-8")
+          if 'assert "0053_*" in migrate_script' not in text:
+              raise SystemExit("Cutoff replay assertion anchor changed")
+          cutoff_test.write_text(
+              text.replace(
+                  'assert "0053_*" in migrate_script',
+                  'assert "0054_*" in migrate_script',
+                  1,
+              ),
+              encoding="utf-8",
+          )
+          PY
+
+          if git grep -n "0053_post_chat_knowledge_cutoff" -- ':!uv.lock'; then
+            echo "::error::A stale post-chat cutoff migration reference remains."
+            exit 1
+          fi
+          git diff --check
+
+      - name: Verify GREEN focused contracts
+        run: |
+          uv run --frozen python -m pytest \
+            tests/test_global_ask_cutoff_postgres.py \
+            tests/test_migration_identity.py \
+            tests/test_ask_project_history.py \
+            tests/test_ask_project_history_cutoff.py \
+            tests/test_migration_replay.py \
+            -q | tee /tmp/focused.log
+
+      - name: Verify GREEN full Python suite
+        run: uv run --frozen python -m pytest -q | tee /tmp/full.log
+
+      - name: Verify changed Python import surface
+        run: |
+          uv run --frozen python -m compileall -q \
+            backend/app/post_chat_ingestion.py \
+            backend/tests/test_api.py \
+            tests/test_global_ask_cutoff_postgres.py \
+            tests/test_migration_identity.py
+          git diff --check
+
+      - name: Materialize exact verified stabilization bundle
+        run: |
+          set -euo pipefail
+          bundle="$RUNNER_TEMP/pr342-stabilization"
+          rm -rf "$bundle"
+          mkdir -p "$bundle/files" "$bundle/verification"
+          for path in \
+            backend/app/post_chat_ingestion.py \
+            backend/tests/test_api.py \
+            docker/postgres-init/migrate.sh \
+            migrations/0054_post_chat_knowledge_cutoff.sql \
+            migrations/rollback/0054_post_chat_knowledge_cutoff.sql \
+            tests/test_ask_project_history.py \
+            tests/test_ask_project_history_cutoff.py \
+            tests/test_global_ask_cutoff_postgres.py \
+            tests/test_migration_identity.py; do
+            mkdir -p "$bundle/files/$(dirname "$path")"
+            cp "$path" "$bundle/files/$path"
+          done
+          cat > "$bundle/deletions.txt" <<'EOF'
+          migrations/0053_post_chat_knowledge_cutoff.sql
+          migrations/rollback/0053_post_chat_knowledge_cutoff.sql
+          .github/workflows/stabilize-pr342-global-ask.yml
+          EOF
+          cp /tmp/red-global.log "$bundle/verification/red-global.log"
+          cp /tmp/red-postgres.log "$bundle/verification/red-postgres.log"
+          cp /tmp/red-migration.log "$bundle/verification/red-migration.log"
+          cp /tmp/focused.log "$bundle/verification/focused.log"
+          cp /tmp/full.log "$bundle/verification/full.log"
+          (
+            cd "$bundle"
+            find files -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+          )
+          jq -n \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg sourceHead "$GITHUB_SHA" \
+            --arg workflow "$GITHUB_WORKFLOW_REF" \
+            --arg runId "$GITHUB_RUN_ID" \
+            '{schemaVersion: 1, repository: $repository, sourceHead: $sourceHead, workflow: $workflow, runId: $runId, redGreenVerified: true}' \
+            > "$bundle/verification.json"
+
+      - name: Upload verified stabilization bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pr342-global-ask-stabilization-${{ github.sha }}
+          path: ${{ runner.temp }}/pr342-stabilization/
+          if-no-files-found: error
+          retention-days: 7
