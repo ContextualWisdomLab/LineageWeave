@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BackendError, fetchMe } from "./api";
+import { BackendError, fetchMe, updateTenantConfig } from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -30,6 +30,23 @@ describe("backendFetch provider-error boundary", () => {
     await expect(fetchMe("access-token")).rejects.toMatchObject({
       status: 0,
       message: "The service is unreachable. Try again later.",
+    });
+  });
+
+  it("keeps tenant settings on the shared error boundary", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ detail: "provider diagnostic" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+
+    await expect(updateTenantConfig("access-token", "Example tenant")).rejects.toMatchObject({
+      status: 500,
+      message: "The service could not complete this request. Try again later.",
     });
   });
 });

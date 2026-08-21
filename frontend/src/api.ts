@@ -1064,27 +1064,16 @@ export function fetchRankings(accessToken: string): Promise<RankingList> {
   return backendFetch("/api/rankings", accessToken);
 }
 
-export async function fetchTenantConfig(accessToken: string): Promise<{ brandName: string }> {
-  const response = await fetch(`${config.backendBaseUrl}/api/settings`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch tenant config: ${response.status}`);
-  }
-  return response.json();
+export function fetchTenantConfig(accessToken: string): Promise<{ brandName: string }> {
+  return backendFetch("/api/settings", accessToken);
 }
 
-export async function updateTenantConfig(accessToken: string, brandName: string): Promise<{ brandName: string }> {
-  const response = await fetch(`${config.backendBaseUrl}/api/settings`, {
+export function updateTenantConfig(
+  accessToken: string,
+  brandName: string,
+): Promise<{ brandName: string }> {
+  return backendFetch("/api/settings", accessToken, {
     method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify({ brandName }),
   });
-  if (!response.ok) {
-    throw new Error(`Failed to update tenant config: ${response.status}`);
-  }
-  return response.json();
 }
