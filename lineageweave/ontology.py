@@ -1,21 +1,19 @@
-"""Load the versioned LineageWeave Knowledge Graph ontology.
+"""Loads `docs/ontology/lineageweave-kg.ttl` -- the formal OWL 2 / RDFS /
+SKOS vocabulary (ADR 0004) for `knowledge_graph_edge`'s node/edge types
+and the `entity_relationship_type` / `person_side` / `corporate_entity_level`
+controlled vocabularies in `migrations/0001_initial_schema.sql`.
 
-``docs/ontology/lineageweave-kg.ttl`` is the formal OWL 2, RDFS, SKOS,
-W3C Organization Ontology, and PROV-O vocabulary for navigation node and
-edge types plus the controlled vocabularies backed by
-``common_lookup_value``. Real corporate entities use W3C ORG; SKOS is
-reserved for classifications and labels such as Group, Company, and Plant.
+PostgreSQL stays the source of record for actual graph data; this module
+is the single place application code gets a canonical IRI for a
+`common_lookup_value.lookup_code`, instead of re-typing the lookup code
+as a bare string wherever the ontology's vocabulary matters. The Turtle
+file itself is the semantic-layer artifact -- see the ADR for why that
+is the correct, standards-grounded reading of "semantic layer" here
+rather than a separate BI-metrics concept.
 
-PostgreSQL remains the source of record for graph data. This module is the
-single application boundary for resolving a stored lookup code to its
-canonical ontology IRI. The companion
-``docs/ontology/lineageweave-kg.shacl.ttl`` publishes closed-world RDF
-cardinality constraints for external consumers; database constraints and
-RBAC/ABAC remain authoritative for product storage and disclosure.
-
-``tests/test_ontology.py`` checks lookup-code round trips, while
-``tests/test_ontology_interoperability.py`` checks the ORG/SKOS separation,
-version/import metadata, and SHACL contract.
+`tests/test_ontology.py` is the real correctness check: it loads the
+same file with `rdflib` and asserts every lookup code the relational
+schema actually defines has a matching ontology term, and vice versa.
 """
 
 from __future__ import annotations
@@ -38,12 +36,11 @@ _ONTOLOGY_PATH = Path(__file__).resolve().parents[1] / "docs" / "ontology" / "li
 
 
 def load_ontology() -> Graph:
-    """Parse the committed core Turtle ontology into a fresh RDF graph.
-
-    External ``owl:imports`` are metadata only. ``rdflib`` parses the local
-    committed artifact and this function performs no network dereference.
-    Callers that need repeated access should use the module-level
-    :data:`ONTOLOGY` singleton or cache the returned graph.
+    """Parses `docs/ontology/lineageweave-kg.ttl` fresh. Callers that
+    need it repeatedly should cache the result themselves (see
+    `ONTOLOGY` below for the module-level singleton); this function
+    exists separately so tests can load a fresh graph without relying
+    on import-time caching.
     """
     graph = Graph()
     graph.parse(_ONTOLOGY_PATH, format="turtle")
@@ -56,7 +53,7 @@ ONTOLOGY = load_ontology()
 
 
 def _term_subject(lookup_code: str) -> Identifier | None:
-    """Return the ontology term annotated with ``lookup_code``, if present."""
+    """Implement the _term_subject operation for this channel."""
     for subject in ONTOLOGY.subjects(LOOKUP_CODE, None):
         if str(ONTOLOGY.value(subject, LOOKUP_CODE)) == lookup_code:
             return subject
@@ -64,21 +61,22 @@ def _term_subject(lookup_code: str) -> Identifier | None:
 
 
 def iri_for_lookup_code(lookup_code: str) -> str | None:
-    """Return the canonical ontology IRI for one relational lookup code.
-
-    ``None`` means the ontology deliberately does not cover that code, for
-    example a workflow status vocabulary outside this semantic profile.
+    """The ontology term IRI whose `:lookupCode` annotation equals
+    `lookup_code`, or `None` if no term declares that code -- e.g. a
+    `common_lookup_value` category this ontology doesn't cover yet
+    (`ticket_status`, `post_visibility`), which is a real, expected gap,
+    not a bug.
     """
     subject = _term_subject(lookup_code)
     return str(subject) if subject is not None else None
 
 
 def ontology_annotations(lookup_code: str) -> dict[str, str]:
-    """Return the IRI and label for a declared lookup code.
+    """IRI + ``rdfs:label`` for a lookup code, or empty if undeclared.
 
-    An undeclared code returns an empty mapping rather than a fabricated
-    semantic label, preserving the product's missing-versus-negative
-    distinction.
+    Empty (not a fabricated label) when the ontology does not cover
+    this code -- the same missing-vs-negative discipline as Null
+    channels. Callers spread this onto an API payload.
     """
     subject = _term_subject(lookup_code)
     if subject is None:
@@ -91,7 +89,10 @@ def ontology_annotations(lookup_code: str) -> dict[str, str]:
 
 
 def all_declared_lookup_codes() -> set[str]:
-    """Return every relational lookup code declared by the ontology."""
+    """Every `common_lookup_value.lookup_code` string this ontology
+    declares a term for, across all categories -- used by
+    `tests/test_ontology.py` to round-trip against the live schema.
+    """
     return {str(value) for value in ONTOLOGY.objects(None, LOOKUP_CODE)}
 
 
