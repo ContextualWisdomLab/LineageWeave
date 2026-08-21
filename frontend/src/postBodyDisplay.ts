@@ -41,7 +41,7 @@ function markFootnoteTags(markup: string): string {
         /\b(?:footnotes?|endnotes?|msofootnotetext|msoendnotetext)\b/i.test(attribute[2]),
     );
     const isContainer =
-      (name === "ol" || name === "ul") && hasFootnoteLabel;
+      hasFootnoteLabel && (name === "div" || name === "ol" || name === "ul");
     const isWordParagraph =
       name === "p" && hasFootnoteLabel;
     const isOoxmlContainer = name === "w:footnote" || name === "w:endnote";
