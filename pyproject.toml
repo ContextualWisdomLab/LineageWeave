@@ -1,6 +1,6 @@
 [project]
 name = "lineageweave"
-version = "2.12.6"
+version = "2.14.0"
 description = "Reconstructs git-branch-style lineage DAGs from scattered short records using multi-channel score fusion and LLM adjudication."
 readme = "README.md"
 license = { text = "MIT" }
@@ -17,6 +17,7 @@ dependencies = [
   # Explicit CA bundle for http_client HTTPS posts -- some interpreter
   # distributions don't reliably inherit the OS trust store.
   "certifi>=2024.0.0",
+  "cryptography>=42.0",
   # The standard Python RDF/OWL library -- parses and validates
   # docs/ontology/lineageweave-kg.ttl and the standards-complete PROV-O
   # support profile (ADR 0011). Pure Python, no Rust/C toolchain.

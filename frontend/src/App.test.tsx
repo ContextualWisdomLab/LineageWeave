@@ -1359,6 +1359,34 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.includes("/api/ontology/neighborhood")) {
+        return Promise.resolve(
+          jsonResponse({
+            focus_node_id: "post-1",
+            focus_node_type_code: "node_post",
+            truncated: false,
+            next_cursor: null,
+            limitation_code: "neighborhood_empty",
+            nodes: [
+              {
+                node_id: "post-1",
+                node_type_code: "node_post",
+                ontology_class_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                display_label: "Public post",
+                truth_status_code: "truth_observed",
+                valid_from: null,
+                valid_to: null,
+                recorded_at: "2026-01-10T12:00:00+00:00",
+                evidence_count: 0,
+                shape_code: "rectangle",
+              },
+            ],
+            edges: [],
+            exact_value_rows: [],
+            jsonld: { "@graph": [] },
+          }),
+        );
+      }
       if (url.endsWith("/api/corporate-entities/corp-1/related")) {
         return Promise.resolve(
           jsonResponse({

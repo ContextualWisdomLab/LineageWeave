@@ -6,11 +6,32 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- Ontology neighborhoods can continue beyond the bounded SQL source window
+  with a versioned opaque HMAC cursor and keyset pagination (ADR 0124 / #363).
+  A missing process secret keeps the truncated-without-cursor contract.
+- Bounded ontology/provenance neighborhood (`GET /api/ontology/neighborhood`)
+  with typed Post/Person/CorporateEntity/Team nodes, SKOS broader distinct
+  from OWL subclass, truth-status vocabulary, knowledge-cutoff binding, and
+  a Keyman-panel explorer that is not Event Lineage (ADR 0119 / #341).
+
 ### Fixed
 
-- `make smoke` and `make seed` now run through the locked project `uv`
+- `make smoke` and `make seed` now run through the locked `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
+- Ontology neighborhoods now enforce request bounds before database access,
+  apply node-level ABAC, omit unlabeled endpoints, preserve catalog-owned node
+  metadata, and keep typed endpoint IDs unambiguous. Workspace CSV and JSON-LD
+  exports now represent the same filtered graph.
+- All OpenAI-compatible chat-completion consumers now validate the shared
+  response envelope before parsing it, preventing malformed provider bodies
+  from escaping as raw `KeyError` or response-shape details.
+- Ontology Explorer now clears a previously loaded neighborhood when the
+  session token is removed, hides live refocus on static catalog snapshots,
+  and looks up corporate-parent visibility independently of the child. OWL-Time
+  is cited as a W3C Candidate Recommendation Draft.
 
 ## [2.12.6] - 2026-08-20
 
