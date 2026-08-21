@@ -194,7 +194,6 @@ from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
     has_real_source_context,
-    is_demo_scope,
 )
 from lineageweave.http_client import HttpClientError
 
@@ -262,6 +261,22 @@ def _require_post_admin(account: CurrentAccount) -> None:
     """Raise 403 when the account has no ``post_admin`` permission at all."""
     if not account.has_permission(_POST_ADMIN):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "account lacks the post_admin permission")
+
+
+def _require_ticket_post_access(account: CurrentAccount, post: asyncpg.Record) -> None:
+    """Require ticket mutation access to the owning post, not visibility alone.
+
+    ``post_admin`` is necessary but intentionally not sufficient: a public post
+    can be read by every account, while ticket state is still a write to the
+    authoring account's corporate work area.
+    """
+    is_author = str(post["author_account_id"]) == account.user_account_id
+    is_affiliated = str(post["corporate_entity_id"]) in account.corporate_entity_ids
+    if not (is_author or is_affiliated):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "account is not authorized to modify tickets on this post",
+        )
 
 
 def _keyman_extraction_client():
@@ -2890,7 +2905,8 @@ async def create_post_ticket(
     a ticket is a write action, same discipline as extract-keymen.
     """
     _require_post_admin(account)
-    await _load_visible_post(post_id, account, pool)
+    post = await _load_visible_post(post_id, account, pool)
+    _require_ticket_post_access(account, post)
     async with pool.acquire() as conn:
         try:
             ticket = await create_ticket(
@@ -2951,7 +2967,8 @@ async def patch_ticket(
         post_id = await fetch_ticket_post_id(conn, issue_ticket_id)
         if post_id is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "ticket not found")
-    await _load_visible_post(post_id, account, pool)
+    post = await _load_visible_post(post_id, account, pool)
+    _require_ticket_post_access(account, post)
     async with pool.acquire() as conn:
         try:
             ticket = await update_ticket(

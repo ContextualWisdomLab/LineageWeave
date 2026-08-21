@@ -375,7 +375,9 @@ close the one product-brief item with a schema table (`issue_ticket`)
 but no implementation through Phase 4. Deliberately plain CRUD, not a
 pluggable-LLM channel like `keyman_ingestion.py` -- ticket status is a
 closed enum in `common_lookup_value`, and opening or updating a ticket
-is a direct user action, not something extracted from text.
+is a direct user action, not something extracted from text. Ticket writes
+also require `post_admin` plus authorship or corporate affiliation with the
+owning post; public visibility is read access only (ADR 0122).
 `frontend/src/App.tsx`'s `IssueTicketPanel` is the popup's real
 list/create/status-update UI for it. Status options show
 `common_lookup_value` labels (`Open` / `In progress` / `Closed`)
