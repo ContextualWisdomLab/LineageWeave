@@ -24,7 +24,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Protocol
 
-from .http_client import post_json
+from .http_client import chat_completion_content, post_json
 
 OUR_SIDE = "our_side"
 COUNTERPARTY = "counterparty"
@@ -209,5 +209,5 @@ class ContextualOrchestratorKeymanExtractionClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
+        content = chat_completion_content(body)
         return parse_keyman_response(content)

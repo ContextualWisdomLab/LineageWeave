@@ -827,7 +827,7 @@
 
 @media (max-width: 768px) {
   /* Phone Breakpoint (<768px) */
-  
+
   .buyer-gnb {
     display: none; /* Replaced by drawer on mobile */
   }
@@ -839,7 +839,7 @@
   .app-header {
     padding: 0 1rem;
   }
-  
+
   .app-footer {
     flex-direction: column;
     align-items: flex-start;
