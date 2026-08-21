@@ -1,0 +1,138 @@
+name: One-shot Project history Ask integration
+
+on:
+  push:
+    branches:
+      - feat/project-history-ask-surfaces-v2200
+
+permissions:
+  contents: write
+
+concurrency:
+  group: one-shot-project-history-ask-surfaces
+  cancel-in-progress: true
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - name: Checkout stacked branch
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/project-history-ask-surfaces-v2200
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Select pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+
+      - name: Install committed Python lock
+        run: uv sync --frozen --extra dev --extra backend
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install committed frontend lock
+        working-directory: frontend
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Confirm RED backend authorization contract
+        run: |
+          if uv run --frozen python -m pytest -q tests/test_ask_project_history.py; then
+            echo "Expected missing Ask project-history implementation to keep the backend contract red." >&2
+            exit 1
+          fi
+
+      - name: Confirm RED frontend reuse contract
+        working-directory: frontend
+        run: |
+          if pnpm exec vitest run src/components/AskProjectHistoryLinks.test.tsx; then
+            echo "Expected the canonical Ask project-history component to be absent before integration." >&2
+            exit 1
+          fi
+
+      - name: Apply exact-context integration
+        run: python tools/apply_project_history_ask_surfaces.py
+
+      - name: Format and lint changed Python
+        run: |
+          uv run --frozen ruff format \
+            backend/app/ask_project_history.py \
+            backend/app/post_chat_ingestion.py \
+            backend/app/main.py \
+            tests/test_ask_project_history.py
+          uv run --frozen ruff check \
+            backend/app/ask_project_history.py \
+            backend/app/post_chat_ingestion.py \
+            backend/app/main.py \
+            tests/test_ask_project_history.py
+
+      - name: Run focused Python contracts
+        run: >-
+          uv run --frozen python -m pytest -q
+          tests/test_ask_project_history.py
+          tests/test_post_chat_ingestion.py
+          tests/test_global_ask_sources.py
+          tests/test_project_history_api_contract.py
+          tests/test_documentation_hygiene.py
+
+      - name: Compile production and tests
+        run: uv run --frozen python -m compileall -q lineageweave backend tests
+
+      - name: Run complete frontend tests
+        working-directory: frontend
+        run: pnpm run test
+
+      - name: Run frontend lint and production builds
+        working-directory: frontend
+        run: |
+          pnpm run lint
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Remove one-shot machinery and verify patch hygiene
+        run: |
+          rm .github/workflows/one-shot-project-history-ask-surfaces.yml
+          rm tools/apply_project_history_ask_surfaces.py
+          git diff --check
+
+      - name: Publish verified product head
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: connect Ask answers to canonical project histories"
+          git push origin HEAD:feat/project-history-ask-surfaces-v2200
