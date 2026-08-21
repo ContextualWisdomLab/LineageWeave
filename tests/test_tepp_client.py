@@ -55,6 +55,12 @@ def test_request_rejects_unknown_contract_version() -> None:
         replace(_sample_request(), contract_version=2)
 
 
+def test_request_rejects_boolean_contract_version() -> None:
+    """JSON booleans must not pass Python's integer type relationship."""
+    with pytest.raises(ValueError, match="contract_version=1"):
+        replace(_sample_request(), contract_version=True)
+
+
 def test_default_transport_fails_closed_until_tepp_ships_http() -> None:
     client = TeppClient()
     with pytest.raises(TeppNotAvailable):
