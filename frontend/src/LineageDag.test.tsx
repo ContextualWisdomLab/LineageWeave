@@ -111,6 +111,23 @@ describe("LineageDag evidence disclosure", () => {
     expect(screen.queryByText("0.0000")).not.toBeInTheDocument();
   });
 
+  it("does not turn unavailable channel evidence into a no-LLM claim", () => {
+    render(
+      <LineageDag
+        graph={{
+          ...graph,
+          edges: [{ ...graph.edges[0], channel_evidence: [] }],
+        }}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByText("No LLM adjudication participated in this connection."),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Not available")).toBeInTheDocument();
+  });
+
   it("includes the same weighted evidence in the SVG edge description", () => {
     const { container } = render(
       <LineageDag graph={graph} onSelectPost={vi.fn()} />,
