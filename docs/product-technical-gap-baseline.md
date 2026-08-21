@@ -13,8 +13,9 @@ Audit anchor: the exact source state carried by this documentation commit at
 acceptance.
 
 Current implementation source/test exact head observed before this
-documentation update: `884dc97c`, the post-filter hierarchy-facet fix on top
-of the demo-scope authorization and keyboard-accessible post-popup fixes,
+documentation update: `1eef321b`, the shared focus-token fix on top of the
+post-filter hierarchy-facet, demo-scope authorization, and keyboard-accessible
+post-popup fixes,
 top of PR #366's observed base `8bed77e7e7b91b633bb92d3a82d0187c387206af`.
 The documentation commit creates the next exact head; protected checks must
 rerun for the resulting PR head.
@@ -36,7 +37,7 @@ rerun for the resulting PR head.
 - **Figma reference:** ADR 0118 records file `1Su3lDRmiZdcUs47t1QwIX`; the
   inspected Event Lineage frames are desktop `5:14` and mobile `5:15`.
 - **Local quality evidence at the source/test head:** backend `uv run pytest -q`
-  passed `787` tests with `17` skips; frontend Vitest passed `176` tests in `19`
+  passed `787` tests with `17` skips; frontend Vitest passed `177` tests in `19`
   files, frontend lint/build passed, and Storybook build completed. These are
   local checks, not hosted protected-gate or independent-review evidence.
 - **Current PR gate:** PR #350 merged at
@@ -75,8 +76,9 @@ rerun for the resulting PR head.
 - **Post detail modal keyboard access — fixed in this worktree:** the existing
   50% backdrop now exposes a named modal dialog with `aria-modal`, moves focus
   into the panel, closes on Escape, contains Tab focus, and restores focus to
-  the opener. The behavior is covered by the authenticated React tests; fresh
-  browser evidence remains open.
+  the opener. Native interactive controls also share the token-based
+  `:focus-visible` ring. The behavior is covered by the authenticated React
+  and CSS tests; fresh browser evidence remains open.
 - **Approved CI/BI asset — open:** the header/footer currently render the
   tenant brand name as text. Do not invent or alter a corporate logo; add the
   approved asset only after the tenant CI/BI source and usage permission are
@@ -269,7 +271,7 @@ or an explicit unavailable result.
   `post_organization_mention` rows enrich navigation only when their source
   post is public or already authorized and eligible; they never widen ABAC,
   and unresolved counterparty names remain hints. Synthetic schema/API/UI
-  coverage is present at implementation head `884dc97c`; the follow-up also
+  coverage is present at implementation head `1eef321b`; the follow-up also
   separates observed navigation IDs from authorized IDs for Keyman and
   relationship-network queries, with regression coverage preventing observed
   non-authorized organizations from widening ABAC. Hierarchy facets are
