@@ -104,6 +104,25 @@ def _response_media_type(response: http.client.HTTPResponse) -> str:
     return header.split(";", 1)[0].strip().lower()
 
 
+def chat_completion_content(body: object) -> str:
+    """Extract text from a provider chat envelope without echoing its body."""
+    if not isinstance(body, dict):
+        raise TypeError("provider response was not an object")
+    choices = body.get("choices")
+    if not isinstance(choices, list) or not choices:
+        raise ValueError("provider response did not contain a choice")
+    first_choice = choices[0]
+    if not isinstance(first_choice, dict):
+        raise TypeError("provider response choice was not an object")
+    message = first_choice.get("message")
+    if not isinstance(message, dict):
+        raise TypeError("provider response message was not an object")
+    content = message.get("content")
+    if not isinstance(content, str) or not content.strip():
+        raise TypeError("provider response did not contain text content")
+    return content
+
+
 def _request(
     method: str,
     url: str,

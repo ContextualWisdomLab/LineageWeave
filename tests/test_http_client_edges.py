@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-import lineageweave.http_client as http_client
+from lineageweave import http_client
 
 
 class _ResponseStub:
@@ -54,6 +54,22 @@ def test_json_helpers_reject_non_json_and_wrong_shapes(
             "https://gateway.example/items",
             timeout=1,
         )
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"error": "provider secret response"},
+        {"choices": []},
+        {"choices": [{"message": {"content": ""}}]},
+    ],
+)
+def test_chat_completion_content_rejects_malformed_provider_envelopes(body: object) -> None:
+    """Malformed provider bodies produce stable errors without response reprs."""
+    with pytest.raises((TypeError, ValueError)) as captured:
+        http_client.chat_completion_content(body)
+
+    assert "provider secret" not in str(captured.value)
 
 
 @pytest.mark.parametrize(

@@ -11,6 +11,11 @@ All notable changes to this project are documented here. Format follows
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
+- Provider response parsing now rejects malformed chat envelopes without
+  exposing provider response bodies, exception text, or secrets through
+  buyer-facing APIs and persisted ingestion failure details. RankWeave, OIDC,
+  TEPP, structured VISION, summaries, chat, and extraction channels now retain
+  stable next-action-safe failure messages.
 
 ## [2.12.6] - 2026-08-20
 

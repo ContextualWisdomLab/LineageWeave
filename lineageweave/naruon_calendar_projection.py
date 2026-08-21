@@ -160,7 +160,9 @@ def _bounded_integer(
     """Return one true integer inside an inclusive range."""
 
     if isinstance(value, bool) or not isinstance(value, int):
-        raise ValueError(f"{field_name} must be an integer")
+        raise ValueError(  # noqa: TRY004 - public constructor keeps ValueError compatibility.
+            f"{field_name} must be an integer"
+        )
     if not minimum <= value <= maximum:
         raise ValueError(
             f"{field_name} must be between {minimum} and {maximum}"
@@ -172,7 +174,9 @@ def _bounded_timeout(value: Any) -> float:
     """Return a finite timeout in the supported transport range."""
 
     if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ValueError("timeout must be a finite number")
+        raise ValueError(  # noqa: TRY004 - public constructor keeps ValueError compatibility.
+            "timeout must be a finite number"
+        )
     timeout = float(value)
     if not math.isfinite(timeout) or not 0 < timeout <= 30:
         raise ValueError(
@@ -200,7 +204,7 @@ def _parse_rfc3339(value: Any, *, field_name: str) -> datetime:
         value,
         field_name=field_name,
         maximum_length=64,
-        allow_internal_whitespace=False,
+        allow_internal_whitespace=True,
     )
     if _RFC3339_PATTERN.fullmatch(text) is None:
         raise NaruonCalendarContractError(
@@ -260,19 +264,19 @@ def _parse_occurrence(value: Any, *, index: int) -> NaruonCalendarOccurrence:
         row["starts_at"],
         field_name=f"{field_name}.starts_at",
         maximum_length=64,
-        allow_internal_whitespace=False,
+        allow_internal_whitespace=True,
     )
     ends_text = _bounded_text(
         row["ends_at"],
         field_name=f"{field_name}.ends_at",
         maximum_length=64,
-        allow_internal_whitespace=False,
+        allow_internal_whitespace=True,
     )
     observed_text = _bounded_text(
         row["observed_at"],
         field_name=f"{field_name}.observed_at",
         maximum_length=64,
-        allow_internal_whitespace=False,
+        allow_internal_whitespace=True,
     )
     starts_at = _parse_rfc3339(starts_text, field_name=f"{field_name}.starts_at")
     ends_at = _parse_rfc3339(ends_text, field_name=f"{field_name}.ends_at")

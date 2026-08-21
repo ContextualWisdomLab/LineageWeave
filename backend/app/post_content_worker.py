@@ -37,6 +37,7 @@ _logger = logging.getLogger(__name__)
 _RECOVERY_INTERVAL_SECONDS = 30.0
 _INCOMPLETE_FAILURE_CODE = "post_content_ingestion_incomplete"
 _ATTEMPT_LIMIT_FAILURE_CODE = "post_content_ingestion_attempt_limit"
+_UNEXPECTED_FAILURE_DETAIL = "post-content provider operation failed; retry the ingestion job"
 
 
 async def _stream_tail(client: redis.Redis) -> str:
@@ -267,7 +268,7 @@ async def process_post_content_job(
             pool,
             post_id,
             failure_code="post_content_ingestion_failed",
-            detail_text=str(exc)[:1000],
+            detail_text=_UNEXPECTED_FAILURE_DETAIL,
             expected_attempt_count=attempt_count,
         )
         return
