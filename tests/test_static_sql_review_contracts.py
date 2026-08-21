@@ -101,6 +101,18 @@ def test_content_backfill_normalizes_writing_state_codes() -> None:
     assert "coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'" in source
 
 
+def test_content_backfill_uses_all_source_commercial_context_fields() -> None:
+    """Content recovery queues posts identified only by commercial context."""
+    source = (ROOT / "scripts/queue_post_content_backfill.py").read_text(encoding="utf-8")
+    for field_name in (
+        "source_order_pool_code",
+        "source_sales_order_code",
+        "source_sales_order_item_number",
+        "source_inspection_point_code",
+    ):
+        assert field_name in source
+
+
 @pytest.mark.parametrize(
     "relative_path, qualified_column",
     [
