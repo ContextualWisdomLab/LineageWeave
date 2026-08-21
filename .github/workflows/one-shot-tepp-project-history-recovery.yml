@@ -87,6 +87,17 @@ jobs:
       - name: Apply exact-context recovery
         run: python tools/apply_tepp_project_history_recovery.py
 
+      - name: Format and lint recovery Python
+        run: |
+          uv run --frozen ruff format \
+            lineageweave/tepp_project_history.py \
+            backend/app/tepp_project_history.py \
+            tests/test_tepp_project_history_recovery.py
+          uv run --frozen ruff check \
+            lineageweave/tepp_project_history.py \
+            backend/app/tepp_project_history.py \
+            tests/test_tepp_project_history_recovery.py
+
       - name: Verify focused Python contracts
         run: >-
           uv run --frozen python -m pytest -q
