@@ -53,6 +53,20 @@ const branchingGraph: LineageGraph = {
   ],
 };
 
+const isolatedGraph: LineageGraph = {
+  nodes: [
+    {
+      id: "record-isolated",
+      group: "DEMO-ISOLATED",
+      label: "Unlinked account review",
+      occurred_at: "2026-02-01T09:00:00Z",
+      is_root: true,
+      is_branch_point: false,
+    },
+  ],
+  edges: [],
+};
+
 const meta = {
   title: "Analysis/LineageDag",
   component: LineageDag,
@@ -75,6 +89,13 @@ export const BranchingEvidence: Story = {};
 export const RootSelected: Story = {
   args: {
     currentPostId: "record-001",
+  },
+};
+
+export const IsolatedRoot: Story = {
+  args: {
+    graph: isolatedGraph,
+    currentPostId: "record-isolated",
   },
 };
 
