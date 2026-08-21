@@ -40,6 +40,10 @@ async def has_real_source_context(
                        or nullif(btrim(source_post.source_process_unit_name), '') is not null
                        or nullif(btrim(source_post.source_sales_pool_code), '') is not null
                        or nullif(btrim(source_post.source_sales_pool_name), '') is not null
+                       or nullif(btrim(source_post.source_order_pool_code), '') is not null
+                       or nullif(btrim(source_post.source_sales_order_code), '') is not null
+                       or source_post.source_sales_order_item_number is not null
+                       or nullif(btrim(source_post.source_inspection_point_code), '') is not null
                        or nullif(btrim(source_post.source_customer_code), '') is not null
                        or nullif(btrim(source_post.source_customer_name), '') is not null
                        or nullif(btrim(source_post.source_project_code), '') is not null
@@ -72,6 +76,10 @@ async def fetch_demo_corporate_entity_ids(conn: asyncpg.Connection) -> set[str]:
                       or nullif(btrim(real_post.source_process_unit_name), '') is not null
                       or nullif(btrim(real_post.source_sales_pool_code), '') is not null
                       or nullif(btrim(real_post.source_sales_pool_name), '') is not null
+                      or nullif(btrim(real_post.source_order_pool_code), '') is not null
+                      or nullif(btrim(real_post.source_sales_order_code), '') is not null
+                      or real_post.source_sales_order_item_number is not null
+                      or nullif(btrim(real_post.source_inspection_point_code), '') is not null
                       or nullif(btrim(real_post.source_customer_code), '') is not null
                       or nullif(btrim(real_post.source_customer_name), '') is not null
                       or nullif(btrim(real_post.source_project_code), '') is not null

@@ -12,6 +12,7 @@ from scripts.import_postgresql_posts import (
     _parser,
     _source_body_resolver,
     _source_code_matches,
+    _source_item_number,
     _source_post_id,
     _validate_corporate_entity_scope,
     _validate_source_mapping,
@@ -149,6 +150,11 @@ def test_source_record_key_index_is_a_lookup_not_a_uniqueness_constraint() -> No
     ).read_text()
     assert "create unique index" not in migration.casefold()
     assert "create index if not exists source_post_source_identity_idx" in migration
+
+
+def test_importer_preserves_numeric_source_item_zero() -> None:
+    assert _source_item_number({"item": 0}, "item") == 0
+    assert _source_item_number({"item": ""}, "item") is None
 
 
 def test_importer_always_requires_verified_publication_state() -> None:

@@ -2090,6 +2090,21 @@
   font-size: 0.8rem;
 }
 
+.source-lineage-hint {
+  margin-top: 0.9rem;
+  padding: 0.75rem 0.9rem;
+  border-inline-start: 3px solid var(--color-primary);
+  background: var(--color-accent-background);
+}
+
+.source-lineage-hint p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.35rem 0 0;
+}
+
 .ontology-affiliation-link {
   font-weight: 600;
 }
