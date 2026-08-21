@@ -1,8 +1,8 @@
 # ADR 0103 — Preserve semantic document evidence across source and buyer views
 
-**Decision status:** Proposed on the stacked product-gap branch  
-**Date:** 2026-08-20  
-**Figma File ID:** `1Su3lDRmiZdcUs47t1QwIX`  
+**Decision status:** Proposed on the stacked product-gap branch
+**Date:** 2026-08-20
+**Figma File ID:** `1Su3lDRmiZdcUs47t1QwIX`
 **Related baseline:** [Product and Technical Gap Baseline](../product-technical-gap-baseline.md)
 
 ## Context

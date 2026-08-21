@@ -47,13 +47,13 @@
 
 **Files:**
 - `docs/contracts/external-lineage-analysis-v1.schema.json`
-- `docs/adr/0124-external-email-project-lineage-contract.md`
+- `docs/adr/0133-external-email-project-lineage-contract.md`
 - `docs/doctoring/EXTERNAL_LINEAGE_CONTRACT_REFERENCES.md`
 - `CHANGELOG.d/external-lineage-contract.md`
 - `lineageweave/__init__.py`
 
 - [x] Add JSON Schema Draft 2020-12 mirroring parser names, bounds, and vocabularies.
-- [x] Add ADR 0124 and APA 7th references for RFC 3339, RFC 5322, RFC 5256, PROV-O, and OWL-Time.
+- [x] Add ADR 0133 and APA 7th references for RFC 3339, RFC 5322, RFC 5256, PROV-O, and OWL-Time.
 - [x] Export the contract and adapter from the package root.
 - [x] Add changelog evidence.
 

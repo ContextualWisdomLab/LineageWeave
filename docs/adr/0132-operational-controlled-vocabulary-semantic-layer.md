@@ -1,5 +1,4 @@
-# ADR 0124: Model operational controlled vocabularies as SKOS concepts
-
+# ADR 0132: Model operational controlled vocabularies as SKOS concepts
 ## Status
 
 Accepted
@@ -69,4 +68,3 @@ https://www.w3.org/TR/skos-reference/
 
 World Wide Web Consortium. (2017). *Shapes Constraint Language (SHACL)*.
 https://www.w3.org/TR/shacl/
-

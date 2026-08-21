@@ -1,7 +1,7 @@
-# ADR 0105: Preserve explicit metric scripts in semantic text
+# ADR 0130: Preserve explicit metric scripts in semantic text
 
-**Status:** Accepted on this PR; not protected-main truth  
-**Date:** 2026-08-21  
+**Status:** Accepted on this PR; not protected-main truth
+**Date:** 2026-08-21
 **Owners:** LineageWeave ingestion and buyer-surface maintainers
 
 ## Context

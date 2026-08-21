@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.12+, dataclasses, JSON Schema Draft 2020-12, pytest, coverage.py, Ruff, RankWeave, ThreadWeave.
 
-**Spec:** `docs/adr/0124-external-email-project-lineage-contract.md`
+**Spec:** `docs/adr/0133-external-email-project-lineage-contract.md`
 
 ## Global Constraints
 
@@ -64,7 +64,7 @@
 
 **Files:**
 - Modify: `lineageweave/__init__.py`
-- Create: `docs/adr/0124-external-email-project-lineage-contract.md`
+- Create: `docs/adr/0133-external-email-project-lineage-contract.md`
 - Create: `docs/doctoring/EXTERNAL_LINEAGE_CONTRACT_REFERENCES.md`
 - Create: `CHANGELOG.d/external-lineage-contract.md`
 
