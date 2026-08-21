@@ -197,6 +197,7 @@ from backend.app.post_eligibility import (
     SOURCE_POST_ELIGIBILITY_SQL,
     SOURCE_POST_READER_ELIGIBILITY_SQL,
     WRITING_SOURCE_DETAIL_STATE_CODE,
+    normalize_source_detail_state_code,
     source_post_state_visibility_sql,
 )
 from backend.app.demo_scope import (
@@ -433,7 +434,8 @@ def _rankweave_client():
 
 def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
     """ABAC: W is author/admin-only; other rows use public/corp visibility."""
-    if post.get("source_detail_state_code") == WRITING_SOURCE_DETAIL_STATE_CODE:
+    state_code = normalize_source_detail_state_code(post.get("source_detail_state_code"))
+    if state_code == WRITING_SOURCE_DETAIL_STATE_CODE:
         return account.has_permission(_POST_ADMIN) or str(post["author_account_id"]) == account.user_account_id
     if post["visibility_code"] == "public":
         return True
@@ -443,7 +445,8 @@ def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
 def _can_use_post_for_analysis(account: CurrentAccount, post: asyncpg.Record) -> bool:
     """Derived features consume only non-W authorized source posts."""
     return (
-        post.get("source_detail_state_code") != WRITING_SOURCE_DETAIL_STATE_CODE
+        normalize_source_detail_state_code(post.get("source_detail_state_code"))
+        != WRITING_SOURCE_DETAIL_STATE_CODE
         and _can_see_post(account, post)
     )
 
@@ -471,7 +474,9 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "visibility_code": visibility,
         "visibility_label": resolved.get(visibility, visibility),
         "source_stage_code": post.get("source_stage_code"),
-        "source_detail_state_code": post.get("source_detail_state_code"),
+        "source_detail_state_code": normalize_source_detail_state_code(
+            post.get("source_detail_state_code")
+        ),
         "source_draft_code": post.get("source_draft_code"),
         "source_deleted_flag": post.get("source_deleted_flag"),
         "publication_state_code": _publication_state_code(post),
@@ -614,8 +619,8 @@ async def _post_filter_options(
          order by display_order, code
     """
     detail_state_sql = f"""
-        select distinct post.source_detail_state_code as code,
-               post.source_detail_state_code as label
+        select distinct upper(btrim(post.source_detail_state_code)) as code,
+               upper(btrim(post.source_detail_state_code)) as label
           from source_post post
          where {state_visibility_sql}
            and {SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='post')}
@@ -788,16 +793,38 @@ _AFFILIATION_SCOPE_CODE_TO_FACET = {
 }
 
 
-def _customer_master_scope_facets(row: asyncpg.Record) -> list[str]:
+def _customer_master_scope_facets(
+    row: asyncpg.Record, observed_hierarchy_ids: set[str]
+) -> list[str]:
     """Repeatable, provenance-bearing facets for one Customer Master row."""
     facets = [
         _AFFILIATION_SCOPE_CODE_TO_FACET[code]
         for code in row["scope_codes"]
         if code in _AFFILIATION_SCOPE_CODE_TO_FACET
     ]
+    if str(row["corporate_entity_id"]) in observed_hierarchy_ids:
+        facets.append("observed_hierarchy")
     if row["is_observed_organization"]:
         facets.append("observed_organization")
     return facets
+
+
+def _observed_hierarchy_ids(rows: list[asyncpg.Record]) -> set[str]:
+    """Return authorized ancestors of entities observed in visible posts."""
+    rows_by_id = {str(row["corporate_entity_id"]): row for row in rows}
+    hierarchy_ids: set[str] = set()
+    for row in rows:
+        if not row["is_observed_organization"] or row["parent_entity_id"] is None:
+            continue
+        parent_id = row["parent_entity_id"]
+        while parent_id is not None:
+            parent_key = str(parent_id)
+            if parent_key in hierarchy_ids:
+                break
+            hierarchy_ids.add(parent_key)
+            parent = rows_by_id.get(parent_key)
+            parent_id = parent["parent_entity_id"] if parent is not None else None
+    return hierarchy_ids
 
 
 @app.get("/api/customer-master")
@@ -1070,6 +1097,7 @@ async def read_customer_master(
             account.user_account_id,
             list(synthetic_only_entity_ids),
         )
+        observed_hierarchy_ids = _observed_hierarchy_ids(entity_rows)
         entity_ids = [row["corporate_entity_id"] for row in entity_rows]
         source_author_affiliations = await _load_account_affiliation_hints(
             conn,
@@ -1084,11 +1112,12 @@ async def read_customer_master(
                    affiliation.affiliated_corporate_entity_id,
                    affiliation.role_title,
                    entity.entity_name
-              from cataloged_person person
-              join person_affiliation affiliation on affiliation.person_id = person.person_id
-              left join corporate_entity entity
+             from cataloged_person person
+             join person_affiliation affiliation on affiliation.person_id = person.person_id
+             left join corporate_entity entity
                 on entity.corporate_entity_id = affiliation.affiliated_corporate_entity_id
              where affiliation.affiliated_corporate_entity_id = any($1::uuid[])
+               and person.person_side_code = 'our_side'
              order by person.person_name, affiliation.affiliated_organization_name
             """,
             entity_ids,
@@ -1137,7 +1166,7 @@ async def read_customer_master(
                 "parent_entity_id": (
                     str(row["parent_entity_id"]) if row["parent_entity_id"] is not None else None
                 ),
-                "scope_facets": _customer_master_scope_facets(row),
+                "scope_facets": _customer_master_scope_facets(row, observed_hierarchy_ids),
             }
             for row in entity_rows
         ],
@@ -1290,6 +1319,14 @@ async def list_posts(
     """List authorized posts, with semantic evidence search when requested."""
     _require_post_read(account)
     search_term = search.strip() if search and search.strip() else None
+    voc_type_codes = (
+        [code.strip() for code in voc_type if code.strip()] if voc_type else None
+    ) or None
+    source_detail_state_codes = (
+        [code.strip().upper() for code in source_detail_state if code.strip()]
+        if source_detail_state
+        else None
+    ) or None
     async with pool.acquire() as conn:
         voc_type_options, source_detail_state_options, visibility_options = await _post_filter_options(
             conn, account
@@ -1524,7 +1561,7 @@ async def list_posts(
                     )
                )
                and ($3::text[] is null or post.voc_type_code = any($3::text[]))
-               and ($4::text[] is null or post.source_detail_state_code = any($4::text[]))
+               and ($4::text[] is null or coalesce(upper(btrim(post.source_detail_state_code)), '') = any($4::text[]))
                and ($5::text is null or post.visibility_code = $5)
                  order by
                     search_priority asc,
@@ -1593,10 +1630,8 @@ async def list_posts(
             """,
             search_term,
             list(account.corporate_entity_ids),
-            [code.strip() for code in voc_type if code.strip()] if voc_type else None,
-            [code.strip() for code in source_detail_state if code.strip()]
-            if source_detail_state
-            else None,
+            voc_type_codes,
+            source_detail_state_codes,
             visibility.strip() if visibility and visibility.strip() else None,
             body_search_ids,
             offset,
@@ -1871,7 +1906,7 @@ async def _load_visible_post(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "post not found")
     if not _can_see_post(account, row):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
-    if row.get("source_detail_state_code") == WRITING_SOURCE_DETAIL_STATE_CODE:
+    if normalize_source_detail_state_code(row.get("source_detail_state_code")) == WRITING_SOURCE_DETAIL_STATE_CODE:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "Writing-in-progress posts are not analysis targets.",
@@ -1945,9 +1980,6 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
             "source_sales_order_code",
             "source_sales_order_item_number",
             "source_inspection_point_code",
-            "source_stage_code",
-            "source_detail_state_code",
-            "source_deleted_flag",
             "source_customer_code",
             "source_customer_name",
             "source_project_code",
@@ -2672,11 +2704,33 @@ async def read_period_reports(
             and not _is_synthetic_demo_member(pair, demo_entity_ids)
         ]
         members = [
-            {key: value for key, value in member.items() if key != "has_real_source_context"}
+            {
+                key: value
+                for key, value in member.items()
+                if key
+                not in {
+                    "visibility_code",
+                    "corporate_entity_id",
+                    "author_account_id",
+                    "source_detail_state_code",
+                    "has_real_source_context",
+                }
+            }
             for member in members
         ]
         leftover_pairs = [
-            {key: value for key, value in pair.items() if key != "has_real_source_context"}
+            {
+                key: value
+                for key, value in pair.items()
+                if key
+                not in {
+                    "visibility_code",
+                    "corporate_entity_id",
+                    "author_account_id",
+                    "source_detail_state_code",
+                    "has_real_source_context",
+                }
+            }
             for pair in leftover_pairs
         ]
         visible.append(
@@ -3568,7 +3622,14 @@ async def read_calendar(
             c for c in visible if not _is_synthetic_demo_member(c, demo_entity_ids)
         ]
     for c in visible:
-        del c["visibility_code"], c["corporate_entity_id"], c["has_real_source_context"]
+        for key in (
+            "visibility_code",
+            "corporate_entity_id",
+            "author_account_id",
+            "source_detail_state_code",
+            "has_real_source_context",
+        ):
+            c.pop(key, None)
     return {
         "events": events,
         "commitments": visible,
