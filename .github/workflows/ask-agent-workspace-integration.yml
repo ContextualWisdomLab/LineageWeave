@@ -6,17 +6,28 @@ on:
       - feat/ask-agent-evidence-workspace-v2180-r2
     paths:
       - .github/workflows/ask-agent-workspace-integration.yml
+  pull_request:
+    branches:
+      - feat/event-lineage-node-keeps-gnb-focus-v2170
+    types:
+      - opened
+      - reopened
+      - synchronize
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: ask-agent-workspace-${{ github.ref }}
+  group: ask-agent-workspace-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
   integrate-and-verify:
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.pull_request.head.ref == 'feat/ask-agent-evidence-workspace-v2180-r2')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact branch head
