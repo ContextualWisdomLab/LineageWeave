@@ -150,6 +150,8 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | APA 7 doctoring and Zotero OA records | baseline bibliography, local Zotero API reachable, known metadata found | source + local-integration; OA attachment audit open |
 | Browser E2E from login through evidence | authenticated local OIDC login, protected list, drawer/search, popup sweep, and aggregate evidence checks; image predates current exact head | local-integration partial; current-head redeploy open |
 | Storybook scenes/edge events and design-token coverage | `LineageDag.stories.tsx`, inventory, Storybook build | source + unit |
+| External email/project lineage package boundary | PR #343 publishes strict v1.0.0 bounded request/result types, available-time cutoff handling, observed/inferred/proposed truth states, pair-budget enforcement, and no source/provider access | source + focused unit; exact-head hosted gates, independent review, and immutable release open |
+| Naruon calendar projection boundary | PR #337 defines a strict read projection contract without making LineageWeave a CalDAV provider | source + focused unit; Naruon endpoint, runtime wiring, restack, and review open |
 | Hourly PR review/repair/merge loop | Central `ContextualWisdomLab/.github` scheduler owns `*/15 * * * *` sweep and `0 * * * *` heartbeat; no duplicate repo-local scheduler is required | boundary accepted; current-head runtime open |
 | 100% coverage/docstrings/edge-case/release gates | current checks and coverage evidence are not complete on PR #350 | open |
 
@@ -205,6 +207,17 @@ or an explicit unavailable result.
   edge and some focused posts had no component. Add a rebuild/coverage gate that
   distinguishes genuinely isolated posts from missing extraction or grouping
   evidence before presenting a buyer-facing branching DAG as complete.
+- **Cross-repository email/project lineage — provider boundary implemented,
+  consumer open:** PR #343 provides the store-agnostic LineageWeave contract but
+  remains unmerged and unreleased. Naruon issue #1437 still needs a disabled-by-
+  default admission policy, durable idempotent analysis job, immutable artifact
+  pin, result projection, accept/correct/reject audit, and integration into the
+  existing email/thread/project surfaces. No draft branch, direct SQL, shared ORM,
+  credential forwarding, or automatic promotion of inferred facts is allowed.
+- **Calendar interoperability — contract-only:** PR #337 defines the LineageWeave
+  consumer contract. Naruon must still publish the provider-side read endpoint,
+  service audience, provider conformance fixtures, sync/revision semantics, and
+  failure/reconciliation behavior before fail-closed runtime wiring is enabled.
 - **Literature/Zotero — open:** record APA 7 references and verify Local Zotero
   API availability before claiming synchronization. The repository must retain
   only metadata/citations appropriate for public artifacts.
@@ -214,12 +227,16 @@ or an explicit unavailable result.
 
 ## 6. Next acceptance loop
 
-1. Re-fetch the exact PR head and required reviews/checks.
+1. Re-fetch the exact PR head and required reviews/checks for the buyer UI stack,
+   PR #343, and PR #337.
 2. Run frontend lint, tests, build, Storybook, backend tests, and authenticated
    browser checks when the local stack is available.
 3. Reproduce each case label using synthetic fixtures or authorized runtime
    aggregates, preserving `unavailable` as an explicit result.
-4. Fix only evidence-backed failures, then repeat the exact-head protected merge
+4. Complete exact-head review and immutable release of the LineageWeave provider
+   contract before creating the Naruon consumer implementation; do not import a
+   draft branch or share application database state.
+5. Fix only evidence-backed failures, then repeat the exact-head protected merge
    gate. Do not self-approve, bypass protection, or claim a PR is merged without
    a merge SHA.
 
