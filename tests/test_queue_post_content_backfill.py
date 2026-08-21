@@ -27,6 +27,17 @@ class _Client:
     pass
 
 
+class _Closeable:
+    def __init__(self) -> None:
+        self.closed = False
+
+    async def close(self) -> None:
+        self.closed = True
+
+    async def aclose(self) -> None:
+        self.closed = True
+
+
 def test_normalize_retry_post_ids_deduplicates_and_rejects_invalid_values() -> None:
     post_id = "00505695-3e61-1fd1-83c5-263f88a9e77a"
     assert queue_post_content_backfill._normalize_retry_post_ids([post_id, post_id]) == (
@@ -63,3 +74,52 @@ def test_explicit_retry_requeues_only_selected_rows(monkeypatch) -> None:
 
     assert result == {"retried_posts": 1, "retry_published_events": 1}
     assert calls == [f"{post_id}:body"]
+
+
+def test_retry_only_skips_the_corpus_scan_and_requires_an_explicit_id(monkeypatch) -> None:
+    connection = _Closeable()
+    client = _Closeable()
+    retry_calls: list[list[str]] = []
+
+    async def connect(_dsn):
+        return connection
+
+    async def retry(_connection, _client, post_ids):
+        retry_calls.append(post_ids)
+        return {"retried_posts": len(post_ids), "retry_published_events": len(post_ids)}
+
+    monkeypatch.setattr(queue_post_content_backfill.asyncpg, "connect", connect)
+    monkeypatch.setattr(queue_post_content_backfill.redis, "from_url", lambda *_args, **_kwargs: client)
+    monkeypatch.setattr(queue_post_content_backfill, "_retry_explicit_post_content_jobs", retry)
+    monkeypatch.setattr(
+        queue_post_content_backfill,
+        "load_settings",
+        lambda: SimpleNamespace(orchestrator_base_url="", orchestrator_api_key=""),
+    )
+
+    result = __import__("asyncio").run(
+        queue_post_content_backfill.queue_post_content_backfill(
+            "postgresql://example.invalid/db",
+            "redis://example.invalid/0",
+            "embedding-model",
+            limit=1,
+            retry_post_ids=["00505695-3e61-1fd1-83c5-263f88a9e77a"],
+            retry_only=True,
+        )
+    )
+
+    assert result["retried_posts"] == 1
+    assert result["scanned_posts"] == 0
+    assert retry_calls == [["00505695-3e61-1fd1-83c5-263f88a9e77a"]]
+    assert connection.closed and client.closed
+
+    with pytest.raises(ValueError, match="--retry-only requires"):
+        __import__("asyncio").run(
+            queue_post_content_backfill.queue_post_content_backfill(
+                "postgresql://example.invalid/db",
+                "redis://example.invalid/0",
+                "embedding-model",
+                limit=1,
+                retry_only=True,
+            )
+        )
