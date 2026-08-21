@@ -1,14 +1,11 @@
 # Product, technical, and gap baseline
 
-**Snapshot:** 2026-08-20 17:08 (Asia/Seoul)
-**Protected-main baseline:** `origin/main`, product version `2.12.5`
-**Audited PR head:** #258 at `b83be708a9dc705df7485e1b18e779439bfb7b71` (current exact branch head; protected-main runtime evidence remains pending)
-**Active PR update:** ADR 0101 and the enrichment-timeout changes are pushed to
-PR #258; protected-main runtime evidence remains pending.
-**Stacked product-gap update:** ADR 0103 defines the source-order semantic-unit
-contract for footnotes, nested lists, HTML/OOXML rows, and Markdown tables;
-its implementation remains proposed until the stacked branch is reviewed and
-merged.
+**Snapshot:** 2026-08-21 (Asia/Seoul)
+**Protected-main baseline:** `origin/main`; this document does not claim the active PR is shipped.
+**Audited PR code head:** #258 customer-hierarchy commit `21074cf80cbfab3001bf18b6e1a618f75f4bed24`; this active branch is not protected-main truth.
+**Audited PR exact branch head:** #258 `99244658bc7edb7cf0c71cce2e3dcc59ff891b2b`; this active branch is not protected-main truth.
+**Active PR update:** Customer Master now has an ORG-grounded, cycle-safe hierarchy projection with explicit WAI-ARIA ownership; final-head hosted Checks and independent approval remain required.
+**Stacked product-gap update:** #302 preserves semantic document units across footnotes, nested lists, HTML/OOXML rows, and Markdown tables; it must be restacked on the finalized #258 head before merge.
 **Purpose:** connect the normative ADRs and research evidence to product
 requirements, technical contracts, implementation evidence, and active PRs.
 An active PR is proposed work, not shipped behavior.
@@ -70,6 +67,7 @@ claims that an unmerged PR or historical runtime observation is live behavior.
 | FR-10 | Standard provenance uses normalized PROV-O relations; qualified influence implies its unqualified relation and KG edges remain a navigation projection. | ADR 0011, 0065 | PROV-O implementation matrices, ontology, CI contract |
 | FR-11 | Post summaries expose evidence-bearing events and R&R. Requester/processor actions are nullable and may only name actors already bound to the same post summary. | ADR 0052, ADR 0100 | Commit `15e1a378` is on PR #258; one authorized target refresh stored three action rows, while corpus-wide buyer-data acceptance remains unproven |
 | FR-12 | A hierarchy-enrichment timeout leaves the source-grounded summary readable and the actor unbound; it never creates a guessed catalog identity. | ADR 0101, ADR 0010, ADR 0026 | Commit `1c260f20` contains the boundary, ADR, and focused test; independent review, protected-main merge, and fresh runtime evidence remain pending |
+| FR-13 | Customer Master projects authorized corporate entities as a Group → Company → Plant tree. Real organization containment uses W3C ORG while Group/Company/Plant remain separate SKOS level concepts. Missing-parent, self-parent, and cyclic edges remain visible as unresolved roots; the UI owns nested `group` elements from their parent `treeitem`, supports Arrow/Home/End and Enter/Space operation, and opens source-backed evidence outside the tree. | ADR 0124, ADR 0004, ADR 0010 | Ontology/SHACL interoperability tests, `customerMasterTree.ts`, `CustomerMasterTree.tsx`, component tests, Storybook, and code commit `21074cf80cbfab3001bf18b6e1a618f75f4bed24` |
 
 ## TRD
 
@@ -145,6 +143,7 @@ sequenceDiagram
 | NFR-04 | Python 3.12+ project-local environment; pinned Node/pnpm and Rust toolchain; checked lockfiles | clean-environment backend/frontend builds |
 | NFR-05 | Synthetic fixtures only; runtime validation returns aggregate, non-identifying evidence | repository scan and evidence-document review |
 | NFR-06 | ADR-first architectural change and paper-grounded model policy | ADR link check and review; unsupported policies remain unavailable |
+| NFR-07 | Buyer hierarchy controls meet WCAG 2.2 keyboard operation and the WAI-ARIA tree ownership contract without inventing ontology facts | Ontology tests, focused hierarchy tests, full frontend test/lint/build, Storybook build, and final-head hosted verification |
 
 ## Current aggregate data and runtime evidence
 
@@ -171,11 +170,18 @@ post-summary-action population across the corpus, or equivalence between every
 running container image and the PR head. The target refresh is bounded runtime
 evidence for one authorized post, not a corpus-wide acceptance claim.
 
+## Active-PR gap closure evidence
+
+| Closed gap | Root cause | Closure evidence | Remaining boundary |
+|---|---|---|---|
+| Customer entities could disappear from the buyer surface when `parent_entity_id` formed a self-parent or cycle; the first tree refactor also placed child `group` content beside rather than inside its parent `treeitem`. | The old projection assembled only root-reachable nodes, overloaded evidence state with hierarchy semantics, and did not satisfy the APG ownership rule. | Code commit `21074cf80cbfab3001bf18b6e1a618f75f4bed24` promotes malformed edges to visible unresolved roots, keeps ORG containment separate from SKOS classification, makes every parent `treeitem` own its child `group`, separates evidence into an external region, and adds navigation, failure, stale-response, ontology, and Storybook regressions. | The API still exposes one parent context; authoritative acyclicity, level-transition rules, legal/operating/sales/billing contexts, and effective-dated history remain future normalized-model work. |
+
 ## Active PR audit
 
-GitHub reported 18 open PRs at the snapshot: all were marked Ready and 8
-required review; merge state was 8 `BLOCKED`, 8 `UNSTABLE`, and 2 `DIRTY`.
-Queued checks and review gates mean none of these rows is protected-main truth.
+A focused 2026-08-21 refresh found PR #258 open and mergeable at customer-hierarchy
+code commit `21074cf80cbfab3001bf18b6e1a618f75f4bed24`. The organization queue has changed since the 18-row inventory below, so the
+table is retained only as historical stack topology. Current acceptance must be read from the final
+PR head, valid unresolved threads, qualifying independent review, and terminal hosted Checks.
 
 | PR | Proposed increment | Base → head | Snapshot state |
 |---|---|---|---|
@@ -194,7 +200,7 @@ Queued checks and review gates mean none of these rows is protected-main truth.
 | #262 | Customer post to Event Lineage | `#261` → `v2.15.0` | Ready / BLOCKED / review required |
 | #261 | Calendar commitment to Event Lineage | `#260` → `v2.14.0` | Ready / BLOCKED / review required |
 | #260 | Weekly VOC to Event Lineage | `#258` → `v2.13.0` | Ready / DIRTY / review required |
-| #258 | buyer evidence board and ontology surface | `main` → feature | Ready / BLOCKED |
+| #258 | buyer evidence board, standards-composed ontology, and cycle-safe Customer Master tree | `main` → `99244658bc7edb7cf0c71cce2e3dcc59ff891b2b` | Ready / mergeable / final-head Checks and independent approval pending |
 | #192 | plural affiliation next action | `main` → `v0.77.0` | Ready / DIRTY / review required |
 | #190 | duplicate-numbered entity-resolution ADR | `main` → docs | Ready / BLOCKED |
 
@@ -218,7 +224,7 @@ the exact-head disposition.
 | P0 | No protected-main integrated buyer journey for the active feature stack | Main is 2.12.5; 18 open PRs span dependent and parallel bases | Establish one reviewed integration order, update each exact head, pass required checks, merge without bypass, then run login-to-source browser acceptance on main |
 | P0 | Current runtime proof is incomplete | The current aggregate/OIDC/ABAC checks cover data presence and selected boundaries; 2026-08-18/19 notes cover other slices, but no evidence set proves the entire PR head or main journey | Complete the real-stack matrix on an exact revision: browser login/navigation, Ask, reports, Vision, TEPP availability, action population, and cleanup |
 | P0 | PR #190's duplicate ADR identity was corrected but is not protected-main truth | Active PR head `ac1b4e17` now uses ADR 0038 and aligns the entity-resolution claims with implementation; independent review and Checks remain pending | Re-audit exact head, obtain independent approval, pass required Checks, and merge normally; never merge a duplicate ADR identity |
-| P0 | PR #258 is not review/CI complete at its exact current head | #258 is mergeable but BLOCKED: 14 of 22 checks queued, no approval, and four unresolved scanner threads on two SQL modules | Classify each finding against the literal SQL and bound arguments; fix a real flow or add a narrow documented suppression for a false positive, resolve threads, obtain independent approval, and re-check the exact head |
+| P0 | PR #258 still requires final-head review and hosted CI | Customer hierarchy code is at `21074cf80cbfab3001bf18b6e1a618f75f4bed24`; branch-local verification does not transfer to the following documentation-only head | Re-read review threads, obtain qualifying independent approval, require all final-head hosted Checks to reach terminal success, and merge only through normal protection |
 | P1 | Requirements were implicit across ADRs and architecture phases | No prior PRD/TRD/requirement traceability baseline existed | Keep FR/NFR IDs in this document linked from ADR index; require new product PRs to name affected IDs and runtime evidence |
 | P1 | Active PR topology obscures release truth | 8 blocked, 8 unstable, and 2 dirty; many bases are other open branches | Publish a dependency order, retire obsolete/duplicate branches, and avoid version claims until their base chain reaches main |
 | P1 | ADR 0100 is exercised only by a bounded target, not accepted across the corpus | Commit `15e1a378` and the v5 contract are on PR #258; one authorized target refresh stored three action rows, while corpus-wide accepted/dropped/absent counts remain unknown | Regenerate an authorized bounded sample, report aggregate accepted/dropped/absent counts, verify source evidence and actor FKs, then exercise the buyer popup without exposing record content |
