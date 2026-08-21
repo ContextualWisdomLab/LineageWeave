@@ -3346,7 +3346,7 @@ def test_live_chat_provider_error_does_not_leak_raw_error(
         available = True
 
         def answer(self, question: str, sources) -> object:
-            raise RuntimeError("raw-provider-secret")
+            raise Exception("raw-provider-secret")
 
     monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FailingChatClient())
 
@@ -3368,7 +3368,7 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
         available = True
 
         def answer(self, question: str, sources) -> object:
-            raise RuntimeError("raw-global-provider-secret")
+            raise Exception("raw-global-provider-secret")
 
     monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FailingAskClient())
 
@@ -3392,7 +3392,7 @@ def test_keymen_provider_error_does_not_leak_raw_error(
         available = True
 
         def extract(self, post_title: str, post_body: str) -> object:
-            raise RuntimeError("raw-keyman-provider-secret")
+            raise Exception("raw-keyman-provider-secret")
 
     monkeypatch.setattr("backend.app.main._keyman_extraction_client", lambda: _FailingKeymanClient())
 
@@ -3415,7 +3415,7 @@ def test_evaluation_provider_error_does_not_leak_raw_error(
         available = True
 
         def evaluate(self, post_title: str, post_body: str) -> object:
-            raise RuntimeError("raw-evaluation-provider-secret")
+            raise Exception("raw-evaluation-provider-secret")
 
     monkeypatch.setattr(
         "backend.app.main._post_evaluation_client", lambda: _FailingEvaluationClient()
@@ -3440,7 +3440,7 @@ def test_commitment_provider_error_does_not_leak_raw_error(
         available = True
 
         def extract(self, post_title: str, post_body: str, reference_date: str) -> object:
-            raise RuntimeError("raw-commitment-provider-secret")
+            raise Exception("raw-commitment-provider-secret")
 
     monkeypatch.setattr(
         "backend.app.main._commitment_extraction_client", lambda: _FailingCommitmentClient()

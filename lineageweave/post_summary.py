@@ -952,7 +952,7 @@ class ContextualOrchestratorPostSummaryClient:
         content = body["choices"][0]["message"]["content"]
         parsed = _parse_plain_summary_response(content)
         if parsed is None:
-            raise ValueError(f"summary response did not match the required format: {content!r}")
+            raise ValueError("summary response did not match the required format")
         korean_summary, key_events, key_event_details = parsed
         details_body = post_json(
             f"{self._base_url}/v1/chat/completions",
