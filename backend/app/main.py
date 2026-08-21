@@ -199,6 +199,7 @@ from backend.app.post_eligibility import (
     WRITING_SOURCE_DETAIL_STATE_CODE,
     normalize_source_detail_state_code,
     source_post_state_visibility_sql,
+    SOURCE_POST_VISIBILITY_SQL,
 )
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
@@ -812,7 +813,8 @@ async def read_customer_master(
 ) -> dict[str, Any]:
     """Return the authorized customer catalog and its cataloged Keymen."""
     _require_post_read(account)
-    if not account.corporate_entity_ids:
+    authorized_entity_ids = list(account.corporate_entity_ids)
+    if not authorized_entity_ids:
         return {
             "corporate_entities": [],
             "keymen": [],
@@ -835,7 +837,7 @@ async def read_customer_master(
                   from source_post
                  where (nullif(btrim(source_customer_code), '') is not null
                         or nullif(btrim(source_customer_name), '') is not null)
-                   and (visibility_code = 'public' or corporate_entity_id = any($1::uuid[]))
+                   and {SOURCE_POST_VISIBILITY_SQL.format(alias='source_post', authorized_entity_ids='$1')}
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
             ), ranked as (
                 select scoped.*,
@@ -880,7 +882,7 @@ async def read_customer_master(
                and related.customer_name_group is not distinct from top_groups.customer_name_group
              order by top_groups.post_count desc, top_groups.customer_code, top_groups.customer_name
             """,
-            list(account.corporate_entity_ids),
+            authorized_entity_ids,
         )
         # Safe SQL: the evidence query uses only closed schema fragments; authorized entity ids are bound.
         source_author_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
@@ -901,7 +903,7 @@ async def read_customer_master(
                   join user_account author on author.user_account_id = post.author_account_id
                  where post.source_author_code is not null
                    and btrim(post.source_author_code) <> ''
-                   and (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
+                   and {SOURCE_POST_VISIBILITY_SQL.format(alias='post', authorized_entity_ids='$1')}
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
             ), ranked as (
                 select scoped.*,
@@ -1017,12 +1019,12 @@ async def read_customer_master(
                and related.account_display_name = top_groups.account_display_name
              order by top_groups.post_count desc, top_groups.author_code
             """,
-            list(account.corporate_entity_ids),
+            authorized_entity_ids,
         )
         has_source_context = bool(source_customer_rows or source_author_rows)
         if not has_source_context:
             has_source_context = await has_real_source_context(
-                conn, list(account.corporate_entity_ids)
+                conn, authorized_entity_ids
             )
         synthetic_only_entity_ids: set[str] = set()
         if has_source_context:
@@ -1071,15 +1073,41 @@ async def read_customer_master(
                and not (entity.corporate_entity_id = any($3::uuid[]))
              order by entity.entity_name
             """,
-            list(account.corporate_entity_ids),
+            authorized_entity_ids,
             account.user_account_id,
             list(synthetic_only_entity_ids),
         )
-        entity_ids = [row["corporate_entity_id"] for row in entity_rows]
+        entity_rows = [dict(row) for row in entity_rows]
+        entity_by_id = {str(row["corporate_entity_id"]): row for row in entity_rows}
+        for row in entity_rows:
+            row["scope_facets"] = set(_customer_master_scope_facets(row))
+        for row in entity_rows:
+            if not row["is_observed_organization"]:
+                continue
+            current = row
+            visited: set[str] = set()
+            while current["parent_entity_id"] is not None:
+                current_id = str(current["corporate_entity_id"])
+                if current_id in visited:
+                    break
+                visited.add(current_id)
+                parent = entity_by_id.get(str(current["parent_entity_id"]))
+                if parent is None:
+                    current["parent_entity_id"] = None
+                    break
+                current["scope_facets"].add("observed_hierarchy")
+                parent["scope_facets"].add("observed_hierarchy")
+                current = parent
+        authorized_entity_id_set = set(authorized_entity_ids)
+        authorized_entity_ids = [
+            str(row["corporate_entity_id"])
+            for row in entity_rows
+            if str(row["corporate_entity_id"]) in authorized_entity_id_set
+        ]
         source_author_affiliations = await _load_account_affiliation_hints(
             conn,
             [str(row["author_account_id"]) for row in source_author_rows],
-            [str(entity_id) for entity_id in entity_ids],
+            authorized_entity_ids,
         )
         keyman_rows = await conn.fetch(
             """
@@ -1096,11 +1124,11 @@ async def read_customer_master(
              where affiliation.affiliated_corporate_entity_id = any($1::uuid[])
              order by person.person_name, affiliation.affiliated_organization_name
             """,
-            entity_ids,
+            authorized_entity_ids,
         )
         side_labels = await labels_for_codes(conn, [row["person_side_code"] for row in keyman_rows])
         entity_level_labels = await labels_for_codes(conn, [row["entity_level_code"] for row in entity_rows])
-        relationship_network = await fetch_relationship_network(conn, entity_ids)
+        relationship_network = await fetch_relationship_network(conn, authorized_entity_ids)
 
     keymen_by_id: dict[str, dict[str, Any]] = {}
     for row in keyman_rows:
@@ -1139,10 +1167,10 @@ async def read_customer_master(
                 "entity_level_label": entity_level_labels.get(
                     row["entity_level_code"], row["entity_level_code"]
                 ),
-                "parent_entity_id": (
+                    "parent_entity_id": (
                     str(row["parent_entity_id"]) if row["parent_entity_id"] is not None else None
                 ),
-                "scope_facets": _customer_master_scope_facets(row),
+                "scope_facets": sorted(row["scope_facets"]),
             }
             for row in entity_rows
         ],

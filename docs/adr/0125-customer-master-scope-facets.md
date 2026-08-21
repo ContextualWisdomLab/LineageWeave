@@ -31,7 +31,8 @@ private post. An unresolved counterparty name is a hint, not a catalog entity.
    affiliation row regardless of this display facet.
 3. Extend the Customer Master entity contract with repeatable, provenance-bearing
    `scope_facets`: `authorized_own`, `authorized_granted`,
-   `observed_organization`, and `observed_hierarchy`. Multiple facets are
+   `scope_unclassified`, `observed_organization`, and `observed_hierarchy`.
+   Multiple facets are
    allowed because one organization may be both an authorized entity and an
    observed counterparty in different evidence.
 4. Build `observed_organization` only from a visible, eligible post's resolved
