@@ -204,7 +204,11 @@ async def _counts_by_run(
     """Load aggregate snapshot counts for the given runs."""
     if not run_ids:
         return {}
-    rows = await conn.fetch(_COUNTS_BY_RUN_SQL, run_ids)
+    # Safe SQL: this immutable aggregate query has closed schema text; run ids remain bound below.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        _COUNTS_BY_RUN_SQL,
+        run_ids,
+    )
     grouped: dict[str, list[asyncpg.Record]] = {}
     for row in rows:
         grouped.setdefault(str(row["analysis_run_id"]), []).append(row)
