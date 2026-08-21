@@ -204,6 +204,8 @@ def test_global_source_retrieval_applies_cutoff_and_publication_eligibility() ->
     source_query, source_args = source_calls[0]
     assert "source_deleted_flag" in source_query
     assert "created_at <= $4" in source_query
+    assert len(source_args) == 4
+    assert list(source_args[0]) == ["tenant-a"]
     assert source_args[3] == CUTOFF
 
 

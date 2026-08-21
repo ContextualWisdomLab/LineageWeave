@@ -743,7 +743,7 @@ async def gather_global_chat_sources(
                   created_at desc, post_id desc
          limit $3
         """,
-        list(authorized_corporate_entity_ids),
+        authorized_entity_ids,
         candidate_ids,
         limit,
         cutoff,
