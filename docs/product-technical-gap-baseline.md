@@ -35,7 +35,7 @@
 The following states are evidence-bound and must not be changed to `merged` or
 `resolved` from intent alone:
 
-Observed at `2026-08-21T14:07:36Z` from the GitHub API. A merged commit is
+Observed at `2026-08-21T14:21:29Z` from the GitHub API. A merged commit is
 identified as `merge_commit`; an open PR is identified by its exact `head`.
 
 - LineageWeave PR #344: `merge_commit`
@@ -51,7 +51,7 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   provenance explorer remains open and required Checks and independent
   approval remain external gates.
 - LineageWeave PR #368: `head`
-  `3e233eeb6ba4e8649006e4c7eb42d74cc48e5a03`, base `main`; this baseline
+  `d739d7ae195ca272e4bbdbcf26c4c8e1a374dacd`, base `main`; this baseline
   checkpoint is updated by the stacked documentation PR for the newer queue
   evidence below.
 - LineageWeave PR #378: `merge_commit`
@@ -96,6 +96,12 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   `481bdb6eafa1d3f074ca7d9d05275ce36a4708d8`, it hardens the external
   lineage contract, removes the self-modifying repair workflow, and fixes the
   responsive board CSS. Checks and independent approval remain external gates.
+- LineageWeave PR #384: `head`
+  `a9dcd343c651726ee35d0ff49f1618b5a383bc17`, base
+  `docs/customer-master-scope-adr`; it normalizes padded source-detail-state
+  codes across filtering, ABAC, analysis eligibility, and content-worker
+  boundaries, with transaction-test-double coverage. Checks and independent
+  approval remain external gates.
 - LineageWeave PR #373: `head`
   `84fd2993fcec5d3d683c391818f85e27ebd7347f`, base `main`; ontology
   publication has unresolved review work and is not treated as delivered.
