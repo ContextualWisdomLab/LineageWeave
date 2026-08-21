@@ -1886,8 +1886,14 @@ async def _load_visible_post(
     post_id: str,
     account: CurrentAccount,
     pool: asyncpg.Pool,
+    *,
+    allow_writing: bool = False,
 ) -> asyncpg.Record:
-    """Load one post the account may see, or raise 404 / 403."""
+    """Load one post the account may see, or raise 404 / 403.
+
+    Analysis callers keep the default W-state rejection. Non-analysis actions
+    such as an author's bookmark may explicitly read an authorized W row.
+    """
     _require_post_read(account)
     async with pool.acquire() as conn:
         # Safe SQL: the eligibility predicate is an immutable schema fragment; post id is bound.
@@ -1913,7 +1919,11 @@ async def _load_visible_post(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "post not found")
     if not _can_see_post(account, row):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
-    if normalize_source_detail_state_code(row.get("source_detail_state_code")) == WRITING_SOURCE_DETAIL_STATE_CODE:
+    if (
+        not allow_writing
+        and normalize_source_detail_state_code(row.get("source_detail_state_code"))
+        == WRITING_SOURCE_DETAIL_STATE_CODE
+    ):
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "Writing-in-progress posts are not analysis targets.",
@@ -3183,7 +3193,7 @@ async def read_post_bookmark(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    await _load_visible_post(post_id, account, pool)
+    await _load_visible_post(post_id, account, pool, allow_writing=True)
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "select 1 from post_bookmark where user_account_id = $1 and post_id = $2",
@@ -3200,7 +3210,7 @@ async def write_post_bookmark(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    await _load_visible_post(post_id, account, pool)
+    await _load_visible_post(post_id, account, pool, allow_writing=True)
     async with pool.acquire() as conn:
         if request.bookmarked:
             await conn.execute(

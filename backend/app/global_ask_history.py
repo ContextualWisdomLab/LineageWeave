@@ -103,7 +103,7 @@ async def _visible_post_ids(
     source: bool,
 ) -> tuple[list[str], dict[str, asyncpg.Record]]:
     if source:
-        rows = await conn.fetch(  # nosemgrep: identifiers are fixed literals in this branch.
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             """
         select relation.source_post_id::text as post_id, relation.source_ordinal as ordinal,
                post.post_title, post.visibility_code, post.corporate_entity_id,
@@ -118,7 +118,7 @@ async def _visible_post_ids(
             turn_ordinal,
         )
     else:
-        rows = await conn.fetch(  # nosemgrep: identifiers are fixed literals in this branch.
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             """
         select relation.cited_post_id::text as post_id, relation.citation_ordinal as ordinal,
                post.post_title, post.visibility_code, post.corporate_entity_id,
