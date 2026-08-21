@@ -77,6 +77,17 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("stops labeling ordinary content after an HTML footnote list", () => {
+    expect(
+      splitPostBody(
+        '<ol class="footnotes"><li>HTML footnote body</li></ol><p>Ordinary body after footnotes</p>',
+      ),
+    ).toEqual([
+      { kind: "text", text: "HTML footnote body", role: "footnote" },
+      { kind: "text", text: "Ordinary body after footnotes" },
+    ]);
+  });
+
   it("leaves a plain-text post unchanged so existing popups keep their wording", () => {
     expect(splitPostBody("The full body text.")).toEqual([
       { kind: "text", text: "The full body text." },

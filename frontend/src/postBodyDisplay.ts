@@ -29,6 +29,8 @@ const FOOTNOTE_MARKER_PATTERN = new RegExp(FOOTNOTE_MARKER, "g");
 
 function markFootnoteTags(markup: string): string {
   let footnoteDepth = 0;
+  const openTags: Array<{ name: string; isFootnote: boolean }> = [];
+  const voidTags = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "w:br"]);
   return markup.replace(HTML_TAG, (tag) => {
     const match = tag.match(/^<\s*(\/?)\s*([a-z][a-z0-9:-]*)\b/i);
     if (!match) return tag;
@@ -42,13 +44,23 @@ function markFootnoteTags(markup: string): string {
     const isOoxmlContainer = name === "w:footnote" || name === "w:endnote";
 
     if (closing) {
-      if (isOoxmlContainer || isContainer) {
-        footnoteDepth = Math.max(0, footnoteDepth - 1);
+      const matchingIndex = openTags.map((entry) => entry.name).lastIndexOf(name);
+      if (matchingIndex >= 0) {
+        const closedTags = openTags.splice(matchingIndex);
+        footnoteDepth = Math.max(
+          0,
+          footnoteDepth - closedTags.filter((entry) => entry.isFootnote).length,
+        );
       }
       return tag;
     }
-    if (isOoxmlContainer || isContainer) {
-      if (!/\/\s*>$/.test(tag)) footnoteDepth += 1;
+    const selfClosing = /\/\s*>$/.test(tag) || voidTags.has(name);
+    const opensFootnote = isOoxmlContainer || isContainer;
+    if (!selfClosing) {
+      openTags.push({ name, isFootnote: opensFootnote });
+    }
+    if (opensFootnote) {
+      if (!selfClosing) footnoteDepth += 1;
       return `${tag}${FOOTNOTE_MARKER}`;
     }
     if (
