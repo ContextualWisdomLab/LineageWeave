@@ -75,6 +75,17 @@ def test_render_term_escapes_untrusted_ontology_text() -> None:
     assert "A &lt;source&gt; &amp; evidence." in rendered
 
 
+def test_preferred_literal_uses_english_before_untagged_and_other_languages() -> None:
+    builder = _load_builder()
+    graph = Graph()
+    term = builder.URIRef("https://example.test/ontology#Localized")
+    graph.add((term, builder.RDFS.label, builder.Literal("untagged")))
+    graph.add((term, builder.RDFS.label, builder.Literal("English", lang="en")))
+    graph.add((term, builder.RDFS.label, builder.Literal("한국어", lang="ko")))
+
+    assert builder._preferred_literal(graph, term, builder.RDFS.label) == "English"
+
+
 def test_serializations_round_trip_to_the_source_graph(tmp_path: Path) -> None:
     builder = _load_builder()
     output = tmp_path / "site"
