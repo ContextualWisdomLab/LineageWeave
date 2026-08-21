@@ -85,6 +85,11 @@ rerun for the resulting PR head.
   and `pnpm run build-storybook` all passed. Storybook emitted only the existing
   post-build bundle-size advisory; no build failure was observed.
 
+- **#366 current-head backend gate:** at `e6d94c23ae74c39007f97fbe0afddcfe8e27451c`,
+  `uv run pytest -q` completed with `788 passed, 17 skipped, 4 warnings` in
+  117.45 seconds. The warnings are existing Starlette deprecations and the
+  synthetic forged-token test key-length warning; no test failure was hidden.
+
 - **Canonical ontology explorer PR:** PR #349 remains open and unmerged at
   exact head `1cb9f7000224aec55e4df184044d04e170b5960e`, based on `main` at
   `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`. Its latest stabilization fixes
