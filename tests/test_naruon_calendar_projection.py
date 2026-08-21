@@ -132,7 +132,7 @@ def test_client_rejects_invalid_timeouts(timeout: float) -> None:
 @pytest.mark.parametrize(
     ("window_start", "window_end", "message"),
     [
-        ("2026-08-01T00:00:00", "2026-08-02T00:00:00Z", "offset"),
+        ("2026-08-01T00:00:00", "2026-08-02T00:00:00Z", "RFC 3339"),
         ("2026-08-02T00:00:00Z", "2026-08-01T00:00:00Z", "after"),
         ("2026-01-01T00:00:00Z", "2027-01-03T00:00:00Z", "366"),
     ],
@@ -179,7 +179,9 @@ def test_parser_preserves_busy_only_policy_filtered_text() -> None:
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [
-        ("starts_at", "2026-08-24T09:00:00", "offset"),
+        ("starts_at", "2026-08-24T09:00:00", "RFC 3339"),
+        ("starts_at", "2026-08-24 09:00:00+09:00", "RFC 3339"),
+        ("starts_at", "2026-08-24T09:00:00+0900", "RFC 3339"),
         ("ends_at", "2026-08-24T08:00:00+09:00", "after starts_at"),
         ("observed_at", "not-a-time", "RFC 3339"),
         ("status_code", "unknown", "unsupported"),

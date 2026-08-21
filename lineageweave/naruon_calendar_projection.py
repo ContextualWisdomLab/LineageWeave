@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+import re
 from typing import Any
 from urllib.parse import urlencode, urlparse
 
@@ -25,6 +26,10 @@ _MAX_WINDOW = timedelta(days=366)
 _ALLOWED_STATUS_CODES = frozenset({"confirmed", "tentative", "desired", "cancelled"})
 _ALLOWED_DISCLOSURE_CODES = frozenset({"busy_only", "summary_visible"})
 _ALLOWED_TRUTH_STATUS_CODES = frozenset({"observed"})
+_RFC3339_PATTERN = re.compile(
+    r"^[0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:"
+    r"[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?(?:[Zz]|[+-][0-9]{2}:[0-9]{2})$"
+)
 
 
 class NaruonCalendarContractError(ValueError):
@@ -119,7 +124,14 @@ def _opaque_reference(value: Any, *, field_name: str) -> str:
 
 def _parse_rfc3339(value: Any, *, field_name: str) -> datetime:
     text = _bounded_text(value, field_name=field_name, maximum_length=64)
-    normalized = f"{text[:-1]}+00:00" if text.endswith("Z") else text
+    if _RFC3339_PATTERN.fullmatch(text) is None:
+        raise NaruonCalendarContractError(f"{field_name} must be RFC 3339")
+    normalized_text = text[:10] + "T" + text[11:]
+    normalized = (
+        f"{normalized_text[:-1]}+00:00"
+        if normalized_text.endswith(("Z", "z"))
+        else normalized_text
+    )
     try:
         parsed = datetime.fromisoformat(normalized)
     except ValueError as exc:
