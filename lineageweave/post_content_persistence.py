@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import logging
 import math
 from typing import Any, TypeVar
@@ -42,7 +43,7 @@ def _bounded_unit_batches(  # noqa: UP047 - retain Python 3.10 compatibility.
         unit_chars = (
             len(payload)
             if isinstance(payload, str)
-            else len(str(payload.get("text", "")))
+            else len(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
         )
         if batch and (
             len(batch) >= _LLM_BATCH_MAX_UNITS

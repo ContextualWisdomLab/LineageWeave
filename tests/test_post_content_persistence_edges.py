@@ -318,6 +318,10 @@ def test_bounded_batches_cover_empty_count_and_character_limits() -> None:
         len(batch)
         for batch in _bounded_unit_batches([("x", {"text": "x" * 12_001}) for _ in range(2)])
     ] == [1, 1]
+    metadata_bounded = _bounded_unit_batches(
+        [(str(i), {"text": "x" * 11_900, "label": "y" * 200}) for i in range(2)]
+    )
+    assert [len(batch) for batch in metadata_bounded] == [1, 1]
 
 
 def test_explicit_and_adjudicated_structure_are_persisted_by_unit() -> None:
