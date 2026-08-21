@@ -1435,6 +1435,23 @@ def test_customer_master_scope_facets_reflect_authorization_and_observed_evidenc
                 "insert into post_organization_mention (post_id, corporate_entity_id) values (%s, %s)",
                 (seeded_db["own_private_post_id"], observed_corp_id),
             )
+            cur.execute(
+                "insert into post_organization_mention (post_id, corporate_entity_id) values (%s, %s)",
+                (seeded_db["public_post_id"], observed_corp_id),
+            )
+            for index in range(101):
+                cur.execute(
+                    "insert into corporate_entity "
+                    "(corporate_entity_code, entity_name, entity_level_code) "
+                    "values (%s, %s, 'company') returning corporate_entity_id",
+                    (f"OBSERVED-FILLER-{index:03}", f"Observed Filler {index:03}"),
+                )
+                filler_corp_id = cur.fetchone()[0]
+                cur.execute(
+                    "insert into post_organization_mention (post_id, corporate_entity_id) "
+                    "values (%s, %s)",
+                    (seeded_db["own_private_post_id"], filler_corp_id),
+                )
             # Observed only via a private post from another corp -- must
             # never surface, no matter how "real" the mention is.
             cur.execute(
@@ -1464,6 +1481,10 @@ def test_customer_master_scope_facets_reflect_authorization_and_observed_evidenc
     assert facets_by_name["Case Unclassified Corp"] == set()
     assert facets_by_name["Case Observed Corp"] == {"observed_organization"}
     assert "Case Hidden Observed Corp" not in facets_by_name
+    observed_entities = [
+        row for row in entities if "observed_organization" in row["scope_facets"]
+    ]
+    assert len(observed_entities) == 100
 
 
 def test_resolve_customer_hint_creates_and_links_a_corroborated_entity(

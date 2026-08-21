@@ -964,11 +964,15 @@ async def read_customer_master(
                  where user_account_id = $2
                  group by corporate_entity_id
             ), observed as (
-                select distinct org_mention.corporate_entity_id
+                select org_mention.corporate_entity_id
                   from post_organization_mention org_mention
                   join source_post post on post.post_id = org_mention.post_id
                  where (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+                 group by org_mention.corporate_entity_id
+                 order by count(distinct org_mention.post_id) desc,
+                          org_mention.corporate_entity_id
+                 limit 100
             )
             select entity.corporate_entity_id, entity.corporate_entity_code, entity.entity_name,
                    entity.entity_level_code, entity.parent_entity_id,
