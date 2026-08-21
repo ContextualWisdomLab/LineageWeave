@@ -7,6 +7,14 @@ on:
       - "feat/analysis-run-name-evidence-lineage"
     paths:
       - ".github/workflows/repair-pr-258-oidc-fallback.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/repair-pr-258-oidc-fallback.yml"
+      - "frontend/src/App.tsx"
+      - "frontend/src/App.test.tsx"
+      - "frontend/src/oidcReturnUrl.ts"
 
 permissions:
   contents: write
