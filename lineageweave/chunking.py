@@ -474,6 +474,8 @@ class _BlockTextExtractor(HTMLParser):
         """Emit one block buffer, including a block closed only at EOF."""
         raw_text = "".join(buffer)
         self._table_cell_counts.pop(id(buffer), None)
+        if tag_name in _TABLE_ROW_TAGS and not raw_text.replace("|", "").strip():
+            return
         for raw_unit, source_indent in _split_dom_units(raw_text):
             text = normalize_semantic_text(raw_unit)
             if text:
