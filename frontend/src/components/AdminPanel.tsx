@@ -198,7 +198,7 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (draftConfig.brandName.trim() && draftConfig.systemName.trim() && draftConfig.copyrightHolder.trim()) {
+    if (draftConfig.brandName.trim() && draftConfig.systemName.trim() && draftConfig.copyrightHolder.trim() && Number.isInteger(draftConfig.copyrightYear)) {
       setSaving(true);
       setError(null);
       try {
@@ -324,6 +324,7 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
                     || !draftConfig.brandName.trim()
                     || !draftConfig.systemName.trim()
                     || !draftConfig.copyrightHolder.trim()
+                    || !Number.isInteger(draftConfig.copyrightYear)
                     || draftConfig.copyrightYear < 1900
                     || draftConfig.copyrightYear > 2100
                     || (
