@@ -425,7 +425,11 @@ class _BlockTextExtractor(HTMLParser):
             text = normalize_semantic_text(raw_unit)
             if text:
                 indent_width = declared_width + source_indent
-                label = "footnote" if is_footnote or _FOOTNOTE_START.match(text) else tag_name
+                label = (
+                    "footnote"
+                    if is_footnote or _FOOTNOTE_START.match(text)
+                    else self._semantic_label(tag_name)
+                )
                 self._finished.append(
                     (
                         "text",
@@ -436,6 +440,14 @@ class _BlockTextExtractor(HTMLParser):
                         declared_width,
                     )
                 )
+
+    def _semantic_label(self, tag_name: str) -> str:
+        """Preserve the list-item owner of nested flow blocks."""
+        if tag_name in _TABLE_ROW_TAGS:
+            return tag_name
+        if any(entry[0] in {"li", "w:li"} for entry in self._stack):
+            return "li"
+        return tag_name
 
     def handle_data(self, data: str) -> None:
         """Collect character data from the current HTML text region."""
