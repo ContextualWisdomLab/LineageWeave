@@ -51,11 +51,6 @@ _IDENTIFIER_MIGRATION = (
     / "migrations"
     / "0104_two_word_database_identifiers.sql"
 )
-_GLOBAL_ASK_HISTORY_MIGRATION = (
-    Path(__file__).resolve().parents[1]
-    / "migrations"
-    / "0105_global_ask_conversation_history.sql"
-)
 _AFFILIATION_SCOPE_FACET_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
@@ -141,7 +136,6 @@ def schema_db():
                 identifier_migration = _IDENTIFIER_MIGRATION.read_text()
                 cur.execute(identifier_migration)
                 cur.execute(identifier_migration)
-                cur.execute(_GLOBAL_ASK_HISTORY_MIGRATION.read_text())
                 affiliation_scope_migration = _AFFILIATION_SCOPE_FACET_MIGRATION.read_text()
                 cur.execute(affiliation_scope_migration)
                 cur.execute(affiliation_scope_migration)
@@ -206,11 +200,6 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_chat_result",
         "post_chat_citation",
         "post_bookmark",
-        "global_ask_session",
-        "global_ask_turn",
-        "global_ask_turn_citation",
-        "global_ask_turn_source",
-        "global_ask_turn_evidence",
         "post_summary_quantitative_observation",
         "post_summary_source_fact",
         "post_summary_semantic_relationship",

@@ -123,11 +123,6 @@ _IDENTIFIER_MIGRATION = (
     / "migrations"
     / "0104_two_word_database_identifiers.sql"
 )
-_GLOBAL_ASK_HISTORY_MIGRATION = (
-    Path(__file__).resolve().parents[2]
-    / "migrations"
-    / "0105_global_ask_conversation_history.sql"
-)
 _AFFILIATION_SCOPE_FACET_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -283,7 +278,6 @@ def seeded_db(demo_analyst_token):
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
             cur.execute(_IDENTIFIER_MIGRATION.read_text())
-            cur.execute(_GLOBAL_ASK_HISTORY_MIGRATION.read_text())
             cur.execute(_AFFILIATION_SCOPE_FACET_MIGRATION.read_text())
             cur.execute(_EVENT_CLUE_MIGRATION.read_text())
             cur.execute(_BROAD_FACT_TYPES_MIGRATION.read_text())
@@ -1483,6 +1477,23 @@ def test_customer_master_scope_facets_reflect_authorization_and_observed_evidenc
                 "insert into post_organization_mention (post_id, corporate_entity_id) values (%s, %s)",
                 (seeded_db["own_private_post_id"], observed_corp_id),
             )
+            cur.execute(
+                "insert into post_organization_mention (post_id, corporate_entity_id) values (%s, %s)",
+                (seeded_db["public_post_id"], observed_corp_id),
+            )
+            for index in range(101):
+                cur.execute(
+                    "insert into corporate_entity "
+                    "(corporate_entity_code, entity_name, entity_level_code) "
+                    "values (%s, %s, 'company') returning corporate_entity_id",
+                    (f"OBSERVED-FILLER-{index:03}", f"Observed Filler {index:03}"),
+                )
+                filler_corp_id = cur.fetchone()[0]
+                cur.execute(
+                    "insert into post_organization_mention (post_id, corporate_entity_id) "
+                    "values (%s, %s)",
+                    (seeded_db["own_private_post_id"], filler_corp_id),
+                )
             # Observed only via a private post from another corp -- must
             # never surface, no matter how "real" the mention is.
             cur.execute(
@@ -1512,6 +1523,10 @@ def test_customer_master_scope_facets_reflect_authorization_and_observed_evidenc
     assert facets_by_name["Case Unclassified Corp"] == set()
     assert facets_by_name["Case Observed Corp"] == {"observed_organization"}
     assert "Case Hidden Observed Corp" not in facets_by_name
+    observed_entities = [
+        row for row in entities if "observed_organization" in row["scope_facets"]
+    ]
+    assert len(observed_entities) == 100
 
 
 def test_resolve_customer_hint_creates_and_links_a_corroborated_entity(
@@ -3612,108 +3627,6 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
 
     assert response.status_code == 503
     assert "raw-global-provider-secret" not in response.text
-
-
-def test_global_ask_history_persists_and_reloads_for_the_account(
-    client, demo_analyst_token, seeded_db, monkeypatch
-) -> None:
-    """Global Ask turns survive a fresh GET and remain evidence-linked."""
-    from lineageweave.post_chat import ChatAnswer
-
-    class _AnsweringAskClient:
-        available = True
-
-        def answer(self, question: str, sources) -> ChatAnswer:
-            return ChatAnswer(
-                answer_text="Stored global answer from the authorized source.",
-                cited_post_ids=(sources[0].post_id,),
-            )
-
-    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _AnsweringAskClient())
-    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
-
-    first = client.post("/api/ask", json={"question": "Public evidence"}, headers=headers)
-    assert first.status_code == 200, first.text
-    conversation_id = first.json()["conversation_id"]
-    assert first.json()["cited_posts"] == [{"post_id": seeded_db["public_post_id"], "post_title": "Public post"}]
-
-    listed = client.get("/api/ask/conversations", headers=headers)
-    assert listed.status_code == 200, listed.text
-    assert listed.json()["conversations"][0]["conversation_id"] == conversation_id
-    assert listed.json()["conversations"][0]["turn_count"] == 1
-
-    second = client.post(
-        "/api/ask",
-        json={"question": "Public evidence again", "conversation_id": conversation_id},
-        headers=headers,
-    )
-    assert second.status_code == 200, second.text
-
-    history = client.get(f"/api/ask/conversations/{conversation_id}", headers=headers)
-    assert history.status_code == 200, history.text
-    assert [exchange["question_text"] for exchange in history.json()["exchanges"]] == [
-        "Public evidence",
-        "Public evidence again",
-    ]
-    assert history.json()["exchanges"][0]["cited_posts"] == [
-        {"post_id": seeded_db["public_post_id"], "post_title": "Public post"}
-    ]
-
-    latest_page = client.get(
-        f"/api/ask/conversations/{conversation_id}?limit=1",
-        headers=headers,
-    )
-    assert [exchange["question_text"] for exchange in latest_page.json()["exchanges"]] == [
-        "Public evidence again"
-    ]
-    assert latest_page.json()["older_cursor"] == "2"
-    older_page = client.get(
-        f"/api/ask/conversations/{conversation_id}?limit=1&before_turn=2",
-        headers=headers,
-    )
-    assert [exchange["question_text"] for exchange in older_page.json()["exchanges"]] == [
-        "Public evidence"
-    ]
-    assert older_page.json()["older_cursor"] is None
-
-    with psycopg2.connect(seeded_db["dsn"]) as pagination_conn:
-        with pagination_conn.cursor() as cur:
-            subject = jwt.decode(demo_analyst_token, options={"verify_signature": False})["sub"]
-            cur.execute("select user_account_id from user_account where external_subject_id = %s", (subject,))
-            account_id = cur.fetchone()[0]
-            for index in range(51):
-                cur.execute(
-                    "insert into global_ask_session (global_ask_session_id, user_account_id, updated_at) "
-                    "values (%s, %s, now() - make_interval(secs => %s))",
-                    (str(uuid.uuid4()), account_id, index),
-                )
-
-    first_conversation_page = client.get(
-        "/api/ask/conversations",
-        params={"limit": 2},
-        headers=headers,
-    )
-    assert first_conversation_page.status_code == 200, first_conversation_page.text
-    assert len(first_conversation_page.json()["conversations"]) == 2
-    cursor = first_conversation_page.json()["next_cursor"]
-    assert cursor is not None
-    second_conversation_page = client.get(
-        "/api/ask/conversations",
-        params={
-            "limit": 2,
-            "before_updated_at": cursor["updated_at"],
-            "before_conversation_id": cursor["conversation_id"],
-        },
-        headers=headers,
-    )
-    assert second_conversation_page.status_code == 200, second_conversation_page.text
-    assert len(second_conversation_page.json()["conversations"]) == 2
-    assert {
-        item["conversation_id"] for item in first_conversation_page.json()["conversations"]
-    }.isdisjoint({item["conversation_id"] for item in second_conversation_page.json()["conversations"]})
-
-    missing = client.get(f"/api/ask/conversations/{uuid.uuid4()}", headers=headers)
-    assert missing.status_code == 404
 
 
 def test_keymen_provider_error_does_not_leak_raw_error(
