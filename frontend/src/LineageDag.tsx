@@ -1,9 +1,36 @@
+import { useId } from "react";
 import type { LineageGraph } from "./api";
+import "./LineageDag.css";
 import { t, tf } from "./i18n";
+import { lineageDagText } from "./lineageDagI18n";
 import { layoutLineageDag } from "./lineageLayout";
+
+const NODE_RADIUS = 7;
+const EDGE_CLEARANCE = 4;
+
+interface Point {
+  x: number;
+  y: number;
+}
 
 function truncateLabel(label: string): string {
   return label.length > 34 ? `${label.slice(0, 33)}…` : label;
+}
+
+function eventDate(occurredAt: string): string {
+  return occurredAt.slice(0, 10);
+}
+
+function edgePath(from: Point, to: Point): string {
+  const angle = Math.atan2(to.y - from.y, to.x - from.x);
+  const offsetX = Math.cos(angle) * (NODE_RADIUS + EDGE_CLEARANCE);
+  const offsetY = Math.sin(angle) * (NODE_RADIUS + EDGE_CLEARANCE);
+  const startX = from.x + offsetX;
+  const startY = from.y + offsetY;
+  const endX = to.x - offsetX;
+  const endY = to.y - offsetY;
+  const midX = (startX + endX) / 2;
+  return `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
 }
 
 export function LineageDag({
@@ -15,9 +42,16 @@ export function LineageDag({
   onSelectPost: (postId: string) => void;
   currentPostId?: string;
 }) {
+  const instanceId = useId().replaceAll(":", "");
   const groups = layoutLineageDag(graph);
   if (graph.nodes.length === 0) {
-    return <p className="lineage-empty">{t("No reconstructed lineage yet. Rebuild after seeding posts.")}</p>;
+    return (
+      <p className="lineage-empty">
+        {lineageDagText(
+          "No reconstructed lineage yet. Add eligible source records, then rebuild Event Lineage.",
+        )}
+      </p>
+    );
   }
 
   return (
@@ -28,63 +62,89 @@ export function LineageDag({
           {t("Reconstructed lineage")}. {t("Edges explain reconstructed continuation only. They are not causal or authoritative facts.")}
         </p>
       </div>
-      <div className="lineage-dag-legend" aria-label={t("Lineage legend")}>
-        <span className="lineage-dag-legend-item">
-          <span className="lineage-dag-legend-mark lineage-dag-legend-root" aria-hidden="true" />
-          {t("Root record")}
-        </span>
-        <span className="lineage-dag-legend-item">
-          <span className="lineage-dag-legend-mark lineage-dag-legend-branch" aria-hidden="true" />
-          {t("Branch point")}
-        </span>
-        <span className="lineage-dag-legend-item">
-          <span className="lineage-dag-legend-mark lineage-dag-legend-current" aria-hidden="true" />
-          {t("Current record")}
-        </span>
-        <span className="lineage-dag-legend-item">→ {t("Parent to child")}</span>
-      </div>
-      {groups.map((group) => {
+      <ul className="lineage-dag-legend" aria-label={lineageDagText("Lineage legend")}>
+        <li className="lineage-dag-legend-item">
+          <span
+            className="lineage-dag-legend-node lineage-dag-legend-mark lineage-dag-legend-root"
+            aria-hidden="true"
+          />
+          {lineageDagText("Root record")}
+        </li>
+        <li className="lineage-dag-legend-item">
+          <span
+            className="lineage-dag-legend-node lineage-dag-legend-mark lineage-dag-legend-branch"
+            aria-hidden="true"
+          />
+          {lineageDagText("Branch point")}
+        </li>
+        <li className="lineage-dag-legend-item">
+          <span
+            className="lineage-dag-legend-node lineage-dag-legend-mark lineage-dag-legend-current"
+            aria-hidden="true"
+          />
+          {lineageDagText("Current record")}
+        </li>
+        <li className="lineage-dag-legend-item">
+          <span className="lineage-dag-legend-direction" aria-hidden="true" />
+          {lineageDagText("Parent to child")}
+        </li>
+      </ul>
+      {groups.map((group, groupIndex) => {
         const byId = Object.fromEntries(group.nodes.map((node) => [node.id, node]));
+        const arrowMarkerId = `lineage-dag-arrow-${instanceId}-${groupIndex}`;
+        const captionId = `lineage-dag-caption-${instanceId}-${groupIndex}`;
+        const lineageLabel = tf("{group} lineage", { group: group.heading });
+        const relationLabel = t("Graph relation");
+        const whenLabel = t("When");
+        const evidenceLabel = `${t("Evidence")} (fused_score)`;
         return (
           <figure key={group.group} className="lineage-dag-group">
-            <figcaption>
+            <figcaption id={captionId}>
               {tf("{group} ({records} records, {edges} lineage edges)", {
                 group: group.heading,
                 records: group.nodes.length,
                 edges: group.edges.length,
               })}
             </figcaption>
-            <div className="lineage-dag-viewport">
+            <div
+              className="lineage-dag-scroll lineage-dag-viewport"
+              role="region"
+              aria-labelledby={captionId}
+              tabIndex={0}
+            >
               <svg
+                className="lineage-dag-canvas"
                 viewBox={`0 0 ${group.width} ${group.height}`}
-                width="100%"
+                width={group.width}
                 height={Math.max(120, group.height)}
-                role="img"
-                aria-label={tf("{group} lineage", { group: group.heading })}
+                role="group"
+                aria-label={lineageLabel}
               >
                 <defs>
-                  <marker id="lineage-dag-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-                    <path d="M 0 0 L 8 4 L 0 8 z" fill="currentColor" />
+                  <marker
+                    id={arrowMarkerId}
+                    markerWidth="8"
+                    markerHeight="8"
+                    refX="7"
+                    refY="4"
+                    orient="auto"
+                    markerUnits="strokeWidth"
+                  >
+                    <path className="lineage-dag-arrow" d="M 0 0 L 8 4 L 0 8 z" />
                   </marker>
                 </defs>
                 {group.edges.map((edge) => {
                   const from = byId[edge.source];
                   const to = byId[edge.target];
                   if (!from || !to) return null;
-                  const midX = (from.x + to.x) / 2;
                   return (
                     <path
                       key={`${edge.source}-${edge.target}`}
                       className="lineage-dag-edge"
-                      d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
+                      markerEnd={`url(#${arrowMarkerId})`}
+                      d={edgePath(from, to)}
                     >
-                      <title>
-                        {tf("{from} follows {to} ({score})", {
-                          from: from.label,
-                          to: to.label,
-                          score: edge.fused_score.toFixed(2),
-                        })}
-                      </title>
+                      <title>{`${from.label} → ${to.label} (${edge.fused_score.toFixed(2)})`}</title>
                     </path>
                   );
                 })}
@@ -108,14 +168,17 @@ export function LineageDag({
                         }
                       }}
                     >
-                      <circle r={7} />
-                      <text x={12} y={4}>
+                      <circle r={NODE_RADIUS} />
+                      <text x={12} y={1}>
                         {truncateLabel(node.label)}
+                      </text>
+                      <text className="lineage-dag-node-date" x={12} y={15}>
+                        {eventDate(node.occurred_at)}
                       </text>
                       <title>
                         {tf("{label} — {date}", {
                           label: node.label,
-                          date: node.occurred_at.slice(0, 10),
+                          date: eventDate(node.occurred_at),
                         })}
                       </title>
                     </g>
@@ -123,41 +186,47 @@ export function LineageDag({
                 })}
               </svg>
             </div>
+            {group.edges.length > 0 ? (
+              <>
+                <p className="lineage-dag-boundary lineage-dag-inference-note" role="note">
+                  {lineageDagText(
+                    "Reconstructed edges suggest continuation; they do not prove causality or authoritative fact.",
+                  )}
+                </p>
+                <details className="lineage-dag-evidence" open>
+                  <summary>{t("Evidence trail")}</summary>
+                  <div className="lineage-dag-evidence-scroll">
+                    <table className="lineage-dag-evidence-table">
+                      <caption className="visually-hidden">{`${lineageLabel} — ${t("Evidence trail")}`}</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">{relationLabel}</th>
+                          <th scope="col">{whenLabel}</th>
+                          <th scope="col">{evidenceLabel}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {group.edges.map((edge) => {
+                          const from = byId[edge.source];
+                          const to = byId[edge.target];
+                          if (!from || !to) return null;
+                          return (
+                            <tr key={`${edge.source}-${edge.target}-evidence`}>
+                              <td data-label={relationLabel}>{`${from.label} → ${to.label}`}</td>
+                              <td data-label={whenLabel}>{`${eventDate(from.occurred_at)} → ${eventDate(to.occurred_at)}`}</td>
+                              <td data-label={evidenceLabel}>{edge.fused_score.toFixed(2)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              </>
+            ) : null}
           </figure>
         );
       })}
-      <aside className="lineage-dag-inference-note">
-        <strong>{t("Inference boundary")}</strong>
-        {t("Edges explain reconstructed continuation only. They are not causal or authoritative facts.")}
-      </aside>
-      <section className="lineage-dag-evidence" aria-label={t("Evidence trail")}>
-        <h4>{t("Evidence trail")}</h4>
-        <table aria-label={t("Evidence trail")}>
-          <thead>
-            <tr>
-              <th>{t("Graph relation")}</th>
-              <th>{t("When")}</th>
-              <th>{t("Evidence (fused_score)")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {groups.flatMap((group) =>
-              group.edges.map((edge) => {
-                const from = group.nodes.find((node) => node.id === edge.source);
-                const to = group.nodes.find((node) => node.id === edge.target);
-                if (!from || !to) return null;
-                return (
-                  <tr key={`${group.group}:${edge.source}:${edge.target}`}>
-                    <td>{from.label} → {to.label}</td>
-                    <td>{to.occurred_at.slice(0, 10)}</td>
-                    <td>{edge.fused_score.toFixed(2)}</td>
-                  </tr>
-                );
-              }),
-            )}
-          </tbody>
-        </table>
-      </section>
     </div>
   );
 }

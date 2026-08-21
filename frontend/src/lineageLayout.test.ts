@@ -111,4 +111,19 @@ describe("layoutLineageDag", () => {
     expect(groupHeading("A-100")).toBe("A-100");
     expect(groupHeading("cccccccc-cccc-cccc-cccc-cccccccccccc")).toBe("Ungrouped");
   });
+
+  it("lays out a malformed cyclic component attached to a root without recursing forever", () => {
+    const cyclicGraph = {
+      nodes: a100Graph.nodes.slice(0, 3),
+      edges: [
+        { source: "rec-001", target: "rec-002", fused_score: 0.8 },
+        { source: "rec-002", target: "rec-003", fused_score: 0.9 },
+        { source: "rec-003", target: "rec-002", fused_score: 0.7 },
+      ],
+    };
+
+    const [group] = layoutLineageDag(cyclicGraph);
+    expect(group.nodes).toHaveLength(3);
+    expect(group.nodes.every((node) => Number.isFinite(node.x) && Number.isFinite(node.y))).toBe(true);
+  });
 });
