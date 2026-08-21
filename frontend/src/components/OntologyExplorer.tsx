@@ -7,6 +7,7 @@ import {
   type OntologyNeighborhoodPayload,
 } from "../api";
 import { t, tf } from "../i18n";
+import { ontologyExplorerText } from "../ontologyExplorerI18n";
 import { filterNeighborhood, layoutOntologyNeighborhood, neighborhoodCsv } from "../ontologyLayout";
 
 export type OntologyExplorerStatus =
@@ -66,22 +67,26 @@ export function OntologyExplorer({
   onOpenEvidence,
 }: OntologyExplorerProps) {
   const [loaded, setLoaded] = useState<OntologyNeighborhoodPayload | null>(provided ?? null);
-  const [status, setStatus] = useState<OntologyExplorerStatus>(providedStatus ?? (provided ? statusFromPayload(provided) : "loading"));
+  const [status, setStatus] = useState<OntologyExplorerStatus>(
+    providedStatus ?? (provided ? statusFromPayload(provided, knowledgeCutoff) : "loading"),
+  );
   const [query, setQuery] = useState("");
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [focusType, setFocusType] = useState(focusNodeType);
   const [focusId, setFocusId] = useState(focusNodeId);
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     setFocusType(focusNodeType);
     setFocusId(focusNodeId);
+    setCursor(undefined);
   }, [focusNodeType, focusNodeId]);
 
   useEffect(() => {
     if (provided) {
       setLoaded(provided);
-      setStatus(providedStatus ?? statusFromPayload(provided));
+      setStatus(providedStatus ?? statusFromPayload(provided, knowledgeCutoff));
       return;
     }
     if (!accessToken) {
@@ -94,6 +99,7 @@ export function OntologyExplorer({
       focusNodeType: focusType,
       focusNodeId: focusId,
       knowledgeCutoff,
+      cursor,
     })
       .then((payload) => {
         if (cancelled) return;
@@ -112,7 +118,7 @@ export function OntologyExplorer({
     return () => {
       cancelled = true;
     };
-  }, [accessToken, focusType, focusId, knowledgeCutoff, provided, providedStatus]);
+  }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, provided, providedStatus]);
 
   const visible = useMemo(() => filterNeighborhood(loaded, query), [loaded, query]);
   const layout = useMemo(() => (visible ? layoutOntologyNeighborhood(visible) : null), [visible]);
@@ -122,6 +128,15 @@ export function OntologyExplorer({
   function resetFocus() {
     setFocusType(focusNodeType);
     setFocusId(focusNodeId);
+    setCursor(undefined);
+    setSelectedNodeKey(null);
+    setSelectedEdgeId(null);
+    setQuery("");
+  }
+
+  function loadNextPage() {
+    if (!loaded?.next_cursor) return;
+    setCursor(loaded.next_cursor);
     setSelectedNodeKey(null);
     setSelectedEdgeId(null);
     setQuery("");
@@ -176,6 +191,13 @@ export function OntologyExplorer({
         />
       </label>
       {statusMessage(status)}
+      {loaded?.next_cursor && accessToken && !provided && status !== "loading" ? (
+        <div className="ontology-explorer-actions">
+          <button type="button" onClick={loadNextPage}>
+            {ontologyExplorerText("Load next relation page")}
+          </button>
+        </div>
+      ) : null}
       <OntologyLegend />
       {layout && visible && status !== "denied" && status !== "error" && status !== "loading" ? (
         <>
@@ -210,6 +232,7 @@ export function OntologyExplorer({
           onFocus={() => {
             setFocusType(selectedNode.node_type_code);
             setFocusId(selectedNode.node_id);
+            setCursor(undefined);
           }}
           onOpenEvidence={
             selectedNode.node_type_code === "node_post"
@@ -247,7 +270,9 @@ function statusMessage(status: OntologyExplorerStatus) {
     ready: "",
     loading: t("Loading ontology neighborhood..."),
     empty: t("No visible ontology relations for this focus. Open a Keyman or affiliated organization next."),
-    truncated: t("Neighborhood truncated. Page visible relations, then inspect one edge."),
+    truncated: ontologyExplorerText(
+      "Neighborhood truncated. Load the next relation page or inspect one edge.",
+    ),
     denied: t("Access denied for this ontology neighborhood. Open a visible post next."),
     stale: t("This neighborhood is bound to a knowledge cutoff. Compare with live evidence next."),
     rejected: t("Rejected proposal. Open the evidence and do not treat it as authoritative."),
@@ -519,7 +544,11 @@ function OntologyEdgeDrawer({
           ))}
         </ul>
       ) : (
-        <p>{t("Hidden evidence was removed. No omitted count is shown.")}</p>
+        <p>
+          {ontologyExplorerText(
+            "No direct evidence post is attached. Review the provenance reference above.",
+          )}
+        </p>
       )}
       <button type="button" onClick={onClose}>
         {t("Close ontology details")}
