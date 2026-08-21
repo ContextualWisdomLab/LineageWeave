@@ -196,6 +196,7 @@ from backend.app.post_summary_ingestion import (
 from backend.app.post_eligibility import (
     SOURCE_POST_ELIGIBILITY_SQL,
     SOURCE_POST_READER_ELIGIBILITY_SQL,
+    SOURCE_POST_VISIBILITY_SQL,
     WRITING_SOURCE_DETAIL_STATE_CODE,
     normalize_source_detail_state_code,
     source_post_state_visibility_sql,
