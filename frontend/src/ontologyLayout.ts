@@ -137,8 +137,9 @@ export function neighborhoodCsv(payload: OntologyNeighborhoodPayload): string {
 }
 
 function csvCell(value: string): string {
-  if (/[",\n]/.test(value)) {
-    return `"${value.replaceAll('"', '""')}"`;
+  const safeValue = /^[=+\-@]/.test(value) ? `'${value}` : value;
+  if (/[",\n]/.test(safeValue)) {
+    return `"${safeValue.replaceAll('"', '""')}"`;
   }
-  return value;
+  return safeValue;
 }

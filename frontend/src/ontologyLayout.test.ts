@@ -128,5 +128,10 @@ describe("ontologyLayout", () => {
       ],
     });
     expect(quoted).toContain('"Demo, ""quoted"" post"');
+    const formulaSafe = neighborhoodCsv({
+      ...payload(),
+      exact_value_rows: [{ ...payload().exact_value_rows[0], source_label: "=1+1" }],
+    });
+    expect(formulaSafe).toContain("'=1+1");
   });
 });
