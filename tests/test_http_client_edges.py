@@ -5,10 +5,15 @@ import pytest
 import lineageweave.http_client as http_client
 
 
-def test_json_helpers_reject_non_json_and_wrong_shapes(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(http_client, "_request", lambda *_args, **_kwargs: (200, b"not-json"))
-    with pytest.raises(http_client.HttpClientError, match="non-JSON"):
+@pytest.mark.parametrize("raw", [b"not-json", b"\xff"])
+def test_json_helpers_reject_non_json_and_wrong_shapes(
+    monkeypatch: pytest.MonkeyPatch, raw: bytes
+) -> None:
+    monkeypatch.setattr(http_client, "_request", lambda *_args, **_kwargs: (200, raw))
+    with pytest.raises(http_client.HttpClientError, match="non-JSON") as error:
         http_client.get_json("https://gateway.example/health", timeout=1)
+    assert error.value.__cause__ is None
+    assert error.value.__context__ is None
 
     monkeypatch.setattr(http_client, "_request", lambda *_args, **_kwargs: (200, b"[]"))
     with pytest.raises(http_client.HttpClientError, match="JSON object"):

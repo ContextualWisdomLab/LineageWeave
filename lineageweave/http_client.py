@@ -79,8 +79,11 @@ def _decode_json(raw: bytes, hostname: str) -> object:
     """Implement the _decode_json operation for this channel."""
     try:
         return json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise HttpClientError(f"non-JSON response from {hostname}") from exc
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        # Keep the provider parser exception out of both the public error and
+        # its implicit context. The provider response body is not trusted data.
+        pass
+    raise HttpClientError(f"non-JSON response from {hostname}")
 
 
 def _decode_json_object(raw: bytes, hostname: str) -> dict:
