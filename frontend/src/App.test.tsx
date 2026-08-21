@@ -24,6 +24,10 @@ beforeEach(() => {
     signinRedirect,
     signoutRedirect,
   };
+  // Post navigation now pushes real history entries (browser back should
+  // close the popup); reset between tests so one test's opened post doesn't
+  // leak into the next test's initial render via a stale `?post=` query.
+  window.history.replaceState({}, "", "/");
 });
 
 afterEach(() => {
@@ -3617,5 +3621,19 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Board" }));
     const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
     expect(searchInput).not.toHaveFocus();
+  });
+
+  it("closes a post popup when browser history moves back", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    expect(await screen.findByRole("heading", { name: "Public post" })).toBeInTheDocument();
+    expect(new URL(window.location.href).searchParams.get("post")).toBe("post-1");
+
+    window.history.replaceState({}, "", "/");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Public post" })).not.toBeInTheDocument());
   });
 });
