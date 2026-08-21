@@ -624,6 +624,7 @@ push, or synthetic runtime success is acceptable.
 | #323 TEPP/SearXNG boundary | `061e62130e3d6fc3e6bb3a5c0d941a0c7aac85cd` | Focused TEPP/relation/start tests `50 passed`; compileall and diff check passed | No approval; required Checks queued |
 | #325 gap baseline | `9dc8c7d143841a1e93459d0a5d35d6332184be0c` | Documentation diff check passed | No approval; required Checks queued |
 | #340 Naruon provider contract | `1e792a761f96e2184394a15f112cc947c7661c41` | Contract tests `11 passed`; module coverage `100%`; compileall and diff check passed | No approval; required Checks queued |
+| #344 metric script semantics | `922a38405e3f89779a0a70974a6ad1f8f2bb4793` | Backend focused `74 passed`; frontend focused `29 passed`, lint, and Vite build passed | Stacked on #303; no approval; required Checks queued |
 
 These four rows are exact-head observations from the current review loop. They
 do not establish that any behavior is present on protected `main`; re-fetch all
