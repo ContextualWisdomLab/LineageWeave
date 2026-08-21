@@ -182,49 +182,6 @@ Observed at `2026-08-21T16:01:40Z` in a fresh local Compose browser session:
   not complete within 30 seconds, so provider/model readiness remains open even
   though the Compose services are running.
 
-Observed at `2026-08-21T17:52:18Z` in an authenticated Playwright browser run
-against the local runtime, using the eleven supplied defect routes and
-aggregate-only assertions:
-
-- OIDC login completed with the local development account. Each of the eleven
-  post routes opened a detail dialog, its close control was clicked, and the
-  dialog closed again; no route produced horizontal overflow at 1280x1024.
-- Event Lineage and the translated Keyman section were present in all eleven
-  dialogs. A footnote evidence marker was visible in one route and a rendered
-  table in one route. Five Keyman list items appeared across two routes; the
-  remaining nine showed the explicit no-Keyman state. This distinguishes a
-  real empty extraction signal from a missing panel, while Keyman/entity
-  quality and coverage remain open product gaps.
-- The run intentionally did not persist or print post titles, people,
-  organizations, source identifiers, credentials, tokens, or body text.
-
-These observations are runtime evidence, not a claim that the corresponding
-PRs are merged. The image-processing state and protected-corpus parsing cases
-remain open gaps.
-
-Observed at `2026-08-21T16:37:48Z` after one bounded operator retry through
-the real Compose backend, Valkey, and orchestrator boundary:
-
-- One terminal image-ingestion job completed with `succeeded` after roughly
-  eight minutes. Its content endpoint reported `ready` with nine semantic
-  units and one image; aggregate described images increased from 24 to 25.
-- The same post's summary request was still pending after a 15-second browser
-  observation window, and PostgreSQL still contained zero summaries at current
-  contract version 13. This proves one bounded multimodal persistence path,
-  not end-to-end Korean summary readiness or corpus completion.
-- The remaining aggregate image state was 421 `failed` and 12,377
-  `unavailable` images. Do not bulk retry until provider throughput, bounded
-  retry policy, and buyer-visible failure/retry UX are separately accepted.
-- PR #258's exact head `6621eb116a4e92eb33eeae989c70fbc602450c51` now
-  restarts a whole lineage group when an optional LLM adjudication channel
-  fails mid-group, preventing mixed LLM and deterministic edge scores. Local
-  verification at that head passed 976 backend tests (17 environment skips),
-  221 frontend tests, lint, and production build; hosted Checks remain queued
-  and no independent approval or merge commit is present.
-- PR #258 then corrected the Unreleased changelog's Buyer-terminology ADR
-  reference from 0119 to the governing ADR 0131; the focused reconstruction
-  and adjudication tests still passed at the pushed documentation head.
-
 Observed at `2026-08-21T16:16:02Z` in a fresh local Compose browser session
 against the authenticated React surface:
 
@@ -249,6 +206,54 @@ against the authenticated React surface:
   head was reconciled; the earlier 199-test full-suite result preceded that
   concurrent commit and is not claimed as final-head evidence. Hosted Checks
   and independent approval remain open.
+
+Observed at `2026-08-21T16:37:48Z` after one bounded operator retry through
+the real Compose backend, Valkey, and orchestrator boundary:
+
+- One terminal image-ingestion job completed with `succeeded` after roughly
+  eight minutes. Its content endpoint reported `ready` with nine semantic
+  units and one image; aggregate described images increased from 24 to 25.
+- The same post's summary request was still pending after a 15-second browser
+  observation window, and PostgreSQL still contained zero summaries at current
+  contract version 13. This proves one bounded multimodal persistence path,
+  not end-to-end Korean summary readiness or corpus completion.
+- The remaining aggregate image state was 421 `failed` and 12,377
+  `unavailable` images. Do not bulk retry until provider throughput, bounded
+  retry policy, and buyer-visible failure/retry UX are separately accepted.
+- PR #258's exact head `6621eb116a4e92eb33eeae989c70fbc602450c51` now
+  restarts a whole lineage group when an optional LLM adjudication channel
+  fails mid-group, preventing mixed LLM and deterministic edge scores. Local
+  verification at that head passed 976 backend tests (17 environment skips),
+  221 frontend tests, lint, and production build; hosted Checks remain queued
+  and no independent approval or merge commit is present.
+- PR #258 then corrected the Unreleased changelog's Buyer-terminology ADR
+  reference from 0119 to the governing ADR 0131; the focused reconstruction
+  and adjudication tests still passed at the pushed documentation head.
+
+Observed at `2026-08-21T17:52:18Z` in an authenticated Playwright browser run
+against the local runtime, using the eleven supplied defect routes and
+aggregate-only assertions:
+
+- OIDC login completed with the local development account. Each of the eleven
+  post routes opened a detail dialog, its close control was clicked, and the
+  dialog closed again; no route produced horizontal overflow at 1280x1024.
+- Event Lineage and the translated Keyman section were present in all eleven
+  dialogs. A footnote evidence marker was visible in one route and a rendered
+  table in one route. Five Keyman list items appeared across two routes; the
+  remaining nine showed the explicit no-Keyman state. This distinguishes a
+  real empty extraction signal from a missing panel, while Keyman/entity
+  quality and coverage remain open product gaps.
+- The run intentionally did not persist or print post titles, people,
+  organizations, source identifiers, credentials, tokens, or body text.
+
+These observations are runtime evidence, not a claim that the corresponding
+PRs are merged. The image-processing state and protected-corpus parsing cases
+remain open gaps.
+
+### Pull-request verification checkpoints
+
+The dependency-stack order below is intentional; its UTC timestamps, rather
+than entry position, define the observation sequence.
 
 Observed at `2026-08-21T17:10:21Z` on PR #387's exact head
 `4faf9a31371195c5ec63fca42a5afbb93a95369b`:
