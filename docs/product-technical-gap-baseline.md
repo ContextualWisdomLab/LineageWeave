@@ -484,6 +484,16 @@ session at the three guide breakpoints:
   observed responsive shell behavior only; protected-corpus content parity
   remains a separate partial gap.
 
+Observed at `2026-08-21T21:06:09Z` after rebuilding the frontend from the
+follow-up worktree and restoring the existing Compose runtime:
+
+- Frontend and backend liveness returned HTTP 200. The live OIDC browser run
+  again loaded 50 authorized entries, opened and closed one popup, and found
+  Event Lineage, Knowledge Graph, and post-action DOM regions with zero
+  frontend error elements.
+- Response status counts remained `200×60`, `302×1`, and `503×1`; the latter
+  is still the bounded generated-evidence availability gap documented above.
+
 Observed at `2026-08-21T16:01:40Z` in a fresh local Compose browser session:
 
 - OIDC login, an authorized post click, popup close, and the phone-width menu
