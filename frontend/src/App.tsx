@@ -1,3 +1,5 @@
+import { AdminPanel } from "./components/AdminPanel";
+
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
@@ -79,17 +81,18 @@ import {
   type RelatedNode,
   type RelatedNodeType,
   type VocEvidence,
+  fetchTenantConfig,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
-import { CustomerMasterTree, CustomerRelatedPostCard } from "./components/CustomerMasterTree";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
+import { CustomerMasterTree, CustomerRelatedPostCard } from "./components/CustomerMasterTree";
 import { subgraphForPost } from "./lineageLayout";
 import {
   isSupportedLocale,
@@ -105,7 +108,6 @@ import {
   analysisRunTargetClock,
   type AnalysisRunNavigationContext,
 } from "./analysisRunNavigation";
-import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import "./App.css";
 
 const GLOBAL_ASK_SESSION_STORAGE_KEY = "lineageweave.globalAskSessionId";
@@ -1709,6 +1711,7 @@ function PostDetailPopup({
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<PostAiSummary | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [summaryRetry, setSummaryRetry] = useState(0);
   const [fiveW1H, setFiveW1H] = useState<PostFiveW1H | null>(null);
   const [keymen, setKeymen] = useState<Keyman[] | null>(null);
   const [sourceAuthorContext, setSourceAuthorContext] = useState<SourceAuthorContext | null>(null);
@@ -1720,6 +1723,7 @@ function PostDetailPopup({
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
   const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
+  const contentReloadRef = useRef<() => void>(() => undefined);
 
   const detailRequestGeneration = useRef(0);
 
@@ -1819,6 +1823,7 @@ function PostDetailPopup({
           setImageContent([]);
           setStructureUnits([]);
         });
+    contentReloadRef.current = reloadContent;
     void reloadContent();
     fetchPostBookmark(accessToken, postId)
       .then((r) => {
@@ -1896,8 +1901,32 @@ function PostDetailPopup({
       disposed = true;
       if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
       if (isCurrent()) detailRequestGeneration.current = generation + 1;
+      if (contentReloadRef.current === reloadContent) {
+        contentReloadRef.current = () => undefined;
+      }
     };
   }, [postId, accessToken, liveBodyWarning, knowledgeCutoff]);
+
+  useEffect(() => {
+    let disposed = false;
+    setSummary(null);
+    setSummaryError(null);
+    fetchPostSummary(accessToken, postId)
+      .then((value) => {
+        if (!disposed) {
+          setSummary(value);
+          contentReloadRef.current();
+        }
+      })
+      .catch((err) => {
+        if (disposed) return;
+        setSummary(null);
+        setSummaryError(summaryFetchError(err));
+      });
+    return () => {
+      disposed = true;
+    };
+  }, [postId, accessToken, summaryRetry]);
 
   const permanentLink = (() => {
     const url = new URL(window.location.href);
@@ -2191,13 +2220,24 @@ function PostDetailPopup({
               <h3>{t("Summary")}</h3>
               {summary ? (
                 <>
+                  {summary.summary_status === "stale" ? (
+                    <p className="post-meta" role="status">
+                      {t("Last saved summary shown. Retry semantic refresh.")} {" "}
+                      <button type="button" onClick={() => setSummaryRetry((value) => value + 1)}>
+                        {t("Retry summary refresh")}
+                      </button>
+                    </p>
+                  ) : null}
                   <p>{summary.korean_summary}</p>
-                  {summary.key_events.length > 0 && (
+                  {(summary.key_event_details?.length ?? summary.key_events.length) > 0 && (
                     <>
                       <h4>{t("Key events")}</h4>
                       <ul>
-                        {summary.key_events.map((event, i) => (
-                          <li key={i}>{event}</li>
+                        {(summary.key_event_details ?? summary.key_events.map((event) => ({ event_text: event, project_name: null }))).map((event, i) => (
+                          <li key={i}>
+                            {event.project_name ? <strong>{event.project_name}: </strong> : null}
+                            {event.event_text}
+                          </li>
                         ))}
                       </ul>
                     </>
@@ -2306,7 +2346,10 @@ function PostDetailPopup({
                       <ul className="summary-action-list">
                         {summary.major_event_actions.map((action, i) => (
                           <li key={i}>
-                            <strong>{action.action_text}</strong>
+                            <strong>
+                              {action.project_name ? `${action.project_name}: ` : ""}
+                              {action.action_text}
+                            </strong>
                             <div>
                               {t("Requester")}: {action.requester_actor_name ?? t("Not stated in source")}
                             </div>
@@ -4415,6 +4458,11 @@ function CustomerMasterPanel({
     }
   }
 
+  const loadRelated = useCallback(
+    async (entityId: string) => (await fetchRelatedEntity(accessToken, entityId)).related,
+    [accessToken],
+  );
+
   return (
     <section className="buyer-destination" aria-labelledby="customer-master-heading">
       <p className="section-eyebrow">{t("Authorized customer scope")}</p>
@@ -4433,9 +4481,7 @@ function CustomerMasterPanel({
       {master && master.corporate_entities.length > 0 ? (
         <CustomerMasterTree
           entities={master.corporate_entities}
-          loadRelated={(entityId) =>
-            fetchRelatedEntity(accessToken, entityId).then((response) => response.related)
-          }
+          loadRelated={loadRelated}
           onOpenPost={onOpenPost}
         />
       ) : null}
@@ -4752,6 +4798,7 @@ export function AskAgentPanel({
 
 export default function App({ showLabPanels = false }: { showLabPanels?: boolean } = {}) {
   useLocale();
+  const [brandName, setBrandName] = useState("LineageWeave");
   const auth = useAuth();
   const [destination, setDestination] = useState<BuyerDestination>("board");
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
@@ -4767,6 +4814,14 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   // post_admin check (`canRebuild`), not on this caller-supplied prop.
   const testOnlyLabPanels = import.meta.env.MODE === "test" && showLabPanels;
   const accessToken = auth.user?.access_token;
+
+  useEffect(() => {
+    if (accessToken) {
+      fetchTenantConfig(accessToken).then((config) => {
+        if (config.brandName) setBrandName(config.brandName);
+      }).catch(console.error);
+    }
+  }, [accessToken]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -4792,24 +4847,40 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   }
 
   if (auth.error) {
-    return <p className="error">Authentication error: {auth.error.message}</p>;
+    return <p className="error">{t(auth.error.message)}</p>;
   }
 
   if (!auth.isAuthenticated) {
     return (
-      <main className="centered">
-        <h1>LineageWeave</h1>
-        <LanguageSwitcher />
-          <button
-            onClick={() => {
-              const returnUrl = returnUrlFromLocation();
-              rememberOidcReturnUrl(returnUrl);
-              void auth.signinRedirect({ state: { returnUrl } });
-            }}
-          >
-            {t("Log in")}
-          </button>
+      <div className="app-shell">
+        <main className="login-screen">
+          <div className="login-card">
+            <div className="login-header">
+              <h1>{brandName}</h1>
+              <p className="login-subtitle">Marketing & Operational Lineage Intelligence</p>
+            </div>
+            <div className="login-controls">
+              <button className="btn-primary" onClick={() => {
+                const returnUrl = window.location.pathname + window.location.search;
+                void auth.signinRedirect({ state: { returnUrl } });
+              }}>
+                {t("Log in")}
+              </button>
+            </div>
+            <div className="login-help">
+              <small>Enterprise SSO Authentication</small>
+            </div>
+          </div>
       </main>
+        <footer className="app-footer" role="contentinfo">
+          <div className="app-footer-title">
+            <span className="app-footer-logo">{brandName}</span>
+          </div>
+          <div className="app-footer-copyright">
+            <p>Copyright &copy; {new Date().getFullYear()} by {brandName}. All rights reserved.</p>
+          </div>
+        </footer>
+      </div>
     );
   }
 
@@ -4818,12 +4889,15 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   }
 
   return (
-    <main>
+    <div className="app-shell">
       <header className="app-header">
-        <h1>LineageWeave</h1>
-        <div>
-          <span>{auth.user?.profile.preferred_username}</span>
+        <div className="app-header-logo">
+          <h1 className="app-header-title">{brandName}</h1>
+        </div>
+        <div className="app-header-top-menu">
+          <span className="app-user-profile">{auth.user?.profile.preferred_username}</span>
           <button
+            className="btn-secondary"
             onClick={() => {
               window.sessionStorage.removeItem(GLOBAL_ASK_SESSION_STORAGE_KEY);
               void auth.signoutRedirect();
@@ -4838,6 +4912,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         onChange={setDestination}
         tools={<LanguageSwitcher accessToken={accessToken} />}
       />
+      <main>
       {destination === "board" ? (
         <PostList
           accessToken={accessToken}
@@ -4892,6 +4967,22 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           }}
         />
       ) : null}
-    </main>
+      {destination === "admin" ? (
+        <AdminPanel
+          currentBrandName={brandName}
+          onBrandNameChange={setBrandName}
+          accessToken={accessToken}
+        />
+      ) : null}
+      </main>
+      <footer className="app-footer" role="contentinfo">
+        <div className="app-footer-title">
+          <span className="app-footer-logo">{brandName}</span>
+        </div>
+        <div className="app-footer-copyright">
+          <p>Copyright &copy; {new Date().getFullYear()} by {brandName}. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
   );
 }
