@@ -6,7 +6,10 @@ from types import SimpleNamespace
 import pytest
 
 import backend.app.organization_name_resolution_ingestion as ingestion
-from lineageweave.relation_verification import STATUS_CORROBORATED, STATUS_UNCORROBORATED
+from lineageweave.relation_verification import (
+    STATUS_CORROBORATED,
+    STATUS_UNCORROBORATED,
+)
 
 
 class _Connection:
