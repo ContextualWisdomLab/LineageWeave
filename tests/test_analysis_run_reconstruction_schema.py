@@ -50,6 +50,10 @@ def test_reconstruction_migration_is_normalized_and_wired() -> None:
     assert "0023_analysis_run_outbox.sql" in dockerfile
     assert "0024_source_post_revision.sql" in dockerfile
     assert "0025_role_person_catalog_identity.sql" in dockerfile
+    assert "0026_post_content_artifacts.sql" in dockerfile
+    assert "0027_analysis_run_tepp_result.sql" in dockerfile
+    assert "0028_internal_relation_evidence.sql" in dockerfile
+    assert "0104_analysis_run_status_write_clock.sql" in dockerfile
     assert "analysis_run_reconstruction_not_empty" in rollback
     assert "reject_analysis_run_reconstruction_update" in migration
     assert "reject_analysis_run_lineage_edge_update" in migration

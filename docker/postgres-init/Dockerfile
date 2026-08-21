@@ -48,6 +48,8 @@ COPY migrations/0038_source_named_hints.sql /docker-entrypoint-initdb.d/40-sourc
 COPY migrations/0039_source_org_named_hints.sql /docker-entrypoint-initdb.d/41-source-org-named-hints.sql
 COPY migrations/0040_post_summary_contract.sql /docker-entrypoint-initdb.d/42-post-summary-contract.sql
 
+COPY migrations/0104_analysis_run_status_write_clock.sql /docker-entrypoint-initdb.d/43-analysis-run-status-write-clock.sql
+
 COPY migrations/ /opt/lineageweave/migrations/
 COPY docker/postgres-init/migrate.sh /usr/local/bin/lineageweave-migrate
 USER root

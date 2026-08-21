@@ -6,6 +6,7 @@ import hashlib
 import os
 import re
 import uuid
+from datetime import timedelta
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
@@ -18,6 +19,10 @@ _ROOT = Path(__file__).resolve().parents[1]
 _INITIAL_MIGRATION = _ROOT / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = _ROOT / "migrations" / "0018_analysis_run_registry.sql"
 _REGISTRY_ROLLBACK = _ROOT / "migrations" / "rollback" / "0018_analysis_run_registry.sql"
+_WRITE_CLOCK_MIGRATION = _ROOT / "migrations" / "0104_analysis_run_status_write_clock.sql"
+_WRITE_CLOCK_ROLLBACK = (
+    _ROOT / "migrations" / "rollback" / "0104_analysis_run_status_write_clock.sql"
+)
 _RETENTION_MIGRATION = _ROOT / "migrations" / "0020_analysis_run_retention_purge.sql"
 _RETENTION_ROLLBACK = (
     _ROOT / "migrations" / "rollback" / "0020_analysis_run_retention_purge.sql"
@@ -104,6 +109,8 @@ def registry_db():
                 cursor.execute(_INITIAL_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_REGISTRY_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_RETENTION_MIGRATION.read_text(encoding="utf-8"))
+                # Exercise the additive upgrade used by existing volumes.
+                cursor.execute(_WRITE_CLOCK_MIGRATION.read_text(encoding="utf-8"))
             yield connection
         finally:
             connection.close()
@@ -264,7 +271,7 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     rollback = _REGISTRY_ROLLBACK.read_text(encoding="utf-8")
     dockerfile = _POSTGRES_IMAGE.read_text(encoding="utf-8")
     created_tables = set(
-        re.findall(r"create table if not exists\s+([a-z0-9_]+)", migration, re.I)
+        re.findall(r"create table if not exists\s+([a-z0-9_]+)", migration, re.IGNORECASE)
     )
     assert _REQUIRED_TABLES <= created_tables
     assert "analysis_run_records" not in created_tables
@@ -281,6 +288,11 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert "0023_analysis_run_outbox.sql" in dockerfile
     assert "0024_source_post_revision.sql" in dockerfile
     assert "0025_role_person_catalog_identity.sql" in dockerfile
+    assert "0026_post_content_artifacts.sql" in dockerfile
+    assert "0027_analysis_run_tepp_result.sql" in dockerfile
+    assert "0028_internal_relation_evidence.sql" in dockerfile
+    assert "0030_report_project_grouping.sql" in dockerfile
+    assert "0104_analysis_run_status_write_clock.sql" in dockerfile
     seed = (_ROOT / "scripts" / "seed_demo_data.py").read_text(encoding="utf-8")
     assert seed.index("0019_role_catalog_identity.sql") < seed.index(
         "0020_analysis_run_retention_purge.sql"
@@ -299,6 +311,9 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     )
     assert seed.index("0024_source_post_revision.sql") < seed.index(
         "0025_role_person_catalog_identity.sql"
+    )
+    assert seed.index("0025_role_person_catalog_identity.sql") < seed.index(
+        "0104_analysis_run_status_write_clock.sql"
     )
     assert "analysis_run_registry_not_empty" in rollback
     retention = _RETENTION_MIGRATION.read_text(encoding="utf-8")
@@ -322,7 +337,7 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
         r"|create or replace function\s+([a-z0-9_]+)"
         r"|create role\s+([a-z0-9_]+)",
         retention,
-        re.I,
+        re.IGNORECASE,
     ):
         name = object_name[0] or object_name[1] or object_name[2]
         assert len(name.split("_")) >= 2, name
@@ -341,6 +356,10 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert "analysis_run_scope_required" in migration
     assert "enforce_analysis_source_count_freeze" in migration
     assert "enforce_analysis_run_status_transition" in migration
+    assert "greatest(database_now, new.occurred_at)" in migration
+    assert "analysis_run_status_time_too_far_in_future" in migration
+    assert "new.recorded_at := clock_timestamp();" not in migration
+    assert "new.occurred_at :=" not in migration
     assert "analysis_run_current_status" in migration
 
     object_patterns = (
@@ -351,7 +370,7 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
         r"create or replace view\s+([a-z0-9_]+)",
     )
     for pattern in object_patterns:
-        for object_name in re.findall(pattern, migration, re.I):
+        for object_name in re.findall(pattern, migration, re.IGNORECASE):
             assert len(object_name.split("_")) >= 2, object_name
 
 
@@ -753,6 +772,129 @@ def test_status_requires_scope_and_cannot_predate_request(registry_db) -> None:
         )
         recorded_at = cursor.fetchone()[0]
     assert recorded_at.year < 2099
+
+
+def test_status_write_clock_migration_is_wired() -> None:
+    """0104 replaces the 0018 write clock additively for existing volumes."""
+
+    migration = _WRITE_CLOCK_MIGRATION.read_text(encoding="utf-8")
+    rollback = _WRITE_CLOCK_ROLLBACK.read_text(encoding="utf-8")
+    dockerfile = _POSTGRES_IMAGE.read_text(encoding="utf-8")
+    seed = (_ROOT / "scripts" / "seed_demo_data.py").read_text(encoding="utf-8")
+    assert "create or replace function enforce_analysis_run_status_transition" in migration
+    assert "greatest(database_now, new.occurred_at)" in migration
+    assert "analysis_run_status_time_too_far_in_future" in migration
+    assert "new.occurred_at :=" not in migration
+    assert "drop table" not in migration.casefold()
+    assert "0104_analysis_run_status_write_clock.sql" in dockerfile
+    assert "0104_analysis_run_status_write_clock.sql" in seed
+    assert seed.index("0025_role_person_catalog_identity.sql") < seed.index(
+        "0104_analysis_run_status_write_clock.sql"
+    )
+    assert "new.recorded_at := clock_timestamp();" in rollback
+    assert "greatest(clock_timestamp(), new.occurred_at)" not in rollback
+    for object_name in re.findall(
+        r"create or replace function\s+([a-z0-9_]+)",
+        migration,
+        re.IGNORECASE,
+    ):
+        assert len(object_name.split("_")) >= 2, object_name
+
+
+def test_status_write_clock_covers_python_ahead_occurrence(registry_db) -> None:
+    """Python-ahead occurred_at must persist as the recorded_at source."""
+
+    with registry_db.cursor() as cursor:
+        snapshot_id = _insert_snapshot(cursor)
+        account_id = _insert_account(cursor)
+        run_id = _insert_run(
+            cursor,
+            snapshot_id=snapshot_id,
+            account_id=account_id,
+            idempotency_key="python-ahead-clock",
+        )
+        cursor.execute(
+            "insert into analysis_run_scope "
+            "(analysis_run_id, scope_kind_code) "
+            "values (%s, 'analysis_scope_all_visible')",
+            (run_id,),
+        )
+        cursor.execute("select clock_timestamp()")
+        db_now = cursor.fetchone()[0]
+        occurred = db_now + timedelta(seconds=5)
+        cursor.execute(
+            "insert into analysis_run_status_event "
+            "(analysis_run_id, status_ordinal, status_code, occurred_at) "
+            "values (%s, 1, 'analysis_status_pending', %s) "
+            "returning occurred_at, recorded_at",
+            (run_id, occurred),
+        )
+        occurred_at, recorded_at = cursor.fetchone()
+    assert recorded_at == occurred_at
+
+
+def test_status_write_clock_rejects_unbounded_future_occurrence(registry_db) -> None:
+    """A client cannot manufacture an audit event more than one minute ahead."""
+
+    with registry_db.cursor() as cursor:
+        snapshot_id = _insert_snapshot(cursor)
+        account_id = _insert_account(cursor)
+        run_id = _insert_run(
+            cursor,
+            snapshot_id=snapshot_id,
+            account_id=account_id,
+            idempotency_key="future-status-clock",
+        )
+        cursor.execute(
+            "insert into analysis_run_scope "
+            "(analysis_run_id, scope_kind_code) "
+            "values (%s, 'analysis_scope_all_visible')",
+            (run_id,),
+        )
+        cursor.execute("select clock_timestamp()")
+        db_now = cursor.fetchone()[0]
+        with pytest.raises(psycopg2.errors.RaiseException, match="time_too_far_in_future"):
+            cursor.execute(
+                "insert into analysis_run_status_event "
+                "(analysis_run_id, status_ordinal, status_code, occurred_at) "
+                "values (%s, 1, 'analysis_status_pending', %s)",
+                (run_id, db_now + timedelta(minutes=2)),
+            )
+
+
+@pytest.mark.parametrize("skew_seconds", [59, 60])
+def test_status_write_clock_accepts_occurrence_inside_one_minute_bound(
+    registry_db, skew_seconds: int
+) -> None:
+    """The documented one-minute skew bound accepts its near boundary."""
+
+    with registry_db.cursor() as cursor:
+        snapshot_id = _insert_snapshot(cursor)
+        account_id = _insert_account(cursor)
+        run_id = _insert_run(
+            cursor,
+            snapshot_id=snapshot_id,
+            account_id=account_id,
+            idempotency_key=f"bounded-future-status-clock-{skew_seconds}",
+        )
+        cursor.execute(
+            "insert into analysis_run_scope "
+            "(analysis_run_id, scope_kind_code) "
+            "values (%s, 'analysis_scope_all_visible')",
+            (run_id,),
+        )
+        cursor.execute("select clock_timestamp()")
+        db_now = cursor.fetchone()[0]
+        occurred = db_now + timedelta(seconds=skew_seconds)
+        cursor.execute(
+            "insert into analysis_run_status_event "
+            "(analysis_run_id, status_ordinal, status_code, occurred_at) "
+            "values (%s, 1, 'analysis_status_pending', %s) "
+            "returning occurred_at, recorded_at",
+            (run_id, occurred),
+        )
+        occurred_at, recorded_at = cursor.fetchone()
+    assert recorded_at == occurred_at
 
 
 def test_machine_codes_and_canonical_idempotency_are_fail_closed(registry_db) -> None:
