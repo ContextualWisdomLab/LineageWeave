@@ -52,6 +52,15 @@ class OpenAiCompatibleEmbeddingClient:
         """Return an embedding for the supplied text."""
         return self._delegate.embed(text)
 
+    def embed_many(self, texts: list[str]) -> list[list[float]]:
+        """Delegate batch embedding while preserving the modern client contract."""
+        return self._delegate.embed_many(texts)
+
+    @property
+    def resolved_model_code(self) -> str | None:
+        """Expose per-request model provenance from the orchestrator delegate."""
+        return getattr(self._delegate, "resolved_model_code", None)
+
 
 class ContextualOrchestratorEmbeddingClient:
     """Submit embeddings through contextual-orchestrator's batch boundary.

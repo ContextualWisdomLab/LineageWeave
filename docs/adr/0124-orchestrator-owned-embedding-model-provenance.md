@@ -1,4 +1,4 @@
-# ADR 0118: Orchestrator-owned embedding model discovery and provenance
+# ADR 0124: Orchestrator-owned embedding model discovery and provenance
 
 - Status: Accepted
 - Date: 2026-08-20

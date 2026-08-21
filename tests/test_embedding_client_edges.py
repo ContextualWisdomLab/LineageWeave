@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-import lineageweave.embedding_client as embedding_client
+from lineageweave import embedding_client
 
 
 def test_missing_embedding_configuration_returns_null_client() -> None:
@@ -88,14 +88,19 @@ def test_invalid_embedding_vectors_are_rejected(response: dict) -> None:
 def test_legacy_client_name_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
     class Delegate:
         def __init__(self, *_args, **_kwargs) -> None:
-            pass
+            self.resolved_model_code = "resolved-model"
 
         def embed(self, text: str) -> list[float]:
             return [float(len(text))]
 
+        def embed_many(self, texts: list[str]) -> list[list[float]]:
+            return [[float(len(text))] for text in texts]
+
     monkeypatch.setattr(embedding_client, "ContextualOrchestratorEmbeddingClient", Delegate)
     client = embedding_client.OpenAiCompatibleEmbeddingClient("http://orchestrator", "key", "model")
     assert client.embed("abc") == [3.0]
+    assert client.embed_many(["a", "bb"]) == [[1.0], [2.0]]
+    assert client.resolved_model_code == "resolved-model"
 
 
 def test_cosine_similarity_returns_zero_for_zero_vector() -> None:
