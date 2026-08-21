@@ -62,7 +62,11 @@ def _preferred_literal(graph: Graph, subject: URIRef, predicate: URIRef) -> str 
     """Choose an English, untagged, or first literal in a deterministic order."""
     literals = sorted(
         (value for value in graph.objects(subject, predicate) if isinstance(value, Literal)),
-        key=lambda value: (value.language not in {"en", None}, value.language or "", str(value)),
+        key=lambda value: (
+            0 if value.language == "en" else 1 if value.language is None else 2,
+            value.language or "",
+            str(value),
+        ),
     )
     return str(literals[0]) if literals else None
 
@@ -223,7 +227,7 @@ def _render_term_sections(graph: Graph) -> tuple[str, str, int]:
         sections.append(
             f'<section class="term-section" id="{section_id}">'
             f"<h2>{html.escape(heading)}</h2>"
-            f'<div class="term-grid">{"".join(cards)}</div>'
+            f'<div class="term-grid'>{"".join(cards)}</div>'
             "</section>"
         )
     return "".join(nav_items), "".join(sections), len(counted)
