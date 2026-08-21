@@ -49,7 +49,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T15:50:14Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T16:01:40Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -71,13 +71,13 @@ Recently merged into the protected repository:
 
 Open PRs at the same observation:
 
-- PR #258: `head` `8b356a8399d40bcecc68a07bcfacab78eef303a0`, base `main`
+- PR #258: `head` `53ce1a53612c190f77bf584bb526e884d590dc60`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #349: `head` `df125094b93454cc61679a16b4b1c122c3f355ae`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #355: `head` `b606c2553f877fa85968d90dc46598ce16897fbf`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #368: `head` `79aa5739c4622079ea7011d2656676be09157c80`, base `main`
+- PR #368: `head` `f6dd05809352057bf4cb6f27db76bf097ddbf58a`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `6b84bea10881e2f82fb676d5b01cf56f7d8f4adb`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
@@ -133,6 +133,17 @@ synthetic Keycloak account and aggregate-only assertions:
   person, organization, source identifier, or image payload was persisted in
   this repository. Image-heavy processing remains an explicit processing-state
   gap, not a live-success claim.
+
+Observed at `2026-08-21T16:01:40Z` in a fresh local Compose browser session:
+
+- OIDC login, an authorized post click, popup close, and the phone-width menu
+  trigger all completed. The popup opened, but the summary request returned
+  HTTP 503; no generated summary, 5W1H, VISION evidence, or graph rendering is
+  claimed from this run.
+- The local orchestrator returned HTTP 200 for its authenticated model
+  inventory with nine registered models. A synthetic `mode=auto` completion did
+  not complete within 30 seconds, so provider/model readiness remains open even
+  though the Compose services are running.
 
 These observations are runtime evidence, not a claim that the corresponding
 PRs are merged. The image-processing state and protected-corpus parsing cases
