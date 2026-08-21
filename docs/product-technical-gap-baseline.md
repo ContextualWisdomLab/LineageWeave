@@ -54,10 +54,10 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   `f45fcdebfd54bf236b55f5d892aeb6091b51ba5b`, base `main`; this baseline
   checkpoint is updated by the stacked documentation PR for the newer queue
   evidence below.
-- LineageWeave PR #378: `head`
-  `333c705294a4faa76869f34d3e08dc09d760487d`, base
-  `codex/product-gap-baseline-20260821`; this checkpoint's local
-  buyer-surface verification is the current documentation delta.
+- LineageWeave PR #378: `merge_commit`
+  `333c705294a4faa76869f34d3e08dc09d760487d`, merged at
+  `2026-08-21T13:36:41Z`; this checkpoint's buyer-surface and exact-head
+  evidence is delivered in the merged baseline documentation.
 - LineageWeave PR #366: `head`
   `588dc91f5689d77281cd6bbd10a8e922f9eaa159`, base
   `8bed77e7e7b91b633bb92d3a82d0187c387206af`; customer-master authorization
