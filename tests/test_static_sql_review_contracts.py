@@ -115,6 +115,8 @@ def test_content_backfill_uses_all_source_commercial_context_fields() -> None:
         "source_inspection_point_code",
     ):
         assert field_name in source
+    assert "image.description_status_code <> 'described'" in source
+    assert "post_content_image_region" in source
 
 
 @pytest.mark.parametrize(
