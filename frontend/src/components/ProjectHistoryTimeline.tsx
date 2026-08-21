@@ -110,7 +110,7 @@ export function ProjectHistoryTimeline({
       <p className="project-history-time-basis">
         {projectHistoryText(
           locale,
-          projection.time_basis_code === "document_time" ? "recordedDocumentTime" : "documentTime",
+          projection.time_basis_code === "document_time" ? "documentTime" : "sourcePostTime",
         )}
       </p>
       {projection.evidence_boundary_code ? (

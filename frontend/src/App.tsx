@@ -4726,16 +4726,14 @@ function ProjectHistoryPanel({
       initialProjectKey === selectedProjectKey ? initialFocusPostId ?? undefined : undefined;
     fetchProjectHistory(accessToken, selectedProjectKey, index.knowledge_cutoff, focusPostId)
       .then((result) => {
-        if (request === historyRequest.current) {
-          setProjection(result);
-          setLoadingHistory(false);
-        }
+        if (request !== historyRequest.current) return;
+        setProjection(result);
+        setLoadingHistory(false);
       })
       .catch(() => {
-        if (request === historyRequest.current) {
-          setError(true);
-          setLoadingHistory(false);
-        }
+        if (request !== historyRequest.current) return;
+        setError(true);
+        setLoadingHistory(false);
       });
   }, [accessToken, index?.knowledge_cutoff, initialFocusPostId, initialProjectKey, selectedProjectKey]);
 
@@ -4745,7 +4743,6 @@ function ProjectHistoryPanel({
       <p className="buyer-destination-intro">{projectHistoryText(locale, "destinationIntro")}</p>
       {error ? <p className="error" role="alert">{projectHistoryText(locale, "historyUnavailable")}</p> : null}
       {index === null ? <p role="status">{projectHistoryText(locale, "loadingProjects")}</p> : null}
-      {loadingHistory ? <p role="status">{projectHistoryText(locale, "loadingHistory")}</p> : null}
       {index?.projects.length === 0 && !error ? (
         <p className="popup-placeholder">{projectHistoryText(locale, "noProjects")}</p>
       ) : null}
@@ -4769,6 +4766,9 @@ function ProjectHistoryPanel({
             ))}
           </select>
         </label>
+      ) : null}
+      {loadingHistory && !error ? (
+        <p role="status">{projectHistoryText(locale, "loadingHistory")}</p>
       ) : null}
       {projection ? <ProjectHistoryTimeline projection={projection} onOpenPost={onOpenPost} /> : null}
     </section>

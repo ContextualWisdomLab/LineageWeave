@@ -2076,7 +2076,7 @@ describe("App, authenticated", () => {
     expect(projectHistoryRequestUrl).toContain("focus_post_id=post-1");
   });
 
-  it("shows project-history progress until the selected projection arrives", async () => {
+  it("shows a next-action loading state while project history is requested", async () => {
     const fetchMock = stubBackend({ deferProjectHistory: true });
     render(<App />);
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));

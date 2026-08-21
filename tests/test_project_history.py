@@ -248,6 +248,26 @@ def test_summary_responsibilities_remain_inferred_evidence() -> None:
     assert role["provenance"] == "post_summary_role"
 
 
+def test_assignment_gap_without_role_evidence_has_no_truth_status() -> None:
+    """An empty adjacent evidence pair remains unknown, never observed."""
+
+    first = _event_row("00000000-0000-0000-0000-000000000001")
+    second = _event_row("00000000-0000-0000-0000-000000000002")
+    second["created_at"] = datetime(2022, 3, 12, 9, tzinfo=timezone.utc)
+    projection = build_project_history_projection(
+        project_key="P-100",
+        focus_event_id=second["post_id"],
+        event_rows=[first, second],
+        match_rows=[],
+        role_rows=[],
+        edge_rows=[],
+    )
+
+    transition = projection["events"][1]
+    assert transition["responsibility_transition_code"] == "assignment_gap"
+    assert transition["responsibility_transition_truth_status_code"] is None
+
+
 def test_project_history_connection_protocol_fails_explicitly() -> None:
     """The protocol default is not an executable ellipsis/no-op."""
 
