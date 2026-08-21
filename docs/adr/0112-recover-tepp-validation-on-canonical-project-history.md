@@ -36,7 +36,8 @@ probability of causation, or an authoritative assignment record.
    `TEPP_API_KEY` are not forwarded.
 6. The client requires the exact versioned field set, exact event cardinality and content,
    deterministic chronological ordering, unchanged project/focus/cutoff identity, and
-   evidence-derived participant counts. Unknown fields or changed evidence fail closed.
+   evidence-derived participant counts. Unknown fields, changed evidence, or a response above
+   TEPP's published 256 KiB contract limit fail closed before JSON decoding.
 7. Accepted findings are limited to the six published TEPP #159 finding codes. Duplicate
    event or evidence references are rejected. Buyer UI copy is owned by LineageWeave and
    keyed by those codes; provider-authored summary prose is retained for contract
