@@ -8,16 +8,18 @@ const here = dirname(fileURLToPath(import.meta.url));
 const packageJson = JSON.parse(readFileSync(join(here, "..", "package.json"), "utf-8")) as {
   devDependencies?: Record<string, string>;
 };
-const storybookMain = readFileSync(join(here, "..", ".storybook", "main.ts"), "utf-8");
+const storybookPreview = readFileSync(join(here, "..", ".storybook", "preview.ts"), "utf-8");
 const ontologyStories = readFileSync(
   join(here, "components", "OntologyExplorer.stories.tsx"),
   "utf-8",
 );
 
 describe("Storybook viewport contract", () => {
-  it("registers the viewport addon used by the ontology narrow-view story", () => {
+  it("uses Storybook 10's built-in viewport module for the ontology narrow view", () => {
     expect(ontologyStories).toContain('value: "mobile1"');
-    expect(packageJson.devDependencies?.["@storybook/addon-viewport"]).toBe("^10.5.8");
-    expect(storybookMain).toContain('addons: ["@storybook/addon-viewport"]');
+    expect(packageJson.devDependencies?.storybook).toBe("^10.5.8");
+    expect(packageJson.devDependencies?.["@storybook/addon-viewport"]).toBeUndefined();
+    expect(storybookPreview).toContain('import { MINIMAL_VIEWPORTS } from "storybook/viewport";');
+    expect(storybookPreview).toContain("options: MINIMAL_VIEWPORTS");
   });
 });
