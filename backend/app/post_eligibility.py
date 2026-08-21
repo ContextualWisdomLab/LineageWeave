@@ -43,6 +43,14 @@ SOURCE_CONTEXT_COLUMNS = (
     "source_project_name",
 )
 
+# The SQL projection of the fixed ABAC rule in ``main._can_see_post``. Keep
+# the authorized-id placeholder explicit so every reader query shares the
+# same public-or-affiliated visibility boundary.
+SOURCE_POST_VISIBILITY_SQL = (
+    "({alias}.visibility_code = 'public' "
+    "or {alias}.corporate_entity_id = any({authorized_entity_ids}::uuid[]))"
+)
+
 
 def source_context_present_sql(alias: str) -> str:
     return " or ".join(

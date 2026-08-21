@@ -196,6 +196,7 @@ from backend.app.post_summary_ingestion import (
 from backend.app.post_eligibility import (
     SOURCE_POST_ELIGIBILITY_SQL,
     SOURCE_POST_READER_ELIGIBILITY_SQL,
+    SOURCE_POST_VISIBILITY_SQL,
     WRITING_SOURCE_DETAIL_STATE_CODE,
     normalize_source_detail_state_code,
     source_post_state_visibility_sql,
@@ -793,16 +794,41 @@ _AFFILIATION_SCOPE_CODE_TO_FACET = {
 }
 
 
-def _customer_master_scope_facets(row: asyncpg.Record) -> list[str]:
+def _customer_master_scope_facets(
+    row: asyncpg.Record, observed_hierarchy_ids: set[str]
+) -> list[str]:
     """Repeatable, provenance-bearing facets for one Customer Master row."""
     facets = [
         _AFFILIATION_SCOPE_CODE_TO_FACET[code]
         for code in row["scope_codes"]
         if code in _AFFILIATION_SCOPE_CODE_TO_FACET
     ]
+    if str(row["corporate_entity_id"]) in observed_hierarchy_ids:
+        facets.append("observed_hierarchy")
     if row["is_observed_organization"]:
         facets.append("observed_organization")
     return facets
+
+
+def _observed_hierarchy_ids(rows: list[asyncpg.Record]) -> set[str]:
+    """Return authorized ancestors of entities observed in visible posts."""
+    rows_by_id = {str(row["corporate_entity_id"]): row for row in rows}
+    hierarchy_ids: set[str] = set()
+    for row in rows:
+        if not row["is_observed_organization"]:
+            continue
+        if row["parent_entity_id"] is None:
+            continue
+        hierarchy_ids.add(str(row["corporate_entity_id"]))
+        parent_id = row["parent_entity_id"]
+        while parent_id is not None:
+            parent_key = str(parent_id)
+            if parent_key in hierarchy_ids:
+                break
+            hierarchy_ids.add(parent_key)
+            parent = rows_by_id.get(parent_key)
+            parent_id = parent["parent_entity_id"] if parent is not None else None
+    return hierarchy_ids
 
 
 @app.get("/api/customer-master")
@@ -821,6 +847,7 @@ async def read_customer_master(
             "relationship_network": [],
         }
 
+    authorized_entity_ids = list(account.corporate_entity_ids)
     async with pool.acquire() as conn:
         # Safe SQL: the evidence query uses only closed schema fragments; authorized entity ids are bound.
         source_customer_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
@@ -835,7 +862,7 @@ async def read_customer_master(
                   from source_post
                  where (nullif(btrim(source_customer_code), '') is not null
                         or nullif(btrim(source_customer_name), '') is not null)
-                   and (visibility_code = 'public' or corporate_entity_id = any($1::uuid[]))
+                   and {SOURCE_POST_VISIBILITY_SQL.format(alias='source_post', authorized_entity_ids='$1')}
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
             ), ranked as (
                 select scoped.*,
@@ -901,7 +928,7 @@ async def read_customer_master(
                   join user_account author on author.user_account_id = post.author_account_id
                  where post.source_author_code is not null
                    and btrim(post.source_author_code) <> ''
-                   and (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
+                   and {SOURCE_POST_VISIBILITY_SQL.format(alias='post', authorized_entity_ids='$1')}
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
             ), ranked as (
                 select scoped.*,
@@ -1075,11 +1102,12 @@ async def read_customer_master(
             account.user_account_id,
             list(synthetic_only_entity_ids),
         )
+        observed_hierarchy_ids = _observed_hierarchy_ids(entity_rows)
         entity_ids = [row["corporate_entity_id"] for row in entity_rows]
         source_author_affiliations = await _load_account_affiliation_hints(
             conn,
             [str(row["author_account_id"]) for row in source_author_rows],
-            [str(entity_id) for entity_id in entity_ids],
+            entity_ids,
         )
         keyman_rows = await conn.fetch(
             """
@@ -1091,9 +1119,10 @@ async def read_customer_master(
                    entity.entity_name
               from cataloged_person person
               join person_affiliation affiliation on affiliation.person_id = person.person_id
-              left join corporate_entity entity
+             left join corporate_entity entity
                 on entity.corporate_entity_id = affiliation.affiliated_corporate_entity_id
              where affiliation.affiliated_corporate_entity_id = any($1::uuid[])
+               and person.person_side_code = 'our_side'
              order by person.person_name, affiliation.affiliated_organization_name
             """,
             entity_ids,
@@ -1142,7 +1171,7 @@ async def read_customer_master(
                 "parent_entity_id": (
                     str(row["parent_entity_id"]) if row["parent_entity_id"] is not None else None
                 ),
-                "scope_facets": _customer_master_scope_facets(row),
+                "scope_facets": _customer_master_scope_facets(row, observed_hierarchy_ids),
             }
             for row in entity_rows
         ],

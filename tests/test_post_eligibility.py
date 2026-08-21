@@ -2,6 +2,7 @@ from backend.app.post_eligibility import (
     SOURCE_CONTEXT_COLUMNS,
     SOURCE_POST_ELIGIBILITY_SQL,
     normalize_source_detail_state_code,
+    SOURCE_POST_VISIBILITY_SQL,
     source_context_missing_sql,
     source_context_present_sql,
 )
@@ -37,3 +38,14 @@ def test_writing_state_visibility_normalizes_padded_codes() -> None:
 
     assert "upper(btrim(post.source_detail_state_code))" in visibility
     assert "<> 'W'" in visibility
+
+
+def test_visibility_sql_is_shared_public_or_affiliated_abac_projection() -> None:
+    visibility = SOURCE_POST_VISIBILITY_SQL.format(
+        alias="post", authorized_entity_ids="$2"
+    )
+
+    assert visibility == (
+        "(post.visibility_code = 'public' or "
+        "post.corporate_entity_id = any($2::uuid[]))"
+    )
