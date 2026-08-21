@@ -53,6 +53,7 @@ def _payload() -> dict[str, object]:
     return {
         "contract_version": "1.0.0",
         "analysis_id": "analysis:demo-001",
+        "authorization_scope_ref": "authorization-scope:opaque",
         "analysis_scope_code": "email_lineage",
         "knowledge_cutoff": "2026-08-20T18:00:00+09:00",
         "policy": {
@@ -97,6 +98,7 @@ def test_parse_request_is_strict_immutable_and_canonicalizes_timestamps() -> Non
 
     assert request.contract_version == CONTRACT_VERSION
     assert request.analysis_id == "analysis:demo-001"
+    assert request.authorization_scope_ref == "authorization-scope:opaque"
     assert request.analysis_scope_code == "email_lineage"
     assert request.knowledge_cutoff == datetime(
         2026,
@@ -130,6 +132,7 @@ def test_request_digest_is_stable_when_keys_and_records_are_reordered() -> None:
         "knowledge_cutoff": payload["knowledge_cutoff"],
         "analysis_scope_code": payload["analysis_scope_code"],
         "analysis_id": payload["analysis_id"],
+        "authorization_scope_ref": payload["authorization_scope_ref"],
         "contract_version": payload["contract_version"],
     }
 
@@ -334,6 +337,13 @@ def test_public_schema_exists_and_mirrors_contract_vocabularies() -> None:
         "generic_lineage",
     }
     assert schema["additionalProperties"] is False
+    assert "authorization_scope_ref" in schema["required"]
+    assert schema["properties"]["authorization_scope_ref"] == {
+        "$ref": "#/$defs/OpaqueReference"
+    }
+    assert "not_invoked" in schema["$defs"]["LineageAnalysisResult"][
+        "properties"
+    ]["llm_status_code"]["enum"]
     pair_budget = schema["$defs"]["LineageAnalysisPolicy"][
         "properties"
     ]["maximum_pair_evaluations"]
@@ -354,6 +364,22 @@ def test_parser_rejects_non_object_and_missing_required_field() -> None:
     with pytest.raises(LineageContractError) as missing:
         parse_lineage_analysis_request(payload)
     assert missing.value.code == "missing_field"
+
+    payload = _payload()
+    del payload["authorization_scope_ref"]
+    with pytest.raises(LineageContractError) as missing_scope:
+        parse_lineage_analysis_request(payload)
+    assert missing_scope.value.code == "missing_field"
+
+
+def test_parser_rejects_unsafe_authorization_scope_reference() -> None:
+    payload = _payload()
+    payload["authorization_scope_ref"] = "https://caller.example/scope"
+
+    with pytest.raises(LineageContractError) as captured:
+        parse_lineage_analysis_request(payload)
+
+    assert captured.value.code == "unsafe_opaque_reference"
 
 
 def test_parser_rejects_wrong_scalar_types_and_non_array_records() -> None:

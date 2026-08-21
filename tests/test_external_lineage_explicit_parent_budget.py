@@ -65,6 +65,7 @@ def _request(
         {
             "contract_version": "1.0.0",
             "analysis_id": "analysis:explicit-parent-budget",
+            "authorization_scope_ref": "authorization-scope:synthetic",
             "analysis_scope_code": "email_lineage",
             "knowledge_cutoff": None,
             "policy": {

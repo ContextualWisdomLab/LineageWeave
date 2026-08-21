@@ -117,6 +117,7 @@ def _request(
         {
             "contract_version": "1.0.0",
             "analysis_id": "analysis:integration-001",
+            "authorization_scope_ref": "authorization-scope:synthetic",
             "analysis_scope_code": scope,
             "knowledge_cutoff": cutoff,
             "policy": {
@@ -277,16 +278,22 @@ def test_llm_policy_is_explicit_and_never_fabricates_absent_scores(
     assert ("llm" in channels) is llm_present
 
 
-def test_available_llm_is_reported_not_invoked_when_no_pair_requires_inference() -> None:
-    """An admitted client is not reported as completed when no pair was scored."""
-
+def test_llm_status_is_not_invoked_without_an_inferred_candidate_pair() -> None:
+    client = CountingLlm()
     request = _request(
-        [_record("email:001", "Phoenix delivery status", "2026-08-20T09:00:00Z")],
+        [
+            _record(
+                "email:single",
+                "One bounded record",
+                "2026-08-20T09:00:00Z",
+            )
+        ],
         allow_llm=True,
     )
 
-    result = analyze_external_lineage(request, llm=AvailableLlm())
+    result = analyze_external_lineage(request, llm=client)
 
+    assert client.call_count == 0
     assert result.llm_status_code == "not_invoked"
     assert result.edges == ()
 
@@ -686,6 +693,7 @@ def test_pair_budget_rejects_before_any_optional_llm_call() -> None:
     payload = {
         "contract_version": "1.0.0",
         "analysis_id": "analysis:pair-budget",
+        "authorization_scope_ref": "authorization-scope:synthetic",
         "analysis_scope_code": "email_lineage",
         "knowledge_cutoff": None,
         "policy": {

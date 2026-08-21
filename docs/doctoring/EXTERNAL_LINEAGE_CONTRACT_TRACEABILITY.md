@@ -2,7 +2,7 @@
 
 | Requirement | Product decision | Implementation | Evidence |
 |---|---|---|---|
-| Caller authorization remains authoritative | Accept only caller-projected evidence and opaque references | `lineageweave.external_lineage_contract` | strict parser and hostile-input tests |
+| Caller authorization remains authoritative | Require a caller-issued opaque authorization_scope_ref and accept only caller-projected evidence | `lineageweave.external_lineage_contract` | strict parser and hostile-input tests |
 | Historical answers exclude future evidence | Filter by `available_at <= knowledge_cutoff` | `lineageweave.external_lineage_analysis` | cutoff inclusion/exclusion tests |
 | RFC relations remain distinct | Explicit parent relations serialize as observed relation codes | execution adapter | observed-parent precedence tests |
 | Semantic lineage remains inferred | Reconstructed edges use `truth_status_code=inferred` | execution adapter | result contract tests |

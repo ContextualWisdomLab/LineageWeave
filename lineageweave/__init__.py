@@ -91,4 +91,4 @@ __all__ = [
     "serialize_lineage_analysis_result",
 ]
 
-__version__ = "2.12.6"
+__version__ = "2.13.0"
