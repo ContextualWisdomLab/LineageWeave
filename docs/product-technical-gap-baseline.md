@@ -691,3 +691,19 @@ them as merge-ready:
 The queue count and gate fields are a point-in-time GitHub observation. Before
 reviewing or merging any row, fetch its branch again, compare the exact head
 with the review and all required Checks, and confirm the full dependency stack.
+
+## Security-boundary continuation: 2026-08-21 09:40 KST
+
+PR #333's MCP key lifecycle was re-reviewed with Claude and its confirmed
+medium metadata leak was fixed. Exact current head is
+`065d14f5022f052d8b096f4388a62cb227d12d9e`, based on #258's current
+`4bb234476ca26aacdd645f3c495a161a2c441790`. The key table and application
+now persist/display only the constant `lw_mcp_` family prefix, while the
+random secret remains one-time creation output; the buyer's date-only expiry
+is converted to the local calendar day's end.
+
+Post-fix validation is Python `725 passed, 16 skipped, 4 warnings`, frontend
+`132 passed`, MCP panel `3 passed`, lint/build/Storybook passed, and diff check
+passed. These are branch-local results. #333 remains gated until exact-head
+hosted Checks and independent formal approval are terminal-successful; #334
+must not enable API-key authentication before migration `0051` is deployed.
