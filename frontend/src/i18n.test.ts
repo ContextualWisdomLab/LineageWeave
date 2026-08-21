@@ -54,6 +54,17 @@ describe("i18n", () => {
   );
 
   it.each([
+    ["ko", "작업공간 메뉴"],
+    ["zh", "工作区导航"],
+    ["ja", "ワークスペースナビゲーション"],
+    ["vi", "Điều hướng không gian làm việc"],
+  ] as const)("uses workspace terminology for navigation in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Workspace navigation")).toBe(expected);
+    expect(t("Workspace navigation").toLocaleLowerCase()).not.toContain("buyer");
+  });
+
+  it.each([
     ["ko", "관련 글"],
     ["zh", "相关文章"],
     ["ja", "関連する投稿"],
