@@ -133,6 +133,41 @@ _AFFILIATION_SCOPE_FACET_MIGRATION = (
     / "migrations"
     / "0106_account_affiliation_scope_facet.sql"
 )
+_QUANTITATIVE_OBSERVATION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0108_post_summary_quantitative_observation.sql"
+)
+_SOURCE_FACT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0109_post_summary_source_fact.sql"
+)
+_SOFTWARE_AGENT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0110_role_responsibility_software_agent.sql"
+)
+_SEMANTIC_RELATIONSHIP_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0111_post_summary_semantic_relationship.sql"
+)
+_EVENT_CLUE_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0112_event_clue_semantic_projection.sql"
+)
+_BROAD_FACT_TYPES_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0113_broad_source_fact_types.sql"
+)
+_SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0114_semantic_relationship_standard_predicates.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -250,6 +285,13 @@ def seeded_db(demo_analyst_token):
             cur.execute(_IDENTIFIER_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_HISTORY_MIGRATION.read_text())
             cur.execute(_AFFILIATION_SCOPE_FACET_MIGRATION.read_text())
+            cur.execute(_EVENT_CLUE_MIGRATION.read_text())
+            cur.execute(_BROAD_FACT_TYPES_MIGRATION.read_text())
+            cur.execute(_QUANTITATIVE_OBSERVATION_MIGRATION.read_text())
+            cur.execute(_SOURCE_FACT_MIGRATION.read_text())
+            cur.execute(_SOFTWARE_AGENT_MIGRATION.read_text())
+            cur.execute(_SEMANTIC_RELATIONSHIP_MIGRATION.read_text())
+            cur.execute(_SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -3570,6 +3612,108 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
 
     assert response.status_code == 503
     assert "raw-global-provider-secret" not in response.text
+
+
+def test_global_ask_history_persists_and_reloads_for_the_account(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Global Ask turns survive a fresh GET and remain evidence-linked."""
+    from lineageweave.post_chat import ChatAnswer
+
+    class _AnsweringAskClient:
+        available = True
+
+        def answer(self, question: str, sources) -> ChatAnswer:
+            return ChatAnswer(
+                answer_text="Stored global answer from the authorized source.",
+                cited_post_ids=(sources[0].post_id,),
+            )
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _AnsweringAskClient())
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+
+    first = client.post("/api/ask", json={"question": "Public evidence"}, headers=headers)
+    assert first.status_code == 200, first.text
+    conversation_id = first.json()["conversation_id"]
+    assert first.json()["cited_posts"] == [{"post_id": seeded_db["public_post_id"], "post_title": "Public post"}]
+
+    listed = client.get("/api/ask/conversations", headers=headers)
+    assert listed.status_code == 200, listed.text
+    assert listed.json()["conversations"][0]["conversation_id"] == conversation_id
+    assert listed.json()["conversations"][0]["turn_count"] == 1
+
+    second = client.post(
+        "/api/ask",
+        json={"question": "Public evidence again", "conversation_id": conversation_id},
+        headers=headers,
+    )
+    assert second.status_code == 200, second.text
+
+    history = client.get(f"/api/ask/conversations/{conversation_id}", headers=headers)
+    assert history.status_code == 200, history.text
+    assert [exchange["question_text"] for exchange in history.json()["exchanges"]] == [
+        "Public evidence",
+        "Public evidence again",
+    ]
+    assert history.json()["exchanges"][0]["cited_posts"] == [
+        {"post_id": seeded_db["public_post_id"], "post_title": "Public post"}
+    ]
+
+    latest_page = client.get(
+        f"/api/ask/conversations/{conversation_id}?limit=1",
+        headers=headers,
+    )
+    assert [exchange["question_text"] for exchange in latest_page.json()["exchanges"]] == [
+        "Public evidence again"
+    ]
+    assert latest_page.json()["older_cursor"] == "2"
+    older_page = client.get(
+        f"/api/ask/conversations/{conversation_id}?limit=1&before_turn=2",
+        headers=headers,
+    )
+    assert [exchange["question_text"] for exchange in older_page.json()["exchanges"]] == [
+        "Public evidence"
+    ]
+    assert older_page.json()["older_cursor"] is None
+
+    with psycopg2.connect(seeded_db["dsn"]) as pagination_conn:
+        with pagination_conn.cursor() as cur:
+            subject = jwt.decode(demo_analyst_token, options={"verify_signature": False})["sub"]
+            cur.execute("select user_account_id from user_account where external_subject_id = %s", (subject,))
+            account_id = cur.fetchone()[0]
+            for index in range(51):
+                cur.execute(
+                    "insert into global_ask_session (global_ask_session_id, user_account_id, updated_at) "
+                    "values (%s, %s, now() - make_interval(secs => %s))",
+                    (str(uuid.uuid4()), account_id, index),
+                )
+
+    first_conversation_page = client.get(
+        "/api/ask/conversations",
+        params={"limit": 2},
+        headers=headers,
+    )
+    assert first_conversation_page.status_code == 200, first_conversation_page.text
+    assert len(first_conversation_page.json()["conversations"]) == 2
+    cursor = first_conversation_page.json()["next_cursor"]
+    assert cursor is not None
+    second_conversation_page = client.get(
+        "/api/ask/conversations",
+        params={
+            "limit": 2,
+            "before_updated_at": cursor["updated_at"],
+            "before_conversation_id": cursor["conversation_id"],
+        },
+        headers=headers,
+    )
+    assert second_conversation_page.status_code == 200, second_conversation_page.text
+    assert len(second_conversation_page.json()["conversations"]) == 2
+    assert {
+        item["conversation_id"] for item in first_conversation_page.json()["conversations"]
+    }.isdisjoint({item["conversation_id"] for item in second_conversation_page.json()["conversations"]})
+
+    missing = client.get(f"/api/ask/conversations/{uuid.uuid4()}", headers=headers)
+    assert missing.status_code == 404
 
 
 def test_keymen_provider_error_does_not_leak_raw_error(

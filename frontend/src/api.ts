@@ -17,6 +17,7 @@ export interface PostSummary {
   source_company_name?: string | null;
   source_process_unit_code?: string | null;
   source_process_unit_name?: string | null;
+  source_process_unit_catalog_name?: string | null;
   source_sales_pool_code?: string | null;
   source_sales_pool_name?: string | null;
   source_customer_code?: string | null;
@@ -185,6 +186,7 @@ export interface PostRoleResponsibility {
   affiliated_organization_name: string | null;
   catalog_node_id?: string | null;
   catalog_node_type_code?: string | null;
+  affiliated_organization_catalog_id?: string | null;
 }
 
 export interface PostMajorEventAction {
@@ -193,6 +195,37 @@ export interface PostMajorEventAction {
   processor_actor_name: string | null;
   evidence_text: string;
   project_name?: string | null;
+}
+
+export interface PostQuantitativeObservation {
+  measurement_type_code: string;
+  label_text: string;
+  value_numeric: string;
+  unit_code: string;
+  quantity_numeric: string | null;
+  quantity_unit_code: string | null;
+  qualifier_text: string | null;
+  raw_value_text: string;
+  evidence_text: string;
+  ontology_iri: string;
+  ontology_label?: string;
+  extraction_method: string;
+}
+
+export interface PostSourceGroundedFact {
+  fact_type_code: string;
+  label_text: string;
+  value_text: string;
+  normalized_value_text: string | null;
+  assertion_code: string | null;
+  normalized_date: string | null;
+  date_precision_code: string | null;
+  normalization_evidence_text: string | null;
+  qualifier_text: string | null;
+  evidence_text: string;
+  ontology_iri: string;
+  ontology_label?: string;
+  extraction_method: string;
 }
 
 export interface PostProjectMention {
@@ -224,14 +257,30 @@ export interface PostAiSummary {
   summary_contract_version?: number | null;
   key_events: string[];
   key_event_details?: PostKeyEvent[];
+  event_clues?: PostEventClue[];
   roles_and_responsibilities: PostRoleResponsibility[];
   major_event_actions?: PostMajorEventAction[];
   project_mentions?: PostProjectMention[];
+  quantitative_observations?: PostQuantitativeObservation[];
+  source_grounded_facts?: PostSourceGroundedFact[];
 }
 
 export interface PostKeyEvent {
   event_text: string;
   project_name?: string | null;
+  evidence_text?: string | null;
+}
+
+export interface PostEventClue {
+  event_index: number;
+  clue_type_code: string;
+  clue_text: string;
+  target_text?: string | null;
+  normalized_value_text?: string | null;
+  assertion_code?: string | null;
+  evidence_text: string;
+  ontology_iri?: string;
+  extraction_method?: string;
 }
 
 export interface FiveW1HValue {
@@ -302,12 +351,46 @@ export interface ChatHistory {
 }
 
 export interface AskAgentResponse {
+  conversation_id?: string;
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
   cited_post_evidence?: CitedPostEvidence[];
   source_post_ids: string[];
   next_action?: string;
+}
+
+export interface AskConversationSummary {
+  conversation_id: string;
+  title: string;
+  updated_at: string;
+  turn_count: number;
+}
+
+export interface AskConversationCursor {
+  updated_at: string;
+  conversation_id: string;
+}
+
+export interface AskConversationPage {
+  conversations: AskConversationSummary[];
+  next_cursor?: AskConversationCursor | null;
+}
+
+export interface AskConversation {
+  conversation_id: string;
+  title: string;
+  older_cursor?: string | null;
+  exchanges: Array<{
+    turn_id: string;
+    question_text: string;
+    answer_text: string;
+    cited_post_ids: string[];
+    cited_posts?: CitedPostRef[];
+    cited_post_evidence?: CitedPostEvidence[];
+    source_post_ids: string[];
+    next_action?: string;
+  }>;
 }
 
 export interface IssueTicket {
@@ -424,6 +507,35 @@ export interface LineageGraphEdge {
 export interface LineageGraph {
   nodes: LineageGraphNode[];
   edges: LineageGraphEdge[];
+  truncated?: boolean;
+}
+
+export interface KnowledgeGraphNode {
+  id: string;
+  node_type_code: string;
+  node_id: string;
+  label: string;
+  ontology_iri?: string | null;
+  ontology_label?: string | null;
+  is_focus: boolean;
+  is_evidence_text_node?: boolean;
+}
+
+export interface KnowledgeGraphEdge {
+  source: string;
+  target: string;
+  edge_type_code: string;
+  ontology_iri?: string | null;
+  ontology_label?: string | null;
+  confidence: number;
+  evidence_text?: string;
+  evidence_post_ids: string[];
+}
+
+export interface KnowledgeGraph {
+  post_id: string;
+  nodes: KnowledgeGraphNode[];
+  edges: KnowledgeGraphEdge[];
   truncated?: boolean;
 }
 
@@ -889,6 +1001,10 @@ export function fetchPostLineage(accessToken: string, postId: string): Promise<P
   return backendFetch(`/api/posts/${postId}/lineage`, accessToken);
 }
 
+export function fetchPostKnowledgeGraph(accessToken: string, postId: string): Promise<KnowledgeGraph> {
+  return backendFetch(`/api/posts/${postId}/knowledge-graph`, accessToken);
+}
+
 export function fetchPostChat(accessToken: string, postId: string): Promise<ChatHistory> {
   return backendFetch(`/api/posts/${postId}/chat`, accessToken);
 }
@@ -900,10 +1016,33 @@ export function askPostChat(accessToken: string, postId: string, question: strin
   });
 }
 
-export function askAgent(accessToken: string, question: string): Promise<AskAgentResponse> {
+export function fetchAskConversations(
+  accessToken: string,
+  cursor?: AskConversationCursor | null,
+): Promise<AskConversationPage> {
+  const query = cursor
+    ? `?before_updated_at=${encodeURIComponent(cursor.updated_at)}&before_conversation_id=${encodeURIComponent(cursor.conversation_id)}`
+    : "";
+  return backendFetch(`/api/ask/conversations${query}`, accessToken);
+}
+
+export function fetchAskConversation(
+  accessToken: string,
+  conversationId: string,
+  beforeTurn?: number | null,
+): Promise<AskConversation> {
+  const query = beforeTurn ? `?before_turn=${encodeURIComponent(beforeTurn)}` : "";
+  return backendFetch(`/api/ask/conversations/${conversationId}${query}`, accessToken);
+}
+
+export function askAgent(
+  accessToken: string,
+  question: string,
+  conversationId?: string | null,
+): Promise<AskAgentResponse> {
   return backendFetch("/api/ask", accessToken, {
     method: "POST",
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, ...(conversationId ? { conversation_id: conversationId } : {}) }),
   });
 }
 

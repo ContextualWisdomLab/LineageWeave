@@ -8,13 +8,13 @@ nodes, and a Keyman who is only mentioned on such posts is forbidden.
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 from uuid import UUID
 
 import asyncpg
 
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
-from lineageweave.ontology import ontology_annotations
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
     EDGE_CO_MENTION,
@@ -34,9 +34,33 @@ from lineageweave.knowledge_graph import (
     random_walk_with_restart,
     select_related_nodes,
 )
-
+from lineageweave.ontology import ontology_annotations, semantic_predicate_annotations
 
 _GRAPH_PROJECTION_LOCK_KEY = "lineageweave:knowledge_graph_projection"
+
+_SEMANTIC_NODE_CLASS_IRIS = {
+    "person": "http://www.w3.org/ns/prov#Person",
+    "organization": "http://www.w3.org/ns/prov#Organization",
+    "team": "http://www.w3.org/ns/org#OrganizationalUnit",
+    "software_agent": "http://www.w3.org/ns/prov#SoftwareAgent",
+    "project": "https://contextualwisdomlab.github.io/lineageweave/ontology#Project",
+    "corporate_entity": "https://contextualwisdomlab.github.io/lineageweave/ontology#CorporateEntity",
+    "post": "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+    "event": "https://contextualwisdomlab.github.io/lineageweave/ontology#Event",
+    "event_observation": "https://contextualwisdomlab.github.io/lineageweave/ontology#EventObservation",
+    "evidence_clue": "https://contextualwisdomlab.github.io/lineageweave/ontology#EvidenceClue",
+    "place": "https://contextualwisdomlab.github.io/lineageweave/ontology#Place",
+    "industrial_asset": "https://contextualwisdomlab.github.io/lineageweave/ontology#IndustrialAsset",
+    "industrial_process": "https://contextualwisdomlab.github.io/lineageweave/ontology#IndustrialProcess",
+    "document": "https://contextualwisdomlab.github.io/lineageweave/ontology#Document",
+    "observation": "https://contextualwisdomlab.github.io/lineageweave/ontology#Observation",
+    "activity": "https://contextualwisdomlab.github.io/lineageweave/ontology#Activity",
+    "temporal_entity": "https://contextualwisdomlab.github.io/lineageweave/ontology#TemporalEntity",
+    "normative_statement": "https://contextualwisdomlab.github.io/lineageweave/ontology#NormativeStatement",
+    "quality_assessment": "https://contextualwisdomlab.github.io/lineageweave/ontology#QualityAssessment",
+    "risk_statement": "https://contextualwisdomlab.github.io/lineageweave/ontology#RiskStatement",
+    "organization_context": "https://contextualwisdomlab.github.io/lineageweave/ontology#OrganizationContext",
+}
 
 
 def edge_spec_from_row(row: asyncpg.Record) -> KnowledgeGraphEdgeSpec:
@@ -537,6 +561,117 @@ async def hydrate_related_nodes(
             continue
         payload.append(item)
     return payload
+
+
+async def post_knowledge_graph(
+    conn: asyncpg.Connection,
+    post_id: str,
+    *,
+    relation_limit: int = 64,
+) -> dict[str, Any]:
+    """Return an evidence-scoped KG view for one authorized post.
+
+    Compact catalog edges come from ``knowledge_graph_edge``. Semantic
+    relations stay normalized and are projected into post-scoped text nodes;
+    this preserves unresolved-name uncertainty while making the extracted
+    relation drawable.
+    """
+    catalog_edges = await load_visible_subgraph(conn, [post_id])
+    endpoint_keys = {node_key(NODE_POST, post_id)}
+    endpoint_keys.update(
+        node_key(edge.source_node_type_code, edge.source_node_id) for edge in catalog_edges
+    )
+    endpoint_keys.update(
+        node_key(edge.target_node_type_code, edge.target_node_id) for edge in catalog_edges
+    )
+    catalog_nodes = await hydrate_related_nodes(
+        conn, [(key, 1.0 if key == node_key(NODE_POST, post_id) else 0.0) for key in endpoint_keys]
+    )
+    nodes: dict[str, dict[str, Any]] = {
+        node_key(item["node_type_code"], item["node_id"]): {
+            "id": node_key(item["node_type_code"], item["node_id"]),
+            "node_type_code": item["node_type_code"],
+            "node_id": item["node_id"],
+            "label": item["label"],
+            "ontology_iri": item.get("ontology_iri"),
+            "ontology_label": item.get("ontology_label"),
+            "is_focus": item["node_type_code"] == NODE_POST and item["node_id"] == post_id,
+        }
+        for item in catalog_nodes
+    }
+    edges: list[dict[str, Any]] = []
+    for edge in catalog_edges[:relation_limit]:
+        source = node_key(edge.source_node_type_code, edge.source_node_id)
+        target = node_key(edge.target_node_type_code, edge.target_node_id)
+        annotation = ontology_annotations(edge.edge_type_code)
+        edges.append(
+            {
+                "source": source,
+                "target": target,
+                "edge_type_code": edge.edge_type_code,
+                "ontology_iri": annotation.get("ontology_iri"),
+                "ontology_label": annotation.get("ontology_label", edge.edge_type_code),
+                "confidence": edge.edge_weight,
+                "evidence_post_ids": [post_id],
+            }
+        )
+
+    relation_rows = await conn.fetch(
+        """
+        select relation_ordinal, subject_name, subject_type, predicate_code,
+               object_name, object_type, evidence_text, relation_confidence
+          from post_summary_semantic_relationship
+         where post_id = $1
+         order by relation_ordinal
+         limit $2
+        """,
+        post_id,
+        relation_limit,
+    )
+
+    def semantic_key(node_type: str, name: str) -> str:
+        digest = hashlib.sha256(f"{node_type}\0{name}".encode()).hexdigest()[:16]
+        return f"semantic:{post_id}:{digest}"
+
+    for row in relation_rows:
+        source = semantic_key(row["subject_type"], row["subject_name"])
+        target = semantic_key(row["object_type"], row["object_name"])
+        for key, node_type, name in (
+            (source, row["subject_type"], row["subject_name"]),
+            (target, row["object_type"], row["object_name"]),
+        ):
+            nodes.setdefault(
+                key,
+                {
+                    "id": key,
+                    "node_type_code": f"semantic_{node_type}",
+                    "node_id": key,
+                    "label": name,
+                    "ontology_iri": _SEMANTIC_NODE_CLASS_IRIS[node_type],
+                    "ontology_label": node_type,
+                    "is_focus": False,
+                    "is_evidence_text_node": True,
+                },
+            )
+        annotation = semantic_predicate_annotations(row["predicate_code"])
+        edges.append(
+            {
+                "source": source,
+                "target": target,
+                "edge_type_code": row["predicate_code"],
+                "ontology_iri": annotation.get("ontology_iri"),
+                "ontology_label": annotation.get("ontology_label", row["predicate_code"]),
+                "confidence": float(row["relation_confidence"]),
+                "evidence_text": row["evidence_text"],
+                "evidence_post_ids": [post_id],
+            }
+        )
+    return {
+        "post_id": post_id,
+        "nodes": list(nodes.values()),
+        "edges": edges,
+        "truncated": len(catalog_edges) > relation_limit or len(relation_rows) >= relation_limit,
+    }
 
 
 async def related_for_start(

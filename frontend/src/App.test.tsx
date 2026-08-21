@@ -79,6 +79,9 @@ describe("App, authenticated", () => {
     chatUnavailable?: boolean;
     evidenceUnavailable?: boolean;
     searchUnavailable?: boolean;
+    askUnavailable?: boolean;
+    askHistory?: boolean;
+    askHistoryPages?: boolean;
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
     runningLineageRun?: boolean;
@@ -94,6 +97,8 @@ describe("App, authenticated", () => {
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
     customerScopeFacets?: boolean;
+    rrOrgWithMembers?: boolean;
+    groupedKeyEvents?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
     summaryPending?: boolean;
@@ -1188,6 +1193,15 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/summary")) {
+        if (options?.summaryPending) return new Promise<Response>(() => undefined);
+        if (options?.summaryUnavailable) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "summary unavailable" }), {
+              status: 503,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
@@ -1196,12 +1210,55 @@ describe("App, authenticated", () => {
               ? { summary_status: "stale", summary_contract_version: 4 }
               : {}),
             key_events: ["첫 번째 이벤트"],
-            roles_and_responsibilities: [
+            ...(options?.groupedKeyEvents
+              ? {
+                  key_event_details: [
+                    {
+                      event_text: "1st milestone discussed",
+                      project_name: "Case Facility Plan",
+                      evidence_text: null,
+                    },
+                    {
+                      event_text: "2nd milestone discussed",
+                      project_name: "Case Facility Plan",
+                      evidence_text: null,
+                    },
+                    {
+                      event_text: "Unrelated standalone event",
+                      project_name: null,
+                      evidence_text: null,
+                    },
+                  ],
+                }
+              : {}),
+            roles_and_responsibilities: options?.rrOrgWithMembers
+              ? [
+                  {
+                    actor_name: "Case Institute",
+                    responsibility: "연구 수행 기관",
+                    actor_type_code: "prov_organization",
+                    affiliated_organization_name: null,
+                  },
+                  {
+                    actor_name: "Case Researcher One",
+                    responsibility: "상담 고객 연구원",
+                    actor_type_code: "prov_person",
+                    affiliated_organization_name: "Case Institute",
+                  },
+                  {
+                    actor_name: "Case Researcher Two",
+                    responsibility: "상담 고객 연구원",
+                    actor_type_code: "prov_person",
+                    affiliated_organization_name: "Case Institute",
+                  },
+                ]
+              : [
               {
                 actor_name: "Ada West",
                 responsibility: "우리 측 후속",
                 actor_type_code: "prov_person",
                 affiliated_organization_name: "Demo Corp",
+                affiliated_organization_catalog_id: "corp-1",
               },
               {
                 actor_name: "Priya Nair",
@@ -1575,7 +1632,95 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/ask/conversations") && method === "GET") {
+        if (options?.askHistory) {
+          return Promise.resolve(
+            jsonResponse({
+              conversations: [
+                {
+                  conversation_id: "conversation-1",
+                  title: "Saved project question",
+                  updated_at: "2026-08-21T00:00:00Z",
+                  turn_count: 1,
+                },
+              ],
+              ...(options?.askHistoryPages
+                ? {
+                    next_cursor: {
+                      updated_at: "2026-08-21T00:00:00Z",
+                      conversation_id: "conversation-1",
+                    },
+                  }
+                : {}),
+            }),
+          );
+        }
+        return Promise.resolve(jsonResponse({ conversations: [] }));
+      }
+      if (options?.askHistoryPages && url.includes("/api/ask/conversations?") && method === "GET") {
+        return Promise.resolve(
+          jsonResponse({
+            conversations: [
+              {
+                conversation_id: "conversation-2",
+                title: "Older saved question",
+                updated_at: "2026-08-20T00:00:00Z",
+                turn_count: 2,
+              },
+            ],
+            next_cursor: null,
+          }),
+        );
+      }
+      if (options?.askHistoryPages && url.includes("/api/ask/conversations/conversation-1?") && method === "GET") {
+        return Promise.resolve(
+          jsonResponse({
+            conversation_id: "conversation-1",
+            title: "Saved project question",
+            older_cursor: null,
+            exchanges: [
+              {
+                turn_id: "turn-0",
+                question_text: "Older saved turn",
+                answer_text: "The older saved answer is still grounded in evidence.",
+                cited_post_ids: [],
+                cited_posts: [],
+                cited_post_evidence: [],
+                source_post_ids: [],
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/ask/conversations/conversation-1") && method === "GET") {
+        return Promise.resolve(
+          jsonResponse({
+            conversation_id: "conversation-1",
+            title: "Saved project question",
+            ...(options?.askHistoryPages ? { older_cursor: "2" } : {}),
+            exchanges: [
+              {
+                turn_id: "turn-1",
+                question_text: "Which project was saved?",
+                answer_text: "The saved answer is grounded in the linked source.",
+                cited_post_ids: ["post-2"],
+                cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
+                cited_post_evidence: [],
+                source_post_ids: ["post-1", "post-2"],
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/ask") && method === "POST") {
+        if (options?.askUnavailable) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({ detail: "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY" }),
+              { status: 503, headers: { "Content-Type": "application/json" } },
+            ),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             answer_text: "The cited project is supported by the stored semantic evidence.",
@@ -1756,10 +1901,68 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("log", { name: "Conversation" })).toHaveAttribute("aria-busy", "false");
     expect(screen.getByText("Start with a question about the evidence")).toBeInTheDocument();
     const input = screen.getByRole("textbox", { name: "Ask a question" });
+    const send = screen.getByRole("button", { name: "Ask" });
+    expect(send).toBeDisabled();
     await userEvent.type(input, "Which project?{Enter}");
 
     expect(await screen.findByText("Which project?", { selector: ".ask-agent-user-message p:last-child" })).toBeInTheDocument();
     expect(input).toHaveValue("");
+  });
+
+  it("restores saved Ask Agent history and can start a new conversation", async () => {
+    stubBackend({ askHistory: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+
+    expect(await screen.findByText("Which project was saved?", { exact: true })).toBeInTheDocument();
+    const savedConversation = screen.getByRole("button", { name: /Saved project question/ });
+    expect(savedConversation).toHaveAttribute("aria-pressed", "true");
+
+    await userEvent.click(screen.getByRole("button", { name: "New conversation" }));
+    expect(screen.getByText("Start with a question about the evidence")).toBeInTheDocument();
+    await userEvent.click(savedConversation);
+    expect(await screen.findByText("Which project was saved?", { exact: true })).toBeInTheDocument();
+  });
+
+  it("keeps the Ask Agent conversation visible when the orchestrator is unavailable", async () => {
+    stubBackend({ askUnavailable: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const input = screen.getByRole("textbox", { name: "Ask a question" });
+    await userEvent.type(input, "Which project?{Enter}");
+
+    expect(
+      await screen.findByText("Ask Agent is temporarily unavailable. Saved evidence is still available."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Which project?", { exact: true })).toBeInTheDocument();
+    expect(screen.getByRole("log", { name: "Conversation" })).toHaveAttribute("aria-busy", "false");
+  });
+
+  it("loads older conversations and turns from their scroll boundaries", async () => {
+    const fetchMock = stubBackend({ askHistory: true, askHistoryPages: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    expect(await screen.findByText("Which project was saved?", { exact: true })).toBeInTheDocument();
+
+    const historyList = document.querySelector(".ask-agent-history-list") as HTMLUListElement;
+    Object.defineProperties(historyList, {
+      scrollHeight: { configurable: true, value: 1000 },
+      clientHeight: { configurable: true, value: 300 },
+      scrollTop: { configurable: true, value: 760 },
+    });
+    fireEvent.scroll(historyList);
+    expect(await screen.findByText("Older saved question", { exact: true })).toBeInTheDocument();
+
+    const thread = document.querySelector(".ask-agent-thread") as HTMLDivElement;
+    Object.defineProperties(thread, {
+      scrollTop: { configurable: true, value: 0, writable: true },
+      scrollHeight: { configurable: true, value: 1000, writable: true },
+      clientHeight: { configurable: true, value: 500 },
+    });
+    fireEvent.scroll(thread);
+    expect(await screen.findByText("Older saved turn", { exact: true })).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes("before_turn=2"))).toBe(true);
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes("before_updated_at"))).toBe(true);
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
@@ -1828,6 +2031,45 @@ describe("App, authenticated", () => {
 
     await userEvent.click(screen.getByRole("checkbox", { name: "Unclassified" }));
     expect(screen.getByText("No entities match the current scope filter.")).toBeInTheDocument();
+  });
+
+  it("nests R&R rows under their affiliated organization instead of repeating the affiliation as flat text", async () => {
+    // UI/UX feedback: two researchers at the same institute should read
+    // as a tree (institute -> its researchers), not three unrelated
+    // bullets that each separately say "· 소속: Case Institute".
+    stubBackend({ rrOrgWithMembers: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const instituteRow = await screen.findByText("Case Institute", { selector: "li *" });
+    const instituteItem = instituteRow.closest("li") as HTMLLIElement;
+    const researcherOne = screen.getByText("Case Researcher One").closest("li") as HTMLLIElement;
+    const researcherTwo = screen.getByText("Case Researcher Two").closest("li") as HTMLLIElement;
+    expect(instituteItem.contains(researcherOne)).toBe(true);
+    expect(instituteItem.contains(researcherTwo)).toBe(true);
+    // Nesting itself conveys the affiliation -- repeating "· 소속: Case
+    // Institute" text on every nested row would be redundant.
+    expect(researcherOne.textContent).not.toContain("소속");
+    expect(researcherTwo.textContent).not.toContain("소속");
+  });
+
+  it("nests key events sharing a project name instead of repeating the project name as a flat prefix", async () => {
+    // UI/UX feedback: four key events that all began with the same
+    // "{project}: " prefix read as flat, disconnected bullets even
+    // though they clearly belong to one shared plan.
+    stubBackend({ groupedKeyEvents: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const projectHeading = await screen.findByText("Case Facility Plan", { selector: "li > strong" });
+    const projectItem = projectHeading.closest("li") as HTMLLIElement;
+    const firstMilestone = screen.getByText("1st milestone discussed").closest("li") as HTMLLIElement;
+    const secondMilestone = screen.getByText("2nd milestone discussed").closest("li") as HTMLLIElement;
+    expect(projectItem.contains(firstMilestone)).toBe(true);
+    expect(projectItem.contains(secondMilestone)).toBe(true);
+    // An event with no shared project stays a flat, ungrouped bullet.
+    const standalone = screen.getByText("Unrelated standalone event", { exact: false }).closest("li") as HTMLLIElement;
+    expect(projectItem.contains(standalone)).toBe(false);
   });
 
   it("shows every observed relationship role for a counterparty, flagging multi-role names", async () => {
@@ -2083,6 +2325,7 @@ describe("App, authenticated", () => {
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
     expect(screen.getByText(/우리 측 후속/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "R&R Keyman: Ada West" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "R&R affiliation: Demo Corp" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "R&R person: Priya Nair" })).toBeInTheDocument();
     expect(screen.getByText("당사").closest("li")).toHaveTextContent("Organization");
     expect(screen.queryByRole("button", { name: "R&R Keyman: 당사" })).not.toBeInTheDocument();
@@ -2169,6 +2412,26 @@ describe("App, authenticated", () => {
       ).toBeGreaterThan(summaryCallsBeforeRetry),
     );
     expect(screen.getByRole("button", { name: "Retry summary refresh" })).toBeInTheDocument();
+  });
+
+  it("shows processing instead of an empty summary while the request is pending", async () => {
+    stubBackend({ summaryPending: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Summary is being prepared.");
+    expect(screen.queryByText("No summary is available for this record yet.")).not.toBeInTheDocument();
+  });
+
+  it("separates an unavailable summary from a missing saved summary", async () => {
+    stubBackend({ summaryUnavailable: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Summary could not be generated.");
+    expect(screen.getByRole("button", { name: "Retry summary refresh" })).toBeInTheDocument();
+    expect(screen.queryByText("No saved summary exists for this record.")).not.toBeInTheDocument();
   });
 
   it("refreshes newly processed source content after summary generation", async () => {
@@ -3720,53 +3983,43 @@ describe("App, authenticated", () => {
     expect(main).toHaveFocus();
   });
 
-  it("does not steal focus after the global search request has been handled", async () => {
-    const fetchMock = stubBackend();
+  it("keeps the current workspace while global search is open", async () => {
     render(<App />);
 
     await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
     expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Search" }));
+    const searchButton = screen.getByRole("button", { name: "Search" });
+    await userEvent.click(searchButton);
 
     const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
-    await waitFor(() => expect(searchInput).toHaveFocus());
+    expect(screen.getByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+    expect(searchButton).toHaveAttribute("aria-expanded", "true");
+    expect(searchInput).toHaveFocus();
 
-    const sort = screen.getByLabelText("Sort posts");
-    await userEvent.selectOptions(sort, "title");
-    await waitFor(() => {
-      expect(fetchMock.mock.calls.some(([url]) => String(url).includes("sort=title"))).toBe(true);
-      expect(sort).toHaveFocus();
-    });
-
-    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
-    const boardButton = screen.getByRole("button", { name: "Board" });
-    await userEvent.click(boardButton);
-    const remountedSearchInput = await screen.findByRole("searchbox", {
-      name: "Search semantic evidence",
-    });
-    await waitFor(() => expect(boardButton).toHaveFocus());
-    expect(remountedSearchInput).not.toHaveFocus();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.getByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+    expect(searchButton).toHaveFocus();
+    expect(screen.queryByRole("searchbox", { name: "Search semantic evidence" })).not.toBeInTheDocument();
   });
 
-  it("focuses the board search input again on a later global Search action", async () => {
-    stubBackend();
+  it("submits global search only after an explicit query", async () => {
+    const fetchMock = stubBackend();
     render(<App />);
 
-    const header = document.querySelector("header.app-header");
-    expect(header).not.toBeNull();
-    const globalSearch = within(header as HTMLElement).getByRole("button", { name: "Search" });
-    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+    await screen.findByRole("heading", { name: "Customer master" });
+    await userEvent.click(screen.getByRole("button", { name: "Search" }));
+    const globalSearchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
 
-    await userEvent.click(globalSearch);
-    await waitFor(() => expect(searchInput).toHaveFocus());
-    searchInput.blur();
-    expect(searchInput).not.toHaveFocus();
+    await userEvent.type(globalSearchInput, "not found{Enter}");
 
-    await userEvent.click(globalSearch);
-    await waitFor(() => expect(searchInput).toHaveFocus());
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(within(board).getByLabelText("Search semantic evidence")).toHaveValue("not found");
+    expect(await screen.findByText("No posts match the current filters.")).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("search=not+found"))).toBe(true);
   });
 
-  it("clears a pending global search focus request when leaving the board", async () => {
+  it("does not navigate when the global search is opened before posts load", async () => {
     const fetchMock = stubBackend({ deferPosts: true });
     render(<App />);
 

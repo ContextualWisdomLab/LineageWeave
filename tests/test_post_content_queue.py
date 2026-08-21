@@ -21,6 +21,8 @@ from backend.app.post_content_queue import (
     requeue_failed_post_content_job,
     post_content_api_status,
     post_content_is_complete,
+    post_content_summary_is_ready,
+    post_body_has_images,
     post_content_stream_fields,
     source_body_sha256,
 )
@@ -47,6 +49,27 @@ def test_api_status_does_not_call_failed_content_ready() -> None:
     assert post_content_api_status(SUCCEEDED, content_present=True) == "ready"
     assert post_content_api_status(FAILED, content_present=False) == "unavailable"
     assert post_content_api_status(FAILED, content_present=True) == "unavailable"
+
+
+def test_summary_waits_for_image_evidence_and_detects_images_without_body_logging() -> None:
+    class FakeConnection:
+        async def fetchval(self, query: str, *_args: object) -> int:
+            assert "post_content_image" in query
+            assert "description_status_code <> 'described'" in query
+            return 0
+
+    assert post_body_has_images(
+        "<p>본문</p><img src='data:image/png;base64,iVBORw0KGgo='>"
+    ) is True
+    assert post_body_has_images("본문만 있습니다.") is False
+    assert (
+        asyncio.run(
+            post_content_summary_is_ready(
+                FakeConnection(), "00000000-0000-0000-0000-000000000001"
+            )
+        )
+        is False
+    )
 
 
 def test_embedding_gap_is_not_complete_content() -> None:

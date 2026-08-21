@@ -5,6 +5,8 @@ import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
   askAgent,
+  fetchAskConversation,
+  fetchAskConversations,
   BackendError,
   createAnalysisRun,
   startAnalysisRun,
@@ -28,6 +30,7 @@ import {
   fetchPostCounterparties,
   fetchPostEvaluation,
   fetchPostKeymen,
+  fetchPostKnowledgeGraph,
   fetchPostLineage,
   fetchPostFiveW1H,
   fetchPostSummary,
@@ -49,6 +52,8 @@ import {
   verifyPostRelations,
   type ActivityEvent,
   type AskAgentResponse,
+  type AskConversationCursor,
+  type AskConversationSummary,
   type CurrentUser,
   type AffiliateNode,
   type AnalysisRun,
@@ -62,10 +67,12 @@ import {
   type EvaluationResponse,
   type IssueTicket,
   type LineageGraph,
+  type KnowledgeGraph,
   type Keyman,
   type SourceAuthorContext,
   type PostAiSummary,
   type PostFiveW1H,
+  type PostKeyEvent,
   type PostDetail,
   type PostContentUnit,
   type PostImageContent,
@@ -86,11 +93,16 @@ import {
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
+import { GlobalSearch } from "./components/GlobalSearch";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
+import { RoleEvidence } from "./components/RoleEvidence";
+import { SummaryStatus } from "./components/SummaryStatus";
+import { isGenericTeamActor } from "./components/roleEvidenceUtils";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { MenuIcon, CloseIcon, SendIcon } from "./components/icons";
 import { LineageDag } from "./LineageDag";
+import { KnowledgeGraphView } from "./KnowledgeGraph";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
@@ -1703,7 +1715,8 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
 const ROLE_ACTOR_TYPE_RANK: Record<string, number> = {
   prov_organization: 0,
   prov_team: 1,
-  prov_person: 2,
+  prov_software_agent: 2,
+  prov_person: 3,
 };
 
 // R&R read order follows the PROV-O broader/narrower direction (ADR 0004):
@@ -1740,6 +1753,64 @@ function sortRolesByOntologyOrder(
     .map(({ role }) => role);
 }
 
+interface RoleTreeNode {
+  role: PostRoleResponsibility;
+  children: RoleTreeNode[];
+}
+
+// Turns the sorted, grouped list into a real tree: a person or team whose
+// affiliated_organization_name matches another row's own actor_name nests
+// under that row instead of repeating "· 소속: X" as a flat, disconnected
+// bullet next to it -- two researchers at the same institute now share a
+// visual parent instead of just sorting adjacent to each other.
+function buildRoleTree(roles: PostRoleResponsibility[]): RoleTreeNode[] {
+  const sorted = sortRolesByOntologyOrder(roles);
+  const organizationsByName = new Map<string, PostRoleResponsibility>();
+  for (const role of sorted) {
+    if (role.actor_type_code === "prov_organization" && !organizationsByName.has(role.actor_name)) {
+      organizationsByName.set(role.actor_name, role);
+    }
+  }
+  const nodesByRole = new Map<PostRoleResponsibility, RoleTreeNode>();
+  for (const role of sorted) nodesByRole.set(role, { role, children: [] });
+  const roots: RoleTreeNode[] = [];
+  for (const role of sorted) {
+    const parent = role.affiliated_organization_name
+      ? organizationsByName.get(role.affiliated_organization_name)
+      : undefined;
+    const node = nodesByRole.get(role) as RoleTreeNode;
+    if (parent && parent !== role) {
+      (nodesByRole.get(parent) as RoleTreeNode).children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+  return roots;
+}
+
+interface KeyEventGroup {
+  projectName: string | null;
+  items: { event: PostKeyEvent; originalIndex: number }[];
+}
+
+// Consecutive key events sharing the same project_name (the LLM's own
+// grouping signal) nest under one heading instead of repeating "{project
+// name}: " as a flat text prefix on every line -- only adjacent events are
+// merged so this never reorders the events' original narrative sequence.
+function groupKeyEventsByProject(events: PostKeyEvent[]): KeyEventGroup[] {
+  const groups: KeyEventGroup[] = [];
+  events.forEach((event, originalIndex) => {
+    const projectName = event.project_name ?? null;
+    const last = groups[groups.length - 1];
+    if (projectName !== null && last?.projectName === projectName) {
+      last.items.push({ event, originalIndex });
+    } else {
+      groups.push({ projectName, items: [{ event, originalIndex }] });
+    }
+  });
+  return groups;
+}
+
 function PostDetailPopup({
   postId,
   accessToken,
@@ -1772,12 +1843,16 @@ function PostDetailPopup({
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<PostAiSummary | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
   const [summaryRetry, setSummaryRetry] = useState(0);
+  const contentStatusRef = useRef<"ready" | "processing" | "unavailable" | undefined>(undefined);
+  const [contentStatus, setContentStatus] = useState<"ready" | "processing" | "unavailable" | undefined>(undefined);
   const [fiveW1H, setFiveW1H] = useState<PostFiveW1H | null>(null);
   const [keymen, setKeymen] = useState<Keyman[] | null>(null);
   const [sourceAuthorContext, setSourceAuthorContext] = useState<SourceAuthorContext | null>(null);
   const [counterparties, setCounterparties] = useState<Counterparty[] | null>(null);
   const [lineage, setLineage] = useState<PostLineage | null>(null);
+  const [knowledgeGraph, setKnowledgeGraph] = useState<KnowledgeGraph | null>(null);
   const [affiliateTrees, setAffiliateTrees] = useState<AffiliateNode[] | null>(null);
   const [vocEvidence, setVocEvidence] = useState<VocEvidence | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
@@ -1818,11 +1893,15 @@ function PostDetailPopup({
     setError(null);
     setSummary(null);
     setSummaryError(null);
+    setSummaryLoading(true);
+    contentStatusRef.current = undefined;
+    setContentStatus(undefined);
     setFiveW1H(null);
     setKeymen(null);
     setSourceAuthorContext(null);
     setCounterparties(null);
     setLineage(null);
+    setKnowledgeGraph(null);
     setAffiliateTrees(null);
     setVocEvidence(null);
     setEvaluation(null);
@@ -1837,8 +1916,14 @@ function PostDetailPopup({
       fetchPostContent(accessToken, postId)
         .then((content) => {
           if (disposed) return;
+          const previousStatus = contentStatusRef.current;
+          contentStatusRef.current = content.status;
+          setContentStatus(content.status);
           setImageContent(content.images);
           setStructureUnits(content.units);
+          if (previousStatus === "processing" && content.status === "ready") {
+            setSummaryRetry((value) => value + 1);
+          }
           if (content.status === "processing" && contentPollTimer === undefined) {
             contentPollTimer = window.setTimeout(() => {
               contentPollTimer = undefined;
@@ -1877,6 +1962,9 @@ function PostDetailPopup({
       .then((r) => setCounterparties(r.counterparties))
       .catch(() => setCounterparties([]));
     fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
+    fetchPostKnowledgeGraph(accessToken, postId)
+      .then(setKnowledgeGraph)
+      .catch(() => setKnowledgeGraph(null));
     fetchPostAffiliateTree(accessToken, postId)
       .then((r) => setAffiliateTrees(r.trees))
       .catch(() => setAffiliateTrees([]));
@@ -1894,6 +1982,7 @@ function PostDetailPopup({
     let disposed = false;
     setSummary(null);
     setSummaryError(null);
+    setSummaryLoading(true);
     fetchPostSummary(accessToken, postId)
       .then((value) => {
         if (!disposed) {
@@ -1905,6 +1994,9 @@ function PostDetailPopup({
         if (disposed) return;
         setSummary(null);
         setSummaryError(summaryFetchError(err));
+      })
+      .finally(() => {
+        if (!disposed) setSummaryLoading(false);
       });
     return () => {
       disposed = true;
@@ -2010,7 +2102,17 @@ function PostDetailPopup({
 					<div className="popup-analysis-grid">
               <section className="popup-section popup-analysis-col">
               <h3>{t("Summary")}</h3>
-              {summary ? (
+              {!summary && (summaryLoading || contentStatus === "processing") ? (
+                <SummaryStatus
+                  kind="processing"
+                  title={t("Summary is being prepared.")}
+                  description={
+                    contentStatus === "processing"
+                      ? t("Source evidence is still being processed.")
+                      : t("The source evidence is still being analyzed.")
+                  }
+                />
+              ) : summary ? (
                 <>
                   {summary.summary_status === "stale" ? (
                     <p className="post-meta" role="status">
@@ -2025,12 +2127,65 @@ function PostDetailPopup({
                     <>
                       <h4>{t("Key events")}</h4>
                       <ul>
-                        {(summary.key_event_details ?? summary.key_events.map((event) => ({ event_text: event, project_name: null }))).map((event, i) => (
-                          <li key={i}>
-                            {event.project_name ? <strong>{event.project_name}: </strong> : null}
-                            {event.event_text}
-                          </li>
-                        ))}
+                        {(() => {
+                          function renderKeyEventBody(event: PostKeyEvent, index: number): ReactNode {
+                            return (
+                              <>
+                                {event.evidence_text ? (
+                                  <small>
+                                    {t("Evidence")}: {event.evidence_text}
+                                  </small>
+                                ) : null}
+                                {summary.event_clues?.filter((clue) => clue.event_index === index).length ? (
+                                  <div className="summary-event-clues">
+                                    <small>{t("Connected clues")}</small>
+                                    {summary.event_clues
+                                      .filter((clue) => clue.event_index === index)
+                                      .map((clue, clueIndex) => (
+                                        <span className="post-badge" key={`${clue.clue_type_code}:${clueIndex}`}>
+                                          {clue.clue_type_code.replace(/^clue_/, "")}: {clue.clue_text}
+                                          {clue.target_text ? ` · ${t("Target")}: ${clue.target_text}` : ""}
+                                          {clue.assertion_code === "assertion_negated" ? ` · ${t("Negated clue")}` : ""}
+                                        </span>
+                                      ))}
+                                  </div>
+                                ) : null}
+                              </>
+                            );
+                          }
+                          const events: PostKeyEvent[] =
+                            summary.key_event_details ??
+                            summary.key_events.map((event) => ({
+                              event_text: event,
+                              project_name: null,
+                              evidence_text: null,
+                            }));
+                          return groupKeyEventsByProject(events).map((group, groupIndex) => {
+                            if (group.projectName && group.items.length > 1) {
+                              return (
+                                <li key={`event-group-${groupIndex}`}>
+                                  <strong>{group.projectName}</strong>
+                                  <ul className="customer-master-tree-children">
+                                    {group.items.map(({ event, originalIndex }) => (
+                                      <li key={originalIndex}>
+                                        {event.event_text}
+                                        {renderKeyEventBody(event, originalIndex)}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </li>
+                              );
+                            }
+                            const { event, originalIndex } = group.items[0];
+                            return (
+                              <li key={originalIndex}>
+                                {event.project_name ? <strong>{event.project_name}: </strong> : null}
+                                {event.event_text}
+                                {renderKeyEventBody(event, originalIndex)}
+                              </li>
+                            );
+                          });
+                        })()}
                       </ul>
                     </>
                   )}
@@ -2038,20 +2193,25 @@ function PostDetailPopup({
                     <>
                       <h4>{t("R&R")}</h4>
                       <ul>
-                        {sortRolesByOntologyOrder(summary.roles_and_responsibilities).map((rr, i) => {
+                        {(() => {
+                          function renderRoleNode(node: RoleTreeNode, isChild: boolean): ReactNode {
+                          const rr = node.role;
                           const isPerson = rr.actor_type_code === "prov_person";
                           const actorTypeLabel = t(
                             rr.actor_type_code === "prov_team"
                               ? "Team"
-                              : isPerson
-                                ? "Person"
-                                : "Organization",
+                              : rr.actor_type_code === "prov_software_agent"
+                                ? "Software agent"
+                                : isPerson
+                                  ? "Person"
+                                  : "Organization",
                           );
                           const person = isPerson
                             ? keymen?.find((row) => row.person_name === rr.actor_name)
                             : undefined;
                           const catalogId = rr.catalog_node_id;
                           const catalogType = rr.catalog_node_type_code;
+                          const genericTeam = isGenericTeamActor(rr.actor_type_code, rr.actor_name);
                           let actorName: ReactNode = <strong>{rr.actor_name}</strong>;
                           if (catalogType === NODE_PERSON && catalogId) {
                             actorName = (
@@ -2087,7 +2247,7 @@ function PostDetailPopup({
                                 <strong>{rr.actor_name}</strong>
                               </button>
                             );
-                          } else if (catalogType === NODE_TEAM && catalogId) {
+                          } else if (catalogType === NODE_TEAM && catalogId && !genericTeam) {
                             actorName = (
                               <button
                                 className="keyman-select"
@@ -2117,18 +2277,43 @@ function PostDetailPopup({
                             );
                           }
                           return (
-                            <li key={i}>
-                              <span className={`actor-type-badge actor-type-${rr.actor_type_code}`}>
-                                {actorTypeLabel}
-                              </span>{" "}
-                              {actorName}
-                              {rr.affiliated_organization_name && (
-                                <span className="rr-affiliation"> ({rr.affiliated_organization_name})</span>
-                              )}
-                              : {rr.responsibility}
-                            </li>
+                            <RoleEvidence
+                              key={rr.actor_name + rr.actor_type_code + rr.responsibility}
+                              actorContent={actorName}
+                              actorName={rr.actor_name}
+                              actorTypeCode={rr.actor_type_code}
+                              actorTypeLabel={actorTypeLabel}
+                              responsibility={rr.responsibility}
+                              // A row nested under its affiliated org's <li>
+                              // already shows that relationship structurally
+                              // -- repeating "· 소속: X" next to it would be
+                              // redundant, so only un-nested (root) rows show it.
+                              affiliationName={isChild ? null : rr.affiliated_organization_name}
+                              affiliationCatalogId={rr.affiliated_organization_catalog_id}
+                              affiliationLabel={t("Affiliation")}
+                              affiliationAriaLabel={tf("R&R affiliation: {name}", {
+                                name: rr.affiliated_organization_name ?? "",
+                              })}
+                              unresolvedLabel={t("Not linked to catalog")}
+                              genericUnitNote={t("Specific business unit not stated in source")}
+                              onSelectAffiliation={(entityId, entityName) => {
+                                setFocusPerson(null);
+                                setFocusTeam(null);
+                                setFocusEntity({ entityId, entityName });
+                              }}
+                            >
+                              {node.children.length > 0 ? (
+                                <ul className="customer-master-tree-children">
+                                  {node.children.map((child) => renderRoleNode(child, true))}
+                                </ul>
+                              ) : null}
+                            </RoleEvidence>
                           );
-                        })}
+                          }
+                          return buildRoleTree(summary.roles_and_responsibilities).map((node) =>
+                            renderRoleNode(node, false),
+                          );
+                        })()}
                       </ul>
                     </>
                   )}
@@ -2156,11 +2341,95 @@ function PostDetailPopup({
                       </ul>
                     </>
                   )}
+                  {summary.quantitative_observations && summary.quantitative_observations.length > 0 && (
+                    <>
+                      <h4>{t("Quantitative evidence")}</h4>
+                      <ul className="summary-action-list">
+                        {summary.quantitative_observations.map((observation, i) => (
+                          <li key={`${observation.measurement_type_code}:${observation.raw_value_text}:${i}`}>
+                            <strong>
+                              {observation.label_text}: {observation.raw_value_text}
+                            </strong>
+                            {observation.quantity_numeric !== null ? (
+                              <div>
+                                {t("Quantity")}: {observation.quantity_numeric} {observation.quantity_unit_code}
+                              </div>
+                            ) : null}
+                            {observation.qualifier_text ? <div>{observation.qualifier_text}</div> : null}
+                            <small>
+                              {t("Evidence")}: {observation.evidence_text}
+                            </small>
+                            <details className="semantic-provenance">
+                              <summary>{t("Evidence provenance")}</summary>
+                              <span className="post-badge">
+                                {t("Ontology class")}: {t(observation.ontology_label ?? "Quantitative observation")}
+                              </span>
+                              <span className="post-badge">
+                                {t("Extraction source")}: {observation.extraction_method}
+                              </span>
+                            </details>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                  {summary.source_grounded_facts && summary.source_grounded_facts.length > 0 && (
+                    <>
+                      <h4>{t("Source-grounded facts")}</h4>
+                      <ul className="summary-action-list">
+                        {summary.source_grounded_facts.map((fact, i) => (
+                          <li key={`${fact.fact_type_code}:${fact.value_text}:${i}`}>
+                            <strong>
+                              {fact.label_text}: {fact.value_text}
+                            </strong>
+                            {fact.assertion_code === "assertion_negated" ? (
+                              <div>{t("Negated condition")}</div>
+                            ) : null}
+                            {fact.normalized_date ? (
+                              <div>
+                                {t("Normalized date")}: {fact.normalized_date}
+                              </div>
+                            ) : null}
+                            {fact.normalization_evidence_text ? (
+                              <small>
+                                {t("Normalization evidence")}: {fact.normalization_evidence_text}
+                              </small>
+                            ) : null}
+                            <small>
+                              {t("Evidence")}: {fact.evidence_text}
+                            </small>
+                            <details className="semantic-provenance">
+                              <summary>{t("Evidence provenance")}</summary>
+                              <span className="post-badge">
+                                {t("Ontology class")}: {t(fact.ontology_label ?? "Source-grounded fact")}
+                              </span>
+                              <span className="post-badge">
+                                {t("Extraction source")}: {fact.extraction_method}
+                              </span>
+                            </details>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
                 </>
               ) : summaryError ? (
-                <p className="error">{summaryError}</p>
+                <SummaryStatus
+                  kind="unavailable"
+                  title={t("Summary could not be generated.")}
+                  description={t("The source record remains available.")}
+                  detail={summaryError}
+                  retryLabel={t("Retry summary refresh")}
+                  onRetry={() => setSummaryRetry((value) => value + 1)}
+                />
               ) : (
-                <p className="popup-placeholder">{t("No summary is available for this record yet.")}</p>
+                <SummaryStatus
+                  kind="empty"
+                  title={t("No saved summary exists for this record.")}
+                  description={t("The source record is available, but no summary has been saved.")}
+                  retryLabel={t("Retry summary refresh")}
+                  onRetry={() => setSummaryRetry((value) => value + 1)}
+                />
               )}
               </section>
               <div className="popup-analysis-col">
@@ -2217,6 +2486,7 @@ function PostDetailPopup({
               post.source_company_name ||
               post.source_process_unit_code ||
               post.source_process_unit_name ||
+              post.source_process_unit_catalog_name ||
               post.source_sales_pool_code ||
               post.source_sales_pool_name ||
               post.source_customer_code ||
@@ -2286,6 +2556,14 @@ function PostDetailPopup({
                     <>
                       <dt>{t("Source business unit")}</dt>
                       <dd>{post.source_process_unit_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_process_unit_catalog_name ? (
+                    <>
+                      <dt>{t("Source process unit catalog hint")}</dt>
+                      <dd className="source-context-hint">
+                        {t("Catalog hint")}: {post.source_process_unit_catalog_name}
+                      </dd>
                     </>
                   ) : null}
                   {post.source_sales_pool_code ? (
@@ -2389,6 +2667,12 @@ function PostDetailPopup({
                 }
               />
             </section>
+
+            {knowledgeGraph ? (
+              <section className="popup-section" aria-label={t("Knowledge Graph")}>
+                <KnowledgeGraphView graph={knowledgeGraph} onSelectPost={onSelectPost} />
+              </section>
+            ) : null}
 
             {focusEventLineage && (
               <KeymanPanel
@@ -3664,6 +3948,8 @@ function PostList({
   onPostOpened,
   focusSearchRequest = 0,
   onSearchFocusHandled,
+  globalSearchRequest = null,
+  onGlobalSearchHandled,
 }: {
   accessToken: string;
   showLabPanels?: boolean;
@@ -3671,6 +3957,8 @@ function PostList({
   onPostOpened?: () => void;
   focusSearchRequest?: number;
   onSearchFocusHandled?: () => void;
+  globalSearchRequest?: { id: number; query: string } | null;
+  onGlobalSearchHandled?: () => void;
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
@@ -3703,6 +3991,7 @@ function PostList({
   const postsRequest = useRef(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const lastFocusedSearchRequest = useRef(0);
+  const lastGlobalSearchRequest = useRef(0);
 
   useEffect(() => {
     if (focusSearchRequest <= 0) {
@@ -3719,6 +4008,17 @@ function PostList({
     input.focus();
     onSearchFocusHandled?.();
   }, [focusSearchRequest, onSearchFocusHandled, posts]);
+
+  useEffect(() => {
+    if (!globalSearchRequest) {
+      lastGlobalSearchRequest.current = 0;
+      return;
+    }
+    if (globalSearchRequest.id <= lastGlobalSearchRequest.current) return;
+    lastGlobalSearchRequest.current = globalSearchRequest.id;
+    searchBoard(globalSearchRequest.query);
+    onGlobalSearchHandled?.();
+  }, [globalSearchRequest, onGlobalSearchHandled]);
 
   function openReportFromAnalysisRun(
     periodCode: string,
@@ -4663,12 +4963,27 @@ function CustomerMasterPanel({
 }
 
 type AskAgentExchange = {
-  id: number;
+  id: string;
   question: string;
   status: "pending" | "complete" | "error";
   response?: AskAgentResponse;
   error?: string;
 };
+
+const ASK_AGENT_STARTERS = [
+  "What happened between these events?",
+  "Who is involved?",
+  "What is the next commitment?",
+] as const;
+
+function toAskAgentExchanges(conversation: Awaited<ReturnType<typeof fetchAskConversation>>): AskAgentExchange[] {
+  return conversation.exchanges.map((exchange) => ({
+    id: exchange.turn_id,
+    question: exchange.question_text,
+    status: "complete",
+    response: exchange,
+  }));
+}
 
 function AskAgentPanel({
   accessToken,
@@ -4679,18 +4994,172 @@ function AskAgentPanel({
 }) {
   const [question, setQuestion] = useState("");
   const [exchanges, setExchanges] = useState<AskAgentExchange[]>([]);
+  const [conversations, setConversations] = useState<AskConversationSummary[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [historyCursor, setHistoryCursor] = useState<AskConversationCursor | null>(null);
+  const [historyLoadingMore, setHistoryLoadingMore] = useState(false);
+  const [historyMoreError, setHistoryMoreError] = useState(false);
   const [asking, setAsking] = useState(false);
+  const [olderTurnCursor, setOlderTurnCursor] = useState<number | null>(null);
+  const [olderTurnsLoading, setOlderTurnsLoading] = useState(false);
+  const [olderTurnsError, setOlderTurnsError] = useState(false);
   const exchangeIdRef = useRef(0);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const historyRequestIdRef = useRef(0);
+  const historyListRef = useRef<HTMLUListElement>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
+  const scrollToLatestRef = useRef(false);
+
+  const loadInitialHistory = useCallback(async () => {
+    const requestId = ++historyRequestIdRef.current;
+    setHistoryLoading(true);
+    setHistoryError(null);
+    setHistoryMoreError(false);
+    setHistoryCursor(null);
+    setOlderTurnCursor(null);
+    setOlderTurnsError(false);
+    try {
+      const result = await fetchAskConversations(accessToken);
+      if (requestId !== historyRequestIdRef.current) return;
+      setConversations(result.conversations);
+      setHistoryCursor(result.next_cursor ?? null);
+      const latest = result.conversations[0];
+      if (!latest) {
+        setConversationId(null);
+        setExchanges([]);
+        return;
+      }
+      const conversation = await fetchAskConversation(accessToken, latest.conversation_id);
+      if (requestId !== historyRequestIdRef.current) return;
+      setConversationId(conversation.conversation_id);
+      setExchanges(toAskAgentExchanges(conversation));
+      setOlderTurnCursor(conversation.older_cursor ? Number(conversation.older_cursor) : null);
+      setOlderTurnsError(false);
+      scrollToLatestRef.current = true;
+    } catch {
+      if (requestId !== historyRequestIdRef.current) return;
+      setHistoryError(t("Conversation history could not be loaded."));
+    } finally {
+      if (requestId === historyRequestIdRef.current) setHistoryLoading(false);
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
+    void loadInitialHistory();
+  }, [loadInitialHistory]);
+
+  useEffect(() => {
+    if (!scrollToLatestRef.current || exchanges.length === 0) return;
+    const thread = threadRef.current;
+    if (!thread) return;
+    thread.scrollTop = thread.scrollHeight;
+    scrollToLatestRef.current = false;
+  }, [conversationId, exchanges.length]);
+
+  async function loadMoreConversations() {
+    if (!historyCursor || historyLoadingMore || asking) return;
+    setHistoryLoadingMore(true);
+    setHistoryMoreError(false);
+    try {
+      const result = await fetchAskConversations(accessToken, historyCursor);
+      setConversations((current) => {
+        const existingIds = new Set(current.map((item) => item.conversation_id));
+        return [
+          ...current,
+          ...result.conversations.filter((item) => !existingIds.has(item.conversation_id)),
+        ];
+      });
+      setHistoryCursor(result.next_cursor ?? null);
+    } catch {
+      setHistoryMoreError(true);
+    } finally {
+      setHistoryLoadingMore(false);
+    }
+  }
+
+  async function loadOlderExchanges() {
+    if (!conversationId || olderTurnCursor === null || olderTurnsLoading || asking) return;
+    const thread = threadRef.current;
+    const previousHeight = thread?.scrollHeight ?? 0;
+    setOlderTurnsLoading(true);
+    setOlderTurnsError(false);
+    try {
+      const conversation = await fetchAskConversation(accessToken, conversationId, olderTurnCursor);
+      const olderExchanges = toAskAgentExchanges(conversation);
+      setExchanges((current) => {
+        const existingIds = new Set(current.map((item) => item.id));
+        return [
+          ...olderExchanges.filter((item) => !existingIds.has(item.id)),
+          ...current,
+        ];
+      });
+      setOlderTurnCursor(conversation.older_cursor ? Number(conversation.older_cursor) : null);
+      window.requestAnimationFrame(() => {
+        if (thread) thread.scrollTop += thread.scrollHeight - previousHeight;
+      });
+    } catch {
+      setOlderTurnsError(true);
+    } finally {
+      setOlderTurnsLoading(false);
+    }
+  }
+
+  async function selectConversation(nextConversationId: string) {
+    if (asking) return;
+    setHistoryLoading(true);
+    setHistoryError(null);
+    setOlderTurnsError(false);
+    try {
+      const conversation = await fetchAskConversation(accessToken, nextConversationId);
+      setConversationId(conversation.conversation_id);
+      setExchanges(toAskAgentExchanges(conversation));
+      setOlderTurnCursor(conversation.older_cursor ? Number(conversation.older_cursor) : null);
+      scrollToLatestRef.current = true;
+    } catch {
+      setHistoryError(t("Conversation history could not be loaded."));
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  function startNewConversation() {
+    if (asking) return;
+    setConversationId(null);
+    setExchanges([]);
+    setQuestion("");
+    setHistoryError(null);
+    setOlderTurnCursor(null);
+    setOlderTurnsError(false);
+  }
+
+  function chooseStarter(prompt: string) {
+    setQuestion(t(prompt));
+    inputRef.current?.focus();
+  }
 
   async function handleAsk() {
     const normalized = question.trim();
     if (!normalized || asking) return;
-    const exchangeId = ++exchangeIdRef.current;
+    const exchangeId = String(++exchangeIdRef.current);
     setExchanges((current) => [...current, { id: exchangeId, question: normalized, status: "pending" }]);
     setQuestion("");
     setAsking(true);
     try {
-      const response = await askAgent(accessToken, normalized);
+      const response = await askAgent(accessToken, normalized, conversationId);
+      if (response.conversation_id) {
+        setConversationId(response.conversation_id);
+        setConversations((current) => [
+          {
+            conversation_id: response.conversation_id!,
+            title: current.find((item) => item.conversation_id === response.conversation_id)?.title ?? normalized.slice(0, 80),
+            updated_at: new Date().toISOString(),
+            turn_count: (current.find((item) => item.conversation_id === response.conversation_id)?.turn_count ?? 0) + 1,
+          },
+          ...current.filter((item) => item.conversation_id !== response.conversation_id),
+        ]);
+      }
       setExchanges((current) => current.map((exchange) => (
         exchange.id === exchangeId ? { ...exchange, status: "complete", response } : exchange
       )));
@@ -4707,31 +5176,128 @@ function AskAgentPanel({
 
   return (
     <section className="workspace-destination ask-agent-workspace" aria-labelledby="ask-agent-heading">
-      <header className="ask-agent-header">
-        <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
-        <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
-        <p className="workspace-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
-      </header>
+      <div className="ask-agent-layout">
+        <aside className="ask-agent-history" aria-label={t("Conversation history")}>
+          <div className="ask-agent-history-brand">
+            <span className="ask-agent-history-mark" aria-hidden="true">LW</span>
+            <div>
+              <strong>{t("Ask Agent")}</strong>
+              <span>{t("Evidence-grounded questions")}</span>
+            </div>
+          </div>
+          <div className="ask-agent-history-header">
+            <h3>{t("Conversation history")}</h3>
+            <button type="button" className="ask-agent-new" onClick={startNewConversation} disabled={asking || historyLoading || historyLoadingMore || olderTurnsLoading}>
+              {t("New conversation")}
+            </button>
+          </div>
+          {historyError && conversations.length === 0 ? (
+            <div className="ask-agent-history-error">
+              <p>{historyError}</p>
+              <button type="button" className="ask-agent-retry" onClick={() => void loadInitialHistory()} disabled={historyLoading}>
+                {t("Retry")}
+              </button>
+            </div>
+          ) : conversations.length > 0 ? (
+            <ul
+              ref={historyListRef}
+              className="ask-agent-history-list"
+              onScroll={(event) => {
+                const element = event.currentTarget;
+                if (element.scrollHeight - element.scrollTop - element.clientHeight < 96) {
+                  void loadMoreConversations();
+                }
+              }}
+            >
+              {conversations.map((conversation) => (
+                <li key={conversation.conversation_id}>
+                  <button
+                    type="button"
+                    className="ask-agent-history-item"
+                    aria-pressed={conversation.conversation_id === conversationId}
+                    onClick={() => void selectConversation(conversation.conversation_id)}
+                    disabled={historyLoading || historyLoadingMore || olderTurnsLoading || asking}
+                  >
+                    <strong>{conversation.title}</strong>
+                    <span>{conversation.turn_count} {t("questions")}</span>
+                  </button>
+                </li>
+              ))}
+              {historyCursor ? (
+                <li className="ask-agent-history-load-status">
+                  {historyLoadingMore ? (
+                    <p role="status">{t("Loading older conversations...")}</p>
+                  ) : historyMoreError ? (
+                    <button type="button" className="ask-agent-retry" onClick={() => void loadMoreConversations()}>
+                      {t("Retry loading history")}
+                    </button>
+                  ) : (
+                    <p role="status">{t("Scroll to load older conversations")}</p>
+                  )}
+                </li>
+              ) : null}
+            </ul>
+          ) : (
+            <p className="ask-agent-history-empty">{t("No saved conversations yet.")}</p>
+          )}
+        </aside>
 
-      <div className="ask-agent-thread" role="log" aria-label={t("Conversation")} aria-live="polite" aria-busy={asking}>
+        <div className="ask-agent-main">
+          <header className="ask-agent-header">
+            <div className="ask-agent-header-identity">
+              <span className="ask-agent-mark ask-agent-header-mark" aria-hidden="true">LW</span>
+              <div>
+                <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
+                <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
+              </div>
+            </div>
+            <p className="workspace-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
+          </header>
+
+      <div
+        ref={threadRef}
+        className="ask-agent-thread"
+        role="log"
+        aria-label={t("Conversation")}
+        aria-live="polite"
+        aria-busy={asking || historyLoading || olderTurnsLoading}
+        onScroll={(event) => {
+          if (event.currentTarget.scrollTop < 120) void loadOlderExchanges();
+        }}
+      >
+        {historyError ? <p className="ask-agent-error">{historyError}</p> : null}
+        {historyLoading && exchanges.length === 0 ? <p className="ask-agent-history-loading">{t("Loading...")}</p> : null}
+        {olderTurnsLoading ? <p className="ask-agent-history-loading" role="status">{t("Loading older questions...")}</p> : null}
+        {olderTurnsError ? (
+          <button type="button" className="ask-agent-retry ask-agent-thread-retry" onClick={() => void loadOlderExchanges()}>
+            {t("Retry loading older questions")}
+          </button>
+        ) : null}
         {exchanges.length === 0 ? (
-          <div className="ask-agent-empty">
+          <div className="ask-agent-empty" hidden={historyLoading || Boolean(historyError)}>
             <span className="ask-agent-mark" aria-hidden="true">LW</span>
             <h3>{t("Start with a question about the evidence")}</h3>
             <p>{t("Ask about an event, decision, or source post.")}</p>
+            <div className="ask-agent-starters" aria-label={t("Suggested questions")}>
+              {ASK_AGENT_STARTERS.map((prompt) => (
+                <button key={prompt} type="button" className="ask-agent-starter" onClick={() => chooseStarter(prompt)}>
+                  {t(prompt)}
+                </button>
+              ))}
+            </div>
           </div>
         ) : exchanges.map((exchange) => {
           const response = exchange.response;
           return (
             <article className="ask-agent-turn" key={exchange.id}>
-              <div className="ask-agent-message-row">
+              <div className="ask-agent-message-row ask-agent-user-row">
                 <span className="ask-agent-avatar ask-agent-user-avatar" aria-hidden="true">U</span>
                 <div className="ask-agent-message ask-agent-user-message">
                   <p className="ask-agent-message-label">{t("You")}</p>
                   <p>{exchange.question}</p>
                 </div>
               </div>
-              <div className="ask-agent-message-row">
+              <div className="ask-agent-message-row ask-agent-assistant-row">
                 <span className="ask-agent-avatar ask-agent-assistant-avatar" aria-hidden="true">LW</span>
                 <div className="ask-agent-message ask-agent-assistant-message">
                   <p className="ask-agent-message-label">{t("Ask Agent")}</p>
@@ -4784,6 +5350,7 @@ function AskAgentPanel({
         <div className="ask-agent-composer-field">
           <textarea
             id="ask-agent-input"
+            ref={inputRef}
             aria-label={t("Ask a question")}
             placeholder={t("What happened between these events?")}
             value={question}
@@ -4802,6 +5369,8 @@ function AskAgentPanel({
         </div>
         <p className="ask-agent-composer-help">{t("Enter to send. Shift+Enter for a new line.")}</p>
       </form>
+        </div>
+      </div>
     </section>
   );
 }
@@ -4813,7 +5382,10 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   const [destination, setDestination] = useState<WorkspaceDestination>("board");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [siteMapOpen, setSiteMapOpen] = useState(false);
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+  const [globalSearchValue, setGlobalSearchValue] = useState("");
   const [searchFocusRequest, setSearchFocusRequest] = useState(0);
+  const [globalSearchRequest, setGlobalSearchRequest] = useState<{ id: number; query: string } | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
@@ -4829,8 +5401,28 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
     setDestination(nextDestination);
     setMobileMenuOpen(false);
     setSiteMapOpen(false);
+    setGlobalSearchOpen(false);
     if (nextDestination !== "board") setSearchFocusRequest(0);
   };
+
+  function openGlobalSearch() {
+    setMobileMenuOpen(false);
+    setSiteMapOpen(false);
+    setGlobalSearchOpen(true);
+  }
+
+  function submitGlobalSearch(query: string) {
+    const normalized = query.trim();
+    if (!normalized) return;
+    setGlobalSearchOpen(false);
+    setGlobalSearchValue("");
+    setGlobalSearchRequest((current) => ({
+      id: (current?.id ?? 0) + 1,
+      query: normalized,
+    }));
+    changeDestination("board");
+    setSearchFocusRequest((request) => request + 1);
+  }
 
   useEffect(() => {
     if (!siteMapOpen) return;
@@ -4960,16 +5552,18 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           ) : null}
           <span className="app-user-profile">{auth.user?.profile.preferred_username}</span>
           <LanguageSwitcher accessToken={accessToken} />
-          <button
-            type="button"
-            className="btn-secondary app-header-search"
-            onClick={() => {
-              changeDestination("board");
-              setSearchFocusRequest((request) => request + 1);
-            }}
-          >
-            {t("Search")}
-          </button>
+          <GlobalSearch
+            open={globalSearchOpen}
+            value={globalSearchValue}
+            searchLabel={t("Search")}
+            inputLabel={t("Search semantic evidence")}
+            closeLabel={t("Close")}
+            helpText={t("Search includes post text and semantic evidence.")}
+            onOpen={openGlobalSearch}
+            onClose={() => setGlobalSearchOpen(false)}
+            onChange={setGlobalSearchValue}
+            onSubmit={submitGlobalSearch}
+          />
           <SiteMapUtility
             destination={destination}
             onChange={changeDestination}
@@ -5012,6 +5606,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             onPostOpened={() => setPostToOpen(null)}
             focusSearchRequest={searchFocusRequest}
             onSearchFocusHandled={() => setSearchFocusRequest(0)}
+            globalSearchRequest={globalSearchRequest}
+            onGlobalSearchHandled={() => setGlobalSearchRequest(null)}
           />
         ) : null}
         {destination === "customers" ? (

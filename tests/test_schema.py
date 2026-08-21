@@ -61,6 +61,46 @@ _AFFILIATION_SCOPE_FACET_MIGRATION = (
     / "migrations"
     / "0106_account_affiliation_scope_facet.sql"
 )
+_ROLE_AFFILIATION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0107_role_affiliation_catalog_identity.sql"
+)
+_QUANTITATIVE_OBSERVATION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0108_post_summary_quantitative_observation.sql"
+)
+_SOURCE_FACT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0109_post_summary_source_fact.sql"
+)
+_SOFTWARE_AGENT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0110_role_responsibility_software_agent.sql"
+)
+_SEMANTIC_RELATIONSHIP_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0111_post_summary_semantic_relationship.sql"
+)
+_EVENT_CLUE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0112_event_clue_semantic_projection.sql"
+)
+_BROAD_FACT_TYPES_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0113_broad_source_fact_types.sql"
+)
+_SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0114_semantic_relationship_standard_predicates.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -105,6 +145,16 @@ def schema_db():
                 affiliation_scope_migration = _AFFILIATION_SCOPE_FACET_MIGRATION.read_text()
                 cur.execute(affiliation_scope_migration)
                 cur.execute(affiliation_scope_migration)
+                role_affiliation_migration = _ROLE_AFFILIATION_MIGRATION.read_text()
+                cur.execute(role_affiliation_migration)
+                cur.execute(role_affiliation_migration)
+                cur.execute(_QUANTITATIVE_OBSERVATION_MIGRATION.read_text())
+                cur.execute(_SOURCE_FACT_MIGRATION.read_text())
+                cur.execute(_SOFTWARE_AGENT_MIGRATION.read_text())
+                cur.execute(_SEMANTIC_RELATIONSHIP_MIGRATION.read_text())
+                cur.execute(_EVENT_CLUE_MIGRATION.read_text())
+                cur.execute(_BROAD_FACT_TYPES_MIGRATION.read_text())
+                cur.execute(_SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -150,6 +200,7 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "report_leftover_pair",
         "post_summary_result",
         "post_summary_event",
+        "post_summary_event_clue",
         "post_summary_role",
         "post_summary_action",
         "post_chat_result",
@@ -160,6 +211,9 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "global_ask_turn_citation",
         "global_ask_turn_source",
         "global_ask_turn_evidence",
+        "post_summary_quantitative_observation",
+        "post_summary_source_fact",
+        "post_summary_semantic_relationship",
     }
     assert expected <= tables
 

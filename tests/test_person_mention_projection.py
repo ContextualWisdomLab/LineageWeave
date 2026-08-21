@@ -103,6 +103,41 @@ _SOURCE_NAMED_HINTS_MIGRATION = (
 _SOURCE_ORG_NAMED_HINTS_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0039_source_org_named_hints.sql"
 )
+_QUANTITATIVE_OBSERVATION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0108_post_summary_quantitative_observation.sql"
+)
+_SOURCE_FACT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0109_post_summary_source_fact.sql"
+)
+_SOFTWARE_AGENT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0110_role_responsibility_software_agent.sql"
+)
+_SEMANTIC_RELATIONSHIP_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0111_post_summary_semantic_relationship.sql"
+)
+_EVENT_CLUE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0112_event_clue_semantic_projection.sql"
+)
+_BROAD_FACT_TYPES_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0113_broad_source_fact_types.sql"
+)
+_SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0114_semantic_relationship_standard_predicates.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -167,6 +202,13 @@ def projection_database() -> str:
                 cursor.execute(_SOURCE_ORG_NAMED_HINTS_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_POST_SUMMARY_CONTRACT_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_QUANTITATIVE_OBSERVATION_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SOURCE_FACT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SOFTWARE_AGENT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SEMANTIC_RELATIONSHIP_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_EVENT_CLUE_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_BROAD_FACT_TYPES_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text(encoding="utf-8"))
@@ -315,7 +357,11 @@ async def _exercise_projection_contract(
             for action in summary_payload["major_event_actions"]
         ] == ["Synthetic Project", None]
         assert summary_payload["key_event_details"] == [
-            {"event_text": "합성 프로젝트 검토", "project_name": "Synthetic Project"}
+            {
+                "event_text": "합성 프로젝트 검토",
+                "project_name": "Synthetic Project",
+                "evidence_text": None,
+            }
         ]
 
         keyman_rows = await connection.fetch(

@@ -211,6 +211,62 @@ async def _semantic_facts_for_posts(
           from post_person_mention mention
           join cataloged_person person on person.person_id = mention.person_id
          where mention.post_id = any($1::uuid[])
+        union all
+        select event.post_id::text as post_id,
+               'event: ' || left(event.event_text, 300)
+                   || coalesce(' | evidence: ' || left(event.evidence_text, 500), '')
+                   || ' | ontology_iri: ' || event.ontology_iri
+                   || ' | extraction_method: ' || event.extraction_method
+                   || ' [provenance=post_summary_event]' as fact
+          from post_summary_event event
+         where event.post_id = any($1::uuid[])
+        union all
+        select clue.post_id::text as post_id,
+               'event clue: ' || clue.clue_type_code
+                   || ' | clue: ' || left(clue.clue_text, 300)
+                   || coalesce(' | target: ' || left(clue.target_text, 200), '')
+                   || coalesce(' | normalized: ' || left(clue.normalized_value_text, 200), '')
+                   || coalesce(' | assertion: ' || clue.assertion_code, '')
+                   || ' | evidence: ' || left(clue.evidence_text, 500)
+                   || ' | ontology_iri: ' || clue.ontology_iri
+                   || ' | extraction_method: ' || clue.extraction_method
+                   || ' [provenance=post_summary_event_clue]' as fact
+          from post_summary_event_clue clue
+         where clue.post_id = any($1::uuid[])
+        union all
+        select observation.post_id::text as post_id,
+               'quantitative: ' || left(observation.label_text, 200)
+                   || ' | value: ' || left(observation.raw_value_text, 200)
+                   || coalesce(' | quantity: ' || observation.quantity_numeric::text || ' ' || observation.quantity_unit_code, '')
+                   || ' | evidence: ' || left(observation.evidence_text, 500)
+                   || ' | ontology_iri: ' || observation.ontology_iri
+                   || ' | extraction_method: ' || observation.extraction_method
+                   || ' [provenance=post_summary_quantitative_observation]' as fact
+          from post_summary_quantitative_observation observation
+         where observation.post_id = any($1::uuid[])
+        union all
+        select fact.post_id::text as post_id,
+               'source fact: ' || left(fact.label_text, 200)
+                   || ' | value: ' || left(fact.value_text, 500)
+                   || coalesce(' | normalized_value: ' || left(fact.normalized_value_text, 200), '')
+                   || coalesce(' | normalized_date: ' || fact.normalized_date::text, '')
+                   || coalesce(' | assertion: ' || fact.assertion_code, '')
+                   || ' | evidence: ' || left(fact.evidence_text, 500)
+                   || ' | ontology_iri: ' || fact.ontology_iri
+                   || ' | extraction_method: ' || fact.extraction_method
+                   || ' [provenance=post_summary_source_fact]' as fact
+          from post_summary_source_fact fact
+         where fact.post_id = any($1::uuid[])
+        union all
+        select relation.post_id::text as post_id,
+               'semantic relation: ' || left(relation.subject_name, 200)
+                   || ' --' || relation.predicate_code || '--> '
+                   || left(relation.object_name, 200)
+                   || ' | evidence: ' || left(relation.evidence_text, 500)
+                   || ' | confidence: ' || relation.relation_confidence::text
+                   || ' [provenance=post_summary_semantic_relationship]' as fact
+          from post_summary_semantic_relationship relation
+         where relation.post_id = any($1::uuid[])
          order by post_id, fact
         """,
         post_ids,
@@ -425,7 +481,7 @@ async def gather_global_chat_sources(
     # tiebreak let recency crowd out relevance -- a year-old post whose
     # title is an exact company-name match lost to four newer, only
     # loosely related posts in a live reproduction of this bug.
-    _MATCH_WEIGHT = {"title": 3.0, "body": 1.0, "source_field": 1.0}
+    _MATCH_WEIGHT = {"title": 3.0, "body": 1.0, "source_field": 1.0, "semantic": 2.5}
     candidate_scores: dict[str, float] = {}
     for term in search_terms:
         candidate_rows = await conn.fetch(
@@ -460,6 +516,75 @@ async def gather_global_chat_sources(
                                       source_project_code, source_project_name)
                                ilike '%' || $1 || '%'
                      limit 32)
+                   union all
+                   (select post.post_id, post.created_at, 'semantic' as matched_in
+                      from source_post post
+                      join post_summary_event semantic
+                        on semantic.post_id = post.post_id
+                     where semantic.event_text ilike '%' || $1 || '%'
+                        or semantic.evidence_text ilike '%' || $1 || '%'
+                     limit 32)
+                    union all
+                   (select post.post_id, post.created_at, 'semantic' as matched_in
+                      from source_post post
+                      join post_summary_event_clue semantic
+                        on semantic.post_id = post.post_id
+                     where semantic.clue_text ilike '%' || $1 || '%'
+                        or semantic.target_text ilike '%' || $1 || '%'
+                        or semantic.normalized_value_text ilike '%' || $1 || '%'
+                        or semantic.evidence_text ilike '%' || $1 || '%'
+                        or semantic.ontology_iri ilike '%' || $1 || '%'
+                     limit 32)
+                    union all
+                   (select post.post_id, post.created_at, 'semantic' as matched_in
+                      from source_post post
+                      join post_project_mention semantic
+                        on semantic.post_id = post.post_id
+                     where semantic.project_name ilike '%' || $1 || '%'
+                        or semantic.evidence_text ilike '%' || $1 || '%'
+                        or semantic.ontology_iri ilike '%' || $1 || '%'
+                     limit 32)
+                    union all
+                   (select post.post_id, post.created_at, 'semantic' as matched_in
+                      from source_post post
+                      join post_summary_role semantic
+                        on semantic.post_id = post.post_id
+                     where semantic.actor_name ilike '%' || $1 || '%'
+                        or semantic.responsibility_text ilike '%' || $1 || '%'
+                        or semantic.affiliated_organization_name ilike '%' || $1 || '%'
+                     limit 32)
+                    union all
+                   (select post.post_id, post.created_at, 'semantic' as matched_in
+                      from source_post post
+                      join post_summary_quantitative_observation semantic
+                        on semantic.post_id = post.post_id
+                     where semantic.label_text ilike '%' || $1 || '%'
+                        or semantic.raw_value_text ilike '%' || $1 || '%'
+                        or semantic.evidence_text ilike '%' || $1 || '%'
+                        or semantic.value_numeric::text ilike '%' || $1 || '%'
+                        or semantic.quantity_numeric::text ilike '%' || $1 || '%'
+                     limit 32)
+                    union all
+                   (select post.post_id, post.created_at, 'semantic' as matched_in
+                      from source_post post
+                      join post_summary_source_fact semantic
+                        on semantic.post_id = post.post_id
+                     where semantic.label_text ilike '%' || $1 || '%'
+                        or semantic.value_text ilike '%' || $1 || '%'
+                        or semantic.normalized_value_text ilike '%' || $1 || '%'
+                        or semantic.evidence_text ilike '%' || $1 || '%'
+                        or semantic.normalized_date::text ilike '%' || $1 || '%'
+                     limit 32)
+                    union all
+                   (select post.post_id, post.created_at, 'semantic' as matched_in
+                      from source_post post
+                      join post_summary_semantic_relationship semantic
+                        on semantic.post_id = post.post_id
+                     where semantic.subject_name ilike '%' || $1 || '%'
+                        or semantic.predicate_code ilike '%' || $1 || '%'
+                        or semantic.object_name ilike '%' || $1 || '%'
+                        or semantic.evidence_text ilike '%' || $1 || '%'
+                     limit 32)
                    ) matches
              order by created_at desc, post_id desc
             limit 32
@@ -479,6 +604,27 @@ async def gather_global_chat_sources(
     # `find_linked_post_ids`'s `.direct` set used by the post-scoped chat
     # flow. Only the top match is expanded -- expanding every keyword hit
     # would let a loosely related term drag in an unrelated lineage chain.
+    kg_neighbor_ids: list[str] = []
+    kg_anchor_id = candidate_ids[0] if candidate_ids else None
+    if kg_anchor_id:
+        kg_edges = await load_visible_subgraph(conn, [kg_anchor_id])
+        kg_scores = random_walk_with_restart(
+            adjacency_from_edges(kg_edges), node_key(NODE_POST, kg_anchor_id)
+        )
+        for node, score in select_related_nodes(
+            kg_scores, node_key(NODE_POST, kg_anchor_id), max_nodes=limit * 2
+        ):
+            node_type, node_id = parse_node_key(node)
+            if node_type != NODE_POST:
+                continue
+            kg_neighbor_ids.append(node_id)
+            candidate_scores[node_id] = candidate_scores.get(node_id, 0.0) + score
+        candidate_ids = sorted(
+            candidate_scores,
+            key=lambda post_id: candidate_scores[post_id],
+            reverse=True,
+        )
+
     lineage_neighbor_ids: list[str] = []
     lineage_anchor_id = candidate_ids[0] if candidate_ids else None
     if lineage_anchor_id:
