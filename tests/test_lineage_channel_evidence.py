@@ -319,11 +319,11 @@ def test_visible_lineage_graph_exposes_ranked_audit_evidence_without_inventing_l
 
 
 def test_channel_score_migration_is_normalized_bounded_versioned_and_reversible() -> None:
-    migration = Path("migrations/0053_lineage_edge_channel_score.sql").read_text(
+    migration = Path("migrations/0055_lineage_edge_channel_score.sql").read_text(
         encoding="utf-8"
     )
     rollback = Path(
-        "migrations/rollback/0053_lineage_edge_channel_score.sql"
+        "migrations/rollback/0055_lineage_edge_channel_score.sql"
     ).read_text(encoding="utf-8")
     docker_migrate = Path("docker/postgres-init/migrate.sh").read_text(
         encoding="utf-8"

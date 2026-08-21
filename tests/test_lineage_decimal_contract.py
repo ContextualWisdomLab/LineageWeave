@@ -4,11 +4,11 @@ from pathlib import Path
 
 
 def test_lineage_evidence_uses_fixed_precision_decimals() -> None:
-    migration = Path("migrations/0053_lineage_edge_channel_score.sql").read_text(
+    migration = Path("migrations/0055_lineage_edge_channel_score.sql").read_text(
         encoding="utf-8"
     )
     rollback = Path(
-        "migrations/rollback/0053_lineage_edge_channel_score.sql"
+        "migrations/rollback/0055_lineage_edge_channel_score.sql"
     ).read_text(encoding="utf-8")
 
     assert "channel_weight numeric(18, 12) not null" in migration

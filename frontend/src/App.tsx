@@ -3926,6 +3926,11 @@ function PostList({
       return;
     }
     let active = true;
+    let timer: number | undefined;
+    const stopPolling = () => {
+      active = false;
+      if (timer !== undefined) window.clearInterval(timer);
+    };
     const poll = () => {
       void fetchLineageRebuild(accessToken, jobId)
         .then(async (nextJob) => {
@@ -3943,15 +3948,15 @@ function PostList({
         })
         .catch((err) => {
           if (!active) return;
+          stopPolling();
           setRebuildError(String(err));
           setRebuilding(false);
         });
     };
     poll();
-    const timer = window.setInterval(poll, 1000);
+    timer = window.setInterval(poll, 1000);
     return () => {
-      active = false;
-      window.clearInterval(timer);
+      stopPolling();
     };
   }, [accessToken, rebuildJob?.lineage_rebuild_job_id, rebuildJob?.status_code]);
 

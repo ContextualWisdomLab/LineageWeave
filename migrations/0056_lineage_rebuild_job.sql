@@ -1,4 +1,4 @@
--- ADR 0100: durable lineage rebuild jobs. PostgreSQL is truth; Valkey is
+-- ADR 0107: durable lineage rebuild jobs. PostgreSQL is truth; Valkey is
 -- only a wake-up. No post body or fabricated LLM score is stored.
 
 insert into common_lookup_value (

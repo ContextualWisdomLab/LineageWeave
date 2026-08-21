@@ -217,7 +217,7 @@ contextual-orchestrator; persist is `backend/app/keyman_ingestion.py`.
 includes `group` from the same `reconstruct_group_key()` rebuild uses
 (persisted `thread_group_key`, else process unit, else corp).
 `POST /api/lineage/rebuild` (`post_admin`) enqueues a durable
-`lineage_rebuild_job` (ADR 0100). HTTP does not call
+`lineage_rebuild_job` (ADR 0107). HTTP does not call
 contextual-orchestrator. A worker runs `lineage_edge_specs` off the
 event loop and rewrites `post_lineage_edge` once the selected
 reconstruction completes. A missing, skipped, or failed LLM channel is

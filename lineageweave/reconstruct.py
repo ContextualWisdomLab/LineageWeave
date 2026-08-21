@@ -43,7 +43,7 @@ DEFAULT_MIN_FUSED_SCORE = 0.3
 
 # Corpus-wide rebuilds may contain many bounded windows. The product worker
 # skips the LLM channel when the estimated pair count exceeds this limit
-# rather than blocking HTTP or inventing scores (ADR 0100).
+# rather than blocking HTTP or inventing scores (ADR 0107).
 DEFAULT_PAIR_LIMIT = 10000
 
 

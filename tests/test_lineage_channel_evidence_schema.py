@@ -17,9 +17,9 @@ _ADMIN_DSN = os.environ.get(
 )
 _ROOT = Path(__file__).resolve().parents[1]
 _INITIAL_SCHEMA = _ROOT / "migrations" / "0001_initial_schema.sql"
-_MIGRATION = _ROOT / "migrations" / "0053_lineage_edge_channel_score.sql"
+_MIGRATION = _ROOT / "migrations" / "0055_lineage_edge_channel_score.sql"
 _ROLLBACK = (
-    _ROOT / "migrations" / "rollback" / "0053_lineage_edge_channel_score.sql"
+    _ROOT / "migrations" / "rollback" / "0055_lineage_edge_channel_score.sql"
 )
 
 

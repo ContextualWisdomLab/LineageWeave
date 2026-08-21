@@ -113,7 +113,7 @@ _GLOBAL_ASK_CONTEXT_MIGRATION = (
 _LINEAGE_REBUILD_JOB_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
-    / "0053_lineage_rebuild_job.sql"
+    / "0056_lineage_rebuild_job.sql"
 )
 _MAJOR_EVENT_ACTION_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0100_major_event_action.sql"

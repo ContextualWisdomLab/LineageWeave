@@ -1,4 +1,4 @@
-"""Contracts for the durable Event Lineage rebuild queue (ADR 0100 / issue #289)."""
+"""Contracts for the durable Event Lineage rebuild queue (ADR 0107 / issue #289)."""
 
 from __future__ import annotations
 
@@ -207,7 +207,7 @@ def test_http_path_copy_names_the_next_action() -> None:
 
 
 def test_migration_contains_normalized_job_tables() -> None:
-    migration = (_ROOT / "migrations" / "0053_lineage_rebuild_job.sql").read_text()
+    migration = (_ROOT / "migrations" / "0056_lineage_rebuild_job.sql").read_text()
     assert "create table if not exists lineage_rebuild_job" in migration
     assert "create table if not exists lineage_rebuild_job_status_event" in migration
     assert "jsonb" not in migration.casefold()
@@ -217,4 +217,4 @@ def test_migration_contains_normalized_job_tables() -> None:
 
 def test_migrate_sh_replays_lineage_rebuild_job_migration() -> None:
     migrate = (_ROOT / "docker/postgres-init/migrate.sh").read_text()
-    assert "0053_*" in migrate
+    assert "0056_*" in migrate

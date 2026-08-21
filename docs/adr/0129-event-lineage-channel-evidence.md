@@ -96,7 +96,7 @@ separate retained-run and edge-versioning contract before preserving them.
 - PostgreSQL remains third-normal-form while the selected edge stays compact.
 - Duplicate rebuild delivery replaces rather than duplicates the current graph
   and removes orphan score/profile evidence.
-- Existing edges created before migration 0053 may have no run metadata; they
+- Existing edges created before migration 0055 may have no run metadata; they
   remain explicitly unavailable until an intentional rebuild and are never
   silently reinterpreted.
 - Heuristic scores remain uncalibrated reconstruction evidence and are not

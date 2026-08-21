@@ -1,4 +1,4 @@
-# Event Lineage LLM rebuild (ADR 0100 / v2.22.0)
+# Event Lineage LLM rebuild (ADR 0107 / v2.22.0)
 
 | Claim | Evidence |
 | --- | --- |

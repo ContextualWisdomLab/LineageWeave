@@ -66,4 +66,5 @@ def test_migrate_sh_replays_lineage_rebuild_job_migration() -> None:
         / "migrate.sh"
     ).read_text(encoding="utf-8")
 
-    assert "0053_*" in script
+    assert "0055_*" in script
+    assert "0056_*" in script

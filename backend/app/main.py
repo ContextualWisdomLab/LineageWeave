@@ -372,7 +372,7 @@ def _adjudication_client():
     reconstruct.py's DEFAULT_CHANNEL_WEIGHTS gives this channel the most
     weight (0.40) of the four -- it is the only one that reasons about
     content instead of approximating it (ADR 0064). Corpus-wide rebuild
-    enqueues that client for a durable worker (ADR 0100); analysis-run
+    enqueues that client for a durable worker (ADR 0107); analysis-run
     start already passes it on the cutoff bag. A missing client stays
     unavailable and is dropped, never faked as a zero score.
     """
@@ -1198,7 +1198,7 @@ async def rebuild_lineage_graph(
     """Enqueue a corpus-wide reconstruct. post_admin only.
 
     HTTP does not call contextual-orchestrator. The durable worker runs
-    ``lineage_edge_specs`` off the event loop (ADR 0100).
+    ``lineage_edge_specs`` off the event loop (ADR 0107).
     """
     _require_post_admin(account)
     client = _adjudication_client()
