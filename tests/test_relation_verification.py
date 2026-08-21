@@ -269,6 +269,24 @@ def test_hangul_org_name_with_stacked_particles_is_corroboration(
     )
 
 
+@pytest.mark.parametrize("particle", ["가", "이", "으로"])
+def test_latin_org_name_with_attached_korean_particle_is_corroboration(
+    particle: str,
+) -> None:
+    """Latin organization tokens also accept directly attached particles."""
+    assert (
+        corroborating_evidence_url(
+            "Acme",
+            {
+                "url": "https://news.example/item",
+                "title": "News",
+                "content": f"Acme{particle} 발표했다.",
+            },
+        )
+        == "https://news.example/item"
+    )
+
+
 def test_hangul_org_name_inside_a_larger_word_is_not_corroboration() -> None:
     """A company token must not match an unrelated longer Hangul word."""
     assert (
