@@ -121,6 +121,7 @@ function renderSegment(segment: PostBodySegment, index: number, imageContent?: P
               : undefined
           }
         >
+          {/* Keep decoded source as a React text child; never render it as raw HTML. */}
           {segment.text}
         </p>
       );

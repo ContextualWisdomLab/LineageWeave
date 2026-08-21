@@ -71,4 +71,15 @@ describe("OIDC return URL handling", () => {
     expect(restoreOidcReturnUrl(undefined)).toBe("/?post=from-local-storage");
     expect(window.localStorage.getItem("lineageweave.oidc.returnUrl")).toBeNull();
   });
+
+  it("preserves the post query and hash through the OIDC callback", () => {
+    const returnUrl = returnUrlFromLocation({
+      pathname: "/",
+      search: "?post=synthetic-post",
+      hash: "#evidence",
+    });
+
+    expect(returnUrl).toBe("/?post=synthetic-post#evidence");
+    expect(restoreOidcReturnUrl({ returnUrl })).toBe(returnUrl);
+  });
 });
