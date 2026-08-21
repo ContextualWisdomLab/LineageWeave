@@ -9,7 +9,6 @@ import pytest
 
 from lineageweave.post_structure import PostStructureClient
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SQL_REVIEW_PATHS = (
     "backend/app/analysis_run_ingestion.py",
@@ -74,3 +73,11 @@ def test_post_structure_protocol_stub_fails_explicitly() -> None:
     """The protocol method cannot silently return ``None`` when invoked directly."""
     with pytest.raises(NotImplementedError):
         PostStructureClient.infer(object(), "title", [])
+
+
+def test_post_content_backfill_query_binds_structure_and_limit_separately() -> None:
+    """Removing model selection must not collapse the two remaining SQL binds."""
+    source = (ROOT / "scripts/queue_post_content_backfill.py").read_text(encoding="utf-8")
+
+    assert "or ($1::boolean and exists (" in source
+    assert "limit $2::bigint" in source

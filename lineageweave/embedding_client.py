@@ -52,9 +52,22 @@ class OpenAiCompatibleEmbeddingClient:
         """Return an embedding for the supplied text."""
         return self._delegate.embed(text)
 
+    def embed_many(self, texts: list[str]) -> list[list[float]]:
+        """Delegate batch embedding while preserving the modern client contract."""
+        return self._delegate.embed_many(texts)
+
+    @property
+    def resolved_model_code(self) -> str | None:
+        """Expose per-request model provenance from the orchestrator delegate."""
+        return getattr(self._delegate, "resolved_model_code", None)
+
 
 class ContextualOrchestratorEmbeddingClient:
-    """Submit embeddings through contextual-orchestrator's batch boundary."""
+    """Submit embeddings through contextual-orchestrator's batch boundary.
+
+    Model discovery belongs to the orchestrator.  The returned model code is
+    retained for persistence so an automatic route still has provenance.
+    """
 
     available = True
 
@@ -62,7 +75,7 @@ class ContextualOrchestratorEmbeddingClient:
         self,
         base_url: str,
         api_key: str,
-        model: str,
+        model: str | None,
         *,
         timeout: float = 60.0,
         poll_interval: float = 0.25,
@@ -71,7 +84,8 @@ class ContextualOrchestratorEmbeddingClient:
         if not self._base_url.endswith("/v1"):
             self._base_url = f"{self._base_url}/v1"
         self._api_key = api_key
-        self._model = model
+        self._model = model.strip() if isinstance(model, str) and model.strip() else None
+        self.resolved_model_code: str | None = self._model
         self._timeout = timeout
         self._poll_interval = poll_interval
 
@@ -81,20 +95,24 @@ class ContextualOrchestratorEmbeddingClient:
 
     def embed_many(self, texts: list[str]) -> list[list[float]]:
         """Return embeddings for the supplied texts."""
+        self.resolved_model_code = self._model
         if not texts:
             return []
         headers = {"authorization": f"Bearer {self._api_key}"}
+        payload: dict[str, object] = {
+            "inputs": texts,
+            "endpoint": "/v1/embeddings",
+            "metadata": {"service": "lineageweave", "channel": "post_content_embedding"},
+        }
+        if self._model:
+            payload["model"] = self._model
         response = post_json(
             f"{self._base_url}/batch/embeddings",
-            {
-                "model": self._model,
-                "inputs": texts,
-                "endpoint": "/v1/embeddings",
-                "metadata": {"service": "lineageweave", "channel": "post_content_embedding"},
-            },
+            payload,
             headers=headers,
             timeout=self._timeout,
         )
+        self._record_resolved_model(response)
         batch_id = response.get("batch_id")
         if isinstance(batch_id, str) and batch_id:
             deadline = time.monotonic() + self._timeout
@@ -112,6 +130,7 @@ class ContextualOrchestratorEmbeddingClient:
                     headers=headers,
                     timeout=self._timeout,
                 )
+                self._record_resolved_model(response)
 
         vectors = self._vectors(response, len(texts))
         if vectors is None:
@@ -139,10 +158,16 @@ class ContextualOrchestratorEmbeddingClient:
             return None
         return [vector for vector in ordered if vector is not None]
 
+    def _record_resolved_model(self, response: dict) -> None:
+        """Keep the model selected by the orchestrator for DB provenance."""
+        model = response.get("model")
+        if isinstance(model, str) and model.strip():
+            self.resolved_model_code = model.strip()
 
-def orchestrator_embedding_client(base_url: str, api_key: str, model: str):
+
+def orchestrator_embedding_client(base_url: str, api_key: str, model: str | None = None):
     """Build the batch embedding channel, or the unavailable null client."""
-    if not (base_url and api_key and model):
+    if not (base_url and api_key):
         return NullEmbeddingClient()
     return ContextualOrchestratorEmbeddingClient(base_url, api_key, model)
 

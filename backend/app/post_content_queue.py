@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import timedelta
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
 
 import asyncpg
@@ -48,7 +48,7 @@ async def post_content_is_complete(
     conn: asyncpg.Connection,
     post_id: str,
     *,
-    embedding_model_code: str,
+    embedding_model_code: str | None,
     require_structure: bool = False,
 ) -> bool:
     """Require configured semantic, structure, and region evidence before ready."""
@@ -61,8 +61,35 @@ async def post_content_is_complete(
                         where unit.post_id = $1
                    )
                and (
-                   $2 = ''
-                       or (
+                   (
+                       nullif($2::text, '') is null
+                       and (
+                           not exists(
+                               select 1
+                                 from post_content_unit unit
+                                 left join post_content_embedding embedding
+                                   on embedding.post_content_unit_id = unit.post_content_unit_id
+                                where unit.post_id = $1
+                                  and embedding.post_content_embedding_id is null
+                           )
+                           and not exists(
+                               select 1
+                                 from post_content_unit unit
+                                 join post_content_image image
+                                   on image.post_content_unit_id = unit.post_content_unit_id
+                                 join post_content_image_region region
+                                   on region.post_content_image_id = image.post_content_image_id
+                                 left join post_content_image_region_embedding embedding
+                                   on embedding.post_content_image_region_id = region.post_content_image_region_id
+                                where unit.post_id = $1
+                                  and region.description_status_code = 'described'
+                                  and embedding.post_content_image_region_embedding_id is null
+                           )
+                       )
+                   )
+                   or (
+                       nullif($2::text, '') is not null
+                       and (
                            not exists(
                                select 1
                                  from post_content_unit unit
@@ -87,6 +114,7 @@ async def post_content_is_complete(
                                   and embedding.post_content_image_region_embedding_id is null
                            )
                        )
+                   )
                    )
                and (
                        not $3::boolean

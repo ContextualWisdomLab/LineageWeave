@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 import types
 from pathlib import Path
@@ -34,6 +35,16 @@ def test_bootstrap_does_not_patch_upstream_model_classes() -> None:
     assert "_apply_provider_models" not in module.__dict__
 
 
+def test_compose_keeps_embedding_selector_inside_orchestrator() -> None:
+    """The backend receives the orchestrator boundary, not its model selector."""
+    compose = (Path(__file__).parents[1] / "docker-compose.yml").read_text(encoding="utf-8")
+    orchestrator = compose.split("\n  orchestrator:\n", 1)[1].split("\n  backend:\n", 1)[0]
+    backend = compose.split("\n  backend:\n", 1)[1].split("\n  frontend:\n", 1)[0]
+
+    assert "env_file:" in orchestrator
+    assert "LLM_GATEWAY_EMBEDDING_MODEL" not in backend
+
+
 def test_provider_api_url_is_canonical_over_compatibility_aliases(monkeypatch) -> None:
     module = _load_start_module()
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://canonical.example/v1")
@@ -52,7 +63,23 @@ def test_gateway_api_key_accepts_local_compatibility_alias(monkeypatch) -> None:
     assert module._pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY") == "compatibility-key"
 
 
-def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch) -> None:
+def test_all_supported_provider_credentials_leave_the_process_environment(monkeypatch) -> None:
+    module = _load_start_module()
+    expected = {
+        "BYTEZ_API_KEY": "bytez-key",
+        "NVIDIA_NIM_API_KEY": "nvidia-key",
+        "NVIDIA_NIM_API_KEY_SUB": "nvidia-sub-key",
+        "OPENROUTER_API_KEY": "openrouter-key",
+        "OPENAI_API_KEY": "openai-key",
+    }
+    for name, value in expected.items():
+        monkeypatch.setenv(name, value)
+
+    assert module._pop_provider_credentials() == expected
+    assert all(name not in os.environ for name in expected)
+
+
+def test_bootstrap_does_not_select_embedding_model(monkeypatch) -> None:
     module = _load_start_module()
     captured: dict[str, object] = {}
 
@@ -92,7 +119,7 @@ def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch
     monkeypatch.setenv("LLM_GATEWAY_API_KEY", "provider-key")
     monkeypatch.setenv("CONTEXTUAL_ORCHESTRATOR_TOKEN", "orchestrator-token")
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://gateway.example")
-    monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "embedding-model")
+    monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "legacy-selector")
 
     module.main()
 
@@ -100,21 +127,19 @@ def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch
     assert isinstance(argv, list)
     assert "--embedding-provider-url" not in argv
     assert "--embedding-model" not in argv
+    assert "LLM_GATEWAY_EMBEDDING_MODEL" not in os.environ
     assert captured["credentials"] == [
         ("NVIDIA_NIM_API_KEY", "provider-key"),
         ("LLM_GATEWAY_API_KEY", "provider-key"),
     ]
     agents = captured["agents"]
     assert isinstance(agents, dict)
-    embedding_agents = [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])]
-    assert embedding_agents == [
-        {
-            "id": "llm_gateway_embedding_agent",
-            "model": "embedding-model",
-            "base_url": "https://gateway.example/v1",
-            "credential_key": "LLM_GATEWAY_API_KEY",
-            "provider_protocol": "auto",
-            "tags": ["embedding"],
-            "priority": 0,
-        }
-    ]
+    assert agents == {
+        "agents": [
+            {
+                "base_url": "https://gateway.example/v1",
+                "credential_key": "LLM_GATEWAY_API_KEY",
+                "provider_protocol": "auto",
+            }
+        ]
+    }

@@ -23,12 +23,21 @@ if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from backend.app.post_content_queue import record_post_content_backfill_success
-from lineageweave.embedding_client import NullEmbeddingClient, orchestrator_embedding_client
-from lineageweave.image_content import NullImageContentClient, orchestrator_vision_client
+from lineageweave.embedding_client import (
+    NullEmbeddingClient,
+    orchestrator_embedding_client,
+)
+from lineageweave.image_content import (
+    NullImageContentClient,
+    orchestrator_vision_client,
+)
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
-from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
+from lineageweave.post_structure import (
+    ContextualOrchestratorPostStructureClient,
+    NullPostStructureClient,
+)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -64,7 +73,6 @@ async def backfill_post_content(
     post_ids = [str(uuid.UUID(post_id)) for post_id in dict.fromkeys(raw_post_ids or [])]
     if normalize_only:
         vision_client = NullImageContentClient()
-        embedding_model = ""
         embedding_client = NullEmbeddingClient()
         structure_client = NullPostStructureClient()
     else:
@@ -77,16 +85,14 @@ async def backfill_post_content(
         if not vision_client.available:
             raise RuntimeError("VISION is unavailable; configure contextual-orchestrator before backfill")
 
-        embedding_model = os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
         embedding_client = orchestrator_embedding_client(
             orchestrator_base_url,
             orchestrator_api_key,
-            embedding_model,
+            None,
         )
         if not embedding_client.available:
             raise RuntimeError(
-                "embedding is unavailable; configure contextual-orchestrator and "
-                "LLM_GATEWAY_EMBEDDING_MODEL before backfill"
+                "embedding is unavailable; configure contextual-orchestrator before backfill"
             )
         structure_client = (
             ContextualOrchestratorPostStructureClient(orchestrator_base_url, orchestrator_api_key)
@@ -223,7 +229,7 @@ async def backfill_post_content(
                     row["post_body"],
                     vision_client=vision_client,
                     embedding_client=embedding_client,
-                    embedding_model_code=embedding_model or None,
+                    embedding_model_code=None,
                     normalized_result=normalized,
                     structure_client=structure_client,
                     post_title=row["post_title"],

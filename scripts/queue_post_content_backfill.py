@@ -16,12 +16,12 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from backend.app.post_content_queue import (  # noqa: E402
+from backend.app.config import load_settings
+from backend.app.post_content_queue import (
     ensure_post_content_job,
     post_content_is_complete,
     publish_post_content_event,
 )
-from backend.app.config import load_settings  # noqa: E402
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -37,10 +37,6 @@ def _parser() -> argparse.ArgumentParser:
         "--valkey-url",
         default=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
     )
-    parser.add_argument(
-        "--embedding-model",
-        default=os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "text-embedding-3-large"),
-    )
     parser.add_argument("--limit", type=int, default=100)
     parser.add_argument("--all", action="store_true", help="scan the complete real corpus")
     return parser
@@ -49,13 +45,9 @@ def _parser() -> argparse.ArgumentParser:
 async def queue_post_content_backfill(
     target_dsn: str,
     valkey_url: str,
-    embedding_model: str,
     *,
     limit: int | None,
 ) -> dict[str, int]:
-    model = embedding_model.strip()
-    if not model:
-        raise ValueError("embedding model is required for completeness-aware queueing")
     if limit is not None and limit < 1:
         raise ValueError("limit must be positive")
     settings = load_settings()
@@ -96,7 +88,6 @@ async def queue_post_content_backfill(
                          from post_content_unit unit
                          left join post_content_embedding embedding
                            on embedding.post_content_unit_id = unit.post_content_unit_id
-                          and embedding.embedding_model_code = $1
                         where unit.post_id = post.post_id
                           and embedding.post_content_embedding_id is null
                    )
@@ -109,12 +100,11 @@ async def queue_post_content_backfill(
                            on region.post_content_image_id = image.post_content_image_id
                          left join post_content_image_region_embedding embedding
                            on embedding.post_content_image_region_id = region.post_content_image_region_id
-                          and embedding.embedding_model_code = $1
                         where unit.post_id = post.post_id
                           and region.description_status_code = 'described'
                            and embedding.post_content_image_region_embedding_id is null
                    )
-                   or ($2::boolean and exists (
+                   or ($1::boolean and exists (
                        select 1
                          from post_content_unit unit
                          left join post_content_unit_structure structure
@@ -128,9 +118,8 @@ async def queue_post_content_backfill(
                    ))
                )
              order by post.created_at, post.post_id
-             limit $3::bigint
+             limit $2::bigint
             """,
-            model,
             require_structure,
             limit if limit is not None else 9223372036854775807,
         )
@@ -141,7 +130,7 @@ async def queue_post_content_backfill(
                 complete = await post_content_is_complete(
                     connection,
                     post_id,
-                    embedding_model_code=model,
+                    embedding_model_code=None,
                     require_structure=require_structure,
                 )
                 request = await ensure_post_content_job(
@@ -175,7 +164,6 @@ def main() -> None:
         queue_post_content_backfill(
             args.target_dsn,
             args.valkey_url,
-            args.embedding_model,
             limit=None if args.all else args.limit,
         )
     )

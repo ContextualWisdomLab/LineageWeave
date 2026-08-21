@@ -54,7 +54,7 @@ def test_falls_back_to_whole_text_when_chunker_returns_zero_pieces() -> None:
     client = _RecordingFakeEmbeddingClient()
     original = "  padded text with whitespace  "
 
-    _, chunk_a, chunk_b = chunked_max_similarity(client, original, "other", chunker=_chunk_to_zero_pieces)
+    _, chunk_a, _chunk_b = chunked_max_similarity(client, original, "other", chunker=_chunk_to_zero_pieces)
 
     assert chunk_a.unit_type == "whole"
     assert chunk_a.text == original  # original whitespace preserved, not stripped
@@ -65,7 +65,7 @@ def test_falls_back_to_whole_text_when_chunker_returns_exactly_one_piece() -> No
     client = _RecordingFakeEmbeddingClient()
     original = "  padded text with whitespace  "
 
-    _, chunk_a, chunk_b = chunked_max_similarity(client, original, "other", chunker=_chunk_to_one_piece)
+    _, chunk_a, _chunk_b = chunked_max_similarity(client, original, "other", chunker=_chunk_to_one_piece)
 
     assert chunk_a.unit_type == "whole"
     assert chunk_a.text == original  # the chunker's stripped version must NOT be used
@@ -101,6 +101,7 @@ def test_orchestrator_embedding_client_submits_and_polls_batch(monkeypatch) -> N
         return {
             "batch_id": "synthetic-batch",
             "status": "completed",
+            "model": "resolved-embedding",
             "embeddings": [
                 {"index": 1, "embedding": [2.0, 3.0]},
                 {"index": 0, "embedding": [0.0, 1.0]},
@@ -116,3 +117,54 @@ def test_orchestrator_embedding_client_submits_and_polls_batch(monkeypatch) -> N
     assert client.embed_many(["first", "second"]) == [[0.0, 1.0], [2.0, 3.0]]
     assert calls[0][1] == "http://orchestrator:8000/v1/batch/embeddings"
     assert calls[0][3] == {"authorization": "Bearer synthetic-token"}
+    assert client.resolved_model_code == "resolved-embedding"
+
+
+def test_orchestrator_embedding_client_omits_model_for_auto_discovery(monkeypatch) -> None:
+    captured: list[dict[str, object]] = []
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        captured.append(payload)
+        return {
+            "status": "completed",
+            "model": "auto-selected-embedding",
+            "embeddings": [{"index": 0, "embedding": [1.0]}],
+        }
+
+    monkeypatch.setattr("lineageweave.embedding_client.post_json", fake_post_json)
+    client = ContextualOrchestratorEmbeddingClient(
+        "http://orchestrator:8000", "synthetic-token", None, poll_interval=0
+    )
+
+    assert client.embed_many(["first"]) == [[1.0]]
+    assert "model" not in captured[0]
+    assert client.resolved_model_code == "auto-selected-embedding"
+
+
+def test_orchestrator_embedding_client_does_not_reuse_previous_model_provenance(
+    monkeypatch,
+) -> None:
+    responses = [
+        {
+            "status": "completed",
+            "model": "first-selected-embedding",
+            "embeddings": [{"index": 0, "embedding": [1.0]}],
+        },
+        {
+            "status": "completed",
+            "embeddings": [{"index": 0, "embedding": [2.0]}],
+        },
+    ]
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        return responses.pop(0)
+
+    monkeypatch.setattr("lineageweave.embedding_client.post_json", fake_post_json)
+    client = ContextualOrchestratorEmbeddingClient(
+        "http://orchestrator:8000", "synthetic-token", None, poll_interval=0
+    )
+
+    assert client.embed_many(["first"]) == [[1.0]]
+    assert client.resolved_model_code == "first-selected-embedding"
+    assert client.embed_many(["second"]) == [[2.0]]
+    assert client.resolved_model_code is None

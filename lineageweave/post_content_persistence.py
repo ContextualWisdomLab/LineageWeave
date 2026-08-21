@@ -191,8 +191,8 @@ async def persist_post_content(
             ),
         )
 
-    vectors: dict[str, list[float]] = {}
-    if embedding_client is not None and embedding_client.available and embedding_model_code:
+    vectors: dict[str, tuple[list[float], str | None]] = {}
+    if embedding_client is not None and embedding_client.available:
         embeddable = [
             (f"unit:{chunk.index}", unit_text)
             for chunk, unit_text, _style in prepared
@@ -209,12 +209,18 @@ async def persist_post_content(
                         (index, await asyncio.to_thread(embedding_client.embed, text))
                         for index, text in batch
                     ]
+                batch_model_code = getattr(embedding_client, "resolved_model_code", None)
+                if not isinstance(batch_model_code, str) or not batch_model_code.strip():
+                    batch_model_code = embedding_model_code
                 for embedding_key, vector in candidates:
                     if isinstance(vector, list) and vector and all(
                         isinstance(value, (int, float)) and math.isfinite(float(value))
                         for value in vector
                     ):
-                        vectors[embedding_key] = [float(value) for value in vector]
+                        vectors[embedding_key] = (
+                            [float(value) for value in vector],
+                            batch_model_code.strip() if isinstance(batch_model_code, str) else None,
+                        )
             except (OSError, RuntimeError, ValueError) as exc:
                 _LOGGER.warning(
                     "post content embedding batch unavailable",
@@ -311,8 +317,9 @@ async def persist_post_content(
                         region_id,
                         tag,
                     )
-                vector = vectors.get(f"region:{chunk.index}:{region.region_index}")
-                if embedding_model_code and vector:
+                vector_entry = vectors.get(f"region:{chunk.index}:{region.region_index}")
+                vector, resolved_model_code = vector_entry or ([], None)
+                if resolved_model_code and vector:
                     region_embedding_id = await conn.fetchval(
                         """
                         insert into post_content_image_region_embedding
@@ -322,7 +329,7 @@ async def persist_post_content(
                         returning post_content_image_region_embedding_id
                         """,
                         region_id,
-                        embedding_model_code,
+                        resolved_model_code,
                         len(vector),
                     )
                     for dimension_index, dimension_value in enumerate(vector):
@@ -333,27 +340,26 @@ async def persist_post_content(
                             dimension_value,
                         )
 
-        if embedding_model_code:
-            for embedding_key, vector in vectors.items():
-                if not embedding_key.startswith("unit:"):
-                    continue
-                unit_index = int(embedding_key.removeprefix("unit:"))
-                embedding_id = await conn.fetchval(
-                    """
-                    insert into post_content_embedding
-                        (post_content_unit_id, embedding_model_code, embedding_dimension_count)
-                    values ($1, $2, $3)
-                    returning post_content_embedding_id
-                    """,
-                    unit_ids[unit_index],
-                    embedding_model_code,
-                    len(vector),
+        for embedding_key, (vector, resolved_model_code) in vectors.items():
+            if not embedding_key.startswith("unit:") or not resolved_model_code:
+                continue
+            unit_index = int(embedding_key.removeprefix("unit:"))
+            embedding_id = await conn.fetchval(
+                """
+                insert into post_content_embedding
+                    (post_content_unit_id, embedding_model_code, embedding_dimension_count)
+                values ($1, $2, $3)
+                returning post_content_embedding_id
+                """,
+                unit_ids[unit_index],
+                resolved_model_code,
+                len(vector),
+            )
+            for dimension_index, dimension_value in enumerate(vector):
+                await conn.execute(
+                    "insert into post_content_embedding_value (post_content_embedding_id, dimension_index, dimension_value) values ($1, $2, $3)",
+                    embedding_id,
+                    dimension_index,
+                    dimension_value,
                 )
-                for dimension_index, dimension_value in enumerate(vector):
-                    await conn.execute(
-                        "insert into post_content_embedding_value (post_content_embedding_id, dimension_index, dimension_value) values ($1, $2, $3)",
-                        embedding_id,
-                        dimension_index,
-                        dimension_value,
-                    )
     return len(prepared)
