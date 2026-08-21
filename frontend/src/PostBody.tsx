@@ -12,7 +12,7 @@ function parsePipeDelimitedTable(text: string): string[][] | null {
   const rows = text
     .split(/\r?\n/)
     .map((row) => {
-      const cells = row.split("|").map((cell) => cell.trim());
+      const cells = row.split(/(?<!\\)\|/).map((cell) => cell.trim().replace(/\\\|/g, "|"));
       if (cells[0] === "") cells.shift();
       if (cells[cells.length - 1] === "") cells.pop();
       return cells;

@@ -85,6 +85,23 @@ def test_parse_description_preserves_multiline_ocr_text() -> None:
     assert description.caption == "A scanned page."
 
 
+def test_parse_description_preserves_multiline_caption_evidence() -> None:
+    """Detailed VISION captions remain complete when providers wrap lines."""
+    content = (
+        "CAPTION: A project status table for the customer meeting.\n"
+        "The left column lists workstreams and the right column lists owners.\n"
+        "TEXT: Workstream | Owner\nAlpha | Team A\nTAGS: table, assignment"
+    )
+
+    description = _parse_description(content)
+
+    assert description.caption == (
+        "A project status table for the customer meeting.\n"
+        "The left column lists workstreams and the right column lists owners."
+    )
+    assert description.extracted_text == "Workstream | Owner\nAlpha | Team A"
+
+
 def test_parse_description_preserves_ocr_lines_that_contain_colons() -> None:
     """A colon in a scanned field is OCR content, not a new response field."""
     content = (

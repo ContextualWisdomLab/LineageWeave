@@ -408,6 +408,28 @@ describe("PostBody", () => {
     expect(screen.getByText("Panel")).toBeInTheDocument();
   });
 
+  it("keeps escaped pipe characters inside image OCR table cells", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "| Item | State |\n| --- | --- |\n| Review \\| approve | Ready |",
+            caption: "A table image with an escaped separator.",
+            tags: [],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getByText("Review | approve")).toBeInTheDocument();
+    expect(screen.getByText("Ready")).toBeInTheDocument();
+  });
+
   it("keeps source-image placement while showing persisted OCR and caption evidence", () => {
     render(
       <PostBody

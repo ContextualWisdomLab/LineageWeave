@@ -36,7 +36,7 @@ from urllib.parse import urlparse
 
 from PIL import Image
 
-from .http_client import post_json
+from .http_client import chat_completion_content, post_json
 
 _DATA_URI_IMG = re.compile(
     r'<img\b[^>]*\bsrc\s*=\s*["\']data:(image/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)["\']',
@@ -255,14 +255,15 @@ def _parse_description(content: str) -> ImageDescription:
             remainder = _strip_outer_markdown_emphasis(match.group(2))
             if remainder:
                 fields[label].append(remainder)
-            multiline_field = "TEXT" if label == "TEXT" else None
+            multiline_field = label if label in {"TEXT", "CAPTION"} else None
             continue
 
-        if multiline_field == "TEXT" and line.strip():
+        if multiline_field in {"TEXT", "CAPTION"} and line.strip():
             # A colon is common inside OCR (for example ``Date: 2026-08-21``).
-            # Only the known response labels above end the TEXT section;
-            # treating every colon as a provider label loses real image text.
-            fields["TEXT"].append(_strip_outer_markdown_emphasis(line))
+            # Only the known response labels above end the active section;
+            # treating every colon as a provider label loses real image text
+            # or the continuation of a detailed caption.
+            fields[multiline_field].append(_strip_outer_markdown_emphasis(line))
 
     if not fields["TEXT"] and not fields["CAPTION"]:
         raise ImageDescriptionParseError("vision response had no usable TEXT or CAPTION content")
@@ -344,7 +345,7 @@ class OpenAiCompatibleVisionClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
+        content = chat_completion_content(body)
         return _parse_description(content)
 
     def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
@@ -377,13 +378,11 @@ class OpenAiCompatibleVisionClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
-        if not isinstance(content, str):
-            raise ValueError("vision region response was not text JSON")
+        content = chat_completion_content(body)
         fenced = re.sub(r"^\s*```(?:json)?\s*|\s*```\s*$", "", content, flags=re.IGNORECASE)
         document = json.loads(fenced)
         if not isinstance(document, dict):
-            raise ValueError("vision region response had no regions list")
+            raise TypeError("vision region response had no regions list")
         regions = document.get("regions")
         if not isinstance(regions, list):
             single_region = tuple(document.get(name) for name in ("x", "y", "width", "height"))
