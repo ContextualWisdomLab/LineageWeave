@@ -66,11 +66,11 @@ describe("AskAgentWorkspace", () => {
     expect(window.sessionStorage.getItem(GLOBAL_ASK_SESSION_STORAGE_KEY)).toBe("session-1");
   });
 
-  it("retries once without an expired saved session", async () => {
+  it.each([404, 409])("retries once without an invalid saved session after %i", async (status) => {
     window.sessionStorage.setItem(GLOBAL_ASK_SESSION_STORAGE_KEY, "stale-session");
     const request = vi
       .fn()
-      .mockRejectedValueOnce(new BackendError("/api/ask", 404, "Global Ask session not found"))
+      .mockRejectedValueOnce(new BackendError("/api/ask", status, "Global Ask session invalid"))
       .mockResolvedValueOnce(answer);
     render(
       <AskAgentWorkspace
