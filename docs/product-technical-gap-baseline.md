@@ -398,7 +398,7 @@ ADR 0115. PR #311 remains an active stacked delivery candidate; its required
 checks and formal approval must be rechecked at the exact current head before
 any protected merge claim.
 
- ## Source-only indentation checkpoint: 2026-08-20
+## Source-only indentation checkpoint: 2026-08-20
 
 The semantic-unit parser now keeps source leading whitespace and declared
 HTML/CSS/OOXML or list-container indentation as separate evidence. Visual
@@ -409,13 +409,13 @@ nesting in the buyer view.
 
 - Decision record: ADR 0103
 - Implementation: PR #319, stacked on the adjacent-table correction in PR #317
-- Local evidence: backend `731 passed, 16 skipped`; frontend `134 passed`, lint,
+- Local evidence: backend `734 passed, 16 skipped`; frontend `136 passed`, lint,
   build, and Storybook build passed.
 - Integration status: PR #319 is not protected-main truth; exact parent head,
   formal review, terminal Checks, and post-merge browser evidence remain
   required.
 
- ## Partial visual-region checkpoint: 2026-08-20
+## Partial visual-region checkpoint: 2026-08-20
 
 The visual locator contract may return valid salient panels without complete
 image coverage. The normalizer now keeps those panel coordinates for
@@ -425,8 +425,8 @@ the existing whole-image fallback.
 
 - Decision record: ADR 0104
 - Implementation: PR #320, stacked on PR #319
-- Local evidence: backend `731 passed, 16 skipped`; focused image/normalization
-  tests `39 passed`; frontend lint, `134 passed`, build, and Storybook build
+- Local evidence: backend `734 passed, 16 skipped`; focused image/normalization
+  tests `13 passed`; frontend lint, `136 passed`, build, and Storybook build
   passed.
 - Integration status: PR #320 is not protected-main truth; exact stack heads,
   formal review, terminal Checks, and authorized post-merge image evidence
@@ -482,7 +482,7 @@ appears exactly once. Earlier Python, frontend, build, and Storybook evidence
 continues to apply to the unchanged visual-locator implementation. GitHub's
 required PR Checks are running for this exact head and no formal approval is
 bound to it, so this is not a merge or release claim.
- ## Image locator and buyer table checkpoint: 2026-08-20
+## Image locator and buyer table checkpoint: 2026-08-20
 
 A first bounded private reprocessing run completed five parent-image
 descriptions and five region embeddings, but aggregate inspection found five
