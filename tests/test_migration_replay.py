@@ -106,3 +106,19 @@ def test_migrate_sh_replays_tenant_identity_metadata_migration_on_existing_volum
     assert "0132_*" in script
     assert "add column if not exists system_name" in migration
     assert "tenant_settings_copyright_year_range_check" in migration
+
+
+def test_tenant_identity_migration_repairs_legacy_values_before_constraints() -> None:
+    """Legacy blank settings cannot make an existing-volume replay fail closed."""
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0132_tenant_identity_metadata.sql"
+    ).read_text(encoding="utf-8")
+
+    repair_position = migration.index("update public.tenant_settings")
+    constraint_position = migration.index("tenant_settings_brand_name_nonempty_check")
+    assert repair_position < constraint_position
+    assert "nullif(btrim(brand_name), '') is null then 'LineageWeave'" in migration
+    assert "copyright_year not between 1900 and 2100" in migration
+    assert "nullif(btrim(copyright_holder), '') is null then 'LineageWeave'" in migration
