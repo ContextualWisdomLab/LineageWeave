@@ -152,6 +152,10 @@ describe("OntologyExplorer stabilization contracts", () => {
           next_cursor: null,
           limitation_code: "neighborhood_truncated",
           edges: evidenceBearingEdges,
+          exact_value_rows: payload().exact_value_rows.map((row) => ({
+            ...row,
+            evidence_count: "1",
+          })),
         })}
       />,
     );
@@ -184,5 +188,89 @@ describe("OntologyExplorer stabilization contracts", () => {
     expect(
       screen.queryByText("Hidden evidence was removed. No omitted count is shown."),
     ).not.toBeInTheDocument();
+  });
+
+  it("hides live refocus when the neighborhood is a static catalog snapshot", async () => {
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={payload()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Select node: Post Demo post" }));
+    expect(screen.queryByRole("button", { name: "Focus this node next" })).not.toBeInTheDocument();
+  });
+
+  it("clears a previously loaded neighborhood when the access token is removed", async () => {
+    const { rerender } = render(
+      <OntologyExplorer
+        accessToken="token"
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={payload()}
+      />,
+    );
+
+    expect(screen.getAllByText("Demo post").length).toBeGreaterThan(0);
+    rerender(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.queryAllByText("Demo post")).toHaveLength(0);
+    });
+    expect(
+      screen.getByText(
+        "No visible ontology relations for this focus. Open a Keyman or affiliated organization next.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("fetches a new neighborhood after focusing a node with a live token", async () => {
+    const first = payload();
+    const second = payload({
+      focus_node_id: PERSON_ID,
+      focus_node_type_code: "node_person",
+      nodes: [
+        {
+          node_id: PERSON_ID,
+          node_type_code: "node_person",
+          ontology_class_iri: "https://example.test/Person",
+          display_label: "Focused person",
+          truth_status_code: "truth_observed",
+          valid_from: null,
+          valid_to: null,
+          recorded_at: "2026-01-10T12:00:00+00:00",
+          evidence_count: 1,
+          shape_code: "ellipse",
+        },
+      ],
+      edges: [],
+      exact_value_rows: [],
+    });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => second,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <OntologyExplorer
+        accessToken="token"
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={first}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Select node: Person Test person" }));
+    await userEvent.click(screen.getByRole("button", { name: "Focus this node next" }));
+    expect(await screen.findByText("Focused person")).toBeInTheDocument();
+    expect(String(fetchMock.mock.calls[0][0])).toContain(`focus_node_id=${PERSON_ID}`);
   });
 });

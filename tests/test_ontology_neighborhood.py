@@ -692,6 +692,9 @@ def test_node_bound_truncation_drops_cursor_and_jsonld_rejects_dangling() -> Non
     with pytest.raises(OntologyNeighborhoodError) as raised:
         dangling.jsonld_document()
     assert raised.value.code == "dangling_endpoint"
+    with pytest.raises(OntologyNeighborhoodError) as exact_values:
+        dangling.exact_value_rows()
+    assert exact_values.value.code == "dangling_endpoint"
     rows = neighborhood.exact_value_rows()
     assert rows == ()
 

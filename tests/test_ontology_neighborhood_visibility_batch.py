@@ -15,7 +15,7 @@ from lineageweave.knowledge_graph import (
     NODE_POST,
     NODE_TEAM,
 )
-from lineageweave.ontology_neighborhood import fact_from_knowledge_graph_edge
+from lineageweave.ontology_neighborhood import fact_from_knowledge_graph_edge, skos_broader_fact
 
 POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1"
 SECOND_POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2"
@@ -30,18 +30,24 @@ class BatchConnection:
 
     def __init__(self) -> None:
         self.fetch_calls: list[str] = []
+        self.fetch_ids: list[object] = []
 
-    async def fetch(self, sql: str, *_args: object) -> list[RecordLikeRow]:
-        """Return a row keyed by the SQL category marker."""
+    async def fetch(self, sql: str, ids: object = None, *_args: object) -> list[RecordLikeRow]:
+        """Return a row keyed by the SQL category marker and bound ids."""
         normalized = " ".join(sql.split())
         self.fetch_calls.append(normalized)
+        self.fetch_ids.append(ids)
         if "from source_post post" in normalized and "post.post_id as node_id" in normalized:
+            assert ids == [POST_ID]
             return [_row(POST_ID, POST_ID)]
         if "from combined_post_person_mention mention" in normalized:
+            assert ids == [PERSON_ID]
             return [_row(PERSON_ID, SECOND_POST_ID)]
         if "from post_team_mention mention" in normalized:
+            assert ids == [TEAM_ID]
             return [_row(TEAM_ID, SECOND_POST_ID)]
         if "affiliation.affiliated_corporate_entity_id as node_id" in normalized:
+            assert ids == [CORP_ID]
             return [_row(CORP_ID, SECOND_POST_ID)]
         raise AssertionError(f"unexpected batch query: {normalized}")
 
@@ -91,6 +97,7 @@ def test_endpoint_visibility_is_batched_by_node_type() -> None:
     assert visible[(NODE_PERSON, PERSON_ID)] == [SECOND_POST_ID]
     assert visible[(NODE_CORPORATE_ENTITY, CORP_ID)] == [SECOND_POST_ID]
     assert visible[(NODE_TEAM, TEAM_ID)] == [SECOND_POST_ID]
+    assert conn.fetch_ids == [[POST_ID], [PERSON_ID], [CORP_ID], [TEAM_ID]]
 
 
 def test_visible_neighbor_evidence_expands_the_second_hop(monkeypatch: Any) -> None:
@@ -186,3 +193,86 @@ def test_visible_neighbor_evidence_expands_the_second_hop(monkeypatch: Any) -> N
         "mentions",
         "affiliatedWith",
     }
+
+
+GROUP_ID = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1"
+
+
+def test_skos_parent_requires_own_visible_post_evidence(monkeypatch: Any) -> None:
+    """A visible child must not reveal a parent that has no authorized post."""
+    affiliation = fact_from_knowledge_graph_edge(
+        source_node_type_code=NODE_PERSON,
+        source_node_id=PERSON_ID,
+        target_node_type_code=NODE_CORPORATE_ENTITY,
+        target_node_id=CORP_ID,
+        edge_type_code=EDGE_AFFILIATION,
+        recorded_at=T0,
+        evidence_references=(POST_ID,),
+    )
+    parent_queries: list[set[tuple[str, str]]] = []
+
+    async def fake_exists(*_args: object) -> bool:
+        return True
+
+    async def fake_focus_posts(*_args: object) -> list[str]:
+        return [POST_ID]
+
+    async def fake_load_facts(*_args: object, **_kwargs: object) -> ingestion._LoadedFactWindow:
+        return ingestion._LoadedFactWindow([affiliation])  # type: ignore[attr-defined]
+
+    async def fake_visible_nodes(
+        _conn: object,
+        keys: set[tuple[str, str]],
+        _can_see_post: object,
+    ) -> dict[tuple[str, str], list[str]]:
+        parent_queries.append(set(keys))
+        return {
+            key: ([POST_ID] if key != (NODE_CORPORATE_ENTITY, GROUP_ID) else [])
+            for key in keys
+        }
+
+    async def fake_skos(*_args: object) -> list[object]:
+        return [
+            skos_broader_fact(
+                narrower_entity_id=CORP_ID,
+                broader_entity_id=GROUP_ID,
+                recorded_at=T0,
+            )
+        ]
+
+    async def fake_labels(*_args: object) -> dict[tuple[str, str], str]:
+        return {
+            (NODE_POST, POST_ID): "Focus",
+            (NODE_PERSON, PERSON_ID): "Person",
+            (NODE_CORPORATE_ENTITY, CORP_ID): "Plant",
+            (NODE_CORPORATE_ENTITY, GROUP_ID): "Hidden Group",
+        }
+
+    async def fake_metadata(*_args: object, **_kwargs: object) -> dict[object, object]:
+        return {}
+
+    class FocusConnection:
+        async def fetchval(self, _sql: str, *_args: object) -> str:
+            return "Plant"
+
+    monkeypatch.setattr(ingestion, "focus_catalog_exists", fake_exists)
+    monkeypatch.setattr(ingestion, "visible_post_ids_for_focus", fake_focus_posts)
+    monkeypatch.setattr(ingestion, "_load_facts", fake_load_facts)
+    monkeypatch.setattr(ingestion, "_visible_post_ids_by_nodes", fake_visible_nodes, raising=False)
+    monkeypatch.setattr(ingestion, "_load_skos_facts", fake_skos)
+    monkeypatch.setattr(ingestion, "_load_labels", fake_labels)
+    monkeypatch.setattr(ingestion, "_load_node_metadata", fake_metadata)
+
+    neighborhood = asyncio.run(
+        ingestion.visible_ontology_neighborhood(
+            FocusConnection(),  # type: ignore[arg-type]
+            focus_node_type_code=NODE_CORPORATE_ENTITY,
+            focus_node_id=CORP_ID,
+            can_see_post=lambda _row: True,
+            maximum_depth=2,
+        )
+    )
+
+    assert any((NODE_CORPORATE_ENTITY, GROUP_ID) in keys for keys in parent_queries)
+    assert all(edge.property_code != "skos_broader" for edge in neighborhood.edges)
+    assert all(node.node_id != GROUP_ID for node in neighborhood.nodes)

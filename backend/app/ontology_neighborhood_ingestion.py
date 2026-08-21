@@ -33,6 +33,7 @@ from lineageweave.ontology_neighborhood import (
     OntologyNodeMetadata,
     OntologyNeighborhood,
     OntologyNeighborhoodError,
+    PROPERTY_SKOS_BROADER,
     assemble_ontology_neighborhood,
     fact_from_knowledge_graph_edge,
     skos_broader_fact,
@@ -609,7 +610,18 @@ async def visible_ontology_neighborhood(
     ]
     if focus_node_type_code == NODE_CORPORATE_ENTITY:
         corp_ids.append(focus_node_id)
-    facts.extend(await _load_skos_facts(conn, list(dict.fromkeys(corp_ids))))
+    unique_corp_ids = list(dict.fromkeys(corp_ids))
+    skos_facts = await _load_skos_facts(conn, unique_corp_ids)
+    facts.extend(skos_facts)
+    parent_keys = {
+        (fact.target_node_type_code, fact.target_node_id)
+        for fact in skos_facts
+        if fact.property_code == PROPERTY_SKOS_BROADER
+    }
+    missing_parent_keys = {key for key in parent_keys if key not in visible_by_node}
+    if missing_parent_keys:
+        parent_visible = await _visible_post_ids_by_nodes(conn, missing_parent_keys, can_see_post)
+        visible_by_node.update(parent_visible)
     hidden_node_keys: set[str] = set()
     authorized_facts: list[NeighborhoodFact] = []
     visibility_cache: dict[tuple[str, str], bool] = {

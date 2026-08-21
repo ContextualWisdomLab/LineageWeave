@@ -25,6 +25,10 @@ All notable changes to this project are documented here. Format follows
 - All OpenAI-compatible chat-completion consumers now validate the shared
   response envelope before parsing it, preventing malformed provider bodies
   from escaping as raw `KeyError` or response-shape details.
+- Ontology Explorer now clears a previously loaded neighborhood when the
+  session token is removed, hides live refocus on static catalog snapshots,
+  and looks up corporate-parent visibility independently of the child. OWL-Time
+  is cited as a W3C Candidate Recommendation Draft.
 
 ## [2.12.6] - 2026-08-20
 

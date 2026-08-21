@@ -40,7 +40,7 @@ Miles, A., & Bechhofer, S. (Eds.). (2009). *SKOS simple knowledge organization s
 
 Lebo, T., Sahoo, S., & McGuinness, D. (Eds.). (2013). *PROV-O: The PROV ontology* (W3C Recommendation). World Wide Web Consortium. https://www.w3.org/TR/prov-o/
 
-Cox, S., & Little, C. (Eds.). (2022). *Time ontology in OWL* (W3C Recommendation). World Wide Web Consortium. https://www.w3.org/TR/owl-time/
+Cox, S., & Little, C. (Eds.). (2022). *Time ontology in OWL* (W3C Candidate Recommendation Draft). World Wide Web Consortium. https://www.w3.org/TR/owl-time/
 
 Kellogg, G., Champin, P.-A., & Longley, D. (Eds.). (2020). *JSON-LD 1.1* (W3C Recommendation). World Wide Web Consortium. https://www.w3.org/TR/json-ld11/
 

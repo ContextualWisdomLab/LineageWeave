@@ -76,20 +76,33 @@ export function OntologyExplorer({
   const [focusType, setFocusType] = useState(focusNodeType);
   const [focusId, setFocusId] = useState(focusNodeId);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [liveFocus, setLiveFocus] = useState(false);
+
+  function clearSelection() {
+    setSelectedNodeKey(null);
+    setSelectedEdgeId(null);
+    setQuery("");
+  }
 
   useEffect(() => {
     setFocusType(focusNodeType);
     setFocusId(focusNodeId);
     setCursor(undefined);
+    setLiveFocus(false);
+    clearSelection();
   }, [focusNodeType, focusNodeId]);
 
   useEffect(() => {
-    if (provided) {
+    const useProvided = Boolean(provided) && !liveFocus;
+    if (useProvided && provided) {
       setLoaded(provided);
       setStatus(providedStatus ?? statusFromPayload(provided, knowledgeCutoff));
       return;
     }
     if (!accessToken) {
+      setLoaded(null);
+      setCursor(undefined);
+      clearSelection();
       setStatus(providedStatus ?? "empty");
       return;
     }
@@ -118,7 +131,7 @@ export function OntologyExplorer({
     return () => {
       cancelled = true;
     };
-  }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, provided, providedStatus]);
+  }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, provided, providedStatus, liveFocus]);
 
   const visible = useMemo(() => filterNeighborhood(loaded, query), [loaded, query]);
   const layout = useMemo(() => (visible ? layoutOntologyNeighborhood(visible) : null), [visible]);
@@ -229,10 +242,13 @@ export function OntologyExplorer({
       {selectedNode ? (
         <OntologyNodeDrawer
           node={selectedNode}
+          canRefocus={Boolean(accessToken)}
           onFocus={() => {
+            setLiveFocus(true);
             setFocusType(selectedNode.node_type_code);
             setFocusId(selectedNode.node_id);
             setCursor(undefined);
+            clearSelection();
           }}
           onOpenEvidence={
             selectedNode.node_type_code === "node_post"
@@ -479,11 +495,13 @@ function OntologyExactValueTable({
 
 function OntologyNodeDrawer({
   node,
+  canRefocus,
   onFocus,
   onOpenEvidence,
   onClose,
 }: {
   node: OntologyGraphNodePayload;
+  canRefocus: boolean;
   onFocus: () => void;
   onOpenEvidence?: () => void;
   onClose: () => void;
@@ -497,9 +515,11 @@ function OntologyNodeDrawer({
       <p>{t("Ontology class")}: {node.ontology_class_iri}</p>
       <p>{t("Recorded at")}: {node.recorded_at?.slice(0, 10) ?? t("Unknown")}</p>
       <div className="ontology-explorer-actions">
-        <button type="button" onClick={onFocus}>
-          {t("Focus this node next")}
-        </button>
+        {canRefocus ? (
+          <button type="button" onClick={onFocus}>
+            {t("Focus this node next")}
+          </button>
+        ) : null}
         {onOpenEvidence ? (
           <button type="button" onClick={onOpenEvidence}>
             {t("Open evidence post")}

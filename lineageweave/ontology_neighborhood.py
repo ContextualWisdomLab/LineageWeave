@@ -213,13 +213,13 @@ class OntologyNeighborhood:
                 {
                     "edge_id": edge.edge_id,
                     "source_node_id": edge.source_node_id,
-                    "source_label": labels[(edge.source_node_type_code, edge.source_node_id)],
+                    "source_label": _label_for(labels, edge.source_node_type_code, edge.source_node_id),
                     "source_type_code": edge.source_node_type_code,
                     "property_code": edge.property_code,
                     "property_label": edge.property_label,
                     "ontology_property_iri": edge.ontology_property_iri,
                     "target_node_id": edge.target_node_id,
-                    "target_label": labels[(edge.target_node_type_code, edge.target_node_id)],
+                    "target_label": _label_for(labels, edge.target_node_type_code, edge.target_node_id),
                     "target_type_code": edge.target_node_type_code,
                     "truth_status_code": edge.truth_status_code,
                     "recorded_at": edge.recorded_at.isoformat(),
@@ -270,6 +270,14 @@ def _node_type_for(
         if node.node_type_code == node_type_code and node.node_id == node_id:
             return node.node_type_code
     raise OntologyNeighborhoodError("dangling_endpoint", "visible edge references a missing node")
+
+
+def _label_for(labels: Mapping[tuple[str, str], str], node_type_code: str, node_id: str) -> str:
+    """Return a visible endpoint label, or fail closed like JSON-LD."""
+    label = labels.get((node_type_code, node_id))
+    if label is None:
+        raise OntologyNeighborhoodError("dangling_endpoint", "visible edge references a missing node")
+    return label
 
 
 def canonicalize_property_code(property_code: str) -> str:
