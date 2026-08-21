@@ -8,6 +8,8 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- The unauthenticated shell now preserves a safe OIDC return URL and no longer
+  renders the authenticated tenant-admin panel without an access token.
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
