@@ -1,4 +1,4 @@
-"""Shared source-post eligibility SQL for buyer evidence reads."""
+"""Shared source-post eligibility SQL for reader-facing evidence reads."""
 
 SOURCE_CONTEXT_COLUMNS = (
     "source_author_code",

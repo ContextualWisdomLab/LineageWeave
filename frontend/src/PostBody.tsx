@@ -50,7 +50,12 @@ function renderImageEvidence(
   return (
     <figure key={`post-body-image-${index}`} className="post-embedded-image">
       {sourceImageSrc ? (
-        <img src={sourceImageSrc} alt={imageContent?.caption || t("Embedded image")} />
+        <img
+          src={sourceImageSrc}
+          alt={imageContent?.caption || t("Embedded image")}
+          loading="lazy"
+          decoding="async"
+        />
       ) : null}
       {imageContent?.caption || !sourceImageSrc ? (
         <figcaption>{imageContent?.caption || t("Embedded image")}</figcaption>

@@ -34,7 +34,7 @@ describe("PostBody", () => {
     expect(screen.getByText("Root item")).toHaveAttribute("data-indent-level", "0");
   });
 
-  it("uses a buyer-facing accessible label instead of a source character offset", () => {
+  it("uses a reader-facing accessible label instead of a source character offset", () => {
     render(
       <PostBody
         body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
@@ -174,7 +174,7 @@ describe("PostBody", () => {
     expect(screen.getByText("Unavailable source unit")).toHaveAttribute("data-indent-level", "0");
   });
 
-  it("keeps adjacent source tables as separate buyer-facing tables", () => {
+  it("keeps adjacent source tables as separate reader-facing tables", () => {
     render(
       <PostBody
         body={
@@ -273,7 +273,7 @@ describe("PostBody", () => {
     expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
   });
 
-  it("renders pipe-delimited image OCR as a buyer-facing table", () => {
+  it("renders pipe-delimited image OCR as a reader-facing table", () => {
     render(
       <PostBody
         body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}

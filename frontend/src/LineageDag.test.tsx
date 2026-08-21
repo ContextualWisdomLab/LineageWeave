@@ -55,10 +55,9 @@ describe("LineageDag", () => {
 
     expect(screen.getByRole("group", { name: "synthetic-project lineage" })).toBeInTheDocument();
     expect(document.querySelectorAll(".lineage-dag-edge")).toHaveLength(1);
-    expect(screen.getByRole("button", { name: "Open post: Root record" })).toHaveAttribute(
-      "aria-current",
-      "true",
-    );
+    expect(
+      screen.getByRole("button", { name: "Open post: Root record (Current record, Root record)" }),
+    ).toHaveAttribute("aria-current", "true");
     expect(document.querySelector(".lineage-list")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Open post: Child record" }));
@@ -114,7 +113,9 @@ describe("LineageDag", () => {
     render(<LineageDag graph={isolatedGraph} onSelectPost={vi.fn()} />);
 
     expect(screen.getByRole("group", { name: "isolated-project lineage" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open post: Unlinked record" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Open post: Unlinked record (Root record)" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
   });

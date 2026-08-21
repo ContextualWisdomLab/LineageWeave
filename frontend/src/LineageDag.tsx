@@ -56,6 +56,39 @@ export function LineageDag({
 
   return (
     <div className="lineage-dag" aria-label={t("Reconstructed lineage")}>
+      <div className="lineage-dag-header">
+        <p className="section-eyebrow">{t("Lineage evidence")}</p>
+        <p className="lineage-dag-description">
+          {t("Reconstructed lineage")}. {t("Edges explain reconstructed continuation only. They are not causal or authoritative facts.")}
+        </p>
+      </div>
+      <ul className="lineage-dag-legend" aria-label={lineageDagText("Lineage legend")}>
+        <li className="lineage-dag-legend-item">
+          <span
+            className="lineage-dag-legend-node lineage-dag-legend-mark lineage-dag-legend-root"
+            aria-hidden="true"
+          />
+          {lineageDagText("Root record")}
+        </li>
+        <li className="lineage-dag-legend-item">
+          <span
+            className="lineage-dag-legend-node lineage-dag-legend-mark lineage-dag-legend-branch"
+            aria-hidden="true"
+          />
+          {lineageDagText("Branch point")}
+        </li>
+        <li className="lineage-dag-legend-item">
+          <span
+            className="lineage-dag-legend-node lineage-dag-legend-mark lineage-dag-legend-current"
+            aria-hidden="true"
+          />
+          {lineageDagText("Current record")}
+        </li>
+        <li className="lineage-dag-legend-item">
+          <span className="lineage-dag-legend-direction" aria-hidden="true" />
+          {lineageDagText("Parent to child")}
+        </li>
+      </ul>
       {groups.map((group, groupIndex) => {
         const byId = Object.fromEntries(group.nodes.map((node) => [node.id, node]));
         const arrowMarkerId = `lineage-dag-arrow-${instanceId}-${groupIndex}`;
@@ -73,35 +106,8 @@ export function LineageDag({
                 edges: group.edges.length,
               })}
             </figcaption>
-            <ul className="lineage-dag-legend" aria-label={lineageDagText("Lineage legend")}>
-              <li>
-                <span
-                  className="lineage-dag-legend-node lineage-dag-legend-root"
-                  aria-hidden="true"
-                />
-                {lineageDagText("Root record")}
-              </li>
-              <li>
-                <span
-                  className="lineage-dag-legend-node lineage-dag-legend-branch"
-                  aria-hidden="true"
-                />
-                {lineageDagText("Branch point")}
-              </li>
-              <li>
-                <span
-                  className="lineage-dag-legend-node lineage-dag-legend-current"
-                  aria-hidden="true"
-                />
-                {lineageDagText("Current record")}
-              </li>
-              <li>
-                <span className="lineage-dag-legend-direction" aria-hidden="true" />
-                {lineageDagText("Parent to child")}
-              </li>
-            </ul>
             <div
-              className="lineage-dag-scroll"
+              className="lineage-dag-scroll lineage-dag-viewport"
               role="region"
               aria-labelledby={captionId}
               tabIndex={0}
@@ -145,6 +151,16 @@ export function LineageDag({
                 {group.nodes.map((node) => {
                   const kind = node.is_branch_point ? "branch" : node.is_root ? "root" : "node";
                   const isCurrent = node.id === currentPostId;
+                  // Root/branch/current are otherwise conveyed by stroke color and
+                  // border width alone (see .lineage-dag-root/-branch/[aria-current]
+                  // in App.css) — name them here too so the distinction reaches
+                  // screen readers and colorblind users relying on the tooltip.
+                  const kindLabels = [
+                    isCurrent ? lineageDagText("Current record") : null,
+                    kind === "branch" ? lineageDagText("Branch point") : null,
+                    kind === "root" ? lineageDagText("Root record") : null,
+                  ].filter((label): label is string => Boolean(label));
+                  const kindSuffix = kindLabels.length > 0 ? ` (${kindLabels.join(", ")})` : "";
                   return (
                     <g
                       key={node.id}
@@ -152,7 +168,7 @@ export function LineageDag({
                       transform={`translate(${node.x}, ${node.y})`}
                       role="button"
                       tabIndex={0}
-                      aria-label={tf("Open post: {label}", { label: node.label })}
+                      aria-label={tf("Open post: {label}", { label: node.label }) + kindSuffix}
                       aria-current={isCurrent ? "true" : undefined}
                       onClick={() => onSelectPost(node.id)}
                       onKeyDown={(event) => {
@@ -173,7 +189,7 @@ export function LineageDag({
                         {tf("{label} — {date}", {
                           label: node.label,
                           date: eventDate(node.occurred_at),
-                        })}
+                        }) + kindSuffix}
                       </title>
                     </g>
                   );
@@ -182,7 +198,8 @@ export function LineageDag({
             </div>
             {group.edges.length > 0 ? (
               <>
-                <p className="lineage-dag-boundary" role="note">
+                <p className="lineage-dag-boundary lineage-dag-inference-note" role="note">
+                  <strong>{t("Inference boundary")}</strong>{" "}
                   {lineageDagText(
                     "Reconstructed edges suggest continuation; they do not prove causality or authoritative fact.",
                   )}

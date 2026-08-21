@@ -129,7 +129,7 @@ _EVAL_ROWS_PROJECT_WEEK = """
         from post_evaluation_response e
         join source_post p on p.post_id = e.post_id
         join post_project_mention mention on mention.post_id = p.post_id
-                                           and mention.confidence >= 0.7
+                                           and mention.mention_confidence >= 0.7
         where e.rubric_version = $1
           and to_char(p.created_at at time zone 'UTC', 'IYYY-"W"IW') = $2
         """
@@ -154,7 +154,7 @@ _EVAL_ROWS_PROJECT_MONTH = """
         from post_evaluation_response e
         join source_post p on p.post_id = e.post_id
         join post_project_mention mention on mention.post_id = p.post_id
-                                           and mention.confidence >= 0.7
+                                           and mention.mention_confidence >= 0.7
         where e.rubric_version = $1
           and to_char(p.created_at at time zone 'UTC', 'YYYY-MM') = $2
         """
@@ -256,7 +256,7 @@ async def load_shared_item_bank(
         return None
     items = await conn.fetch(
         """
-        select item_code, item_index, slope, cat_params
+        select item_code, item_index, item_slope, cat_params
         from report_item_parameter
         where grouping_kind = $1 and grouping_key = $2
           and period_code = $3 and rubric_version = $4
@@ -272,7 +272,7 @@ async def load_shared_item_bank(
     return ItemBank(
         model=str(header["selected_model"]),
         item_codes=tuple(str(row["item_code"]) for row in items),
-        slope=tuple(float(row["slope"]) for row in items),
+        slope=tuple(float(row["item_slope"]) for row in items),
         cat_params=tuple(tuple(float(value) for value in row["cat_params"]) for row in items),
         source_period_code=str(header["period_code"]),
     )
@@ -319,7 +319,7 @@ async def load_anchor_item_bank(
         return None
     items = await conn.fetch(
         """
-        select item_code, item_index, slope, cat_params
+        select item_code, item_index, item_slope, cat_params
         from report_item_parameter
         where grouping_kind = $1 and grouping_key = $2
           and period_code = $3 and rubric_version = $4
@@ -336,7 +336,7 @@ async def load_anchor_item_bank(
         ItemBank(
             model=str(header["selected_model"]),
             item_codes=tuple(str(row["item_code"]) for row in items),
-            slope=tuple(float(row["slope"]) for row in items),
+            slope=tuple(float(row["item_slope"]) for row in items),
             cat_params=tuple(tuple(float(value) for value in row["cat_params"]) for row in items),
             source_period_code=str(header["period_code"]),
         ),
@@ -410,7 +410,7 @@ async def persist_period_report(
             """
             insert into report_item_parameter (
                 grouping_kind, grouping_key, period_code, rubric_version,
-                item_code, item_index, slope, cat_params
+                item_code, item_index, item_slope, cat_params
             ) values ($1,$2,$3,$4,$5,$6,$7,$8)
             """,
             grouping_kind,
@@ -427,7 +427,7 @@ async def persist_period_report(
             """
             insert into report_item_information (
                 grouping_kind, grouping_key, period_code, rubric_version,
-                item_code, item_rank, information
+                item_code, item_rank, information_value
             ) values ($1,$2,$3,$4,$5,$6,$7)
             """,
             grouping_kind,
@@ -588,7 +588,7 @@ async def fetch_period_reports(
     )
     selected = await conn.fetch(
         """
-        select grouping_key, item_code, item_rank, information
+        select grouping_key, item_code, item_rank, information_value
         from report_item_information
         where grouping_kind = $1 and period_code = $2 and rubric_version = $3
         order by grouping_key, item_rank
@@ -686,7 +686,7 @@ async def fetch_period_reports(
                     {
                         "item_code": str(row["item_code"]),
                         "rank": int(row["item_rank"]),
-                        "information": float(row["information"]),
+                        "information": float(row["information_value"]),
                     }
                     for row in selected_by_group.get(header["grouping_key"], [])
                 ],
@@ -742,7 +742,7 @@ async def list_period_report_summaries(
     )
     top_items = await conn.fetch(
         """
-        select grouping_key, period_code, item_code, information
+        select grouping_key, period_code, item_code, information_value
         from report_item_information
         where grouping_kind = $1 and rubric_version = $2 and item_rank = 1
         """,
@@ -777,7 +777,7 @@ async def list_period_report_summaries(
             "selected_item_information": (
                 None
                 if top_by_key.get((row["grouping_key"], row["period_code"])) is None
-                else float(top_by_key[(row["grouping_key"], row["period_code"])]["information"])
+                else float(top_by_key[(row["grouping_key"], row["period_code"])]["information_value"])
             ),
             "members": [
                 {
@@ -818,7 +818,7 @@ async def resolve_grouping_label(conn: asyncpg.Connection, grouping_kind: str, g
     elif grouping_kind == "project":
         row = await conn.fetchrow(
             "select project_name from post_project_mention "
-            "where project_key = $1 order by confidence desc, project_name limit 1",
+            "where project_key = $1 order by mention_confidence desc, project_name limit 1",
             grouping_key,
         )
         if row is not None:

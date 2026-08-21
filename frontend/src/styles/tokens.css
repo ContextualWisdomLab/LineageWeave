@@ -84,7 +84,7 @@
   --space-chip-gap: 0.3rem;
   --space-close-inset: 0.75rem;
   --space-control-gap: 0.35rem;
-  --size-control-min: 24px;
+  --size-control-min: 44px; /* WCAG 2.5.5 minimum touch target */
   --radius-chip: 999px;
   --radius-control: 6px;
   --font-size-close: 1.5rem;
@@ -116,6 +116,7 @@
   --z-modal-backdrop: 300;
   --z-modal: 310;
   --z-evidence-panel: 250;
+  --z-skip-link: 400;
 
   /* Required Field Indicator */
   --color-required: #b91c1c;

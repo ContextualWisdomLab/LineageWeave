@@ -113,6 +113,16 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "migrations"
     / "0102_project_bound_summary_event.sql"
 )
+_TENANT_SETTINGS_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0103_tenant_settings.sql"
+)
+_IDENTIFIER_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0104_two_word_database_identifiers.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -226,6 +236,8 @@ def seeded_db(demo_analyst_token):
             cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
+            cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
+            cur.execute(_IDENTIFIER_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -661,7 +673,7 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
         json={
             "run_kind_code": "analysis_run_lineage",
             "corporate_entity_id": seeded_db["own_corp_id"],
-            "idempotency_key": "buyer-create-2026-w02",
+            "idempotency_key": "run-create-2026-w02",
         },
     )
     assert created.status_code == 201
@@ -682,7 +694,7 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
         json={
             "run_kind_code": "analysis_run_lineage",
             "corporate_entity_id": seeded_db["own_corp_id"],
-            "idempotency_key": "buyer-create-2026-w02",
+            "idempotency_key": "run-create-2026-w02",
         },
     )
     assert replay.status_code == 201
@@ -694,7 +706,7 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
         json={
             "run_kind_code": "analysis_run_tepp",
             "corporate_entity_id": seeded_db["own_corp_id"],
-            "idempotency_key": "buyer-create-tepp",
+            "idempotency_key": "run-create-tepp",
         },
     )
     assert tepp.status_code == 422
@@ -707,7 +719,7 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
         json={
             "run_kind_code": "analysis_run_report",
             "corporate_entity_id": seeded_db["own_corp_id"],
-            "idempotency_key": "buyer-create-report",
+            "idempotency_key": "run-create-report",
         },
     )
     assert report.status_code == 422
@@ -720,7 +732,7 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
             "run_kind_code": "analysis_run_lineage",
             "corporate_entity_id": seeded_db["own_corp_id"],
             "knowledge_cutoff": "2026-01-01T00:00:00Z",
-            "idempotency_key": "buyer-create-2026-w02",
+            "idempotency_key": "run-create-2026-w02",
         },
     )
     assert conflict.status_code == 409
@@ -731,14 +743,14 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
         json={
             "run_kind_code": "analysis_run_lineage",
             "corporate_entity_id": seeded_db["other_corp_id"],
-            "idempotency_key": "buyer-create-hidden-corp",
+            "idempotency_key": "run-create-hidden-corp",
         },
     )
     assert hidden.status_code == 404
 
     unauthenticated = client.post(
         "/api/analysis-runs",
-        json={"idempotency_key": "buyer-create-unauthenticated"},
+        json={"idempotency_key": "run-create-unauthenticated"},
     )
     assert unauthenticated.status_code == 401
 
@@ -781,7 +793,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
             "run_kind_code": "analysis_run_lineage",
             "corporate_entity_id": seeded_db["own_corp_id"],
             "knowledge_cutoff": "2026-02-15T00:00:00Z",
-            "idempotency_key": "buyer-start-2026-w07",
+            "idempotency_key": "run-start-2026-w07",
         },
     )
     assert created.status_code == 201, created.text
@@ -853,7 +865,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
             "run_kind_code": "analysis_run_tepp",
             "corporate_entity_id": seeded_db["own_corp_id"],
             "knowledge_cutoff": "2026-02-15T00:00:00Z",
-            "idempotency_key": "buyer-start-tepp-2026-w07",
+            "idempotency_key": "run-start-tepp-2026-w07",
         },
     )
     assert tepp_create.status_code == 422
@@ -887,7 +899,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
                      requested_by_account_id, knowledge_cutoff,
                      configuration_schema_version, configuration_sha256,
                      code_revision_sha, requested_at)
-                values (%s, 'analysis_run_tepp', 'buyer-start-tepp-seeded',
+                values (%s, 'analysis_run_tepp', 'run-start-tepp-seeded',
                         %s, '2026-02-15T00:00:00Z', 'tepp-run-v1', %s, %s,
                         '2026-02-15T12:30:00Z')
                 returning analysis_run_id
@@ -956,7 +968,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
                      requested_by_account_id, knowledge_cutoff,
                      configuration_schema_version, configuration_sha256,
                      code_revision_sha, requested_at)
-                values (%s, 'analysis_run_report', 'buyer-start-report',
+                values (%s, 'analysis_run_report', 'run-start-report',
                         %s, '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
                         '2026-01-12T12:30:00Z')
                 returning analysis_run_id
@@ -999,7 +1011,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
                      requested_by_account_id, knowledge_cutoff,
                      configuration_schema_version, configuration_sha256,
                      code_revision_sha, requested_at)
-                values (%s, 'analysis_run_lineage', 'buyer-start-running',
+                values (%s, 'analysis_run_lineage', 'run-start-running',
                         %s, '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
                         '2026-01-12T12:30:00Z')
                 returning analysis_run_id
@@ -1072,7 +1084,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
                      requested_by_account_id, knowledge_cutoff,
                      configuration_schema_version, configuration_sha256,
                      code_revision_sha, requested_at)
-                values (%s, 'analysis_run_lineage', 'buyer-start-outbox-resume',
+                values (%s, 'analysis_run_lineage', 'run-start-outbox-resume',
                         %s, '2026-02-15T00:00:00Z', 'lineage-run-v1', %s, %s,
                         '2026-02-15T12:30:00Z')
                 returning analysis_run_id
@@ -1127,7 +1139,30 @@ def test_start_analysis_run_recovers_the_a100_fork(
     assert "Pricing renegotiation: revised quote sent" in children
 
 
-def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> None:
+def test_me_reflects_the_authenticated_account(client, demo_analyst_token, seeded_db) -> None:
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select user_account_id from account_affiliation where corporate_entity_id = %s",
+                (seeded_db["own_corp_id"],),
+            )
+            account_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
+                "values (%s, 'TEST-PU', 'Test PU') returning process_unit_id",
+                (seeded_db["own_corp_id"],),
+            )
+            process_unit_id = cur.fetchone()[0]
+            cur.execute(
+                "update account_affiliation set process_unit_id = %s "
+                "where user_account_id = %s and corporate_entity_id = %s",
+                (process_unit_id, account_id, seeded_db["own_corp_id"]),
+            )
+        admin_conn.commit()
+    finally:
+        admin_conn.close()
+
     response = client.get("/api/me", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200
     body = response.json()
@@ -1136,6 +1171,62 @@ def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> No
     assert any(
         entity["entity_name"] == "Test Corp" for entity in body["corporate_entities"]
     )
+    affiliation = next(
+        row
+        for row in body["account_affiliations"]
+        if row["corporate_entity_id"] == seeded_db["own_corp_id"]
+    )
+    assert affiliation == {
+        "corporate_entity_id": seeded_db["own_corp_id"],
+        "corporate_entity_code": "TEST-CORP",
+        "entity_name": "Test Corp",
+        "process_unit_id": affiliation["process_unit_id"],
+        "process_unit_code": "TEST-PU",
+        "process_unit_name": "Test PU",
+    }
+
+
+def test_healthz_is_a_public_liveness_probe(client) -> None:
+    """Regression test: a dangling ``@app.get("/healthz")`` decorator once
+    attached to ``read_tenant_settings`` instead of the liveness probe,
+    requiring auth on ``/healthz`` and leaving the real ``healthz()``
+    handler undecorated. Docker's own healthcheck (docker-compose.yml)
+    calls this route unauthenticated, so any auth requirement here breaks
+    container health and cascades into the whole compose dependency graph.
+    """
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_settings_get_requires_auth_and_returns_brand_name(client, demo_analyst_token) -> None:
+    unauthenticated = client.get("/api/settings")
+    assert unauthenticated.status_code == 401
+
+    response = client.get("/api/settings", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 200
+    assert response.json()["brandName"]
+
+
+def test_settings_patch_requires_post_admin(client, demo_analyst_token, seeded_db) -> None:
+    denied = client.patch(
+        "/api/settings",
+        json={"brandName": "Should not apply"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert denied.status_code == 403
+
+    _grant_post_admin(seeded_db["dsn"])
+    allowed = client.patch(
+        "/api/settings",
+        json={"brandName": "LineageWeave Demo"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert allowed.status_code == 200
+    assert allowed.json() == {"brandName": "LineageWeave Demo"}
+
+    confirm = client.get("/api/settings", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert confirm.json() == {"brandName": "LineageWeave Demo"}
 
 
 def test_customer_master_returns_authorized_catalog_contract(client, demo_analyst_token, seeded_db) -> None:
@@ -1164,7 +1255,7 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
             )
             cur.execute(
                 "insert into post_summary_role "
-                "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name, cataloged_person_id) "
+                "(post_id, actor_name, responsibility_text, actor_type_code, affiliated_organization_name, cataloged_person_id) "
                 "values (%s, %s, %s, %s, %s, %s)",
                 (
                     seeded_db["public_post_id"],
@@ -1435,7 +1526,7 @@ def test_post_detail_exposes_explicit_and_semantic_project_evidence(
             cur.execute(
                 """
                 insert into post_project_mention
-                    (post_id, project_key, project_name, evidence_text, confidence,
+                    (post_id, project_key, project_name, evidence_text, mention_confidence,
                      ontology_iri, extraction_method)
                 values (%s, %s, %s, %s, %s, %s, %s)
                 """,
@@ -1541,7 +1632,7 @@ def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token
             )
             cur.execute(
                 "insert into post_summary_role "
-                "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name) "
+                "(post_id, actor_name, responsibility_text, actor_type_code, affiliated_organization_name) "
                 "values (%s, 'Ada West', '후속 연락', 'prov_person', 'Demo Corp')",
                 (seeded_db["public_post_id"],),
             )
@@ -1568,7 +1659,7 @@ def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token
 def test_stale_summary_is_returned_labeled_when_orchestrator_is_unavailable(
     client, demo_analyst_token, seeded_db
 ) -> None:
-    """A legacy saved summary preserves buyer continuity with an explicit label."""
+    """A legacy saved summary preserves reader continuity with an explicit label."""
     os.environ.pop("ORCHESTRATOR_BASE_URL", None)
     os.environ.pop("ORCHESTRATOR_API_KEY", None)
     admin_conn = psycopg2.connect(seeded_db["dsn"])
@@ -2141,7 +2232,7 @@ def test_related_keymen_includes_chronological_role_history(client, demo_analyst
                 )
             cur.execute(
                 "insert into post_summary_role "
-                "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name, cataloged_person_id) "
+                "(post_id, actor_name, responsibility_text, actor_type_code, affiliated_organization_name, cataloged_person_id) "
                 "values (%s, %s, %s, %s, %s, %s)",
                 (
                     seeded_db["own_private_post_id"],
@@ -2154,7 +2245,7 @@ def test_related_keymen_includes_chronological_role_history(client, demo_analyst
             )
             cur.execute(
                 "insert into post_summary_role "
-                "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name, cataloged_person_id) "
+                "(post_id, actor_name, responsibility_text, actor_type_code, affiliated_organization_name, cataloged_person_id) "
                 "values (%s, %s, %s, %s, %s, %s)",
                 (
                     seeded_db["public_post_id"],
@@ -4777,7 +4868,7 @@ def test_seed_period_report_member_click_lands_on_decorated_fixture(
     client, demo_analyst_token, seeded_db
 ) -> None:
     """The first W02 report member must already have Event Lineage,
-    Keyman, and evaluation -- otherwise the buyer click opens a dummy
+    Keyman, and evaluation -- otherwise the reader click opens a dummy
     high/low band row.
     """
     from lineageweave.fixtures import fixture_thread_cast, fixture_titles_in_iso_week
