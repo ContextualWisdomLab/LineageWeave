@@ -49,134 +49,39 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone:
+`resolved` from intent alone. Observed at `2026-08-21T15:11:36Z` from the
+GitHub API. A merged commit is identified as `merge_commit`; an open PR is
+identified by its exact `head` and `base`.
 
-Observed at `2026-08-21T14:39:29Z` from the GitHub API. A merged commit is
-identified as `merge_commit`; an open PR is identified by its exact `head`.
+Recently merged into the protected repository:
 
-- LineageWeave PR #344: `merge_commit`
-  `497ac120c2ea22f97ef2e4a4bcd15fc2a3610046`, merged at
-  `2026-08-21T10:23:02Z`; focused tests passed before merge, while the
-  authorized-runtime browser result remains open.
-- LineageWeave PR #367: `merge_commit`
-  `7a0d025215fbd9f6510727c7139885b561296149`, merged at
-  `2026-08-21T11:56:07Z`; focused parser tests passed before merge, while
-  authorized production/browser evidence remains open.
-- LineageWeave PR #349: `head`
-  `2eb6d13903d8d20b27dfeccd476a149fdd801c1b`, base `main`; ontology
-  provenance explorer remains open and required Checks and independent
-  approval remain external gates.
-- LineageWeave PR #368: `head`
-  `a3781119625e50213f64cbe1d04d045accf4e979`, base `main`; this baseline
-  checkpoint is updated by the stacked documentation PR for the newer queue
-  evidence below.
-- LineageWeave PR #378: `merge_commit`
-  `333c705294a4faa76869f34d3e08dc09d760487d`, merged at
-  `2026-08-21T13:36:41Z`; this checkpoint's buyer-surface and exact-head
-  evidence is delivered in the merged baseline documentation.
-- LineageWeave PR #366: `head`
-  `588dc91f5689d77281cd6bbd10a8e922f9eaa159`, base
-  `feat/lineage-dag-regression`; customer-master authorization
-  scope is implemented, while required Checks and independent approval remain
-  external gates.
-- LineageWeave PR #369: `head`
-  `eb9e520cbac412b7f85f8ceddd86624515bb29cb`, base
-  `feat/ontology-provenance-explorer-v2130`; ontology source-window
-  continuation is open and required Checks and independent approval remain
-  external gates.
-- LineageWeave PR #370: `head`
-  `d5495162fbf4950ca180d43d5c13a636f1889e0c`, base
-  `feat/lineage-dag-regression`; its runtime boundary fixes are
-  now part of the current Customer Master stack; required Checks and
-  independent approval remain external gates.
-- LineageWeave PR #374: `head`
-  `fb0d185a2da707e57d2ed10900b06707126d8300`, base
-  `feat/ask-session-storage-key-v2202`; its post-chat atomic
-  reauthorization fix is stacked in PR #377.
-- LineageWeave PR #376: `merge_commit`
-  `860545f7bece99359ec7b9840c675ddc14e9acbc`, merged at
-  `2026-08-21T13:10:45Z`; migration, relation-boundary, image-job transaction,
-  and overflow-test fixes are delivered in the Customer Master stack.
-- LineageWeave PR #380: `merge_commit`
-  `9f8f4b742759e15ad34c7ef09c401dbc8b1d1ae5`, merged at
-  `2026-08-21T13:11:02Z`; the workspace-refresh and accessibility changes are
-  delivered in the current #370 head.
-- LineageWeave PR #377: `head`
-  `a638e28af4345750e3be92f2b0f23012b24598e0`, base
-  `repair/global-ask-atomic-rollback-v2203`; post-chat rollback and test
-  cleanup are locally verified; required Checks and independent approval
-  remain external gates.
-- LineageWeave PR #385: `head`
-  `d0c7decf4767902642c9805629bb8c7d5440ead8`, base
-  `feat/analysis-run-name-evidence-lineage`; stacked on PR #258's exact head
-  `481bdb6eafa1d3f074ca7d9d05275ce36a4708d8`, it hardens the external
-  lineage contract, removes the self-modifying repair workflow, and fixes the
-  responsive board CSS. Checks and independent approval remain external gates.
-- LineageWeave PR #384: `head`
-  `caf3872ea48e565ba444d7b4b4042a9f3b7e61c5`, base
-  `docs/customer-master-scope-adr`; it normalizes padded source-detail-state
-  codes across filtering, ABAC, analysis eligibility, and content-worker
-  boundaries, removes authorization-only fields at report/calendar response
-  boundaries, and hides unavailable state filters. Checks and independent
-  approval remain external gates.
-- LineageWeave PR #373: `head`
-  `84fd2993fcec5d3d683c391818f85e27ebd7347f`, base `main`; ontology
-  publication has unresolved review work and is not treated as delivered.
-- LineageWeave PR #375: `merge_commit`
-  `fb0d185a2da707e57d2ed10900b06707126d8300`, merged at
-  `2026-08-21T13:18:01Z`; post-chat citation authorization is delivered in
-  the merged stack. This equals the open #374 head intentionally because the
-  stacked merge was fast-forwarded; the two PRs remain separately classified.
-- LineageWeave PR #379: `merge_commit`
-  `b606c2553f877fa85968d90dc46598ce16897fbf`, merged at
-  `2026-08-21T13:19:00Z`; malformed provider replies and focused regression
-  coverage are delivered in the current PR #355 head.
-- LineageWeave PR #355: `head`
-  `b606c2553f877fa85968d90dc46598ce16897fbf`, base `main`; it remains
-  open and is not treated as merged solely because stacked PR #379 merged.
-- LineageWeave PR #382: `head`
-  `aab1e60c2c2ec4b57ca34585e5539d5ce1a7f9dd`, base
-  `ci/publish-ontology-pages-clean`; it carries the ontology-site safety
-  repair stacked on PR #373 and remains gated by Checks and approval.
-- LineageWeave PR #383: `head`
-  `b0c9bc6466c77b9b53f5e0e17224c868bfe08be6`, base `main`; buyer-safe
-  worker diagnostics and distinct TEPP telemetry peer labeling remain gated
-  by Checks and approval.
-- LineageWeave PR #384: `head`
-  `caf3872ea48e565ba444d7b4b4042a9f3b7e61c5`, base
-  `docs/customer-master-scope-adr`; source-detail state normalization,
-  buyer-safe report/calendar serialization, and empty-filter UX remain gated by
-  Checks and approval.
-- LineageWeave PR #386: `head`
-  `57a013deb88fc0b23ae6448c1d3474c770360a5e`, base `main`; the login
-  build-type repair remains gated by Checks and approval.
-- Legacy open PR #258: `head`
-  `481bdb6eafa1d3f074ca7d9d05275ce36a4708d8`, base `main`; hardening stack
-  #385 is open and parent delivery remains gated by Checks and review.
-- Legacy open PR #262: `head`
-  `fcb9bd3ad4714380946d29c0889b940aceaa5496`, base
-  `feat/calendar-open-focus-event-lineage-v2140`; it remains unmerged and
-  separately gated.
-- Legacy open PR #287: `head`
-  `9d2a536d7fba14f87a9fe4c9e7e578c16f97aea9`, base
-  `feat/global-ask-public-claim-verification-v2200`; it is conflicting and
-  remains unmerged.
-- LineageWeave PR #371: `closed_without_merge`
-  head `4c3e43f9e96ecc2d868657dd9b0ce5524a15c76c`, closed at
-  `2026-08-21T11:59:57Z`; no merge commit exists, so ontology publication is
-  not claimed as delivered by this checkpoint.
-- LineageWeave PR #345: `merge_commit`
-  `9316d281ae396cc1bc33ac3ba470a9e3afd41a90`, merged at
-  `2026-08-21T09:08:31Z`; application and Valkey caller OpenTelemetry spans
-  are merged, while raw telemetry remains outside buyer evidence.
-- contextual-orchestrator PR #802: `merge_commit`
-  `407747626598d763a127509f81d23c2ad8aaee23`, merged at
-  `2026-08-21T11:42:06Z`; request session context is delivered through local
-  batch workers.
-- contextual-orchestrator PR #805: `merge_commit`
-  `537915715c4b050d4b5fa18ce2b7559080c675ba`, merged at
-  `2026-08-21T11:45:58Z`; structured Responses and JSON-schema orchestration
-  are delivered in the merged upstream boundary.
+- PR #385: `merge_commit` `8b356a8399d40bcecc68a07bcfacab78eef303a0`.
+- PR #366: `merge_commit` `ec6a829c88f9d2fdb6c34d2d089945aefb59c7a4`.
+- PR #374: `merge_commit` `79c40bc8c25050084e5bbed62b8f145f6fa47775`.
+- PR #262: `merge_commit` `6bf75991b04601483d48384045e314db2a928e30`.
+
+Open PRs at the same observation:
+
+- PR #258: `head` `8b356a8399d40bcecc68a07bcfacab78eef303a0`, base `main`.
+- PR #287: `head` `0aedf64e2feac4feb33cf2f6c39f967e8eeb3c12`, base
+  `feat/global-ask-public-claim-verification-v2200`.
+- PR #349: `head` `feb55d029eb9d17c2b4f01cf8c86366fb603206a`, base `main`.
+- PR #355: `head` `b606c2553f877fa85968d90dc46598ce16897fbf`, base `main`.
+- PR #368: `head` `76630661963e79a68c23cd58948953cc7b36bcad`, base `main`.
+- PR #370: `head` `d5495162fbf4950ca180d43d5c13a636f1889e0c`, base
+  `feat/lineage-dag-regression`.
+- PR #373: `head` `6b84bea10881e2f82fb676d5b01cf56f7d8f4adb`, base `main`.
+- PR #382: `head` `91bf532b4a30a050f6431ae3a29fcab5ccfa99ed`, base
+  `ci/publish-ontology-pages-clean`.
+- PR #383: `head` `720004942dd155a85020af32da402d320038f46a`, base `main`.
+- PR #384: `head` `fb4bad5cb79d70b1a890f37cb651d0801fb61c16`, base
+  `docs/customer-master-scope-adr`.
+- PR #386: `head` `57a013deb88fc0b23ae6448c1d3474c770360a5e`, base `main`.
+
+The open queue remains subject to exact-current-head Checks, formal independent
+approval, and protected mergeability. Green Checks alone do not prove that a
+merge is authorized. PR #385's merge is the current parent of PR #258; the
+other open entries remain separate until their own merge commits are observed.
 
 ## 5. Local Buyer-Surface Verification
 
