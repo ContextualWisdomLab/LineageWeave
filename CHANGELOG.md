@@ -34,7 +34,7 @@ All notable changes to this project are documented here. Format follows
   Keyman list before continuing the graph walk, preserving every
   membership instead of inventing a primary organization.
 - Renamed "Buyer" terminology to reader/workspace naming across the frontend
-  shell, backend evidence helpers, and living docs (ADR 0119). Historical ADRs
+  shell, backend evidence helpers, and living docs (ADR 0131). Historical ADRs
   and changelog entries retain their point-in-time wording.
 
 ### Fixed
