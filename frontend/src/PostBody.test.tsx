@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { PostBody } from "./PostBody";
 
@@ -295,6 +296,182 @@ describe("PostBody", () => {
     expect(screen.getByText("diagram, process")).toBeInTheDocument();
     expect(screen.getByText("Main panel")).toBeInTheDocument();
     expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Main panel/ })).not.toBeInTheDocument();
+  });
+
+  it("overlays persisted region boxes on a reattached source image", async () => {
+    const user = userEvent.setup();
+    const source =
+      '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />';
+
+    render(
+      <PostBody
+        body={source}
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "image",
+            unit_label: "img",
+            unit_text: "This post is an image. Ask questions to read its text.",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "",
+          },
+        ]}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "Visible OCR",
+            caption: "A process diagram",
+            tags: ["diagram"],
+            regions: [
+              {
+                region_index: 0,
+                x_ratio: 0.1,
+                y_ratio: 0.2,
+                width_ratio: 0.3,
+                height_ratio: 0.4,
+                status_code: "described",
+                extracted_text: "Region OCR",
+                caption: "Main panel",
+                tags: ["panel"],
+              },
+              {
+                region_index: 1,
+                x_ratio: 0.9,
+                y_ratio: 0.9,
+                width_ratio: 0.5,
+                height_ratio: 0.5,
+                status_code: "described",
+                extracted_text: "Invented box must not render",
+                caption: "Overflow panel",
+                tags: [],
+              },
+              {
+                region_index: 2,
+                x_ratio: 0.7,
+                y_ratio: 0.6,
+                width_ratio: 0.30000000000000004,
+                height_ratio: 0.4,
+                status_code: "described",
+                extracted_text: "Edge region OCR",
+                caption: "Edge panel",
+                tags: [],
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    const overlay = screen.getByRole("button", { name: "Image region: Main panel" });
+    expect(overlay).toHaveStyle({
+      left: "10%",
+      top: "20%",
+      width: "30%",
+      height: "40%",
+    });
+    expect(screen.getByRole("button", { name: "Image region: Edge panel" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Overflow panel/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
+    expect(screen.getByText("Invented box must not render")).toBeInTheDocument();
+    expect(screen.getByText("Overflow panel")).toBeInTheDocument();
+
+    overlay.focus();
+    expect(overlay).toHaveFocus();
+    await user.click(overlay);
+    expect(screen.getByText("Current image region: Main panel")).toBeInTheDocument();
+    expect(overlay).toHaveAttribute("aria-pressed", "true");
+    await user.click(overlay);
+    expect(screen.queryByText("Current image region: Main panel")).not.toBeInTheDocument();
+    expect(overlay).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("keeps invalid persisted boxes list-only and does not create overlay controls", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "image",
+            unit_label: "img",
+            unit_text: "internal image instruction",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "",
+          },
+        ]}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "",
+            caption: "",
+            tags: [],
+            regions: [
+              {
+                region_index: 0,
+                x_ratio: Number.NaN,
+                y_ratio: 0,
+                width_ratio: 0.2,
+                height_ratio: 0.2,
+                status_code: "unavailable",
+                extracted_text: "NaN box",
+                caption: "NaN box",
+                tags: [],
+              },
+              {
+                region_index: 1,
+                x_ratio: -0.1,
+                y_ratio: 0,
+                width_ratio: 0.2,
+                height_ratio: 0.2,
+                status_code: "unavailable",
+                extracted_text: "Negative box",
+                caption: "Negative box",
+                tags: [],
+              },
+              {
+                region_index: 2,
+                x_ratio: 0,
+                y_ratio: 0,
+                width_ratio: 0,
+                height_ratio: 0.2,
+                status_code: "unavailable",
+                extracted_text: "Zero box",
+                caption: "Zero box",
+                tags: [],
+              },
+              {
+                region_index: 3,
+                x_ratio: 0.8,
+                y_ratio: 0.8,
+                width_ratio: 0.3,
+                height_ratio: 0.2,
+                status_code: "unavailable",
+                extracted_text: "Overflow box",
+                caption: "Overflow box",
+                tags: [],
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.queryByRole("group", { name: "Image regions" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Image region/ })).not.toBeInTheDocument();
+    expect(screen.getAllByText("NaN box")).toHaveLength(2);
+    expect(screen.getAllByText("Negative box")).toHaveLength(2);
+    expect(screen.getAllByText("Zero box")).toHaveLength(2);
+    expect(screen.getAllByText("Overflow box")).toHaveLength(2);
+    expect(screen.getByAltText("Embedded image")).toBeInTheDocument();
   });
 
   it("renders pipe-delimited image OCR as a buyer-facing table", () => {
@@ -379,5 +556,120 @@ describe("PostBody", () => {
     expect(screen.getByText("OCR from the source image")).toBeInTheDocument();
     expect(screen.getByText("Before").compareDocumentPosition(screen.getByAltText("Source diagram")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByAltText("Source diagram").compareDocumentPosition(screen.getByText("After")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("clears a selected region when the displayed post image changes", async () => {
+    const user = userEvent.setup();
+    const firstSource =
+      '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />';
+    const secondSource = '<img src="data:image/png;base64,QUJDREVGRw==" />';
+    const structureUnits = [
+      {
+        unit_index: 0,
+        unit_kind_code: "image" as const,
+        unit_label: "img",
+        unit_text: "This post is an image. Ask questions to read its text.",
+        indent_level: 0,
+        indent_source_code: "unresolved" as const,
+        indent_confidence: 0,
+        indent_evidence: "",
+      },
+    ];
+    const region = {
+      region_index: 0,
+      x_ratio: 0.1,
+      y_ratio: 0.2,
+      width_ratio: 0.3,
+      height_ratio: 0.4,
+      status_code: "described",
+      extracted_text: "Region OCR",
+      caption: "Main panel",
+      tags: [],
+    };
+    const { rerender } = render(
+      <PostBody
+        body={firstSource}
+        structureUnits={structureUnits}
+        imageContent={[{
+          unit_index: 0,
+          mime_type: "image/png",
+          status_code: "described",
+          extracted_text: "First OCR",
+          caption: "First diagram",
+          tags: [],
+          regions: [region],
+        }]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Main panel/ }));
+    expect(screen.getByText(/Current image region: Main panel/)).toBeInTheDocument();
+
+    rerender(
+      <PostBody
+        body={secondSource}
+        structureUnits={structureUnits}
+        imageContent={[{
+          unit_index: 0,
+          mime_type: "image/png",
+          status_code: "described",
+          extracted_text: "Second OCR",
+          caption: "Second diagram",
+          tags: [],
+          regions: [{ ...region, caption: "Second panel" }],
+        }]}
+      />,
+    );
+
+    expect(screen.getByAltText("Second diagram")).toBeInTheDocument();
+    expect(screen.queryByText(/Current image region/)).not.toBeInTheDocument();
+  });
+
+  it("clears a selected region when region evidence changes for the same image", async () => {
+    const user = userEvent.setup();
+    const source =
+      '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />';
+    const structureUnits = [
+      {
+        unit_index: 0,
+        unit_kind_code: "image" as const,
+        unit_label: "img",
+        unit_text: "internal image instruction",
+        indent_level: 0,
+        indent_source_code: "unresolved" as const,
+        indent_confidence: 0,
+        indent_evidence: "",
+      },
+    ];
+    const makeImageContent = (caption: string) => [{
+      unit_index: 0,
+      mime_type: "image/png",
+      status_code: "described",
+      extracted_text: "OCR",
+      caption: "Same diagram",
+      tags: [],
+      regions: [{
+        region_index: 0,
+        x_ratio: 0.1,
+        y_ratio: 0.2,
+        width_ratio: 0.3,
+        height_ratio: 0.4,
+        status_code: "described",
+        extracted_text: "Region OCR",
+        caption,
+        tags: [],
+      }],
+    }];
+    const { rerender } = render(
+      <PostBody body={source} structureUnits={structureUnits} imageContent={makeImageContent("First panel")} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /First panel/ }));
+    expect(screen.getByText("Current image region: First panel")).toBeInTheDocument();
+    rerender(
+      <PostBody body={source} structureUnits={structureUnits} imageContent={makeImageContent("Second panel")} />,
+    );
+
+    expect(screen.queryByText(/Current image region/)).not.toBeInTheDocument();
   });
 });

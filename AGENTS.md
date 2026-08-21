@@ -127,7 +127,10 @@ contextual-orchestrator owns model discovery and selection.
   retaining the original asset and provenance. Recognize image DOM/visual
   regions before OCR, descriptions, Keyman extraction, or embeddings. Store
   region-level evidence; never show an internal LLM instruction such as
-  `This post is an image` to a buyer.
+  `This post is an image` to a buyer. When a source image can be reattached,
+  draw only persisted visual-region boxes; never invent coordinates. If the
+  bitmap is missing or a box is invalid, keep the region list and do not
+  fabricate a locator (ADR 0110 / 0113).
 
 ## Source parsing and semantic units
 
@@ -150,7 +153,8 @@ contextual-orchestrator owns model discovery and selection.
   paragraphs, not the authoring application's spacing workaround.
 - Image descriptions, OCR text, and region evidence are analysis artifacts,
   not buyer-facing prompt instructions. Buyer UI shows the source content and
-  useful captions/evidence only, with provenance where appropriate.
+  useful captions/evidence only, with provenance where appropriate. Overlay
+  boxes use stored ratios; a missing image fails closed to the list.
 
 ## Pluggable channels: never fake a missing signal
 

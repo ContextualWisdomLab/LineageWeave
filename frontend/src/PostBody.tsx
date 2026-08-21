@@ -1,7 +1,7 @@
+import { useEffect, useState, type ReactNode } from "react";
 import { splitPostBody, type PostBodySegment } from "./postBodyDisplay";
 import { t } from "./i18n";
-import type { PostContentUnit, PostImageContent } from "./api";
-import type { ReactNode } from "react";
+import type { PostContentUnit, PostImageContent, PostImageRegion } from "./api";
 
 function parsePipeDelimitedTable(text: string): string[][] | null {
   const parsedRows = text
@@ -51,22 +51,83 @@ function renderImageText(text: string) {
 
 const SAFE_EMBEDDED_IMAGE_SOURCE =
   /^data:image\/(?:png|jpe?g|gif|webp|avif|bmp|x-icon|vnd\.microsoft\.icon);base64,[A-Za-z0-9+/]+={0,2}$/i;
+const RATIO_EPSILON = 1e-9;
 
-function renderImageEvidence(
-  index: number,
-  imageContent?: PostImageContent,
-  sourceImage?: Extract<PostBodySegment, { kind: "image" }>,
-) {
+function hasPersistedOverlayBox(region: PostImageRegion): boolean {
+  const { x_ratio, y_ratio, width_ratio, height_ratio } = region;
+  if (![x_ratio, y_ratio, width_ratio, height_ratio].every((value) => Number.isFinite(value))) {
+    return false;
+  }
+  if (x_ratio < 0 || y_ratio < 0 || width_ratio <= 0 || height_ratio <= 0) {
+    return false;
+  }
+  return x_ratio + width_ratio <= 1 + RATIO_EPSILON && y_ratio + height_ratio <= 1 + RATIO_EPSILON;
+}
+
+function regionBuyerLabel(region: PostImageRegion): string {
+  return region.caption || region.extracted_text || t("Unknown");
+}
+
+function ImageEvidenceFigure({
+  imageContent,
+  sourceImage,
+}: {
+  imageContent?: PostImageContent;
+  sourceImage?: Extract<PostBodySegment, { kind: "image" }>;
+}) {
+  const [selectedRegionIndex, setSelectedRegionIndex] = useState<number | null>(null);
+  const regions = imageContent?.regions ?? [];
   const sourceImageSrc =
     sourceImage && SAFE_EMBEDDED_IMAGE_SOURCE.test(sourceImage.src) ? sourceImage.src : undefined;
+  const overlayRegions = sourceImageSrc ? regions.filter(hasPersistedOverlayBox) : [];
+  const selectedRegion = overlayRegions.find((region) => region.region_index === selectedRegionIndex);
+
+  useEffect(() => {
+    setSelectedRegionIndex(null);
+  }, [sourceImageSrc, imageContent?.unit_index, imageContent?.caption, imageContent?.regions]);
+
   return (
-    <figure key={`post-body-image-${index}`} className="post-embedded-image">
+    <figure className="post-embedded-image">
       {sourceImageSrc ? (
-        <img src={sourceImageSrc} alt={imageContent?.caption || t("Embedded image")} />
+        <div className="post-embedded-image-frame">
+          <img src={sourceImageSrc} alt={imageContent?.caption || t("Embedded image")} />
+          {overlayRegions.length ? (
+            <div className="post-image-region-overlays" role="group" aria-label={t("Image regions")}>
+              {overlayRegions.map((region) => {
+                const label = regionBuyerLabel(region);
+                const pressed = selectedRegionIndex === region.region_index;
+                return (
+                  <button
+                    type="button"
+                    key={region.region_index}
+                    className="post-image-region-overlay"
+                    data-region-index={region.region_index}
+                    aria-pressed={pressed}
+                    aria-label={`${t("Image region")}: ${label}`}
+                    style={{
+                      left: `${region.x_ratio * 100}%`,
+                      top: `${region.y_ratio * 100}%`,
+                      width: `${region.width_ratio * 100}%`,
+                      height: `${region.height_ratio * 100}%`,
+                    }}
+                    onClick={() =>
+                      setSelectedRegionIndex((current) =>
+                        current === region.region_index ? null : region.region_index,
+                      )
+                    }
+                  />
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
       ) : null}
       {imageContent?.caption || !sourceImageSrc ? (
         <figcaption>{imageContent?.caption || t("Embedded image")}</figcaption>
       ) : null}
+      <p className="post-image-current-region" role="status" aria-live="polite" aria-atomic="true">
+        {selectedRegion ? `${t("Current image region")}: ${regionBuyerLabel(selectedRegion)}` : null}
+      </p>
       {imageContent?.tags.length ? (
         <p className="post-image-tags">
           <strong>{t("Image tags")}:</strong> {imageContent.tags.join(", ")}
@@ -78,20 +139,20 @@ function renderImageEvidence(
           {renderImageText(imageContent.extracted_text)}
         </details>
       ) : null}
-      {imageContent?.regions?.length ? (
+      {regions.length ? (
         <details className="post-image-regions">
           <summary>{t("Image regions")}</summary>
           <ol>
-            {imageContent.regions.map((region) => (
+            {regions.map((region) => (
               <li key={region.region_index}>
                 {region.caption ? <p>{region.caption}</p> : null}
                 {region.extracted_text ? (
                   <div className="post-image-region-text">
                     {renderImageText(region.extracted_text)}
                   </div>
-                ) : region.caption ? null : (
+                ) : !region.caption ? (
                   t("Unknown")
-                )}
+                ) : null}
                 {region.tags.length ? (
                   <small>
                     {t("Image tags")}: {region.tags.join(", ")}
@@ -137,7 +198,13 @@ function renderSegment(segment: PostBodySegment, index: number, imageContent?: P
       );
     }
     case "image":
-      return renderImageEvidence(index, imageContent, segment);
+      return (
+        <ImageEvidenceFigure
+          key={`post-body-image-${index}-${imageContent?.unit_index ?? "unknown"}-${imageContent?.caption ?? ""}-${segment.src}`}
+          imageContent={imageContent}
+          sourceImage={segment}
+        />
+      );
     default: {
       const _exhaustive: never = segment;
       throw new Error(`unexpected post body segment: ${JSON.stringify(_exhaustive)}`);
@@ -229,9 +296,11 @@ function renderStructuredUnits(
       const sourceImage = sourceImages[imageOrdinal++];
       const content = imageContent.find((item) => item.unit_index === unit.unit_index);
       rendered.push(
-        sourceImage
-          ? renderSegment(sourceImage, index, content)
-          : renderImageEvidence(index, content),
+        sourceImage ? (
+          renderSegment(sourceImage, index, content)
+        ) : (
+          <ImageEvidenceFigure key={`post-body-image-${index}`} imageContent={content} />
+        ),
       );
       index += 1;
       continue;

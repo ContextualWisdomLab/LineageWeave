@@ -47,6 +47,16 @@ const RETIRED_LIGHT_ONLY_HEX = [
   "#721c24",
 ];
 
+const APP_CHROME_SELECTORS = [
+  ".app-shell",
+  ".login-screen",
+  ".login-card",
+  ".app-header-title",
+  ".app-footer",
+  ".btn-primary",
+  ".btn-secondary",
+];
+
 describe("design tokens", () => {
   it("defines every badge/accent token in both the light and dark blocks", () => {
     for (const token of BADGE_AND_ACCENT_TOKENS) {
@@ -69,5 +79,25 @@ describe("design tokens", () => {
     for (const token of BADGE_AND_ACCENT_TOKENS) {
       expect(appCss, `App.css never references var(${token})`).toContain(`var(${token})`);
     }
+  });
+
+  it("keeps the login and application chrome selectors defined", () => {
+    for (const selector of APP_CHROME_SELECTORS) {
+      expect(appCss, `${selector} must keep a buyer-facing style`).toContain(selector);
+    }
+  });
+
+  it("keeps the evidence panel above the sticky header layer", () => {
+    expect(lightBlock).toContain("--z-header: 100;");
+    expect(lightBlock).toContain("--z-evidence-panel: 250;");
+    expect(appCss).toContain(".evidence-panel");
+    expect(appCss).toContain("z-index: var(--z-evidence-panel);");
+  });
+
+  it("keeps image overlays transparent outside their accessible controls", () => {
+    expect(appCss).toContain(".post-image-region-overlays");
+    expect(appCss).toContain("pointer-events: none;");
+    expect(appCss).toContain(".post-image-region-overlay");
+    expect(appCss).toContain("pointer-events: auto;");
   });
 });
