@@ -23,4 +23,10 @@
 - **Security & Compliance**: PII masking cannot break the system. Need SOC 2 and CSAP compliance alternatives to blind PII masking. 
 - **LLM Orchestration**: Ensure ALL LLM calls route through `contextual-orchestrator` utilizing API keys (BYTEZ, NVIDIA, OPENROUTER, OPENAI) with auto model discovery and optimal reasoning effort allocation (Fugu/Conductor/TRINITY research).
 
+## 4. Public Ontology Publication Gap
+- **Observed gap**: `https://contextualwisdomlab.github.io/LineageWeave/ontology#` has no deployed public resource even though the authoritative OWL/RDFS/SKOS Turtle ontology already exists in `docs/ontology/lineageweave-kg.ttl`.
+- **Active remediation — PR #371**: Add a deterministic GitHub Pages builder and protected deployment workflow that publishes fragment-addressable HTML, byte-identical Turtle, isomorphic JSON-LD and N-Triples, the PROV-O support profile, and a source-digest manifest.
+- **Namespace boundary**: The existing lowercase semantic ontology IRI is not silently rewritten. The repository-case Pages path is the public documentation endpoint; any semantic namespace migration remains a separate versioned architectural change.
+- **Completion evidence**: Exact-head ontology and site tests pass; builder statement/branch coverage is 100%; the repository Pages source is GitHub Actions; the protected `main` deployment succeeds; and the requested URL resolves with stable anchors such as `#Post`.
+
 *This document is continuously updated by the hourly automated agent loop.*
