@@ -1866,17 +1866,6 @@ function PostDetailPopup({
       .catch(() => {
         if (isCurrent()) setEvaluation([]);
       });
-    fetchPostSummary(accessToken, postId)
-      .then((value) => {
-        if (!isCurrent()) return;
-        setSummary(value);
-        void reloadContent();
-      })
-      .catch((err) => {
-        if (!isCurrent()) return;
-        setSummary(null);
-        setSummaryError(summaryFetchError(err));
-      });
     fetchPostFiveW1H(accessToken, postId)
       .then((value) => {
         if (isCurrent()) setFiveW1H(value);
