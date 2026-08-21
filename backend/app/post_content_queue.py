@@ -46,6 +46,18 @@ def post_content_api_status(status_code: str | None, *, content_present: bool) -
     return "unavailable"
 
 
+def post_content_summary_status_message(status_code: str | None) -> str:
+    """Return an honest buyer-facing image-evidence status message.
+
+    A terminal ingestion failure is not still processing. Keeping those two
+    states distinct lets the popup tell the operator to retry the durable
+    job instead of implying that waiting will resolve a terminal failure.
+    """
+    if status_code == FAILED:
+        return "Post summary is unavailable: image evidence ingestion failed; contact an administrator to retry the content job"
+    return "Post summary is unavailable: image evidence is still being processed"
+
+
 async def post_content_is_complete(
     conn: asyncpg.Connection,
     post_id: str,

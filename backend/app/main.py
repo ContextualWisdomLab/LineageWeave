@@ -196,11 +196,9 @@ from backend.app.post_summary_ingestion import (
 from backend.app.post_eligibility import (
     SOURCE_POST_ELIGIBILITY_SQL,
     SOURCE_POST_READER_ELIGIBILITY_SQL,
-    SOURCE_POST_VISIBILITY_SQL,
     WRITING_SOURCE_DETAIL_STATE_CODE,
     normalize_source_detail_state_code,
     source_post_state_visibility_sql,
-    SOURCE_POST_VISIBILITY_SQL,
 )
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
@@ -344,9 +342,7 @@ def _post_summary_client():
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullPostSummaryClient()
     return ContextualOrchestratorPostSummaryClient(
-        base_url=settings.orchestrator_base_url,
-        api_key=settings.orchestrator_api_key,
-        timeout=300.0,
+        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
     )
 
 
@@ -818,11 +814,8 @@ def _observed_hierarchy_ids(rows: list[asyncpg.Record]) -> set[str]:
     rows_by_id = {str(row["corporate_entity_id"]): row for row in rows}
     hierarchy_ids: set[str] = set()
     for row in rows:
-        if not row["is_observed_organization"]:
+        if not row["is_observed_organization"] or row["parent_entity_id"] is None:
             continue
-        if row["parent_entity_id"] is None:
-            continue
-        hierarchy_ids.add(str(row["corporate_entity_id"]))
         parent_id = row["parent_entity_id"]
         while parent_id is not None:
             parent_key = str(parent_id)
@@ -853,7 +846,6 @@ async def read_customer_master(
             "relationship_network": [],
         }
 
-    authorized_entity_ids = list(account.corporate_entity_ids)
     async with pool.acquire() as conn:
         # Safe SQL: the evidence query uses only closed schema fragments; authorized entity ids are bound.
         source_customer_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
@@ -871,7 +863,7 @@ async def read_customer_master(
                    and ($2::text is null
                         or nullif(btrim(source_customer_code), '') = $2::text)
                    and {SOURCE_POST_VISIBILITY_SQL.format(alias='source_post', authorized_entity_ids='$1')}
-                   and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
+                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
             ), ranked as (
                 select scoped.*,
                        row_number() over (
@@ -937,7 +929,7 @@ async def read_customer_master(
                   join user_account author on author.user_account_id = post.author_account_id
                  where post.source_author_code is not null
                    and btrim(post.source_author_code) <> ''
-                   and {SOURCE_POST_VISIBILITY_SQL.format(alias='post', authorized_entity_ids='$1')}
+                   and (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
             ), ranked as (
                 select scoped.*,
@@ -1053,12 +1045,12 @@ async def read_customer_master(
                and related.account_display_name = top_groups.account_display_name
              order by top_groups.post_count desc, top_groups.author_code
             """,
-            authorized_entity_ids,
+            list(account.corporate_entity_ids),
         )
         has_source_context = bool(source_customer_rows or source_author_rows)
         if not has_source_context:
             has_source_context = await has_real_source_context(
-                conn, authorized_entity_ids
+                conn, list(account.corporate_entity_ids)
             )
         synthetic_only_entity_ids: set[str] = set()
         if has_source_context:
@@ -1107,7 +1099,7 @@ async def read_customer_master(
                and not (entity.corporate_entity_id = any($3::uuid[]))
              order by entity.entity_name
             """,
-            authorized_entity_ids,
+            list(account.corporate_entity_ids),
             account.user_account_id,
             list(synthetic_only_entity_ids),
         )
@@ -1116,7 +1108,7 @@ async def read_customer_master(
         source_author_affiliations = await _load_account_affiliation_hints(
             conn,
             [str(row["author_account_id"]) for row in source_author_rows],
-            entity_ids,
+            [str(entity_id) for entity_id in entity_ids],
         )
         keyman_rows = await conn.fetch(
             """
@@ -1126,8 +1118,8 @@ async def read_customer_master(
                    affiliation.affiliated_corporate_entity_id,
                    affiliation.role_title,
                    entity.entity_name
-              from cataloged_person person
-              join person_affiliation affiliation on affiliation.person_id = person.person_id
+             from cataloged_person person
+             join person_affiliation affiliation on affiliation.person_id = person.person_id
              left join corporate_entity entity
                 on entity.corporate_entity_id = affiliation.affiliated_corporate_entity_id
              where affiliation.affiliated_corporate_entity_id = any($1::uuid[])
@@ -1333,6 +1325,14 @@ async def list_posts(
     """List authorized posts, with semantic evidence search when requested."""
     _require_post_read(account)
     search_term = search.strip() if search and search.strip() else None
+    voc_type_codes = (
+        [code.strip() for code in voc_type if code.strip()] if voc_type else None
+    ) or None
+    source_detail_state_codes = (
+        [code.strip().upper() for code in source_detail_state if code.strip()]
+        if source_detail_state
+        else None
+    ) or None
     async with pool.acquire() as conn:
         voc_type_options, source_detail_state_options, visibility_options = await _post_filter_options(
             conn, account
@@ -1636,10 +1636,8 @@ async def list_posts(
             """,
             search_term,
             list(account.corporate_entity_ids),
-            [code.strip() for code in voc_type if code.strip()] if voc_type else None,
-            [code.strip().upper() for code in source_detail_state if code.strip()]
-            if source_detail_state
-            else None,
+            voc_type_codes,
+            source_detail_state_codes,
             visibility.strip() if visibility and visibility.strip() else None,
             body_search_ids,
             offset,
@@ -2711,19 +2709,34 @@ async def read_period_reports(
             if _can_use_post_for_analysis(account, pair)
             and not _is_synthetic_demo_member(pair, demo_entity_ids)
         ]
-        private_report_fields = {
-            "visibility_code",
-            "corporate_entity_id",
-            "author_account_id",
-            "source_detail_state_code",
-            "has_real_source_context",
-        }
         members = [
-            {key: value for key, value in member.items() if key not in private_report_fields}
+            {
+                key: value
+                for key, value in member.items()
+                if key
+                not in {
+                    "visibility_code",
+                    "corporate_entity_id",
+                    "author_account_id",
+                    "source_detail_state_code",
+                    "has_real_source_context",
+                }
+            }
             for member in members
         ]
         leftover_pairs = [
-            {key: value for key, value in pair.items() if key not in private_report_fields}
+            {
+                key: value
+                for key, value in pair.items()
+                if key
+                not in {
+                    "visibility_code",
+                    "corporate_entity_id",
+                    "author_account_id",
+                    "source_detail_state_code",
+                    "has_real_source_context",
+                }
+            }
             for pair in leftover_pairs
         ]
         visible.append(
@@ -3615,13 +3628,14 @@ async def read_calendar(
             c for c in visible if not _is_synthetic_demo_member(c, demo_entity_ids)
         ]
     for c in visible:
-        del (
-            c["visibility_code"],
-            c["corporate_entity_id"],
-            c["author_account_id"],
-            c["source_detail_state_code"],
-            c["has_real_source_context"],
-        )
+        for key in (
+            "visibility_code",
+            "corporate_entity_id",
+            "author_account_id",
+            "source_detail_state_code",
+            "has_real_source_context",
+        ):
+            c.pop(key, None)
     return {
         "events": events,
         "commitments": visible,

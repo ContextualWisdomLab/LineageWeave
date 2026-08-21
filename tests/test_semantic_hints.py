@@ -188,3 +188,18 @@ def test_lifecycle_only_fields_do_not_hide_independent_identity_hints() -> None:
     assert "author_affiliations=Synthetic Corp" in hints
     assert "author_side_hint=our_side_candidate" in hints
     assert "customer=Synthetic Customer" in hints
+
+
+def test_numeric_sales_order_item_number_is_preserved_in_source_hints() -> None:
+    """A PostgreSQL integer item number remains usable orchestrator evidence."""
+    hints = format_semantic_hints(
+        author_name=None,
+        author_affiliations=(),
+        order_pool_code=None,
+        order_pool_name=None,
+        project_field=None,
+        customer_name=None,
+        source_sales_order_item_number=7,
+    )
+
+    assert "source_sales_order_item_number=7 [source_field=source_post.source_sales_order_item_number]" in hints

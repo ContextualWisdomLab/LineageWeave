@@ -85,6 +85,10 @@ async def queue_post_content_backfill(
                    or nullif(btrim(source_customer_name), '') is not null
                    or nullif(btrim(source_project_code), '') is not null
                    or nullif(btrim(source_project_name), '') is not null
+                   or nullif(btrim(source_order_pool_code), '') is not null
+                   or nullif(btrim(source_sales_order_code), '') is not null
+                   or nullif(btrim(source_sales_order_item_number::text), '') is not null
+                   or nullif(btrim(source_inspection_point_code), '') is not null
                )
                and (
                    not exists (

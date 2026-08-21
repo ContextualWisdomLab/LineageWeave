@@ -2072,6 +2072,9 @@ function PostDetailPopup({
         if (disposed) return;
         setPost(loadedPost);
         loadDerivedPostData(loadedPost);
+        if (!isWritingSourceDetailState(loadedPost.source_detail_state_code)) {
+          reloadContent();
+        }
       })
       .catch((err) => setError(String(err)));
     const reloadContent = () =>
@@ -2099,7 +2102,6 @@ function PostDetailPopup({
           setStructureUnits([]);
         });
     contentReloadRef.current = reloadContent;
-    reloadContent();
     fetchPostBookmark(accessToken, postId)
       .then((r) => setBookmarked(r.bookmarked))
       .catch(() => {

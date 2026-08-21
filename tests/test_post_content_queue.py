@@ -21,6 +21,7 @@ from backend.app.post_content_queue import (
     requeue_failed_post_content_job,
     post_content_api_status,
     post_content_is_complete,
+    post_content_summary_status_message,
     post_content_summary_is_ready,
     post_body_has_images,
     post_content_stream_fields,
@@ -49,6 +50,12 @@ def test_api_status_does_not_call_failed_content_ready() -> None:
     assert post_content_api_status(SUCCEEDED, content_present=True) == "ready"
     assert post_content_api_status(FAILED, content_present=False) == "unavailable"
     assert post_content_api_status(FAILED, content_present=True) == "unavailable"
+
+
+def test_summary_status_distinguishes_terminal_image_failure_from_processing() -> None:
+    assert "ingestion failed" in post_content_summary_status_message(FAILED)
+    assert "still being processed" in post_content_summary_status_message(QUEUED)
+    assert "still being processed" in post_content_summary_status_message(RUNNING)
 
 
 def test_summary_waits_for_image_evidence_and_detects_images_without_body_logging() -> None:
