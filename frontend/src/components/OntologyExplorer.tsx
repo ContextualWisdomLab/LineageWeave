@@ -273,7 +273,7 @@ function statusMessage(status: OntologyExplorerStatus, payload: OntologyNeighbor
       </p>
     );
   }
-  if (status === "truncated" && payload?.edges.some((edge) => edge.evidence_references.length === 0)) {
+  if (status === "truncated" && payload && !payload.next_cursor) {
     return (
       <p className="ontology-status ontology-status-truncated" role="status">
         {ontologyExplorerText(

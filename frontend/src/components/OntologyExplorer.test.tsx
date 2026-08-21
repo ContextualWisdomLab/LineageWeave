@@ -177,7 +177,11 @@ describe("OntologyExplorer", () => {
         neighborhood={neighborhood({ truncated: true, limitation_code: "neighborhood_truncated" })}
       />,
     );
-    expect(screen.getByText("Neighborhood truncated. Page visible relations, then inspect one edge.")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Neighborhood reached the authorized query bound. Narrow the property filter or reduce traversal depth.",
+      ),
+    ).toBeInTheDocument();
     rerender(
       <OntologyExplorer
         focusNodeType="node_post"

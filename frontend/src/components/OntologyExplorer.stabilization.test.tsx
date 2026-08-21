@@ -139,6 +139,10 @@ describe("OntologyExplorer stabilization contracts", () => {
   });
 
   it("names the next action when a hard source bound has no cursor", () => {
+    const evidenceBearingEdges = payload().edges.map((edge) => ({
+      ...edge,
+      evidence_references: [POST_ID],
+    }));
     render(
       <OntologyExplorer
         focusNodeType="node_post"
@@ -147,6 +151,7 @@ describe("OntologyExplorer stabilization contracts", () => {
           truncated: true,
           next_cursor: null,
           limitation_code: "neighborhood_truncated",
+          edges: evidenceBearingEdges,
         })}
       />,
     );
