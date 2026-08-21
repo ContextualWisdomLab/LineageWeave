@@ -107,6 +107,11 @@ real React client rendered the protected board. Aggregate evidence only:
   Chinese set `html[lang]` to `zh`, localized the drawer, authorized-scope,
   logout, summary, and Event Lineage labels, opened a post popup, and produced
   zero popup errors.
+- The authorized PostgreSQL export relation contained 43,814 rows with
+  complete title, source-key, and artifact-path metadata, but its schema had
+  no body/content/HTML column. The existing import adapter requires an
+  explicitly mapped body column, so this is source-mapping evidence only; no
+  real-corpus import or multimodal backfill is claimed from this relation.
 - All 11 supplied post cases opened a popup with a loaded title and zero popup
   error elements. The footnote case rendered one footnote, the table case one
   semantic table, the known lineage case one DAG, and the image-table case
@@ -144,6 +149,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Authenticated corp/PU attributes | `/api/me` returns DB-backed codes; backend integration test covers `TEST-CORP`/`TEST-PU` and header displays them | source + local-integration |
 | RBAC/ABAC, public/private visibility, tenant isolation | `_can_see_post`, API authorization tests, aggregate-only runtime checks | source + local-integration |
 | React product surface and PostgreSQL boundary | React routes/components, asyncpg API, Compose stack | source + local-integration |
+| Authorized PostgreSQL export import mapping | bounded source-schema inspection found 43,814 rows and artifact-path metadata but no body/content/HTML field; the existing adapter rejects an absent body mapping | source + local-integration partial; approved artifact-to-body mapping open |
 | Bounded large-body search migration | `0035_body_search_prefix.sql`, `0036_normalized_body_search.sql`; live replay completed after bounded rendered-text indexing | source + local-integration |
 | Public Compose liveness and tenant settings boundary | health-probe regression test, `0103_tenant_settings.sql`, rebuilt backend `/healthz` HTTP 200 | source + unit + local-integration |
 | Post list/detail popup, Korean summary, 5W1H, R&R, tickets/calendar | API routes, popup panels, backend/frontend tests | source + unit |
@@ -202,6 +208,11 @@ or an explicit unavailable result.
   metadata, region evidence, and provenance must remain separate from embedding
   text; transparent/unsupported image conversion and multimodal processing need
   live verification.
+- **Authorized source mapping — open:** the inspected export relation exposes
+  metadata and artifact paths but no body/content/HTML field. Do not map an
+  unrelated metadata column as body; connect the approved artifact parser or
+  publish a runtime query that returns the authoritative body before import and
+  backfill.
 - **TEPP measurement — boundary accepted, runtime open:** LineageWeave must
   call TEPP through its published import/REST contract and must not implement a
   local theta, psychometric calibration, CAT, or judge score. TEPP owns the
