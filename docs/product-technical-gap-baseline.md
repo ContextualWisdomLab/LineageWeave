@@ -81,6 +81,8 @@ Recently merged into an open stack base (not main):
   into PR #388's `feat/post-body-footnote-display` base.
 - PR #390: `merge_commit` `b020378710a0e405974538d80f7ef68ae3badd7c`, merged
   into PR #389's `feat/markdown-table-display` base.
+- PR #391: `merge_commit` `16f2b13caad10f4d999293d623405aefadeda52e`, merged
+  into PR #387's `feat/event-lineage-channel-evidence` base.
 
 Open PRs at the same observation:
 
@@ -93,20 +95,20 @@ Open PRs at the same observation:
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `468258dba1abc420b56c43acc0acab7e29606022` (the exact current
+- PR #368: `head` `7d7c200715ac4c26733b3a0b57f932f24eec780f` (the exact current
   documentation checkpoint), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
+- PR #373: `head` `151fe6e177416a5d83b5539a73d97737c12d1ce4`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #383: `head` `6af3adc3e08fd1b0b11182d8cf3714b847c71ea8`, base `main`
+- PR #383: `head` `b1d32a93632164cf1379f24fc9aca71c5d29b746`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #384: `head` `a32bbda48e1ed873362e6e7bd6e47766d9998bb5`, base
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
 - PR #387: `head` `16f2b13caad10f4d999293d623405aefadeda52e`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #391: `head` `e099a916cec6f06b86f335d31c89e01aae248dfd`, base PR #387
-  (`7a0a5f649c766d967d73265ae7833aa7c070f542`).
-- PR #388, #389, and #390 are closed after the stack merges recorded above;
+- PR #392: `head` `a046da4e52c484807fc28111bd813d1acbc00816`, base `main`
+  (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
+- PR #388, #389, #390, and #391 are closed after the stack merges recorded above;
   they are not open PRs at this checkpoint.
 
 The open queue remains subject to exact-current-head Checks, formal independent
@@ -130,6 +132,15 @@ the current-head review is refreshed. PRs #388, #389, and #390 were merged
 into stack bases only; their merge commits are not protected-main merges.
 Re-read the exact current HEAD, review, and terminal-check gates before every
 future merge.
+
+Queue refresh at `2026-08-22T04:00:00Z`: PR #391 is now merged into the open
+#387 stack parent with merge commit
+`16f2b13caad10f4d999293d623405aefadeda52e`; this is not a protected-main
+merge. New PR #392 is open at exact head
+`a046da4e52c484807fc28111bd813d1acbc00816` with one passing and twelve pending
+non-skipped Checks and no independent approval. The remaining open PRs were
+not authorized to merge from this observation because approval and/or terminal
+Checks were still absent.
 
 Closed without merge at the same observation:
 
@@ -404,7 +415,9 @@ remains open at observed exact head
 1. Revalidate open PRs #258, #349, #355, #368, #373, #383, #384, #387, and #391 at
    their exact current heads as Checks and formal independent approvals arrive;
    the #388/#389/#390 stack merges are already recorded above, so process the
-   open #387 parent only after its current-head gates pass.
+  open #387 parent only after its current-head gates pass. PR #392 is a
+  separate main-targeting product follow-up and remains subject to the same
+  gates.
    Verify the synthetic footnote/table cases in the authenticated browser and
    use the protected external corpus only for aggregate, non-identifying
    runtime evidence.
