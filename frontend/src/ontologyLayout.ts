@@ -76,7 +76,11 @@ export function layoutOntologyNeighborhood(payload: OntologyNeighborhoodPayload)
       [...ids].sort((left, right) => {
         const leftLabel = byId.get(left)?.display_label ?? left;
         const rightLabel = byId.get(right)?.display_label ?? right;
-        return leftLabel.localeCompare(rightLabel) || left.localeCompare(right);
+        if (leftLabel < rightLabel) return -1;
+        if (leftLabel > rightLabel) return 1;
+        if (left < right) return -1;
+        if (left > right) return 1;
+        return 0;
       }),
     );
   }

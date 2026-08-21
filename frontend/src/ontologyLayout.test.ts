@@ -134,4 +134,25 @@ describe("ontologyLayout", () => {
     });
     expect(formulaSafe).toContain("'=1+1");
   });
+
+  it("uses locale-independent code-unit ordering for node placement", () => {
+    const ordered = layoutOntologyNeighborhood({
+      ...payload(),
+      nodes: payload().nodes.map((node) =>
+        node.node_id === PERSON_ID ? { ...node, display_label: "ä" } :
+        node.node_id === CORP_ID ? { ...node, display_label: "z" } : node,
+      ),
+      edges: payload().edges.map((edge) =>
+        edge.edge_id === "affiliated:person-corp"
+          ? { ...edge, source_node_id: POST_ID }
+          : edge,
+      ),
+    });
+    expect(
+      ordered.nodes
+        .filter((node) => node.depth === 1)
+        .sort((left, right) => left.y - right.y)
+        .map((node) => node.node_id),
+    ).toEqual([CORP_ID, PERSON_ID]);
+  });
 });
