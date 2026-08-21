@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
+from lineageweave.source_lineage_hints import source_lineage_hint_facts
+
 _WEAK_CUSTOMER_VALUES = frozenset(
     {
         "기타",
@@ -54,6 +56,13 @@ def format_semantic_hints(
     source_process_unit_catalog_name: str | None = None,
     source_sales_pool_code: str | None = None,
     source_sales_pool_name: str | None = None,
+    source_order_pool_code: str | None = None,
+    source_sales_order_code: str | None = None,
+    source_sales_order_item_number: int | str | None = None,
+    source_inspection_point_code: str | None = None,
+    source_stage_code: str | None = None,
+    source_detail_state_code: str | None = None,
+    source_deleted_flag: str | None = None,
     source_customer_code: str | None = None,
     source_customer_name: str | None = None,
     source_customer_catalog_name: str | None = None,
@@ -73,6 +82,13 @@ def format_semantic_hints(
             source_process_unit_name,
             source_sales_pool_code,
             source_sales_pool_name,
+            source_order_pool_code,
+            source_sales_order_code,
+            source_sales_order_item_number,
+            source_inspection_point_code,
+            source_stage_code,
+            source_detail_state_code,
+            source_deleted_flag,
             source_customer_code,
             source_customer_name,
             source_project_code,
@@ -178,11 +194,28 @@ def format_semantic_hints(
             f"source_process_unit_name={_value(source_process_unit_name)} [source_field=source_post.source_process_unit_name]",
             f"source_sales_pool_code={_value(source_sales_pool_code)} [source_field=source_post.source_sales_pool_code]",
             f"source_sales_pool_name={_value(source_sales_pool_name)} [source_field=source_post.source_sales_pool_name]",
+            f"source_order_pool_code={_value(source_order_pool_code)} [source_field=source_post.source_order_pool_code]",
+            f"source_sales_order_code={_value(source_sales_order_code)} [source_field=source_post.source_sales_order_code]",
+            f"source_sales_order_item_number={_value(source_sales_order_item_number)} [source_field=source_post.source_sales_order_item_number]",
+            f"source_inspection_point_code={_value(source_inspection_point_code)} [source_field=source_post.source_inspection_point_code]",
+            f"source_stage_code={_value(source_stage_code)} [source_field=source_post.source_stage_code]",
+            f"source_detail_state_code={_value(source_detail_state_code)} [source_field=source_post.source_detail_state_code]",
+            f"source_deleted_flag={_value(source_deleted_flag)} [source_field=source_post.source_deleted_flag]",
             f"source_customer_code={_value(source_customer_code)} [source_field=source_post.source_customer_code]",
             f"source_customer_name={source_customer_name_value} [source_field=source_post.source_customer_name]",
             f"source_customer_name_hint_trust={source_customer_name_trust}",
             f"source_project_code={_value(source_project_code)} [source_field=source_post.source_project_code]",
             f"source_project_name={_value(source_project_name)} [source_field=source_post.source_project_name]",
             *catalog_hints,
+            *source_lineage_hint_facts(
+                customer_code=source_customer_code,
+                order_pool_code=source_order_pool_code,
+                sales_order_code=source_sales_order_code,
+                sales_order_item_number=source_sales_order_item_number,
+                stage_code=source_stage_code,
+                detail_state_code=source_detail_state_code,
+                inspection_point_code=source_inspection_point_code,
+                deleted_flag=source_deleted_flag,
+            ),
         )
     )

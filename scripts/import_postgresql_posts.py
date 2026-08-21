@@ -92,6 +92,10 @@ class ColumnMapping:
     # PU field such as voc_pucode without an authoritative source definition.
     sales_pool: str | None
     sales_pool_name: str | None
+    order_pool: str | None
+    sales_order: str | None
+    sales_order_item: str | None
+    inspection_point: str | None
     customer_code: str | None
     customer_name: str | None
     project_code: str | None
@@ -159,6 +163,10 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--source-sales-pool-column")
     parser.add_argument("--source-sales-pool-name-column")
+    parser.add_argument("--source-order-pool-column")
+    parser.add_argument("--source-sales-order-column")
+    parser.add_argument("--source-sales-order-item-column")
+    parser.add_argument("--source-inspection-point-column")
     parser.add_argument("--source-customer-code-column")
     parser.add_argument("--source-customer-name-column")
     parser.add_argument("--source-project-code-column")
@@ -236,6 +244,17 @@ def _source_code_matches(
         return False
     normalized = str(value).strip().casefold()
     return normalized in {item.strip().casefold() for item in excluded_values}
+
+
+def _source_item_number(row: Any, column: str | None) -> int | None:
+    """Normalize a caller-mapped numeric item field, preserving source zero."""
+    value = _value(row, column)
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"source sales-order item is not numeric: {value!r}") from exc
 
 
 def _validate_source_mapping(
@@ -427,6 +446,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
         source_business_unit_name=args.source_business_unit_name_column,
         sales_pool=args.source_sales_pool_column,
         sales_pool_name=args.source_sales_pool_name_column,
+        order_pool=args.source_order_pool_column,
+        sales_order=args.source_sales_order_column,
+        sales_order_item=args.source_sales_order_item_column,
+        inspection_point=args.source_inspection_point_column,
         customer_code=args.source_customer_code_column,
         customer_name=args.source_customer_name_column,
         project_code=args.source_project_code_column,
@@ -507,11 +530,13 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                      source_author_code, source_author_name, source_company_code, source_company_name,
                      source_process_unit_code, source_process_unit_name,
                      source_sales_pool_code, source_sales_pool_name,
+                     source_order_pool_code, source_sales_order_code,
+                     source_sales_order_item_number, source_inspection_point_code,
                      source_customer_code, source_customer_name,
                      source_project_code, source_project_name,
                      source_system_code, source_record_key,
                      thread_group_key, secondary_grouping_key, created_at, updated_at)
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34)
                 on conflict (post_id) do update set
                     author_account_id = excluded.author_account_id,
                     corporate_entity_id = excluded.corporate_entity_id,
@@ -532,6 +557,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                     source_process_unit_name = excluded.source_process_unit_name,
                     source_sales_pool_code = excluded.source_sales_pool_code,
                     source_sales_pool_name = excluded.source_sales_pool_name,
+                    source_order_pool_code = excluded.source_order_pool_code,
+                    source_sales_order_code = excluded.source_sales_order_code,
+                    source_sales_order_item_number = excluded.source_sales_order_item_number,
+                    source_inspection_point_code = excluded.source_inspection_point_code,
                     source_customer_code = excluded.source_customer_code,
                     source_customer_name = excluded.source_customer_name,
                     source_project_code = excluded.source_project_code,
@@ -563,6 +592,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 str(_value(row, mapping.source_business_unit_name) or "").strip() or None,
                 str(_value(row, mapping.sales_pool) or "").strip() or None,
                 str(_value(row, mapping.sales_pool_name) or "").strip() or None,
+                str(_value(row, mapping.order_pool) or "").strip() or None,
+                str(_value(row, mapping.sales_order) or "").strip() or None,
+                _source_item_number(row, mapping.sales_order_item),
+                str(_value(row, mapping.inspection_point) or "").strip() or None,
                 str(_value(row, mapping.customer_code) or "").strip() or None,
                 str(_value(row, mapping.customer_name) or "").strip() or None,
                 str(_value(row, mapping.project_code) or "").strip() or None,
@@ -598,6 +631,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                     "source_customer_code": _value(row, mapping.customer_code),
                     "source_project_code": _value(row, mapping.project_code),
                     "source_sales_pool_code": _value(row, mapping.sales_pool),
+                    "source_order_pool_code": _value(row, mapping.order_pool),
+                    "source_sales_order_code": _value(row, mapping.sales_order),
+                    "source_sales_order_item_number": _value(row, mapping.sales_order_item),
+                    "source_inspection_point_code": _value(row, mapping.inspection_point),
                 },
             )
             with use_llm_metadata(metadata):
