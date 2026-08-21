@@ -260,6 +260,11 @@ raw HTTP status. After that 503 the free-text Ask box is hidden and
 only seeded question chips remain -- never a fabricated answer. Evaluate, Extract
 Keymen, Derive commitment, and Verify use the same 503 empty-state
 pattern and then hide the action button so it cannot 503 again.
+Persisted Ask-history reads are bounded to 64 exchanges and 256 citation
+occurrences (ADR 0129). One query loads the ordered history and one query
+reauthorizes every citation against tenant ABAC, publication eligibility, and
+its exchange-specific knowledge cutoff. An over-budget history is withheld
+rather than partially returned.
 `find_linked_post_ids` first expands to every post
 sharing a mentioned person before calling
 `backend/app/knowledge_graph.py::load_visible_subgraph` -- that function
