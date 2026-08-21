@@ -11,8 +11,8 @@
 ### 1.1 Current continuation head
 
 The current buyer-surface/source-context implementation head for PR #384 is
-`671e10c6bb29e95e1850bb88cffea6f644f4f941` (the local merge commit recorded
-after the exact-head rebase), observed at `2026-08-21T15:29:06Z`
+`1f4e17541bfb5887343e3f3d41571f035ecd4d88` (the local merge commit recorded
+after the exact-head rebase and remote fixture cleanup), observed at `2026-08-21T15:30:42Z`
 (`2026-08-22` KST). Its base is
 `3e6878d3f29a678efd47c805e28f98f937ff4900` (`docs/customer-master-scope-adr`).
 The repaired implementation includes the customer-master scope-facet base
@@ -84,7 +84,7 @@ part of the acceptance queue, not completion evidence:
 
 | Repository | PR | Exact head | State | Remaining gate |
 | --- | ---: | --- | --- | --- |
-| LineageWeave | #384 | `671e10c6bb29e95e1850bb88cffea6f644f4f941` | repaired locally; remote update pending | hosted checks and review |
+| LineageWeave | #384 | `1f4e17541bfb5887343e3f3d41571f035ecd4d88` | repaired locally; remote update pending | hosted checks and review |
 | LineageWeave | #383 | `720004942dd155a85020af32da402d320038f46a` | open, blocked | required checks and review |
 | LineageWeave | #355 | `b606c2553f877fa85968d90dc46598ce16897fbf` | open, coverage pending | coverage gate and review |
 | contextual-orchestrator | #765 | `d19e3492192e21e4a040fa3fc13a0793443731bf` | open, blocked | required checks and review |
