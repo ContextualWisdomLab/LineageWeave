@@ -10,13 +10,17 @@
 
 ### 1.1 Current continuation head
 
-The current buyer-surface/source-context continuation is PR #384 at exact head
-`f688f0e4e2946ea86aed65311558923211a23aa7`, observed at
-`2026-08-21T15:13:45Z` (`2026-08-22` KST). Its base is
-`d5495162fbf4950ca180d43d5c13a636f1889e0c` (`docs/customer-master-scope-adr`).
-GitHub reports `MERGEABLE` with `mergeable_state=unstable`; the two required
-hosted workflows are queued for this exact head. No merge or approval is
-claimed from that state.
+The current buyer-surface/source-context implementation head for PR #384 is
+`671e10c6bb29e95e1850bb88cffea6f644f4f941` (the local merge commit recorded
+after the exact-head rebase), observed at `2026-08-21T15:29:06Z`
+(`2026-08-22` KST). Its base is
+`3e6878d3f29a678efd47c805e28f98f937ff4900` (`docs/customer-master-scope-adr`).
+The repaired implementation includes the customer-master scope-facet base
+and preserves the source-detail-state fixes. Local acceptance evidence is
+backend `127 passed, 6 skipped`, frontend `199 passed`, lint, TypeScript, and
+production build success. The baseline update itself follows this code
+commit; hosted checks, formal review, and merge remain unclaimed until the
+remote PR is queried at its newly pushed exact head.
 
 The historical evidence below remains valid only at the exact heads and dates
 stated in each entry. It must not be used as proof that the current continuation
@@ -80,7 +84,7 @@ part of the acceptance queue, not completion evidence:
 
 | Repository | PR | Exact head | State | Remaining gate |
 | --- | ---: | --- | --- | --- |
-| LineageWeave | #384 | `f688f0e4e2946ea86aed65311558923211a23aa7` | open, mergeable, unstable | hosted checks and review |
+| LineageWeave | #384 | `671e10c6bb29e95e1850bb88cffea6f644f4f941` | repaired locally; remote update pending | hosted checks and review |
 | LineageWeave | #383 | `720004942dd155a85020af32da402d320038f46a` | open, blocked | required checks and review |
 | LineageWeave | #355 | `b606c2553f877fa85968d90dc46598ce16897fbf` | open, coverage pending | coverage gate and review |
 | contextual-orchestrator | #765 | `d19e3492192e21e4a040fa3fc13a0793443731bf` | open, blocked | required checks and review |
