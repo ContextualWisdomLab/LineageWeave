@@ -31,6 +31,49 @@ class HttpClientError(RuntimeError):
     """The remote endpoint returned a non-success status or invalid JSON."""
 
 
+def _validated_response_limit(value: int | None) -> int | None:
+    """Return a positive byte limit or reject ambiguous numeric values."""
+
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ValueError("maximum_response_bytes must be a positive integer")
+    return value
+
+
+def _read_response_body(
+    response: http.client.HTTPResponse,
+    *,
+    maximum_response_bytes: int | None,
+) -> bytes:
+    """Read one response without allocating beyond an admitted byte limit."""
+
+    limit = _validated_response_limit(maximum_response_bytes)
+    length_header = response.getheader("Content-Length")
+    if length_header is not None:
+        try:
+            declared_length = int(length_header)
+        except ValueError as exc:
+            raise HttpClientError("invalid Content-Length from remote endpoint") from exc
+        if declared_length < 0:
+            raise HttpClientError("invalid Content-Length from remote endpoint")
+        if limit is not None and declared_length > limit:
+            raise HttpClientError(
+                f"response exceeds maximum_response_bytes={limit}"
+            )
+        raw = response.read(declared_length)
+    elif limit is None:
+        raw = response.read()
+    else:
+        raw = response.read(limit + 1)
+
+    if limit is not None and len(raw) > limit:
+        raise HttpClientError(
+            f"response exceeds maximum_response_bytes={limit}"
+        )
+    return raw
+
+
 def _request(
     method: str,
     url: str,
@@ -38,11 +81,16 @@ def _request(
     body: bytes | None,
     headers: dict[str, str],
     timeout: float,
+    maximum_response_bytes: int | None = None,
 ) -> tuple[int, bytes]:
-    """Implement the _request operation for this channel."""
+    """Perform one bounded HTTP(S) request and return status plus raw bytes."""
+
+    limit = _validated_response_limit(maximum_response_bytes)
     parsed = urlparse(url)
     if parsed.scheme not in _ALLOWED_SCHEMES:
-        raise ValueError(f"refusing non-http(s) URL scheme: {parsed.scheme!r}")
+        raise ValueError(
+            f"refusing non-http(s) URL scheme: {parsed.scheme!r}"
+        )
     if not parsed.hostname:
         raise ValueError("URL is missing a hostname")
 
@@ -56,27 +104,37 @@ def _request(
     # defaults, which this project (requires-python >= 3.10) never hits.
     default_port = 443 if parsed.scheme == "https" else 80
     port = parsed.port if parsed.port is not None else default_port
-    connection = http.client.HTTPConnection(parsed.hostname, port, timeout=timeout)
+    connection = http.client.HTTPConnection(
+        parsed.hostname,
+        port,
+        timeout=timeout,
+    )
 
     try:
         if parsed.scheme == "https":
             connection.connect()
             if connection.sock is None:
-                raise HttpClientError(f"no socket after connect to {parsed.hostname}")
+                raise HttpClientError(
+                    f"no socket after connect to {parsed.hostname}"
+                )
             connection.sock = _SSL_CONTEXT.wrap_socket(
-                connection.sock, server_hostname=parsed.hostname
+                connection.sock,
+                server_hostname=parsed.hostname,
             )
         connection.request(method, path, body=body, headers=headers)
         response = connection.getresponse()
-        length_header = response.getheader("Content-Length")
-        raw = response.read(int(length_header)) if length_header is not None else response.read()
+        raw = _read_response_body(
+            response,
+            maximum_response_bytes=limit,
+        )
         return response.status, raw
     finally:
         connection.close()
 
 
 def _decode_json(raw: bytes, hostname: str) -> object:
-    """Implement the _decode_json operation for this channel."""
+    """Decode UTF-8 JSON without exposing response content in errors."""
+
     try:
         return json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -84,7 +142,8 @@ def _decode_json(raw: bytes, hostname: str) -> object:
 
 
 def _decode_json_object(raw: bytes, hostname: str) -> dict:
-    """Implement the _decode_json_object operation for this channel."""
+    """Decode one JSON object and reject arrays or scalar payloads."""
+
     decoded = _decode_json(raw, hostname)
     if not isinstance(decoded, dict):
         raise HttpClientError(f"JSON object expected from {hostname}")
@@ -92,7 +151,8 @@ def _decode_json_object(raw: bytes, hostname: str) -> dict:
 
 
 def _decode_json_list(raw: bytes, hostname: str) -> list:
-    """Implement the _decode_json_list operation for this channel."""
+    """Decode one JSON array and reject objects or scalar payloads."""
+
     decoded = _decode_json(raw, hostname)
     if not isinstance(decoded, list):
         raise HttpClientError(f"JSON array expected from {hostname}")
@@ -112,6 +172,7 @@ def post_json(
         ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
         HttpClientError: the server responded with HTTP >= 400 or non-JSON.
     """
+
     request_payload = payload
     request_metadata = current_llm_metadata()
     if request_metadata:
@@ -120,7 +181,10 @@ def post_json(
         if existing_metadata is None:
             request_payload["metadata"] = request_metadata
         elif isinstance(existing_metadata, dict):
-            request_payload["metadata"] = {**existing_metadata, **request_metadata}
+            request_payload["metadata"] = {
+                **existing_metadata,
+                **request_metadata,
+            }
         else:
             raise ValueError("metadata must be an object")
     status, raw = _request(
@@ -148,11 +212,15 @@ def post_form(
     Used by the OIDC smoke test (resource-owner password grant). Same
     scheme allowlist as ``post_json`` -- never ``urllib.request.urlopen``.
     """
+
     status, raw = _request(
         "POST",
         url,
         body=urlencode(fields).encode("utf-8"),
-        headers={"content-type": "application/x-www-form-urlencoded", **(headers or {})},
+        headers={
+            "content-type": "application/x-www-form-urlencoded",
+            **(headers or {}),
+        },
         timeout=timeout,
     )
     hostname = urlparse(url).hostname or url
@@ -166,14 +234,29 @@ def get_json(
     *,
     headers: dict[str, str] | None = None,
     timeout: float,
+    maximum_response_bytes: int | None = None,
 ) -> dict:
-    """GET ``url`` and return the decoded JSON object.
+    """GET ``url`` and return a decoded JSON object.
+
+    Args:
+        url: Operator-configured HTTP(S) endpoint.
+        headers: Optional request headers.
+        timeout: Socket timeout in seconds.
+        maximum_response_bytes: Optional strict response-body byte ceiling.
 
     Raises:
-        ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
-        HttpClientError: the server responded with HTTP >= 400 or non-JSON.
+        ValueError: The URL or byte limit is invalid.
+        HttpClientError: The response is too large, HTTP >= 400, or non-JSON.
     """
-    status, raw = _request("GET", url, body=None, headers=headers or {}, timeout=timeout)
+
+    status, raw = _request(
+        "GET",
+        url,
+        body=None,
+        headers=headers or {},
+        timeout=timeout,
+        maximum_response_bytes=maximum_response_bytes,
+    )
     hostname = urlparse(url).hostname or url
     if status >= 400:
         raise HttpClientError(f"HTTP {status} from {hostname}")
@@ -195,7 +278,14 @@ def get_json_list(
         ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
         HttpClientError: the server responded with HTTP >= 400 or non-array JSON.
     """
-    status, raw = _request("GET", url, body=None, headers=headers or {}, timeout=timeout)
+
+    status, raw = _request(
+        "GET",
+        url,
+        body=None,
+        headers=headers or {},
+        timeout=timeout,
+    )
     hostname = urlparse(url).hostname or url
     if status >= 400:
         raise HttpClientError(f"HTTP {status} from {hostname}")
