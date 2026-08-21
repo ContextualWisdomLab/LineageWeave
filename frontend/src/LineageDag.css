@@ -83,7 +83,7 @@
   fill: currentColor;
 }
 
-.lineage-dag-node-date {
+.lineage-dag-node text.lineage-dag-node-date {
   font-size: 9px;
   opacity: 0.72;
   fill: var(--text);
