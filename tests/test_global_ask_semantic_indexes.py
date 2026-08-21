@@ -6,6 +6,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FORWARD = ROOT / "migrations/0054_global_ask_semantic_search.sql"
 ROLLBACK = ROOT / "migrations/rollback/0054_global_ask_semantic_search.sql"
+ORGANIZATION_FORWARD = ROOT / "migrations/0055_verified_organization_label_search.sql"
+ORGANIZATION_ROLLBACK = ROOT / "migrations/rollback/0055_verified_organization_label_search.sql"
 
 
 EXPECTED_INDEXES = (
@@ -44,3 +46,17 @@ def test_migration_runner_includes_the_semantic_search_slice() -> None:
     """Long-lived Compose databases apply the same index contract as fresh installs."""
     migrate = (ROOT / "docker/postgres-init/migrate.sh").read_text(encoding="utf-8")
     assert "0054_*" in migrate
+
+
+def test_verified_organization_label_indexes_have_a_symmetric_rollback() -> None:
+    """The alias-search slice can be removed without dropping shared pg_trgm."""
+    forward = ORGANIZATION_FORWARD.read_text(encoding="utf-8").casefold()
+    rollback = ORGANIZATION_ROLLBACK.read_text(encoding="utf-8").casefold()
+
+    for index_name in (
+        "organization_name_resolution_raw_search_idx",
+        "organization_name_resolution_resolved_search_idx",
+    ):
+        assert f"create index if not exists {index_name}" in forward
+        assert f"drop index if exists {index_name}" in rollback
+    assert "drop extension" not in rollback
