@@ -91,6 +91,9 @@ _SOURCE_STATE_MIGRATION = (
 _SOURCE_CONTEXT_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0034_source_context_provenance.sql"
 )
+_SOURCE_COMMERCIAL_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0130_source_commercial_context.sql"
+)
 _NORMALIZED_BODY_SEARCH_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0036_normalized_body_search.sql"
 )
@@ -196,6 +199,9 @@ def projection_database() -> str:
                 cursor.execute(_SEMANTIC_SEARCH_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SOURCE_STATE_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SOURCE_CONTEXT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(
+                    _SOURCE_COMMERCIAL_CONTEXT_MIGRATION.read_text(encoding="utf-8")
+                )
                 cursor.execute(_NORMALIZED_BODY_SEARCH_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SOURCE_RECORD_IDENTITY_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SOURCE_NAMED_HINTS_MIGRATION.read_text(encoding="utf-8"))
