@@ -46,6 +46,19 @@ describe("PostBody", () => {
     expect(screen.queryByAltText(/character offset/i)).not.toBeInTheDocument();
   });
 
+  it("rejects script and active SVG image sources before browser rendering", () => {
+    const { rerender } = render(<PostBody body={'<img src="javascript:alert(1)">'} />);
+
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+
+    rerender(
+      <PostBody body={'<img src="data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=" />'} />,
+    );
+
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.getByText("Embedded image")).toBeInTheDocument();
+  });
+
   it("renders authoritative LLM structure levels for semantic list units", () => {
     render(
       <PostBody
@@ -119,6 +132,76 @@ describe("PostBody", () => {
     expect(screen.getByRole("table")).toBeInTheDocument();
     expect(screen.getAllByRole("row")).toHaveLength(2);
     expect(screen.queryAllByText("No.")).toHaveLength(1);
+  });
+
+  it("keeps source indentation after a persisted table unit", () => {
+    render(
+      <PostBody
+        body="<table><tr><td>No.</td><td>Company</td></tr></table><p>&nbsp;&nbsp;Nested item</p>"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "dom",
+            unit_label: "tr",
+            unit_text: "No. | Company",
+            indent_level: 0,
+            indent_source_code: "explicit",
+            indent_confidence: 1,
+            indent_evidence: "table row",
+          },
+          {
+            unit_index: 1,
+            unit_kind_code: "dom",
+            unit_text: "Nested item",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "",
+          },
+          {
+            unit_index: 2,
+            unit_kind_code: "dom",
+            unit_text: "Unavailable source unit",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Nested item")).toHaveAttribute("data-indent-level", "1");
+    expect(screen.getByText("Unavailable source unit")).toHaveAttribute("data-indent-level", "0");
+  });
+
+  it("keeps adjacent source tables as separate buyer-facing tables", () => {
+    render(
+      <PostBody
+        body={
+          "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>" +
+          "<table><tr><td>E</td><td>F</td></tr><tr><td>G</td><td>H</td></tr></table>"
+        }
+        structureUnits={[
+          ["A", "B"],
+          ["C", "D"],
+          ["E", "F"],
+          ["G", "H"],
+        ].map(([left, right], unit_index) => ({
+          unit_index,
+          unit_kind_code: "dom",
+          unit_label: "tr",
+          unit_text: `${left} | ${right}`,
+          indent_level: 0,
+          indent_source_code: "explicit" as const,
+          indent_confidence: 1,
+          indent_evidence: "table row",
+        }))}
+      />,
+    );
+
+    expect(screen.getAllByRole("table")).toHaveLength(2);
+    expect(screen.getAllByRole("row")).toHaveLength(4);
   });
 
   it("marks persisted footnotes as footnote evidence", () => {
@@ -349,6 +432,28 @@ describe("PostBody", () => {
     expect(screen.getByText("Zero box")).toBeInTheDocument();
     expect(screen.getByText("Overflow box")).toBeInTheDocument();
     expect(screen.getByAltText("Embedded image")).toBeInTheDocument();
+  });
+
+  it("renders pipe-delimited image OCR as a buyer-facing table", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "| No. | Item |\n| --- | --- |\n| 1 | Panel |",
+            caption: "A table image",
+            tags: [],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getAllByRole("row")).toHaveLength(2);
+    expect(screen.getByText("Panel")).toBeInTheDocument();
   });
 
   it("keeps source-image placement while showing persisted OCR and caption evidence", () => {
