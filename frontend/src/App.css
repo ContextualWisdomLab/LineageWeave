@@ -835,6 +835,13 @@
   color: var(--text);
   width: min(90%, 820px);
   max-height: 85vh;
+  /* Wide desktop viewports get more than the 820px mobile-safe cap so
+     multi-column sections (popup-analysis-grid, popup-secondary-grid)
+     have room to sit side by side instead of forcing a narrow single
+     column on a 1920px-wide shell. */
+  @media (min-width: 1280px) {
+    width: min(85%, 1180px);
+  }
   overflow-y: auto;
   padding: clamp(1.25rem, 3vw, 2rem);
   border: 1px solid var(--border);
@@ -999,6 +1006,28 @@
   .popup-analysis-grid {
     grid-template-columns: 1fr 1fr;
     align-items: start;
+  }
+}
+
+/* Projects/semantic evidence and Original source state are both short,
+   standalone reference blocks (no "next action" reading order between
+   them) — let them sit side by side on wide viewports instead of each
+   claiming the full popup width. Falls back to one column when only one
+   of the two is rendered. */
+.popup-secondary-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .popup-secondary-grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+
+  .popup-secondary-grid > .popup-section:only-child {
+    grid-column: 1 / -1;
   }
 }
 

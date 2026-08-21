@@ -2127,6 +2127,7 @@ function PostDetailPopup({
               </div>
             </div>
 
+            <div className="popup-secondary-grid">
             {post.project_evidence && post.project_evidence.length > 0 ? (
               <section className="popup-section" aria-label={t("Projects / semantic evidence")}>
                 <h3>{t("Projects / semantic evidence")}</h3>
@@ -2298,6 +2299,7 @@ function PostDetailPopup({
                 <p className="post-meta">{t("Raw source codes are shown; no state label was inferred.")}</p>
               </section>
             )}
+            </div>
 
             <section className="popup-section post-source-body" aria-label={t("Post body")}>
               <h3>{t("Post body")}</h3>
