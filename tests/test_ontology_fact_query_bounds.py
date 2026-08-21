@@ -33,7 +33,7 @@ def test_load_facts_passes_the_request_edge_cap_to_sql() -> None:
     assert "order by candidate.edge_type_code" in normalized_query
     assert "limit $5::integer" in normalized_query
     assert conn.arguments[:3] == (["post-1"], NODE_POST, "")
-    assert conn.arguments[-1] == min(
+    assert conn.arguments[4] == min(
         HARD_MAXIMUM_EDGES,
-        7 * (conn.arguments[-2] + 1) + 1,
+        7 * (conn.arguments[3] + 1) + 1,
     )
