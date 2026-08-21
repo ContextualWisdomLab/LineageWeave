@@ -1858,6 +1858,10 @@ function groupKeyEventsByProject(events: PostKeyEvent[]): KeyEventGroup[] {
   return groups;
 }
 
+function isWritingSourceDetailState(code: string | null | undefined): boolean {
+  return (code ?? "").trim().toUpperCase() === "W";
+}
+
 function PostDetailPopup({
   postId,
   accessToken,
@@ -1909,6 +1913,7 @@ function PostDetailPopup({
   const contentReloadRef = useRef<() => void>(() => undefined);
 
   function reloadKeymen() {
+    if (isWritingSourceDetailState(post?.source_detail_state_code)) return;
     fetchPostKeymen(accessToken, postId)
       .then((r) => {
         setKeymen(r.keymen);
@@ -1926,6 +1931,7 @@ function PostDetailPopup({
   }
 
   function reloadCounterparties() {
+    if (isWritingSourceDetailState(post?.source_detail_state_code)) return;
     fetchPostCounterparties(accessToken, postId)
       .then((r) => setCounterparties(r.counterparties))
       .catch(() => setCounterparties([]));
@@ -1958,7 +1964,42 @@ function PostDetailPopup({
     let disposed = false;
     let contentPollTimer: number | undefined;
     const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
-    fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
+    const loadDerivedPostData = (loadedPost: PostDetail) => {
+      if (isWritingSourceDetailState(loadedPost.source_detail_state_code)) return;
+      fetchPostEvaluation(accessToken, postId)
+        .then((r) => setEvaluation(r.responses))
+        .catch(() => setEvaluation([]));
+      fetchPostFiveW1H(accessToken, postId)
+        .then(setFiveW1H)
+        .catch(() => setFiveW1H(null));
+      fetchPostKeymen(accessToken, postId)
+        .then((r) => {
+          setKeymen(r.keymen);
+          setSourceAuthorContext(r.source_author_context ?? null);
+        })
+        .catch(() => {
+          setKeymen([]);
+          setSourceAuthorContext(null);
+        });
+      fetchPostCounterparties(accessToken, postId)
+        .then((r) => setCounterparties(r.counterparties))
+        .catch(() => setCounterparties([]));
+      fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
+      fetchPostKnowledgeGraph(accessToken, postId)
+        .then(setKnowledgeGraph)
+        .catch(() => setKnowledgeGraph(null));
+      fetchPostAffiliateTree(accessToken, postId)
+        .then((r) => setAffiliateTrees(r.trees))
+        .catch(() => setAffiliateTrees([]));
+      fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+    };
+    fetchPost(accessToken, postId, asOf)
+      .then((loadedPost) => {
+        if (disposed) return;
+        setPost(loadedPost);
+        loadDerivedPostData(loadedPost);
+      })
+      .catch((err) => setError(String(err)));
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
         .then((content) => {
@@ -1990,32 +2031,6 @@ function PostDetailPopup({
       .catch(() => {
         setBookmarked(null);
       });
-    fetchPostEvaluation(accessToken, postId)
-      .then((r) => setEvaluation(r.responses))
-      .catch(() => setEvaluation([]));
-    fetchPostFiveW1H(accessToken, postId)
-      .then(setFiveW1H)
-      .catch(() => setFiveW1H(null));
-    fetchPostKeymen(accessToken, postId)
-      .then((r) => {
-        setKeymen(r.keymen);
-        setSourceAuthorContext(r.source_author_context ?? null);
-      })
-      .catch(() => {
-        setKeymen([]);
-        setSourceAuthorContext(null);
-      });
-    fetchPostCounterparties(accessToken, postId)
-      .then((r) => setCounterparties(r.counterparties))
-      .catch(() => setCounterparties([]));
-    fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
-    fetchPostKnowledgeGraph(accessToken, postId)
-      .then(setKnowledgeGraph)
-      .catch(() => setKnowledgeGraph(null));
-    fetchPostAffiliateTree(accessToken, postId)
-      .then((r) => setAffiliateTrees(r.trees))
-      .catch(() => setAffiliateTrees([]));
-    fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
     return () => {
       disposed = true;
       if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
@@ -2035,7 +2050,7 @@ function PostDetailPopup({
         disposed = true;
       };
     }
-    if (post?.source_detail_state_code?.trim().toUpperCase() === "W") {
+    if (isWritingSourceDetailState(post.source_detail_state_code)) {
       setSummaryLoading(false);
       return () => {
         disposed = true;
@@ -2160,7 +2175,7 @@ function PostDetailPopup({
 					<div className="popup-analysis-grid">
               <section className="popup-section popup-analysis-col">
               <h3>{t("Summary")}</h3>
-              {post.source_detail_state_code?.trim().toUpperCase() === "W" ? (
+              {isWritingSourceDetailState(post.source_detail_state_code) ? (
                 <SummaryStatus
                   kind="empty"
                   title={t("Summary is not created for writing posts.")}

@@ -6,6 +6,8 @@ import asyncio
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
 
+import pytest
+
 from backend.app import post_content_worker
 from backend.app.post_content_queue import (
     FAILED,
@@ -95,8 +97,13 @@ def test_terminal_failed_job_ignores_a_stale_duplicate_wakeup() -> None:
     assert connection.executed == []
 
 
-def test_worker_drops_a_writing_post_even_if_a_stale_job_row_leaks_through() -> None:
-    connection = _Connection({**_row(QUEUED, 0), "source_detail_state_code": "W"})
+@pytest.mark.parametrize("source_detail_state_code", ["W", " w "])
+def test_worker_drops_a_writing_post_even_if_a_stale_job_row_leaks_through(
+    source_detail_state_code: str,
+) -> None:
+    connection = _Connection(
+        {**_row(QUEUED, 0), "source_detail_state_code": source_detail_state_code}
+    )
 
     claimed = asyncio.run(
         post_content_worker._claim_job(

@@ -86,3 +86,20 @@ def test_content_backfill_normalizes_writing_state_codes() -> None:
     """Content recovery excludes padded and lower-case writing rows."""
     source = (ROOT / "scripts/queue_post_content_backfill.py").read_text(encoding="utf-8")
     assert "coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'" in source
+
+
+@pytest.mark.parametrize(
+    "relative_path, qualified_column",
+    [
+        ("backend/app/post_content_worker.py", "p.source_detail_state_code"),
+        ("backend/app/post_content_queue.py", "post.source_detail_state_code"),
+        ("scripts/queue_post_content_backfill.py", "post.source_detail_state_code"),
+    ],
+)
+def test_post_content_writing_state_gates_are_case_insensitive(
+    relative_path: str,
+    qualified_column: str,
+) -> None:
+    """Queue and worker gates reject transport-padded lowercase writing states."""
+    source = (ROOT / relative_path).read_text(encoding="utf-8")
+    assert f"coalesce(upper(btrim({qualified_column})), '') <> 'W'" in source
