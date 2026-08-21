@@ -418,7 +418,7 @@ class _BlockTextExtractor(HTMLParser):
                 row_buffer = self._stack[-1][1]
                 row_key = id(row_buffer)
                 cell_count = self._table_cell_counts.get(row_key, 0)
-                if cell_count:
+                if cell_count or "".join(row_buffer).strip():
                     row_buffer.append(" | ")
                 self._table_cell_counts[row_key] = cell_count + 1
             return

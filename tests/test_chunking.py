@@ -104,6 +104,15 @@ def test_chunk_by_dom_keeps_nested_table_cell_blocks_in_their_row() -> None:
     assert [(chunk.label, chunk.text) for chunk in chunks] == [("tr", "No. | Company")]
 
 
+def test_chunk_by_dom_preserves_boundary_before_first_cell_after_row_text() -> None:
+    """Malformed editor markup must not merge row text into the first cell."""
+    chunks = chunk_by_dom(
+        "<table><tr><p>caption</p><td>A</td><td>B</td></tr></table>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [("tr", "caption | A | B")]
+
+
 def test_chunk_by_dom_labels_markerless_footnotes() -> None:
     chunks = chunk_by_dom("<p>Body text</p><p>*Tier 2: follow-up note</p>")
     assert [(chunk.label, chunk.text) for chunk in chunks] == [
