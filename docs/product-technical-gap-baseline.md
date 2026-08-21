@@ -51,7 +51,7 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   provenance explorer remains open and required Checks and independent
   approval remain external gates.
 - LineageWeave PR #368: `head`
-  `7d4ee14210ea2a822dfc12af2d809f9ba6fd5f74`, base `main`; this baseline
+  `3a924014dbaafa22e74331df642a5fa4e4569f0d`, base `main`; this baseline
   checkpoint is updated by the stacked documentation PR for the newer queue
   evidence below.
 - LineageWeave PR #378: `merge_commit`
