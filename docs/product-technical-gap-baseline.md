@@ -13,12 +13,11 @@ Audit anchor: the exact source state carried by this documentation commit at
 acceptance.
 
 Current implementation source/test exact head observed before this
-documentation update: `1eef321b`, the shared focus-token fix on top of the
-post-filter hierarchy-facet, demo-scope authorization, and keyboard-accessible
-post-popup fixes,
-top of PR #366's observed base `8bed77e7e7b91b633bb92d3a82d0187c387206af`.
-The documentation commit creates the next exact head; protected checks must
-rerun for the resulting PR head.
+documentation update: `d38ef6f69b4f67a75781b8465714ecd00f12cf3c`, the
+fully-contained popup keyboard-navigation repair on top of the customer-scope
+facets and closed-details focus fixes, with PR #366 based on
+`8bed77e7e7b91b633bb92d3a82d0187c387206af`. The documentation commit creates
+the next exact head; protected checks must rerun for the resulting PR head.
 
 - **Implemented in source:** PostgreSQL-backed API boundaries, Keyverse/OIDC
   identity boundary, workspace navigation, post popup, ABAC/RBAC surfaces, Korean
@@ -37,7 +36,7 @@ rerun for the resulting PR head.
 - **Figma reference:** ADR 0118 records file `1Su3lDRmiZdcUs47t1QwIX`; the
   inspected Event Lineage frames are desktop `5:14` and mobile `5:15`.
 - **Local quality evidence at the source/test head:** backend `uv run pytest -q`
-  passed `787` tests with `17` skips; frontend Vitest passed `177` tests in `19`
+  passed `788` tests with `17` skips; frontend Vitest passed `177` tests in `19`
   files, frontend lint/build passed, and Storybook build completed. These are
   local checks, not hosted protected-gate or independent-review evidence.
 - **Current PR gate:** PR #350 merged at
@@ -46,21 +45,21 @@ rerun for the resulting PR head.
   `feat/lineage-dag-regression`; PR #364 then merged the evidence-only
   baseline at `8bed77e7e7b91b633bb92d3a82d0187c387206af`. This ADR/docs
   follow-up requires its own protected checks and independent approval;
-  neither is claimed yet. PR #366 remains open at the implementation head
-  before this documentation commit, with CodeRabbit successful, Devin Review
-  pending, unresolved threads cleared, and no independent approval; no merge
-  is claimed. The prior PR #347 merged at
+  neither is claimed yet. PR #366 remains open at code head
+  `d38ef6f69b4f67a75781b8465714ecd00f12cf3c`; its hosted Tests run is queued,
+  Devin Review is pending, and no independent approval or merge is claimed.
+  The prior PR #347 merged at
   `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`.
 
 - **Adjacent current parsing PR:** PR #367 remains open and unmerged at exact
-  head `b628722cb000717b0198e4337d12306d4306922d`, based on
+  head `5194d267b90430d7a27a9752a49d73617cb5756c`, based on
   `docs/customer-master-scope-adr` at `f66991699506ef14607de5946da1efcfd20ae6da`.
   It addresses the supplied numbered-footnote and empty-table-cell cases,
   removes a dead footnote-reference branch, and rejects short non-footnote IDs.
-  Its focused parser gate is `45 passed`, with `compileall` and
-  `git diff --check` passing. GitHub Tests run `32472915167` is queued,
-  Devin Review is pending, CodeRabbit is successful, and the three known
-  review threads are resolved; no independent approval or merge is claimed.
+  Its focused parser gate is `47 passed`, with `compileall` and
+  `git diff --check` passing. GitHub Tests run `32474961105` is queued,
+  Devin Review is successful, CodeRabbit is successful, and no unresolved
+  review thread, independent approval, or merge is claimed.
 
 - **Latest #366 review repair before this documentation commit:** code head
   `e2ebd156c89fb810de44207c25a57a92372ab5d2` removes the discarded pre-filter
@@ -90,13 +89,28 @@ rerun for the resulting PR head.
   117.45 seconds. The warnings are existing Starlette deprecations and the
   synthetic forged-token test key-length warning; no test failure was hidden.
 
+- **#366 latest accessibility repair:** code head
+  `d38ef6f69b4f67a75781b8465714ecd00f12cf3c` always intercepts popup Tab events
+  and advances only through the filtered visible focus set, so native browser
+  tabbing cannot land on an `aria-hidden` control or a control inside closed
+  `details`. The synthetic `aria-hidden` tab-stop regression passed, and the
+  frontend whole gate at this code head passed: 177 tests in 19 files, lint,
+  build, and Storybook. The existing Storybook bundle-size advisory is not a
+  failure. Customer-scope filtering intentionally re-roots an authorized child
+  when its parent is absent; the backend observed-hierarchy contract preserves
+  the hierarchy facet without reintroducing an unauthorized parent.
+
 - **Canonical ontology explorer PR:** PR #349 remains open and unmerged at
-  exact head `1cb9f7000224aec55e4df184044d04e170b5960e`, based on `main` at
+  exact head `e88f3862215e76d0702204f29aba75ddc902d19f`, based on `main` at
   `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`. Its latest stabilization fixes
-  recheck final-depth endpoint visibility, log bounded stale-summary fallback
-  diagnostics, recompute node evidence after node-bound trimming, and make
-  tenant-settings migration `0103` replay-safe. Focused validation is `46
-  passed`; hosted Tests, Security, SAST, PROV-O, and Devin Review remain
+  final-depth endpoint visibility, bounded stale-summary diagnostics, node
+  evidence after node-bound trimming, replay-safe tenant settings migration,
+  login return-path sanitization, OWL-Time citation accuracy, cursor-page
+  graph merging, and the intentional ontology direction contract. Its current
+  local gate is `812 passed, 17 skipped, 4 warnings` in the backend and 168
+  frontend tests in 20 files with lint, build, and Storybook passing. The
+  baseline's historical case references are sanitized to non-identifying case
+  labels. Hosted Tests, Security, SAST, PROV-O, and Devin Review remain
   pending/queued, so no approval or merge is claimed.
 
 ## 2. UI/UX Standard Guide v3.0 comparison
