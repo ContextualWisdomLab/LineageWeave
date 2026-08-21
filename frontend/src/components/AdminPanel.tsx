@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { t } from "../i18n";
 import { updateTenantConfig, type CurrentUser, type TenantConfig } from "../api";
 import type { WorkspaceDestination } from "./WorkspaceNav";
@@ -195,17 +195,30 @@ function AdminBoardHandoff({ title, description, tool, onOpenBoardTool }: { titl
 export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessToken, currentUser, onNavigate, onOpenBoardTool }: AdminPanelProps) {
   const [activeSection, setActiveSection] = useState<AdminSection>("overview");
   const [draftConfig, setDraftConfig] = useState<TenantConfig>(currentTenantConfig);
+  const touchedConfigFields = useRef(new Set<keyof TenantConfig>());
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setDraftConfig(currentTenantConfig);
+    setDraftConfig((draft) => ({
+      brandName: touchedConfigFields.current.has("brandName") ? draft.brandName : currentTenantConfig.brandName,
+      systemName: touchedConfigFields.current.has("systemName") ? draft.systemName : currentTenantConfig.systemName,
+      copyrightYear: touchedConfigFields.current.has("copyrightYear") ? draft.copyrightYear : currentTenantConfig.copyrightYear,
+      copyrightHolder: touchedConfigFields.current.has("copyrightHolder") ? draft.copyrightHolder : currentTenantConfig.copyrightHolder,
+    }));
   }, [currentTenantConfig]);
+
+  function updateDraftField<K extends keyof TenantConfig>(field: K, value: TenantConfig[K]) {
+    touchedConfigFields.current.add(field);
+    setDraftConfig((draft) => ({ ...draft, [field]: value }));
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (
+      touchedConfigFields.current.size > 0
+      &&
       draftConfig.brandName.trim()
       && draftConfig.systemName.trim()
       && draftConfig.copyrightHolder.trim()
@@ -213,15 +226,26 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
       && draftConfig.copyrightYear >= COPYRIGHT_YEAR_MIN
       && draftConfig.copyrightYear <= COPYRIGHT_YEAR_MAX
     ) {
+      const requestedConfig = {
+        brandName: draftConfig.brandName.trim(),
+        systemName: draftConfig.systemName.trim(),
+        copyrightYear: draftConfig.copyrightYear,
+        copyrightHolder: draftConfig.copyrightHolder.trim(),
+      };
+      if (
+        requestedConfig.brandName === currentTenantConfig.brandName
+        && requestedConfig.systemName === currentTenantConfig.systemName
+        && requestedConfig.copyrightYear === currentTenantConfig.copyrightYear
+        && requestedConfig.copyrightHolder === currentTenantConfig.copyrightHolder
+      ) {
+        return;
+      }
       setSaving(true);
       setError(null);
       try {
-        const config = await updateTenantConfig(accessToken, {
-          brandName: draftConfig.brandName.trim(),
-          systemName: draftConfig.systemName.trim(),
-          copyrightYear: draftConfig.copyrightYear,
-          copyrightHolder: draftConfig.copyrightHolder.trim(),
-        });
+        const config = await updateTenantConfig(accessToken, requestedConfig);
+        touchedConfigFields.current.clear();
+        setDraftConfig(config);
         onTenantConfigChange(config);
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
@@ -274,7 +298,7 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
                 id="brandNameInput"
                 type="text"
                 value={draftConfig.brandName}
-                onChange={(e) => setDraftConfig({ ...draftConfig, brandName: e.target.value })}
+                onChange={(e) => updateDraftField("brandName", e.target.value)}
                 aria-label={t("Tenant brand name")}
                 required
                 disabled={saving}
@@ -290,7 +314,7 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
                 id="systemNameInput"
                 type="text"
                 value={draftConfig.systemName}
-                onChange={(e) => setDraftConfig({ ...draftConfig, systemName: e.target.value })}
+                onChange={(e) => updateDraftField("systemName", e.target.value)}
                 aria-label={t("Tenant system name")}
                 required
                 disabled={saving}
@@ -306,7 +330,7 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
                 id="copyrightHolderInput"
                 type="text"
                 value={draftConfig.copyrightHolder}
-                onChange={(e) => setDraftConfig({ ...draftConfig, copyrightHolder: e.target.value })}
+                onChange={(e) => updateDraftField("copyrightHolder", e.target.value)}
                 aria-label={t("Tenant copyright holder")}
                 required
                 disabled={saving}
@@ -322,7 +346,7 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
                 id="copyrightYearInput"
                 type="number"
                 value={draftConfig.copyrightYear}
-                onChange={(e) => setDraftConfig({ ...draftConfig, copyrightYear: Number(e.target.value) })}
+                onChange={(e) => updateDraftField("copyrightYear", Number(e.target.value))}
                 aria-label={t("Tenant copyright year")}
                 min={COPYRIGHT_YEAR_MIN}
                 max={COPYRIGHT_YEAR_MAX}

@@ -106,6 +106,17 @@ describe("AdminPanel", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("does not submit unchanged settings through the form", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<AdminPanel {...baseProps} />);
+    fireEvent.click(screen.getByRole("button", { name: /Tenant settings/ }));
+    fireEvent.submit(screen.getByRole("button", { name: "Save settings" }).closest("form")!);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("refreshes the draft when the fetched tenant config arrives", () => {
     const { rerender } = render(<AdminPanel {...baseProps} />);
 
@@ -127,4 +138,30 @@ describe("AdminPanel", () => {
     expect(screen.getByRole("spinbutton", { name: "Tenant copyright year" })).toHaveValue(2025);
     expect(screen.getByRole("textbox", { name: "Tenant copyright holder" })).toHaveValue("Fetched Rights Holder");
   });
+
+  it("preserves edited fields when the fetched tenant config arrives", () => {
+    const { rerender } = render(<AdminPanel {...baseProps} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Tenant settings/ }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Tenant brand name" }), {
+      target: { value: "Draft Brand" },
+    });
+    rerender(
+      <AdminPanel
+        {...baseProps}
+        currentTenantConfig={{
+          brandName: "Fetched Brand",
+          systemName: "Fetched System",
+          copyrightYear: 2025,
+          copyrightHolder: "Fetched Rights Holder",
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("textbox", { name: "Tenant brand name" })).toHaveValue("Draft Brand");
+    expect(screen.getByRole("textbox", { name: "Tenant system name" })).toHaveValue("Fetched System");
+    expect(screen.getByRole("spinbutton", { name: "Tenant copyright year" })).toHaveValue(2025);
+    expect(screen.getByRole("textbox", { name: "Tenant copyright holder" })).toHaveValue("Fetched Rights Holder");
+  });
+
 });
