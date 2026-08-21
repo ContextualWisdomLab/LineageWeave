@@ -128,6 +128,21 @@ def test_analyze_lineage_excludes_late_evidence_and_exposes_unavailable_llm() ->
     )
 
 
+def test_analyze_lineage_excludes_events_that_occur_after_the_cutoff() -> None:
+    """An early import cannot make a future event visible in a past analysis."""
+    future_event = evidence(
+        "future-event-001",
+        occurred_at=BASE_TIME + timedelta(hours=2),
+        available_at=BASE_TIME,
+    )
+
+    result = analyze_lineage(request((evidence("early-001"), future_event)))
+
+    serialized = result.to_json()
+    assert "future-event-001" not in serialized
+    assert any(item.code == "evidence_after_cutoff_excluded" for item in result.limitations)
+
+
 def test_analyze_lineage_maps_edges_to_opaque_refs_and_project_hints_stay_non_authoritative() -> None:
     """The existing reconstruction is reused without creating project authority."""
     records = (evidence("source-001"), evidence("source-002", occurred_at=BASE_TIME + timedelta(hours=1)))

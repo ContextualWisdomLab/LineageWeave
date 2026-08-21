@@ -311,7 +311,10 @@ def analyze_lineage(
     eligible = [
         record
         for record in request.evidence
-        if _utc_timestamp(record.available_at, "evidence.available_at") <= cutoff
+        if (
+            _utc_timestamp(record.available_at, "evidence.available_at") <= cutoff
+            and _utc_timestamp(record.occurred_at, "evidence.occurred_at") <= cutoff
+        )
     ]
     limitations: list[LineageLimitation] = []
     excluded_count = len(request.evidence) - len(eligible)
@@ -319,7 +322,7 @@ def analyze_lineage(
         limitations.append(
             LineageLimitation(
                 "evidence_after_cutoff_excluded",
-                f"{excluded_count} evidence record(s) were unavailable at the knowledge cutoff.",
+                f"{excluded_count} evidence record(s) were unavailable or occurred after the knowledge cutoff.",
             )
         )
     if llm is None or not getattr(llm, "available", False):
