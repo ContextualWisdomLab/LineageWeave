@@ -49,7 +49,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T17:56:20Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T18:04:14Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -85,7 +85,7 @@ Open PRs at the same observation:
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `8941b0307777d56d190a6fa939b4237206f7f81b` (the exact current
+- PR #368: `head` `e112071a5ee7473abda20a1a5e74f773fc71cdd6` (the exact current
   documentation checkpoint), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
@@ -96,12 +96,12 @@ Open PRs at the same observation:
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
 - PR #387: `head` `4bf061314516a6d824dcc41b24a021ca69661aa4`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #388: `head` `ee5882a7d9bcd933ce6b36a61a2176c1be1caded`, base
+- PR #388: `head` `1b680a27e6eaca544f1d99512e31220278c43110`, base
   `feat/event-lineage-channel-evidence`
   (`4bf061314516a6d824dcc41b24a021ca69661aa4`).
-- PR #389: `head` `388037648ca125ccd569035b520ed8d2eea87fbc`, base
+- PR #389: `head` `0c2f706008f9888f3ed24ee981029c2b83f3b796`, base
   `feat/post-body-footnote-display`
-  (`ee5882a7d9bcd933ce6b36a61a2176c1be1caded`).
+  (`1b680a27e6eaca544f1d99512e31220278c43110`).
 
 The open queue remains subject to exact-current-head Checks, formal independent
 approval, and protected mergeability. Green Checks alone do not prove that a
@@ -251,8 +251,8 @@ Observed at `2026-08-21T17:10:21Z` on PR #387's exact head
   the orchestrated rebuild/import boundary. Hosted Checks are queued and no
   independent approval or merge commit is claimed.
 
-Observed at `2026-08-21T17:50:01Z` on PR #388's exact head
-`ee5882a7d9bcd933ce6b36a61a2176c1be1caded`:
+Observed at `2026-08-21T18:02:27Z` on PR #388's exact head
+`1b680a27e6eaca544f1d99512e31220278c43110`:
 
 - The browser fallback preserves footnote roles for synthetic HTML footnote
   lists, Word `MsoFootnoteText`, and OOXML footnote containers. Anchor tags no
@@ -260,17 +260,19 @@ Observed at `2026-08-21T17:50:01Z` on PR #388's exact head
   also closes HTML footnote containers reliably and suppresses an empty
   container's internal control marker.
 - The branch now includes the current #387 parent through a regular merge
-  commit. Local verification passed 146 frontend tests, lint, build, and 20
-  focused lineage tests. Hosted Checks and independent approval remain open.
+  commit. Footnote detection is bound to class/role attributes and anchor-tag
+  matching no longer strips tag names that merely start with `a`. Local
+  verification passed 148 frontend tests, lint, and build. Hosted Checks and
+  independent approval remain open.
 
-Observed at `2026-08-21T17:56:20Z` on PR #389's exact head
-`388037648ca125ccd569035b520ed8d2eea87fbc`:
+Observed at `2026-08-21T18:03:09Z` on PR #389's exact head
+`0c2f706008f9888f3ed24ee981029c2b83f3b796`:
 
 - The buyer-facing fallback renders a Markdown table in a normal source body,
   including an empty cell, without converting ordinary pipe-delimited prose.
   Persisted text units use the same renderer, while separator-free OCR rows
   remain supported only in the image-evidence path.
-- Local frontend verification passed 150 Vitest tests, lint, and the
+- Local frontend verification passed 152 Vitest tests, lint, and the
   production build. Hosted Checks, independent approval, and a protected merge
   commit remain absent. This remains an open stacked fix, not a resolved
   production gap.
@@ -315,7 +317,7 @@ as failure after the head checkout. Central `.github` PR #1158 is the broader
 source-provenance repair at exact head
 `acbd253df81e06d18ed758de1ce748ad6729faa0`; central PR #1002 independently
 adds the minimal result-preservation repair at exact head
-`e94974e5e6551a884bed8e68456984fe925a14c0`. Both remain open with non-terminal
+`33db8cbccfe8b52ebfb979bdcb3a08b5914340fb`. Both remain open with non-terminal
 Checks and no independent approval, so PR #383 is not reported green or
 mergeable from this historical failure alone.
 
