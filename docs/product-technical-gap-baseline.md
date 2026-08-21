@@ -173,11 +173,12 @@ aggregate-only assertions:
 - OIDC login completed with the local development account. Each of the eleven
   post routes opened a detail dialog, its close control was clicked, and the
   dialog closed again; no route produced horizontal overflow at 1280x1024.
-- Event Lineage was present in all eleven dialogs. A footnote evidence marker
-  was visible in one route and a rendered table in one route; the Keyman label
-  was not visible in any of the eleven dialogs. This keeps Keyman/entity
-  generation as an open runtime capability gap rather than treating a generic
-  R&R panel as Keyman evidence.
+- Event Lineage and the translated Keyman section were present in all eleven
+  dialogs. A footnote evidence marker was visible in one route and a rendered
+  table in one route. Five Keyman list items appeared across two routes; the
+  remaining nine showed the explicit no-Keyman state. This distinguishes a
+  real empty extraction signal from a missing panel, while Keyman/entity
+  quality and coverage remain open product gaps.
 - The run intentionally did not persist or print post titles, people,
   organizations, source identifiers, credentials, tokens, or body text.
 
