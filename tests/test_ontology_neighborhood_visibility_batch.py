@@ -31,7 +31,7 @@ class BatchConnection:
     def __init__(self) -> None:
         self.fetch_calls: list[str] = []
 
-    async def fetch(self, sql: str, *_args: object) -> list[dict[str, object]]:
+    async def fetch(self, sql: str, *_args: object) -> list[RecordLikeRow]:
         """Return a row keyed by the SQL category marker."""
         normalized = " ".join(sql.split())
         self.fetch_calls.append(normalized)
@@ -46,14 +46,26 @@ class BatchConnection:
         raise AssertionError(f"unexpected batch query: {normalized}")
 
 
-def _row(node_id: str, post_id: str) -> dict[str, object]:
-    return {
-        "node_id": node_id,
-        "post_id": post_id,
-        "visibility_code": "public",
-        "corporate_entity_id": None,
-        "created_at": T0,
-    }
+class RecordLikeRow:
+    """Model asyncpg.Record's keyed access without inheriting from dict."""
+
+    def __init__(self, values: dict[str, object]) -> None:
+        self._values = values
+
+    def __getitem__(self, key: str) -> object:
+        return self._values[key]
+
+
+def _row(node_id: str, post_id: str) -> RecordLikeRow:
+    return RecordLikeRow(
+        {
+            "node_id": node_id,
+            "post_id": post_id,
+            "visibility_code": "public",
+            "corporate_entity_id": None,
+            "created_at": T0,
+        }
+    )
 
 
 def test_endpoint_visibility_is_batched_by_node_type() -> None:

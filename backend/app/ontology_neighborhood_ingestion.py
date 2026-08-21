@@ -198,14 +198,20 @@ async def _visible_post_ids_by_nodes(
         query = template.format(eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="post"))
         rows = await conn.fetch(query, ids)
         for row in rows:
-            raw_node_id = row.get("node_id") if isinstance(row, dict) else None
+            try:
+                raw_node_id = row["node_id"]
+            except (KeyError, IndexError, TypeError):
+                raw_node_id = None
             if raw_node_id is None and len(ids) == 1:
                 raw_node_id = ids[0]
             if raw_node_id is None:
                 continue
             node_id = str(raw_node_id)
             key = (node_type, node_id)
-            raw_post_id = row.get("post_id") if isinstance(row, dict) else None
+            try:
+                raw_post_id = row["post_id"]
+            except (KeyError, IndexError, TypeError):
+                raw_post_id = None
             if key in visible and raw_post_id is not None and can_see_post(row):
                 visible[key].append(str(raw_post_id))
     return {key: list(dict.fromkeys(post_ids)) for key, post_ids in visible.items()}
