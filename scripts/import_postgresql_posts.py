@@ -27,6 +27,10 @@ if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from backend.app.lineage_ingestion import rebuild_lineage
+from lineageweave.adjudication_client import (
+    ContextualOrchestratorAdjudicationClient,
+    NullAdjudicationClient,
+)
 from lineageweave.synthetic_seed_cleanup import cleanup_synthetic_seed
 from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.image_content import orchestrator_vision_client
@@ -403,6 +407,14 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             if orchestrator_base_url and orchestrator_api_key
             else NullPostStructureClient()
         )
+        adjudication_client = (
+            ContextualOrchestratorAdjudicationClient(
+                orchestrator_base_url,
+                orchestrator_api_key,
+            )
+            if orchestrator_base_url and orchestrator_api_key
+            else NullAdjudicationClient()
+        )
         for row in rows:
             if _source_code_matches(row, mapping.draft, args.exclude_draft_value) or _source_code_matches(
                 row, mapping.deleted, args.exclude_deleted_value
@@ -535,7 +547,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 )
             imported += 1
         cleanup = await cleanup_synthetic_seed(target, apply=True)
-        edges = await rebuild_lineage(target)
+        edges = await rebuild_lineage(target, llm=adjudication_client)
         return {
             "source_rows": len(rows),
             "imported_rows": imported,

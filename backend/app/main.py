@@ -332,10 +332,10 @@ def _adjudication_client():
 
     reconstruct.py's DEFAULT_CHANNEL_WEIGHTS gives this channel the most
     weight (0.40) of the four -- it is the only one that reasons about
-    content instead of approximating it (ADR 0064) -- but nothing ever
-    passed a real client through lineage_edge_specs() to reconstruct(),
-    so every lineage reconstruction had silently run on the weaker
-    3-channel fallback since the feature was built.
+    content instead of approximating it (ADR 0064). The same client is
+    shared by analysis-run reconstruction and the administrator-triggered
+    live graph rebuild; an unconfigured gateway remains an explicit
+    three-channel fallback.
     """
     settings = load_settings()
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
