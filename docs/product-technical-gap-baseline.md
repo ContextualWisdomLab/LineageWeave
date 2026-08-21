@@ -94,7 +94,7 @@ Open PRs at the same observation:
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #384: `head` `cc0b50aa0838701582b373e1310279d6014c17db`, base
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
-- PR #387: `head` `4faf9a31c295205b8fdbb4e43736fdbdc9aa1f6c`, base `main`
+- PR #387: `head` `4faf9a31371195c5ec63fca42a5afbb93a95369b`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 
 The open queue remains subject to exact-current-head Checks, formal independent
@@ -207,7 +207,7 @@ against the authenticated React surface:
   and independent approval remain open.
 
 Observed at `2026-08-21T17:10:21Z` on PR #387's exact head
-`4faf9a31c295205b8fdbb4e43736fdbdc9aa1f6c`:
+`4faf9a31371195c5ec63fca42a5afbb93a95369b`:
 
 - A real PostgreSQL schema fixture initially raised `NameError` because the
   0102 project-event migration path was missing. The fixture now applies 0102
