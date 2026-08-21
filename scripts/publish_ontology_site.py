@@ -82,12 +82,6 @@ def validate_public_graph(graph: Graph) -> None:
                 f"duplicate ontology fragment {fragment!r}: {owner} and {subject}"
             )
 
-        category_count = sum((subject, RDF.type, term_type) in graph for term_type in TERM_TYPES)
-        if category_count > 1:
-            raise ValueError(
-                f"ontology term has multiple public term categories: {subject}"
-            )
-
     for subject in subjects:
         for predicate in LINK_PREDICATES:
             for value in graph.objects(subject, predicate):
