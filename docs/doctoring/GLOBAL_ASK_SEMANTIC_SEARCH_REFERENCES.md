@@ -31,6 +31,7 @@ Evidence in this repository:
 - `migrations/0054_global_ask_semantic_search.sql`
 - `migrations/0055_verified_organization_label_search.sql`
 - `migrations/rollback/0054_global_ask_semantic_search.sql`
+- `migrations/rollback/0055_verified_organization_label_search.sql`
 - `tests/test_global_ask_retrieval.py`
 - `tests/test_global_ask_semantic_indexes.py`
 
