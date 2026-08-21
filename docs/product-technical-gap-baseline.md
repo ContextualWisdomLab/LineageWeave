@@ -12,7 +12,7 @@ Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
 Current source/test exact head observed before this documentation update:
-`379ee7e7643687cfb825ce7982efad8aeb1a257b`. This documentation update will
+`9a708f09b79f58e48443dd36777b3e00ad977ac9`. This documentation update will
 create the next exact head and therefore requires the protected checks to
 rerun.
 
@@ -33,7 +33,7 @@ rerun.
 - **Figma reference:** ADR 0118 records file `1Su3lDRmiZdcUs47t1QwIX`; the
   inspected Event Lineage frames are desktop `5:14` and mobile `5:15`.
 - **Local quality evidence at the source/test head:** backend `uv run pytest -q`
-  passed `784` tests with `17` skips; frontend Vitest passed `167` tests in `18`
+  passed `784` tests with `17` skips; frontend Vitest passed `168` tests in `18`
   files, frontend lint/build passed, and Storybook build completed. These are
   local checks, not hosted protected-gate or independent-review evidence.
 - **Current PR gate:** PR #350 is open, `MERGEABLE` but `BLOCKED`, and has no
@@ -68,7 +68,8 @@ rerun.
   approved asset only after the tenant CI/BI source and usage permission are
   available.
 - **Header utilities/search — partial:** the authenticated header now exposes a
-  global Search action that focuses the existing board search; a dedicated
+  global Search action that focuses the existing board search, and its pending
+  focus request is cleared when navigation leaves the board; a dedicated
   site-map utility is still not implemented.
 - **Header top-menu language placement — fixed in this worktree:** UI/UX
   Standard Guide v3.0 §2.2.2 assigns 언어설정 (language setting) to the header
@@ -175,7 +176,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | 1024/1280/1920 layout and three responsive tiers | ADR 0118, `App.css`, frontend build/tests | source + unit |
 | Sticky header, footer, GNB, active state, phone drawer | `App.tsx`, `WorkspaceNav.tsx`, `App.test.tsx` | source + unit |
 | Approved CI/BI logo asset | Tenant text is present; approved asset and permission are absent | open |
-| User/logout/language/global search header actions | `App.tsx`, `i18n.ts`, search focus test | source + unit |
+| User/logout/language/global search header actions | `App.tsx`, `i18n.ts`, handled/pending search-focus tests | source + unit |
 | Site map / utility menu | No dedicated utility surface | open |
 | Noto Sans, palette, table/form/button conventions, modal 50% mask | ADR 0118, token CSS, component tests | source + unit |
 | Keyverse/OIDC login with real account | `auth.py`, OIDC discovery/JWKS boundary, local redirect check | source + local-integration; Keyverse open |
