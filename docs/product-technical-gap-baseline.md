@@ -12,7 +12,7 @@ Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
 Current source/test exact head observed before this documentation update:
-`6e06191a408a9f5439db678577f09ab1ffb1cfde`. This documentation update will
+`b897fabe18332081a64a9286e4ab580c79a38f8d`. This documentation update will
 create the next exact head and therefore requires the protected checks to
 rerun.
 
@@ -33,7 +33,7 @@ rerun.
 - **Figma reference:** ADR 0118 records file `1Su3lDRmiZdcUs47t1QwIX`; the
   inspected Event Lineage frames are desktop `5:14` and mobile `5:15`.
 - **Local quality evidence at the source/test head:** backend `uv run pytest -q`
-  passed `786` tests with `16` skips; frontend Vitest passed `169` tests in `18`
+  passed `786` tests with `16` skips; frontend Vitest passed `172` tests in `19`
   files, frontend lint/build passed, and Storybook build completed. These are
   local checks, not hosted protected-gate or independent-review evidence.
 - **Current PR gate:** PR #350 is open, `MERGEABLE` but `BLOCKED`, and has no
@@ -69,8 +69,10 @@ rerun.
   available.
 - **Header utilities/search — partial:** the authenticated header now exposes a
   global Search action that focuses the existing board search, and its pending
-  focus request is cleared when navigation leaves the board; a dedicated
-  site-map utility is still not implemented.
+  focus request is cleared when navigation leaves the board. A desktop site-map
+  utility now reuses `WorkspaceNav`, closes on Escape or destination selection,
+  and is omitted on phones where the drawer owns navigation; approved CI/BI
+  assets and a no-JavaScript fallback remain open.
 - **Header top-menu language placement — fixed in this worktree:** UI/UX
   Standard Guide v3.0 §2.2.2 assigns 언어설정 (language setting) to the header
   top menu alongside user info, login/logout, search, and utility items.
@@ -173,11 +175,11 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 
 | Requirement | Evidence at this audit | Status |
 | --- | --- | --- |
-| 1024/1280/1920 layout and three responsive tiers | ADR 0118, `App.css`, frontend build/tests | source + unit |
+| 1024/1280/1920 layout and three responsive tiers | ADR 0118, `App.css`, responsive popup width/secondary evidence grid, frontend build/tests | source + unit |
 | Sticky header, footer, GNB, active state, phone drawer | `App.tsx`, `WorkspaceNav.tsx`, `App.test.tsx` | source + unit |
 | Approved CI/BI logo asset | Tenant text is present; approved asset and permission are absent | open |
 | User/logout/language/global search header actions | `App.tsx`, `i18n.ts`, handled/pending search-focus tests | source + unit |
-| Site map / utility menu | No dedicated utility surface | open |
+| Site map / utility menu | `SiteMapUtility`, accessible toggle/region, Escape and destination-close behavior, responsive CSS contract, locale coverage | source + unit; authenticated browser evidence open |
 | Noto Sans, palette, table/form/button conventions, modal 50% mask | ADR 0118, token CSS, component tests | source + unit |
 | Keyverse/OIDC login with real account | `auth.py`, OIDC discovery/JWKS boundary, local redirect check | source + local-integration; Keyverse open |
 | Authenticated corp/PU attributes | `/api/me` returns DB-backed codes; backend integration test covers `TEST-CORP`/`TEST-PU` and header displays them | source + local-integration |
