@@ -3293,6 +3293,28 @@ def test_live_chat_answer_publishes_an_activity_event(
     assert "What happened here that no seed already answers?" in events[0]["summary"]
 
 
+def test_live_chat_provider_error_does_not_leak_raw_error(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """A provider exception becomes a stable 503 without its raw message."""
+    class _FailingChatClient:
+        available = True
+
+        def answer(self, question: str, sources) -> object:
+            raise RuntimeError("raw-provider-secret")
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FailingChatClient())
+
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/chat",
+        json={"question": "What happened in this provider failure case?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 503
+    assert "raw-provider-secret" not in response.text
+
+
 def test_evaluate_is_unavailable_without_orchestrator(client, demo_analyst_token, seeded_db) -> None:
     os.environ.pop("ORCHESTRATOR_BASE_URL", None)
     os.environ.pop("ORCHESTRATOR_API_KEY", None)

@@ -258,7 +258,7 @@ def _parse_description(content: str) -> ImageDescription:
 
     if not fields["TEXT"] and not fields["CAPTION"]:
         raise ImageDescriptionParseError(
-            f"vision response had neither TEXT nor CAPTION content: {content!r}"
+            "vision response had neither TEXT nor CAPTION content"
         )
 
     extracted_text = "\n".join(fields["TEXT"]).strip()

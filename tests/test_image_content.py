@@ -74,8 +74,9 @@ def test_parse_description_none_text_becomes_empty_string() -> None:
 
 
 def test_parse_description_unexpected_format_raises_instead_of_losing_content() -> None:
-    with pytest.raises(ImageDescriptionParseError):
-        _parse_description("unexpected format")
+    with pytest.raises(ImageDescriptionParseError) as error:
+        _parse_description("raw provider response must not cross the boundary")
+    assert "raw provider response" not in str(error.value)
 
 
 def test_parse_description_preserves_multiline_ocr_text() -> None:

@@ -1034,7 +1034,7 @@ async def resolve_customer_master_hint(
                 _relation_verification_client(),
                 request.hint_code,
             )
-        except (HttpClientError, OSError) as exc:
+        except (HttpClientError, OSError, KeyError, TypeError, ValueError, RuntimeError) as exc:
             # resolve_and_verify_organization_name's resolution/verification
             # calls raise on a failed request rather than silently returning
             # "unresolved" -- a failed call is not the same claim as "the
@@ -1967,7 +1967,7 @@ async def verify_post_entity_relationships(
                 post_id,
                 visible_corporate_entity_ids=account.corporate_entity_ids,
             )
-        except (HttpClientError, OSError) as exc:
+        except (HttpClientError, OSError, KeyError, TypeError, ValueError, RuntimeError) as exc:
             # verify_post_relations() deliberately raises on a failed search
             # (a failed search is not "searched and found nothing" -- see
             # its docstring); this is the one caller, so it is the right
@@ -2407,7 +2407,7 @@ async def read_post_summary(
                     )
                 else:
                     summary = await asyncio.to_thread(client.summarize, post["post_title"], normalized_body)
-            except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
+            except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
@@ -2541,7 +2541,7 @@ async def chat_about_post(
     try:
         with use_llm_metadata(post_metadata):
             answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, ValueError) as exc:
+    except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
@@ -2600,10 +2600,10 @@ async def ask_agent(
         }
     try:
         answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, ValueError) as exc:
+    except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            f"Ask Agent is unavailable: {exc}",
+            "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
     return {

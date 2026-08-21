@@ -116,6 +116,25 @@ def test_signing_key_refreshes_jwks_once_for_rotated_kid(
     assert calls == [False, True]
 
 
+def test_jwks_provider_error_does_not_leak_raw_response(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Identity-provider response text stays on the server-side exception chain."""
+    def fail(*_args: object, **_kwargs: object) -> dict:
+        raise auth.HttpClientError("raw identity-provider response")
+
+    monkeypatch.setattr(auth, "get_json", fail)
+    settings = SimpleNamespace(
+        oidc_issuer="https://id.example",
+        oidc_discovery_uri="https://id.example/.well-known/openid-configuration",
+        oidc_jwks_uri_override="https://id.example/jwks",
+    )
+
+    with pytest.raises(HTTPException) as error:
+        auth._jwks(settings)
+
+    assert error.value.status_code == 503
+    assert "raw identity-provider response" not in str(error.value.detail)
+
+
 def test_signing_key_does_not_refresh_for_invalid_header(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

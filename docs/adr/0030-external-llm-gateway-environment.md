@@ -94,6 +94,12 @@ content. A text-only gateway response such as `Only 'text' content type is
 supported` is a provider capability failure, not a successful Vision result;
 the channel remains unavailable and no OCR/caption is fabricated.
 
+All provider and identity-boundary exceptions follow the same rule: retain the
+original exception only in server-side logs and exception chaining, while
+persisted job details and buyer-facing HTTP responses use stable, actionable
+failure categories. Raw provider response bodies, token-validation details,
+and transport exception messages must never cross the product boundary.
+
 Before the image content block is built, the backend decodes supported raster
 formats, applies EXIF orientation, composites transparent pixels onto white,
 and encodes the payload as PNG. Invalid or undecodable image bytes fail closed;
