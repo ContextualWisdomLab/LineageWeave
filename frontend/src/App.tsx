@@ -4620,7 +4620,7 @@ export function AskAgentPanel({
       <label className="ask-agent-source">
         <input
           type="checkbox"
-          aria-label="Check eligible public claims"
+          aria-label={t("Check eligible public claims")}
           checked={verifyExternal}
           onChange={(event) => setVerifyExternal(event.target.checked)}
         />
@@ -4635,16 +4635,16 @@ export function AskAgentPanel({
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
           {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
           {answer.external_claims && answer.external_claims.length > 0 ? (
-            <section className="popup-section" aria-label="Public verification">
-              <h4>Public verification</h4>
+            <section className="popup-section" aria-label={t("Public verification")}>
+              <h4>{t("Public verification")}</h4>
               {answer.external_claims.map((claim) => (
                 <article key={`${claim.claim_kind}:${claim.claim_text}`}>
                   <p>
                     {claim.status_code === "claim_supported"
-                      ? "Supported by public evidence"
+                      ? t("Supported by public evidence")
                       : claim.status_code === "claim_refuted"
-                        ? "Conflicts with public evidence"
-                        : "Not enough public information"}
+                        ? t("Conflicts with public evidence")
+                        : t("Not enough public information")}
                   </p>
                   <p>{claim.rationale}</p>
                   <ul className="post-evidence-list">

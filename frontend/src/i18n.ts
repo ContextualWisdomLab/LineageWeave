@@ -184,6 +184,11 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic role": "의미 기반 역할",
     "Semantic Keyman": "의미 기반 핵심 담당자",
     "No authorized source posts are available for this question.": "이 질문에 사용할 수 있는 권한 있는 원문이 없습니다.",
+    "Check eligible public claims": "검증 가능한 공개 주장을 확인하세요",
+    "Public verification": "공개 검증",
+    "Supported by public evidence": "공개 증거로 뒷받침됨",
+    "Conflicts with public evidence": "공개 증거와 충돌함",
+    "Not enough public information": "공개 정보가 충분하지 않음",
     "Enable public verification to check eligible public claims.":
       "공개 검증을 켜서 검증 가능한 공개 주장을 확인하세요.",
     "Configure public search and contextual-orchestrator, then retry.":
@@ -549,6 +554,11 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic role": "语义角色",
     "Semantic Keyman": "语义关键人员",
     "No authorized source posts are available for this question.": "没有可用于此问题的已授权来源文章。",
+    "Check eligible public claims": "检查符合条件的公开声明",
+    "Public verification": "公开验证",
+    "Supported by public evidence": "有公开证据支持",
+    "Conflicts with public evidence": "与公开证据冲突",
+    "Not enough public information": "公开信息不足",
     "Enable public verification to check eligible public claims.":
       "启用公开验证以检查符合条件的公开声明。",
     "Configure public search and contextual-orchestrator, then retry.":
@@ -937,6 +947,11 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic role": "意味的な役割",
     "Semantic Keyman": "意味的なキーパーソン",
     "No authorized source posts are available for this question.": "この質問に利用できる許可済みの原文投稿はありません。",
+    "Check eligible public claims": "検証対象の公開主張を確認",
+    "Public verification": "公開検証",
+    "Supported by public evidence": "公開証拠により裏付けられています",
+    "Conflicts with public evidence": "公開証拠と矛盾しています",
+    "Not enough public information": "公開情報が不足しています",
     "Enable public verification to check eligible public claims.":
       "公開検証を有効にして、対象となる公開主張を確認してください。",
     "Configure public search and contextual-orchestrator, then retry.":
@@ -1301,6 +1316,11 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic role": "Vai trò ngữ nghĩa",
     "Semantic Keyman": "Keyman ngữ nghĩa",
     "No authorized source posts are available for this question.": "Không có bài viết nguồn được cấp quyền cho câu hỏi này.",
+    "Check eligible public claims": "Kiểm tra các tuyên bố công khai đủ điều kiện",
+    "Public verification": "Xác minh công khai",
+    "Supported by public evidence": "Được bằng chứng công khai hỗ trợ",
+    "Conflicts with public evidence": "Xung đột với bằng chứng công khai",
+    "Not enough public information": "Không đủ thông tin công khai",
     "Enable public verification to check eligible public claims.":
       "Bật xác minh công khai để kiểm tra các tuyên bố công khai đủ điều kiện.",
     "Configure public search and contextual-orchestrator, then retry.":
