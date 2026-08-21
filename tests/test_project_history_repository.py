@@ -144,6 +144,23 @@ def test_repository_rejects_unbounded_limits_before_sql() -> None:
     assert connection.calls == []
 
 
+def test_repository_maps_empty_authorized_history_to_not_found() -> None:
+    """An empty authorized page is not passed to the projection builder."""
+
+    connection = FakeConnection([[]])
+    with pytest.raises(ProjectHistoryNotFound):
+        asyncio.run(
+            fetch_project_history_projection(
+                connection,  # type: ignore[arg-type]
+                project_key="P-100",
+                focus_post_id=None,
+                knowledge_cutoff=datetime.now(timezone.utc),
+                corporate_entity_ids=[],
+                limit=8,
+            )
+        )
+
+
 class FocusAwareConnection:
     """Route fake responses by query purpose instead of call order."""
 
