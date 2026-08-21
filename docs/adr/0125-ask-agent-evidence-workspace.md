@@ -3,6 +3,8 @@
 **Decision status:** Accepted
 **Date:** 2026-08-21
 **Figma File ID:** `1Su3lDRmiZdcUs47t1QwIX`
+**Figma desktop frame:** `11:2` (`Ask Agent / Desktop / Answered`)
+**Figma mobile frame:** `11:3` (`Ask Agent / Mobile / Answered`)
 **Stack placement:** This change is a direct child of PR #264 head `8832216fcd2b0a1dcb486ea83269e25695ce378a`.
 
 ## Context
@@ -34,9 +36,12 @@ and forbids copying confidential source-organization material.
    pending, and source actions retain the #263/#264 Event Lineage handoff.
 5. Reuse existing design tokens and define responsive breakpoints at 1024px and
    768px. The phone state uses a single column and a full-width primary action.
-6. Inventory Empty, Loading, Answered, Unavailable, and Phone Answered scenes in
-   Storybook. These executable scenes are the current review source until a
-   dedicated safe Figma frame is added to the recorded file.
+   The primary action uses the shared `color/on-accent` token in both light and
+   dark modes rather than an inline foreground literal.
+6. Keep editable answered-state desktop and mobile specifications in the Figma
+   frames recorded above. Inventory Empty, Loading, Answered, Unavailable, and
+   Phone Answered executable scenes in Storybook so state and edge-event review
+   remains coupled to the production component.
 
 ## Consequences
 
@@ -45,12 +50,17 @@ and forbids copying confidential source-organization material.
   bounded component without expanding `App.tsx`.
 - The component preserves the exact accessible labels relied on by existing
   integration tests and downstream stacked PRs.
+- Figma and CSS share named color, radius, and spacing concepts while Storybook
+  remains the executable source for loading, unavailable, and responsive states.
 - This ADR does not claim the unmerged stack is protected-main behavior.
 
 ## Verification
 
-- Focused controller and keyboard interaction tests.
+- Focused controller, keyboard, session recovery, source navigation, and design
+  token/breakpoint contract tests.
 - Existing App-level citation, timeline, stale-session, pending-answer, and
   Event Lineage focus regressions.
 - Frontend lint, production build, complete Vitest suite, and Storybook build.
+- Desktop and mobile Figma screenshots checked for clipping, overflow, action
+  prominence, and source-evidence hierarchy.
 - Responsive and focus-visible CSS review against the UI/UX guide.
