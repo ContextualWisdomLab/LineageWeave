@@ -4,10 +4,16 @@ const MAX_OIDC_RETURN_URL_LENGTH = 4096;
 type UrlLike = Pick<Location, "pathname" | "search" | "hash">;
 
 function isSafeReturnUrl(value: string): boolean {
+  const hasControlCharacter = [...value].some((character) => {
+    const code = character.charCodeAt(0);
+    return code <= 0x1f || code === 0x7f;
+  });
   return (
     value.length <= MAX_OIDC_RETURN_URL_LENGTH &&
     value.startsWith("/") &&
-    !value.startsWith("//")
+    !value.startsWith("//") &&
+    !value.includes("\\") &&
+    !hasControlCharacter
   );
 }
 

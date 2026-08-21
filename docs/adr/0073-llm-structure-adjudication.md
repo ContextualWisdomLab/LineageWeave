@@ -32,6 +32,11 @@ override a resolved unit.
 All LLM and vision requests continue through contextual-orchestrator. The
 caller does not select an LLM model.
 
+The buyer renderer treats persisted structure as untrusted runtime data at the
+CSS boundary. It accepts only finite numeric indentation levels from 1 through
+64; invalid, non-numeric, or unbounded values render at level zero without an
+inline style. This keeps a malformed or tampered response from becoming CSS.
+
 ## Consequences
 
 - Flat display is an explicit unresolved state, not a fabricated hierarchy.
