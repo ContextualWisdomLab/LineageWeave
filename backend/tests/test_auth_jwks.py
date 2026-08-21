@@ -158,7 +158,7 @@ def test_decode_requires_configured_resource_audience(monkeypatch: pytest.Monkey
     assert captured["issuer"] == "https://id.example"
     assert captured["audience"] == "https://lineage.example/api"
     assert captured["algorithms"] == ["RS256"]
-    assert "options" not in captured
+    assert captured["options"] == {"require": ["exp"]}
 
 
 def test_decode_rejects_missing_subject(monkeypatch: pytest.MonkeyPatch) -> None:

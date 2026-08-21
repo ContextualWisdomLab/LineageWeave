@@ -171,7 +171,7 @@ def test_decode_access_token_requires_exact_kid_and_resource_audience(
 
     no_exp_token, no_exp_jwks = signed_token(audience=cfg.mcp_audience, include_exp=False)
     monkeypatch.setattr(auth, "_jwks", lambda _: no_exp_jwks)
-    with pytest.raises(HTTPException, match="exp"):
+    with pytest.raises(HTTPException, match="invalid access token"):
         auth.decode_access_token(no_exp_token, cfg, audience=cfg.mcp_audience)
 
 

@@ -165,6 +165,7 @@ def decode_access_token(
             issuer=settings.oidc_issuer,
             audience=audience or settings.oidc_audience,
             leeway=settings.oidc_clock_skew_seconds,
+            options={"require": ["exp"]},
         )
     except HTTPException:
         raise
@@ -173,8 +174,6 @@ def decode_access_token(
     subject = claims.get("sub")
     if not isinstance(subject, str) or not subject.strip():
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token has no subject")
-    if "exp" not in claims:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid token: missing exp")
     return claims
 
 
