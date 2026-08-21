@@ -117,6 +117,9 @@ services:
       # explicit bounded 8 MiB limit rather than an unbounded request size.
       CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES: ${CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES:-8388608}
       CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS: ${CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS:-host.docker.internal}
+      OTEL_SERVICE_NAME: ${OTEL_ORCHESTRATOR_SERVICE_NAME:-contextual-orchestrator}
+      # Empty by default: export is opt-in and never falls back to localhost.
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     command: ["python", "/app/start.py"]
     ports:
       - "${ORCHESTRATOR_PORT:-18000}:8000"
@@ -155,6 +158,8 @@ services:
       OIDC_CLOCK_SKEW_SECONDS: ${OIDC_CLOCK_SKEW_SECONDS:-5}
       FRONTEND_ORIGINS: http://localhost:${FRONTEND_PORT:-15173}
       VALKEY_URL: redis://valkey:6379/0
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-lineageweave}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       # Empty by default: every LLM/vision channel stays the Null client
       # (dropped, not faked). Set these to a running contextual-orchestrator
       # to turn the channels on. Provider credentials use LLM_GATEWAY_API_URL /

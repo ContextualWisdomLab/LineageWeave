@@ -20,6 +20,7 @@ from urllib.parse import urlencode, urlparse
 import certifi
 
 from .llm_context import current_llm_metadata
+from .observability import current_session_id, inject_trace_context, traced
 
 # Some interpreter distributions don't reliably inherit the OS trust store.
 # Pointing at certifi keeps full chain validation without weakening TLS.
@@ -105,12 +106,15 @@ def post_json(
     *,
     headers: dict[str, str],
     timeout: float,
+    service_peer_name: str = "contextual-orchestrator",
 ) -> dict:
     """POST ``payload`` as JSON to ``url`` and return the decoded object.
 
     Raises:
         ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
         HttpClientError: the server responded with HTTP >= 400 or non-JSON.
+
+    ``service_peer_name`` is a bounded service name used for the request span.
     """
     request_payload = payload
     request_metadata = current_llm_metadata()
@@ -123,17 +127,39 @@ def post_json(
             request_payload["metadata"] = {**existing_metadata, **request_metadata}
         else:
             raise ValueError("metadata must be an object")
-    status, raw = _request(
-        "POST",
-        url,
-        body=json.dumps(request_payload).encode("utf-8"),
-        headers={"content-type": "application/json", **headers},
-        timeout=timeout,
-    )
     hostname = urlparse(url).hostname or url
-    if status >= 400:
-        raise HttpClientError(f"HTTP {status} from {hostname}")
-    return _decode_json_object(raw, hostname)
+    request_headers = {"content-type": "application/json", **headers}
+    session_id = current_session_id()
+    if session_id:
+        request_headers["x-lineageweave-session-id"] = session_id
+    with traced(
+        "lineageweave.http.post_json",
+        {
+            "http.request.method": "POST",
+            "lineageweave.operation_code": "http_post_json",
+            "service.peer.name": service_peer_name,
+        },
+    ) as span:
+        inject_trace_context(request_headers)
+        status, raw = _request(
+            "POST",
+            url,
+            body=json.dumps(request_payload).encode("utf-8"),
+            headers=request_headers,
+            timeout=timeout,
+        )
+        if span is not None:
+            span.set_attribute("http.response.status_code", status)
+        if status >= 400:
+            if span is not None:
+                span.set_attribute("error.type", str(status))
+            raise HttpClientError(f"HTTP {status} from {hostname}")
+        try:
+            return _decode_json_object(raw, hostname)
+        except HttpClientError:
+            if span is not None:
+                span.set_attribute("error.type", "HttpClientError")
+            raise
 
 
 def post_form(

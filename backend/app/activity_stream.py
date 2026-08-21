@@ -14,6 +14,8 @@ from typing import Any
 import redis.asyncio as redis
 from fastapi import Request
 
+from lineageweave.observability import traced
+
 
 def create_valkey_client(url: str) -> redis.Redis:
     """One shared async client for the process, mirroring db.create_pool."""
@@ -66,12 +68,16 @@ async def publish_activity_event(
     ``approximate=True``) so one very active post's stream can't grow
     without bound -- the panel only ever shows the most recent 50 anyway.
     """
-    return await client.xadd(
-        _stream_key(post_id),
-        _activity_fields(event_type, actor_account_id, summary),
-        maxlen=1000,
-        approximate=True,
-    )
+    with traced(
+        "lineageweave.valkey.activity_xadd",
+        {"db.system": "redis", "db.operation.name": "xadd", "lineageweave.stream.kind": "activity"},
+    ):
+        return await client.xadd(
+            _stream_key(post_id),
+            _activity_fields(event_type, actor_account_id, summary),
+            maxlen=1000,
+            approximate=True,
+        )
 
 
 def publish_activity_event_sync(
@@ -83,20 +89,32 @@ def publish_activity_event_sync(
 ) -> str | None:
     """Sync ``XADD`` for ``make seed``. Returns None if ``summary`` is already on the stream."""
     key = _stream_key(post_id)
-    existing = client.xrevrange(key, count=50)
+    with traced(
+        "lineageweave.valkey.activity_xrevrange",
+        {"db.system": "redis", "db.operation.name": "xrevrange", "lineageweave.stream.kind": "activity"},
+    ):
+        existing = client.xrevrange(key, count=50)
     if any(fields.get("summary") == summary for _entry_id, fields in existing):
         return None
-    return client.xadd(
-        key,
-        _activity_fields(event_type, str(actor_account_id), summary),
-        maxlen=1000,
-        approximate=True,
-    )
+    with traced(
+        "lineageweave.valkey.activity_xadd",
+        {"db.system": "redis", "db.operation.name": "xadd", "lineageweave.stream.kind": "activity"},
+    ):
+        return client.xadd(
+            key,
+            _activity_fields(event_type, str(actor_account_id), summary),
+            maxlen=1000,
+            approximate=True,
+        )
 
 
 async def read_activity_events(client: redis.Redis, post_id: str, count: int = 50) -> list[dict[str, Any]]:
     """The post's most recent events, newest first."""
-    entries = await client.xrevrange(_stream_key(post_id), count=count)
+    with traced(
+        "lineageweave.valkey.activity_xrevrange",
+        {"db.system": "redis", "db.operation.name": "xrevrange", "lineageweave.stream.kind": "activity"},
+    ):
+        entries = await client.xrevrange(_stream_key(post_id), count=count)
     return [
         {
             "event_id": entry_id,
