@@ -37,6 +37,8 @@ All notable changes to this project are documented here. Format follows
 - Customer Master integration fixtures no longer reference an unshipped
   Global Ask history migration; Global Ask remains stateless as documented by
   ADR 0090, while the shipped scope-facet migration is applied directly.
+- The static SQL review contract now counts the Customer Master evidence query
+  that uses closed schema fragments and bound entity ids.
 
 ## [2.12.6] - 2026-08-20
 
