@@ -85,7 +85,7 @@ Open PRs at the same observation:
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `2e1de2383865c548959d067f9a70a0dc008d1afd` (the exact parent
+- PR #368: `head` `295cfabdc33e0fefc5a70db388449ddaaafdf744` (the exact parent
   observed for this baseline update), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
@@ -272,6 +272,12 @@ an ad-hoc `user_account + post_id` session key. W3C trace context and bounded
 OpenTelemetry attributes correlate the authorized operation across services;
 collector delivery, retention, access review, and no-export rollback are the
 GRC evidence subjects.
+
+The remaining PR #383 `osv-scan` failure is a central workflow defect: the scan
+exited successfully, but the follow-up treated a missing empty baseline result
+file as failure. Central `.github` PR #1158 is the repair at exact head
+`a7fb51283e200c81fc30dd942fda2ba941518bdf`; its own Checks are still queued and
+it has no independent approval, so PR #383 is not reported green or mergeable.
 
 ## 7. Next Implementation Order
 
