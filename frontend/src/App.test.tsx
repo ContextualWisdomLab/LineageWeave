@@ -89,6 +89,7 @@ describe("App, authenticated", () => {
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
     staleSummary?: boolean;
+    contentAfterSummary?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -113,6 +114,7 @@ describe("App, authenticated", () => {
     let createdPendingLineage: Record<string, unknown> | null = null;
     let createdPendingTepp: Record<string, unknown> | null = null;
     let resolvedHintCode: string | null = null;
+    let contentRequests = 0;
 
     let releaseMe = () => {};
     const meReady = options?.deferMe
@@ -1098,7 +1100,28 @@ describe("App, authenticated", () => {
         );
       }
       if (postOneUrl.pathname === "/api/posts/post-1/content") {
-        return Promise.resolve(jsonResponse({ images: [] }));
+        contentRequests += 1;
+        return Promise.resolve(
+          jsonResponse({
+            status: "ready",
+            images: [],
+            units:
+              options?.contentAfterSummary && contentRequests > 1
+                ? [
+                    {
+                      unit_index: 0,
+                      unit_kind_code: "plain_text",
+                      unit_label: "p",
+                      unit_text: "Freshly processed source paragraph.",
+                      indent_level: 0,
+                      indent_source_code: "explicit",
+                      indent_confidence: 1,
+                      indent_evidence: "HTML paragraph boundary",
+                    },
+                  ]
+                : [],
+          }),
+        );
       }
       if (url.endsWith("/api/posts/post-2")) {
         if (options?.evidenceUnavailable) {
@@ -2004,6 +2027,15 @@ describe("App, authenticated", () => {
       ).toBeGreaterThan(summaryCallsBeforeRetry),
     );
     expect(screen.getByRole("button", { name: "Retry summary refresh" })).toBeInTheDocument();
+  });
+
+  it("refreshes newly processed source content after summary generation", async () => {
+    stubBackend({ contentAfterSummary: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    expect(await screen.findByText("Freshly processed source paragraph.")).toBeInTheDocument();
   });
 
   it("shows a seeded Ask exchange without an orchestrator round-trip", async () => {
