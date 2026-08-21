@@ -24,6 +24,7 @@ class _VisiblePostConnection:
         self.row = row
 
     async def fetchrow(self, *_args: object) -> dict[str, object]:
+        """Return the fixture row for the loader's bound query."""
         return self.row
 
 
@@ -35,6 +36,7 @@ class _VisiblePostPool:
 
     @asynccontextmanager
     async def acquire(self):
+        """Yield the fake connection through the same async context protocol."""
         yield self.connection
 
 
