@@ -2,7 +2,7 @@
 
 Keyman extraction and post-summary R&R are independent evidence channels. A
 replacement in either channel must remove only that channel's stale person
-mentions, then reconcile the buyer-facing Knowledge Graph from the currently
+mentions, then reconcile the reader-facing Knowledge Graph from the currently
 supported union. Orphan graph-registry rows must never become visible.
 """
 

@@ -12,7 +12,7 @@ Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
 - **Implemented in source:** PostgreSQL-backed API boundaries, Keyverse/OIDC
-  identity boundary, buyer navigation, post popup, ABAC/RBAC surfaces, Korean
+  identity boundary, workspace navigation, post popup, ABAC/RBAC surfaces, Korean
   summary, 5W1H, R&R/Keyman, customer hierarchy, tickets/calendar, chat,
   provenance/evidence, and reconstructed lineage API/DAG layout.
 - **Implemented in source, runtime evidence still required:** TEPP import/API
@@ -44,9 +44,9 @@ record the final PR head with `git rev-parse HEAD` during acceptance.
 
 - **Mobile drawer — fixed in this worktree:** CSS referenced a drawer trigger but
   the authenticated shell rendered no trigger or drawer. The shell now renders
-  an accessible hamburger button, close action, overlay, and reusable BuyerNav.
+  an accessible hamburger button, close action, overlay, and reusable WorkspaceNav.
 - **Event Lineage Figma parity — fixed in this worktree:** the DAG now includes
-  buyer-evidence context, legend, horizontal overflow on phones, inference
+  lineage-evidence context, legend, horizontal overflow on phones, inference
   boundary, direction markers, and an evidence trail table/cards treatment.
 - **Approved CI/BI asset — open:** the header/footer currently render the
   tenant brand name as text. Do not invent or alter a corporate logo; add the
@@ -59,8 +59,8 @@ record the final PR head with `git rev-parse HEAD` during acceptance.
   Standard Guide v3.0 §2.2.2 assigns 언어설정 (language setting) to the header
   top menu alongside user info, login/logout, search, and utility items.
   `LanguageSwitcher` now renders inside `.app-header-top-menu` (`App.tsx`)
-  instead of the GNB row; the now-unused `BuyerNav` `tools` prop and
-  `.buyer-gnb-tools` CSS were removed.
+  instead of the GNB row; the now-unused `WorkspaceNav` `tools` prop and
+  `.workspace-gnb-tools` CSS were removed.
 - **Locale document metadata — substantially present:** `i18n.ts` synchronizes
   `document.documentElement.lang` after locale selection and `i18n.test.ts`
   covers the supported locales. `frontend/index.html` remains an English
@@ -82,7 +82,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Requirement | Evidence at this audit | Status |
 | --- | --- | --- |
 | 1024/1280/1920 layout and three responsive tiers | ADR 0118, `App.css`, frontend build/tests | source + unit |
-| Sticky header, footer, GNB, active state, phone drawer | `App.tsx`, `BuyerNav.tsx`, `App.test.tsx` | source + unit |
+| Sticky header, footer, GNB, active state, phone drawer | `App.tsx`, `WorkspaceNav.tsx`, `App.test.tsx` | source + unit |
 | Approved CI/BI logo asset | Tenant text is present; approved asset and permission are absent | open |
 | User/logout/language/global search header actions | `App.tsx`, `i18n.ts`, search focus test | source + unit |
 | Site map / utility menu | No dedicated utility surface | open |

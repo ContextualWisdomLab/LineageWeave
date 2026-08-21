@@ -1492,7 +1492,7 @@ async def read_post_content(
     pool: asyncpg.Pool = Depends(get_pool),
     valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
-    """Return persisted content evidence; never derive or invent buyer copy."""
+    """Return persisted content evidence; never derive or invent reader-facing copy."""
     await _load_visible_post(post_id, account, pool)
     queue_event: tuple[str, str] | None = None
     async with pool.acquire() as conn:
@@ -2546,7 +2546,7 @@ class ChatRequest(BaseModel):
 
 
 class GlobalAskRequest(BaseModel):
-    """JSON body for the buyer's source-grounded Global Ask Agent."""
+    """JSON body for the reader's source-grounded Global Ask Agent."""
 
     question: str
 
@@ -2647,7 +2647,7 @@ async def ask_agent(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Answer a buyer question from authorized post and graph evidence."""
+    """Answer a reader question from authorized post and graph evidence."""
     question = request.question.strip()
     if not question:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")

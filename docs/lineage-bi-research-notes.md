@@ -322,7 +322,7 @@ node, and an unresolved free-text affiliation is left as its own root
 rather than attached to the nearest name.
 
 VOC evidence is extractive, not abstractive. The post already carries a
-closed `voc_type_code`; the buyer-felt gap was the missing span that
+closed `voc_type_code`; the reader-felt gap was the missing span that
 justifies that label. `sentence_excerpts` returns the sentences that
 contain a classified organization name -- the ACE mention extent
 (Doddington et al., 2004) already used for Keyman -- and returns

@@ -2012,7 +2012,7 @@ describe("App, authenticated", () => {
     const eventLineage = within(popup as HTMLElement).getByRole("heading", { name: "Event Lineage" });
     const affiliate = within(popup as HTMLElement).getByRole("heading", { name: "Affiliate tree" });
     const keyman = within(popup as HTMLElement).getByRole("heading", { name: "Keymen" });
-    expect(within(popup as HTMLElement).getByText("BUYER EVIDENCE")).toBeInTheDocument();
+    expect(within(popup as HTMLElement).getByText("LINEAGE EVIDENCE")).toBeInTheDocument();
     expect(within(popup as HTMLElement).getByText("Inference boundary")).toBeInTheDocument();
     expect(within(popup as HTMLElement).getByRole("table", { name: "Evidence trail" })).toBeInTheDocument();
     expect(evaluation.compareDocumentPosition(eventLineage) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
@@ -2113,7 +2113,7 @@ describe("App, authenticated", () => {
     );
   });
 
-  it("stops loading and gives the buyer a next action when cited evidence is unavailable", async () => {
+  it("stops loading and gives the reader a next action when cited evidence is unavailable", async () => {
     stubBackend({ evidenceUnavailable: true });
     render(<App showLabPanels />);
 
@@ -2562,7 +2562,7 @@ describe("App, authenticated", () => {
     expect(screen.getByText("due 2026-01-09")).toBeInTheDocument();
   });
 
-  it("tells the buyer how to populate an empty calendar", async () => {
+  it("tells the reader how to populate an empty calendar", async () => {
     stubBackend({ calendarCommitments: [] });
     render(<App showLabPanels />);
 
@@ -3514,11 +3514,11 @@ describe("App, authenticated", () => {
     );
   });
 
-  it("keeps advanced review tools out of the buyer board", async () => {
+  it("keeps advanced review tools out of the workspace board", async () => {
     stubBackend();
     render(<App />);
 
-    expect(await screen.findByRole("navigation", { name: "Buyer navigation" })).toBeInTheDocument();
+    expect(await screen.findByRole("navigation", { name: "Workspace navigation" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Board" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByLabelText("Authorized scope")).toHaveTextContent("DEMO-CORP / DEMO-PU");
     expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
@@ -3526,7 +3526,7 @@ describe("App, authenticated", () => {
     expect(mobileMenu).toHaveAttribute("aria-expanded", "false");
     await userEvent.click(mobileMenu);
     expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(2);
-    expect(document.getElementById("mobile-buyer-navigation")).toBeInTheDocument();
+    expect(document.getElementById("mobile-workspace-navigation")).toBeInTheDocument();
     const drawerClose = document.querySelector<HTMLButtonElement>(".mobile-drawer-close");
     expect(drawerClose).not.toBeNull();
     await userEvent.click(drawerClose as HTMLButtonElement);
@@ -3534,7 +3534,7 @@ describe("App, authenticated", () => {
     const appHeader = document.querySelector<HTMLElement>("header.app-header");
     expect(appHeader).not.toBeNull();
     expect(within(appHeader as HTMLElement).getByLabelText("Language")).toBeInTheDocument();
-    expect(screen.getByRole("navigation", { name: "Buyer navigation" })).not.toHaveTextContent("Language");
+    expect(screen.getByRole("navigation", { name: "Workspace navigation" })).not.toHaveTextContent("Language");
     await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
     expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
     await userEvent.click(

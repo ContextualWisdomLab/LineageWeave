@@ -1,4 +1,4 @@
-"""Small independent CalDAV event-consumption port for the buyer calendar."""
+"""Small independent CalDAV event-consumption port for the reader calendar."""
 
 from __future__ import annotations
 

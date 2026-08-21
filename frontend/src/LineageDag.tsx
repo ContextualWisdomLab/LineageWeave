@@ -23,7 +23,7 @@ export function LineageDag({
   return (
     <div className="lineage-dag" aria-label={t("Reconstructed lineage")}>
       <div className="lineage-dag-header">
-        <p className="section-eyebrow">BUYER EVIDENCE</p>
+        <p className="section-eyebrow">LINEAGE EVIDENCE</p>
         <p className="lineage-dag-description">
           {t("Reconstructed lineage")}. {t("Edges explain reconstructed continuation only. They are not causal or authoritative facts.")}
         </p>

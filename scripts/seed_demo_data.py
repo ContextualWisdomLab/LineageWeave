@@ -1216,7 +1216,7 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
 
     High-band and low-band posts live in different process units. A
     pooled free-calibrate writes the shared bank; each unit is then
-    FIPC-scored so the buyer can compare them. W03 is all-high on the
+    FIPC-scored so the reader can compare them. W03 is all-high on the
     high unit. Categories are constructed; thetas come only from
     ``score_groups_on_shared_metric``. A-100 fixtures (and the
     Riverbend calendar post) fold into the high unit; B-200 fixtures

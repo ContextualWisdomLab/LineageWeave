@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 describe("i18n", () => {
-  const requiredBuyerLabels = [
+  const requiredWorkspaceLabels = [
     "Language",
     "Evidence",
     "Ask",
@@ -44,10 +44,10 @@ describe("i18n", () => {
   });
 
   it.each(["ko", "zh", "ja", "vi"] as const)(
-    "translates all shared Buyer labels in %s",
+    "translates all shared workspace labels in %s",
     (locale) => {
       setLocale(locale);
-      for (const key of requiredBuyerLabels) {
+      for (const key of requiredWorkspaceLabels) {
         expect(t(key), `${locale}:${key}`).not.toBe(key);
       }
     },
@@ -70,7 +70,7 @@ describe("i18n", () => {
     ["zh", "DEMO 是事件谱系中的当前记录。接下来查看关键联系人和评估。"],
     ["ja", "DEMOはイベント系譜の現在の記録です。次にキーパーソンと評価を確認してください。"],
     ["vi", "DEMO là bản ghi hiện tại trong Dòng sự kiện. Hãy xem người liên hệ chính và đánh giá tiếp theo."],
-  ] as const)("formats dynamic buyer guidance in %s", (locale, expected) => {
+  ] as const)("formats dynamic reader guidance in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", { post: "DEMO" })).toBe(expected);
   });

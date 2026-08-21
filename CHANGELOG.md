@@ -6,12 +6,22 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed "Buyer" terminology to reader/workspace naming across the frontend
+  shell, backend evidence helpers, and living docs (ADR 0119). LineageWeave
+  has no explicit buyer role, so `BuyerNav`/`BuyerDestination` became
+  `WorkspaceNav`/`WorkspaceDestination`, `.buyer-gnb*` CSS became
+  `.workspace-gnb*`, and prose referring to the reading user now says
+  "reader" instead of "buyer". Historical ADRs and changelog entries keep
+  their original wording as a point-in-time record.
+
 ### Fixed
 
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
-- The buyer Event Lineage global Search action now retries focus after the
+- The workspace Event Lineage global Search action now retries focus after the
   board finishes loading, so navigation from Customer master, Calendar, or
   Ask Agent lands the cursor in the search box.
 
