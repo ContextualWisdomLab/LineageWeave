@@ -35,7 +35,7 @@
 The following states are evidence-bound and must not be changed to `merged` or
 `resolved` from intent alone:
 
-Observed at `2026-08-21T13:12:54Z` from the GitHub API. A merged commit is
+Observed at `2026-08-21T13:35:16Z` from the GitHub API. A merged commit is
 identified as `merge_commit`; an open PR is identified by its exact `head`.
 
 - LineageWeave PR #344: `merge_commit`
@@ -55,7 +55,7 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   checkpoint is updated by the stacked documentation PR for the newer queue
   evidence below.
 - LineageWeave PR #378: `head`
-  `505302847b1a257d1464460d3c72bf11344e48ae`, base
+  `333c705294a4faa76869f34d3e08dc09d760487d`, base
   `codex/product-gap-baseline-20260821`; this checkpoint's local
   buyer-surface verification is the current documentation delta.
 - LineageWeave PR #366: `head`
@@ -90,21 +90,33 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   `repair/global-ask-atomic-rollback-v2203`; post-chat rollback and test
   cleanup are locally verified; required Checks and independent approval
   remain external gates.
+- LineageWeave PR #385: `head`
+  `cda7d483717addf6f62b7771a5cdcd244cad8fa9`, base
+  `feat/analysis-run-name-evidence-lineage`; stacked on PR #258's exact head
+  `efcc3c615cf4809a7ec265a1074a10e12877dd15`, it hardens the external
+  lineage contract, removes the self-modifying repair workflow, and fixes the
+  responsive board CSS. Checks and independent approval remain external gates.
 - LineageWeave PR #373: `head`
   `bc91481dac7350975de7ec00f11d4e54f676eb2c`, base `main`; ontology
   publication has unresolved review work and is not treated as delivered.
-- LineageWeave PR #375: `head`
-  `34967730b4a9e663ff366b7fd8a91c21f98236f1`, base
-  `repair/global-ask-atomic-rollback-v2203`; one unresolved review thread
-  remains, so post-chat citation authorization is not treated as delivered.
-- LineageWeave PR #379: `head`
-  `8d688c8b865092e7e52c7ff4cabbc01dcde9c9b0`, base
-  `feat/naruon-calendar-projection-contract-main`; one unresolved review
-  thread remains and it is outside the LineageWeave buyer-surface completion
-  claim.
-- Legacy open PRs #258, #262, and #287 remain explicitly unmerged; their
-  current review/conflict state requires separate triage before any delivery
-  claim.
+- LineageWeave PR #375: `merge_commit`
+  `fb0d185a2da707e57d2ed10900b06707126d8300`, merged at
+  `2026-08-21T13:18:01Z`; post-chat citation authorization is delivered in
+  the merged stack.
+- LineageWeave PR #379: `merge_commit`
+  `b606c2553f877fa85968d90dc46598ce16897fbf`, merged at
+  `2026-08-21T13:19:00Z`; malformed provider replies and focused regression
+  coverage are delivered in the current PR #355 head.
+- LineageWeave PR #355: `head`
+  `b606c2553f877fa85968d90dc46598ce16897fbf`, base `main`; it remains
+  open and is not treated as merged solely because stacked PR #379 merged.
+- LineageWeave PR #382: `head`
+  `d14dc49025886a00251a3f579f4e9d53ed55f0ba`, base
+  `ci/publish-ontology-pages-clean`; it carries the ontology-site safety
+  repair stacked on PR #373 and remains gated by Checks and approval.
+- Legacy open PRs #258, #262, and #287 remain explicitly unmerged. PR #258
+  has the separate hardening stack #385; neither PR is treated as delivered
+  until GitHub reports a merge commit.
 - LineageWeave PR #371: `closed_without_merge`
   head `4c3e43f9e96ecc2d868657dd9b0ce5524a15c76c`, closed at
   `2026-08-21T11:59:57Z`; no merge commit exists, so ontology publication is
@@ -160,11 +172,12 @@ GRC evidence subjects.
 
 ## 7. Next Implementation Order
 
-1. Let the protected Checks and independent approvals complete for stacked PRs
-   #376 and #377, then revalidate their parent PRs #370 and #374 at the exact
-   current head; PR #367 is already merged. Verify the synthetic footnote/table
-   cases in the authenticated browser and use the protected external corpus only
-   for aggregate, non-identifying runtime evidence.
+1. Let the protected Checks and independent approvals complete for open stacked
+   PRs #377, #382, and #385, then revalidate parent PRs #374, #373, and #258
+   at their exact current heads; PRs #367, #375, and #379 are already merged.
+   Verify the synthetic footnote/table cases in the authenticated browser and
+   use the protected external corpus only for aggregate, non-identifying
+   runtime evidence.
 2. Resolve image DOM-region recognition, OCR, semantic table rendering, and
    buyer-facing caption separation through contextual-orchestrator VISION.
 3. Verify 5W1H, multi-project event separation, Keyman affiliation, and
