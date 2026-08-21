@@ -490,6 +490,7 @@ def assemble_ontology_neighborhood(
         next_cursor = f"after:{_edge_id(page_edges[-1])}"
 
     node_meta: dict[str, tuple[str, str, datetime, int, str]] = {}
+    node_evidence: dict[str, set[str]] = defaultdict(set)
     focus_label = labels[(focus_node_type_code, focus_node_id)]
     fallback_recorded = knowledge_cutoff or datetime(1970, 1, 1, tzinfo=timezone.utc)
     node_meta[focus_key] = (
@@ -507,19 +508,22 @@ def assemble_ontology_neighborhood(
             key = _node_key(node_type, node_id)
             label = labels[(node_type, node_id)]
             current = node_meta.get(key)
-            evidence = len(fact.evidence_references)
+            node_evidence[key].update(fact.evidence_references)
             recorded = fact.recorded_at
             if current is None:
-                node_meta[key] = (node_type, label, recorded, evidence, truth)
+                node_meta[key] = (node_type, label, recorded, 0, truth)
             else:
                 _, _, prior_recorded, prior_evidence, prior_truth = current
                 node_meta[key] = (
                     node_type,
                     label,
                     min(prior_recorded, recorded),
-                    prior_evidence + evidence,
+                    prior_evidence,
                     prior_truth if prior_truth == TRUTH_AUTHORITATIVE else truth,
                 )
+
+    for key, (node_type, label, recorded, _, truth) in node_meta.items():
+        node_meta[key] = (node_type, label, recorded, len(node_evidence[key]), truth)
 
     ordered_keys = [focus_key] + sorted(key for key in node_meta if key != focus_key)
     if len(ordered_keys) > maximum_nodes:
