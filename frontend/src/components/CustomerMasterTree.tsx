@@ -119,6 +119,10 @@ export function CustomerMasterTree({
     () => new Map(visibleItems.map((item) => [item.entityId, item])),
     [visibleItems],
   );
+  const entityById = useMemo(
+    () => new Map(entities.map((entity) => [entity.corporate_entity_id, entity])),
+    [entities],
+  );
 
   useEffect(() => {
     if (focusedEntityId && visibleById.has(focusedEntityId)) return;
@@ -227,9 +231,6 @@ export function CustomerMasterTree({
       const isBranch = node.children.length > 0;
       const isExpanded = expandedEntityIds.has(entityId);
       const isEvidenceOpen = evidenceEntityId === entityId;
-      const relatedPosts = (relatedByEntity[entityId] ?? []).filter(
-        (related) => related.node_type_code === NODE_POST,
-      );
       const style = { "--customer-tree-depth": level - 1 } as CSSProperties;
       return (
         <li
@@ -239,71 +240,48 @@ export function CustomerMasterTree({
           data-hierarchy-issue={node.hierarchyIssue ?? undefined}
           style={style}
         >
-          <div className="customer-tree-row">
-            <button
-              ref={(element) => {
-                if (element) treeItemRefs.current.set(entityId, element);
-                else treeItemRefs.current.delete(entityId);
-              }}
-              type="button"
-              role="treeitem"
-              className="customer-entity-button"
-              tabIndex={focusedEntityId === entityId ? 0 : -1}
-              aria-level={item.level}
-              aria-posinset={item.positionInSet}
-              aria-setsize={item.setSize}
-              aria-expanded={isBranch ? isExpanded : undefined}
-              aria-current={isEvidenceOpen ? "true" : undefined}
-              onFocus={() => setFocusedEntityId(entityId)}
-              onKeyDown={(event) => handleTreeKeyDown(event, item)}
-              onClick={(event) => {
-                const target = event.target as HTMLElement;
-                if (isBranch && target.closest("[data-customer-branch-toggle]")) {
-                  setBranchExpanded(entityId, !isExpanded);
-                  return;
-                }
-                void toggleEvidence(entityId);
-              }}
+          <button
+            ref={(element) => {
+              if (element) treeItemRefs.current.set(entityId, element);
+              else treeItemRefs.current.delete(entityId);
+            }}
+            type="button"
+            role="treeitem"
+            className="customer-entity-button"
+            tabIndex={focusedEntityId === entityId ? 0 : -1}
+            aria-level={item.level}
+            aria-posinset={item.positionInSet}
+            aria-setsize={item.setSize}
+            aria-expanded={isBranch ? isExpanded : undefined}
+            aria-selected={isEvidenceOpen}
+            onFocus={() => setFocusedEntityId(entityId)}
+            onKeyDown={(event) => handleTreeKeyDown(event, item)}
+            onClick={(event) => {
+              const target = event.target as HTMLElement;
+              if (isBranch && target.closest("[data-customer-branch-toggle]")) {
+                setBranchExpanded(entityId, !isExpanded);
+                return;
+              }
+              void toggleEvidence(entityId);
+            }}
+          >
+            <span
+              className={
+                isBranch ? "customer-tree-branch-indicator" : "customer-tree-branch-spacer"
+              }
+              data-customer-branch-toggle={isBranch ? "true" : undefined}
+              aria-hidden="true"
             >
-              <span
-                className={isBranch ? "customer-tree-branch-indicator" : "customer-tree-branch-spacer"}
-                data-customer-branch-toggle={isBranch ? "true" : undefined}
-                aria-hidden="true"
-              >
-                {isBranch ? (isExpanded ? "▾" : "▸") : ""}
-              </span>
-              <span className="customer-tree-label">
-                <strong>{entity.entity_name}</strong>
-                <span>{entity.corporate_entity_code} · {entity.entity_level_label}</span>
-                {node.hierarchyIssue ? (
-                  <span className="customer-tree-unresolved">{t("unresolved")}</span>
-                ) : null}
-              </span>
-            </button>
-          </div>
-          {isEvidenceOpen ? (
-            <div className="customer-related-posts" role="region" aria-label={`${t("Related posts")}: ${entity.entity_name}`}>
-              {relatedLoadingId === entityId ? <p>{t("Loading related posts...")}</p> : null}
-              {relatedLoadingId !== entityId && relatedPosts.length === 0 ? (
-                <p className="popup-placeholder">{t("No linked posts yet.")}</p>
+              {isBranch ? (isExpanded ? "▾" : "▸") : ""}
+            </span>
+            <span className="customer-tree-label">
+              <strong>{entity.entity_name}</strong>
+              <span>{entity.corporate_entity_code} · {entity.entity_level_label}</span>
+              {node.hierarchyIssue ? (
+                <span className="customer-tree-unresolved">{t("unresolved")}</span>
               ) : null}
-              {relatedPosts.length > 0 ? (
-                <ul>
-                  {relatedPosts.map((related) => (
-                    <li key={related.node_id}>
-                      <CustomerRelatedPostCard
-                        postId={related.node_id}
-                        postTitle={related.label ?? related.node_id}
-                        postBodyExcerpt={related.post_body_excerpt}
-                        postBodyTruncated={related.post_body_truncated}
-                        onOpenPost={onOpenPost}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          ) : null}
+            </span>
+          </button>
           {isBranch && isExpanded ? (
             <ul role="group" className="customer-master-tree-group">
               {renderNodes(node.children, level + 1)}
@@ -314,13 +292,48 @@ export function CustomerMasterTree({
     });
   }
 
+  const evidenceEntity = evidenceEntityId ? entityById.get(evidenceEntityId) : undefined;
+  const relatedPosts = evidenceEntityId
+    ? (relatedByEntity[evidenceEntityId] ?? []).filter(
+        (related) => related.node_type_code === NODE_POST,
+      )
+    : [];
+
   return (
-    <ul
-      role="tree"
-      className="customer-master-list customer-master-tree customer-master-tree-widget"
-      aria-label={t("Customer entities available to this account.")}
-    >
-      {renderNodes(forest, 1)}
-    </ul>
+    <>
+      <ul
+        role="tree"
+        className="customer-master-list customer-master-tree customer-master-tree-widget"
+        aria-label={t("Customer entities available to this account.")}
+      >
+        {renderNodes(forest, 1)}
+      </ul>
+      {evidenceEntityId && evidenceEntity ? (
+        <section
+          className="customer-related-posts customer-tree-evidence"
+          aria-label={`${t("Related posts")}: ${evidenceEntity.entity_name}`}
+        >
+          {relatedLoadingId === evidenceEntityId ? <p>{t("Loading related posts...")}</p> : null}
+          {relatedLoadingId !== evidenceEntityId && relatedPosts.length === 0 ? (
+            <p className="popup-placeholder">{t("No linked posts yet.")}</p>
+          ) : null}
+          {relatedPosts.length > 0 ? (
+            <ul>
+              {relatedPosts.map((related) => (
+                <li key={related.node_id}>
+                  <CustomerRelatedPostCard
+                    postId={related.node_id}
+                    postTitle={related.label ?? related.node_id}
+                    postBodyExcerpt={related.post_body_excerpt}
+                    postBodyTruncated={related.post_body_truncated}
+                    onOpenPost={onOpenPost}
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
+      ) : null}
+    </>
   );
 }

@@ -11,10 +11,6 @@
   border-color: var(--badge-status-danger-text);
 }
 
-.customer-tree-row {
-  display: block;
-}
-
 .customer-master-tree-widget .customer-entity-button {
   display: grid;
   grid-template-columns: var(--size-control-min) minmax(0, 1fr);
@@ -69,8 +65,12 @@
   font-weight: 700;
 }
 
-.customer-master-tree-widget .customer-entity-button[aria-current="true"] {
+.customer-master-tree-widget .customer-entity-button[aria-selected="true"] {
   color: var(--color-accent);
+}
+
+.customer-tree-evidence {
+  margin-top: 1rem;
 }
 
 @media (max-width: 640px) {

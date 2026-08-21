@@ -12,16 +12,16 @@ permissions:
 
 concurrency:
   group: apply-customer-master-tree-hardening
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   apply-and-verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout exact branch head
+      - name: Checkout exact trigger head
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
-          ref: feat/analysis-run-name-evidence-lineage
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: true
 
@@ -85,5 +85,5 @@ jobs:
             .github/workflows/apply-customer-master-tree-hardening.yml
           git commit -m "docs: record customer hierarchy verification evidence"
 
-      - name: Push verified commits
+      - name: Push verified commits without overwriting concurrent work
         run: git push origin HEAD:feat/analysis-run-name-evidence-lineage

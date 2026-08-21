@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { CustomerMasterEntity, RelatedNode } from "../api";
@@ -53,14 +53,16 @@ describe("CustomerMasterTree", () => {
     expect(company).toHaveFocus();
 
     fireEvent.keyDown(company, { key: "ArrowLeft" });
-    await waitFor(() => expect(screen.queryByRole("treeitem", { name: /Demo Plant/ })).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole("treeitem", { name: /Demo Plant/ })).not.toBeInTheDocument(),
+    );
     expect(company).toHaveAttribute("aria-expanded", "false");
     fireEvent.keyDown(company, { key: "ArrowRight" });
     expect(await screen.findByRole("treeitem", { name: /Demo Plant/ })).toBeInTheDocument();
     expect(company).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("opens source-backed posts independently from hierarchy disclosure", async () => {
+  it("opens source-backed posts outside the tree without changing hierarchy disclosure", async () => {
     const onOpenPost = vi.fn();
     const related: RelatedNode[] = [
       {
@@ -82,9 +84,16 @@ describe("CustomerMasterTree", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("treeitem", { name: /Demo Company/ }));
+    const tree = screen.getByRole("tree");
+    const company = screen.getByRole("treeitem", { name: /Demo Company/ });
+    await userEvent.click(company);
     expect(loadRelated).toHaveBeenCalledWith("company");
-    const post = await screen.findByRole("button", {
+    expect(company).toHaveAttribute("aria-selected", "true");
+    const evidence = await screen.findByRole("region", {
+      name: "Related posts: Demo Company",
+    });
+    expect(tree).not.toContainElement(evidence);
+    const post = within(evidence).getByRole("button", {
       name: "Open related post: Customer escalation",
     });
     expect(post).toHaveTextContent("Escalation evidence");
@@ -123,7 +132,9 @@ describe("CustomerMasterTree", () => {
     ]);
 
     await waitFor(() =>
-      expect(screen.getByRole("region", { name: "Related posts: Demo Company" })).toBeInTheDocument(),
+      expect(
+        screen.getByRole("region", { name: "Related posts: Demo Company" }),
+      ).toBeInTheDocument(),
     );
     expect(screen.queryByText("Stale group post")).not.toBeInTheDocument();
   });
