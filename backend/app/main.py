@@ -166,6 +166,18 @@ from backend.app.knowledge_graph import (
     visible_team_mention_post_ids,
 )
 from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
+from backend.app.ontology_neighborhood_ingestion import (
+    neighborhood_error_http_status,
+    neighborhood_to_payload,
+    parse_allowed_property_query,
+    visible_ontology_neighborhood,
+)
+from lineageweave.ontology_neighborhood import (
+    DEFAULT_MAXIMUM_DEPTH,
+    DEFAULT_MAXIMUM_EDGES,
+    DEFAULT_MAXIMUM_NODES,
+    OntologyNeighborhoodError,
+)
 from backend.app.post_chat_ingestion import (
     fetch_persisted_chat,
     fetch_persisted_chats,
@@ -1925,6 +1937,46 @@ async def read_related_team(
         "team_name": team["team_name"],
         "related": related,
     }
+
+
+@app.get("/api/ontology/neighborhood")
+async def read_ontology_neighborhood(
+    focus_node_type: str = Query(..., min_length=1),
+    focus_node_id: str = Query(..., min_length=1),
+    maximum_depth: int = Query(DEFAULT_MAXIMUM_DEPTH),
+    maximum_nodes: int = Query(DEFAULT_MAXIMUM_NODES),
+    maximum_edges: int = Query(DEFAULT_MAXIMUM_EDGES),
+    allowed_property_codes: list[str] | None = Query(None),
+    knowledge_cutoff: str | None = Query(None),
+    cursor: str | None = Query(None),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Typed ontology/KG neighborhood, distinct from Event Lineage."""
+    _require_post_read(account)
+    cutoff_clock = None
+    if knowledge_cutoff:
+        try:
+            cutoff_clock = parse_as_of_clock(knowledge_cutoff)
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    try:
+        async with pool.acquire() as conn:
+            neighborhood = await visible_ontology_neighborhood(
+                conn,
+                focus_node_type_code=focus_node_type,
+                focus_node_id=focus_node_id,
+                can_see_post=lambda row: _can_see_post(account, row),
+                maximum_depth=maximum_depth,
+                maximum_nodes=maximum_nodes,
+                maximum_edges=maximum_edges,
+                allowed_property_codes=parse_allowed_property_query(allowed_property_codes),
+                knowledge_cutoff=cutoff_clock,
+                cursor=cursor,
+            )
+    except OntologyNeighborhoodError as exc:
+        raise HTTPException(neighborhood_error_http_status(exc), str(exc)) from exc
+    return neighborhood_to_payload(neighborhood)
 
 
 @app.get("/api/posts/{post_id}/counterparties")

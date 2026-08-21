@@ -14,6 +14,7 @@ decision from them.
 | [`PROV_O_IMPLEMENTATION.md`](../PROV_O_IMPLEMENTATION.md) | [0065](0065-prov-o-provenance-boundary.md) |
 | [`PROV_O_IMPLEMENTATION_MATRIX.md`](../PROV_O_IMPLEMENTATION_MATRIX.md) | [0065](0065-prov-o-provenance-boundary.md) |
 | [`image-content-schema.md`](../image-content-schema.md) | [0066](0066-position-preserving-image-content.md) |
+| [`storybook-inventory.md`](../storybook-inventory.md) | [0118](0118-uiux-standard-guide-v3-design-overhaul.md), [0119](0119-ontology-provenance-explorer.md) |
 
 Runtime evidence under `docs/doctoring/` is not converted into an ADR: it
 records observed results for already-decided behavior.

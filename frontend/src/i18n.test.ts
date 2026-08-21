@@ -36,6 +36,9 @@ describe("i18n", () => {
     "Page",
     "Answer",
     "Showing the first {shown} of {total} posts known at this cutoff.",
+    "Inspect ontology neighborhood",
+    "Ontology neighborhood",
+    "This is an ontology neighborhood, not Event Lineage.",
   ] as const;
 
   it("supports the five product locales", () => {

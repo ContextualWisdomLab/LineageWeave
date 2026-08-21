@@ -79,6 +79,7 @@ flowchart LR
 | `post_chat.py` | Pluggable in-popup chat's reason-and-cite step (retrieve step lives in `backend/app/post_chat_ingestion.py`) |
 | `commitment_extraction.py` | Pluggable LLM derivation of a customer commitment (promise + deadline) from a post; `Null` default, `ContextualOrchestrator` real impl |
 | `ontology.py` | Loads `docs/ontology/lineageweave-kg.ttl`, the formal OWL 2/RDFS/SKOS vocabulary for the Knowledge Graph's node/edge types (ADR 0004) |
+| `ontology_neighborhood.py` | Bounded typed ontology/provenance neighborhood (ADR 0119); PostgreSQL stays authoritative, OWL subclass is not an instance edge |
 | `period_report.py` | Fit GRM/GPCM on persisted IRT rows, FIPC-select, EAP-score a period (ADR 0003 slice 3; Bock & Mislevy, 1982) |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
 | `server.py` | Legacy stdlib HTTP server for the library-level synthetic fixture demo; production uses FastAPI/PostgreSQL |

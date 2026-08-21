@@ -1,0 +1,208 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import type { OntologyNeighborhoodPayload } from "../api";
+import { OntologyExplorer } from "./OntologyExplorer";
+
+const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
+const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
+const CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1";
+
+function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): OntologyNeighborhoodPayload {
+  return {
+    focus_node_id: POST_ID,
+    focus_node_type_code: "node_post",
+    truncated: false,
+    next_cursor: null,
+    limitation_code: null,
+    nodes: [
+      {
+        node_id: POST_ID,
+        node_type_code: "node_post",
+        ontology_class_iri: "https://example.test/Post",
+        display_label: "Demo public post",
+        truth_status_code: "truth_observed",
+        valid_from: null,
+        valid_to: null,
+        recorded_at: "2026-01-10T12:00:00+00:00",
+        evidence_count: 1,
+        shape_code: "rectangle",
+      },
+      {
+        node_id: PERSON_ID,
+        node_type_code: "node_person",
+        ontology_class_iri: "https://example.test/Person",
+        display_label: "Priya Nair",
+        truth_status_code: "truth_observed",
+        valid_from: null,
+        valid_to: null,
+        recorded_at: "2026-01-10T12:00:00+00:00",
+        evidence_count: 1,
+        shape_code: "ellipse",
+      },
+      {
+        node_id: CORP_ID,
+        node_type_code: "node_corporate_entity",
+        ontology_class_iri: "https://example.test/CorporateEntity",
+        display_label: "Demo Corp",
+        truth_status_code: "truth_observed",
+        valid_from: null,
+        valid_to: null,
+        recorded_at: "2026-01-10T12:00:00+00:00",
+        evidence_count: 1,
+        shape_code: "hexagon",
+      },
+    ],
+    edges: [
+      {
+        edge_id: "mentions:post-person",
+        source_node_id: POST_ID,
+        target_node_id: PERSON_ID,
+        property_code: "mentions",
+        ontology_property_iri: "https://example.test/mentions",
+        property_label: "mentions",
+        truth_status_code: "truth_observed",
+        valid_from: null,
+        valid_to: null,
+        recorded_at: "2026-01-10T12:00:00+00:00",
+        provenance_reference: "knowledge_graph_edge",
+        evidence_references: [POST_ID],
+      },
+      {
+        edge_id: "affiliated:person-corp",
+        source_node_id: PERSON_ID,
+        target_node_id: CORP_ID,
+        property_code: "affiliatedWith",
+        ontology_property_iri: "https://example.test/affiliatedWith",
+        property_label: "affiliated with",
+        truth_status_code: "truth_inferred",
+        valid_from: "2026-01-01T00:00:00+00:00",
+        valid_to: null,
+        recorded_at: "2026-01-10T12:00:00+00:00",
+        provenance_reference: "knowledge_graph_edge",
+        evidence_references: [POST_ID],
+      },
+    ],
+    exact_value_rows: [
+      {
+        edge_id: "mentions:post-person",
+        source_node_id: POST_ID,
+        source_label: "Demo public post",
+        source_type_code: "node_post",
+        property_code: "mentions",
+        property_label: "mentions",
+        ontology_property_iri: "https://example.test/mentions",
+        target_node_id: PERSON_ID,
+        target_label: "Priya Nair",
+        target_type_code: "node_person",
+        truth_status_code: "truth_observed",
+        recorded_at: "2026-01-10T12:00:00+00:00",
+        valid_from: "",
+        valid_to: "",
+        evidence_count: "1",
+      },
+      {
+        edge_id: "affiliated:person-corp",
+        source_node_id: PERSON_ID,
+        source_label: "Priya Nair",
+        source_type_code: "node_person",
+        property_code: "affiliatedWith",
+        property_label: "affiliated with",
+        ontology_property_iri: "https://example.test/affiliatedWith",
+        target_node_id: CORP_ID,
+        target_label: "Demo Corp",
+        target_type_code: "node_corporate_entity",
+        truth_status_code: "truth_inferred",
+        recorded_at: "2026-01-10T12:00:00+00:00",
+        valid_from: "2026-01-01T00:00:00+00:00",
+        valid_to: "",
+        evidence_count: "1",
+      },
+    ],
+    jsonld: { "@graph": [] },
+    ...overrides,
+  };
+}
+
+describe("OntologyExplorer", () => {
+  it("lets keyboard users open node and edge evidence", async () => {
+    const onSelectPost = vi.fn();
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood()}
+        onSelectPost={onSelectPost}
+        onOpenEvidence={onSelectPost}
+      />,
+    );
+    expect(
+      screen.getByText(/This is an ontology neighborhood, not Event Lineage/),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Select node: Post Demo public post" }));
+    expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Open evidence post" }));
+    expect(onSelectPost).toHaveBeenCalledWith(POST_ID);
+    await userEvent.click(screen.getByRole("button", { name: /Select edge: mentions from/ }));
+    expect(screen.getByText(/Property IRI/)).toBeInTheDocument();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("names empty, truncated, denied, and rejected next actions", () => {
+    const { rerender } = render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood({ edges: [], exact_value_rows: [], limitation_code: "neighborhood_empty" })}
+      />,
+    );
+    expect(
+      screen.getAllByText(
+        "No visible ontology relations for this focus. Open a Keyman or affiliated organization next.",
+      ).length,
+    ).toBeGreaterThan(0);
+    rerender(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood({ truncated: true, limitation_code: "neighborhood_truncated" })}
+      />,
+    );
+    expect(screen.getByText("Neighborhood truncated. Page visible relations, then inspect one edge.")).toBeInTheDocument();
+    rerender(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={null}
+        status="denied"
+      />,
+    );
+    expect(screen.getByText("Access denied for this ontology neighborhood. Open a visible post next.")).toBeInTheDocument();
+    rerender(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood({
+          edges: [{ ...neighborhood().edges[0], truth_status_code: "truth_rejected" }],
+        })}
+        status="rejected"
+      />,
+    );
+    expect(screen.getByText("Rejected proposal. Open the evidence and do not treat it as authoritative.")).toBeInTheDocument();
+  });
+
+  it("searches the loaded graph without inventing omitted counts", async () => {
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood()}
+      />,
+    );
+    await userEvent.type(screen.getByLabelText("Search within this neighborhood"), "Priya");
+    expect(screen.getAllByText("Priya Nair").length).toBeGreaterThan(0);
+    expect(screen.queryByText(/omitted \d/i)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Reset focus" }));
+    expect(screen.getByLabelText("Search within this neighborhood")).toHaveValue("");
+  });
+});

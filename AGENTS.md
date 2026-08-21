@@ -10,7 +10,9 @@ scattered short records. See [ARCHITECTURE.md](ARCHITECTURE.md) for the
 design, [ADR 0084](docs/adr/0084-lineage-research-grounding.md) for the
 normative research-grounding policy, and
 [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md) for
-supporting literature and aggregate evidence.
+supporting literature and aggregate evidence. Event Lineage (reconstructed
+post-to-post parents) is distinct from the typed ontology neighborhood
+(ADR 0119); do not mix those graphs.
 
 ## Hard rule: no real data in repository artifacts
 

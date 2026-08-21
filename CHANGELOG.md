@@ -6,6 +6,13 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- Bounded ontology/provenance neighborhood (`GET /api/ontology/neighborhood`)
+  with typed Post/Person/CorporateEntity/Team nodes, SKOS broader distinct
+  from OWL subclass, truth-status vocabulary, knowledge-cutoff binding, and
+  a Keyman-panel explorer that is not Event Lineage (ADR 0119 / #341).
+
 ### Fixed
 
 - `make smoke` and `make seed` now run through the locked project `uv`
