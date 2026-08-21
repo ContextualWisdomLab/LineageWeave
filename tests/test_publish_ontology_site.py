@@ -101,6 +101,7 @@ def test_publication_rejects_symlink_and_source_overlapping_outputs(tmp_path: Pa
 
 def test_graph_validation_rejects_duplicate_fragments_and_unsafe_links() -> None:
     publisher = _load_publisher()
+    renderer = publisher._load_renderer(ROOT)
     duplicate = Graph()
     first = URIRef("https://one.example/ontology#Shared")
     second = URIRef("https://two.example/ontology#Shared")
@@ -108,25 +109,26 @@ def test_graph_validation_rejects_duplicate_fragments_and_unsafe_links() -> None
     duplicate.add((second, RDF.type, OWL.Class))
 
     with pytest.raises(ValueError, match="duplicate ontology fragment"):
-        publisher.validate_public_graph(duplicate)
+        publisher.validate_public_graph(duplicate, renderer)
 
     unsafe = Graph()
     subject = URIRef("https://example.test/ontology#Subject")
     unsafe.add((subject, RDF.type, OWL.Class))
     unsafe.add((subject, RDFS.subClassOf, URIRef("javascript:alert(1)")))
     with pytest.raises(ValueError, match="unsafe linked IRI scheme"):
-        publisher.validate_public_graph(unsafe)
+        publisher.validate_public_graph(unsafe, renderer)
 
 
 def test_graph_validation_allows_http_relations_and_multiple_term_types() -> None:
     publisher = _load_publisher()
+    renderer = publisher._load_renderer(ROOT)
     graph = Graph()
     subject = URIRef("https://example.test/ontology#Subject")
     graph.add((subject, RDF.type, OWL.Class))
     graph.add((subject, RDF.type, OWL.AnnotationProperty))
     graph.add((subject, RDFS.subClassOf, URIRef("https://external.example/Parent")))
 
-    publisher.validate_public_graph(graph)
+    publisher.validate_public_graph(graph, renderer)
 
 
 def test_main_publishes_site(tmp_path: Path) -> None:
@@ -153,6 +155,7 @@ def test_loader_and_fragment_failure_branches(tmp_path: Path, monkeypatch) -> No
 
 def test_graph_validation_ignores_non_uri_and_local_link_objects() -> None:
     publisher = _load_publisher()
+    renderer = publisher._load_renderer(ROOT)
     from rdflib import BNode, Literal
 
     graph = Graph()
@@ -164,7 +167,7 @@ def test_graph_validation_ignores_non_uri_and_local_link_objects() -> None:
     graph.add((subject, RDFS.subClassOf, local_parent))
     graph.add((subject, RDFS.domain, Literal("not a link")))
 
-    publisher.validate_public_graph(graph)
+    publisher.validate_public_graph(graph, renderer)
 
 
 def test_publication_fails_closed_for_missing_sources(tmp_path: Path) -> None:

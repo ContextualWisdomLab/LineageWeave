@@ -17,7 +17,7 @@ from types import ModuleType
 from urllib.parse import urlsplit
 
 from rdflib import Graph, URIRef
-from rdflib.namespace import OWL, RDF, RDFS, SKOS
+from rdflib.namespace import RDF
 
 try:
     from scripts.ontology_site_contract import public_fragment
@@ -27,24 +27,6 @@ except ModuleNotFoundError:  # direct execution with ``scripts`` as sys.path[0]
 OUTPUT_MARKER = ".lineageweave-ontology-site"
 SOURCE_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg.ttl")
 PROV_PROFILE_RELATIVE_PATH = Path("docs/ontology/prov-o-support-profile.ttl")
-TERM_TYPES: tuple[URIRef, ...] = (
-    OWL.Class,
-    OWL.ObjectProperty,
-    OWL.DatatypeProperty,
-    OWL.AnnotationProperty,
-    SKOS.ConceptScheme,
-    SKOS.Concept,
-)
-LINK_PREDICATES: tuple[URIRef, ...] = (
-    RDF.type,
-    RDFS.subClassOf,
-    RDFS.domain,
-    RDFS.range,
-    OWL.inverseOf,
-    SKOS.broader,
-    SKOS.narrower,
-    SKOS.inScheme,
-)
 
 
 def _load_renderer(repository_root: Path) -> ModuleType:
@@ -66,19 +48,19 @@ def _fragment(value: URIRef) -> str:
     return iri.rstrip("/").rsplit("/", 1)[-1]
 
 
-def _public_subjects(graph: Graph) -> set[URIRef]:
-    """Return URI subjects included in the public HTML term inventory."""
+def _public_subjects(graph: Graph, renderer: ModuleType) -> set[URIRef]:
+    """Return URI subjects included in the renderer's public term inventory."""
     return {
         subject
-        for term_type in TERM_TYPES
+        for _, term_type in renderer.TERM_TYPES
         for subject in graph.subjects(RDF.type, term_type)
         if isinstance(subject, URIRef)
     }
 
 
-def validate_public_graph(graph: Graph) -> None:
-    """Reject RDF structures that cannot be rendered safely and uniquely."""
-    subjects = _public_subjects(graph)
+def validate_public_graph(graph: Graph, renderer: ModuleType) -> None:
+    """Reject renderer-visible RDF that cannot be published safely."""
+    subjects = _public_subjects(graph, renderer)
     fragment_owner: dict[str, URIRef] = {}
     for subject in sorted(subjects, key=str):
         fragment = public_fragment(_fragment(subject))
@@ -89,7 +71,7 @@ def validate_public_graph(graph: Graph) -> None:
             )
 
     for subject in subjects:
-        for predicate in LINK_PREDICATES:
+        for predicate in (RDF.type, *(item[1] for item in renderer.RELATION_FIELDS)):
             for value in graph.objects(subject, predicate):
                 if not isinstance(value, URIRef) or value in subjects:
                     continue
@@ -124,10 +106,10 @@ def publish_site(repository_root: Path, output_dir: Path) -> None:
         raise FileNotFoundError(f"PROV-O support profile is missing: {profile}")
 
     output = _validate_output_directory(output_dir, source, profile)
-    graph = Graph().parse(source, format="turtle")
-    validate_public_graph(graph)
-
     renderer = _load_renderer(root)
+    graph = Graph().parse(source, format="turtle")
+    validate_public_graph(graph, renderer)
+
     if output.exists():
         shutil.rmtree(output)
     renderer.build_site(root, output)
