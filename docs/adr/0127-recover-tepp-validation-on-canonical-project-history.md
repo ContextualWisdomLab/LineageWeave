@@ -1,4 +1,4 @@
-# ADR 0112: Recover TEPP validation on the canonical project history
+# ADR 0127: Recover TEPP validation on the canonical project history
 
 - Status: Proposed
 - Date: 2026-08-21
