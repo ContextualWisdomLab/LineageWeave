@@ -22,6 +22,7 @@ describe("i18n", () => {
     "unresolved",
     "Keymen",
     "Unknown",
+    "Image tags",
     "Counterparties",
     "due",
     "Activity",
