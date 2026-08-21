@@ -1,7 +1,7 @@
 /**
  * Split a raw `post_body` into text and in-place data-URI images.
  *
- * The popup used to dump the source string, so a buyer who opened a post
+ * The popup used to dump the source string, so a reader who opened a post
  * with an embedded invoice saw a base64 wall instead of the picture.
  * Only `data:image/...;base64,...` payloads are turned into images —
  * remote `http(s)` img tags are stripped, never fetched.
@@ -24,6 +24,20 @@ const FOOTNOTE_START = /^\s*[*†‡](?=\S)/;
 const INDENT_MARKER = "\u0001lw-indent:";
 const INDENT_MARKER_END = "\u0002";
 const INDENT_MARKER_PATTERN = /lw-indent:(\d+)/g;
+const SUPERSCRIPT_DIGITS = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+const SUBSCRIPT_DIGITS = "₀₁₂₃₄₅₆₇₈₉";
+const METRIC_MARKUP =
+  /((?<![A-Za-z])(?:\d+(?:\.\d+)?\s*)?(?:km|cm|mm|kg|m))\s*<(sup|sub)\b[^>]*>\s*(\d{1,3})\s*<\/\2>/gi;
+
+function normalizeMetricMarkup(raw: string): string {
+  return raw.replace(
+    METRIC_MARKUP,
+    (_match, base: string, kind: string, digits: string) => {
+      const table = kind.toLowerCase() === "sup" ? SUPERSCRIPT_DIGITS : SUBSCRIPT_DIGITS;
+      return `${base}${[...digits].map((digit) => table[Number(digit)]).join("")}`;
+    },
+  );
+}
 
 function stripIndentMarkers(value: string): string {
   return value
@@ -90,7 +104,7 @@ function indentMarker(width: number): string {
 }
 
 function stripHtmlTags(text: string): string {
-  text = text.replace(/<sup[^>]*>(.*?)<\/sup>/gi, "^$1");
+  text = normalizeMetricMarkup(text).replace(/<sup[^>]*>(.*?)<\/sup>/gi, "^$1");
   const withBoundaries = text
     .replace(BREAK_TAG, "\n")
     .replace(BLOCK_TAG, (tag) => {

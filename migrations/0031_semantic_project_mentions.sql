@@ -13,5 +13,25 @@ create table if not exists post_project_mention (
     primary key (post_id, project_key)
 );
 
-create index if not exists post_project_mention_key_idx
-    on post_project_mention (project_key, confidence desc);
+do $$
+declare
+    confidence_column text;
+begin
+    if exists (
+        select 1
+          from information_schema.columns
+         where table_schema = 'public'
+           and table_name = 'post_project_mention'
+           and column_name = 'mention_confidence'
+    ) then
+        confidence_column := 'mention_confidence';
+    else
+        confidence_column := 'confidence';
+    end if;
+    execute format(
+        'create index if not exists post_project_mention_key_idx '
+        'on post_project_mention (project_key, %s desc)',
+        confidence_column
+    );
+end
+$$;

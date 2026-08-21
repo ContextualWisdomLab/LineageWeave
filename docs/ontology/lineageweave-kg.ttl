@@ -12,8 +12,9 @@
 #
 # The formal OWL 2 / RDFS / SKOS vocabulary for the
 # `knowledge_graph_edge` table's node/edge types, the
-# `entity_relationship_type` / `person_side` / `corporate_entity_level`
-# controlled vocabularies in migrations/0001_initial_schema.sql, and
+# `entity_relationship_type` / `person_side` / `corporate_entity_level`,
+# `post_visibility` / `voc_type` / `permission` / `ticket_status` controlled
+# vocabularies in migrations/0001_initial_schema.sql, and
 # `post_summary_role.actor_type_code` (migrations/0012).
 #
 # `knowledge_graph_edge` (source_node_type_code, source_node_id) --
@@ -22,6 +23,7 @@
 # this file is the formal semantic layer over it -- PostgreSQL stays
 # the source of record. See docs/adr/0004-knowledge-graph-ontology.md
 # for the KG design rationale, docs/adr/0006-role-responsibility-agent-ontology.md
+# and docs/adr/0124-operational-controlled-vocabulary-semantic-layer.md
 # for the R&R actor-type rationale (grounded in W3C PROV-O), and
 # tests/test_ontology.py for the round-trip check that every code below
 # actually exists as a common_lookup_value row, and vice versa.
@@ -38,7 +40,7 @@
         <http://www.w3.org/ns/prov-o> ,
         <http://www.w3.org/2004/02/skos/core> ;
     rdfs:label "LineageWeave Knowledge Graph Ontology" ;
-    rdfs:comment "Formal OWL 2 / RDFS / SKOS vocabulary for LineageWeave's knowledge_graph_edge node and edge types, entity_relationship_type, person_side, corporate_entity_level, and post_summary_role.actor_type_code controlled vocabularies." .
+    rdfs:comment "Formal OWL 2 / RDFS / SKOS vocabulary for LineageWeave's knowledge graph, operational controlled vocabularies, and post-summary actor types." .
 
 :lookupCode a owl:AnnotationProperty ;
     rdfs:label "lookup code" ;
@@ -206,6 +208,114 @@
     rdfs:domain :Post ; rdfs:range :CorporateEntity ;
     rdfs:label "has Voice-of-Supplier relationship" ;
     :lookupCode "rel_vos" .
+
+#################################################################
+# Operational controlled vocabularies
+#
+# These values are persisted in common_lookup_value and participate in
+# authorization, filtering, and workflow state. They are SKOS concepts,
+# not KG edge predicates: the object properties below make the semantic
+# relationship explicit without pretending that a visibility or ticket
+# status is a graph edge.
+#################################################################
+
+:postVisibilityScheme a skos:ConceptScheme ;
+    rdfs:label "Post visibility scheme"@en .
+
+:PublicVisibility a skos:Concept ;
+    skos:inScheme :postVisibilityScheme ;
+    skos:prefLabel "Public"@en ;
+    :lookupCode "public" .
+
+:PrivateVisibility a skos:Concept ;
+    skos:inScheme :postVisibilityScheme ;
+    skos:prefLabel "Private"@en ;
+    :lookupCode "private" .
+
+:vocTypeScheme a skos:ConceptScheme ;
+    rdfs:label "Voice-of relationship type scheme"@en .
+
+:VoiceOfCustomer a skos:Concept ;
+    skos:inScheme :vocTypeScheme ;
+    skos:prefLabel "Voice of Customer"@en ;
+    :lookupCode "voc" .
+
+:VoiceOfCustomersCustomer a skos:Concept ;
+    skos:inScheme :vocTypeScheme ;
+    skos:prefLabel "Voice of Customer's Customer"@en ;
+    :lookupCode "vocc" .
+
+:VoiceOfCompetitor a skos:Concept ;
+    skos:inScheme :vocTypeScheme ;
+    skos:prefLabel "Voice of Competitor"@en ;
+    :lookupCode "voco" .
+
+:VoiceOfMarket a skos:Concept ;
+    skos:inScheme :vocTypeScheme ;
+    skos:prefLabel "Voice of Market"@en ;
+    :lookupCode "vom" .
+
+:VoiceOfPartner a skos:Concept ;
+    skos:inScheme :vocTypeScheme ;
+    skos:prefLabel "Voice of Partner"@en ;
+    :lookupCode "vop" .
+
+:permissionScheme a skos:ConceptScheme ;
+    rdfs:label "Application permission scheme"@en .
+
+:ReadPostsPermission a skos:Concept ;
+    skos:inScheme :permissionScheme ;
+    skos:prefLabel "Read posts"@en ;
+    :lookupCode "post_read" .
+
+:AdministerPostsPermission a skos:Concept ;
+    skos:inScheme :permissionScheme ;
+    skos:prefLabel "Administer posts"@en ;
+    :lookupCode "post_admin" .
+
+:ticketStatusScheme a skos:ConceptScheme ;
+    rdfs:label "Issue ticket status scheme"@en .
+
+:OpenTicketStatus a skos:Concept ;
+    skos:inScheme :ticketStatusScheme ;
+    skos:prefLabel "Open"@en ;
+    :lookupCode "open" .
+
+:InProgressTicketStatus a skos:Concept ;
+    skos:inScheme :ticketStatusScheme ;
+    skos:prefLabel "In progress"@en ;
+    :lookupCode "in_progress" .
+
+:ClosedTicketStatus a skos:Concept ;
+    skos:inScheme :ticketStatusScheme ;
+    skos:prefLabel "Closed"@en ;
+    :lookupCode "closed" .
+
+:IssueTicket a owl:Class ;
+    rdfs:label "Issue ticket"@en .
+
+:hasPostVisibility a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range skos:Concept ;
+    rdfs:label "has post visibility"@en .
+
+:hasVocType a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range skos:Concept ;
+    rdfs:label "has Voice-of type"@en .
+
+:AccessRole a owl:Class ;
+    rdfs:label "Access role"@en .
+
+:hasPermission a owl:ObjectProperty ;
+    rdfs:domain :AccessRole ;
+    rdfs:range skos:Concept ;
+    rdfs:label "has permission"@en .
+
+:hasTicketStatus a owl:ObjectProperty ;
+    rdfs:domain :IssueTicket ;
+    rdfs:range skos:Concept ;
+    rdfs:label "has ticket status"@en .
 
 #################################################################
 # SKOS -- corporate_entity_level (Group -> Company -> Plant)

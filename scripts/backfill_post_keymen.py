@@ -1,6 +1,6 @@
 """Bounded operator backfill for evidence-backed Keyman extraction.
 
-This is intentionally an operator script, not a buyer HTTP route. It reuses
+This is intentionally an operator script, not a reader-facing HTTP route. It reuses
 the same contextual-orchestrator boundary and post session metadata as the
 per-post extraction endpoint, while keeping the default request count small.
 """

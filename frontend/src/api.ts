@@ -360,7 +360,15 @@ export class BackendError extends Error {
   readonly status: number;
 
   constructor(path: string, status: number, detail?: string) {
-    super(detail && detail.trim() ? detail : `${path} -> HTTP ${status}`);
+    const message =
+      status === 0
+        ? "The service is unreachable. Try again later."
+        : status >= 500
+          ? "The service could not complete this request. Try again later."
+          : detail && detail.trim()
+            ? detail
+            : `${path} -> HTTP ${status}`;
+    super(message);
     this.name = "BackendError";
     this.status = status;
   }
@@ -371,14 +379,19 @@ async function backendFetch<T>(
   accessToken: string,
   init?: RequestInit,
 ): Promise<T> {
-  const response = await fetch(`${config.backendBaseUrl}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-      ...init?.headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${config.backendBaseUrl}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        ...(init?.body ? { "Content-Type": "application/json" } : {}),
+        ...init?.headers,
+      },
+    });
+  } catch {
+    throw new BackendError(path, 0);
+  }
   if (!response.ok) {
     let detail: string | undefined;
     try {
@@ -524,7 +537,17 @@ export interface CurrentUser {
   display_name: string;
   permission_codes: string[];
   corporate_entities?: CorporateEntityRef[];
+  account_affiliations?: AccountAffiliation[];
   preferred_locale?: string | null;
+}
+
+export interface AccountAffiliation {
+  corporate_entity_id: string;
+  corporate_entity_code: string;
+  entity_name: string;
+  process_unit_id: string | null;
+  process_unit_code: string | null;
+  process_unit_name: string | null;
 }
 
 export function fetchMe(accessToken: string): Promise<CurrentUser> {
@@ -1056,27 +1079,16 @@ export function fetchRankings(accessToken: string): Promise<RankingList> {
   return backendFetch("/api/rankings", accessToken);
 }
 
-export async function fetchTenantConfig(accessToken: string): Promise<{ brandName: string }> {
-  const response = await fetch(`${config.backendBaseUrl}/api/settings`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch tenant config: ${response.status}`);
-  }
-  return response.json();
+export function fetchTenantConfig(accessToken: string): Promise<{ brandName: string }> {
+  return backendFetch("/api/settings", accessToken);
 }
 
-export async function updateTenantConfig(accessToken: string, brandName: string): Promise<{ brandName: string }> {
-  const response = await fetch(`${config.backendBaseUrl}/api/settings`, {
+export function updateTenantConfig(
+  accessToken: string,
+  brandName: string,
+): Promise<{ brandName: string }> {
+  return backendFetch("/api/settings", accessToken, {
     method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify({ brandName }),
   });
-  if (!response.ok) {
-    throw new Error(`Failed to update tenant config: ${response.status}`);
-  }
-  return response.json();
 }

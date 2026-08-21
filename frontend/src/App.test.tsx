@@ -15,6 +15,9 @@ vi.mock("react-oidc-context", () => ({
 
 beforeEach(() => {
   setLocale("en");
+  window.history.replaceState({}, "", "/");
+  window.sessionStorage.clear();
+  window.localStorage.clear();
   signinRedirect.mockReset();
   signoutRedirect.mockReset();
   mockAuth = {
@@ -25,22 +28,33 @@ beforeEach(() => {
     signinRedirect,
     signoutRedirect,
   };
+  // Post navigation now pushes real history entries (browser back should
+  // close the popup); reset between tests so one test's opened post doesn't
+  // leak into the next test's initial render via a stale `?post=` query.
+  window.history.replaceState({}, "", "/");
 });
 
 afterEach(() => {
+  window.history.replaceState({}, "", "/");
+  window.sessionStorage.clear();
+  window.localStorage.clear();
   vi.unstubAllGlobals();
 });
 
 describe("App, unauthenticated", () => {
   it("shows a login button that starts the real OIDC redirect", async () => {
+    window.history.replaceState({}, "", "/?post=buyer-evidence#summary");
     render(<App showLabPanels />);
     const button = screen.getByRole("button", { name: /log in/i });
     await userEvent.click(button);
     expect(signinRedirect).toHaveBeenCalledTimes(1);
     expect(signinRedirect).toHaveBeenCalledWith(
       expect.objectContaining({
-        state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
+        state: expect.objectContaining({ returnUrl: "/?post=buyer-evidence#summary" }),
       }),
+    );
+    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toBe(
+      "/?post=buyer-evidence#summary",
     );
   });
 });
@@ -85,6 +99,7 @@ describe("App, authenticated", () => {
     pendingTeppRun?: boolean;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
+    deferPosts?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
@@ -124,6 +139,7 @@ describe("App, authenticated", () => {
     releaseMe: () => void;
     releaseGroupRelated: () => void;
     releaseDemoRelated: () => void;
+    releasePosts: () => void;
   } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -151,6 +167,7 @@ describe("App, authenticated", () => {
     let contentRequests = 0;
 
     let releaseMe = () => {};
+    let releasePosts = () => {};
     const meReady = options?.deferMe
       ? new Promise<void>((resolve) => {
           releaseMe = resolve;
@@ -166,6 +183,11 @@ describe("App, authenticated", () => {
     const demoRelatedReady = options?.deferCustomerRelated
       ? new Promise<void>((resolve) => {
           releaseDemoRelated = resolve;
+        })
+      : Promise.resolve();
+    const postsReady = options?.deferPosts
+      ? new Promise<void>((resolve) => {
+          releasePosts = resolve;
         })
       : Promise.resolve();
 
@@ -198,6 +220,16 @@ describe("App, authenticated", () => {
                   { corporate_entity_id: "corp-north", entity_name: "Northridge Grid" },
                 ]
               : [{ corporate_entity_id: "corp-demo", entity_name: "Demo Corp" }],
+            account_affiliations: [
+              {
+                corporate_entity_id: "corp-demo",
+                corporate_entity_code: "DEMO-CORP",
+                entity_name: "Demo Corp",
+                process_unit_id: "pu-demo",
+                process_unit_code: "DEMO-PU",
+                process_unit_name: "Demo PU",
+              },
+            ],
           });
         });
       }
@@ -1107,7 +1139,7 @@ describe("App, authenticated", () => {
           postsUrl.searchParams.get("iso_week") && options?.weekFilteredPosts
             ? options.weekFilteredPosts
             : boardPosts;
-        return Promise.resolve(
+        return postsReady.then(() =>
           jsonResponse(
             postsUrl.searchParams.get("search")
               ? []
@@ -1753,6 +1785,7 @@ describe("App, authenticated", () => {
       releaseMe,
       releaseGroupRelated,
       releaseDemoRelated,
+      releasePosts,
     });
   }
 
@@ -1764,10 +1797,26 @@ describe("App, authenticated", () => {
     await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
     await userEvent.click(screen.getByRole("button", { name: "Ask" }));
 
+    expect(screen.getByRole("log", { name: "Conversation" })).toBeInTheDocument();
+    expect(screen.getByText("Which project?", { exact: true })).toBeInTheDocument();
     expect(await screen.findByRole("list", { name: "Evidence facts" })).toBeInTheDocument();
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("renders the conversation empty state and submits an Ask Agent question with Enter", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+
+    expect(screen.getByRole("log", { name: "Conversation" })).toHaveAttribute("aria-busy", "false");
+    expect(screen.getByText("Start with a question about the evidence")).toBeInTheDocument();
+    const input = screen.getByRole("textbox", { name: "Ask a question" });
+    await userEvent.type(input, "Which project?{Enter}");
+
+    expect(await screen.findByText("Which project?", { selector: ".ask-agent-user-message p:last-child" })).toBeInTheDocument();
+    expect(input).toHaveValue("");
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
@@ -2148,12 +2197,12 @@ describe("App, authenticated", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "View post: Public post" }));
     expect(await screen.findByLabelText("A-100 lineage")).toBeInTheDocument();
-    expect(screen.getByLabelText("Open post: Pricing renegotiation follow-up")).toHaveClass(
-      "lineage-dag-branch",
-    );
-    expect(screen.getByLabelText("Open post: Unrelated: annual account review")).toHaveClass(
-      "lineage-dag-root",
-    );
+    expect(
+      screen.getByLabelText("Open post: Pricing renegotiation follow-up (Branch point)"),
+    ).toHaveClass("lineage-dag-branch");
+    expect(
+      screen.getByLabelText("Open post: Unrelated: annual account review (Root record)"),
+    ).toHaveClass("lineage-dag-root");
   });
 
   it("renders the board landmark and functional post controls", async () => {
@@ -2321,7 +2370,9 @@ describe("App, authenticated", () => {
     expect(relatedPosts).toHaveTextContent("Linked post");
     // The Event Lineage DAG belongs to the opened post, not the list surface.
     expect(screen.getAllByLabelText("A-100 lineage")).toHaveLength(1);
-    expect(screen.getAllByLabelText("Open post: Pricing renegotiation follow-up")).toHaveLength(1);
+    expect(
+      screen.getAllByLabelText("Open post: Pricing renegotiation follow-up (Branch point)"),
+    ).toHaveLength(1);
     expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
     expect(document.getElementById("post-ask")).not.toHaveFocus();
     expect(
@@ -2344,6 +2395,9 @@ describe("App, authenticated", () => {
     const eventLineage = within(popup as HTMLElement).getByRole("heading", { name: "Event Lineage" });
     const affiliate = within(popup as HTMLElement).getByRole("heading", { name: "Affiliate tree" });
     const keyman = within(popup as HTMLElement).getByRole("heading", { name: "Keymen" });
+    expect(within(popup as HTMLElement).getByText("Lineage evidence")).toBeInTheDocument();
+    expect(within(popup as HTMLElement).getByText("Inference boundary")).toBeInTheDocument();
+    expect(within(popup as HTMLElement).getByRole("table", { name: /Evidence trail/ })).toBeInTheDocument();
     expect(evaluation.compareDocumentPosition(eventLineage) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
       0,
     );
@@ -2442,7 +2496,7 @@ describe("App, authenticated", () => {
     );
   });
 
-  it("stops loading and gives the buyer a next action when cited evidence is unavailable", async () => {
+  it("stops loading and gives the reader a next action when cited evidence is unavailable", async () => {
     stubBackend({ evidenceUnavailable: true });
     render(<App showLabPanels />);
 
@@ -2891,7 +2945,7 @@ describe("App, authenticated", () => {
     expect(screen.getByText("due 2026-01-09")).toBeInTheDocument();
   });
 
-  it("tells the buyer how to populate an empty calendar", async () => {
+  it("tells the reader how to populate an empty calendar", async () => {
     stubBackend({ calendarCommitments: [] });
     render(<App showLabPanels />);
 
@@ -3297,7 +3351,9 @@ describe("App, authenticated", () => {
       ).toHaveLength(1);
       const popup = document.querySelector(".popup-panel");
       expect(popup).not.toBeNull();
-      const currentNode = within(popup as HTMLElement).getByLabelText("Open post: Public post");
+      const currentNode = within(popup as HTMLElement).getByLabelText(
+        "Open post: Public post (Current record, Root record)",
+      );
       expect(currentNode).toHaveAttribute("aria-current", "true");
       const lineageNext = screen.getByRole("status", { name: "Event Lineage next action" });
       expect(lineageNext).toHaveTextContent(
@@ -3845,12 +3901,155 @@ describe("App, authenticated", () => {
     );
   });
 
-  it("keeps advanced review tools out of the buyer board", async () => {
+  it("keeps advanced review tools out of the workspace board", async () => {
     stubBackend();
     render(<App />);
 
-    expect(await screen.findByRole("navigation", { name: "Buyer navigation" })).toBeInTheDocument();
+    expect(await screen.findByRole("navigation", { name: "Workspace navigation" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Board" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByLabelText("Authorized scope")).toHaveTextContent("DEMO-CORP / DEMO-PU");
     expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
+    const mobileMenu = screen.getByRole("button", { name: "Open navigation" });
+    expect(mobileMenu).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(mobileMenu);
+    expect(screen.getByRole("button", { name: "Close Workspace navigation" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(1);
+    expect(document.getElementById("mobile-workspace-navigation")).toBeInTheDocument();
+    const drawerClose = document.querySelector<HTMLButtonElement>(".mobile-drawer-close");
+    expect(drawerClose).not.toBeNull();
+    await userEvent.click(drawerClose as HTMLButtonElement);
+    expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute("aria-expanded", "false");
+    const appHeader = document.querySelector<HTMLElement>("header.app-header");
+    expect(appHeader).not.toBeNull();
+    expect(within(appHeader as HTMLElement).getByLabelText("Language")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Workspace navigation" })).not.toHaveTextContent("Language");
+    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    const mobileNavigation = document.getElementById("mobile-workspace-navigation");
+    expect(mobileNavigation).not.toBeNull();
+    await userEvent.click(within(mobileNavigation as HTMLElement).getByRole("button", { name: "Customer master" }));
+    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    expect(screen.getByRole("button", { name: "Close Workspace navigation" })).toBeInTheDocument();
+    await userEvent.click(
+      within(appHeader as HTMLElement).getByRole("button", { name: "Search" }),
+    );
+    expect(document.getElementById("mobile-workspace-navigation")).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole("searchbox", { name: "Search semantic evidence" })).toHaveFocus(),
+    );
+  });
+
+  it("opens the site map utility and closes it after navigation or Escape", async () => {
+    stubBackend();
+    render(<App />);
+
+    const siteMapButton = await screen.findByRole("button", { name: "Site map" });
+    expect(siteMapButton).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(siteMapButton);
+    expect(screen.getByRole("region", { name: "Site map" })).toBeInTheDocument();
+    expect(siteMapButton).toHaveAttribute("aria-expanded", "true");
+
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("region", { name: "Site map" })).not.toBeInTheDocument();
+
+    await userEvent.click(siteMapButton);
+    const siteMap = screen.getByRole("region", { name: "Site map" });
+    await userEvent.click(within(siteMap).getByRole("button", { name: "Customer master" }));
+    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Site map" })).not.toBeInTheDocument();
+  });
+
+  it("lets a keyboard user skip the header and GNB to reach main content", async () => {
+    stubBackend();
+    render(<App />);
+
+    await screen.findByRole("navigation", { name: "Workspace navigation" });
+    const skipLink = screen.getByRole("link", { name: "Skip to main content" });
+    expect(skipLink).toHaveAttribute("href", "#main-content");
+    const main = document.getElementById("main-content");
+    expect(main).not.toBeNull();
+    await userEvent.click(skipLink);
+    expect(main).toHaveFocus();
+  });
+
+  it("does not steal focus after the global search request has been handled", async () => {
+    const fetchMock = stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Search" }));
+
+    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
+    await waitFor(() => expect(searchInput).toHaveFocus());
+
+    const sort = screen.getByLabelText("Sort posts");
+    await userEvent.selectOptions(sort, "title");
+    await waitFor(() => {
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes("sort=title"))).toBe(true);
+      expect(sort).toHaveFocus();
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    const boardButton = screen.getByRole("button", { name: "Board" });
+    await userEvent.click(boardButton);
+    const remountedSearchInput = await screen.findByRole("searchbox", {
+      name: "Search semantic evidence",
+    });
+    await waitFor(() => expect(boardButton).toHaveFocus());
+    expect(remountedSearchInput).not.toHaveFocus();
+  });
+
+  it("focuses the board search input again on a later global Search action", async () => {
+    stubBackend();
+    render(<App />);
+
+    const header = document.querySelector("header.app-header");
+    expect(header).not.toBeNull();
+    const globalSearch = within(header as HTMLElement).getByRole("button", { name: "Search" });
+    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
+
+    await userEvent.click(globalSearch);
+    await waitFor(() => expect(searchInput).toHaveFocus());
+    searchInput.blur();
+    expect(searchInput).not.toHaveFocus();
+
+    await userEvent.click(globalSearch);
+    await waitFor(() => expect(searchInput).toHaveFocus());
+  });
+
+  it("clears a pending global search focus request when leaving the board", async () => {
+    const fetchMock = stubBackend({ deferPosts: true });
+    render(<App />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Search" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+
+    fetchMock.releasePosts();
+    await userEvent.click(screen.getByRole("button", { name: "Board" }));
+    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
+    expect(searchInput).not.toHaveFocus();
+  });
+
+  it("closes a post popup when browser history moves back", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    expect(await screen.findByRole("heading", { name: "Public post" })).toBeInTheDocument();
+    expect(new URL(window.location.href).searchParams.get("post")).toBe("post-1");
+
+    window.history.replaceState({}, "", "/");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Public post" })).not.toBeInTheDocument());
   });
 });
