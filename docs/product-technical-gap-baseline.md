@@ -78,14 +78,14 @@ Open PRs at the same observation:
 
 - PR #258: `head` `6621eb116a4e92eb33eeae989c70fbc602450c51`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #349: `head` `dc4bd020d459e90461231b8d900d074eb3a46595`, base `main`
+- PR #349: `head` `979b4290bc62ab83668aab99cc09c2a297db8464`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #355: `head` `b606c2553f877fa85968d90dc46598ce16897fbf`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`). The overlap with PR #379's
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `d867bb3f9b23e2ede5858415707e1f75a8781a87` (the exact parent
+- PR #368: `head` `2e1de2383865c548959d067f9a70a0dc008d1afd` (the exact parent
   observed for this baseline update), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
@@ -251,6 +251,17 @@ Observed at `2026-08-21T17:25:46Z` on PR #387's exact head
   verification passed 769 backend tests with 17 environment skips, 20 focused
   lineage tests, and `git diff --check`; hosted Checks were queued and no
   independent approval or merge commit was present.
+
+Observed at `2026-08-21T17:32:25Z` on PR #349's exact head
+`979b4290bc62ab83668aab99cc09c2a297db8464`:
+
+- The ontology source cursor now uses `src.v2.` AES-GCM with a fresh 96-bit
+  nonce and prefix/version associated data; the custom v1 keystream format is
+  rejected. The concurrent ontology page retry repair remains included.
+- ADR 0125 records the decision and NIST SP 800-38D APA 7 reference. Local
+  verification passed 830 backend tests with 17 environment skips, 172
+  frontend tests, lint, TypeScript, and production build; hosted Checks and
+  independent approval remained open.
 
 ## 6. Organization OpenTelemetry Evidence Boundary
 
