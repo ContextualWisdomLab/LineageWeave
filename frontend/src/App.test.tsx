@@ -8,6 +8,7 @@ import { isoWeekFromCreatedAt } from "./isoWeek";
 const signinRedirect = vi.fn();
 const signoutRedirect = vi.fn();
 let mockAuth: Record<string, unknown>;
+let projectHistoryRequestUrl: string | null = null;
 
 vi.mock("react-oidc-context", () => ({
   useAuth: () => mockAuth,
@@ -17,6 +18,7 @@ beforeEach(() => {
   setLocale("en");
   signinRedirect.mockReset();
   signoutRedirect.mockReset();
+  projectHistoryRequestUrl = null;
   mockAuth = {
     isLoading: false,
     isAuthenticated: false,
@@ -87,6 +89,8 @@ describe("App, authenticated", () => {
     deferMe?: boolean;
     deferPostOneSummary?: boolean;
     deferSecondAsk?: boolean;
+    partialCutoff?: boolean;
+    deferProjectHistory?: boolean;
     invalidAskSessionOnce?: boolean;
     meFailed?: boolean;
     postBody?: string;
@@ -129,6 +133,7 @@ describe("App, authenticated", () => {
     releaseGroupRelated: () => void;
     releaseDemoRelated: () => void;
     releasePostOneSummary: () => void;
+    releaseProjectHistory: () => void;
   } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -184,6 +189,12 @@ describe("App, authenticated", () => {
     const postOneSummaryReady = options?.deferPostOneSummary
       ? new Promise<void>((resolve) => {
           releasePostOneSummary = resolve;
+        })
+      : Promise.resolve();
+    let releaseProjectHistory = () => {};
+    const projectHistoryReady = options?.deferProjectHistory
+      ? new Promise<void>((resolve) => {
+          releaseProjectHistory = resolve;
         })
       : Promise.resolve();
 
@@ -1161,7 +1172,7 @@ describe("App, authenticated", () => {
             visibility_label: "Public",
             project_evidence: [
               {
-                project_key: "source-project",
+                project_key: "semantic-project",
                 project_name: "Semantic project",
                 evidence: "project was described in the body",
                 confidence: 0.9,
@@ -1680,8 +1691,12 @@ describe("App, authenticated", () => {
       }
       if (url.endsWith("/api/ask") && method === "POST") {
         askRequestCount += 1;
-        const requestBody = JSON.parse(String(init?.body ?? "{}")) as { session_id?: string };
-        if (options?.invalidAskSessionOnce && askRequestCount === 1 && requestBody.session_id) {
+        const askBody = JSON.parse(String(init?.body ?? "{}")) as {
+          question?: string;
+          knowledge_cutoff?: string;
+          session_id?: string;
+        };
+        if (options?.invalidAskSessionOnce && askRequestCount === 1 && askBody.session_id) {
           return Promise.resolve(
             new Response(JSON.stringify({ detail: "Global Ask session not found" }), {
               status: 404,
@@ -1693,23 +1708,56 @@ describe("App, authenticated", () => {
           options?.deferSecondAsk && askRequestCount === 2
             ? secondAskReady
             : Promise.resolve();
+        const cutoffGrounded = Boolean(askBody.knowledge_cutoff);
+        const partialCutoff = cutoffGrounded && Boolean(options?.partialCutoff);
         return ready.then(() =>
           Promise.resolve(
           jsonResponse({
             session_id: "session-1",
-            answer_text: "The cited project is supported by the stored semantic evidence.",
+            answer_text: cutoffGrounded
+              ? "By the cutoff Phoenix was still the January kickoff."
+              : "The cited project is supported by the stored semantic evidence.",
             cited_post_ids: ["post-2"],
-            cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
-            cited_post_evidence: [
+            cited_posts: [
               {
                 post_id: "post-2",
-                facts: [
-                  { kind: "semantic_project", text: "project: Semantic project | evidence: Body evidence" },
-                  { kind: "semantic_keyman", text: "Keyman mention: Ada West | context: account lead" },
-                ],
+                post_title: "Linked post",
+                ...(cutoffGrounded
+                  ? {
+                      source_revision_id: "rev-january",
+                      knowledge_cutoff: askBody.knowledge_cutoff,
+                      live_after_cutoff: true,
+                      historical_body_unavailable: false,
+                    }
+                  : {}),
               },
             ],
+            cited_post_evidence: cutoffGrounded
+              ? []
+              : [
+                  {
+                    post_id: "post-2",
+                    facts: [
+                      { kind: "semantic_project", text: "project: Semantic project | evidence: Body evidence" },
+                      { kind: "semantic_keyman", text: "Keyman mention: Ada West | context: account lead" },
+                    ],
+                  },
+                ],
             source_post_ids: ["post-1", "post-2"],
+            grounding_status: partialCutoff
+              ? "partially_cutoff_grounded"
+              : cutoffGrounded
+                ? "fully_cutoff_grounded"
+                : "live_only",
+            knowledge_cutoff: askBody.knowledge_cutoff ?? null,
+            next_action: partialCutoff
+              ? "This answer is only partly grounded at the requested cutoff. Open a cited post to see which historical bodies were retained."
+              : cutoffGrounded
+                ? "This answer is fully grounded at the requested cutoff. Open a cited post to compare the retained body."
+                : undefined,
+            limitations: partialCutoff
+              ? [{ post_id: "post-1", limitation_code: "historical_body_unavailable" }]
+              : [],
             timeline: [
               {
                 post_id: "post-1",
@@ -1818,6 +1866,63 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/project-history/projects") && method === "GET") {
+        return Promise.resolve(
+          jsonResponse({
+            contract_version: 1,
+            time_basis_code: "source_post_created_at_fallback",
+            knowledge_cutoff: "2026-01-12T12:00:00Z",
+            project_count: 1,
+            truncated: false,
+            projects: [{
+              normalized_project_key: "semantic-project",
+              project_key: "semantic-project",
+              project_name: "Semantic project",
+              truth_status_code: "inferred",
+              event_count: 1,
+              latest_event_at: "2026-01-01T00:00:00Z",
+            }],
+          }),
+        );
+      }
+      if (url.includes("/api/project-history?") && method === "GET") {
+        projectHistoryRequestUrl = url;
+        return projectHistoryReady.then(() =>
+          jsonResponse({
+            contract_version: 1,
+            project_key: "Semantic project",
+            normalized_project_key: "semantic-project",
+            project_name: "Semantic project",
+            focus_event_id: "post-1",
+            time_basis_code: "source_post_created_at_fallback",
+            event_count: 1,
+            distinct_actor_count: 0,
+            distinct_observed_actor_count: 0,
+            evidence_boundary_code: "authorized_visible_source_posts",
+            truncated: false,
+            events: [
+              {
+                event_id: "post-1",
+                source_post_id: "post-1",
+                event_title: "Public post",
+                event_type_code: "source_recorded",
+                event_type_basis_code: "display_classification",
+                occurred_at: "2026-01-01T00:00:00Z",
+                time_basis_code: "source_post_created_at_fallback",
+                voc_type_code: "voc",
+                source_stage_code: null,
+                source_detail_state_code: null,
+                project_matches: [],
+                responsibility_evidence: [],
+                observed_responsibilities: [],
+                responsibility_transition_truth_status_code: null,
+                responsibility_transition_code: null,
+                related_prior_paths: [],
+              },
+            ],
+          }),
+        );
+      }
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -1827,7 +1932,25 @@ describe("App, authenticated", () => {
       releaseGroupRelated,
       releaseDemoRelated,
       releasePostOneSummary,
+      releaseProjectHistory,
     });
+  }
+
+  async function expectGnbKeymanFocus(postTitle: string) {
+    await waitFor(() => expect(document.getElementById("post-keyman")).toHaveFocus());
+    const lineageNext = screen.getByRole("status", { name: "Event Lineage next action" });
+    expect(lineageNext).toHaveTextContent(
+      `${postTitle} is current in Event Lineage. Read Keyman and evaluation next.`,
+    );
+    const keyman = screen.getByRole("heading", { name: "Keymen" });
+    expect(lineageNext.compareDocumentPosition(keyman) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  }
+
+  async function expectHomeListSkipsGnbKeymanFocus() {
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Keymen" })).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(document.getElementById("post-keyman")).not.toHaveFocus();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
   }
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
@@ -1844,6 +1967,48 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("list", { name: "Event Lineage timeline" })).toBeInTheDocument();
     expect(screen.getByText("2026-01-01T00:00:00Z")).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("names a cutoff-grounded Ask answer and does not call it live-only", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "What did we know about Phoenix?");
+    fireEvent.change(within(ask).getByLabelText("Knowledge cutoff (optional)"), {
+      target: { value: "2026-01-15T12:00" },
+    });
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+
+    expect(
+      await within(ask).findByText("By the cutoff Phoenix was still the January kickoff."),
+    ).toBeInTheDocument();
+    expect(
+      within(ask).getByText(
+        "This answer is fully grounded at the requested cutoff. Open a cited post to compare the retained body.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(ask).getByText("This live source changed after the cutoff.")).toBeInTheDocument();
+    expect(
+      within(ask).queryByText("Authorized cited posts are current. Open a cited post to read Event Lineage."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows unavailable historical bodies for a partially grounded Ask answer", async () => {
+    stubBackend({ partialCutoff: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "What changed?");
+    fireEvent.change(within(ask).getByLabelText("Knowledge cutoff (optional)"), {
+      target: { value: "2026-01-15T12:00" },
+    });
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+
+    expect(await within(ask).findByRole("heading", { name: "Historical evidence limitations" })).toBeInTheDocument();
+    expect(within(ask).getByRole("region", { name: "Historical evidence limitations" })).toHaveTextContent(
+      "Public post: Historical body unavailable",
+    );
   });
 
   it("hides previous Ask evidence while a new answer is pending", async () => {
@@ -2024,6 +2189,33 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
   });
 
+  it("opens the shared project history from a semantic project evidence card", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Open project history for: Semantic project" }),
+    );
+
+    expect(await screen.findByRole("heading", { name: "Project event timeline" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Select project" })).toHaveValue("semantic-project");
+    expect(screen.getByRole("button", { name: "Open source record: Public post" })).toBeInTheDocument();
+    expect(projectHistoryRequestUrl).toContain("focus_post_id=post-1");
+  });
+
+  it("shows a next-action loading state while project history is requested", async () => {
+    const fetchMock = stubBackend({ deferProjectHistory: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Open project history for: Semantic project" }),
+    );
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Loading project history...");
+    fetchMock.releaseProjectHistory();
+    expect(await screen.findByRole("heading", { name: "Project event timeline" })).toBeInTheDocument();
+  });
+
   it("clicking Weekly VOC keeps the 2026-W01 Voice of Customer post and names Event Lineage as the next action", async () => {
     stubBackend({
       boardPosts: [
@@ -2154,20 +2346,16 @@ describe("App, authenticated", () => {
     await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).toHaveFocus();
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Public post");
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
     await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
-    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    await expectHomeListSkipsGnbKeymanFocus();
   });
 
-  it("does not scroll Calendar users away from Event Lineage when related evidence lands", async () => {
+  it("never runs the report-member Ask auto-land chain for a Calendar open (ADR 0100)", async () => {
     const scrolledIds: string[] = [];
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
     HTMLElement.prototype.scrollIntoView = function () {
@@ -2183,8 +2371,8 @@ describe("App, authenticated", () => {
         within(calendar).getByRole("button", { name: "Open commitment for: Public post" }),
       );
 
-      await screen.findByRole("status", { name: "Ask next action" });
-      expect(document.getElementById("post-event-lineage")).toHaveFocus();
+      await expectGnbKeymanFocus("Public post");
+      expect(screen.queryByRole("status", { name: "Ask next action" })).not.toBeInTheDocument();
       expect(scrolledIds).not.toContain("post-ask");
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
@@ -2205,17 +2393,13 @@ describe("App, authenticated", () => {
     );
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).toHaveFocus();
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Public post");
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     const board = screen.getByRole("region", { name: "Board" });
     await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
-    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    await expectHomeListSkipsGnbKeymanFocus();
   });
 
   it("opening a Customer master related post focuses Event Lineage; a home list open does not", async () => {
@@ -2233,10 +2417,7 @@ describe("App, authenticated", () => {
     );
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).toHaveFocus();
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Public post");
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     const boardAfterCustomer = screen.getByRole("region", { name: "Board" });
@@ -2244,8 +2425,7 @@ describe("App, authenticated", () => {
       within(boardAfterCustomer).getByRole("button", { name: "View post: Public post" }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
-    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    await expectHomeListSkipsGnbKeymanFocus();
   });
 
   it("keeps the current Customer master loading state when an older request finishes", async () => {
@@ -2286,17 +2466,13 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
-    expect(document.getElementById("post-event-lineage")).toHaveFocus();
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Linked post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Linked post");
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     const boardAfterAsk = screen.getByRole("region", { name: "Board" });
     await userEvent.click(within(boardAfterAsk).getByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
-    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    await expectHomeListSkipsGnbKeymanFocus();
   });
 
   it("ignores a stale summary after Event Lineage navigation changes the selected post", async () => {
@@ -2337,16 +2513,11 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Linked post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Linked post");
 
     await userEvent.click(screen.getByLabelText("Open post: Public post"));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).toHaveFocus();
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Public post");
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     const boardAfterAsk = screen.getByRole("region", { name: "Board" });
@@ -2356,8 +2527,7 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
-    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
-    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    await expectHomeListSkipsGnbKeymanFocus();
   });
 
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
@@ -2594,6 +2764,17 @@ describe("App, authenticated", () => {
       ).toBeGreaterThan(summaryCallsBeforeRetry),
     );
     expect(screen.getByRole("button", { name: "Retry summary refresh" })).toBeInTheDocument();
+  });
+
+  it("requests one summary per post open and keeps retry as the only second request", async () => {
+    const fetchMock = stubBackend();
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("이것은 요약입니다.")).toBeInTheDocument());
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/api/posts/post-1/summary")),
+    ).toHaveLength(1);
   });
 
   it("refreshes newly processed source content after summary generation", async () => {
