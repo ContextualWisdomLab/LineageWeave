@@ -726,36 +726,38 @@ async def update_tenant_settings(
     # Only admins can change settings
     _require_post_admin(account)
     async with pool.acquire() as conn:
-        current_row = await conn.fetchrow(
-            """
-            SELECT brand_name, system_name, copyright_year, copyright_holder
-              FROM tenant_settings
-             WHERE tenant_settings_id = 1
-            """
-        )
-        current = _tenant_settings_response(current_row)
-        brand_name = _tenant_setting_text(payload, "brandName", str(current["brandName"]))
-        system_name = _tenant_setting_text(payload, "systemName", str(current["systemName"]))
-        copyright_year = _tenant_copyright_year(payload, int(current["copyrightYear"]))
-        copyright_holder = _tenant_setting_text(
-            payload, "copyrightHolder", str(current["copyrightHolder"])
-        )
-        await conn.execute(
-            """
-            INSERT INTO tenant_settings
-                (tenant_settings_id, brand_name, system_name, copyright_year, copyright_holder)
-            VALUES (1, $1, $2, $3, $4)
-            ON CONFLICT (tenant_settings_id) DO UPDATE SET
-                brand_name = EXCLUDED.brand_name,
-                system_name = EXCLUDED.system_name,
-                copyright_year = EXCLUDED.copyright_year,
-                copyright_holder = EXCLUDED.copyright_holder
-            """,
-            brand_name,
-            system_name,
-            copyright_year,
-            copyright_holder,
-        )
+        async with conn.transaction():
+            current_row = await conn.fetchrow(
+                """
+                SELECT brand_name, system_name, copyright_year, copyright_holder
+                  FROM tenant_settings
+                 WHERE tenant_settings_id = 1
+                 FOR UPDATE
+                """
+            )
+            current = _tenant_settings_response(current_row)
+            brand_name = _tenant_setting_text(payload, "brandName", str(current["brandName"]))
+            system_name = _tenant_setting_text(payload, "systemName", str(current["systemName"]))
+            copyright_year = _tenant_copyright_year(payload, int(current["copyrightYear"]))
+            copyright_holder = _tenant_setting_text(
+                payload, "copyrightHolder", str(current["copyrightHolder"])
+            )
+            await conn.execute(
+                """
+                INSERT INTO tenant_settings
+                    (tenant_settings_id, brand_name, system_name, copyright_year, copyright_holder)
+                VALUES (1, $1, $2, $3, $4)
+                ON CONFLICT (tenant_settings_id) DO UPDATE SET
+                    brand_name = EXCLUDED.brand_name,
+                    system_name = EXCLUDED.system_name,
+                    copyright_year = EXCLUDED.copyright_year,
+                    copyright_holder = EXCLUDED.copyright_holder
+                """,
+                brand_name,
+                system_name,
+                copyright_year,
+                copyright_holder,
+            )
     return {
         "brandName": brand_name,
         "systemName": system_name,
