@@ -1,4 +1,4 @@
-# ADR 0125 — Bind Global Ask cutoffs and keep migration identities unique
+# ADR 0126 — Bind Global Ask cutoffs and keep migration identities unique
 
 **Decision status:** Accepted on the PR #342 repair branch  
 **Date:** 2026-08-21  
@@ -17,9 +17,11 @@ push rather than leaving the branch itself correct.
 ## Decision
 
 1. Bind the cutoff as the fourth argument of the final Global Ask source query.
-2. Assign the cutoff schema change the next unique forward migration identity,
+2. Reuse the already-materialized `authorized_entity_ids` list as `$1` instead of
+   re-iterating `authorized_corporate_entity_ids`.
+3. Assign the cutoff schema change the next unique forward migration identity,
    `0054`, and update rollback, migration dispatch, and contract tests.
-3. Keep reproduction and regression checks in committed tests. Do not use a
+4. Keep reproduction and regression checks in committed tests. Do not use a
    workflow that edits, commits, pushes, or deletes product source at runtime.
 
 ## Consequences
@@ -33,7 +35,7 @@ push rather than leaving the branch itself correct.
 ## Verification
 
 - The synthetic query contract asserts the fourth argument is the requested
-  cutoff.
+  cutoff and the first argument is the materialized authorized-entity list.
 - The PostgreSQL integration contract executes the final query against a real
   local PostgreSQL parser when `LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN` is set.
 - Migration identity tests reject duplicate numeric prefixes and require the

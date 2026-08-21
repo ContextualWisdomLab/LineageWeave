@@ -338,7 +338,9 @@ runtime note into a shipped/live claim.
   implemented in either Ask surface.
 - Source publication eligibility and cutoff are applied before Ask retrieval. Persisted
   answers are withheld when any citation loses visibility, and a Global Ask session with
-  stale citations must start a new session before prior answer prose is reused.
+  stale citations must start a new session before prior answer prose is reused. The
+  browser session identifier uses one shared `sessionStorage` key across bootstrap,
+  persist, 404 retry, 409 restart, and logout.
 - The response bounds citation and project counts, discloses truncated project links, and
   keeps answers readable when a timeline or TEPP validation is unavailable.
 - Remaining causal-analysis work is explicitly outside this slice: temporal association

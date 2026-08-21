@@ -29,7 +29,9 @@ reusing it as conversation context can disclose facts no longer authorized.
    Its prose cannot be safely decomposed by source after access changes.
 6. A Global Ask session is rejected and restarted when any citation in its persisted
    continuity context is no longer authorized. Stored summaries are not reused across
-   that boundary.
+   that boundary. The browser persists that session identifier under one shared
+   `sessionStorage` key for bootstrap, successful answers, 404 retry, 409 restart, and
+   logout; those sites must not copy the key as a string literal.
 7. Ask retrieval itself applies the same cutoff and source eligibility before an LLM sees
    evidence. Prompt bodies, hidden IDs, and unauthorized project counts never enter the
    project-history link response.
