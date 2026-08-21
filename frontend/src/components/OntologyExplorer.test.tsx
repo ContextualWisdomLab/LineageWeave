@@ -1,9 +1,15 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { BackendError, fetchOntologyNeighborhood } from "../api";
 import type { OntologyNeighborhoodPayload } from "../api";
 import { OntologyExplorer } from "./OntologyExplorer";
 import { filterNeighborhood } from "../ontologyLayout";
+
+vi.mock("../api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../api")>();
+  return { ...actual, fetchOntologyNeighborhood: vi.fn() };
+});
 
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
 const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
@@ -130,6 +136,30 @@ function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): Ont
 }
 
 describe("OntologyExplorer", () => {
+  it("keeps loaded pages visible when a continuation page fails", async () => {
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    fetchNeighborhood
+      .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
+      .mockRejectedValueOnce(new BackendError("/api/ontology/neighborhood", 500));
+
+    render(
+      <OntologyExplorer
+        accessToken="synthetic-access-token"
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+      />,
+    );
+
+    await userEvent.click(await screen.findByRole("button", { name: "Load next relation page" }));
+    expect(await screen.findByText("Ontology neighborhood is unavailable. Open a visible post next.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
+    expect(fetchNeighborhood).toHaveBeenNthCalledWith(
+      2,
+      "synthetic-access-token",
+      expect.objectContaining({ cursor: "page-2" }),
+    );
+  });
+
   it("lets keyboard users open node and edge evidence", async () => {
     const onSelectPost = vi.fn();
     const onOpenEvidence = vi.fn();

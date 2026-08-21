@@ -123,7 +123,7 @@ export function OntologyExplorer({
       })
       .catch((error: unknown) => {
         if (cancelled) return;
-        setLoaded(null);
+        if (!cursor) setLoaded(null);
         if (error instanceof BackendError && error.status === 403) {
           setStatus("denied");
           return;
@@ -211,7 +211,7 @@ export function OntologyExplorer({
         </div>
       ) : null}
       <OntologyLegend />
-      {layout && visible && status !== "denied" && status !== "error" && status !== "loading" ? (
+      {layout && visible && status !== "denied" && status !== "loading" ? (
         <>
           <div className="ontology-graph-desktop">
             <OntologyGraph
